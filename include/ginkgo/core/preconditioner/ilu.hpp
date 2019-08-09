@@ -36,9 +36,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 
+#include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -49,11 +51,13 @@ namespace gko {
 namespace preconditioner {
 
 
+// Maybe rename AbstractIlu to GeneralIlu (since Abstract usually has a
+// different meaning)
 /**
  * Incomplete LU (ILU) is ... TODO
  *
  * @note This class is not thread safe (even a const object is not) because it
- *       uses an internal cache to accelerate multiple applies
+ *       uses an internal cache to accelerate multiple (sequential) applies
  *
  * @tparam ValueType  precision of matrix elements
  *
@@ -70,6 +74,9 @@ class AbstractIlu
 
 public:
     using value_type = ValueType;
+    using l_solver_type = LSolverType;
+    using u_solver_type = USolverType;
+    static constexpr bool performs_reverse_apply = ReverseApply;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -85,42 +92,89 @@ public:
         std::shared_ptr<typename USolverType::Factory> GKO_FACTORY_PARAMETER(
             u_solver_factory, nullptr);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(AbstractIlu, parameters, Factory);
-    GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    class LUManager {
-    public:
-        LUManager(std::shared_ptr<const LinOp> single)
+    /**
+     * Manages the `generate` arguments for the parent class to allow multiple
+     * argument versions.
+     */
+    struct LUManager {
+        LUManager(
+            std::shared_ptr<const factorization::ParIlu<ValueType>> par_ilu)
+        {
+            l_factor_ = par_ilu->get_l_factor();
+            u_factor_ = par_ilu->get_u_factor();
+        }
+        /**
+         *
+         *
+         * @note comp must be a gko::Composition<ValueType> with at least two
+                 operands, otherwise, an exception is thrown.
+         */
+        LUManager(std::shared_ptr<const LinOp> composition)
         {
             // TODO: dynamic_cast to Composition, followed by setting l_factor_
             // and u_factor_ Also: Throw error on failure / incompatability
+            auto comp_cast =
+                as<const Composition<ValueType>>(composition.get());
+            if (comp_cast->get_operators().size() < 2) {
+                // throw not supported
+            }
+            l_factor_ = comp_cast->get_operators()[0];
+            u_factor_ = comp_cast->get_operators()[1];
         }
         LUManager(std::shared_ptr<const LinOp> l_factor,
                   std::shared_ptr<const LinOp> u_factor)
             : l_factor_{std::move(l_factor)}, u_factor_{std::move(u_factor)}
         {}
-        // TODO: add get_size
-    private:
+
         std::shared_ptr<const LinOp> l_factor_;
         std::shared_ptr<const LinOp> u_factor_;
     };
 
+
 public:
-    // The Factory might have to be hand written since we want to have multiple
-    // `generate` functions (e.g. with ParIlu and user chosen L and U matrices)
+    /**
+     * Returns the parameters used to build the initial object.
+     *
+     * @returns the parameters used to build the initial object.
+     */
     /*
-    class Factory
-        : public EnablePolymorphicObject<Factory, >, {
-    friend class ::gko::enable_parameters_type<parameters_type, Factory>;
-    public:
-    };
+        const parameters_type &get_parameters() const {
+            return parameters_;
+        }
+
+        class PolymorphicBaseFactory : public AbstractFactory<LinOp,
+    TBD_DataType>{ public: using AbstractFactory<LinOp, TBD>::AbstractFactory;
+
+            std::unique_ptr<LinOp> generate(TBD_DataType input) const
+            {
+                this->template
+    log<log::logger::linop_factory_generate_started>(this, input.get()); auto
+    generated = AbstractFactory::generate(input); this->template
+    log<log::Logger::linop_factory_generate_completed>(this, input.get(),
+    generated.get()); return generated;
+            }
+        };
+
+        // The Factory might have to be hand written since we want to have
+    multiple
+        // `generate` functions (e.g. with ParIlu and user chosen L and U
+    matrices) class Factory : public EnablePolymorphicObject<Factory,
+    PolymorphicBaseFactory, parameters_type>, { friend class
+    ::gko::EnablePolymorphicObject<Factory, PolymorphicBaseFactory>, friend
+    class ::gko::enable_parameters_type<parameters_type, Factory>; public:
+        };
+        GKO_ENABLE_BUILD_METHOD(Factory);
+
+    // Required since we did not use the `GKO_ENABLE_LIN_OP_FACTORY` macro
+    private:
+        parameters_type parameters_;
+    */
+public:
+    GKO_ENABLE_LIN_OP_FACTORY(AbstractIlu, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
-// Required since we did not use the `GKO_ENABLE_LIN_OP_FACTORY` macro
-private:
-    parameters_type parameters_;
-    */
 
 protected:
     void apply_impl(const LinOp *b, LinOp *x) const override
@@ -171,6 +225,8 @@ protected:
         auto exec = this->get_executor();
         // If it was not set, use a default generated one of `LSolverType`
         if (!parameters_.l_solver_factory) {
+            // Maybe make the number of iterations more dynamic (like the size
+            // of a matrix)
             l_solver_ =
                 LSolverType::build()
                     .with_criteria(
@@ -224,9 +280,9 @@ private:
      * Copying an instance will only yield an empty object since copying the
      * cached vector would not make sense.
      *
-     * @internal  The struct is necessary, so the whole class can be copiable
+     * @internal  The struct is necessary, so the whole class can be copyable
      *            (could also be done with writing `operator=` and copy
-     *             constructor by hand)
+     *            constructor by hand)
      */
     mutable struct cache_struct {
         cache_struct() = default;
