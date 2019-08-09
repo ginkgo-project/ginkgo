@@ -275,10 +275,11 @@ TEST_F(ParIlu, ThrowDimensionMismatch)
 TEST_F(ParIlu, LUFactorFunctionsSetProperly)
 {
     auto factors = ilu_factory_skip->generate(mtx_small);
+
     auto lin_op_l_factor =
-        static_cast<const gko::LinOp *>(factors->get_l_factor());
+        static_cast<const gko::LinOp *>(factors->get_l_factor().get());
     auto lin_op_u_factor =
-        static_cast<const gko::LinOp *>(factors->get_u_factor());
+        static_cast<const gko::LinOp *>(factors->get_u_factor().get());
     auto first_operator = factors->get_operators()[0].get();
     auto second_operator = factors->get_operators()[1].get();
 
