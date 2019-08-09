@@ -32,7 +32,7 @@ set(${PROJECT_NAME}_CUSTOM_BUILD_TYPES "COVERAGE;TSAN;ASAN" CACHE INTERNAL "")
 set(${PROJECT_NAME}_COVERAGE_COMPILER_FLAGS "-g -O0 --coverage" CACHE INTERNAL "")
 set(${PROJECT_NAME}_COVERAGE_LINKER_FLAGS   "--coverage"        CACHE INTERNAL "")
 set(${PROJECT_NAME}_TSAN_COMPILER_FLAGS "-g -O1 -fsanitize=thread -fno-omit-frame-pointer -fPIC" CACHE INTERNAL "")
-set(${PROJECT_NAME}_TSAN_LINKER_FLAGS   "-fsanitize=thread -fno-omit-frame-pointer -fPIC"        CACHE INTERNAL "")
+set(${PROJECT_NAME}_TSAN_LINKER_FLAGS   "-fsanitize=thread -static-libtsan -fno-omit-frame-pointer -fPIC" CACHE INTERNAL "")
 set(${PROJECT_NAME}_ASAN_COMPILER_FLAGS "-g -O1 -fsanitize=address -fno-omit-frame-pointer" CACHE INTERNAL "")
 set(${PROJECT_NAME}_ASAN_LINKER_FLAGS   "-fsanitize=address -fno-omit-frame-pointer"        CACHE INTERNAL "")
 

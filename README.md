@@ -4,7 +4,7 @@
 [![Coverage](https://codecov.io/gh/ginkgo-project/ginkgo/branch/develop/graph/badge.svg)](https://codecov.io/gh/ginkgo-project/ginkgo)
 [![CDash dashboard](https://img.shields.io/badge/CDash-Access-blue.svg)](http://my.cdash.org/index.php?project=Ginkgo+Project)
 [![Documentation](https://img.shields.io/badge/Documentation-latest-blue.svg)](https://ginkgo-project.github.io/ginkgo/doc/develop/)
-[![License](https://img.shields.io/github/license/ginkgo-project/ginkgo.svg)](LICENSE)
+[![License](https://img.shields.io/github/license/ginkgo-project/ginkgo.svg)](./LICENSE)
 [![c++ standard](https://img.shields.io/badge/c%2B%2B-11-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
 
 Ginkgo is a high-performance linear algebra library for manycore systems, with a
@@ -48,6 +48,8 @@ In addition, if you want to contribute code to Ginkgo, you will also need the
 following:
 
 *   _clang-format 5.0.1+_ (ships as part of _clang_)
+*   _clang-tidy_ (optional, when setting the flag `-DGINKGO_WITH_CLANG_TIDY=ON`)
+*   _iwyu_ (Include What You Use, optional, when setting the flag `-DGINKGO_WITH_IWYU=ON`)
 
 ### Windows
 
@@ -91,7 +93,7 @@ Ginkgo does comprehensive unit tests using Google Tests. These tests are enabled
 A unique feature of Ginkgo is the ability to run benchmarks and view your results
 with the help of the [Ginkgo Performance Explorer (GPE)](https://ginkgo-project.github.io/gpe/). 
 
-More details about this can be found in the [documentation](https://ginkgo-project.github.io/ginkgo/doc/master/)
+More details about this can be found in the [BENCHMARKING.md page](./BENCHMARKING.md)
 
 Contributing to Ginkgo
 ---------------------------
@@ -103,7 +105,7 @@ external contributors like in the example below.
 
 #### Contributors
 I hereby place all my contributions in this codebase under a BSD-3-Clause
-license, as specified in the repository's [LICENSE](LICENSE) file.
+license, as specified in the repository's [LICENSE](./LICENSE) file.
 
 Name Surname <email@domain> Institution(s)
 
@@ -113,11 +115,16 @@ Contributing guidelines can be accessed in our Wiki under the [Developer's
 Homepage](https://github.com/ginkgo-project/ginkgo/wiki/Developers-Homepage).
 This page also contains other information useful to developers, such as writing
 proper commit messages, understanding Ginkgo's library design, relevant C++
-information, and more.
+information, and more. In general, always refer to this page for developer
+information.
 
-In general, always refer to this page for developer information. If you think
-that anything is missing, feel free to [create an
-issue](https://github.com/ginkgo-project/ginkgo/issues/new).  
+### Support
+If you have any question, bug to report or would like to propose a new feature,
+feel free to [create an
+issue on GitHub](https://github.com/ginkgo-project/ginkgo/issues/new). Another possibility
+is to send an email to [Ginkgo's main email address](ginkgo.library@gmail.com)
+or to contact any of the main [contributors](contributors.txt).
+
 
 ### Licensing
 

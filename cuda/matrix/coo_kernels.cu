@@ -46,6 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/format_conversion.cuh"
+#include "cuda/components/segment_scan.cuh"
 
 
 namespace gko {
@@ -70,30 +72,6 @@ constexpr int spmv_block_size = warps_in_block * cuda_config::warp_size;
 
 
 namespace {
-
-
-template <int subwarp_size = cuda_config::warp_size, typename ValueType,
-          typename IndexType>
-__device__ __forceinline__ void segment_scan(
-    const group::thread_block_tile<subwarp_size> &group, IndexType ind,
-    ValueType *__restrict__ val, bool *__restrict__ head)
-{
-#pragma unroll
-    for (int i = 1; i < subwarp_size; i <<= 1) {
-        const IndexType add_ind = group.shfl_up(ind, i);
-        ValueType add_val = zero<ValueType>();
-        if (threadIdx.x >= i && add_ind == ind) {
-            add_val = *val;
-            if (i == 1) {
-                *head = false;
-            }
-        }
-        add_val = group.shfl_down(add_val, i);
-        if (threadIdx.x < subwarp_size - i) {
-            *val += add_val;
-        }
-    }
-}
 
 
 /**
@@ -128,7 +106,6 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
     const IndexType ind_start = start + threadIdx.x;
     const IndexType ind_end = ind_start + (num - 1) * subwarp_size;
     IndexType ind = ind_start;
-    bool is_first_in_segment = true;
     IndexType curr_row = (ind < nnz) ? row[ind] : 0;
     const auto tile_block =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
@@ -139,9 +116,8 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
             (ind + subwarp_size < nnz) ? row[ind + subwarp_size] : row[nnz - 1];
         // segmented scan
         if (tile_block.any(curr_row != next_row)) {
-            is_first_in_segment = true;
-            segment_scan<subwarp_size>(tile_block, curr_row, &temp_val,
-                                       &is_first_in_segment);
+            bool is_first_in_segment =
+                segment_scan<subwarp_size>(tile_block, curr_row, &temp_val);
             if (is_first_in_segment) {
                 atomic_add(&(c[curr_row * c_stride + column_id]),
                            scale(temp_val));
@@ -151,13 +127,12 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
         curr_row = next_row;
     }
     if (num > 0) {
-        ind = ind_start + (num - 1) * subwarp_size;
+        ind = ind_end;
         temp_val += (ind < nnz) ? val[ind] * b[col[ind] * b_stride + column_id]
                                 : zero<ValueType>();
         // segmented scan
-        is_first_in_segment = true;
-        segment_scan<subwarp_size>(tile_block, curr_row, &temp_val,
-                                   &is_first_in_segment);
+        bool is_first_in_segment =
+            segment_scan<subwarp_size>(tile_block, curr_row, &temp_val);
         if (is_first_in_segment) {
             atomic_add(&(c[curr_row * c_stride + column_id]), scale(temp_val));
         }
@@ -205,21 +180,6 @@ __global__ __launch_bounds__(default_block_size) void set_zero(
 }
 
 
-template <typename ValueType>
-ValueType calculate_nwarps(const size_type nnz, const ValueType nwarps_in_cuda)
-{
-    // TODO: multiple is a parameter should be tuned.
-    ValueType multiple = 8;
-    if (nnz >= 2000000) {
-        multiple = 128;
-    } else if (nnz >= 200000) {
-        multiple = 32;
-    }
-    return std::min(static_cast<int64>(multiple * nwarps_in_cuda),
-                    ceildiv(nnz, cuda_config::warp_size));
-}
-
-
 }  // namespace
 
 
@@ -262,9 +222,7 @@ void spmv2(std::shared_ptr<const CudaExecutor> exec,
 {
     auto nnz = a->get_num_stored_elements();
 
-    auto warps_per_sm = exec->get_num_cores_per_sm() / cuda_config::warp_size;
-    auto nwarps =
-        calculate_nwarps(nnz, exec->get_num_multiprocessor() * warps_per_sm);
+    auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
     if (nwarps > 0) {
         int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
         const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
@@ -289,9 +247,7 @@ void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
 {
     auto nnz = a->get_num_stored_elements();
 
-    auto warps_per_sm = exec->get_num_cores_per_sm() / cuda_config::warp_size;
-    auto nwarps =
-        calculate_nwarps(nnz, exec->get_num_multiprocessor() * warps_per_sm);
+    auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
     if (nwarps > 0) {
         int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
         const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);

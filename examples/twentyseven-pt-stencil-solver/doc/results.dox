@@ -1,0 +1,10 @@
+<h1>Results</h1>
+
+The expected output of the relative error at K=10 should be
+
+@code{.cpp}
+The average relative error is 1.87318e-15
+@endcode
+
+<h4> Comments about programming and debugging </h4>
+

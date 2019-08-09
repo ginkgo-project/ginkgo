@@ -378,26 +378,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_CONVERT_TO_CSR_KERNEL);
 
 
-namespace kernel {
-
-
-__global__ __launch_bounds__(default_block_size) void reduce_nnz(
-    size_type size, const size_type *__restrict__ nnz_per_row,
-    size_type *__restrict__ result)
-{
-    extern __shared__ size_type block_sum[];
-    reduce_array(size, nnz_per_row, block_sum,
-                 [](const size_type &x, const size_type &y) { return x + y; });
-
-    if (threadIdx.x == 0) {
-        result[blockIdx.x] = block_sum[0];
-    }
-}
-
-
-}  // namespace kernel
-
-
 template <typename ValueType, typename IndexType>
 void count_nonzeros(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Sellp<ValueType, IndexType> *source,
@@ -417,27 +397,7 @@ void count_nonzeros(std::shared_ptr<const CudaExecutor> exec,
         num_rows, slice_size, as_cuda_type(slice_sets), as_cuda_type(values),
         as_cuda_type(nnz_per_row.get_data()));
 
-    const auto n = ceildiv(num_rows, default_block_size);
-    grid_dim = (n <= default_block_size) ? n : default_block_size;
-
-    auto block_results = Array<size_type>(exec, grid_dim);
-
-    kernel::reduce_nnz<<<grid_dim, default_block_size,
-                         default_block_size * sizeof(size_type)>>>(
-        num_rows, as_cuda_type(nnz_per_row.get_const_data()),
-        as_cuda_type(block_results.get_data()));
-
-    auto d_result = Array<size_type>(exec, 1);
-
-    kernel::reduce_nnz<<<1, default_block_size,
-                         default_block_size * sizeof(size_type)>>>(
-        grid_dim, as_cuda_type(block_results.get_const_data()),
-        as_cuda_type(d_result.get_data()));
-
-    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
-                                  result);
-    d_result.clear();
-    block_results.clear();
+    *result = reduce_add_array(exec, num_rows, nnz_per_row.get_const_data());
     nnz_per_row.clear();
 }
 

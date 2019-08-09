@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
+#include "benchmark/utils/spmv_common.hpp"
 
 
 // Command-line arguments
@@ -67,54 +68,6 @@ DEFINE_double(accuracy, 1e-1,
               "preconditioner.");
 
 
-void initialize_argument_parsing(int *argc, char **argv[])
-{
-    std::ostringstream doc;
-    doc << "A benchmark for measuring preconditioner performance.\n"
-        << "Usage: " << (*argv)[0] << " [options]\n"
-        << "  The standard input should contain a list of test cases as a JSON "
-        << "array of objects:\n"
-        << "  [\n"
-        << "    { \"filename\": \"my_file.mtx\" },\n"
-        << "    { \"filename\": \"my_file2.mtx\" }\n"
-        << "  ]\n\n"
-        << "  The results are written to standard output, in the same format,\n"
-        << "  but with test cases extended to include an additional member \n"
-        << "  object for each preconditioner run in the benchmark.\n"
-        << "  If run with a --backup flag, an intermediate result is written \n"
-        << "  to a file in the same format. The backup file can be used as \n"
-        << "  input \n to this test suite, and the benchmarking will \n"
-        << "  continue from the point where the backup file was created.";
-
-    gflags::SetUsageMessage(doc.str());
-    std::ostringstream ver;
-    ver << gko::version_info::get();
-    gflags::SetVersionString(ver.str());
-    gflags::ParseCommandLineFlags(argc, argv, true);
-}
-
-
-// input validation
-void print_config_error_and_exit()
-{
-    std::cerr << "Input has to be a JSON array of matrix configurations:\n"
-              << "  [\n"
-              << "    { \"filename\": \"my_file.mtx\" },\n"
-              << "    { \"filename\": \"my_file2.mtx\" }\n"
-              << "  ]" << std::endl;
-    std::exit(1);
-}
-
-
-void validate_option_object(const rapidjson::Value &value)
-{
-    if (!value.IsObject() || !value.HasMember("filename") ||
-        !value["filename"].IsString()) {
-        print_config_error_and_exit();
-    }
-}
-
-
 // some shortcuts
 using etype = double;
 
@@ -133,15 +86,6 @@ gko::precision_reduction parse_storage_optimization(const std::string &flag)
     return gko::precision_reduction(std::stoi(parts[0]), std::stoi(parts[1]));
 }
 
-
-// matrix format mapping
-template <typename MatrixType>
-std::unique_ptr<gko::LinOp> read_matrix(
-    std::shared_ptr<const gko::Executor> exec, const rapidjson::Value &options)
-{
-    return gko::read<MatrixType>(std::ifstream(options["filename"].GetString()),
-                                 std::move(exec));
-}
 
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>,
@@ -187,122 +131,129 @@ void run_preconditioner(const char *precond_name,
                         std::shared_ptr<const gko::LinOp> system_matrix,
                         const vec<etype> *b, const vec<etype> *x,
                         rapidjson::Value &test_case,
-                        rapidjson::MemoryPoolAllocator<> &allocator) try {
-    auto &precond_object = test_case["preconditioner"];
-    auto encoded_name = encode_parameters(precond_name);
+                        rapidjson::MemoryPoolAllocator<> &allocator)
+{
+    try {
+        auto &precond_object = test_case["preconditioner"];
+        auto encoded_name = encode_parameters(precond_name);
 
-    if (!FLAGS_overwrite && precond_object.HasMember(encoded_name.c_str())) {
-        return;
-    }
+        if (!FLAGS_overwrite &&
+            precond_object.HasMember(encoded_name.c_str())) {
+            return;
+        }
 
-    add_or_set_member(precond_object, encoded_name.c_str(),
-                      rapidjson::Value(rapidjson::kObjectType), allocator);
-    auto &this_precond_data = precond_object[encoded_name.c_str()];
-
-    add_or_set_member(this_precond_data, "generate",
-                      rapidjson::Value(rapidjson::kObjectType), allocator);
-    add_or_set_member(this_precond_data, "apply",
-                      rapidjson::Value(rapidjson::kObjectType), allocator);
-    for (auto stage : {"generate", "apply"}) {
-        add_or_set_member(this_precond_data[stage], "components",
+        add_or_set_member(precond_object, encoded_name.c_str(),
                           rapidjson::Value(rapidjson::kObjectType), allocator);
+        auto &this_precond_data = precond_object[encoded_name.c_str()];
+
+        add_or_set_member(this_precond_data, "generate",
+                          rapidjson::Value(rapidjson::kObjectType), allocator);
+        add_or_set_member(this_precond_data, "apply",
+                          rapidjson::Value(rapidjson::kObjectType), allocator);
+        for (auto stage : {"generate", "apply"}) {
+            add_or_set_member(this_precond_data[stage], "components",
+                              rapidjson::Value(rapidjson::kObjectType),
+                              allocator);
+        }
+
+        {
+            // fast run, gets total time
+            auto x_clone = clone(x);
+
+            auto precond = precond_factory.at(precond_name)(exec);
+
+            for (auto i = 0u; i < FLAGS_warmup; ++i) {
+                precond->generate(system_matrix)->apply(lend(b), lend(x_clone));
+            }
+
+            exec->synchronize();
+            auto g_tic = std::chrono::steady_clock::now();
+
+            std::unique_ptr<gko::LinOp> precond_op;
+            for (auto i = 0u; i < FLAGS_repetitions; ++i) {
+                precond_op = precond->generate(system_matrix);
+            }
+
+            exec->synchronize();
+            auto g_tac = std::chrono::steady_clock::now();
+
+            auto generate_time =
+                std::chrono::duration_cast<std::chrono::nanoseconds>(g_tac -
+                                                                     g_tic) /
+                FLAGS_repetitions;
+            add_or_set_member(this_precond_data["generate"], "time",
+                              generate_time.count(), allocator);
+
+            exec->synchronize();
+            auto a_tic = std::chrono::steady_clock::now();
+
+            for (auto i = 0u; i < FLAGS_repetitions; ++i) {
+                precond_op->apply(lend(b), lend(x_clone));
+            }
+
+            exec->synchronize();
+            auto a_tac = std::chrono::steady_clock::now();
+
+            auto apply_time =
+                std::chrono::duration_cast<std::chrono::nanoseconds>(a_tac -
+                                                                     a_tic) /
+                FLAGS_repetitions;
+            add_or_set_member(this_precond_data["apply"], "time",
+                              apply_time.count(), allocator);
+        }
+
+        if (FLAGS_detailed) {
+            // slow run, times each component separately
+            auto x_clone = clone(x);
+            auto precond = precond_factory.at(precond_name)(exec);
+
+            auto gen_logger = std::make_shared<OperationLogger>(exec);
+            exec->add_logger(gen_logger);
+            std::unique_ptr<gko::LinOp> precond_op;
+            for (auto i = 0u; i < FLAGS_repetitions; ++i) {
+                precond_op = precond->generate(system_matrix);
+            }
+            exec->remove_logger(gko::lend(gen_logger));
+
+            gen_logger->write_data(this_precond_data["generate"]["components"],
+                                   allocator, FLAGS_repetitions);
+
+            auto apply_logger = std::make_shared<OperationLogger>(exec);
+            exec->add_logger(apply_logger);
+            for (auto i = 0u; i < FLAGS_repetitions; ++i) {
+                precond_op->apply(lend(b), lend(x_clone));
+            }
+            exec->remove_logger(gko::lend(apply_logger));
+
+            apply_logger->write_data(this_precond_data["apply"]["components"],
+                                     allocator, FLAGS_repetitions);
+        }
+
+        add_or_set_member(this_precond_data, "completed", true, allocator);
+    } catch (const std::exception &e) {
+        auto encoded_name = encode_parameters(precond_name);
+        add_or_set_member(test_case["preconditioner"], encoded_name.c_str(),
+                          rapidjson::Value(rapidjson::kObjectType), allocator);
+        add_or_set_member(test_case["preconditioner"][encoded_name.c_str()],
+                          "completed", false, allocator);
+        std::cerr << "Error when processing test case " << test_case << "\n"
+                  << "what(): " << e.what() << std::endl;
     }
-
-    {
-        // fast run, gets total time
-        auto x_clone = clone(x);
-
-        auto precond = precond_factory.at(precond_name)(exec);
-
-        for (auto i = 0u; i < FLAGS_warmup; ++i) {
-            precond->generate(system_matrix)->apply(lend(b), lend(x_clone));
-        }
-
-        exec->synchronize();
-        auto g_tic = std::chrono::steady_clock::now();
-
-        std::unique_ptr<gko::LinOp> precond_op;
-        for (auto i = 0u; i < FLAGS_repetitions; ++i) {
-            precond_op = precond->generate(system_matrix);
-        }
-
-        exec->synchronize();
-        auto g_tac = std::chrono::steady_clock::now();
-
-        auto generate_time =
-            std::chrono::duration_cast<std::chrono::nanoseconds>(g_tac -
-                                                                 g_tic) /
-            FLAGS_repetitions;
-        add_or_set_member(this_precond_data["generate"], "time",
-                          generate_time.count(), allocator);
-
-        exec->synchronize();
-        auto a_tic = std::chrono::steady_clock::now();
-
-        for (auto i = 0u; i < FLAGS_repetitions; ++i) {
-            precond_op->apply(lend(b), lend(x_clone));
-        }
-
-        exec->synchronize();
-        auto a_tac = std::chrono::steady_clock::now();
-
-        auto apply_time = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                              a_tac - a_tic) /
-                          FLAGS_repetitions;
-        add_or_set_member(this_precond_data["apply"], "time",
-                          apply_time.count(), allocator);
-    }
-
-    if (FLAGS_detailed) {
-        // slow run, times each component separately
-        auto x_clone = clone(x);
-        auto precond = precond_factory.at(precond_name)(exec);
-
-        auto gen_logger = std::make_shared<OperationLogger>(exec);
-        exec->add_logger(gen_logger);
-        std::unique_ptr<gko::LinOp> precond_op;
-        for (auto i = 0u; i < FLAGS_repetitions; ++i) {
-            precond_op = precond->generate(system_matrix);
-        }
-        exec->remove_logger(gko::lend(gen_logger));
-
-        gen_logger->write_data(this_precond_data["generate"]["components"],
-                               allocator, FLAGS_repetitions);
-
-        auto apply_logger = std::make_shared<OperationLogger>(exec);
-        exec->add_logger(apply_logger);
-        for (auto i = 0u; i < FLAGS_repetitions; ++i) {
-            precond_op->apply(lend(b), lend(x_clone));
-        }
-        exec->remove_logger(gko::lend(apply_logger));
-
-        apply_logger->write_data(this_precond_data["apply"]["components"],
-                                 allocator, FLAGS_repetitions);
-    }
-
-    add_or_set_member(this_precond_data, "completed", true, allocator);
-} catch (std::exception e) {
-    auto encoded_name = encode_parameters(precond_name);
-    add_or_set_member(test_case["preconditioner"], encoded_name.c_str(),
-                      rapidjson::Value(rapidjson::kObjectType), allocator);
-    add_or_set_member(test_case["preconditioner"][encoded_name.c_str()],
-                      "completed", false, allocator);
-    std::cerr << "Error when processing test case " << test_case << "\n"
-              << "what(): " << e.what() << std::endl;
 }
 
 
 int main(int argc, char *argv[])
 {
-    initialize_argument_parsing(&argc, &argv);
+    std::string header =
+        "A benchmark for measuring preconditioner performance.\n";
+    std::string format = std::string() + "  [\n" +
+                         "    { \"filename\": \"my_file.mtx\"},\n" +
+                         "    { \"filename\": \"my_file2.mtx\"}\n" + "  ]\n\n";
+    initialize_argument_parsing(&argc, &argv, header, format);
 
-    std::clog << gko::version_info::get() << std::endl
-              << "Running on " << FLAGS_executor << "(" << FLAGS_device_id
-              << ")" << std::endl
-              << "Running preconditioners " << FLAGS_preconditioners
-              << std::endl
-              << "The random seed for right hand sides is " << FLAGS_seed
-              << std::endl;
+    std::string extra_information =
+        "Running with preconditioners: " + FLAGS_preconditioners + "\n";
+    print_general_information(extra_information);
 
     auto exec = get_executor();
     auto &engine = get_engine();
@@ -318,7 +269,8 @@ int main(int argc, char *argv[])
 
     auto &allocator = test_cases.GetAllocator();
 
-    for (auto &test_case : test_cases.GetArray()) try {
+    for (auto &test_case : test_cases.GetArray()) {
+        try {
             // set up benchmark
             validate_option_object(test_case);
             if (!test_case.HasMember("preconditioner")) {
@@ -352,10 +304,11 @@ int main(int argc, char *argv[])
                           << test_cases << std::endl;
                 backup_results(test_cases);
             }
-        } catch (std::exception &e) {
+        } catch (const std::exception &e) {
             std::cerr << "Error setting up preconditioner, what(): " << e.what()
                       << std::endl;
         }
+    }
 
     std::cout << test_cases;
 }

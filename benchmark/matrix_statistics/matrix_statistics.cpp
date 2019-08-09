@@ -41,59 +41,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "benchmark/utils/general.hpp"
+#include "benchmark/utils/spmv_common.hpp"
 
 
 // some Ginkgo shortcuts
 using etype = double;
-
-
-// input validation
-void print_config_error_and_exit()
-{
-    std::cerr << "Input has to be a JSON array of matrix configurations:\n"
-              << "  [\n"
-              << "    { \"filename\": \"my_file.mtx\"},\n"
-              << "    { \"filename\": \"my_file2.mtx\"}\n"
-              << "  ]" << std::endl;
-    std::exit(1);
-}
-
-
-void validate_option_object(const rapidjson::Value &value)
-{
-    if (!value.IsObject() || !value.HasMember("filename") ||
-        !value["filename"].IsString()) {
-        print_config_error_and_exit();
-    }
-}
-
-
-void initialize_argument_parsing(int *argc, char **argv[])
-{
-    std::ostringstream doc;
-    doc << "A utility that collects additional statistical properties of the "
-        << "matrix.\n"
-        << "Usage: " << (*argv)[0] << " [options]\n"
-        << "  The standard input should contain a list of test cases as a JSON "
-        << "array of objects:\n"
-        << "  [\n"
-        << "    { \"filename\": \"my_file.mtx\" },\n"
-        << "    { \"filename\": \"my_file2.mtx\"}\n"
-        << "  ]\n\n"
-        << "  The results are written on standard output, in the same format,\n"
-        << "  but with test cases extended to include an additional member \n"
-        << "  object for each solver run in the benchmark.\n"
-        << "  If run with a --backup flag, an intermediate result is written \n"
-        << "  to a file in the same format. The backup file can be used as \n"
-        << "  input \n to this test suite, and the benchmarking will \n"
-        << "  continue from the point where the backup file was created.";
-
-    gflags::SetUsageMessage(doc.str());
-    std::ostringstream ver;
-    ver << gko::version_info::get();
-    gflags::SetVersionString(ver.str());
-    gflags::ParseCommandLineFlags(argc, argv, true);
-}
 
 
 // See en.wikipedia.org/wiki/Five-number_summary
@@ -208,7 +160,13 @@ void extract_matrix_statistics(gko::matrix_data<etype, gko::int64> &data,
 
 int main(int argc, char *argv[])
 {
-    initialize_argument_parsing(&argc, &argv);
+    std::string header =
+        "A utility that collects additional statistical properties of the "
+        "matrix.\n";
+    std::string format = std::string() + "  [\n" +
+                         "    { \"filename\": \"my_file.mtx\"},\n" +
+                         "    { \"filename\": \"my_file2.mtx\"}\n" + "  ]\n\n";
+    initialize_argument_parsing(&argc, &argv, header, format);
 
     std::clog << gko::version_info::get() << std::endl;
 
@@ -221,7 +179,8 @@ int main(int argc, char *argv[])
 
     auto &allocator = test_cases.GetAllocator();
 
-    for (auto &test_case : test_cases.GetArray()) try {
+    for (auto &test_case : test_cases.GetArray()) {
+        try {
             // set up benchmark
             validate_option_object(test_case);
             if (!test_case.HasMember("problem")) {
@@ -243,10 +202,11 @@ int main(int argc, char *argv[])
             extract_matrix_statistics(matrix, test_case["problem"], allocator);
 
             backup_results(test_cases);
-        } catch (std::exception &e) {
+        } catch (const std::exception &e) {
             std::cerr << "Error extracting statistics, what(): " << e.what()
                       << std::endl;
         }
+    }
 
     std::cout << test_cases;
 }

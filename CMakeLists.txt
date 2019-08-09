@@ -4,14 +4,6 @@ project(Ginkgo LANGUAGES C CXX VERSION 1.0.0 DESCRIPTION "A numerical linear alg
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
-# Load CMake helpers and modules
-include(cmake/build_helpers.cmake)
-include(cmake/create_test.cmake)
-include(cmake/install_helpers.cmake)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-
-include(cmake/build_type_helpers.cmake)
-
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" ON)
 option(GINKGO_BUILD_TESTS "Generate build files for unit tests" ON)
@@ -26,6 +18,8 @@ option(GINKGO_SKIP_DEPENDENCY_UPDATE
 option(GINKGO_EXPORT_BUILD_DIR
     "Make Ginkgo export its build directory to the CMake package registry."
     OFF)
+option(GINKGO_WITH_CLANG_TIDY "Make Ginkgo call `clang-tidy` to find programming issues." OFF)
+option(GINKGO_WITH_IWYU "Make Ginkgo call `iwyu` (Include What You Use) to find include issues." OFF)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
   "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
 set(GINKGO_COMPILER_FLAGS "-Wpedantic" CACHE STRING
@@ -49,7 +43,7 @@ endif()
 
 # Ensure we have a debug postfix
 if(NOT DEFINED CMAKE_DEBUG_POSTFIX)
-  set(CMAKE_DEBUG_POSTFIX "d")
+    set(CMAKE_DEBUG_POSTFIX "d")
 endif()
 
 if(GINKGO_BUILD_TESTS)
@@ -58,9 +52,28 @@ if(GINKGO_BUILD_TESTS)
         ${CMAKE_CURRENT_LIST_DIR}/cmake/CTestCustom.cmake.in
         ${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake @ONLY)
 
+    # For testing, we need some special matrices
+    add_subdirectory(matrices)
+
     enable_testing()
     include(CTest)
 endif()
+
+if (GINKGO_WITH_CLANG_TIDY)
+  find_program(GINKGO_CLANG_TIDY_PATH clang-tidy)
+endif()
+
+if (GINKGO_WITH_IWYU)
+  find_program(GINKGO_IWYU_PATH iwyu)
+endif()
+
+
+# Load CMake helpers and modules
+include(cmake/build_helpers.cmake)
+include(cmake/build_type_helpers.cmake)
+include(cmake/create_test.cmake)
+include(cmake/install_helpers.cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 
 # Find important header files, store the definitions in include/ginkgo/config.h.in
@@ -80,12 +93,12 @@ configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
 
 # Try to find the third party packages before using our subdirectories
 include(cmake/package_helpers.cmake)
-ginkgo_find_package(GTest 1.8.1)
-ginkgo_find_package(gflags 2.2.2)
-ginkgo_find_package(RapidJSON 1.1.0)
+ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
+ginkgo_find_package(gflags gflags FALSE 2.2.2)
+ginkgo_find_package(RapidJSON rapidjson TRUE 1.1.0)
 add_subdirectory(third_party)    # Third-party tools and libraries
 
-# Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be 
+# Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be
 # propagated to the other parts of Ginkgo in case of building as static libraries
 if(GINKGO_BUILD_CUDA)
     add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs

@@ -39,11 +39,73 @@ namespace kernels {
 namespace cuda {
 
 
-template <typename T>
-__forceinline__ __device__ void atomic_add(T *, T)
+namespace detail {
+
+
+template <typename ValueType, typename = void>
+struct atomic_helper {
+    __forceinline__ __device__ static void atomic_add(ValueType *, ValueType)
+    {
+        static_assert(sizeof(ValueType) == 0,
+                      "This default function is not implemented, only the "
+                      "specializations are.");
+        // TODO: add proper implementation of generic atomic add
+    }
+};
+
+
+template <typename ResultType, typename ValueType>
+__forceinline__ __device__ ResultType reinterpret(ValueType val)
 {
-    GKO_ASSERT(false);
-    // TODO: add proper implementation of generic atomic add
+    static_assert(sizeof(ValueType) == sizeof(ResultType),
+                  "The type to reinterpret to must be of the same size as the "
+                  "original type.");
+    return reinterpret_cast<ResultType &>(val);
+}
+
+
+#define GKO_BIND_ATOMIC_HELPER_STRUCTURE(CONVERTER_TYPE)                     \
+    template <typename ValueType>                                            \
+    struct atomic_helper<ValueType,                                          \
+                         gko::xstd::enable_if_t<(sizeof(ValueType) ==        \
+                                                 sizeof(CONVERTER_TYPE))>> { \
+        __forceinline__ __device__ static void atomic_add(                   \
+            ValueType *__restrict__ addr, ValueType val)                     \
+        {                                                                    \
+            CONVERTER_TYPE *address_as_ull =                                 \
+                reinterpret_cast<CONVERTER_TYPE *>(addr);                    \
+            CONVERTER_TYPE old = *address_as_ull;                            \
+            CONVERTER_TYPE assumed;                                          \
+            do {                                                             \
+                assumed = old;                                               \
+                old = atomicCAS(address_as_ull, assumed,                     \
+                                reinterpret<CONVERTER_TYPE>(                 \
+                                    val + reinterpret<ValueType>(assumed))); \
+            } while (assumed != old);                                        \
+        }                                                                    \
+    };
+
+// Support 64-bit ATOMIC_ADD
+GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned long long int);
+// Support 32-bit ATOMIC_ADD
+GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
+
+
+#if !(defined(CUDA_VERSION) && (CUDA_VERSION < 10100))
+// CUDA 10.1 starts supporting 16-bit unsigned short int atomicCAS
+GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned short int);
+#endif
+
+#undef GKO_BIND_ATOMIC_HELPER__STRUCTURE
+
+
+}  // namespace detail
+
+
+template <typename T>
+__forceinline__ __device__ void atomic_add(T *__restrict__ addr, T val)
+{
+    detail::atomic_helper<T>::atomic_add(addr, val);
 }
 
 
@@ -60,36 +122,29 @@ GKO_BIND_ATOMIC_ADD(unsigned long long int);
 GKO_BIND_ATOMIC_ADD(float);
 
 
-#if (defined(CUDA_VERSION) && (CUDA_VERSION < 8000)) || \
-    (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600))
-
-
-// the function is copied from CUDA 9.2 documentation
-__forceinline__ __device__ void atomic_add(double *__restrict__ addr,
-                                           double val)
-{
-    unsigned long long int *address_as_ull = (unsigned long long int *)addr;
-    unsigned long long int old = *address_as_ull, assumed;
-    do {
-        assumed = old;
-        old = atomicCAS(
-            address_as_ull, assumed,
-            __double_as_longlong(val + __longlong_as_double(assumed)));
-
-        // Note: uses integer comparison to avoid hang in case of NaN (since NaN
-        // != NaN)
-    } while (assumed != old);
-}
-
-
-#else
-
-
+#if !((defined(CUDA_VERSION) && (CUDA_VERSION < 8000)) || \
+      (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)))
+// CUDA 8.0 starts suppoting 64-bit double atomicAdd on devices of compute
+// capability 6.x and higher
 GKO_BIND_ATOMIC_ADD(double);
-
-
 #endif
 
+#if !((defined(CUDA_VERSION) && (CUDA_VERSION < 10000)) || \
+      (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 700)))
+// CUDA 10.0 starts supporting 16-bit __half floating-point atomicAdd on devices
+// of compute capability 7.x and higher.
+GKO_BIND_ATOMIC_ADD(__half);
+#endif
+
+#if !((defined(CUDA_VERSION) && (CUDA_VERSION < 10000)) || \
+      (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)))
+// CUDA 10.0 starts supporting 32-bit __half2 floating-point atomicAdd on
+// devices of compute capability 6.x and higher. note: The atomicity of the
+// __half2 add operation is guaranteed separately for each of the two __half
+// elements; the entire __half2 is not guaranteed to be atomic as a single
+// 32-bit access.
+GKO_BIND_ATOMIC_ADD(__half2);
+#endif
 
 #undef GKO_BIND_ATOMIC_ADD
 

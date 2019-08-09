@@ -45,33 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
+#include "cuda/base/device_guard.hpp"
 
 
 namespace gko {
 namespace {
-
-
-class device_guard {
-public:
-    device_guard(int device_id)
-    {
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id));
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
-    }
-
-    ~device_guard() noexcept(false)
-    {
-        /* Ignore the error during stack unwinding for this call */
-        if (std::uncaught_exception()) {
-            cudaSetDevice(original_device_id);
-        } else {
-            GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(original_device_id));
-        }
-    }
-
-private:
-    int original_device_id{};
-};
 
 
 // The function is copied from _ConvertSMVer2Cores of

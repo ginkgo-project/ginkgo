@@ -52,6 +52,8 @@ namespace hybrid {
 
 
 GKO_REGISTER_OPERATION(convert_to_dense, hybrid::convert_to_dense);
+GKO_REGISTER_OPERATION(convert_to_csr, hybrid::convert_to_csr);
+GKO_REGISTER_OPERATION(count_nonzeros, hybrid::count_nonzeros);
 
 
 }  // namespace hybrid
@@ -119,6 +121,30 @@ void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 
 template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::move_to(Dense<ValueType> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::convert_to(
+    Csr<ValueType, IndexType> *result) const
+{
+    auto exec = this->get_executor();
+
+    size_type num_stored_elements = 0;
+    exec->run(hybrid::make_count_nonzeros(this, &num_stored_elements));
+
+    auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size(),
+                                                 num_stored_elements);
+    exec->run(hybrid::make_convert_to_csr(tmp.get(), this));
+
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
 {
     this->convert_to(result);
 }

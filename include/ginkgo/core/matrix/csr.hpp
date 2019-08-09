@@ -45,13 +45,14 @@ namespace matrix {
 template <typename ValueType>
 class Dense;
 
-
 template <typename ValueType, typename IndexType>
 class Coo;
 
 template <typename ValueType, typename IndexType>
 class Ell;
 
+template <typename ValueType, typename IndexType>
+class Hybrid;
 
 template <typename ValueType, typename IndexType>
 class Sellp;
@@ -78,8 +79,9 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public EnableCreateMethod<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Coo<ValueType, IndexType>>,
-            public ConvertibleTo<Sellp<ValueType, IndexType>>,
             public ConvertibleTo<Ell<ValueType, IndexType>>,
+            public ConvertibleTo<Hybrid<ValueType, IndexType>>,
+            public ConvertibleTo<Sellp<ValueType, IndexType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
             public Transposable {
@@ -87,8 +89,9 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
-    friend class Sellp<ValueType, IndexType>;
     friend class Ell<ValueType, IndexType>;
+    friend class Hybrid<ValueType, IndexType>;
+    friend class Sellp<ValueType, IndexType>;
 
 public:
     using EnableLinOp<Csr>::convert_to;
@@ -284,13 +287,17 @@ public:
 
     void move_to(Coo<ValueType, IndexType> *result) override;
 
-    void convert_to(Sellp<ValueType, IndexType> *result) const override;
-
-    void move_to(Sellp<ValueType, IndexType> *result) override;
-
     void convert_to(Ell<ValueType, IndexType> *result) const override;
 
     void move_to(Ell<ValueType, IndexType> *result) override;
+
+    void convert_to(Hybrid<ValueType, IndexType> *result) const override;
+
+    void move_to(Hybrid<ValueType, IndexType> *result) override;
+
+    void convert_to(Sellp<ValueType, IndexType> *result) const override;
+
+    void move_to(Sellp<ValueType, IndexType> *result) override;
 
     void read(const mat_data &data) override;
 
@@ -299,6 +306,19 @@ public:
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    /**
+     * Sorts all (value, col_idx) pairs in each row by column index
+     */
+    void sort_by_column_index();
+
+    /*
+     * Tests if all row entry pairs (value, col_idx) are sorted by column index
+     *
+     * @returns True if all row entry pairs (value, col_idx) are sorted by
+     *          column index
+     */
+    bool is_sorted_by_column_index() const;
 
     /**
      * Returns the values of the matrix.

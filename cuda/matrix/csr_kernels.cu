@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
@@ -53,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"
+#include "cuda/components/segment_scan.cuh"
 #include "cuda/components/uninitialized_array.hpp"
 #include "cuda/components/zero_array.hpp"
 
@@ -89,31 +91,6 @@ template <typename T>
 __host__ __device__ __forceinline__ T ceildivT(T nom, T denom)
 {
     return (nom + denom - 1ll) / denom;
-}
-
-
-template <typename ValueType, typename IndexType>
-__device__ __forceinline__ bool segment_scan(
-    const group::thread_block_tile<wsize> &group, const IndexType ind,
-    ValueType *__restrict__ val)
-{
-    bool head = true;
-#pragma unroll
-    for (int i = 1; i < wsize; i <<= 1) {
-        const IndexType add_ind = group.shfl_up(ind, i);
-        ValueType add_val = zero<ValueType>();
-        if (add_ind == ind && threadIdx.x >= i) {
-            add_val = *val;
-            if (i == 1) {
-                head = false;
-            }
-        }
-        add_val = group.shfl_down(add_val, i);
-        if (threadIdx.x < wsize - i) {
-            *val += add_val;
-        }
-    }
-    return head;
 }
 
 
@@ -164,9 +141,10 @@ __device__ __forceinline__ void find_next_row(
 }
 
 
-template <typename ValueType, typename IndexType, typename Closure>
+template <size_type subwarp_size, typename ValueType, typename IndexType,
+          typename Closure>
 __device__ __forceinline__ void warp_atomic_add(
-    const group::thread_block_tile<wsize> &group, bool force_write,
+    const group::thread_block_tile<subwarp_size> &group, bool force_write,
     ValueType *__restrict__ val, const IndexType row, ValueType *__restrict__ c,
     const size_type c_stride, const IndexType column_id, Closure scale)
 {
@@ -181,13 +159,15 @@ __device__ __forceinline__ void warp_atomic_add(
 }
 
 
-template <bool last, typename ValueType, typename IndexType, typename Closure>
+template <bool last, size_type subwarp_size, typename ValueType,
+          typename IndexType, typename Closure>
 __device__ __forceinline__ void process_window(
-    const group::thread_block_tile<wsize> &group, const IndexType num_rows,
-    const IndexType data_size, const IndexType ind, IndexType *__restrict__ row,
-    IndexType *__restrict__ row_end, IndexType *__restrict__ nrow,
-    IndexType *__restrict__ nrow_end, ValueType *__restrict__ temp_val,
-    const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
+    const group::thread_block_tile<subwarp_size> &group,
+    const IndexType num_rows, const IndexType data_size, const IndexType ind,
+    IndexType *__restrict__ row, IndexType *__restrict__ row_end,
+    IndexType *__restrict__ nrow, IndexType *__restrict__ nrow_end,
+    ValueType *__restrict__ temp_val, const ValueType *__restrict__ val,
+    const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
     const size_type b_stride, ValueType *__restrict__ c,
     const size_type c_stride, const IndexType column_id, Closure scale)
@@ -199,8 +179,8 @@ __device__ __forceinline__ void process_window(
     if (group.any(curr_row != *row)) {
         warp_atomic_add(group, curr_row != *row, temp_val, curr_row, c,
                         c_stride, column_id, scale);
-        *nrow = group.shfl(*row, wsize - 1);
-        *nrow_end = group.shfl(*row_end, wsize - 1);
+        *nrow = group.shfl(*row, subwarp_size - 1);
+        *nrow_end = group.shfl(*row_end, subwarp_size - 1);
     }
 
     if (!last || ind < data_size) {
@@ -1157,7 +1137,8 @@ void convert_to_ell(std::shared_ptr<const CudaExecutor> exec,
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
 
-    const auto init_grid_dim = ceildiv(stride * num_rows, default_block_size);
+    const auto init_grid_dim =
+        ceildiv(max_nnz_per_row * num_rows, default_block_size);
 
     kernel::initialize_zero_ell<<<init_grid_dim, default_block_size>>>(
         max_nnz_per_row, stride, as_cuda_type(result_values),
@@ -1383,27 +1364,25 @@ void calculate_max_nnz_per_row(std::shared_ptr<const CudaExecutor> exec,
 {
     const auto num_rows = source->get_size()[0];
 
-    const auto grid_dim =
-        (ceildiv(num_rows, default_block_size) < default_block_size)
-            ? ceildiv(num_rows, default_block_size)
-            : default_block_size;
-
     auto nnz_per_row = Array<size_type>(exec, num_rows);
     auto block_results = Array<size_type>(exec, default_block_size);
     auto d_result = Array<size_type>(exec, 1);
 
+    const auto grid_dim = ceildiv(num_rows, default_block_size);
     kernel::calculate_nnz_per_row<<<grid_dim, default_block_size>>>(
         num_rows, as_cuda_type(source->get_const_row_ptrs()),
         as_cuda_type(nnz_per_row.get_data()));
 
-    kernel::reduce_max_nnz<<<grid_dim, default_block_size,
+    const auto n = ceildiv(num_rows, default_block_size);
+    const auto reduce_dim = n <= default_block_size ? n : default_block_size;
+    kernel::reduce_max_nnz<<<reduce_dim, default_block_size,
                              default_block_size * sizeof(size_type)>>>(
         num_rows, as_cuda_type(nnz_per_row.get_const_data()),
         as_cuda_type(block_results.get_data()));
 
     kernel::reduce_max_nnz<<<1, default_block_size,
                              default_block_size * sizeof(size_type)>>>(
-        grid_dim, as_cuda_type(block_results.get_const_data()),
+        reduce_dim, as_cuda_type(block_results.get_const_data()),
         as_cuda_type(d_result.get_data()));
 
     exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
@@ -1416,6 +1395,153 @@ void calculate_max_nnz_per_row(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
+
+
+namespace kernel {
+
+
+template <typename IndexType>
+__global__
+    __launch_bounds__(default_block_size) void calculate_hybrid_coo_row_nnz(
+        size_type num_rows, size_type ell_max_nnz_per_row,
+        IndexType *__restrict__ csr_row_idxs,
+        size_type *__restrict__ coo_row_nnz)
+{
+    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    if (tidx < num_rows) {
+        const size_type csr_nnz = csr_row_idxs[tidx + 1] - csr_row_idxs[tidx];
+        coo_row_nnz[tidx] =
+            (csr_nnz > ell_max_nnz_per_row) * (csr_nnz - ell_max_nnz_per_row);
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void fill_in_hybrid(
+    size_type num_rows, size_type stride, size_type ell_max_nnz_per_row,
+    const ValueType *__restrict__ source_values,
+    const IndexType *__restrict__ source_row_ptrs,
+    const IndexType *__restrict__ source_col_idxs,
+    const size_type *__restrict__ coo_offset,
+    ValueType *__restrict__ result_ell_val,
+    IndexType *__restrict__ result_ell_col,
+    ValueType *__restrict__ result_coo_val,
+    IndexType *__restrict__ result_coo_col,
+    IndexType *__restrict__ result_coo_row)
+{
+    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    constexpr auto warp_size = cuda_config::warp_size;
+    const auto row = tidx / warp_size;
+    const auto local_tidx = tidx % warp_size;
+
+    if (row < num_rows) {
+        for (size_type i = local_tidx;
+             i < source_row_ptrs[row + 1] - source_row_ptrs[row];
+             i += warp_size) {
+            const auto source_idx = i + source_row_ptrs[row];
+            if (i < ell_max_nnz_per_row) {
+                const auto result_idx = row + stride * i;
+                result_ell_val[result_idx] = source_values[source_idx];
+                result_ell_col[result_idx] = source_col_idxs[source_idx];
+            } else {
+                const auto result_idx =
+                    coo_offset[row] + i - ell_max_nnz_per_row;
+                result_coo_val[result_idx] = source_values[source_idx];
+                result_coo_col[result_idx] = source_col_idxs[source_idx];
+                result_coo_row[result_idx] = row;
+            }
+        }
+    }
+}
+
+
+}  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_hybrid(std::shared_ptr<const CudaExecutor> exec,
+                       matrix::Hybrid<ValueType, IndexType> *result,
+                       const matrix::Csr<ValueType, IndexType> *source)
+{
+    auto ell_val = result->get_ell_values();
+    auto ell_col = result->get_ell_col_idxs();
+    auto coo_val = result->get_coo_values();
+    auto coo_col = result->get_coo_col_idxs();
+    auto coo_row = result->get_coo_row_idxs();
+    const auto stride = result->get_ell_stride();
+    const auto max_nnz_per_row = result->get_ell_num_stored_elements_per_row();
+    const auto num_rows = result->get_size()[0];
+    const auto coo_num_stored_elements = result->get_coo_num_stored_elements();
+    auto grid_dim = ceildiv(max_nnz_per_row * num_rows, default_block_size);
+
+    kernel::initialize_zero_ell<<<grid_dim, default_block_size>>>(
+        max_nnz_per_row, stride, as_cuda_type(ell_val), as_cuda_type(ell_col));
+
+    grid_dim = ceildiv(num_rows, default_block_size);
+    auto coo_offset = Array<size_type>(exec, num_rows);
+    kernel::calculate_hybrid_coo_row_nnz<<<grid_dim, default_block_size>>>(
+        num_rows, max_nnz_per_row, as_cuda_type(source->get_const_row_ptrs()),
+        as_cuda_type(coo_offset.get_data()));
+
+    auto add_values =
+        Array<size_type>(exec, ceildiv(num_rows, default_block_size));
+    grid_dim = ceildiv(num_rows, default_block_size);
+    start_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
+        num_rows, as_cuda_type(coo_offset.get_data()),
+        as_cuda_type(add_values.get_data()));
+    finalize_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
+        num_rows, as_cuda_type(coo_offset.get_data()),
+        as_cuda_type(add_values.get_const_data()));
+
+    grid_dim = ceildiv(num_rows * cuda_config::warp_size, default_block_size);
+    kernel::fill_in_hybrid<<<grid_dim, default_block_size>>>(
+        num_rows, stride, max_nnz_per_row,
+        as_cuda_type(source->get_const_values()),
+        as_cuda_type(source->get_const_row_ptrs()),
+        as_cuda_type(source->get_const_col_idxs()),
+        as_cuda_type(coo_offset.get_const_data()), as_cuda_type(ell_val),
+        as_cuda_type(ell_col), as_cuda_type(coo_val), as_cuda_type(coo_col),
+        as_cuda_type(coo_row));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void calculate_nonzeros_per_row(std::shared_ptr<const CudaExecutor> exec,
+                                const matrix::Csr<ValueType, IndexType> *source,
+                                Array<size_type> *result)
+{
+    const auto num_rows = source->get_size()[0];
+    auto row_ptrs = source->get_const_row_ptrs();
+    auto grid_dim = ceildiv(num_rows, default_block_size);
+
+    kernel::calculate_nnz_per_row<<<grid_dim, default_block_size>>>(
+        num_rows, as_cuda_type(row_ptrs), as_cuda_type(result->get_data()));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void sort_by_column_index(std::shared_ptr<const CudaExecutor> exec,
+                          matrix::Csr<ValueType, IndexType> *to_sort)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX);
+
+
+template <typename ValueType, typename IndexType>
+void is_sorted_by_column_index(
+    std::shared_ptr<const CudaExecutor> exec,
+    const matrix::Csr<ValueType, IndexType> *to_check,
+    bool *is_sorted) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
 }  // namespace csr
