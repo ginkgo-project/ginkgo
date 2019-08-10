@@ -40,12 +40,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 
 
-#include <core/solver/trs_kernels.hpp>
-#include <core/test/utils.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/solver/trs_kernels.hpp"
+#include "core/test/utils.hpp"
+
 
 namespace {
 
@@ -91,7 +94,7 @@ TEST_F(Trs, CudaApplyIsEquivalentToRef)
     std::shared_ptr<Mtx> b = gen_mtx(50, 1);
     std::shared_ptr<Mtx> x = gen_mtx(50, 1);
     std::shared_ptr<CsrMtx> csr_mtx = CsrMtx::create(ref);
-    gko::as<gko::ConvertibleTo<CsrMtx>>(mtx.get())->convert_to(csr_mtx.get());
+    mtx.get()->convert_to(csr_mtx.get());
     std::shared_ptr<CsrMtx> d_csr_mtx = CsrMtx::create(cuda);
     auto d_x = Mtx::create(cuda);
     d_x->copy_from(x.get());
