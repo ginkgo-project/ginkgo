@@ -147,6 +147,14 @@ int main(int, char **)
             &testVar, 1u, 1u, 1u);
     }
 
+    // core/base/reflection.hpp
+    {
+        using type1 = int;
+        static_assert(
+            std::is_same<gko::Reflection<type1>::value_type, type1>::value,
+            "Reflection.hpp not included properly");
+    }
+
     // core/base/std_extensions.hpp
     {
         static_assert(std::is_same<gko::xstd::void_t<double>, void>::value,
