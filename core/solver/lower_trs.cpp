@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/trs.hpp>
+#include <ginkgo/core/solver/lower_trs.hpp>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -43,26 +43,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/solver/trs_kernels.hpp"
+#include "core/solver/lower_trs_kernels.hpp"
 
 
 namespace gko {
 namespace solver {
 
 
-namespace trs {
+namespace lower_trs {
 
 
-GKO_REGISTER_OPERATION(generate, trs::generate);
-GKO_REGISTER_OPERATION(solve, trs::solve);
+GKO_REGISTER_OPERATION(generate, lower_trs::generate);
+GKO_REGISTER_OPERATION(solve, lower_trs::solve);
 
 
-}  // namespace trs
+}  // namespace lower_trs
 
 
 template <typename ValueType, typename IndexType>
-void Trs<ValueType, IndexType>::generate(const LinOp *system_matrix,
-                                         const LinOp *b)
+void LowerTrs<ValueType, IndexType>::generate(const LinOp *system_matrix,
+                                              const LinOp *b)
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
     using Vector = matrix::Dense<ValueType>;
@@ -77,12 +77,12 @@ void Trs<ValueType, IndexType>::generate(const LinOp *system_matrix,
             copy_and_convert_to<CsrMatrix>(exec, system_matrix);
     }
     auto dense_b = as<const Vector>(b);
-    exec->run(trs::make_generate(gko::lend(csr_system_matrix_), dense_b));
+    exec->run(lower_trs::make_generate(gko::lend(csr_system_matrix_), dense_b));
 }
 
 
 template <typename ValueType, typename IndexType>
-void Trs<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
+void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using Vector = matrix::Dense<ValueType>;
     const auto exec = this->get_executor();
@@ -90,13 +90,16 @@ void Trs<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
 
-    exec->run(trs::make_solve(gko::lend(csr_system_matrix_), dense_b, dense_x));
+    exec->run(
+        lower_trs::make_solve(gko::lend(csr_system_matrix_), dense_b, dense_x));
 }
 
 
 template <typename ValueType, typename IndexType>
-void Trs<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                           const LinOp *beta, LinOp *x) const
+void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp *alpha,
+                                                const LinOp *b,
+                                                const LinOp *beta,
+                                                LinOp *x) const
 {
     auto dense_x = as<matrix::Dense<ValueType>>(x);
 
@@ -107,8 +110,8 @@ void Trs<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
 }
 
 
-#define GKO_DECLARE_TRS(_vtype, _itype) class Trs<_vtype, _itype>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS);
+#define GKO_DECLARE_LOWER_TRS(_vtype, _itype) class LowerTrs<_vtype, _itype>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_TRS);
 
 
 }  // namespace solver

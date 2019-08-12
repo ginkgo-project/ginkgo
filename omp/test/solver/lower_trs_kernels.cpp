@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/trs.hpp>
+#include <ginkgo/core/solver/lower_trs.hpp>
 
 
 #include <memory>
@@ -46,19 +46,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/solver/trs_kernels.hpp"
+#include "core/solver/lower_trs_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
 namespace {
 
 
-class Trs : public ::testing::Test {
+class LowerTrs : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
     using CsrMtx = gko::matrix::Csr<double, gko::int32>;
 
-    Trs() : rand_engine(30) {}
+    LowerTrs() : rand_engine(30) {}
 
     void SetUp()
     {
@@ -114,24 +114,26 @@ protected:
 };
 
 
-TEST_F(Trs, OmpTrsSolveIsEquivalentToRef)
+TEST_F(LowerTrs, OmpLowerTrsSolveIsEquivalentToRef)
 {
     initialize_data(59, 43);
 
-    gko::kernels::reference::trs::solve(ref, csr_mat.get(), b.get(), x.get());
-    gko::kernels::omp::trs::solve(omp, d_csr_mat.get(), d_b.get(), d_x.get());
+    gko::kernels::reference::lower_trs::solve(ref, csr_mat.get(), b.get(),
+                                              x.get());
+    gko::kernels::omp::lower_trs::solve(omp, d_csr_mat.get(), d_b.get(),
+                                        d_x.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
 
 
-TEST_F(Trs, ApplyIsEquivalentToRef)
+TEST_F(LowerTrs, ApplyIsEquivalentToRef)
 {
     initialize_data(59, 3);
-    auto trs_factory = gko::solver::Trs<>::build().on(ref);
-    auto d_trs_factory = gko::solver::Trs<>::build().on(omp);
-    auto solver = trs_factory->generate(csr_mat, b);
-    auto d_solver = d_trs_factory->generate(d_csr_mat, d_b);
+    auto lower_trs_factory = gko::solver::LowerTrs<>::build().on(ref);
+    auto d_lower_trs_factory = gko::solver::LowerTrs<>::build().on(omp);
+    auto solver = lower_trs_factory->generate(csr_mat, b);
+    auto d_solver = d_lower_trs_factory->generate(d_csr_mat, d_b);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());

@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/trs.hpp>
+#include <ginkgo/core/solver/lower_trs.hpp>
 
 
 #include <memory>
@@ -51,28 +51,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class Trs : public ::testing::Test {
+class LowerTrs : public ::testing::Test {
 protected:
     using CsrMtx = gko::matrix::Csr<double, int>;
     using Mtx = gko::matrix::Dense<>;
-    using Solver = gko::solver::Trs<>;
+    using Solver = gko::solver::LowerTrs<>;
 
-    Trs()
+    LowerTrs()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{2, 0.0, 0.0}, {3.0, 1, 0.0}, {1.0, 2.0, 3}}, exec)),
           b(gko::initialize<Mtx>({{2, 0.0, 0.0}}, exec)),
           csr_mtx(gko::copy_and_convert_to<CsrMtx>(exec, mtx.get())),
-          trs_factory(Solver::build().on(exec)),
-          trs_solver(trs_factory->generate(mtx, b))
+          lower_trs_factory(Solver::build().on(exec)),
+          lower_trs_solver(lower_trs_factory->generate(mtx, b))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> b;
     std::shared_ptr<CsrMtx> csr_mtx;
-    std::unique_ptr<Solver::Factory> trs_factory;
-    std::unique_ptr<Solver> trs_solver;
+    std::unique_ptr<Solver::Factory> lower_trs_factory;
+    std::unique_ptr<Solver> lower_trs_solver;
 
     static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
     {
@@ -87,22 +87,22 @@ protected:
 };
 
 
-TEST_F(Trs, TrsFactoryCreatesCorrectSolver)
+TEST_F(LowerTrs, LowerTrsFactoryCreatesCorrectSolver)
 {
-    ASSERT_EQ(trs_solver->get_size(), gko::dim<2>(3, 3));
-    ASSERT_NE(trs_solver->get_system_matrix(), nullptr);
-    ASSERT_NE(trs_solver->get_rhs(), nullptr);
-    ASSERT_EQ(trs_solver->get_system_matrix(), mtx);
-    ASSERT_EQ(trs_solver->get_rhs(), b);
+    ASSERT_EQ(lower_trs_solver->get_size(), gko::dim<2>(3, 3));
+    ASSERT_NE(lower_trs_solver->get_system_matrix(), nullptr);
+    ASSERT_NE(lower_trs_solver->get_rhs(), nullptr);
+    ASSERT_EQ(lower_trs_solver->get_system_matrix(), mtx);
+    ASSERT_EQ(lower_trs_solver->get_rhs(), b);
 }
 
 
-TEST_F(Trs, CanBeCopied)
+TEST_F(LowerTrs, CanBeCopied)
 {
     auto copy = Solver::build().on(exec)->generate(Mtx::create(exec),
                                                    Mtx::create(exec));
 
-    copy->copy_from(lend(trs_solver));
+    copy->copy_from(lend(lower_trs_solver));
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = copy.get()->get_system_matrix();
@@ -112,11 +112,12 @@ TEST_F(Trs, CanBeCopied)
 }
 
 
-TEST_F(Trs, CanBeMoved)
+TEST_F(LowerTrs, CanBeMoved)
 {
-    auto copy = trs_factory->generate(Mtx::create(exec), Mtx::create(exec));
+    auto copy =
+        lower_trs_factory->generate(Mtx::create(exec), Mtx::create(exec));
 
-    copy->copy_from(std::move(trs_solver));
+    copy->copy_from(std::move(lower_trs_solver));
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = copy.get()->get_system_matrix();
@@ -126,9 +127,9 @@ TEST_F(Trs, CanBeMoved)
 }
 
 
-TEST_F(Trs, CanBeCloned)
+TEST_F(LowerTrs, CanBeCloned)
 {
-    auto clone = trs_solver->clone();
+    auto clone = lower_trs_solver->clone();
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
     auto clone_mtx = clone.get()->get_system_matrix();
@@ -138,13 +139,13 @@ TEST_F(Trs, CanBeCloned)
 }
 
 
-TEST_F(Trs, CanBeCleared)
+TEST_F(LowerTrs, CanBeCleared)
 {
-    trs_solver->clear();
+    lower_trs_solver->clear();
 
-    ASSERT_EQ(trs_solver->get_size(), gko::dim<2>(0, 0));
-    auto solver_mtx = trs_solver.get()->get_system_matrix();
-    auto solver_b = trs_solver.get()->get_rhs();
+    ASSERT_EQ(lower_trs_solver->get_size(), gko::dim<2>(0, 0));
+    auto solver_mtx = lower_trs_solver.get()->get_system_matrix();
+    auto solver_b = lower_trs_solver.get()->get_rhs();
     ASSERT_EQ(solver_mtx, nullptr);
     ASSERT_EQ(solver_b, nullptr);
 }
