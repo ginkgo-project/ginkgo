@@ -44,7 +44,7 @@ namespace gko {
 
 
 /**
- * The Reflection class can be used to be as (I+coef*UV)
+ * The Reflection class can be used to be as (I + coef * U * V)
  *
  * @tparam ValueType  precision of input and result vectors
  *

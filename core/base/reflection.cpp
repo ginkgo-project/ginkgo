@@ -42,10 +42,10 @@ namespace gko {
 template <typename ValueType>
 void Reflection<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    // x = (I+coef*U*V)b
-    // temp = Vb                : V->apply(b, temp)
-    // x = b                    : x = b
-    // x = 1*x + coef*U * temp  : U->apply(coef, temp, 1, x)
+    // x = (I + coef * U * V) * b
+    // temp = V * b                 : V->apply(b, temp)
+    // x = b                        : x = b
+    // x = 1 * x + coef * U * temp  : U->apply(coef, temp, 1, x)
     using vec = gko::matrix::Dense<ValueType>;
     auto exec = this->get_executor();
     auto temp = vec::create(
@@ -63,9 +63,10 @@ void Reflection<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 {
     // x = alpha * (I + coef * U * V) b + beta * x
     //   = beta * x + alpha * b + alpha * coef * U * V * b
-    // temp = Vb                       : V->apply(b, temp)
-    // x = beta * x + alpha * b        : x->scale(beta), x->add_scaled(alpha, b)
-    // x = x + alpha * coef * U * temp : U->apply(coef, temp, 1, x)
+    // temp = V * b                     : V->apply(b, temp)
+    // x = beta * x + alpha * b         : x->scale(beta),
+    //                                    x->add_scaled(alpha, b)
+    // x = x + alpha * coef * U * temp  : U->apply(alpha * coef, temp, 1, x)
     using vec = gko::matrix::Dense<ValueType>;
     auto exec = this->get_executor();
     auto temp = vec::create(
@@ -75,7 +76,10 @@ void Reflection<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
     vec_x->scale(beta);
     vec_x->add_scaled(alpha, b);
     auto one = gko::initialize<vec>({1.0}, exec);
-    this->U_->apply(lend(this->coef_), lend(temp), lend(one), vec_x);
+    auto alpha_coef = vec::create(exec, gko::dim<2>(1));
+    alpha_coef->copy_from(alpha);
+    alpha_coef->scale(lend(this->coef_));
+    this->U_->apply(lend(alpha_coef), lend(temp), lend(one), vec_x);
 }
 
 
