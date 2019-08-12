@@ -109,8 +109,11 @@ protected:
      */
     explicit Reflection(std::shared_ptr<const LinOp> coef,
                         std::shared_ptr<const LinOp> U)
-        : Reflection(std::move(coef), std::move(U),
-                     std::move(as<Transposable>(lend(U))->conj_transpose()))
+        : Reflection(
+              std::move(coef),
+              // U can not be std::move(U). it will delete U before the
+              // transpose operation
+              U, std::move((as<gko::Transposable>(lend(U)))->conj_transpose()))
     {}
 
     /**
