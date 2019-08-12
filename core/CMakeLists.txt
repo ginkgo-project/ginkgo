@@ -8,6 +8,7 @@ target_sources(ginkgo
         base/composition.cpp
         base/executor.cpp
         base/mtx_io.cpp
+        base/reflection.cpp
         base/version.cpp
         factorization/par_ilu.cpp
         log/convergence.cpp

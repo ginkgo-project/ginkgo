@@ -64,8 +64,7 @@ public:
      *
      * @return the operator U
      */
-    const std::shared_ptr<const LinOp> get_u_operator() const
-        noexcept
+    const std::shared_ptr<const LinOp> get_u_operator() const noexcept
     {
         return U_;
     }
@@ -75,8 +74,7 @@ public:
      *
      * @return the operator V
      */
-    const std::shared_ptr<const LinOp> get_v_operator() const
-        noexcept
+    const std::shared_ptr<const LinOp> get_v_operator() const noexcept
     {
         return V_;
     }
@@ -86,8 +84,7 @@ public:
      *
      * @return the coefficent coef
      */
-    const std::shared_ptr<const LinOp> get_coefficient() const
-        noexcept
+    const std::shared_ptr<const LinOp> get_coefficient() const noexcept
     {
         return coef_;
     }
@@ -112,8 +109,8 @@ protected:
      */
     explicit Reflection(std::shared_ptr<const LinOp> coef,
                         std::shared_ptr<const LinOp> U)
-        : Reflection(std::forward(coef), std::forward(U),
-                      std::forward(U->conj_transpose()))
+        : Reflection(std::move(coef), std::move(U),
+                     std::move(as<Transposable>(lend(U))->conj_transpose()))
     {}
 
     /**
@@ -127,10 +124,11 @@ protected:
     explicit Reflection(std::shared_ptr<const LinOp> coef,
                         std::shared_ptr<const LinOp> U,
                         std::shared_ptr<const LinOp> V)
-        : EnableLinOp<Reflection>(oper->get_executor(),
+        : EnableLinOp<Reflection>(U->get_executor(),
                                   gko::dim<2>{U->get_size()[0]}),
-          coef_{std::move(coef)} U_{std::move(U)},
-          V_{std::move(V)},
+          coef_{std::move(coef)},
+          U_{std::move(U)},
+          V_{std::move(V)}
     {
         this->validate_reflection();
     }
