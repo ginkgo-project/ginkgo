@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/trs.hpp>
+#include <ginkgo/core/solver/lower_trs.hpp>
 
 
 #include <gtest/gtest.h>
@@ -46,18 +46,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/solver/trs_kernels.hpp"
+#include "core/solver/lower_trs_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
 namespace {
 
 
-class Trs : public ::testing::Test {
+class LowerTrs : public ::testing::Test {
 protected:
     using CsrMtx = gko::matrix::Csr<double, gko::int32>;
     using Mtx = gko::matrix::Dense<>;
-    Trs() : rand_engine(30) {}
+    LowerTrs() : rand_engine(30) {}
 
     void SetUp()
     {
@@ -88,7 +88,7 @@ protected:
 };
 
 
-TEST_F(Trs, CudaApplyIsEquivalentToRef)
+TEST_F(LowerTrs, CudaApplyIsEquivalentToRef)
 {
     std::shared_ptr<Mtx> mtx = gen_mtx(50, 50);
     std::shared_ptr<Mtx> b = gen_mtx(50, 1);
@@ -104,10 +104,10 @@ TEST_F(Trs, CudaApplyIsEquivalentToRef)
     d_b2->copy_from(b.get());
     b2->copy_from(b.get());
 
-    auto trs_factory = gko::solver::Trs<>::build().on(ref);
-    auto d_trs_factory = gko::solver::Trs<>::build().on(cuda);
-    auto solver = trs_factory->generate(csr_mtx, b2);
-    auto d_solver = d_trs_factory->generate(d_csr_mtx, d_b2);
+    auto lower_trs_factory = gko::solver::LowerTrs<>::build().on(ref);
+    auto d_lower_trs_factory = gko::solver::LowerTrs<>::build().on(cuda);
+    auto solver = lower_trs_factory->generate(csr_mtx, b2);
+    auto d_solver = d_lower_trs_factory->generate(d_csr_mtx, d_b2);
     solver->apply(b2.get(), x.get());
     d_solver->apply(d_b2.get(), d_x.get());
 
