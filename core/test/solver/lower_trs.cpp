@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/trs.hpp>
+#include <ginkgo/core/solver/lower_trs.hpp>
 
 
 #include <memory>
@@ -46,33 +46,34 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class Trs : public ::testing::Test {
+class LowerTrs : public ::testing::Test {
 protected:
-    using Solver = gko::solver::Trs<>;
+    using Solver = gko::solver::LowerTrs<>;
     using CGSolver = gko::solver::Cg<>;
 
-    Trs()
+    LowerTrs()
         : exec(gko::ReferenceExecutor::create()),
           prec_fac(CGSolver::build().on(exec)),
-          trs_factory(Solver::build().with_preconditioner(prec_fac).on(exec))
+          lower_trs_factory(
+              Solver::build().with_preconditioner(prec_fac).on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<CGSolver::Factory> prec_fac;
-    std::unique_ptr<Solver::Factory> trs_factory;
+    std::unique_ptr<Solver::Factory> lower_trs_factory;
 };
 
 
-TEST_F(Trs, TrsFactoryKnowsItsExecutor)
+TEST_F(LowerTrs, LowerTrsFactoryKnowsItsExecutor)
 {
-    ASSERT_EQ(trs_factory->get_executor(), exec);
+    ASSERT_EQ(lower_trs_factory->get_executor(), exec);
 }
 
 
-TEST_F(Trs, TrsFactoryKnowsItsPrecond)
+TEST_F(LowerTrs, LowerTrsFactoryKnowsItsPrecond)
 {
     ASSERT_EQ(static_cast<const CGSolver::Factory *>(
-                  trs_factory->get_parameters().preconditioner.get()),
+                  lower_trs_factory->get_parameters().preconditioner.get()),
               prec_fac.get());
 }
 

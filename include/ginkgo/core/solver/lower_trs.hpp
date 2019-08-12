@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_SOLVER_TRS_HPP_
-#define GKO_CORE_SOLVER_TRS_HPP_
+#ifndef GKO_CORE_SOLVER_LOWER_TRS_HPP_
+#define GKO_CORE_SOLVER_LOWER_TRS_HPP_
 
 
 #include <memory>
@@ -56,67 +56,68 @@ namespace solver {
 
 
 template <typename ValueType, typename IndexType>
-class Trs;
+class LowerTrs;
 
 
 /**
  * This struct is used to pass parameters to the
- * EnableDefaultTrsFactory::generate() method. It is the
- * ComponentsType of TrsFactory.
+ * EnableDefaultLowerTrsFactory::generate() method. It is the
+ * ComponentsType of LowerTrsFactory.
  *
  */
-struct TrsArgs {
+struct LowerTrsArgs {
     std::shared_ptr<const LinOp> system_matrix;
     std::shared_ptr<const LinOp> b;
 
 
-    TrsArgs(std::shared_ptr<const LinOp> system_matrix,
-            std::shared_ptr<const LinOp> b)
+    LowerTrsArgs(std::shared_ptr<const LinOp> system_matrix,
+                 std::shared_ptr<const LinOp> b)
         : system_matrix{system_matrix}, b{b}
     {}
 };
 
 
 /**
- * Declares an Abstract Factory specialized for Trs solver.
+ * Declares an Abstract Factory specialized for LowerTrs solver.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  */
 template <typename ValueType, typename IndexType>
-using TrsFactory = AbstractFactory<Trs<ValueType, IndexType>, TrsArgs>;
+using LowerTrsFactory =
+    AbstractFactory<LowerTrs<ValueType, IndexType>, LowerTrsArgs>;
 
 
 /**
  * This is an alias for the EnableDefaultFactory mixin, which correctly sets the
- * template parameters to enable a subclass of TrsFactory.
+ * template parameters to enable a subclass of LowerTrsFactory.
  *
  * @tparam ConcreteFactory  the concrete factory which is being implemented
  *                          [CRTP parmeter]
- * @tparam ConcreteTrs  the concrete Trs type which this factory
+ * @tparam ConcreteLowerTrs  the concrete LowerTrs type which this factory
  *                            produces, needs to have a constructor which takes
  *                            a const ConcreteFactory *, and a
- *                            const TrsArgs * as parameters.
+ *                            const LowerTrsArgs * as parameters.
  * @tparam ParametersType  a subclass of enable_parameters_type template which
  *                         defines all of the parameters of the factory
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  */
-template <typename ConcreteFactory, typename ConcreteTrs,
+template <typename ConcreteFactory, typename ConcreteLowerTrs,
           typename ParametersType, typename ValueType, typename IndexType>
-using EnableDefaultTrsFactory =
-    EnableDefaultFactory<ConcreteFactory, ConcreteTrs, ParametersType,
-                         TrsFactory<ValueType, IndexType>>;
+using EnableDefaultLowerTrsFactory =
+    EnableDefaultFactory<ConcreteFactory, ConcreteLowerTrs, ParametersType,
+                         LowerTrsFactory<ValueType, IndexType>>;
 
 
 /**
- * This macro will generate a default implementation of a TrsFactory for
- * the Trs subclass it is defined in.
+ * This macro will generate a default implementation of a LowerTrsFactory for
+ * the LowerTrs subclass it is defined in.
  *
  * This macro is very similar to the macro #ENABLE_LIN_OP_FACTORY(). A more
  * detailed description of the use of these type of macros can be found there.
  *
- * @param _trs  concrete operator for which the factory is to be created
+ * @param _lower_trs  concrete operator for which the factory is to be created
  *              [CRTP parameter]
  * @param _parameters_name  name of the parameters member in the class
  *                          (its type is `<_parameters_name>_type`, the
@@ -127,39 +128,42 @@ using EnableDefaultTrsFactory =
  *
  * @ingroup solvers
  */
-#define GKO_ENABLE_TRS_FACTORY(_trs, _parameters_name, _factory_name)        \
-public:                                                                      \
-    const _parameters_name##_type &get_##_parameters_name() const            \
-    {                                                                        \
-        return _parameters_name##_;                                          \
-    }                                                                        \
-                                                                             \
-    class _factory_name : public ::gko::solver::EnableDefaultTrsFactory<     \
-                              _factory_name, _trs, _parameters_name##_type,  \
-                              ValueType, IndexType> {                        \
-        friend class ::gko::EnablePolymorphicObject<                         \
-            _factory_name, ::gko::solver::TrsFactory<ValueType, IndexType>>; \
-        friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
-                                                   _factory_name>;           \
-        using ::gko::solver::EnableDefaultTrsFactory<                        \
-            _factory_name, _trs, _parameters_name##_type, ValueType,         \
-            IndexType>::EnableDefaultTrsFactory;                             \
-    };                                                                       \
-    friend ::gko::solver::EnableDefaultTrsFactory<                           \
-        _factory_name, _trs, _parameters_name##_type, ValueType, IndexType>; \
-                                                                             \
-private:                                                                     \
-    _parameters_name##_type _parameters_name##_;                             \
-                                                                             \
-public:                                                                      \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
+#define GKO_ENABLE_LOWER_TRS_FACTORY(_lower_trs, _parameters_name,             \
+                                     _factory_name)                            \
+public:                                                                        \
+    const _parameters_name##_type &get_##_parameters_name() const              \
+    {                                                                          \
+        return _parameters_name##_;                                            \
+    }                                                                          \
+                                                                               \
+    class _factory_name : public ::gko::solver::EnableDefaultLowerTrsFactory<  \
+                              _factory_name, _lower_trs,                       \
+                              _parameters_name##_type, ValueType, IndexType> { \
+        friend class ::gko::EnablePolymorphicObject<                           \
+            _factory_name,                                                     \
+            ::gko::solver::LowerTrsFactory<ValueType, IndexType>>;             \
+        friend class ::gko::enable_parameters_type<_parameters_name##_type,    \
+                                                   _factory_name>;             \
+        using ::gko::solver::EnableDefaultLowerTrsFactory<                     \
+            _factory_name, _lower_trs, _parameters_name##_type, ValueType,     \
+            IndexType>::EnableDefaultLowerTrsFactory;                          \
+    };                                                                         \
+    friend ::gko::solver::EnableDefaultLowerTrsFactory<                        \
+        _factory_name, _lower_trs, _parameters_name##_type, ValueType,         \
+        IndexType>;                                                            \
+                                                                               \
+private:                                                                       \
+    _parameters_name##_type _parameters_name##_;                               \
+                                                                               \
+public:                                                                        \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
 
 /**
- * TRS is the triangular solver which solves the system L x = b, when L is a
- * lower triangular matrix. It works best when passing in a matrix in CSR
+ * LOWER_TRS is the triangular solver which solves the system L x = b, when L is
+ * a lower triangular matrix. It works best when passing in a matrix in CSR
  * format. If the matrix is not in CSR, then the generate step converts it into
  * a CSR matrix.
  *
@@ -174,10 +178,10 @@ public:                                                                      \
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Trs : public EnableLinOp<Trs<ValueType, IndexType>>,
-            public Preconditionable {
-    friend class EnableLinOp<Trs>;
-    friend class EnablePolymorphicObject<Trs, LinOp>;
+class LowerTrs : public EnableLinOp<LowerTrs<ValueType, IndexType>>,
+                 public Preconditionable {
+    friend class EnableLinOp<LowerTrs>;
+    friend class EnablePolymorphicObject<LowerTrs, LinOp>;
 
 public:
     using value_type = ValueType;
@@ -219,8 +223,8 @@ public:
             preconditioner, nullptr);
     };
 #define GKO_COMMA ,
-    GKO_ENABLE_TRS_FACTORY(Trs<ValueType GKO_COMMA IndexType>, parameters,
-                           Factory);
+    GKO_ENABLE_LOWER_TRS_FACTORY(LowerTrs<ValueType GKO_COMMA IndexType>,
+                                 parameters, Factory);
 #undef GKO_COMMA
     GKO_ENABLE_BUILD_METHOD(Factory);
 
@@ -238,14 +242,14 @@ protected:
      */
     void generate(const LinOp *system_matrix, const LinOp *b);
 
-    explicit Trs(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Trs>(std::move(exec))
+    explicit LowerTrs(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<LowerTrs>(std::move(exec))
     {}
 
-    explicit Trs(const Factory *factory, const TrsArgs &args)
+    explicit LowerTrs(const Factory *factory, const LowerTrsArgs &args)
         : parameters_{factory->get_parameters()},
-          EnableLinOp<Trs>(factory->get_executor(),
-                           transpose(args.system_matrix->get_size())),
+          EnableLinOp<LowerTrs>(factory->get_executor(),
+                                transpose(args.system_matrix->get_size())),
           system_matrix_{std::move(args.system_matrix)},
           b_{std::move(args.b)}
     {
@@ -272,4 +276,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_TRS_HPP
+#endif  // GKO_CORE_SOLVER_LOWER_TRS_HPP

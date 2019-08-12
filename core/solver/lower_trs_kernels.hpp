@@ -30,75 +30,77 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/trs_kernels.hpp"
+#ifndef GKO_CORE_SOLVER_LOWER_TRS_KERNELS_HPP_
+#define GKO_CORE_SOLVER_LOWER_TRS_KERNELS_HPP_
 
 
 #include <memory>
 
 
-#include <omp.h>
-
-
-#include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
 namespace kernels {
+namespace lower_trs {
+
+
+#define GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL(_vtype, _itype)  \
+    void generate(std::shared_ptr<const DefaultExecutor> exec, \
+                  const matrix::Csr<_vtype, _itype> *matrix,   \
+                  const matrix::Dense<_vtype> *b)
+
+
+#define GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(_vtype, _itype)  \
+    void solve(std::shared_ptr<const DefaultExecutor> exec, \
+               const matrix::Csr<_vtype, _itype> *matrix,   \
+               const matrix::Dense<_vtype> *b, matrix::Dense<_vtype> *x)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                          \
+    template <typename ValueType, typename IndexType>         \
+    GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>         \
+    GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL(ValueType, IndexType)
+
+
+}  // namespace lower_trs
+
+
 namespace omp {
-/**
- * @brief The TRS solver namespace.
- *
- * @ingroup trs
- */
-namespace trs {
+namespace lower_trs {
 
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
-template <typename ValueType, typename IndexType>
-void generate(std::shared_ptr<const OmpExecutor> exec,
-              const matrix::Csr<ValueType, IndexType> *matrix,
-              const matrix::Dense<ValueType> *b)
-{
-    // This generate kernel is here to allow for a more sophisticated
-    // implementation as for the CUDA executor. This kernel would perform the
-    // "analysis" phase for the triangular matrix.
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS_GENERATE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void solve(std::shared_ptr<const OmpExecutor> exec,
-           const matrix::Csr<ValueType, IndexType> *matrix,
-           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
-{
-    auto row_ptrs = matrix->get_const_row_ptrs();
-    auto col_idxs = matrix->get_const_col_idxs();
-    auto vals = matrix->get_const_values();
-
-#pragma omp parallel for
-    for (size_type j = 0; j < b->get_size()[1]; ++j) {
-        for (size_type row = 0; row < matrix->get_size()[0]; ++row) {
-            x->at(row, j) = b->at(row, j) / vals[row_ptrs[row + 1] - 1];
-            for (size_type k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
-                auto col = col_idxs[k];
-                if (col < row) {
-                    x->at(row, j) +=
-                        -vals[k] * x->at(col, j) / vals[row_ptrs[row + 1] - 1];
-                }
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_TRS_SOLVE_KERNEL);
-
-
-}  // namespace trs
+}  // namespace lower_trs
 }  // namespace omp
+
+
+namespace cuda {
+namespace lower_trs {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace lower_trs
+}  // namespace cuda
+
+
+namespace reference {
+namespace lower_trs {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace lower_trs
+}  // namespace reference
+
+
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
+
+
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif  // GKO_CORE_SOLVER_LOWER_TRS_KERNELS_HPP

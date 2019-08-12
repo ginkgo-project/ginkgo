@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/trs.hpp>
+#include <ginkgo/core/solver/lower_trs.hpp>
 
 
 #include <gtest/gtest.h>
@@ -52,39 +52,39 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class Trs : public ::testing::Test {
+class LowerTrs : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
-    Trs()
+    LowerTrs()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{1, 0.0, 0.0}, {3.0, 1, 0.0}, {1.0, 2.0, 1}}, exec)),
           mtx2(gko::initialize<Mtx>(
               {{2, 0.0, 0.0}, {3.0, 3, 0.0}, {1.0, 2.0, 4}}, exec)),
-          trs_factory(gko::solver::Trs<>::build().on(exec)),
+          lower_trs_factory(gko::solver::LowerTrs<>::build().on(exec)),
           mtx_big(gko::initialize<Mtx>({{124.0, 0.0, 0.0, 0.0, 0.0},
                                         {43.0, -789.0, 0.0, 0.0, 0.0},
                                         {134.5, -651.0, 654.0, 0.0, 0.0},
                                         {-642.0, 684.0, 68.0, 387.0, 0.0},
                                         {365.0, 97.0, -654.0, 8.0, 91.0}},
                                        exec)),
-          trs_factory_big(gko::solver::Trs<>::build().on(exec))
+          lower_trs_factory_big(gko::solver::LowerTrs<>::build().on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> mtx2;
     std::shared_ptr<Mtx> mtx_big;
-    std::unique_ptr<gko::solver::Trs<>::Factory> trs_factory;
-    std::unique_ptr<gko::solver::Trs<>::Factory> trs_factory_big;
+    std::unique_ptr<gko::solver::LowerTrs<>::Factory> lower_trs_factory;
+    std::unique_ptr<gko::solver::LowerTrs<>::Factory> lower_trs_factory_big;
 };
 
 
-TEST_F(Trs, SolvesTriangularSystem)
+TEST_F(LowerTrs, SolvesTriangularSystem)
 {
     std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
-    auto solver = trs_factory->generate(mtx, b);
+    auto solver = lower_trs_factory->generate(mtx, b);
 
     solver->apply(b.get(), x.get());
 
@@ -92,12 +92,12 @@ TEST_F(Trs, SolvesTriangularSystem)
 }
 
 
-TEST_F(Trs, SolvesMultipleTriangularSystems)
+TEST_F(LowerTrs, SolvesMultipleTriangularSystems)
 {
     std::shared_ptr<Mtx> b =
         gko::initialize<Mtx>({{3.0, 4.0}, {1.0, 0.0}, {1.0, -1.0}}, exec);
     auto x = gko::initialize<Mtx>({{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}}, exec);
-    auto solver = trs_factory->generate(mtx, b);
+    auto solver = lower_trs_factory->generate(mtx, b);
 
     solver->apply(b.get(), x.get());
 
@@ -105,24 +105,24 @@ TEST_F(Trs, SolvesMultipleTriangularSystems)
 }
 
 
-TEST_F(Trs, SolvesNonUnitTriangularSystem)
+TEST_F(LowerTrs, SolvesNonUnitTriangularSystem)
 {
     std::shared_ptr<Mtx> b = gko::initialize<Mtx>({2.0, 12.0, 3.0}, exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
-    auto solver = trs_factory->generate(mtx2, b);
+    auto solver = lower_trs_factory->generate(mtx2, b);
 
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, -1.0}), 1e-14);
 }
 
-TEST_F(Trs, SolvesTriangularSystemUsingAdvancedApply)
+TEST_F(LowerTrs, SolvesTriangularSystemUsingAdvancedApply)
 {
     auto alpha = gko::initialize<Mtx>({2.0}, exec);
     auto beta = gko::initialize<Mtx>({-1.0}, exec);
     std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, exec);
     auto x = gko::initialize<Mtx>({1.0, -1.0, 1.0}, exec);
-    auto solver = trs_factory->generate(mtx, b);
+    auto solver = lower_trs_factory->generate(mtx, b);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
@@ -130,7 +130,7 @@ TEST_F(Trs, SolvesTriangularSystemUsingAdvancedApply)
 }
 
 
-TEST_F(Trs, SolvesMultipleTriangularSystemsUsingAdvancedApply)
+TEST_F(LowerTrs, SolvesMultipleTriangularSystemsUsingAdvancedApply)
 {
     auto alpha = gko::initialize<Mtx>({-1.0}, exec);
     auto beta = gko::initialize<Mtx>({2.0}, exec);
@@ -138,7 +138,7 @@ TEST_F(Trs, SolvesMultipleTriangularSystemsUsingAdvancedApply)
         gko::initialize<Mtx>({{3.0, 4.0}, {1.0, 0.0}, {1.0, -1.0}}, exec);
     auto x =
         gko::initialize<Mtx>({{1.0, 2.0}, {-1.0, -1.0}, {0.0, -2.0}}, exec);
-    auto solver = trs_factory->generate(mtx, b);
+    auto solver = lower_trs_factory->generate(mtx, b);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
@@ -147,12 +147,12 @@ TEST_F(Trs, SolvesMultipleTriangularSystemsUsingAdvancedApply)
 }
 
 
-TEST_F(Trs, SolvesBigDenseSystem1)
+TEST_F(LowerTrs, SolvesBigDenseSystem1)
 {
     std::shared_ptr<Mtx> b =
         gko::initialize<Mtx>({-124.0, -3199.0, 3147.5, 5151.0, -6021.0}, exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, exec);
-    auto solver = trs_factory_big->generate(mtx_big, b);
+    auto solver = lower_trs_factory_big->generate(mtx_big, b);
 
     solver->apply(b.get(), x.get());
 
