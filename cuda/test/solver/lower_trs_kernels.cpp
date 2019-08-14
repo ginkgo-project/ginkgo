@@ -76,7 +76,7 @@ protected:
     std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
     {
         return gko::test::generate_random_lower_triangular_matrix<Mtx>(
-            num_rows, num_cols,
+            num_rows, num_cols, false,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
