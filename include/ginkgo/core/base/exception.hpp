@@ -87,6 +87,7 @@ class Error : public std::exception {
 public:
     /**
      * Initializes an error.
+     *
      * @param file The name of the offending source file
      * @param line The source code line number where the error occurred
      * @param what The error message
@@ -114,6 +115,7 @@ class NotImplemented : public Error {
 public:
     /**
      * Initializes a NotImplemented error.
+     *
      * @param file The name of the offending source file
      * @param line The source code line number where the error occurred
      * @param func The name of the not-yet implemented function
@@ -132,6 +134,7 @@ class NotCompiled : public Error {
 public:
     /**
      * Initializes a NotCompiled error.
+     *
      * @param file The name of the offending source file
      * @param line The source code line number where the error occurred
      * @param func The name of the function that has not been compiled
@@ -154,6 +157,7 @@ class NotSupported : public Error {
 public:
     /**
      * Initializes a NotSupported error.
+     *
      * @param file The name of the offending source file
      * @param line The source code line number where the error occurred
      * @param func The name of the function where the error occured
@@ -176,6 +180,7 @@ class CudaError : public Error {
 public:
     /**
      * Initializes a CUDA error.
+     *
      * @param file The name of the offending source file
      * @param line The source code line number where the error occurred
      * @param func The name of the CUDA routine that failed
@@ -198,6 +203,7 @@ class CublasError : public Error {
 public:
     /**
      * Initializes a cuBLAS error.
+     *
      * @param file The name of the offending source file
      * @param line The source code line number where the error occurred
      * @param func The name of the cuBLAS routine that failed
@@ -220,6 +226,7 @@ class CusparseError : public Error {
 public:
     /**
      * Initializes a cuSPARSE error.
+     *
      * @param file The name of the offending source file
      * @param line The source code line number where the error occurred
      * @param func The name of the cuSPARSE routine that failed
@@ -243,6 +250,7 @@ class DimensionMismatch : public Error {
 public:
     /**
      * Initializes a dimension mismatch error.
+     *
      * @param file The name of the offending source file
      * @param line The source code line number where the error occurred
      * @param func The function name where the error occurred
@@ -277,6 +285,7 @@ class BadDimension : public Error {
 public:
     /**
      * Initializes a bad dimension error.
+     *
      * @param file The name of the offending source file
      * @param line The source code line number where the error occurred
      * @param func The function name where the error occurred
@@ -303,6 +312,7 @@ class AllocationError : public Error {
 public:
     /**
      * Initializes an allocation error.
+     *
      * @param file The name of the offending source file
      * @param line The source code line number where the error occurred
      * @param device The device on which the error occurred
@@ -325,6 +335,7 @@ class OutOfBoundsError : public Error {
 public:
     /**
      * Initializes an OutOfBoundsError.
+     *
      * @param file  The name of the offending source file
      * @param line  The source code line number where the error occurred
      * @param index  The position that was accessed
@@ -347,6 +358,7 @@ class StreamError : public Error {
 public:
     /**
      * Initializes a file access error.
+     *
      * @param file The name of the offending source file
      * @param line The source code line number where the error occurred
      * @param func The name of the function that tried to access the file
@@ -367,6 +379,7 @@ class KernelNotFound : public Error {
 public:
     /**
      * Initializes a KernelNotFound error.
+     *
      * @param file The name of the offending source file
      * @param line The source code line number where the error occurred
      * @param func The name of the function where the error occurred

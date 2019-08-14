@@ -97,9 +97,9 @@ using LowerTrsFactory =
  * @tparam ConcreteFactory  the concrete factory which is being implemented
  *                          [CRTP parmeter]
  * @tparam ConcreteLowerTrs  the concrete LowerTrs type which this factory
- *                            produces, needs to have a constructor which takes
- *                            a const ConcreteFactory *, and a
- *                            const LowerTrsArgs * as parameters.
+ *                           produces, needs to have a constructor which takes
+ *                           a const ConcreteFactory *, and a
+ *                           const LowerTrsArgs * as parameters.
  * @tparam ParametersType  a subclass of enable_parameters_type template which
  *                         defines all of the parameters of the factory
  * @tparam ValueType  precision of matrix elements
