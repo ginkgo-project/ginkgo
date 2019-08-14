@@ -42,10 +42,10 @@ namespace gko {
 template <typename ValueType>
 void Perturbation<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    // x = (I + scaler * basis * projector) * b
+    // x = (I + scalar * basis * projector) * b
     // temp = projector * b                 : projector->apply(b, temp)
     // x = b                                : x->copy_from(b)
-    // x = 1 * x + scaler * basis * temp    : basis->apply(scaler, temp, 1, x)
+    // x = 1 * x + scalar * basis * temp    : basis->apply(scalar, temp, 1, x)
     using vec = gko::matrix::Dense<ValueType>;
     auto exec = this->get_executor();
     auto temp = vec::create(
@@ -53,7 +53,7 @@ void Perturbation<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     this->projector_->apply(b, lend(temp));
     x->copy_from(b);
     auto one = gko::initialize<vec>({1.0}, exec);
-    this->basis_->apply(lend(this->scaler_), lend(temp), lend(one), x);
+    this->basis_->apply(lend(this->scalar_), lend(temp), lend(one), x);
 }
 
 
@@ -61,13 +61,13 @@ template <typename ValueType>
 void Perturbation<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                          const LinOp *beta, LinOp *x) const
 {
-    // x = alpha * (I + scaler * basis * projector) b + beta * x
-    //   = beta * x + alpha * b + alpha * scaler * basis * projector * b
+    // x = alpha * (I + scalar * basis * projector) b + beta * x
+    //   = beta * x + alpha * b + alpha * scalar * basis * projector * b
     // temp = projector * b     : projector->apply(b, temp)
     // x = beta * x + alpha * b : x->scale(beta),
     //                            x->add_scaled(alpha, b)
-    // x = x + alpha * scaler * basis * temp
-    //                          : basis->apply(alpha * scaler, temp, 1, x)
+    // x = x + alpha * scalar * basis * temp
+    //                          : basis->apply(alpha * scalar, temp, 1, x)
     using vec = gko::matrix::Dense<ValueType>;
     auto exec = this->get_executor();
     auto temp = vec::create(
@@ -77,10 +77,10 @@ void Perturbation<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
     vec_x->scale(beta);
     vec_x->add_scaled(alpha, b);
     auto one = gko::initialize<vec>({1.0}, exec);
-    auto alpha_scaler = vec::create(exec, gko::dim<2>(1));
-    alpha_scaler->copy_from(alpha);
-    alpha_scaler->scale(lend(this->scaler_));
-    this->basis_->apply(lend(alpha_scaler), lend(temp), lend(one), vec_x);
+    auto alpha_scalar = vec::create(exec, gko::dim<2>(1));
+    alpha_scalar->copy_from(alpha);
+    alpha_scalar->scale(lend(this->scalar_));
+    this->basis_->apply(lend(alpha_scalar), lend(temp), lend(one), vec_x);
 }
 
 

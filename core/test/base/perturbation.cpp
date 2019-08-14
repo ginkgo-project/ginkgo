@@ -94,14 +94,14 @@ protected:
           projector{std::make_shared<DummyOperator>(exec, gko::dim<2>{1, 2})},
           trans_basis{std::make_shared<TransposableDummyOperator>(
               exec, gko::dim<2>{3, 1})},
-          scaler{std::make_shared<DummyOperator>(exec, gko::dim<2>{1, 1})}
+          scalar{std::make_shared<DummyOperator>(exec, gko::dim<2>{1, 1})}
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<gko::LinOp> basis;
     std::shared_ptr<gko::LinOp> projector;
     std::shared_ptr<gko::LinOp> trans_basis;
-    std::shared_ptr<gko::LinOp> scaler;
+    std::shared_ptr<gko::LinOp> scalar;
 };
 
 
@@ -115,7 +115,7 @@ TEST_F(Perturbation, CanBeEmpty)
 
 TEST_F(Perturbation, CanCreateFromTwoOperators)
 {
-    auto cmp = gko::Perturbation<>::create(scaler, basis, projector);
+    auto cmp = gko::Perturbation<>::create(scalar, basis, projector);
 
     ASSERT_EQ(cmp->get_size(), gko::dim<2>(2, 2));
     ASSERT_EQ(cmp->get_basis(), basis);
@@ -125,13 +125,13 @@ TEST_F(Perturbation, CanCreateFromTwoOperators)
 
 TEST_F(Perturbation, CannotCreateFromOneNonTransposableOperator)
 {
-    ASSERT_THROW(gko::Perturbation<>::create(scaler, basis), gko::NotSupported);
+    ASSERT_THROW(gko::Perturbation<>::create(scalar, basis), gko::NotSupported);
 }
 
 
 TEST_F(Perturbation, CanCreateFromOneTranposableOperator)
 {
-    auto cmp = gko::Perturbation<>::create(scaler, trans_basis);
+    auto cmp = gko::Perturbation<>::create(scalar, trans_basis);
 
     ASSERT_EQ(cmp->get_size(), gko::dim<2>(3, 3));
     ASSERT_EQ(cmp->get_basis(), trans_basis);

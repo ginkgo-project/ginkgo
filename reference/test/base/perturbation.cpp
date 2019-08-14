@@ -56,13 +56,13 @@ protected:
         : exec{gko::ReferenceExecutor::create()},
           basis{gko::initialize<mtx>({2.0, 1.0}, exec)},
           projector{gko::initialize<mtx>({{3.0, 2.0}}, exec)},
-          scaler{gko::initialize<mtx>({2.0}, exec)}
+          scalar{gko::initialize<mtx>({2.0}, exec)}
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<gko::LinOp> basis;
     std::shared_ptr<gko::LinOp> projector;
-    std::shared_ptr<gko::LinOp> scaler;
+    std::shared_ptr<gko::LinOp> scalar;
 };
 
 
@@ -72,7 +72,7 @@ TEST_F(Perturbation, AppliesToVector)
         cmp = I + 2 * [ 2 ] * [ 3 2 ]
                       [ 1 ]
     */
-    auto cmp = gko::Perturbation<>::create(scaler, basis, projector);
+    auto cmp = gko::Perturbation<>::create(scalar, basis, projector);
     auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
     auto res = clone(x);
 
@@ -88,7 +88,7 @@ TEST_F(Perturbation, AppliesLinearCombinationToVector)
         cmp = I + 2 * [ 2 ] * [ 3 2 ]
                       [ 1 ]
     */
-    auto cmp = gko::Perturbation<>::create(scaler, basis, projector);
+    auto cmp = gko::Perturbation<>::create(scalar, basis, projector);
     auto alpha = gko::initialize<mtx>({3.0}, exec);
     auto beta = gko::initialize<mtx>({-1.0}, exec);
     auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
@@ -106,7 +106,7 @@ TEST_F(Perturbation, ConstructionByBasisAppliesToVector)
         cmp = I + 2 * [ 2 ] * [ 2 1 ]
                       [ 1 ]
     */
-    auto cmp = gko::Perturbation<>::create(scaler, basis);
+    auto cmp = gko::Perturbation<>::create(scalar, basis);
     auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
     auto res = clone(x);
 
@@ -122,7 +122,7 @@ TEST_F(Perturbation, ConstructionByBasisAppliesLinearCombinationToVector)
         cmp = I + 2 * [ 2 ] * [ 2 1 ]
                       [ 1 ]
     */
-    auto cmp = gko::Perturbation<>::create(scaler, basis);
+    auto cmp = gko::Perturbation<>::create(scalar, basis);
     auto alpha = gko::initialize<mtx>({3.0}, exec);
     auto beta = gko::initialize<mtx>({-1.0}, exec);
     auto x = gko::initialize<mtx>({1.0, 2.0}, exec);

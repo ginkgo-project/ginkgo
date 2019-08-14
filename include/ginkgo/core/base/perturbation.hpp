@@ -45,12 +45,12 @@ namespace gko {
 
 /**
  * The Perturbation class can be used to construct a LinOp to represent the
- * `(identity + scaler * basis * projector)` This operator adds a movement along
+ * `(identity + scalar * basis * projector)` This operator adds a movement along
  * a direction construted by `basis` and `projector` on the LinOp. `projector`
  * gives the coefficient of `basis` to decide the direction.
  * For example, Householder matrix can be represented in Perturbation.
  * Householder matrix = (I - 2 u u*), u is the housholder factor
- * scaler = -2, basis = u, and projector = u*
+ * scalar = -2, basis = u, and projector = u*
  *
  * @tparam ValueType  precision of input and result vectors
  *
@@ -86,13 +86,13 @@ public:
     }
 
     /**
-     * Returns the scaler of the perturbation.
+     * Returns the scalar of the perturbation.
      *
-     * @return the scaler
+     * @return the scalar
      */
-    const std::shared_ptr<const LinOp> get_scaler() const noexcept
+    const std::shared_ptr<const LinOp> get_scalar() const noexcept
     {
-        return scaler_;
+        return scalar_;
     }
 
 protected:
@@ -106,17 +106,17 @@ protected:
     {}
 
     /**
-     * Creates a perturbation with scaler and basis by setting projector to the
+     * Creates a perturbation with scalar and basis by setting projector to the
      * conjugate transpose of basis. Basis must be transposable. Perturbation
      * will throw GKO_NOT_SUPPORT if basis is not transposable.
      *
-     * @param scaler  scaling of the movement
+     * @param scalar  scaling of the movement
      * @param basis  the direction basis
      */
-    explicit Perturbation(std::shared_ptr<const LinOp> scaler,
+    explicit Perturbation(std::shared_ptr<const LinOp> scalar,
                           std::shared_ptr<const LinOp> basis)
         : Perturbation(
-              std::move(scaler),
+              std::move(scalar),
               // basis can not be std::move(basis). Otherwise, Program deletes
               // basis before applying conjugate transpose
               basis,
@@ -124,18 +124,18 @@ protected:
     {}
 
     /**
-     * Creates a perturbation of scaler, basis and projector.
+     * Creates a perturbation of scalar, basis and projector.
      *
-     * @param scaler  scaling of the movement
+     * @param scalar  scaling of the movement
      * @param basis  the direction basis
      * @param projector  decides the coefficient of basis
      */
-    explicit Perturbation(std::shared_ptr<const LinOp> scaler,
+    explicit Perturbation(std::shared_ptr<const LinOp> scalar,
                           std::shared_ptr<const LinOp> basis,
                           std::shared_ptr<const LinOp> projector)
         : EnableLinOp<Perturbation>(basis->get_executor(),
                                     gko::dim<2>{basis->get_size()[0]}),
-          scaler_{std::move(scaler)},
+          scalar_{std::move(scalar)},
           basis_{std::move(basis)},
           projector_{std::move(projector)}
     {
@@ -148,8 +148,8 @@ protected:
                     LinOp *x) const override;
 
     /**
-     * validate_perturbation check the dimension of scaler, basis, projector.
-     * scaler must be 1 by 1.
+     * validate_perturbation check the dimension of scalar, basis, projector.
+     * scalar must be 1 by 1.
      * The dimension of basis should be same as the dimension of conjugate
      * transpose of projector.
      */
@@ -157,13 +157,13 @@ protected:
     {
         GKO_ASSERT_CONFORMANT(basis_, projector_);
         GKO_ASSERT_CONFORMANT(projector_, basis_);
-        GKO_ASSERT_EQUAL_DIMENSIONS(scaler_, dim<2>(1, 1));
+        GKO_ASSERT_EQUAL_DIMENSIONS(scalar_, dim<2>(1, 1));
     }
 
 private:
     std::shared_ptr<const LinOp> basis_;
     std::shared_ptr<const LinOp> projector_;
-    std::shared_ptr<const LinOp> scaler_;
+    std::shared_ptr<const LinOp> scalar_;
 };
 
 
