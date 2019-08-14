@@ -66,7 +66,7 @@ void LowerTrs<ValueType, IndexType>::generate(
     const matrix::Dense<ValueType> *b)
 {
     this->get_executor()->run(
-        lower_trs::make_generate(gko::lend(system_matrix_), gko::lend(b)));
+        lower_trs::make_generate(gko::lend(system_matrix), gko::lend(b)));
 }
 
 

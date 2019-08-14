@@ -80,7 +80,7 @@ get_rand_value(Distribution &&dist, Generator &&gen)
  * @tparam Engine  type of random engine
  *
  * @param num_rows  number of rows
- * @param num_cols  number of colums
+ * @param num_cols  number of columns
  * @param nonzero_dist  distribution of nonzeros per row
  * @param value_dist  distribution of matrix values
  * @param engine  a random engine
@@ -140,7 +140,7 @@ std::unique_ptr<MatrixType> generate_random_matrix(
  * @tparam Engine  type of random engine
  *
  * @param num_rows  number of rows
- * @param num_cols  number of colums
+ * @param num_cols  number of columns
  * @param nonzero_dist  distribution of nonzeros per row
  * @param value_dist  distribution of matrix values
  * @param engine  a random engine
@@ -150,9 +150,10 @@ std::unique_ptr<MatrixType> generate_random_matrix(
 template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
           typename ValueDistribution, typename Engine, typename... MatrixArgs>
 std::unique_ptr<MatrixType> generate_random_lower_triangular_matrix(
-    size_type num_rows, size_type num_cols, NonzeroDistribution &&nonzero_dist,
-    ValueDistribution &&value_dist, Engine &&engine,
-    std::shared_ptr<const Executor> exec, MatrixArgs &&... args)
+    size_type num_rows, size_type num_cols, bool ones_on_diagonal,
+    NonzeroDistribution &&nonzero_dist, ValueDistribution &&value_dist,
+    Engine &&engine, std::shared_ptr<const Executor> exec,
+    MatrixArgs &&... args)
 {
     using value_type = typename MatrixType::value_type;
     using index_type = typename MatrixType::index_type;
@@ -161,7 +162,7 @@ std::unique_ptr<MatrixType> generate_random_lower_triangular_matrix(
 
     matrix_data<value_type, index_type> data{gko::dim<2>{num_rows, num_cols},
                                              {}};
-
+    value_type one = 1.0;
     std::vector<size_type> col_idx(num_cols);
     std::iota(begin(col_idx), end(col_idx), size_type(0));
 
@@ -172,14 +173,19 @@ std::unique_ptr<MatrixType> generate_random_lower_triangular_matrix(
         // select a subset of `nnz_in_row` column indexes, and fill these
         // locations with random values
         std::shuffle(begin(col_idx), end(col_idx), engine);
-        std::for_each(
-            begin(col_idx), begin(col_idx) + nnz_in_row, [&](size_type col) {
-                if (col <= row) {
-                    data.nonzeros.emplace_back(
-                        row, col,
-                        detail::get_rand_value<value_type>(value_dist, engine));
-                }
-            });
+        std::for_each(begin(col_idx), begin(col_idx) + nnz_in_row,
+                      [&](size_type col) {
+                          if (col <= row) {
+                              if (ones_on_diagonal && col == row) {
+                                  data.nonzeros.emplace_back(row, col, one);
+                              } else {
+                                  data.nonzeros.emplace_back(
+                                      row, col,
+                                      detail::get_rand_value<value_type>(
+                                          value_dist, engine));
+                              }
+                          }
+                      });
     }
 
     data.ensure_row_major_order();

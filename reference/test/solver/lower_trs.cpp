@@ -73,17 +73,6 @@ protected:
     std::shared_ptr<CsrMtx> csr_mtx;
     std::unique_ptr<Solver::Factory> lower_trs_factory;
     std::unique_ptr<Solver> lower_trs_solver;
-
-    static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
-    {
-        ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
-        ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
-        for (gko::size_type i = 0; i < m1->get_size()[0]; ++i) {
-            for (gko::size_type j = 0; j < m2->get_size()[1]; ++j) {
-                EXPECT_EQ(m1->at(i, j), m2->at(i, j));
-            }
-        }
-    }
 };
 
 

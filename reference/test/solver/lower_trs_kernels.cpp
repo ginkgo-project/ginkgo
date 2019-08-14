@@ -147,7 +147,7 @@ TEST_F(LowerTrs, SolvesMultipleTriangularSystemsUsingAdvancedApply)
 }
 
 
-TEST_F(LowerTrs, SolvesBigDenseSystem1)
+TEST_F(LowerTrs, SolvesBigDenseSystem)
 {
     std::shared_ptr<Mtx> b =
         gko::initialize<Mtx>({-124.0, -3199.0, 3147.5, 5151.0, -6021.0}, exec);
