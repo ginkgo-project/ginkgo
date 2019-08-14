@@ -33,7 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/reflection.hpp>
 
 
-#include <vector>
+#include <memory>
 
 
 #include <gtest/gtest.h>
@@ -90,18 +90,18 @@ class Reflection : public ::testing::Test {
 protected:
     Reflection()
         : exec{gko::ReferenceExecutor::create()},
-          U{std::make_shared<DummyOperator>(exec, gko::dim<2>{2, 1})},
-          V{std::make_shared<DummyOperator>(exec, gko::dim<2>{1, 2})},
-          transU{std::make_shared<TransposableDummyOperator>(
+          basis{std::make_shared<DummyOperator>(exec, gko::dim<2>{2, 1})},
+          projector{std::make_shared<DummyOperator>(exec, gko::dim<2>{1, 2})},
+          trans_basis{std::make_shared<TransposableDummyOperator>(
               exec, gko::dim<2>{3, 1})},
-          coef{std::make_shared<DummyOperator>(exec, gko::dim<2>{1, 1})}
+          scaler{std::make_shared<DummyOperator>(exec, gko::dim<2>{1, 1})}
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<gko::LinOp> U;
-    std::shared_ptr<gko::LinOp> V;
-    std::shared_ptr<gko::LinOp> transU;
-    std::shared_ptr<gko::LinOp> coef;
+    std::shared_ptr<gko::LinOp> basis;
+    std::shared_ptr<gko::LinOp> projector;
+    std::shared_ptr<gko::LinOp> trans_basis;
+    std::shared_ptr<gko::LinOp> scaler;
 };
 
 
@@ -115,26 +115,27 @@ TEST_F(Reflection, CanBeEmpty)
 
 TEST_F(Reflection, CanCreateFromTwoOperators)
 {
-    auto cmp = gko::Reflection<>::create(coef, U, V);
+    auto cmp = gko::Reflection<>::create(scaler, basis, projector);
 
     ASSERT_EQ(cmp->get_size(), gko::dim<2>(2, 2));
-    ASSERT_EQ(cmp->get_u_operator(), U);
-    ASSERT_EQ(cmp->get_v_operator(), V);
+    ASSERT_EQ(cmp->get_basis(), basis);
+    ASSERT_EQ(cmp->get_projector(), projector);
 }
 
 
-TEST_F(Reflection, CanNotCreateFromOneNonTransableOperators)
+TEST_F(Reflection, CannotCreateFromOneNonTransposableOperator)
 {
-    ASSERT_THROW(gko::Reflection<>::create(coef, U), gko::NotSupported);
+    ASSERT_THROW(gko::Reflection<>::create(scaler, basis), gko::NotSupported);
 }
 
 
-TEST_F(Reflection, CanCreateFromOneTransableOperators)
+TEST_F(Reflection, CanCreateFromOneTranposableOperator)
 {
-    auto cmp = gko::Reflection<>::create(coef, transU);
+    auto cmp = gko::Reflection<>::create(scaler, trans_basis);
+
     ASSERT_EQ(cmp->get_size(), gko::dim<2>(3, 3));
-    ASSERT_EQ(cmp->get_u_operator(), transU);
-    ASSERT_EQ(cmp->get_v_operator()->get_size(), gko::dim<2>(1, 3));
+    ASSERT_EQ(cmp->get_basis(), trans_basis);
+    ASSERT_EQ(cmp->get_projector()->get_size(), gko::dim<2>(1, 3));
 }
 
 
