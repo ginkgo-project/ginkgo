@@ -61,23 +61,12 @@ GKO_REGISTER_OPERATION(solve, lower_trs::solve);
 
 
 template <typename ValueType, typename IndexType>
-void LowerTrs<ValueType, IndexType>::generate(const LinOp *system_matrix,
-                                              const LinOp *b)
+void LowerTrs<ValueType, IndexType>::generate(
+    const matrix::Csr<ValueType, IndexType> *system_matrix,
+    const matrix::Dense<ValueType> *b)
 {
-    using CsrMatrix = matrix::Csr<ValueType, IndexType>;
-    using Vector = matrix::Dense<ValueType>;
-    GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
-    // This is needed because it does not make sense to call the copy and
-    // convert if the existing matrix (if not CSR) is empty.
-    const auto exec = this->get_executor();
-    if (!system_matrix->get_size()) {
-        csr_system_matrix_ = CsrMatrix::create(exec);
-    } else {
-        csr_system_matrix_ =
-            copy_and_convert_to<CsrMatrix>(exec, system_matrix);
-    }
-    auto dense_b = as<const Vector>(b);
-    exec->run(lower_trs::make_generate(gko::lend(csr_system_matrix_), dense_b));
+    this->get_executor()->run(
+        lower_trs::make_generate(gko::lend(system_matrix_), gko::lend(b)));
 }
 
 
@@ -91,7 +80,7 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
     auto dense_x = as<Vector>(x);
 
     exec->run(
-        lower_trs::make_solve(gko::lend(csr_system_matrix_), dense_b, dense_x));
+        lower_trs::make_solve(gko::lend(system_matrix_), dense_b, dense_x));
 }
 
 

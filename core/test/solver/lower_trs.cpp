@@ -49,17 +49,17 @@ namespace {
 class LowerTrs : public ::testing::Test {
 protected:
     using Solver = gko::solver::LowerTrs<>;
-    using CGSolver = gko::solver::Cg<>;
+    using CgSolver = gko::solver::Cg<>;
 
     LowerTrs()
         : exec(gko::ReferenceExecutor::create()),
-          prec_fac(CGSolver::build().on(exec)),
+          prec_fac(CgSolver::build().on(exec)),
           lower_trs_factory(
               Solver::build().with_preconditioner(prec_fac).on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<CGSolver::Factory> prec_fac;
+    std::shared_ptr<CgSolver::Factory> prec_fac;
     std::unique_ptr<Solver::Factory> lower_trs_factory;
 };
 
@@ -72,7 +72,7 @@ TEST_F(LowerTrs, LowerTrsFactoryKnowsItsExecutor)
 
 TEST_F(LowerTrs, LowerTrsFactoryKnowsItsPrecond)
 {
-    ASSERT_EQ(static_cast<const CGSolver::Factory *>(
+    ASSERT_EQ(static_cast<const CgSolver::Factory *>(
                   lower_trs_factory->get_parameters().preconditioner.get()),
               prec_fac.get());
 }
