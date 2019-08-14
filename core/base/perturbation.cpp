@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/reflection.hpp>
+#include <ginkgo/core/base/perturbation.hpp>
 
 
 #include <ginkgo/core/matrix/dense.hpp>
@@ -40,7 +40,7 @@ namespace gko {
 
 
 template <typename ValueType>
-void Reflection<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+void Perturbation<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     // x = (I + scaler * basis * projector) * b
     // temp = projector * b                 : projector->apply(b, temp)
@@ -58,8 +58,8 @@ void Reflection<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
 
 template <typename ValueType>
-void Reflection<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                       const LinOp *beta, LinOp *x) const
+void Perturbation<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                         const LinOp *beta, LinOp *x) const
 {
     // x = alpha * (I + scaler * basis * projector) b + beta * x
     //   = beta * x + alpha * b + alpha * scaler * basis * projector * b
@@ -84,8 +84,8 @@ void Reflection<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 }
 
 
-#define GKO_DECLARE_REFLECTION(_type) class Reflection<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_REFLECTION);
+#define GKO_DECLARE_PERTURBATION(_type) class Perturbation<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PERTURBATION);
 
 
 }  // namespace gko

@@ -147,12 +147,12 @@ int main(int, char **)
             &testVar, 1u, 1u, 1u);
     }
 
-    // core/base/reflection.hpp
+    // core/base/perturbation.hpp
     {
         using type1 = int;
         static_assert(
-            std::is_same<gko::Reflection<type1>::value_type, type1>::value,
-            "Reflection.hpp not included properly");
+            std::is_same<gko::Perturbation<type1>::value_type, type1>::value,
+            "Perturbation.hpp not included properly");
     }
 
     // core/base/std_extensions.hpp

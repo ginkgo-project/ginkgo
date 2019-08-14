@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_BASE_REFLECTION_HPP_
-#define GKO_CORE_BASE_REFLECTION_HPP_
+#ifndef GKO_CORE_BASE_PERTURBATION_HPP_
+#define GKO_CORE_BASE_PERTURBATION_HPP_
 
 
 #include <memory>
@@ -44,11 +44,11 @@ namespace gko {
 
 
 /**
- * The Reflection class can be used to construct a LinOp to represent the
+ * The Perturbation class can be used to construct a LinOp to represent the
  * `(identity + scaler * basis * projector)` This operator adds a movement along
  * a direction construted by `basis` and `projector` on the LinOp. `projector`
  * gives the coefficient of `basis` to decide the direction.
- * For example, Householder matrix can be represented in Reflection.
+ * For example, Householder matrix can be represented in Perturbation.
  * Householder matrix = (I - 2 u u*), u is the housholder factor
  * scaler = -2, basis = u, and projector = u*
  *
@@ -57,16 +57,16 @@ namespace gko {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Reflection : public EnableLinOp<Reflection<ValueType>>,
-                   public EnableCreateMethod<Reflection<ValueType>> {
-    friend class EnablePolymorphicObject<Reflection, LinOp>;
-    friend class EnableCreateMethod<Reflection>;
+class Perturbation : public EnableLinOp<Perturbation<ValueType>>,
+                     public EnableCreateMethod<Perturbation<ValueType>> {
+    friend class EnablePolymorphicObject<Perturbation, LinOp>;
+    friend class EnableCreateMethod<Perturbation>;
 
 public:
     using value_type = ValueType;
 
     /**
-     * Returns the basis of the reflection.
+     * Returns the basis of the perturbation.
      *
      * @return the basis
      */
@@ -76,7 +76,7 @@ public:
     }
 
     /**
-     * Returns the projector of the reflection.
+     * Returns the projector of the perturbation.
      *
      * @return the projector
      */
@@ -86,7 +86,7 @@ public:
     }
 
     /**
-     * Returns the scaler of the reflection.
+     * Returns the scaler of the perturbation.
      *
      * @return the scaler
      */
@@ -97,25 +97,25 @@ public:
 
 protected:
     /**
-     * Creates an empty operator reflection (0x0 operator).
+     * Creates an empty operator perturbation (0x0 operator).
      *
-     * @param exec  Executor associated to the reflection
+     * @param exec  Executor associated to the perturbation
      */
-    explicit Reflection(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Reflection>(std::move(exec))
+    explicit Perturbation(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<Perturbation>(std::move(exec))
     {}
 
     /**
-     * Creates a reflection with scaler and basis by setting projector to the
-     * conjugate transpose of basis. Basis must be transposable. Reflection will
-     * throw GKO_NOT_SUPPORT if basis is not transposable.
+     * Creates a perturbation with scaler and basis by setting projector to the
+     * conjugate transpose of basis. Basis must be transposable. Perturbation
+     * will throw GKO_NOT_SUPPORT if basis is not transposable.
      *
      * @param scaler  scaling of the movement
      * @param basis  the direction basis
      */
-    explicit Reflection(std::shared_ptr<const LinOp> scaler,
-                        std::shared_ptr<const LinOp> basis)
-        : Reflection(
+    explicit Perturbation(std::shared_ptr<const LinOp> scaler,
+                          std::shared_ptr<const LinOp> basis)
+        : Perturbation(
               std::move(scaler),
               // basis can not be std::move(basis). Otherwise, Program deletes
               // basis before applying conjugate transpose
@@ -124,22 +124,22 @@ protected:
     {}
 
     /**
-     * Creates a reflection of scaler, basis and projector.
+     * Creates a perturbation of scaler, basis and projector.
      *
      * @param scaler  scaling of the movement
      * @param basis  the direction basis
      * @param projector  decides the coefficient of basis
      */
-    explicit Reflection(std::shared_ptr<const LinOp> scaler,
-                        std::shared_ptr<const LinOp> basis,
-                        std::shared_ptr<const LinOp> projector)
-        : EnableLinOp<Reflection>(basis->get_executor(),
-                                  gko::dim<2>{basis->get_size()[0]}),
+    explicit Perturbation(std::shared_ptr<const LinOp> scaler,
+                          std::shared_ptr<const LinOp> basis,
+                          std::shared_ptr<const LinOp> projector)
+        : EnableLinOp<Perturbation>(basis->get_executor(),
+                                    gko::dim<2>{basis->get_size()[0]}),
           scaler_{std::move(scaler)},
           basis_{std::move(basis)},
           projector_{std::move(projector)}
     {
-        this->validate_reflection();
+        this->validate_perturbation();
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -148,12 +148,12 @@ protected:
                     LinOp *x) const override;
 
     /**
-     * validate_reflection check the dimension of scaler, basis, projector.
+     * validate_perturbation check the dimension of scaler, basis, projector.
      * scaler must be 1 by 1.
      * The dimension of basis should be same as the dimension of conjugate
      * transpose of projector.
      */
-    void validate_reflection()
+    void validate_perturbation()
     {
         GKO_ASSERT_CONFORMANT(basis_, projector_);
         GKO_ASSERT_CONFORMANT(projector_, basis_);
@@ -170,4 +170,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_BASE_REFLECTION_HPP_
+#endif  // GKO_CORE_BASE_PERTURBATION_HPP_

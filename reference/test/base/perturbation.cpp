@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/reflection.hpp>
+#include <ginkgo/core/base/perturbation.hpp>
 
 
 #include <memory>
@@ -48,11 +48,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class Reflection : public ::testing::Test {
+class Perturbation : public ::testing::Test {
 protected:
     using mtx = gko::matrix::Dense<>;
 
-    Reflection()
+    Perturbation()
         : exec{gko::ReferenceExecutor::create()},
           basis{gko::initialize<mtx>({2.0, 1.0}, exec)},
           projector{gko::initialize<mtx>({{3.0, 2.0}}, exec)},
@@ -66,13 +66,13 @@ protected:
 };
 
 
-TEST_F(Reflection, AppliesToVector)
+TEST_F(Perturbation, AppliesToVector)
 {
     /*
         cmp = I + 2 * [ 2 ] * [ 3 2 ]
                       [ 1 ]
     */
-    auto cmp = gko::Reflection<>::create(scaler, basis, projector);
+    auto cmp = gko::Perturbation<>::create(scaler, basis, projector);
     auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
     auto res = clone(x);
 
@@ -82,13 +82,13 @@ TEST_F(Reflection, AppliesToVector)
 }
 
 
-TEST_F(Reflection, AppliesLinearCombinationToVector)
+TEST_F(Perturbation, AppliesLinearCombinationToVector)
 {
     /*
         cmp = I + 2 * [ 2 ] * [ 3 2 ]
                       [ 1 ]
     */
-    auto cmp = gko::Reflection<>::create(scaler, basis, projector);
+    auto cmp = gko::Perturbation<>::create(scaler, basis, projector);
     auto alpha = gko::initialize<mtx>({3.0}, exec);
     auto beta = gko::initialize<mtx>({-1.0}, exec);
     auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
@@ -100,13 +100,13 @@ TEST_F(Reflection, AppliesLinearCombinationToVector)
 }
 
 
-TEST_F(Reflection, ConstructionByBasisAppliesToVector)
+TEST_F(Perturbation, ConstructionByBasisAppliesToVector)
 {
     /*
         cmp = I + 2 * [ 2 ] * [ 2 1 ]
                       [ 1 ]
     */
-    auto cmp = gko::Reflection<>::create(scaler, basis);
+    auto cmp = gko::Perturbation<>::create(scaler, basis);
     auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
     auto res = clone(x);
 
@@ -116,13 +116,13 @@ TEST_F(Reflection, ConstructionByBasisAppliesToVector)
 }
 
 
-TEST_F(Reflection, ConstructionByBasisAppliesLinearCombinationToVector)
+TEST_F(Perturbation, ConstructionByBasisAppliesLinearCombinationToVector)
 {
     /*
         cmp = I + 2 * [ 2 ] * [ 2 1 ]
                       [ 1 ]
     */
-    auto cmp = gko::Reflection<>::create(scaler, basis);
+    auto cmp = gko::Perturbation<>::create(scaler, basis);
     auto alpha = gko::initialize<mtx>({3.0}, exec);
     auto beta = gko::initialize<mtx>({-1.0}, exec);
     auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
