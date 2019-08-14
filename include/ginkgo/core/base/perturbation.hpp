@@ -46,7 +46,7 @@ namespace gko {
 /**
  * The Perturbation class can be used to construct a LinOp to represent the
  * `(identity + scalar * basis * projector)` This operator adds a movement along
- * a direction construted by `basis` and `projector` on the LinOp. `projector`
+ * a direction constructed by `basis` and `projector` on the LinOp. `projector`
  * gives the coefficient of `basis` to decide the direction.
  * For example, Householder matrix can be represented in Perturbation.
  * Householder matrix = (I - 2 u u*), u is the housholder factor
