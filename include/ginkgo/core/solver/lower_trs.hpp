@@ -64,14 +64,16 @@ class LowerTrs;
  * EnableDefaultLowerTrsFactory::generate() method. It is the
  * ComponentsType of LowerTrsFactory.
  *
+ * @tparam ValueType  precision of matrix elements
  */
+template <typename ValueType>
 struct LowerTrsArgs {
     std::shared_ptr<const LinOp> system_matrix;
-    std::shared_ptr<const LinOp> b;
+    std::shared_ptr<const matrix::Dense<ValueType>> b;
 
 
     LowerTrsArgs(std::shared_ptr<const LinOp> system_matrix,
-                 std::shared_ptr<const LinOp> b)
+                 std::shared_ptr<const matrix::Dense<ValueType>> b)
         : system_matrix{system_matrix}, b{b}
     {}
 };
@@ -85,7 +87,7 @@ struct LowerTrsArgs {
  */
 template <typename ValueType, typename IndexType>
 using LowerTrsFactory =
-    AbstractFactory<LowerTrs<ValueType, IndexType>, LowerTrsArgs>;
+    AbstractFactory<LowerTrs<ValueType, IndexType>, LowerTrsArgs<ValueType>>;
 
 
 /**
@@ -118,7 +120,7 @@ using EnableDefaultLowerTrsFactory =
  * detailed description of the use of these type of macros can be found there.
  *
  * @param _lower_trs  concrete operator for which the factory is to be created
- *              [CRTP parameter]
+ *                    [CRTP parameter]
  * @param _parameters_name  name of the parameters member in the class
  *                          (its type is `<_parameters_name>_type`, the
  *                          protected member's name is `<_parameters_name>_`,
@@ -162,14 +164,10 @@ public:                                                                        \
 
 
 /**
- * LOWER_TRS is the triangular solver which solves the system L x = b, when L is
+ * LowerTrs is the triangular solver which solves the system L x = b, when L is
  * a lower triangular matrix. It works best when passing in a matrix in CSR
  * format. If the matrix is not in CSR, then the generate step converts it into
- * a CSR matrix.
- *
- * @note When the factory is being generated with an empty matrix so that it can
- * be copied from another matrix, only a CSR matrix can be passed in because it
- * does not make sense to convert an empty matrix in another format to CSR.
+ * a CSR matrix. The generation fails if the matrix is not convertible to CSR.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indices
@@ -188,21 +186,25 @@ public:
     using index_type = IndexType;
 
     /**
-     * Gets the system operator (matrix) of the linear system.
+     * Gets the system operator (CSR matrix) of the linear system.
      *
-     * @return the system operator (matrix)
+     * @return the system operator (CSR matrix)
      */
-    std::shared_ptr<const LinOp> get_system_matrix() const
+    std::shared_ptr<const matrix::Csr<ValueType, IndexType>> get_system_matrix()
+        const
     {
         return system_matrix_;
     }
 
     /**
-     * Gets the rhs of the linear system.
+     * Gets the right hand side of the linear system.
      *
-     * @return the rhs
+     * @return the right hand side
      */
-    std::shared_ptr<const LinOp> get_rhs() const { return b_; }
+    std::shared_ptr<const matrix::Dense<ValueType>> get_rhs() const
+    {
+        return b_;
+    }
 
     /**
      * Returns the preconditioner operator used by the solver.
@@ -239,20 +241,39 @@ protected:
      *
      * @param system_matrix  the source matrix used to generate the
      *                      solver.
+     * @param b  the right hand side used to generate the solver.
+     *
+     * @note the system_matrix to be passed in has to be convertible to CSR.
+     *       Otherwise an exception is thrown.
      */
-    void generate(const LinOp *system_matrix, const LinOp *b);
+    void generate(const matrix::Csr<ValueType, IndexType> *system_matrix,
+                  const matrix::Dense<ValueType> *b);
 
     explicit LowerTrs(std::shared_ptr<const Executor> exec)
         : EnableLinOp<LowerTrs>(std::move(exec))
     {}
 
-    explicit LowerTrs(const Factory *factory, const LowerTrsArgs &args)
+    explicit LowerTrs(const Factory *factory,
+                      const LowerTrsArgs<ValueType> &args)
         : parameters_{factory->get_parameters()},
           EnableLinOp<LowerTrs>(factory->get_executor(),
                                 transpose(args.system_matrix->get_size())),
-          system_matrix_{std::move(args.system_matrix)},
-          b_{std::move(args.b)}
+          b_{std::move(args.b)},
+          system_matrix_{}
     {
+        using CsrMatrix = matrix::Csr<ValueType, IndexType>;
+
+        auto temp_mtx = std::move(args.system_matrix);
+        GKO_ASSERT_IS_SQUARE_MATRIX(temp_mtx);
+        // This is needed because it does not make sense to call the copy and
+        // convert if the existing matrix is empty.
+        const auto exec = this->get_executor();
+        if (!temp_mtx->get_size()) {
+            system_matrix_ = CsrMatrix::create(exec);
+        } else {
+            system_matrix_ =
+                copy_and_convert_to<CsrMatrix>(exec, temp_mtx.get());
+        }
         if (parameters_.preconditioner) {
             preconditioner_ =
                 parameters_.preconditioner->generate(system_matrix_);
@@ -264,10 +285,8 @@ protected:
     }
 
 private:
-    std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const LinOp> b_{};
-    std::shared_ptr<const matrix::Csr<ValueType, IndexType>>
-        csr_system_matrix_{};
+    std::shared_ptr<const matrix::Csr<ValueType, IndexType>> system_matrix_{};
+    std::shared_ptr<const matrix::Dense<ValueType>> b_{};
     std::shared_ptr<const LinOp> preconditioner_{};
 };
 

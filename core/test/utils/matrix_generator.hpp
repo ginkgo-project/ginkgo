@@ -74,6 +74,7 @@ get_rand_value(Distribution &&dist, Generator &&gen)
  *
  * @tparam MatrixType  type of matrix to generate (matrix::Dense must implement
  *                     the interface `ConvertibleTo<MatrixType>`)
+ * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
  * @tparam NonzeroDistribution  type of nonzero distribution
  * @tparam ValueDistribution  type of value distribution
  * @tparam Engine  type of random engine
@@ -95,6 +96,8 @@ std::unique_ptr<MatrixType> generate_random_matrix(
 {
     using value_type = typename MatrixType::value_type;
     using index_type = typename MatrixType::index_type;
+    using std::begin;
+    using std::end;
 
     matrix_data<value_type, index_type> data{gko::dim<2>{num_rows, num_cols},
                                              {}};
@@ -131,6 +134,7 @@ std::unique_ptr<MatrixType> generate_random_matrix(
  *
  * @tparam MatrixType  type of matrix to generate (matrix::Dense must implement
  *                     the interface `ConvertibleTo<MatrixType>`)
+ * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
  * @tparam NonzeroDistribution  type of nonzero distribution
  * @tparam ValueDistribution  type of value distribution
  * @tparam Engine  type of random engine
@@ -152,6 +156,8 @@ std::unique_ptr<MatrixType> generate_random_lower_triangular_matrix(
 {
     using value_type = typename MatrixType::value_type;
     using index_type = typename MatrixType::index_type;
+    using std::begin;
+    using std::end;
 
     matrix_data<value_type, index_type> data{gko::dim<2>{num_rows, num_cols},
                                              {}};

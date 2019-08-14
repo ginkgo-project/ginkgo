@@ -91,7 +91,7 @@ protected:
         d_x->copy_from(x.get());
         mat = gen_mtx(m, m);
         csr_mat = CsrMtx::create(ref);
-        mat.get()->convert_to(csr_mat.get());
+        mat->convert_to(csr_mat.get());
         d_mat = Mtx::create(omp);
         d_mat->copy_from(mat.get());
         d_csr_mat = CsrMtx::create(omp);

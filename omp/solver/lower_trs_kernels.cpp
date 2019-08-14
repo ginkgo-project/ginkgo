@@ -64,7 +64,7 @@ void generate(std::shared_ptr<const OmpExecutor> exec,
               const matrix::Dense<ValueType> *b)
 {
     // This generate kernel is here to allow for a more sophisticated
-    // implementation as for the CUDA executor. This kernel would perform the
+    // implementation as for other executors. This kernel would perform the
     // "analysis" phase for the triangular matrix.
 }
 
