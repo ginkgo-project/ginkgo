@@ -286,7 +286,7 @@ int main(int, char **)
                                 refExec))
                         .on(refExec);
     }
-    
+
     // core/solver/ir.hpp
     {
         using Solver = gko::solver::Ir<>;
@@ -295,6 +295,12 @@ int main(int, char **)
                             gko::stop::Iteration::build().with_max_iters(1u).on(
                                 refExec))
                         .on(refExec);
+    }
+
+    // core/solver/lower_trs.hpp
+    {
+        using Solver = gko::solver::LowerTrs<>;
+        auto test = Solver::build().on(refExec);
     }
 
     // core/stop/
