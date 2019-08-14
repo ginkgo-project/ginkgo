@@ -240,7 +240,7 @@ protected:
      * Generates the solver.
      *
      * @param system_matrix  the source matrix used to generate the
-     *                      solver.
+     *                       solver.
      * @param b  the right hand side used to generate the solver.
      *
      * @note the system_matrix to be passed in has to be convertible to CSR.
