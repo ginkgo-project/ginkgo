@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/reflection.hpp>
+#include <ginkgo/core/base/perturbation.hpp>
 
 
 #include <memory>
@@ -86,9 +86,9 @@ struct TransposableDummyOperator
 };
 
 
-class Reflection : public ::testing::Test {
+class Perturbation : public ::testing::Test {
 protected:
-    Reflection()
+    Perturbation()
         : exec{gko::ReferenceExecutor::create()},
           basis{std::make_shared<DummyOperator>(exec, gko::dim<2>{2, 1})},
           projector{std::make_shared<DummyOperator>(exec, gko::dim<2>{1, 2})},
@@ -105,17 +105,17 @@ protected:
 };
 
 
-TEST_F(Reflection, CanBeEmpty)
+TEST_F(Perturbation, CanBeEmpty)
 {
-    auto cmp = gko::Reflection<>::create(exec);
+    auto cmp = gko::Perturbation<>::create(exec);
 
     ASSERT_EQ(cmp->get_size(), gko::dim<2>(0, 0));
 }
 
 
-TEST_F(Reflection, CanCreateFromTwoOperators)
+TEST_F(Perturbation, CanCreateFromTwoOperators)
 {
-    auto cmp = gko::Reflection<>::create(scaler, basis, projector);
+    auto cmp = gko::Perturbation<>::create(scaler, basis, projector);
 
     ASSERT_EQ(cmp->get_size(), gko::dim<2>(2, 2));
     ASSERT_EQ(cmp->get_basis(), basis);
@@ -123,15 +123,15 @@ TEST_F(Reflection, CanCreateFromTwoOperators)
 }
 
 
-TEST_F(Reflection, CannotCreateFromOneNonTransposableOperator)
+TEST_F(Perturbation, CannotCreateFromOneNonTransposableOperator)
 {
-    ASSERT_THROW(gko::Reflection<>::create(scaler, basis), gko::NotSupported);
+    ASSERT_THROW(gko::Perturbation<>::create(scaler, basis), gko::NotSupported);
 }
 
 
-TEST_F(Reflection, CanCreateFromOneTranposableOperator)
+TEST_F(Perturbation, CanCreateFromOneTranposableOperator)
 {
-    auto cmp = gko::Reflection<>::create(scaler, trans_basis);
+    auto cmp = gko::Perturbation<>::create(scaler, trans_basis);
 
     ASSERT_EQ(cmp->get_size(), gko::dim<2>(3, 3));
     ASSERT_EQ(cmp->get_basis(), trans_basis);
