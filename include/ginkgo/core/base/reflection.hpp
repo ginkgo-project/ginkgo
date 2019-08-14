@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_REFLECTION_HPP_
 
 
-#include <vector>
+#include <memory>
 
 
 #include <ginkgo/core/base/lin_op.hpp>
@@ -44,7 +44,13 @@ namespace gko {
 
 
 /**
- * The Reflection class can be used to be as (I + coef * U * V)
+ * The Reflection class can be used to construct a LinOp to represent the
+ * `(identity + scaler * basis * projector)` This operator adds a movement along
+ * a direction construted by `basis` and `projector` on the LinOp. `projector`
+ * gives the coefficient of `basis` to decide the direction.
+ * For example, Householder matrix can be represented in Reflection.
+ * Householder matrix = (I - 2 u u*), u is the housholder factor
+ * scaler = -2, basis = u, and projector = u*
  *
  * @tparam ValueType  precision of input and result vectors
  *
@@ -60,33 +66,33 @@ public:
     using value_type = ValueType;
 
     /**
-     * Returns the operator U of the reflection.
+     * Returns the basis of the reflection.
      *
-     * @return the operator U
+     * @return the basis
      */
-    const std::shared_ptr<const LinOp> get_u_operator() const noexcept
+    const std::shared_ptr<const LinOp> get_basis() const noexcept
     {
-        return U_;
+        return basis_;
     }
 
     /**
-     * Returns the operator V of the reflection.
+     * Returns the projector of the reflection.
      *
-     * @return the operator V
+     * @return the projector
      */
-    const std::shared_ptr<const LinOp> get_v_operator() const noexcept
+    const std::shared_ptr<const LinOp> get_projector() const noexcept
     {
-        return V_;
+        return projector_;
     }
 
     /**
-     * Returns the coefficient of the reflection.
+     * Returns the scaler of the reflection.
      *
-     * @return the coefficent coef
+     * @return the scaler
      */
-    const std::shared_ptr<const LinOp> get_coefficient() const noexcept
+    const std::shared_ptr<const LinOp> get_scaler() const noexcept
     {
-        return coef_;
+        return scaler_;
     }
 
 protected:
@@ -100,38 +106,38 @@ protected:
     {}
 
     /**
-     * Creates a reflection of operators with only one operator U.
-     *    (V is set to the conjugate transpose of U.)
+     * Creates a reflection with scaler and basis by setting projector to the
+     * conjugate transpose of basis. Basis must be transposable. Reflection will
+     * throw GKO_NOT_SUPPORT if basis is not transposable.
      *
-     * @param coef  the coefficient
-     * @param U  the operator U
-     *
+     * @param scaler  scaling of the movement
+     * @param basis  the direction basis
      */
-    explicit Reflection(std::shared_ptr<const LinOp> coef,
-                        std::shared_ptr<const LinOp> U)
+    explicit Reflection(std::shared_ptr<const LinOp> scaler,
+                        std::shared_ptr<const LinOp> basis)
         : Reflection(
-              std::move(coef),
-              // U can not be std::move(U). it will delete U before the
-              // transpose operation
-              U, std::move((as<gko::Transposable>(lend(U)))->conj_transpose()))
+              std::move(scaler),
+              // basis can not be std::move(basis). Otherwise, Program deletes
+              // basis before applying conjugate transpose
+              basis,
+              std::move((as<gko::Transposable>(lend(basis)))->conj_transpose()))
     {}
 
     /**
-     * Creates a reflection of operators.
+     * Creates a reflection of scaler, basis and projector.
      *
-     * @param coef  the coefficient
-     * @param U  the operator U
-     * @param V  the operator V
-     *
+     * @param scaler  scaling of the movement
+     * @param basis  the direction basis
+     * @param projector  decides the coefficient of basis
      */
-    explicit Reflection(std::shared_ptr<const LinOp> coef,
-                        std::shared_ptr<const LinOp> U,
-                        std::shared_ptr<const LinOp> V)
-        : EnableLinOp<Reflection>(U->get_executor(),
-                                  gko::dim<2>{U->get_size()[0]}),
-          coef_{std::move(coef)},
-          U_{std::move(U)},
-          V_{std::move(V)}
+    explicit Reflection(std::shared_ptr<const LinOp> scaler,
+                        std::shared_ptr<const LinOp> basis,
+                        std::shared_ptr<const LinOp> projector)
+        : EnableLinOp<Reflection>(basis->get_executor(),
+                                  gko::dim<2>{basis->get_size()[0]}),
+          scaler_{std::move(scaler)},
+          basis_{std::move(basis)},
+          projector_{std::move(projector)}
     {
         this->validate_reflection();
     }
@@ -142,22 +148,22 @@ protected:
                     LinOp *x) const override;
 
     /**
-     * Validates the dimension of coef, U, V.
-     * coef should be 1 by 1.
-     * The dimension of U should be same as the dimension of conjugate transpose
-     * of V.
+     * validate_reflection check the dimension of scaler, basis, projector.
+     * scaler must be 1 by 1.
+     * The dimension of basis should be same as the dimension of conjugate
+     * transpose of projector.
      */
     void validate_reflection()
     {
-        GKO_ASSERT_CONFORMANT(U_, V_);
-        GKO_ASSERT_CONFORMANT(V_, U_);
-        GKO_ASSERT_EQUAL_DIMENSIONS(coef_, dim<2>(1, 1));
+        GKO_ASSERT_CONFORMANT(basis_, projector_);
+        GKO_ASSERT_CONFORMANT(projector_, basis_);
+        GKO_ASSERT_EQUAL_DIMENSIONS(scaler_, dim<2>(1, 1));
     }
 
 private:
-    std::shared_ptr<const LinOp> U_;
-    std::shared_ptr<const LinOp> V_;
-    std::shared_ptr<const LinOp> coef_;
+    std::shared_ptr<const LinOp> basis_;
+    std::shared_ptr<const LinOp> projector_;
+    std::shared_ptr<const LinOp> scaler_;
 };
 
 

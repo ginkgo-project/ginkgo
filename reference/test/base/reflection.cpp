@@ -33,14 +33,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/reflection.hpp>
 
 
-#include <vector>
+#include <memory>
 
 
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/test/utils/assertions.hpp"
 
 
 namespace {
@@ -52,15 +54,15 @@ protected:
 
     Reflection()
         : exec{gko::ReferenceExecutor::create()},
-          U{gko::initialize<mtx>({2.0, 1.0}, exec)},
-          V{gko::initialize<mtx>({{3.0, 2.0}}, exec)},
-          coef{gko::initialize<mtx>({2.0}, exec)}
+          basis{gko::initialize<mtx>({2.0, 1.0}, exec)},
+          projector{gko::initialize<mtx>({{3.0, 2.0}}, exec)},
+          scaler{gko::initialize<mtx>({2.0}, exec)}
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<gko::LinOp> U;
-    std::shared_ptr<gko::LinOp> V;
-    std::shared_ptr<gko::LinOp> coef;
+    std::shared_ptr<gko::LinOp> basis;
+    std::shared_ptr<gko::LinOp> projector;
+    std::shared_ptr<gko::LinOp> scaler;
 };
 
 
@@ -70,7 +72,7 @@ TEST_F(Reflection, AppliesToVector)
         cmp = I + 2 * [ 2 ] * [ 3 2 ]
                       [ 1 ]
     */
-    auto cmp = gko::Reflection<>::create(coef, U, V);
+    auto cmp = gko::Reflection<>::create(scaler, basis, projector);
     auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
     auto res = clone(x);
 
@@ -86,7 +88,7 @@ TEST_F(Reflection, AppliesLinearCombinationToVector)
         cmp = I + 2 * [ 2 ] * [ 3 2 ]
                       [ 1 ]
     */
-    auto cmp = gko::Reflection<>::create(coef, U, V);
+    auto cmp = gko::Reflection<>::create(scaler, basis, projector);
     auto alpha = gko::initialize<mtx>({3.0}, exec);
     auto beta = gko::initialize<mtx>({-1.0}, exec);
     auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
@@ -98,13 +100,13 @@ TEST_F(Reflection, AppliesLinearCombinationToVector)
 }
 
 
-TEST_F(Reflection, ContructionByOneOpertorAppliesToVector)
+TEST_F(Reflection, ConstructionByBasisAppliesToVector)
 {
     /*
         cmp = I + 2 * [ 2 ] * [ 2 1 ]
                       [ 1 ]
     */
-    auto cmp = gko::Reflection<>::create(coef, U);
+    auto cmp = gko::Reflection<>::create(scaler, basis);
     auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
     auto res = clone(x);
 
@@ -114,13 +116,13 @@ TEST_F(Reflection, ContructionByOneOpertorAppliesToVector)
 }
 
 
-TEST_F(Reflection, ContructionByOneOpertorAppliesLinearCombinationToVector)
+TEST_F(Reflection, ConstructionByBasisAppliesLinearCombinationToVector)
 {
     /*
         cmp = I + 2 * [ 2 ] * [ 2 1 ]
                       [ 1 ]
     */
-    auto cmp = gko::Reflection<>::create(coef, U);
+    auto cmp = gko::Reflection<>::create(scaler, basis);
     auto alpha = gko::initialize<mtx>({3.0}, exec);
     auto beta = gko::initialize<mtx>({-1.0}, exec);
     auto x = gko::initialize<mtx>({1.0, 2.0}, exec);

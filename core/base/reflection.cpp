@@ -42,18 +42,18 @@ namespace gko {
 template <typename ValueType>
 void Reflection<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    // x = (I + coef * U * V) * b
-    // temp = V * b                 : V->apply(b, temp)
-    // x = b                        : x = b
-    // x = 1 * x + coef * U * temp  : U->apply(coef, temp, 1, x)
+    // x = (I + scaler * basis * projector) * b
+    // temp = projector * b                 : projector->apply(b, temp)
+    // x = b                                : x->copy_from(b)
+    // x = 1 * x + scaler * basis * temp    : basis->apply(scaler, temp, 1, x)
     using vec = gko::matrix::Dense<ValueType>;
     auto exec = this->get_executor();
     auto temp = vec::create(
-        exec, gko::dim<2>(this->V_->get_size()[0], b->get_size()[1]));
-    this->V_->apply(b, lend(temp));
+        exec, gko::dim<2>(this->projector_->get_size()[0], b->get_size()[1]));
+    this->projector_->apply(b, lend(temp));
     x->copy_from(b);
     auto one = gko::initialize<vec>({1.0}, exec);
-    this->U_->apply(lend(this->coef_), lend(temp), lend(one), x);
+    this->basis_->apply(lend(this->scaler_), lend(temp), lend(one), x);
 }
 
 
@@ -61,25 +61,26 @@ template <typename ValueType>
 void Reflection<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                        const LinOp *beta, LinOp *x) const
 {
-    // x = alpha * (I + coef * U * V) b + beta * x
-    //   = beta * x + alpha * b + alpha * coef * U * V * b
-    // temp = V * b                     : V->apply(b, temp)
-    // x = beta * x + alpha * b         : x->scale(beta),
-    //                                    x->add_scaled(alpha, b)
-    // x = x + alpha * coef * U * temp  : U->apply(alpha * coef, temp, 1, x)
+    // x = alpha * (I + scaler * basis * projector) b + beta * x
+    //   = beta * x + alpha * b + alpha * scaler * basis * projector * b
+    // temp = projector * b     : projector->apply(b, temp)
+    // x = beta * x + alpha * b : x->scale(beta),
+    //                            x->add_scaled(alpha, b)
+    // x = x + alpha * scaler * basis * temp
+    //                          : basis->apply(alpha * scaler, temp, 1, x)
     using vec = gko::matrix::Dense<ValueType>;
     auto exec = this->get_executor();
     auto temp = vec::create(
-        exec, gko::dim<2>(this->V_->get_size()[0], b->get_size()[1]));
-    this->V_->apply(b, lend(temp));
+        exec, gko::dim<2>(this->projector_->get_size()[0], b->get_size()[1]));
+    this->projector_->apply(b, lend(temp));
     auto vec_x = as<vec>(x);
     vec_x->scale(beta);
     vec_x->add_scaled(alpha, b);
     auto one = gko::initialize<vec>({1.0}, exec);
-    auto alpha_coef = vec::create(exec, gko::dim<2>(1));
-    alpha_coef->copy_from(alpha);
-    alpha_coef->scale(lend(this->coef_));
-    this->U_->apply(lend(alpha_coef), lend(temp), lend(one), vec_x);
+    auto alpha_scaler = vec::create(exec, gko::dim<2>(1));
+    alpha_scaler->copy_from(alpha);
+    alpha_scaler->scale(lend(this->scaler_));
+    this->basis_->apply(lend(alpha_scaler), lend(temp), lend(one), vec_x);
 }
 
 
