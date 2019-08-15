@@ -223,10 +223,7 @@ public:
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
             preconditioner, nullptr);
     };
-#define GKO_COMMA ,
-    GKO_ENABLE_LOWER_TRS_FACTORY(LowerTrs<ValueType GKO_COMMA IndexType>,
-                                 parameters, Factory);
-#undef GKO_COMMA
+    GKO_ENABLE_LOWER_TRS_FACTORY(LowerTrs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
@@ -236,17 +233,10 @@ protected:
                     LinOp *x) const override;
 
     /**
-     * Generates the solver.
-     *
-     * @param system_matrix  the source matrix used to generate the
-     *                       solver.
-     * @param b  the right hand side used to generate the solver.
-     *
-     * @note the system_matrix to be passed in has to be convertible to CSR.
-     *       Otherwise an exception is thrown.
+     * Generates the analysis structure from the system matrix and the right
+     * hand side needed for the level solver.
      */
-    void generate(const matrix::Csr<ValueType, IndexType> *system_matrix,
-                  const matrix::Dense<ValueType> *b);
+    void generate();
 
     explicit LowerTrs(std::shared_ptr<const Executor> exec)
         : EnableLinOp<LowerTrs>(std::move(exec))
@@ -279,7 +269,7 @@ protected:
             preconditioner_ = matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size()[0]);
         }
-        this->generate(gko::lend(system_matrix_), gko::lend(b_));
+        this->generate();
     }
 
 private:
