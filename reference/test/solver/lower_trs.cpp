@@ -62,7 +62,7 @@ protected:
           mtx(gko::initialize<Mtx>(
               {{2, 0.0, 0.0}, {3.0, 1, 0.0}, {1.0, 2.0, 3}}, exec)),
           b(gko::initialize<Mtx>({{2, 0.0, 0.0}}, exec)),
-          csr_mtx(gko::copy_and_convert_to<CsrMtx>(exec, mtx.get())),
+          csr_mtx(gko::copy_and_convert_to<CsrMtx>(exec, gko::lend(mtx))),
           lower_trs_factory(Solver::build().on(exec)),
           lower_trs_solver(lower_trs_factory->generate(mtx, b))
     {}
@@ -94,14 +94,14 @@ TEST_F(LowerTrs, CanBeCopied)
 {
     auto copy = Solver::build().on(exec)->generate(Mtx::create(exec),
                                                    Mtx::create(exec));
-    copy->copy_from(gko::lend(lower_trs_solver));
 
-    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    auto copy_mtx = copy.get()->get_system_matrix();
+    copy->copy_from(gko::lend(lower_trs_solver));
+    auto copy_mtx = copy->get_system_matrix();
     auto d_copy_mtx = Mtx::create(exec);
     copy_mtx->convert_to(gko::lend(d_copy_mtx));
-    auto copy_b = copy.get()->get_rhs();
+    auto copy_b = copy->get_rhs();
 
+    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     GKO_ASSERT_MTX_NEAR(d_copy_mtx, mtx, 0);
     GKO_ASSERT_MTX_NEAR(copy_b, b, 0);
 }
@@ -111,14 +111,14 @@ TEST_F(LowerTrs, CanBeMoved)
 {
     auto copy =
         lower_trs_factory->generate(Mtx::create(exec), Mtx::create(exec));
-    copy->copy_from(std::move(lower_trs_solver));
 
-    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    auto copy_mtx = copy.get()->get_system_matrix();
+    copy->copy_from(std::move(lower_trs_solver));
+    auto copy_mtx = copy->get_system_matrix();
     auto d_copy_mtx = Mtx::create(exec);
     copy_mtx->convert_to(gko::lend(d_copy_mtx));
-    auto copy_b = copy.get()->get_rhs();
+    auto copy_b = copy->get_rhs();
 
+    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     GKO_ASSERT_MTX_NEAR(d_copy_mtx, mtx, 0);
     GKO_ASSERT_MTX_NEAR(copy_b, b, 0);
 }
@@ -128,10 +128,10 @@ TEST_F(LowerTrs, CanBeCloned)
 {
     auto clone = lower_trs_solver->clone();
 
-    auto clone_mtx = clone.get()->get_system_matrix();
+    auto clone_mtx = clone->get_system_matrix();
     auto d_clone_mtx = Mtx::create(exec);
     clone_mtx->convert_to(gko::lend(d_clone_mtx));
-    auto clone_b = clone.get()->get_rhs();
+    auto clone_b = clone->get_rhs();
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
     GKO_ASSERT_MTX_NEAR(d_clone_mtx, mtx, 0);
@@ -143,8 +143,8 @@ TEST_F(LowerTrs, CanBeCleared)
 {
     lower_trs_solver->clear();
 
-    auto solver_mtx = lower_trs_solver.get()->get_system_matrix();
-    auto solver_b = lower_trs_solver.get()->get_rhs();
+    auto solver_mtx = lower_trs_solver->get_system_matrix();
+    auto solver_b = lower_trs_solver->get_rhs();
 
     ASSERT_EQ(lower_trs_solver->get_size(), gko::dim<2>(0, 0));
     ASSERT_EQ(solver_mtx, nullptr);

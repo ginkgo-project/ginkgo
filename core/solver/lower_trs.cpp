@@ -61,12 +61,10 @@ GKO_REGISTER_OPERATION(solve, lower_trs::solve);
 
 
 template <typename ValueType, typename IndexType>
-void LowerTrs<ValueType, IndexType>::generate(
-    const matrix::Csr<ValueType, IndexType> *system_matrix,
-    const matrix::Dense<ValueType> *b)
+void LowerTrs<ValueType, IndexType>::generate()
 {
     this->get_executor()->run(
-        lower_trs::make_generate(gko::lend(system_matrix), gko::lend(b)));
+        lower_trs::make_generate(gko::lend(system_matrix_), gko::lend(b_)));
 }
 
 
@@ -95,7 +93,7 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp *alpha,
     auto x_clone = dense_x->clone();
     this->apply(b, x_clone.get());
     dense_x->scale(beta);
-    dense_x->add_scaled(alpha, x_clone.get());
+    dense_x->add_scaled(alpha, gko::lend(x_clone));
 }
 
 

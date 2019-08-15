@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_POLYMORPHIC_OBJECT_HPP_
 
 
+#include <memory>
+
+
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/log/logger.hpp>
@@ -484,7 +487,7 @@ std::unique_ptr<const R, std::function<void(const R *)>> copy_and_convert_to(
 
 /**
  * Converts the object to R and places it on Executor exec. This is the version
- * that takes in the shared_ptr and returns a shared_ptr
+ * that takes in the std::shared_ptr and returns a std::shared_ptr
  *
  * If the object is already of the requested type and on the requested executor,
  * the copy and conversion is avoided and a reference to the original object is
