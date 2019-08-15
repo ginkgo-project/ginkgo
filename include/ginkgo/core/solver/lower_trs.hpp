@@ -36,7 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 #include <utility>
-#include <vector>
 
 
 #include <ginkgo/core/base/abstract_factory.hpp>
@@ -263,16 +262,15 @@ protected:
     {
         using CsrMatrix = matrix::Csr<ValueType, IndexType>;
 
-        auto temp_mtx = std::move(args.system_matrix);
-        GKO_ASSERT_IS_SQUARE_MATRIX(temp_mtx);
+        GKO_ASSERT_IS_SQUARE_MATRIX(args.system_matrix);
         // This is needed because it does not make sense to call the copy and
         // convert if the existing matrix is empty.
         const auto exec = this->get_executor();
-        if (!temp_mtx->get_size()) {
+        if (!args.system_matrix->get_size()) {
             system_matrix_ = CsrMatrix::create(exec);
         } else {
             system_matrix_ =
-                copy_and_convert_to<CsrMatrix>(exec, temp_mtx.get());
+                copy_and_convert_to<CsrMatrix>(exec, args.system_matrix);
         }
         if (parameters_.preconditioner) {
             preconditioner_ =

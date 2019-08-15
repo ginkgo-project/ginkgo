@@ -137,4 +137,5 @@ TEST_F(MatrixGenerator, CanGenerateLowerTriangularMatrixWithDiagonalOnes)
     ASSERT_NE(l_mtx->at(2, 1), 1.0);
 }
 
+
 }  // namespace
