@@ -30,9 +30,73 @@ class \hyperlink{classgko_1_1solver_1_1Cgs}{gko\+::solver\+::\+Cgs$<$ Value\+Typ
 class \hyperlink{classgko_1_1solver_1_1Fcg}{gko\+::solver\+::\+Fcg$<$ Value\+Type $>$}
 \begin{DoxyCompactList}\small\item\em F\+CG or the flexible conjugate gradient method is an iterative type Krylov subspace method which is suitable for symmetric positive definite methods. \end{DoxyCompactList}\item 
 class \hyperlink{classgko_1_1solver_1_1Gmres}{gko\+::solver\+::\+Gmres$<$ Value\+Type $>$}
-\begin{DoxyCompactList}\small\item\em G\+M\+R\+ES or the generalized minimal residual method is an iterative type Krylov subspace method which is suitable for nonsymmetric linear systems. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em G\+M\+R\+ES or the generalized minimal residual method is an iterative type Krylov subspace method which is suitable for nonsymmetric linear systems. \end{DoxyCompactList}\item 
+class \hyperlink{classgko_1_1solver_1_1LowerTrs}{gko\+::solver\+::\+Lower\+Trs$<$ Value\+Type, Index\+Type $>$}
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1solver_1_1LowerTrs}{Lower\+Trs} is the triangular solver which solves the system L x = b, when L is a lower triangular matrix. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \hyperlink{group__solvers_gabf1eb23a724c8a60ce34cd1cbc0bb5ba}{G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+L\+O\+W\+E\+R\+\_\+\+T\+R\+S\+\_\+\+F\+A\+C\+T\+O\+RY}(\+\_\+lower\+\_\+trs,  \+\_\+parameters\+\_\+name,  \+\_\+factory\+\_\+name)
+\begin{DoxyCompactList}\small\item\em This macro will generate a default implementation of a Lower\+Trs\+Factory for the Lower\+Trs subclass it is defined in. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \subsection{Detailed Description}
 A module dedicated to the implementation and usage of the Solvers in Ginkgo. 
 
+
+
+\subsection{Macro Definition Documentation}
+\mbox{\Hypertarget{group__solvers_gabf1eb23a724c8a60ce34cd1cbc0bb5ba}\label{group__solvers_gabf1eb23a724c8a60ce34cd1cbc0bb5ba}} 
+\index{Solvers@{Solvers}!G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+L\+O\+W\+E\+R\+\_\+\+T\+R\+S\+\_\+\+F\+A\+C\+T\+O\+RY@{G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+L\+O\+W\+E\+R\+\_\+\+T\+R\+S\+\_\+\+F\+A\+C\+T\+O\+RY}}
+\index{G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+L\+O\+W\+E\+R\+\_\+\+T\+R\+S\+\_\+\+F\+A\+C\+T\+O\+RY@{G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+L\+O\+W\+E\+R\+\_\+\+T\+R\+S\+\_\+\+F\+A\+C\+T\+O\+RY}!Solvers@{Solvers}}
+\subsubsection{\texorpdfstring{G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+L\+O\+W\+E\+R\+\_\+\+T\+R\+S\+\_\+\+F\+A\+C\+T\+O\+RY}{GKO\_ENABLE\_LOWER\_TRS\_FACTORY}}
+{\footnotesize\ttfamily \#define G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+L\+O\+W\+E\+R\+\_\+\+T\+R\+S\+\_\+\+F\+A\+C\+T\+O\+RY(\begin{DoxyParamCaption}\item[{}]{\+\_\+lower\+\_\+trs,  }\item[{}]{\+\_\+parameters\+\_\+name,  }\item[{}]{\+\_\+factory\+\_\+name }\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}
+\textcolor{keyword}{public}:                                                                        \(\backslash\)
+    const \_parameters\_name##\_type &get\_##\_parameters\_name() const              \(\backslash\)
+    \{                                                                          \(\backslash\)
+        return \_parameters\_name##\_;                                            \(\backslash\)
+    \}                                                                          \(\backslash\)
+                                                                               \(\backslash\)
+    class \_factory\_name : public ::gko::solver::EnableDefaultLowerTrsFactory<  \(\backslash\)
+                              \_factory\_name, \_lower\_trs,                       \(\backslash\)
+                              \_parameters\_name##\_type, ValueType, IndexType> \{ \(\backslash\)
+        friend class ::gko::EnablePolymorphicObject<                           \(\backslash\)
+            \_factory\_name,                                                     \(\backslash\)
+            \hyperlink{classgko_1_1AbstractFactory}{::gko::solver::LowerTrsFactory<ValueType, IndexType>}
+      >;             \(\backslash\)
+        friend class ::gko::enable\_parameters\_type<\_parameters\_name##\_type,    \(\backslash\)
+                                                   \_factory\_name>;             \(\backslash\)
+        using ::gko::solver::EnableDefaultLowerTrsFactory<                     \(\backslash\)
+            \_factory\_name, \_lower\_trs, \_parameters\_name##\_type, ValueType,     \(\backslash\)
+            IndexType>::EnableDefaultLowerTrsFactory;                          \(\backslash\)
+    \};                                                                         \(\backslash\)
+    friend ::gko::solver::EnableDefaultLowerTrsFactory<                        \(\backslash\)
+        \_factory\_name, \_lower\_trs, \_parameters\_name##\_type, ValueType,         \(\backslash\)
+        IndexType>;                                                            \(\backslash\)
+                                                                               \(\backslash\)
+private:                                                                       \(\backslash\)
+    \_parameters\_name##\_type \_parameters\_name##\_;                               \(\backslash\)
+                                                                               \(\backslash\)
+public:                                                                        \(\backslash\)
+    static\_assert(\textcolor{keyword}{true},                                                        \(\backslash\)
+                  \textcolor{stringliteral}{"This assert is used to counter the false positive extra "}   \(\backslash\)
+                  \textcolor{stringliteral}{"semi-colon warnings"})
+\end{DoxyCode}
+
+
+This macro will generate a default implementation of a Lower\+Trs\+Factory for the Lower\+Trs subclass it is defined in. 
+
+This macro is very similar to the macro \#\+E\+N\+A\+B\+L\+E\+\_\+\+L\+I\+N\+\_\+\+O\+P\+\_\+\+F\+A\+C\+T\+O\+R\+Y(). A more detailed description of the use of these type of macros can be found there.
+
+
+\begin{DoxyParams}{Parameters}
+{\em \+\_\+lower\+\_\+trs} & concrete operator for which the factory is to be created \mbox{[}C\+R\+TP parameter\mbox{]} \\
+\hline
+{\em \+\_\+parameters\+\_\+name} & name of the parameters member in the class (its type is {\ttfamily $<$\+\_\+parameters\+\_\+name$>$\+\_\+type}, the protected member\textquotesingle{}s name is {\ttfamily $<$\+\_\+parameters\+\_\+name$>$\+\_\+}, and the public getter\textquotesingle{}s name is {\ttfamily get\+\_\+$<$\+\_\+parameters\+\_\+name$>$()}) \\
+\hline
+{\em \+\_\+factory\+\_\+name} & name of the generated factory type \\
+\hline
+\end{DoxyParams}

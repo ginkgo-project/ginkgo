@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['baddimension',['BadDimension',['../classgko_1_1BadDimension.html',1,'gko']]],
   ['bicgstab',['Bicgstab',['../classgko_1_1solver_1_1Bicgstab.html',1,'gko::solver']]],
   ['bitwise_5fand',['bitwise_and',['../structgko_1_1accessor_1_1bitwise__and.html',1,'gko::accessor']]],
   ['bitwise_5fnot',['bitwise_not',['../structgko_1_1accessor_1_1bitwise__not.html',1,'gko::accessor']]],

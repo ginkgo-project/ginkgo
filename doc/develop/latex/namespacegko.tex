@@ -37,6 +37,8 @@ class \hyperlink{classgko_1_1AllocationError}{Allocation\+Error}
 \begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1AllocationError}{Allocation\+Error} is thrown if a memory allocation fails. \end{DoxyCompactList}\item 
 class \hyperlink{classgko_1_1Array}{Array}
 \begin{DoxyCompactList}\small\item\em An \hyperlink{classgko_1_1Array}{Array} is a container which encapsulates fixed-\/sized arrays, stored on the \hyperlink{classgko_1_1Executor}{Executor} tied to the \hyperlink{classgko_1_1Array}{Array}. \end{DoxyCompactList}\item 
+class \hyperlink{classgko_1_1BadDimension}{Bad\+Dimension}
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1BadDimension}{Bad\+Dimension} is thrown if an operation is being applied to a \hyperlink{classgko_1_1LinOp}{Lin\+Op} with bad dimensions. \end{DoxyCompactList}\item 
 class \hyperlink{classgko_1_1Combination}{Combination}
 \begin{DoxyCompactList}\small\item\em The \hyperlink{classgko_1_1Combination}{Combination} class can be used to construct a linear combination of multiple linear operators `c1 $\ast$ op1 + c2 $\ast$ op2 + ... \end{DoxyCompactList}\item 
 class \hyperlink{classgko_1_1Composition}{Composition}
@@ -265,6 +267,10 @@ constexpr \hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64} \hyp
 \begin{DoxyCompactList}\small\item\em Converts the object to R and places it on \hyperlink{classgko_1_1Executor}{Executor} exec. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename R , typename T $>$ }\\std\+::unique\+\_\+ptr$<$ const R, std\+::function$<$ void(const R $\ast$)$>$ $>$ \hyperlink{namespacegko_add859060efaa729c84788bb4f6582e9f}{copy\+\_\+and\+\_\+convert\+\_\+to} (std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$ exec, const T $\ast$obj)
 \begin{DoxyCompactList}\small\item\em Converts the object to R and places it on \hyperlink{classgko_1_1Executor}{Executor} exec. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename R , typename T $>$ }\\std\+::shared\+\_\+ptr$<$ R $>$ \hyperlink{namespacegko_ac2b925f8d9f288210c7d1f0e00e5c495}{copy\+\_\+and\+\_\+convert\+\_\+to} (std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$ exec, std\+::shared\+\_\+ptr$<$ T $>$ obj)
+\begin{DoxyCompactList}\small\item\em Converts the object to R and places it on \hyperlink{classgko_1_1Executor}{Executor} exec. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename R , typename T $>$ }\\std\+::shared\+\_\+ptr$<$ const R $>$ \hyperlink{namespacegko_a0f28847393e540a33fdda8cd80584789}{copy\+\_\+and\+\_\+convert\+\_\+to} (std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$ exec, std\+::shared\+\_\+ptr$<$ const T $>$ obj)
+\item 
 \mbox{\Hypertarget{namespacegko_a22cd8a74bb04c04ba81d88de0d0677b2}\label{namespacegko_a22cd8a74bb04c04ba81d88de0d0677b2}} 
 constexpr bool {\bfseries operator$<$} (const \hyperlink{structgko_1_1span}{span} \&first, const \hyperlink{structgko_1_1span}{span} \&second)
 \item 
@@ -869,7 +875,7 @@ Referenced by gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::ensure\
 \mbox{\Hypertarget{namespacegko_ac5cef6e5e9e02b8d77ce01be41117cc0}\label{namespacegko_ac5cef6e5e9e02b8d77ce01be41117cc0}} 
 \index{gko@{gko}!copy\+\_\+and\+\_\+convert\+\_\+to@{copy\+\_\+and\+\_\+convert\+\_\+to}}
 \index{copy\+\_\+and\+\_\+convert\+\_\+to@{copy\+\_\+and\+\_\+convert\+\_\+to}!gko@{gko}}
-\subsubsection{\texorpdfstring{copy\+\_\+and\+\_\+convert\+\_\+to()}{copy\_and\_convert\_to()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+\subsubsection{\texorpdfstring{copy\+\_\+and\+\_\+convert\+\_\+to()}{copy\_and\_convert\_to()}\hspace{0.1cm}{\footnotesize\ttfamily [1/4]}}
 {\footnotesize\ttfamily template$<$typename R , typename T $>$ \\
 std\+::unique\+\_\+ptr$<$R, std\+::function$<$void(R $\ast$)$>$ $>$ gko\+::copy\+\_\+and\+\_\+convert\+\_\+to (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$}]{exec,  }\item[{T $\ast$}]{obj }\end{DoxyParamCaption})}
 
@@ -899,7 +905,7 @@ a unique pointer (with dynamically bound deleter) to the converted object
 \mbox{\Hypertarget{namespacegko_add859060efaa729c84788bb4f6582e9f}\label{namespacegko_add859060efaa729c84788bb4f6582e9f}} 
 \index{gko@{gko}!copy\+\_\+and\+\_\+convert\+\_\+to@{copy\+\_\+and\+\_\+convert\+\_\+to}}
 \index{copy\+\_\+and\+\_\+convert\+\_\+to@{copy\+\_\+and\+\_\+convert\+\_\+to}!gko@{gko}}
-\subsubsection{\texorpdfstring{copy\+\_\+and\+\_\+convert\+\_\+to()}{copy\_and\_convert\_to()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+\subsubsection{\texorpdfstring{copy\+\_\+and\+\_\+convert\+\_\+to()}{copy\_and\_convert\_to()}\hspace{0.1cm}{\footnotesize\ttfamily [2/4]}}
 {\footnotesize\ttfamily template$<$typename R , typename T $>$ \\
 std\+::unique\+\_\+ptr$<$const R, std\+::function$<$void(const R $\ast$)$>$ $>$ gko\+::copy\+\_\+and\+\_\+convert\+\_\+to (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$}]{exec,  }\item[{const T $\ast$}]{obj }\end{DoxyParamCaption})}
 
@@ -925,6 +931,73 @@ If the object is already of the requested type and on the requested executor, th
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
 a unique pointer (with dynamically bound deleter) to the converted object
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is a version of the function which adds the const qualifier to the result if the input had the same qualifier. 
+\end{DoxyNote}
+\mbox{\Hypertarget{namespacegko_ac2b925f8d9f288210c7d1f0e00e5c495}\label{namespacegko_ac2b925f8d9f288210c7d1f0e00e5c495}} 
+\index{gko@{gko}!copy\+\_\+and\+\_\+convert\+\_\+to@{copy\+\_\+and\+\_\+convert\+\_\+to}}
+\index{copy\+\_\+and\+\_\+convert\+\_\+to@{copy\+\_\+and\+\_\+convert\+\_\+to}!gko@{gko}}
+\subsubsection{\texorpdfstring{copy\+\_\+and\+\_\+convert\+\_\+to()}{copy\_and\_convert\_to()}\hspace{0.1cm}{\footnotesize\ttfamily [3/4]}}
+{\footnotesize\ttfamily template$<$typename R , typename T $>$ \\
+std\+::shared\+\_\+ptr$<$R$>$ gko\+::copy\+\_\+and\+\_\+convert\+\_\+to (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$}]{exec,  }\item[{std\+::shared\+\_\+ptr$<$ T $>$}]{obj }\end{DoxyParamCaption})}
+
+
+
+Converts the object to R and places it on \hyperlink{classgko_1_1Executor}{Executor} exec. 
+
+This is the version that takes in the std\+::shared\+\_\+ptr and returns a std\+::shared\+\_\+ptr
+
+If the object is already of the requested type and on the requested executor, the copy and conversion is avoided and a reference to the original object is returned instead.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em R} & the type to which the object should be converted \\
+\hline
+{\em T} & the type of the input object\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor where the result should be placed \\
+\hline
+{\em obj} & the object that should be converted\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+a shared pointer to the converted object 
+\end{DoxyReturn}
+\mbox{\Hypertarget{namespacegko_a0f28847393e540a33fdda8cd80584789}\label{namespacegko_a0f28847393e540a33fdda8cd80584789}} 
+\index{gko@{gko}!copy\+\_\+and\+\_\+convert\+\_\+to@{copy\+\_\+and\+\_\+convert\+\_\+to}}
+\index{copy\+\_\+and\+\_\+convert\+\_\+to@{copy\+\_\+and\+\_\+convert\+\_\+to}!gko@{gko}}
+\subsubsection{\texorpdfstring{copy\+\_\+and\+\_\+convert\+\_\+to()}{copy\_and\_convert\_to()}\hspace{0.1cm}{\footnotesize\ttfamily [4/4]}}
+{\footnotesize\ttfamily template$<$typename R , typename T $>$ \\
+std\+::shared\+\_\+ptr$<$const R$>$ gko\+::copy\+\_\+and\+\_\+convert\+\_\+to (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$}]{exec,  }\item[{std\+::shared\+\_\+ptr$<$ const T $>$}]{obj }\end{DoxyParamCaption})}
+
+
+
+
+
+This is the version that takes in the std\+::shared\+\_\+ptr and returns a std\+::shared\+\_\+ptr
+
+If the object is already of the requested type and on the requested executor, the copy and conversion is avoided and a reference to the original object is returned instead.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em R} & the type to which the object should be converted \\
+\hline
+{\em T} & the type of the input object\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor where the result should be placed \\
+\hline
+{\em obj} & the object that should be converted\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+a shared pointer to the converted object
 \end{DoxyReturn}
 \begin{DoxyNote}{Note}
 This is a version of the function which adds the const qualifier to the result if the input had the same qualifier. 

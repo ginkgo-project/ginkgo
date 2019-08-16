@@ -121,6 +121,9 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Array.html">Array</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">An <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a> is a container which encapsulates fixed-sized arrays, stored on the <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a> tied to the <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a>.  <a href="classgko_1_1Array.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1BadDimension.html">BadDimension</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1BadDimension.html" title="BadDimension is thrown if an operation is being applied to a LinOp with bad dimensions. ">BadDimension</a> is thrown if an operation is being applied to a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> with bad dimensions.  <a href="classgko_1_1BadDimension.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Combination.html">Combination</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1Combination.html" title="The Combination class can be used to construct a linear combination of multiple linear operators `c1 ...">Combination</a> class can be used to construct a linear combination of multiple linear operators `c1 * op1 + c2 * op2 + ...  <a href="classgko_1_1Combination.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -472,6 +475,13 @@ Functions</h2></td></tr>
 <tr class="memitem:add859060efaa729c84788bb4f6582e9f"><td class="memTemplItemLeft" align="right" valign="top">std::unique_ptr&lt; const R, std::function&lt; void(const R *)&gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#add859060efaa729c84788bb4f6582e9f">copy_and_convert_to</a> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec, const T *obj)</td></tr>
 <tr class="memdesc:add859060efaa729c84788bb4f6582e9f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts the object to R and places it on <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a> exec.  <a href="#add859060efaa729c84788bb4f6582e9f">More...</a><br /></td></tr>
 <tr class="separator:add859060efaa729c84788bb4f6582e9f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac2b925f8d9f288210c7d1f0e00e5c495"><td class="memTemplParams" colspan="2">template&lt;typename R , typename T &gt; </td></tr>
+<tr class="memitem:ac2b925f8d9f288210c7d1f0e00e5c495"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; R &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#ac2b925f8d9f288210c7d1f0e00e5c495">copy_and_convert_to</a> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec, std::shared_ptr&lt; T &gt; obj)</td></tr>
+<tr class="memdesc:ac2b925f8d9f288210c7d1f0e00e5c495"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts the object to R and places it on <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a> exec.  <a href="#ac2b925f8d9f288210c7d1f0e00e5c495">More...</a><br /></td></tr>
+<tr class="separator:ac2b925f8d9f288210c7d1f0e00e5c495"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0f28847393e540a33fdda8cd80584789"><td class="memTemplParams" colspan="2">template&lt;typename R , typename T &gt; </td></tr>
+<tr class="memitem:a0f28847393e540a33fdda8cd80584789"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; const R &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a0f28847393e540a33fdda8cd80584789">copy_and_convert_to</a> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec, std::shared_ptr&lt; const T &gt; obj)</td></tr>
+<tr class="separator:a0f28847393e540a33fdda8cd80584789"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a22cd8a74bb04c04ba81d88de0d0677b2"><td class="memItemLeft" align="right" valign="top"><a id="a22cd8a74bb04c04ba81d88de0d0677b2"></a>
 constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator&lt;</b> (const <a class="el" href="structgko_1_1span.html">span</a> &amp;first, const <a class="el" href="structgko_1_1span.html">span</a> &amp;second)</td></tr>
 <tr class="separator:a22cd8a74bb04c04ba81d88de0d0677b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1351,7 +1361,7 @@ template&lt;typename T &gt; </div>
 </div>
 </div>
 <a id="ac5cef6e5e9e02b8d77ce01be41117cc0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac5cef6e5e9e02b8d77ce01be41117cc0">&#9670;&nbsp;</a></span>copy_and_convert_to() <span class="overload">[1/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#ac5cef6e5e9e02b8d77ce01be41117cc0">&#9670;&nbsp;</a></span>copy_and_convert_to() <span class="overload">[1/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1399,7 +1409,7 @@ template&lt;typename R , typename T &gt; </div>
 </div>
 </div>
 <a id="add859060efaa729c84788bb4f6582e9f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#add859060efaa729c84788bb4f6582e9f">&#9670;&nbsp;</a></span>copy_and_convert_to() <span class="overload">[2/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#add859060efaa729c84788bb4f6582e9f">&#9670;&nbsp;</a></span>copy_and_convert_to() <span class="overload">[2/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1443,6 +1453,105 @@ template&lt;typename R , typename T &gt; </div>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>a unique pointer (with dynamically bound deleter) to the converted object</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>This is a version of the function which adds the const qualifier to the result if the input had the same qualifier. </dd></dl>
+
+</div>
+</div>
+<a id="ac2b925f8d9f288210c7d1f0e00e5c495"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac2b925f8d9f288210c7d1f0e00e5c495">&#9670;&nbsp;</a></span>copy_and_convert_to() <span class="overload">[3/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename R , typename T &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">std::shared_ptr&lt;R&gt; gko::copy_and_convert_to </td>
+          <td>(</td>
+          <td class="paramtype">std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt;&#160;</td>
+          <td class="paramname"><em>exec</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::shared_ptr&lt; T &gt;&#160;</td>
+          <td class="paramname"><em>obj</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Converts the object to R and places it on <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. ">Executor</a> exec. </p>
+<p>This is the version that takes in the std::shared_ptr and returns a std::shared_ptr</p>
+<p>If the object is already of the requested type and on the requested executor, the copy and conversion is avoided and a reference to the original object is returned instead.</p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">R</td><td>the type to which the object should be converted </td></tr>
+    <tr><td class="paramname">T</td><td>the type of the input object</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">exec</td><td>the executor where the result should be placed </td></tr>
+    <tr><td class="paramname">obj</td><td>the object that should be converted</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>a shared pointer to the converted object </dd></dl>
+
+</div>
+</div>
+<a id="a0f28847393e540a33fdda8cd80584789"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0f28847393e540a33fdda8cd80584789">&#9670;&nbsp;</a></span>copy_and_convert_to() <span class="overload">[4/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename R , typename T &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">std::shared_ptr&lt;const R&gt; gko::copy_and_convert_to </td>
+          <td>(</td>
+          <td class="paramtype">std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt;&#160;</td>
+          <td class="paramname"><em>exec</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::shared_ptr&lt; const T &gt;&#160;</td>
+          <td class="paramname"><em>obj</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p></p>
+<p>This is the version that takes in the std::shared_ptr and returns a std::shared_ptr</p>
+<p>If the object is already of the requested type and on the requested executor, the copy and conversion is avoided and a reference to the original object is returned instead.</p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">R</td><td>the type to which the object should be converted </td></tr>
+    <tr><td class="paramname">T</td><td>the type of the input object</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">exec</td><td>the executor where the result should be placed </td></tr>
+    <tr><td class="paramname">obj</td><td>the object that should be converted</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>a shared pointer to the converted object</dd></dl>
 <dl class="section note"><dt>Note</dt><dd>This is a version of the function which adds the const qualifier to the result if the input had the same qualifier. </dd></dl>
 
 </div>

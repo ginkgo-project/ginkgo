@@ -19,7 +19,18 @@ class \hyperlink{classgko_1_1solver_1_1Fcg}{Fcg}
 class \hyperlink{classgko_1_1solver_1_1Gmres}{Gmres}
 \begin{DoxyCompactList}\small\item\em G\+M\+R\+ES or the generalized minimal residual method is an iterative type Krylov subspace method which is suitable for nonsymmetric linear systems. \end{DoxyCompactList}\item 
 class \hyperlink{classgko_1_1solver_1_1Ir}{Ir}
-\begin{DoxyCompactList}\small\item\em Iterative refinement (IR) is an iterative method that uses another coarse method to approximate the error of the current solution via the current residual. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Iterative refinement (IR) is an iterative method that uses another coarse method to approximate the error of the current solution via the current residual. \end{DoxyCompactList}\item 
+class \hyperlink{classgko_1_1solver_1_1LowerTrs}{Lower\+Trs}
+\begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1solver_1_1LowerTrs}{Lower\+Trs} is the triangular solver which solves the system L x = b, when L is a lower triangular matrix. \end{DoxyCompactList}\item 
+struct \hyperlink{structgko_1_1solver_1_1LowerTrsArgs}{Lower\+Trs\+Args}
+\begin{DoxyCompactList}\small\item\em This struct is used to pass parameters to the Enable\+Default\+Lower\+Trs\+Factory\+::generate() method. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$typename Value\+Type , typename Index\+Type $>$ }\\using \hyperlink{namespacegko_1_1solver_a33146299540a54a9a39ec127fc8c6c1a}{Lower\+Trs\+Factory} = \hyperlink{classgko_1_1AbstractFactory}{Abstract\+Factory}$<$ \hyperlink{classgko_1_1solver_1_1LowerTrs}{Lower\+Trs}$<$ Value\+Type, Index\+Type $>$, \hyperlink{structgko_1_1solver_1_1LowerTrsArgs}{Lower\+Trs\+Args}$<$ Value\+Type $>$ $>$
+\begin{DoxyCompactList}\small\item\em Declares an Abstract Factory specialized for \hyperlink{classgko_1_1solver_1_1LowerTrs}{Lower\+Trs} solver. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename Concrete\+Factory , typename Concrete\+Lower\+Trs , typename Parameters\+Type , typename Value\+Type , typename Index\+Type $>$ }\\using \hyperlink{namespacegko_1_1solver_a6ff1e5ae2e801957e4055be113328f67}{Enable\+Default\+Lower\+Trs\+Factory} = \hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory}$<$ Concrete\+Factory, Concrete\+Lower\+Trs, Parameters\+Type, \hyperlink{namespacegko_1_1solver_a33146299540a54a9a39ec127fc8c6c1a}{Lower\+Trs\+Factory}$<$ Value\+Type, Index\+Type $>$ $>$
+\begin{DoxyCompactList}\small\item\em This is an alias for the \hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory} mixin, which correctly sets the template parameters to enable a subclass of Lower\+Trs\+Factory. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \subsection*{Variables}
 \begin{DoxyCompactItemize}
 \item 
@@ -30,3 +41,47 @@ constexpr \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+t
 
 \subsection{Detailed Description}
 The ginkgo Solve namespace. 
+
+\subsection{Typedef Documentation}
+\mbox{\Hypertarget{namespacegko_1_1solver_a6ff1e5ae2e801957e4055be113328f67}\label{namespacegko_1_1solver_a6ff1e5ae2e801957e4055be113328f67}} 
+\index{gko\+::solver@{gko\+::solver}!Enable\+Default\+Lower\+Trs\+Factory@{Enable\+Default\+Lower\+Trs\+Factory}}
+\index{Enable\+Default\+Lower\+Trs\+Factory@{Enable\+Default\+Lower\+Trs\+Factory}!gko\+::solver@{gko\+::solver}}
+\subsubsection{\texorpdfstring{Enable\+Default\+Lower\+Trs\+Factory}{EnableDefaultLowerTrsFactory}}
+{\footnotesize\ttfamily template$<$typename Concrete\+Factory , typename Concrete\+Lower\+Trs , typename Parameters\+Type , typename Value\+Type , typename Index\+Type $>$ \\
+using \hyperlink{namespacegko_1_1solver_a6ff1e5ae2e801957e4055be113328f67}{gko\+::solver\+::\+Enable\+Default\+Lower\+Trs\+Factory} = typedef \hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory}$<$Concrete\+Factory, Concrete\+Lower\+Trs, Parameters\+Type, \hyperlink{namespacegko_1_1solver_a33146299540a54a9a39ec127fc8c6c1a}{Lower\+Trs\+Factory}$<$Value\+Type, Index\+Type$>$ $>$}
+
+
+
+This is an alias for the \hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory} mixin, which correctly sets the template parameters to enable a subclass of Lower\+Trs\+Factory. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Concrete\+Factory} & the concrete factory which is being implemented \mbox{[}C\+R\+TP parmeter\mbox{]} \\
+\hline
+{\em Concrete\+Lower\+Trs} & the concrete \hyperlink{classgko_1_1solver_1_1LowerTrs}{Lower\+Trs} type which this factory produces, needs to have a constructor which takes a const Concrete\+Factory $\ast$, and a const \hyperlink{structgko_1_1solver_1_1LowerTrsArgs}{Lower\+Trs\+Args} $\ast$ as parameters. \\
+\hline
+{\em Parameters\+Type} & a subclass of \hyperlink{structgko_1_1enable__parameters__type}{enable\+\_\+parameters\+\_\+type} template which defines all of the parameters of the factory \\
+\hline
+{\em Value\+Type} & precision of matrix elements \\
+\hline
+{\em Index\+Type} & precision of matrix indexes \\
+\hline
+\end{DoxyTemplParams}
+\mbox{\Hypertarget{namespacegko_1_1solver_a33146299540a54a9a39ec127fc8c6c1a}\label{namespacegko_1_1solver_a33146299540a54a9a39ec127fc8c6c1a}} 
+\index{gko\+::solver@{gko\+::solver}!Lower\+Trs\+Factory@{Lower\+Trs\+Factory}}
+\index{Lower\+Trs\+Factory@{Lower\+Trs\+Factory}!gko\+::solver@{gko\+::solver}}
+\subsubsection{\texorpdfstring{Lower\+Trs\+Factory}{LowerTrsFactory}}
+{\footnotesize\ttfamily template$<$typename Value\+Type , typename Index\+Type $>$ \\
+using \hyperlink{namespacegko_1_1solver_a33146299540a54a9a39ec127fc8c6c1a}{gko\+::solver\+::\+Lower\+Trs\+Factory} = typedef \hyperlink{classgko_1_1AbstractFactory}{Abstract\+Factory}$<$\hyperlink{classgko_1_1solver_1_1LowerTrs}{Lower\+Trs}$<$Value\+Type, Index\+Type$>$, \hyperlink{structgko_1_1solver_1_1LowerTrsArgs}{Lower\+Trs\+Args}$<$Value\+Type$>$ $>$}
+
+
+
+Declares an Abstract Factory specialized for \hyperlink{classgko_1_1solver_1_1LowerTrs}{Lower\+Trs} solver. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of matrix elements \\
+\hline
+{\em Index\+Type} & precision of matrix indexes \\
+\hline
+\end{DoxyTemplParams}

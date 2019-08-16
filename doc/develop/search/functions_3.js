@@ -1,8 +1,6 @@
 var searchData=
 [
-  ['ell_5fcol_5fat',['ell_col_at',['../classgko_1_1matrix_1_1Hybrid.html#ad41c68dbda50589378ad481c0ab8feea',1,'gko::matrix::Hybrid::ell_col_at(size_type row, size_type idx) noexcept'],['../classgko_1_1matrix_1_1Hybrid.html#a3a2d9b00dd8b2333b05a97d968dfabff',1,'gko::matrix::Hybrid::ell_col_at(size_type row, size_type idx) const noexcept']]],
-  ['ell_5fval_5fat',['ell_val_at',['../classgko_1_1matrix_1_1Hybrid.html#a5a0b57a9285424720218ff03dad6846c',1,'gko::matrix::Hybrid::ell_val_at(size_type row, size_type idx) noexcept'],['../classgko_1_1matrix_1_1Hybrid.html#a3e0ab990e82db430d0e05fe165a11620',1,'gko::matrix::Hybrid::ell_val_at(size_type row, size_type idx) const noexcept']]],
-  ['ensure_5frow_5fmajor_5forder',['ensure_row_major_order',['../structgko_1_1matrix__data.html#ac83a3b5d892fbd132fd9a7f50b0f83b8',1,'gko::matrix_data']]],
-  ['error',['Error',['../classgko_1_1Error.html#a750493241a840d96cafbf9c84cfd4f52',1,'gko::Error']]],
-  ['executor_5fdeleter',['executor_deleter',['../classgko_1_1executor__deleter.html#a260f79ed87560fefc48d52b072bbb776',1,'gko::executor_deleter']]]
+  ['diag',['diag',['../structgko_1_1matrix__data.html#a307091117617a342b9e576bcc9dd3c80',1,'gko::matrix_data::diag(dim&lt; 2 &gt; size_, ValueType value)'],['../structgko_1_1matrix__data.html#aa80c7201a72ebf5b79a793b8d38db8e2',1,'gko::matrix_data::diag(dim&lt; 2 &gt; size_, std::initializer_list&lt; ValueType &gt; nonzeros_)'],['../structgko_1_1matrix__data.html#a2d2fb8725ef69679a74f7bd2f627e776',1,'gko::matrix_data::diag(dim&lt; 2 &gt; size_, const matrix_data &amp;block)'],['../structgko_1_1matrix__data.html#a83d309b12caf3957c116ed1133da39a7',1,'gko::matrix_data::diag(ForwardIterator begin, ForwardIterator end)'],['../structgko_1_1matrix__data.html#aa809c5fbd147b72b18efeca595338398',1,'gko::matrix_data::diag(std::initializer_list&lt; matrix_data &gt; blocks)']]],
+  ['dim',['dim',['../structgko_1_1dim.html#a72c243d90a8aaed7d51b4d2547cba83d',1,'gko::dim::dim(const dimension_type &amp;size=dimension_type{})'],['../structgko_1_1dim.html#a09b90cec3c5778596ef75bed95ab8850',1,'gko::dim::dim(const dimension_type &amp;first, const Rest &amp;... rest)']]],
+  ['dimensionmismatch',['DimensionMismatch',['../classgko_1_1DimensionMismatch.html#ae9ece719cbd41a39835655ba3e70aa47',1,'gko::DimensionMismatch']]]
 ];

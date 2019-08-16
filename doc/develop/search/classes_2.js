@@ -35,6 +35,7 @@ var searchData=
   ['convertibleto_3c_20identity_3c_20valuetype_20_3e_20_3e',['ConvertibleTo&lt; Identity&lt; ValueType &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
   ['convertibleto_3c_20ir_3c_20valuetype_20_3e_20_3e',['ConvertibleTo&lt; Ir&lt; ValueType &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
   ['convertibleto_3c_20jacobi_3c_20valuetype_2c_20indextype_20_3e_20_3e',['ConvertibleTo&lt; Jacobi&lt; ValueType, IndexType &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
+  ['convertibleto_3c_20lowertrs_3c_20valuetype_2c_20indextype_20_3e_20_3e',['ConvertibleTo&lt; LowerTrs&lt; ValueType, IndexType &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
   ['convertibleto_3c_20matrix_3a_3adense_3c_20valuetype_20_3e_20_3e',['ConvertibleTo&lt; matrix::Dense&lt; ValueType &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
   ['convertibleto_3c_20sellp_3c_20valuetype_2c_20indextype_20_3e_20_3e',['ConvertibleTo&lt; Sellp&lt; ValueType, IndexType &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],
   ['convertibleto_3c_20sellp_3c_20valuetype_2c_20int32_20_3e_20_3e',['ConvertibleTo&lt; Sellp&lt; ValueType, int32 &gt; &gt;',['../classgko_1_1ConvertibleTo.html',1,'gko']]],

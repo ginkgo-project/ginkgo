@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['baddimension',['BadDimension',['../classgko_1_1BadDimension.html',1,'gko::BadDimension'],['../classgko_1_1BadDimension.html#a774454482004beac61bd983f74f446c3',1,'gko::BadDimension::BadDimension()']]],
   ['begin',['begin',['../structgko_1_1span.html#a54ff06eda27a98b62e83c7e9e7b6dcd7',1,'gko::span']]],
   ['bicgstab',['Bicgstab',['../classgko_1_1solver_1_1Bicgstab.html',1,'gko::solver']]],
   ['bitwise_5fand',['bitwise_and',['../structgko_1_1accessor_1_1bitwise__and.html',1,'gko::accessor']]],

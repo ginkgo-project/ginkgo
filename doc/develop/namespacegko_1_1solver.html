@@ -68,6 +68,7 @@ $(function() {
 <div class="header">
   <div class="summary">
 <a href="#nested-classes">Classes</a> &#124;
+<a href="#typedef-members">Typedefs</a> &#124;
 <a href="#var-members">Variables</a>  </div>
   <div class="headertitle">
 <div class="title">gko::solver Namespace Reference<div class="ingroups"><a class="el" href="group__LinOp.html">Linear Operators</a> &raquo; <a class="el" href="group__solvers.html">Solvers</a></div></div>  </div>
@@ -97,6 +98,23 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Ir.html">Ir</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Iterative refinement (IR) is an iterative method that uses another coarse method to approximate the error of the current solution via the current residual.  <a href="classgko_1_1solver_1_1Ir.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1LowerTrs.html">LowerTrs</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1solver_1_1LowerTrs.html" title="LowerTrs is the triangular solver which solves the system L x = b, when L is a lower triangular matri...">LowerTrs</a> is the triangular solver which solves the system L x = b, when L is a lower triangular matrix.  <a href="classgko_1_1solver_1_1LowerTrs.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1solver_1_1LowerTrsArgs.html">LowerTrsArgs</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">This struct is used to pass parameters to the EnableDefaultLowerTrsFactory::generate() method.  <a href="structgko_1_1solver_1_1LowerTrsArgs.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
+Typedefs</h2></td></tr>
+<tr class="memitem:a33146299540a54a9a39ec127fc8c6c1a"><td class="memTemplParams" colspan="2">template&lt;typename ValueType , typename IndexType &gt; </td></tr>
+<tr class="memitem:a33146299540a54a9a39ec127fc8c6c1a"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko_1_1solver.html#a33146299540a54a9a39ec127fc8c6c1a">LowerTrsFactory</a> = <a class="el" href="classgko_1_1AbstractFactory.html">AbstractFactory</a>&lt; <a class="el" href="classgko_1_1solver_1_1LowerTrs.html">LowerTrs</a>&lt; ValueType, IndexType &gt;, <a class="el" href="structgko_1_1solver_1_1LowerTrsArgs.html">LowerTrsArgs</a>&lt; ValueType &gt; &gt;</td></tr>
+<tr class="memdesc:a33146299540a54a9a39ec127fc8c6c1a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Declares an Abstract Factory specialized for <a class="el" href="classgko_1_1solver_1_1LowerTrs.html" title="LowerTrs is the triangular solver which solves the system L x = b, when L is a lower triangular matri...">LowerTrs</a> solver.  <a href="#a33146299540a54a9a39ec127fc8c6c1a">More...</a><br /></td></tr>
+<tr class="separator:a33146299540a54a9a39ec127fc8c6c1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6ff1e5ae2e801957e4055be113328f67"><td class="memTemplParams" colspan="2">template&lt;typename ConcreteFactory , typename ConcreteLowerTrs , typename ParametersType , typename ValueType , typename IndexType &gt; </td></tr>
+<tr class="memitem:a6ff1e5ae2e801957e4055be113328f67"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko_1_1solver.html#a6ff1e5ae2e801957e4055be113328f67">EnableDefaultLowerTrsFactory</a> = <a class="el" href="classgko_1_1EnableDefaultFactory.html">EnableDefaultFactory</a>&lt; ConcreteFactory, ConcreteLowerTrs, ParametersType, <a class="el" href="namespacegko_1_1solver.html#a33146299540a54a9a39ec127fc8c6c1a">LowerTrsFactory</a>&lt; ValueType, IndexType &gt; &gt;</td></tr>
+<tr class="memdesc:a6ff1e5ae2e801957e4055be113328f67"><td class="mdescLeft">&#160;</td><td class="mdescRight">This is an alias for the <a class="el" href="classgko_1_1EnableDefaultFactory.html" title="This mixin provides a default implementation of a concrete factory. ">EnableDefaultFactory</a> mixin, which correctly sets the template parameters to enable a subclass of LowerTrsFactory.  <a href="#a6ff1e5ae2e801957e4055be113328f67">More...</a><br /></td></tr>
+<tr class="separator:a6ff1e5ae2e801957e4055be113328f67"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -106,7 +124,61 @@ constexpr <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The ginkgo Solve namespace. </p>
-</div></div><!-- contents -->
+</div><h2 class="groupheader">Typedef Documentation</h2>
+<a id="a6ff1e5ae2e801957e4055be113328f67"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6ff1e5ae2e801957e4055be113328f67">&#9670;&nbsp;</a></span>EnableDefaultLowerTrsFactory</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ConcreteFactory , typename ConcreteLowerTrs , typename ParametersType , typename ValueType , typename IndexType &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="namespacegko_1_1solver.html#a6ff1e5ae2e801957e4055be113328f67">gko::solver::EnableDefaultLowerTrsFactory</a> = typedef <a class="el" href="classgko_1_1EnableDefaultFactory.html">EnableDefaultFactory</a>&lt;ConcreteFactory, ConcreteLowerTrs, ParametersType, <a class="el" href="namespacegko_1_1solver.html#a33146299540a54a9a39ec127fc8c6c1a">LowerTrsFactory</a>&lt;ValueType, IndexType&gt; &gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>This is an alias for the <a class="el" href="classgko_1_1EnableDefaultFactory.html" title="This mixin provides a default implementation of a concrete factory. ">EnableDefaultFactory</a> mixin, which correctly sets the template parameters to enable a subclass of LowerTrsFactory. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">ConcreteFactory</td><td>the concrete factory which is being implemented [CRTP parmeter] </td></tr>
+    <tr><td class="paramname">ConcreteLowerTrs</td><td>the concrete <a class="el" href="classgko_1_1solver_1_1LowerTrs.html" title="LowerTrs is the triangular solver which solves the system L x = b, when L is a lower triangular matri...">LowerTrs</a> type which this factory produces, needs to have a constructor which takes a const ConcreteFactory *, and a const <a class="el" href="structgko_1_1solver_1_1LowerTrsArgs.html" title="This struct is used to pass parameters to the EnableDefaultLowerTrsFactory::generate() method...">LowerTrsArgs</a> * as parameters. </td></tr>
+    <tr><td class="paramname">ParametersType</td><td>a subclass of <a class="el" href="structgko_1_1enable__parameters__type.html" title="The enable_parameters_type mixin is used to create a base implementation of the factory parameters st...">enable_parameters_type</a> template which defines all of the parameters of the factory </td></tr>
+    <tr><td class="paramname">ValueType</td><td>precision of matrix elements </td></tr>
+    <tr><td class="paramname">IndexType</td><td>precision of matrix indexes </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a33146299540a54a9a39ec127fc8c6c1a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a33146299540a54a9a39ec127fc8c6c1a">&#9670;&nbsp;</a></span>LowerTrsFactory</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType , typename IndexType &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="namespacegko_1_1solver.html#a33146299540a54a9a39ec127fc8c6c1a">gko::solver::LowerTrsFactory</a> = typedef <a class="el" href="classgko_1_1AbstractFactory.html">AbstractFactory</a>&lt;<a class="el" href="classgko_1_1solver_1_1LowerTrs.html">LowerTrs</a>&lt;ValueType, IndexType&gt;, <a class="el" href="structgko_1_1solver_1_1LowerTrsArgs.html">LowerTrsArgs</a>&lt;ValueType&gt; &gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Declares an Abstract Factory specialized for <a class="el" href="classgko_1_1solver_1_1LowerTrs.html" title="LowerTrs is the triangular solver which solves the system L x = b, when L is a lower triangular matri...">LowerTrs</a> solver. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">ValueType</td><td>precision of matrix elements </td></tr>
+    <tr><td class="paramname">IndexType</td><td>precision of matrix indexes </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+</div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by &#160;<a href="http://www.doxygen.org/index.html">

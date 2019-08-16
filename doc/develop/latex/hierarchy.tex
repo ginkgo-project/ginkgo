@@ -81,6 +81,7 @@ This inheritance list is sorted roughly, but not completely, alphabetically\+:\b
 \item \contentsline{section}{gko\+:\+:solver\+:\+:Fcg$<$ Value\+Type $>$\+:\+:Factory}{\pageref{classgko_1_1solver_1_1Fcg_1_1Factory}}{}
 \item \contentsline{section}{gko\+:\+:solver\+:\+:Gmres$<$ Value\+Type $>$\+:\+:Factory}{\pageref{classgko_1_1solver_1_1Gmres_1_1Factory}}{}
 \item \contentsline{section}{gko\+:\+:solver\+:\+:Ir$<$ Value\+Type $>$\+:\+:Factory}{\pageref{classgko_1_1solver_1_1Ir_1_1Factory}}{}
+\item \contentsline{section}{gko\+:\+:solver\+:\+:Lower\+Trs$<$ Value\+Type, Index\+Type $>$\+:\+:Factory}{\pageref{classgko_1_1solver_1_1LowerTrs_1_1Factory}}{}
 \item \contentsline{section}{gko\+:\+:stop\+:\+:Combined\+:\+:Factory}{\pageref{classgko_1_1stop_1_1Combined_1_1Factory}}{}
 \item \contentsline{section}{gko\+:\+:stop\+:\+:Iteration\+:\+:Factory}{\pageref{classgko_1_1stop_1_1Iteration_1_1Factory}}{}
 \item \contentsline{section}{gko\+:\+:stop\+:\+:Residual\+Norm\+Reduction$<$ Value\+Type $>$\+:\+:Factory}{\pageref{classgko_1_1stop_1_1ResidualNormReduction_1_1Factory}}{}
@@ -239,6 +240,16 @@ This inheritance list is sorted roughly, but not completely, alphabetically\+:\b
 \end{DoxyCompactList}
 \end{DoxyCompactList}
 \end{DoxyCompactList}
+\item \contentsline{section}{gko\+:\+:Convertible\+To$<$ Lower\+Trs$<$ Value\+Type, Index\+Type $>$ $>$}{\pageref{classgko_1_1ConvertibleTo}}{}
+\begin{DoxyCompactList}
+\item \contentsline{section}{gko\+:\+:Enable\+Polymorphic\+Assignment$<$ Lower\+Trs$<$ Value\+Type, Index\+Type $>$ $>$}{\pageref{classgko_1_1EnablePolymorphicAssignment}}{}
+\begin{DoxyCompactList}
+\item \contentsline{section}{gko\+:\+:Enable\+Lin\+Op$<$ Lower\+Trs$<$ Value\+Type, Index\+Type $>$ $>$}{\pageref{classgko_1_1EnableLinOp}}{}
+\begin{DoxyCompactList}
+\item \contentsline{section}{gko\+:\+:solver\+:\+:Lower\+Trs$<$ Value\+Type, Index\+Type $>$}{\pageref{classgko_1_1solver_1_1LowerTrs}}{}
+\end{DoxyCompactList}
+\end{DoxyCompactList}
+\end{DoxyCompactList}
 \item \contentsline{section}{gko\+:\+:Convertible\+To$<$ matrix\+:\+:Dense$<$ Value\+Type $>$ $>$}{\pageref{classgko_1_1ConvertibleTo}}{}
 \begin{DoxyCompactList}
 \item \contentsline{section}{gko\+:\+:preconditioner\+:\+:Jacobi$<$ Value\+Type, Index\+Type $>$}{\pageref{classgko_1_1preconditioner_1_1Jacobi}}{}
@@ -311,6 +322,7 @@ This inheritance list is sorted roughly, but not completely, alphabetically\+:\b
 \item \contentsline{section}{gko\+:\+:solver\+:\+:Fcg$<$ Value\+Type $>$\+:\+:parameters\+\_\+type}{\pageref{structgko_1_1solver_1_1Fcg_1_1parameters__type}}{}
 \item \contentsline{section}{gko\+:\+:solver\+:\+:Gmres$<$ Value\+Type $>$\+:\+:parameters\+\_\+type}{\pageref{structgko_1_1solver_1_1Gmres_1_1parameters__type}}{}
 \item \contentsline{section}{gko\+:\+:solver\+:\+:Ir$<$ Value\+Type $>$\+:\+:parameters\+\_\+type}{\pageref{structgko_1_1solver_1_1Ir_1_1parameters__type}}{}
+\item \contentsline{section}{gko\+:\+:solver\+:\+:Lower\+Trs$<$ Value\+Type, Index\+Type $>$\+:\+:parameters\+\_\+type}{\pageref{structgko_1_1solver_1_1LowerTrs_1_1parameters__type}}{}
 \item \contentsline{section}{gko\+:\+:stop\+:\+:Combined\+:\+:parameters\+\_\+type}{\pageref{structgko_1_1stop_1_1Combined_1_1parameters__type}}{}
 \item \contentsline{section}{gko\+:\+:stop\+:\+:Iteration\+:\+:parameters\+\_\+type}{\pageref{structgko_1_1stop_1_1Iteration_1_1parameters__type}}{}
 \item \contentsline{section}{gko\+:\+:stop\+:\+:Residual\+Norm\+Reduction$<$ Value\+Type $>$\+:\+:parameters\+\_\+type}{\pageref{structgko_1_1stop_1_1ResidualNormReduction_1_1parameters__type}}{}
@@ -364,6 +376,7 @@ This inheritance list is sorted roughly, but not completely, alphabetically\+:\b
 \item \contentsline{section}{gko\+:\+:Error}{\pageref{classgko_1_1Error}}{}
 \begin{DoxyCompactList}
 \item \contentsline{section}{gko\+:\+:Allocation\+Error}{\pageref{classgko_1_1AllocationError}}{}
+\item \contentsline{section}{gko\+:\+:Bad\+Dimension}{\pageref{classgko_1_1BadDimension}}{}
 \item \contentsline{section}{gko\+:\+:Cublas\+Error}{\pageref{classgko_1_1CublasError}}{}
 \item \contentsline{section}{gko\+:\+:Cuda\+Error}{\pageref{classgko_1_1CudaError}}{}
 \item \contentsline{section}{gko\+:\+:Cusparse\+Error}{\pageref{classgko_1_1CusparseError}}{}
@@ -558,6 +571,9 @@ This inheritance list is sorted roughly, but not completely, alphabetically\+:\b
 \item \contentsline{section}{gko\+:\+:Enable\+Abstract\+Polymorphic\+Object$<$ Jacobi$<$ Value\+Type, Index\+Type $>$, Lin\+Op $>$}{\pageref{classgko_1_1EnableAbstractPolymorphicObject}}{}
 \item \contentsline{section}{gko\+:\+:Enable\+Polymorphic\+Object$<$ Jacobi$<$ Value\+Type, Index\+Type $>$, Lin\+Op $>$}{\pageref{classgko_1_1EnablePolymorphicObject}}{}
 \item \contentsline{section}{gko\+:\+:Enable\+Lin\+Op$<$ Jacobi$<$ Value\+Type, Index\+Type $>$ $>$}{\pageref{classgko_1_1EnableLinOp}}{}
+\item \contentsline{section}{gko\+:\+:Enable\+Abstract\+Polymorphic\+Object$<$ Lower\+Trs$<$ Value\+Type, Index\+Type $>$, Lin\+Op $>$}{\pageref{classgko_1_1EnableAbstractPolymorphicObject}}{}
+\item \contentsline{section}{gko\+:\+:Enable\+Polymorphic\+Object$<$ Lower\+Trs$<$ Value\+Type, Index\+Type $>$, Lin\+Op $>$}{\pageref{classgko_1_1EnablePolymorphicObject}}{}
+\item \contentsline{section}{gko\+:\+:Enable\+Lin\+Op$<$ Lower\+Trs$<$ Value\+Type, Index\+Type $>$ $>$}{\pageref{classgko_1_1EnableLinOp}}{}
 \item \contentsline{section}{gko\+:\+:Enable\+Abstract\+Polymorphic\+Object$<$ Sellp$<$ Value\+Type, Index\+Type $>$, Lin\+Op $>$}{\pageref{classgko_1_1EnableAbstractPolymorphicObject}}{}
 \item \contentsline{section}{gko\+:\+:Enable\+Polymorphic\+Object$<$ Sellp$<$ Value\+Type, Index\+Type $>$, Lin\+Op $>$}{\pageref{classgko_1_1EnablePolymorphicObject}}{}
 \item \contentsline{section}{gko\+:\+:Enable\+Lin\+Op$<$ Sellp$<$ Value\+Type, Index\+Type $>$ $>$}{\pageref{classgko_1_1EnableLinOp}}{}
@@ -574,6 +590,7 @@ This inheritance list is sorted roughly, but not completely, alphabetically\+:\b
 \item \contentsline{section}{gko\+:\+:log\+:\+:Record}{\pageref{classgko_1_1log_1_1Record}}{}
 \item \contentsline{section}{gko\+:\+:log\+:\+:Stream$<$ Value\+Type $>$}{\pageref{classgko_1_1log_1_1Stream}}{}
 \end{DoxyCompactList}
+\item \contentsline{section}{gko\+:\+:solver\+:\+:Lower\+Trs\+Args$<$ Value\+Type $>$}{\pageref{structgko_1_1solver_1_1LowerTrsArgs}}{}
 \item \contentsline{section}{gko\+:\+:matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$}{\pageref{structgko_1_1matrix__data}}{}
 \item \contentsline{section}{gko\+:\+:accessor\+:\+:mmul\+\_\+operation$<$ Kind, First\+Accessor, Second\+Accessor $>$}{\pageref{structgko_1_1accessor_1_1mmul__operation}}{}
 \item \contentsline{section}{gko\+:\+:matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+:\+:nonzero\+\_\+type}{\pageref{structgko_1_1matrix__data_1_1nonzero__type}}{}
@@ -611,6 +628,7 @@ This inheritance list is sorted roughly, but not completely, alphabetically\+:\b
 \item \contentsline{section}{gko\+:\+:solver\+:\+:Cgs$<$ Value\+Type $>$}{\pageref{classgko_1_1solver_1_1Cgs}}{}
 \item \contentsline{section}{gko\+:\+:solver\+:\+:Fcg$<$ Value\+Type $>$}{\pageref{classgko_1_1solver_1_1Fcg}}{}
 \item \contentsline{section}{gko\+:\+:solver\+:\+:Gmres$<$ Value\+Type $>$}{\pageref{classgko_1_1solver_1_1Gmres}}{}
+\item \contentsline{section}{gko\+:\+:solver\+:\+:Lower\+Trs$<$ Value\+Type, Index\+Type $>$}{\pageref{classgko_1_1solver_1_1LowerTrs}}{}
 \end{DoxyCompactList}
 \item \contentsline{section}{gko\+:\+:range$<$ Accessor $>$}{\pageref{classgko_1_1range}}{}
 \item \contentsline{section}{gko\+:\+:syn\+:\+:range$<$ Start, End, Step $>$}{\pageref{structgko_1_1syn_1_1range}}{}

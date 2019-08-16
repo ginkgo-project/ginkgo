@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['reduce_5fprecision',['reduce_precision',['../namespacegko.html#ab5d71c1f4bd1b654df1e561ea7a811f2',1,'gko']]],
-  ['remove_5fcomplex',['remove_complex',['../namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e',1,'gko']]]
+  ['lowertrsfactory',['LowerTrsFactory',['../namespacegko_1_1solver.html#a33146299540a54a9a39ec127fc8c6c1a',1,'gko::solver']]]
 ];
