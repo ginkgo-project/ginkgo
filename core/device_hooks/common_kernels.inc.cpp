@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/fcg_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
 #include "core/solver/ir_kernels.hpp"
+#include "core/solver/lower_trs_kernels.hpp"
 #include "core/stop/criterion_kernels.hpp"
 #include "core/stop/residual_norm_reduction_kernels.hpp"
 
@@ -179,6 +180,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
 
 
 }  // namespace cg
+
+
+namespace lower_trs {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL);
+
+
+}  // namespace lower_trs
 
 
 namespace fcg {

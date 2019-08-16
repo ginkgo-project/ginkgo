@@ -30,68 +30,76 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
+#include <ginkgo/core/solver/lower_trs.hpp>
 
 
-#include <ginkgo/config.hpp>
-
-
-#include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/combination.hpp>
-#include <ginkgo/core/base/composition.hpp>
-#include <ginkgo/core/base/dim.hpp>
-#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/lin_op.hpp>
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/matrix_data.hpp>
-#include <ginkgo/core/base/mtx_io.hpp>
-#include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
-#include <ginkgo/core/base/range.hpp>
-#include <ginkgo/core/base/range_accessors.hpp>
-#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/base/version.hpp>
-
-#include <ginkgo/core/factorization/par_ilu.hpp>
-
-#include <ginkgo/core/log/convergence.hpp>
-#include <ginkgo/core/log/logger.hpp>
-#include <ginkgo/core/log/papi.hpp>
-#include <ginkgo/core/log/record.hpp>
-#include <ginkgo/core/log/stream.hpp>
-
-#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
-#include <ginkgo/core/matrix/hybrid.hpp>
-#include <ginkgo/core/matrix/identity.hpp>
-#include <ginkgo/core/matrix/sellp.hpp>
-
-#include <ginkgo/core/preconditioner/jacobi.hpp>
-
-#include <ginkgo/core/solver/bicgstab.hpp>
-#include <ginkgo/core/solver/cg.hpp>
-#include <ginkgo/core/solver/cgs.hpp>
-#include <ginkgo/core/solver/fcg.hpp>
-#include <ginkgo/core/solver/gmres.hpp>
-#include <ginkgo/core/solver/ir.hpp>
-#include <ginkgo/core/solver/trs.hpp>
-
-#include <ginkgo/core/stop/combined.hpp>
-#include <ginkgo/core/stop/criterion.hpp>
-#include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
-#include <ginkgo/core/stop/stopping_status.hpp>
-#include <ginkgo/core/stop/time.hpp>
-
-#include <ginkgo/core/synthesizer/containers.hpp>
 
 
-#endif  // GKO_GINKGO_HPP_
+#include "core/solver/lower_trs_kernels.hpp"
+
+
+namespace gko {
+namespace solver {
+
+
+namespace lower_trs {
+
+
+GKO_REGISTER_OPERATION(generate, lower_trs::generate);
+GKO_REGISTER_OPERATION(solve, lower_trs::solve);
+
+
+}  // namespace lower_trs
+
+
+template <typename ValueType, typename IndexType>
+void LowerTrs<ValueType, IndexType>::generate()
+{
+    this->get_executor()->run(
+        lower_trs::make_generate(gko::lend(system_matrix_), gko::lend(b_)));
+}
+
+
+template <typename ValueType, typename IndexType>
+void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
+{
+    using Vector = matrix::Dense<ValueType>;
+    const auto exec = this->get_executor();
+
+    auto dense_b = as<const Vector>(b);
+    auto dense_x = as<Vector>(x);
+
+    exec->run(
+        lower_trs::make_solve(gko::lend(system_matrix_), dense_b, dense_x));
+}
+
+
+template <typename ValueType, typename IndexType>
+void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp *alpha,
+                                                const LinOp *b,
+                                                const LinOp *beta,
+                                                LinOp *x) const
+{
+    auto dense_x = as<matrix::Dense<ValueType>>(x);
+
+    auto x_clone = dense_x->clone();
+    this->apply(b, x_clone.get());
+    dense_x->scale(beta);
+    dense_x->add_scaled(alpha, gko::lend(x_clone));
+}
+
+
+#define GKO_DECLARE_LOWER_TRS(_vtype, _itype) class LowerTrs<_vtype, _itype>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_TRS);
+
+
+}  // namespace solver
+}  // namespace gko

@@ -30,68 +30,77 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_GINKGO_HPP_
-#define GKO_GINKGO_HPP_
+#include "core/solver/lower_trs_kernels.hpp"
 
 
-#include <ginkgo/config.hpp>
+#include <memory>
 
 
-#include <ginkgo/core/base/abstract_factory.hpp>
+#include <omp.h>
+
+
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/combination.hpp>
-#include <ginkgo/core/base/composition.hpp>
-#include <ginkgo/core/base/dim.hpp>
-#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/matrix_data.hpp>
-#include <ginkgo/core/base/mtx_io.hpp>
-#include <ginkgo/core/base/name_demangling.hpp>
-#include <ginkgo/core/base/polymorphic_object.hpp>
-#include <ginkgo/core/base/range.hpp>
-#include <ginkgo/core/base/range_accessors.hpp>
-#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/base/version.hpp>
-
-#include <ginkgo/core/factorization/par_ilu.hpp>
-
-#include <ginkgo/core/log/convergence.hpp>
-#include <ginkgo/core/log/logger.hpp>
-#include <ginkgo/core/log/papi.hpp>
-#include <ginkgo/core/log/record.hpp>
-#include <ginkgo/core/log/stream.hpp>
-
-#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
-#include <ginkgo/core/matrix/hybrid.hpp>
-#include <ginkgo/core/matrix/identity.hpp>
-#include <ginkgo/core/matrix/sellp.hpp>
-
-#include <ginkgo/core/preconditioner/jacobi.hpp>
-
-#include <ginkgo/core/solver/bicgstab.hpp>
-#include <ginkgo/core/solver/cg.hpp>
-#include <ginkgo/core/solver/cgs.hpp>
-#include <ginkgo/core/solver/fcg.hpp>
-#include <ginkgo/core/solver/gmres.hpp>
-#include <ginkgo/core/solver/ir.hpp>
-#include <ginkgo/core/solver/trs.hpp>
-
-#include <ginkgo/core/stop/combined.hpp>
-#include <ginkgo/core/stop/criterion.hpp>
-#include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
-#include <ginkgo/core/stop/stopping_status.hpp>
-#include <ginkgo/core/stop/time.hpp>
-
-#include <ginkgo/core/synthesizer/containers.hpp>
 
 
-#endif  // GKO_GINKGO_HPP_
+namespace gko {
+namespace kernels {
+namespace omp {
+/**
+ * @brief The LOWER_TRS solver namespace.
+ *
+ * @ingroup lower_trs
+ */
+namespace lower_trs {
+
+
+template <typename ValueType, typename IndexType>
+void generate(std::shared_ptr<const OmpExecutor> exec,
+              const matrix::Csr<ValueType, IndexType> *matrix,
+              const matrix::Dense<ValueType> *b)
+{
+    // This generate kernel is here to allow for a more sophisticated
+    // implementation as for other executors. This kernel would perform the
+    // "analysis" phase for the triangular matrix.
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void solve(std::shared_ptr<const OmpExecutor> exec,
+           const matrix::Csr<ValueType, IndexType> *matrix,
+           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
+{
+    auto row_ptrs = matrix->get_const_row_ptrs();
+    auto col_idxs = matrix->get_const_col_idxs();
+    auto vals = matrix->get_const_values();
+
+#pragma omp parallel for
+    for (size_type j = 0; j < b->get_size()[1]; ++j) {
+        for (size_type row = 0; row < matrix->get_size()[0]; ++row) {
+            x->at(row, j) = b->at(row, j) / vals[row_ptrs[row + 1] - 1];
+            for (size_type k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
+                auto col = col_idxs[k];
+                if (col < row) {
+                    x->at(row, j) +=
+                        -vals[k] * x->at(col, j) / vals[row_ptrs[row + 1] - 1];
+                }
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL);
+
+
+}  // namespace lower_trs
+}  // namespace omp
+}  // namespace kernels
+}  // namespace gko

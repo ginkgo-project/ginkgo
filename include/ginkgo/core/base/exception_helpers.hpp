@@ -136,6 +136,20 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 
 
 /**
+ *Asserts that _op1 is a non-empty matrix.
+ *
+ *@throw BadDimension if any one of the dimensions of _op1 is equal to zero.
+ */
+#define GKO_ASSERT_IS_NON_EMPTY_MATRIX(_op1)                           \
+    if (!(::gko::detail::get_size(_op1))) {                            \
+        throw ::gko::BadDimension(__FILE__, __LINE__, __func__, #_op1, \
+                                  ::gko::detail::get_size(_op1)[0],    \
+                                  ::gko::detail::get_size(_op1)[1],    \
+                                  "expected non-empty matrix");        \
+    }
+
+
+/**
  * Asserts that _op1 can be applied to _op2.
  *
  * @throw DimensionMismatch  if _op1 cannot be applied to _op2.

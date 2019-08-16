@@ -28,6 +28,7 @@ target_sources(ginkgo
         solver/fcg.cpp
         solver/gmres.cpp
         solver/ir.cpp
+        solver/lower_trs.cpp
         stop/combined.cpp
         stop/criterion.cpp
         stop/iteration.cpp
