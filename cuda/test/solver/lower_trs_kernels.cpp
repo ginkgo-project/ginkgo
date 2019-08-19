@@ -91,8 +91,8 @@ protected:
 TEST_F(LowerTrs, CudaApplyIsEquivalentToRef)
 {
     std::shared_ptr<Mtx> mtx = gen_mtx(50, 50);
-    std::shared_ptr<Mtx> b = gen_mtx(50, 1);
-    std::shared_ptr<Mtx> x = gen_mtx(50, 1);
+    std::shared_ptr<Mtx> b = gen_mtx(50, 3);
+    std::shared_ptr<Mtx> x = gen_mtx(50, 3);
     std::shared_ptr<CsrMtx> csr_mtx = CsrMtx::create(ref);
     mtx.get()->convert_to(csr_mtx.get());
     std::shared_ptr<CsrMtx> d_csr_mtx = CsrMtx::create(cuda);
