@@ -55,7 +55,7 @@ protected:
               4, 3, true, std::normal_distribution<double>(50, 5),
               std::normal_distribution<double>(20.0, 5.0), std::ranlux48(42),
               exec)),
-          u_mtx(gko::test::generate_random_lower_triangular_matrix(
+          u_mtx(gko::test::generate_random_upper_triangular_matrix(
               3, 4, true, std::normal_distribution<double>(50, 5),
               std::normal_distribution<double>(20.0, 5.0), std::ranlux48(42),
               exec)),
