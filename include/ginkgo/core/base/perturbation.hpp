@@ -50,9 +50,9 @@ namespace gko {
  * a direction constructed by `basis` and `projector` on the LinOp. `projector`
  * gives the coefficient of `basis` to decide the direction.
  * For example, Householder matrix can be represented in Perturbation.
- * u is the housholder factor and then we can generate the Householder matrix =
- * (I - 2 u u*). In this case, the parameters of Perturbation class are scalar =
- * -2, basis = u, and projector = u*.
+ * u is the householder factor and then we can generate the Householder matrix =
+ * (I - 2 u u*). In this case, the parameters of Perturbation class are
+ * scalar = -2, basis = u, and projector = u*.
  *
  * @tparam ValueType  precision of input and result vectors
  *
