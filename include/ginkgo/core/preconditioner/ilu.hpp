@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -96,42 +97,67 @@ public:
 protected:
     /**
      * Manages the `generate` arguments for the parent class to allow multiple
-     * argument versions.
+     * versions to initialize both L and U. Three constructors are provided:
+     * - one ParIlu, containing both L and U
+     * - a Composition, containing the L matrix as the first operand, and the
+     *   U matrix as the second
+     * - both L and U matrix as separate parameters
      */
-    struct LUManager {
-        LUManager(
+    struct LuArgs {
+        /*
+        LuArgs(
             std::shared_ptr<const factorization::ParIlu<ValueType>> par_ilu)
         {
-            l_factor_ = par_ilu->get_l_factor();
-            u_factor_ = par_ilu->get_u_factor();
+            l_factor = par_ilu->get_l_factor();
+            u_factor = par_ilu->get_u_factor();
         }
-        /**
-         *
-         *
-         * @note comp must be a gko::Composition<ValueType> with at least two
-                 operands, otherwise, an exception is thrown.
-         */
-        LUManager(std::shared_ptr<const LinOp> composition)
+        */
+
+        LuArgs(std::shared_ptr<const LinOp> composition)
         {
-            // TODO: dynamic_cast to Composition, followed by setting l_factor_
-            // and u_factor_ Also: Throw error on failure / incompatability
             auto comp_cast =
                 as<const Composition<ValueType>>(composition.get());
+            // TODO: Should an error be thrown when the number of arguments is
+            //       not equal to 2 (to ensure only 2 operators are stored)?
             if (comp_cast->get_operators().size() < 2) {
-                // throw not supported
+                throw GKO_NOT_SUPPORTED(comp_cast);
             }
-            l_factor_ = comp_cast->get_operators()[0];
-            u_factor_ = comp_cast->get_operators()[1];
+            l_factor = comp_cast->get_operators()[0];
+            u_factor = comp_cast->get_operators()[1];
         }
-        LUManager(std::shared_ptr<const LinOp> l_factor,
-                  std::shared_ptr<const LinOp> u_factor)
-            : l_factor_{std::move(l_factor)}, u_factor_{std::move(u_factor)}
+
+        LuArgs(std::shared_ptr<const LinOp> l_fac,
+               std::shared_ptr<const LinOp> u_fac)
+            : l_factor{std::move(l_fac)}, u_factor{std::move(u_fac)}
         {}
 
-        std::shared_ptr<const LinOp> l_factor_;
-        std::shared_ptr<const LinOp> u_factor_;
+        /**
+         * Returns the size that the solver using L and U would return
+         *
+         * @param inverse_apply  determines if the solver solves for U first
+         *                       and then for L (inverse_apply = true), or
+         *                       first with L, then with U
+         *                       (inverse_apply = false)
+         *
+         * @returns the size that the solver using L and U would return
+         */
+        dim<2> get_solver_size(bool inverse_apply = false) const
+        {
+            return (inverse_apply) ? dim<2>{l_factor->get_size()[0],
+                                            u_factor->get_size()[1]}
+                                   : dim<2>{u_factor->get_size()[1],
+                                            l_factor->get_size()[0]};
+        }
+
+        std::shared_ptr<const LinOp> l_factor;
+        std::shared_ptr<const LinOp> u_factor;
     };
 
+    using PolymorphicBaseFactory = AbstractFactory<LinOp, LuArgs>;
+    template <typename ConcreteFactory>
+    using EnableIluFactory =
+        EnableDefaultFactory<ConcreteFactory, AbstractIlu, parameters_type,
+                             PolymorphicBaseFactory>;
 
 public:
     /**
@@ -139,41 +165,32 @@ public:
      *
      * @returns the parameters used to build the initial object.
      */
-    /*
-        const parameters_type &get_parameters() const {
-            return parameters_;
-        }
+    const parameters_type &get_parameters() const { return parameters_; }
 
-        class PolymorphicBaseFactory : public AbstractFactory<LinOp,
-    TBD_DataType>{ public: using AbstractFactory<LinOp, TBD>::AbstractFactory;
+    // The Factory might have to be hand written since we want to have multiple
+    // `generate` functions (e.g. with ParIlu and user chosen L and U matrices)
+    /**
+     * Used to replace the `GKO_ENABLE_LIN_OP_FACTORY` macro to allow for
+     * more variety in arguments for the `generate` function.
+     */
+    class Factory : public EnableIluFactory<Factory> {
+        friend class ::gko::EnablePolymorphicObject<Factory,
+                                                    PolymorphicBaseFactory>;
+        friend class ::gko::enable_parameters_type<parameters_type, Factory>;
+        using EnableIluFactory<Factory>::EnableIluFactory;
+    };
+    GKO_ENABLE_BUILD_METHOD(Factory);
 
-            std::unique_ptr<LinOp> generate(TBD_DataType input) const
-            {
-                this->template
-    log<log::logger::linop_factory_generate_started>(this, input.get()); auto
-    generated = AbstractFactory::generate(input); this->template
-    log<log::Logger::linop_factory_generate_completed>(this, input.get(),
-    generated.get()); return generated;
-            }
-        };
-
-        // The Factory might have to be hand written since we want to have
-    multiple
-        // `generate` functions (e.g. with ParIlu and user chosen L and U
-    matrices) class Factory : public EnablePolymorphicObject<Factory,
-    PolymorphicBaseFactory, parameters_type>, { friend class
-    ::gko::EnablePolymorphicObject<Factory, PolymorphicBaseFactory>, friend
-    class ::gko::enable_parameters_type<parameters_type, Factory>; public:
-        };
-        GKO_ENABLE_BUILD_METHOD(Factory);
+    friend EnableIluFactory<Factory>;
 
     // Required since we did not use the `GKO_ENABLE_LIN_OP_FACTORY` macro
-    private:
-        parameters_type parameters_;
-    */
-public:
-    GKO_ENABLE_LIN_OP_FACTORY(AbstractIlu, parameters, Factory);
-    GKO_ENABLE_BUILD_METHOD(Factory);
+private:
+    parameters_type parameters_;
+
+
+    // public:
+    //    GKO_ENABLE_LIN_OP_FACTORY(AbstractIlu, parameters, Factory);
+    //    GKO_ENABLE_BUILD_METHOD(Factory);
 
 
 protected:
@@ -208,21 +225,17 @@ protected:
         : EnableLinOp<AbstractIlu>(std::move(exec))
     {}
 
-    explicit AbstractIlu(const Factory *factory,
-                         std::shared_ptr<const LinOp> system_matrix)
+    explicit AbstractIlu(const Factory *factory, LuArgs lu_args)
         : EnableLinOp<AbstractIlu>(factory->get_executor(),
                                    // TODO: read dimensions from struct
-                                   transpose(system_matrix->get_size())),
+                                   lu_args.get_solver_size(ReverseApply)),
           parameters_{factory->get_parameters()},
-          factors_{std::dynamic_pointer_cast<const Composition<ValueType>>(
-              system_matrix)}
+          l_factor_{std::move(lu_args.l_factor)},
+          u_factor_{std::move(lu_args.u_factor)}
     {
         // TODO: For reverse apply, L and U must have the same dimensions!
-        // Throw if it is not a Composition object
-        if (!factors_ || factors_->get_operators().size() < 2) {
-            throw GKO_NOT_SUPPORTED(*(system_matrix.get()));
-        }
         auto exec = this->get_executor();
+
         // If it was not set, use a default generated one of `LSolverType`
         if (!parameters_.l_solver_factory) {
             // Maybe make the number of iterations more dynamic (like the size
@@ -236,10 +249,9 @@ protected:
                             .with_reduction_factor(1e-4)
                             .on(exec))
                     .on(exec)
-                    ->generate(factors_->get_operators()[0]);
+                    ->generate(l_factor_);
         } else {
-            l_solver_ = parameters_.l_solver_factory->generate(
-                factors_->get_operators()[0]);
+            l_solver_ = parameters_.l_solver_factory->generate(l_factor_);
         }
         if (!parameters_.u_solver_factory) {
             u_solver_ =
@@ -251,10 +263,9 @@ protected:
                             .with_reduction_factor(1e-4)
                             .on(exec))
                     .on(exec)
-                    ->generate(factors_->get_operators()[1]);
+                    ->generate(u_factor_);
         } else {
-            u_solver_ = parameters_.u_solver_factory->generate(
-                factors_->get_operators()[1]);
+            u_solver_ = parameters_.u_solver_factory->generate(u_factor_);
         }
     }
 
@@ -273,7 +284,8 @@ protected:
 private:
     // Temporary solution, later it should be replaced with a wrapper object
     // (PolymorphicBase::components_type)
-    std::shared_ptr<const Composition<ValueType>> factors_{};
+    std::shared_ptr<const LinOp> l_factor_{};
+    std::shared_ptr<const LinOp> u_factor_{};
     /**
      * Manages a vector as a cache, so there is no need to allocate one every
      * time an intermediate vector is required.
