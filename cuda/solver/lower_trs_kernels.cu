@@ -120,7 +120,7 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
         cusparse::buffer_size_ext(
             handle, cusp_csrsm2_data.algorithm,
-            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_TRANSPOSE,
             matrix->get_size()[0], b->get_stride(),
             matrix->get_num_stored_elements(), &one,
             cusp_csrsm2_data.factor_descr, matrix->get_const_values(),
@@ -140,7 +140,7 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
         exec->synchronize();
         cusparse::csrsm2_analysis(
             handle, cusp_csrsm2_data.algorithm,
-            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_TRANSPOSE,
             matrix->get_size()[0], b->get_stride(),
             matrix->get_num_stored_elements(), &one,
             cusp_csrsm2_data.factor_descr, matrix->get_const_values(),
@@ -191,7 +191,7 @@ void solve(std::shared_ptr<const CudaExecutor> exec,
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
         cusparse::csrsm2_solve(
             handle, cusp_csrsm2_data.algorithm,
-            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_TRANSPOSE,
             matrix->get_size()[0], b->get_stride(),
             matrix->get_num_stored_elements(), &one,
             cusp_csrsm2_data.factor_descr, matrix->get_const_values(),
