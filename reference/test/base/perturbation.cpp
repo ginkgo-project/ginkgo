@@ -74,9 +74,9 @@ TEST_F(Perturbation, AppliesToVector)
     */
     auto cmp = gko::Perturbation<>::create(scalar, basis, projector);
     auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
-    auto res = clone(x);
+    auto res = mtx::create_with_config_of(gko::lend(x));
 
-    cmp->apply(lend(x), lend(res));
+    cmp->apply(gko::lend(x), gko::lend(res));
 
     GKO_ASSERT_MTX_NEAR(res, l({29.0, 16.0}), 1e-15);
 }
@@ -92,9 +92,9 @@ TEST_F(Perturbation, AppliesLinearCombinationToVector)
     auto alpha = gko::initialize<mtx>({3.0}, exec);
     auto beta = gko::initialize<mtx>({-1.0}, exec);
     auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
-    auto res = clone(x);
+    auto res = gko::clone(x);
 
-    cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
+    cmp->apply(gko::lend(alpha), gko::lend(x), gko::lend(beta), gko::lend(res));
 
     GKO_ASSERT_MTX_NEAR(res, l({86.0, 46.0}), 1e-15);
 }
@@ -108,9 +108,9 @@ TEST_F(Perturbation, ConstructionByBasisAppliesToVector)
     */
     auto cmp = gko::Perturbation<>::create(scalar, basis);
     auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
-    auto res = clone(x);
+    auto res = mtx::create_with_config_of(gko::lend(x));
 
-    cmp->apply(lend(x), lend(res));
+    cmp->apply(gko::lend(x), gko::lend(res));
 
     GKO_ASSERT_MTX_NEAR(res, l({17.0, 10.0}), 1e-15);
 }
@@ -126,9 +126,9 @@ TEST_F(Perturbation, ConstructionByBasisAppliesLinearCombinationToVector)
     auto alpha = gko::initialize<mtx>({3.0}, exec);
     auto beta = gko::initialize<mtx>({-1.0}, exec);
     auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
-    auto res = clone(x);
+    auto res = gko::clone(x);
 
-    cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
+    cmp->apply(gko::lend(alpha), gko::lend(x), gko::lend(beta), gko::lend(res));
 
     GKO_ASSERT_MTX_NEAR(res, l({50.0, 28.0}), 1e-15);
 }

@@ -48,12 +48,19 @@ void Perturbation<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // x = 1 * x + scalar * basis * temp    : basis->apply(scalar, temp, 1, x)
     using vec = gko::matrix::Dense<ValueType>;
     auto exec = this->get_executor();
-    auto temp = vec::create(
-        exec, gko::dim<2>(this->projector_->get_size()[0], b->get_size()[1]));
-    this->projector_->apply(b, lend(temp));
+    if (cache_.one == nullptr) {
+        cache_.one = initialize<vec>({gko::one<ValueType>()}, exec);
+    }
+    auto intermediate_size =
+        gko::dim<2>(projector_->get_size()[0], b->get_size()[1]);
+    if (cache_.intermediate == nullptr ||
+        cache_.intermediate->get_size() != intermediate_size) {
+        cache_.intermediate = vec::create(exec, intermediate_size);
+    }
+    projector_->apply(b, lend(cache_.intermediate));
     x->copy_from(b);
-    auto one = gko::initialize<vec>({1.0}, exec);
-    this->basis_->apply(lend(this->scalar_), lend(temp), lend(one), x);
+    basis_->apply(lend(scalar_), lend(cache_.intermediate), lend(cache_.one),
+                  x);
 }
 
 
@@ -70,17 +77,26 @@ void Perturbation<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
     //                          : basis->apply(alpha * scalar, temp, 1, x)
     using vec = gko::matrix::Dense<ValueType>;
     auto exec = this->get_executor();
-    auto temp = vec::create(
-        exec, gko::dim<2>(this->projector_->get_size()[0], b->get_size()[1]));
-    this->projector_->apply(b, lend(temp));
+    if (cache_.one == nullptr) {
+        cache_.one = initialize<vec>({gko::one<ValueType>()}, exec);
+    }
+    auto intermediate_size =
+        gko::dim<2>(projector_->get_size()[0], b->get_size()[1]);
+    if (cache_.intermediate == nullptr ||
+        cache_.intermediate->get_size() != intermediate_size) {
+        cache_.intermediate = vec::create(exec, intermediate_size);
+    }
+    projector_->apply(b, lend(cache_.intermediate));
     auto vec_x = as<vec>(x);
     vec_x->scale(beta);
     vec_x->add_scaled(alpha, b);
-    auto one = gko::initialize<vec>({1.0}, exec);
-    auto alpha_scalar = vec::create(exec, gko::dim<2>(1));
-    alpha_scalar->copy_from(alpha);
-    alpha_scalar->scale(lend(this->scalar_));
-    this->basis_->apply(lend(alpha_scalar), lend(temp), lend(one), vec_x);
+    if (cache_.alpha_scalar == nullptr) {
+        cache_.alpha_scalar = vec::create(exec, gko::dim<2>(1));
+    }
+    cache_.alpha_scalar->copy_from(alpha);
+    cache_.alpha_scalar->scale(lend(scalar_));
+    basis_->apply(lend(cache_.alpha_scalar), lend(cache_.intermediate),
+                  lend(cache_.one), vec_x);
 }
 
 
