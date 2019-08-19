@@ -42,11 +42,13 @@ There is minor differences, but all of Ginkgo's recipes install the following
 packages:
 + GNU compilers
 + LLVM/Clang
++ Intel Compilers
 + OpenMP
 + Python 2 and 3
 + cmake
 + git, openssh, doxygen, curl (these are required for some synchronization or
   documentation building jobs)
++ valgrind, graphviz, jq (documentation and debugging)
 
 ### CUDA recipes
 Every container is tailored to have matching CUDA, GNU Compilers and LLVM/Clang
@@ -60,16 +62,17 @@ documentation](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.
   default limit is gcc 5.4).
 + Arguments can be provided for CUDA, GNU and LLVM version.
 + It is required to use `libomp-dev` library for Clang+OpenMP to work.
++ hwloc is built and the server's topology is added to the container.
 + Finally, `LIBRARY_PATH` and `LD_LIBRARY_PATH` are properly setup for the CUDA
   library. For proper CMake detection of the GPUs, this should maybe be
   extended.
   
   
 The dockerfiles and container images already generated are:
-+ CUDA 9.0, GNU 5.5, LLVM 3.9
-+ CUDA 9.1, GNU 6, LLVM 4.0
-+ CUDA 9.2, GNU 7, LLVM 5.0
-+ CUDA 10.0, GNU 7, LLVM 6.0
++ CUDA 9.0, GNU 5.5, LLVM 3.9, no Intel
++ CUDA 9.1, GNU 6, LLVM 4.0, Intel 2017 update 4
++ CUDA 9.2, GNU 7, LLVM 5.0, Intel 2017 update 4
++ CUDA 10.0, GNU 7, LLVM 6.0, Intel 2018 update 1
 
 ### No CUDA recipe
 Because CUDA limits the versions of compilers it can work with, it is good
@@ -92,7 +95,8 @@ container from a folder named `papi/` with the following format:
 + `papi/bin`: papi pre-built binary files
 
 The dockerfiles and container images already generated are:
-+ GNU 8, LLVM 6 (7 will replace this as soon as it is available)
++ GNU 8, LLVM 6 (7 will replace this as soon as it is available), Intel 2019
+  update 4.
 ## Using HPCCM recipes and docker to create containers
 The following explains how to use recipes and docker to create new containers.
 ### Generate the Dockerfile
