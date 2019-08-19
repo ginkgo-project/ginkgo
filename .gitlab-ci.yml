@@ -134,18 +134,6 @@ build/cuda90/clang/all/release/static:
     EXTRA_CMAKE_FLAGS: &cuda_flags_static
       "-DGINKGO_CUDA_ARCHITECTURES=35 -DBUILD_SHARED_LIBS=OFF"
 
-build/cuda90/intel/all/release/shared:
-  <<: *default_build
-  image: localhost:5000/gko-cuda90-gnu5-llvm39
-  variables:
-    <<: *default_variables
-    C_COMPILER: icc
-    CXX_COMPILER: icpc
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: Release
-    EXTRA_CMAKE_FLAGS: *cuda_flags_shared
-
 # cuda 9.1 and friends
 build/cuda91/gcc/all/debug/static:
   <<: *default_build
@@ -328,12 +316,6 @@ test/cuda90/clang/all/release/static:
   image: localhost:5000/gko-cuda90-gnu5-llvm39
   dependencies:
     - build/cuda90/clang/all/release/static
-
-test/cuda90/intel/all/release/shared:
-  <<: *default_test
-  image: localhost:5000/gko-cuda90-gnu5-llvm39
-  dependencies:
-    - build/cuda90/intel/all/release/shared
 
 # cuda 9.1 and friends
 test/cuda91/gcc/all/debug/static:
