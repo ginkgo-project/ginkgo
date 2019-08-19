@@ -152,7 +152,7 @@ int main(int, char **)
         using type1 = int;
         static_assert(
             std::is_same<gko::Perturbation<type1>::value_type, type1>::value,
-            "Perturbation.hpp not included properly");
+            "perturbation.hpp not included properly");
     }
 
     // core/base/std_extensions.hpp

@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -49,10 +50,13 @@ namespace gko {
  * a direction constructed by `basis` and `projector` on the LinOp. `projector`
  * gives the coefficient of `basis` to decide the direction.
  * For example, Householder matrix can be represented in Perturbation.
- * Householder matrix = (I - 2 u u*), u is the housholder factor
- * scalar = -2, basis = u, and projector = u*
+ * u is the housholder factor and then we can generate the Householder matrix =
+ * (I - 2 u u*). In this case, the parameters of Perturbation class are scalar =
+ * -2, basis = u, and projector = u*.
  *
  * @tparam ValueType  precision of input and result vectors
+ *
+ * @note the apply operations pf Perturbation class are not thread safe
  *
  * @ingroup LinOp
  */
@@ -68,7 +72,7 @@ public:
     /**
      * Returns the basis of the perturbation.
      *
-     * @return the basis
+     * @return the basis of the perturbation
      */
     const std::shared_ptr<const LinOp> get_basis() const noexcept
     {
@@ -78,7 +82,7 @@ public:
     /**
      * Returns the projector of the perturbation.
      *
-     * @return the projector
+     * @return the projector of the perturbation
      */
     const std::shared_ptr<const LinOp> get_projector() const noexcept
     {
@@ -88,7 +92,7 @@ public:
     /**
      * Returns the scalar of the perturbation.
      *
-     * @return the scalar
+     * @return the scalar of the perturbation
      */
     const std::shared_ptr<const LinOp> get_scalar() const noexcept
     {
@@ -108,7 +112,7 @@ protected:
     /**
      * Creates a perturbation with scalar and basis by setting projector to the
      * conjugate transpose of basis. Basis must be transposable. Perturbation
-     * will throw GKO_NOT_SUPPORT if basis is not transposable.
+     * will throw gko::NotSupported if basis is not transposable.
      *
      * @param scalar  scaling of the movement
      * @param basis  the direction basis
@@ -164,6 +168,17 @@ private:
     std::shared_ptr<const LinOp> basis_;
     std::shared_ptr<const LinOp> projector_;
     std::shared_ptr<const LinOp> scalar_;
+
+    // TODO: solve race conditions when multithreading
+    mutable struct cache_struct {
+        cache_struct() = default;
+        cache_struct(const cache_struct &other) {}
+        cache_struct &operator=(const cache_struct &other) { return *this; }
+
+        std::unique_ptr<LinOp> intermediate;
+        std::unique_ptr<LinOp> one;
+        std::unique_ptr<matrix::Dense<ValueType>> alpha_scalar;
+    } cache_;
 };
 
 
