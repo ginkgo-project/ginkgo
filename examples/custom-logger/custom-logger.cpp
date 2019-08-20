@@ -100,7 +100,7 @@ struct ResidualLogger : gko::log::Logger {
                       << std::setw(25) << real_norms[i] << '|' << std::endl;
         }
         // std::defaultfloat could be used here but some compilers
-        // do not support it properly e.g., the Intel compiler
+        // do not support it properly, e.g. the Intel compiler
         std::cout.unsetf(std::ios_base::floatfield);
         // Print a separation line
         std::cout << '|' << std::setfill('-') << std::setw(11) << '|'
