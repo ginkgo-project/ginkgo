@@ -51,6 +51,14 @@ Add the C++ iomanip header to prettify the output.
 \end{DoxyCode}
 
 
+Add formatting flag modification capabilities.
+
+
+\begin{DoxyCode}
+\textcolor{preprocessor}{#include <ios>}
+\end{DoxyCode}
+
+
 Add the C++ iostream header to output information to the console.
 
 
@@ -188,12 +196,20 @@ Print the data one by one in the form
 
 
 \begin{DoxyCode}
+std::cout << std::scientific;
 \textcolor{keywordflow}{for} (std::size\_t i = 0; i < iterations.size(); i++) \{
-    std::cout << std::scientific << \textcolor{charliteral}{'|'} << std::setw(10)
-              << iterations[i] << \textcolor{charliteral}{'|'} << std::setw(25)
-              << recurrent\_norms[i] << \textcolor{charliteral}{'|'} << std::setw(25)
-              << real\_norms[i] << \textcolor{charliteral}{'|'} << std::defaultfloat << std::endl;
+    std::cout << \textcolor{charliteral}{'|'} << std::setw(10) << iterations[i] << \textcolor{charliteral}{'|'}
+              << std::setw(25) << recurrent\_norms[i] << \textcolor{charliteral}{'|'}
+              << std::setw(25) << real\_norms[i] << \textcolor{charliteral}{'|'} << std::endl;
 \}
+\end{DoxyCode}
+
+
+std\+::defaultfloat could be used here but some compilers do not support it properly, e.\+g. the Intel compiler
+
+
+\begin{DoxyCode}
+std::cout.unsetf(std::ios\_base::floatfield);
 \end{DoxyCode}
 
 
@@ -659,6 +675,7 @@ Residual norm sqrt(r^T r):
 
 \textcolor{preprocessor}{#include <fstream>}
 \textcolor{preprocessor}{#include <iomanip>}
+\textcolor{preprocessor}{#include <ios>}
 \textcolor{preprocessor}{#include <iostream>}
 \textcolor{preprocessor}{#include <string>}
 \textcolor{preprocessor}{#include <vector>}
@@ -690,12 +707,13 @@ Residual norm sqrt(r^T r):
         std::cout << \textcolor{charliteral}{'|'} << std::setfill(\textcolor{charliteral}{'-'}) << std::setw(11) << \textcolor{charliteral}{'|'}
                   << std::setw(26) << \textcolor{charliteral}{'|'} << std::setw(26) << \textcolor{charliteral}{'|'}
                   << std::setfill(\textcolor{charliteral}{' '}) << std::endl;
+        std::cout << std::scientific;
         \textcolor{keywordflow}{for} (std::size\_t i = 0; i < iterations.size(); i++) \{
-            std::cout << std::scientific << \textcolor{charliteral}{'|'} << std::setw(10)
-                      << iterations[i] << \textcolor{charliteral}{'|'} << std::setw(25)
-                      << recurrent\_norms[i] << \textcolor{charliteral}{'|'} << std::setw(25)
-                      << real\_norms[i] << \textcolor{charliteral}{'|'} << std::defaultfloat << std::endl;
+            std::cout << \textcolor{charliteral}{'|'} << std::setw(10) << iterations[i] << \textcolor{charliteral}{'|'}
+                      << std::setw(25) << recurrent\_norms[i] << \textcolor{charliteral}{'|'}
+                      << std::setw(25) << real\_norms[i] << \textcolor{charliteral}{'|'} << std::endl;
         \}
+        std::cout.unsetf(std::ios\_base::floatfield);
         std::cout << \textcolor{charliteral}{'|'} << std::setfill(\textcolor{charliteral}{'-'}) << std::setw(11) << \textcolor{charliteral}{'|'}
                   << std::setw(26) << \textcolor{charliteral}{'|'} << std::setw(26) << \textcolor{charliteral}{'|'}
                   << std::setfill(\textcolor{charliteral}{' '}) << std::endl;
