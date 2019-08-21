@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_PRECONDITIONER_ILU_HPP_
 #define GKO_CORE_PRECONDITIONER_ILU_HPP_
 
+
 #include <memory>
 
 
@@ -52,8 +53,6 @@ namespace gko {
 namespace preconditioner {
 
 
-// Maybe rename AbstractIlu to GeneralIlu (since Abstract usually has a
-// different meaning)
 /**
  * Incomplete LU (ILU) is ... TODO
  *
@@ -67,11 +66,11 @@ namespace preconditioner {
  */
 template <typename LSolverType, typename USolverType,
           typename ValueType = default_precision, bool ReverseApply = false>
-class AbstractIlu
+class GeneralIlu
     : public EnableLinOp<
-          AbstractIlu<LSolverType, USolverType, ValueType, ReverseApply>> {
-    friend class EnableLinOp<AbstractIlu>;
-    friend class EnablePolymorphicObject<AbstractIlu, LinOp>;
+          GeneralIlu<LSolverType, USolverType, ValueType, ReverseApply>> {
+    friend class EnableLinOp<GeneralIlu>;
+    friend class EnablePolymorphicObject<GeneralIlu, LinOp>;
 
 public:
     using value_type = ValueType;
@@ -100,7 +99,7 @@ protected:
      * versions to initialize both L and U. Three constructors are provided:
      * - one ParIlu, containing both L and U
      * - a Composition, containing the L matrix as the first operand, and the
-     *   U matrix as the second
+     *   U matrix as the second and last
      * - both L and U matrix as separate parameters
      */
     struct LuArgs {
@@ -117,9 +116,7 @@ protected:
         {
             auto comp_cast =
                 as<const Composition<ValueType>>(composition.get());
-            // TODO: Should an error be thrown when the number of arguments is
-            //       not equal to 2 (to ensure only 2 operators are stored)?
-            if (comp_cast->get_operators().size() < 2) {
+            if (comp_cast->get_operators().size() != 2) {
                 throw GKO_NOT_SUPPORTED(comp_cast);
             }
             l_factor = comp_cast->get_operators()[0];
@@ -153,10 +150,12 @@ protected:
         std::shared_ptr<const LinOp> u_factor;
     };
 
+    // The following code is used to replace the default
+    // `GKO_ENABLE_LIN_OP_FACTORY` macro
     using PolymorphicBaseFactory = AbstractFactory<LinOp, LuArgs>;
     template <typename ConcreteFactory>
     using EnableIluFactory =
-        EnableDefaultFactory<ConcreteFactory, AbstractIlu, parameters_type,
+        EnableDefaultFactory<ConcreteFactory, GeneralIlu, parameters_type,
                              PolymorphicBaseFactory>;
 
 public:
@@ -167,8 +166,6 @@ public:
      */
     const parameters_type &get_parameters() const { return parameters_; }
 
-    // The Factory might have to be hand written since we want to have multiple
-    // `generate` functions (e.g. with ParIlu and user chosen L and U matrices)
     /**
      * Used to replace the `GKO_ENABLE_LIN_OP_FACTORY` macro to allow for
      * more variety in arguments for the `generate` function.
@@ -179,19 +176,15 @@ public:
         friend class ::gko::enable_parameters_type<parameters_type, Factory>;
         using EnableIluFactory<Factory>::EnableIluFactory;
     };
-    GKO_ENABLE_BUILD_METHOD(Factory);
 
     friend EnableIluFactory<Factory>;
 
-    // Required since we did not use the `GKO_ENABLE_LIN_OP_FACTORY` macro
 private:
     parameters_type parameters_;
 
-
-    // public:
-    //    GKO_ENABLE_LIN_OP_FACTORY(AbstractIlu, parameters, Factory);
-    //    GKO_ENABLE_BUILD_METHOD(Factory);
-
+    // End of the code to replace the `GKO_ENABLE_LIN_OP_FACTORY` macro
+public:
+    GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
     void apply_impl(const LinOp *b, LinOp *x) const override
@@ -221,32 +214,36 @@ protected:
         }
     }
 
-    explicit AbstractIlu(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<AbstractIlu>(std::move(exec))
+    explicit GeneralIlu(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<GeneralIlu>(std::move(exec))
     {}
 
-    explicit AbstractIlu(const Factory *factory, LuArgs lu_args)
-        : EnableLinOp<AbstractIlu>(factory->get_executor(),
-                                   // TODO: read dimensions from struct
-                                   lu_args.get_solver_size(ReverseApply)),
+    explicit GeneralIlu(const Factory *factory, LuArgs lu_args)
+        : EnableLinOp<GeneralIlu>(factory->get_executor(),
+                                  lu_args.get_solver_size(ReverseApply)),
           parameters_{factory->get_parameters()},
           l_factor_{std::move(lu_args.l_factor)},
           u_factor_{std::move(lu_args.u_factor)}
     {
-        // TODO: For reverse apply, L and U must have the same dimensions!
+        // TODO: Is equal size too much restriction?
+        GKO_ASSERT_EQUAL_ROWS(l_factor_, u_factor_);
+        GKO_ASSERT_EQUAL_COLS(l_factor_, u_factor_);
+
+        constexpr ValueType default_reduce_precision{1e-4};
+        const unsigned int default_max_iters{
+            static_cast<unsigned int>(this->get_size()[0])};
         auto exec = this->get_executor();
 
         // If it was not set, use a default generated one of `LSolverType`
         if (!parameters_.l_solver_factory) {
-            // Maybe make the number of iterations more dynamic (like the size
-            // of a matrix)
             l_solver_ =
                 LSolverType::build()
                     .with_criteria(
-                        gko::stop::Iteration::build().with_max_iters(40u).on(
-                            exec),
+                        gko::stop::Iteration::build()
+                            .with_max_iters(default_max_iters)
+                            .on(exec),
                         gko::stop::ResidualNormReduction<>::build()
-                            .with_reduction_factor(1e-4)
+                            .with_reduction_factor(default_reduce_precision)
                             .on(exec))
                     .on(exec)
                     ->generate(l_factor_);
@@ -257,10 +254,11 @@ protected:
             u_solver_ =
                 USolverType::build()
                     .with_criteria(
-                        gko::stop::Iteration::build().with_max_iters(40u).on(
-                            exec),
+                        gko::stop::Iteration::build()
+                            .with_max_iters(default_max_iters)
+                            .on(exec),
                         gko::stop::ResidualNormReduction<>::build()
-                            .with_reduction_factor(1e-4)
+                            .with_reduction_factor(default_reduce_precision)
                             .on(exec))
                     .on(exec)
                     ->generate(u_factor_);
@@ -282,8 +280,6 @@ protected:
     }
 
 private:
-    // Temporary solution, later it should be replaced with a wrapper object
-    // (PolymorphicBase::components_type)
     std::shared_ptr<const LinOp> l_factor_{};
     std::shared_ptr<const LinOp> u_factor_{};
     /**
@@ -292,12 +288,13 @@ private:
      * Copying an instance will only yield an empty object since copying the
      * cached vector would not make sense.
      *
-     * @internal  The struct is necessary, so the whole class can be copyable
+     * @internal  The struct is present so the whole class can be copyable
      *            (could also be done with writing `operator=` and copy
-     *            constructor by hand)
+     *            constructor of the enclosing class by hand)
      */
     mutable struct cache_struct {
         cache_struct() = default;
+        ~cache_struct() = default;
         cache_struct(const cache_struct &other) {}
         cache_struct &operator=(const cache_struct &) { return *this; }
         std::unique_ptr<LinOp> intermediate{};
@@ -305,6 +302,11 @@ private:
     std::shared_ptr<const LSolverType> l_solver_{};
     std::shared_ptr<const USolverType> u_solver_{};
 };
+
+
+// TODO: Add when LowerTrs and UpperTrs are merged!
+// template <typename ValueType>
+// using Ilu = GeneralIlu<ValueType, LowerTrs<ValueType>, UpperTrs<ValueType>>;
 
 
 }  // namespace preconditioner

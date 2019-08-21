@@ -33,15 +33,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/preconditioner/ilu.hpp>
 
 
-#include <iostream>
-
 #include <memory>
 
 
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils/assertions.hpp>
+#include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
@@ -51,6 +49,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
 #include <ginkgo/core/stop/time.hpp>
+
+
+#include "core/test/utils/assertions.hpp"
 
 
 namespace {
@@ -64,11 +65,11 @@ protected:
     using l_solver_type = gko::solver::Bicgstab<value_type>;
     using u_solver_type = gko::solver::Bicgstab<value_type>;
     using ilu_prec_type =
-        gko::preconditioner::AbstractIlu<l_solver_type, u_solver_type,
-                                         value_type, false>;
+        gko::preconditioner::GeneralIlu<l_solver_type, u_solver_type,
+                                        value_type, false>;
     using ilu_rev_prec_type =
-        gko::preconditioner::AbstractIlu<l_solver_type, u_solver_type,
-                                         value_type, true>;
+        gko::preconditioner::GeneralIlu<l_solver_type, u_solver_type,
+                                        value_type, true>;
 
     Ilu()
         : exec(gko::ReferenceExecutor::create()),
@@ -106,6 +107,32 @@ protected:
 };
 
 
+TEST_F(Ilu, KnowsItsExecutor)
+{
+    auto ilu_factory = ilu_prec_type::build().on(exec);
+
+    ASSERT_EQ(ilu_factory->get_executor(), exec);
+}
+
+
+TEST_F(Ilu, CanSetLSolverFactory)
+{
+    auto ilu_factory =
+        ilu_prec_type::build().with_l_solver_factory(l_factory).on(exec);
+
+    ASSERT_EQ(ilu_factory->get_parameters().l_solver_factory, l_factory);
+}
+
+
+TEST_F(Ilu, CanSetUSolverFactory)
+{
+    auto ilu_factory =
+        ilu_prec_type::build().with_u_solver_factory(u_factory).on(exec);
+
+    ASSERT_EQ(ilu_factory->get_parameters().u_solver_factory, u_factory);
+}
+
+
 TEST_F(Ilu, BuildsDefaultWithoutThrowing)
 {
     auto ilu_pre_default_factory = ilu_prec_type::build().on(exec);
@@ -133,7 +160,7 @@ TEST_F(Ilu, ThrowOnWrongInput)
 }
 
 
-TEST_F(Ilu, SolvesSingleRHS)
+TEST_F(Ilu, SolvesSingleRhsWithParIlu)
 {
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
     const auto expected_result =
@@ -150,7 +177,37 @@ TEST_F(Ilu, SolvesSingleRHS)
 }
 
 
-TEST_F(Ilu, SolvesReverseSingleRHS)
+TEST_F(Ilu, SolvesSingleRhsWithComposition)
+{
+    const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
+    const auto expected_result =
+        gko::initialize<Mtx>({-0.125, 0.25, 1.0}, exec);
+    auto x = Mtx::create(exec, gko::dim<2>{3, 1});
+    auto composition = gko::Composition<value_type>::create(l_factor, u_factor);
+
+    auto preconditioner = ilu_pre_factory->generate(gko::share(composition));
+    preconditioner->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x.get(), expected_result.get(), 1e-14);
+}
+
+
+TEST_F(Ilu, SolvesSingleRhsWithLU)
+{
+    const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
+    const auto expected_result =
+        gko::initialize<Mtx>({-0.125, 0.25, 1.0}, exec);
+    auto x = Mtx::create(exec, gko::dim<2>{3, 1});
+
+    auto preconditioner =
+        ilu_pre_factory->generate(gko::share(l_factor), gko::share(u_factor));
+    preconditioner->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x.get(), expected_result.get(), 1e-14);
+}
+
+
+TEST_F(Ilu, SolvesReverseSingleRhs)
 {
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
     const auto expected_result =
@@ -171,7 +228,7 @@ TEST_F(Ilu, SolvesReverseSingleRHS)
 }
 
 
-TEST_F(Ilu, SolvesAdvancedSingleRHS)
+TEST_F(Ilu, SolvesAdvancedSingleRhs)
 {
     const value_type alpha{2.0};
     const auto alpha_linop = gko::initialize<Mtx>({alpha}, exec);
@@ -196,7 +253,7 @@ TEST_F(Ilu, SolvesAdvancedSingleRHS)
 }
 
 
-TEST_F(Ilu, SolvesAdvancedReverseSingleRHS)
+TEST_F(Ilu, SolvesAdvancedReverseSingleRhs)
 {
     const value_type alpha{2.0};
     const auto alpha_linop = gko::initialize<Mtx>({alpha}, exec);
@@ -221,7 +278,7 @@ TEST_F(Ilu, SolvesAdvancedReverseSingleRHS)
 }
 
 
-TEST_F(Ilu, SolvesMultipleRHS)
+TEST_F(Ilu, SolvesMultipleRhs)
 {
     const auto b =
         gko::initialize<Mtx>({{1.0, 8.0}, {3.0, 21.0}, {6.0, 24.0}}, exec);
@@ -238,7 +295,5 @@ TEST_F(Ilu, SolvesMultipleRHS)
     GKO_ASSERT_MTX_NEAR(x.get(), expected_result.get(), 1e-14);
 }
 
-
-// TODO: Add test for extended apply (with alpha and beta)
 
 }  // namespace
