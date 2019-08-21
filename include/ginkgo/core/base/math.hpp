@@ -526,7 +526,8 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T get_superior_power(
 // as a __device__ function, so it results in a compiler error.
 // Here, all tests are done by hand, which is probably not as performant as the
 // intrinsic function from CUDA, but at least it compiles.
-#if defined(__CUDA_ARCH__) && defined(__clang__)
+#if defined(__CUDA_ARCH__) && \
+    (defined(__clang__) || defined(__ICC) || defined(__ICL))
 
 #define GKO_DEFINE_ISFINITE_FOR_TYPE(_type)                               \
     GKO_INLINE __device__ bool isfinite(const _type &value)               \

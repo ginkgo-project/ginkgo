@@ -34,6 +34,7 @@ For Ginkgo core library:
 *   C++11 compliant compiler, one of:
     *   _gcc 5.3+, 6.3+, 7.3+, 8.1+_
     *   _clang 3.9+_
+    *   _Intel compiler 2017+_
     *   _Apple LLVM 8.0+_ (__TODO__: verify)
 
 The Ginkgo CUDA module has the following __additional__ requirements:

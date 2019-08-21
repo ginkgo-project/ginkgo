@@ -350,7 +350,7 @@ TEST_F(ParIlu, GenerateForDenseUpperTriangular)
 
 TEST_F(ParIlu, ApplyMethodDenseSmall)
 {
-    const auto x = gko::initialize<const Dense>({1., 2., 3.}, exec);
+    const auto x = gko::initialize<Dense>({1., 2., 3.}, exec);
     auto b_lu = Dense::create_with_config_of(gko::lend(x));
     auto b_ref = Dense::create_with_config_of(gko::lend(x));
 

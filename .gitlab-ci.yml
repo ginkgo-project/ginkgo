@@ -157,6 +157,18 @@ build/cuda91/clang/all/release/shared:
     BUILD_TYPE: Release
     EXTRA_CMAKE_FLAGS: *cuda_flags_shared
 
+build/cuda91/intel/all/debug/shared:
+  <<: *default_build
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
+  variables:
+    <<: *default_variables
+    C_COMPILER: icc
+    CXX_COMPILER: icpc
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: Debug
+    EXTRA_CMAKE_FLAGS: *cuda_flags_shared
+
 # cuda 9.2 and friends
 build/cuda92/gcc/all/release/shared:
   <<: *default_build
@@ -178,6 +190,18 @@ build/cuda92/clang/all/debug/static:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: Debug
+    EXTRA_CMAKE_FLAGS: *cuda_flags_static
+
+build/cuda92/intel/all/release/static:
+  <<: *default_build
+  image: localhost:5000/gko-cuda92-gnu7-llvm50
+  variables:
+    <<: *default_variables
+    C_COMPILER: icc
+    CXX_COMPILER: icpc
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: Release
     EXTRA_CMAKE_FLAGS: *cuda_flags_static
 
 # cuda 10.0 and friends
@@ -203,6 +227,18 @@ build/cuda100/clang/all/release/static:
     BUILD_TYPE: Release
     EXTRA_CMAKE_FLAGS: *cuda_flags_static
 
+build/cuda100/intel/all/release/shared:
+  <<: *default_build
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  variables:
+    <<: *default_variables
+    C_COMPILER: icc
+    CXX_COMPILER: icpc
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: Release
+    EXTRA_CMAKE_FLAGS: *cuda_flags_shared
+
 # no cuda but latest gcc and "soon" clang 7
 build/nocuda/gcc/core/debug/static:
   <<: *default_build
@@ -226,13 +262,23 @@ build/nocuda/clang/core/release/shared:
     EXTRA_CMAKE_FLAGS: &flags_shared
       -DBUILD_SHARED_LIBS=ON
 
+build/nocuda/intel/core/debug/shared:
+  <<: *default_build
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  variables:
+    <<: *default_variables
+    C_COMPILER: icc
+    CXX_COMPILER: icpc
+    BUILD_REFERENCE: "OFF"
+    BUILD_TYPE: Debug
+    EXTRA_CMAKE_FLAGS: *flags_shared
+
 build/nocuda/gcc/omp/release/shared:
   <<: *default_build
   image: localhost:5000/gko-nocuda-gnu8-llvm70
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
-    BUILD_REFERENCE: "ON"
     BUILD_TYPE: Release
     EXTRA_CMAKE_FLAGS: *flags_shared
 
@@ -241,9 +287,21 @@ build/nocuda/clang/omp/debug/static:
   image: localhost:5000/gko-nocuda-gnu8-llvm70
   variables:
     <<: *default_variables
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
     BUILD_OMP: "ON"
-    BUILD_REFERENCE: "ON"
     BUILD_TYPE: Debug
+    EXTRA_CMAKE_FLAGS: *flags_static
+
+build/nocuda/intel/omp/release/static:
+  <<: *default_build
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  variables:
+    <<: *default_variables
+    C_COMPILER: icc
+    CXX_COMPILER: icpc
+    BUILD_OMP: "ON"
+    BUILD_TYPE: Release
     EXTRA_CMAKE_FLAGS: *flags_static
 
 # Test jobs
@@ -272,6 +330,12 @@ test/cuda91/clang/all/release/shared:
   dependencies:
     - build/cuda91/clang/all/release/shared
 
+test/cuda91/intel/all/debug/shared:
+  <<: *default_test
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
+  dependencies:
+    - build/cuda91/intel/all/debug/shared
+
 # cuda 9.2 and friends
 test/cuda92/gcc/all/release/shared:
   <<: *default_test
@@ -284,6 +348,12 @@ test/cuda92/clang/all/debug/static:
   image: localhost:5000/gko-cuda92-gnu7-llvm50
   dependencies:
     - build/cuda92/clang/all/debug/static
+
+test/cuda92/intel/all/release/static:
+  <<: *default_test
+  image: localhost:5000/gko-cuda92-gnu7-llvm50
+  dependencies:
+    - build/cuda92/intel/all/release/static
 
 # cuda 10.0 and friends
 test/cuda100/gcc/all/debug/shared:
@@ -298,6 +368,12 @@ test/cuda100/clang/all/release/static:
   dependencies:
     - build/cuda100/clang/all/release/static
 
+test/cuda100/intel/all/release/shared:
+  <<: *default_test
+  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  dependencies:
+    - build/cuda100/intel/all/release/shared
+
 # no cuda but latest gcc and "soon" clang 7
 test/nocuda/gcc/core/debug/static:
   <<: *default_test
@@ -311,6 +387,12 @@ test/nocuda/clang/core/release/shared:
   dependencies:
     - build/nocuda/clang/core/release/shared
 
+test/nocuda/intel/core/debug/shared:
+  <<: *default_test
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  dependencies:
+    - build/nocuda/intel/core/debug/shared
+
 test/nocuda/gcc/omp/release/shared:
   <<: *default_test
   image: localhost:5000/gko-nocuda-gnu8-llvm70
@@ -322,6 +404,12 @@ test/nocuda/clang/omp/debug/static:
   image: localhost:5000/gko-nocuda-gnu8-llvm70
   dependencies:
     - build/nocuda/clang/omp/debug/static
+
+test/nocuda/intel/omp/release/static:
+  <<: *default_test
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  dependencies:
+    - build/nocuda/intel/omp/release/static
 
 
 # Job with important warnings as error

@@ -4,6 +4,7 @@ Contents:
     CUDA version set by the user
     GNU compilers version set by the user
     LLVM/Clang clang-tidy version set by the user
+    Intel ICC and ICPC version set according to the CUDA version
     OpenMP latest apt version for Clang+OpenMP
     Python 2 and 3 (upstream)
     cmake (upstream)
@@ -17,12 +18,8 @@ import os
 
 cuda_version = USERARG.get('cuda', '10.0')
 
-if float(cuda_version) < float(9.2):
-    image = 'nvidia/cuda:{}-devel-ubuntu16.04'.format(cuda_version)
-    Stage0.baseimage(image)
-else:
-    image = 'nvidia/cuda:{}-devel-ubuntu18.04'.format(cuda_version)
-    Stage0.baseimage(image)
+image = 'nvidia/cuda:{}-devel-ubuntu16.04'.format(cuda_version)
+Stage0.baseimage(image)
 
 
 # Correctly set the LIBRARY_PATH
@@ -82,3 +79,17 @@ if float(cuda_version) >= float(9.2):
         Stage0 += copy(src='topology/fineci.xml', dest='/')
         Stage0 += environment(variables={'HWLOC_XMLFILE': '/fineci.xml'})
         Stage0 += environment(variables={'HWLOC_THISSYSTEM': '1'})
+
+
+# Convert from CUDA version to Intel Compiler years
+intel_versions = {'9.0' : '2017', '9.1' : '2017', '9.2' : '2017', '10.0' : '2018'}
+intel_path = 'intel/parallel_studio_xe_{}/compilers_and_libraries/linux/'.format(intel_versions.get(cuda_version))
+if os.path.isdir(intel_path):
+        Stage0 += copy(src=intel_path+'bin/intel64/', dest='/opt/intel/bin/')
+        Stage0 += copy(src=intel_path+'lib/intel64/', dest='/opt/intel/lib/')
+        Stage0 += copy(src=intel_path+'include/', dest='/opt/intel/include/')
+        Stage0 += environment(variables={'INTEL_LICENSE_FILE': '28518@scclic1.scc.kit.edu'})
+        Stage0 += environment(variables={'PATH': '$PATH:/opt/intel/bin'})
+        Stage0 += environment(variables={'LIBRARY_PATH': '$LIBRARY_PATH:/opt/intel/lib'})
+        Stage0 += environment(variables={'LD_LIBRARY_PATH': '$LD_LIBRARY_PATH:/opt/intel/lib'})
+        Stage0 += environment(variables={'LD_RUN_PATH': '$LD_RUN_PATH:/opt/intel/lib'})

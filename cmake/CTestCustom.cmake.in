@@ -9,6 +9,10 @@ list(APPEND CTEST_CUSTOM_COVERAGE_EXCLUDE
 
   "test"
 
+  "benchmark"
+
+  "examples"
+
   "c\\+\\+"
 )
 

@@ -61,6 +61,15 @@ namespace preconditioner {
  */
 template <typename IndexType>
 struct block_interleaved_storage_scheme {
+    block_interleaved_storage_scheme() = default;
+
+    block_interleaved_storage_scheme(IndexType block_offset,
+                                     IndexType group_offset, uint32 group_power)
+        : block_offset{block_offset},
+          group_offset{group_offset},
+          group_power{group_power}
+    {}
+
     /**
      * The offset between consecutive blocks within the group.
      */

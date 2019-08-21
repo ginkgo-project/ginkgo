@@ -93,4 +93,24 @@ COPY papi/lib/* /usr/lib/
 
 COPY papi/bin/* /usr/bin/
 
+COPY intel/parallel_studio_xe_2019/compilers_and_libraries/linux/bin/ /opt/intel/bin/
+
+COPY intel/parallel_studio_xe_2019/compilers_and_libraries/linux/compiler/lib/intel64/ /opt/intel/lib/
+
+COPY intel/parallel_studio_xe_2019/compilers_and_libraries/linux/compiler/include/ /opt/intel/include/
+
+ENV INTEL_LICENSE_FILE=28518@scclic1.scc.kit.edu
+
+ENV PATH=$PATH:/opt/intel/bin
+
+ENV LIBRARY_PATH=$LIBRARY_PATH:/opt/intel/lib
+
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/lib
+
+ENV LD_RUN_PATH=$LD_RUN_PATH:/opt/intel/lib
+
+ENV INCLUDEPATH=/opt/intel/include
+
+ENV CPATH=/opt/intel/include
+
 
