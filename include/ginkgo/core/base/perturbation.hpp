@@ -46,17 +46,20 @@ namespace gko {
 
 /**
  * The Perturbation class can be used to construct a LinOp to represent the
- * `(identity + scalar * basis * projector)` This operator adds a movement along
- * a direction constructed by `basis` and `projector` on the LinOp. `projector`
- * gives the coefficient of `basis` to decide the direction.
- * For example, Householder matrix can be represented in Perturbation.
- * u is the householder factor and then we can generate the Householder matrix =
- * (I - 2 u u*). In this case, the parameters of Perturbation class are
+ * operation `(identity + scalar * basis * projector)`. This operator adds a
+ * movement along a direction constructed by `basis` and `projector` on the
+ * LinOp. `projector` gives the coefficient of `basis` to decide the direction.
+ *
+ * For example, the Householder matrix can be represented with the Perturbation
+ * operator as follows.
+ * If u is the Householder factor then we can generate the [Householder
+ * transformation](https://en.wikipedia.org/wiki/Householder_transformation),
+ * H = (I - 2 u u*). In this case, the parameters of Perturbation class are
  * scalar = -2, basis = u, and projector = u*.
  *
  * @tparam ValueType  precision of input and result vectors
  *
- * @note the apply operations pf Perturbation class are not thread safe
+ * @note the apply operations of Perturbation class are not thread safe
  *
  * @ingroup LinOp
  */
@@ -101,7 +104,7 @@ public:
 
 protected:
     /**
-     * Creates an empty operator perturbation (0x0 operator).
+     * Creates an empty perturbation operator (0x0 operator).
      *
      * @param exec  Executor associated to the perturbation
      */
@@ -152,10 +155,9 @@ protected:
                     LinOp *x) const override;
 
     /**
-     * validate_perturbation check the dimension of scalar, basis, projector.
-     * scalar must be 1 by 1.
-     * The dimension of basis should be same as the dimension of conjugate
-     * transpose of projector.
+     * Validates the dimensions of the `scalar`, `basis` and `projector`
+     * parameters for the `apply`. scalar must be 1 by 1. The dimension of basis
+     * should be same as the dimension of conjugate transpose of projector.
      */
     void validate_perturbation()
     {
@@ -176,9 +178,26 @@ private:
         cache_struct(const cache_struct &other) {}
         cache_struct &operator=(const cache_struct &other) { return *this; }
 
+        // allocate linops of cache. The dimenstion of `intermediate` is
+        // (the number of rows of projector, the number of columns of b). Others
+        // are 1x1 scalar.
+        void allocate(std::shared_ptr<const Executor> exec, dim<2> size)
+        {
+            using vec = gko::matrix::Dense<ValueType>;
+            if (one == nullptr) {
+                one = initialize<vec>({gko::one<ValueType>()}, exec);
+            }
+            if (alpha_scalar == nullptr) {
+                alpha_scalar = vec::create(exec, gko::dim<2>(1));
+            }
+            if (intermediate == nullptr || intermediate->get_size() != size) {
+                intermediate = vec::create(exec, size);
+            }
+        }
+
         std::unique_ptr<LinOp> intermediate;
         std::unique_ptr<LinOp> one;
-        std::unique_ptr<matrix::Dense<ValueType>> alpha_scalar;
+        std::unique_ptr<LinOp> alpha_scalar;
     } cache_;
 };
 
