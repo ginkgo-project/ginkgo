@@ -75,6 +75,14 @@ protected:
 
     std::shared_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
     {
+        return gko::test::generate_random_matrix<Mtx>(
+            num_rows, num_cols,
+            std::uniform_int_distribution<>(num_cols, num_cols),
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+    }
+
+    std::shared_ptr<Mtx> gen_l_mtx(int num_rows, int num_cols)
+    {
         return gko::test::generate_random_lower_triangular_matrix<Mtx>(
             num_rows, num_cols, false,
             std::uniform_int_distribution<>(num_cols, num_cols),
@@ -89,7 +97,7 @@ protected:
         d_b->copy_from(b.get());
         d_x = Mtx::create(omp);
         d_x->copy_from(x.get());
-        mat = gen_mtx(m, m);
+        mat = gen_l_mtx(m, m);
         csr_mat = CsrMtx::create(ref);
         mat->convert_to(csr_mat.get());
         d_mat = Mtx::create(omp);
@@ -132,8 +140,8 @@ TEST_F(LowerTrs, ApplyIsEquivalentToRef)
     initialize_data(59, 3);
     auto lower_trs_factory = gko::solver::LowerTrs<>::build().on(ref);
     auto d_lower_trs_factory = gko::solver::LowerTrs<>::build().on(omp);
-    auto solver = lower_trs_factory->generate(csr_mat, b);
-    auto d_solver = d_lower_trs_factory->generate(d_csr_mat, d_b);
+    auto solver = lower_trs_factory->generate(csr_mat);
+    auto d_solver = d_lower_trs_factory->generate(d_csr_mat);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());

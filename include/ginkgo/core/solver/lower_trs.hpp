@@ -68,12 +68,10 @@ class LowerTrs;
 template <typename ValueType>
 struct LowerTrsArgs {
     std::shared_ptr<const LinOp> system_matrix;
-    std::shared_ptr<const matrix::Dense<ValueType>> b;
 
 
-    LowerTrsArgs(std::shared_ptr<const LinOp> system_matrix,
-                 std::shared_ptr<const matrix::Dense<ValueType>> b)
-        : system_matrix{system_matrix}, b{b}
+    LowerTrsArgs(std::shared_ptr<const LinOp> system_matrix)
+        : system_matrix{system_matrix}
     {}
 };
 
@@ -196,16 +194,6 @@ public:
     }
 
     /**
-     * Gets the right hand side of the linear system.
-     *
-     * @return the right hand side
-     */
-    std::shared_ptr<const matrix::Dense<ValueType>> get_rhs() const
-    {
-        return b_;
-    }
-
-    /**
      * Returns the preconditioner operator used by the solver.
      *
      * @return the preconditioner operator used by the solver
@@ -222,6 +210,15 @@ public:
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
             preconditioner, nullptr);
+
+
+        /**
+         * Number of right hand sides.
+         *
+         * @note: This value must be same as to be passed to the b vector of
+         * apply.
+         */
+        gko::size_type GKO_FACTORY_PARAMETER(num_rhs, 1u);
     };
     GKO_ENABLE_LOWER_TRS_FACTORY(LowerTrs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -247,7 +244,6 @@ protected:
         : parameters_{factory->get_parameters()},
           EnableLinOp<LowerTrs>(factory->get_executor(),
                                 transpose(args.system_matrix->get_size())),
-          b_{std::move(args.b)},
           system_matrix_{}
     {
         using CsrMatrix = matrix::Csr<ValueType, IndexType>;
@@ -274,7 +270,6 @@ protected:
 
 private:
     std::shared_ptr<const matrix::Csr<ValueType, IndexType>> system_matrix_{};
-    std::shared_ptr<const matrix::Dense<ValueType>> b_{};
     std::shared_ptr<const LinOp> preconditioner_{};
 };
 
