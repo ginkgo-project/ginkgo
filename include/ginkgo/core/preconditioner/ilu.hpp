@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
+#include <type_traits>
 
 
 #include <ginkgo/core/base/abstract_factory.hpp>
@@ -42,8 +43,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
-#include <ginkgo/core/factorization/par_ilu.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
+//#include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+// #include <ginkgo/core/solver/lower_trs.hpp>
+#include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
@@ -52,6 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace preconditioner {
 
+// TODO: Replace Bicgstab with Upper/LowerTrs when available!
 
 /**
  * Incomplete LU (ILU) is ... TODO
@@ -64,13 +69,14 @@ namespace preconditioner {
  * @ingroup precond
  * @ingroup LinOp
  */
-template <typename LSolverType, typename USolverType,
-          typename ValueType = default_precision, bool ReverseApply = false>
-class GeneralIlu
-    : public EnableLinOp<
-          GeneralIlu<LSolverType, USolverType, ValueType, ReverseApply>> {
-    friend class EnableLinOp<GeneralIlu>;
-    friend class EnablePolymorphicObject<GeneralIlu, LinOp>;
+template <typename ValueType,
+          typename LSolverType = solver::Bicgstab<ValueType>,
+          typename USolverType = solver::Bicgstab<ValueType>,
+          bool ReverseApply = false>
+class Ilu : public EnableLinOp<
+                Ilu<ValueType, LSolverType, USolverType, ReverseApply>> {
+    friend class EnableLinOp<Ilu>;
+    friend class EnablePolymorphicObject<Ilu, LinOp>;
 
 public:
     using value_type = ValueType;
@@ -103,7 +109,7 @@ protected:
      * - both L and U matrix as separate parameters
      */
     struct LuArgs {
-        /*
+        /* TODO test if it can work:
         LuArgs(
             std::shared_ptr<const factorization::ParIlu<ValueType>> par_ilu)
         {
@@ -155,7 +161,7 @@ protected:
     using PolymorphicBaseFactory = AbstractFactory<LinOp, LuArgs>;
     template <typename ConcreteFactory>
     using EnableIluFactory =
-        EnableDefaultFactory<ConcreteFactory, GeneralIlu, parameters_type,
+        EnableDefaultFactory<ConcreteFactory, Ilu, parameters_type,
                              PolymorphicBaseFactory>;
 
 public:
@@ -214,13 +220,13 @@ protected:
         }
     }
 
-    explicit GeneralIlu(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<GeneralIlu>(std::move(exec))
+    explicit Ilu(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<Ilu>(std::move(exec))
     {}
 
-    explicit GeneralIlu(const Factory *factory, LuArgs lu_args)
-        : EnableLinOp<GeneralIlu>(factory->get_executor(),
-                                  lu_args.get_solver_size(ReverseApply)),
+    explicit Ilu(const Factory *factory, LuArgs lu_args)
+        : EnableLinOp<Ilu>(factory->get_executor(),
+                           lu_args.get_solver_size(ReverseApply)),
           parameters_{factory->get_parameters()},
           l_factor_{std::move(lu_args.l_factor)},
           u_factor_{std::move(lu_args.u_factor)}
@@ -279,6 +285,17 @@ protected:
         }
     }
 
+    /**
+     * @internal  Looks at the build method to determine the type of the
+     * factory.
+     */
+    // TODO: put it back in
+
+    // TODO: With SFINAE, test if function `with_criteria` exists
+    // static std::unique_ptr<LinOp> generate_default_solver(const
+    // std::shared_ptr<const Executor> &exec, const std::shared_ptr<const LinOp>
+    //&mtx)
+
 private:
     std::shared_ptr<const LinOp> l_factor_{};
     std::shared_ptr<const LinOp> u_factor_{};
@@ -302,11 +319,6 @@ private:
     std::shared_ptr<const LSolverType> l_solver_{};
     std::shared_ptr<const USolverType> u_solver_{};
 };
-
-
-// TODO: Add when LowerTrs and UpperTrs are merged!
-// template <typename ValueType>
-// using Ilu = GeneralIlu<ValueType, LowerTrs<ValueType>, UpperTrs<ValueType>>;
 
 
 }  // namespace preconditioner

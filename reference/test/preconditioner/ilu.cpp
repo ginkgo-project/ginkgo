@@ -64,12 +64,12 @@ protected:
     using Mtx = gko::matrix::Dense<value_type>;
     using l_solver_type = gko::solver::Bicgstab<value_type>;
     using u_solver_type = gko::solver::Bicgstab<value_type>;
-    using ilu_prec_type =
-        gko::preconditioner::GeneralIlu<l_solver_type, u_solver_type,
-                                        value_type, false>;
+    using default_ilu_prec_type = gko::preconditioner::Ilu<value_type>;
+    using ilu_prec_type = gko::preconditioner::Ilu<value_type, l_solver_type,
+                                                   u_solver_type, false>;
     using ilu_rev_prec_type =
-        gko::preconditioner::GeneralIlu<l_solver_type, u_solver_type,
-                                        value_type, true>;
+        gko::preconditioner::Ilu<value_type, l_solver_type, u_solver_type,
+                                 true>;
 
     Ilu()
         : exec(gko::ReferenceExecutor::create()),
@@ -90,7 +90,18 @@ protected:
                           .with_reduction_factor(1e-15)
                           .on(exec))
                   .on(exec)),
-          u_factory(l_factory),
+          u_factory(
+              u_solver_type::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(10u).on(
+                          exec),
+                      gko::stop::Time::build()
+                          .with_time_limit(std::chrono::seconds(6))
+                          .on(exec),
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-15)
+                          .on(exec))
+                  .on(exec)),
           ilu_pre_factory(ilu_prec_type::build()
                               .with_l_solver_factory(l_factory)
                               .with_u_solver_factory(u_factory)
@@ -157,6 +168,24 @@ TEST_F(Ilu, BuildsCustomWithoutThrowing)
 TEST_F(Ilu, ThrowOnWrongInput)
 {
     ASSERT_THROW(ilu_pre_factory->generate(l_factor), gko::NotSupported);
+}
+
+
+TEST_F(Ilu, SolvesDefaultSingleRhsWithParIlu)
+{
+    const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
+    const auto expected_result =
+        gko::initialize<Mtx>({-0.125, 0.25, 1.0}, exec);
+    auto x = Mtx::create(exec, gko::dim<2>{3, 1});
+    auto par_ilu_fact =
+        gko::factorization::ParIlu<value_type>::build().on(exec);
+    auto par_ilu = par_ilu_fact->generate(mtx);
+
+    auto preconditioner =
+        default_ilu_prec_type::build().on(exec)->generate(gko::share(par_ilu));
+    preconditioner->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x.get(), expected_result.get(), 1e-14);
 }
 
 
