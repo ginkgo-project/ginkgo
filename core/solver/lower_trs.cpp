@@ -63,8 +63,8 @@ GKO_REGISTER_OPERATION(solve, lower_trs::solve);
 template <typename ValueType, typename IndexType>
 void LowerTrs<ValueType, IndexType>::generate()
 {
-    this->get_executor()->run(
-        lower_trs::make_generate(gko::lend(system_matrix_), gko::lend(b_)));
+    this->get_executor()->run(lower_trs::make_generate(
+        gko::lend(system_matrix_), parameters_.num_rhs));
 }
 
 

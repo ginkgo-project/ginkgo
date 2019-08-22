@@ -61,7 +61,7 @@ namespace lower_trs {
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const OmpExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *matrix,
-              const matrix::Dense<ValueType> *b)
+              const gko::size_type num_rhs)
 {
     // This generate kernel is here to allow for a more sophisticated
     // implementation as for other executors. This kernel would perform the

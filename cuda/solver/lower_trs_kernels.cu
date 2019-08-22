@@ -81,11 +81,10 @@ static cusp_csrsm_data cusp_csrsm_data{};
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const CudaExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *matrix,
-              const matrix::Dense<ValueType> *b)
+              const gko::size_type num_rhs)
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
-        std::vector<ValueType> one_vec(b->get_stride(), 1.0);
-        ValueType one = one_vec[0];
+        ValueType one = 1.0;
         auto handle = exec->get_cusparse_handle();
 #if (defined(CUDA_VERSION) && (CUDA_VERSION > 9100))
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
@@ -120,14 +119,12 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
         cusparse::buffer_size_ext(
             handle, cusp_csrsm2_data.algorithm,
-            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_TRANSPOSE,
-            matrix->get_size()[0], b->get_stride(),
-            matrix->get_num_stored_elements(), &one,
-            cusp_csrsm2_data.factor_descr, matrix->get_const_values(),
-            matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-            b->get_const_values(), b->get_size()[0],
-            cusp_csrsm2_data.solve_info, cusp_csrsm2_data.policy,
-            &cusp_csrsm2_data.factor_work_size);
+            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            matrix->get_size()[0], num_rhs, matrix->get_num_stored_elements(),
+            &one, cusp_csrsm2_data.factor_descr, matrix->get_const_values(),
+            matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(), nullptr,
+            matrix->get_size()[0], cusp_csrsm2_data.solve_info,
+            cusp_csrsm2_data.policy, &cusp_csrsm2_data.factor_work_size);
         exec->synchronize();
 
         // allocate workspace
@@ -140,14 +137,12 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
         exec->synchronize();
         cusparse::csrsm2_analysis(
             handle, cusp_csrsm2_data.algorithm,
-            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_TRANSPOSE,
-            matrix->get_size()[0], b->get_stride(),
-            matrix->get_num_stored_elements(), &one,
-            cusp_csrsm2_data.factor_descr, matrix->get_const_values(),
-            matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-            b->get_const_values(), b->get_size()[0],
-            cusp_csrsm2_data.solve_info, cusp_csrsm2_data.policy,
-            cusp_csrsm2_data.factor_work_vec);
+            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            matrix->get_size()[0], num_rhs, matrix->get_num_stored_elements(),
+            &one, cusp_csrsm2_data.factor_descr, matrix->get_const_values(),
+            matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(), nullptr,
+            matrix->get_size()[0], cusp_csrsm2_data.solve_info,
+            cusp_csrsm2_data.policy, cusp_csrsm2_data.factor_work_vec);
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
         exec->synchronize();
@@ -181,8 +176,7 @@ void solve(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
-        std::vector<ValueType> one_vec(b->get_stride(), 1.0);
-        ValueType one = one_vec[0];
+        ValueType one = 1.0;
         auto handle = exec->get_cusparse_handle();
 #if (defined(CUDA_VERSION) && (CUDA_VERSION > 9100))
         exec->copy_from(exec.get(), b->get_size()[0] * b->get_stride(),
@@ -191,7 +185,7 @@ void solve(std::shared_ptr<const CudaExecutor> exec,
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
         cusparse::csrsm2_solve(
             handle, cusp_csrsm2_data.algorithm,
-            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_TRANSPOSE,
+            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
             matrix->get_size()[0], b->get_stride(),
             matrix->get_num_stored_elements(), &one,
             cusp_csrsm2_data.factor_descr, matrix->get_const_values(),
