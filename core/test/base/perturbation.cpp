@@ -120,6 +120,7 @@ TEST_F(Perturbation, CanCreateFromTwoOperators)
     ASSERT_EQ(cmp->get_size(), gko::dim<2>(2, 2));
     ASSERT_EQ(cmp->get_basis(), basis);
     ASSERT_EQ(cmp->get_projector(), projector);
+    ASSERT_EQ(cmp->get_scalar(), scalar);
 }
 
 
@@ -136,6 +137,7 @@ TEST_F(Perturbation, CanCreateFromOneTranposableOperator)
     ASSERT_EQ(cmp->get_size(), gko::dim<2>(3, 3));
     ASSERT_EQ(cmp->get_basis(), trans_basis);
     ASSERT_EQ(cmp->get_projector()->get_size(), gko::dim<2>(1, 3));
+    ASSERT_EQ(cmp->get_scalar(), scalar);
 }
 
 
