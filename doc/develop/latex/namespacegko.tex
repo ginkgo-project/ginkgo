@@ -111,6 +111,8 @@ class \hyperlink{classgko_1_1Operation}{Operation}
 \begin{DoxyCompactList}\small\item\em Operations can be used to define functionalities whose implementations differ among devices. \end{DoxyCompactList}\item 
 class \hyperlink{classgko_1_1OutOfBoundsError}{Out\+Of\+Bounds\+Error}
 \begin{DoxyCompactList}\small\item\em \hyperlink{classgko_1_1OutOfBoundsError}{Out\+Of\+Bounds\+Error} is thrown if a memory access is detected to be out-\/of-\/bounds. \end{DoxyCompactList}\item 
+class \hyperlink{classgko_1_1Perturbation}{Perturbation}
+\begin{DoxyCompactList}\small\item\em The \hyperlink{classgko_1_1Perturbation}{Perturbation} class can be used to construct a \hyperlink{classgko_1_1LinOp}{Lin\+Op} to represent the operation {\ttfamily (identity + scalar $\ast$ basis $\ast$ projector)}. \end{DoxyCompactList}\item 
 class \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}
 \begin{DoxyCompactList}\small\item\em A \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} is the abstract base for all \char`\"{}heavy\char`\"{} objects in Ginkgo that behave polymorphically. \end{DoxyCompactList}\item 
 class \hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}
@@ -1174,7 +1176,7 @@ This is the overload for owning (smart) pointers, that behaves the same as calli
 \end{DoxyNote}
 
 
-Referenced by gko\+::log\+::\+Enable\+Logging$<$ Executor $>$\+::remove\+\_\+logger().
+Referenced by gko\+::\+Perturbation$<$ Value\+Type $>$\+::get\+\_\+scalar(), and gko\+::log\+::\+Enable\+Logging$<$ Executor $>$\+::remove\+\_\+logger().
 
 \mbox{\Hypertarget{namespacegko_aa0c1deeb105cfb5a635b5f41cb5e8321}\label{namespacegko_aa0c1deeb105cfb5a635b5f41cb5e8321}} 
 \index{gko@{gko}!lend@{lend}}
@@ -1298,7 +1300,7 @@ the multiplicative identity for T
 \end{DoxyReturn}
 
 
-Referenced by gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::ensure\+\_\+row\+\_\+major\+\_\+order(), and gko\+::\+Combination$<$ Value\+Type $>$\+::get\+\_\+operators().
+Referenced by gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::ensure\+\_\+row\+\_\+major\+\_\+order(), gko\+::\+Combination$<$ Value\+Type $>$\+::get\+\_\+operators(), and gko\+::\+Perturbation$<$ Value\+Type $>$\+::get\+\_\+scalar().
 
 \mbox{\Hypertarget{namespacegko_ab4f16ecf0a759f46259cf9518f1e4568}\label{namespacegko_ab4f16ecf0a759f46259cf9518f1e4568}} 
 \index{gko@{gko}!one@{one}}

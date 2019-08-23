@@ -227,6 +227,9 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1OutOfBoundsError.html">OutOfBoundsError</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1OutOfBoundsError.html" title="OutOfBoundsError is thrown if a memory access is detected to be out-of-bounds. ">OutOfBoundsError</a> is thrown if a memory access is detected to be out-of-bounds.  <a href="classgko_1_1OutOfBoundsError.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Perturbation.html">Perturbation</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1Perturbation.html" title="The Perturbation class can be used to construct a LinOp to represent the operation (identity + scalar...">Perturbation</a> class can be used to construct a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> to represent the operation <code>(identity + scalar * basis * projector)</code>.  <a href="classgko_1_1Perturbation.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1PolymorphicObject.html">PolymorphicObject</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A <a class="el" href="classgko_1_1PolymorphicObject.html" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall...">PolymorphicObject</a> is the abstract base for all "heavy" objects in Ginkgo that behave polymorphically.  <a href="classgko_1_1PolymorphicObject.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1879,7 +1882,7 @@ template&lt;typename Pointer &gt; </div>
 </dl>
 <dl class="section note"><dt>Note</dt><dd>This is the overload for owning (smart) pointers, that behaves the same as calling .get() on the smart pointer. </dd></dl>
 
-<p class="reference">Referenced by <a class="el" href="classgko_1_1log_1_1EnableLogging.html#aba5317f8a03956a61d770e9b07fc65cc">gko::log::EnableLogging&lt; Executor &gt;::remove_logger()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="classgko_1_1Perturbation.html#af3a1d57c22b34f276a9222eb248825ae">gko::Perturbation&lt; ValueType &gt;::get_scalar()</a>, and <a class="el" href="classgko_1_1log_1_1EnableLogging.html#aba5317f8a03956a61d770e9b07fc65cc">gko::log::EnableLogging&lt; Executor &gt;::remove_logger()</a>.</p>
 
 </div>
 </div>
@@ -2106,7 +2109,7 @@ template&lt;typename T &gt; </div>
 <p>Returns the multiplicative identity for T. </p>
 <dl class="section return"><dt>Returns</dt><dd>the multiplicative identity for T </dd></dl>
 
-<p class="reference">Referenced by <a class="el" href="structgko_1_1matrix__data.html#ac83a3b5d892fbd132fd9a7f50b0f83b8">gko::matrix_data&lt; ValueType, IndexType &gt;::ensure_row_major_order()</a>, and <a class="el" href="classgko_1_1Combination.html#a75a81c2b91441ddea98949ef54f62441">gko::Combination&lt; ValueType &gt;::get_operators()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="structgko_1_1matrix__data.html#ac83a3b5d892fbd132fd9a7f50b0f83b8">gko::matrix_data&lt; ValueType, IndexType &gt;::ensure_row_major_order()</a>, <a class="el" href="classgko_1_1Combination.html#a75a81c2b91441ddea98949ef54f62441">gko::Combination&lt; ValueType &gt;::get_operators()</a>, and <a class="el" href="classgko_1_1Perturbation.html#af3a1d57c22b34f276a9222eb248825ae">gko::Perturbation&lt; ValueType &gt;::get_scalar()</a>.</p>
 
 </div>
 </div>
