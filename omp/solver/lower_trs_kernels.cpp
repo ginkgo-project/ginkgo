@@ -58,6 +58,13 @@ namespace omp {
 namespace lower_trs {
 
 
+void clear(std::shared_ptr<const OmpExecutor> exec)
+{
+    // This clear kernel is here to allow for a more sophisticated
+    // implementation as for other executors.
+}
+
+
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const OmpExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *matrix,

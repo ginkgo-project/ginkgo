@@ -117,6 +117,8 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(LowerTrs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
+    ~LowerTrs() { this->clear_data(); }
+
 protected:
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
@@ -124,10 +126,16 @@ protected:
                     LinOp *x) const override;
 
     /**
+     * Clears the held data.
+     */
+    void clear_data() const;
+
+    /**
      * Generates the analysis structure from the system matrix and the right
      * hand side needed for the level solver.
      */
     void generate();
+
 
     explicit LowerTrs(std::shared_ptr<const Executor> exec)
         : EnableLinOp<LowerTrs>(std::move(exec))

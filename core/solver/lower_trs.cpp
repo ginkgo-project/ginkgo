@@ -53,11 +53,19 @@ namespace solver {
 namespace lower_trs {
 
 
+GKO_REGISTER_OPERATION(clear, lower_trs::clear);
 GKO_REGISTER_OPERATION(generate, lower_trs::generate);
 GKO_REGISTER_OPERATION(solve, lower_trs::solve);
 
 
 }  // namespace lower_trs
+
+
+template <typename ValueType, typename IndexType>
+void LowerTrs<ValueType, IndexType>::clear_data() const
+{
+    this->get_executor()->run(lower_trs::make_clear());
+}
 
 
 template <typename ValueType, typename IndexType>
