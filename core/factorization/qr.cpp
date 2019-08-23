@@ -38,10 +38,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/perturbation.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
 
 
 #include "core/factorization/qr_kernels.hpp"
@@ -50,6 +50,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace factorization {
+namespace qr_factorization {
+
+
+GKO_REGISTER_OPERATION(householder_generator,
+                       qr_factorization::householder_generator);
+
+
+}  // namespace qr_factorization
 
 
 template <typename ValueType, typename IndexType>
@@ -75,13 +83,38 @@ std::unique_ptr<Composition<ValueType>> Qr<ValueType>::generate_qr(
     // QR algorithm changes the value of the matrix, so it needs a copy of
     // system_matrix.
     auto work_matrix = dense_system_matrix.clone();
-    const auto rank = (parameters_.rank == 0) ? work_matrix->get_size()[1]:parameters_.rank;
-
-    return Composition<ValueType>::create(exec);
+    const auto nrows = work_matrix->get_size()[0];
+    const auto ncols = work_matrix->get_size()[1];
+    const auto rank = (parameters_.rank == 0) ? ncols : parameters_.rank;
+    auto std::vector<std::unique_ptr<Perturbation<ValueType>>> q_list(rank);
+    for (size_type i = 0; i < rank; i++) {
+        // householder_generator(vector, k) -> factor, scalar
+        factor = DenseMatrix::create(exec, dim<2>{nrows, 1});
+        scalar = DenseMatrix::create(exec, dim<2>{1});
+        x = work_matrix->create_submatrix(span{0, nrows}, span{i, i + 1});
+        exec->run(qr_factorization::make_householder_generator(
+            x, i, lend(factor), lend(scalar)));
+        // apply on submatrix of work_matrix
+        auto sub_factor = factor->create_submatrix(span{i, nrows}, span{0, 1});
+        auto sub_work_matrix =
+            work_matrix->create_submatrix(span{i, nrows}, span{i, ncols});
+        auto sub_householder_matrix =
+            Perturbation<ValueType>::create(scalar, sub_factor);
+        auto temp_matrix = clone(sub_work_matrix);
+        sub_householder_matrix->apply(sub_work_matrix, temp_matrix);
+        sub_work_matrix->copy_from(temp_matrix);
+        // create a perturbation to present housholder matrix
+        auto householder_matrix =
+            Perturbation<ValueType>::create(scalar, factor);
+        q_list.push_back(std::move(householder_matrix));
+    }
+    auto q = Composition<ValueType>::create(q_list.cbegin(), q_list.cend());
+    auto r = work_matrix->create_submatrix(span{0, rank}, span{0, ncols});
+    return Composition<ValueType>::create(std::move(q), std::move(r));
 }
 
 
-#define GKO_DECLARE_QR(ValueType, IndexType) class Qr<ValueType, IndexType>
+#define GKO_DECLARE_QR(ValueType) class Qr<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_QR);
 
 

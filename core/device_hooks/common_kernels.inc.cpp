@@ -616,6 +616,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 }  // namespace par_ilu_factorization
 
 
+namespace qr_factorization {
+
+
+template <typename ValueType>
+GKO_DECLARE_QR_HOUSEHOLDER_GENERATOR_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_QR_HOUSEHOLDER_GENERATOR_KERNEL);
+
+
+}  // namespace qr_factorization
+
+
 namespace set_all_statuses {
 
 
