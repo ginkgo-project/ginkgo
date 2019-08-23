@@ -53,6 +53,9 @@ namespace cuda {
 namespace upper_trs {
 
 
+void clear(std::shared_ptr<const CudaExecutor> exec) {}
+
+
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const CudaExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *matrix,
