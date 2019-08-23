@@ -187,6 +187,7 @@ private:
     // TODO: solve race conditions when multithreading
     mutable struct cache_struct {
         cache_struct() = default;
+        ~cache_struct() = default;
         cache_struct(const cache_struct &other) {}
         cache_struct &operator=(const cache_struct &other) { return *this; }
 
