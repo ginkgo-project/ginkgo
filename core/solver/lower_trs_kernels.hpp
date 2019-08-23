@@ -47,6 +47,10 @@ namespace kernels {
 namespace lower_trs {
 
 
+#define GKO_DECLARE_LOWER_TRS_CLEAR_KERNEL() \
+    void clear(std::shared_ptr<const DefaultExecutor> exec)
+
+
 #define GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL(_vtype, _itype)  \
     void generate(std::shared_ptr<const DefaultExecutor> exec, \
                   const matrix::Csr<_vtype, _itype> *matrix,   \
@@ -60,6 +64,7 @@ namespace lower_trs {
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                          \
+    GKO_DECLARE_LOWER_TRS_CLEAR_KERNEL();                     \
     template <typename ValueType, typename IndexType>         \
     GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>         \

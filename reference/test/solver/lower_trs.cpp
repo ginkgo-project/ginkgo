@@ -135,8 +135,8 @@ TEST_F(LowerTrs, CanBeCleared)
 
     auto solver_mtx = lower_trs_solver->get_system_matrix();
 
-    ASSERT_EQ(lower_trs_solver->get_size(), gko::dim<2>(0, 0));
     ASSERT_EQ(solver_mtx, nullptr);
+    ASSERT_EQ(lower_trs_solver->get_size(), gko::dim<2>(0, 0));
 }
 
 
