@@ -50,7 +50,7 @@ namespace upper_trs {
 #define GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL(_vtype, _itype)  \
     void generate(std::shared_ptr<const DefaultExecutor> exec, \
                   const matrix::Csr<_vtype, _itype> *matrix,   \
-                  const matrix::Dense<_vtype> *b)
+                  const gko::size_type num_rhs)
 
 
 #define GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL(_vtype, _itype)  \
