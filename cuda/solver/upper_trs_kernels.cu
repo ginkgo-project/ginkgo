@@ -56,7 +56,7 @@ namespace upper_trs {
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const CudaExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *matrix,
-              const matrix::Dense<ValueType> *b) GKO_NOT_IMPLEMENTED;
+              const gko::size_type num_rhs) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL);

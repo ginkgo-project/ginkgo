@@ -54,114 +54,6 @@ namespace gko {
 namespace solver {
 
 
-template <typename ValueType, typename IndexType>
-class UpperTrs;
-
-
-/**
- * This struct is used to pass parameters to the
- * EnableDefaultUpperTrsFactory::generate() method. It is the
- * ComponentsType of UpperTrsFactory.
- *
- * @tparam ValueType  precision of matrix elements
- */
-template <typename ValueType>
-struct UpperTrsArgs {
-    std::shared_ptr<const LinOp> system_matrix;
-    std::shared_ptr<const matrix::Dense<ValueType>> b;
-
-
-    UpperTrsArgs(std::shared_ptr<const LinOp> system_matrix,
-                 std::shared_ptr<const matrix::Dense<ValueType>> b)
-        : system_matrix{system_matrix}, b{b}
-    {}
-};
-
-
-/**
- * Declares an Abstract Factory specialized for UpperTrs solver.
- *
- * @tparam ValueType  precision of matrix elements
- * @tparam IndexType  precision of matrix indexes
- */
-template <typename ValueType, typename IndexType>
-using UpperTrsFactory =
-    AbstractFactory<UpperTrs<ValueType, IndexType>, UpperTrsArgs<ValueType>>;
-
-
-/**
- * This is an alias for the EnableDefaultFactory mixin, which correctly sets the
- * template parameters to enable a subclass of UpperTrsFactory.
- *
- * @tparam ConcreteFactory  the concrete factory which is being implemented
- *                          [CRTP parmeter]
- * @tparam ConcreteUpperTrs  the concrete UpperTrs type which this factory
- *                           produces, needs to have a constructor which takes
- *                           a const ConcreteFactory *, and a
- *                           const UpperTrsArgs * as parameters.
- * @tparam ParametersType  a subclass of enable_parameters_type template which
- *                         defines all of the parameters of the factory
- * @tparam ValueType  precision of matrix elements
- * @tparam IndexType  precision of matrix indexes
- */
-template <typename ConcreteFactory, typename ConcreteUpperTrs,
-          typename ParametersType, typename ValueType, typename IndexType>
-using EnableDefaultUpperTrsFactory =
-    EnableDefaultFactory<ConcreteFactory, ConcreteUpperTrs, ParametersType,
-                         UpperTrsFactory<ValueType, IndexType>>;
-
-
-/**
- * This macro will generate a default implementation of a UpperTrsFactory for
- * the UpperTrs subclass it is defined in.
- *
- * This macro is very similar to the macro #ENABLE_LIN_OP_FACTORY(). A more
- * detailed description of the use of these type of macros can be found there.
- *
- * @param _upper_trs  concrete operator for which the factory is to be created
- *                    [CRTP parameter]
- * @param _parameters_name  name of the parameters member in the class
- *                          (its type is `<_parameters_name>_type`, the
- *                          protected member's name is `<_parameters_name>_`,
- *                          and the public getter's name is
- *                          `get_<_parameters_name>()`)
- * @param _factory_name  name of the generated factory type
- *
- * @ingroup solvers
- */
-#define GKO_ENABLE_UPPER_TRS_FACTORY(_upper_trs, _parameters_name,             \
-                                     _factory_name)                            \
-public:                                                                        \
-    const _parameters_name##_type &get_##_parameters_name() const              \
-    {                                                                          \
-        return _parameters_name##_;                                            \
-    }                                                                          \
-                                                                               \
-    class _factory_name : public ::gko::solver::EnableDefaultUpperTrsFactory<  \
-                              _factory_name, _upper_trs,                       \
-                              _parameters_name##_type, ValueType, IndexType> { \
-        friend class ::gko::EnablePolymorphicObject<                           \
-            _factory_name,                                                     \
-            ::gko::solver::UpperTrsFactory<ValueType, IndexType>>;             \
-        friend class ::gko::enable_parameters_type<_parameters_name##_type,    \
-                                                   _factory_name>;             \
-        using ::gko::solver::EnableDefaultUpperTrsFactory<                     \
-            _factory_name, _upper_trs, _parameters_name##_type, ValueType,     \
-            IndexType>::EnableDefaultUpperTrsFactory;                          \
-    };                                                                         \
-    friend ::gko::solver::EnableDefaultUpperTrsFactory<                        \
-        _factory_name, _upper_trs, _parameters_name##_type, ValueType,         \
-        IndexType>;                                                            \
-                                                                               \
-private:                                                                       \
-    _parameters_name##_type _parameters_name##_;                               \
-                                                                               \
-public:                                                                        \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
-                  "semi-colon warnings")
-
-
 /**
  * UpperTrs is the triangular solver which solves the system U x = b, when U is
  * an upper triangular matrix. It works best when passing in a matrix in CSR
@@ -196,16 +88,6 @@ public:
     }
 
     /**
-     * Gets the right hand side of the linear system.
-     *
-     * @return the right hand side
-     */
-    std::shared_ptr<const matrix::Dense<ValueType>> get_rhs() const
-    {
-        return b_;
-    }
-
-    /**
      * Returns the preconditioner operator used by the solver.
      *
      * @return the preconditioner operator used by the solver
@@ -222,8 +104,16 @@ public:
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
             preconditioner, nullptr);
+
+        /**
+         * Number of right hand sides.
+         *
+         * @note: This value must be same as to be passed to the b vector of
+         * apply.
+         */
+        gko::size_type GKO_FACTORY_PARAMETER(num_rhs, 1u);
     };
-    GKO_ENABLE_UPPER_TRS_FACTORY(UpperTrs, parameters, Factory);
+    GKO_ENABLE_LIN_OP_FACTORY(UpperTrs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
@@ -234,7 +124,7 @@ protected:
 
     /**
      * Generates the analysis structure from the system matrix and the right
-     * hand side needed for the level solver.
+     * hand side(only dimensional info needed) needed for the level solver.
      */
     void generate();
 
@@ -243,24 +133,23 @@ protected:
     {}
 
     explicit UpperTrs(const Factory *factory,
-                      const UpperTrsArgs<ValueType> &args)
-        : parameters_{factory->get_parameters()},
-          EnableLinOp<UpperTrs>(factory->get_executor(),
-                                transpose(args.system_matrix->get_size())),
-          b_{std::move(args.b)},
+                      std::shared_ptr<const LinOp> system_matrix)
+        : EnableLinOp<UpperTrs>(factory->get_executor(),
+                                transpose(system_matrix->get_size())),
+          parameters_{factory->get_parameters()},
           system_matrix_{}
     {
         using CsrMatrix = matrix::Csr<ValueType, IndexType>;
 
-        GKO_ASSERT_IS_SQUARE_MATRIX(args.system_matrix);
+        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
         // This is needed because it does not make sense to call the copy and
         // convert if the existing matrix is empty.
         const auto exec = this->get_executor();
-        if (!args.system_matrix->get_size()) {
+        if (!system_matrix->get_size()) {
             system_matrix_ = CsrMatrix::create(exec);
         } else {
             system_matrix_ =
-                copy_and_convert_to<CsrMatrix>(exec, args.system_matrix);
+                copy_and_convert_to<CsrMatrix>(exec, system_matrix);
         }
         if (parameters_.preconditioner) {
             preconditioner_ =
@@ -274,7 +163,6 @@ protected:
 
 private:
     std::shared_ptr<const matrix::Csr<ValueType, IndexType>> system_matrix_{};
-    std::shared_ptr<const matrix::Dense<ValueType>> b_{};
     std::shared_ptr<const LinOp> preconditioner_{};
 };
 
