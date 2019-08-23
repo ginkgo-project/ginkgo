@@ -53,11 +53,19 @@ namespace solver {
 namespace upper_trs {
 
 
+GKO_REGISTER_OPERATION(clear, upper_trs::clear);
 GKO_REGISTER_OPERATION(generate, upper_trs::generate);
 GKO_REGISTER_OPERATION(solve, upper_trs::solve);
 
 
 }  // namespace upper_trs
+
+
+template <typename ValueType, typename IndexType>
+void UpperTrs<ValueType, IndexType>::clear_data() const
+{
+    this->get_executor()->run(upper_trs::make_clear());
+}
 
 
 template <typename ValueType, typename IndexType>

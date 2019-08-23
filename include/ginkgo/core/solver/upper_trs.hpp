@@ -116,11 +116,18 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(UpperTrs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
+    ~UpperTrs() { this->clear_data(); }
+
 protected:
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
+
+    /**
+     * Clears the held data.
+     */
+    void clear_data() const;
 
     /**
      * Generates the analysis structure from the system matrix and the right
