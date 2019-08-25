@@ -71,6 +71,25 @@ void init_struct(std::shared_ptr<const CudaExecutor> exec,
     GKO_NOT_IMPLEMENTED;
 
 
+void clear(std::shared_ptr<const CudaExecutor> exec)
+{
+#if (defined(CUDA_VERSION) && (CUDA_VERSION > 9100))
+    cusparse::destroy(cusp_csrsm2_data.factor_descr);
+    if (cusp_csrsm2_data.solve_info) {
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseDestroyCsrsm2Info(cusp_csrsm2_data.solve_info));
+    }
+    if (cusp_csrsm2_data.factor_work_vec != nullptr) {
+        exec->free(cusp_csrsm2_data.factor_work_vec);
+    }
+#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9200))
+    cusparse::destroy(cusp_csrsm_data.factor_descr);
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(
+        cusparseDestroySolveAnalysisInfo(cusp_csrsm_data.solve_info));
+#endif
+}
+
+
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const CudaExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *matrix,
