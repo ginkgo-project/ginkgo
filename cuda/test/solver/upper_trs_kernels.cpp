@@ -75,12 +75,19 @@ protected:
 
     std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
     {
+        return gko::test::generate_random_matrix<Mtx>(
+            num_rows, num_cols,
+            std::uniform_int_distribution<>(num_cols, num_cols),
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+    }
+
+    std::unique_ptr<Mtx> gen_u_mtx(int num_rows, int num_cols)
+    {
         return gko::test::generate_random_upper_triangular_matrix<Mtx>(
             num_rows, num_cols, false,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
-
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::CudaExecutor> cuda;
@@ -90,11 +97,11 @@ protected:
 
 TEST_F(UpperTrs, CudaApplyIsEquivalentToRef)
 {
-    std::shared_ptr<Mtx> mtx = gen_mtx(50, 50);
+    std::shared_ptr<Mtx> mtx = gen_u_mtx(50, 50);
     std::shared_ptr<Mtx> b = gen_mtx(50, 1);
     std::shared_ptr<Mtx> x = gen_mtx(50, 1);
     std::shared_ptr<CsrMtx> csr_mtx = CsrMtx::create(ref);
-    mtx.get()->convert_to(csr_mtx.get());
+    mtx->convert_to(csr_mtx.get());
     std::shared_ptr<CsrMtx> d_csr_mtx = CsrMtx::create(cuda);
     auto d_x = Mtx::create(cuda);
     d_x->copy_from(x.get());
@@ -106,8 +113,8 @@ TEST_F(UpperTrs, CudaApplyIsEquivalentToRef)
 
     auto upper_trs_factory = gko::solver::UpperTrs<>::build().on(ref);
     auto d_upper_trs_factory = gko::solver::UpperTrs<>::build().on(cuda);
-    auto solver = upper_trs_factory->generate(csr_mtx, b2);
-    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx, d_b2);
+    auto solver = upper_trs_factory->generate(csr_mtx);
+    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
     solver->apply(b2.get(), x.get());
     d_solver->apply(d_b2.get(), d_x.get());
 
