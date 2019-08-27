@@ -98,8 +98,8 @@ protected:
 TEST_F(UpperTrs, CudaApplyIsEquivalentToRef)
 {
     std::shared_ptr<Mtx> mtx = gen_u_mtx(50, 50);
-    std::shared_ptr<Mtx> b = gen_mtx(50, 1);
-    std::shared_ptr<Mtx> x = gen_mtx(50, 1);
+    std::shared_ptr<Mtx> b = gen_mtx(50, 3);
+    std::shared_ptr<Mtx> x = gen_mtx(50, 3);
     std::shared_ptr<CsrMtx> csr_mtx = CsrMtx::create(ref);
     mtx->convert_to(csr_mtx.get());
     std::shared_ptr<CsrMtx> d_csr_mtx = CsrMtx::create(cuda);
@@ -111,8 +111,10 @@ TEST_F(UpperTrs, CudaApplyIsEquivalentToRef)
     d_b2->copy_from(b.get());
     b2->copy_from(b.get());
 
-    auto upper_trs_factory = gko::solver::UpperTrs<>::build().on(ref);
-    auto d_upper_trs_factory = gko::solver::UpperTrs<>::build().on(cuda);
+    auto upper_trs_factory =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref);
+    auto d_upper_trs_factory =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(cuda);
     auto solver = upper_trs_factory->generate(csr_mtx);
     auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
     solver->apply(b2.get(), x.get());
