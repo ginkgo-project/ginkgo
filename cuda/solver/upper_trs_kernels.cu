@@ -73,7 +73,7 @@ void init_struct(std::shared_ptr<const CudaExecutor> exec,
 
 void clear(std::shared_ptr<const CudaExecutor> exec)
 {
-#if (defined(CUDA_VERSION) && (CUDA_VERSION > 9100))
+#if (defined(CUDA_VERSION) && (CUDA_VERSION > 9010))
     cusparse::destroy(cusp_csrsm2_data.factor_descr);
     if (cusp_csrsm2_data.solve_info) {
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
@@ -82,7 +82,7 @@ void clear(std::shared_ptr<const CudaExecutor> exec)
     if (cusp_csrsm2_data.factor_work_vec != nullptr) {
         exec->free(cusp_csrsm2_data.factor_work_vec);
     }
-#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9200))
+#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
     cusparse::destroy(cusp_csrsm_data.factor_descr);
     GKO_ASSERT_NO_CUSPARSE_ERRORS(
         cusparseDestroySolveAnalysisInfo(cusp_csrsm_data.solve_info));
