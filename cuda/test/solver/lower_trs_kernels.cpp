@@ -99,8 +99,8 @@ protected:
 TEST_F(LowerTrs, CudaApplyIsEquivalentToRef)
 {
     std::shared_ptr<Mtx> mtx = gen_l_mtx(50, 50);
-    std::shared_ptr<Mtx> b = gen_mtx(50, 1);
-    std::shared_ptr<Mtx> x = gen_mtx(50, 1);
+    std::shared_ptr<Mtx> b = gen_mtx(50, 3);
+    std::shared_ptr<Mtx> x = gen_mtx(50, 3);
     std::shared_ptr<CsrMtx> csr_mtx = CsrMtx::create(ref);
     mtx->convert_to(csr_mtx.get());
     std::shared_ptr<CsrMtx> d_csr_mtx = CsrMtx::create(cuda);
@@ -112,8 +112,10 @@ TEST_F(LowerTrs, CudaApplyIsEquivalentToRef)
     d_b2->copy_from(b.get());
     b2->copy_from(b.get());
 
-    auto lower_trs_factory = gko::solver::LowerTrs<>::build().on(ref);
-    auto d_lower_trs_factory = gko::solver::LowerTrs<>::build().on(cuda);
+    auto lower_trs_factory =
+        gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(ref);
+    auto d_lower_trs_factory =
+        gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(cuda);
     auto solver = lower_trs_factory->generate(csr_mtx);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
     solver->apply(b2.get(), x.get());
