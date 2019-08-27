@@ -60,7 +60,7 @@ namespace lower_trs {
 
 void clear(std::shared_ptr<const OmpExecutor> exec)
 {
-    // This clear kernel is here to allow for a more sophisticated
+    // This clear kernel is here to allow cleanup for a more sophisticated
     // implementation as for other executors.
 }
 
