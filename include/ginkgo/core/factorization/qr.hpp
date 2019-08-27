@@ -74,17 +74,17 @@ template <typename ValueType = default_precision>
 class Qr : public Composition<ValueType> {
 public:
     using value_type = ValueType;
-    using index_type = IndexType;
     using q_matrix_type = Composition<ValueType>;
-    using r_matrix_type = Dense<ValueType>;
+    using r_matrix_type = matrix::Dense<ValueType>;
 
     const q_matrix_type *get_q_factor() const
     {
         // Can be `static_cast` since the type is guaranteed in this class
-        return static_cast<const q_type *>(this->get_operators()[0].get());
+        return static_cast<const q_matrix_type *>(
+            this->get_operators()[0].get());
     }
 
-    const r_matirx_type *get_r_factor() const
+    const r_matrix_type *get_r_factor() const
     {
         // Can be `static_cast` since the type is guaranteed in this class
         return static_cast<const r_matrix_type *>(
@@ -127,7 +127,7 @@ protected:
      */
     void validate_qr(const std::shared_ptr<const LinOp> system_matrix)
     {
-        const auto matrix_size = system_matrix.get_size();
+        const auto matrix_size = system_matrix->get_size();
         if (parameters_.rank > matrix_size[1] ||
             matrix_size[1] > matrix_size[0]) {
             GKO_NOT_SUPPORTED(this);

@@ -49,11 +49,11 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_QR_HOUSEHOLDER_GENERATOR_KERNEL(ValueType)         \
-    void householder_gernerator(                                       \
-        std::shared_ptr<const DefaultExecutor> exec,                   \
-        const matrix::Dense<ValueType> *vector, const size_type index, \
-        matrix::Dense<ValueType> *factor, matrix::Dense<ValueType> *scalar)
+#define GKO_DECLARE_QR_HOUSEHOLDER_GENERATOR_KERNEL(ValueType)               \
+    void householder_gernerator(std::shared_ptr<const DefaultExecutor> exec, \
+                                const matrix::Dense<ValueType> *vector,      \
+                                const size_type index,                       \
+                                matrix::Dense<ValueType> *factor)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \

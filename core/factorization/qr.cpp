@@ -90,10 +90,10 @@ std::unique_ptr<Composition<ValueType>> Qr<ValueType>::generate_qr(
     for (size_type i = 0; i < rank; i++) {
         // householder_generator(vector, k) -> factor, scalar
         factor = DenseMatrix::create(exec, dim<2>{nrows, 1});
-        scalar = DenseMatrix::create(exec, dim<2>{1});
+        scalar = initialize<DenseMatrix>({gko::one<ValueType>()}, exec);
         x = work_matrix->create_submatrix(span{0, nrows}, span{i, i + 1});
-        exec->run(qr_factorization::make_householder_generator(
-            x, i, lend(factor), lend(scalar)));
+        exec->run(
+            qr_factorization::make_householder_generator(x, i, lend(factor)));
         // apply on submatrix of work_matrix
         auto sub_factor = factor->create_submatrix(span{i, nrows}, span{0, 1});
         auto sub_work_matrix =

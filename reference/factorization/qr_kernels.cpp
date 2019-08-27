@@ -53,10 +53,26 @@ template <typename ValueType, typename IndexType>
 void householder_generator(std::shared_ptr<const OmpExecutor> exec,
                            const matrix::Dense<ValueType> *vector,
                            const size_type index,
-                           matrix::Dense<ValueType> *factor,
-                           matrix::Dense<ValueType> *scalar)
+                           matrix::Dense<ValueType> *factor)
 {
-    GKO_NOT_IMPLEMENTED;
+    // u = x(k:)
+    // alpha = u_k/|u_k| * ||u||
+    // u = u + alpha e_k
+    // u = u / ||u|| (factor)
+    // scalar = -2
+    for (size_type i = 0; i < index - 1; i++) {
+        factor.at(0, i) = 0;
+    }
+    for (size_type i = index; i < vector.get_size()[0]; i++) {
+        factor.at(0, i) = vector.at(0, i)
+    }
+    auto norm = matrix::Dense<ValueType>::create(exec, dim<2>(1));
+    factor->compute_norm2(lend(norm));
+    auto alpha = factor.at(0, index) / std::abs(factor.at(0, index));
+    factor.at(0, index) += alpha;
+    factor->compute_norm2(lend(norm));
+    norm.at(0, 0) = one<ValueType>() / norm.at(0, 0);
+    factor->scale(lend(norm));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(

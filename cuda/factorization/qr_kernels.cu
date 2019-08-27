@@ -58,8 +58,7 @@ template <typename ValueType, typename IndexType>
 void householder_generator(std::shared_ptr<const CudaExecutor> exec,
                            const matrix::Dense<ValueType> *vector,
                            const size_type index,
-                           matrix::Dense<ValueType> *factor,
-                           matrix::Dense<ValueType> *scalar)
+                           matrix::Dense<ValueType> *factor)
 {
     GKO_NOT_IMPLEMENTED;
 }
