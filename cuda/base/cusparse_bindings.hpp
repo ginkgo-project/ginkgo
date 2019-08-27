@@ -526,7 +526,7 @@ inline void destroy(cusparseMatDescr_t descr)
                   "semi-colon warnings")
 
 
-#if (defined(CUDA_VERSION) && (CUDA_VERSION > 9100))
+#if (defined(CUDA_VERSION) && (CUDA_VERSION > 9010))
 // CUDA versions 9.1 and below do not have csrsm2.
 GKO_BIND_CUSPARSE32_BUFFERSIZEEXT(float, cusparseScsrsm2_bufferSizeExt);
 GKO_BIND_CUSPARSE32_BUFFERSIZEEXT(double, cusparseDcsrsm2_bufferSizeExt);
@@ -610,7 +610,7 @@ GKO_BIND_CUSPARSE64_BUFFERSIZEEXT(ValueType, detail::not_implemented);
                   "false positive extra "                                \
                   "semi-colon warnings")
 
-#if (defined(CUDA_VERSION) && (CUDA_VERSION > 9100))
+#if (defined(CUDA_VERSION) && (CUDA_VERSION > 9010))
 // CUDA versions 9.2 and above have csrsm2.
 GKO_BIND_CUSPARSE32_CSRSM2_ANALYSIS(float, cusparseScsrsm2_analysis);
 GKO_BIND_CUSPARSE32_CSRSM2_ANALYSIS(double, cusparseDcsrsm2_analysis);
@@ -631,7 +631,7 @@ GKO_BIND_CUSPARSE64_CSRSM2_ANALYSIS(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE32_CSRSM2_ANALYSIS
 #undef GKO_BIND_CUSPARSE64_CSRSM2_ANALYSIS
 
-#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9200))
+#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
 
 GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(float, cusparseScsrsm_analysis);
 GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(double, cusparseDcsrsm_analysis);
@@ -717,7 +717,7 @@ GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(ValueType, detail::not_implemented);
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
-#if (defined(CUDA_VERSION) && (CUDA_VERSION > 9100))
+#if (defined(CUDA_VERSION) && (CUDA_VERSION > 9010))
 GKO_BIND_CUSPARSE32_CSRSM2_SOLVE(float, cusparseScsrsm2_solve);
 GKO_BIND_CUSPARSE32_CSRSM2_SOLVE(double, cusparseDcsrsm2_solve);
 GKO_BIND_CUSPARSE32_CSRSM2_SOLVE(std::complex<float>, cusparseCcsrsm2_solve);
@@ -733,7 +733,7 @@ GKO_BIND_CUSPARSE64_CSRSM2_SOLVE(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE32_CSRSM2_SOLVE
 #undef GKO_BIND_CUSPARSE64_CSRSM2_SOLVE
 
-#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9200))
+#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
 
 GKO_BIND_CUSPARSE32_CSRSM_SOLVE(float, cusparseScsrsm_solve);
 GKO_BIND_CUSPARSE32_CSRSM_SOLVE(double, cusparseDcsrsm_solve);
