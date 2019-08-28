@@ -60,7 +60,7 @@ GKO_REGISTER_OPERATION(householder_generator,
 }  // namespace qr_factorization
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType>
 std::unique_ptr<Composition<ValueType>> Qr<ValueType>::generate_qr(
     const std::shared_ptr<const LinOp> &system_matrix) const
 {
@@ -82,40 +82,43 @@ std::unique_ptr<Composition<ValueType>> Qr<ValueType>::generate_qr(
     }
     // QR algorithm changes the value of the matrix, so it needs a copy of
     // system_matrix.
-    auto work_matrix = dense_system_matrix.clone();
+    auto work_matrix = dense_system_matrix->clone();
     const auto nrows = work_matrix->get_size()[0];
     const auto ncols = work_matrix->get_size()[1];
     const auto rank = (parameters_.rank == 0) ? ncols : parameters_.rank;
-    auto std::vector<std::unique_ptr<Perturbation<ValueType>>> q_list(rank);
+    std::vector<std::shared_ptr<Perturbation<ValueType>>> q_list;
     for (size_type i = 0; i < rank; i++) {
         // householder_generator(vector, k) -> factor, scalar
-        factor = DenseMatrix::create(exec, dim<2>{nrows, 1});
-        scalar = initialize<DenseMatrix>({gko::one<ValueType>()}, exec);
-        x = work_matrix->create_submatrix(span{0, nrows}, span{i, i + 1});
-        exec->run(
-            qr_factorization::make_householder_generator(x, i, lend(factor)));
+        std::shared_ptr<DenseMatrix> factor =
+            DenseMatrix::create(exec, dim<2>{nrows, 1});
+        std::shared_ptr<DenseMatrix> scalar =
+            initialize<DenseMatrix>({static_cast<ValueType>(-2)}, exec);
+        auto x = work_matrix->create_submatrix(span{0, nrows}, span{i, i + 1});
+        exec->run(qr_factorization::make_householder_generator(lend(x), i,
+                                                               lend(factor)));
         // apply on submatrix of work_matrix
-        auto sub_factor = factor->create_submatrix(span{i, nrows}, span{0, 1});
-        auto sub_work_matrix =
+        std::shared_ptr<DenseMatrix> sub_factor =
+            factor->create_submatrix(span{i, nrows}, span{0, 1});
+        std::shared_ptr<DenseMatrix> sub_work_matrix =
             work_matrix->create_submatrix(span{i, nrows}, span{i, ncols});
         auto sub_householder_matrix =
             Perturbation<ValueType>::create(scalar, sub_factor);
-        auto temp_matrix = clone(sub_work_matrix);
-        sub_householder_matrix->apply(sub_work_matrix, temp_matrix);
-        sub_work_matrix->copy_from(temp_matrix);
-        // create a perturbation to present housholder matrix
-        auto householder_matrix =
+        std::shared_ptr<DenseMatrix> temp_matrix = clone(sub_work_matrix);
+        sub_householder_matrix->apply(lend(sub_work_matrix), lend(temp_matrix));
+        sub_work_matrix->copy_from(lend(temp_matrix));
+        //     // create a perturbation to present housholder matrix
+        std::shared_ptr<Perturbation<ValueType>> householder_matrix =
             Perturbation<ValueType>::create(scalar, factor);
-        q_list.push_back(std::move(householder_matrix));
+        q_list.push_back(householder_matrix);
     }
-    auto q = Composition<ValueType>::create(q_list.cbegin(), q_list.cend());
+    auto q = Composition<ValueType>::create(begin(q_list), end(q_list));
     auto r = work_matrix->create_submatrix(span{0, rank}, span{0, ncols});
-    return Composition<ValueType>::create(std::move(q), std::move(r));
+    return Composition<ValueType>::create(std::move(q), std::move(work_matrix));
 }
 
 
 #define GKO_DECLARE_QR(ValueType) class Qr<ValueType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_QR);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_QR);
 
 
 }  // namespace factorization

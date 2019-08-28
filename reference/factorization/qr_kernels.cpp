@@ -30,12 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/factorization/par_ilu_kernels.hpp"
+#include "core/factorization/qr_kernels.hpp"
 
 
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -49,8 +48,8 @@ namespace reference {
 namespace qr_factorization {
 
 
-template <typename ValueType, typename IndexType>
-void householder_generator(std::shared_ptr<const OmpExecutor> exec,
+template <typename ValueType>
+void householder_generator(std::shared_ptr<const ReferenceExecutor> exec,
                            const matrix::Dense<ValueType> *vector,
                            const size_type index,
                            matrix::Dense<ValueType> *factor)
@@ -60,18 +59,25 @@ void householder_generator(std::shared_ptr<const OmpExecutor> exec,
     // u = u + alpha e_k
     // u = u / ||u|| (factor)
     // scalar = -2
-    for (size_type i = 0; i < index - 1; i++) {
-        factor.at(0, i) = 0;
+    for (size_type i = 0; i + 1 < index; i++) {
+        factor->at(i, 0) = 0;
     }
-    for (size_type i = index; i < vector.get_size()[0]; i++) {
-        factor.at(0, i) = vector.at(0, i)
+    for (size_type i = index; i < vector->get_size()[0]; i++) {
+        factor->at(i, 0) = vector->at(i, 0);
     }
     auto norm = matrix::Dense<ValueType>::create(exec, dim<2>(1));
     factor->compute_norm2(lend(norm));
-    auto alpha = factor.at(0, index) / std::abs(factor.at(0, index));
-    factor.at(0, index) += alpha;
+    // sign(x) = x/|x| if x != 0
+    // sign(x) = 1 if x == 0
+    if (factor->at(index, 0) == zero<ValueType>(0)) {
+        factor->at(index, 0) += norm->at(0, 0);
+    } else {
+        auto alpha = (factor->at(index, 0) / std::abs(factor->at(index, 0))) *
+                     norm->at(0, 0);
+        factor->at(index, 0) += alpha;
+    }
     factor->compute_norm2(lend(norm));
-    norm.at(0, 0) = one<ValueType>() / norm.at(0, 0);
+    norm->at(0, 0) = one<ValueType>() / norm->at(0, 0);
     factor->scale(lend(norm));
 }
 

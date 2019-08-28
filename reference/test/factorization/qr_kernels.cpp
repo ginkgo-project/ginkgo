@@ -30,69 +30,69 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_FACTORIZATION_QR_KERNELS_HPP_
-#define GKO_CORE_FACTORIZATION_QR_KERNELS_HPP_
-
-
 #include <ginkgo/core/factorization/qr.hpp>
 
 
+#include <algorithm>
 #include <memory>
+#include <vector>
+
+
+#include <gtest/gtest.h>
 
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
-namespace gko {
-namespace kernels {
+#include "core/factorization/qr_kernels.hpp"
+#include "core/test/utils/assertions.hpp"
 
 
-#define GKO_DECLARE_QR_HOUSEHOLDER_GENERATOR_KERNEL(ValueType)              \
-    void householder_generator(std::shared_ptr<const DefaultExecutor> exec, \
-                               const matrix::Dense<ValueType> *vector,      \
-                               const size_type index,                       \
-                               matrix::Dense<ValueType> *factor)
+namespace {
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES \
-    template <typename ValueType>    \
-    GKO_DECLARE_QR_HOUSEHOLDER_GENERATOR_KERNEL(ValueType)
+class Qr : public ::testing::Test {
+protected:
+    using value_type = gko::default_precision;
+    using index_type = gko::int32;
+    using Dense = gko::matrix::Dense<value_type>;
+    Qr()
+        : ref(gko::ReferenceExecutor::create()),
+          exec(std::static_pointer_cast<const gko::Executor>(ref)),
+          // clang-format off
+          matrix(gko::initialize<Dense>(
+              {{-1., -1., 1},
+               {1, 3, 3},
+               {-1, -1, 5},
+               {1, 3, 7}}, exec)),
+         r(gko::initialize<Dense>(
+              {{2, 4, 2},
+               {0., -2, -8},
+               {0., 0., -4},
+               {0., 0., 0.}}, exec)),
+               qr_factory(
+              gko::factorization::Qr<>::build().on(
+                  exec))
+    {
+    }
+
+    std::shared_ptr<const gko::ReferenceExecutor> ref;
+    std::shared_ptr<const gko::Executor> exec;
+    std::shared_ptr<const Dense> matrix;
+    std::shared_ptr<const Dense> r;
+    std::unique_ptr<gko::factorization::Qr<>::Factory> qr_factory;
+};
 
 
-namespace omp {
-namespace qr_factorization {
+TEST_F(Qr, GenerateForCooIdentity)
+{
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+    auto qr = qr_factory->generate(matrix);
+    auto r_factor = qr->get_r_factor();
+    GKO_ASSERT_MTX_NEAR(r, r_factor, 1e-14);
+}
 
-}  // namespace qr_factorization
-}  // namespace omp
-
-
-namespace cuda {
-namespace qr_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace qr_factorization
-}  // namespace cuda
-
-
-namespace reference {
-namespace qr_factorization {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace qr_factorization
-}  // namespace reference
-
-
-#undef GKO_DECLARE_ALL_AS_TEMPLATES
-
-
-}  // namespace kernels
-}  // namespace gko
-
-
-#endif  // GKO_CORE_FACTORIZATION_QR_KERNELS_HPP_
+}  // namespace
