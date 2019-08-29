@@ -692,8 +692,7 @@ GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(ValueType, detail::not_implemented);
         size_type n, const ValueType *one, const cusparseMatDescr_t descr,   \
         const ValueType *csrVal, const int32 *csrRowPtr,                     \
         const int32 *csrColInd, cusparseSolveAnalysisInfo_t factor_info,     \
-        const ValueType *rhs, int32 rhs_stride, ValueType *sol,              \
-        int32 sol_stride)                                                    \
+        ValueType *rhs, int32 rhs_stride, ValueType *sol, int32 sol_stride)  \
     {                                                                        \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(                                       \
             CusparseName(handle, trans, m, n, as_culibs_type(one), descr,    \
@@ -711,8 +710,8 @@ GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(ValueType, detail::not_implemented);
         size_type n, const ValueType *one, const cusparseMatDescr_t descr,   \
         const ValueType *csrVal, const int64 *csrRowPtr,                     \
         const int64 *csrColInd, cusparseSolveAnalysisInfo_t factor_info,     \
-        const ValueType *rhs, int64 rhs_stride, ValueType *sol,              \
-        int64 sol_stride) GKO_NOT_IMPLEMENTED;                               \
+        ValueType *rhs, int64 rhs_stride, ValueType *sol, int64 sol_stride)  \
+        GKO_NOT_IMPLEMENTED;                                                 \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")

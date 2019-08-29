@@ -84,9 +84,11 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
-
-    exec->run(
-        lower_trs::make_solve(gko::lend(system_matrix_), dense_b, dense_x));
+    auto trans_b = Vector::create(exec, gko::transpose(dense_b->get_size()));
+    auto trans_x = Vector::create(exec, gko::transpose(dense_x->get_size()));
+    exec->run(lower_trs::make_solve(gko::lend(system_matrix_),
+                                    gko::lend(trans_b), gko::lend(trans_x),
+                                    dense_b, dense_x));
 }
 
 

@@ -82,6 +82,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const OmpExecutor> exec,
            const matrix::Csr<ValueType, IndexType> *matrix,
+           matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
            const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
     auto row_ptrs = matrix->get_const_row_ptrs();

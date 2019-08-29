@@ -57,9 +57,10 @@ namespace lower_trs {
                   const gko::size_type num_rhs)
 
 
-#define GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(_vtype, _itype)  \
-    void solve(std::shared_ptr<const DefaultExecutor> exec, \
-               const matrix::Csr<_vtype, _itype> *matrix,   \
+#define GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(_vtype, _itype)                     \
+    void solve(std::shared_ptr<const DefaultExecutor> exec,                    \
+               const matrix::Csr<_vtype, _itype> *matrix,                      \
+               matrix::Dense<_vtype> *trans_b, matrix::Dense<_vtype> *trans_x, \
                const matrix::Dense<_vtype> *b, matrix::Dense<_vtype> *x)
 
 

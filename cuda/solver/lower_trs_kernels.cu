@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
@@ -179,6 +180,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Csr<ValueType, IndexType> *matrix,
+           matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
            const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
     using vec = matrix::Dense<ValueType>;
@@ -204,29 +206,24 @@ void solve(std::shared_ptr<const CudaExecutor> exec,
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
         if (b->get_stride() == 1) {
+            auto temp_b = const_cast<ValueType *>(b->get_const_values());
             cusparse::csrsm_solve(
                 handle, CUSPARSE_OPERATION_NON_TRANSPOSE, matrix->get_size()[0],
                 b->get_stride(), &one, cusp_csrsm_data.factor_descr,
                 matrix->get_const_values(), matrix->get_const_row_ptrs(),
                 matrix->get_const_col_idxs(), cusp_csrsm_data.solve_info,
-                b->get_const_values(), b->get_size()[0], x->get_values(),
-                x->get_size()[0]);
+                temp_b, b->get_size()[0], x->get_values(), x->get_size()[0]);
         } else {
-            auto t_b = vec::create(exec);
-            t_b->copy_from(static_cast<const matrix::Dense<ValueType> *>(
-                b->transpose().get()));
-            auto t_x = vec::create(exec);
-            t_x->copy_from(
-                static_cast<matrix::Dense<ValueType> *>(x->transpose().get()));
+            dense::transpose(exec, trans_b, b);
+            dense::transpose(exec, trans_x, x);
             cusparse::csrsm_solve(
                 handle, CUSPARSE_OPERATION_NON_TRANSPOSE, matrix->get_size()[0],
-                t_b->get_size()[0], &one, cusp_csrsm_data.factor_descr,
+                trans_b->get_size()[0], &one, cusp_csrsm_data.factor_descr,
                 matrix->get_const_values(), matrix->get_const_row_ptrs(),
                 matrix->get_const_col_idxs(), cusp_csrsm_data.solve_info,
-                t_b->get_const_values(), t_b->get_size()[1], t_x->get_values(),
-                t_x->get_size()[1]);
-            x->copy_from(static_cast<matrix::Dense<ValueType> *>(
-                t_x->transpose().get()));
+                trans_b->get_values(), trans_b->get_size()[1],
+                trans_x->get_values(), trans_x->get_size()[1]);
+            dense::transpose(exec, x, trans_x);
         }
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
