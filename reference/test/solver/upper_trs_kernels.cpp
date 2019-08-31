@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/time.hpp>
 
 
+#include "core/solver/upper_trs_kernels.hpp"
 #include "core/test/utils/assertions.hpp"
 
 
@@ -57,6 +58,7 @@ protected:
     using Mtx = gko::matrix::Dense<>;
     UpperTrs()
         : exec(gko::ReferenceExecutor::create()),
+          ref(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{1, 3.0, 1.0}, {0.0, 1, 2.0}, {0.0, 0.0, 1}}, exec)),
           mtx2(gko::initialize<Mtx>(
@@ -74,6 +76,7 @@ protected:
     {}
 
     std::shared_ptr<const gko::Executor> exec;
+    std::shared_ptr<const gko::ReferenceExecutor> ref;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> mtx2;
     std::shared_ptr<Mtx> mtx_big;
@@ -81,6 +84,16 @@ protected:
     std::unique_ptr<gko::solver::UpperTrs<>::Factory> upper_trs_factory_mrhs;
     std::unique_ptr<gko::solver::UpperTrs<>::Factory> upper_trs_factory_big;
 };
+
+
+TEST_F(UpperTrs, RefUpperTrsFlagCheckIsCorrect)
+{
+    bool trans_flag = true;
+    bool expected_flag = false;
+    gko::kernels::reference::upper_trs::perform_transpose(ref, trans_flag);
+
+    ASSERT_EQ(expected_flag, trans_flag);
+}
 
 
 TEST_F(UpperTrs, SolvesTriangularSystem)

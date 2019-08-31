@@ -41,7 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <iostream>
+#include <ginkgo/core/solver/upper_trs.hpp>
+
 
 namespace gko {
 namespace kernels {
@@ -54,16 +55,25 @@ namespace reference {
 namespace upper_trs {
 
 
-void clear(std::shared_ptr<const ReferenceExecutor> exec)
+void perform_transpose(std::shared_ptr<const ReferenceExecutor> exec,
+                       bool &transposability)
 {
-    // This clear kernel is here to allow for a more sophisticated
-    // implementation as for other executors.
+    transposability = false;
+}
+
+
+void init_struct(std::shared_ptr<const ReferenceExecutor> exec,
+                 std::shared_ptr<gko::solver::SolveStruct> &solve_struct)
+{
+    // This init kernel is here to allow initialization of the solve struct for
+    // a more sophisticated implementation as for other executors.
 }
 
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const ReferenceExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *matrix,
+              gko::solver::SolveStruct *solve_struct,
               const gko::size_type num_rhs)
 {
     // This generate kernel is here to allow for a more sophisticated
@@ -78,6 +88,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const ReferenceExecutor> exec,
            const matrix::Csr<ValueType, IndexType> *matrix,
+           gko::solver::SolveStruct *solve_struct,
+           matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
            const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
     auto row_ptrs = matrix->get_const_row_ptrs();
