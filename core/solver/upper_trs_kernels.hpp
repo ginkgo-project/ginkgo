@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/upper_trs.hpp>
 
 
 namespace gko {
@@ -47,24 +48,34 @@ namespace kernels {
 namespace upper_trs {
 
 
-#define GKO_DECLARE_UPPER_TRS_CLEAR_KERNEL() \
-    void clear(std::shared_ptr<const DefaultExecutor> exec)
+#define GKO_DECLARE_UPPER_TRS_CHECK_TRANSPOSABILITY_KERNEL()            \
+    void perform_transpose(std::shared_ptr<const DefaultExecutor> exec, \
+                           bool &transposability)
+
+
+#define GKO_DECLARE_UPPER_TRS_INIT_STRUCT_KERNEL()                \
+    void init_struct(std::shared_ptr<const DefaultExecutor> exec, \
+                     std::shared_ptr<gko::solver::SolveStruct> &solve_struct)
 
 
 #define GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL(_vtype, _itype)  \
     void generate(std::shared_ptr<const DefaultExecutor> exec, \
                   const matrix::Csr<_vtype, _itype> *matrix,   \
+                  gko::solver::SolveStruct *solve_struct,      \
                   const gko::size_type num_rhs)
 
 
-#define GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL(_vtype, _itype)  \
-    void solve(std::shared_ptr<const DefaultExecutor> exec, \
-               const matrix::Csr<_vtype, _itype> *matrix,   \
+#define GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL(_vtype, _itype)                     \
+    void solve(std::shared_ptr<const DefaultExecutor> exec,                    \
+               const matrix::Csr<_vtype, _itype> *matrix,                      \
+               gko::solver::SolveStruct *solve_struct,                         \
+               matrix::Dense<_vtype> *trans_b, matrix::Dense<_vtype> *trans_x, \
                const matrix::Dense<_vtype> *b, matrix::Dense<_vtype> *x)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                          \
-    GKO_DECLARE_UPPER_TRS_CLEAR_KERNEL();                     \
+    GKO_DECLARE_UPPER_TRS_CHECK_TRANSPOSABILITY_KERNEL();     \
+    GKO_DECLARE_UPPER_TRS_INIT_STRUCT_KERNEL();               \
     template <typename ValueType, typename IndexType>         \
     GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>         \

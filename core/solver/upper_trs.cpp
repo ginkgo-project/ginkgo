@@ -53,8 +53,9 @@ namespace solver {
 namespace upper_trs {
 
 
-GKO_REGISTER_OPERATION(clear, upper_trs::clear);
 GKO_REGISTER_OPERATION(generate, upper_trs::generate);
+GKO_REGISTER_OPERATION(init_struct, upper_trs::init_struct);
+GKO_REGISTER_OPERATION(perform_transpose, upper_trs::perform_transpose);
 GKO_REGISTER_OPERATION(solve, upper_trs::solve);
 
 
@@ -62,9 +63,9 @@ GKO_REGISTER_OPERATION(solve, upper_trs::solve);
 
 
 template <typename ValueType, typename IndexType>
-void UpperTrs<ValueType, IndexType>::clear_data() const
+void UpperTrs<ValueType, IndexType>::init_trs_solve_struct()
 {
-    this->get_executor()->run(upper_trs::make_clear());
+    this->get_executor()->run(upper_trs::make_init_struct(this->solve_struct_));
 }
 
 
@@ -72,7 +73,8 @@ template <typename ValueType, typename IndexType>
 void UpperTrs<ValueType, IndexType>::generate()
 {
     this->get_executor()->run(upper_trs::make_generate(
-        gko::lend(system_matrix_), parameters_.num_rhs));
+        gko::lend(system_matrix_), this->solve_struct_.get(),
+        parameters_.num_rhs));
 }
 
 
@@ -84,9 +86,21 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
-
-    exec->run(
-        upper_trs::make_solve(gko::lend(system_matrix_), dense_b, dense_x));
+    bool transposability = false;
+    std::shared_ptr<Vector> trans_b;
+    std::shared_ptr<Vector> trans_x;
+    this->get_executor()->run(
+        upper_trs::make_perform_transpose(transposability));
+    if (transposability) {
+        trans_b = Vector::create(exec, gko::transpose(dense_b->get_size()));
+        trans_x = Vector::create(exec, gko::transpose(dense_x->get_size()));
+    } else {
+        trans_b = Vector::create(exec);
+        trans_x = Vector::create(exec);
+    }
+    exec->run(upper_trs::make_solve(
+        gko::lend(system_matrix_), this->solve_struct_.get(),
+        gko::lend(trans_b), gko::lend(trans_x), dense_b, dense_x));
 }
 
 

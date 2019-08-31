@@ -93,10 +93,18 @@ protected:
     {
         b = gen_mtx(m, n);
         x = gen_mtx(m, n);
+        t_b = Mtx::create(ref);
+        t_x = Mtx::create(ref);
+        t_b->copy_from(b.get());
+        t_x->copy_from(x.get());
         d_b = Mtx::create(omp);
         d_b->copy_from(b.get());
         d_x = Mtx::create(omp);
         d_x->copy_from(x.get());
+        dt_b = Mtx::create(omp);
+        dt_b->copy_from(b.get());
+        dt_x = Mtx::create(omp);
+        dt_x->copy_from(x.get());
         mat = gen_u_mtx(m, m);
         csr_mat = CsrMtx::create(ref);
         mat->convert_to(csr_mat.get());
@@ -113,23 +121,40 @@ protected:
 
     std::shared_ptr<Mtx> b;
     std::shared_ptr<Mtx> x;
+    std::shared_ptr<Mtx> t_b;
+    std::shared_ptr<Mtx> t_x;
     std::shared_ptr<Mtx> mat;
     std::shared_ptr<CsrMtx> csr_mat;
     std::shared_ptr<Mtx> d_b;
     std::shared_ptr<Mtx> d_x;
+    std::shared_ptr<Mtx> dt_b;
+    std::shared_ptr<Mtx> dt_x;
     std::shared_ptr<Mtx> d_mat;
     std::shared_ptr<CsrMtx> d_csr_mat;
+    std::shared_ptr<gko::solver::SolveStruct> solve_struct;
 };
+
+
+TEST_F(UpperTrs, OmpUpperTrsFlagCheckIsCorrect)
+{
+    bool trans_flag = true;
+    bool expected_flag = false;
+    gko::kernels::omp::upper_trs::perform_transpose(omp, trans_flag);
+
+    ASSERT_EQ(expected_flag, trans_flag);
+}
 
 
 TEST_F(UpperTrs, OmpUpperTrsSolveIsEquivalentToRef)
 {
     initialize_data(59, 43);
 
-    gko::kernels::reference::upper_trs::solve(ref, csr_mat.get(), b.get(),
-                                              x.get());
-    gko::kernels::omp::upper_trs::solve(omp, d_csr_mat.get(), d_b.get(),
-                                        d_x.get());
+    gko::kernels::reference::upper_trs::solve(ref, csr_mat.get(),
+                                              solve_struct.get(), t_b.get(),
+                                              t_x.get(), b.get(), x.get());
+    gko::kernels::omp::upper_trs::solve(omp, d_csr_mat.get(),
+                                        solve_struct.get(), dt_b.get(),
+                                        dt_x.get(), d_b.get(), d_x.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }

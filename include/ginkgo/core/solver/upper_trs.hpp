@@ -54,6 +54,9 @@ namespace gko {
 namespace solver {
 
 
+struct SolveStruct;
+
+
 /**
  * UpperTrs is the triangular solver which solves the system U x = b, when U is
  * an upper triangular matrix. It works best when passing in a matrix in CSR
@@ -97,6 +100,16 @@ public:
         return preconditioner_;
     }
 
+    /**
+     * Get the triangular solve struct
+     *
+     * @return the trs solve struct
+     */
+    gko::solver::SolveStruct *get_solve_struct() const
+    {
+        return solve_struct_.get();
+    }
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -116,18 +129,13 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(UpperTrs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
-    ~UpperTrs() { this->clear_data(); }
-
 protected:
+    void init_trs_solve_struct();
+
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
-
-    /**
-     * Clears the held data.
-     */
-    void clear_data() const;
 
     /**
      * Generates the analysis structure from the system matrix and the right
@@ -165,12 +173,14 @@ protected:
             preconditioner_ = matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size()[0]);
         }
+        this->init_trs_solve_struct();
         this->generate();
     }
 
 private:
     std::shared_ptr<const matrix::Csr<ValueType, IndexType>> system_matrix_{};
     std::shared_ptr<const LinOp> preconditioner_{};
+    std::shared_ptr<gko::solver::SolveStruct> solve_struct_;
 };
 
 
