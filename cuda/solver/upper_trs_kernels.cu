@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/dense_kernels.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
+#include "cuda/base/device_guard.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 
@@ -68,25 +69,15 @@ void should_perform_transpose(std::shared_ptr<const CudaExecutor> exec,
 
 void init_struct(std::shared_ptr<const CudaExecutor> exec,
                  std::shared_ptr<solver::SolveStruct> &solve_struct)
-    GKO_NOT_IMPLEMENTED;
-
-
-void clear(std::shared_ptr<const CudaExecutor> exec)
 {
-#if (defined(CUDA_VERSION) && (CUDA_VERSION > 9010))
-    cusparse::destroy(cusp_csrsm2_data.factor_descr);
-    if (cusp_csrsm2_data.solve_info) {
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(
-            cusparseDestroyCsrsm2Info(cusp_csrsm2_data.solve_info));
-    }
-    if (cusp_csrsm2_data.factor_work_vec != nullptr) {
-        exec->free(cusp_csrsm2_data.factor_work_vec);
-    }
-#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
-    cusparse::destroy(cusp_csrsm_data.factor_descr);
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(
-        cusparseDestroySolveAnalysisInfo(cusp_csrsm_data.solve_info));
-#endif
+    const auto id = exec->get_device_id();
+    device_guard g(id);
+    solve_struct = std::shared_ptr<gko::solver::SolveStruct>(
+        kernels::cuda::cusparse::init_trs_solve_struct(),
+        [id](gko::solver::SolveStruct *solve_struct_) {
+            device_guard g(id);
+            kernels::cuda::cusparse::clear_trs_solve_struct(solve_struct_);
+        });
 }
 
 
@@ -105,8 +96,58 @@ void solve(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Csr<ValueType, IndexType> *matrix,
            const solver::SolveStruct *solve_struct,
            matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
-           const matrix::Dense<ValueType> *b,
-           matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
+           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
+{
+    using vec = matrix::Dense<ValueType>;
+    if (cusparse::is_supported<ValueType, IndexType>::value) {
+        ValueType one = 1.0;
+        auto handle = exec->get_cusparse_handle();
+#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
+        x->copy_from(gko::lend(b));
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
+        cusparse::csrsm2_solve(
+            handle, solve_struct->algorithm, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            CUSPARSE_OPERATION_TRANSPOSE, matrix->get_size()[0],
+            b->get_stride(), matrix->get_num_stored_elements(), &one,
+            solve_struct->factor_descr, matrix->get_const_values(),
+            matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
+            x->get_values(), b->get_stride(), solve_struct->solve_info,
+            solve_struct->policy, solve_struct->factor_work_vec);
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
+#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
+        if (b->get_stride() == 1) {
+            auto temp_b = const_cast<ValueType *>(b->get_const_values());
+            cusparse::csrsm_solve(
+                handle, CUSPARSE_OPERATION_NON_TRANSPOSE, matrix->get_size()[0],
+                b->get_stride(), &one, solve_struct->factor_descr,
+                matrix->get_const_values(), matrix->get_const_row_ptrs(),
+                matrix->get_const_col_idxs(), solve_struct->solve_info, temp_b,
+                b->get_size()[0], x->get_values(), x->get_size()[0]);
+        } else {
+            dense::transpose(exec, trans_b, b);
+            dense::transpose(exec, trans_x, x);
+            cusparse::csrsm_solve(
+                handle, CUSPARSE_OPERATION_NON_TRANSPOSE, matrix->get_size()[0],
+                trans_b->get_size()[0], &one, solve_struct->factor_descr,
+                matrix->get_const_values(), matrix->get_const_row_ptrs(),
+                matrix->get_const_col_idxs(), solve_struct->solve_info,
+                trans_b->get_values(), trans_b->get_size()[1],
+                trans_x->get_values(), trans_x->get_size()[1]);
+            dense::transpose(exec, x, trans_x);
+        }
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
+
+#endif
+
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL);
