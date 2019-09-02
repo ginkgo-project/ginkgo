@@ -105,7 +105,11 @@ protected:
           ilu_pre_factory(ilu_prec_type::build()
                               .with_l_solver_factory(l_factory)
                               .with_u_solver_factory(u_factory)
-                              .on(exec))
+                              .on(exec)),
+          ilu_rev_pre_factory(ilu_rev_prec_type::build()
+                                  .with_l_solver_factory(l_factory)
+                                  .with_u_solver_factory(u_factory)
+                                  .on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -115,6 +119,7 @@ protected:
     std::shared_ptr<l_solver_type::Factory> l_factory;
     std::shared_ptr<u_solver_type::Factory> u_factory;
     std::shared_ptr<ilu_prec_type::Factory> ilu_pre_factory;
+    std::shared_ptr<ilu_rev_prec_type::Factory> ilu_rev_pre_factory;
 };
 
 
@@ -174,8 +179,6 @@ TEST_F(Ilu, ThrowOnWrongInput)
 TEST_F(Ilu, SolvesDefaultSingleRhsWithParIlu)
 {
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
-    const auto expected_result =
-        gko::initialize<Mtx>({-0.125, 0.25, 1.0}, exec);
     auto x = Mtx::create(exec, gko::dim<2>{3, 1});
     auto par_ilu_fact =
         gko::factorization::ParIlu<value_type>::build().on(exec);
@@ -185,15 +188,14 @@ TEST_F(Ilu, SolvesDefaultSingleRhsWithParIlu)
         default_ilu_prec_type::build().on(exec)->generate(gko::share(par_ilu));
     preconditioner->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x.get(), expected_result.get(), 1e-14);
+    // Since it is a preconditioner, the default solve is not accurate
+    GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}), 5e-1);
 }
 
 
 TEST_F(Ilu, SolvesSingleRhsWithParIlu)
 {
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
-    const auto expected_result =
-        gko::initialize<Mtx>({-0.125, 0.25, 1.0}, exec);
     auto x = Mtx::create(exec, gko::dim<2>{3, 1});
     auto par_ilu_fact =
         gko::factorization::ParIlu<value_type>::build().on(exec);
@@ -202,58 +204,44 @@ TEST_F(Ilu, SolvesSingleRhsWithParIlu)
     auto preconditioner = ilu_pre_factory->generate(gko::share(par_ilu));
     preconditioner->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x.get(), expected_result.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}), 1e-14);
 }
 
 
 TEST_F(Ilu, SolvesSingleRhsWithComposition)
 {
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
-    const auto expected_result =
-        gko::initialize<Mtx>({-0.125, 0.25, 1.0}, exec);
     auto x = Mtx::create(exec, gko::dim<2>{3, 1});
     auto composition = gko::Composition<value_type>::create(l_factor, u_factor);
 
     auto preconditioner = ilu_pre_factory->generate(gko::share(composition));
     preconditioner->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x.get(), expected_result.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}), 1e-14);
 }
 
 
 TEST_F(Ilu, SolvesSingleRhsWithLU)
 {
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
-    const auto expected_result =
-        gko::initialize<Mtx>({-0.125, 0.25, 1.0}, exec);
     auto x = Mtx::create(exec, gko::dim<2>{3, 1});
 
-    auto preconditioner =
-        ilu_pre_factory->generate(gko::share(l_factor), gko::share(u_factor));
+    auto preconditioner = ilu_pre_factory->generate(l_factor, u_factor);
     preconditioner->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x.get(), expected_result.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}), 1e-14);
 }
 
 
 TEST_F(Ilu, SolvesReverseSingleRhs)
 {
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
-    const auto expected_result =
-        gko::initialize<Mtx>({-0.625, 0.875, 1.75}, exec);
     auto x = Mtx::create(exec, gko::dim<2>{3, 1});
-    auto par_ilu_fact =
-        gko::factorization::ParIlu<value_type>::build().on(exec);
-    auto par_ilu = par_ilu_fact->generate(mtx);
 
-    auto preconditioner = ilu_rev_prec_type::build()
-                              .with_l_solver_factory(l_factory)
-                              .with_u_solver_factory(u_factory)
-                              .on(exec)
-                              ->generate(gko::share(par_ilu));
+    auto preconditioner = ilu_rev_pre_factory->generate(l_factor, u_factor);
     preconditioner->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x.get(), expected_result.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x.get(), l({-0.625, 0.875, 1.75}), 1e-14);
 }
 
 
@@ -266,19 +254,12 @@ TEST_F(Ilu, SolvesAdvancedSingleRhs)
     const auto b = gko::initialize<Mtx>({-3.0, 6.0, 9.0}, exec);
     auto x = gko::initialize<Mtx>({1.0, 2.0, 3.0}, exec);
     const auto x_values = x->get_const_values();
-    const auto expected_result = gko::initialize<Mtx>(
-        {alpha * -3.0 + beta * x_values[0], alpha * 2.0 + beta * x_values[1],
-         alpha * 1.0 + beta * x_values[2]},
-        exec);
-    auto par_ilu_fact =
-        gko::factorization::ParIlu<value_type>::build().on(exec);
-    auto par_ilu = par_ilu_fact->generate(mtx);
 
-    auto preconditioner = ilu_pre_factory->generate(gko::share(par_ilu));
+    auto preconditioner = ilu_pre_factory->generate(l_factor, u_factor);
     preconditioner->apply(alpha_linop.get(), b.get(), beta_linop.get(),
                           x.get());
 
-    GKO_ASSERT_MTX_NEAR(x.get(), expected_result.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x.get(), l({-7.0, 2.0, -1.0}), 1e-14);
 }
 
 
@@ -291,19 +272,12 @@ TEST_F(Ilu, SolvesAdvancedReverseSingleRhs)
     const auto b = gko::initialize<Mtx>({-3.0, 6.0, 9.0}, exec);
     auto x = gko::initialize<Mtx>({1.0, 2.0, 3.0}, exec);
     const auto x_values = x->get_const_values();
-    const auto expected_result = gko::initialize<Mtx>(
-        {alpha * -3.375 + beta * x_values[0],
-         alpha * 4.125 + beta * x_values[1], alpha * 2.25 + beta * x_values[2]},
-        exec);
-    auto par_ilu_fact =
-        gko::factorization::ParIlu<value_type>::build().on(exec);
-    auto par_ilu = par_ilu_fact->generate(mtx);
 
-    auto preconditioner = ilu_pre_factory->generate(gko::share(par_ilu));
+    auto preconditioner = ilu_rev_pre_factory->generate(l_factor, u_factor);
     preconditioner->apply(alpha_linop.get(), b.get(), beta_linop.get(),
                           x.get());
 
-    GKO_ASSERT_MTX_NEAR(x.get(), expected_result.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x.get(), l({-7.75, 6.25, 1.5}), 1e-14);
 }
 
 
@@ -311,18 +285,16 @@ TEST_F(Ilu, SolvesMultipleRhs)
 {
     const auto b =
         gko::initialize<Mtx>({{1.0, 8.0}, {3.0, 21.0}, {6.0, 24.0}}, exec);
-    const auto expected_result =
-        gko::initialize<Mtx>({{-0.125, 2.0}, {0.25, 3.0}, {1.0, 1.0}}, exec);
     auto x = Mtx::create(exec, gko::dim<2>{3, 2});
-    auto par_ilu_fact =
-        gko::factorization::ParIlu<value_type>::build().on(exec);
-    auto par_ilu = par_ilu_fact->generate(mtx);
 
-    auto preconditioner = ilu_pre_factory->generate(gko::share(par_ilu));
+    auto preconditioner = ilu_pre_factory->generate(l_factor, u_factor);
     preconditioner->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x.get(), expected_result.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x.get(), l({{-0.125, 2.0}, {0.25, 3.0}, {1.0, 1.0}}),
+                        1e-14);
 }
+
+// TODO: Add a test with different number of RHS (to test caching)
 
 
 }  // namespace
