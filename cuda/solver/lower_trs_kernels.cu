@@ -33,17 +33,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/lower_trs_kernels.hpp"
 
 
+#include <functional>
+#include <memory>
+
+
 #include <cuda.h>
 #include <cusparse.h>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/solver/lower_trs.hpp>
 
 
 #include "core/matrix/dense_kernels.hpp"
+#include "core/solver/lower_trs_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
+#include "cuda/base/device_guard.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 
@@ -59,112 +66,77 @@ namespace cuda {
 namespace lower_trs {
 
 
-#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
-struct cusp_csrsm2_data {
-    int algorithm;
-    csrsm2Info_t solve_info;
-    cusparseSolvePolicy_t policy;
-    cusparseMatDescr_t factor_descr;
-    size_t factor_work_size;
-    void *factor_work_vec;
-};
-cusp_csrsm2_data cusp_csrsm2_data{};
-
-#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
-struct cusp_csrsm_data {
-    cusparseSolveAnalysisInfo_t solve_info;
-    cusparseMatDescr_t factor_descr;
-};
-cusp_csrsm_data cusp_csrsm_data{};
-#endif
-
-
-void clear(std::shared_ptr<const CudaExecutor> exec)
+void perform_transpose(std::shared_ptr<const CudaExecutor> exec,
+                       bool &transposability)
 {
 #if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
-    cusparse::destroy(cusp_csrsm2_data.factor_descr);
-    if (cusp_csrsm2_data.solve_info) {
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(
-            cusparseDestroyCsrsm2Info(cusp_csrsm2_data.solve_info));
-    }
-    if (cusp_csrsm2_data.factor_work_vec != nullptr) {
-        exec->free(cusp_csrsm2_data.factor_work_vec);
-    }
+    transposability = false;
 #elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
-    cusparse::destroy(cusp_csrsm_data.factor_descr);
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(
-        cusparseDestroySolveAnalysisInfo(cusp_csrsm_data.solve_info));
+    transposability = true;
 #endif
+}
+
+
+void init_struct(std::shared_ptr<const CudaExecutor> exec,
+                 std::shared_ptr<gko::solver::SolveStruct> &solve_struct)
+{
+    const auto id = exec->get_device_id();
+    device_guard g(id);
+    solve_struct = std::shared_ptr<gko::solver::SolveStruct>(
+        kernels::cuda::cusparse::init_trs_solve_struct(),
+        [id](gko::solver::SolveStruct *solve_struct_) {
+            device_guard g(id);
+            kernels::cuda::cusparse::clear_trs_solve_struct(solve_struct_);
+        });
 }
 
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const CudaExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *matrix,
+              gko::solver::SolveStruct *solve_struct,
               const gko::size_type num_rhs)
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_cusparse_handle();
 #if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
         ValueType one = 1.0;
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(
-            cusparseCreateCsrsm2Info(&cusp_csrsm2_data.solve_info));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(
-            cusparseCreateMatDescr(&cusp_csrsm2_data.factor_descr));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatIndexBase(
-            cusp_csrsm2_data.factor_descr, CUSPARSE_INDEX_BASE_ZERO));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatType(
-            cusp_csrsm2_data.factor_descr, CUSPARSE_MATRIX_TYPE_GENERAL));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatDiagType(
-            cusp_csrsm2_data.factor_descr, CUSPARSE_DIAG_TYPE_NON_UNIT));
-        cusp_csrsm2_data.algorithm = 0;
-        cusp_csrsm2_data.policy = CUSPARSE_SOLVE_POLICY_USE_LEVEL;
 
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
         cusparse::buffer_size_ext(
-            handle, cusp_csrsm2_data.algorithm,
-            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_TRANSPOSE,
-            matrix->get_size()[0], num_rhs, matrix->get_num_stored_elements(),
-            &one, cusp_csrsm2_data.factor_descr, matrix->get_const_values(),
-            matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(), nullptr,
-            num_rhs, cusp_csrsm2_data.solve_info, cusp_csrsm2_data.policy,
-            &cusp_csrsm2_data.factor_work_size);
+            handle, solve_struct->algorithm, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            CUSPARSE_OPERATION_TRANSPOSE, matrix->get_size()[0], num_rhs,
+            matrix->get_num_stored_elements(), &one, solve_struct->factor_descr,
+            matrix->get_const_values(), matrix->get_const_row_ptrs(),
+            matrix->get_const_col_idxs(), nullptr, num_rhs,
+            solve_struct->solve_info, solve_struct->policy,
+            &solve_struct->factor_work_size);
 
         // allocate workspace
-        cusp_csrsm2_data.factor_work_vec =
-            exec->alloc<void *>(cusp_csrsm2_data.factor_work_size);
+        solve_struct->factor_work_vec =
+            exec->alloc<void *>(solve_struct->factor_work_size);
 
         cusparse::csrsm2_analysis(
-            handle, cusp_csrsm2_data.algorithm,
-            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_TRANSPOSE,
-            matrix->get_size()[0], num_rhs, matrix->get_num_stored_elements(),
-            &one, cusp_csrsm2_data.factor_descr, matrix->get_const_values(),
-            matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(), nullptr,
-            num_rhs, cusp_csrsm2_data.solve_info, cusp_csrsm2_data.policy,
-            cusp_csrsm2_data.factor_work_vec);
+            handle, solve_struct->algorithm, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            CUSPARSE_OPERATION_TRANSPOSE, matrix->get_size()[0], num_rhs,
+            matrix->get_num_stored_elements(), &one, solve_struct->factor_descr,
+            matrix->get_const_values(), matrix->get_const_row_ptrs(),
+            matrix->get_const_col_idxs(), nullptr, num_rhs,
+            solve_struct->solve_info, solve_struct->policy,
+            solve_struct->factor_work_vec);
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
 
 #elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(
-            cusparseCreateSolveAnalysisInfo(&cusp_csrsm_data.solve_info));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(
-            cusparseCreateMatDescr(&cusp_csrsm_data.factor_descr));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatIndexBase(
-            cusp_csrsm_data.factor_descr, CUSPARSE_INDEX_BASE_ZERO));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatType(
-            cusp_csrsm_data.factor_descr, CUSPARSE_MATRIX_TYPE_GENERAL));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatDiagType(
-            cusp_csrsm_data.factor_descr, CUSPARSE_DIAG_TYPE_NON_UNIT));
 
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
         cusparse::csrsm_analysis(
             handle, CUSPARSE_OPERATION_NON_TRANSPOSE, matrix->get_size()[0],
-            matrix->get_num_stored_elements(), cusp_csrsm_data.factor_descr,
+            matrix->get_num_stored_elements(), solve_struct->factor_descr,
             matrix->get_const_values(), matrix->get_const_row_ptrs(),
-            matrix->get_const_col_idxs(), cusp_csrsm_data.solve_info);
+            matrix->get_const_col_idxs(), solve_struct->solve_info);
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
 #endif
@@ -180,6 +152,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Csr<ValueType, IndexType> *matrix,
+           gko::solver::SolveStruct *solve_struct,
            matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
            const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
@@ -192,14 +165,13 @@ void solve(std::shared_ptr<const CudaExecutor> exec,
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
         cusparse::csrsm2_solve(
-            handle, cusp_csrsm2_data.algorithm,
-            CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_TRANSPOSE,
-            matrix->get_size()[0], b->get_stride(),
-            matrix->get_num_stored_elements(), &one,
-            cusp_csrsm2_data.factor_descr, matrix->get_const_values(),
+            handle, solve_struct->algorithm, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            CUSPARSE_OPERATION_TRANSPOSE, matrix->get_size()[0],
+            b->get_stride(), matrix->get_num_stored_elements(), &one,
+            solve_struct->factor_descr, matrix->get_const_values(),
             matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-            x->get_values(), b->get_stride(), cusp_csrsm2_data.solve_info,
-            cusp_csrsm2_data.policy, cusp_csrsm2_data.factor_work_vec);
+            x->get_values(), b->get_stride(), solve_struct->solve_info,
+            solve_struct->policy, solve_struct->factor_work_vec);
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
 #elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
@@ -209,18 +181,18 @@ void solve(std::shared_ptr<const CudaExecutor> exec,
             auto temp_b = const_cast<ValueType *>(b->get_const_values());
             cusparse::csrsm_solve(
                 handle, CUSPARSE_OPERATION_NON_TRANSPOSE, matrix->get_size()[0],
-                b->get_stride(), &one, cusp_csrsm_data.factor_descr,
+                b->get_stride(), &one, solve_struct->factor_descr,
                 matrix->get_const_values(), matrix->get_const_row_ptrs(),
-                matrix->get_const_col_idxs(), cusp_csrsm_data.solve_info,
-                temp_b, b->get_size()[0], x->get_values(), x->get_size()[0]);
+                matrix->get_const_col_idxs(), solve_struct->solve_info, temp_b,
+                b->get_size()[0], x->get_values(), x->get_size()[0]);
         } else {
             dense::transpose(exec, trans_b, b);
             dense::transpose(exec, trans_x, x);
             cusparse::csrsm_solve(
                 handle, CUSPARSE_OPERATION_NON_TRANSPOSE, matrix->get_size()[0],
-                trans_b->get_size()[0], &one, cusp_csrsm_data.factor_descr,
+                trans_b->get_size()[0], &one, solve_struct->factor_descr,
                 matrix->get_const_values(), matrix->get_const_row_ptrs(),
-                matrix->get_const_col_idxs(), cusp_csrsm_data.solve_info,
+                matrix->get_const_col_idxs(), solve_struct->solve_info,
                 trans_b->get_values(), trans_b->get_size()[1],
                 trans_x->get_values(), trans_x->get_size()[1]);
             dense::transpose(exec, x, trans_x);

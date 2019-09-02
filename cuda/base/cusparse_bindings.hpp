@@ -45,6 +45,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace solver {
+
+
+#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
+struct SolveStruct {
+    int algorithm;
+    csrsm2Info_t solve_info;
+    cusparseSolvePolicy_t policy;
+    cusparseMatDescr_t factor_descr;
+    size_t factor_work_size;
+    void *factor_work_vec;
+};
+
+#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
+struct SolveStruct {
+    cusparseSolveAnalysisInfo_t solve_info;
+    cusparseMatDescr_t factor_descr;
+};
+#endif
+
+
+}  // namespace solver
+
+
 namespace kernels {
 namespace cuda {
 /**
@@ -489,6 +513,57 @@ inline cusparseMatDescr_t create_mat_descr()
 inline void destroy(cusparseMatDescr_t descr)
 {
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(descr));
+}
+
+
+inline gko::solver::SolveStruct *init_trs_solve_struct()
+{
+#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
+    gko::solver::SolveStruct *solve_struct = new gko::solver::SolveStruct{};
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(
+        cusparseCreateCsrsm2Info(&solve_struct->solve_info));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(
+        cusparseCreateMatDescr(&solve_struct->factor_descr));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatIndexBase(
+        solve_struct->factor_descr, CUSPARSE_INDEX_BASE_ZERO));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatType(
+        solve_struct->factor_descr, CUSPARSE_MATRIX_TYPE_GENERAL));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatDiagType(
+        solve_struct->factor_descr, CUSPARSE_DIAG_TYPE_NON_UNIT));
+    solve_struct->algorithm = 0;
+    solve_struct->policy = CUSPARSE_SOLVE_POLICY_USE_LEVEL;
+#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
+    gko::solver::SolveStruct *solve_struct = new gko::solver::SolveStruct{};
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(
+        cusparseCreateSolveAnalysisInfo(&solve_struct->solve_info));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(
+        cusparseCreateMatDescr(&solve_struct->factor_descr));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatIndexBase(
+        solve_struct->factor_descr, CUSPARSE_INDEX_BASE_ZERO));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatType(
+        solve_struct->factor_descr, CUSPARSE_MATRIX_TYPE_GENERAL));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatDiagType(
+        solve_struct->factor_descr, CUSPARSE_DIAG_TYPE_NON_UNIT));
+#endif
+    return solve_struct;
+}
+
+inline void clear_trs_solve_struct(gko::solver::SolveStruct *solve_struct)
+{
+#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
+    cusparse::destroy(solve_struct->factor_descr);
+    if (solve_struct->solve_info) {
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseDestroyCsrsm2Info(solve_struct->solve_info));
+    }
+    if (solve_struct->factor_work_vec != nullptr) {
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(solve_struct->factor_work_vec));
+    }
+#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
+    cusparse::destroy(solve_struct->factor_descr);
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(
+        cusparseDestroySolveAnalysisInfo(solve_struct->solve_info));
+#endif
 }
 
 

@@ -131,16 +131,30 @@ protected:
     std::shared_ptr<Mtx> dt_x;
     std::shared_ptr<Mtx> d_mat;
     std::shared_ptr<CsrMtx> d_csr_mat;
+    std::shared_ptr<gko::solver::SolveStruct> solve_struct;
 };
+
+
+TEST_F(LowerTrs, OmpLowerTrsFlagCheckIsCorrect)
+{
+    bool trans_flag = true;
+    bool expected_flag = false;
+
+    gko::kernels::omp::lower_trs::perform_transpose(omp, trans_flag);
+
+    ASSERT_EQ(expected_flag, trans_flag);
+}
 
 
 TEST_F(LowerTrs, OmpLowerTrsSolveIsEquivalentToRef)
 {
     initialize_data(59, 43);
 
-    gko::kernels::reference::lower_trs::solve(ref, csr_mat.get(), t_b.get(),
+    gko::kernels::reference::lower_trs::solve(ref, csr_mat.get(),
+                                              solve_struct.get(), t_b.get(),
                                               t_x.get(), b.get(), x.get());
-    gko::kernels::omp::lower_trs::solve(omp, d_csr_mat.get(), dt_b.get(),
+    gko::kernels::omp::lower_trs::solve(omp, d_csr_mat.get(),
+                                        solve_struct.get(), dt_b.get(),
                                         dt_x.get(), d_b.get(), d_x.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
