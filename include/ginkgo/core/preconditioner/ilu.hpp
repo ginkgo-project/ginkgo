@@ -103,21 +103,12 @@ protected:
     /**
      * Manages the `generate` arguments for the parent class to allow multiple
      * versions to initialize both L and U. Three constructors are provided:
-     * - one ParIlu, containing both L and U
      * - a Composition, containing the L matrix as the first operand, and the
      *   U matrix as the second and last
+     * - one ParIlu, containing both L and U (since it is equal to the first)
      * - both L and U matrix as separate parameters
      */
     struct LuArgs {
-        /* TODO test if it can work:
-        LuArgs(
-            std::shared_ptr<const factorization::ParIlu<ValueType>> par_ilu)
-        {
-            l_factor = par_ilu->get_l_factor();
-            u_factor = par_ilu->get_u_factor();
-        }
-        */
-
         LuArgs(std::shared_ptr<const LinOp> composition)
         {
             auto comp_cast =
@@ -148,8 +139,8 @@ protected:
         {
             return (inverse_apply) ? dim<2>{l_factor->get_size()[0],
                                             u_factor->get_size()[1]}
-                                   : dim<2>{u_factor->get_size()[1],
-                                            l_factor->get_size()[0]};
+                                   : dim<2>{u_factor->get_size()[0],
+                                            l_factor->get_size()[1]};
         }
 
         std::shared_ptr<const LinOp> l_factor;
@@ -213,8 +204,6 @@ protected:
             l_solver_->apply(b, cache_.intermediate.get());
             u_solver_->apply(alpha, cache_.intermediate.get(), beta, x);
         } else {
-            // TODO: Might be wrong order (for alpha and beta), needs a sanity
-            // check!
             u_solver_->apply(b, cache_.intermediate.get());
             l_solver_->apply(alpha, cache_.intermediate.get(), beta, x);
         }
@@ -231,7 +220,6 @@ protected:
           l_factor_{std::move(lu_args.l_factor)},
           u_factor_{std::move(lu_args.u_factor)}
     {
-        // TODO: Is equal size too much restriction?
         GKO_ASSERT_EQUAL_ROWS(l_factor_, u_factor_);
         GKO_ASSERT_EQUAL_COLS(l_factor_, u_factor_);
 
@@ -240,34 +228,14 @@ protected:
             static_cast<unsigned int>(this->get_size()[0])};
         auto exec = this->get_executor();
 
-        // If it was not set, use a default generated one of `LSolverType`
+        // If no factories are provided, generate default ones
         if (!parameters_.l_solver_factory) {
-            l_solver_ =
-                LSolverType::build()
-                    .with_criteria(
-                        gko::stop::Iteration::build()
-                            .with_max_iters(default_max_iters)
-                            .on(exec),
-                        gko::stop::ResidualNormReduction<>::build()
-                            .with_reduction_factor(default_reduce_precision)
-                            .on(exec))
-                    .on(exec)
-                    ->generate(l_factor_);
+            l_solver_ = generate_default_solver<LSolverType>(exec, l_factor_);
         } else {
             l_solver_ = parameters_.l_solver_factory->generate(l_factor_);
         }
         if (!parameters_.u_solver_factory) {
-            u_solver_ =
-                USolverType::build()
-                    .with_criteria(
-                        gko::stop::Iteration::build()
-                            .with_max_iters(default_max_iters)
-                            .on(exec),
-                        gko::stop::ResidualNormReduction<>::build()
-                            .with_reduction_factor(default_reduce_precision)
-                            .on(exec))
-                    .on(exec)
-                    ->generate(u_factor_);
+            u_solver_ = generate_default_solver<USolverType>(exec, u_factor_);
         } else {
             u_solver_ = parameters_.u_solver_factory->generate(u_factor_);
         }
@@ -286,15 +254,84 @@ protected:
     }
 
     /**
-     * @internal  Looks at the build method to determine the type of the
-     * factory.
+     * @internal  Looks at the build() method to determine the type of the
+     *            factory.
      */
-    // TODO: put it back in
+    template <typename T>
+    using factory_type_t = decltype(T::build());
 
-    // TODO: With SFINAE, test if function `with_criteria` exists
-    // static std::unique_ptr<LinOp> generate_default_solver(const
-    // std::shared_ptr<const Executor> &exec, const std::shared_ptr<const LinOp>
-    //&mtx)
+    // Parameter type of function `with_criteria`.
+    using with_criteria_param_type =
+        std::shared_ptr<const stop::CriterionFactory>;
+
+    /**
+     * Helper structure to test if the Factory of SolverType has a function
+     * `with_criteria`.
+     *
+     * Contains a constexpr boolean `value`, which is true if the Factory class
+     * of SolverType has a `with_criteria`, and false otherwise.
+     *
+     * @tparam SolverType   Solver to test if its factory has a with_criteria
+     *                      function.
+     *
+     */
+    template <typename SolverType, typename = void>
+    struct has_with_criteria : std::false_type {};
+
+    /**
+     * @copydoc has_with_criteria
+     *
+     * @internal  The second template parameter (which uses SFINAE) must match
+     *            the default value of the general case in order to be accepted
+     *            as a specialization.
+     */
+    template <typename SolverType>
+    struct has_with_criteria<
+        SolverType,
+        xstd::void_t<decltype(std::declval<factory_type_t<SolverType>>()
+                                  .with_criteria(with_criteria_param_type()))>>
+        : std::true_type {};
+
+
+    /**
+     * Generates a default solver of type SolverType.
+     *
+     * Also checks wheather SolverType can be assigned a criteria, and if it
+     * can, it is assigned default values which should be well suited for a
+     * preconditioner.
+     */
+    template <typename SolverType>
+    static xstd::enable_if_t<has_with_criteria<SolverType>::value,
+                             std::unique_ptr<SolverType>>
+    generate_default_solver(const std::shared_ptr<const Executor> &exec,
+                            const std::shared_ptr<const LinOp> &mtx)
+    {
+        constexpr ValueType default_reduce_precision{1e-4};
+        const unsigned int default_max_iters{
+            static_cast<unsigned int>(mtx->get_size()[0])};
+
+        return SolverType::build()
+            .with_criteria(gko::stop::Iteration::build()
+                               .with_max_iters(default_max_iters)
+                               .on(exec),
+                           gko::stop::ResidualNormReduction<>::build()
+                               .with_reduction_factor(default_reduce_precision)
+                               .on(exec))
+            .on(exec)
+            ->generate(mtx);
+    }
+
+    /**
+     * @copydoc generate_default_solver
+     */
+    template <typename SolverType>
+    static xstd::enable_if_t<!has_with_criteria<SolverType>::value,
+                             std::unique_ptr<SolverType>>
+    generate_default_solver(const std::shared_ptr<const Executor> &exec,
+                            const std::shared_ptr<const LinOp> &mtx)
+    {
+        return USolverType::build().on(exec)->generate(mtx);
+    }
 
 private:
     std::shared_ptr<const LinOp> l_factor_{};
