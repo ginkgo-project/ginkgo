@@ -33,11 +33,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/lower_trs.hpp>
 
 
+#include <memory>
+#include <random>
+
+
 #include <gtest/gtest.h>
 
 
-#include <memory>
-#include <random>
+#include <cuda.h>
 
 
 #include <ginkgo/core/base/exception.hpp>
@@ -95,6 +98,22 @@ protected:
     std::ranlux48 rand_engine;
 };
 
+
+TEST_F(LowerTrs, CudaLowerTrsFlagCheckIsCorrect)
+{
+    bool trans_flag = true;
+    bool expected_flag = false;
+#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
+    expected_flag = false;
+#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
+    expected_flag = true;
+#endif
+    gko::kernels::cuda::lower_trs::perform_transpose(cuda, trans_flag);
+
+    ASSERT_EQ(expected_flag, trans_flag);
+}
+
+
 TEST_F(LowerTrs, CudaSingleRhsApplyIsEquivalentToRef)
 {
     std::shared_ptr<Mtx> mtx = gen_l_mtx(50, 50);
@@ -117,8 +136,10 @@ TEST_F(LowerTrs, CudaSingleRhsApplyIsEquivalentToRef)
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
     solver->apply(b2.get(), x.get());
     d_solver->apply(d_b2.get(), d_x.get());
+
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
+
 
 TEST_F(LowerTrs, CudaMultipleRhsApplyIsEquivalentToRef)
 {
