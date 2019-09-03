@@ -237,8 +237,8 @@ TEST_F(Ilu, SolvesReverseSingleRhs)
 {
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
     auto x = Mtx::create(exec, gko::dim<2>{3, 1});
-
     auto preconditioner = ilu_rev_pre_factory->generate(l_factor, u_factor);
+
     preconditioner->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x.get(), l({-0.625, 0.875, 1.75}), 1e-14);
@@ -253,9 +253,8 @@ TEST_F(Ilu, SolvesAdvancedSingleRhs)
     const auto beta_linop = gko::initialize<Mtx>({beta}, exec);
     const auto b = gko::initialize<Mtx>({-3.0, 6.0, 9.0}, exec);
     auto x = gko::initialize<Mtx>({1.0, 2.0, 3.0}, exec);
-    const auto x_values = x->get_const_values();
-
     auto preconditioner = ilu_pre_factory->generate(l_factor, u_factor);
+
     preconditioner->apply(alpha_linop.get(), b.get(), beta_linop.get(),
                           x.get());
 
@@ -271,9 +270,8 @@ TEST_F(Ilu, SolvesAdvancedReverseSingleRhs)
     const auto beta_linop = gko::initialize<Mtx>({beta}, exec);
     const auto b = gko::initialize<Mtx>({-3.0, 6.0, 9.0}, exec);
     auto x = gko::initialize<Mtx>({1.0, 2.0, 3.0}, exec);
-    const auto x_values = x->get_const_values();
-
     auto preconditioner = ilu_rev_pre_factory->generate(l_factor, u_factor);
+
     preconditioner->apply(alpha_linop.get(), b.get(), beta_linop.get(),
                           x.get());
 
@@ -286,15 +284,34 @@ TEST_F(Ilu, SolvesMultipleRhs)
     const auto b =
         gko::initialize<Mtx>({{1.0, 8.0}, {3.0, 21.0}, {6.0, 24.0}}, exec);
     auto x = Mtx::create(exec, gko::dim<2>{3, 2});
-
     auto preconditioner = ilu_pre_factory->generate(l_factor, u_factor);
+
     preconditioner->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x.get(), l({{-0.125, 2.0}, {0.25, 3.0}, {1.0, 1.0}}),
                         1e-14);
 }
 
-// TODO: Add a test with different number of RHS (to test caching)
+
+TEST_F(Ilu, SolvesDifferentNumberOfRhs)
+{
+    const auto b1 = gko::initialize<Mtx>({-3.0, 6.0, 9.0}, exec);
+    auto x11 = Mtx::create(exec, gko::dim<2>{3, 1});
+    auto x12 = Mtx::create(exec, gko::dim<2>{3, 1});
+    const auto b2 =
+        gko::initialize<Mtx>({{1.0, 8.0}, {3.0, 21.0}, {6.0, 24.0}}, exec);
+    auto x2 = Mtx::create(exec, gko::dim<2>{3, 2});
+    auto preconditioner = ilu_pre_factory->generate(l_factor, u_factor);
+
+    preconditioner->apply(b1.get(), x11.get());
+    preconditioner->apply(b2.get(), x2.get());
+    preconditioner->apply(b1.get(), x12.get());
+
+    GKO_ASSERT_MTX_NEAR(x11.get(), l({-3.0, 2.0, 1.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x2.get(), l({{-0.125, 2.0}, {0.25, 3.0}, {1.0, 1.0}}),
+                        1e-14);
+    GKO_ASSERT_MTX_NEAR(x12.get(), x11.get(), 1e-14);
+}
 
 
 }  // namespace

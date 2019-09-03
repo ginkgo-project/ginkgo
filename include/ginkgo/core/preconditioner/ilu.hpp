@@ -44,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
-//#include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 // #include <ginkgo/core/solver/lower_trs.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
@@ -56,15 +55,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace preconditioner {
 
-// TODO: Replace Bicgstab with Upper/LowerTrs when available!
 
+// TODO: Replace Bicgstab with Upper/LowerTrs when available!
 /**
- * Incomplete LU (ILU) is ... TODO
+ * The incomplete LU (ILU) preconditioner solves the equation LUx = b for a
+ * given lower triangular matrix L, an upper triangular matrix U and the right
+ * hand side b (can contain multiple right hand sides).
+ *
+ * It allows to set both the solver for L and the solver for U independently,
+ * while providing the defaults solver::LowerTrs and solver::UpperTrs.
  *
  * @note This class is not thread safe (even a const object is not) because it
  *       uses an internal cache to accelerate multiple (sequential) applies
  *
  * @tparam ValueType  precision of matrix elements
+ * @tparam LSolverType  type of the solver used for the L matrix.
+ *                      Defaults to solver::LowerTrs
+ * @tparam USolverType  type of the solver used for the U matrix
+ *                      Defaults to solver::UpperTrs
+ * @tparam ReverseApply  default behavior (ReverseApply = false) is first to
+ *                       solve with L (Ly = b) and then with U (Ux = y).
+ *                       When set to true, it will solve first with U, and then
+ *                       with L.
  *
  * @ingroup precond
  * @ingroup LinOp
@@ -330,7 +342,7 @@ protected:
     generate_default_solver(const std::shared_ptr<const Executor> &exec,
                             const std::shared_ptr<const LinOp> &mtx)
     {
-        return USolverType::build().on(exec)->generate(mtx);
+        return SolverType::build().on(exec)->generate(mtx);
     }
 
 private:
