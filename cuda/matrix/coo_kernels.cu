@@ -189,12 +189,13 @@ __device__ void warp_spmm(
     auto temp_row = tile_block.shfl(*curr_row, 0);
 
     if (!final) {
-        constexpr int end = subwarp_size;
+        constexpr int end = subwarp_size - 1;
 #pragma unroll
-        for (; j < end - 1; j++) {
+        for (; j < end; j++) {
             const auto temp_next_row = tile_block.shfl(*curr_row, j + 1);
-            *temp += tile_block.shfl(coo_val, j) *
-                     b[tile_block.shfl(coo_col, j) * b_stride + col_id];
+            const auto tval = tile_block.shfl(coo_val, j);
+            const auto tcol = tile_block.shfl(coo_col, j);
+            *temp += tval * b[tcol * b_stride + col_id];
             if (temp_row != temp_next_row) {
                 if (column_id < end_col) {
                     atomic_add(&(c[temp_row * c_stride + col_id]),
@@ -205,14 +206,15 @@ __device__ void warp_spmm(
             }
         }
     } else {
-        const int end =
-            min(static_cast<int>(nnz - (offset - threadIdx.x)), subwarp_size);
+        const int end = min(nnz - (offset - threadIdx.x),
+                            static_cast<size_type>(subwarp_size)) -
+                        1;
 #pragma unroll
-        for (; j < end - 1; j++) {
+        for (; j < end; j++) {
             const auto temp_next_row = tile_block.shfl(*curr_row, j + 1);
-            *temp += tile_block.shfl(coo_val, j) *
-                     b[tile_block.shfl(coo_col, j) * b_stride + col_id];
-
+            const auto tval = tile_block.shfl(coo_val, j);
+            const auto tcol = tile_block.shfl(coo_col, j);
+            *temp += tval * b[tcol * b_stride + col_id];
             if (temp_row != temp_next_row) {
                 if (column_id < end_col) {
                     atomic_add(&(c[temp_row * c_stride + col_id]),
