@@ -74,7 +74,6 @@ namespace preconditioner {
  * @note This class is not thread safe (even a const object is not) because it
  *       uses an internal cache to accelerate multiple (sequential) applies
  *
- * @tparam ValueType  precision of matrix elements
  * @tparam LSolverType  type of the solver used for the L matrix.
  *                      Defaults to solver::LowerTrs
  * @tparam USolverType  type of the solver used for the U matrix
@@ -87,17 +86,18 @@ namespace preconditioner {
  * @ingroup precond
  * @ingroup LinOp
  */
-template <typename ValueType,
-          typename LSolverType = solver::Bicgstab<ValueType>,
-          typename USolverType = solver::Bicgstab<ValueType>,
-          bool ReverseApply = false>
-class Ilu : public EnableLinOp<
-                Ilu<ValueType, LSolverType, USolverType, ReverseApply>> {
+template <typename LSolverType = solver::Bicgstab<>,
+          typename USolverType = solver::Bicgstab<>, bool ReverseApply = false>
+class Ilu : public EnableLinOp<Ilu<LSolverType, USolverType, ReverseApply>> {
     friend class EnableLinOp<Ilu>;
     friend class EnablePolymorphicObject<Ilu, LinOp>;
 
 public:
-    using value_type = ValueType;
+    static_assert(
+        std::is_same<typename LSolverType::value_type,
+                     typename USolverType::value_type>::value,
+        "Both the L- and the U-solver must use the same `value_type`!");
+    using value_type = typename LSolverType::value_type;
     using l_solver_type = LSolverType;
     using u_solver_type = USolverType;
     static constexpr bool performs_reverse_apply = ReverseApply;
@@ -107,13 +107,13 @@ public:
         /**
          * Factory for the L solver
          */
-        std::shared_ptr<typename LSolverType::Factory> GKO_FACTORY_PARAMETER(
+        std::shared_ptr<typename l_solver_type::Factory> GKO_FACTORY_PARAMETER(
             l_solver_factory, nullptr);
 
         /**
          * Factory for the U solver
          */
-        std::shared_ptr<typename USolverType::Factory> GKO_FACTORY_PARAMETER(
+        std::shared_ptr<typename u_solver_type::Factory> GKO_FACTORY_PARAMETER(
             u_solver_factory, nullptr);
     };
 
@@ -129,7 +129,7 @@ protected:
         LuArgs(std::shared_ptr<const LinOp> composition)
         {
             auto comp_cast =
-                as<const Composition<ValueType>>(composition.get());
+                as<const Composition<value_type>>(composition.get());
             if (comp_cast->get_operators().size() != 2) {
                 throw GKO_NOT_SUPPORTED(comp_cast);
             }
@@ -243,12 +243,12 @@ protected:
 
         // If no factories are provided, generate default ones
         if (!parameters_.l_solver_factory) {
-            l_solver_ = generate_default_solver<LSolverType>(exec, l_factor_);
+            l_solver_ = generate_default_solver<l_solver_type>(exec, l_factor_);
         } else {
             l_solver_ = parameters_.l_solver_factory->generate(l_factor_);
         }
         if (!parameters_.u_solver_factory) {
-            u_solver_ = generate_default_solver<USolverType>(exec, u_factor_);
+            u_solver_ = generate_default_solver<u_solver_type>(exec, u_factor_);
         } else {
             u_solver_ = parameters_.u_solver_factory->generate(u_factor_);
         }
@@ -261,7 +261,7 @@ protected:
                          : dim<2>{l_solver_->get_size()[0], b->get_size()[1]};
         if (cache_.intermediate == nullptr ||
             cache_.intermediate->get_size() != expected_size) {
-            cache_.intermediate = matrix::Dense<ValueType>::create(
+            cache_.intermediate = matrix::Dense<value_type>::create(
                 this->get_executor(), expected_size);
         }
     }
@@ -319,7 +319,7 @@ protected:
     generate_default_solver(const std::shared_ptr<const Executor> &exec,
                             const std::shared_ptr<const LinOp> &mtx)
     {
-        constexpr ValueType default_reduce_residual{1e-4};
+        constexpr value_type default_reduce_residual{1e-4};
         const unsigned int default_max_iters{
             static_cast<unsigned int>(mtx->get_size()[0])};
 
@@ -349,8 +349,8 @@ protected:
 private:
     std::shared_ptr<const LinOp> l_factor_{};
     std::shared_ptr<const LinOp> u_factor_{};
-    std::shared_ptr<const LSolverType> l_solver_{};
-    std::shared_ptr<const USolverType> u_solver_{};
+    std::shared_ptr<const l_solver_type> l_solver_{};
+    std::shared_ptr<const u_solver_type> u_solver_{};
     /**
      * Manages a vector as a cache, so there is no need to allocate one every
      * time an intermediate vector is required.

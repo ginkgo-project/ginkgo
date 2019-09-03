@@ -64,12 +64,11 @@ protected:
     using Mtx = gko::matrix::Dense<value_type>;
     using l_solver_type = gko::solver::Bicgstab<value_type>;
     using u_solver_type = gko::solver::Bicgstab<value_type>;
-    using default_ilu_prec_type = gko::preconditioner::Ilu<value_type>;
-    using ilu_prec_type = gko::preconditioner::Ilu<value_type, l_solver_type,
-                                                   u_solver_type, false>;
+    using default_ilu_prec_type = gko::preconditioner::Ilu<>;
+    using ilu_prec_type =
+        gko::preconditioner::Ilu<l_solver_type, u_solver_type, false>;
     using ilu_rev_prec_type =
-        gko::preconditioner::Ilu<value_type, l_solver_type, u_solver_type,
-                                 true>;
+        gko::preconditioner::Ilu<l_solver_type, u_solver_type, true>;
 
     Ilu()
         : exec(gko::ReferenceExecutor::create()),
