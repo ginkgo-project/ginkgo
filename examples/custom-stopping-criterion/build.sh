@@ -9,8 +9,8 @@ BUILD_DIR=$1
 THIS_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )
 
 # copy libraries
-LIBRARY_DIRS="core core/device_hooks reference omp cuda"
-LIBRARY_NAMES="ginkgo ginkgo_reference ginkgo_omp ginkgo_cuda"
+LIBRARY_DIRS="core core/device_hooks reference omp cuda hip"
+LIBRARY_NAMES="ginkgo ginkgo_reference ginkgo_omp ginkgo_cuda ginkgo_hip"
 SUFFIXES=".so .dylib .dll d.so d.dylib d.dll"
 for prefix in ${LIBRARY_DIRS}; do
     for name in ${LIBRARY_NAMES}; do

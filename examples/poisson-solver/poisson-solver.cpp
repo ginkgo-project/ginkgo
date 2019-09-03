@@ -130,6 +130,7 @@ int main(int argc, char *argv[])
     std::map<std::string, std::shared_ptr<gko::Executor>> exec_map{
         {"omp", omp},
         {"cuda", gko::CudaExecutor::create(0, omp)},
+        {"hip", gko::HipExecutor::create(0, omp)},
         {"reference", gko::ReferenceExecutor::create()}};
 
     // executor where Ginkgo will perform the computation

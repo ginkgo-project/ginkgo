@@ -70,8 +70,7 @@ void CudaExecutor::raw_free(void *ptr) const noexcept
 }
 
 
-void *CudaExecutor::raw_alloc(size_type num_bytes) const
-    GKO_NOT_COMPILED(nvidia);
+void *CudaExecutor::raw_alloc(size_type num_bytes) const GKO_NOT_COMPILED(cuda);
 
 
 void CudaExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
@@ -80,6 +79,11 @@ void CudaExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
 
 
 void CudaExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
+                               const void *src_ptr, void *dest_ptr) const
+    GKO_NOT_COMPILED(cuda);
+
+
+void CudaExecutor::raw_copy_to(const HipExecutor *, size_type num_bytes,
                                const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(cuda);
 

@@ -107,6 +107,9 @@ target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
 target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE})
 
+# Need to link against ginkgo_cuda for the `raw_copy_to(HipExecutor ...)` method
+target_link_libraries(ginkgo_cuda PUBLIC ginkgo_hip)
+
 cas_target_cuda_architectures(ginkgo_cuda
     ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}
     UNSUPPORTED "20" "21")

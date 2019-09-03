@@ -176,6 +176,19 @@ void CudaExecutor::raw_copy_to(const CudaExecutor *src, size_type num_bytes,
 }
 
 
+void CudaExecutor::raw_copy_to(const HipExecutor *src, size_type num_bytes,
+                               const void *src_ptr, void *dest_ptr) const
+{
+#if GINKGO_HIP_PLATFORM_NVCC == 1
+    device_guard g(this->get_device_id());
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(
+        dest_ptr, this->device_id_, src_ptr, src->get_device_id(), num_bytes));
+#else
+    GKO_NOT_SUPPORTED(CudaExecutor);
+#endif
+}
+
+
 void CudaExecutor::synchronize() const
 {
     device_guard g(this->get_device_id());

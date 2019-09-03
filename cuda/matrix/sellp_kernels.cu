@@ -59,6 +59,7 @@ namespace sellp {
 
 namespace {
 
+
 constexpr auto default_block_size = 512;
 
 template <typename ValueType, typename IndexType>

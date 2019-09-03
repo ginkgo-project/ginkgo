@@ -111,6 +111,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace reference
 
 
+namespace hip {
+namespace sellp {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace sellp
+}  // namespace hip
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 

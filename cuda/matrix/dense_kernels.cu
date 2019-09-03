@@ -969,7 +969,6 @@ template <typename ValueType>
 void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
                     matrix::Dense<ValueType> *trans,
                     const matrix::Dense<ValueType> *orig)
-
 {
     if (cublas::is_supported<ValueType>::value) {
         auto handle = exec->get_cublas_handle();
@@ -986,7 +985,7 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
     } else {
         GKO_NOT_IMPLEMENTED;
     }
-};
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONJ_TRANSPOSE_KERNEL);
 
