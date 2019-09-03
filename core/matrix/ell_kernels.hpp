@@ -120,6 +120,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace reference
 
 
+namespace hip {
+namespace ell {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace ell
+}  // namespace hip
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 

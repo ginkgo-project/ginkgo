@@ -112,6 +112,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace reference
 
 
+namespace hip {
+namespace upper_trs {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace upper_trs
+}  // namespace hip
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 

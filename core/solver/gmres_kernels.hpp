@@ -128,6 +128,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace reference
 
 
+namespace hip {
+namespace gmres {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace gmres
+}  // namespace hip
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 

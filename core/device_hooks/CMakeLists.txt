@@ -25,3 +25,12 @@ if (NOT GINKGO_BUILD_REFERENCE)
     ginkgo_default_includes(ginkgo_reference)
     ginkgo_install_library(ginkgo_reference reference)
 endif()
+
+if(NOT GINKGO_BUILD_HIP)
+    add_library(ginkgo_hip
+        $<TARGET_OBJECTS:ginkgo_hip_device>
+        hip_hooks.cpp)
+    ginkgo_compile_features(ginkgo_hip)
+    ginkgo_default_includes(ginkgo_hip)
+    ginkgo_install_library(ginkgo_hip hip)
+endif()

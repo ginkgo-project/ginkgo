@@ -289,6 +289,7 @@ void step_3(
         as_cuda_type(omega->get_values()),
         as_cuda_type(stop_status->get_const_data()));
 }
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
 
 

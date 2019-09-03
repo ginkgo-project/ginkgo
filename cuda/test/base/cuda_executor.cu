@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include <memory>
 #include <type_traits>
 
 
@@ -53,7 +54,7 @@ public:
     {
         value = -1;
     }
-    void run(std::shared_ptr<const gko::CudaExecutor> cuda) const override
+    void run(std::shared_ptr<const gko::CudaExecutor>) const override
     {
         cudaGetDevice(&value);
     }

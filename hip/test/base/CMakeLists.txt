@@ -1,0 +1,2 @@
+ginkgo_create_hip_test(hip_executor)
+ginkgo_create_hip_test(exception_helpers)
