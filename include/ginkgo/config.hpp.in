@@ -59,6 +59,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #cmakedefine GINKGO_JACOBI_FULL_OPTIMIZATIONS
 
 
+/* What is HIP compiled for, hcc or nvcc? */
+// clang-format off
+#define GINKGO_HIP_PLATFORM_HCC @GINKGO_HIP_PLATFORM_HCC@
+
+
+#define GINKGO_HIP_PLATFORM_NVCC @GINKGO_HIP_PLATFORM_NVCC@
+// clang-format on
+
+
 /* Is PAPI SDE available for Logging? */
 // clang-format off
 #define GKO_HAVE_PAPI_SDE @GINKGO_HAVE_PAPI_SDE@

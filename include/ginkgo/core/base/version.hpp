@@ -138,7 +138,7 @@ inline std::ostream &operator<<(std::ostream &os, const version &ver)
  *     earlier version may have this implemented or fixed in a later version).
  *
  * This structure provides versions of different parts of Ginkgo: the headers,
- * the core and the kernel modules (reference, OpenMP, CUDA).
+ * the core and the kernel modules (reference, OpenMP, CUDA, HIP).
  * To obtain an instance of version_info filled with information about the
  * current version of Ginkgo, call the version_info::get() static method.
  */
@@ -189,6 +189,13 @@ public:
      */
     version cuda_version;
 
+    /**
+     * Contains version information of the HIP module.
+     *
+     * This is the version of the static/shared library called "ginkgo_hip".
+     */
+    version hip_version;
+
 private:
     static constexpr version get_header_version() noexcept
     {
@@ -204,12 +211,15 @@ private:
 
     static version get_cuda_version() noexcept;
 
+    static version get_hip_version() noexcept;
+
     version_info()
         : header_version{get_header_version()},
           core_version{get_core_version()},
           reference_version{get_reference_version()},
           omp_version{get_omp_version()},
-          cuda_version{get_cuda_version()}
+          cuda_version{get_cuda_version()},
+          hip_version{get_hip_version()}
     {}
 };
 

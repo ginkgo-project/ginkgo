@@ -280,7 +280,7 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 /**
  * Asserts that a cuBLAS library call completed without errors.
  *
- * @param _cuda_call  a library call expression
+ * @param _cublas_call  a library call expression
  */
 #define GKO_ASSERT_NO_CUBLAS_ERRORS(_cublas_call) \
     do {                                          \
@@ -294,7 +294,7 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 /**
  * Asserts that a cuSPARSE library call completed without errors.
  *
- * @param _cuda_call  a library call expression
+ * @param _cusparse_call  a library call expression
  */
 #define GKO_ASSERT_NO_CUSPARSE_ERRORS(_cusparse_call) \
     do {                                              \
@@ -302,6 +302,75 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
         if (_errcode != CUSPARSE_STATUS_SUCCESS) {    \
             throw GKO_CUSPARSE_ERROR(_errcode);       \
         }                                             \
+    } while (false)
+
+
+/**
+ * Instantiates a HipError.
+ *
+ * @param errcode  The error code returned from a HIP runtime API routine.
+ */
+#define GKO_HIP_ERROR(_errcode) \
+    ::gko::HipError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
+ * Instantiates a HipblasError.
+ *
+ * @param errcode  The error code returned from the HIPBLAS routine.
+ */
+#define GKO_HIPBLAS_ERROR(_errcode) \
+    ::gko::HipblasError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
+ * Instantiates a HipsparseError.
+ *
+ * @param errcode  The error code returned from the HIPSPARSE routine.
+ */
+#define GKO_HIPSPARSE_ERROR(_errcode) \
+    ::gko::HipsparseError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
+ * Asserts that a HIP library call completed without errors.
+ *
+ * @param _hip_call  a library call expression
+ */
+#define GKO_ASSERT_NO_HIP_ERRORS(_hip_call) \
+    do {                                    \
+        auto _errcode = _hip_call;          \
+        if (_errcode != hipSuccess) {       \
+            throw GKO_HIP_ERROR(_errcode);  \
+        }                                   \
+    } while (false)
+
+
+/**
+ * Asserts that a HIPBLAS library call completed without errors.
+ *
+ * @param _hipblas_call  a library call expression
+ */
+#define GKO_ASSERT_NO_HIPBLAS_ERRORS(_hipblas_call) \
+    do {                                            \
+        auto _errcode = _hipblas_call;              \
+        if (_errcode != HIPBLAS_STATUS_SUCCESS) {   \
+            throw GKO_HIPBLAS_ERROR(_errcode);      \
+        }                                           \
+    } while (false)
+
+
+/**
+ * Asserts that a HIPSPARSE library call completed without errors.
+ *
+ * @param _hipsparse_call  a library call expression
+ */
+#define GKO_ASSERT_NO_HIPSPARSE_ERRORS(_hipsparse_call) \
+    do {                                                \
+        auto _errcode = _hipsparse_call;                \
+        if (_errcode != HIPSPARSE_STATUS_SUCCESS) {     \
+            throw GKO_HIPSPARSE_ERROR(_errcode);        \
+        }                                               \
     } while (false)
 
 

@@ -64,6 +64,8 @@ std::ostream &operator<<(std::ostream &os, const version_info &ver_info)
     print_version(os, ver_info.omp_version);
     os << "\n    the CUDA      module is  ";
     print_version(os, ver_info.cuda_version);
+    os << "\n    the HIP      module is  ";
+    print_version(os, ver_info.hip_version);
     return os;
 }
 

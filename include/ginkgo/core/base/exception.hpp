@@ -243,6 +243,73 @@ private:
 
 
 /**
+ * HipError is thrown when a HIP routine throws a non-zero error code.
+ */
+class HipError : public Error {
+public:
+    /**
+     * Initializes a HIP error.
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param func The name of the HIP routine that failed
+     * @param error_code The resulting HIP error code
+     */
+    HipError(const std::string &file, int line, const std::string &func,
+             int64 error_code)
+        : Error(file, line, func + ": " + get_error(error_code))
+    {}
+
+private:
+    static std::string get_error(int64 error_code);
+};
+
+
+/**
+ * HipblasError is thrown when a hipBLAS routine throws a non-zero error code.
+ */
+class HipblasError : public Error {
+public:
+    /**
+     * Initializes a hipBLAS error.
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param func The name of the hipBLAS routine that failed
+     * @param error_code The resulting hipBLAS error code
+     */
+    HipblasError(const std::string &file, int line, const std::string &func,
+                 int64 error_code)
+        : Error(file, line, func + ": " + get_error(error_code))
+    {}
+
+private:
+    static std::string get_error(int64 error_code);
+};
+
+
+/**
+ * HipsparseError is thrown when a hipSPARSE routine throws a non-zero error
+ * code.
+ */
+class HipsparseError : public Error {
+public:
+    /**
+     * Initializes a hipSPARSE error.
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param func The name of the hipSPARSE routine that failed
+     * @param error_code The resulting hipSPARSE error code
+     */
+    HipsparseError(const std::string &file, int line, const std::string &func,
+                   int64 error_code)
+        : Error(file, line, func + ": " + get_error(error_code))
+    {}
+
+private:
+    static std::string get_error(int64 error_code);
+};
+
+
+/**
  * DimensionMismatch is thrown if an operation is being applied to LinOps of
  * incompatible size.
  */

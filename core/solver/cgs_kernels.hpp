@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 
+
 namespace gko {
 namespace kernels {
 namespace cgs {
@@ -123,6 +124,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace cgs
 }  // namespace reference
+
+
+namespace hip {
+namespace cgs {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace cgs
+}  // namespace hip
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
