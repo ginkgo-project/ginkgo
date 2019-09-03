@@ -189,6 +189,7 @@ TEST_F(Ilu, SolvesDefaultSingleRhsWithParIlu)
     preconditioner->apply(b.get(), x.get());
 
     // Since it is a preconditioner, the default solve is not accurate
+    // Applies only to BiCGSTAB   TODO: Replace with 1e-14 when TRS is default
     GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}), 5e-1);
 }
 

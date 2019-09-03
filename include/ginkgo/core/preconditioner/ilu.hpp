@@ -64,6 +64,12 @@ namespace preconditioner {
  *
  * It allows to set both the solver for L and the solver for U independently,
  * while providing the defaults solver::LowerTrs and solver::UpperTrs.
+ * For these solvers, a factory can be provided (with `with_l_solver_factory`
+ * and `with_u_solver_factory`) to have more control over their behavior.
+ * If these factories are not provided, the following criteria are set:
+ * - reduction factor = 1e-4
+ * - max iteration = <number of rows of the matrix given to the solver>
+ * If the solver does not support setting the criteria, none are provided.
  *
  * @note This class is not thread safe (even a const object is not) because it
  *       uses an internal cache to accelerate multiple (sequential) applies
@@ -114,10 +120,9 @@ public:
 protected:
     /**
      * Manages the `generate` arguments for the parent class to allow multiple
-     * versions to initialize both L and U. Three constructors are provided:
+     * versions to initialize both L and U. Two constructors are provided:
      * - a Composition, containing the L matrix as the first operand, and the
-     *   U matrix as the second and last
-     * - one ParIlu, containing both L and U (since it is equal to the first)
+     *   U matrix as the second and last (also accepts ParIlu objects)
      * - both L and U matrix as separate parameters
      */
     struct LuArgs {
@@ -232,12 +237,8 @@ protected:
           l_factor_{std::move(lu_args.l_factor)},
           u_factor_{std::move(lu_args.u_factor)}
     {
-        GKO_ASSERT_EQUAL_ROWS(l_factor_, u_factor_);
-        GKO_ASSERT_EQUAL_COLS(l_factor_, u_factor_);
+        GKO_ASSERT_EQUAL_DIMENSIONS(l_factor_, u_factor_);
 
-        constexpr ValueType default_reduce_precision{1e-4};
-        const unsigned int default_max_iters{
-            static_cast<unsigned int>(this->get_size()[0])};
         auto exec = this->get_executor();
 
         // If no factories are provided, generate default ones
@@ -308,7 +309,7 @@ protected:
     /**
      * Generates a default solver of type SolverType.
      *
-     * Also checks wheather SolverType can be assigned a criteria, and if it
+     * Also checks whether SolverType can be assigned a criteria, and if it
      * can, it is assigned default values which should be well suited for a
      * preconditioner.
      */
@@ -318,7 +319,7 @@ protected:
     generate_default_solver(const std::shared_ptr<const Executor> &exec,
                             const std::shared_ptr<const LinOp> &mtx)
     {
-        constexpr ValueType default_reduce_precision{1e-4};
+        constexpr ValueType default_reduce_residual{1e-4};
         const unsigned int default_max_iters{
             static_cast<unsigned int>(mtx->get_size()[0])};
 
@@ -327,7 +328,7 @@ protected:
                                .with_max_iters(default_max_iters)
                                .on(exec),
                            gko::stop::ResidualNormReduction<>::build()
-                               .with_reduction_factor(default_reduce_precision)
+                               .with_reduction_factor(default_reduce_residual)
                                .on(exec))
             .on(exec)
             ->generate(mtx);
@@ -348,6 +349,8 @@ protected:
 private:
     std::shared_ptr<const LinOp> l_factor_{};
     std::shared_ptr<const LinOp> u_factor_{};
+    std::shared_ptr<const LSolverType> l_solver_{};
+    std::shared_ptr<const USolverType> u_solver_{};
     /**
      * Manages a vector as a cache, so there is no need to allocate one every
      * time an intermediate vector is required.
@@ -361,12 +364,12 @@ private:
     mutable struct cache_struct {
         cache_struct() = default;
         ~cache_struct() = default;
-        cache_struct(const cache_struct &other) {}
+        cache_struct(const cache_struct &) {}
+        cache_struct(cache_struct &&) {}
         cache_struct &operator=(const cache_struct &) { return *this; }
+        cache_struct &operator=(cache_struct &&) { return *this; }
         std::unique_ptr<LinOp> intermediate{};
     } cache_;
-    std::shared_ptr<const LSolverType> l_solver_{};
-    std::shared_ptr<const USolverType> u_solver_{};
 };
 
 
