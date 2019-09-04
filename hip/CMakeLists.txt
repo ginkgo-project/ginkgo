@@ -37,7 +37,11 @@ list(APPEND CMAKE_PREFIX_PATH
 find_package(HIP REQUIRED)
 find_package(hipblas REQUIRED)
 find_package(hipsparse REQUIRED)
-#TODO: find_header/whatever for THRUST
+find_path(GINKGO_HIP_THRUST_PATH "thrust/complex.h"
+    PATHS "${HIP_PATH}/../include" NO_DEFAULT_PATH)
+if (NOT GINKGO_HIP_THRUST_PATH)
+    message(FATAL_ERROR "Could not find the ROCm header thrust/complex.h which is required by Ginkgo HIP.")
+endif()
 
 
 set(GINKGO_HIP_SOURCES
@@ -90,7 +94,7 @@ target_link_libraries(ginkgo_hip PUBLIC hip::device PRIVATE roc::hipblas roc::hi
 
 target_include_directories(ginkgo_hip
     PUBLIC
-    /opt/rocm/include
+        ${GINKGO_HIP_THRUST_PATH}
     PRIVATE
     $<BUILD_INTERFACE:${ROCPRIM_INCLUDE_DIRS}>)
 
