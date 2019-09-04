@@ -131,7 +131,7 @@ protected:
     std::shared_ptr<Mtx> dt_x;
     std::shared_ptr<Mtx> d_mat;
     std::shared_ptr<CsrMtx> d_csr_mat;
-    std::shared_ptr<gko::solver::SolveStruct> solve_struct;
+    std::shared_ptr<const gko::solver::SolveStruct> solve_struct;
 };
 
 

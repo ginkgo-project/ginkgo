@@ -49,6 +49,8 @@ namespace solver {
 
 
 #if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
+
+
 struct SolveStruct {
     int algorithm;
     csrsm2Info_t solve_info;
@@ -56,13 +58,62 @@ struct SolveStruct {
     cusparseMatDescr_t factor_descr;
     size_t factor_work_size;
     void *factor_work_vec;
+    SolveStruct()
+    {
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateMatDescr(&factor_descr));
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetMatIndexBase(factor_descr, CUSPARSE_INDEX_BASE_ZERO));
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetMatType(factor_descr, CUSPARSE_MATRIX_TYPE_GENERAL));
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetMatDiagType(factor_descr, CUSPARSE_DIAG_TYPE_NON_UNIT));
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateCsrsm2Info(&solve_info));
+        algorithm = 0;
+        policy = CUSPARSE_SOLVE_POLICY_USE_LEVEL;
+    }
+    SolveStruct(const SolveStruct &) {}
+    SolveStruct(SolveStruct &&) {}
+    SolveStruct &operator=(const SolveStruct &) { return *this; }
+    SolveStruct &operator=(SolveStruct &&) { return *this; }
+    ~SolveStruct()
+    {
+        cusparseDestroyMatDescr(factor_descr);
+        if (solve_info) {
+            cusparseDestroyCsrsm2Info(solve_info);
+        }
+        if (factor_work_vec != nullptr) {
+            cudaFree(factor_work_vec);
+        }
+    }
 };
 
+
 #elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
+
+
 struct SolveStruct {
     cusparseSolveAnalysisInfo_t solve_info;
     cusparseMatDescr_t factor_descr;
+    SolveStruct()
+    {
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseCreateSolveAnalysisInfo(&solve_info));
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateMatDescr(&factor_descr));
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetMatIndexBase(factor_descr, CUSPARSE_INDEX_BASE_ZERO));
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetMatType(factor_descr, CUSPARSE_MATRIX_TYPE_GENERAL));
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetMatDiagType(factor_descr, CUSPARSE_DIAG_TYPE_NON_UNIT));
+    }
+    ~SolveStruct()
+    {
+        cusparseDestroyMatDescr(factor_descr);
+        cusparseDestroySolveAnalysisInfo(solve_info);
+    }
 };
+
+
 #endif
 
 
@@ -518,53 +569,13 @@ inline void destroy(cusparseMatDescr_t descr)
 
 inline gko::solver::SolveStruct *init_trs_solve_struct()
 {
-#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
     gko::solver::SolveStruct *solve_struct = new gko::solver::SolveStruct{};
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(
-        cusparseCreateCsrsm2Info(&solve_struct->solve_info));
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(
-        cusparseCreateMatDescr(&solve_struct->factor_descr));
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatIndexBase(
-        solve_struct->factor_descr, CUSPARSE_INDEX_BASE_ZERO));
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatType(
-        solve_struct->factor_descr, CUSPARSE_MATRIX_TYPE_GENERAL));
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatDiagType(
-        solve_struct->factor_descr, CUSPARSE_DIAG_TYPE_NON_UNIT));
-    solve_struct->algorithm = 0;
-    solve_struct->policy = CUSPARSE_SOLVE_POLICY_USE_LEVEL;
-#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
-    gko::solver::SolveStruct *solve_struct = new gko::solver::SolveStruct{};
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(
-        cusparseCreateSolveAnalysisInfo(&solve_struct->solve_info));
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(
-        cusparseCreateMatDescr(&solve_struct->factor_descr));
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatIndexBase(
-        solve_struct->factor_descr, CUSPARSE_INDEX_BASE_ZERO));
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatType(
-        solve_struct->factor_descr, CUSPARSE_MATRIX_TYPE_GENERAL));
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatDiagType(
-        solve_struct->factor_descr, CUSPARSE_DIAG_TYPE_NON_UNIT));
-#endif
     return solve_struct;
 }
 
-inline void clear_trs_solve_struct(gko::solver::SolveStruct *solve_struct)
-{
+
+// CUDA versions 9.2 and above have csrsm2.
 #if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
-    cusparse::destroy(solve_struct->factor_descr);
-    if (solve_struct->solve_info) {
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(
-            cusparseDestroyCsrsm2Info(solve_struct->solve_info));
-    }
-    if (solve_struct->factor_work_vec != nullptr) {
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(solve_struct->factor_work_vec));
-    }
-#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
-    cusparse::destroy(solve_struct->factor_descr);
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(
-        cusparseDestroySolveAnalysisInfo(solve_struct->solve_info));
-#endif
-}
 
 
 #define GKO_BIND_CUSPARSE32_BUFFERSIZEEXT(ValueType, CusparseName)            \
@@ -600,9 +611,6 @@ inline void clear_trs_solve_struct(gko::solver::SolveStruct *solve_struct)
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
-
-#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
-// CUDA versions 9.1 and below do not have csrsm2.
 GKO_BIND_CUSPARSE32_BUFFERSIZEEXT(float, cusparseScsrsm2_bufferSizeExt);
 GKO_BIND_CUSPARSE32_BUFFERSIZEEXT(double, cusparseDcsrsm2_bufferSizeExt);
 GKO_BIND_CUSPARSE32_BUFFERSIZEEXT(std::complex<float>,
@@ -621,8 +629,6 @@ template <typename ValueType>
 GKO_BIND_CUSPARSE64_BUFFERSIZEEXT(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE32_BUFFERSIZEEXT
 #undef GKO_BIND_CUSPARSE64_BUFFERSIZEEXT
-
-#endif
 
 
 #define GKO_BIND_CUSPARSE32_CSRSM2_ANALYSIS(ValueType, CusparseName)          \
@@ -658,35 +664,6 @@ GKO_BIND_CUSPARSE64_BUFFERSIZEEXT(ValueType, detail::not_implemented);
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
-#define GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(ValueType, CusparseName)            \
-    inline void csrsm_analysis(                                                \
-        cusparseHandle_t handle, cusparseOperation_t trans, size_type m,       \
-        size_type nnz, const cusparseMatDescr_t descr,                         \
-        const ValueType *csrVal, const int32 *csrRowPtr,                       \
-        const int32 *csrColInd, cusparseSolveAnalysisInfo_t factor_info)       \
-    {                                                                          \
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                         \
-            CusparseName(handle, trans, m, nnz, descr, as_culibs_type(csrVal), \
-                         csrRowPtr, csrColInd, factor_info));                  \
-    }                                                                          \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
-                  "semi-colon warnings")
-
-#define GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(ValueType, CusparseName)      \
-    inline void csrsm_analysis(                                          \
-        cusparseHandle_t handle, cusparseOperation_t trans, size_type m, \
-        size_type nnz, const cusparseMatDescr_t descr,                   \
-        const ValueType *csrVal, const int64 *csrRowPtr,                 \
-        const int64 *csrColInd, cusparseSolveAnalysisInfo_t factor_info) \
-        GKO_NOT_IMPLEMENTED;                                             \
-    static_assert(true,                                                  \
-                  "This assert is used to counter the "                  \
-                  "false positive extra "                                \
-                  "semi-colon warnings")
-
-#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
-// CUDA versions 9.2 and above have csrsm2.
 GKO_BIND_CUSPARSE32_CSRSM2_ANALYSIS(float, cusparseScsrsm2_analysis);
 GKO_BIND_CUSPARSE32_CSRSM2_ANALYSIS(double, cusparseDcsrsm2_analysis);
 GKO_BIND_CUSPARSE32_CSRSM2_ANALYSIS(std::complex<float>,
@@ -705,27 +682,6 @@ template <typename ValueType>
 GKO_BIND_CUSPARSE64_CSRSM2_ANALYSIS(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE32_CSRSM2_ANALYSIS
 #undef GKO_BIND_CUSPARSE64_CSRSM2_ANALYSIS
-
-#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
-
-GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(float, cusparseScsrsm_analysis);
-GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(double, cusparseDcsrsm_analysis);
-GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(std::complex<float>,
-                                   cusparseCcsrsm_analysis);
-GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(std::complex<double>,
-                                   cusparseZcsrsm_analysis);
-GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(float, cusparseScsrsm_analysis);
-GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(double, cusparseDcsrsm_analysis);
-GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(std::complex<float>,
-                                   cusparseCcsrsm_analysis);
-GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(std::complex<double>,
-                                   cusparseZcsrsm_analysis);
-template <typename ValueType>
-GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(ValueType, detail::not_implemented);
-template <typename ValueType>
-GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(ValueType, detail::not_implemented);
-
-#endif
 
 
 #define GKO_BIND_CUSPARSE32_CSRSM2_SOLVE(ValueType, CusparseName)            \
@@ -761,6 +717,72 @@ GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(ValueType, detail::not_implemented);
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
+GKO_BIND_CUSPARSE32_CSRSM2_SOLVE(float, cusparseScsrsm2_solve);
+GKO_BIND_CUSPARSE32_CSRSM2_SOLVE(double, cusparseDcsrsm2_solve);
+GKO_BIND_CUSPARSE32_CSRSM2_SOLVE(std::complex<float>, cusparseCcsrsm2_solve);
+GKO_BIND_CUSPARSE32_CSRSM2_SOLVE(std::complex<double>, cusparseZcsrsm2_solve);
+GKO_BIND_CUSPARSE64_CSRSM2_SOLVE(float, cusparseScsrsm2_solve);
+GKO_BIND_CUSPARSE64_CSRSM2_SOLVE(double, cusparseDcsrsm2_solve);
+GKO_BIND_CUSPARSE64_CSRSM2_SOLVE(std::complex<float>, cusparseCcsrsm2_solve);
+GKO_BIND_CUSPARSE64_CSRSM2_SOLVE(std::complex<double>, cusparseZcsrsm2_solve);
+template <typename ValueType>
+GKO_BIND_CUSPARSE32_CSRSM2_SOLVE(ValueType, detail::not_implemented);
+template <typename ValueType>
+GKO_BIND_CUSPARSE64_CSRSM2_SOLVE(ValueType, detail::not_implemented);
+#undef GKO_BIND_CUSPARSE32_CSRSM2_SOLVE
+#undef GKO_BIND_CUSPARSE64_CSRSM2_SOLVE
+
+
+// CUDA_VERSION<=9.1 do not support csrsm2.
+#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
+
+
+#define GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(ValueType, CusparseName)            \
+    inline void csrsm_analysis(                                                \
+        cusparseHandle_t handle, cusparseOperation_t trans, size_type m,       \
+        size_type nnz, const cusparseMatDescr_t descr,                         \
+        const ValueType *csrVal, const int32 *csrRowPtr,                       \
+        const int32 *csrColInd, cusparseSolveAnalysisInfo_t factor_info)       \
+    {                                                                          \
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                         \
+            CusparseName(handle, trans, m, nnz, descr, as_culibs_type(csrVal), \
+                         csrRowPtr, csrColInd, factor_info));                  \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+#define GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(ValueType, CusparseName)      \
+    inline void csrsm_analysis(                                          \
+        cusparseHandle_t handle, cusparseOperation_t trans, size_type m, \
+        size_type nnz, const cusparseMatDescr_t descr,                   \
+        const ValueType *csrVal, const int64 *csrRowPtr,                 \
+        const int64 *csrColInd, cusparseSolveAnalysisInfo_t factor_info) \
+        GKO_NOT_IMPLEMENTED;                                             \
+    static_assert(true,                                                  \
+                  "This assert is used to counter the "                  \
+                  "false positive extra "                                \
+                  "semi-colon warnings")
+
+GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(float, cusparseScsrsm_analysis);
+GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(double, cusparseDcsrsm_analysis);
+GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(std::complex<float>,
+                                   cusparseCcsrsm_analysis);
+GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(std::complex<double>,
+                                   cusparseZcsrsm_analysis);
+GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(float, cusparseScsrsm_analysis);
+GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(double, cusparseDcsrsm_analysis);
+GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(std::complex<float>,
+                                   cusparseCcsrsm_analysis);
+GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(std::complex<double>,
+                                   cusparseZcsrsm_analysis);
+template <typename ValueType>
+GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS(ValueType, detail::not_implemented);
+template <typename ValueType>
+GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(ValueType, detail::not_implemented);
+#undef GKO_BIND_CUSPARSE32_CSRSM_ANALYSIS
+#undef GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS
+
 #define GKO_BIND_CUSPARSE32_CSRSM_SOLVE(ValueType, CusparseName)             \
     inline void csrsm_solve(                                                 \
         cusparseHandle_t handle, cusparseOperation_t trans, size_type m,     \
@@ -791,24 +813,6 @@ GKO_BIND_CUSPARSE64_CSRSM_ANALYSIS(ValueType, detail::not_implemented);
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
-#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
-GKO_BIND_CUSPARSE32_CSRSM2_SOLVE(float, cusparseScsrsm2_solve);
-GKO_BIND_CUSPARSE32_CSRSM2_SOLVE(double, cusparseDcsrsm2_solve);
-GKO_BIND_CUSPARSE32_CSRSM2_SOLVE(std::complex<float>, cusparseCcsrsm2_solve);
-GKO_BIND_CUSPARSE32_CSRSM2_SOLVE(std::complex<double>, cusparseZcsrsm2_solve);
-GKO_BIND_CUSPARSE64_CSRSM2_SOLVE(float, cusparseScsrsm2_solve);
-GKO_BIND_CUSPARSE64_CSRSM2_SOLVE(double, cusparseDcsrsm2_solve);
-GKO_BIND_CUSPARSE64_CSRSM2_SOLVE(std::complex<float>, cusparseCcsrsm2_solve);
-GKO_BIND_CUSPARSE64_CSRSM2_SOLVE(std::complex<double>, cusparseZcsrsm2_solve);
-template <typename ValueType>
-GKO_BIND_CUSPARSE32_CSRSM2_SOLVE(ValueType, detail::not_implemented);
-template <typename ValueType>
-GKO_BIND_CUSPARSE64_CSRSM2_SOLVE(ValueType, detail::not_implemented);
-#undef GKO_BIND_CUSPARSE32_CSRSM2_SOLVE
-#undef GKO_BIND_CUSPARSE64_CSRSM2_SOLVE
-
-#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
-
 GKO_BIND_CUSPARSE32_CSRSM_SOLVE(float, cusparseScsrsm_solve);
 GKO_BIND_CUSPARSE32_CSRSM_SOLVE(double, cusparseDcsrsm_solve);
 GKO_BIND_CUSPARSE32_CSRSM_SOLVE(std::complex<float>, cusparseCcsrsm_solve);
@@ -823,6 +827,7 @@ template <typename ValueType>
 GKO_BIND_CUSPARSE64_CSRSM_SOLVE(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE32_CSRSM_SOLVE
 #undef GKO_BIND_CUSPARSE64_CSRSM_SOLVE
+
 
 #endif
 
