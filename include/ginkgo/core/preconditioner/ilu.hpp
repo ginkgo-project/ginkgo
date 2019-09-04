@@ -66,13 +66,17 @@ namespace preconditioner {
  * while providing the defaults solver::LowerTrs and solver::UpperTrs.
  * For these solvers, a factory can be provided (with `with_l_solver_factory`
  * and `with_u_solver_factory`) to have more control over their behavior.
- * If these factories are not provided, the following criteria are set:
+ * In particular, it is possible to use an iterative method for solving the
+ * triangular systems. The default parameters for an iterative triangluar
+ * solver are:
  * - reduction factor = 1e-4
  * - max iteration = <number of rows of the matrix given to the solver>
- * If the solver does not support setting the criteria, none are provided.
+ * Solvers without such criteria can also be used, in which case none are set.
  *
  * @note This class is not thread safe (even a const object is not) because it
- *       uses an internal cache to accelerate multiple (sequential) applies
+ *       uses an internal cache to accelerate multiple (sequential) applies.
+ *       Using it in parallel can lead to segmentation faults, wrong results
+ *       and other unwanted behavior.
  *
  * @tparam LSolverType  type of the solver used for the L matrix.
  *                      Defaults to solver::LowerTrs
