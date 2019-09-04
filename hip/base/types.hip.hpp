@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_BASE_TYPES_HPP_
 
 
+#include <hip/device_functions.h>
 #include <hip/hip_complex.h>
 #include <hip/hip_runtime.h>
 #include <hipblas.h>
@@ -248,18 +249,17 @@ inline hiplibs_type<T> as_hiplibs_type(T val)
 }
 
 
-/* TODO: change this */
 struct hip_config {
     /**
-     * The number of threads within a HIP warp. Note that with HIP the warp_size
-     * should not be supposed to be 32.
+     * The number of threads within a HIP warp. Here, we use the definition from
+     * `device_functions.h`.
      */
-    static constexpr uint32 warp_size = 32;
+    static constexpr uint32 warp_size = warpSize;
 
     /**
      * The bitmask of the entire warp.
      */
-    static constexpr uint32 full_lane_mask = (1ll << warp_size) - 1;
+    static constexpr uint64 full_lane_mask = ~0;
 
     /**
      * The maximal number of threads allowed in a HIP warp.
