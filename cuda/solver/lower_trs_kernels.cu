@@ -70,9 +70,17 @@ void perform_transpose(std::shared_ptr<const CudaExecutor> exec,
                        bool &transposability)
 {
 #if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
+
+
     transposability = false;
+
+
 #elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
+
+
     transposability = true;
+
+
 #endif
 }
 
@@ -80,14 +88,8 @@ void perform_transpose(std::shared_ptr<const CudaExecutor> exec,
 void init_struct(std::shared_ptr<const CudaExecutor> exec,
                  std::shared_ptr<gko::solver::SolveStruct> &solve_struct)
 {
-    const auto id = exec->get_device_id();
-    device_guard g(id);
     solve_struct = std::shared_ptr<gko::solver::SolveStruct>(
-        kernels::cuda::cusparse::init_trs_solve_struct(),
-        [id](gko::solver::SolveStruct *solve_struct_) {
-            device_guard g(id);
-            kernels::cuda::cusparse::clear_trs_solve_struct(solve_struct_);
-        });
+        new gko::solver::SolveStruct());
 }
 
 
@@ -99,7 +101,11 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_cusparse_handle();
+
+
 #if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
+
+
         ValueType one = 1.0;
 
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
@@ -128,7 +134,9 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
 
+
 #elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
+
 
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
@@ -139,7 +147,11 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
             matrix->get_const_col_idxs(), solve_struct->solve_info);
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
+
+
 #endif
+
+
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -152,7 +164,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Csr<ValueType, IndexType> *matrix,
-           gko::solver::SolveStruct *solve_struct,
+           const gko::solver::SolveStruct *solve_struct,
            matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
            const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
@@ -160,7 +172,11 @@ void solve(std::shared_ptr<const CudaExecutor> exec,
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         ValueType one = 1.0;
         auto handle = exec->get_cusparse_handle();
+
+
 #if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
+
+
         x->copy_from(gko::lend(b));
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
@@ -174,7 +190,11 @@ void solve(std::shared_ptr<const CudaExecutor> exec,
             solve_struct->policy, solve_struct->factor_work_vec);
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
+
+
 #elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
+
+
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
         if (b->get_stride() == 1) {
@@ -200,7 +220,9 @@ void solve(std::shared_ptr<const CudaExecutor> exec,
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
 
+
 #endif
+
 
     } else {
         GKO_NOT_IMPLEMENTED;

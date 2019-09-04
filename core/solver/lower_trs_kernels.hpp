@@ -68,7 +68,7 @@ namespace lower_trs {
 #define GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(_vtype, _itype)                     \
     void solve(std::shared_ptr<const DefaultExecutor> exec,                    \
                const matrix::Csr<_vtype, _itype> *matrix,                      \
-               gko::solver::SolveStruct *solve_struct,                         \
+               const gko::solver::SolveStruct *solve_struct,                   \
                matrix::Dense<_vtype> *trans_b, matrix::Dense<_vtype> *trans_x, \
                const matrix::Dense<_vtype> *b, matrix::Dense<_vtype> *x)
 

@@ -88,7 +88,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const ReferenceExecutor> exec,
            const matrix::Csr<ValueType, IndexType> *matrix,
-           gko::solver::SolveStruct *solve_struct,
+           const gko::solver::SolveStruct *solve_struct,
            matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
            const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
