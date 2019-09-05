@@ -66,19 +66,19 @@ namespace cuda {
 namespace lower_trs {
 
 
-void perform_transpose(std::shared_ptr<const CudaExecutor> exec,
-                       bool &transposability)
+void should_perform_transpose(std::shared_ptr<const CudaExecutor> exec,
+                              bool &do_transpose)
 {
 #if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
 
 
-    transposability = false;
+    do_transpose = false;
 
 
 #elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
 
 
-    transposability = true;
+    do_transpose = true;
 
 
 #endif

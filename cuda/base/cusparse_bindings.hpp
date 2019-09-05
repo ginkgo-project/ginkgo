@@ -106,6 +106,10 @@ struct SolveStruct {
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetMatDiagType(factor_descr, CUSPARSE_DIAG_TYPE_NON_UNIT));
     }
+    SolveStruct(const SolveStruct &) {}
+    SolveStruct(SolveStruct &&) {}
+    SolveStruct &operator=(const SolveStruct &) { return *this; }
+    SolveStruct &operator=(SolveStruct &&) { return *this; }
     ~SolveStruct()
     {
         cusparseDestroyMatDescr(factor_descr);
