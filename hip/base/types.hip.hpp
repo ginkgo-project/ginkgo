@@ -259,7 +259,7 @@ struct hip_config {
     /**
      * The bitmask of the entire warp.
      */
-    static constexpr uint64 full_lane_mask = ~0;
+    static constexpr uint64 full_lane_mask = ~zero<uint64>();
 
     /**
      * The maximal number of threads allowed in a HIP warp.

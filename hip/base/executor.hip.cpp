@@ -165,7 +165,6 @@ int HipExecutor::get_num_devices()
 }
 
 
-// TODO: Fix this
 void HipExecutor::set_gpu_property()
 {
     if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
