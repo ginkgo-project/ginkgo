@@ -93,7 +93,9 @@ TEST_F(LowerTrs, RefLowerTrsFlagCheckIsCorrect)
 {
     bool trans_flag = true;
     bool expected_flag = false;
-    gko::kernels::reference::lower_trs::perform_transpose(ref, trans_flag);
+
+    gko::kernels::reference::lower_trs::should_perform_transpose(ref,
+                                                                 trans_flag);
 
     ASSERT_EQ(expected_flag, trans_flag);
 }

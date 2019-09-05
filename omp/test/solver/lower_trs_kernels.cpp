@@ -140,7 +140,7 @@ TEST_F(LowerTrs, OmpLowerTrsFlagCheckIsCorrect)
     bool trans_flag = true;
     bool expected_flag = false;
 
-    gko::kernels::omp::lower_trs::perform_transpose(omp, trans_flag);
+    gko::kernels::omp::lower_trs::should_perform_transpose(omp, trans_flag);
 
     ASSERT_EQ(expected_flag, trans_flag);
 }

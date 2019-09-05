@@ -59,10 +59,10 @@ namespace omp {
 namespace lower_trs {
 
 
-void perform_transpose(std::shared_ptr<const OmpExecutor> exec,
-                       bool &transposability)
+void should_perform_transpose(std::shared_ptr<const OmpExecutor> exec,
+                              bool &do_transpose)
 {
-    transposability = false;
+    do_transpose = false;
 }
 
 

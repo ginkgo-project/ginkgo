@@ -53,7 +53,8 @@ namespace lower_trs {
 
 GKO_REGISTER_OPERATION(generate, lower_trs::generate);
 GKO_REGISTER_OPERATION(init_struct, lower_trs::init_struct);
-GKO_REGISTER_OPERATION(perform_transpose, lower_trs::perform_transpose);
+GKO_REGISTER_OPERATION(should_perform_transpose,
+                       lower_trs::should_perform_transpose);
 GKO_REGISTER_OPERATION(solve, lower_trs::solve);
 
 
@@ -71,7 +72,7 @@ template <typename ValueType, typename IndexType>
 void LowerTrs<ValueType, IndexType>::generate()
 {
     this->get_executor()->run(lower_trs::make_generate(
-        gko::lend(system_matrix_), this->solve_struct_.get(),
+        gko::lend(system_matrix_), gko::lend(this->solve_struct_),
         parameters_.num_rhs));
 }
 
@@ -84,12 +85,12 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
-    bool transposability = false;
+    bool do_transpose = false;
     std::shared_ptr<Vector> trans_b;
     std::shared_ptr<Vector> trans_x;
     this->get_executor()->run(
-        lower_trs::make_perform_transpose(transposability));
-    if (transposability) {
+        lower_trs::make_should_perform_transpose(do_transpose));
+    if (do_transpose) {
         trans_b = Vector::create(exec, gko::transpose(dense_b->get_size()));
         trans_x = Vector::create(exec, gko::transpose(dense_x->get_size()));
     } else {
@@ -97,7 +98,7 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
         trans_x = Vector::create(exec);
     }
     exec->run(lower_trs::make_solve(
-        gko::lend(system_matrix_), this->solve_struct_.get(),
+        gko::lend(system_matrix_), gko::lend(this->solve_struct_),
         gko::lend(trans_b), gko::lend(trans_x), dense_b, dense_x));
 }
 

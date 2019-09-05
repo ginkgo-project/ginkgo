@@ -131,13 +131,7 @@ TEST_F(LowerTrs, CudaLowerTrsFlagCheckIsCorrect)
     bool expected_flag = false;
 
 
-#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
-
-
-    expected_flag = false;
-
-
-#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
+#if (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
 
 
     expected_flag = true;
@@ -146,7 +140,7 @@ TEST_F(LowerTrs, CudaLowerTrsFlagCheckIsCorrect)
 #endif
 
 
-    gko::kernels::cuda::lower_trs::perform_transpose(cuda, trans_flag);
+    gko::kernels::cuda::lower_trs::should_perform_transpose(cuda, trans_flag);
 
     ASSERT_EQ(expected_flag, trans_flag);
 }
