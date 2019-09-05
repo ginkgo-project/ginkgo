@@ -79,7 +79,7 @@ namespace {
  * The device function of COO spmv
  *
  * @param nnz  the number of nonzeros in the matrix
- * @param num_line  the maximum round of each warp
+ * @param num_lines  the maximum round of each warp
  * @param val  the value array of the matrix
  * @param col  the column index array of the matrix
  * @param row  the row index array of the matrix
@@ -179,6 +179,7 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
  * @param val  the value array of the matrix
  * @param col  the column index array of the matrix
  * @param row  the row index array of the matrix
+ * @param num_cols the number of columns of the matrix
  * @param b  the input dense vector
  * @param b_stride  the stride of the input dense vector
  * @param c  the output dense vector
@@ -290,7 +291,7 @@ void spmv2(std::shared_ptr<const CudaExecutor> exec,
 
     auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
     if (nwarps > 0) {
-        if (b->get_size()[1] == 1) {
+        if (b->get_size()[1] < 4) {
             int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
             const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
@@ -331,10 +332,11 @@ void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
 
     auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
     if (nwarps > 0) {
-        if (b->get_size()[1] == 1) {
+        if (b->get_size()[1] < 4) {
             int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
             const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
-            const dim3 coo_grid(ceildiv(nwarps, warps_in_block));
+            const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
+                                b->get_size()[1]);
             abstract_spmv<<<coo_grid, coo_block>>>(
                 nnz, num_lines, as_cuda_type(alpha->get_const_values()),
                 as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
