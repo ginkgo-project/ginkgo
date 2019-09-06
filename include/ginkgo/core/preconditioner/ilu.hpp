@@ -45,8 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-// #include <ginkgo/core/solver/lower_trs.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
+#include <ginkgo/core/solver/lower_trs.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
@@ -90,7 +90,7 @@ namespace preconditioner {
  * @ingroup precond
  * @ingroup LinOp
  */
-template <typename LSolverType = solver::Bicgstab<>,
+template <typename LSolverType = solver::LowerTrs<>,
           typename USolverType = solver::Bicgstab<>, bool ReverseApply = false>
 class Ilu : public EnableLinOp<Ilu<LSolverType, USolverType, ReverseApply>> {
     friend class EnableLinOp<Ilu>;
