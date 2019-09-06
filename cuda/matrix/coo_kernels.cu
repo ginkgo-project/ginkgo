@@ -172,7 +172,7 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
 
 
 /**
- * The device function of COO spmv
+ * The device function of COO spmm
  *
  * @param nnz  the number of nonzeros in the matrix
  * @param num_elems  the maximum number of nonzeros in each warp
@@ -290,10 +290,10 @@ void spmv2(std::shared_ptr<const CudaExecutor> exec,
     auto nnz = a->get_num_stored_elements();
 
     auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
     if (nwarps > 0) {
         if (b->get_size()[1] < 4) {
             int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
-            const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
                                 b->get_size()[1]);
             abstract_spmv<<<coo_grid, coo_block>>>(
@@ -304,7 +304,6 @@ void spmv2(std::shared_ptr<const CudaExecutor> exec,
         } else {
             int num_elems = ceildiv(nnz, nwarps * cuda_config::warp_size) *
                             cuda_config::warp_size;
-            const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
             const dim3 coo_grid(
                 ceildiv(nwarps, warps_in_block),
                 ceildiv(b->get_size()[1], cuda_config::warp_size));
@@ -331,10 +330,10 @@ void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
     auto nnz = a->get_num_stored_elements();
 
     auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
     if (nwarps > 0) {
         if (b->get_size()[1] < 4) {
             int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
-            const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
                                 b->get_size()[1]);
             abstract_spmv<<<coo_grid, coo_block>>>(
@@ -346,7 +345,6 @@ void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
         } else {
             int num_elems = ceildiv(nnz, nwarps * cuda_config::warp_size) *
                             cuda_config::warp_size;
-            const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
             const dim3 coo_grid(
                 ceildiv(nwarps, warps_in_block),
                 ceildiv(b->get_size()[1], cuda_config::warp_size));
