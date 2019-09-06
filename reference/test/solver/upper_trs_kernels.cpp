@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/upper_trs.hpp>
 
 
+#include <memory>
+
+
 #include <gtest/gtest.h>
 
 
@@ -90,7 +93,9 @@ TEST_F(UpperTrs, RefUpperTrsFlagCheckIsCorrect)
 {
     bool trans_flag = true;
     bool expected_flag = false;
-    gko::kernels::reference::upper_trs::perform_transpose(ref, trans_flag);
+
+    gko::kernels::reference::upper_trs::should_perform_transpose(ref,
+                                                                 trans_flag);
 
     ASSERT_EQ(expected_flag, trans_flag);
 }
