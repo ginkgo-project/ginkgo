@@ -55,20 +55,20 @@ namespace lower_trs {
 
 #define GKO_DECLARE_LOWER_TRS_INIT_STRUCT_KERNEL()                \
     void init_struct(std::shared_ptr<const DefaultExecutor> exec, \
-                     std::shared_ptr<gko::solver::SolveStruct> &solve_struct)
+                     std::shared_ptr<solver::SolveStruct> &solve_struct)
 
 
 #define GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL(_vtype, _itype)  \
     void generate(std::shared_ptr<const DefaultExecutor> exec, \
                   const matrix::Csr<_vtype, _itype> *matrix,   \
-                  gko::solver::SolveStruct *solve_struct,      \
+                  solver::SolveStruct *solve_struct,           \
                   const gko::size_type num_rhs)
 
 
 #define GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(_vtype, _itype)                     \
     void solve(std::shared_ptr<const DefaultExecutor> exec,                    \
                const matrix::Csr<_vtype, _itype> *matrix,                      \
-               const gko::solver::SolveStruct *solve_struct,                   \
+               const solver::SolveStruct *solve_struct,                        \
                matrix::Dense<_vtype> *trans_b, matrix::Dense<_vtype> *trans_x, \
                const matrix::Dense<_vtype> *b, matrix::Dense<_vtype> *x)
 
