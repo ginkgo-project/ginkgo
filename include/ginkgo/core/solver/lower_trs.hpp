@@ -54,112 +54,7 @@ namespace gko {
 namespace solver {
 
 
-template <typename ValueType, typename IndexType>
-class LowerTrs;
-
-
-/**
- * This struct is used to pass parameters to the
- * EnableDefaultLowerTrsFactory::generate() method. It is the
- * ComponentsType of LowerTrsFactory.
- *
- * @tparam ValueType  precision of matrix elements
- */
-template <typename ValueType>
-struct LowerTrsArgs {
-    std::shared_ptr<const LinOp> system_matrix;
-    std::shared_ptr<const matrix::Dense<ValueType>> b;
-
-
-    LowerTrsArgs(std::shared_ptr<const LinOp> system_matrix,
-                 std::shared_ptr<const matrix::Dense<ValueType>> b)
-        : system_matrix{system_matrix}, b{b}
-    {}
-};
-
-
-/**
- * Declares an Abstract Factory specialized for LowerTrs solver.
- *
- * @tparam ValueType  precision of matrix elements
- * @tparam IndexType  precision of matrix indexes
- */
-template <typename ValueType, typename IndexType>
-using LowerTrsFactory =
-    AbstractFactory<LowerTrs<ValueType, IndexType>, LowerTrsArgs<ValueType>>;
-
-
-/**
- * This is an alias for the EnableDefaultFactory mixin, which correctly sets the
- * template parameters to enable a subclass of LowerTrsFactory.
- *
- * @tparam ConcreteFactory  the concrete factory which is being implemented
- *                          [CRTP parmeter]
- * @tparam ConcreteLowerTrs  the concrete LowerTrs type which this factory
- *                           produces, needs to have a constructor which takes
- *                           a const ConcreteFactory *, and a
- *                           const LowerTrsArgs * as parameters.
- * @tparam ParametersType  a subclass of enable_parameters_type template which
- *                         defines all of the parameters of the factory
- * @tparam ValueType  precision of matrix elements
- * @tparam IndexType  precision of matrix indexes
- */
-template <typename ConcreteFactory, typename ConcreteLowerTrs,
-          typename ParametersType, typename ValueType, typename IndexType>
-using EnableDefaultLowerTrsFactory =
-    EnableDefaultFactory<ConcreteFactory, ConcreteLowerTrs, ParametersType,
-                         LowerTrsFactory<ValueType, IndexType>>;
-
-
-/**
- * This macro will generate a default implementation of a LowerTrsFactory for
- * the LowerTrs subclass it is defined in.
- *
- * This macro is very similar to the macro #ENABLE_LIN_OP_FACTORY(). A more
- * detailed description of the use of these type of macros can be found there.
- *
- * @param _lower_trs  concrete operator for which the factory is to be created
- *                    [CRTP parameter]
- * @param _parameters_name  name of the parameters member in the class
- *                          (its type is `<_parameters_name>_type`, the
- *                          protected member's name is `<_parameters_name>_`,
- *                          and the public getter's name is
- *                          `get_<_parameters_name>()`)
- * @param _factory_name  name of the generated factory type
- *
- * @ingroup solvers
- */
-#define GKO_ENABLE_LOWER_TRS_FACTORY(_lower_trs, _parameters_name,             \
-                                     _factory_name)                            \
-public:                                                                        \
-    const _parameters_name##_type &get_##_parameters_name() const              \
-    {                                                                          \
-        return _parameters_name##_;                                            \
-    }                                                                          \
-                                                                               \
-    class _factory_name : public ::gko::solver::EnableDefaultLowerTrsFactory<  \
-                              _factory_name, _lower_trs,                       \
-                              _parameters_name##_type, ValueType, IndexType> { \
-        friend class ::gko::EnablePolymorphicObject<                           \
-            _factory_name,                                                     \
-            ::gko::solver::LowerTrsFactory<ValueType, IndexType>>;             \
-        friend class ::gko::enable_parameters_type<_parameters_name##_type,    \
-                                                   _factory_name>;             \
-        using ::gko::solver::EnableDefaultLowerTrsFactory<                     \
-            _factory_name, _lower_trs, _parameters_name##_type, ValueType,     \
-            IndexType>::EnableDefaultLowerTrsFactory;                          \
-    };                                                                         \
-    friend ::gko::solver::EnableDefaultLowerTrsFactory<                        \
-        _factory_name, _lower_trs, _parameters_name##_type, ValueType,         \
-        IndexType>;                                                            \
-                                                                               \
-private:                                                                       \
-    _parameters_name##_type _parameters_name##_;                               \
-                                                                               \
-public:                                                                        \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
-                  "semi-colon warnings")
+struct SolveStruct;
 
 
 /**
@@ -167,6 +62,11 @@ public:                                                                        \
  * a lower triangular matrix. It works best when passing in a matrix in CSR
  * format. If the matrix is not in CSR, then the generate step converts it into
  * a CSR matrix. The generation fails if the matrix is not convertible to CSR.
+ *
+ * @note As the constructor uses the copy and convert functionality, it is not
+ *       possible to create a empty solver or a solver with a matrix in any
+ *       other format other than CSR, if none of the executor modules are being
+ *       compiled with.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indices
@@ -196,16 +96,6 @@ public:
     }
 
     /**
-     * Gets the right hand side of the linear system.
-     *
-     * @return the right hand side
-     */
-    std::shared_ptr<const matrix::Dense<ValueType>> get_rhs() const
-    {
-        return b_;
-    }
-
-    /**
      * Returns the preconditioner operator used by the solver.
      *
      * @return the preconditioner operator used by the solver
@@ -222,11 +112,24 @@ public:
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
             preconditioner, nullptr);
+
+        /**
+         * Number of right hand sides.
+         *
+         * @note This value is currently a dummy value which is not used by the
+         *       analysis step. It is possible that future algorithms (cusparse
+         *       csrsm2) make use of the number of right hand sides for a more
+         *       sophisticated implementation. Hence this parameter is left
+         *       here. But currently, there is no need to use it.
+         */
+        gko::size_type GKO_FACTORY_PARAMETER(num_rhs, 1u);
     };
-    GKO_ENABLE_LOWER_TRS_FACTORY(LowerTrs, parameters, Factory);
+    GKO_ENABLE_LIN_OP_FACTORY(LowerTrs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
+    void init_trs_solve_struct();
+
     void apply_impl(const LinOp *b, LinOp *x) const override;
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
@@ -243,24 +146,23 @@ protected:
     {}
 
     explicit LowerTrs(const Factory *factory,
-                      const LowerTrsArgs<ValueType> &args)
-        : parameters_{factory->get_parameters()},
-          EnableLinOp<LowerTrs>(factory->get_executor(),
-                                transpose(args.system_matrix->get_size())),
-          b_{std::move(args.b)},
+                      std::shared_ptr<const LinOp> system_matrix)
+        : EnableLinOp<LowerTrs>(factory->get_executor(),
+                                transpose(system_matrix->get_size())),
+          parameters_{factory->get_parameters()},
           system_matrix_{}
     {
         using CsrMatrix = matrix::Csr<ValueType, IndexType>;
 
-        GKO_ASSERT_IS_SQUARE_MATRIX(args.system_matrix);
+        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
         // This is needed because it does not make sense to call the copy and
         // convert if the existing matrix is empty.
         const auto exec = this->get_executor();
-        if (!args.system_matrix->get_size()) {
+        if (!system_matrix->get_size()) {
             system_matrix_ = CsrMatrix::create(exec);
         } else {
             system_matrix_ =
-                copy_and_convert_to<CsrMatrix>(exec, args.system_matrix);
+                copy_and_convert_to<CsrMatrix>(exec, system_matrix);
         }
         if (parameters_.preconditioner) {
             preconditioner_ =
@@ -269,13 +171,14 @@ protected:
             preconditioner_ = matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size()[0]);
         }
+        this->init_trs_solve_struct();
         this->generate();
     }
 
 private:
     std::shared_ptr<const matrix::Csr<ValueType, IndexType>> system_matrix_{};
-    std::shared_ptr<const matrix::Dense<ValueType>> b_{};
     std::shared_ptr<const LinOp> preconditioner_{};
+    std::shared_ptr<solver::SolveStruct> solve_struct_;
 };
 
 

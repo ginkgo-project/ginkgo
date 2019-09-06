@@ -96,7 +96,7 @@ GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned short int);
 #endif
 
-#undef GKO_BIND_ATOMIC_HELPER__STRUCTURE
+#undef GKO_BIND_ATOMIC_HELPER_STRUCTURE
 
 
 }  // namespace detail

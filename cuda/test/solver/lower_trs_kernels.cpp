@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 
 
+#include <cuda.h>
 #include <gtest/gtest.h>
 
 
@@ -55,25 +56,26 @@ namespace {
 
 class LowerTrs : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
     using CsrMtx = gko::matrix::Csr<double, gko::int32>;
+    using Mtx = gko::matrix::Dense<>;
 
     LowerTrs() : rand_engine(30) {}
 
     void SetUp()
     {
+        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        omp = gko::OmpExecutor::create();
+        cuda = gko::CudaExecutor::create(0, ref);
     }
 
     void TearDown()
     {
-        if (omp != nullptr) {
-            ASSERT_NO_THROW(omp->synchronize());
+        if (cuda != nullptr) {
+            ASSERT_NO_THROW(cuda->synchronize());
         }
     }
 
-    std::shared_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
+    std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
     {
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
@@ -81,7 +83,7 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    std::shared_ptr<Mtx> gen_l_mtx(int num_rows, int num_cols)
+    std::unique_ptr<Mtx> gen_l_mtx(int num_rows, int num_cols)
     {
         return gko::test::generate_random_lower_triangular_matrix<Mtx>(
             num_rows, num_cols, false,
@@ -91,86 +93,84 @@ protected:
 
     void initialize_data(int m, int n)
     {
+        mtx = gen_l_mtx(m, m);
         b = gen_mtx(m, n);
         x = gen_mtx(m, n);
-        t_b = Mtx::create(ref);
-        t_x = Mtx::create(ref);
-        t_b->copy_from(b.get());
-        t_x->copy_from(x.get());
-        d_b = Mtx::create(omp);
-        d_b->copy_from(b.get());
-        d_x = Mtx::create(omp);
+        csr_mtx = CsrMtx::create(ref);
+        mtx->convert_to(csr_mtx.get());
+        d_csr_mtx = CsrMtx::create(cuda);
+        d_x = Mtx::create(cuda);
         d_x->copy_from(x.get());
-        dt_b = Mtx::create(omp);
-        dt_b->copy_from(b.get());
-        dt_x = Mtx::create(omp);
-        dt_x->copy_from(x.get());
-        mat = gen_l_mtx(m, m);
-        csr_mat = CsrMtx::create(ref);
-        mat->convert_to(csr_mat.get());
-        d_mat = Mtx::create(omp);
-        d_mat->copy_from(mat.get());
-        d_csr_mat = CsrMtx::create(omp);
-        d_csr_mat->copy_from(csr_mat.get());
+        d_csr_mtx->copy_from(csr_mtx.get());
+        b2 = Mtx::create(ref);
+        d_b2 = Mtx::create(cuda);
+        d_b2->copy_from(b.get());
+        b2->copy_from(b.get());
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::OmpExecutor> omp;
-
-    std::ranlux48 rand_engine;
-
     std::shared_ptr<Mtx> b;
+    std::shared_ptr<Mtx> b2;
     std::shared_ptr<Mtx> x;
-    std::shared_ptr<Mtx> t_b;
-    std::shared_ptr<Mtx> t_x;
-    std::shared_ptr<Mtx> mat;
-    std::shared_ptr<CsrMtx> csr_mat;
+    std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<CsrMtx> csr_mtx;
     std::shared_ptr<Mtx> d_b;
+    std::shared_ptr<Mtx> d_b2;
     std::shared_ptr<Mtx> d_x;
-    std::shared_ptr<Mtx> dt_b;
-    std::shared_ptr<Mtx> dt_x;
-    std::shared_ptr<Mtx> d_mat;
-    std::shared_ptr<CsrMtx> d_csr_mat;
-    std::shared_ptr<const gko::solver::SolveStruct> solve_struct;
+    std::shared_ptr<CsrMtx> d_csr_mtx;
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<const gko::CudaExecutor> cuda;
+    std::ranlux48 rand_engine;
 };
 
 
-TEST_F(LowerTrs, OmpLowerTrsFlagCheckIsCorrect)
+TEST_F(LowerTrs, CudaLowerTrsFlagCheckIsCorrect)
 {
     bool trans_flag = true;
     bool expected_flag = false;
 
-    gko::kernels::omp::lower_trs::should_perform_transpose(omp, trans_flag);
+
+#if (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
+
+
+    expected_flag = true;
+
+
+#endif
+
+
+    gko::kernels::cuda::lower_trs::should_perform_transpose(cuda, trans_flag);
 
     ASSERT_EQ(expected_flag, trans_flag);
 }
 
 
-TEST_F(LowerTrs, OmpLowerTrsSolveIsEquivalentToRef)
+TEST_F(LowerTrs, CudaSingleRhsApplyIsEquivalentToRef)
 {
-    initialize_data(59, 43);
+    initialize_data(50, 1);
+    auto lower_trs_factory = gko::solver::LowerTrs<>::build().on(ref);
+    auto d_lower_trs_factory = gko::solver::LowerTrs<>::build().on(cuda);
+    auto solver = lower_trs_factory->generate(csr_mtx);
+    auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
 
-    gko::kernels::reference::lower_trs::solve(ref, csr_mat.get(),
-                                              solve_struct.get(), t_b.get(),
-                                              t_x.get(), b.get(), x.get());
-    gko::kernels::omp::lower_trs::solve(omp, d_csr_mat.get(),
-                                        solve_struct.get(), dt_b.get(),
-                                        dt_x.get(), d_b.get(), d_x.get());
+    solver->apply(b2.get(), x.get());
+    d_solver->apply(d_b2.get(), d_x.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
 
 
-TEST_F(LowerTrs, ApplyIsEquivalentToRef)
+TEST_F(LowerTrs, CudaMultipleRhsApplyIsEquivalentToRef)
 {
-    initialize_data(59, 3);
-    auto lower_trs_factory = gko::solver::LowerTrs<>::build().on(ref);
-    auto d_lower_trs_factory = gko::solver::LowerTrs<>::build().on(omp);
-    auto solver = lower_trs_factory->generate(csr_mat);
-    auto d_solver = d_lower_trs_factory->generate(d_csr_mat);
+    initialize_data(50, 3);
+    auto lower_trs_factory =
+        gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(ref);
+    auto d_lower_trs_factory =
+        gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(cuda);
+    auto solver = lower_trs_factory->generate(csr_mtx);
+    auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
 
-    solver->apply(b.get(), x.get());
-    d_solver->apply(d_b.get(), d_x.get());
+    solver->apply(b2.get(), x.get());
+    d_solver->apply(d_b2.get(), d_x.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }

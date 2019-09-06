@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/lower_trs.hpp>
 
 
 namespace gko {
@@ -58,10 +59,25 @@ namespace omp {
 namespace lower_trs {
 
 
+void should_perform_transpose(std::shared_ptr<const OmpExecutor> exec,
+                              bool &do_transpose)
+{
+    do_transpose = false;
+}
+
+
+void init_struct(std::shared_ptr<const OmpExecutor> exec,
+                 std::shared_ptr<solver::SolveStruct> &solve_struct)
+{
+    // This init kernel is here to allow initialization of the solve struct for
+    // a more sophisticated implementation as for other executors.
+}
+
+
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const OmpExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *matrix,
-              const matrix::Dense<ValueType> *b)
+              solver::SolveStruct *solve_struct, const gko::size_type num_rhs)
 {
     // This generate kernel is here to allow for a more sophisticated
     // implementation as for other executors. This kernel would perform the
@@ -72,9 +88,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL);
 
 
+/**
+ * The parameters trans_x and trans_b are used only in the CUDA executor for
+ * versions <=9.1 due to a limitation in the cssrsm_solve algorithm
+ */
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const OmpExecutor> exec,
            const matrix::Csr<ValueType, IndexType> *matrix,
+           const solver::SolveStruct *solve_struct,
+           matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
            const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
     auto row_ptrs = matrix->get_const_row_ptrs();
