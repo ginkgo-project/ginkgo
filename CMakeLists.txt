@@ -36,9 +36,11 @@ set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
     "A list of target NVIDIA GPU achitectures. See README.md for more detail.")
 option(GINKGO_CUDA_DEFAULT_HOST_COMPILER "Tell Ginkgo to not automatically set the CUDA host compiler" OFF)
 set(GINKGO_HIP_COMPILER_FLAGS "" CACHE STRING
-    "Set the required device compiler flags, mainly used for warnings. Current default is an empty string")
-set(GINKGO_HIP_PLATFORM "hcc" CACHE STRING
-    "The HIP_PLATFORM variable used by hipcc. Can be either nvcc or hcc. The default is hcc.")
+    "Set the required HIP compiler flags. Current default is an empty string.")
+set(GINKGO_HIP_NVCC_COMPILER_FLAGS "" CACHE STRING
+    "Set the required HIP nvcc compiler flags. Current default is an empty string.")
+set(GINKGO_HIP_HCC_COMPILER_FLAGS "" CACHE STRING
+    "Set the required HIPC HCC compiler flags. Current default is an empty string.")
 set(GINKGO_HIP_AMDGPU "" CACHE STRING
     "The amdgpu_target(s) variable passed to hipcc. The default is none (auto).")
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
@@ -162,12 +164,6 @@ endif()
 # HIP needs to be last because it builds the GINKGO_RPATH_FOR_HIP variable
 # which needs to know the `ginkgo` target.
 if(GINKGO_BUILD_HIP)
-    if (GINKGO_HIP_PLATFORM)
-        set(ENV{HIP_PLATFORM} ${GINKGO_HIP_PLATFORM} FORCE CACHE)
-    else()
-        message(FATAL_ERROR "A platform needs to be set for HIP. Set the CMake variable GINKGO_HIP_PLATFORM.")
-    endif()
-
     add_subdirectory(hip)        # High-performance kernels for AMD or NVIDIA GPUs
 endif()
 
