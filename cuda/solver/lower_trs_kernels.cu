@@ -86,18 +86,17 @@ void should_perform_transpose(std::shared_ptr<const CudaExecutor> exec,
 
 
 void init_struct(std::shared_ptr<const CudaExecutor> exec,
-                 std::shared_ptr<gko::solver::SolveStruct> &solve_struct)
+                 std::shared_ptr<solver::SolveStruct> &solve_struct)
 {
-    solve_struct = std::shared_ptr<gko::solver::SolveStruct>(
-        new gko::solver::SolveStruct());
+    solve_struct =
+        std::shared_ptr<solver::SolveStruct>(new solver::SolveStruct());
 }
 
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const CudaExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *matrix,
-              gko::solver::SolveStruct *solve_struct,
-              const gko::size_type num_rhs)
+              solver::SolveStruct *solve_struct, const gko::size_type num_rhs)
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_cusparse_handle();
@@ -120,6 +119,9 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
             &solve_struct->factor_work_size);
 
         // allocate workspace
+        if (solve_struct->factor_work_vec != nullptr) {
+            GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(solve_struct->factor_work_vec));
+        }
         solve_struct->factor_work_vec =
             exec->alloc<void *>(solve_struct->factor_work_size);
 
@@ -164,7 +166,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Csr<ValueType, IndexType> *matrix,
-           const gko::solver::SolveStruct *solve_struct,
+           const solver::SolveStruct *solve_struct,
            matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
            const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {

@@ -85,6 +85,12 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
+
+    // This kernel checks if a transpose is needed for the multiple rhs case.
+    // Currently only the algorithm for CUDA version <=9.1 needs this
+    // transposition due to the limitation in the cusparse algorithm. The other
+    // executors (omp and reference) do not use the transpose (trans_x and
+    // trans_b) and hence are passed in empty pointers.
     bool do_transpose = false;
     std::shared_ptr<Vector> trans_b;
     std::shared_ptr<Vector> trans_x;

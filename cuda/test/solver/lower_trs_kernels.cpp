@@ -37,10 +37,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 
 
-#include <gtest/gtest.h>
-
-
 #include <cuda.h>
+#include <gtest/gtest.h>
 
 
 #include <ginkgo/core/base/exception.hpp>

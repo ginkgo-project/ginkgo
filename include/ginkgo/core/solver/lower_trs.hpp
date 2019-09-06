@@ -63,6 +63,11 @@ struct SolveStruct;
  * format. If the matrix is not in CSR, then the generate step converts it into
  * a CSR matrix. The generation fails if the matrix is not convertible to CSR.
  *
+ * @note As the constructor uses the copy and convert functionality, it is not
+ *       possible to create a empty solver or a solver with a matrix in any
+ *       other format other than CSR, if none of the executor modules are being
+ *       compiled with.
+ *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indices
  *
@@ -111,11 +116,11 @@ public:
         /**
          * Number of right hand sides.
          *
-         * @note: This value is currently a dummy value which is not used by the
-         * analysis step. It is possible that future algorithms (cusparse
-         * csrsm2) make use of the number of right hand sides for a more
-         * sophisticated implementation. Hence this parameter is left here. But
-         * currently, there is no need to use it.
+         * @note This value is currently a dummy value which is not used by the
+         *       analysis step. It is possible that future algorithms (cusparse
+         *       csrsm2) make use of the number of right hand sides for a more
+         *       sophisticated implementation. Hence this parameter is left
+         *       here. But currently, there is no need to use it.
          */
         gko::size_type GKO_FACTORY_PARAMETER(num_rhs, 1u);
     };
@@ -173,7 +178,7 @@ protected:
 private:
     std::shared_ptr<const matrix::Csr<ValueType, IndexType>> system_matrix_{};
     std::shared_ptr<const LinOp> preconditioner_{};
-    std::shared_ptr<gko::solver::SolveStruct> solve_struct_;
+    std::shared_ptr<solver::SolveStruct> solve_struct_;
 };
 
 

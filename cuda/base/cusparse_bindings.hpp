@@ -60,6 +60,7 @@ struct SolveStruct {
     void *factor_work_vec;
     SolveStruct()
     {
+        factor_work_vec = nullptr;
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateMatDescr(&factor_descr));
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetMatIndexBase(factor_descr, CUSPARSE_INDEX_BASE_ZERO));
@@ -71,8 +72,8 @@ struct SolveStruct {
         algorithm = 0;
         policy = CUSPARSE_SOLVE_POLICY_USE_LEVEL;
     }
-    SolveStruct(const SolveStruct &) {}
-    SolveStruct(SolveStruct &&) {}
+    SolveStruct(const SolveStruct &) : SolveStruct() {}
+    SolveStruct(SolveStruct &&) : SolveStruct() {}
     SolveStruct &operator=(const SolveStruct &) { return *this; }
     SolveStruct &operator=(SolveStruct &&) { return *this; }
     ~SolveStruct()
@@ -83,6 +84,7 @@ struct SolveStruct {
         }
         if (factor_work_vec != nullptr) {
             cudaFree(factor_work_vec);
+            factor_work_vec = nullptr;
         }
     }
 };
@@ -106,8 +108,8 @@ struct SolveStruct {
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetMatDiagType(factor_descr, CUSPARSE_DIAG_TYPE_NON_UNIT));
     }
-    SolveStruct(const SolveStruct &) {}
-    SolveStruct(SolveStruct &&) {}
+    SolveStruct(const SolveStruct &) : SolveStruct() {}
+    SolveStruct(SolveStruct &&) : SolveStruct() {}
     SolveStruct &operator=(const SolveStruct &) { return *this; }
     SolveStruct &operator=(SolveStruct &&) { return *this; }
     ~SolveStruct()
@@ -568,13 +570,6 @@ inline cusparseMatDescr_t create_mat_descr()
 inline void destroy(cusparseMatDescr_t descr)
 {
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(descr));
-}
-
-
-inline gko::solver::SolveStruct *init_trs_solve_struct()
-{
-    gko::solver::SolveStruct *solve_struct = new gko::solver::SolveStruct{};
-    return solve_struct;
 }
 
 
