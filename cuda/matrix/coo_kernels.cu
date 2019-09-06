@@ -287,15 +287,15 @@ void spmv2(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Coo<ValueType, IndexType> *a,
            const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    auto nnz = a->get_num_stored_elements();
-
-    auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    const auto nnz = a->get_num_stored_elements();
+    const auto b_ncols = b->get_size()[1];
     const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
+    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+
     if (nwarps > 0) {
-        if (b->get_size()[1] < 4) {
+        if (b_ncols < 4) {
+            const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
             int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
-            const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
-                                b->get_size()[1]);
             abstract_spmv<<<coo_grid, coo_block>>>(
                 nnz, num_lines, as_cuda_type(a->get_const_values()),
                 a->get_const_col_idxs(), as_cuda_type(a->get_const_row_idxs()),
@@ -304,15 +304,13 @@ void spmv2(std::shared_ptr<const CudaExecutor> exec,
         } else {
             int num_elems = ceildiv(nnz, nwarps * cuda_config::warp_size) *
                             cuda_config::warp_size;
-            const dim3 coo_grid(
-                ceildiv(nwarps, warps_in_block),
-                ceildiv(b->get_size()[1], cuda_config::warp_size));
+            const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
+                                ceildiv(b_ncols, cuda_config::warp_size));
             abstract_spmm<<<coo_grid, coo_block>>>(
                 nnz, num_elems, as_cuda_type(a->get_const_values()),
                 a->get_const_col_idxs(), as_cuda_type(a->get_const_row_idxs()),
-                b->get_size()[1], as_cuda_type(b->get_const_values()),
-                b->get_stride(), as_cuda_type(c->get_values()),
-                c->get_stride());
+                b_ncols, as_cuda_type(b->get_const_values()), b->get_stride(),
+                as_cuda_type(c->get_values()), c->get_stride());
         }
     }
 }
@@ -327,15 +325,15 @@ void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Dense<ValueType> *b,
                     matrix::Dense<ValueType> *c)
 {
-    auto nnz = a->get_num_stored_elements();
-
-    auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
+    const auto nnz = a->get_num_stored_elements();
+    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
     const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
+    const auto b_ncols = b->get_size()[1];
+
     if (nwarps > 0) {
-        if (b->get_size()[1] < 4) {
+        if (b_ncols < 4) {
             int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
-            const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
-                                b->get_size()[1]);
+            const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
             abstract_spmv<<<coo_grid, coo_block>>>(
                 nnz, num_lines, as_cuda_type(alpha->get_const_values()),
                 as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
@@ -345,13 +343,12 @@ void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
         } else {
             int num_elems = ceildiv(nnz, nwarps * cuda_config::warp_size) *
                             cuda_config::warp_size;
-            const dim3 coo_grid(
-                ceildiv(nwarps, warps_in_block),
-                ceildiv(b->get_size()[1], cuda_config::warp_size));
+            const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
+                                ceildiv(b_ncols, cuda_config::warp_size));
             abstract_spmm<<<coo_grid, coo_block>>>(
                 nnz, num_elems, as_cuda_type(alpha->get_const_values()),
                 as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-                as_cuda_type(a->get_const_row_idxs()), b->get_size()[1],
+                as_cuda_type(a->get_const_row_idxs()), b_ncols,
                 as_cuda_type(b->get_const_values()), b->get_stride(),
                 as_cuda_type(c->get_values()), c->get_stride());
         }
