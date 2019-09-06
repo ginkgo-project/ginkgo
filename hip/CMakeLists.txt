@@ -23,6 +23,30 @@ if(NOT DEFINED HIPSPARSE_PATH)
     endif()
 endif()
 
+
+find_program(GINKGO_HIPCONFIG_PATH hipconfig HINTS "${HIP_PATH}/bin")
+if(GINKGO_HIPCONFIG_PATH)
+    execute_process(COMMAND ${GINKGO_HIPCONFIG_PATH} --platform OUTPUT_VARIABLE GINKGO_HIP_PLATFORM)
+elseif(ENV{HIP_PLATFORM})
+    set(GINKGO_HIP_PLATFORM "$ENV{HIP_PLATFORM}")
+else()
+    message(FATAL_ERROR "No platform could be found for HIP. "
+        "Set and export the environment variable HIP_PLATFORM.")
+endif()
+message(STATUS "HIP platform set to ${GINKGO_HIP_PLATFORM}")
+
+if (GINKGO_HIP_PLATFORM MATCHES "nvcc")
+    set (GINKGO_CUDA_PATH $ENV{CUDA_PATH})
+    if (NOT GINKGO_CUDA_PATH)
+        find_path(GINKGO_HIP_DEFAULT_CUDA_PATH "cuda.h" PATH /usr/local/cuda/include NO_DEFAULT_PATH)
+        if (NOT GINKGO_HIP_DEFAULT_CUDA_PATH)
+            message(FATAL_ERROR "HIP nvcc backend was requested but CUDA could not be located. "
+                "Set and export the environment variable CUDA_PATH.")
+         endif()
+     endif()
+endif()
+
+
 if (GINKGO_HIP_PLATFORM STREQUAL "hcc" AND NOT GINKGO_HIP_AMDGPU)
     message(WARNING "GINKGO_HIP_AMDGPU is not set. All hipcc calls may be missing AMDGPU targets.")
 endif()
@@ -69,11 +93,13 @@ set(GINKGO_HIP_SOURCES
     stop/criterion_kernels.hip.cpp
     stop/residual_norm_reduction_kernels.hip.cpp)
 
-set(GINKGO_HIPCC_OPTIONS -fPIC ${GINKGO_HIP_COMPILER_FLAGS})
+set(GINKGO_HIPCC_OPTIONS ${GINKGO_HIP_COMPILER_FLAGS})
+set(GINKGO_HIP_NVCC_OPTIONS ${GINKGO_HIP_NVCC_COMPILER_FLAGS})
+set(GINKGO_HIP_HCC_OPTIONS -fPIC ${GINKGO_HIP_HCC_COMPILER_FLAGS})
 
 
 set_source_files_properties(${GINKGO_HIP_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
-hip_add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES} HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS})
+hip_add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES} HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} NVCC_OPTIONS ${GINKGO_HIP_NVCC_OPTIONS} HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS})
 
 # target_compile_options(ginkgo_hip PRIVATE -fno-gpu-rdc)
 if(GINKGO_HIP_AMDGPU AND GINKGO_HIP_PLATFORM STREQUAL "hcc")
@@ -96,7 +122,7 @@ target_include_directories(ginkgo_hip
     PUBLIC
         ${GINKGO_HIP_THRUST_PATH}
     PRIVATE
-    $<BUILD_INTERFACE:${ROCPRIM_INCLUDE_DIRS}>)
+        $<BUILD_INTERFACE:${ROCPRIM_INCLUDE_DIRS}>)
 
 ginkgo_compile_features(ginkgo_hip)
 ginkgo_default_includes(ginkgo_hip)
