@@ -64,28 +64,99 @@ namespace upper_trs {
 
 
 void should_perform_transpose(std::shared_ptr<const CudaExecutor> exec,
-                              bool &do_transpose) GKO_NOT_IMPLEMENTED;
+                              bool &do_transpose)
+{
+#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
+
+
+    do_transpose = false;
+
+
+#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
+
+
+    do_transpose = true;
+
+
+#endif
+}
 
 
 void init_struct(std::shared_ptr<const CudaExecutor> exec,
                  std::shared_ptr<solver::SolveStruct> &solve_struct)
 {
-    const auto id = exec->get_device_id();
-    device_guard g(id);
-    solve_struct = std::shared_ptr<gko::solver::SolveStruct>(
-        kernels::cuda::cusparse::init_trs_solve_struct(),
-        [id](gko::solver::SolveStruct *solve_struct_) {
-            device_guard g(id);
-            kernels::cuda::cusparse::clear_trs_solve_struct(solve_struct_);
-        });
+    solve_struct =
+        std::shared_ptr<solver::SolveStruct>(new solver::SolveStruct());
 }
 
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const CudaExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *matrix,
-              solver::SolveStruct *solve_struct,
-              const gko::size_type num_rhs) GKO_NOT_IMPLEMENTED;
+              solver::SolveStruct *solve_struct, const gko::size_type num_rhs)
+{
+    if (cusparse::is_supported<ValueType, IndexType>::value) {
+        auto handle = exec->get_cusparse_handle();
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSetMatFillMode(
+            solve_struct->factor_descr, CUSPARSE_FILL_MODE_UPPER));
+
+
+#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
+
+
+        ValueType one = 1.0;
+
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
+        cusparse::buffer_size_ext(
+            handle, solve_struct->algorithm, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            CUSPARSE_OPERATION_TRANSPOSE, matrix->get_size()[0], num_rhs,
+            matrix->get_num_stored_elements(), &one, solve_struct->factor_descr,
+            matrix->get_const_values(), matrix->get_const_row_ptrs(),
+            matrix->get_const_col_idxs(), nullptr, num_rhs,
+            solve_struct->solve_info, solve_struct->policy,
+            &solve_struct->factor_work_size);
+
+        // allocate workspace
+        if (solve_struct->factor_work_vec != nullptr) {
+            GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(solve_struct->factor_work_vec));
+        }
+        solve_struct->factor_work_vec =
+            exec->alloc<void *>(solve_struct->factor_work_size);
+
+        cusparse::csrsm2_analysis(
+            handle, solve_struct->algorithm, CUSPARSE_OPERATION_NON_TRANSPOSE,
+            CUSPARSE_OPERATION_TRANSPOSE, matrix->get_size()[0], num_rhs,
+            matrix->get_num_stored_elements(), &one, solve_struct->factor_descr,
+            matrix->get_const_values(), matrix->get_const_row_ptrs(),
+            matrix->get_const_col_idxs(), nullptr, num_rhs,
+            solve_struct->solve_info, solve_struct->policy,
+            solve_struct->factor_work_vec);
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
+
+
+#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
+
+
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
+        cusparse::csrsm_analysis(
+            handle, CUSPARSE_OPERATION_NON_TRANSPOSE, matrix->get_size()[0],
+            matrix->get_num_stored_elements(), solve_struct->factor_descr,
+            matrix->get_const_values(), matrix->get_const_row_ptrs(),
+            matrix->get_const_col_idxs(), solve_struct->solve_info);
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
+
+
+#endif
+
+
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL);

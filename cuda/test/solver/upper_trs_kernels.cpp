@@ -33,14 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/upper_trs.hpp>
 
 
-#include <gtest/gtest.h>
-
-
 #include <memory>
 #include <random>
 
 
 #include <cuda.h>
+#include <gtest/gtest.h>
 
 
 #include <ginkgo/core/base/exception.hpp>
@@ -60,6 +58,7 @@ class UpperTrs : public ::testing::Test {
 protected:
     using CsrMtx = gko::matrix::Csr<double, gko::int32>;
     using Mtx = gko::matrix::Dense<>;
+
     UpperTrs() : rand_engine(30) {}
 
     void SetUp()
@@ -92,7 +91,32 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
+    void initialize_data(int m, int n)
+    {
+        mtx = gen_u_mtx(m, m);
+        b = gen_mtx(m, n);
+        x = gen_mtx(m, n);
+        csr_mtx = CsrMtx::create(ref);
+        mtx->convert_to(csr_mtx.get());
+        d_csr_mtx = CsrMtx::create(cuda);
+        d_x = Mtx::create(cuda);
+        d_x->copy_from(x.get());
+        d_csr_mtx->copy_from(csr_mtx.get());
+        b2 = Mtx::create(ref);
+        d_b2 = Mtx::create(cuda);
+        d_b2->copy_from(b.get());
+        b2->copy_from(b.get());
+    }
 
+    std::shared_ptr<Mtx> b;
+    std::shared_ptr<Mtx> b2;
+    std::shared_ptr<Mtx> x;
+    std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<CsrMtx> csr_mtx;
+    std::shared_ptr<Mtx> d_b;
+    std::shared_ptr<Mtx> d_b2;
+    std::shared_ptr<Mtx> d_x;
+    std::shared_ptr<CsrMtx> d_csr_mtx;
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::CudaExecutor> cuda;
     std::ranlux48 rand_engine;
@@ -103,12 +127,18 @@ TEST_F(UpperTrs, CudaUpperTrsFlagCheckIsCorrect)
 {
     bool trans_flag = true;
     bool expected_flag = false;
-#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
-    expected_flag = false;
-#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
+
+
+#if (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
+
+
     expected_flag = true;
+
+
 #endif
-    gko::kernels::cuda::upper_trs::perform_transpose(cuda, trans_flag);
+
+
+    gko::kernels::cuda::upper_trs::should_perform_transpose(cuda, trans_flag);
 
     ASSERT_EQ(expected_flag, trans_flag);
 }
@@ -116,45 +146,22 @@ TEST_F(UpperTrs, CudaUpperTrsFlagCheckIsCorrect)
 
 TEST_F(UpperTrs, CudaSingleRhsApplyIsEquivalentToRef)
 {
-    std::shared_ptr<Mtx> mtx = gen_u_mtx(50, 50);
-    std::shared_ptr<Mtx> b = gen_mtx(50, 1);
-    std::shared_ptr<Mtx> x = gen_mtx(50, 1);
-    std::shared_ptr<CsrMtx> csr_mtx = CsrMtx::create(ref);
-    mtx->convert_to(csr_mtx.get());
-    std::shared_ptr<CsrMtx> d_csr_mtx = CsrMtx::create(cuda);
-    auto d_x = Mtx::create(cuda);
-    d_x->copy_from(x.get());
-    d_csr_mtx->copy_from(csr_mtx.get());
-    std::shared_ptr<Mtx> b2 = Mtx::create(ref);
-    std::shared_ptr<Mtx> d_b2 = Mtx::create(cuda);
-    d_b2->copy_from(b.get());
-    b2->copy_from(b.get());
-
+    initialize_data(50, 1);
     auto upper_trs_factory = gko::solver::UpperTrs<>::build().on(ref);
     auto d_upper_trs_factory = gko::solver::UpperTrs<>::build().on(cuda);
     auto solver = upper_trs_factory->generate(csr_mtx);
     auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
+
     solver->apply(b2.get(), x.get());
     d_solver->apply(d_b2.get(), d_x.get());
+
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
 
 
 TEST_F(UpperTrs, CudaMultipleRhsApplyIsEquivalentToRef)
 {
-    std::shared_ptr<Mtx> mtx = gen_u_mtx(50, 50);
-    std::shared_ptr<Mtx> b = gen_mtx(50, 3);
-    std::shared_ptr<Mtx> x = gen_mtx(50, 3);
-    std::shared_ptr<CsrMtx> csr_mtx = CsrMtx::create(ref);
-    mtx->convert_to(csr_mtx.get());
-    std::shared_ptr<CsrMtx> d_csr_mtx = CsrMtx::create(cuda);
-    auto d_x = Mtx::create(cuda);
-    d_x->copy_from(x.get());
-    d_csr_mtx->copy_from(csr_mtx.get());
-    std::shared_ptr<Mtx> b2 = Mtx::create(ref);
-    std::shared_ptr<Mtx> d_b2 = Mtx::create(cuda);
-    d_b2->copy_from(b.get());
-    b2->copy_from(b.get());
+    initialize_data(50, 3);
 
     auto upper_trs_factory =
         gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref);
@@ -162,6 +169,7 @@ TEST_F(UpperTrs, CudaMultipleRhsApplyIsEquivalentToRef)
         gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(cuda);
     auto solver = upper_trs_factory->generate(csr_mtx);
     auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
+
     solver->apply(b2.get(), x.get());
     d_solver->apply(d_b2.get(), d_x.get());
 
