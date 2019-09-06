@@ -9,9 +9,9 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 647)">
 <title>Graphical Class Hierarchy</title>
 <polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-647 1043,-647 1043,4 -4,4"/>
-<!-- Node335 -->
+<!-- Node334 -->
 <g id="node1" class="node">
-<title>Node335</title>
+<title>Node334</title>
 <g id="a_node1"><a xlink:href="classgko_1_1ConvertibleTo.html" target="_top" xlink:title="gko::ConvertibleTo\l\&lt; ConcreteFactory \&gt;">
 <polygon fill="#ffffff" stroke="#000000" points="178.5,-324 178.5,-354 296.5,-354 296.5,-324 178.5,-324"/>
 <text text-anchor="start" x="186.5" y="-342" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::ConvertibleTo</text>
@@ -19,9 +19,9 @@
 </a>
 </g>
 </g>
-<!-- Node336 -->
+<!-- Node335 -->
 <g id="node2" class="node">
-<title>Node336</title>
+<title>Node335</title>
 <g id="a_node2"><a xlink:href="classgko_1_1EnablePolymorphicAssignment.html" target="_top" xlink:title="gko::EnablePolymorphicAssignment\l\&lt; ConcreteFactory \&gt;">
 <polygon fill="#ffffff" stroke="#000000" points="382.5,-322 382.5,-352 574.5,-352 574.5,-322 382.5,-322"/>
 <text text-anchor="start" x="390.5" y="-340" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnablePolymorphicAssignment</text>
@@ -29,9 +29,9 @@
 </a>
 </g>
 </g>
-<!-- Node335&#45;&gt;Node336 -->
+<!-- Node334&#45;&gt;Node335 -->
 <g id="edge1" class="edge">
-<title>Node335&#45;&gt;Node336</title>
+<title>Node334&#45;&gt;Node335</title>
 <path fill="none" stroke="#191970" d="M306.9738,-338.4235C330.4758,-338.2284 357.1541,-338.007 382.3502,-337.7979"/>
 <polygon fill="#191970" stroke="#191970" points="306.7345,-334.9252 296.7639,-338.5082 306.7926,-341.925 306.7345,-334.9252"/>
 </g>
@@ -46,9 +46,9 @@
 </a>
 </g>
 </g>
-<!-- Node336&#45;&gt;Node2 -->
+<!-- Node335&#45;&gt;Node2 -->
 <g id="edge2" class="edge">
-<title>Node336&#45;&gt;Node2</title>
+<title>Node335&#45;&gt;Node2</title>
 <path fill="none" stroke="#191970" d="M584.8695,-325.5006C596.127,-324.2836 607.5489,-323.0488 618.7336,-321.8396"/>
 <polygon fill="#191970" stroke="#191970" points="584.1547,-322.0574 574.5888,-326.612 584.9071,-329.0168 584.1547,-322.0574"/>
 </g>
@@ -262,9 +262,9 @@
 <path fill="none" stroke="#191970" d="M745.2348,-282.4699C767.9156,-256.3387 799.9674,-215.6503 819,-175 847.3388,-114.4733 806.8509,-75.349 855,-29 861.9325,-22.3267 870.5562,-17.7202 879.7233,-14.5822"/>
 <polygon fill="#191970" stroke="#191970" points="742.502,-280.2774 738.5215,-290.0961 747.7562,-284.9027 742.502,-280.2774"/>
 </g>
-<!-- Node333 -->
+<!-- Node332 -->
 <g id="node17" class="node">
-<title>Node333</title>
+<title>Node332</title>
 <g id="a_node17"><a xlink:href="classgko_1_1ConvertibleTo.html" target="_top" xlink:title="gko::ConvertibleTo\l\&lt; ConcreteLinOp \&gt;">
 <polygon fill="#ffffff" stroke="#000000" points="182.5,-34 182.5,-64 292.5,-64 292.5,-34 182.5,-34"/>
 <text text-anchor="start" x="190.5" y="-52" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::ConvertibleTo</text>
@@ -272,9 +272,9 @@
 </a>
 </g>
 </g>
-<!-- Node334 -->
+<!-- Node333 -->
 <g id="node18" class="node">
-<title>Node334</title>
+<title>Node333</title>
 <g id="a_node18"><a xlink:href="classgko_1_1EnablePolymorphicAssignment.html" target="_top" xlink:title="gko::EnablePolymorphicAssignment\l\&lt; ConcreteLinOp \&gt;">
 <polygon fill="#ffffff" stroke="#000000" points="382.5,-67 382.5,-97 574.5,-97 574.5,-67 382.5,-67"/>
 <text text-anchor="start" x="390.5" y="-85" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnablePolymorphicAssignment</text>
@@ -282,9 +282,9 @@
 </a>
 </g>
 </g>
-<!-- Node333&#45;&gt;Node334 -->
+<!-- Node332&#45;&gt;Node333 -->
 <g id="edge16" class="edge">
-<title>Node333&#45;&gt;Node334</title>
+<title>Node332&#45;&gt;Node333</title>
 <path fill="none" stroke="#191970" d="M303.011,-57.9704C327.4452,-61.3161 355.7195,-65.1877 382.34,-68.8329"/>
 <polygon fill="#191970" stroke="#191970" points="303.1727,-54.4599 292.7903,-56.5709 302.223,-61.3952 303.1727,-54.4599"/>
 </g>
@@ -298,9 +298,9 @@
 </a>
 </g>
 </g>
-<!-- Node334&#45;&gt;Node66 -->
+<!-- Node333&#45;&gt;Node66 -->
 <g id="edge17" class="edge">
-<title>Node334&#45;&gt;Node66</title>
+<title>Node333&#45;&gt;Node66</title>
 <path fill="none" stroke="#191970" d="M540.6687,-99.8363C579.7402,-111.0461 629.5785,-125.3448 666.6303,-135.975"/>
 <polygon fill="#191970" stroke="#191970" points="541.559,-96.4506 530.9816,-97.0571 539.6285,-103.1792 541.559,-96.4506"/>
 </g>

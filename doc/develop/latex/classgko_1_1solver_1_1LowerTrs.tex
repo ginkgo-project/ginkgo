@@ -40,8 +40,6 @@ using {\bfseries index\+\_\+type} = Index\+Type
 \item 
 std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$ $>$ \hyperlink{classgko_1_1solver_1_1LowerTrs_a1f18336cc86c363eb41da44c2d282497}{get\+\_\+system\+\_\+matrix} () const
 \begin{DoxyCompactList}\small\item\em Gets the system operator (C\+SR matrix) of the linear system. \end{DoxyCompactList}\item 
-std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1matrix_1_1Dense}{matrix\+::\+Dense}$<$ Value\+Type $>$ $>$ \hyperlink{classgko_1_1solver_1_1LowerTrs_affe671fab87e0afe2fc1cd0cb125fcc5}{get\+\_\+rhs} () const
-\begin{DoxyCompactList}\small\item\em Gets the right hand side of the linear system. \end{DoxyCompactList}\item 
 std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ \hyperlink{classgko_1_1solver_1_1LowerTrs_a9ee1b8b9f5420c4214f22d15bf61e755}{get\+\_\+preconditioner} () const override
 \begin{DoxyCompactList}\small\item\em Returns the preconditioner operator used by the solver. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_a1dd87ee6836fff7e9a62f2971f7cc5e1}\label{classgko_1_1solver_1_1LowerTrs_a1dd87ee6836fff7e9a62f2971f7cc5e1}} 
@@ -72,6 +70,9 @@ class gko\+::solver\+::\+Lower\+Trs$<$ Value\+Type, Index\+Type $>$}
 
 It works best when passing in a matrix in C\+SR format. If the matrix is not in C\+SR, then the generate step converts it into a C\+SR matrix. The generation fails if the matrix is not convertible to C\+SR.
 
+\begin{DoxyNote}{Note}
+As the constructor uses the copy and convert functionality, it is not possible to create a empty solver or a solver with a matrix in any other format other than C\+SR, if none of the executor modules are being compiled with.
+\end{DoxyNote}
 
 \begin{DoxyTemplParams}{Template Parameters}
 {\em Value\+Type} & precision of matrix elements \\
@@ -100,20 +101,6 @@ the preconditioner operator used by the solver
 
 Implements \hyperlink{classgko_1_1Preconditionable_ad9545089aef0dfc83bc7a74e5bf1d748}{gko\+::\+Preconditionable}.
 
-\mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_affe671fab87e0afe2fc1cd0cb125fcc5}\label{classgko_1_1solver_1_1LowerTrs_affe671fab87e0afe2fc1cd0cb125fcc5}} 
-\index{gko\+::solver\+::\+Lower\+Trs@{gko\+::solver\+::\+Lower\+Trs}!get\+\_\+rhs@{get\+\_\+rhs}}
-\index{get\+\_\+rhs@{get\+\_\+rhs}!gko\+::solver\+::\+Lower\+Trs@{gko\+::solver\+::\+Lower\+Trs}}
-\subsubsection{\texorpdfstring{get\+\_\+rhs()}{get\_rhs()}}
-{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
-std\+::shared\+\_\+ptr$<$const \hyperlink{classgko_1_1matrix_1_1Dense}{matrix\+::\+Dense}$<$Value\+Type$>$ $>$ \hyperlink{classgko_1_1solver_1_1LowerTrs}{gko\+::solver\+::\+Lower\+Trs}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+rhs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
-
-
-
-Gets the right hand side of the linear system. 
-
-\begin{DoxyReturn}{Returns}
-the right hand side 
-\end{DoxyReturn}
 \mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_a1f18336cc86c363eb41da44c2d282497}\label{classgko_1_1solver_1_1LowerTrs_a1f18336cc86c363eb41da44c2d282497}} 
 \index{gko\+::solver\+::\+Lower\+Trs@{gko\+::solver\+::\+Lower\+Trs}!get\+\_\+system\+\_\+matrix@{get\+\_\+system\+\_\+matrix}}
 \index{get\+\_\+system\+\_\+matrix@{get\+\_\+system\+\_\+matrix}!gko\+::solver\+::\+Lower\+Trs@{gko\+::solver\+::\+Lower\+Trs}}
@@ -132,4 +119,4 @@ the system operator (C\+SR matrix)
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/solver/lower\+\_\+trs.\+hpp (3f08cf0a)\end{DoxyCompactItemize}
+ginkgo/core/solver/lower\+\_\+trs.\+hpp (050c7273)\end{DoxyCompactItemize}

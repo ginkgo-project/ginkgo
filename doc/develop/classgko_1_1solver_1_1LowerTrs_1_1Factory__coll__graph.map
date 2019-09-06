@@ -1,5 +1,5 @@
 <map id="gko::solver::LowerTrs&lt; ValueType, IndexType &gt;::Factory" name="gko::solver::LowerTrs&lt; ValueType, IndexType &gt;::Factory">
-<area shape="rect" id="node2" href="$classgko_1_1EnableDefaultFactory.html" title="This mixin provides a default implementation of a concrete factory. " alt="" coords="1951,102,2157,173"/>
+<area shape="rect" id="node2" href="$classgko_1_1EnableDefaultFactory.html" title="This mixin provides a default implementation of a concrete factory. " alt="" coords="1951,117,2233,158"/>
 <area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; ConcreteFactory, PolymorphicBase \&gt;" alt="" coords="1623,84,1901,125"/>
 <area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteFactory,\l PolymorphicBase \&gt;" alt="" coords="723,10,956,66"/>
 <area shape="rect" id="node6" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="189,48,448,104"/>

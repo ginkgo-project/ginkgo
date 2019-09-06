@@ -50,7 +50,6 @@ var searchData=
   ['enabledefaultcriterionfactory',['EnableDefaultCriterionFactory',['../namespacegko_1_1stop.html#ab045b6fd7571f3234d9a63a5ee5a2252',1,'gko::stop']]],
   ['enabledefaultfactory',['EnableDefaultFactory',['../classgko_1_1EnableDefaultFactory.html',1,'gko']]],
   ['enabledefaultlinopfactory',['EnableDefaultLinOpFactory',['../group__LinOp.html#ga24628d477cba68b31cea690572c51912',1,'gko']]],
-  ['enabledefaultlowertrsfactory',['EnableDefaultLowerTrsFactory',['../namespacegko_1_1solver.html#a6ff1e5ae2e801957e4055be113328f67',1,'gko::solver']]],
   ['enablelinop',['EnableLinOp',['../classgko_1_1EnableLinOp.html',1,'gko']]],
   ['enablelinop_3c_20bicgstab_3c_20valuetype_20_3e_20_3e',['EnableLinOp&lt; Bicgstab&lt; ValueType &gt; &gt;',['../classgko_1_1EnableLinOp.html',1,'gko']]],
   ['enablelinop_3c_20cg_3c_20valuetype_20_3e_20_3e',['EnableLinOp&lt; Cg&lt; ValueType &gt; &gt;',['../classgko_1_1EnableLinOp.html',1,'gko']]],

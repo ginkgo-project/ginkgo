@@ -64,8 +64,7 @@ $(function() {
 <div class="header">
   <div class="summary">
 <a href="#namespaces">Namespaces</a> &#124;
-<a href="#nested-classes">Classes</a> &#124;
-<a href="#define-members">Macros</a>  </div>
+<a href="#nested-classes">Classes</a>  </div>
   <div class="headertitle">
 <div class="title">Solvers<div class="ingroups"><a class="el" href="group__LinOp.html">Linear Operators</a></div></div>  </div>
 </div><!--header-->
@@ -107,62 +106,9 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1LowerTrs.html">gko::solver::LowerTrs&lt; ValueType, IndexType &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1solver_1_1LowerTrs.html" title="LowerTrs is the triangular solver which solves the system L x = b, when L is a lower triangular matri...">LowerTrs</a> is the triangular solver which solves the system L x = b, when L is a lower triangular matrix.  <a href="classgko_1_1solver_1_1LowerTrs.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
-Macros</h2></td></tr>
-<tr class="memitem:gabf1eb23a724c8a60ce34cd1cbc0bb5ba"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__solvers.html#gabf1eb23a724c8a60ce34cd1cbc0bb5ba">GKO_ENABLE_LOWER_TRS_FACTORY</a>(_lower_trs,  _parameters_name,  _factory_name)</td></tr>
-<tr class="memdesc:gabf1eb23a724c8a60ce34cd1cbc0bb5ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">This macro will generate a default implementation of a LowerTrsFactory for the LowerTrs subclass it is defined in.  <a href="#gabf1eb23a724c8a60ce34cd1cbc0bb5ba">More...</a><br /></td></tr>
-<tr class="separator:gabf1eb23a724c8a60ce34cd1cbc0bb5ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>A module dedicated to the implementation and usage of the Solvers in Ginkgo. </p>
-<h2 class="groupheader">Macro Definition Documentation</h2>
-<a id="gabf1eb23a724c8a60ce34cd1cbc0bb5ba"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gabf1eb23a724c8a60ce34cd1cbc0bb5ba">&#9670;&nbsp;</a></span>GKO_ENABLE_LOWER_TRS_FACTORY</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define GKO_ENABLE_LOWER_TRS_FACTORY</td>
-          <td>(</td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">_lower_trs, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">_parameters_name, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">_factory_name&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<b>Value:</b><div class="fragment"><div class="line"><span class="keyword">public</span>:                                                                        \</div><div class="line">    const _parameters_name##_type &amp;get_##_parameters_name() const              \</div><div class="line">    {                                                                          \</div><div class="line">        return _parameters_name##_;                                            \</div><div class="line">    }                                                                          \</div><div class="line">                                                                               \</div><div class="line">    class _factory_name : public ::gko::solver::EnableDefaultLowerTrsFactory&lt;  \</div><div class="line">                              _factory_name, _lower_trs,                       \</div><div class="line">                              _parameters_name##_type, ValueType, IndexType&gt; { \</div><div class="line">        friend class ::gko::EnablePolymorphicObject&lt;                           \</div><div class="line">            _factory_name,                                                     \</div><div class="line">            <a class="code" href="classgko_1_1AbstractFactory.html">::gko::solver::LowerTrsFactory&lt;ValueType, IndexType&gt;</a>&gt;;             \</div><div class="line">        friend class ::gko::enable_parameters_type&lt;_parameters_name##_type,    \</div><div class="line">                                                   _factory_name&gt;;             \</div><div class="line">        using ::gko::solver::EnableDefaultLowerTrsFactory&lt;                     \</div><div class="line">            _factory_name, _lower_trs, _parameters_name##_type, ValueType,     \</div><div class="line">            IndexType&gt;::EnableDefaultLowerTrsFactory;                          \</div><div class="line">    };                                                                         \</div><div class="line">    friend ::gko::solver::EnableDefaultLowerTrsFactory&lt;                        \</div><div class="line">        _factory_name, _lower_trs, _parameters_name##_type, ValueType,         \</div><div class="line">        IndexType&gt;;                                                            \</div><div class="line">                                                                               \</div><div class="line">private:                                                                       \</div><div class="line">    _parameters_name##_type _parameters_name##_;                               \</div><div class="line">                                                                               \</div><div class="line">public:                                                                        \</div><div class="line">    static_assert(<span class="keyword">true</span>,                                                        \</div><div class="line">                  <span class="stringliteral">&quot;This assert is used to counter the false positive extra &quot;</span>   \</div><div class="line">                  <span class="stringliteral">&quot;semi-colon warnings&quot;</span>)</div><div class="ttc" id="classgko_1_1AbstractFactory_html"><div class="ttname"><a href="classgko_1_1AbstractFactory.html">gko::AbstractFactory</a></div><div class="ttdoc">The AbstractFactory is a generic interface template that enables easy implementation of the abstract ...</div><div class="ttdef"><b>Definition:</b> abstract_factory.hpp:70</div></div>
-</div><!-- fragment -->
-<p>This macro will generate a default implementation of a LowerTrsFactory for the LowerTrs subclass it is defined in. </p>
-<p>This macro is very similar to the macro #ENABLE_LIN_OP_FACTORY(). A more detailed description of the use of these type of macros can be found there.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">_lower_trs</td><td>concrete operator for which the factory is to be created [CRTP parameter] </td></tr>
-    <tr><td class="paramname">_parameters_name</td><td>name of the parameters member in the class (its type is <code>&lt;_parameters_name&gt;_type</code>, the protected member's name is <code>&lt;_parameters_name&gt;_</code>, and the public getter's name is <code>get_&lt;_parameters_name&gt;()</code>) </td></tr>
-    <tr><td class="paramname">_factory_name</td><td>name of the generated factory type </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

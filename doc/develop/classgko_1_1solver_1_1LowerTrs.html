@@ -118,9 +118,6 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a1f18336cc86c363eb41da44c2d282497"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; const <a class="el" href="classgko_1_1matrix_1_1Csr.html">matrix::Csr</a>&lt; ValueType, IndexType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1LowerTrs.html#a1f18336cc86c363eb41da44c2d282497">get_system_matrix</a> () const</td></tr>
 <tr class="memdesc:a1f18336cc86c363eb41da44c2d282497"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the system operator (CSR matrix) of the linear system.  <a href="#a1f18336cc86c363eb41da44c2d282497">More...</a><br /></td></tr>
 <tr class="separator:a1f18336cc86c363eb41da44c2d282497"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:affe671fab87e0afe2fc1cd0cb125fcc5"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; const <a class="el" href="classgko_1_1matrix_1_1Dense.html">matrix::Dense</a>&lt; ValueType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1LowerTrs.html#affe671fab87e0afe2fc1cd0cb125fcc5">get_rhs</a> () const</td></tr>
-<tr class="memdesc:affe671fab87e0afe2fc1cd0cb125fcc5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the right hand side of the linear system.  <a href="#affe671fab87e0afe2fc1cd0cb125fcc5">More...</a><br /></td></tr>
-<tr class="separator:affe671fab87e0afe2fc1cd0cb125fcc5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9ee1b8b9f5420c4214f22d15bf61e755"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; const <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1LowerTrs.html#a9ee1b8b9f5420c4214f22d15bf61e755">get_preconditioner</a> () const override</td></tr>
 <tr class="memdesc:a9ee1b8b9f5420c4214f22d15bf61e755"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the preconditioner operator used by the solver.  <a href="#a9ee1b8b9f5420c4214f22d15bf61e755">More...</a><br /></td></tr>
 <tr class="separator:a9ee1b8b9f5420c4214f22d15bf61e755"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -264,6 +261,7 @@ class gko::solver::LowerTrs&lt; ValueType, IndexType &gt;</h3>
 
 <p><a class="el" href="classgko_1_1solver_1_1LowerTrs.html" title="LowerTrs is the triangular solver which solves the system L x = b, when L is a lower triangular matri...">LowerTrs</a> is the triangular solver which solves the system L x = b, when L is a lower triangular matrix. </p>
 <p>It works best when passing in a matrix in CSR format. If the matrix is not in CSR, then the generate step converts it into a CSR matrix. The generation fails if the matrix is not convertible to CSR.</p>
+<dl class="section note"><dt>Note</dt><dd>As the constructor uses the copy and convert functionality, it is not possible to create a empty solver or a solver with a matrix in any other format other than CSR, if none of the executor modules are being compiled with.</dd></dl>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
     <tr><td class="paramname">ValueType</td><td>precision of matrix elements </td></tr>
@@ -304,36 +302,6 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 
 </div>
 </div>
-<a id="affe671fab87e0afe2fc1cd0cb125fcc5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#affe671fab87e0afe2fc1cd0cb125fcc5">&#9670;&nbsp;</a></span>get_rhs()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">std::shared_ptr&lt;const <a class="el" href="classgko_1_1matrix_1_1Dense.html">matrix::Dense</a>&lt;ValueType&gt; &gt; <a class="el" href="classgko_1_1solver_1_1LowerTrs.html">gko::solver::LowerTrs</a>&lt; ValueType, IndexType &gt;::get_rhs </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Gets the right hand side of the linear system. </p>
-<dl class="section return"><dt>Returns</dt><dd>the right hand side </dd></dl>
-
-</div>
-</div>
 <a id="a1f18336cc86c363eb41da44c2d282497"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a1f18336cc86c363eb41da44c2d282497">&#9670;&nbsp;</a></span>get_system_matrix()</h2>
 
@@ -365,7 +333,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/solver/<a class="el" href="lower__trs_8hpp_source.html">lower_trs.hpp (3f08cf0a)</a></li>
+<li>ginkgo/core/solver/<a class="el" href="lower__trs_8hpp_source.html">lower_trs.hpp (050c7273)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

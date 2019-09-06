@@ -14,6 +14,5 @@ var searchData=
   ['logical_5fand',['logical_and',['../structgko_1_1accessor_1_1logical__and.html',1,'gko::accessor']]],
   ['logical_5fnot',['logical_not',['../structgko_1_1accessor_1_1logical__not.html',1,'gko::accessor']]],
   ['logical_5for',['logical_or',['../structgko_1_1accessor_1_1logical__or.html',1,'gko::accessor']]],
-  ['lowertrs',['LowerTrs',['../classgko_1_1solver_1_1LowerTrs.html',1,'gko::solver']]],
-  ['lowertrsargs',['LowerTrsArgs',['../structgko_1_1solver_1_1LowerTrsArgs.html',1,'gko::solver']]]
+  ['lowertrs',['LowerTrs',['../classgko_1_1solver_1_1LowerTrs.html',1,'gko::solver']]]
 ];

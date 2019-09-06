@@ -67,7 +67,6 @@ var searchData=
   ['get_5fprojector',['get_projector',['../classgko_1_1Perturbation.html#a000aeeb35938fef6923673de3b932234',1,'gko::Perturbation']]],
   ['get_5fresidual',['get_residual',['../classgko_1_1log_1_1Convergence.html#a6595e7edae4cb080943493252b6d77e9',1,'gko::log::Convergence']]],
   ['get_5fresidual_5fnorm',['get_residual_norm',['../classgko_1_1log_1_1Convergence.html#a68297edb94aee77f6125c4b823f4503c',1,'gko::log::Convergence']]],
-  ['get_5frhs',['get_rhs',['../classgko_1_1solver_1_1LowerTrs.html#affe671fab87e0afe2fc1cd0cb125fcc5',1,'gko::solver::LowerTrs']]],
   ['get_5frow_5fidxs',['get_row_idxs',['../classgko_1_1matrix_1_1Coo.html#a57aa0f7b701020c4322a3aed63d8a25d',1,'gko::matrix::Coo']]],
   ['get_5frow_5fptrs',['get_row_ptrs',['../classgko_1_1matrix_1_1Csr.html#a068e5158cf282fa977f0a137f8cd7f03',1,'gko::matrix::Csr']]],
   ['get_5fscalar',['get_scalar',['../classgko_1_1Perturbation.html#af3a1d57c22b34f276a9222eb248825ae',1,'gko::Perturbation']]],
