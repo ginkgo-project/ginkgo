@@ -39,7 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -61,15 +60,14 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{1, 3.0, 1.0}, {0.0, 1, 2.0}, {0.0, 0.0, 1}}, exec)),
-          b(gko::initialize<Mtx>({{2, 0.0, 0.0}}, exec)),
-          csr_mtx(gko::copy_and_convert_to<CsrMtx>(exec, gko::lend(mtx))),
+          csr_mtx(gko::initialize<CsrMtx>(
+              {{1, 3.0, 1.0}, {0.0, 1, 2.0}, {0.0, 0.0, 1}}, exec)),
           upper_trs_factory(Solver::build().on(exec)),
           upper_trs_solver(upper_trs_factory->generate(mtx))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::shared_ptr<Mtx> b;
     std::shared_ptr<CsrMtx> csr_mtx;
     std::unique_ptr<Solver::Factory> upper_trs_factory;
     std::unique_ptr<Solver> upper_trs_solver;
@@ -79,12 +77,10 @@ protected:
 TEST_F(UpperTrs, UpperTrsFactoryCreatesCorrectSolver)
 {
     auto sys_mtx = upper_trs_solver->get_system_matrix();
-    auto d_sys_mtx = Mtx::create(exec);
-    sys_mtx->convert_to(gko::lend(d_sys_mtx));
 
     ASSERT_EQ(upper_trs_solver->get_size(), gko::dim<2>(3, 3));
     ASSERT_NE(sys_mtx, nullptr);
-    GKO_ASSERT_MTX_NEAR(d_sys_mtx, mtx, 0);
+    GKO_ASSERT_MTX_NEAR(sys_mtx, csr_mtx, 0);
 }
 
 
@@ -94,11 +90,9 @@ TEST_F(UpperTrs, CanBeCopied)
 
     copy->copy_from(gko::lend(upper_trs_solver));
     auto copy_mtx = copy->get_system_matrix();
-    auto d_copy_mtx = Mtx::create(exec);
-    copy_mtx->convert_to(gko::lend(d_copy_mtx));
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    GKO_ASSERT_MTX_NEAR(d_copy_mtx, mtx, 0);
+    GKO_ASSERT_MTX_NEAR(copy_mtx.get(), csr_mtx.get(), 0);
 }
 
 
@@ -108,11 +102,9 @@ TEST_F(UpperTrs, CanBeMoved)
 
     copy->copy_from(std::move(upper_trs_solver));
     auto copy_mtx = copy->get_system_matrix();
-    auto d_copy_mtx = Mtx::create(exec);
-    copy_mtx->convert_to(gko::lend(d_copy_mtx));
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    GKO_ASSERT_MTX_NEAR(d_copy_mtx, mtx, 0);
+    GKO_ASSERT_MTX_NEAR(copy_mtx.get(), csr_mtx.get(), 0);
 }
 
 
@@ -121,11 +113,9 @@ TEST_F(UpperTrs, CanBeCloned)
     auto clone = upper_trs_solver->clone();
 
     auto clone_mtx = clone->get_system_matrix();
-    auto d_clone_mtx = Mtx::create(exec);
-    clone_mtx->convert_to(gko::lend(d_clone_mtx));
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
-    GKO_ASSERT_MTX_NEAR(d_clone_mtx, mtx, 0);
+    GKO_ASSERT_MTX_NEAR(clone_mtx.get(), csr_mtx.get(), 0);
 }
 
 
@@ -137,6 +127,25 @@ TEST_F(UpperTrs, CanBeCleared)
 
     ASSERT_EQ(upper_trs_solver->get_size(), gko::dim<2>(0, 0));
     ASSERT_EQ(solver_mtx, nullptr);
+}
+
+
+TEST_F(UpperTrs, CanSetPreconditionerGenerator)
+{
+    auto upper_trs_factory =
+        Solver::build().with_preconditioner(Solver::build().on(exec)).on(exec);
+    auto solver = upper_trs_factory->generate(mtx);
+
+    auto precond = dynamic_cast<const gko::solver::UpperTrs<> *>(
+        static_cast<gko::solver::UpperTrs<> *>(solver.get())
+            ->get_preconditioner()
+            .get());
+
+    ASSERT_NE(precond, nullptr);
+    ASSERT_EQ(precond->get_size(), gko::dim<2>(3, 3));
+    GKO_ASSERT_MTX_NEAR(
+        static_cast<const CsrMtx *>(precond->get_system_matrix().get()),
+        csr_mtx.get(), 0);
 }
 
 

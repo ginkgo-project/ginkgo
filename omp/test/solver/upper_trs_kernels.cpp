@@ -131,7 +131,7 @@ protected:
     std::shared_ptr<Mtx> dt_x;
     std::shared_ptr<Mtx> d_mat;
     std::shared_ptr<CsrMtx> d_csr_mat;
-    std::shared_ptr<gko::solver::SolveStruct> solve_struct;
+    std::shared_ptr<const gko::solver::SolveStruct> solve_struct;
 };
 
 
@@ -139,7 +139,7 @@ TEST_F(UpperTrs, OmpUpperTrsFlagCheckIsCorrect)
 {
     bool trans_flag = true;
     bool expected_flag = false;
-    gko::kernels::omp::upper_trs::perform_transpose(omp, trans_flag);
+    gko::kernels::omp::upper_trs::should_perform_transpose(omp, trans_flag);
 
     ASSERT_EQ(expected_flag, trans_flag);
 }

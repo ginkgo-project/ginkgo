@@ -33,13 +33,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/upper_trs_kernels.hpp"
 
 
+#include <memory>
+
+
+#include <cuda.h>
+#include <cusparse.h>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/solver/upper_trs.hpp>
 
 
 #include "core/matrix/dense_kernels.hpp"
-#include "core/solver/lower_trs_kernels.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
@@ -56,19 +62,19 @@ namespace cuda {
 namespace upper_trs {
 
 
-void perform_transpose(std::shared_ptr<const CudaExecutor> exec,
-                       bool &transposability) GKO_NOT_IMPLEMENTED;
+void should_perform_transpose(std::shared_ptr<const CudaExecutor> exec,
+                              bool &do_transpose) GKO_NOT_IMPLEMENTED;
 
 
 void init_struct(std::shared_ptr<const CudaExecutor> exec,
-                 std::shared_ptr<gko::solver::SolveStruct> &solve_struct)
+                 std::shared_ptr<solver::SolveStruct> &solve_struct)
     GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const CudaExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *matrix,
-              gko::solver::SolveStruct *solve_struct,
+              solver::SolveStruct *solve_struct,
               const gko::size_type num_rhs) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -78,7 +84,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Csr<ValueType, IndexType> *matrix,
-           gko::solver::SolveStruct *solve_struct,
+           const solver::SolveStruct *solve_struct,
            matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
            const matrix::Dense<ValueType> *b,
            matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;

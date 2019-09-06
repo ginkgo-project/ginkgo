@@ -55,15 +55,15 @@ namespace reference {
 namespace upper_trs {
 
 
-void perform_transpose(std::shared_ptr<const ReferenceExecutor> exec,
-                       bool &transposability)
+void should_perform_transpose(std::shared_ptr<const ReferenceExecutor> exec,
+                              bool &do_transpose)
 {
-    transposability = false;
+    do_transpose = false;
 }
 
 
 void init_struct(std::shared_ptr<const ReferenceExecutor> exec,
-                 std::shared_ptr<gko::solver::SolveStruct> &solve_struct)
+                 std::shared_ptr<solver::SolveStruct> &solve_struct)
 {
     // This init kernel is here to allow initialization of the solve struct for
     // a more sophisticated implementation as for other executors.
@@ -73,8 +73,7 @@ void init_struct(std::shared_ptr<const ReferenceExecutor> exec,
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const ReferenceExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *matrix,
-              gko::solver::SolveStruct *solve_struct,
-              const gko::size_type num_rhs)
+              solver::SolveStruct *solve_struct, const gko::size_type num_rhs)
 {
     // This generate kernel is here to allow for a more sophisticated
     // implementation as for other executors. This kernel would perform the
@@ -85,10 +84,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL);
 
 
+/**
+ * The parameters trans_x and trans_b are used only in the CUDA executor for
+ * versions <=9.1 due to a limitation in the cssrsm_solve algorithm and hence
+ * here essentially unused.
+ */
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const ReferenceExecutor> exec,
            const matrix::Csr<ValueType, IndexType> *matrix,
-           gko::solver::SolveStruct *solve_struct,
+           const solver::SolveStruct *solve_struct,
            matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
            const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
 {
