@@ -25,6 +25,7 @@ target_sources(ginkgo
         matrix/sellp.cpp
         matrix/sparsity_csr.cpp
         preconditioner/jacobi.cpp
+        reorder/metis_fill_reduce.cpp
         solver/bicgstab.cpp
         solver/cg.cpp
         solver/cgs.cpp
@@ -54,6 +55,7 @@ target_link_libraries(ginkgo
 if (GINKGO_HAVE_PAPI_SDE)
     target_link_libraries(ginkgo PRIVATE PAPI::PAPI)
 endif()
+
 ginkgo_default_includes(ginkgo)
 ginkgo_install_library(ginkgo core)
 

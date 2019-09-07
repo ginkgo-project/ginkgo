@@ -1,0 +1,2 @@
+ginkgo_create_test(metis_fill_reduce)
+ginkgo_create_test(metis_fill_reduce_kernels)

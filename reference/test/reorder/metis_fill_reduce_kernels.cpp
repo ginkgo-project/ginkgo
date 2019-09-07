@@ -30,53 +30,54 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_INCLUDE_CONFIG_H
-#define GKO_INCLUDE_CONFIG_H
-
-// clang-format off
-#define GKO_VERSION_MAJOR @Ginkgo_VERSION_MAJOR@
-#define GKO_VERSION_MINOR @Ginkgo_VERSION_MINOR@
-#define GKO_VERSION_PATCH @Ginkgo_VERSION_PATCH@
-#define GKO_VERSION_TAG "@Ginkgo_VERSION_TAG@"
-// clang-format on
-
-/*
- * Controls the amount of messages output by Ginkgo.
- * 0 disables all output (except for test, benchmarks and examples).
- * 1 activates important messages.
- */
-// clang-format off
-#define GKO_VERBOSE_LEVEL @GINKGO_VERBOSE_LEVEL@
-// clang-format on
+#include <ginkgo/core/reorder/metis_fill_reduce.hpp>
 
 
-/* Is Itanium ABI available? */
-#cmakedefine GKO_HAVE_CXXABI_H
+#include <gtest/gtest.h>
 
 
-/* Should we use all optimizations for Jacobi? */
-#cmakedefine GINKGO_JACOBI_FULL_OPTIMIZATIONS
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
-/* What is HIP compiled for, hcc or nvcc? */
-// clang-format off
-#define GINKGO_HIP_PLATFORM_HCC @GINKGO_HIP_PLATFORM_HCC@
+#include "core/test/utils/assertions.hpp"
 
 
-#define GINKGO_HIP_PLATFORM_NVCC @GINKGO_HIP_PLATFORM_NVCC@
-// clang-format on
+namespace {
 
 
-/* Is PAPI SDE available for Logging? */
-// clang-format off
-#define GKO_HAVE_PAPI_SDE @GINKGO_HAVE_PAPI_SDE@
-// clang-format on
+class MetisFillReduce : public ::testing::Test {
+protected:
+    using Mtx = gko::matrix::Dense<>;
+    MetisFillReduce()
+        : exec(gko::ReferenceExecutor::create()),
+          mtx(gko::initialize<Mtx>(
+              {{1, 0.0, 0.0}, {3.0, 1, 0.0}, {1.0, 2.0, 1}}, exec)),
+          mtx2(gko::initialize<Mtx>(
+              {{2, 0.0, 0.0}, {3.0, 3, 0.0}, {1.0, 2.0, 4}}, exec)),
+          metis_fill_reduce_factory(
+              gko::reorder::MetisFillReduce<>::build().on(exec)),
+          mtx_big(gko::initialize<Mtx>({{124.0, 0.0, 0.0, 0.0, 0.0},
+                                        {43.0, -789.0, 0.0, 0.0, 0.0},
+                                        {134.5, -651.0, 654.0, 0.0, 0.0},
+                                        {-642.0, 684.0, 68.0, 387.0, 0.0},
+                                        {365.0, 97.0, -654.0, 8.0, 91.0}},
+                                       exec)),
+          metis_fill_reduce_factory_big(
+              gko::reorder::MetisFillReduce<>::build().on(exec))
+    {}
+
+    std::shared_ptr<const gko::Executor> exec;
+    std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Mtx> mtx2;
+    std::shared_ptr<Mtx> mtx_big;
+    std::unique_ptr<gko::reorder::MetisFillReduce<>::Factory>
+        metis_fill_reduce_factory;
+    std::unique_ptr<gko::reorder::MetisFillReduce<>::Factory>
+        metis_fill_reduce_factory_big;
+};
 
 
-/* Is Metis available */
-// clang-format off
-#define GKO_HAVE_METIS @GINKGO_HAVE_METIS@
-// clang-format on
-
-
-#endif  // GKO_INCLUDE_CONFIG_H
+}  // namespace

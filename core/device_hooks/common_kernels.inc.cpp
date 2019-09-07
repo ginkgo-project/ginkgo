@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/sellp_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
+#include "core/reorder/metis_fill_reduce_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/cgs_kernels.hpp"
@@ -750,6 +751,38 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace par_ilu_factorization
+
+
+namespace metis_fill_reduce {
+
+
+template <typename IndexType>
+GKO_DECLARE_METIS_FILL_REDUCE_GET_PERMUTATION_KERNEL(IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_METIS_FILL_REDUCE_GET_PERMUTATION_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_METIS_FILL_REDUCE_CONSTRUCT_PERMUTATION_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_METIS_FILL_REDUCE_CONSTRUCT_PERMUTATION_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_METIS_FILL_REDUCE_CONSTRUCT_INVERSE_PERMUTATION_KERNEL(ValueType,
+                                                                   IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_METIS_FILL_REDUCE_CONSTRUCT_INVERSE_PERMUTATION_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_METIS_FILL_REDUCE_PERMUTE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_METIS_FILL_REDUCE_PERMUTE_KERNEL);
+
+
+}  // namespace metis_fill_reduce
 
 
 namespace set_all_statuses {

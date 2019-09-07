@@ -11,6 +11,7 @@ target_sources(ginkgo_reference
         matrix/sellp_kernels.cpp
         matrix/sparsity_csr_kernels.cpp
         preconditioner/jacobi_kernels.cpp
+        reorder/metis_fill_reduce_kernels.cpp
         solver/bicgstab_kernels.cpp
         solver/cg_kernels.cpp
         solver/cgs_kernels.cpp
@@ -22,10 +23,16 @@ target_sources(ginkgo_reference
         stop/criterion_kernels.cpp
         stop/residual_norm_reduction_kernels.cpp)
 
+
 ginkgo_compile_features(ginkgo_reference)
 ginkgo_default_includes(ginkgo_reference)
 ginkgo_install_library(ginkgo_reference reference)
 target_compile_options(ginkgo_reference PRIVATE "${GINKGO_COMPILER_FLAGS}")
+
+if (GINKGO_HAVE_METIS)
+  target_link_libraries(ginkgo_reference PRIVATE METIS::METIS)
+  target_include_directories(ginkgo_reference PRIVATE ${METIS_INCLUDE_DIR})
+endif()
 
 if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
