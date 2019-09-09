@@ -52,6 +52,12 @@ if [ ${?} -ne 0 ]; then
     exit 1
 fi
 
+# Get the end of line type (CRLF/LF)
+END="";
+if [[ "$(file ${GINKGO_HEADER_TEMPLATE_FILE})" == *"CRLF"* ]]; then
+    END="\r"
+fi
+
 # Generate a new, temporary ginkgo header file.
 # It will get compared at the end to the existing file in order to prevent 
 # the rebuilding of targets which depend on the global header
@@ -63,8 +69,10 @@ PREVIOUS_FOLDER=""
 # An empty ${IFS} means the given name (after `read`) will be set to the whole line,
 # and in this case it means it will not ignore leading and trailing whitespaces.
 while IFS='' read -r line; do
-    if [ "${line}" != "${PLACE_HOLDER}" ]; then
-        echo "${line}" >> "${GINKGO_HEADER_TMP}"
+    if [ "$(echo "$line")" != "${PLACE_HOLDER}" ]; then
+        # The line of original file already has the end of line, 
+        # so it does not need to add $END
+        echo -e "${line}" >> "${GINKGO_HEADER_TMP}"
     else
         READING_FIRST_LINE=true
         while IFS='' read -r prefixed_file; do
@@ -81,10 +89,10 @@ while IFS='' read -r line; do
             if [ "${READING_FIRST_LINE}" != true ] && \
                [ "${CURRENT_FOLDER}" != "${PREVIOUS_FOLDER}" ]
             then
-                echo "" >> "${GINKGO_HEADER_TMP}"
+                echo -e "${END}" >> "${GINKGO_HEADER_TMP}"
             fi
             PREVIOUS_FOLDER="${CURRENT_FOLDER}"
-            echo "#include <${file}>" >> "${GINKGO_HEADER_TMP}"
+            echo -e "#include <${file}>${END}" >> "${GINKGO_HEADER_TMP}"
             READING_FIRST_LINE=false
         done < "${HEADER_LIST}"
     fi
