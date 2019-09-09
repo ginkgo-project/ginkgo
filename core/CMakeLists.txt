@@ -2,6 +2,8 @@ add_subdirectory(devices)  # basic device functionalities, always compiled
 add_subdirectory(device_hooks)  # placeholders for disabled modules
 
 add_library(ginkgo "")
+list(APPEND GINKGO_WINDOWS_PATH ${CMAKE_CURRENT_BINARY_DIR})
+set(GINKGO_WINDOWS_PATH ${GINKGO_WINDOWS_PATH} PARENT_SCOPE)
 target_sources(ginkgo
     PRIVATE
         base/combination.cpp
