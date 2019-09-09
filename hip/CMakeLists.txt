@@ -27,7 +27,7 @@ endif()
 find_program(GINKGO_HIPCONFIG_PATH hipconfig HINTS "${HIP_PATH}/bin")
 if(GINKGO_HIPCONFIG_PATH)
     execute_process(COMMAND ${GINKGO_HIPCONFIG_PATH} --platform OUTPUT_VARIABLE GINKGO_HIP_PLATFORM)
-elseif(ENV{HIP_PLATFORM})
+elseif(DEFINED ENV{HIP_PLATFORM})
     set(GINKGO_HIP_PLATFORM "$ENV{HIP_PLATFORM}")
 else()
     message(FATAL_ERROR "No platform could be found for HIP. "
@@ -36,8 +36,7 @@ endif()
 message(STATUS "HIP platform set to ${GINKGO_HIP_PLATFORM}")
 
 if (GINKGO_HIP_PLATFORM MATCHES "nvcc")
-    set (GINKGO_CUDA_PATH $ENV{CUDA_PATH})
-    if (NOT GINKGO_CUDA_PATH)
+    if (NOT DEFINED ENV{CUDA_PATH})
         find_path(GINKGO_HIP_DEFAULT_CUDA_PATH "cuda.h" PATH /usr/local/cuda/include NO_DEFAULT_PATH)
         if (NOT GINKGO_HIP_DEFAULT_CUDA_PATH)
             message(FATAL_ERROR "HIP nvcc backend was requested but CUDA could not be located. "
@@ -54,9 +53,10 @@ endif()
 
 set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
 list(APPEND CMAKE_PREFIX_PATH
-    "${HIP_PATH}/../lib/cmake"
+    "${HIP_PATH}/lib/cmake"
     "${HIPBLAS_PATH}/lib/cmake"
-    "${HIPSPARSE_PATH}/lib/cmake")
+    "${HIPSPARSE_PATH}/lib/cmake"
+)
 
 find_package(HIP REQUIRED)
 find_package(hipblas REQUIRED)
@@ -94,7 +94,7 @@ set(GINKGO_HIP_SOURCES
     stop/residual_norm_reduction_kernels.hip.cpp)
 
 set(GINKGO_HIPCC_OPTIONS ${GINKGO_HIP_COMPILER_FLAGS})
-set(GINKGO_HIP_NVCC_OPTIONS ${GINKGO_HIP_NVCC_COMPILER_FLAGS})
+set(GINKGO_HIP_NVCC_OPTIONS -Xcompiler -fPIC ${GINKGO_HIP_NVCC_COMPILER_FLAGS})
 set(GINKGO_HIP_HCC_OPTIONS -fPIC ${GINKGO_HIP_HCC_COMPILER_FLAGS})
 
 
@@ -117,6 +117,11 @@ if(GINKGO_WITH_IWYU AND GINKGO_IWYU_PATH)
 endif()
 
 target_link_libraries(ginkgo_hip PUBLIC hip::device PRIVATE roc::hipblas roc::hipsparse)
+
+if(GINKGO_HIP_PLATFORM MATCHES "nvcc")
+    find_package(CUDA 9.0 REQUIRED)
+    target_link_libraries(ginkgo_hip PRIVATE ${CUDA_LIBRARIES})
+endif()
 
 target_include_directories(ginkgo_hip
     PUBLIC
