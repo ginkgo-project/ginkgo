@@ -32,6 +32,7 @@ function(ginkgo_create_hip_test test_name)
     file(RELATIVE_PATH REL_BINARY_DIR
          ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
+    set(CMAKE_CXX_LINK_EXECUTABLE ${CMAKE_CXX_COMPILER})
     set_source_files_properties(${test_name}.hip.cpp PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
     hip_add_executable(${TEST_TARGET_NAME} ${test_name}.hip.cpp)
     target_include_directories("${TEST_TARGET_NAME}"
@@ -46,11 +47,14 @@ function(ginkgo_create_hip_test test_name)
         endforeach()
     endif()
 
+    target_link_libraries(${TEST_TARGET_NAME} PRIVATE ginkgo GTest::Main GTest::GTest  ${ARGN})
+
     # GINKGO_RPATH_FOR_HIP needs to be populated before calling this for the linker to include
     # our libraries path into the executable's runpath.
     if (GINKGO_HIP_PLATFORM MATCHES "hcc")
         target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_RPATH_FOR_HIP}")
+    elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")
+        target_link_libraries(${TEST_TARGET_NAME} PRIVATE -Xcompiler \"${GINKGO_RPATH_FOR_HIP}\")
     endif()
-    target_link_libraries(${TEST_TARGET_NAME} PRIVATE ginkgo GTest::Main GTest::GTest  ${ARGN})
     add_test(NAME ${REL_BINARY_DIR}/${test_name} COMMAND ${TEST_TARGET_NAME})
 endfunction(ginkgo_create_hip_test)

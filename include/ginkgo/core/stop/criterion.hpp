@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -274,6 +275,12 @@ using EnableDefaultCriterionFactory =
  *                          and the public getter's name is
  *                          `get_<_parameters_name>()`)
  * @param _factory_name  name of the generated factory type
+ *
+ * @internal For some abstract reason, nvcc compilation through HIP does not
+ *           properly take into account the `using` declaration to inherit
+ *           constructors. In addition, the default initialization `{}` for
+ *           `_parameters_name##type $parameters` also does not work, which
+ *           means the current form is probably the only correct one.
  *
  * @ingroup stop
  */
