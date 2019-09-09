@@ -41,6 +41,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
+#include <hip/hip_runtime.h>
+#include <hip/math_functions.h>
+
+
 #include "hip/base/hipblas_bindings.hip.hpp"
 #include "hip/components/uninitialized_array.hip.hpp"
 
@@ -54,6 +58,9 @@ namespace hip {
  * @ingroup dense
  */
 namespace dense {
+
+
+constexpr auto default_block_size = 512;
 
 
 template <typename ValueType>
@@ -97,15 +104,63 @@ template <typename ValueType>
 void compute_dot(std::shared_ptr<const HipExecutor> exec,
                  const matrix::Dense<ValueType> *x,
                  const matrix::Dense<ValueType> *y,
-                 matrix::Dense<ValueType> *result) GKO_NOT_IMPLEMENTED;
+                 matrix::Dense<ValueType> *result)
+{
+    if (hipblas::is_supported<ValueType>::value) {
+        // TODO: write a custom kernel which does this more efficiently
+        for (size_type col = 0; col < x->get_size()[1]; ++col) {
+            hipblas::dot(exec->get_hipblas_handle(), x->get_size()[0],
+                         x->get_const_values() + col, x->get_stride(),
+                         y->get_const_values() + col, y->get_stride(),
+                         result->get_values() + col);
+        }
+    } else {
+        // TODO: implement this
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
+
+
+namespace kernel {
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void compute_sqrt(
+    size_type num_cols, ValueType *__restrict__ work)
+{
+    const auto tidx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    if (tidx < num_cols) {
+        work[tidx] = sqrt(abs(work[tidx]));
+    }
+}
+
+
+}  // namespace kernel
 
 
 template <typename ValueType>
 void compute_norm2(std::shared_ptr<const HipExecutor> exec,
                    const matrix::Dense<ValueType> *x,
-                   matrix::Dense<ValueType> *result) GKO_NOT_IMPLEMENTED;
+                   matrix::Dense<ValueType> *result)
+{
+    if (hipblas::is_supported<ValueType>::value) {
+        for (size_type col = 0; col < x->get_size()[1]; ++col) {
+            hipblas::norm2(exec->get_hipblas_handle(), x->get_size()[0],
+                           x->get_const_values() + col, x->get_stride(),
+                           result->get_values() + col);
+        }
+    } else {
+        compute_dot(exec, x, x, result);
+        const dim3 block_size(default_block_size, 1, 1);
+        const dim3 grid_size(ceildiv(result->get_size()[1], block_size.x), 1,
+                             1);
+        hipLaunchKernelGGL(kernel::compute_sqrt, dim3(grid_size),
+                           dim3(block_size), 0, 0, result->get_size()[1],
+                           as_hip_type(result->get_values()));
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 
