@@ -79,9 +79,9 @@ protected:
  * set.
  */
 struct ReorderingArgs {
-    std::shared_ptr<const LinOp> system_matrix;
+    std::shared_ptr<LinOp> system_matrix;
 
-    ReorderingArgs(std::shared_ptr<const LinOp> system_matrix)
+    ReorderingArgs(std::shared_ptr<LinOp> system_matrix)
         : system_matrix{system_matrix}
     {}
 };

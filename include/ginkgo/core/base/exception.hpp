@@ -174,6 +174,29 @@ public:
 
 
 /**
+ * MetisError is thrown when a METIS routine throws a non-zero error code.
+ */
+class MetisError : public Error {
+public:
+    /**
+     * Initializes a METIS error.
+     *
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param func The name of the METIS routine that failed
+     * @param error_code The resulting METIS error code
+     */
+    MetisError(const std::string &file, int line, const std::string &func,
+               int64 error_code)
+        : Error(file, line, func + ": " + get_error(error_code))
+    {}
+
+private:
+    static std::string get_error(int64 error_code);
+};
+
+
+/**
  * CudaError is thrown when a CUDA routine throws a non-zero error code.
  */
 class CudaError : public Error {

@@ -237,6 +237,15 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 
 
 /**
+ * Instantiates a MetisError.
+ *
+ * @param errcode  The error code returned from a METIS runtime API routine.
+ */
+#define GKO_METIS_ERROR(_errcode) \
+    ::gko::MetisError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
  * Instantiates a CudaError.
  *
  * @param errcode  The error code returned from a CUDA runtime API routine.
@@ -261,6 +270,20 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
  */
 #define GKO_CUSPARSE_ERROR(_errcode) \
     ::gko::CusparseError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
+ * Asserts that a METIS library call completed without errors.
+ *
+ * @param _metis_call  a library call expression
+ */
+#define GKO_ASSERT_NO_METIS_ERRORS(_metis_call) \
+    do {                                        \
+        auto _errcode = _metis_call;            \
+        if (_errcode != METIS_OK) {             \
+            throw GKO_METIS_ERROR(_errcode);    \
+        }                                       \
+    } while (false)
 
 
 /**

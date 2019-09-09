@@ -50,7 +50,9 @@ namespace {
 
 class MetisFillReduce : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
+    using v_type = double;
+    using i_type = long int;
+    using Mtx = gko::matrix::Dense<v_type>;
     MetisFillReduce()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
@@ -58,7 +60,7 @@ protected:
           mtx2(gko::initialize<Mtx>(
               {{2, 0.0, 0.0}, {3.0, 3, 0.0}, {1.0, 2.0, 4}}, exec)),
           metis_fill_reduce_factory(
-              gko::reorder::MetisFillReduce<>::build().on(exec)),
+              gko::reorder::MetisFillReduce<v_type, i_type>::build().on(exec)),
           mtx_big(gko::initialize<Mtx>({{124.0, 0.0, 0.0, 0.0, 0.0},
                                         {43.0, -789.0, 0.0, 0.0, 0.0},
                                         {134.5, -651.0, 654.0, 0.0, 0.0},
@@ -66,16 +68,16 @@ protected:
                                         {365.0, 97.0, -654.0, 8.0, 91.0}},
                                        exec)),
           metis_fill_reduce_factory_big(
-              gko::reorder::MetisFillReduce<>::build().on(exec))
+              gko::reorder::MetisFillReduce<v_type, i_type>::build().on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> mtx2;
     std::shared_ptr<Mtx> mtx_big;
-    std::unique_ptr<gko::reorder::MetisFillReduce<>::Factory>
+    std::unique_ptr<gko::reorder::MetisFillReduce<v_type, i_type>::Factory>
         metis_fill_reduce_factory;
-    std::unique_ptr<gko::reorder::MetisFillReduce<>::Factory>
+    std::unique_ptr<gko::reorder::MetisFillReduce<v_type, i_type>::Factory>
         metis_fill_reduce_factory_big;
 };
 

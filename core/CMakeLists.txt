@@ -7,6 +7,7 @@ target_sources(ginkgo
         base/combination.cpp
         base/composition.cpp
         base/executor.cpp
+        base/exception.cpp
         base/mtx_io.cpp
         base/perturbation.cpp
         base/version.cpp
@@ -54,6 +55,11 @@ target_link_libraries(ginkgo
     PUBLIC ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip)
 if (GINKGO_HAVE_PAPI_SDE)
     target_link_libraries(ginkgo PRIVATE PAPI::PAPI)
+endif()
+
+if (GINKGO_HAVE_METIS)
+  target_link_libraries(ginkgo PRIVATE METIS::METIS)
+  target_include_directories(ginkgo PRIVATE ${METIS_INCLUDE_DIR})
 endif()
 
 ginkgo_default_includes(ginkgo)

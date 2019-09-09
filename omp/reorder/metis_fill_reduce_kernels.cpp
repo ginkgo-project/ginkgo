@@ -35,6 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/metis_types.hpp>
+#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
@@ -55,16 +57,24 @@ namespace omp {
 namespace metis_fill_reduce {
 
 
-template <typename IndexType>
-void get_permutation(std::shared_ptr<const OmpExecutor> exec,
-                     const gko::size_type num_vertices,
-                     const IndexType *mat_row_ptrs,
-                     const IndexType *mat_col_idxs,
-                     const IndexType *vertex_weights, IndexType *permutation,
-                     IndexType *inv_permutation)
+template <typename ValueType, typename IndexType>
+void remove_diagonal_elements(std::shared_ptr<const OmpExecutor> exec,
+                              bool remove_diagonal_elements,
+                              gko::matrix::Csr<ValueType, IndexType> *matrix,
+                              IndexType *adj_ptrs, IndexType *adj_idxs)
 {}
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
+    GKO_DECLARE_METIS_FILL_REDUCE_REMOVE_DIAGONAL_ELEMENTS_KERNEL);
+
+template <typename IndexType>
+void get_permutation(std::shared_ptr<const OmpExecutor> exec,
+                     IndexType num_vertices, IndexType *adj_ptrs,
+                     IndexType *adj_idxs, IndexType *vertex_weights,
+                     IndexType *permutation, IndexType *inv_permutation)
+{}
+
+GKO_INSTANTIATE_FOR_EACH_METIS_INDEX_TYPE(
     GKO_DECLARE_METIS_FILL_REDUCE_GET_PERMUTATION_KERNEL);
 
 
@@ -74,7 +84,7 @@ void construct_inverse_permutation_matrix(
     gko::matrix::Csr<ValueType, IndexType> *inverse_permutation_matrix)
 {}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
     GKO_DECLARE_METIS_FILL_REDUCE_CONSTRUCT_INVERSE_PERMUTATION_KERNEL);
 
 
@@ -83,8 +93,7 @@ void construct_permutation_matrix(
     std::shared_ptr<const OmpExecutor> exec, const IndexType *permutation,
     gko::matrix::Csr<ValueType, IndexType> *permutation_matrix)
 {}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
     GKO_DECLARE_METIS_FILL_REDUCE_CONSTRUCT_PERMUTATION_KERNEL);
 
 
@@ -94,7 +103,7 @@ void permute(std::shared_ptr<const OmpExecutor> exec,
              gko::LinOp *to_permute)
 {}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
     GKO_DECLARE_METIS_FILL_REDUCE_PERMUTE_KERNEL);
 
 

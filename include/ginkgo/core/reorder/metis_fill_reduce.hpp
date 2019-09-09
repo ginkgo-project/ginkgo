@@ -104,8 +104,7 @@ class MetisFillReduce
     friend class EnablePolymorphicObject<MetisFillReduce, Reordering>;
 
 public:
-    std::shared_ptr<const matrix::Csr<ValueType, IndexType>> get_system_matrix()
-        const
+    std::shared_ptr<matrix::Csr<ValueType, IndexType>> get_system_matrix() const
     {
         return system_matrix_;
     }
@@ -115,6 +114,10 @@ public:
         return permutation_;
     }
 
+    std::shared_ptr<Array<IndexType>> get_adj_ptrs() const { return adj_ptrs_; }
+
+    std::shared_ptr<Array<IndexType>> get_adj_idxs() const { return adj_idxs_; }
+
     std::shared_ptr<Array<IndexType>> get_inverse_permutation() const
     {
         return inv_permutation_;
@@ -122,6 +125,12 @@ public:
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
+        /**
+         * If this parameter is set then an inverse permutation matrix is also
+         * constructed along with the normal permutation matrix.
+         */
+        bool GKO_FACTORY_PARAMETER(remove_diagonal_elements, true);
+
         /**
          * If this parameter is set then an inverse permutation matrix is also
          * constructed along with the normal permutation matrix.
@@ -177,8 +186,16 @@ protected:
             system_matrix_ =
                 copy_and_convert_to<CsrMatrix>(exec, args.system_matrix);
         }
-        vertex_weights_ = std::shared_ptr<const Array<IndexType>>(
-            new Array<IndexType>{parameters_.vertex_weights});
+        vertex_weights_ = std::shared_ptr<Array<IndexType>>(
+            new Array<IndexType>{exec, system_matrix_->get_size()[0]});
+        for (auto i = 0; i < system_matrix_->get_size()[0]; ++i) {
+            vertex_weights_->get_data()[i] = 1;
+        }
+        adj_ptrs_ = std::shared_ptr<Array<IndexType>>(
+            new Array<IndexType>{exec, system_matrix_->get_size()[0] + 1});
+        adj_idxs_ = std::shared_ptr<Array<IndexType>>(new Array<IndexType>{
+            exec, system_matrix_->get_num_stored_elements() -
+                      system_matrix_->get_size()[0]});
         permutation_ = std::shared_ptr<Array<IndexType>>(
             new Array<IndexType>{exec, system_matrix_->get_size()[0]});
         inv_permutation_ = std::shared_ptr<Array<IndexType>>(
@@ -190,8 +207,10 @@ protected:
     }
 
 private:
-    std::shared_ptr<const matrix::Csr<ValueType, IndexType>> system_matrix_{};
-    std::shared_ptr<const Array<IndexType>> vertex_weights_{};
+    std::shared_ptr<matrix::Csr<ValueType, IndexType>> system_matrix_{};
+    std::shared_ptr<Array<IndexType>> adj_ptrs_{};
+    std::shared_ptr<Array<IndexType>> adj_idxs_{};
+    std::shared_ptr<Array<IndexType>> vertex_weights_{};
     std::shared_ptr<Array<IndexType>> permutation_{};
     std::shared_ptr<Array<IndexType>> inv_permutation_{};
     std::shared_ptr<matrix::Csr<ValueType, IndexType>> permutation_mat_{};

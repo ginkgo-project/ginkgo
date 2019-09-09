@@ -30,43 +30,62 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/reorder/metis_fill_reduce.hpp>
+#ifndef GKO_CORE_METIS_TYPES_HPP_
+#define GKO_CORE_METIS_TYPES_HPP_
 
 
-#include <memory>
+#include <cassert>
+#include <climits>
+#include <cstddef>
+#include <cstdint>
 
 
-#include <gtest/gtest.h>
+#include <complex>
+#include <type_traits>
 
 
-#include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/config.hpp>
 
 
-namespace {
+#if GKO_HAVE_METIS
+#include <metis.h>
+#define metis_indextype idx_t
+#else
+#define metis_indextype int32
+#endif
 
 
-class MetisFillReduce : public ::testing::Test {
-protected:
-    using v_type = double;
-    using i_type = long int;
-    using Mtx = gko::matrix::Dense<v_type>;
-    using reorder_factory_type = gko::reorder::MetisFillReduce<v_type, i_type>;
-
-    MetisFillReduce()
-        : exec(gko::ReferenceExecutor::create()),
-          metis_fill_reduce_factory(reorder_factory_type::build().on(exec))
-    {}
-
-    std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<reorder_factory_type::Factory> metis_fill_reduce_factory;
-};
+namespace gko {
 
 
-TEST_F(MetisFillReduce, MetisFillReduceFactoryKnowsItsExecutor)
-{
-    ASSERT_EQ(metis_fill_reduce_factory->get_executor(), exec);
-}
+/**
+ * Instantiates a template for each index type compiled by Metis.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take one argument, which is replaced by the
+ *                value type.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_METIS_INDEX_TYPE(_macro) \
+    template _macro(metis_indextype)
 
 
-}  // namespace
+/**
+ * Instantiates a template for each index type compiled by Metis.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take one argument, which is replaced by the
+ *                value type.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(_macro) \
+    template _macro(float, metis_indextype);                        \
+    template _macro(double, metis_indextype);                       \
+    template _macro(std::complex<float>, metis_indextype);          \
+    template _macro(std::complex<double>, metis_indextype)
+
+
+}  // namespace gko
+
+
+#endif  // GKO_CORE_METIS_TYPES_HPP_

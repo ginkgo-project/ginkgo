@@ -30,43 +30,32 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/reorder/metis_fill_reduce.hpp>
+
+#include <ginkgo/core/base/exception.hpp>
 
 
-#include <memory>
+#if GKO_HAVE_METIS
+#include <metis.h>
+#endif
 
 
-#include <gtest/gtest.h>
+namespace gko {
 
 
-#include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
-
-
-namespace {
-
-
-class MetisFillReduce : public ::testing::Test {
-protected:
-    using v_type = double;
-    using i_type = long int;
-    using Mtx = gko::matrix::Dense<v_type>;
-    using reorder_factory_type = gko::reorder::MetisFillReduce<v_type, i_type>;
-
-    MetisFillReduce()
-        : exec(gko::ReferenceExecutor::create()),
-          metis_fill_reduce_factory(reorder_factory_type::build().on(exec))
-    {}
-
-    std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<reorder_factory_type::Factory> metis_fill_reduce_factory;
-};
-
-
-TEST_F(MetisFillReduce, MetisFillReduceFactoryKnowsItsExecutor)
+std::string MetisError::get_error(int64 error_code)
 {
-    ASSERT_EQ(metis_fill_reduce_factory->get_executor(), exec);
+#if GKO_HAVE_METIS
+#define GKO_REGISTER_METIS_ERROR(error_name)            \
+    if (error_code == static_cast<int64>(error_name)) { \
+        return #error_name;                             \
+    }
+    GKO_REGISTER_METIS_ERROR(METIS_ERROR_INPUT);
+    GKO_REGISTER_METIS_ERROR(METIS_ERROR_MEMORY);
+    GKO_REGISTER_METIS_ERROR(METIS_ERROR);
+#endif
+
+    return "Unknown error";
 }
 
 
-}  // namespace
+}  // namespace gko

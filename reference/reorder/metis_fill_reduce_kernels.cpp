@@ -30,11 +30,18 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+
 #include "core/reorder/metis_fill_reduce_kernels.hpp"
+
+
+#include <memory>
+#include <vector>
 
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/metis_types.hpp>
+#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
@@ -42,7 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if GKO_HAVE_METIS
 #include <metis.h>
 #endif
-
 
 namespace gko {
 namespace kernels {
@@ -55,16 +61,59 @@ namespace reference {
 namespace metis_fill_reduce {
 
 
+template <typename ValueType, typename IndexType>
+void remove_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
+                              bool remove_diagonal_elements,
+                              gko::matrix::Csr<ValueType, IndexType> *matrix,
+                              IndexType *adj_ptrs, IndexType *adj_idxs)
+{
+    auto num_rows = matrix->get_size()[0];
+    auto zero = gko::zero<ValueType>();
+    if (remove_diagonal_elements && matrix->get_values()[0] != zero) {
+        for (auto i = 0; i <= num_rows; ++i) {
+            adj_ptrs[i] = matrix->get_row_ptrs()[i] - i;
+        }
+        std::vector<IndexType> temp_idxs;
+        auto row_ptrs = matrix->get_row_ptrs();
+        auto col_idxs = matrix->get_col_idxs();
+        for (auto i = 0; i < num_rows; ++i) {
+            for (auto j = row_ptrs[i]; j < row_ptrs[i + 1]; ++j) {
+                if (col_idxs[j] != i) {
+                    temp_idxs.push_back(col_idxs[j]);
+                }
+            }
+        }
+        for (auto i = 0; i < temp_idxs.size(); ++i) {
+            adj_idxs[i] = temp_idxs[i];
+        }
+    } else {
+        for (auto i = 0; i <= num_rows; ++i) {
+            adj_ptrs[i] = matrix->get_row_ptrs()[i];
+        }
+        for (auto i = 0; i < matrix->get_num_stored_elements(); ++i) {
+            adj_idxs[i] = matrix->get_col_idxs()[i];
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
+    GKO_DECLARE_METIS_FILL_REDUCE_REMOVE_DIAGONAL_ELEMENTS_KERNEL);
+
+
 template <typename IndexType>
 void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
-                     const gko::size_type num_vertices,
-                     const IndexType *mat_row_ptrs,
-                     const IndexType *mat_col_idxs,
-                     const IndexType *vertex_weights, IndexType *permutation,
-                     IndexType *inv_permutation)
-{}
+                     IndexType num_vertices, IndexType *adj_ptrs,
+                     IndexType *adj_idxs, IndexType *vertex_weights,
+                     IndexType *permutation, IndexType *inv_permutation)
+{
+    idx_t options[METIS_NOPTIONS];
+    GKO_ASSERT_NO_METIS_ERRORS(METIS_SetDefaultOptions(options));
+    GKO_ASSERT_NO_METIS_ERRORS(METIS_NodeND(&num_vertices, adj_ptrs, adj_idxs,
+                                            vertex_weights, options,
+                                            permutation, inv_permutation));
+}
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_METIS_INDEX_TYPE(
     GKO_DECLARE_METIS_FILL_REDUCE_GET_PERMUTATION_KERNEL);
 
 
@@ -75,7 +124,7 @@ void construct_inverse_permutation_matrix(
     gko::matrix::Csr<ValueType, IndexType> *inverse_permutation_matrix)
 {}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
     GKO_DECLARE_METIS_FILL_REDUCE_CONSTRUCT_INVERSE_PERMUTATION_KERNEL);
 
 
@@ -85,7 +134,7 @@ void construct_permutation_matrix(
     gko::matrix::Csr<ValueType, IndexType> *permutation_matrix)
 {}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
     GKO_DECLARE_METIS_FILL_REDUCE_CONSTRUCT_PERMUTATION_KERNEL);
 
 
@@ -95,7 +144,7 @@ void permute(std::shared_ptr<const ReferenceExecutor> exec,
              gko::LinOp *to_permute)
 {}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
     GKO_DECLARE_METIS_FILL_REDUCE_PERMUTE_KERNEL);
 
 
