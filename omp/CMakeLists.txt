@@ -1,6 +1,8 @@
 find_package(OpenMP REQUIRED)
 
 add_library(ginkgo_omp $<TARGET_OBJECTS:ginkgo_omp_device> "")
+list(APPEND GINKGO_WINDOWS_PATH ${CMAKE_CURRENT_BINARY_DIR})
+set(GINKGO_WINDOWS_PATH ${GINKGO_WINDOWS_PATH} PARENT_SCOPE)
 target_sources(ginkgo_omp
     PRIVATE
         base/version.cpp
