@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 #include <chrono>
 #include <thread>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 
 namespace {
@@ -44,6 +47,16 @@ namespace {
 constexpr long test_ms = 500;
 constexpr double eps = 1.0e-4;
 using double_seconds = std::chrono::duration<double, std::milli>;
+
+
+inline void sleep_millisecond(unsigned int ms)
+{
+#ifdef _WIN32
+    Sleep(ms);
+#else
+    std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+#endif
+}
 
 
 class Time : public ::testing::Test {
@@ -83,7 +96,7 @@ TEST_F(Time, WaitsTillTime)
     stop_status.get_data()[0].reset();
     constexpr gko::uint8 RelativeStoppingId{1};
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(test_ms));
+    sleep_millisecond(test_ms);
 
     ASSERT_TRUE(criterion->update().check(RelativeStoppingId, true,
                                           &stop_status, &one_changed));
