@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_fp16.h>
 
 
-#elif __HIPCC__
+#elif defined(__HIPCC__)
 
 
 #include <hip/hip_fp16.h>
