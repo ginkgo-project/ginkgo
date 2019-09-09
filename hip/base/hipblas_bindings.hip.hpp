@@ -183,26 +183,26 @@ GKO_BIND_HIPBLAS_GEAM(ValueType, detail::not_implemented);
 // #undef GKO_BIND_HIPBLAS_AXPY
 
 
-// #define GKO_BIND_HIPBLAS_DOT(ValueType, HipblasName)                           \
-//     inline void dot(hipblasHandle_t handle, int n, const ValueType *x,         \
-//                     int incx, const ValueType *y, int incy, ValueType *result) \
-//     {                                                                          \
-//         GKO_ASSERT_NO_HIPBLAS_ERRORS(                                          \
-//             HipblasName(handle, n, as_hiplibs_type(x), incx,                   \
-//                         as_hiplibs_type(y), incy, as_hiplibs_type(result)));   \
-//     }                                                                          \
-//     static_assert(true,                                                        \
-//                   "This assert is used to counter the false positive extra "   \
-//                   "semi-colon warnings")
+#define GKO_BIND_HIPBLAS_DOT(ValueType, HipblasName)                           \
+    inline void dot(hipblasHandle_t handle, int n, const ValueType *x,         \
+                    int incx, const ValueType *y, int incy, ValueType *result) \
+    {                                                                          \
+        GKO_ASSERT_NO_HIPBLAS_ERRORS(                                          \
+            HipblasName(handle, n, as_hiplibs_type(x), incx,                   \
+                        as_hiplibs_type(y), incy, as_hiplibs_type(result)));   \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
 
-// GKO_BIND_HIPBLAS_DOT(float, hipblasSdot);
-// GKO_BIND_HIPBLAS_DOT(double, hipblasDdot);
+GKO_BIND_HIPBLAS_DOT(float, hipblasSdot);
+GKO_BIND_HIPBLAS_DOT(double, hipblasDdot);
 // GKO_BIND_HIPBLAS_DOT(std::complex<float>, hipblasCdotc);
 // GKO_BIND_HIPBLAS_DOT(std::complex<double>, hipblasZdotc);
-// template <typename ValueType>
-// GKO_BIND_HIPBLAS_DOT(ValueType, detail::not_implemented);
+template <typename ValueType>
+GKO_BIND_HIPBLAS_DOT(ValueType, detail::not_implemented);
 
-// #undef GKO_BIND_HIPBLAS_DOT
+#undef GKO_BIND_HIPBLAS_DOT
 
 
 #define GKO_BIND_HIPBLAS_NORM2(ValueType, HipblasName)                       \
