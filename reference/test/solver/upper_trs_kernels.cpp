@@ -74,8 +74,7 @@ protected:
                                         {0.0, 0.0, 134, -651.0, 654.0},
                                         {0.0, 0.0, 0.0, 43.0, -789.0},
                                         {0.0, 0.0, 0.0, 0.0, 124.0}},
-                                       exec)),
-          upper_trs_factory_big(gko::solver::UpperTrs<>::build().on(exec))
+                                       exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -85,7 +84,6 @@ protected:
     std::shared_ptr<Mtx> mtx_big;
     std::unique_ptr<gko::solver::UpperTrs<>::Factory> upper_trs_factory;
     std::unique_ptr<gko::solver::UpperTrs<>::Factory> upper_trs_factory_mrhs;
-    std::unique_ptr<gko::solver::UpperTrs<>::Factory> upper_trs_factory_big;
 };
 
 
@@ -137,6 +135,7 @@ TEST_F(UpperTrs, SolvesNonUnitTriangularSystem)
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, -1.0}), 1e-14);
 }
 
+
 TEST_F(UpperTrs, SolvesTriangularSystemUsingAdvancedApply)
 {
     auto alpha = gko::initialize<Mtx>({2.0}, exec);
@@ -172,7 +171,7 @@ TEST_F(UpperTrs, SolvesBigDenseSystem)
     std::shared_ptr<Mtx> b =
         gko::initialize<Mtx>({-6021.0, 3018.0, -2055.0, 1707.0, -248.0}, exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, exec);
-    auto solver = upper_trs_factory_big->generate(mtx_big);
+    auto solver = upper_trs_factory->generate(mtx_big);
 
     solver->apply(b.get(), x.get());
 
