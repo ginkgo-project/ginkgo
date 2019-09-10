@@ -55,6 +55,10 @@ protected:
               4, 3, true, std::normal_distribution<double>(50, 5),
               std::normal_distribution<double>(20.0, 5.0), std::ranlux48(42),
               exec)),
+          u_mtx(gko::test::generate_random_upper_triangular_matrix(
+              3, 4, true, std::normal_distribution<double>(50, 5),
+              std::normal_distribution<double>(20.0, 5.0), std::ranlux48(42),
+              exec)),
           nnz_per_row_sample(500, 0),
           values_sample(0)
     {
@@ -73,6 +77,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<gko::matrix::Dense<>> mtx;
     std::unique_ptr<gko::matrix::Dense<>> l_mtx;
+    std::unique_ptr<gko::matrix::Dense<>> u_mtx;
     std::vector<int> nnz_per_row_sample;
     std::vector<double> values_sample;
 
@@ -130,11 +135,34 @@ TEST_F(MatrixGenerator, OutputHasCorrectValuesAverageAndDeviation)
 TEST_F(MatrixGenerator, CanGenerateLowerTriangularMatrixWithDiagonalOnes)
 {
     ASSERT_EQ(l_mtx->at(0, 0), 1.0);
+    ASSERT_EQ(l_mtx->at(0, 1), 0.0);
+    ASSERT_EQ(l_mtx->at(0, 2), 0.0);
+    ASSERT_NE(l_mtx->at(1, 0), 0.0);
     ASSERT_EQ(l_mtx->at(1, 1), 1.0);
-    ASSERT_EQ(l_mtx->at(2, 2), 1.0);
     ASSERT_EQ(l_mtx->at(1, 2), 0.0);
-    ASSERT_NE(l_mtx->at(3, 2), 1.0);
-    ASSERT_NE(l_mtx->at(2, 1), 1.0);
+    ASSERT_NE(l_mtx->at(2, 0), 0.0);
+    ASSERT_NE(l_mtx->at(2, 1), 0.0);
+    ASSERT_EQ(l_mtx->at(2, 2), 1.0);
+    ASSERT_NE(l_mtx->at(3, 0), 0.0);
+    ASSERT_NE(l_mtx->at(3, 1), 0.0);
+    ASSERT_NE(l_mtx->at(3, 2), 0.0);
+}
+
+
+TEST_F(MatrixGenerator, CanGenerateUpperTriangularMatrixWithDiagonalOnes)
+{
+    ASSERT_EQ(u_mtx->at(0, 0), 1.0);
+    ASSERT_NE(u_mtx->at(0, 1), 0.0);
+    ASSERT_NE(u_mtx->at(0, 2), 0.0);
+    ASSERT_NE(u_mtx->at(0, 3), 0.0);
+    ASSERT_EQ(u_mtx->at(1, 0), 0.0);
+    ASSERT_EQ(u_mtx->at(1, 1), 1.0);
+    ASSERT_NE(u_mtx->at(1, 2), 0.0);
+    ASSERT_NE(u_mtx->at(1, 3), 0.0);
+    ASSERT_EQ(u_mtx->at(2, 0), 0.0);
+    ASSERT_EQ(u_mtx->at(2, 1), 0.0);
+    ASSERT_EQ(u_mtx->at(2, 2), 1.0);
+    ASSERT_NE(u_mtx->at(2, 3), 0.0);
 }
 
 

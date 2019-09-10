@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/lower_trs.hpp>
+#include <ginkgo/core/solver/upper_trs.hpp>
 
 
 #include <memory>
@@ -46,19 +46,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/solver/lower_trs_kernels.hpp"
+#include "core/solver/upper_trs_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
 namespace {
 
 
-class LowerTrs : public ::testing::Test {
+class UpperTrs : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
     using CsrMtx = gko::matrix::Csr<double, gko::int32>;
 
-    LowerTrs() : rand_engine(30), solve_struct_ref{}, solve_struct_omp{} {}
+    UpperTrs() : rand_engine(30), solve_struct_ref{}, solve_struct_omp{} {}
 
     void SetUp()
     {
@@ -81,9 +81,9 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    std::shared_ptr<Mtx> gen_l_mtx(int num_rows, int num_cols)
+    std::shared_ptr<Mtx> gen_u_mtx(int num_rows, int num_cols)
     {
-        return gko::test::generate_random_lower_triangular_matrix<Mtx>(
+        return gko::test::generate_random_upper_triangular_matrix<Mtx>(
             num_rows, num_cols, false,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
@@ -105,7 +105,7 @@ protected:
         dt_b->copy_from(b.get());
         dt_x = Mtx::create(omp);
         dt_x->copy_from(x.get());
-        mat = gen_l_mtx(m, m);
+        mat = gen_u_mtx(m, m);
         csr_mat = CsrMtx::create(ref);
         mat->convert_to(csr_mat.get());
         d_mat = Mtx::create(omp);
@@ -136,44 +136,43 @@ protected:
 };
 
 
-TEST_F(LowerTrs, OmpLowerTrsFlagCheckIsCorrect)
+TEST_F(UpperTrs, OmpUpperTrsFlagCheckIsCorrect)
 {
     bool trans_flag = true;
     bool expected_flag = false;
-
-    gko::kernels::omp::lower_trs::should_perform_transpose(omp, trans_flag);
+    gko::kernels::omp::upper_trs::should_perform_transpose(omp, trans_flag);
 
     ASSERT_EQ(expected_flag, trans_flag);
 }
 
 
-TEST_F(LowerTrs, OmpLowerTrsSolveStructInitIsEquivalentToRef)
+TEST_F(UpperTrs, OmpUpperTrsSolveStructInitIsEquivalentToRef)
 {
-    gko::kernels::reference::lower_trs::init_struct(ref, solve_struct_ref);
-    gko::kernels::omp::lower_trs::init_struct(omp, solve_struct_omp);
+    gko::kernels::reference::upper_trs::init_struct(ref, solve_struct_ref);
+    gko::kernels::omp::upper_trs::init_struct(omp, solve_struct_omp);
 }
 
 
-TEST_F(LowerTrs, OmpLowerTrsGenerateIsEquivalentToRef)
+TEST_F(UpperTrs, OmpUpperTrsGenerateIsEquivalentToRef)
 {
     gko::size_type num_rhs = 1;
-    gko::kernels::reference::lower_trs::generate(
+    gko::kernels::reference::upper_trs::generate(
         ref, csr_mat.get(), solve_struct_ref.get(), num_rhs);
-    gko::kernels::omp::lower_trs::generate(omp, d_csr_mat.get(),
+    gko::kernels::omp::upper_trs::generate(omp, d_csr_mat.get(),
                                            solve_struct_omp.get(), num_rhs);
 }
 
 
-TEST_F(LowerTrs, OmpLowerTrsSolveIsEquivalentToRef)
+TEST_F(UpperTrs, OmpUpperTrsSolveIsEquivalentToRef)
 {
     initialize_data(59, 43);
 
-    gko::kernels::reference::lower_trs::init_struct(ref, solve_struct_ref);
-    gko::kernels::omp::lower_trs::init_struct(omp, solve_struct_omp);
-    gko::kernels::reference::lower_trs::solve(ref, csr_mat.get(),
+    gko::kernels::reference::upper_trs::init_struct(ref, solve_struct_ref);
+    gko::kernels::omp::upper_trs::init_struct(omp, solve_struct_omp);
+    gko::kernels::reference::upper_trs::solve(ref, csr_mat.get(),
                                               solve_struct_ref.get(), t_b.get(),
                                               t_x.get(), b.get(), x.get());
-    gko::kernels::omp::lower_trs::solve(omp, d_csr_mat.get(),
+    gko::kernels::omp::upper_trs::solve(omp, d_csr_mat.get(),
                                         solve_struct_omp.get(), dt_b.get(),
                                         dt_x.get(), d_b.get(), d_x.get());
 
@@ -181,13 +180,13 @@ TEST_F(LowerTrs, OmpLowerTrsSolveIsEquivalentToRef)
 }
 
 
-TEST_F(LowerTrs, ApplyIsEquivalentToRef)
+TEST_F(UpperTrs, ApplyIsEquivalentToRef)
 {
     initialize_data(59, 3);
-    auto lower_trs_factory = gko::solver::LowerTrs<>::build().on(ref);
-    auto d_lower_trs_factory = gko::solver::LowerTrs<>::build().on(omp);
-    auto solver = lower_trs_factory->generate(csr_mat);
-    auto d_solver = d_lower_trs_factory->generate(d_csr_mat);
+    auto upper_trs_factory = gko::solver::UpperTrs<>::build().on(ref);
+    auto d_upper_trs_factory = gko::solver::UpperTrs<>::build().on(omp);
+    auto solver = upper_trs_factory->generate(csr_mat);
+    auto d_solver = d_upper_trs_factory->generate(d_csr_mat);
 
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());

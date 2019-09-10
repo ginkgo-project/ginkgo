@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/gmres_kernels.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/lower_trs_kernels.hpp"
+#include "core/solver/upper_trs_kernels.hpp"
 #include "core/stop/criterion_kernels.hpp"
 #include "core/stop/residual_norm_reduction_kernels.hpp"
 
@@ -205,6 +206,31 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace lower_trs
+
+
+namespace upper_trs {
+
+
+GKO_DECLARE_UPPER_TRS_SHOULD_PERFORM_TRANSPOSE_KERNEL()
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+
+GKO_DECLARE_UPPER_TRS_INIT_STRUCT_KERNEL()
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL);
+
+
+}  // namespace upper_trs
 
 
 namespace fcg {
