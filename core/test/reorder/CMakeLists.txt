@@ -1,1 +1,1 @@
-ginkgo_create_test(metis_fill_reduce)
+ginkgo_create_metis_test(metis_fill_reduce)

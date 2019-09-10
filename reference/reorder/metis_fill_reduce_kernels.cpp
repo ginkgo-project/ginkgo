@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <metis.h>
 #endif
 
+
 namespace gko {
 namespace kernels {
 namespace reference {
@@ -66,6 +67,7 @@ void remove_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
                               bool remove_diagonal_elements,
                               gko::matrix::Csr<ValueType, IndexType> *matrix,
                               IndexType *adj_ptrs, IndexType *adj_idxs)
+#if GKO_HAVE_METIS
 {
     auto num_rows = matrix->get_size()[0];
     auto zero = gko::zero<ValueType>();
@@ -95,6 +97,9 @@ void remove_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
         }
     }
 }
+#else
+{}
+#endif
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
     GKO_DECLARE_METIS_FILL_REDUCE_REMOVE_DIAGONAL_ELEMENTS_KERNEL);
@@ -105,6 +110,7 @@ void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
                      IndexType num_vertices, IndexType *adj_ptrs,
                      IndexType *adj_idxs, IndexType *vertex_weights,
                      IndexType *permutation, IndexType *inv_permutation)
+#if GKO_HAVE_METIS
 {
     idx_t options[METIS_NOPTIONS];
     GKO_ASSERT_NO_METIS_ERRORS(METIS_SetDefaultOptions(options));
@@ -112,39 +118,24 @@ void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
                                             vertex_weights, options,
                                             permutation, inv_permutation));
 }
+#else
+{}
+#endif
 
 GKO_INSTANTIATE_FOR_EACH_METIS_INDEX_TYPE(
     GKO_DECLARE_METIS_FILL_REDUCE_GET_PERMUTATION_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void construct_inverse_permutation_matrix(
-    std::shared_ptr<const ReferenceExecutor> exec,
-    const IndexType *inv_permutation,
-    gko::matrix::Csr<ValueType, IndexType> *inverse_permutation_matrix)
-{}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
-    GKO_DECLARE_METIS_FILL_REDUCE_CONSTRUCT_INVERSE_PERMUTATION_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void construct_permutation_matrix(
-    std::shared_ptr<const ReferenceExecutor> exec, const IndexType *permutation,
-    gko::matrix::Csr<ValueType, IndexType> *permutation_matrix)
-{}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
-    GKO_DECLARE_METIS_FILL_REDUCE_CONSTRUCT_PERMUTATION_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
+template <typename IndexType>
 void permute(std::shared_ptr<const ReferenceExecutor> exec,
-             gko::matrix::Csr<ValueType, IndexType> *permutation_matrix,
-             gko::LinOp *to_permute)
+             gko::Array<IndexType> *permutation, gko::LinOp *to_permute)
+#if GKO_HAVE_METIS
 {}
+#else
+{}
+#endif
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_METIS_INDEX_TYPE(
     GKO_DECLARE_METIS_FILL_REDUCE_PERMUTE_KERNEL);
 
 

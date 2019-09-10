@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/metis_types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -51,7 +52,7 @@ namespace {
 class MetisFillReduce : public ::testing::Test {
 protected:
     using v_type = double;
-    using i_type = long int;
+    using i_type = metis_indextype;
     using Mtx = gko::matrix::Dense<v_type>;
     MetisFillReduce()
         : exec(gko::ReferenceExecutor::create()),

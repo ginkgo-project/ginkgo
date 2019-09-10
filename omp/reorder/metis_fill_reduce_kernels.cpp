@@ -33,6 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/reorder/metis_fill_reduce_kernels.hpp"
 
 
+#include <memory>
+#include <vector>
+
+
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/metis_types.hpp>
@@ -62,7 +66,39 @@ void remove_diagonal_elements(std::shared_ptr<const OmpExecutor> exec,
                               bool remove_diagonal_elements,
                               gko::matrix::Csr<ValueType, IndexType> *matrix,
                               IndexType *adj_ptrs, IndexType *adj_idxs)
+#if GKO_HAVE_METIS
+{
+    auto num_rows = matrix->get_size()[0];
+    auto zero = gko::zero<ValueType>();
+    if (remove_diagonal_elements && matrix->get_values()[0] != zero) {
+        for (auto i = 0; i <= num_rows; ++i) {
+            adj_ptrs[i] = matrix->get_row_ptrs()[i] - i;
+        }
+        std::vector<IndexType> temp_idxs;
+        auto row_ptrs = matrix->get_row_ptrs();
+        auto col_idxs = matrix->get_col_idxs();
+        for (auto i = 0; i < num_rows; ++i) {
+            for (auto j = row_ptrs[i]; j < row_ptrs[i + 1]; ++j) {
+                if (col_idxs[j] != i) {
+                    temp_idxs.push_back(col_idxs[j]);
+                }
+            }
+        }
+        for (auto i = 0; i < temp_idxs.size(); ++i) {
+            adj_idxs[i] = temp_idxs[i];
+        }
+    } else {
+        for (auto i = 0; i <= num_rows; ++i) {
+            adj_ptrs[i] = matrix->get_row_ptrs()[i];
+        }
+        for (auto i = 0; i < matrix->get_num_stored_elements(); ++i) {
+            adj_idxs[i] = matrix->get_col_idxs()[i];
+        }
+    }
+}
+#else
 {}
+#endif
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
     GKO_DECLARE_METIS_FILL_REDUCE_REMOVE_DIAGONAL_ELEMENTS_KERNEL);
@@ -72,38 +108,32 @@ void get_permutation(std::shared_ptr<const OmpExecutor> exec,
                      IndexType num_vertices, IndexType *adj_ptrs,
                      IndexType *adj_idxs, IndexType *vertex_weights,
                      IndexType *permutation, IndexType *inv_permutation)
+#if GKO_HAVE_METIS
+{
+    idx_t options[METIS_NOPTIONS];
+    GKO_ASSERT_NO_METIS_ERRORS(METIS_SetDefaultOptions(options));
+    GKO_ASSERT_NO_METIS_ERRORS(METIS_NodeND(&num_vertices, adj_ptrs, adj_idxs,
+                                            vertex_weights, options,
+                                            permutation, inv_permutation));
+}
+#else
 {}
+#endif
 
 GKO_INSTANTIATE_FOR_EACH_METIS_INDEX_TYPE(
     GKO_DECLARE_METIS_FILL_REDUCE_GET_PERMUTATION_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void construct_inverse_permutation_matrix(
-    std::shared_ptr<const OmpExecutor> exec, const IndexType *inv_permutation,
-    gko::matrix::Csr<ValueType, IndexType> *inverse_permutation_matrix)
-{}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
-    GKO_DECLARE_METIS_FILL_REDUCE_CONSTRUCT_INVERSE_PERMUTATION_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void construct_permutation_matrix(
-    std::shared_ptr<const OmpExecutor> exec, const IndexType *permutation,
-    gko::matrix::Csr<ValueType, IndexType> *permutation_matrix)
-{}
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
-    GKO_DECLARE_METIS_FILL_REDUCE_CONSTRUCT_PERMUTATION_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
+template <typename IndexType>
 void permute(std::shared_ptr<const OmpExecutor> exec,
-             gko::matrix::Csr<ValueType, IndexType> *permutation_matrix,
-             gko::LinOp *to_permute)
+             gko::Array<IndexType> *permutation, gko::LinOp *to_permute)
+#if GKO_HAVE_METIS
 {}
+#else
+{}
+#endif
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_METIS_INDEX_TYPE(
     GKO_DECLARE_METIS_FILL_REDUCE_PERMUTE_KERNEL);
 
 

@@ -58,10 +58,6 @@ namespace metis_fill_reduce {
 GKO_REGISTER_OPERATION(get_permutation, metis_fill_reduce::get_permutation);
 GKO_REGISTER_OPERATION(remove_diagonal_elements,
                        metis_fill_reduce::remove_diagonal_elements);
-GKO_REGISTER_OPERATION(construct_inverse_permutation_matrix,
-                       metis_fill_reduce::construct_inverse_permutation_matrix);
-GKO_REGISTER_OPERATION(construct_permutation_matrix,
-                       metis_fill_reduce::construct_permutation_matrix);
 GKO_REGISTER_OPERATION(permute, metis_fill_reduce::permute);
 
 
@@ -77,19 +73,11 @@ void MetisFillReduce<ValueType, IndexType>::generate() const
     exec->run(metis_fill_reduce::make_remove_diagonal_elements(
         parameters_.remove_diagonal_elements, gko::lend(system_matrix_),
         adj_ptrs_->get_data(), adj_idxs_->get_data()));
+
     exec->run(metis_fill_reduce::make_get_permutation(
         num_rows, adj_ptrs_->get_data(), adj_idxs_->get_data(),
         vertex_weights_->get_data(), permutation_->get_data(),
         inv_permutation_->get_data()));
-
-    exec->run(metis_fill_reduce::make_construct_permutation_matrix(
-        permutation_->get_const_data(), gko::lend(permutation_mat_)));
-
-    if (parameters_.construct_inverse_permutation) {
-        exec->run(metis_fill_reduce::make_construct_inverse_permutation_matrix(
-            inv_permutation_->get_const_data(),
-            gko::lend(inv_permutation_mat_)));
-    }
 }
 
 
@@ -98,8 +86,8 @@ void MetisFillReduce<ValueType, IndexType>::permute(LinOp *to_permute) const
 {
     const auto exec = this->get_executor();
 
-    exec->run(metis_fill_reduce::make_permute(gko::lend(permutation_mat_),
-                                              to_permute));
+    exec->run(
+        metis_fill_reduce::make_permute(gko::lend(permutation_), to_permute));
 }
 
 
@@ -110,8 +98,8 @@ void MetisFillReduce<ValueType, IndexType>::inverse_permute(
     const auto exec = this->get_executor();
 
     if (parameters_.construct_inverse_permutation) {
-        exec->run(metis_fill_reduce::make_permute(
-            gko::lend(inv_permutation_mat_), to_permute));
+        exec->run(metis_fill_reduce::make_permute(gko::lend(inv_permutation_),
+                                                  to_permute));
     }
 }
 

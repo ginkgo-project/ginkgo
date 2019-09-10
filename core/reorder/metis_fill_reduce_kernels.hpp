@@ -64,23 +64,9 @@ namespace kernels {
                          IndexType *mat_col_idxs, IndexType *vertex_weights, \
                          IndexType *permutation, IndexType *inv_permutation)
 
-#define GKO_DECLARE_METIS_FILL_REDUCE_CONSTRUCT_INVERSE_PERMUTATION_KERNEL( \
-    ValueType, IndexType)                                                   \
-    void construct_inverse_permutation_matrix(                              \
-        std::shared_ptr<const DefaultExecutor> exec,                        \
-        const IndexType *inv_permutation,                                   \
-        gko::matrix::Csr<ValueType, IndexType> *inverse_permutation_matrix)
-
-#define GKO_DECLARE_METIS_FILL_REDUCE_CONSTRUCT_PERMUTATION_KERNEL(ValueType, \
-                                                                   IndexType) \
-    void construct_permutation_matrix(                                        \
-        std::shared_ptr<const DefaultExecutor> exec,                          \
-        const IndexType *permutation,                                         \
-        gko::matrix::Csr<ValueType, IndexType> *permutation_matrix)
-
-#define GKO_DECLARE_METIS_FILL_REDUCE_PERMUTE_KERNEL(ValueType, IndexType)   \
-    void permute(std::shared_ptr<const DefaultExecutor> exec,                \
-                 gko::matrix::Csr<ValueType, IndexType> *permutation_matrix, \
+#define GKO_DECLARE_METIS_FILL_REDUCE_PERMUTE_KERNEL(IndexType) \
+    void permute(std::shared_ptr<const DefaultExecutor> exec,   \
+                 gko::Array<IndexType> *permutation_matrix,     \
                  gko::LinOp *to_permute)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                          \
@@ -89,14 +75,8 @@ namespace kernels {
                                                                   IndexType); \
     template <typename IndexType>                                             \
     GKO_DECLARE_METIS_FILL_REDUCE_GET_PERMUTATION_KERNEL(IndexType);          \
-    template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_METIS_FILL_REDUCE_CONSTRUCT_PERMUTATION_KERNEL(ValueType,     \
-                                                               IndexType);    \
-    template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_METIS_FILL_REDUCE_CONSTRUCT_INVERSE_PERMUTATION_KERNEL(       \
-        ValueType, IndexType);                                                \
-    template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_METIS_FILL_REDUCE_PERMUTE_KERNEL(ValueType, IndexType)
+    template <typename IndexType>                                             \
+    GKO_DECLARE_METIS_FILL_REDUCE_PERMUTE_KERNEL(IndexType)
 
 
 namespace omp {

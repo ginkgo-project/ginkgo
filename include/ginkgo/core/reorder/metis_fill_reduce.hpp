@@ -104,6 +104,10 @@ class MetisFillReduce
     friend class EnablePolymorphicObject<MetisFillReduce, Reordering>;
 
 public:
+    std::shared_ptr<Array<IndexType>> get_adj_ptrs() const { return adj_ptrs_; }
+
+    std::shared_ptr<Array<IndexType>> get_adj_idxs() const { return adj_idxs_; }
+
     std::shared_ptr<matrix::Csr<ValueType, IndexType>> get_system_matrix() const
     {
         return system_matrix_;
@@ -113,11 +117,6 @@ public:
     {
         return permutation_;
     }
-
-    std::shared_ptr<Array<IndexType>> get_adj_ptrs() const { return adj_ptrs_; }
-
-    std::shared_ptr<Array<IndexType>> get_adj_idxs() const { return adj_idxs_; }
-
     std::shared_ptr<Array<IndexType>> get_inverse_permutation() const
     {
         return inv_permutation_;
@@ -200,9 +199,6 @@ protected:
             new Array<IndexType>{exec, system_matrix_->get_size()[0]});
         inv_permutation_ = std::shared_ptr<Array<IndexType>>(
             new Array<IndexType>{exec, system_matrix_->get_size()[0]});
-        permutation_mat_ = CsrMatrix::create(exec, system_matrix_->get_size());
-        inv_permutation_mat_ =
-            CsrMatrix::create(exec, system_matrix_->get_size());
         this->generate();
     }
 
@@ -213,8 +209,6 @@ private:
     std::shared_ptr<Array<IndexType>> vertex_weights_{};
     std::shared_ptr<Array<IndexType>> permutation_{};
     std::shared_ptr<Array<IndexType>> inv_permutation_{};
-    std::shared_ptr<matrix::Csr<ValueType, IndexType>> permutation_mat_{};
-    std::shared_ptr<matrix::Csr<ValueType, IndexType>> inv_permutation_mat_{};
 };
 
 

@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/metis_types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -60,7 +61,7 @@ namespace {
 class MetisFillReduce : public ::testing::Test {
 protected:
     using v_type = double;
-    using i_type = long int;
+    using i_type = metis_indextype;
     using Mtx = gko::matrix::Dense<v_type>;
     using CsrMtx = gko::matrix::Csr<v_type, i_type>;
     using reorder_type = gko::reorder::MetisFillReduce<v_type, i_type>;
@@ -83,6 +84,7 @@ protected:
 TEST_F(MetisFillReduce, FactoryCreatesCorrectReorderOp)
 {
     auto sys_mtx = reorder_op->get_system_matrix();
+    auto p = reorder_op->get_permutation();
 
     ASSERT_NE(reorder_op->get_system_matrix(), nullptr);
     GKO_ASSERT_MTX_NEAR(sys_mtx.get(), ani4_mtx.get(), 0);

@@ -78,33 +78,12 @@ GKO_INSTANTIATE_FOR_EACH_METIS_INDEX_TYPE(
     GKO_DECLARE_METIS_FILL_REDUCE_GET_PERMUTATION_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void construct_inverse_permutation_matrix(
-    std::shared_ptr<const CudaExecutor> exec, const IndexType *inv_permutation,
-    gko::matrix::Csr<ValueType, IndexType> *inverse_permutation_matrix)
-{}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
-    GKO_DECLARE_METIS_FILL_REDUCE_CONSTRUCT_INVERSE_PERMUTATION_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void construct_permutation_matrix(
-    std::shared_ptr<const CudaExecutor> exec, const IndexType *permutation,
-    gko::matrix::Csr<ValueType, IndexType> *permutation_matrix)
-{}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
-    GKO_DECLARE_METIS_FILL_REDUCE_CONSTRUCT_PERMUTATION_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
+template <typename IndexType>
 void permute(std::shared_ptr<const CudaExecutor> exec,
-             gko::matrix::Csr<ValueType, IndexType> *permutation_matrix,
-             gko::LinOp *to_permute)
+             gko::Array<IndexType> *permutation, gko::LinOp *to_permute)
 {}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_METIS_INDEX_TYPE(
     GKO_DECLARE_METIS_FILL_REDUCE_PERMUTE_KERNEL);
 
 
