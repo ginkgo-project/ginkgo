@@ -74,10 +74,10 @@ get_rand_value(Distribution &&dist, Generator &&gen)
  *
  * @tparam MatrixType  type of matrix to generate (matrix::Dense must implement
  *                     the interface `ConvertibleTo<MatrixType>`)
- * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
  * @tparam NonzeroDistribution  type of nonzero distribution
  * @tparam ValueDistribution  type of value distribution
  * @tparam Engine  type of random engine
+ * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
  *
  * @param num_rows  number of rows
  * @param num_cols  number of columns
@@ -134,10 +134,10 @@ std::unique_ptr<MatrixType> generate_random_matrix(
  *
  * @tparam MatrixType  type of matrix to generate (matrix::Dense must implement
  *                     the interface `ConvertibleTo<MatrixType>`)
- * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
  * @tparam NonzeroDistribution  type of nonzero distribution
  * @tparam ValueDistribution  type of value distribution
  * @tparam Engine  type of random engine
+ * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
  *
  * @param num_rows  number of rows
  * @param num_cols  number of columns
@@ -202,10 +202,10 @@ std::unique_ptr<MatrixType> generate_random_lower_triangular_matrix(
  *
  * @tparam MatrixType  type of matrix to generate (matrix::Dense must implement
  *                     the interface `ConvertibleTo<MatrixType>`)
- * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
  * @tparam NonzeroDistribution  type of nonzero distribution
  * @tparam ValueDistribution  type of value distribution
  * @tparam Engine  type of random engine
+ * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
  *
  * @param num_rows  number of rows
  * @param num_cols  number of columns
