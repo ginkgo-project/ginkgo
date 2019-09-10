@@ -175,6 +175,24 @@ TEST_F(Ilu, ThrowOnWrongInput)
 }
 
 
+TEST_F(Ilu, ThrowOnWrongCompositionInput)
+{
+    std::shared_ptr<gko::Composition<value_type>> composition =
+        gko::Composition<value_type>::create(l_factor);
+
+    ASSERT_THROW(ilu_pre_factory->generate(composition), gko::NotSupported);
+}
+
+
+TEST_F(Ilu, ThrowOnWrongCompositionInput2)
+{
+    std::shared_ptr<gko::Composition<value_type>> composition =
+        gko::Composition<value_type>::create(l_factor, u_factor, l_factor);
+
+    ASSERT_THROW(ilu_pre_factory->generate(composition), gko::NotSupported);
+}
+
+
 TEST_F(Ilu, SolvesDefaultSingleRhsWithParIlu)
 {
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
