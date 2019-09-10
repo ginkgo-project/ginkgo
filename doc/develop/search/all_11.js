@@ -18,7 +18,7 @@ var searchData=
   ['stopping_5fstatus',['stopping_status',['../classgko_1_1stopping__status.html',1,'gko']]],
   ['storage_5foptimization',['storage_optimization',['../structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a51d0eec65f99d6dd5b0ebe5ba69390dd',1,'gko::preconditioner::Jacobi::parameters_type']]],
   ['storage_5ftype',['storage_type',['../classgko_1_1precision__reduction.html#a2a1a94a27fa69b4cc321136b56e7b7d9',1,'gko::precision_reduction']]],
-  ['strategy_5ftype',['strategy_type',['../classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html',1,'gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::strategy_type'],['../classgko_1_1matrix_1_1Csr_1_1strategy__type.html',1,'gko::matrix::Csr&lt; ValueType, IndexType &gt;::strategy_type'],['../classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a307425e7a1b925583cec9d6dd30be301',1,'gko::matrix::Hybrid::strategy_type::strategy_type()']]],
+  ['strategy_5ftype',['strategy_type',['../classgko_1_1matrix_1_1Csr_1_1strategy__type.html',1,'gko::matrix::Csr&lt; ValueType, IndexType &gt;::strategy_type'],['../classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html',1,'gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::strategy_type'],['../classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a307425e7a1b925583cec9d6dd30be301',1,'gko::matrix::Hybrid::strategy_type::strategy_type()']]],
   ['stream',['Stream',['../classgko_1_1log_1_1Stream.html',1,'gko::log']]],
   ['streamerror',['StreamError',['../classgko_1_1StreamError.html',1,'gko::StreamError'],['../classgko_1_1StreamError.html#a511af28ae0b5a98998ef96f21cf1863e',1,'gko::StreamError::StreamError()']]],
   ['stride',['stride',['../classgko_1_1accessor_1_1row__major.html#a651793392dc0327f324289bb096b3316',1,'gko::accessor::row_major']]],

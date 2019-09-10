@@ -1,7 +1,7 @@
 <map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
-<area shape="rect" id="node1" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; ConcreteFactory \&gt;" alt="" coords="243,390,401,431"/>
-<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; ConcreteFactory \&gt;" alt="" coords="515,393,771,434"/>
-<area shape="rect" id="node3" href="$classgko_1_1EnableDefaultFactory.html" title="This mixin provides a default implementation of a concrete factory. " alt="" coords="831,420,1097,476"/>
+<area shape="rect" id="node1" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; ConcreteFactory \&gt;" alt="" coords="243,423,401,465"/>
+<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; ConcreteFactory \&gt;" alt="" coords="515,426,771,467"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnableDefaultFactory.html" title="This mixin provides a default implementation of a concrete factory. " alt="" coords="831,453,1097,509"/>
 <area shape="rect" id="node4" href="$classgko_1_1factorization_1_1ParIlu_1_1Factory.html" title="gko::factorization\l::ParIlu\&lt; ValueType,\l IndexType \&gt;::Factory" alt="" coords="1187,5,1349,61"/>
 <area shape="rect" id="node5" href="$classgko_1_1preconditioner_1_1Jacobi_1_1Factory.html" title="gko::preconditioner\l::Jacobi\&lt; ValueType,\l IndexType \&gt;::Factory" alt="" coords="1187,85,1349,141"/>
 <area shape="rect" id="node6" href="$classgko_1_1solver_1_1Bicgstab_1_1Factory.html" title="gko::solver::Bicgstab\l\&lt; ValueType \&gt;::Factory" alt="" coords="1181,166,1355,207"/>
@@ -11,18 +11,19 @@
 <area shape="rect" id="node10" href="$classgko_1_1solver_1_1Gmres_1_1Factory.html" title="gko::solver::Gmres\l\&lt; ValueType \&gt;::Factory" alt="" coords="1181,427,1355,469"/>
 <area shape="rect" id="node11" href="$classgko_1_1solver_1_1Ir_1_1Factory.html" title="gko::solver::Ir\&lt; ValueType\l \&gt;::Factory" alt="" coords="1172,493,1364,534"/>
 <area shape="rect" id="node12" href="$classgko_1_1solver_1_1LowerTrs_1_1Factory.html" title="gko::solver::LowerTrs\l\&lt; ValueType, IndexType\l \&gt;::Factory" alt="" coords="1179,559,1357,615"/>
-<area shape="rect" id="node13" href="$classgko_1_1stop_1_1Combined_1_1Factory.html" title="gko::stop::Combined\l::Factory" alt="" coords="1190,639,1346,681"/>
-<area shape="rect" id="node14" href="$classgko_1_1stop_1_1Iteration_1_1Factory.html" title="gko::stop::Iteration\l::Factory" alt="" coords="1195,705,1341,746"/>
-<area shape="rect" id="node15" href="$classgko_1_1stop_1_1ResidualNormReduction_1_1Factory.html" title="gko::stop::ResidualNormReduction\l\&lt; ValueType \&gt;::Factory" alt="" coords="1145,770,1391,811"/>
-<area shape="rect" id="node16" href="$classgko_1_1stop_1_1Time_1_1Factory.html" title="gko::stop::Time::Factory" alt="" coords="1179,836,1357,863"/>
-<area shape="rect" id="node17" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; ConcreteLinOp \&gt;" alt="" coords="249,777,395,818"/>
-<area shape="rect" id="node18" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; ConcreteLinOp \&gt;" alt="" coords="515,733,771,774"/>
-<area shape="rect" id="node19" href="$classgko_1_1EnableLinOp.html" title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ..." alt="" coords="860,641,1068,682"/>
-<area shape="rect" id="node21" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteFactory,\l PolymorphicBase \&gt;" alt="" coords="205,456,439,512"/>
-<area shape="rect" id="node23" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteLinOp, Polymorphic\lBase \&gt;" alt="" coords="191,536,453,592"/>
-<area shape="rect" id="node25" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteObject, Polymorphic\lBase \&gt;" alt="" coords="188,616,456,672"/>
-<area shape="rect" id="node27" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="193,696,451,752"/>
-<area shape="rect" id="node22" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; ConcreteFactory, PolymorphicBase \&gt;" alt="" coords="504,462,783,503"/>
-<area shape="rect" id="node24" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; ConcreteLinOp, PolymorphicBase \&gt;" alt="" coords="509,550,777,591"/>
-<area shape="rect" id="node26" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="507,623,780,665"/>
+<area shape="rect" id="node13" href="$classgko_1_1solver_1_1UpperTrs_1_1Factory.html" title="gko::solver::UpperTrs\l\&lt; ValueType, IndexType\l \&gt;::Factory" alt="" coords="1179,639,1357,695"/>
+<area shape="rect" id="node14" href="$classgko_1_1stop_1_1Combined_1_1Factory.html" title="gko::stop::Combined\l::Factory" alt="" coords="1190,719,1346,761"/>
+<area shape="rect" id="node15" href="$classgko_1_1stop_1_1Iteration_1_1Factory.html" title="gko::stop::Iteration\l::Factory" alt="" coords="1195,785,1341,826"/>
+<area shape="rect" id="node16" href="$classgko_1_1stop_1_1ResidualNormReduction_1_1Factory.html" title="gko::stop::ResidualNormReduction\l\&lt; ValueType \&gt;::Factory" alt="" coords="1145,850,1391,891"/>
+<area shape="rect" id="node17" href="$classgko_1_1stop_1_1Time_1_1Factory.html" title="gko::stop::Time::Factory" alt="" coords="1179,916,1357,943"/>
+<area shape="rect" id="node18" href="$classgko_1_1ConvertibleTo.html" title="gko::ConvertibleTo\l\&lt; ConcreteLinOp \&gt;" alt="" coords="249,810,395,851"/>
+<area shape="rect" id="node19" href="$classgko_1_1EnablePolymorphicAssignment.html" title="gko::EnablePolymorphicAssignment\l\&lt; ConcreteLinOp \&gt;" alt="" coords="515,766,771,807"/>
+<area shape="rect" id="node20" href="$classgko_1_1EnableLinOp.html" title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ..." alt="" coords="860,674,1068,715"/>
+<area shape="rect" id="node22" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteFactory,\l PolymorphicBase \&gt;" alt="" coords="205,489,439,545"/>
+<area shape="rect" id="node24" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteLinOp, Polymorphic\lBase \&gt;" alt="" coords="191,569,453,625"/>
+<area shape="rect" id="node26" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteObject, Polymorphic\lBase \&gt;" alt="" coords="188,649,456,705"/>
+<area shape="rect" id="node28" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="193,729,451,785"/>
+<area shape="rect" id="node23" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; ConcreteFactory, PolymorphicBase \&gt;" alt="" coords="504,495,783,537"/>
+<area shape="rect" id="node25" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; ConcreteLinOp, PolymorphicBase \&gt;" alt="" coords="509,583,777,625"/>
+<area shape="rect" id="node27" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="507,657,780,698"/>
 </map>

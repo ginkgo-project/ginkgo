@@ -1,0 +1,52 @@
+\hypertarget{structgko_1_1solver_1_1UpperTrs_1_1parameters__type}{}\section{gko\+:\+:solver\+:\+:Upper\+Trs$<$ Value\+Type, Index\+Type $>$\+:\+:parameters\+\_\+type Struct Reference}
+\label{structgko_1_1solver_1_1UpperTrs_1_1parameters__type}\index{gko\+::solver\+::\+Upper\+Trs$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type@{gko\+::solver\+::\+Upper\+Trs$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type}}
+
+
+Collaboration diagram for gko\+:\+:solver\+:\+:Upper\+Trs$<$ Value\+Type, Index\+Type $>$\+:\+:parameters\+\_\+type\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=271pt]{structgko_1_1solver_1_1UpperTrs_1_1parameters__type__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1UpperTrs_1_1parameters__type_ae70b11e6645e16d516b84bc953007d90}\label{structgko_1_1solver_1_1UpperTrs_1_1parameters__type_ae70b11e6645e16d516b84bc953007d90}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+preconditioner} (Args \&\&... \+\_\+value) const -\/$>$ const \+::gko\+::xstd\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1UpperTrs_1_1parameters__type_a66037d566ba00ae2fb23d889cb91174c}\label{structgko_1_1solver_1_1UpperTrs_1_1parameters__type_a66037d566ba00ae2fb23d889cb91174c}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+num\+\_\+rhs} (Args \&\&... \+\_\+value) const -\/$>$ const \+::gko\+::xstd\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1UpperTrs_1_1parameters__type_abafbe2000ab58dd5d4af02870e238baa}\label{structgko_1_1solver_1_1UpperTrs_1_1parameters__type_abafbe2000ab58dd5d4af02870e238baa}} 
+std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1LinOpFactory}{Lin\+Op\+Factory} $>$ \hyperlink{structgko_1_1solver_1_1UpperTrs_1_1parameters__type_abafbe2000ab58dd5d4af02870e238baa}{preconditioner} \{ nullptr \}
+\begin{DoxyCompactList}\small\item\em Preconditioner factory. \end{DoxyCompactList}\item 
+\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{gko\+::size\+\_\+type} \hyperlink{structgko_1_1solver_1_1UpperTrs_1_1parameters__type_a17d51d403340309c592e593020c3c007}{num\+\_\+rhs} \{ 1u \}
+\begin{DoxyCompactList}\small\item\em Number of right hand sides. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Additional Inherited Members}
+
+
+\subsection{Member Data Documentation}
+\mbox{\Hypertarget{structgko_1_1solver_1_1UpperTrs_1_1parameters__type_a17d51d403340309c592e593020c3c007}\label{structgko_1_1solver_1_1UpperTrs_1_1parameters__type_a17d51d403340309c592e593020c3c007}} 
+\index{gko\+::solver\+::\+Upper\+Trs\+::parameters\+\_\+type@{gko\+::solver\+::\+Upper\+Trs\+::parameters\+\_\+type}!num\+\_\+rhs@{num\+\_\+rhs}}
+\index{num\+\_\+rhs@{num\+\_\+rhs}!gko\+::solver\+::\+Upper\+Trs\+::parameters\+\_\+type@{gko\+::solver\+::\+Upper\+Trs\+::parameters\+\_\+type}}
+\subsubsection{\texorpdfstring{num\+\_\+rhs}{num\_rhs}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{gko\+::size\+\_\+type} \hyperlink{classgko_1_1solver_1_1UpperTrs}{gko\+::solver\+::\+Upper\+Trs}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::num\+\_\+rhs \{ 1u \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+Number of right hand sides. 
+
+\begin{DoxyNote}{Note}
+This value is currently a dummy value which is not used by the analysis step. It is possible that future algorithms (cusparse csrsm2) make use of the number of right hand sides for a more sophisticated implementation. Hence this parameter is left here. But currently, there is no need to use it. 
+\end{DoxyNote}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/solver/upper\+\_\+trs.\+hpp (0d32d72c)\end{DoxyCompactItemize}

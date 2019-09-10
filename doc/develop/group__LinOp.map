@@ -1,6 +1,6 @@
 <map id="Linear Operators" name="Linear Operators">
 <area shape="rect" id="node1" href="$group__factor.html" title="A module dedicated to the implementation and usage of the Factorizations in Ginkgo. " alt="" coords="405,8,517,35"/>
 <area shape="rect" id="node2" href="$group__precond.html" title="A module dedicated to the implementation and usage of the Preconditioners in Ginkgo. " alt="" coords="399,104,522,131"/>
-<area shape="rect" id="node3" href="$group__mat__formats.html" title="A module dedicated to the implementation and usage of the various Matrix Formats in Ginkgo..." alt="" coords="365,293,556,334"/>
-<area shape="rect" id="node5" href="$group__solvers.html" title="A module dedicated to the implementation and usage of the Solvers in Ginkgo. " alt="" coords="425,406,496,432"/>
+<area shape="rect" id="node3" href="$group__mat__formats.html" title="A module dedicated to the implementation and usage of the various Matrix Formats in Ginkgo..." alt="" coords="365,290,556,332"/>
+<area shape="rect" id="node5" href="$group__solvers.html" title="A module dedicated to the implementation and usage of the Solvers in Ginkgo. " alt="" coords="425,410,496,436"/>
 </map>
