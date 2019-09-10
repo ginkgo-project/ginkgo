@@ -563,13 +563,13 @@ using std::isfinite;
  *
  * @param value  complex value to check
  *
- * returns `true` if a component of the complex value is either positive or
- *         negative infinity or NaN. Otherwise `false`
+ * returns `false` if a component of the complex value is either positive or
+ *         negative infinity or NaN. Otherwise `true`
  */
 #define GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(_type)                          \
     GKO_INLINE GKO_ATTRIBUTES bool isfinite(const _type &value)              \
     {                                                                        \
-        return isfinite(value.real()) || isfinite(value.imag());             \
+        return isfinite(value.real()) && isfinite(value.imag());             \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
@@ -593,14 +593,14 @@ using std::isfinite;  // use the optimized function for all supported types
  *
  * @param value  complex value to check
  *
- * returns `true` if a component of value is either positive or negative
- *         infinity or NaN. Otherwise `false`
+ * returns `false` if a component of value is either positive or negative
+ *         infinity or NaN. Otherwise `true`
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<is_complex_s<T>::value, bool>
 isfinite(const T &value)
 {
-    return isfinite(value.real()) || isfinite(value.imag());
+    return isfinite(value.real()) && isfinite(value.imag());
 }
 
 #endif  // defined(__CUDACC_VER_MAJOR__) && defined(__CUDACC_VER_MINOR__) &&
