@@ -99,6 +99,7 @@ ginkgo_find_package(gflags gflags FALSE 2.2.2)
 ginkgo_find_package(RapidJSON rapidjson TRUE 1.1.0)
 add_subdirectory(third_party)    # Third-party tools and libraries
 
+# GINKGO_WINDOWS_PATH is for runtime linking when Ginkgo is built as a shared library.
 list(APPEND GINKGO_WINDOWS_PATH "")
 
 # Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be
@@ -136,7 +137,7 @@ add_custom_target(generate_ginkgo_header ALL
         COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/update_ginkgo_header.sh
         WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
 
-# echo GINKGO_WINDOWS_PATH
+# Print the settings for GINKGO_WINDOWS_PATH
 if(WIN32)
     list(REMOVE_DUPLICATES GINKGO_WINDOWS_PATH)
     message("User needs to add the path manually.\n"
