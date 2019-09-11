@@ -48,7 +48,7 @@ template <typename T>
 void test_real_isfinite()
 {
     using limits = std::numeric_limits<T>;
-    constexpr auto inf{limits::infinity()};
+    constexpr auto inf = limits::infinity();
 
     ASSERT_TRUE(gko::isfinite(T{0}));
     ASSERT_TRUE(gko::isfinite(-T{0}));
@@ -65,9 +65,9 @@ void test_complex_isfinite()
 {
     using limits = std::numeric_limits<T>;
     using c_type = std::complex<T>;
-    constexpr auto inf{limits::infinity()};
-    constexpr auto quiet_nan{limits::quiet_NaN()};
-    constexpr auto signaling_nan{limits::signaling_NaN()};
+    constexpr auto inf = limits::infinity();
+    constexpr auto quiet_nan = limits::quiet_NaN();
+    constexpr auto signaling_nan = limits::signaling_NaN();
 
     ASSERT_TRUE(gko::isfinite(c_type{T{0}, T{0}}));
     ASSERT_TRUE(gko::isfinite(c_type{-T{0}, -T{0}}));
@@ -87,7 +87,7 @@ void test_complex_isfinite()
 TEST(IsFinite, Float) { test_real_isfinite<float>(); }
 
 
-TEST(IsFinite, Double) { test_real_isfinite<float>(); }
+TEST(IsFinite, Double) { test_real_isfinite<double>(); }
 
 
 TEST(IsFinite, FloatComplex) { test_complex_isfinite<float>(); }
