@@ -33,16 +33,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 
 
-#include <ginkgo/core/base/math.hpp>
+#include <hip/hip_complex.h>
+#include <hip/hip_runtime.h>
+#include <hip/math_functions.h>
+
+
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
-
-
-#include <hip/hip_runtime.h>
-#include <hip/math_functions.h>
 
 
 #include "hip/base/hipblas_bindings.hip.hpp"

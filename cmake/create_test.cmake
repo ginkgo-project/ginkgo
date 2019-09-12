@@ -29,6 +29,9 @@ function(ginkgo_create_cuda_test test_name)
 endfunction(ginkgo_create_cuda_test)
 
 function(ginkgo_create_hip_test test_name)
+    set (CMAKE_LINKER "${HIP_PATH}/bin/hipcc")
+    set (CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
+
     file(RELATIVE_PATH REL_BINARY_DIR
          ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
@@ -51,10 +54,12 @@ function(ginkgo_create_hip_test test_name)
 
     # GINKGO_RPATH_FOR_HIP needs to be populated before calling this for the linker to include
     # our libraries path into the executable's runpath.
-    if (GINKGO_HIP_PLATFORM MATCHES "hcc")
-        target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_RPATH_FOR_HIP}")
-    elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")
-        target_link_libraries(${TEST_TARGET_NAME} PRIVATE -Xcompiler \"${GINKGO_RPATH_FOR_HIP}\")
+    if(BUILD_SHARED_LIBS)
+        if (GINKGO_HIP_PLATFORM MATCHES "hcc")
+            target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_RPATH_FOR_HIP}")
+        elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")
+            target_link_libraries(${TEST_TARGET_NAME} PRIVATE -Xcompiler \"${GINKGO_RPATH_FOR_HIP}\")
+        endif()
     endif()
     add_test(NAME ${REL_BINARY_DIR}/${test_name} COMMAND ${TEST_TARGET_NAME})
 endfunction(ginkgo_create_hip_test)
