@@ -42,6 +42,10 @@ namespace gko {
 namespace matrix {
 
 
+template <typename ValueType, typename IndexType>
+class Csr;
+
+
 /**
  * Sparsity is a matrix format which stores only the sparsity pattern of a
  * sparse matrix by compressing each row of the matrix (compressed sparse row
@@ -68,6 +72,7 @@ class Sparsity : public EnableLinOp<Sparsity<ValueType, IndexType>>,
                  public Transposable {
     friend class EnableCreateMethod<Sparsity>;
     friend class EnablePolymorphicObject<Sparsity, LinOp>;
+    friend class Csr<ValueType, IndexType>;
 
 public:
     using EnableLinOp<Sparsity>::convert_to;
