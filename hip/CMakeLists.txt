@@ -53,7 +53,7 @@ endif()
 
 set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
 list(APPEND CMAKE_PREFIX_PATH
-    "${HIP_PATH}/lib/cmake"
+    "${HIP_PATH}/../lib/cmake"
     "${HIPBLAS_PATH}/lib/cmake"
     "${HIPSPARSE_PATH}/lib/cmake"
 )
@@ -98,6 +98,10 @@ set(GINKGO_HIP_NVCC_OPTIONS -Xcompiler -fPIC ${GINKGO_HIP_NVCC_COMPILER_FLAGS})
 set(GINKGO_HIP_HCC_OPTIONS -fPIC ${GINKGO_HIP_HCC_COMPILER_FLAGS})
 
 
+set (CMAKE_LINKER "${HIP_PATH}/bin/hipcc")
+set (CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
+
+
 set_source_files_properties(${GINKGO_HIP_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
 hip_add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES} HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} NVCC_OPTIONS ${GINKGO_HIP_NVCC_OPTIONS} HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS})
 
@@ -124,9 +128,8 @@ if(GINKGO_HIP_PLATFORM MATCHES "nvcc")
 endif()
 
 target_include_directories(ginkgo_hip
-    PUBLIC
-        ${GINKGO_HIP_THRUST_PATH}
     PRIVATE
+        ${GINKGO_HIP_THRUST_PATH}
         $<BUILD_INTERFACE:${ROCPRIM_INCLUDE_DIRS}>)
 
 ginkgo_compile_features(ginkgo_hip)

@@ -47,6 +47,62 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
+// HIP should not see std::abs or std::sqrt, we want the custom implementation.
+// Hence, provide the using declaration only for some cases
+namespace kernels {
+namespace reference {
+
+
+using std::abs;
+
+
+using std::sqrt;
+
+
+}  // namespace reference
+}  // namespace kernels
+
+
+namespace kernels {
+namespace omp {
+
+
+using std::abs;
+
+
+using std::sqrt;
+
+
+}  // namespace omp
+}  // namespace kernels
+
+
+namespace kernels {
+namespace cuda {
+
+
+using std::abs;
+
+
+using std::sqrt;
+
+
+}  // namespace cuda
+}  // namespace kernels
+
+
+namespace test {
+
+
+using std::abs;
+
+
+using std::sqrt;
+
+
+}  // namespace test
+
+
 // type manipulations
 
 
@@ -365,9 +421,6 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T abs(const T &x)
 }
 
 
-using std::abs;  // use optimized abs functions for basic types
-
-
 /**
  * Returns the larger of the arguments.
  *
@@ -452,9 +505,6 @@ GKO_ATTRIBUTES GKO_INLINE T conj(const T &x)
 {
     return x;
 }
-
-
-using std::sqrt;  // use standard sqrt functions for basic types
 
 
 /**
