@@ -130,6 +130,61 @@ std::unique_ptr<MatrixType> generate_random_matrix(
 
 
 /**
+ * Generates a random sparsity matrix.
+ *
+ * @tparam MatrixType  type of matrix to generate (matrix::Dense must implement
+ *                     the interface `ConvertibleTo<MatrixType>`)
+ * @tparam NonzeroDistribution  type of nonzero distribution
+ * @tparam Engine  type of random engine
+ * @tparam MatrixArgs  the arguments from the matrix to be forwarded.
+ *
+ * @param num_rows  number of rows
+ * @param num_cols  number of columns
+ * @param nonzero_dist  distribution of nonzeros per row
+ * @param engine  a random engine
+ * @param exec  executor where the matrix should be allocated
+ * @param args  additional arguments for the matrix constructor
+ */
+template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
+          typename Engine, typename... MatrixArgs>
+std::unique_ptr<MatrixType> generate_random_sparsity_matrix(
+    size_type num_rows, size_type num_cols, NonzeroDistribution &&nonzero_dist,
+    Engine &&engine, std::shared_ptr<const Executor> exec,
+    MatrixArgs &&... args)
+{
+    using value_type = typename MatrixType::value_type;
+    using index_type = typename MatrixType::index_type;
+    using std::begin;
+    using std::end;
+
+    matrix_data<value_type, index_type> data{gko::dim<2>{num_rows, num_cols},
+                                             {}};
+
+    std::vector<size_type> col_idx(num_cols);
+    std::iota(begin(col_idx), end(col_idx), size_type(0));
+    value_type one = 1.0;
+    for (size_type row = 0; row < num_rows; ++row) {
+        // randomly generate number of nonzeros in this row
+        auto nnz_in_row = static_cast<size_type>(nonzero_dist(engine));
+        nnz_in_row = std::max(size_type(0), std::min(nnz_in_row, num_cols));
+        // select a subset of `nnz_in_row` column indexes, and fill these
+        // locations with random values
+        std::shuffle(begin(col_idx), end(col_idx), engine);
+        std::for_each(
+            begin(col_idx), begin(col_idx) + nnz_in_row,
+            [&](size_type col) { data.nonzeros.emplace_back(row, col, one); });
+    }
+
+    data.ensure_row_major_order();
+
+    // convert to the correct matrix type
+    auto result = MatrixType::create(exec, std::forward<MatrixArgs>(args)...);
+    result->read(data);
+    return result;
+}
+
+
+/**
  * Generates a random lower triangular matrix.
  *
  * @tparam MatrixType  type of matrix to generate (matrix::Dense must implement

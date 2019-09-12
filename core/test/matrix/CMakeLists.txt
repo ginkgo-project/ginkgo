@@ -1,3 +1,4 @@
+ginkgo_create_test(sparsity)
 ginkgo_create_test(coo)
 ginkgo_create_test(csr)
 ginkgo_create_test(dense)
