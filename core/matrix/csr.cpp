@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/sparsity.hpp>
 
 
 #include "core/matrix/csr_kernels.hpp"
@@ -182,6 +183,26 @@ void Csr<ValueType, IndexType>::convert_to(
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::move_to(Sellp<ValueType, IndexType> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::convert_to(
+    Sparsity<ValueType, IndexType> *result) const
+{
+    auto exec = this->get_executor();
+    auto tmp = Sparsity<ValueType, IndexType>::create(
+        exec, this->get_size(), this->get_num_stored_elements());
+    tmp->col_idxs_ = this->col_idxs_;
+    tmp->row_ptrs_ = this->row_ptrs_;
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::move_to(Sparsity<ValueType, IndexType> *result)
 {
     this->convert_to(result);
 }
