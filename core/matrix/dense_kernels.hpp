@@ -98,6 +98,11 @@ namespace kernels {
                           matrix::Sellp<_type, _prec> *other,          \
                           const matrix::Dense<_type> *source)
 
+#define GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_KERNEL(_type, _prec)        \
+    void convert_to_sparsity(std::shared_ptr<const DefaultExecutor> exec, \
+                             matrix::Sparsity<_type, _prec> *other,       \
+                             const matrix::Dense<_type> *source)
+
 #define GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(_type)               \
     void count_nonzeros(std::shared_ptr<const DefaultExecutor> exec, \
                         const matrix::Dense<_type> *source, size_type *result)
@@ -128,40 +133,42 @@ namespace kernels {
                         matrix::Dense<_type> *trans,                 \
                         const matrix::Dense<_type> *orig)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
-    template <typename ValueType>                                     \
-    GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(ValueType);                 \
-    template <typename ValueType>                                     \
-    GKO_DECLARE_DENSE_APPLY_KERNEL(ValueType);                        \
-    template <typename ValueType>                                     \
-    GKO_DECLARE_DENSE_SCALE_KERNEL(ValueType);                        \
-    template <typename ValueType>                                     \
-    GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(ValueType);                   \
-    template <typename ValueType>                                     \
-    GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(ValueType);                  \
-    template <typename ValueType>                                     \
-    GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL(ValueType);                \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType);  \
-    template <typename ValueType>                                     \
-    GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(ValueType);               \
-    template <typename ValueType>                                     \
-    GKO_DECLARE_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType);    \
-    template <typename ValueType>                                     \
-    GKO_DECLARE_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType);   \
-    template <typename ValueType>                                     \
-    GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL(ValueType);         \
-    template <typename ValueType>                                     \
-    GKO_DECLARE_TRANSPOSE_KERNEL(ValueType);                          \
-    template <typename ValueType>                                     \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
+    template <typename ValueType>                                       \
+    GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(ValueType);                   \
+    template <typename ValueType>                                       \
+    GKO_DECLARE_DENSE_APPLY_KERNEL(ValueType);                          \
+    template <typename ValueType>                                       \
+    GKO_DECLARE_DENSE_SCALE_KERNEL(ValueType);                          \
+    template <typename ValueType>                                       \
+    GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(ValueType);                     \
+    template <typename ValueType>                                       \
+    GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(ValueType);                    \
+    template <typename ValueType>                                       \
+    GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL(ValueType);                  \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(ValueType, IndexType);      \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);      \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL(ValueType, IndexType);      \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_KERNEL(ValueType, IndexType); \
+    template <typename ValueType>                                       \
+    GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(ValueType);                 \
+    template <typename ValueType>                                       \
+    GKO_DECLARE_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType);      \
+    template <typename ValueType>                                       \
+    GKO_DECLARE_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType);     \
+    template <typename ValueType>                                       \
+    GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL(ValueType);           \
+    template <typename ValueType>                                       \
+    GKO_DECLARE_TRANSPOSE_KERNEL(ValueType);                            \
+    template <typename ValueType>                                       \
     GKO_DECLARE_CONJ_TRANSPOSE_KERNEL(ValueType)
 
 

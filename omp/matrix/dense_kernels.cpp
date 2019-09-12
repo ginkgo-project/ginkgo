@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/sparsity.hpp>
 
 
 namespace gko {
@@ -453,6 +454,40 @@ void convert_to_sellp(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_sparsity(std::shared_ptr<const OmpExecutor> exec,
+                         matrix::Sparsity<ValueType, IndexType> *result,
+                         const matrix::Dense<ValueType> *source)
+{
+    auto num_rows = result->get_size()[0];
+    auto num_cols = result->get_size()[1];
+    auto num_nonzeros = result->get_num_nonzeros();
+
+    auto row_ptrs = result->get_row_ptrs();
+    auto col_idxs = result->get_col_idxs();
+
+    size_type cur_ptr = 0;
+    row_ptrs[0] = cur_ptr;
+    for (size_type row = 0; row < num_rows; ++row) {
+#pragma omp parallel for
+        for (size_type col = 0; col < num_cols; ++col) {
+            auto val = source->at(row, col);
+            if (val != zero<ValueType>()) {
+#pragma omp critical
+                {
+                    col_idxs[cur_ptr] = col;
+                    ++cur_ptr;
+                }
+            }
+        }
+        row_ptrs[row + 1] = cur_ptr;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_KERNEL);
 
 
 template <typename ValueType>
