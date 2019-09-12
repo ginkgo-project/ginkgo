@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
 #include "core/matrix/sellp_kernels.hpp"
+#include "core/matrix/sparsity_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 #include "core/solver/cg_kernels.hpp"
@@ -350,6 +351,47 @@ GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 
 }  // namespace ir
 
+
+namespace sparsity {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_SPARSITY_SPMV_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SPARSITY_SPMV_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_SPARSITY_ADVANCED_SPMV_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_ADVANCED_SPMV_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_SPARSITY_REMOVE_DIAGONAL_ELEMENTS_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_REMOVE_DIAGONAL_ELEMENTS_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_SPARSITY_TRANSPOSE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_TRANSPOSE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_SPARSITY_SORT_BY_COLUMN_INDEX(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_SORT_BY_COLUMN_INDEX);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_SPARSITY_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_IS_SORTED_BY_COLUMN_INDEX);
+
+
+}  // namespace sparsity
 
 namespace csr {
 

@@ -15,6 +15,7 @@ target_sources(ginkgo
         log/logger.cpp
         log/record.cpp
         log/stream.cpp
+        matrix/sparsity.cpp
         matrix/coo.cpp
         matrix/csr.cpp
         matrix/dense.cpp

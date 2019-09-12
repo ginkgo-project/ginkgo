@@ -3,6 +3,7 @@ target_sources(ginkgo_reference
     PRIVATE
         base/version.cpp
         factorization/par_ilu_kernels.cpp
+        matrix/sparsity_kernels.cpp
         matrix/coo_kernels.cpp
         matrix/csr_kernels.cpp
         matrix/dense_kernels.cpp
