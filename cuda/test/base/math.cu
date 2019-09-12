@@ -108,7 +108,7 @@ protected:
     bool test_complex_isfinite_kernel()
     {
         gko::Array<bool> result(cuda, 1);
-        test_real_isfinite<T><<<1, 1>>>(result.get_data());
+        test_complex_isfinite<T><<<1, 1>>>(result.get_data());
         result.set_executor(ref);
         return *result.get_data();
     }
