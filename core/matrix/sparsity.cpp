@@ -164,6 +164,8 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<Sparsity<ValueType, IndexType>>
 Sparsity<ValueType, IndexType>::to_adjacency_matrix() const
 {
+    // Adjacency matrix has to be square.
+    GKO_ASSERT_IS_SQUARE_MATRIX(this);
     auto exec = this->get_executor();
     GKO_ASSERT_IS_SQUARE_MATRIX(this);
     size_type num_diagonal_elements = 0;

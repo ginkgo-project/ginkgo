@@ -73,6 +73,7 @@ public:
     using EnableLinOp<Sparsity>::convert_to;
     using EnableLinOp<Sparsity>::move_to;
 
+    using value_type = ValueType;
     using index_type = IndexType;
     using value_type = ValueType;
 
