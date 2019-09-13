@@ -220,8 +220,8 @@ protected:
      */
     template <typename TheFactory, typename TheType>
     typename std::enable_if<
-        not std::is_base_of<log::Loggable, TheType>::value ||
-            not std::is_base_of<log::Loggable, TheFactory>::value,
+        !std::is_base_of<log::Loggable, TheType>::value ||
+            !std::is_base_of<log::Loggable, TheFactory>::value,
         void>::type
     propagate_loggers(TheType *product) const
     {}
