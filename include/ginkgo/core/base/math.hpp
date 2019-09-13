@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/utils.hpp>
 
 
 #include <cmath>
@@ -534,7 +535,7 @@ using std::isfinite;  // use the optimized function for all supported types
  * returns `true` if both components of the given value are finite, meaning
  *         they are neither +/- infinity nor NaN.
  */
-template <typename T>
+template <typename T, overload<1> = nullptr>
 GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<is_complex_s<T>::value, bool>
 isfinite(const T &value)
 {
