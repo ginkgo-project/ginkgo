@@ -122,32 +122,6 @@ protected:
 };
 
 
-TEST_F(Ilu, KnowsItsExecutor)
-{
-    auto ilu_factory = ilu_prec_type::build().on(exec);
-
-    ASSERT_EQ(ilu_factory->get_executor(), exec);
-}
-
-
-TEST_F(Ilu, CanSetLSolverFactory)
-{
-    auto ilu_factory =
-        ilu_prec_type::build().with_l_solver_factory(l_factory).on(exec);
-
-    ASSERT_EQ(ilu_factory->get_parameters().l_solver_factory, l_factory);
-}
-
-
-TEST_F(Ilu, CanSetUSolverFactory)
-{
-    auto ilu_factory =
-        ilu_prec_type::build().with_u_solver_factory(u_factory).on(exec);
-
-    ASSERT_EQ(ilu_factory->get_parameters().u_solver_factory, u_factory);
-}
-
-
 TEST_F(Ilu, BuildsDefaultWithoutThrowing)
 {
     auto ilu_pre_default_factory = ilu_prec_type::build().on(exec);
@@ -193,6 +167,68 @@ TEST_F(Ilu, ThrowOnWrongCompositionInput2)
 }
 
 
+TEST_F(Ilu, SetsCorrectMatrices)
+{
+    auto ilu = ilu_pre_factory->generate(l_factor, u_factor);
+    auto internal_l_factor = ilu->get_l_solver()->get_system_matrix();
+    auto internal_u_factor = ilu->get_u_solver()->get_system_matrix();
+
+    // These convert steps are required since `get_system_matrix` usually
+    // just returns `LinOp`, which `GKO_ASSERT_MTX_NEAR` can not use properly
+    std::unique_ptr<Mtx> converted_l_factor{Mtx::create(exec)};
+    std::unique_ptr<Mtx> converted_u_factor{Mtx::create(exec)};
+    gko::as<gko::ConvertibleTo<Mtx>>(internal_l_factor.get())
+        ->convert_to(converted_l_factor.get());
+    gko::as<gko::ConvertibleTo<Mtx>>(internal_u_factor.get())
+        ->convert_to(converted_u_factor.get());
+    GKO_ASSERT_MTX_NEAR(converted_l_factor, l_factor, 0);
+    GKO_ASSERT_MTX_NEAR(converted_u_factor, u_factor, 0);
+}
+
+
+TEST_F(Ilu, CanBeCopied)
+{
+    auto ilu = ilu_pre_factory->generate(l_factor, u_factor);
+    auto before_l_solver = ilu->get_l_solver();
+    auto before_u_solver = ilu->get_u_solver();
+    // The switch up of matrices is intentional, to make sure they are distinct!
+    auto copied = ilu_prec_type::build().on(exec)->generate(u_factor, l_factor);
+
+    copied->copy_from(ilu.get());
+
+    ASSERT_EQ(before_l_solver.get(), copied->get_l_solver().get());
+    ASSERT_EQ(before_u_solver.get(), copied->get_u_solver().get());
+}
+
+
+TEST_F(Ilu, CanBeMoved)
+{
+    auto ilu = ilu_pre_factory->generate(l_factor, u_factor);
+    auto before_l_solver = ilu->get_l_solver();
+    auto before_u_solver = ilu->get_u_solver();
+    // The switch up of matrices is intentional, to make sure they are distinct!
+    auto moved = ilu_prec_type::build().on(exec)->generate(u_factor, l_factor);
+
+    moved->copy_from(std::move(ilu));
+
+    ASSERT_EQ(before_l_solver.get(), moved->get_l_solver().get());
+    ASSERT_EQ(before_u_solver.get(), moved->get_u_solver().get());
+}
+
+
+TEST_F(Ilu, CanBeCloned)
+{
+    auto ilu = ilu_pre_factory->generate(l_factor, u_factor);
+    auto before_l_solver = ilu->get_l_solver();
+    auto before_u_solver = ilu->get_u_solver();
+
+    auto clone = ilu->clone();
+
+    ASSERT_EQ(before_l_solver.get(), clone->get_l_solver().get());
+    ASSERT_EQ(before_u_solver.get(), clone->get_u_solver().get());
+}
+
+
 TEST_F(Ilu, SolvesDefaultSingleRhsWithParIlu)
 {
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
@@ -205,9 +241,8 @@ TEST_F(Ilu, SolvesDefaultSingleRhsWithParIlu)
         default_ilu_prec_type::build().on(exec)->generate(gko::share(par_ilu));
     preconditioner->apply(b.get(), x.get());
 
-    // Since it is a preconditioner, the default solve is not accurate
-    // Applies only to BiCGSTAB   TODO: Replace with 1e-14 when TRS is default
-    GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}), 5e-1);
+    // Since it uses TRS per default, the result should be accurate
+    GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}), 1e-14);
 }
 
 

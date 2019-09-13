@@ -45,8 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/lower_trs.hpp>
+#include <ginkgo/core/solver/upper_trs.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
@@ -56,7 +56,6 @@ namespace gko {
 namespace preconditioner {
 
 
-// TODO: Replace Bicgstab with Upper/LowerTrs when available!
 /**
  * The incomplete LU (ILU) preconditioner solves the equation LUx = b for a
  * given lower triangular matrix L, an upper triangular matrix U and the right
@@ -91,7 +90,7 @@ namespace preconditioner {
  * @ingroup LinOp
  */
 template <typename LSolverType = solver::LowerTrs<>,
-          typename USolverType = solver::Bicgstab<>, bool ReverseApply = false>
+          typename USolverType = solver::UpperTrs<>, bool ReverseApply = false>
 class Ilu : public EnableLinOp<Ilu<LSolverType, USolverType, ReverseApply>> {
     friend class EnableLinOp<Ilu>;
     friend class EnablePolymorphicObject<Ilu, LinOp>;
@@ -120,6 +119,26 @@ public:
         std::shared_ptr<typename u_solver_type::Factory> GKO_FACTORY_PARAMETER(
             u_solver_factory, nullptr);
     };
+
+    /**
+     * Returns the solver which is used for the provided L matrix.
+     *
+     * @returns  the solver which is used for the provided L matrix
+     */
+    std::shared_ptr<const l_solver_type> get_l_solver() const
+    {
+        return l_solver_;
+    }
+
+    /**
+     * Returns the solver which is used for the provided U matrix.
+     *
+     * @returns  the solver which is used for the provided U matrix
+     */
+    std::shared_ptr<const u_solver_type> get_u_solver() const
+    {
+        return u_solver_;
+    }
 
 protected:
     /**
@@ -168,8 +187,10 @@ protected:
         std::shared_ptr<const LinOp> u_factor;
     };
 
-    // The following code is used to replace the default
-    // `GKO_ENABLE_LIN_OP_FACTORY` macro
+    /* ---------------------------------------------------------------------
+       The following code is used to replace the default
+       `GKO_ENABLE_LIN_OP_FACTORY` macro
+       --------------------------------------------------------------------- */
     using PolymorphicBaseFactory = AbstractFactory<LinOp, LuArgs>;
     template <typename ConcreteFactory>
     using EnableIluFactory =
@@ -200,7 +221,9 @@ public:
 private:
     parameters_type parameters_;
 
-    // End of the code to replace the `GKO_ENABLE_LIN_OP_FACTORY` macro
+    /* ---------------------------------------------------------------------
+       End of the code to replace the `GKO_ENABLE_LIN_OP_FACTORY` macro
+       --------------------------------------------------------------------- */
 public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
@@ -237,24 +260,26 @@ protected:
     explicit Ilu(const Factory *factory, LuArgs lu_args)
         : EnableLinOp<Ilu>(factory->get_executor(),
                            lu_args.get_solver_size(ReverseApply)),
-          parameters_{factory->get_parameters()},
-          l_factor_{std::move(lu_args.l_factor)},
-          u_factor_{std::move(lu_args.u_factor)}
+          parameters_{factory->get_parameters()}
     {
-        GKO_ASSERT_EQUAL_DIMENSIONS(l_factor_, u_factor_);
+        GKO_ASSERT_EQUAL_DIMENSIONS(lu_args.l_factor, lu_args.u_factor);
 
         auto exec = this->get_executor();
 
         // If no factories are provided, generate default ones
         if (!parameters_.l_solver_factory) {
-            l_solver_ = generate_default_solver<l_solver_type>(exec, l_factor_);
+            l_solver_ =
+                generate_default_solver<l_solver_type>(exec, lu_args.l_factor);
         } else {
-            l_solver_ = parameters_.l_solver_factory->generate(l_factor_);
+            l_solver_ =
+                parameters_.l_solver_factory->generate(lu_args.l_factor);
         }
         if (!parameters_.u_solver_factory) {
-            u_solver_ = generate_default_solver<u_solver_type>(exec, u_factor_);
+            u_solver_ =
+                generate_default_solver<u_solver_type>(exec, lu_args.u_factor);
         } else {
-            u_solver_ = parameters_.u_solver_factory->generate(u_factor_);
+            u_solver_ =
+                parameters_.u_solver_factory->generate(lu_args.u_factor);
         }
     }
 
@@ -351,8 +376,6 @@ protected:
     }
 
 private:
-    std::shared_ptr<const LinOp> l_factor_{};
-    std::shared_ptr<const LinOp> u_factor_{};
     std::shared_ptr<const l_solver_type> l_solver_{};
     std::shared_ptr<const u_solver_type> u_solver_{};
     /**
