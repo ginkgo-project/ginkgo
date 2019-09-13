@@ -803,7 +803,7 @@ using DefaultExecutor = ReferenceExecutor;
  */
 class CudaExecutor : public detail::ExecutorBase<CudaExecutor>,
                      public std::enable_shared_from_this<CudaExecutor> {
-    friend class ExecutorBase<CudaExecutor>;
+    friend class detail::ExecutorBase<CudaExecutor>;
 
 public:
     /**

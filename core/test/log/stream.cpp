@@ -74,7 +74,7 @@ TEST(Stream, CatchesAllocationCompleted)
         exec, gko::log::Logger::allocation_completed_mask, out);
     int dummy = 1;
     std::stringstream ptrstream;
-    ptrstream << &dummy;
+    ptrstream << std::hex << "0x" << reinterpret_cast<gko::uintptr>(&dummy);
 
     logger->on<gko::log::Logger::allocation_completed>(
         exec.get(), 42, reinterpret_cast<gko::uintptr>(&dummy));
@@ -94,7 +94,7 @@ TEST(Stream, CatchesFreeStarted)
         exec, gko::log::Logger::free_started_mask, out);
     int dummy = 1;
     std::stringstream ptrstream;
-    ptrstream << &dummy;
+    ptrstream << std::hex << "0x" << reinterpret_cast<gko::uintptr>(&dummy);
 
     logger->on<gko::log::Logger::free_started>(
         exec.get(), reinterpret_cast<gko::uintptr>(&dummy));
@@ -113,7 +113,7 @@ TEST(Stream, CatchesFreeCompleted)
         exec, gko::log::Logger::free_completed_mask, out);
     int dummy = 1;
     std::stringstream ptrstream;
-    ptrstream << &dummy;
+    ptrstream << std::hex << "0x" << reinterpret_cast<gko::uintptr>(&dummy);
 
     logger->on<gko::log::Logger::free_completed>(
         exec.get(), reinterpret_cast<gko::uintptr>(&dummy));
@@ -133,9 +133,11 @@ TEST(Stream, CatchesCopyStarted)
     int dummy_in = 1;
     int dummy_out = 1;
     std::stringstream ptrstream_in;
-    ptrstream_in << &dummy_in;
+    ptrstream_in << std::hex << "0x"
+                 << reinterpret_cast<gko::uintptr>(&dummy_in);
     std::stringstream ptrstream_out;
-    ptrstream_out << &dummy_out;
+    ptrstream_out << std::hex << "0x"
+                  << reinterpret_cast<gko::uintptr>(&dummy_out);
 
     logger->on<gko::log::Logger::copy_started>(
         exec.get(), exec.get(), reinterpret_cast<gko::uintptr>(&dummy_in),
@@ -158,9 +160,11 @@ TEST(Stream, CatchesCopyCompleted)
     int dummy_in = 1;
     int dummy_out = 1;
     std::stringstream ptrstream_in;
-    ptrstream_in << &dummy_in;
+    ptrstream_in << std::hex << "0x"
+                 << reinterpret_cast<gko::uintptr>(&dummy_in);
     std::stringstream ptrstream_out;
-    ptrstream_out << &dummy_out;
+    ptrstream_out << std::hex << "0x"
+                  << reinterpret_cast<gko::uintptr>(&dummy_out);
 
     logger->on<gko::log::Logger::copy_completed>(
         exec.get(), exec.get(), reinterpret_cast<gko::uintptr>(&dummy_in),
