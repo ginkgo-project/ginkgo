@@ -1,12 +1,3 @@
-if(NOT DEFINED HIP_PATH)
-    if(NOT DEFINED ENV{HIP_PATH})
-        set(HIP_PATH "/opt/rocm/hip" CACHE PATH "Path to which HIP has been installed")
-        set(ENV{HIP_PATH} ${HIP_PATH})
-    else()
-        set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
-    endif()
-endif()
-
 if(NOT DEFINED HIPBLAS_PATH)
     if(NOT DEFINED ENV{HIPBLAS_PATH})
         set(HIPBLAS_PATH "${HIP_PATH}/../hipblas" CACHE PATH "Path to which HIPBLAS has been installed")
@@ -23,19 +14,17 @@ if(NOT DEFINED HIPSPARSE_PATH)
     endif()
 endif()
 
-
-find_program(GINKGO_HIPCONFIG_PATH hipconfig HINTS "${HIP_PATH}/bin")
-if(GINKGO_HIPCONFIG_PATH)
-    execute_process(COMMAND ${GINKGO_HIPCONFIG_PATH} --platform OUTPUT_VARIABLE GINKGO_HIP_PLATFORM)
-elseif(DEFINED ENV{HIP_PLATFORM})
-    set(GINKGO_HIP_PLATFORM "$ENV{HIP_PLATFORM}")
-else()
-    message(FATAL_ERROR "No platform could be found for HIP. "
-        "Set and export the environment variable HIP_PLATFORM.")
-endif()
-message(STATUS "HIP platform set to ${GINKGO_HIP_PLATFORM}")
-
-if (GINKGO_HIP_PLATFORM MATCHES "nvcc")
+# With platform = hcc, manage HCC_PATH and HCC_HOME setting
+if (GINKGO_HIP_PLATFORM MATCHES "hcc")
+    if(NOT DEFINED HCC_PATH)
+        if(NOT DEFINED ENV{HCC_PATH})
+            set(HCC_PATH "/opt/rocm/hcc" CACHE PATH "Path to which HCC has been installed")
+        else()
+            set(HCC_PATH $ENV{HCC_PATH} CACHE PATH "Path to which HCC has been installed")
+        endif()
+        set(HCC_HOME "${HCC_PATH}")
+    endif()
+elseif (GINKGO_HIP_PLATFORM MATCHES "nvcc") # ensure ENV{CUDA_PATH} is set by the user
     if (NOT DEFINED ENV{CUDA_PATH})
         find_path(GINKGO_HIP_DEFAULT_CUDA_PATH "cuda.h" PATH /usr/local/cuda/include NO_DEFAULT_PATH)
         if (NOT GINKGO_HIP_DEFAULT_CUDA_PATH)
@@ -45,15 +34,17 @@ if (GINKGO_HIP_PLATFORM MATCHES "nvcc")
      endif()
 endif()
 
-
 if (GINKGO_HIP_PLATFORM STREQUAL "hcc" AND NOT GINKGO_HIP_AMDGPU)
-    message(WARNING "GINKGO_HIP_AMDGPU is not set. All hipcc calls may be missing AMDGPU targets.")
+    message(WARNING "GINKGO_HIP_AMDGPU is not set. Set this flag if HIP complains about missing"
+        " `--amdgpu_target` option.")
 endif()
 
 
+## Setup all CMAKE variables to find HIP and its dependencies
 set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
 list(APPEND CMAKE_PREFIX_PATH
-    "${HIP_PATH}/../lib/cmake"
+    "${HIP_PATH}/lib/cmake"
+    "${HIP_PATH}/../lib/cmake" # hopefully catches all extra HIP dependencies, e.g. hcc
     "${HIPBLAS_PATH}/lib/cmake"
     "${HIPSPARSE_PATH}/lib/cmake"
 )
@@ -94,18 +85,13 @@ set(GINKGO_HIP_SOURCES
     stop/residual_norm_reduction_kernels.hip.cpp)
 
 set(GINKGO_HIPCC_OPTIONS ${GINKGO_HIP_COMPILER_FLAGS})
-set(GINKGO_HIP_NVCC_OPTIONS -Xcompiler -fPIC ${GINKGO_HIP_NVCC_COMPILER_FLAGS})
-set(GINKGO_HIP_HCC_OPTIONS -fPIC ${GINKGO_HIP_HCC_COMPILER_FLAGS})
-
-
-set (CMAKE_LINKER "${HIP_PATH}/bin/hipcc")
-set (CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_LINKER> <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
-
+set(GINKGO_HIP_NVCC_OPTIONS ${GINKGO_HIP_NVCC_COMPILER_FLAGS})
+set(GINKGO_HIP_HCC_OPTIONS ${GINKGO_HIP_HCC_COMPILER_FLAGS})
 
 set_source_files_properties(${GINKGO_HIP_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
-hip_add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES} HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} NVCC_OPTIONS ${GINKGO_HIP_NVCC_OPTIONS} HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS})
+hip_add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES} HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} NVCC_OPTIONS ${GINKGO_HIP_NVCC_OPTIONS} HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS} ${GINKGO_STATIC_OR_SHARED})
+set_target_properties(ginkgo_hip PROPERTIES LINKER_LANGUAGE HIP)
 
-# target_compile_options(ginkgo_hip PRIVATE -fno-gpu-rdc)
 if(GINKGO_HIP_AMDGPU AND GINKGO_HIP_PLATFORM STREQUAL "hcc")
     foreach(target ${GINKGO_HIP_AMDGPU})
         target_compile_options(ginkgo_hip PRIVATE --amdgpu-target=${target})
@@ -120,7 +106,7 @@ if(GINKGO_WITH_IWYU AND GINKGO_IWYU_PATH)
     set_property(TARGET ginkgo_hip PROPERTY CXX_INCLUDE_WHAT_YOU_USE ${GINKGO_IWYU_PATH})
 endif()
 
-target_link_libraries(ginkgo_hip PUBLIC hip::device PRIVATE roc::hipblas roc::hipsparse)
+target_link_libraries(ginkgo_hip PRIVATE hip::device roc::hipblas roc::hipsparse)
 
 if(GINKGO_HIP_PLATFORM MATCHES "nvcc")
     find_package(CUDA 9.0 REQUIRED)
@@ -128,6 +114,8 @@ if(GINKGO_HIP_PLATFORM MATCHES "nvcc")
 endif()
 
 target_include_directories(ginkgo_hip
+    PUBLIC
+        ${HIP_PATH}/include
     PRIVATE
         ${GINKGO_HIP_THRUST_PATH}
         $<BUILD_INTERFACE:${ROCPRIM_INCLUDE_DIRS}>)
