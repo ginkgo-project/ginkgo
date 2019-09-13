@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/utils.hpp>
 
 
 namespace gko {
@@ -161,7 +162,7 @@ private:
         }
 
     private:
-        template <typename T>
+        template <typename T, overload<0> = nullptr>
         static xstd::enable_if_t<is_complex<T>()> write_entry_impl(
             std::ostream &, const T &)
         {
@@ -169,7 +170,7 @@ private:
                 "trying to write a complex matrix into a real entry format");
         }
 
-        template <typename T>
+        template <typename T, overload<1> = nullptr>
         static xstd::enable_if_t<!is_complex<T>()> write_entry_impl(
             std::ostream &os, const T &value)
         {
@@ -208,7 +209,7 @@ private:
         }
 
     private:
-        template <typename T>
+        template <typename T, overload<0> = nullptr>
         static xstd::enable_if_t<is_complex<T>(), T> read_entry_impl(
             std::istream &is)
         {
@@ -220,7 +221,7 @@ private:
             return {static_cast<real_type>(real), static_cast<real_type>(imag)};
         }
 
-        template <typename T>
+        template <typename T, overload<1> = nullptr>
         static xstd::enable_if_t<!is_complex<T>(), T> read_entry_impl(
             std::istream &)
         {

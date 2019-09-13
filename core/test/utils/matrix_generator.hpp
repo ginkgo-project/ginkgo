@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -50,7 +51,8 @@ namespace test {
 namespace detail {
 
 
-template <typename ValueType, typename Distribution, typename Generator>
+template <typename ValueType, typename Distribution, typename Generator,
+          overload<0> = nullptr>
 typename std::enable_if<!is_complex<ValueType>(), ValueType>::type
 get_rand_value(Distribution &&dist, Generator &&gen)
 {
@@ -58,7 +60,8 @@ get_rand_value(Distribution &&dist, Generator &&gen)
 }
 
 
-template <typename ValueType, typename Distribution, typename Generator>
+template <typename ValueType, typename Distribution, typename Generator,
+          overload<1> = nullptr>
 typename std::enable_if<is_complex<ValueType>(), ValueType>::type
 get_rand_value(Distribution &&dist, Generator &&gen)
 {

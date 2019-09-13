@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/utils.hpp>
 
 
 #include <algorithm>
@@ -62,7 +63,8 @@ struct input_triple {
 };
 
 
-template <typename ValueType, typename Distribution, typename Generator>
+template <typename ValueType, typename Distribution, typename Generator,
+          overload<0> = nullptr>
 typename std::enable_if<!is_complex<ValueType>(), ValueType>::type
 get_rand_value(Distribution &&dist, Generator &&gen)
 {
@@ -70,7 +72,8 @@ get_rand_value(Distribution &&dist, Generator &&gen)
 }
 
 
-template <typename ValueType, typename Distribution, typename Generator>
+template <typename ValueType, typename Distribution, typename Generator,
+          overload<1> = nullptr>
 typename std::enable_if<is_complex<ValueType>(), ValueType>::type
 get_rand_value(Distribution &&dist, Generator &&gen)
 {

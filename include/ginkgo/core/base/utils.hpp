@@ -234,6 +234,18 @@ inline typename std::remove_reference<OwningPointer>::type &&give(
 
 
 /**
+ * Create an overload function.
+ *
+ * This is a helper function which makes the MSVC can recognize
+ * enable_if<constexpr function, ...> function.
+ *
+ * @param Index  the index of overload function.
+ */
+template <int Index>
+using overload = std::integral_constant<int, Index> *;
+
+
+/**
  * Returns a non-owning (plain) pointer to the object pointed to by `p`.
  *
  * @tparam Pointer  type of pointer to the object (plain or smart pointer)
@@ -243,7 +255,7 @@ inline typename std::remove_reference<OwningPointer>::type &&give(
  * @note This is the overload for owning (smart) pointers, that behaves the
  *       same as calling .get() on the smart pointer.
  */
-template <typename Pointer>
+template <typename Pointer, overload<0> = nullptr>
 inline typename std::enable_if<detail::have_ownership<Pointer>(),
                                detail::pointee<Pointer> *>::type
 lend(const Pointer &p)
@@ -261,7 +273,7 @@ lend(const Pointer &p)
  * @note This is the overload for non-owning (plain) pointers, that just
  *       returns `p`.
  */
-template <typename Pointer>
+template <typename Pointer, overload<1> = nullptr>
 inline typename std::enable_if<!detail::have_ownership<Pointer>(),
                                detail::pointee<Pointer> *>::type
 lend(const Pointer &p)
