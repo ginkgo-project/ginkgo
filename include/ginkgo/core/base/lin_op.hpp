@@ -719,9 +719,17 @@ public:                                                                      \
                                                     ::gko::LinOpFactory>;    \
         friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
                                                    _factory_name>;           \
-        using ::gko::EnableDefaultLinOpFactory<                              \
-            _factory_name, _lin_op,                                          \
-            _parameters_name##_type>::EnableDefaultLinOpFactory;             \
+        explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)  \
+            : ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,       \
+                                               _parameters_name##_type>(     \
+                  std::move(exec))                                           \
+        {}                                                                   \
+        explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec,  \
+                               const _parameters_name##_type &parameters)    \
+            : ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,       \
+                                               _parameters_name##_type>(     \
+                  std::move(exec), parameters)                               \
+        {}                                                                   \
     };                                                                       \
     friend ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,          \
                                             _parameters_name##_type>;        \
