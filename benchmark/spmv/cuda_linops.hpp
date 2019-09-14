@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/device_guard.hpp"
+#include "cuda/base/pointer_mode_guard.hpp"
 
 
 namespace detail {
@@ -334,12 +335,11 @@ protected:
 
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::device_guard g{id};
+        auto handle = this->get_gpu_exec()->get_cusparse_handle();
         // This function seems to require the pointer mode to be set to HOST.
         // Ginkgo use pointer mode DEVICE by default, so we change this
         // temporarily.
-        auto handle = this->get_gpu_exec()->get_cusparse_handle();
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(
-            cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
+        gko::cusparse_pointer_mode_guard pm_guard(handle);
         gko::kernels::cuda::cusparse::spmv_buffersize<ValueType, IndexType>(
             handle, algmode_, trans_, this->get_size()[0], this->get_size()[1],
             csr_->get_num_stored_elements(), &alpha, this->get_descr(),
@@ -354,9 +354,8 @@ protected:
             csr_->get_const_values(), csr_->get_const_row_ptrs(),
             csr_->get_const_col_idxs(), db, &beta, dx, buffer_);
 
-        // Set the pointer mode back to the default DEVICE for Ginkgo
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(
-            cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
+        // Exiting the scope sets the pointer mode back to the default
+        // DEVICE for Ginkgo
     }
 
 
