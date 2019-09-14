@@ -417,6 +417,55 @@ public:
 
 
 /**
+ * Linear operators which support permutation should implement the
+ * Permutable interface.
+ *
+ * It provides two functionalities, the row permute and the
+ * column permute.
+ *
+ * The row permute returns the permutation of the linear operator after
+ * permuting the rows of the linear operator.
+ *
+ * The column permute returns the permutation of the linear operator after
+ * permuting the columns of the linear operator.
+ *
+ * Example: Permuting a Csr matrix:
+ * ------------------------------------
+ *
+ * ```c++
+ * //Permuting an object of LinOp type.
+ * //The object you want to permute.
+ * auto op = matrix::Csr::create(exec);
+ * //Permute the object by first converting it to a transposable type.
+ * auto perm = op->row_permute();
+ * ```
+ */
+template <typename ResultType, typename IndexType>
+class Permutable {
+public:
+    virtual ~Permutable() = default;
+
+    /**
+     * Returns a LinOp representing the row permutation of the Permutable
+     * object.
+     *
+     * @return a pointer to the new permuted object
+     */
+    virtual std::unique_ptr<ResultType> row_permute(
+        const Array<IndexType> *permutation_indices) const = 0;
+
+    /**
+     * Returns a LinOp representing the column permutation of the Permutable
+     * object.
+     *
+     * @return a pointer to the new column permuted object
+     */
+    virtual std::unique_ptr<ResultType> column_permute(
+        const Array<IndexType> *permutation_indices) const = 0;
+};
+
+
+/**
  * A LinOp implementing this interface can read its data from a matrix_data
  * structure.
  *
