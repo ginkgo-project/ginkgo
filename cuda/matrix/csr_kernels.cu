@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
+#include "cuda/base/pointer_mode_guard.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
@@ -695,25 +696,21 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
             // TODO: add implementation for int64 and multiple RHS
             auto handle = exec->get_cusparse_handle();
             auto descr = cusparse::create_mat_descr();
-            GKO_ASSERT_NO_CUSPARSE_ERRORS(
-                cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
+            {
+                cusparse_pointer_mode_guard pm_guard(handle);
+                auto row_ptrs = a->get_const_row_ptrs();
+                auto col_idxs = a->get_const_col_idxs();
+                auto alpha = one<ValueType>();
+                auto beta = zero<ValueType>();
+                if (b->get_stride() != 1 || c->get_stride() != 1)
+                    GKO_NOT_IMPLEMENTED;
 
-            auto row_ptrs = a->get_const_row_ptrs();
-            auto col_idxs = a->get_const_col_idxs();
-            auto alpha = one<ValueType>();
-            auto beta = zero<ValueType>();
-            if (b->get_stride() != 1 || c->get_stride() != 1)
-                GKO_NOT_IMPLEMENTED;
-
-            cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                           a->get_size()[0], a->get_size()[1],
-                           a->get_num_stored_elements(), &alpha, descr,
-                           a->get_const_values(), row_ptrs, col_idxs,
-                           b->get_const_values(), &beta, c->get_values());
-
-            GKO_ASSERT_NO_CUSPARSE_ERRORS(
-                cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
-
+                cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                               a->get_size()[0], a->get_size()[1],
+                               a->get_num_stored_elements(), &alpha, descr,
+                               a->get_const_values(), row_ptrs, col_idxs,
+                               b->get_const_values(), &beta, c->get_values());
+            }
             cusparse::destroy(descr);
         } else {
             GKO_NOT_IMPLEMENTED;

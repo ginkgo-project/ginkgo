@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "cuda/base/cublas_bindings.hpp"
+#include "cuda/base/pointer_mode_guard.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"
@@ -70,17 +71,16 @@ void simple_apply(std::shared_ptr<const CudaExecutor> exec,
 {
     if (cublas::is_supported<ValueType>::value) {
         auto handle = exec->get_cublas_handle();
-        GKO_ASSERT_NO_CUBLAS_ERRORS(
-            cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
-        auto alpha = one<ValueType>();
-        auto beta = zero<ValueType>();
-        cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, c->get_size()[1],
-                     c->get_size()[0], a->get_size()[1], &alpha,
-                     b->get_const_values(), b->get_stride(),
-                     a->get_const_values(), a->get_stride(), &beta,
-                     c->get_values(), c->get_stride());
-        GKO_ASSERT_NO_CUBLAS_ERRORS(
-            cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE));
+        {
+            cublas_pointer_mode_guard pm_guard(handle);
+            auto alpha = one<ValueType>();
+            auto beta = zero<ValueType>();
+            cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, c->get_size()[1],
+                         c->get_size()[0], a->get_size()[1], &alpha,
+                         b->get_const_values(), b->get_stride(),
+                         a->get_const_values(), a->get_stride(), &beta,
+                         c->get_values(), c->get_stride());
+        }
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -936,19 +936,16 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
 {
     if (cublas::is_supported<ValueType>::value) {
         auto handle = exec->get_cublas_handle();
-        GKO_ASSERT_NO_CUBLAS_ERRORS(
-            cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
-
-        auto alpha = one<ValueType>();
-        auto beta = zero<ValueType>();
-        cublas::geam(handle, CUBLAS_OP_T, CUBLAS_OP_N, orig->get_size()[0],
-                     orig->get_size()[1], &alpha, orig->get_const_values(),
-                     orig->get_stride(), &beta,
-                     static_cast<ValueType *>(nullptr), trans->get_size()[1],
-                     trans->get_values(), trans->get_stride());
-
-        GKO_ASSERT_NO_CUBLAS_ERRORS(
-            cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE));
+        {
+            cublas_pointer_mode_guard pm_guard(handle);
+            auto alpha = one<ValueType>();
+            auto beta = zero<ValueType>();
+            cublas::geam(
+                handle, CUBLAS_OP_T, CUBLAS_OP_N, orig->get_size()[0],
+                orig->get_size()[1], &alpha, orig->get_const_values(),
+                orig->get_stride(), &beta, static_cast<ValueType *>(nullptr),
+                trans->get_size()[1], trans->get_values(), trans->get_stride());
+        }
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -965,19 +962,16 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
 {
     if (cublas::is_supported<ValueType>::value) {
         auto handle = exec->get_cublas_handle();
-        GKO_ASSERT_NO_CUBLAS_ERRORS(
-            cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
-
-        auto alpha = one<ValueType>();
-        auto beta = zero<ValueType>();
-        cublas::geam(handle, CUBLAS_OP_C, CUBLAS_OP_N, orig->get_size()[0],
-                     orig->get_size()[1], &alpha, orig->get_const_values(),
-                     orig->get_stride(), &beta,
-                     static_cast<ValueType *>(nullptr), trans->get_size()[1],
-                     trans->get_values(), trans->get_stride());
-
-        GKO_ASSERT_NO_CUBLAS_ERRORS(
-            cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
+        {
+            cublas_pointer_mode_guard pm_guard(handle);
+            auto alpha = one<ValueType>();
+            auto beta = zero<ValueType>();
+            cublas::geam(
+                handle, CUBLAS_OP_C, CUBLAS_OP_N, orig->get_size()[0],
+                orig->get_size()[1], &alpha, orig->get_const_values(),
+                orig->get_stride(), &beta, static_cast<ValueType *>(nullptr),
+                trans->get_size()[1], trans->get_values(), trans->get_stride());
+        }
     } else {
         GKO_NOT_IMPLEMENTED;
     }
