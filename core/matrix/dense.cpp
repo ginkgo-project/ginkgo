@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -71,6 +72,8 @@ GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
 GKO_REGISTER_OPERATION(calculate_total_cols, dense::calculate_total_cols);
 GKO_REGISTER_OPERATION(transpose, dense::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose);
+GKO_REGISTER_OPERATION(row_permute, dense::row_permute);
+GKO_REGISTER_OPERATION(column_permute, dense::column_permute);
 GKO_REGISTER_OPERATION(convert_to_coo, dense::convert_to_coo);
 GKO_REGISTER_OPERATION(convert_to_csr, dense::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_ell, dense::convert_to_ell);
@@ -577,6 +580,66 @@ std::unique_ptr<LinOp> Dense<ValueType>::conj_transpose() const
 
     exec->run(dense::make_conj_transpose(trans_cpy.get(), this));
     return std::move(trans_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_permute(
+    const Array<int32> *permutation_indices) const
+{
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
+    auto exec = this->get_executor();
+    auto permute_cpy = Dense::create(exec, this->get_size());
+
+    exec->run(
+        dense::make_row_permute(permutation_indices, permute_cpy.get(), this));
+
+    return std::move(permute_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::column_permute(
+    const Array<int32> *permutation_indices) const
+{
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
+    auto exec = this->get_executor();
+    auto permute_cpy = Dense::create(exec, this->get_size());
+
+    exec->run(dense::make_column_permute(permutation_indices, permute_cpy.get(),
+                                         this));
+
+    return std::move(permute_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_permute(
+    const Array<int64> *permutation_indices) const
+{
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
+    auto exec = this->get_executor();
+    auto permute_cpy = Dense::create(exec, this->get_size());
+
+    exec->run(
+        dense::make_row_permute(permutation_indices, permute_cpy.get(), this));
+
+    return std::move(permute_cpy);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::column_permute(
+    const Array<int64> *permutation_indices) const
+{
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
+    auto exec = this->get_executor();
+    auto permute_cpy = Dense::create(exec, this->get_size());
+
+    exec->run(dense::make_column_permute(permutation_indices, permute_cpy.get(),
+                                         this));
+
+    return std::move(permute_cpy);
 }
 
 

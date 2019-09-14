@@ -986,6 +986,55 @@ TEST_F(Dense, NonSquareMatrixIsConjugateTransposable)
                         0.0);
 }
 
+
+TEST_F(Dense, SquareMatrixIsRowPermutable)
+{
+    auto exec = mtx5->get_executor();
+    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    auto row_permute = mtx5->row_permute(&permute_idxs);
+    // auto rp_as_dense = static_cast<gko::matrix::Dense<>
+    // *>(row_permute.get());
+
+    GKO_ASSERT_MTX_NEAR(
+        row_permute.get(),
+        l({{-2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}, {1.0, -1.0, -0.5}}), 0.0);
+}
+
+
+TEST_F(Dense, NonSquareMatrixIsRowPermutable)
+{
+    auto exec = mtx4->get_executor();
+    gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
+    auto row_permute = mtx4->row_permute(&permute_idxs);
+
+    GKO_ASSERT_MTX_NEAR(row_permute.get(),
+                        l({{0.0, 5.0, 0.0}, {1.0, 3.0, 2.0}}), 0.0);
+}
+
+
+TEST_F(Dense, SquareMatrixIsColPermutable)
+{
+    auto exec = mtx5->get_executor();
+    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    auto c_permute = mtx5->column_permute(&permute_idxs);
+
+    GKO_ASSERT_MTX_NEAR(
+        c_permute.get(),
+        l({{-1.0, -0.5, 1.0}, {2.0, 4.5, -2.0}, {3.4, 1.2, 2.1}}), 0.0);
+}
+
+
+TEST_F(Dense, NonSquareMatrixIsColPermutable)
+{
+    auto exec = mtx4->get_executor();
+    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    auto c_permute = mtx4->column_permute(&permute_idxs);
+
+    GKO_ASSERT_MTX_NEAR(c_permute.get(), l({{3.0, 2.0, 1.0}, {5.0, 0.0, 0.0}}),
+                        0.0);
+}
+
+
 TEST_F(Dense, ConvertsToAndFromSellpWithMoreThanOneSlice)
 {
     auto x = gen_mtx<Mtx>(65, 25);

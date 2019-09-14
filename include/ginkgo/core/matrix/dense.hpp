@@ -103,7 +103,9 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
               public ReadableFromMatrixData<ValueType, int64>,
               public WritableToMatrixData<ValueType, int32>,
               public WritableToMatrixData<ValueType, int64>,
-              public Transposable {
+              public Transposable,
+              public Permutable<Dense<ValueType>, int32>,
+              public Permutable<Dense<ValueType>, int64> {
     friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, LinOp>;
     friend class Coo<ValueType, int32>;
@@ -205,6 +207,18 @@ public:
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    std::unique_ptr<Dense<ValueType>> row_permute(
+        const Array<int32> *permutation_indices) const override;
+
+    std::unique_ptr<Dense<ValueType>> row_permute(
+        const Array<int64> *permutation_indices) const override;
+
+    std::unique_ptr<Dense<ValueType>> column_permute(
+        const Array<int32> *permutation_indices) const override;
+
+    std::unique_ptr<Dense<ValueType>> column_permute(
+        const Array<int64> *permutation_indices) const override;
 
     /**
      * Returns a pointer to the array of values of the matrix.
