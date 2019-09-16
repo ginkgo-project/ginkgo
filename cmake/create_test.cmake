@@ -55,7 +55,7 @@ function(ginkgo_create_hip_test test_name)
         if (GINKGO_HIP_PLATFORM MATCHES "hcc")
             target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_RPATH_FOR_HIP}")
         elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")
-            target_link_libraries(${TEST_TARGET_NAME} PRIVATE -Xcompiler \"${GINKGO_RPATH_FOR_HIP}\")
+            target_link_libraries(${TEST_TARGET_NAME} PRIVATE -Xcompiler \\\\\\\"${GINKGO_RPATH_FOR_HIP}\\\\\\\")
         endif()
     endif()
 

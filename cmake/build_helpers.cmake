@@ -37,6 +37,8 @@ function(ginkgo_compile_features name)
             ginkgo_check_shared_library("${CMAKE_SHARED_LIBRARY_PREFIX}${name}${CMAKE_SHARED_LIBRARY_SUFFIX}")
         endif()
     endif()
+
+    set_target_properties(${name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endfunction()
 
 function(ginkgo_check_shared_library name)
