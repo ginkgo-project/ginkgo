@@ -14,17 +14,16 @@ if(NOT DEFINED HIPSPARSE_PATH)
     endif()
 endif()
 
-# With platform = hcc, manage HCC_PATH and HCC_HOME setting
-if (GINKGO_HIP_PLATFORM MATCHES "hcc")
-    if(NOT DEFINED HCC_PATH)
-        if(NOT DEFINED ENV{HCC_PATH})
-            set(HCC_PATH "/opt/rocm/hcc" CACHE PATH "Path to which HCC has been installed")
-        else()
-            set(HCC_PATH $ENV{HCC_PATH} CACHE PATH "Path to which HCC has been installed")
-        endif()
-        set(HCC_HOME "${HCC_PATH}")
+if(NOT DEFINED HCC_PATH)
+    if(NOT DEFINED ENV{HCC_PATH})
+        set(HCC_PATH "/opt/rocm/hcc" CACHE PATH "Path to which HCC has been installed")
+    else()
+        set(HCC_PATH $ENV{HCC_PATH} CACHE PATH "Path to which HCC has been installed")
     endif()
-elseif (GINKGO_HIP_PLATFORM MATCHES "nvcc") # ensure ENV{CUDA_PATH} is set by the user
+    set(HCC_HOME "${HCC_PATH}")
+endif()
+
+if (GINKGO_HIP_PLATFORM MATCHES "nvcc") # ensure ENV{CUDA_PATH} is set by the user
     if (NOT DEFINED ENV{CUDA_PATH})
         find_path(GINKGO_HIP_DEFAULT_CUDA_PATH "cuda.h" PATH /usr/local/cuda/include NO_DEFAULT_PATH)
         if (NOT GINKGO_HIP_DEFAULT_CUDA_PATH)
@@ -88,6 +87,8 @@ set(GINKGO_HIPCC_OPTIONS ${GINKGO_HIP_COMPILER_FLAGS})
 set(GINKGO_HIP_NVCC_OPTIONS ${GINKGO_HIP_NVCC_COMPILER_FLAGS})
 set(GINKGO_HIP_HCC_OPTIONS ${GINKGO_HIP_HCC_COMPILER_FLAGS})
 
+#set(CMAKE_CXX_CREATE_SHARED_LIBRARY "${HIP_HIPCC_CMAKE_LINKER_HELPER} ${HCC_PATH} <CMAKE_SHARED_LIBRARY_CXX_FLAGS> <LANGUAGE_COMPILE_FLAGS> <LINK_FLAGS> <CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS> <SONAME_FLAG><TARGET_SONAME> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>")
+
 set_source_files_properties(${GINKGO_HIP_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
 hip_add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES} HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} NVCC_OPTIONS ${GINKGO_HIP_NVCC_OPTIONS} HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS} ${GINKGO_STATIC_OR_SHARED})
 set_target_properties(ginkgo_hip PROPERTIES LINKER_LANGUAGE HIP)
@@ -106,7 +107,15 @@ if(GINKGO_WITH_IWYU AND GINKGO_IWYU_PATH)
     set_property(TARGET ginkgo_hip PROPERTY CXX_INCLUDE_WHAT_YOU_USE ${GINKGO_IWYU_PATH})
 endif()
 
-target_link_libraries(ginkgo_hip PRIVATE hip::device roc::hipblas roc::hipsparse)
+# Ban `-hc` flag as INTERFACE_LINK_LIBRARIES since that is propagated when building
+# a static library, and it's definitely not a known option to any compiler.
+get_target_property(GINKGO_HCCRT_ILL hcc::hccrt INTERFACE_LINK_LIBRARIES)
+string(REPLACE "-hc " "" GINKGO_HCCRT_NEW_ILL GINKGO_HCCRT_ILL)
+set_target_properties(hcc::hccrt PROPERTIES INTERFACE_LINK_LIBRARIES "${GINKGO_HCC_NEW_ILL}")
+
+
+target_link_libraries(ginkgo_hip PRIVATE hip::device)
+target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse)
 
 if(GINKGO_HIP_PLATFORM MATCHES "nvcc")
     find_package(CUDA 9.0 REQUIRED)
