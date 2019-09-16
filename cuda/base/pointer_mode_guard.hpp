@@ -51,6 +51,16 @@ public:
             cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
     }
 
+    cublas_pointer_mode_guard(cublas_pointer_mode_guard &other) = delete;
+
+    cublas_pointer_mode_guard &operator=(
+        const cublas_pointer_mode_guard &other) = delete;
+
+    cublas_pointer_mode_guard(cublas_pointer_mode_guard &&other) = delete;
+
+    cublas_pointer_mode_guard const &operator=(
+        cublas_pointer_mode_guard &&other) = delete;
+
     ~cublas_pointer_mode_guard() noexcept(false)
     {
         /* Ignore the error during stack unwinding for this call */
@@ -75,6 +85,16 @@ public:
         GKO_ASSERT_NO_CUSPARSE_ERRORS(
             cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
     }
+
+    cusparse_pointer_mode_guard(cusparse_pointer_mode_guard &other) = delete;
+
+    cusparse_pointer_mode_guard &operator=(
+        const cusparse_pointer_mode_guard &other) = delete;
+
+    cusparse_pointer_mode_guard(cusparse_pointer_mode_guard &&other) = delete;
+
+    cusparse_pointer_mode_guard const &operator=(
+        cusparse_pointer_mode_guard &&other) = delete;
 
     ~cusparse_pointer_mode_guard() noexcept(false)
     {
