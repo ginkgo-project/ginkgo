@@ -22,8 +22,13 @@ option(GINKGO_WITH_CLANG_TIDY "Make Ginkgo call `clang-tidy` to find programming
 option(GINKGO_WITH_IWYU "Make Ginkgo call `iwyu` (Include What You Use) to find include issues." OFF)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
     "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
-set(GINKGO_COMPILER_FLAGS "-Wpedantic" CACHE STRING
-    "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic`")
+if(MSVC)
+    set(GINKGO_COMPILER_FLAGS "" CACHE STRING
+        "Set the required CXX compiler flags, mainly used for warnings. Current default is ``")
+else()
+    set(GINKGO_COMPILER_FLAGS "-Wpedantic" CACHE STRING
+        "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic`")
+endif()
 set(GINKGO_CUDA_COMPILER_FLAGS "" CACHE STRING
     "Set the required NVCC compiler flags, mainly used for warnings. Current default is an empty string")
 set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
@@ -104,13 +109,39 @@ endif()
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
     ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
 
+# This is modified from https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
+if(MSVC)
+    if(BUILD_SHARED_LIBS)
+        foreach(flag_var
+            CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+            CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO
+            CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
+            CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO)
+            if(${flag_var} MATCHES "/MT")
+                string(REGEX REPLACE "/MT" "/MD" ${flag_var} "${${flag_var}}")
+            endif(${flag_var} MATCHES "/MT")
+            set(${flag_var} "${${flag_var}}" CACHE STRING "" FORCE)
+        endforeach(flag_var)
+    else()
+        foreach(flag_var
+            CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+            CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO
+            CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
+            CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO)
+            if(${flag_var} MATCHES "/MD")
+                string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+            endif(${flag_var} MATCHES "/MD")
+            set(${flag_var} "${${flag_var}}" CACHE STRING "" FORCE)
+        endforeach(flag_var)
+    endif()
+endif()
+
 # Try to find the third party packages before using our subdirectories
 include(cmake/package_helpers.cmake)
 ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
 ginkgo_find_package(gflags gflags FALSE 2.2.2)
 ginkgo_find_package(RapidJSON rapidjson TRUE 1.1.0)
 add_subdirectory(third_party)    # Third-party tools and libraries
-
 # Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be
 # propagated to the other parts of Ginkgo in case of building as static libraries
 if(GINKGO_BUILD_CUDA)
@@ -139,12 +170,12 @@ if(GINKGO_DEVEL_TOOLS)
         COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/add_license.sh
         WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
     add_dependencies(format add_license)
-endif()
 
-# Generate the global `ginkgo/ginkgo.hpp` header with every call of make
-add_custom_target(generate_ginkgo_header ALL
+    # Generate the global `ginkgo/ginkgo.hpp` header with every call of make
+    add_custom_target(generate_ginkgo_header ALL
         COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/update_ginkgo_header.sh
         WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
+endif()
 
 
 # Installation
