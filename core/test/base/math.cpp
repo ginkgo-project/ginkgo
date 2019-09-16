@@ -57,14 +57,22 @@ void test_real_isfinite()
     ASSERT_FALSE(gko::isfinite(-inf));
     ASSERT_FALSE(gko::isfinite(limits::quiet_NaN()));
     ASSERT_FALSE(gko::isfinite(limits::signaling_NaN()));
+    ASSERT_FALSE(gko::isfinite(inf - inf));    // results in nan
+    ASSERT_FALSE(gko::isfinite(inf / inf));    // results in nan
+    ASSERT_FALSE(gko::isfinite(inf * T{2}));   // results in inf
+    ASSERT_FALSE(gko::isfinite(T{1} / T{0}));  // results in inf
+    ASSERT_FALSE(gko::isfinite(T{0} / T{0}));  // results in nan
 }
 
 
-template <typename T>
+template <typename ComplexType>
 void test_complex_isfinite()
 {
+    static_assert(gko::is_complex_s<ComplexType>::value,
+                  "Template type must be a complex type.");
+    using T = gko::remove_complex<ComplexType>;
+    using c_type = ComplexType;
     using limits = std::numeric_limits<T>;
-    using c_type = std::complex<T>;
     constexpr auto inf = limits::infinity();
     constexpr auto quiet_nan = limits::quiet_NaN();
     constexpr auto signaling_nan = limits::signaling_NaN();
@@ -90,10 +98,10 @@ TEST(IsFinite, Float) { test_real_isfinite<float>(); }
 TEST(IsFinite, Double) { test_real_isfinite<double>(); }
 
 
-TEST(IsFinite, FloatComplex) { test_complex_isfinite<float>(); }
+TEST(IsFinite, FloatComplex) { test_complex_isfinite<std::complex<float>>(); }
 
 
-TEST(IsFinite, DoubleComplex) { test_complex_isfinite<double>(); }
+TEST(IsFinite, DoubleComplex) { test_complex_isfinite<std::complex<double>>(); }
 
 
 }  // namespace

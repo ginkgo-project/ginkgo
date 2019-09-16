@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "cuda/base/math.hpp"
+#include "cuda/base/types.hpp"
 
 
 namespace {
@@ -60,16 +61,21 @@ __global__ void test_real_isfinite(bool *result)
 
     test_true =
         gko::isfinite(T{0}) && gko::isfinite(-T{0}) && gko::isfinite(T{1});
-    test_false =
-        gko::isfinite(inf) || gko::isfinite(-inf) || gko::isfinite(NAN);
+    test_false = gko::isfinite(inf) || gko::isfinite(-inf) ||
+                 gko::isfinite(NAN) || gko::isfinite(inf - inf) ||
+                 gko::isfinite(inf / inf) || gko::isfinite(inf * T{2}) ||
+                 gko::isfinite(T{1} / T{0}) || gko::isfinite(T{0} / T{0});
     *result = test_true && !test_false;
 }
 
 
-template <typename T>
+template <typename ComplexType>
 __global__ void test_complex_isfinite(bool *result)
 {
-    using c_type = thrust::complex<T>;  // std::complex<T>;
+    static_assert(gko::is_complex_s<ComplexType>::value,
+                  "Template type must be a complex type.");
+    using T = gko::remove_complex<ComplexType>;
+    using c_type = gko::kernels::cuda::cuda_type<ComplexType>;
     constexpr T inf = INFINITY;
     constexpr T quiet_nan = NAN;
     bool test_true{};
@@ -126,13 +132,13 @@ TEST_F(IsFinite, Double) { ASSERT_TRUE(test_real_isfinite_kernel<double>()); }
 
 TEST_F(IsFinite, FloatComplex)
 {
-    ASSERT_TRUE(test_complex_isfinite_kernel<float>());
+    ASSERT_TRUE(test_complex_isfinite_kernel<thrust::complex<float>>());
 }
 
 
 TEST_F(IsFinite, DoubleComplex)
 {
-    ASSERT_TRUE(test_complex_isfinite_kernel<double>());
+    ASSERT_TRUE(test_complex_isfinite_kernel<thrust::complex<double>>());
 }
 
 
