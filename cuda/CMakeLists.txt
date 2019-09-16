@@ -6,6 +6,37 @@ if (NOT BUILD_SHARED_LIBS)
     set(CMAKE_CUDA_DEVICE_LINK_EXECUTABLE ${CMAKE_CUDA_DEVICE_LINK_EXECUTABLE} PARENT_SCOPE)
 endif()
 
+# MSVC can not find CUDA automatically
+# Use CUDA_COMPILER PATH to define the CUDA TOOLKIT ROOT DIR
+if ("${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}" STREQUAL "")
+    string(REPLACE "/bin/nvcc.exe" "" CMAKE_CUDA_ROOT_DIR ${CMAKE_CUDA_COMPILER})
+    set(CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES "${CMAKE_CUDA_ROOT_DIR}/include")
+    set(CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES "${CMAKE_CUDA_ROOT_DIR}/lib/x64")
+endif()
+
+# This is modified from https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
+if(MSVC)
+    if(BUILD_SHARED_LIBS)
+        foreach(flag_var
+            CMAKE_CUDA_FLAGS CMAKE_CUDA_FLAGS_DEBUG CMAKE_CUDA_FLAGS_RELEASE
+            CMAKE_CUDA_FLAGS_MINSIZEREL CMAKE_CUDA_FLAGS_RELWITHDEBINFO)
+            if(${flag_var} MATCHES "-MT")
+                string(REGEX REPLACE "-MT" "-MD" ${flag_var} "${${flag_var}}")
+            endif(${flag_var} MATCHES "-MT")
+            set(${flag_var} "${${flag_var}}" CACHE STRING "" FORCE)
+        endforeach(flag_var)
+    else()
+        foreach(flag_var
+            CMAKE_CUDA_FLAGS CMAKE_CUDA_FLAGS_DEBUG CMAKE_CUDA_FLAGS_RELEASE
+            CMAKE_CUDA_FLAGS_MINSIZEREL CMAKE_CUDA_FLAGS_RELWITHDEBINFO)
+            if(${flag_var} MATCHES "-MD")
+                string(REGEX REPLACE "-MD" "-MT" ${flag_var} "${${flag_var}}")
+            endif(${flag_var} MATCHES "-MD")
+            set(${flag_var} "${${flag_var}}" CACHE STRING "" FORCE)
+        endforeach(flag_var)
+    endif()
+endif()
+
 include(CudaArchitectureSelector)
 
 set(CUDA_INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})

@@ -223,12 +223,12 @@ __global__ __launch_bounds__(default_block_size) void compute_l_u_factors(
         sum += last_operation;  // undo the last operation
         if (row > col) {
             auto to_write = sum / u_values[u_row_ptrs[col + 1] - 1];
-            if (isfinite(to_write)) {
+            if (::gko::isfinite(to_write)) {
                 l_values[l_idx - 1] = to_write;
             }
         } else {
             auto to_write = sum;
-            if (isfinite(to_write)) {
+            if (::gko::isfinite(to_write)) {
                 u_values[u_idx - 1] = to_write;
             }
         }

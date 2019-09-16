@@ -182,12 +182,12 @@ void compute_l_u_factors(std::shared_ptr<const ReferenceExecutor> exec,
 
             if (row > col) {  // modify entry in L
                 auto to_write = sum / vals_u[row_ptrs_u[col + 1] - 1];
-                if (isfinite(to_write)) {
+                if (::gko::isfinite(to_write)) {
                     vals_l[row_l - 1] = to_write;
                 }
             } else {  // modify entry in U
                 auto to_write = sum;
-                if (isfinite(to_write)) {
+                if (::gko::isfinite(to_write)) {
                     vals_u[row_u - 1] = to_write;
                 }
             }
