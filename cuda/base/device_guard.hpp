@@ -48,6 +48,14 @@ public:
         GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
     }
 
+    device_guard(device_guard &other) = delete;
+
+    device_guard &operator=(const device_guard &other) = delete;
+
+    device_guard(device_guard &&other) = delete;
+
+    device_guard const &operator=(device_guard &&other) = delete;
+
     ~device_guard() noexcept(false)
     {
         /* Ignore the error during stack unwinding for this call */
