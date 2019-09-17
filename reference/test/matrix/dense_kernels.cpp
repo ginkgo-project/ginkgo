@@ -992,8 +992,6 @@ TEST_F(Dense, SquareMatrixIsRowPermutable)
     auto exec = mtx5->get_executor();
     gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
     auto row_permute = mtx5->row_permute(&permute_idxs);
-    // auto rp_as_dense = static_cast<gko::matrix::Dense<>
-    // *>(row_permute.get());
 
     GKO_ASSERT_MTX_NEAR(
         row_permute.get(),

@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -43,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/sparsity.hpp>
 
 
 #include "core/matrix/dense_kernels.hpp"
@@ -1352,6 +1354,28 @@ __global__ __launch_bounds__(default_block_size) void reduce_max_nnz(
 
 
 }  // namespace kernel
+
+
+template <typename ValueType, typename IndexType>
+void row_permute(std::shared_ptr<const CudaExecutor> exec,
+                 const Array<IndexType> *permutation_indices,
+                 matrix::Csr<ValueType, IndexType> *row_permuted,
+                 const matrix::Csr<ValueType, IndexType> *orig)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void column_permute(std::shared_ptr<const CudaExecutor> exec,
+                    const Array<IndexType> *permutation_indices,
+                    matrix::Csr<ValueType, IndexType> *column_permuted,
+                    const matrix::Csr<ValueType, IndexType> *orig)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_COLUMN_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

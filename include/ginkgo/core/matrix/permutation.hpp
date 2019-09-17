@@ -230,11 +230,13 @@ protected:
         GKO_ENSURE_IN_BOUNDS(size[1] - 1, col_permutation_.get_num_elems());
     }
 
-    void apply_impl(const LinOp *b, LinOp *x) const GKO_NOT_IMPLEMENTED;
+    void apply_impl(const LinOp *b, LinOp *x) const {}
 
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
-                    LinOp *x) const GKO_NOT_IMPLEMENTED;
+                    LinOp *x) const
+    {}
+
 
 private:
     Array<index_type> row_permutation_;
