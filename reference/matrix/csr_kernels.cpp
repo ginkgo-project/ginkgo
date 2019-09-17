@@ -476,25 +476,17 @@ void row_permute(std::shared_ptr<const ReferenceExecutor> exec,
     size_type cur_ptr = 0;
     rp_row_ptrs[0] = cur_ptr;
     std::vector<size_type> orig_num_nnz_per_row(num_rows, 0);
-    std::vector<IndexType> pindx(&perm[0], &perm[0] + num_rows);
     for (size_type row = 0; row < num_rows; ++row) {
         orig_num_nnz_per_row[row] = orig_row_ptrs[row + 1] - orig_row_ptrs[row];
     }
     for (size_type row = 0; row < num_rows; ++row) {
-        typename std::vector<IndexType>::iterator itr =
-            std::find(pindx.begin(), pindx.end(), static_cast<IndexType>(row));
-        size_type ind =
-            static_cast<size_type>(std::distance(pindx.begin(), itr));
-        rp_row_ptrs[row + 1] = rp_row_ptrs[row] + orig_num_nnz_per_row[ind];
+        rp_row_ptrs[row + 1] =
+            rp_row_ptrs[row] + orig_num_nnz_per_row[perm[row]];
     }
     rp_row_ptrs[num_rows] = orig_row_ptrs[num_rows];
     for (size_type row = 0; row < num_rows; ++row) {
         auto new_row = perm[row];
-        typename std::vector<IndexType>::iterator itr =
-            std::find(pindx.begin(), pindx.end(), static_cast<IndexType>(row));
-        size_type ind =
-            static_cast<size_type>(std::distance(pindx.begin(), itr));
-        auto new_k = orig_row_ptrs[ind];
+        auto new_k = orig_row_ptrs[new_row];
         for (size_type k = rp_row_ptrs[row];
              k < static_cast<size_type>(rp_row_ptrs[row + 1]); ++k) {
             rp_col_idxs[k] = orig_col_idxs[new_k];
@@ -522,12 +514,19 @@ void column_permute(std::shared_ptr<const ReferenceExecutor> exec,
     auto cp_col_idxs = column_permuted->get_col_idxs();
     auto cp_vals = column_permuted->get_values();
     size_type num_rows = orig->get_size()[0];
+    size_type num_cols = orig->get_size()[1];
 
+    std::vector<IndexType> pindx(&perm[0], &perm[0] + num_cols);
     for (size_type row = 0; row < num_rows; ++row) {
         cp_row_ptrs[row] = orig_row_ptrs[row];
         for (size_type k = orig_row_ptrs[row];
              k < static_cast<size_type>(orig_row_ptrs[row + 1]); ++k) {
-            cp_col_idxs[k] = perm[orig_col_idxs[k]];
+            typename std::vector<IndexType>::iterator itr =
+                std::find(pindx.begin(), pindx.end(),
+                          static_cast<IndexType>(orig_col_idxs[k]));
+            size_type ind =
+                static_cast<size_type>(std::distance(pindx.begin(), itr));
+            cp_col_idxs[k] = orig_col_idxs[ind];
             cp_vals[k] = orig_vals[k];
         }
     }
@@ -604,6 +603,8 @@ void inverse_column_permute(std::shared_ptr<const ReferenceExecutor> exec,
     auto cp_vals = column_permuted->get_values();
     size_type num_rows = orig->get_size()[0];
 
+    // Outputs values unsorted by col_idx in each row. Need to call sort
+    // explicitly if required
     for (size_type row = 0; row < num_rows; ++row) {
         cp_row_ptrs[row] = orig_row_ptrs[row];
         for (size_type k = orig_row_ptrs[row];

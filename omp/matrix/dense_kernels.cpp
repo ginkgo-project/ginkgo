@@ -670,7 +670,7 @@ void inverse_row_permute(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
     for (size_type i = 0; i < orig->get_size()[0]; ++i) {
         for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-            row_permuted->at(i, j) = orig->at(perm[i], j);
+            row_permuted->at(perm[i], j) = orig->at(i, j);
         }
     }
 }
@@ -689,7 +689,7 @@ void inverse_column_permute(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
     for (size_type i = 0; i < orig->get_size()[0]; ++i) {
         for (size_type j = 0; j < orig->get_size()[1]; ++j) {
-            column_permuted->at(i, j) = orig->at(i, perm[j]);
+            column_permuted->at(i, perm[j]) = orig->at(i, j);
         }
     }
 }
