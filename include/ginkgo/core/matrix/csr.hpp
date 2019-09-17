@@ -88,7 +88,8 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
-            public Transposable {
+            public Transposable,
+            public Permutable<Csr<ValueType, IndexType>, IndexType> {
     friend class EnableCreateMethod<Csr>;
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
@@ -351,6 +352,12 @@ public:
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    std::unique_ptr<Csr<ValueType, IndexType>> row_permute(
+        const Array<IndexType> *permutation_indices) const override;
+
+    std::unique_ptr<Csr<ValueType, IndexType>> column_permute(
+        const Array<IndexType> *permutation_indices) const override;
 
     /**
      * Sorts all (value, col_idx) pairs in each row by column index

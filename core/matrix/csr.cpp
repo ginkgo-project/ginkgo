@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -62,6 +63,8 @@ GKO_REGISTER_OPERATION(convert_to_ell, csr::convert_to_ell);
 GKO_REGISTER_OPERATION(convert_to_hybrid, csr::convert_to_hybrid);
 GKO_REGISTER_OPERATION(transpose, csr::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, csr::conj_transpose);
+GKO_REGISTER_OPERATION(row_permute, csr::row_permute);
+GKO_REGISTER_OPERATION(column_permute, csr::column_permute);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                        csr::calculate_max_nnz_per_row);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
@@ -317,6 +320,42 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::conj_transpose() const
     exec->run(csr::make_conj_transpose(trans_cpy.get(), this));
     trans_cpy->make_srow();
     return std::move(trans_cpy);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>>
+Csr<ValueType, IndexType>::row_permute(
+    const Array<IndexType> *permutation_indices) const
+{
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
+    auto exec = this->get_executor();
+    auto permute_cpy =
+        Csr::create(exec, this->get_size(), this->get_num_stored_elements(),
+                    this->get_strategy());
+
+    exec->run(
+        csr::make_row_permute(permutation_indices, permute_cpy.get(), this));
+    permute_cpy->make_srow();
+    return std::move(permute_cpy);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>>
+Csr<ValueType, IndexType>::column_permute(
+    const Array<IndexType> *permutation_indices) const
+{
+    GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
+    auto exec = this->get_executor();
+    auto permute_cpy =
+        Csr::create(exec, this->get_size(), this->get_num_stored_elements(),
+                    this->get_strategy());
+
+    exec->run(
+        csr::make_column_permute(permutation_indices, permute_cpy.get(), this));
+    permute_cpy->make_srow();
+    return std::move(permute_cpy);
 }
 
 
