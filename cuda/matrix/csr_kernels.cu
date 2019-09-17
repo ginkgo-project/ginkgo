@@ -697,14 +697,14 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
             auto handle = exec->get_cusparse_handle();
             auto descr = cusparse::create_mat_descr();
             {
-                cusparse_pointer_mode_guard pm_guard(handle);
+                cusparse::pointer_mode_guard pm_guard(handle);
                 auto row_ptrs = a->get_const_row_ptrs();
                 auto col_idxs = a->get_const_col_idxs();
                 auto alpha = one<ValueType>();
                 auto beta = zero<ValueType>();
-                if (b->get_stride() != 1 || c->get_stride() != 1)
+                if (b->get_stride() != 1 || c->get_stride() != 1) {
                     GKO_NOT_IMPLEMENTED;
-
+                }
                 cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                a->get_size()[0], a->get_size()[1],
                                a->get_num_stored_elements(), &alpha, descr,
