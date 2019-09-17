@@ -18,3 +18,8 @@ function(ginkgo_compile_features name)
         set_property(TARGET "${name}" PROPERTY CXX_INCLUDE_WHAT_YOU_USE ${GINKGO_IWYU_PATH})
     endif()
 endfunction()
+
+macro(ginkgo_prepare_windows_path)
+    list(APPEND GINKGO_WINDOWS_PATH ${CMAKE_CURRENT_BINARY_DIR})
+    set(GINKGO_WINDOWS_PATH ${GINKGO_WINDOWS_PATH} PARENT_SCOPE)
+endmacro()
