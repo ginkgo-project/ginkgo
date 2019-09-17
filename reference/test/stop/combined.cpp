@@ -120,12 +120,13 @@ TEST_F(Combined, WaitsTillIteration)
 TEST_F(Combined, WaitsTillTime)
 {
     constexpr int testiters = 10;
+    constexpr int timelimit = 10;
     factory_ =
         gko::stop::Combined::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(9999u).on(exec_),
                 gko::stop::Time::build()
-                    .with_time_limit(std::chrono::milliseconds(testiters))
+                    .with_time_limit(std::chrono::milliseconds(timelimit))
                     .on(exec_))
             .on(exec_);
     unsigned int iters = 0;
@@ -137,7 +138,7 @@ TEST_F(Combined, WaitsTillTime)
     auto start = std::chrono::steady_clock::now();
 
     for (int i = 0; i < testiters; i++) {
-        sleep_millisecond(1);
+        sleep_millisecond(timelimit/testiters);
         if (criterion->update().num_iterations(i).check(
                 RelativeStoppingId, true, &stop_status, &one_changed))
             break;
@@ -145,8 +146,8 @@ TEST_F(Combined, WaitsTillTime)
     auto time = std::chrono::steady_clock::now() - start;
     double time_d = std::chrono::duration_cast<double_seconds>(time).count();
 
-
-    ASSERT_GE(time_d, 1.0e-2);
+    
+    ASSERT_GE(time_d, timelimit * 1e-3);
     ASSERT_EQ(static_cast<int>(stop_status.get_data()[0].get_id()), 2);
 }
 
