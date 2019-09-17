@@ -323,6 +323,12 @@ public:
     std::unique_ptr<Csr<ValueType, IndexType>> column_permute(
         const Array<IndexType> *permutation_indices) const override;
 
+    std::unique_ptr<Csr<ValueType, IndexType>> inverse_row_permute(
+        const Array<IndexType> *inverse_permutation_indices) const override;
+
+    std::unique_ptr<Csr<ValueType, IndexType>> inverse_column_permute(
+        const Array<IndexType> *inverse_permutation_indices) const override;
+
     /**
      * Sorts all (value, col_idx) pairs in each row by column index
      */

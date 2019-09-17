@@ -115,6 +115,19 @@ namespace kernels {
                         matrix::Csr<ValueType, IndexType> *column_permuted, \
                         const matrix::Csr<ValueType, IndexType> *orig)
 
+#define GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL(ValueType, IndexType)      \
+    void inverse_row_permute(std::shared_ptr<const DefaultExecutor> exec,     \
+                             const Array<IndexType> *permutation_indices,     \
+                             matrix::Csr<ValueType, IndexType> *row_permuted, \
+                             const matrix::Csr<ValueType, IndexType> *orig)
+
+#define GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType) \
+    void inverse_column_permute(                                            \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        const Array<IndexType> *permutation_indices,                        \
+        matrix::Csr<ValueType, IndexType> *column_permuted,                 \
+        const matrix::Csr<ValueType, IndexType> *orig)
+
 #define GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType, IndexType) \
     void calculate_max_nnz_per_row(                                            \
         std::shared_ptr<const DefaultExecutor> exec,                           \
@@ -161,6 +174,10 @@ namespace kernels {
     GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL(ValueType, IndexType);                \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_COLUMN_PERMUTE_KERNEL(ValueType, IndexType);             \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType);     \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType, IndexType);  \
     template <typename ValueType, typename IndexType>                        \

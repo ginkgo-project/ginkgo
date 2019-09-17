@@ -420,14 +420,18 @@ public:
  * Linear operators which support permutation should implement the
  * Permutable interface.
  *
- * It provides two functionalities, the row permute and the
- * column permute.
+ * It provides four functionalities, the row permute, the
+ * column permute, the inverse row permute and the inverse column permute.
  *
  * The row permute returns the permutation of the linear operator after
- * permuting the rows of the linear operator.
+ * permuting the rows of the linear operator. For example, if for a matrix A,
+ * the permuted matrix A' and the permutation array perm, the row i of the
+ * matrix A is the row perm[i] in the matrix A'. And similarly, for the inverse
+ * permutation, the row i in the matrix A' is the row perm[i] in the matrix A.
  *
  * The column permute returns the permutation of the linear operator after
- * permuting the columns of the linear operator.
+ * permuting the columns of the linear operator. The definitions of permute and
+ * inverse permute for the row_permute hold here as well.
  *
  * Example: Permuting a Csr matrix:
  * ------------------------------------
@@ -462,6 +466,24 @@ public:
      */
     virtual std::unique_ptr<ResultType> column_permute(
         const Array<IndexType> *permutation_indices) const = 0;
+
+    /**
+     * Returns a LinOp representing the row permutation of the inverse permuted
+     * object.
+     *
+     * @return a pointer to the new inverse permuted object
+     */
+    virtual std::unique_ptr<ResultType> inverse_row_permute(
+        const Array<IndexType> *inverse_permutation_indices) const = 0;
+
+    /**
+     * Returns a LinOp representing the row permutation of the inverse permuted
+     * object.
+     *
+     * @return a pointer to the new inverse permuted object
+     */
+    virtual std::unique_ptr<ResultType> inverse_column_permute(
+        const Array<IndexType> *inverse_permutation_indices) const = 0;
 };
 
 

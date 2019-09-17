@@ -660,6 +660,44 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COLUMN_PERMUTE_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void inverse_row_permute(std::shared_ptr<const OmpExecutor> exec,
+                         const Array<IndexType> *permutation_indices,
+                         matrix::Dense<ValueType> *row_permuted,
+                         const matrix::Dense<ValueType> *orig)
+{
+    auto perm = permutation_indices->get_const_data();
+#pragma omp parallel for
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            row_permuted->at(i, j) = orig->at(perm[i], j);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_INVERSE_ROW_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inverse_column_permute(std::shared_ptr<const OmpExecutor> exec,
+                            const Array<IndexType> *permutation_indices,
+                            matrix::Dense<ValueType> *column_permuted,
+                            const matrix::Dense<ValueType> *orig)
+{
+    auto perm = permutation_indices->get_const_data();
+#pragma omp parallel for
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            column_permuted->at(i, j) = orig->at(i, perm[j]);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL);
+
+
 }  // namespace dense
 }  // namespace omp
 }  // namespace kernels

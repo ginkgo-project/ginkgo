@@ -1377,6 +1377,27 @@ void column_permute(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_COLUMN_PERMUTE_KERNEL);
 
+template <typename ValueType, typename IndexType>
+void inverse_row_permute(std::shared_ptr<const CudaExecutor> exec,
+                         const Array<IndexType> *permutation_indices,
+                         matrix::Csr<ValueType, IndexType> *row_permuted,
+                         const matrix::Csr<ValueType, IndexType> *orig)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inverse_column_permute(std::shared_ptr<const CudaExecutor> exec,
+                            const Array<IndexType> *permutation_indices,
+                            matrix::Csr<ValueType, IndexType> *column_permuted,
+                            const matrix::Csr<ValueType, IndexType> *orig)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL);
+
 
 template <typename ValueType, typename IndexType>
 void calculate_max_nnz_per_row(std::shared_ptr<const CudaExecutor> exec,

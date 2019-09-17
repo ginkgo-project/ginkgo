@@ -65,6 +65,8 @@ GKO_REGISTER_OPERATION(transpose, csr::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, csr::conj_transpose);
 GKO_REGISTER_OPERATION(row_permute, csr::row_permute);
 GKO_REGISTER_OPERATION(column_permute, csr::column_permute);
+GKO_REGISTER_OPERATION(inverse_row_permute, csr::inverse_row_permute);
+GKO_REGISTER_OPERATION(inverse_column_permute, csr::inverse_column_permute);
 GKO_REGISTER_OPERATION(calculate_max_nnz_per_row,
                        csr::calculate_max_nnz_per_row);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
@@ -356,6 +358,44 @@ Csr<ValueType, IndexType>::column_permute(
         csr::make_column_permute(permutation_indices, permute_cpy.get(), this));
     permute_cpy->make_srow();
     return std::move(permute_cpy);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>>
+Csr<ValueType, IndexType>::inverse_row_permute(
+    const Array<IndexType> *inverse_permutation_indices) const
+{
+    GKO_ASSERT_EQ(inverse_permutation_indices->get_num_elems(),
+                  this->get_size()[0]);
+    auto exec = this->get_executor();
+    auto inverse_permute_cpy =
+        Csr::create(exec, this->get_size(), this->get_num_stored_elements(),
+                    this->get_strategy());
+
+    exec->run(csr::make_inverse_row_permute(inverse_permutation_indices,
+                                            inverse_permute_cpy.get(), this));
+    inverse_permute_cpy->make_srow();
+    return std::move(inverse_permute_cpy);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>>
+Csr<ValueType, IndexType>::inverse_column_permute(
+    const Array<IndexType> *inverse_permutation_indices) const
+{
+    GKO_ASSERT_EQ(inverse_permutation_indices->get_num_elems(),
+                  this->get_size()[1]);
+    auto exec = this->get_executor();
+    auto inverse_permute_cpy =
+        Csr::create(exec, this->get_size(), this->get_num_stored_elements(),
+                    this->get_strategy());
+
+    exec->run(csr::make_inverse_column_permute(
+        inverse_permutation_indices, inverse_permute_cpy.get(), this));
+    inverse_permute_cpy->make_srow();
+    return std::move(inverse_permute_cpy);
 }
 
 
