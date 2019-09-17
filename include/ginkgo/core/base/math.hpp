@@ -513,22 +513,14 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T get_superior_power(
 // Required because CUDA compiler before Toolkit 9.2 want to call __host__
 // functions, even though there are __device__ functions provided by CUDA
 // (e.g. `isfinite`)
-#if defined(__CUDACC_VER_MAJOR__) && defined(__CUDACC_VER_MINOR__) && \
+#if defined(__CUDA_ARCH__) && defined(__CUDACC_VER_MAJOR__) && \
+    defined(__CUDACC_VER_MINOR__) &&                           \
     (__CUDACC_VER_MAJOR__ * 1000 + __CUDACC_VER_MINOR__) < 9002
 
 
 // This definition keeps track if special kernel have to be written in the
 // CUDA math.hpp header.
 #define GKO_MATH_CUDA_LOWER_9002
-
-#if !defined(__CUDA_ARCH__)
-
-// Must not be together with CUDA, otherwise, conflicts appear with the
-// __device__ version
-using std::isfinite;
-#error "Apparently, this seems to be used..."   // TODO: Remove!!!
-
-#endif  // defined(__CUDA_ARCH__) && defined(__clang__)
 
 
 #else  // This part is for non-CUDA compiler and later CUDA Toolkit versions
