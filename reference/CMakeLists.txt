@@ -1,6 +1,5 @@
 add_library(ginkgo_reference $<TARGET_OBJECTS:ginkgo_reference_device> "")
-list(APPEND GINKGO_WINDOWS_PATH ${CMAKE_CURRENT_BINARY_DIR})
-set(GINKGO_WINDOWS_PATH ${GINKGO_WINDOWS_PATH} PARENT_SCOPE)
+ginkgo_prepare_windows_path()
 target_sources(ginkgo_reference
     PRIVATE
         base/version.cpp
