@@ -33,10 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_kernels.hpp"
 
 
-#include <iostream>
-
+#include <algorithm>
+#include <numeric>
 #include <random>
-#include <utility>
+#include <vector>
 
 
 #include <gtest/gtest.h>
@@ -58,6 +58,7 @@ namespace {
 
 class Csr : public ::testing::Test {
 protected:
+    using Arr = gko::Array<int>;
     using Mtx = gko::matrix::Csr<>;
     using Vec = gko::matrix::Dense<>;
     using ComplexVec = gko::matrix::Dense<std::complex<double>>;
@@ -111,6 +112,22 @@ protected:
         dalpha->copy_from(alpha.get());
         dbeta = Vec::create(omp);
         dbeta->copy_from(beta.get());
+
+        std::vector<int> tmp(mtx->get_size()[0], 0);
+        auto rng = std::default_random_engine{};
+        std::iota(tmp.begin(), tmp.end(), 0);
+        std::shuffle(tmp.begin(), tmp.end(), rng);
+        std::vector<int> tmp2(mtx->get_size()[1], 0);
+        std::iota(tmp2.begin(), tmp2.end(), 0);
+        std::shuffle(tmp2.begin(), tmp2.end(), rng);
+        rpermute_idxs =
+            std::unique_ptr<Arr>(new Arr{ref, tmp.begin(), tmp.end()});
+        drpermute_idxs =
+            std::unique_ptr<Arr>(new Arr{omp, tmp.begin(), tmp.end()});
+        cpermute_idxs =
+            std::unique_ptr<Arr>(new Arr{ref, tmp2.begin(), tmp2.end()});
+        dcpermute_idxs =
+            std::unique_ptr<Arr>(new Arr{omp, tmp2.begin(), tmp2.end()});
     }
 
     struct matrix_pair {
@@ -164,6 +181,10 @@ protected:
     std::unique_ptr<Vec> dy;
     std::unique_ptr<Vec> dalpha;
     std::unique_ptr<Vec> dbeta;
+    std::unique_ptr<Arr> rpermute_idxs;
+    std::unique_ptr<Arr> drpermute_idxs;
+    std::unique_ptr<Arr> cpermute_idxs;
+    std::unique_ptr<Arr> dcpermute_idxs;
 };
 
 
@@ -357,6 +378,47 @@ TEST_F(Csr, MoveToHybridIsEquivalentToRef)
     dmtx->move_to(dhybrid_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(hybrid_mtx.get(), dhybrid_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, IsRowPermutable)
+{
+    set_up_apply_data();
+    auto r_permute = mtx->row_permute(rpermute_idxs.get());
+    auto dr_permute = dmtx->row_permute(drpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(r_permute.get(), dr_permute.get(), 0);
+}
+
+
+TEST_F(Csr, IsColPermutable)
+{
+    set_up_apply_data();
+    auto c_permute = mtx->column_permute(cpermute_idxs.get());
+    auto dc_permute = dmtx->column_permute(dcpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(c_permute.get(), dc_permute.get(), 0);
+}
+
+
+TEST_F(Csr, IsInverseRowPermutable)
+{
+    set_up_apply_data();
+    auto inverse_r_permute = mtx->inverse_row_permute(rpermute_idxs.get());
+    auto d_inverse_r_permute = dmtx->inverse_row_permute(drpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(inverse_r_permute.get(), d_inverse_r_permute.get(), 0);
+}
+
+
+TEST_F(Csr, IsInverseColPermutable)
+{
+    set_up_apply_data();
+    auto inverse_c_permute = mtx->inverse_column_permute(cpermute_idxs.get());
+    auto d_inverse_c_permute =
+        dmtx->inverse_column_permute(dcpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(inverse_c_permute.get(), d_inverse_c_permute.get(), 0);
 }
 
 

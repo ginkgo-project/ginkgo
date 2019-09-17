@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
-#include <iostream>
 #include <numeric>
 #include <random>
 #include <vector>
@@ -623,6 +622,26 @@ TEST_F(Dense, IsColPermutable)
     auto dc_permute = dx->column_permute(dcpermute_idxs.get());
 
     GKO_ASSERT_MTX_NEAR(c_permute.get(), dc_permute.get(), 0);
+}
+
+
+TEST_F(Dense, IsInverseRowPermutable)
+{
+    set_up_apply_data();
+    auto inverse_r_permute = x->inverse_row_permute(rpermute_idxs.get());
+    auto d_inverse_r_permute = dx->inverse_row_permute(drpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(inverse_r_permute.get(), d_inverse_r_permute.get(), 0);
+}
+
+
+TEST_F(Dense, IsInverseColPermutable)
+{
+    set_up_apply_data();
+    auto inverse_c_permute = x->inverse_column_permute(cpermute_idxs.get());
+    auto d_inverse_c_permute = dx->inverse_column_permute(dcpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(inverse_c_permute.get(), d_inverse_c_permute.get(), 0);
 }
 
 
