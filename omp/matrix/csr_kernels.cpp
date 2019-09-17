@@ -388,6 +388,28 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void inverse_row_permute(std::shared_ptr<const OmpExecutor> exec,
+                         const Array<IndexType> *permutation_indices,
+                         matrix::Csr<ValueType, IndexType> *row_permuted,
+                         const matrix::Csr<ValueType, IndexType> *orig)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inverse_column_permute(std::shared_ptr<const OmpExecutor> exec,
+                            const Array<IndexType> *permutation_indices,
+                            matrix::Csr<ValueType, IndexType> *column_permuted,
+                            const matrix::Csr<ValueType, IndexType> *orig)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row(std::shared_ptr<const OmpExecutor> exec,
                                 const matrix::Csr<ValueType, IndexType> *source,
                                 Array<size_type> *result)
