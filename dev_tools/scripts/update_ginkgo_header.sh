@@ -52,7 +52,7 @@ if [ ${?} -ne 0 ]; then
     exit 1
 fi
 
-# Get the end of line type (CRLF/LF)
+# Detect the end of line type (CRLF/LF) by ${GINKGO_HEADER_TEMPLATE_FILE}
 END="";
 if [[ "$(file ${GINKGO_HEADER_TEMPLATE_FILE})" == *"CRLF"* ]]; then
     END="\r"
@@ -69,10 +69,12 @@ PREVIOUS_FOLDER=""
 # An empty ${IFS} means the given name (after `read`) will be set to the whole line,
 # and in this case it means it will not ignore leading and trailing whitespaces.
 while IFS='' read -r line; do
-    if [ "$(echo "$line")" != "${PLACE_HOLDER}" ]; then
-        # The line of original file already has the end of line, 
-        # so it does not need to add $END
-        echo -e "${line}" >> "${GINKGO_HEADER_TMP}"
+    # Use echo to remove '\r' in Windows.
+    line="$(echo "$line")"
+    if [ "$line" != "${PLACE_HOLDER}" ]; then
+        # Split context and newline interpretor to avoid unexpected interpretion.
+        echo -n "${line}" >> "${GINKGO_HEADER_TMP}"
+        echo -e "${END}" >> "${GINKGO_HEADER_TMP}"
     else
         READING_FIRST_LINE=true
         while IFS='' read -r prefixed_file; do
@@ -92,7 +94,8 @@ while IFS='' read -r line; do
                 echo -e "${END}" >> "${GINKGO_HEADER_TMP}"
             fi
             PREVIOUS_FOLDER="${CURRENT_FOLDER}"
-            echo -e "#include <${file}>${END}" >> "${GINKGO_HEADER_TMP}"
+            echo -n "#include <${file}>" >> "${GINKGO_HEADER_TMP}"
+            echo -e "${END}" >> "${GINKGO_HEADER_TMP}"
             READING_FIRST_LINE=false
         done < "${HEADER_LIST}"
     fi
