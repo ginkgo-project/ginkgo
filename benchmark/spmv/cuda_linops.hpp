@@ -339,7 +339,7 @@ protected:
         // This function seems to require the pointer mode to be set to HOST.
         // Ginkgo use pointer mode DEVICE by default, so we change this
         // temporarily.
-        gko::cusparse_pointer_mode_guard pm_guard(handle);
+        gko::kernels::cuda::cusparse::pointer_mode_guard pm_guard(handle);
         gko::kernels::cuda::cusparse::spmv_buffersize<ValueType, IndexType>(
             handle, algmode_, trans_, this->get_size()[0], this->get_size()[1],
             csr_->get_num_stored_elements(), &alpha, this->get_descr(),
