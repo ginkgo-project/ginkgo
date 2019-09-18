@@ -24,7 +24,6 @@ find_library(CUSPARSE cusparse
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
-ginkgo_prepare_windows_path()
 target_sources(ginkgo_cuda
     PRIVATE
         base/exception.cpp

@@ -32,6 +32,17 @@ option(GINKGO_CUDA_DEFAULT_HOST_COMPILER "Tell Ginkgo to not automatically set t
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 
+if(BUILD_SHARED_LIBS AND WIN32 AND (GINKGO_BUILD_TESTS OR GINKGO_BUILD_EXAMPLES OR GINKGO_BUILD_BENCHMARKS))
+    # Change shared libraries output only if this build has executable program with shared libraries.
+    set(GINKGO_CHANGED_SHARED_LIBRARY TRUE)
+    option(GINKGO_CHECK_PATH "Tell Ginkgo to check environment PATH is available for this build." ON)
+    set(GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH "windows_shared_library" CACHE STRING
+        "Set Ginkgo's shared library relative path in windows. This absoulte path must be in environment PATH. Current default is `windows_shared_library`.")
+    set(GINKGO_WINDOWS_SHARED_LIBRARY_PATH ${PROJECT_BINARY_DIR}/${GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH})
+else()
+    set(GINKGO_CHANGED_SHARED_LIBRARY FALSE)
+endif()
+
 if(GINKGO_BUILD_TESTS AND (GINKGO_BUILD_CUDA OR GINKGO_BUILD_OMP))
     message(STATUS "GINKGO_BUILD_TESTS is ON, enabling GINKGO_BUILD_REFERENCE")
     set(GINKGO_BUILD_REFERENCE ON CACHE BOOL "Compile reference CPU kernels" FORCE)
@@ -99,9 +110,6 @@ ginkgo_find_package(gflags gflags FALSE 2.2.2)
 ginkgo_find_package(RapidJSON rapidjson TRUE 1.1.0)
 add_subdirectory(third_party)    # Third-party tools and libraries
 
-# GINKGO_WINDOWS_PATH is for runtime linking when Ginkgo is built as a shared library.
-list(APPEND GINKGO_WINDOWS_PATH "")
-
 # Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be
 # propagated to the other parts of Ginkgo in case of building as static libraries
 if(GINKGO_BUILD_CUDA)
@@ -136,13 +144,6 @@ endif()
 add_custom_target(generate_ginkgo_header ALL
         COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/update_ginkgo_header.sh
         WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
-
-# Print the settings for GINKGO_WINDOWS_PATH
-if(WIN32)
-    list(REMOVE_DUPLICATES GINKGO_WINDOWS_PATH)
-    message("User needs to add the path manually.\n"
-        "set PATH=${GINKGO_WINDOWS_PATH};%PATH%")
-endif()
 
 
 # Installation
