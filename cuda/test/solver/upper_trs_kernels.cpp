@@ -128,16 +128,9 @@ TEST_F(UpperTrs, CudaUpperTrsFlagCheckIsCorrect)
     bool trans_flag = true;
     bool expected_flag = false;
 
-
 #if (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
-
-
     expected_flag = true;
-
-
 #endif
-
-
     gko::kernels::cuda::upper_trs::should_perform_transpose(cuda, trans_flag);
 
     ASSERT_EQ(expected_flag, trans_flag);
@@ -162,7 +155,6 @@ TEST_F(UpperTrs, CudaSingleRhsApplyIsEquivalentToRef)
 TEST_F(UpperTrs, CudaMultipleRhsApplyIsEquivalentToRef)
 {
     initialize_data(50, 3);
-
     auto upper_trs_factory =
         gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref);
     auto d_upper_trs_factory =

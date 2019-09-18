@@ -83,8 +83,7 @@ void should_perform_transpose_kernel(std::shared_ptr<const CudaExecutor> exec,
 void init_struct_kernel(std::shared_ptr<const CudaExecutor> exec,
                         std::shared_ptr<solver::SolveStruct> &solve_struct)
 {
-    solve_struct =
-        std::shared_ptr<solver::SolveStruct>(new solver::SolveStruct());
+    solve_struct = std::make_shared<solver::SolveStruct>();
 }
 
 
@@ -191,6 +190,7 @@ void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
                 x->get_values(), b->get_stride(), solve_struct->solve_info,
                 solve_struct->policy, solve_struct->factor_work_vec);
         }
+
 
 #elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
 
