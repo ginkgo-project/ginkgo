@@ -155,6 +155,20 @@ std::unique_ptr<LinOp> Sparsity<ValueType, IndexType>::conj_transpose() const
 
 
 template <typename ValueType, typename IndexType>
+std::unique_ptr<Sparsity<ValueType, IndexType>>
+Sparsity<ValueType, IndexType>::to_adjacency_matrix() const
+{
+    auto exec = this->get_executor();
+    auto adj_mat = Sparsity::create(
+        exec, this->get_size(), this->get_num_nonzeros() - this->get_size()[0]);
+
+    exec->run(sparsity::make_remove_diagonal_elements(
+        adj_mat.get(), this->get_const_row_ptrs(), this->get_const_col_idxs()));
+    return std::move(adj_mat);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Sparsity<ValueType, IndexType>::sort_by_column_index()
 {
     auto exec = this->get_executor();
