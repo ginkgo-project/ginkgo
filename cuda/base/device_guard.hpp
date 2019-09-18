@@ -30,6 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_CUDA_BASE_DEVICE_GUARD_HPP_
+#define GKO_CUDA_BASE_DEVICE_GUARD_HPP_
+
+
+#include <exception>
+
 
 #include <cuda_runtime.h>
 
@@ -40,6 +46,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
+/**
+ * This class defines a device guard for the cuda functions and the cuda module.
+ * The guard is used to make sure that the device code is run on the correct
+ * cuda device, when run with multiple devices. The class records the current
+ * device id and uses `cudaSetDevice` to set the device id to the one being
+ * passed in. After the scope has been exited, the destructor sets the device_id
+ * back to the one before entering the scope.
+ */
 class device_guard {
 public:
     device_guard(int device_id)
@@ -47,6 +61,14 @@ public:
         GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id));
         GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
     }
+
+    device_guard(device_guard &other) = delete;
+
+    device_guard &operator=(const device_guard &other) = delete;
+
+    device_guard(device_guard &&other) = delete;
+
+    device_guard const &operator=(device_guard &&other) = delete;
 
     ~device_guard() noexcept(false)
     {
@@ -64,3 +86,6 @@ private:
 
 
 }  // namespace gko
+
+
+#endif  // GKO_CUDA_BASE_DEVICE_GUARD_HPP_

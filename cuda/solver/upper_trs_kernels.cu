@@ -45,10 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/upper_trs.hpp>
 
 
-#include "core/matrix/dense_kernels.hpp"
+#include "core/solver/upper_trs_kernels.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
+#include "cuda/solver/common_trs_kernels.cuh"
 
 
 namespace gko {
@@ -63,19 +64,27 @@ namespace upper_trs {
 
 
 void should_perform_transpose(std::shared_ptr<const CudaExecutor> exec,
-                              bool &do_transpose) GKO_NOT_IMPLEMENTED;
+                              bool &do_transpose)
+{
+    should_perform_transpose_kernel(exec, do_transpose);
+}
 
 
 void init_struct(std::shared_ptr<const CudaExecutor> exec,
                  std::shared_ptr<solver::SolveStruct> &solve_struct)
-    GKO_NOT_IMPLEMENTED;
+{
+    init_struct_kernel(exec, solve_struct);
+}
 
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const CudaExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *matrix,
-              solver::SolveStruct *solve_struct,
-              const gko::size_type num_rhs) GKO_NOT_IMPLEMENTED;
+              solver::SolveStruct *solve_struct, const gko::size_type num_rhs)
+{
+    generate_kernel<ValueType, IndexType>(exec, matrix, solve_struct, num_rhs,
+                                          true);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL);
@@ -86,8 +95,11 @@ void solve(std::shared_ptr<const CudaExecutor> exec,
            const matrix::Csr<ValueType, IndexType> *matrix,
            const solver::SolveStruct *solve_struct,
            matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
-           const matrix::Dense<ValueType> *b,
-           matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
+           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
+{
+    solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, trans_b,
+                                       trans_x, b, x);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL);

@@ -57,10 +57,10 @@ stages:
     paths:
       - "build/*/*/*/*/*/CMakeCache.txt"
       - "build/*/*/*/*/*/*.cmake"
-      - "build/*/*/*/*/*/core/test"
-      - "build/*/*/*/*/*/cuda/test"
-      - "build/*/*/*/*/*/omp/test"
-      - "build/*/*/*/*/*/reference/test"
+      - "build/*/*/*/*/*/core/test/*/[a-z_]*"
+      - "build/*/*/*/*/*/cuda/test/*/[a-z_]*"
+      - "build/*/*/*/*/*/omp/test/*/[a-z_]*"
+      - "build/*/*/*/*/*/reference/test/*/[a-z_]*"
       - "build/*/*/*/*/*/core/libginkgo*"
       - "build/*/*/*/*/*/cuda/libginkgo*"
       - "build/*/*/*/*/*/omp/libginkgo*"
@@ -68,6 +68,7 @@ stages:
       - "build/*/*/*/*/*/core/device_hooks/libginkgo*"
       - "build/*/*/*/*/*/*/CTestTestfile.cmake"
       - "build/*/*/*/*/*/*/*/CTestTestfile.cmake"
+      - "build/*/*/*/*/*/*/*/*/CTestTestfile.cmake"
   except:
       - schedules
 # build paths are of the form: build/<cuda_version>/<compiler>/<module(s)>/{debug,release}/{shared,static}/
@@ -140,7 +141,6 @@ build/cuda91/gcc/all/debug/static:
   image: localhost:5000/gko-cuda91-gnu6-llvm40
   variables:
     <<: *default_variables
-    BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: Debug
     EXTRA_CMAKE_FLAGS: *cuda_flags_static
@@ -187,7 +187,6 @@ build/cuda92/clang/all/debug/static:
     <<: *default_variables
     C_COMPILER: clang
     CXX_COMPILER: clang++
-    BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: Debug
     EXTRA_CMAKE_FLAGS: *cuda_flags_static

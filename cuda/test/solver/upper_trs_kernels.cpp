@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/lower_trs.hpp>
+#include <ginkgo/core/solver/upper_trs.hpp>
 
 
 #include <memory>
@@ -47,19 +47,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/solver/lower_trs_kernels.hpp"
+#include "core/solver/upper_trs_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
 namespace {
 
 
-class LowerTrs : public ::testing::Test {
+class UpperTrs : public ::testing::Test {
 protected:
     using CsrMtx = gko::matrix::Csr<double, gko::int32>;
     using Mtx = gko::matrix::Dense<>;
 
-    LowerTrs() : rand_engine(30) {}
+    UpperTrs() : rand_engine(30) {}
 
     void SetUp()
     {
@@ -83,9 +83,9 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    std::unique_ptr<Mtx> gen_l_mtx(int num_rows, int num_cols)
+    std::unique_ptr<Mtx> gen_u_mtx(int num_rows, int num_cols)
     {
-        return gko::test::generate_random_lower_triangular_matrix<Mtx>(
+        return gko::test::generate_random_upper_triangular_matrix<Mtx>(
             num_rows, num_cols, false,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
@@ -93,7 +93,7 @@ protected:
 
     void initialize_data(int m, int n)
     {
-        mtx = gen_l_mtx(m, m);
+        mtx = gen_u_mtx(m, m);
         b = gen_mtx(m, n);
         x = gen_mtx(m, n);
         csr_mtx = CsrMtx::create(ref);
@@ -123,26 +123,27 @@ protected:
 };
 
 
-TEST_F(LowerTrs, CudaLowerTrsFlagCheckIsCorrect)
+TEST_F(UpperTrs, CudaUpperTrsFlagCheckIsCorrect)
 {
     bool trans_flag = true;
     bool expected_flag = false;
+
 #if (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
     expected_flag = true;
 #endif
-    gko::kernels::cuda::lower_trs::should_perform_transpose(cuda, trans_flag);
+    gko::kernels::cuda::upper_trs::should_perform_transpose(cuda, trans_flag);
 
     ASSERT_EQ(expected_flag, trans_flag);
 }
 
 
-TEST_F(LowerTrs, CudaSingleRhsApplyIsEquivalentToRef)
+TEST_F(UpperTrs, CudaSingleRhsApplyIsEquivalentToRef)
 {
     initialize_data(50, 1);
-    auto lower_trs_factory = gko::solver::LowerTrs<>::build().on(ref);
-    auto d_lower_trs_factory = gko::solver::LowerTrs<>::build().on(cuda);
-    auto solver = lower_trs_factory->generate(csr_mtx);
-    auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
+    auto upper_trs_factory = gko::solver::UpperTrs<>::build().on(ref);
+    auto d_upper_trs_factory = gko::solver::UpperTrs<>::build().on(cuda);
+    auto solver = upper_trs_factory->generate(csr_mtx);
+    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
 
     solver->apply(b2.get(), x.get());
     d_solver->apply(d_b2.get(), d_x.get());
@@ -151,15 +152,15 @@ TEST_F(LowerTrs, CudaSingleRhsApplyIsEquivalentToRef)
 }
 
 
-TEST_F(LowerTrs, CudaMultipleRhsApplyIsEquivalentToRef)
+TEST_F(UpperTrs, CudaMultipleRhsApplyIsEquivalentToRef)
 {
     initialize_data(50, 3);
-    auto lower_trs_factory =
-        gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(ref);
-    auto d_lower_trs_factory =
-        gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(cuda);
-    auto solver = lower_trs_factory->generate(csr_mtx);
-    auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
+    auto upper_trs_factory =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref);
+    auto d_upper_trs_factory =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(cuda);
+    auto solver = upper_trs_factory->generate(csr_mtx);
+    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
 
     solver->apply(b2.get(), x.get());
     d_solver->apply(d_b2.get(), d_x.get());
