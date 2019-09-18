@@ -510,23 +510,18 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T get_superior_power(
 }
 
 
-// Required because CUDA compiler before Toolkit 9.2 want to call __host__
-// functions, even though there are __device__ functions provided by CUDA
-// (e.g. `isfinite`)
-#if defined(__CUDA_ARCH__) && defined(__CUDACC_VER_MAJOR__) && \
-    defined(__CUDACC_VER_MINOR__) &&                           \
-    (__CUDACC_VER_MAJOR__ * 1000 + __CUDACC_VER_MINOR__) < 9002
+#if !defined(__CUDA_ARCH__)
 
 
-// This definition keeps track if special kernel have to be written in the
-// CUDA math.hpp header.
-#define GKO_MATH_CUDA_LOWER_9002
-
-
-#else  // This part is for non-CUDA compiler and later CUDA Toolkit versions
-
-
+// Since a lot of compiler in combination with CUDA seem to have difficulties
+// distinguishing between the CUDA `isfinite` and the `std::isfinite` when
+// it is put into the `gko` namespace, only enable `std::isfinite` when
+// compiling host code.
 using std::isfinite;  // use the optimized function for all supported types
+
+
+#endif  // defined(__CUDA_ARCH__)
+
 
 /**
  * Checks if a given component of a complex value is positive infinity,
@@ -545,10 +540,6 @@ isfinite(const T &value)
 {
     return isfinite(value.real()) && isfinite(value.imag());
 }
-
-
-#endif  // defined(__CUDACC_VER_MAJOR__) && defined(__CUDACC_VER_MINOR__) &&
-        // (__CUDACC_VER_MAJOR__ * 1000 + __CUDACC_VER_MINOR__) < 9002
 
 
 }  // namespace gko
