@@ -2,7 +2,6 @@ add_subdirectory(devices)  # basic device functionalities, always compiled
 add_subdirectory(device_hooks)  # placeholders for disabled modules
 
 add_library(ginkgo "")
-ginkgo_prepare_windows_path()
 target_sources(ginkgo
     PRIVATE
         base/combination.cpp
