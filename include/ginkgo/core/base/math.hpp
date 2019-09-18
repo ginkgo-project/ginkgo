@@ -524,15 +524,15 @@ using std::isfinite;  // use the optimized function for all supported types
 
 
 /**
- * Checks if a given component of a complex value is positive infinity,
- * negative infinity, or NaN
+ * Checks if all components of a complex value are finite, meaning they are
+ * neither +/- infinity nor NaN.
  *
  * @tparam T  complex type of the value to check
  *
  * @param value  complex value to check
  *
- * returns `false` if a component of value is either positive or negative
- *         infinity or NaN. Otherwise `true`
+ * returns `true` if both components of the given value are finite, meaning
+ *         they are neither +/- infinity nor NaN.
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<is_complex_s<T>::value, bool>
