@@ -55,7 +55,7 @@ namespace {
 template <typename T>
 __global__ void test_real_isfinite(bool *result)
 {
-    constexpr auto inf = INFINITY;
+    constexpr T inf = INFINITY;
     bool test_true{};
     bool test_false{};
 
