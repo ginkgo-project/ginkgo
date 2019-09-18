@@ -239,6 +239,12 @@ int main(int, char **)
         auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2);
     }
 
+    // core/matrix/sparsity.hpp
+    {
+        using Mtx = gko::matrix::Sparsity<>;
+        auto test = Mtx::create(refExec, gko::dim<2>{2, 2});
+    }
+
     // core/preconditioner/jacobi.hpp
     {
         using Bj = gko::preconditioner::Jacobi<>;

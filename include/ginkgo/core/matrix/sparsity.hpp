@@ -47,12 +47,12 @@ namespace matrix {
  * sparse matrix by compressing each row of the matrix (compressed sparse row
  * format).
  *
- * The nonzero elements are stored not stored because they are assumed to be one
- * by default. A row pointer array which stores the starting index of each row.
- * An additional column index array is used to identify the column where a
- * non-zero is present.
+ * The values of the nonzero elements are not stored because they are assumed to
+ * be one by default. A row pointer array which stores the starting index of
+ * each row. An additional column index array is used to identify the column
+ * where a nonzero is present.
  *
- * @tparam ValueType  precision of matrix elements
+ * @tparam ValueType  precision of vectors in apply
  * @tparam IndexType  precision of matrix indexes
  *
  * @ingroup sparsity
@@ -85,7 +85,16 @@ public:
     std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
-     * Sorts all (value, col_idx) pairs in each row by column index
+     * Transforms the sparsity matrix to an adjacency matrix.
+     *
+     * Note: The adjacency matrix in this case is the sparsity pattern but with
+     * the diagonal ones removed. This is mainly used for the
+     * reordering/partitioning as taken in by graph libraries such as METIS.
+     */
+    std::unique_ptr<Sparsity> to_adjacency_matrix() const;
+
+    /**
+     * Sorts each row by column index
      */
     void sort_by_column_index();
 
@@ -97,9 +106,9 @@ public:
     bool is_sorted_by_column_index() const;
 
     /**
-     * Returns the column indexes of the matrix.
+     * Returns the column indices of the matrix.
      *
-     * @return the column indexes of the matrix.
+     * @return the column indices of the matrix.
      */
     index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
 

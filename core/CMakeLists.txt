@@ -15,7 +15,6 @@ target_sources(ginkgo
         log/logger.cpp
         log/record.cpp
         log/stream.cpp
-        matrix/sparsity.cpp
         matrix/coo.cpp
         matrix/csr.cpp
         matrix/dense.cpp
@@ -23,6 +22,7 @@ target_sources(ginkgo
         matrix/hybrid.cpp
         matrix/identity.cpp
         matrix/sellp.cpp
+        matrix/sparsity.cpp
         preconditioner/jacobi.cpp
         solver/bicgstab.cpp
         solver/cg.cpp
