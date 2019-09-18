@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_BASE_POINTER_MODE_GUARD_HPP_
 
 
+#include <exception>
+
+
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <cusparse.h>
@@ -48,6 +51,14 @@ namespace cuda {
 namespace cublas {
 
 
+/**
+ * This class defines a pointer mode guard for the cuda functions and the cuda
+ * module. The guard is used to make sure that the correct pointer mode has been
+ * set when using scalars for the cublas functions. The class records the
+ * current handle and sets the pointer mode to host for the current scope. After
+ * the scope has been exited, the destructor sets the pointer mode back to
+ * device.
+ */
 class pointer_mode_guard {
 public:
     pointer_mode_guard(cublasHandle_t &handle)
@@ -87,6 +98,14 @@ private:
 namespace cusparse {
 
 
+/**
+ * This class defines a pointer mode guard for the cuda functions and the cuda
+ * module. The guard is used to make sure that the correct pointer mode has been
+ * set when using scalars for the cusparse functions. The class records the
+ * current handle and sets the pointer mode to host for the current scope. After
+ * the scope has been exited, the destructor sets the pointer mode back to
+ * device.
+ */
 class pointer_mode_guard {
 public:
     pointer_mode_guard(cusparseHandle_t &handle)
@@ -125,4 +144,5 @@ private:
 }  // namespace kernels
 }  // namespace gko
 
-#endif
+
+#endif  // GKO_CUDA_BASE_POINTER_MODE_GUARD_HPP_
