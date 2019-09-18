@@ -93,7 +93,91 @@ __device__ GKO_INLINE std::complex<double> one<std::complex<double>>()
 }
 
 
-#if defined(__CUDA_ARCH__)
+// This first part is specific for clang in combination with the nvcc compiler
+// of toolkit older than 9.2.
+// clang wants to use their `__builtin_isfinite` function, which is not present
+// as a __device__ function, so it results in a compiler error.
+// Here, `isfinite` is written by hand, which might not be as performant as the
+// intrinsic function from CUDA, but it compiles and works.
+#if defined(__CUDA_ARCH__) && defined(__CUDACC_VER_MAJOR__) &&     \
+    defined(__CUDACC_VER_MINOR__) &&                               \
+    (__CUDACC_VER_MAJOR__ * 1000 + __CUDACC_VER_MINOR__) < 9002 && \
+    (defined(__clang__) || defined(__ICC) || defined(__ICL))
+
+
+namespace detail {
+
+
+/**
+ * Structure that can be used to get the exponent mask of a given floating
+ * point type. Uses specialization to implement different types.
+ */
+template <typename T>
+struct mask_creator {};
+
+template <>
+struct mask_creator<float> {
+    using int_type = int32;
+    static constexpr int_type number_exponent_bits = 8;
+    static constexpr int_type number_significand_bits = 23;
+    // integer representation of a floating point number, where all exponent
+    // bits are set
+    static constexpr int_type exponent_mask =
+        ((int_type{1} << number_exponent_bits) - 1) << number_significand_bits;
+    static __device__ int_type reinterpret_int(const float &value)
+    {
+        return __float_as_int(value);
+    }
+};
+
+template <>
+struct mask_creator<double> {
+    using int_type = int64;
+    static constexpr int_type number_exponent_bits = 11;
+    static constexpr int_type number_significand_bits = 52;
+    // integer representation of a floating point number, where all exponent
+    // bits are set
+    static constexpr int_type exponent_mask =
+        ((int_type{1} << number_exponent_bits) - 1) << number_significand_bits;
+    static __device__ int_type reinterpret_int(const double &value)
+    {
+        return __double_as_longlong(value);
+    }
+};
+
+
+}  // namespace detail
+
+
+/**
+ * Checks if a given value is finite, meaning it is neither +/- infinity
+ * nor NaN.
+ *
+ * @internal  It checks if all exponent bits are set. If all are set, the
+ *            number either represents NaN or +/- infinity.
+ *
+ * @param value  value to check
+ *
+ * returns `true` if the given value is finite, meaning it is neither
+ *         +/- infinity nor NaN.
+ */
+#define GKO_DEFINE_ISFINITE_FOR_TYPE(_type)                               \
+    GKO_INLINE __device__ bool isfinite(const _type &value)               \
+    {                                                                     \
+        constexpr auto mask = detail::mask_creator<_type>::exponent_mask; \
+        const auto re_int =                                               \
+            detail::mask_creator<_type>::reinterpret_int(value);          \
+        return (re_int & mask) != mask;                                   \
+    }
+
+GKO_DEFINE_ISFINITE_FOR_TYPE(float)
+GKO_DEFINE_ISFINITE_FOR_TYPE(double)
+#undef GKO_DEFINE_ISFINITE_FOR_TYPE
+
+
+// For all other compiler in combination with CUDA, just use the provided
+// `isfinite` function
+#elif defined(__CUDA_ARCH__)
 
 
 // If it is compiled with the CUDA compiler, use their `isfinite`
