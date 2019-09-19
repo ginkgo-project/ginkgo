@@ -34,7 +34,15 @@ function(ginkgo_create_hip_test test_name)
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
 
     set_source_files_properties(${test_name}.hip.cpp PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
-    hip_add_executable(${TEST_TARGET_NAME} ${test_name}.hip.cpp HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} NVCC_OPTIONS ${GINKGO_HIP_NVCC_OPTIONS} HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS})
+    hip_add_executable(${TEST_TARGET_NAME} ${test_name}.hip.cpp HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS}
+        NVCC_OPTIONS  ${GINKGO_HIP_NVCC_OPTIONS} HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS})
+
+    # Let's really not use nvcc for linking here, as we cannot remove the `-pthread`
+    # flag from CUDA_LIBRARIES, coming from ginkgo_hip.
+    if (NOT BUILD_SHARED_LIBS AND GINKGO_HIP_PLATFORM MATCHES "nvcc")
+        set_target_properties(${TEST_TARGET_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+    endif()
+
     target_include_directories("${TEST_TARGET_NAME}"
         PRIVATE
             "$<BUILD_INTERFACE:${Ginkgo_BINARY_DIR}>"
@@ -43,7 +51,7 @@ function(ginkgo_create_hip_test test_name)
         OUTPUT_NAME ${test_name})
 
     # Pass in the `--amdgpu-target` flags if asked
-    if(GINKGO_HIP_AMDGPU AND GINKGO_HIP_PLATFORM STREQUAL "hcc")
+    if(GINKGO_HIP_AMDGPU AND GINKGO_HIP_PLATFORM MATCHES "hcc")
         foreach(target ${GINKGO_HIP_AMDGPU})
             target_link_libraries(${TEST_TARGET_NAME} PRIVATE --amdgpu-target=${target})
         endforeach()
@@ -55,10 +63,11 @@ function(ginkgo_create_hip_test test_name)
         if (GINKGO_HIP_PLATFORM MATCHES "hcc")
             target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_RPATH_FOR_HIP}")
         elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")
-            target_link_libraries(${TEST_TARGET_NAME} PRIVATE -Xcompiler \\\\\\\"${GINKGO_RPATH_FOR_HIP}\\\\\\\")
+            target_link_libraries(${TEST_TARGET_NAME} PRIVATE
+                "-Xcompiler \\\\\\\"${GINKGO_RPATH_FOR_HIP}\\\\\\\"")
         endif()
     endif()
 
-    target_link_libraries(${TEST_TARGET_NAME} PRIVATE ginkgo GTest::Main GTest::GTest hip::device ${ARGN})
+    target_link_libraries(${TEST_TARGET_NAME} PRIVATE ginkgo GTest::Main GTest::GTest ${ARGN})
     add_test(NAME ${REL_BINARY_DIR}/${test_name} COMMAND ${TEST_TARGET_NAME})
 endfunction(ginkgo_create_hip_test)
