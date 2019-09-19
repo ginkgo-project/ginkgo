@@ -1,4 +1,4 @@
-if(MSVC)
+if(MSVC AND NOT BUILD_SHARED_LIBS)
     # cmake links dynamic runtime libraries by default in Visual Studio
     # use the ginkgo's flags to use the same runtime libraries as ginkgo
     ginkgo_load_git_package(gflags_external
@@ -7,7 +7,8 @@ if(MSVC)
         "-DGFLAGS_BUILD_TESTING=OFF" "-DGFLAGS_BUILD_gflags_LIB=OFF"
         "-DGFLAGS_BUILD_gflags_nothreads_LIB=ON" "-DGFLAGS_BUILD_STATIC_LIBS=ON"
         "-DGFLAGS_BUILD_PACKAGING=OFF" "-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG}"
-        "-DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}")
+        "-DCMAKE_CXX_FLAGS_RELEASE=${CMAKE_CXX_FLAGS_RELEASE}" "-DCMAKE_C_FLAGS_DEBUG=${CMAKE_C_FLAGS_DEBUG}"
+        "-DCMAKE_C_FLAGS_RELEASE=${CMAKE_C_FLAGS_RELEASE}")
 else()
     ginkgo_load_git_package(gflags_external
         "https://github.com/gflags/gflags.git"
