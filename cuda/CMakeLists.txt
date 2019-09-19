@@ -17,23 +17,9 @@ endif()
 # This is modified from https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
 if(MSVC)
     if(BUILD_SHARED_LIBS)
-        foreach(flag_var
-            CMAKE_CUDA_FLAGS CMAKE_CUDA_FLAGS_DEBUG CMAKE_CUDA_FLAGS_RELEASE
-            CMAKE_CUDA_FLAGS_MINSIZEREL CMAKE_CUDA_FLAGS_RELWITHDEBINFO)
-            if(${flag_var} MATCHES "-MT")
-                string(REGEX REPLACE "-MT" "-MD" ${flag_var} "${${flag_var}}")
-            endif(${flag_var} MATCHES "-MT")
-            set(${flag_var} "${${flag_var}}" CACHE STRING "" FORCE)
-        endforeach(flag_var)
+        ginkgo_turn_to_windows_dynamic("CUDA")
     else()
-        foreach(flag_var
-            CMAKE_CUDA_FLAGS CMAKE_CUDA_FLAGS_DEBUG CMAKE_CUDA_FLAGS_RELEASE
-            CMAKE_CUDA_FLAGS_MINSIZEREL CMAKE_CUDA_FLAGS_RELWITHDEBINFO)
-            if(${flag_var} MATCHES "-MD")
-                string(REGEX REPLACE "-MD" "-MT" ${flag_var} "${${flag_var}}")
-            endif(${flag_var} MATCHES "-MD")
-            set(${flag_var} "${${flag_var}}" CACHE STRING "" FORCE)
-        endforeach(flag_var)
+        ginkgo_turn_to_windows_static("CUDA")
     endif()
 endif()
 
