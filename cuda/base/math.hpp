@@ -52,7 +52,8 @@ struct remove_complex_impl<thrust::complex<T>> {
 
 template <typename T>
 struct is_complex_impl<thrust::complex<T>>
-    : public std::integral_constant<bool, true> {};
+    : public std::integral_constant<bool, true> {
+};
 
 
 template <typename T>
@@ -94,7 +95,7 @@ __device__ GKO_INLINE std::complex<double> one<std::complex<double>>()
 
 
 // This first part is specific for clang in combination with the nvcc compiler
-// of toolkit older than 9.2.
+// from the toolkit older than 9.2.
 // clang wants to use their `__builtin_isfinite` function, which is not present
 // as a __device__ function, so it results in a compiler error.
 // Here, `isfinite` is written by hand, which might not be as performant as the
@@ -113,7 +114,8 @@ namespace detail {
  * point type. Uses specialization to implement different types.
  */
 template <typename T>
-struct mask_creator {};
+struct mask_creator {
+};
 
 template <>
 struct mask_creator<float> {
@@ -154,7 +156,8 @@ struct mask_creator<double> {
  * nor NaN.
  *
  * @internal  It checks if all exponent bits are set. If all are set, the
- *            number either represents NaN or +/- infinity.
+ *            number either represents NaN or +/- infinity, meaning it is a
+ *            non-finite number.
  *
  * @param value  value to check
  *
@@ -173,6 +176,32 @@ struct mask_creator<double> {
 GKO_DEFINE_ISFINITE_FOR_TYPE(float)
 GKO_DEFINE_ISFINITE_FOR_TYPE(double)
 #undef GKO_DEFINE_ISFINITE_FOR_TYPE
+
+
+/**
+ * Checks if all components of a complex value are finite, meaning they are
+ * neither +/- infinity nor NaN.
+ *
+ * @internal required for the clang compiler. This function will be used rather
+ *           than the `isfinite` function in the public `math.hpp` because
+ *           there is no template parameter, so it is prefered during lookup.
+ *
+ * @tparam T  complex type of the value to check
+ *
+ * @param value  complex value to check
+ *
+ * returns `true` if both components of the given value are finite, meaning
+ *         they are neither +/- infinity nor NaN.
+ */
+#define GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(_type)              \
+    GKO_INLINE __device__ bool isfinite(const _type &value)      \
+    {                                                            \
+        return isfinite(value.real()) && isfinite(value.imag()); \
+    }
+
+GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(thrust::complex<float>)
+GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(thrust::complex<double>)
+#undef GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE
 
 
 // For all other compiler in combination with CUDA, just use the provided
