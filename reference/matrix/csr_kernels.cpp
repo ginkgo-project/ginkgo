@@ -513,20 +513,20 @@ void column_permute(std::shared_ptr<const ReferenceExecutor> exec,
     auto cp_row_ptrs = column_permuted->get_row_ptrs();
     auto cp_col_idxs = column_permuted->get_col_idxs();
     auto cp_vals = column_permuted->get_values();
+    auto num_nnz = orig->get_num_stored_elements();
     size_type num_rows = orig->get_size()[0];
     size_type num_cols = orig->get_size()[1];
 
     std::vector<IndexType> pindx(&perm[0], &perm[0] + num_cols);
     for (size_type row = 0; row < num_rows; ++row) {
         cp_row_ptrs[row] = orig_row_ptrs[row];
-        for (size_type k = orig_row_ptrs[row];
+        for (size_type k = static_cast<size_type>(orig_row_ptrs[row]);
              k < static_cast<size_type>(orig_row_ptrs[row + 1]); ++k) {
             typename std::vector<IndexType>::iterator itr =
-                std::find(pindx.begin(), pindx.end(),
-                          static_cast<IndexType>(orig_col_idxs[k]));
+                std::find(pindx.begin(), pindx.end(), orig_col_idxs[k]);
             size_type ind =
                 static_cast<size_type>(std::distance(pindx.begin(), itr));
-            cp_col_idxs[k] = orig_col_idxs[ind];
+            cp_col_idxs[k] = ind;
             cp_vals[k] = orig_vals[k];
         }
     }

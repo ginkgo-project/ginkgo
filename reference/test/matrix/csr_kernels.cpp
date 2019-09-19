@@ -53,7 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/test/utils/assertions.hpp"
 
-#include <iostream>
+
 namespace {
 
 
@@ -678,9 +678,12 @@ TEST_F(Csr, SquareMatrixIsRowPermutable)
                                                       {0.0, 1.5, 2.0}}, exec);
     // clang-format on
     gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+
     auto row_permute = p_mtx->row_permute(&permute_idxs);
+
+    auto row_permute_csr = static_cast<gko::matrix::Csr<> *>(row_permute.get());
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(row_permute.get(),
+    GKO_ASSERT_MTX_NEAR(row_permute_csr,
                         l({{0.0, 5.0, 0.0},
                            {0.0, 1.5, 2.0},
                            {1.0, 3.0, 2.0}}),
@@ -697,10 +700,12 @@ TEST_F(Csr, NonSquareMatrixIsRowPermutable)
                                                       {0.0, 5.0, 0.0}}, exec);
     // clang-format on
     gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
+
     auto row_permute = p_mtx->row_permute(&permute_idxs);
 
+    auto row_permute_csr = static_cast<gko::matrix::Csr<> *>(row_permute.get());
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(row_permute.get(),
+    GKO_ASSERT_MTX_NEAR(row_permute_csr,
                         l({{0.0, 5.0, 0.0},
                            {1.0, 3.0, 2.0}}),
                         0.0);
@@ -717,10 +722,12 @@ TEST_F(Csr, SquareMatrixIsColPermutable)
                                                       {0.0, 1.5, 2.0}}, exec);
     // clang-format on
     gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+
     auto c_permute = p_mtx->column_permute(&permute_idxs);
 
+    auto c_permute_csr = static_cast<gko::matrix::Csr<> *>(c_permute.get());
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(c_permute.get(),
+    GKO_ASSERT_MTX_NEAR(c_permute_csr,
                         l({{3.0, 2.0, 1.0},
                            {5.0, 0.0, 0.0},
                            {1.5, 2.0, 0.0}}),
@@ -733,15 +740,17 @@ TEST_F(Csr, NonSquareMatrixIsColPermutable)
 {
     // clang-format off
     auto p_mtx = gko::initialize<gko::matrix::Csr<>>(
-                                                   {{1.0, 3.0, 2.0},
+                                                   {{1.0, 0.0, 2.0},
                                                     {0.0, 5.0, 0.0}}, exec);
     // clang-format on
     gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+
     auto c_permute = p_mtx->column_permute(&permute_idxs);
 
+    auto c_permute_csr = static_cast<gko::matrix::Csr<> *>(c_permute.get());
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(c_permute.get(),
-                        l({{3.0, 2.0, 1.0},
+    GKO_ASSERT_MTX_NEAR(c_permute_csr,
+                        l({{0.0, 2.0, 1.0},
                            {5.0, 0.0, 0.0}}),
                         0.0);
     // clang-format on
@@ -757,10 +766,14 @@ TEST_F(Csr, SquareMatrixIsInverseRowPermutable)
                                                               {0.0, 1.5, 2.0}}, exec);
     // clang-format on
     gko::Array<gko::int32> inverse_permute_idxs{exec, {1, 2, 0}};
+
     auto inverse_row_permute =
         inverse_p_mtx->inverse_row_permute(&inverse_permute_idxs);
+
+    auto inverse_row_permute_csr =
+        static_cast<gko::matrix::Csr<> *>(inverse_row_permute.get());
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(inverse_row_permute.get(),
+    GKO_ASSERT_MTX_NEAR(inverse_row_permute_csr,
                         l({{0.0, 1.5, 2.0},
                            {1.0, 3.0, 2.0},
                            {0.0, 5.0, 0.0}}),
@@ -777,11 +790,14 @@ TEST_F(Csr, NonSquareMatrixIsInverseRowPermutable)
                                                       {0.0, 5.0, 0.0}}, exec);
     // clang-format on
     gko::Array<gko::int32> inverse_permute_idxs{exec, {1, 0}};
+
     auto inverse_row_permute =
         inverse_p_mtx->inverse_row_permute(&inverse_permute_idxs);
 
+    auto inverse_row_permute_csr =
+        static_cast<gko::matrix::Csr<> *>(inverse_row_permute.get());
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(inverse_row_permute.get(),
+    GKO_ASSERT_MTX_NEAR(inverse_row_permute_csr,
                         l({{0.0, 5.0, 0.0},
                            {1.0, 3.0, 2.0}}),
                         0.0);
@@ -798,11 +814,14 @@ TEST_F(Csr, SquareMatrixIsInverseColPermutable)
                                                             {0.0, 1.5, 2.0}}, exec);
     // clang-format on
     gko::Array<gko::int32> inverse_permute_idxs{exec, {1, 2, 0}};
+
     auto inverse_c_permute =
         inverse_p_mtx->inverse_column_permute(&inverse_permute_idxs);
 
+    auto inverse_c_permute_csr =
+        static_cast<gko::matrix::Csr<> *>(inverse_c_permute.get());
     // clang-format off
-    GKO_ASSERT_MTX_NEAR(inverse_c_permute.get(),
+    GKO_ASSERT_MTX_NEAR(inverse_c_permute_csr,
                         l({{2.0, 1.0, 3.0},
                            {0.0, 0.0, 5.0},
                            {2.0, 0.0, 1.5}}),
@@ -819,11 +838,14 @@ TEST_F(Csr, NonSquareMatrixIsInverseColPermutable)
                                                             {0.0, 5.0, 0.0}}, exec);
     // clang-format on
     gko::Array<gko::int32> inverse_permute_idxs{exec, {1, 2, 0}};
+
     auto inverse_c_permute =
         inverse_p_mtx->inverse_column_permute(&inverse_permute_idxs);
 
+    auto inverse_c_permute_csr =
+        static_cast<gko::matrix::Csr<> *>(inverse_c_permute.get());
     // clang-format off
-  GKO_ASSERT_MTX_NEAR(inverse_c_permute.get(),
+    GKO_ASSERT_MTX_NEAR(inverse_c_permute_csr,
                         l({{2.0, 1.0, 3.0},
                            {0.0, 0.0, 5.0}}),
                         0.0);

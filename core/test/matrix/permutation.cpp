@@ -38,6 +38,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/range.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/test/utils/assertions.hpp"
 
 
 namespace {
@@ -47,41 +52,36 @@ class Permutation : public ::testing::Test {
 protected:
     using i_type = int;
     using v_type = double;
+    using Vec = gko::matrix::Dense<v_type>;
+    using Csr = gko::matrix::Csr<v_type, i_type>;
     Permutation()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::matrix::Permutation<i_type>::create(
-              exec, gko::dim<2>{4, 3}, gko::Array<i_type>{exec, {1, 0, 2, 3}},
-              gko::Array<i_type>{exec, {0, 2, 1}}))
+              exec, gko::dim<2>{4, 3}, gko::Array<i_type>{exec, {1, 0, 2, 3}}))
     {}
 
 
     static void assert_equal_to_original_mtx(
         gko::matrix::Permutation<i_type> *m)
     {
-        auto row_perm = m->get_row_permutation();
-        auto col_perm = m->get_col_permutation();
+        auto perm = m->get_permutation();
         ASSERT_EQ(m->get_size(), gko::dim<2>(4, 3));
-        ASSERT_EQ(m->get_size_row_permutation(), 4);
-        ASSERT_EQ(m->get_size_col_permutation(), 3);
-        ASSERT_EQ(row_perm[0], 1);
-        ASSERT_EQ(row_perm[1], 0);
-        ASSERT_EQ(row_perm[2], 2);
-        ASSERT_EQ(row_perm[3], 3);
-        ASSERT_EQ(col_perm[0], 0);
-        ASSERT_EQ(col_perm[1], 2);
-        ASSERT_EQ(col_perm[2], 1);
+        ASSERT_EQ(m->get_permutation_size(), 4);
+        ASSERT_EQ(perm[0], 1);
+        ASSERT_EQ(perm[1], 0);
+        ASSERT_EQ(perm[2], 2);
+        ASSERT_EQ(perm[3], 3);
     }
 
     static void assert_empty(gko::matrix::Permutation<i_type> *m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
-        ASSERT_EQ(m->get_size_row_permutation(), 0);
-        ASSERT_EQ(m->get_size_col_permutation(), 0);
+        ASSERT_EQ(m->get_permutation_size(), 0);
     }
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<gko::matrix::Permutation<i_type>> mtx;
-};
+};  // namespace
 
 
 TEST_F(Permutation, CanBeEmpty)
@@ -94,8 +94,7 @@ TEST_F(Permutation, CanBeEmpty)
 TEST_F(Permutation, ReturnsNullValuesArrayWhenEmpty)
 {
     auto empty = gko::matrix::Permutation<i_type>::create(exec);
-    ASSERT_EQ(empty->get_const_row_permutation(), nullptr);
-    ASSERT_EQ(empty->get_const_col_permutation(), nullptr);
+    ASSERT_EQ(empty->get_const_permutation(), nullptr);
 }
 
 
@@ -104,38 +103,28 @@ TEST_F(Permutation, CanBeConstructedWithSize)
     auto m = gko::matrix::Permutation<i_type>::create(exec, gko::dim<2>{2, 3});
 
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(m->get_size_row_permutation(), 2);
-    ASSERT_EQ(m->get_size_col_permutation(), 3);
+    ASSERT_EQ(m->get_permutation_size(), 2);
 }
 
 
 TEST_F(Permutation, RowPermutationCanBeConstructedFromExistingData)
 {
     i_type data[] = {1, 0, 2};
-    i_type cdata[] = {0, 1, 2, 3, 4};
 
     auto m = gko::matrix::Permutation<i_type>::create(
         exec, gko::dim<2>{3, 5}, gko::Array<i_type>::view(exec, 3, data));
 
-    ASSERT_EQ(m->get_const_row_permutation(), data);
-    ASSERT_EQ(m->get_const_col_permutation()[0], cdata[0]);
-    ASSERT_EQ(m->get_const_col_permutation()[1], cdata[1]);
-    ASSERT_EQ(m->get_const_col_permutation()[2], cdata[2]);
-    ASSERT_EQ(m->get_const_col_permutation()[3], cdata[3]);
-    ASSERT_EQ(m->get_const_col_permutation()[4], cdata[4]);
+    ASSERT_EQ(m->get_const_permutation(), data);
 }
 
 TEST_F(Permutation, RowAndColPermutationCanBeConstructedFromExistingData)
 {
     i_type rdata[] = {0, 2, 1};
-    i_type cdata[] = {1, 0};
 
     auto m = gko::matrix::Permutation<>::create(
-        exec, gko::dim<2>{3, 2}, gko::Array<i_type>::view(exec, 3, rdata),
-        gko::Array<i_type>::view(exec, 2, cdata));
+        exec, gko::dim<2>{3, 2}, gko::Array<i_type>::view(exec, 3, rdata));
 
-    ASSERT_EQ(m->get_const_row_permutation(), rdata);
-    ASSERT_EQ(m->get_const_col_permutation(), cdata);
+    ASSERT_EQ(m->get_const_permutation(), rdata);
 }
 
 TEST_F(Permutation, KnowsItsSizeAndValues)
@@ -149,7 +138,7 @@ TEST_F(Permutation, CanBeCopied)
     auto mtx_copy = gko::matrix::Permutation<i_type>::create(exec);
     mtx_copy->copy_from(mtx.get());
     assert_equal_to_original_mtx(mtx.get());
-    mtx->get_row_permutation()[0] = 3;
+    mtx->get_permutation()[0] = 3;
     assert_equal_to_original_mtx(mtx_copy.get());
 }
 

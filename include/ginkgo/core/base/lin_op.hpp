@@ -444,7 +444,7 @@ public:
  * auto perm = op->row_permute();
  * ```
  */
-template <typename ResultType, typename IndexType>
+template <typename IndexType>
 class Permutable {
 public:
     virtual ~Permutable() = default;
@@ -455,7 +455,7 @@ public:
      *
      * @return a pointer to the new permuted object
      */
-    virtual std::unique_ptr<ResultType> row_permute(
+    virtual std::unique_ptr<LinOp> row_permute(
         const Array<IndexType> *permutation_indices) const = 0;
 
     /**
@@ -464,7 +464,7 @@ public:
      *
      * @return a pointer to the new column permuted object
      */
-    virtual std::unique_ptr<ResultType> column_permute(
+    virtual std::unique_ptr<LinOp> column_permute(
         const Array<IndexType> *permutation_indices) const = 0;
 
     /**
@@ -473,7 +473,7 @@ public:
      *
      * @return a pointer to the new inverse permuted object
      */
-    virtual std::unique_ptr<ResultType> inverse_row_permute(
+    virtual std::unique_ptr<LinOp> inverse_row_permute(
         const Array<IndexType> *inverse_permutation_indices) const = 0;
 
     /**
@@ -482,7 +482,7 @@ public:
      *
      * @return a pointer to the new inverse permuted object
      */
-    virtual std::unique_ptr<ResultType> inverse_column_permute(
+    virtual std::unique_ptr<LinOp> inverse_column_permute(
         const Array<IndexType> *inverse_permutation_indices) const = 0;
 };
 
