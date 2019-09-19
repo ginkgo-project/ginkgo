@@ -62,7 +62,8 @@ namespace preconditioner {
  * hand side b (can contain multiple right hand sides).
  *
  * It allows to set both the solver for L and the solver for U independently,
- * while providing the defaults solver::LowerTrs and solver::UpperTrs.
+ * while providing the defaults solver::LowerTrs and solver::UpperTrs, which
+ * are direct triangular solvers.
  * For these solvers, a factory can be provided (with `with_l_solver_factory`
  * and `with_u_solver_factory`) to have more control over their behavior.
  * In particular, it is possible to use an iterative method for solving the
@@ -168,16 +169,16 @@ protected:
         /**
          * Returns the size that the solver using L and U would return
          *
-         * @param inverse_apply  determines if the solver solves for U first
-         *                       and then for L (inverse_apply = true), or
+         * @param reverse_apply  determines if the solver solves for U first
+         *                       and then for L (reverse_apply = true), or
          *                       first with L, then with U
-         *                       (inverse_apply = false)
+         *                       (reverse_apply = false)
          *
          * @returns the size that the solver using L and U would return
          */
-        dim<2> get_solver_size(bool inverse_apply = false) const
+        dim<2> get_solver_size(bool reverse_apply = false) const
         {
-            return (inverse_apply) ? dim<2>{l_factor->get_size()[0],
+            return (reverse_apply) ? dim<2>{l_factor->get_size()[0],
                                             u_factor->get_size()[1]}
                                    : dim<2>{u_factor->get_size()[0],
                                             l_factor->get_size()[1]};
@@ -318,7 +319,8 @@ protected:
      *
      */
     template <typename SolverType, typename = void>
-    struct has_with_criteria : std::false_type {};
+    struct has_with_criteria : std::false_type {
+    };
 
     /**
      * @copydoc has_with_criteria
@@ -332,7 +334,8 @@ protected:
         SolverType,
         xstd::void_t<decltype(std::declval<factory_type_t<SolverType>>()
                                   .with_criteria(with_criteria_param_type()))>>
-        : std::true_type {};
+        : std::true_type {
+    };
 
 
     /**
