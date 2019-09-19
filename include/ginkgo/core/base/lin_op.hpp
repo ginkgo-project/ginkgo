@@ -791,13 +791,19 @@ public:                                                                      \
 // A workaround for the NVCC compiler - parameter pack expansion does not work
 // properly. You won't be able to use factories in code compiled with NVCC, but
 // at least this won't trigger a compiler error as soon as a header using it is
-// included.
-#define GKO_FACTORY_PARAMETER(_name, ...) \
-    mutable _name{__VA_ARGS__};           \
-                                          \
-    template <typename... Args>           \
-    auto with_##_name(Args &&... _value)  \
-        const->const ::gko::xstd::decay_t<decltype(*this)> &
+// included. To not get a linker error, we provide a dummy body.
+#define GKO_FACTORY_PARAMETER(_name, ...)                                    \
+    mutable _name{__VA_ARGS__};                                              \
+                                                                             \
+    template <typename... Args>                                              \
+    auto with_##_name(Args &&... _value)                                     \
+        const->const ::gko::xstd::decay_t<decltype(*this)> &                 \
+    {                                                                        \
+        return *this;                                                        \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 #endif  // __CUDACC__
 
 
