@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <vector>
 
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -49,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
-
+#include <iostream>
 namespace gko {
 namespace matrix {
 
@@ -79,71 +80,34 @@ public:
     using index_type = IndexType;
 
     /**
-     * Returns a pointer to the array of row permutation.
+     * Returns a pointer to the array of permutation.
      *
      * @return the pointer to the row permutation array.
      */
-    index_type *get_row_permutation() noexcept
-    {
-        return row_permutation_.get_data();
-    }
+    index_type *get_permutation() noexcept { return permutation_.get_data(); }
 
     /**
-     * Returns a pointer to the array of column permutation.
-     *
-     * @return the pointer to the column permutation array.
-     */
-    index_type *get_col_permutation() noexcept
-    {
-        return col_permutation_.get_data();
-    }
-
-    /**
-     * @copydoc get_row_permutation()
+     * @copydoc get_permutation()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const index_type *get_const_row_permutation() const noexcept
+    const index_type *get_const_permutation() const noexcept
     {
-        return row_permutation_.get_const_data();
+        return permutation_.get_const_data();
     }
 
     /**
-     * @copydoc get_col_permutation()
-     *
-     * @note This is the constant version of the function, which can be
-     *       significantly more memory efficient than the non-constant version,
-     *       so always prefer this version.
-     */
-    const index_type *get_const_col_permutation() const noexcept
-    {
-        return col_permutation_.get_const_data();
-    }
-
-    /**
-     * Returns the number of elements explicitly stored in the row permutation
+     * Returns the number of elements explicitly stored in the permutation
      * array.
      *
-     * @return the number of elements explicitly stored in the row permutation
+     * @return the number of elements explicitly stored in the permutation
      * array.
      */
-    size_type get_size_row_permutation() const noexcept
+    size_type get_permutation_size() const noexcept
     {
-        return row_permutation_.get_num_elems();
-    }
-
-    /**
-     * Returns the number of elements explicitly stored in the column
-     * permutation array.
-     *
-     * @return the number of elements explicitly stored in the column
-     * permutation array.
-     */
-    size_type get_size_col_permutation() const noexcept
-    {
-        return col_permutation_.get_num_elems();
+        return permutation_.get_num_elems();
     }
 
 protected:
@@ -164,43 +128,13 @@ protected:
      */
     Permutation(std::shared_ptr<const Executor> exec, const dim<2> &size)
         : EnableLinOp<Permutation>(exec, size),
-          row_permutation_(exec, size[0]),
-          col_permutation_(exec, size[1]),
+          permutation_(exec, size[0]),
           row_size_(size[0]),
-          col_size_(size[1])
+          col_size_(size[1]),
+          permute_inverse_(false),
+          permute_row_(true),
+          permute_column_(false)
     {}
-
-    /**
-     * Creates a Permutation array from an already allocated (and initialized)
-     * row permutation indices array. By default, the column permutation is
-     * initialized so that even if the apply is called the columns are not
-     * permuted.
-     *
-     * @tparam IndicesArray  type of array of indices
-     *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the permutation array.
-     * @param row_indices array of row permutation array
-     *
-     * @note If `indices` is not an rvalue, not an array of IndexType, or is on
-     *       the wrong executor, an internal copy will be created, and the
-     *       original array data will not be used in the matrix.
-     */
-    template <typename IndicesArray>
-    Permutation(std::shared_ptr<const Executor> exec, const dim<2> &size,
-                IndicesArray &&row_indices)
-        : EnableLinOp<Permutation>(exec, size),
-          row_permutation_{exec, std::forward<IndicesArray>(row_indices)},
-          col_permutation_{exec, size[1]},
-          row_size_(size[0]),
-          col_size_(size[1])
-    {
-        std::vector<IndexType> t(col_size_, 0);
-        std::iota(t.begin(), t.end(), 0);
-        col_permutation_ = gko::Array<IndexType>(exec, t.begin(), t.end());
-        GKO_ENSURE_IN_BOUNDS(size[0] - 1, row_permutation_.get_num_elems());
-        GKO_ENSURE_IN_BOUNDS(size[1] - 1, col_permutation_.get_num_elems());
-    }
 
     /**
      * Creates a Permutation matrix from an already allocated (and initialized)
@@ -210,8 +144,7 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the permutation array.
-     * @param row_indices array of row permutation array
-     * @param col_indices array of col permutation array
+     * @param permutation_indices array of permutation array
      *
      * @note If `indices` is not an rvalue, not an array of IndexType, or is on
      *       the wrong executor, an internal copy will be created, and the
@@ -219,18 +152,44 @@ protected:
      */
     template <typename IndicesArray>
     Permutation(std::shared_ptr<const Executor> exec, const dim<2> &size,
-                IndicesArray &&row_indices, IndicesArray &&col_indices)
+                IndicesArray &&permutation_indices,
+                bool permute_inverse = false, bool permute_row = true,
+                bool permute_column = false)
         : EnableLinOp<Permutation>(exec, size),
-          row_permutation_{exec, std::forward<IndicesArray>(row_indices)},
-          col_permutation_{exec, std::forward<IndicesArray>(col_indices)},
+          permutation_{exec, std::forward<IndicesArray>(permutation_indices)},
           row_size_(size[0]),
-          col_size_(size[1])
+          col_size_(size[1]),
+          permute_inverse_(permute_inverse),
+          permute_row_(permute_row),
+          permute_column_(permute_column)
     {
-        GKO_ENSURE_IN_BOUNDS(size[0] - 1, row_permutation_.get_num_elems());
-        GKO_ENSURE_IN_BOUNDS(size[1] - 1, col_permutation_.get_num_elems());
+        if (permute_row_)
+            GKO_ENSURE_IN_BOUNDS(size[0] - 1, permutation_.get_num_elems());
+        if (permute_column_)
+            GKO_ENSURE_IN_BOUNDS(size[1] - 1, permutation_.get_num_elems());
     }
 
-    void apply_impl(const LinOp *b, LinOp *x) const {}
+    void apply_impl(const LinOp *b, LinOp *x) const
+    {
+        auto perm = as<Permutable<index_type>>(b);
+        std::unique_ptr<gko::LinOp> tmp{};
+        if (!permute_inverse_) {
+            if (permute_row_) {
+                tmp = perm->row_permute(&permutation_);
+            }
+            if (permute_column_) {
+                tmp = perm->column_permute(&permutation_);
+            }
+        } else {
+            if (permute_row_) {
+                tmp = perm->inverse_row_permute(&permutation_);
+            }
+            if (permute_column_) {
+                tmp = perm->inverse_column_permute(&permutation_);
+            }
+        }
+        x->copy_from(std::move(tmp));
+    }
 
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
@@ -239,10 +198,12 @@ protected:
 
 
 private:
-    Array<index_type> row_permutation_;
-    Array<index_type> col_permutation_;
+    Array<index_type> permutation_;
     size_type row_size_;
     size_type col_size_;
+    bool permute_row_;
+    bool permute_column_;
+    bool permute_inverse_;
 };
 
 

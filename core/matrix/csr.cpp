@@ -326,8 +326,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::conj_transpose() const
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Csr<ValueType, IndexType>>
-Csr<ValueType, IndexType>::row_permute(
+std::unique_ptr<LinOp> Csr<ValueType, IndexType>::row_permute(
     const Array<IndexType> *permutation_indices) const
 {
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
@@ -344,8 +343,7 @@ Csr<ValueType, IndexType>::row_permute(
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Csr<ValueType, IndexType>>
-Csr<ValueType, IndexType>::column_permute(
+std::unique_ptr<LinOp> Csr<ValueType, IndexType>::column_permute(
     const Array<IndexType> *permutation_indices) const
 {
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
@@ -362,8 +360,7 @@ Csr<ValueType, IndexType>::column_permute(
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Csr<ValueType, IndexType>>
-Csr<ValueType, IndexType>::inverse_row_permute(
+std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_row_permute(
     const Array<IndexType> *inverse_permutation_indices) const
 {
     GKO_ASSERT_EQ(inverse_permutation_indices->get_num_elems(),
@@ -381,8 +378,7 @@ Csr<ValueType, IndexType>::inverse_row_permute(
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Csr<ValueType, IndexType>>
-Csr<ValueType, IndexType>::inverse_column_permute(
+std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_column_permute(
     const Array<IndexType> *inverse_permutation_indices) const
 {
     GKO_ASSERT_EQ(inverse_permutation_indices->get_num_elems(),

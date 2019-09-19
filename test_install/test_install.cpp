@@ -238,6 +238,12 @@ int main(int, char **)
         auto test = Mtx::create(refExec);
     }
 
+    // core/matrix/permutation.hpp
+    {
+        using Mtx = gko::matrix::Permutation<>;
+        auto test = Mtx::create(refExec, gko::dim<2>{2, 2});
+    }
+
     // core/matrix/sellp.hpp
     {
         using Mtx = gko::matrix::Sellp<>;

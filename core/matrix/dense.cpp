@@ -595,7 +595,7 @@ std::unique_ptr<LinOp> Dense<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_permute(
+std::unique_ptr<LinOp> Dense<ValueType>::row_permute(
     const Array<int32> *permutation_indices) const
 {
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
@@ -610,7 +610,7 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::column_permute(
+std::unique_ptr<LinOp> Dense<ValueType>::column_permute(
     const Array<int32> *permutation_indices) const
 {
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
@@ -625,7 +625,7 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::column_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_permute(
+std::unique_ptr<LinOp> Dense<ValueType>::row_permute(
     const Array<int64> *permutation_indices) const
 {
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[0]);
@@ -640,7 +640,7 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::column_permute(
+std::unique_ptr<LinOp> Dense<ValueType>::column_permute(
     const Array<int64> *permutation_indices) const
 {
     GKO_ASSERT_EQ(permutation_indices->get_num_elems(), this->get_size()[1]);
@@ -655,7 +655,7 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::column_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::inverse_row_permute(
+std::unique_ptr<LinOp> Dense<ValueType>::inverse_row_permute(
     const Array<int32> *inverse_permutation_indices) const
 {
     GKO_ASSERT_EQ(inverse_permutation_indices->get_num_elems(),
@@ -671,7 +671,7 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::inverse_row_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::inverse_column_permute(
+std::unique_ptr<LinOp> Dense<ValueType>::inverse_column_permute(
     const Array<int32> *inverse_permutation_indices) const
 {
     GKO_ASSERT_EQ(inverse_permutation_indices->get_num_elems(),
@@ -687,7 +687,7 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::inverse_column_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::inverse_row_permute(
+std::unique_ptr<LinOp> Dense<ValueType>::inverse_row_permute(
     const Array<int64> *inverse_permutation_indices) const
 {
     GKO_ASSERT_EQ(inverse_permutation_indices->get_num_elems(),
@@ -703,7 +703,7 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::inverse_row_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::inverse_column_permute(
+std::unique_ptr<LinOp> Dense<ValueType>::inverse_column_permute(
     const Array<int64> *inverse_permutation_indices) const
 {
     GKO_ASSERT_EQ(inverse_permutation_indices->get_num_elems(),
