@@ -80,6 +80,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void count_num_diagonal_elements(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const matrix::Sparsity<ValueType, IndexType> *matrix,
+    size_type &num_diagonal_elements) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void remove_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
                               matrix::Sparsity<ValueType, IndexType> *matrix,
                               const IndexType *row_ptrs,
