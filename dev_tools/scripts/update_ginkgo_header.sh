@@ -72,7 +72,7 @@ while IFS='' read -r line; do
     # Use echo to remove '\r' in Windows.
     line="$(echo "$line")"
     if [ "$line" != "${PLACE_HOLDER}" ]; then
-        # Split context and newline interpretor to avoid unexpected interpretion.
+        # Split context and newline interpretor to avoid unexpected interpretation.
         echo -n "${line}" >> "${GINKGO_HEADER_TMP}"
         echo -e "${END}" >> "${GINKGO_HEADER_TMP}"
     else

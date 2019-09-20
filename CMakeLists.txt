@@ -35,9 +35,10 @@ option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 if(BUILD_SHARED_LIBS AND WIN32 AND (GINKGO_BUILD_TESTS OR GINKGO_BUILD_EXAMPLES OR GINKGO_BUILD_BENCHMARKS))
     # Change shared libraries output only if this build has executable program with shared libraries.
     set(GINKGO_CHANGED_SHARED_LIBRARY TRUE)
-    option(GINKGO_CHECK_PATH "Tell Ginkgo to check environment PATH is available for this build." ON)
+    option(GINKGO_CHECK_PATH "Tell Ginkgo to check if the environment variable PATH is available for this build." ON)
     set(GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH "windows_shared_library" CACHE STRING
-        "Set Ginkgo's shared library relative path in windows. This absoulte path must be in environment PATH. Current default is `windows_shared_library`.")
+        "Set Ginkgo's shared library relative path in windows. Current default is `windows_shared_library`. \
+        This absoulte path ${PROJECT_BINARY_DIR}/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH must be in the environment variable PATH.")
     set(GINKGO_WINDOWS_SHARED_LIBRARY_PATH ${PROJECT_BINARY_DIR}/${GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH})
 else()
     set(GINKGO_CHANGED_SHARED_LIBRARY FALSE)

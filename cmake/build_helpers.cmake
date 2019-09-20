@@ -18,7 +18,7 @@ function(ginkgo_compile_features name)
         set_property(TARGET "${name}" PROPERTY CXX_INCLUDE_WHAT_YOU_USE ${GINKGO_IWYU_PATH})
     endif()
     if(GINKGO_CHANGED_SHARED_LIBRARY)
-        # Put all shared libraries and corresponding imported libraries into the specficed path
+        # Put all shared libraries and corresponding imported libraries into the specified path
         set_property(TARGET "${name}" PROPERTY
             RUNTIME_OUTPUT_DIRECTORY "${GINKGO_WINDOWS_SHARED_LIBRARY_PATH}")
         set_property(TARGET "${name}" PROPERTY
@@ -32,24 +32,27 @@ endfunction()
 function(ginkgo_check_shared_library name)
     set(PATH_LIST $ENV{PATH})
     set(PASSED_TEST FALSE)
-    foreach(ITEM ${PATH_LIST})
+    foreach(ITEM IN LISTS PATH_LIST)
         string(REPLACE "\\" "/" ITEM "${ITEM}")
         if("${ITEM}" STREQUAL "${GINKGO_WINDOWS_SHARED_LIBRARY_PATH}")
             set(PASSED_TEST TRUE)
             break()
         else()
             # If any path before this build, the path must not contain the ginkgo shared library
-            set(EXISTED_DLL "EXISTED_DLL-NOTFOUND")
-            find_file(EXISTED_DLL "${name}" PATHS "${ITEM}" NO_DEFAULT_PATH)
-            if(NOT "${EXISTED_DLL}" STREQUAL "EXISTED_DLL-NOTFOUND")
+            find_file(EXISTING_DLL "${name}" PATHS "${ITEM}" NO_DEFAULT_PATH)
+            if(NOT "${EXISTING_DLL}" STREQUAL "EXISTING_DLL-NOTFOUND")
+                # clean the EXISTING_DLL before termination
+                unset(EXISTING_DLL CACHE)
                 message(FATAL_ERROR "Detect ${name} in ${ITEM} eariler than this build. "
                     "Please add ${GINKGO_WINDOWS_SHARED_LIBRARY_PATH} before other ginkgo path.")
             endif()
+            # do not keep this variable in cache
+            unset(EXISTING_DLL CACHE)
         endif()
     endforeach(ITEM)
     if(NOT PASSED_TEST)
-        # Do not find this build in environment PATH
-        message(FATAL_ERROR "Do not find this build in environment PATH. "
-            "Please add ${GINKGO_WINDOWS_SHARED_LIBRARY_PATH} into environment PATH.")
+        # Did not find this build in the environment variable PATH
+        message(FATAL_ERROR "Did not find this build in the environment variable PATH. "
+            "Please add ${GINKGO_WINDOWS_SHARED_LIBRARY_PATH} into the environment variable PATH.")
     endif()
 endfunction()

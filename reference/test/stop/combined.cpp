@@ -138,7 +138,7 @@ TEST_F(Combined, WaitsTillTime)
     auto start = std::chrono::steady_clock::now();
 
     for (int i = 0; i < testiters; i++) {
-        sleep_millisecond(timelimit_ms/testiters);
+        sleep_millisecond(timelimit_ms / testiters);
         if (criterion->update().num_iterations(i).check(
                 RelativeStoppingId, true, &stop_status, &one_changed))
             break;
@@ -146,7 +146,6 @@ TEST_F(Combined, WaitsTillTime)
     auto time = std::chrono::steady_clock::now() - start;
     double time_d = std::chrono::duration_cast<double_seconds>(time).count();
 
-    
     ASSERT_GE(time_d, timelimit_ms * 1e-3);
     ASSERT_EQ(static_cast<int>(stop_status.get_data()[0].get_id()), 2);
 }
