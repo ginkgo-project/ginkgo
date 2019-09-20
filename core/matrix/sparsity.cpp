@@ -51,6 +51,8 @@ namespace sparsity {
 GKO_REGISTER_OPERATION(spmv, sparsity::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, sparsity::advanced_spmv);
 GKO_REGISTER_OPERATION(transpose, sparsity::transpose);
+GKO_REGISTER_OPERATION(count_num_diagonal_elements,
+                       sparsity::count_num_diagonal_elements);
 GKO_REGISTER_OPERATION(remove_diagonal_elements,
                        sparsity::remove_diagonal_elements);
 GKO_REGISTER_OPERATION(sort_by_column_index, sparsity::sort_by_column_index);
@@ -94,6 +96,7 @@ void Sparsity<ValueType, IndexType>::read(const mat_data &data)
     size_type ind = 0;
     size_type cur_ptr = 0;
     tmp->get_row_ptrs()[0] = cur_ptr;
+    tmp->get_value()[0] = one<ValueType>();
     for (size_type row = 0; row < data.size[0]; ++row) {
         for (; ind < data.nonzeros.size(); ++ind) {
             if (data.nonzeros[ind].row > row) {
@@ -159,8 +162,12 @@ std::unique_ptr<Sparsity<ValueType, IndexType>>
 Sparsity<ValueType, IndexType>::to_adjacency_matrix() const
 {
     auto exec = this->get_executor();
-    auto adj_mat = Sparsity::create(
-        exec, this->get_size(), this->get_num_nonzeros() - this->get_size()[0]);
+    size_type num_diagonal_elements = 0;
+    exec->run(sparsity::make_count_num_diagonal_elements(
+        this, num_diagonal_elements));
+    auto adj_mat =
+        Sparsity::create(exec, this->get_size(),
+                         this->get_num_nonzeros() - num_diagonal_elements);
 
     exec->run(sparsity::make_remove_diagonal_elements(
         adj_mat.get(), this->get_const_row_ptrs(), this->get_const_col_idxs()));

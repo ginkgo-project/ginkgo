@@ -63,6 +63,13 @@ namespace kernels {
         matrix::Sparsity<ValueType, IndexType> *matrix,                 \
         const IndexType *row_ptrs, const IndexType *col_idxs)
 
+#define GKO_DECLARE_SPARSITY_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL(ValueType, \
+                                                                IndexType) \
+    void count_num_diagonal_elements(                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        const matrix::Sparsity<ValueType, IndexType> *matrix,              \
+        size_type &num_diagonal_elements)
+
 #define GKO_DECLARE_SPARSITY_TRANSPOSE_KERNEL(ValueType, IndexType) \
     void transpose(std::shared_ptr<const DefaultExecutor> exec,     \
                    matrix::Sparsity<ValueType, IndexType> *trans,   \
@@ -78,19 +85,22 @@ namespace kernels {
         const matrix::Sparsity<ValueType, IndexType> *to_check,              \
         bool *is_sorted)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_SPARSITY_SPMV_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_SPARSITY_ADVANCED_SPMV_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_SPARSITY_REMOVE_DIAGONAL_ELEMENTS_KERNEL(ValueType,  \
-                                                         IndexType); \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_SPARSITY_TRANSPOSE_KERNEL(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_SPARSITY_SORT_BY_COLUMN_INDEX(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_SPARSITY_SPMV_KERNEL(ValueType, IndexType);             \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_SPARSITY_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_SPARSITY_REMOVE_DIAGONAL_ELEMENTS_KERNEL(ValueType,     \
+                                                         IndexType);    \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_SPARSITY_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL(ValueType,  \
+                                                            IndexType); \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_SPARSITY_TRANSPOSE_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_SPARSITY_SORT_BY_COLUMN_INDEX(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_SPARSITY_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType)
 
 
