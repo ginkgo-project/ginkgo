@@ -46,6 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
+#include <ginkgo/core/matrix/sparsity.hpp>
 #include <ginkgo/core/reorder/reordering.hpp>
 
 
@@ -59,43 +61,21 @@ namespace reorder {
 
 
 /**
- * ParILU is an incomplete LU reorder which is computed in parallel.
+ * MetisFillReduce is the reordering algorithm which uses METIS to compute a
+ * fill reducing re-ordering of the given sparse matrix. The METIS
+ * `Metis_NodeND` which is implements the multilevel nested dissection algorithm
+ * as in the METIS documentation.
  *
- * $L$ is a lower unitriangular, while $U$ is an upper triangular matrix, which
- * approximate a given matrix $A$ with $A \approx LU$. Here, $L$ and $U$ have
- * the same sparsity pattern as $A$, which is also called ILU(0).
- *
- * The ParILU algorithm generates the incomplete factors iteratively, using a
- * fixed-point iteration of the form
- *
- * $
- * F(L, U) =
- * \begin{cases}
- *     \frac{1}{u_{jj}}
- *         \left(a_{ij}-\sum_{k=1}^{j-1}l_{ik}u_{kj}\right), \quad & i>j \\
- *     a_{ij}-\sum_{k=1}^{i-1}l_{ik}u_{kj}, \quad & i\leq j
- * \end{cases}
- * $
- *
- * In general, the entries of $L$ and $U$ can be iterated in parallel and in
- * asynchronous fashion, the algorithm asymptotically converges to the
- * incomplete factors $L$ and $U$ fulfilling $\left(R = A - L \cdot
- * U\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$ where $\mathcal{S}$ is the
- * pre-defined sparsity pattern (in case of ILU(0) the sparsity pattern of the
- * system matrix $A$). The number of ParILU sweeps needed for convergence
- * depends on the parallelism level: For sequential execution, a single sweep
- * is sufficient, for fine-grained parallelism, 3 sweeps are typically
- * generating a good approximation.
- *
- * The ParILU algorithm in Ginkgo follows the design of E. Chow and A. Patel,
- * Fine-grained Parallel Incomplete LU Reorder, SIAM Journal on Scientific
- * Computing, 37, C169-C193 (2015).
+ * @note  This class is derives from polymorphic object but is not a LinOp as it
+ * does not make sense for this class to implement the apply methods. The
+ * objective of this class is to generate a reordering/permutation vector (in
+ * the form of the Permutation matrix), which can be used to apply to reorder a
+ * matrix as required.
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrices used in this class
  *
- * @ingroup factor
- * @ingroup linop
+ * @ingroup reorder
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class MetisFillReduce
@@ -104,32 +84,26 @@ class MetisFillReduce
     friend class EnablePolymorphicObject<MetisFillReduce, Reordering>;
 
 public:
-    std::shared_ptr<Array<IndexType>> get_adj_ptrs() const { return adj_ptrs_; }
+    using SparsityMatrix = matrix::Sparsity<ValueType, IndexType>;
+    using PermutationMatrix = matrix::Permutation<IndexType>;
 
-    std::shared_ptr<Array<IndexType>> get_adj_idxs() const { return adj_idxs_; }
-
-    std::shared_ptr<matrix::Csr<ValueType, IndexType>> get_system_matrix() const
+    std::shared_ptr<SparsityMatrix> get_adjacency_matrix() const
     {
-        return system_matrix_;
+        return adjacency_matrix_;
     }
 
-    std::shared_ptr<Array<IndexType>> get_permutation() const
+    std::shared_ptr<PermutationMatrix> get_permutation() const
     {
         return permutation_;
     }
-    std::shared_ptr<Array<IndexType>> get_inverse_permutation() const
+
+    std::shared_ptr<PermutationMatrix> get_inverse_permutation() const
     {
         return inv_permutation_;
     }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
-        /**
-         * If this parameter is set then an inverse permutation matrix is also
-         * constructed along with the normal permutation matrix.
-         */
-        bool GKO_FACTORY_PARAMETER(remove_diagonal_elements, true);
-
         /**
          * If this parameter is set then an inverse permutation matrix is also
          * constructed along with the normal permutation matrix.
@@ -149,16 +123,6 @@ public:
 
 protected:
     /**
-     * Permutes the input Linear operator.
-     */
-    void permute(LinOp *to_permute) const;
-
-    /**
-     * Inverts the permutation the input Linear operator.
-     */
-    void inverse_permute(LinOp *to_permute) const;
-
-    /**
      * Generates the permutation matrix and if required the inverse permutation
      * matrix.
      */
@@ -173,42 +137,39 @@ protected:
               factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
-        using CsrMatrix = matrix::Csr<ValueType, IndexType>;
-
         const auto exec = this->get_executor();
-        GKO_ASSERT_IS_SQUARE_MATRIX(args.system_matrix);
+        // The adjacency matrix has to be square.
+        GKO_ASSERT_IS_SQUARE_MATRIX(args.adjacency_matrix);
         // This is needed because it does not make sense to call the copy and
         // convert if the existing matrix is empty.
-        if (!args.system_matrix->get_size()) {
-            system_matrix_ = CsrMatrix::create(exec);
+        if (!args.adjacency_matrix->get_size()) {
+            adjacency_matrix_ = SparsityMatrix::create(exec);
         } else {
-            system_matrix_ =
-                copy_and_convert_to<CsrMatrix>(exec, args.system_matrix);
+            auto tmp = copy_and_convert_to<SparsityMatrix>(
+                exec, args.adjacency_matrix);
+            // This function provided within the Sparsity matrix format removes
+            // the diagonal elements and outputs an adjacency matrix.
+            adjacency_matrix_ = tmp->to_adjacency_matrix();
         }
         vertex_weights_ = std::shared_ptr<Array<IndexType>>(
-            new Array<IndexType>{exec, system_matrix_->get_size()[0]});
-        for (auto i = 0; i < system_matrix_->get_size()[0]; ++i) {
+            new Array<IndexType>{exec, adjacency_matrix_->get_size()[0]});
+        // TODO: Fix this
+        for (auto i = 0; i < adjacency_matrix_->get_size()[0]; ++i) {
             vertex_weights_->get_data()[i] = 1;
         }
-        adj_ptrs_ = std::shared_ptr<Array<IndexType>>(
-            new Array<IndexType>{exec, system_matrix_->get_size()[0] + 1});
-        adj_idxs_ = std::shared_ptr<Array<IndexType>>(new Array<IndexType>{
-            exec, system_matrix_->get_num_stored_elements() -
-                      system_matrix_->get_size()[0]});
-        permutation_ = std::shared_ptr<Array<IndexType>>(
-            new Array<IndexType>{exec, system_matrix_->get_size()[0]});
-        inv_permutation_ = std::shared_ptr<Array<IndexType>>(
-            new Array<IndexType>{exec, system_matrix_->get_size()[0]});
+        permutation_ =
+            PermutationMatrix::create(exec, adjacency_matrix_->get_size());
+        inv_permutation_ =
+            PermutationMatrix::create(exec, adjacency_matrix_->get_size());
+
         this->generate();
     }
 
 private:
-    std::shared_ptr<matrix::Csr<ValueType, IndexType>> system_matrix_{};
-    std::shared_ptr<Array<IndexType>> adj_ptrs_{};
-    std::shared_ptr<Array<IndexType>> adj_idxs_{};
+    std::shared_ptr<SparsityMatrix> adjacency_matrix_{};
     std::shared_ptr<Array<IndexType>> vertex_weights_{};
-    std::shared_ptr<Array<IndexType>> permutation_{};
-    std::shared_ptr<Array<IndexType>> inv_permutation_{};
+    std::shared_ptr<PermutationMatrix> permutation_{};
+    std::shared_ptr<PermutationMatrix> inv_permutation_{};
 };
 
 

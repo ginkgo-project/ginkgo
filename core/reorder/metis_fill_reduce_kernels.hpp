@@ -45,38 +45,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/metis_types.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
+#include <ginkgo/core/matrix/sparsity.hpp>
 
 
 namespace gko {
 namespace kernels {
 
-#define GKO_DECLARE_METIS_FILL_REDUCE_REMOVE_DIAGONAL_ELEMENTS_KERNEL(       \
-    ValueType, IndexType)                                                    \
-    void remove_diagonal_elements(                                           \
-        std::shared_ptr<const DefaultExecutor> exec,                         \
-        bool remove_diagonal_elements,                                       \
-        gko::matrix::Csr<ValueType, IndexType> *matrix, IndexType *adj_ptrs, \
-        IndexType *adj_idxs)
 
-#define GKO_DECLARE_METIS_FILL_REDUCE_GET_PERMUTATION_KERNEL(IndexType)      \
-    void get_permutation(std::shared_ptr<const DefaultExecutor> exec,        \
-                         IndexType num_vertices, IndexType *mat_row_ptrs,    \
-                         IndexType *mat_col_idxs, IndexType *vertex_weights, \
-                         IndexType *permutation, IndexType *inv_permutation)
+#define GKO_DECLARE_METIS_FILL_REDUCE_GET_PERMUTATION_KERNEL(ValueType,      \
+                                                             IndexType)      \
+    void get_permutation(                                                    \
+        std::shared_ptr<const DefaultExecutor> exec, size_type num_vertices, \
+        std::shared_ptr<matrix::Sparsity<ValueType, IndexType>>              \
+            adjacency_matrix,                                                \
+        std::shared_ptr<Array<IndexType>> vertex_weights,                    \
+        std::shared_ptr<matrix::Permutation<IndexType>> permutation_mat,     \
+        std::shared_ptr<matrix::Permutation<IndexType>> inv_permutation_mat)
 
-#define GKO_DECLARE_METIS_FILL_REDUCE_PERMUTE_KERNEL(IndexType) \
-    void permute(std::shared_ptr<const DefaultExecutor> exec,   \
-                 gko::Array<IndexType> *permutation_matrix,     \
-                 gko::LinOp *to_permute)
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                          \
-    template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_METIS_FILL_REDUCE_REMOVE_DIAGONAL_ELEMENTS_KERNEL(ValueType,  \
-                                                                  IndexType); \
-    template <typename IndexType>                                             \
-    GKO_DECLARE_METIS_FILL_REDUCE_GET_PERMUTATION_KERNEL(IndexType);          \
-    template <typename IndexType>                                             \
-    GKO_DECLARE_METIS_FILL_REDUCE_PERMUTE_KERNEL(IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
+    template <typename ValueType, typename IndexType> \
+    GKO_DECLARE_METIS_FILL_REDUCE_GET_PERMUTATION_KERNEL(ValueType, IndexType)
 
 
 namespace omp {

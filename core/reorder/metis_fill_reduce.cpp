@@ -44,6 +44,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
+#include <ginkgo/core/matrix/sparsity.hpp>
 
 
 #include "core/matrix/csr_kernels.hpp"
@@ -56,9 +58,6 @@ namespace metis_fill_reduce {
 
 
 GKO_REGISTER_OPERATION(get_permutation, metis_fill_reduce::get_permutation);
-GKO_REGISTER_OPERATION(remove_diagonal_elements,
-                       metis_fill_reduce::remove_diagonal_elements);
-GKO_REGISTER_OPERATION(permute, metis_fill_reduce::permute);
 
 
 }  // namespace metis_fill_reduce
@@ -67,41 +66,14 @@ GKO_REGISTER_OPERATION(permute, metis_fill_reduce::permute);
 template <typename ValueType, typename IndexType>
 void MetisFillReduce<ValueType, IndexType>::generate() const
 {
-    IndexType num_rows = system_matrix_->get_size()[0];
+    IndexType num_rows = adjacency_matrix_->get_size()[0];
     const auto exec = this->get_executor();
-
-    exec->run(metis_fill_reduce::make_remove_diagonal_elements(
-        parameters_.remove_diagonal_elements, gko::lend(system_matrix_),
-        adj_ptrs_->get_data(), adj_idxs_->get_data()));
 
     exec->run(metis_fill_reduce::make_get_permutation(
-        num_rows, adj_ptrs_->get_data(), adj_idxs_->get_data(),
-        vertex_weights_->get_data(), permutation_->get_data(),
-        inv_permutation_->get_data()));
+        num_rows, adjacency_matrix_, vertex_weights_, permutation_,
+        inv_permutation_));
 }
 
-
-template <typename ValueType, typename IndexType>
-void MetisFillReduce<ValueType, IndexType>::permute(LinOp *to_permute) const
-{
-    const auto exec = this->get_executor();
-
-    exec->run(
-        metis_fill_reduce::make_permute(gko::lend(permutation_), to_permute));
-}
-
-
-template <typename ValueType, typename IndexType>
-void MetisFillReduce<ValueType, IndexType>::inverse_permute(
-    LinOp *to_permute) const
-{
-    const auto exec = this->get_executor();
-
-    if (parameters_.construct_inverse_permutation) {
-        exec->run(metis_fill_reduce::make_permute(gko::lend(inv_permutation_),
-                                                  to_permute));
-    }
-}
 
 #define GKO_DECLARE_METIS_FILL_REDUCE(ValueType, IndexType) \
     class MetisFillReduce<ValueType, IndexType>

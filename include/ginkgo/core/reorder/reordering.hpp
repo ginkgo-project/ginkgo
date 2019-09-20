@@ -72,17 +72,12 @@ protected:
  * This struct is used to pass parameters to the
  * EnableDefaultReorderingFactoryReorderingFactory::generate() method. It is the
  * ComponentsType of ReorderingFactory.
- *
- * @note Dependly on the use case, some of these parameters can be `nullptr` as
- * only some reorderping reordering require them to be set. An example is the
- * `ResidualNormReduction` which really requires the `initial_residual` to be
- * set.
  */
 struct ReorderingArgs {
-    std::shared_ptr<LinOp> system_matrix;
+    std::shared_ptr<LinOp> adjacency_matrix;
 
-    ReorderingArgs(std::shared_ptr<LinOp> system_matrix)
-        : system_matrix{system_matrix}
+    ReorderingArgs(std::shared_ptr<LinOp> adjacency_matrix)
+        : adjacency_matrix{adjacency_matrix}
     {}
 };
 

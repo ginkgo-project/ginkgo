@@ -36,8 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <fstream>
 #include <memory>
-#include <string>
-#include <typeinfo>
 
 
 #include <gtest/gtest.h>
@@ -47,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/metis_types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/sparsity.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -83,11 +81,13 @@ protected:
 
 TEST_F(MetisFillReduce, FactoryCreatesCorrectReorderOp)
 {
-    auto sys_mtx = reorder_op->get_system_matrix();
+    auto adj_mtx = reorder_op->get_adjacency_matrix();
     auto p = reorder_op->get_permutation();
 
-    ASSERT_NE(reorder_op->get_system_matrix(), nullptr);
-    GKO_ASSERT_MTX_NEAR(sys_mtx.get(), ani4_mtx.get(), 0);
+    auto tmp = gko::matrix::Sparsity<v_type, i_type>::create(exec, ani4_mtx);
+    auto comp_mtx = tmp->to_adjacency_matrix();
+    ASSERT_NE(reorder_op->get_adjacency_matrix(), nullptr);
+    GKO_ASSERT_MTX_NEAR(adj_mtx.get(), comp_mtx.get(), 0);
 }
 
 
@@ -95,7 +95,7 @@ TEST_F(MetisFillReduce, CanBeCleared)
 {
     reorder_op->clear();
 
-    auto reorder_op_mtx = reorder_op->get_system_matrix();
+    auto reorder_op_mtx = reorder_op->get_adjacency_matrix();
     ASSERT_EQ(reorder_op_mtx, nullptr);
 }
 

@@ -38,6 +38,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
+#include <ginkgo/core/matrix/sparsity.hpp>
 
 
 #include "cuda/base/math.hpp"
@@ -57,34 +59,16 @@ namespace metis_fill_reduce {
 
 
 template <typename ValueType, typename IndexType>
-void remove_diagonal_elements(std::shared_ptr<const CudaExecutor> exec,
-                              bool remove_diagonal_elements,
-                              gko::matrix::Csr<ValueType, IndexType> *matrix,
-                              IndexType *adj_ptrs, IndexType *adj_idxs)
-{}
+void get_permutation(
+    std::shared_ptr<const CudaExecutor> exec, size_type num_vertices,
+    std::shared_ptr<matrix::Sparsity<ValueType, IndexType>> adjacency_matrix,
+    std::shared_ptr<Array<IndexType>> vertex_weights,
+    std::shared_ptr<matrix::Permutation<IndexType>> permutation_mat,
+    std::shared_ptr<matrix::Permutation<IndexType>> inv_permutation_mat)
+    GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(
-    GKO_DECLARE_METIS_FILL_REDUCE_REMOVE_DIAGONAL_ELEMENTS_KERNEL);
-
-
-template <typename IndexType>
-void get_permutation(std::shared_ptr<const CudaExecutor> exec,
-                     IndexType num_vertices, IndexType *adj_ptrs,
-                     IndexType *adj_idxs, IndexType *vertex_weights,
-                     IndexType *permutation,
-                     IndexType *inv_permutation) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_METIS_INDEX_TYPE(
     GKO_DECLARE_METIS_FILL_REDUCE_GET_PERMUTATION_KERNEL);
-
-
-template <typename IndexType>
-void permute(std::shared_ptr<const CudaExecutor> exec,
-             gko::Array<IndexType> *permutation, gko::LinOp *to_permute)
-{}
-
-GKO_INSTANTIATE_FOR_EACH_METIS_INDEX_TYPE(
-    GKO_DECLARE_METIS_FILL_REDUCE_PERMUTE_KERNEL);
 
 
 }  // namespace metis_fill_reduce
