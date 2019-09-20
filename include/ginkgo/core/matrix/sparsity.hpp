@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_MATRIX_SPARSITY_HPP_
 
 
+#include <vector>
+
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 
@@ -240,6 +243,21 @@ protected:
         GKO_ENSURE_IN_BOUNDS(col_idxs_.get_num_elems() - 1,
                              col_idxs_.get_num_elems());
         GKO_ENSURE_IN_BOUNDS(this->get_size()[0], row_ptrs_.get_num_elems());
+    }
+
+    /**
+     * Creates a SPARSITY matrix from an existing matrix. Uses the
+     * `copy_and_convert_to` functionality.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param matrix The input matrix
+     */
+    Sparsity(std::shared_ptr<const Executor> exec,
+             std::shared_ptr<const LinOp> matrix)
+        : EnableLinOp<Sparsity>(exec, matrix->get_size())
+    {
+        auto tmp_ = copy_and_convert_to<Sparsity>(exec, matrix);
+        this->copy_from(std::move(tmp_.get()));
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
