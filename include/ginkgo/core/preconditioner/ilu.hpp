@@ -57,7 +57,7 @@ namespace preconditioner {
 
 
 /**
- * The incomplete LU (ILU) preconditioner solves the equation LUx = b for a
+ * The Incomplete LU (ILU) preconditioner solves the equation $LUx = b$ for a
  * given lower triangular matrix L, an upper triangular matrix U and the right
  * hand side b (can contain multiple right hand sides).
  *
@@ -169,19 +169,14 @@ protected:
         /**
          * Returns the size that the solver using L and U would return
          *
-         * @param reverse_apply  determines if the solver solves for U first
-         *                       and then for L (reverse_apply = true), or
-         *                       first with L, then with U
-         *                       (reverse_apply = false)
-         *
          * @returns the size that the solver using L and U would return
          */
-        dim<2> get_solver_size(bool reverse_apply = false) const
+        dim<2> get_solver_size() const
         {
-            return (reverse_apply) ? dim<2>{l_factor->get_size()[0],
-                                            u_factor->get_size()[1]}
-                                   : dim<2>{u_factor->get_size()[0],
-                                            l_factor->get_size()[1]};
+            return (ReverseApply) ? dim<2>{l_factor->get_size()[0],
+                                           u_factor->get_size()[1]}
+                                  : dim<2>{u_factor->get_size()[0],
+                                           l_factor->get_size()[1]};
         }
 
         std::shared_ptr<const LinOp> l_factor;
@@ -259,8 +254,7 @@ protected:
     {}
 
     explicit Ilu(const Factory *factory, LuArgs lu_args)
-        : EnableLinOp<Ilu>(factory->get_executor(),
-                           lu_args.get_solver_size(ReverseApply)),
+        : EnableLinOp<Ilu>(factory->get_executor(), lu_args.get_solver_size()),
           parameters_{factory->get_parameters()}
     {
         GKO_ASSERT_EQUAL_DIMENSIONS(lu_args.l_factor, lu_args.u_factor);
@@ -319,8 +313,7 @@ protected:
      *
      */
     template <typename SolverType, typename = void>
-    struct has_with_criteria : std::false_type {
-    };
+    struct has_with_criteria : std::false_type {};
 
     /**
      * @copydoc has_with_criteria
@@ -334,8 +327,7 @@ protected:
         SolverType,
         xstd::void_t<decltype(std::declval<factory_type_t<SolverType>>()
                                   .with_criteria(with_criteria_param_type()))>>
-        : std::true_type {
-    };
+        : std::true_type {};
 
 
     /**

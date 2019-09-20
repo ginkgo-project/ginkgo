@@ -52,13 +52,10 @@ namespace {
 class IluFactory : public ::testing::Test {
 protected:
     using value_type = double;
-    using Mtx = gko::matrix::Dense<value_type>;
-    using default_ilu = gko::preconditioner::Ilu<>;
     using l_solver_type = gko::solver::Bicgstab<value_type>;
     using u_solver_type = gko::solver::Bicgstab<value_type>;
     using ilu_prec_type =
         gko::preconditioner::Ilu<l_solver_type, u_solver_type, false>;
-    static constexpr int size_matrix{10};
 
     IluFactory()
         : exec(gko::ReferenceExecutor::create()),
