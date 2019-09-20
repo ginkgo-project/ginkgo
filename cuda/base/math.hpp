@@ -52,8 +52,7 @@ struct remove_complex_impl<thrust::complex<T>> {
 
 template <typename T>
 struct is_complex_impl<thrust::complex<T>>
-    : public std::integral_constant<bool, true> {
-};
+    : public std::integral_constant<bool, true> {};
 
 
 template <typename T>
@@ -94,9 +93,9 @@ __device__ GKO_INLINE std::complex<double> one<std::complex<double>>()
 }
 
 
-// This first part is specific for clang in combination with the nvcc compiler
-// from the toolkit older than 9.2.
-// clang wants to use their `__builtin_isfinite` function, which is not present
+// This first part is specific for clang and intel in combination with the nvcc
+// compiler from the toolkit older than 9.2.
+// Both want to use their `__builtin_isfinite` function, which is not present
 // as a __device__ function, so it results in a compiler error.
 // Here, `isfinite` is written by hand, which might not be as performant as the
 // intrinsic function from CUDA, but it compiles and works.
@@ -110,12 +109,11 @@ namespace detail {
 
 
 /**
- * Structure that can be used to get the exponent mask of a given floating
+ * This structure can be used to get the exponent mask of a given floating
  * point type. Uses specialization to implement different types.
  */
 template <typename T>
-struct mask_creator {
-};
+struct mask_creator {};
 
 template <>
 struct mask_creator<float> {
