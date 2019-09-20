@@ -23,6 +23,16 @@ function(ginkgo_compile_features name)
             RUNTIME_OUTPUT_DIRECTORY "${GINKGO_WINDOWS_SHARED_LIBRARY_PATH}")
         set_property(TARGET "${name}" PROPERTY
             ARCHIVE_OUTPUT_DIRECTORY "${GINKGO_WINDOWS_SHARED_LIBRARY_PATH}")
+        if(MSVC)
+            # MSVC would create subfolder according to build_type. Ginkgo forces the output be the same whatever build_type is.
+            foreach(CONFIG ${CMAKE_CONFIGURATION_TYPES})
+                string(TOUPPER ${CONFIG} CONFIG )
+                set_property(TARGET "${name}" PROPERTY
+                    RUNTIME_OUTPUT_DIRECTORY_${CONFIG} "${GINKGO_WINDOWS_SHARED_LIBRARY_PATH}")
+                set_property(TARGET "${name}" PROPERTY
+                    ARCHIVE_OUTPUT_DIRECTORY_${CONFIG} "${GINKGO_WINDOWS_SHARED_LIBRARY_PATH}")
+            endforeach()
+        endif()
         if(GINKGO_CHECK_PATH)
             ginkgo_check_shared_library("${CMAKE_SHARED_LIBRARY_PREFIX}${name}${CMAKE_SHARED_LIBRARY_SUFFIX}")
         endif()
@@ -49,7 +59,7 @@ function(ginkgo_check_shared_library name)
             # do not keep this variable in cache
             unset(EXISTING_DLL CACHE)
         endif()
-    endforeach(ITEM)
+    endforeach()
     if(NOT PASSED_TEST)
         # Did not find this build in the environment variable PATH
         message(FATAL_ERROR "Did not find this build in the environment variable PATH. "
@@ -69,7 +79,7 @@ function(ginkgo_turn_windows_link lang from to)
             string(REGEX REPLACE "-${from}" "-${to}" ${flag_var} "${${flag_var}}")
         endif(${flag_var} MATCHES "-${from}")
         set(${flag_var} "${${flag_var}}" CACHE STRING "" FORCE)
-    endforeach(flag_var)
+    endforeach()
 endfunction()
 
 macro(ginkgo_turn_to_windows_static lang)
