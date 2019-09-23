@@ -33,8 +33,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity.hpp>
 
 
+#include <memory>
+
+
 #include <gtest/gtest.h>
 
+
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/dim.hpp>
 
 namespace {
 
@@ -107,16 +113,28 @@ TEST_F(Sparsity, CanBeEmpty)
 }
 
 
+TEST_F(Sparsity, CanSetValue)
+{
+    auto mtx = gko::matrix::Sparsity<>::create(
+        exec, gko::dim<2>{3, 2}, static_cast<gko::size_type>(0), 2.0);
+
+    ASSERT_EQ(mtx->get_const_value()[0], 2.0);
+}
+
+
 TEST_F(Sparsity, CanBeCreatedFromExistingData)
 {
     gko::int32 col_idxs[] = {0, 1, 1, 0};
     gko::int32 row_ptrs[] = {0, 2, 3, 4};
+
     auto mtx = gko::matrix::Sparsity<>::create(
         exec, gko::dim<2>{3, 2},
         gko::Array<gko::int32>::view(exec, 4, col_idxs),
         gko::Array<gko::int32>::view(exec, 4, row_ptrs));
+
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
     ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
+    ASSERT_EQ(mtx->get_const_value()[0], 1.0);
 }
 
 
@@ -161,6 +179,7 @@ TEST_F(Sparsity, CanBeCleared)
 TEST_F(Sparsity, CanBeReadFromMatrixData)
 {
     auto m = Mtx::create(exec);
+
     m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
