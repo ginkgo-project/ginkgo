@@ -510,101 +510,36 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T get_superior_power(
 }
 
 
-// Required because CUDA compiler before Toolkit 9.2 want to call __host__
-// functions, even though there are __device__ functions provided by CUDA
-// (e.g. `isfinite`)
-#if defined(__CUDACC_VER_MAJOR__) && defined(__CUDACC_VER_MINOR__) && \
-    (__CUDACC_VER_MAJOR__ * 1000 + __CUDACC_VER_MINOR__) < 9002
-
-
-// Here, we define our own `isfinite` and call the proper implementation
-// because otherwise, the older nvcc compiler can not distinguish between
-// __host__ and __device__ `isfinite` functions
-
-// This first part is specific for clang in combination with the nvcc compiler.
-// clang wants to use their __builtin_isfinite function, which is not present
-// as a __device__ function, so it results in a compiler error.
-// Here, all tests are done by hand, which is probably not as performant as the
-// intrinsic function from CUDA, but at least it compiles.
-#if defined(__CUDA_ARCH__) && \
-    (defined(__clang__) || defined(__ICC) || defined(__ICL))
-
-#define GKO_DEFINE_ISFINITE_FOR_TYPE(_type)                               \
-    GKO_INLINE __device__ bool isfinite(const _type &value)               \
-    {                                                                     \
-        constexpr auto infinity = INFINITY;                               \
-        return value == value && value != infinity && value != -infinity; \
-    }
-GKO_DEFINE_ISFINITE_FOR_TYPE(float)
-GKO_DEFINE_ISFINITE_FOR_TYPE(double)
-#undef GKO_DEFINE_ISFINITE_FOR_TYPE
-
-#elif defined(__CUDA_ARCH__)
-
-#define GKO_DEFINE_ISFINITE_FOR_TYPE(_type)                 \
-    GKO_INLINE __device__ bool isfinite(const _type &value) \
-    {                                                       \
-        return ::isfinite(value);                           \
-    }
-GKO_DEFINE_ISFINITE_FOR_TYPE(float)
-GKO_DEFINE_ISFINITE_FOR_TYPE(double)
-#undef GKO_DEFINE_ISFINITE_FOR_TYPE
-
-#else  // !defined(__CUDA_ARCH__)
-
-using std::isfinite;
-
-#endif  // defined(__CUDA_ARCH__) && defined(__clang__)
-
-
-/**
- * Checks if a component of a given complex value is positive infinity,
- * negative infinity, or NaN
- *
- * @param value  complex value to check
- *
- * returns `true` if a component of the complex value is either positive or
- *         negative infinity or NaN. Otherwise `false`
- */
-#define GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(_type)                          \
-    GKO_INLINE GKO_ATTRIBUTES bool isfinite(const _type &value)              \
-    {                                                                        \
-        return isfinite(value.real()) || isfinite(value.imag());             \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
-
 #if !defined(__CUDA_ARCH__)
-GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(std::complex<double>);
-GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(std::complex<float>);
-#endif
 
-#else  // This part is for non-CUDA compiler and later CUDA Toolkit versions
 
+// Since a lot of compiler in combination with CUDA seem to have difficulties
+// distinguishing between the CUDA `isfinite` and the `std::isfinite` when
+// it is put into the `gko` namespace, only enable `std::isfinite` when
+// compiling host code.
 using std::isfinite;  // use the optimized function for all supported types
 
+
+#endif  // defined(__CUDA_ARCH__)
+
+
 /**
- * Checks if a given component of a complex value is positive infinity,
- * negative infinity, or NaN
+ * Checks if all components of a complex value are finite, meaning they are
+ * neither +/- infinity nor NaN.
  *
  * @tparam T  complex type of the value to check
  *
  * @param value  complex value to check
  *
- * returns `true` if a component of value is either positive or negative
- *         infinity or NaN. Otherwise `false`
+ * returns `true` if both components of the given value are finite, meaning
+ *         they are neither +/- infinity nor NaN.
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<is_complex_s<T>::value, bool>
 isfinite(const T &value)
 {
-    return isfinite(value.real()) || isfinite(value.imag());
+    return isfinite(value.real()) && isfinite(value.imag());
 }
-
-#endif  // defined(__CUDACC_VER_MAJOR__) && defined(__CUDACC_VER_MINOR__) &&
-        // (__CUDACC_VER_MAJOR__ * 1000 + __CUDACC_VER_MINOR__) < 9002
 
 
 }  // namespace gko
