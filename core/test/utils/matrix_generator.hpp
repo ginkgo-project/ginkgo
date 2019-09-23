@@ -149,8 +149,8 @@ template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
           typename Engine, typename... MatrixArgs>
 std::unique_ptr<MatrixType> generate_random_sparsity_matrix(
     size_type num_rows, size_type num_cols, NonzeroDistribution &&nonzero_dist,
-    Engine &&engine, std::shared_ptr<const Executor> exec,
-    MatrixArgs &&... args)
+    typename MatrixType::value_type value, Engine &&engine,
+    std::shared_ptr<const Executor> exec, MatrixArgs &&... args)
 {
     using value_type = typename MatrixType::value_type;
     using index_type = typename MatrixType::index_type;
@@ -162,7 +162,6 @@ std::unique_ptr<MatrixType> generate_random_sparsity_matrix(
 
     std::vector<size_type> col_idx(num_cols);
     std::iota(begin(col_idx), end(col_idx), size_type(0));
-    value_type one = 1.0;
     for (size_type row = 0; row < num_rows; ++row) {
         // randomly generate number of nonzeros in this row
         auto nnz_in_row = static_cast<size_type>(nonzero_dist(engine));
@@ -170,9 +169,10 @@ std::unique_ptr<MatrixType> generate_random_sparsity_matrix(
         // select a subset of `nnz_in_row` column indexes, and fill these
         // locations with random values
         std::shuffle(begin(col_idx), end(col_idx), engine);
-        std::for_each(
-            begin(col_idx), begin(col_idx) + nnz_in_row,
-            [&](size_type col) { data.nonzeros.emplace_back(row, col, one); });
+        std::for_each(begin(col_idx), begin(col_idx) + nnz_in_row,
+                      [&](size_type col) {
+                          data.nonzeros.emplace_back(row, col, value);
+                      });
     }
 
     data.ensure_row_major_order();

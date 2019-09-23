@@ -47,11 +47,11 @@ namespace matrix {
  * sparse matrix by compressing each row of the matrix (compressed sparse row
  * format).
  *
- * The values of the nonzero elements are stored a value array of length 1. All
- * the values in the matrix are equal to this value. By default, this value is
- * set to 1.0. A row pointer array which stores the starting index of each row.
- * An additional column index array is used to identify the column where a
- * nonzero is present.
+ * The values of the nonzero elements are stored as a value array of length 1.
+ * All the values in the matrix are equal to this value. By default, this value
+ * is set to 1.0. A row pointer array also stores the linearized starting index
+ * of each row. An additional column index array is used to identify the column
+ * where a nonzero is present.
  *
  * @tparam ValueType  precision of vectors in apply
  * @tparam IndexType  precision of matrix indexes
@@ -184,15 +184,21 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
+     * @param value  the value stored by all the matrix elements.
      */
     Sparsity(std::shared_ptr<const Executor> exec,
-             const dim<2> &size = dim<2>{}, size_type num_nonzeros = {})
+             const dim<2> &size = dim<2>{}, size_type num_nonzeros = {},
+             value_type value = one<value_type>())
         : EnableLinOp<Sparsity>(exec, size),
           col_idxs_(exec, num_nonzeros),
           // avoid allocation for empty matrix
-          row_ptrs_(exec, size[0] + (size[0] > 0)),
-          value_(exec, 1)
-    {}
+          row_ptrs_(exec, size[0] + (size[0] > 0))
+    {
+        value_type val = value;
+        auto tmp = Array<value_type>{exec->get_master(), 1};
+        tmp.get_data()[0] = val;
+        value_ = Array<value_type>{exec, std::move(tmp)};
+    }
 
     /**
      * Creates a SPARSITY matrix from already allocated (and initialized) row
