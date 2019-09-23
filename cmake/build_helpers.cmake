@@ -18,7 +18,7 @@ function(ginkgo_compile_features name)
         set_property(TARGET "${name}" PROPERTY CXX_INCLUDE_WHAT_YOU_USE ${GINKGO_IWYU_PATH})
     endif()
     if(GINKGO_CHANGED_SHARED_LIBRARY)
-        # Put all shared libraries and corresponding imported libraries into the specified path
+        # Put all shared libraries and corresponding imported libraries into the specficed path
         set_property(TARGET "${name}" PROPERTY
             RUNTIME_OUTPUT_DIRECTORY "${GINKGO_WINDOWS_SHARED_LIBRARY_PATH}")
         set_property(TARGET "${name}" PROPERTY
