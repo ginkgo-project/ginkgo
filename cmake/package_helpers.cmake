@@ -31,7 +31,7 @@ function(ginkgo_load_git_package package_name package_url package_tag)
             message(FATAL_ERROR
                 "Build Release step for ${package_name}/download failed: ${result}")
         endif()
-    elseif()
+    else()
         execute_process(COMMAND ${CMAKE_COMMAND} --build .
             RESULT_VARIABLE result
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/download)
@@ -98,7 +98,7 @@ macro(ginkgo_add_external_target new_target external_name includedir libdir buil
         # Ginkgo only builds Debug and Release, so set the path without CMAKE_CFG_INTDIR.
         set(${external_name}_LIBRARY_RELEASE "${${external_name}_BINARY_DIR}/Release/${CMAKE_${build_type}_LIBRARY_PREFIX}${external_name}${CMAKE_${build_type}_LIBRARY_SUFFIX}")
         set(${external_name}_LIBRARY_DEBUG "${${external_name}_BINARY_DIR}/Debug/${CMAKE_${build_type}_LIBRARY_PREFIX}${external_name}${debug_postfix}${CMAKE_${build_type}_LIBRARY_SUFFIX}")
-    elseif()
+    else()
         set(${external_name}_LIBRARY_RELEASE "${${external_name}_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${CMAKE_${build_type}_LIBRARY_PREFIX}${external_name}${CMAKE_${build_type}_LIBRARY_SUFFIX}")
         set(${external_name}_LIBRARY_DEBUG "${${external_name}_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${CMAKE_${build_type}_LIBRARY_PREFIX}${external_name}${debug_postfix}${CMAKE_${build_type}_LIBRARY_SUFFIX}")
     endif()
@@ -124,7 +124,7 @@ macro(ginkgo_add_external_target new_target external_name includedir libdir buil
                     ${${external_name}_LIBRARY_DEBUG})
             set_target_properties(${new_target} PROPERTIES IMPORTED_LOCATION
                     ${${external_name}_LIBRARY_RELEASE})
-        elseif()
+        else()
             if (NOT CMAKE_BUILD_TYPE MATCHES "[Rr][Ee][Ll][Ee][Aa][Ss][Ee]"
                 AND NOT CMAKE_BUILD_TYPE MATCHES "[Dd][Ee][Bb][Uu][Gg]")
                 set_target_properties(${new_target} PROPERTIES IMPORTED_LOCATION
