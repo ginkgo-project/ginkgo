@@ -1,4 +1,4 @@
-if(MSVC AND NOT BUILD_SHARED_LIBS)
+if(MSVC)
     # cmake links dynamic runtime libraries by default in Visual Studio
     # use the ginkgo's flags to use the same runtime libraries as ginkgo
     ginkgo_load_git_package(gflags_external

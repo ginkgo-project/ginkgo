@@ -33,8 +33,17 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}" PARENT_SCOPE)
 set(CMAKE_CUDA_COMPILER_VERSION ${CMAKE_CUDA_COMPILER_VERSION} PARENT_SCOPE)
 set(CUDA_INCLUDE_DIRS ${CUDA_INCLUDE_DIRS} PARENT_SCOPE)
 
-find_library(CUDA_RUNTIME_LIBS cudart
-    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+# nvcc uses static cudartlibrary by default
+# add `-cudart shared` into CMAKE_CUDA_FLAGS to force nvcc to use dynamic cudart library.
+find_library(CUDA_RUNTIME_LIBS_DYNAMIC cudart
+        HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+find_library(CUDA_RUNTIME_LIBS_STATIC cudart_static
+        HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+if("${CMAKE_CUDA_FLAGS}" MATCHES "-cudart shared")
+    set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_DYNAMIC}" CACHE STRING "Path to a library" FORCE)
+else()
+    set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_STATIC}" CACHE STRING "Path to a library" FORCE)
+endif()
 find_library(CUBLAS cublas
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 find_library(CUSPARSE cusparse
