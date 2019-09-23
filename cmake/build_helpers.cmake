@@ -17,4 +17,42 @@ function(ginkgo_compile_features name)
     if(GINKGO_WITH_IWYU AND GINKGO_IWYU_PATH)
         set_property(TARGET "${name}" PROPERTY CXX_INCLUDE_WHAT_YOU_USE ${GINKGO_IWYU_PATH})
     endif()
+    if(GINKGO_CHANGED_SHARED_LIBRARY)
+        # Put all shared libraries and corresponding imported libraries into the specified path
+        set_property(TARGET "${name}" PROPERTY
+            RUNTIME_OUTPUT_DIRECTORY "${GINKGO_WINDOWS_SHARED_LIBRARY_PATH}")
+        set_property(TARGET "${name}" PROPERTY
+            ARCHIVE_OUTPUT_DIRECTORY "${GINKGO_WINDOWS_SHARED_LIBRARY_PATH}")
+        if(GINKGO_CHECK_PATH)
+            ginkgo_check_shared_library("${CMAKE_SHARED_LIBRARY_PREFIX}${name}${CMAKE_SHARED_LIBRARY_SUFFIX}")
+        endif()
+    endif()
+endfunction()
+
+function(ginkgo_check_shared_library name)
+    set(PATH_LIST $ENV{PATH})
+    set(PASSED_TEST FALSE)
+    foreach(ITEM IN LISTS PATH_LIST)
+        string(REPLACE "\\" "/" ITEM "${ITEM}")
+        if("${ITEM}" STREQUAL "${GINKGO_WINDOWS_SHARED_LIBRARY_PATH}")
+            set(PASSED_TEST TRUE)
+            break()
+        else()
+            # If any path before this build, the path must not contain the ginkgo shared library
+            find_file(EXISTING_DLL "${name}" PATHS "${ITEM}" NO_DEFAULT_PATH)
+            if(NOT "${EXISTING_DLL}" STREQUAL "EXISTING_DLL-NOTFOUND")
+                # clean the EXISTING_DLL before termination
+                unset(EXISTING_DLL CACHE)
+                message(FATAL_ERROR "Detect ${name} in ${ITEM} eariler than this build. "
+                    "Please add ${GINKGO_WINDOWS_SHARED_LIBRARY_PATH} before other ginkgo path.")
+            endif()
+            # do not keep this variable in cache
+            unset(EXISTING_DLL CACHE)
+        endif()
+    endforeach(ITEM)
+    if(NOT PASSED_TEST)
+        # Did not find this build in the environment variable PATH
+        message(FATAL_ERROR "Did not find this build in the environment variable PATH. "
+            "Please add ${GINKGO_WINDOWS_SHARED_LIBRARY_PATH} into the environment variable PATH.")
+    endif()
 endfunction()

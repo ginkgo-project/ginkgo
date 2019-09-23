@@ -21,7 +21,9 @@ endif()
 if(GINKGO_BUILD_BENCHMARKS)
     ginkgo_add_subdirectory(gflags gflags)
     ginkgo_add_subdirectory(RapidJSON rapidjson)
-
+    if(WIN32)
+        target_link_libraries(gflags INTERFACE shlwapi.lib)
+    endif()
     # RapidJSON does not provide a modern CMake target so far. Let's fix that!
     if(RapidJSON_FOUND)
         add_library(rapidjson INTERFACE)
