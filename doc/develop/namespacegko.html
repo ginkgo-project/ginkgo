@@ -452,7 +452,7 @@ Functions</h2></td></tr>
 <tr class="separator:ad39645fe8148a8a812a9528865a77600"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afb0f20b5d373f9439702e723d48548fa"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
 <tr class="memitem:afb0f20b5d373f9439702e723d48548fa"><td class="memTemplItemLeft" align="right" valign="top">xstd::enable_if_t&lt; <a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, bool &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#afb0f20b5d373f9439702e723d48548fa">isfinite</a> (const T &amp;value)</td></tr>
-<tr class="memdesc:afb0f20b5d373f9439702e723d48548fa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if a given component of a complex value is positive infinity, negative infinity, or NaN.  <a href="#afb0f20b5d373f9439702e723d48548fa">More...</a><br /></td></tr>
+<tr class="memdesc:afb0f20b5d373f9439702e723d48548fa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if all components of a complex value are finite, meaning they are neither +/- infinity nor NaN.  <a href="#afb0f20b5d373f9439702e723d48548fa">More...</a><br /></td></tr>
 <tr class="separator:afb0f20b5d373f9439702e723d48548fa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0b476e0e3df616b08efe85000bff8da0"><td class="memTemplParams" colspan="2">template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </td></tr>
 <tr class="memitem:a0b476e0e3df616b08efe85000bff8da0"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt; ValueType, IndexType &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a0b476e0e3df616b08efe85000bff8da0">read_raw</a> (std::istream &amp;is)</td></tr>
@@ -1824,7 +1824,7 @@ template&lt;typename T &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p>Checks if a given component of a complex value is positive infinity, negative infinity, or NaN. </p>
+<p>Checks if all components of a complex value are finite, meaning they are neither +/- infinity nor NaN. </p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
     <tr><td class="paramname">T</td><td>complex type of the value to check</td></tr>
@@ -1837,7 +1837,7 @@ template&lt;typename T &gt; </div>
   </table>
   </dd>
 </dl>
-<p>returns <code>true</code> if a component of value is either positive or negative infinity or NaN. Otherwise <code>false</code> </p>
+<p>returns <code>true</code> if both components of the given value are finite, meaning they are neither +/- infinity nor NaN. </p>
 
 </div>
 </div>
