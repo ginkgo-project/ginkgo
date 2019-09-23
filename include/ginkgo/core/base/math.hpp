@@ -518,8 +518,12 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T get_superior_power(
 // distinguishing between the CUDA `isfinite` and the `std::isfinite` when
 // it is put into the `gko` namespace, only enable `std::isfinite` when
 // compiling host code.
-using std::isfinite;  // use the optimized function for all supported types
-
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<!is_complex_s<T>::value, bool>
+isfinite(const T &value)
+{
+    return std::isfinite(value);
+}
 
 #endif  // defined(__CUDA_ARCH__)
 
@@ -535,7 +539,7 @@ using std::isfinite;  // use the optimized function for all supported types
  * returns `true` if both components of the given value are finite, meaning
  *         they are neither +/- infinity nor NaN.
  */
-template <typename T, overload<1> = nullptr>
+template <typename T>
 GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<is_complex_s<T>::value, bool>
 isfinite(const T &value)
 {
