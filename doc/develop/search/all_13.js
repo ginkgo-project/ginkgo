@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['u_5fsolver_5ffactory',['u_solver_factory',['../structgko_1_1preconditioner_1_1Ilu_1_1parameters__type.html#a7afe80d372d61e3467a0abe1927ba207',1,'gko::preconditioner::Ilu::parameters_type']]],
   ['uint16',['uint16',['../namespacegko.html#afdb8517627d37e0c4ff4f39a5303a795',1,'gko']]],
   ['uint32',['uint32',['../namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073',1,'gko']]],
   ['uint64',['uint64',['../namespacegko.html#ad54a79afecd57aabbb04b1dc611ae55e',1,'gko']]],
