@@ -37,7 +37,7 @@ option(GINKGO_CUDA_DEFAULT_HOST_COMPILER "Tell Ginkgo to not automatically set t
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 
-if(BUILD_SHARED_LIBS AND WIN32 AND (GINKGO_BUILD_TESTS OR GINKGO_BUILD_EXAMPLES OR GINKGO_BUILD_BENCHMARKS))
+if(BUILD_SHARED_LIBS AND (WIN32 OR CYGWIN) AND (GINKGO_BUILD_TESTS OR GINKGO_BUILD_EXAMPLES OR GINKGO_BUILD_BENCHMARKS))
     # Change shared libraries output only if this build has executable program with shared libraries.
     set(GINKGO_CHANGED_SHARED_LIBRARY TRUE)
     option(GINKGO_CHECK_PATH "Tell Ginkgo to check if the environment variable PATH is available for this build." ON)
