@@ -33,7 +33,6 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}" PARENT_SCOPE)
 set(CMAKE_CUDA_COMPILER_VERSION ${CMAKE_CUDA_COMPILER_VERSION} PARENT_SCOPE)
 set(CUDA_INCLUDE_DIRS ${CUDA_INCLUDE_DIRS} PARENT_SCOPE)
 
-add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 
 # nvcc uses static cudartlibrary by default
 # add `-cudart shared` or `-cudart=shared` according system into CMAKE_CUDA_FLAGS/GINKGO_CUDA_COMPILER_FLAGS
@@ -42,13 +41,16 @@ find_library(CUDA_RUNTIME_LIBS_DYNAMIC cudart
         HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 find_library(CUDA_RUNTIME_LIBS_STATIC cudart_static
         HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+
 if("${CMAKE_CUDA_FLAGS}" MATCHES "-cudart(=| )shared" OR "${GINKGO_CUDA_COMPILER_FLAGS}" MATCHES "-cudart(=| )shared")
     set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_DYNAMIC}" CACHE STRING "Path to a library" FORCE)
 else()
     set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_STATIC}" CACHE STRING "Path to a library" FORCE)
     if(NOT MSVC)
+        set(THREADS_PREFER_PTHREAD_FLAG ON)
+        find_package(Threads REQUIRED)
         # link cudart_static need rt, pthread, and dl
-        set_property(TARGET ginkgo_cuda PROPERTY INTERFACE_LINK_LIBRARIES rt pthread dl)
+        set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_STATIC};rt;Threads::Threads;-Wl,--no-as-needed;dl" CACHE STRING "Path to a library" FORCE)
     endif()
 endif()
 find_library(CUBLAS cublas
@@ -56,6 +58,7 @@ find_library(CUBLAS cublas
 find_library(CUSPARSE cusparse
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
+add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 target_sources(ginkgo_cuda
     PRIVATE
         base/exception.cpp
