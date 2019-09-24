@@ -40,7 +40,9 @@ function(ginkgo_compile_features name)
 endfunction()
 
 function(ginkgo_check_shared_library name)
-    set(PATH_LIST $ENV{PATH})
+    # Cygwin uses : not ; to split path
+    string(REPLACE ":" ";" ENV_PATH "$ENV{PATH}")
+    set(PATH_LIST ${ENV_PATH})
     set(PASSED_TEST FALSE)
     foreach(ITEM IN LISTS PATH_LIST)
         string(REPLACE "\\" "/" ITEM "${ITEM}")
