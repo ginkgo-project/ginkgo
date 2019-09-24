@@ -41,6 +41,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 
+#if GKO_HAVE_METIS
+#include <metis.h>
+#endif
+
+
 namespace gko {
 
 
@@ -192,7 +197,20 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    static std::string get_error(int64 error_code)
+    {
+#if GKO_HAVE_METIS
+#define GKO_REGISTER_METIS_ERROR(error_name)            \
+    if (error_code == static_cast<int64>(error_name)) { \
+        return #error_name;                             \
+    }
+        GKO_REGISTER_METIS_ERROR(METIS_ERROR_INPUT);
+        GKO_REGISTER_METIS_ERROR(METIS_ERROR_MEMORY);
+        GKO_REGISTER_METIS_ERROR(METIS_ERROR);
+#endif
+
+        return "Unknown error";
+    }
 };
 
 
