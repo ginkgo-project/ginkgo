@@ -74,6 +74,20 @@ namespace preconditioner {
  * - max iteration = <number of rows of the matrix given to the solver>
  * Solvers without such criteria can also be used, in which case none are set.
  *
+ * An object of this class can be created with a matrix or a gko::Composition
+ * containing two matrices. If created with a matrix, it is factorized before
+ * creating the solver. If a gko::Composition (containing two matrices) is
+ * used, the first operand will be taken as the L matrix, the second will be
+ * considered the U matrix. ParIlu can be directly used, since it orders the
+ * factors in the correct way.
+ *
+ * @note When providing a gko::Composition, the first matrix must be the lower
+ *       matrix ($L$), and the second matrix must be the upper matrix ($U$).
+ *       If they are swapped, solving might crash or return the wrong result.
+ *
+ * @note Do not use symmetric solvers (like CG) for L or U solvers since both
+ *       matrices (L and U) are, by design, not symmetric.
+ *
  * @note This class is not thread safe (even a const object is not) because it
  *       uses an internal cache to accelerate multiple (sequential) applies.
  *       Using it in parallel can lead to segmentation faults, wrong results
