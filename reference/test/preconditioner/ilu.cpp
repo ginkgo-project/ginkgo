@@ -35,8 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 
-#include <iostream>
-
 
 #include <gtest/gtest.h>
 
@@ -395,6 +393,27 @@ TEST_F(Ilu, CanBeUsedAsPreconditioner)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(2u).on(exec))
             .with_preconditioner(default_ilu_prec_type::build().on(exec))
+            .on(exec)
+            ->generate(mtx);
+    auto x = Mtx::create(exec, gko::dim<2>{3, 1});
+    const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
+    x->copy_from(b.get());
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}), 1e-14);
+}
+
+
+TEST_F(Ilu, CanBeUsedAsGeneratedPreconditioner)
+{
+    std::shared_ptr<default_ilu_prec_type> precond =
+        default_ilu_prec_type::build().on(exec)->generate(mtx);
+    auto solver =
+        gko::solver::Bicgstab<value_type>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
+            .with_generated_preconditioner(precond)
             .on(exec)
             ->generate(mtx);
     auto x = Mtx::create(exec, gko::dim<2>{3, 1});

@@ -149,4 +149,21 @@ TEST_F(UpperTrs, CanSetPreconditionerGenerator)
 }
 
 
+TEST_F(UpperTrs, CanSetPreconditioner)
+{
+    std::shared_ptr<Solver> upper_trs_precond =
+        Solver::build().on(exec)->generate(mtx);
+
+    auto upper_trs_factory =
+        Solver::build()
+            .with_generated_preconditioner(upper_trs_precond)
+            .on(exec);
+    auto solver = upper_trs_factory->generate(mtx);
+    auto precond = solver->get_preconditioner();
+
+    ASSERT_NE(precond.get(), nullptr);
+    ASSERT_EQ(precond.get(), upper_trs_precond.get());
+}
+
+
 }  // namespace

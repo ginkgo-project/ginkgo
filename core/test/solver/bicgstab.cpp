@@ -163,4 +163,27 @@ TEST_F(Bicgstab, CanSetPreconditionerGenerator)
 }
 
 
+TEST_F(Bicgstab, CanSetPreconditioner)
+{
+    std::shared_ptr<Solver> bicgstab_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(mtx);
+
+    auto bicgstab_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_generated_preconditioner(bicgstab_precond)
+            .on(exec);
+    auto solver = bicgstab_factory->generate(mtx);
+    auto precond = solver->get_preconditioner();
+
+    ASSERT_NE(precond.get(), nullptr);
+    ASSERT_EQ(precond.get(), bicgstab_precond.get());
+}
+
+
 }  // namespace

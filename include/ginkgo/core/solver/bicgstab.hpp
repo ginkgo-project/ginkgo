@@ -113,6 +113,13 @@ public:
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
             preconditioner, nullptr);
+
+        /**
+         * Already generated preconditioner. If one is provided, the factory
+         * `preconditioner` will be ignored.
+         */
+        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER(
+            generated_preconditioner, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Bicgstab, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -134,7 +141,9 @@ protected:
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
-        if (parameters_.preconditioner) {
+        if (parameters_.generated_preconditioner) {
+            preconditioner_ = parameters_.generated_preconditioner;
+        } else if (parameters_.preconditioner) {
             preconditioner_ =
                 parameters_.preconditioner->generate(system_matrix_);
         } else {
