@@ -21,6 +21,7 @@ stages:
   BUILD_SHARED_LIBS: "ON"
   BUILD_REFERENCE: "ON"
   BUILD_OMP: "OFF"
+  WITH_METIS: "OFF"
   BUILD_CUDA: "OFF"
   BUILD_HIP: "OFF"
   CXX_FLAGS: ""
@@ -50,7 +51,8 @@ stages:
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
         -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_FLAGS="${CXX_FLAGS}"
         -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} ${EXTRA_CMAKE_FLAGS}
-        -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
+        -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_WITH_METIS=${WITH_METIS}
+        -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
@@ -362,6 +364,17 @@ build/nocuda/intel/core/debug/shared:
     CXX_COMPILER: icpc
     BUILD_REFERENCE: "OFF"
     BUILD_TYPE: Debug
+  tags:
+    - cpu
+
+build/nocuda/gcc/metis/release/shared:
+  <<: *default_build
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    WITH_METIS: "ON"
+    BUILD_TYPE: Release
   tags:
     - cpu
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-hpccm --recipe ginkgo-nocuda-base.py --userarg gnu=8 llvm=7 papi=True > gko-nocuda-gnu8-llvm70.baseimage
+hpccm --recipe ginkgo-nocuda-base.py --userarg gnu=8 llvm=7 papi=True metis=True > gko-nocuda-gnu8-llvm70.baseimage
 list=('gko-nocuda-gnu8-llvm70.baseimage')
 hpccm --recipe ginkgo-nocuda-base.py --userarg gnu=9 llvm=8 papi=True > gko-nocuda-gnu9-llvm8.baseimage
 list+=('gko-nocuda-gnu9-llvm8.baseimage')
