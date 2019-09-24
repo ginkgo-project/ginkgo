@@ -128,6 +128,13 @@ public:
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(solver,
                                                                   nullptr);
+
+        /**
+         * Already generated solver. If one is provided, the factory `solver`
+         * will be ignored.
+         */
+        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER(generated_solver,
+                                                           nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ir, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -149,7 +156,9 @@ protected:
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
-        if (parameters_.solver) {
+        if (parameters_.generated_solver) {
+            solver_ = parameters_.generated_solver;
+        } else if (parameters_.solver) {
             solver_ = parameters_.solver->generate(system_matrix_);
         } else {
             solver_ = matrix::Identity<ValueType>::create(this->get_executor(),

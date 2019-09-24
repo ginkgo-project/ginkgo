@@ -148,7 +148,7 @@ TEST_F(Ir, CanBeCleared)
 
 TEST_F(Ir, CanSetInnerSolver)
 {
-    auto cg_factory =
+    auto ir_factory =
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(exec),
@@ -157,13 +157,36 @@ TEST_F(Ir, CanSetInnerSolver)
                     .on(exec))
             .with_solver(Solver::build().on(exec))
             .on(exec);
-    auto solver = cg_factory->generate(mtx);
+    auto solver = ir_factory->generate(mtx);
     auto inner_solver = dynamic_cast<const gko::solver::Ir<> *>(
         static_cast<gko::solver::Ir<> *>(solver.get())->get_solver().get());
 
     ASSERT_NE(inner_solver, nullptr);
     ASSERT_EQ(inner_solver->get_size(), gko::dim<2>(3, 3));
     ASSERT_EQ(inner_solver->get_system_matrix(), mtx);
+}
+
+
+TEST_F(Ir, CanSetGeneratedInnerSolver)
+{
+    std::shared_ptr<Solver> ir_solver =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(mtx);
+
+    auto ir_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_generated_solver(ir_solver)
+            .on(exec);
+    auto solver = ir_factory->generate(mtx);
+    auto inner_solver = solver->get_solver();
+
+    ASSERT_NE(inner_solver.get(), nullptr);
+    ASSERT_EQ(inner_solver.get(), ir_solver.get());
 }
 
 

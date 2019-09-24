@@ -114,6 +114,13 @@ public:
             preconditioner, nullptr);
 
         /**
+         * Already generated preconditioner. If one is provided, the factory
+         * `preconditioner` will be ignored.
+         */
+        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER(
+            generated_preconditioner, nullptr);
+
+        /**
          * Number of right hand sides.
          *
          * @note This value is currently a dummy value which is not used by the
@@ -164,7 +171,9 @@ protected:
             system_matrix_ =
                 copy_and_convert_to<CsrMatrix>(exec, system_matrix);
         }
-        if (parameters_.preconditioner) {
+        if (parameters_.generated_preconditioner) {
+            preconditioner_ = parameters_.generated_preconditioner;
+        } else if (parameters_.preconditioner) {
             preconditioner_ =
                 parameters_.preconditioner->generate(system_matrix_);
         } else {

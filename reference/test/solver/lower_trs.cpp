@@ -149,4 +149,21 @@ TEST_F(LowerTrs, CanSetPreconditionerGenerator)
 }
 
 
+TEST_F(LowerTrs, CanSetPreconditioner)
+{
+    std::shared_ptr<Solver> lower_trs_precond =
+        Solver::build().on(exec)->generate(mtx);
+
+    auto lower_trs_factory =
+        Solver::build()
+            .with_generated_preconditioner(lower_trs_precond)
+            .on(exec);
+    auto solver = lower_trs_factory->generate(mtx);
+    auto precond = solver->get_preconditioner();
+
+    ASSERT_NE(precond.get(), nullptr);
+    ASSERT_EQ(precond.get(), lower_trs_precond.get());
+}
+
+
 }  // namespace

@@ -159,4 +159,27 @@ TEST_F(Fcg, CanSetPreconditionerGenerator)
 }
 
 
+TEST_F(Fcg, CanSetPreconditioner)
+{
+    std::shared_ptr<Solver> fcg_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(mtx);
+
+    auto fcg_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_generated_preconditioner(fcg_precond)
+            .on(exec);
+    auto solver = fcg_factory->generate(mtx);
+    auto precond = solver->get_preconditioner();
+
+    ASSERT_NE(precond.get(), nullptr);
+    ASSERT_EQ(precond.get(), fcg_precond.get());
+}
+
+
 }  // namespace
