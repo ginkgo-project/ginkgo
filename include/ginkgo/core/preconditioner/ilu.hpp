@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
+#include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/lower_trs.hpp>
 #include <ginkgo/core/solver/upper_trs.hpp>
@@ -86,12 +87,15 @@ namespace preconditioner {
  *                       solve with L (Ly = b) and then with U (Ux = y).
  *                       When set to true, it will solve first with U, and then
  *                       with L.
+ * @tparam IndexTypeParIlu  Type of the indices when ParIlu is used to generate
+ *                          both L and U factors. Irrelevant otherwise.
  *
  * @ingroup precond
  * @ingroup LinOp
  */
 template <typename LSolverType = solver::LowerTrs<>,
-          typename USolverType = solver::UpperTrs<>, bool ReverseApply = false>
+          typename USolverType = solver::UpperTrs<>, bool ReverseApply = false,
+          typename IndexTypeParIlu = int32>
 class Ilu : public EnableLinOp<Ilu<LSolverType, USolverType, ReverseApply>> {
     friend class EnableLinOp<Ilu>;
     friend class EnablePolymorphicObject<Ilu, LinOp>;
@@ -105,6 +109,7 @@ public:
     using l_solver_type = LSolverType;
     using u_solver_type = USolverType;
     static constexpr bool performs_reverse_apply = ReverseApply;
+    using index_type_par_ilu = IndexTypeParIlu;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -120,6 +125,9 @@ public:
         std::shared_ptr<typename u_solver_type::Factory> GKO_FACTORY_PARAMETER(
             u_solver_factory, nullptr);
     };
+
+    GKO_ENABLE_LIN_OP_FACTORY(Ilu, parameters, Factory);
+    GKO_ENABLE_BUILD_METHOD(Factory);
 
     /**
      * Returns the solver which is used for the provided L matrix.
@@ -142,91 +150,9 @@ public:
     }
 
 protected:
-    /**
-     * Manages the `generate` arguments for the parent class to allow multiple
-     * versions to initialize both L and U. Two constructors are provided:
-     * - a Composition, containing the L matrix as the first operand, and the
-     *   U matrix as the second and last (also accepts ParIlu objects)
-     * - both L and U matrix as separate parameters
-     */
-    struct LuArgs {
-        LuArgs(std::shared_ptr<const LinOp> composition)
-        {
-            auto comp_cast =
-                as<const Composition<value_type>>(composition.get());
-            if (comp_cast->get_operators().size() != 2) {
-                throw GKO_NOT_SUPPORTED(comp_cast);
-            }
-            l_factor = comp_cast->get_operators()[0];
-            u_factor = comp_cast->get_operators()[1];
-        }
-
-        LuArgs(std::shared_ptr<const LinOp> l_fac,
-               std::shared_ptr<const LinOp> u_fac)
-            : l_factor{std::move(l_fac)}, u_factor{std::move(u_fac)}
-        {}
-
-        /**
-         * Returns the size that the solver using L and U would return
-         *
-         * @returns the size that the solver using L and U would return
-         */
-        dim<2> get_solver_size() const
-        {
-            return (ReverseApply) ? dim<2>{l_factor->get_size()[0],
-                                           u_factor->get_size()[1]}
-                                  : dim<2>{u_factor->get_size()[0],
-                                           l_factor->get_size()[1]};
-        }
-
-        std::shared_ptr<const LinOp> l_factor;
-        std::shared_ptr<const LinOp> u_factor;
-    };
-
-    /* ---------------------------------------------------------------------
-       The following code is used to replace the default
-       `GKO_ENABLE_LIN_OP_FACTORY` macro
-       --------------------------------------------------------------------- */
-    using PolymorphicBaseFactory = AbstractFactory<LinOp, LuArgs>;
-    template <typename ConcreteFactory>
-    using EnableIluFactory =
-        EnableDefaultFactory<ConcreteFactory, Ilu, parameters_type,
-                             PolymorphicBaseFactory>;
-
-public:
-    /**
-     * Returns the parameters used to build the initial object.
-     *
-     * @returns the parameters used to build the initial object.
-     */
-    const parameters_type &get_parameters() const { return parameters_; }
-
-    /**
-     * Used to replace the `GKO_ENABLE_LIN_OP_FACTORY` macro to allow for
-     * more variety in arguments for the `generate` function.
-     */
-    class Factory : public EnableIluFactory<Factory> {
-        friend class ::gko::EnablePolymorphicObject<Factory,
-                                                    PolymorphicBaseFactory>;
-        friend class ::gko::enable_parameters_type<parameters_type, Factory>;
-        using EnableIluFactory<Factory>::EnableIluFactory;
-    };
-
-    friend EnableIluFactory<Factory>;
-
-private:
-    parameters_type parameters_;
-
-    /* ---------------------------------------------------------------------
-       End of the code to replace the `GKO_ENABLE_LIN_OP_FACTORY` macro
-       --------------------------------------------------------------------- */
-public:
-    GKO_ENABLE_BUILD_METHOD(Factory);
-
-protected:
     void apply_impl(const LinOp *b, LinOp *x) const override
     {
-        ensure_cache_support_for(b);
+        set_cache_to(b);
         if (!ReverseApply) {
             l_solver_->apply(b, cache_.intermediate.get());
             u_solver_->apply(cache_.intermediate.get(), x);
@@ -239,7 +165,7 @@ protected:
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override
     {
-        ensure_cache_support_for(b);
+        set_cache_to(b);
         if (!ReverseApply) {
             l_solver_->apply(b, cache_.intermediate.get());
             u_solver_->apply(alpha, cache_.intermediate.get(), beta, x);
@@ -253,41 +179,64 @@ protected:
         : EnableLinOp<Ilu>(std::move(exec))
     {}
 
-    explicit Ilu(const Factory *factory, LuArgs lu_args)
-        : EnableLinOp<Ilu>(factory->get_executor(), lu_args.get_solver_size()),
+    explicit Ilu(const Factory *factory, std::shared_ptr<const LinOp> lin_op)
+        : EnableLinOp<Ilu>(factory->get_executor(), lin_op->get_size()),
           parameters_{factory->get_parameters()}
     {
-        GKO_ASSERT_EQUAL_DIMENSIONS(lu_args.l_factor, lu_args.u_factor);
+        auto comp_cast =
+            dynamic_cast<const Composition<value_type> *>(lin_op.get());
+        std::shared_ptr<const LinOp> l_factor;
+        std::shared_ptr<const LinOp> u_factor;
+
+        if (comp_cast == nullptr) {
+            auto exec = lin_op->get_executor();
+            auto par_ilu =
+                factorization::ParIlu<value_type, index_type_par_ilu>::build()
+                    .on(exec)
+                    ->generate(lin_op);
+            l_factor = par_ilu->get_l_factor();
+            u_factor = par_ilu->get_u_factor();
+        } else if (comp_cast->get_operators().size() == 2) {
+            l_factor = comp_cast->get_operators()[0];
+            u_factor = comp_cast->get_operators()[1];
+        } else {
+            throw GKO_NOT_SUPPORTED(comp_cast);
+        }
+        GKO_ASSERT_EQUAL_DIMENSIONS(l_factor, u_factor);
 
         auto exec = this->get_executor();
 
         // If no factories are provided, generate default ones
         if (!parameters_.l_solver_factory) {
-            l_solver_ =
-                generate_default_solver<l_solver_type>(exec, lu_args.l_factor);
+            l_solver_ = generate_default_solver<l_solver_type>(exec, l_factor);
         } else {
-            l_solver_ =
-                parameters_.l_solver_factory->generate(lu_args.l_factor);
+            l_solver_ = parameters_.l_solver_factory->generate(l_factor);
         }
         if (!parameters_.u_solver_factory) {
-            u_solver_ =
-                generate_default_solver<u_solver_type>(exec, lu_args.u_factor);
+            u_solver_ = generate_default_solver<u_solver_type>(exec, u_factor);
         } else {
-            u_solver_ =
-                parameters_.u_solver_factory->generate(lu_args.u_factor);
+            u_solver_ = parameters_.u_solver_factory->generate(u_factor);
         }
     }
 
-    void ensure_cache_support_for(const LinOp *b) const
+    /**
+     * Prepares the intermediate vector for the solve by creating it and
+     * by copying the values from `b`, so `b` acts as the initial guess.
+     *
+     * @param b  Right hand side of the first solve. Also acts as the initial
+     *           guess, meaning the intermediate value will be a copy of b
+     */
+    void set_cache_to(const LinOp *b) const
     {
         dim<2> expected_size =
             ReverseApply ? dim<2>{u_solver_->get_size()[0], b->get_size()[1]}
                          : dim<2>{l_solver_->get_size()[0], b->get_size()[1]};
-        if (cache_.intermediate == nullptr ||
-            cache_.intermediate->get_size() != expected_size) {
-            cache_.intermediate = matrix::Dense<value_type>::create(
-                this->get_executor(), expected_size);
+        if (cache_.intermediate == nullptr) {
+            cache_.intermediate =
+                matrix::Dense<value_type>::create(this->get_executor());
         }
+        // Use b as the initial guess for the first triangular solve
+        cache_.intermediate->copy_from(b);
     }
 
     /**
@@ -320,7 +269,7 @@ protected:
      *
      * @internal  The second template parameter (which uses SFINAE) must match
      *            the default value of the general case in order to be accepted
-     *            as a specialization.
+     *            as a specialization, which is why `xstd::void_t` is used.
      */
     template <typename SolverType>
     struct has_with_criteria<

@@ -35,6 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 
+#include <iostream>
+
 
 #include <gtest/gtest.h>
 
@@ -69,6 +71,7 @@ protected:
         gko::preconditioner::Ilu<l_solver_type, u_solver_type, false>;
     using ilu_rev_prec_type =
         gko::preconditioner::Ilu<l_solver_type, u_solver_type, true>;
+    using composition = gko::Composition<value_type>;
 
     Ilu()
         : exec(gko::ReferenceExecutor::create()),
@@ -77,6 +80,7 @@ protected:
               gko::initialize<Mtx>({{1, 0, 0}, {1, 1, 0}, {1, 1, 1}}, exec)),
           u_factor(
               gko::initialize<Mtx>({{2, 1, 1}, {0, 4, 1}, {0, 0, 3}}, exec)),
+          l_u_composition(composition::create(l_factor, u_factor)),
           l_factory(
               l_solver_type::build()
                   .with_criteria(
@@ -115,6 +119,7 @@ protected:
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> l_factor;
     std::shared_ptr<Mtx> u_factor;
+    std::shared_ptr<composition> l_u_composition;
     std::shared_ptr<l_solver_type::Factory> l_factory;
     std::shared_ptr<u_solver_type::Factory> u_factory;
     std::shared_ptr<ilu_prec_type::Factory> ilu_pre_factory;
@@ -125,34 +130,26 @@ protected:
 TEST_F(Ilu, BuildsDefaultWithoutThrowing)
 {
     auto ilu_pre_default_factory = ilu_prec_type::build().on(exec);
-    auto par_ilu_fact =
-        gko::factorization::ParIlu<value_type>::build().on(exec);
-    auto par_ilu = par_ilu_fact->generate(mtx);
 
-    ASSERT_NO_THROW(ilu_pre_default_factory->generate(gko::share(par_ilu)));
+    ASSERT_NO_THROW(ilu_pre_default_factory->generate(l_u_composition));
 }
 
 
 TEST_F(Ilu, BuildsCustomWithoutThrowing)
 {
-    auto par_ilu_fact =
-        gko::factorization::ParIlu<value_type>::build().on(exec);
-    auto par_ilu = par_ilu_fact->generate(mtx);
-
-    ASSERT_NO_THROW(ilu_pre_factory->generate(gko::share(par_ilu)));
+    ASSERT_NO_THROW(ilu_pre_factory->generate(l_u_composition));
 }
 
 
-TEST_F(Ilu, ThrowOnWrongInput)
+TEST_F(Ilu, BuildsCustomWithoutThrowing2)
 {
-    ASSERT_THROW(ilu_pre_factory->generate(l_factor), gko::NotSupported);
+    ASSERT_NO_THROW(ilu_pre_factory->generate(mtx));
 }
 
 
 TEST_F(Ilu, ThrowOnWrongCompositionInput)
 {
-    std::shared_ptr<gko::Composition<value_type>> composition =
-        gko::Composition<value_type>::create(l_factor);
+    std::shared_ptr<composition> composition = composition::create(l_factor);
 
     ASSERT_THROW(ilu_pre_factory->generate(composition), gko::NotSupported);
 }
@@ -160,8 +157,8 @@ TEST_F(Ilu, ThrowOnWrongCompositionInput)
 
 TEST_F(Ilu, ThrowOnWrongCompositionInput2)
 {
-    std::shared_ptr<gko::Composition<value_type>> composition =
-        gko::Composition<value_type>::create(l_factor, u_factor, l_factor);
+    std::shared_ptr<composition> composition =
+        composition::create(l_factor, u_factor, l_factor);
 
     ASSERT_THROW(ilu_pre_factory->generate(composition), gko::NotSupported);
 }
@@ -169,7 +166,7 @@ TEST_F(Ilu, ThrowOnWrongCompositionInput2)
 
 TEST_F(Ilu, SetsCorrectMatrices)
 {
-    auto ilu = ilu_pre_factory->generate(l_factor, u_factor);
+    auto ilu = ilu_pre_factory->generate(l_u_composition);
     auto internal_l_factor = ilu->get_l_solver()->get_system_matrix();
     auto internal_u_factor = ilu->get_u_solver()->get_system_matrix();
 
@@ -188,11 +185,13 @@ TEST_F(Ilu, SetsCorrectMatrices)
 
 TEST_F(Ilu, CanBeCopied)
 {
-    auto ilu = ilu_pre_factory->generate(l_factor, u_factor);
+    auto ilu = ilu_pre_factory->generate(l_u_composition);
     auto before_l_solver = ilu->get_l_solver();
     auto before_u_solver = ilu->get_u_solver();
     // The switch up of matrices is intentional, to make sure they are distinct!
-    auto copied = ilu_prec_type::build().on(exec)->generate(u_factor, l_factor);
+    auto u_l_composition = composition::create(u_factor, l_factor);
+    auto copied =
+        ilu_prec_type::build().on(exec)->generate(gko::share(u_l_composition));
 
     copied->copy_from(ilu.get());
 
@@ -203,11 +202,13 @@ TEST_F(Ilu, CanBeCopied)
 
 TEST_F(Ilu, CanBeMoved)
 {
-    auto ilu = ilu_pre_factory->generate(l_factor, u_factor);
+    auto ilu = ilu_pre_factory->generate(l_u_composition);
     auto before_l_solver = ilu->get_l_solver();
     auto before_u_solver = ilu->get_u_solver();
     // The switch up of matrices is intentional, to make sure they are distinct!
-    auto moved = ilu_prec_type::build().on(exec)->generate(u_factor, l_factor);
+    auto u_l_composition = composition::create(u_factor, l_factor);
+    auto moved =
+        ilu_prec_type::build().on(exec)->generate(gko::share(u_l_composition));
 
     moved->copy_from(std::move(ilu));
 
@@ -218,7 +219,7 @@ TEST_F(Ilu, CanBeMoved)
 
 TEST_F(Ilu, CanBeCloned)
 {
-    auto ilu = ilu_pre_factory->generate(l_factor, u_factor);
+    auto ilu = ilu_pre_factory->generate(l_u_composition);
     auto before_l_solver = ilu->get_l_solver();
     auto before_u_solver = ilu->get_u_solver();
 
@@ -229,16 +230,14 @@ TEST_F(Ilu, CanBeCloned)
 }
 
 
-TEST_F(Ilu, SolvesDefaultSingleRhsWithParIlu)
+TEST_F(Ilu, SolvesDefaultSingleRhs)
 {
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
     auto x = Mtx::create(exec, gko::dim<2>{3, 1});
-    auto par_ilu_fact =
-        gko::factorization::ParIlu<value_type>::build().on(exec);
-    auto par_ilu = par_ilu_fact->generate(mtx);
+    x->copy_from(b.get());
 
     auto preconditioner =
-        default_ilu_prec_type::build().on(exec)->generate(gko::share(par_ilu));
+        default_ilu_prec_type::build().on(exec)->generate(mtx);
     preconditioner->apply(b.get(), x.get());
 
     // Since it uses TRS per default, the result should be accurate
@@ -246,10 +245,26 @@ TEST_F(Ilu, SolvesDefaultSingleRhsWithParIlu)
 }
 
 
+TEST_F(Ilu, SolvesCustomTypeDefaultFactorySingleRhs)
+{
+    const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
+    auto x = Mtx::create(exec, gko::dim<2>{3, 1});
+    x->copy_from(b.get());
+
+    auto preconditioner = ilu_prec_type::build().on(exec)->generate(mtx);
+    preconditioner->apply(b.get(), x.get());
+
+    // Since it uses Bicgstab with default parmeters, the result will not be
+    // accurate
+    GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}), 1e-1);
+}
+
+
 TEST_F(Ilu, SolvesSingleRhsWithParIlu)
 {
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
     auto x = Mtx::create(exec, gko::dim<2>{3, 1});
+    x->copy_from(b.get());
     auto par_ilu_fact =
         gko::factorization::ParIlu<value_type>::build().on(exec);
     auto par_ilu = par_ilu_fact->generate(mtx);
@@ -265,21 +280,22 @@ TEST_F(Ilu, SolvesSingleRhsWithComposition)
 {
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
     auto x = Mtx::create(exec, gko::dim<2>{3, 1});
-    auto composition = gko::Composition<value_type>::create(l_factor, u_factor);
+    x->copy_from(b.get());
 
-    auto preconditioner = ilu_pre_factory->generate(gko::share(composition));
+    auto preconditioner = ilu_pre_factory->generate(l_u_composition);
     preconditioner->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}), 1e-14);
 }
 
 
-TEST_F(Ilu, SolvesSingleRhsWithLU)
+TEST_F(Ilu, SolvesSingleRhsWithMtx)
 {
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
     auto x = Mtx::create(exec, gko::dim<2>{3, 1});
+    x->copy_from(b.get());
 
-    auto preconditioner = ilu_pre_factory->generate(l_factor, u_factor);
+    auto preconditioner = ilu_pre_factory->generate(mtx);
     preconditioner->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}), 1e-14);
@@ -290,7 +306,8 @@ TEST_F(Ilu, SolvesReverseSingleRhs)
 {
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
     auto x = Mtx::create(exec, gko::dim<2>{3, 1});
-    auto preconditioner = ilu_rev_pre_factory->generate(l_factor, u_factor);
+    x->copy_from(b.get());
+    auto preconditioner = ilu_rev_pre_factory->generate(l_u_composition);
 
     preconditioner->apply(b.get(), x.get());
 
@@ -306,7 +323,7 @@ TEST_F(Ilu, SolvesAdvancedSingleRhs)
     const auto beta_linop = gko::initialize<Mtx>({beta}, exec);
     const auto b = gko::initialize<Mtx>({-3.0, 6.0, 9.0}, exec);
     auto x = gko::initialize<Mtx>({1.0, 2.0, 3.0}, exec);
-    auto preconditioner = ilu_pre_factory->generate(l_factor, u_factor);
+    auto preconditioner = ilu_pre_factory->generate(l_u_composition);
 
     preconditioner->apply(alpha_linop.get(), b.get(), beta_linop.get(),
                           x.get());
@@ -323,7 +340,7 @@ TEST_F(Ilu, SolvesAdvancedReverseSingleRhs)
     const auto beta_linop = gko::initialize<Mtx>({beta}, exec);
     const auto b = gko::initialize<Mtx>({-3.0, 6.0, 9.0}, exec);
     auto x = gko::initialize<Mtx>({1.0, 2.0, 3.0}, exec);
-    auto preconditioner = ilu_rev_pre_factory->generate(l_factor, u_factor);
+    auto preconditioner = ilu_rev_pre_factory->generate(l_u_composition);
 
     preconditioner->apply(alpha_linop.get(), b.get(), beta_linop.get(),
                           x.get());
@@ -337,7 +354,8 @@ TEST_F(Ilu, SolvesMultipleRhs)
     const auto b =
         gko::initialize<Mtx>({{1.0, 8.0}, {3.0, 21.0}, {6.0, 24.0}}, exec);
     auto x = Mtx::create(exec, gko::dim<2>{3, 2});
-    auto preconditioner = ilu_pre_factory->generate(l_factor, u_factor);
+    x->copy_from(b.get());
+    auto preconditioner = ilu_pre_factory->generate(l_u_composition);
 
     preconditioner->apply(b.get(), x.get());
 
@@ -351,10 +369,13 @@ TEST_F(Ilu, SolvesDifferentNumberOfRhs)
     const auto b1 = gko::initialize<Mtx>({-3.0, 6.0, 9.0}, exec);
     auto x11 = Mtx::create(exec, gko::dim<2>{3, 1});
     auto x12 = Mtx::create(exec, gko::dim<2>{3, 1});
+    x11->copy_from(b1.get());
+    x12->copy_from(b1.get());
     const auto b2 =
         gko::initialize<Mtx>({{1.0, 8.0}, {3.0, 21.0}, {6.0, 24.0}}, exec);
     auto x2 = Mtx::create(exec, gko::dim<2>{3, 2});
-    auto preconditioner = ilu_pre_factory->generate(l_factor, u_factor);
+    x2->copy_from(b2.get());
+    auto preconditioner = ilu_pre_factory->generate(l_u_composition);
 
     preconditioner->apply(b1.get(), x11.get());
     preconditioner->apply(b2.get(), x2.get());
@@ -364,6 +385,25 @@ TEST_F(Ilu, SolvesDifferentNumberOfRhs)
     GKO_ASSERT_MTX_NEAR(x2.get(), l({{-0.125, 2.0}, {0.25, 3.0}, {1.0, 1.0}}),
                         1e-14);
     GKO_ASSERT_MTX_NEAR(x12.get(), x11.get(), 1e-14);
+}
+
+
+TEST_F(Ilu, CanBeUsedAsPreconditioner)
+{
+    auto solver =
+        gko::solver::Bicgstab<value_type>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
+            .with_preconditioner(default_ilu_prec_type::build().on(exec))
+            .on(exec)
+            ->generate(mtx);
+    auto x = Mtx::create(exec, gko::dim<2>{3, 1});
+    const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, exec);
+    x->copy_from(b.get());
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x.get(), l({-0.125, 0.25, 1.0}), 1e-14);
 }
 
 
