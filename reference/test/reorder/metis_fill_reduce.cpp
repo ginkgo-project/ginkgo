@@ -82,7 +82,6 @@ protected:
 TEST_F(MetisFillReduce, FactoryCreatesCorrectReorderOp)
 {
     auto adj_mtx = reorder_op->get_adjacency_matrix();
-    auto p = reorder_op->get_permutation();
 
     auto tmp = gko::matrix::Sparsity<v_type, i_type>::create(exec, ani4_mtx);
     auto comp_mtx = tmp->to_adjacency_matrix();

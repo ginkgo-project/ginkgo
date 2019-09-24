@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/reorder/metis_fill_reduce_kernels.hpp"
 
 
+#include <algorithm>
 #include <memory>
 #include <vector>
 
@@ -87,7 +88,13 @@ void get_permutation(
                      permutation_arr, inv_permutation_arr));
 }
 #else
-{}
+{
+    std::vector<IndexType> tmp(num_vertices, 0);
+    std::iota(tmp.begin(), tmp.end(), 0);
+    for (auto i = 0; i < num_vertices; ++i) {
+        permutation_mat->get_permutation()[i] = tmp[i];
+    }
+}
 #endif
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(

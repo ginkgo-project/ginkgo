@@ -87,17 +87,34 @@ public:
     using SparsityMatrix = matrix::Sparsity<ValueType, IndexType>;
     using PermutationMatrix = matrix::Permutation<IndexType>;
 
-    std::shared_ptr<SparsityMatrix> get_adjacency_matrix() const
+    /**
+     * Gets the system operator (input matrix) of the linear operator.
+     *
+     * @return the system operator (matrix)
+     */
+    std::shared_ptr<const SparsityMatrix> get_adjacency_matrix() const
     {
         return adjacency_matrix_;
     }
 
-    std::shared_ptr<PermutationMatrix> get_permutation() const
+    /**
+     * Gets the permutation (permutation matrix, output of the algorithm) of the
+     * linear operator.
+     *
+     * @return the permutation (permutation matrix)
+     */
+    std::shared_ptr<const PermutationMatrix> get_permutation() const
     {
         return permutation_;
     }
 
-    std::shared_ptr<PermutationMatrix> get_inverse_permutation() const
+    /**
+     * Gets the inverse permutation (permutation matrix, output of the
+     * algorithm) of the linear operator.
+     *
+     * @return the inverse permutation (permutation matrix)
+     */
+    std::shared_ptr<const PermutationMatrix> get_inverse_permutation() const
     {
         return inv_permutation_;
     }

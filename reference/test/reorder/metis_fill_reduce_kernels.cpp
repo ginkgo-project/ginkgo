@@ -33,6 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/reorder/metis_fill_reduce.hpp>
 
 
+#include <algorithm>
+#include <fstream>
+#include <memory>
+
+
 #include <gtest/gtest.h>
 
 
@@ -41,9 +46,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/metis_types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
 
 
 #include "core/test/utils/assertions.hpp"
+#include "matrices/config.hpp"
 
 
 namespace {
@@ -54,33 +61,59 @@ protected:
     using v_type = double;
     using i_type = metis_indextype;
     using Mtx = gko::matrix::Dense<v_type>;
+    using CsrMtx = gko::matrix::Csr<v_type, i_type>;
+    using reorder_type = gko::reorder::MetisFillReduce<v_type, i_type>;
+    using perm_type = gko::matrix::Permutation<i_type>;
     MetisFillReduce()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<Mtx>(
-              {{1, 0.0, 0.0}, {3.0, 1, 0.0}, {1.0, 2.0, 1}}, exec)),
-          mtx2(gko::initialize<Mtx>(
-              {{2, 0.0, 0.0}, {3.0, 3, 0.0}, {1.0, 2.0, 4}}, exec)),
-          metis_fill_reduce_factory(
-              gko::reorder::MetisFillReduce<v_type, i_type>::build().on(exec)),
-          mtx_big(gko::initialize<Mtx>({{124.0, 0.0, 0.0, 0.0, 0.0},
-                                        {43.0, -789.0, 0.0, 0.0, 0.0},
-                                        {134.5, -651.0, 654.0, 0.0, 0.0},
-                                        {-642.0, 684.0, 68.0, 387.0, 0.0},
-                                        {365.0, 97.0, -654.0, 8.0, 91.0}},
-                                       exec)),
-          metis_fill_reduce_factory_big(
-              gko::reorder::MetisFillReduce<v_type, i_type>::build().on(exec))
+          ani4_mtx(gko::read<CsrMtx>(
+              std::ifstream(gko::matrices::location_ani4_mtx, std::ios::in),
+              exec)),
+          metis_fill_reduce_factory(reorder_type::build().on(exec)),
+          reorder_op(metis_fill_reduce_factory->generate(ani4_mtx))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<Mtx> mtx;
-    std::shared_ptr<Mtx> mtx2;
-    std::shared_ptr<Mtx> mtx_big;
-    std::unique_ptr<gko::reorder::MetisFillReduce<v_type, i_type>::Factory>
-        metis_fill_reduce_factory;
-    std::unique_ptr<gko::reorder::MetisFillReduce<v_type, i_type>::Factory>
-        metis_fill_reduce_factory_big;
+    std::shared_ptr<CsrMtx> ani4_mtx;
+    std::unique_ptr<reorder_type::Factory> metis_fill_reduce_factory;
+    std::unique_ptr<reorder_type> reorder_op;
+
+    bool find_duplicates(i_type val, std::size_t index, const i_type *data,
+                         std::size_t length)
+    {
+        auto count = 0;
+        for (auto i = 0; i < length; ++i) {
+            if (i != index && val == data[i]) {
+                count++;
+            }
+        }
+        if (count == 0) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    void assert_correct_permutation(const perm_type *input_perm)
+    {
+        auto perm_data = input_perm->get_const_permutation();
+        auto perm_size = input_perm->get_permutation_size();
+
+        for (auto i = 0; i < perm_size; ++i) {
+            ASSERT_LT(perm_data[i], perm_size);
+            ASSERT_GE(perm_data[i], 0);
+            ASSERT_FALSE(
+                find_duplicates(perm_data[i], i, perm_data, perm_size));
+        }
+    }
 };
+
+
+TEST_F(MetisFillReduce, CreatesAPermutation)
+{
+    auto p = reorder_op->get_permutation();
+    assert_correct_permutation(p.get());
+}
 
 
 }  // namespace
