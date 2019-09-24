@@ -49,7 +49,8 @@ void test_real_isfinite()
 {
     using limits = std::numeric_limits<T>;
     constexpr auto inf = limits::infinity();
-
+    // Use volatile to avoid MSVC report divided by zero.
+    volatile const T zero{0};
     ASSERT_TRUE(gko::isfinite(T{0}));
     ASSERT_TRUE(gko::isfinite(-T{0}));
     ASSERT_TRUE(gko::isfinite(T{1}));
@@ -60,8 +61,8 @@ void test_real_isfinite()
     ASSERT_FALSE(gko::isfinite(inf - inf));    // results in nan
     ASSERT_FALSE(gko::isfinite(inf / inf));    // results in nan
     ASSERT_FALSE(gko::isfinite(inf * T{2}));   // results in inf
-    ASSERT_FALSE(gko::isfinite(T{1} / T{0}));  // results in inf
-    ASSERT_FALSE(gko::isfinite(T{0} / T{0}));  // results in nan
+    ASSERT_FALSE(gko::isfinite(T{1} / zero));  // results in inf
+    ASSERT_FALSE(gko::isfinite(T{0} / zero));  // results in nan
 }
 
 
