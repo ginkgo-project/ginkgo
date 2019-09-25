@@ -57,6 +57,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /* Should we use all optimizations for Jacobi? */
 #cmakedefine GINKGO_JACOBI_FULL_OPTIMIZATIONS
 
+/* Is HWLOC available for obtaining the machine_info? */
+// clang-format off
+#define GKO_HAVE_HWLOC @GINKGO_HAVE_HWLOC@
+// clang-format on
 
 /* What is HIP compiled for, hcc or nvcc? */
 // clang-format off

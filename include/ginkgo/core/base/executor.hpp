@@ -41,6 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
+#include <ginkgo/config.hpp>
+// #include <ginkgo/core/base/machine_info.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
@@ -53,6 +55,8 @@ struct cusparseContext;
 struct hipblasContext;
 
 struct hipsparseContext;
+
+struct machineInfoContext;
 
 
 namespace gko {
@@ -76,6 +80,30 @@ class ExecutorBase;
 
 
 }  // namespace detail
+
+
+/**
+ * @ingroup machine_info
+ */
+class MachineInfo {
+public:
+    /**
+     * Set the machine info
+     */
+    virtual void set_machine_info() = 0;
+
+    /**
+     * Get the machine info
+     *
+     * @return the machine info struct (machineInfoContext*)
+     */
+    machineInfoContext *get_machine_info() const { return machine_info_.get(); }
+
+private:
+    template <typename T>
+    using info_manager = std::unique_ptr<T, std::function<void(T *)>>;
+    info_manager<machineInfoContext> machine_info_;
+};
 
 
 /**
@@ -432,9 +460,10 @@ private:                                                                     \
  *
  * @ingroup Executor
  */
-class Executor : public log::EnableLogging<Executor> {
+class Executor : public log::EnableLogging<Executor>, public MachineInfo {
     template <typename T>
     friend class detail::ExecutorBase;
+    friend class MachineInfo;
 
 public:
     virtual ~Executor() = default;
@@ -444,6 +473,7 @@ public:
     Executor(Executor &&) = default;
     Executor &operator=(Executor &) = delete;
     Executor &operator=(Executor &&) = default;
+
 
     /**
      * Runs the specified Operation using this Executor.
@@ -783,6 +813,8 @@ public:
 
     void synchronize() const override;
 
+    void set_machine_info() override;
+
 protected:
     OmpExecutor() = default;
 
@@ -864,6 +896,8 @@ public:
 
     void synchronize() const override;
 
+    void set_machine_info() override;
+
     void run(const Operation &op) const override;
 
     /**
@@ -936,6 +970,7 @@ protected:
           major_(0),
           minor_(0)
     {
+        this->set_machine_info();
         assert(device_id < max_devices);
         this->set_gpu_property();
         this->init_handles();

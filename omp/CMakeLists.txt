@@ -3,6 +3,7 @@ find_package(OpenMP REQUIRED)
 add_library(ginkgo_omp $<TARGET_OBJECTS:ginkgo_omp_device> "")
 target_sources(ginkgo_omp
     PRIVATE
+        base/executor.cpp
         base/version.cpp
         factorization/par_ilu_kernels.cpp
         matrix/coo_kernels.cpp

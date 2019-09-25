@@ -233,6 +233,9 @@ void CudaExecutor::set_gpu_property()
 }
 
 
+void CudaExecutor::set_machine_info() {}
+
+
 void CudaExecutor::init_handles()
 {
     if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
