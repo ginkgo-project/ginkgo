@@ -233,7 +233,7 @@ void CudaExecutor::set_gpu_property()
 }
 
 
-void CudaExecutor::set_machine_info() {}
+// void CudaExecutor::set_machine_info() {}
 
 
 void CudaExecutor::init_handles()

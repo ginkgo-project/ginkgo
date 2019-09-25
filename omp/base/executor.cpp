@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-void OmpExecutor::set_machine_info() {}
+// void OmpExecutor::set_machine_info() {}
 
 
 }  // namespace gko
