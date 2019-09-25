@@ -156,12 +156,16 @@ if(GINKGO_DEVEL_TOOLS)
         COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/add_license.sh
         WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
     add_dependencies(format add_license)
+endif()
 
-    # Generate the global `ginkgo/ginkgo.hpp` header with every call of make
+# Generate the global `ginkgo/ginkgo.hpp` header with every call of make
+find_program(BASH bash)
+if(NOT "${BASH}" STREQUAL "BASH-NOTFOUND")
     add_custom_target(generate_ginkgo_header ALL
         COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/update_ginkgo_header.sh
         WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
 endif()
+unset(BASH CACHE)
 
 
 # Installation
