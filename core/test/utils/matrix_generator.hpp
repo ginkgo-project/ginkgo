@@ -51,18 +51,16 @@ namespace test {
 namespace detail {
 
 
-template <typename ValueType, typename Distribution, typename Generator,
-          overload<0> = nullptr>
-typename std::enable_if<!is_complex<ValueType>(), ValueType>::type
+template <typename ValueType, typename Distribution, typename Generator>
+typename std::enable_if<!is_complex_s<ValueType>::value, ValueType>::type
 get_rand_value(Distribution &&dist, Generator &&gen)
 {
     return dist(gen);
 }
 
 
-template <typename ValueType, typename Distribution, typename Generator,
-          overload<1> = nullptr>
-typename std::enable_if<is_complex<ValueType>(), ValueType>::type
+template <typename ValueType, typename Distribution, typename Generator>
+typename std::enable_if<is_complex_s<ValueType>::value, ValueType>::type
 get_rand_value(Distribution &&dist, Generator &&gen)
 {
     return ValueType(dist(gen), dist(gen));

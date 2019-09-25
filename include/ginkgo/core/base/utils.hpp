@@ -120,9 +120,12 @@ template <typename T>
 struct have_ownership_impl<std::shared_ptr<T>> : std::true_type {};
 
 template <typename T>
+using have_ownership_s = have_ownership_impl<typename std::decay<T>::type>;
+
+template <typename T>
 constexpr bool have_ownership()
 {
-    return have_ownership_impl<typename std::decay<T>::type>::value;
+    return have_ownership_s<T>::value;
 }
 
 
@@ -234,18 +237,6 @@ inline typename std::remove_reference<OwningPointer>::type &&give(
 
 
 /**
- * Create an overload function.
- *
- * This is a helper function which makes the MSVC can recognize
- * enable_if<constexpr function, ...> function.
- *
- * @param Index  the index of overload function.
- */
-template <int Index>
-using overload = std::integral_constant<int, Index> *;
-
-
-/**
  * Returns a non-owning (plain) pointer to the object pointed to by `p`.
  *
  * @tparam Pointer  type of pointer to the object (plain or smart pointer)
@@ -255,8 +246,8 @@ using overload = std::integral_constant<int, Index> *;
  * @note This is the overload for owning (smart) pointers, that behaves the
  *       same as calling .get() on the smart pointer.
  */
-template <typename Pointer, overload<0> = nullptr>
-inline typename std::enable_if<detail::have_ownership<Pointer>(),
+template <typename Pointer>
+inline typename std::enable_if<detail::have_ownership_s<Pointer>::value,
                                detail::pointee<Pointer> *>::type
 lend(const Pointer &p)
 {
@@ -273,8 +264,8 @@ lend(const Pointer &p)
  * @note This is the overload for non-owning (plain) pointers, that just
  *       returns `p`.
  */
-template <typename Pointer, overload<1> = nullptr>
-inline typename std::enable_if<!detail::have_ownership<Pointer>(),
+template <typename Pointer>
+inline typename std::enable_if<!detail::have_ownership_s<Pointer>::value,
                                detail::pointee<Pointer> *>::type
 lend(const Pointer &p)
 {
