@@ -46,7 +46,7 @@ version version_info::get_omp_version() noexcept
 }
 
 
-void OmpExecutor::set_machine_info() {}
+// void OmpExecutor::set_machine_info() {}
 
 
 }  // namespace gko

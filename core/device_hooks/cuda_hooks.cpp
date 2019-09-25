@@ -91,7 +91,7 @@ void CudaExecutor::raw_copy_to(const HipExecutor *, size_type num_bytes,
 void CudaExecutor::synchronize() const GKO_NOT_COMPILED(cuda);
 
 
-void CudaExecutor::set_machine_info() {}
+// void CudaExecutor::set_machine_info() {}
 
 
 void CudaExecutor::run(const Operation &op) const
