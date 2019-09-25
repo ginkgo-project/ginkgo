@@ -41,7 +41,11 @@ endfunction()
 
 function(ginkgo_check_shared_library name)
     # Cygwin uses : not ; to split path
-    string(REPLACE ":" ";" ENV_PATH "$ENV{PATH}")
+    if(CYGWIN)
+        string(REPLACE ":" ";" ENV_PATH "$ENV{PATH}")
+    else()
+        set(ENV_PATH "$ENV{PATH}")
+    endif()
     set(PATH_LIST ${ENV_PATH})
     set(PASSED_TEST FALSE)
     foreach(ITEM IN LISTS PATH_LIST)
