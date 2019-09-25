@@ -41,6 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
+#include <ginkgo/config.hpp>
+#include <ginkgo/core/base/machine_config.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
@@ -432,9 +434,11 @@ private:                                                                     \
  *
  * @ingroup Executor
  */
-class Executor : public log::EnableLogging<Executor> {
+class Executor : public log::EnableLogging<Executor>,
+                 public machine_config::topology {
     template <typename T>
     friend class detail::ExecutorBase;
+    friend class machine_config::topology;
 
 public:
     virtual ~Executor() = default;
