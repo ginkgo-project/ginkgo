@@ -43,7 +43,7 @@ namespace matrix {
 
 
 /**
- * SPARSITY is a matrix format which stores only the sparsity pattern of a
+ * Sparsity is a matrix format which stores only the sparsity pattern of a
  * sparse matrix by compressing each row of the matrix (compressed sparse row
  * format).
  *
@@ -91,7 +91,7 @@ public:
      * matrix has to be square, the input Sparsity matrix for this function to
      * work has to be square.
      *
-     * Note: The adjacency matrix in this case is the sparsity pattern but with
+     * @note The adjacency matrix in this case is the sparsity pattern but with
      * the diagonal ones removed. This is mainly used for the
      * reordering/partitioning as taken in by graph libraries such as METIS.
      */
@@ -179,30 +179,31 @@ public:
 
 protected:
     /**
-     * Creates an uninitialized SPARSITY matrix of the specified size.
+     * Creates an uninitialized Sparsity matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
-     * @param value  the value stored by all the matrix elements.
      */
     Sparsity(std::shared_ptr<const Executor> exec,
-             const dim<2> &size = dim<2>{}, size_type num_nonzeros = {},
-             value_type value = one<value_type>())
+             const dim<2> &size = dim<2>{}, size_type num_nonzeros = {})
         : EnableLinOp<Sparsity>(exec, size),
           col_idxs_(exec, num_nonzeros),
           // avoid allocation for empty matrix
           row_ptrs_(exec, size[0] + (size[0] > 0))
     {
-        value_type val = value;
-        auto tmp = Array<value_type>{exec->get_master(), 1};
-        tmp.get_data()[0] = val;
-        value_ = Array<value_type>{exec, std::move(tmp)};
+        if (size[0] > 0) {
+            auto tmp = Array<value_type>{exec->get_master(), 1};
+            tmp.get_data()[0] = one<ValueType>();
+            value_ = Array<value_type>{exec, std::move(tmp)};
+        } else {
+            value_ = Array<value_type>{exec};
+        }
     }
 
     /**
-     * Creates a SPARSITY matrix from already allocated (and initialized) row
-     * pointer, column index arrays.
+     * Creates a Sparsity matrix from already allocated (and initialized) row
+     * pointer and column index arrays.
      *
      * @tparam ColIdxsArray  type of `col_idxs` array
      * @tparam RowPtrsArray  type of `row_ptrs` array
@@ -222,14 +223,13 @@ protected:
     template <typename ColIdxsArray, typename RowPtrsArray>
     Sparsity(std::shared_ptr<const Executor> exec, const dim<2> &size,
              ColIdxsArray &&col_idxs, RowPtrsArray &&row_ptrs,
-             value_type value = 1.0)
+             value_type value = one<ValueType>())
         : EnableLinOp<Sparsity>(exec, size),
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}
     {
-        value_type val = value;
         auto tmp = Array<value_type>{exec->get_master(), 1};
-        tmp.get_data()[0] = val;
+        tmp.get_data()[0] = value;
         value_ = Array<value_type>{exec, std::move(tmp)};
         GKO_ENSURE_IN_BOUNDS(col_idxs_.get_num_elems() - 1,
                              col_idxs_.get_num_elems());
