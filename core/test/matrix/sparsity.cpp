@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dim.hpp>
 
+
 namespace {
 
 
@@ -71,6 +72,7 @@ protected:
     {
         auto c = m->get_const_col_idxs();
         auto r = m->get_const_row_ptrs();
+        auto v = m->get_const_value();
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_nonzeros(), 4);
         EXPECT_EQ(r[0], 0);
@@ -80,14 +82,19 @@ protected:
         EXPECT_EQ(c[1], 1);
         EXPECT_EQ(c[2], 2);
         EXPECT_EQ(c[3], 1);
+        EXPECT_EQ(v[0], 1.0);
     }
 
-    void assert_empty(const Mtx *m)
+    void assert_empty(Mtx *m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_nonzeros(), 0);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
         ASSERT_EQ(m->get_const_row_ptrs(), nullptr);
+        ASSERT_EQ(m->get_const_value(), nullptr);
+        ASSERT_EQ(m->get_col_idxs(), nullptr);
+        ASSERT_EQ(m->get_row_ptrs(), nullptr);
+        ASSERT_EQ(m->get_value(), nullptr);
     }
 };
 
@@ -113,12 +120,13 @@ TEST_F(Sparsity, CanBeEmpty)
 }
 
 
-TEST_F(Sparsity, CanSetValue)
+TEST_F(Sparsity, SetsCorrectDefaultValue)
 {
-    auto mtx = gko::matrix::Sparsity<>::create(
-        exec, gko::dim<2>{3, 2}, static_cast<gko::size_type>(0), 2.0);
+    auto mtx = gko::matrix::Sparsity<>::create(exec, gko::dim<2>{3, 2},
+                                               static_cast<gko::size_type>(0));
 
-    ASSERT_EQ(mtx->get_const_value()[0], 2.0);
+    ASSERT_EQ(mtx->get_const_value()[0], 1.0);
+    ASSERT_EQ(mtx->get_value()[0], 1.0);
 }
 
 
@@ -130,11 +138,14 @@ TEST_F(Sparsity, CanBeCreatedFromExistingData)
     auto mtx = gko::matrix::Sparsity<>::create(
         exec, gko::dim<2>{3, 2},
         gko::Array<gko::int32>::view(exec, 4, col_idxs),
-        gko::Array<gko::int32>::view(exec, 4, row_ptrs));
+        gko::Array<gko::int32>::view(exec, 4, row_ptrs), 2.0);
 
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
     ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
-    ASSERT_EQ(mtx->get_const_value()[0], 1.0);
+    ASSERT_EQ(mtx->get_const_value()[0], 2.0);
+    ASSERT_EQ(mtx->get_col_idxs(), col_idxs);
+    ASSERT_EQ(mtx->get_row_ptrs(), row_ptrs);
+    ASSERT_EQ(mtx->get_value()[0], 2.0);
 }
 
 

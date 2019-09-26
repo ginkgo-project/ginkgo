@@ -131,12 +131,12 @@ void Sparsity<ValueType, IndexType>::write(mat_data &data) const
 
     data = {tmp->get_size(), {}};
 
+    const auto val = tmp->value_.get_const_data()[0];
     for (size_type row = 0; row < tmp->get_size()[0]; ++row) {
         const auto start = tmp->row_ptrs_.get_const_data()[row];
         const auto end = tmp->row_ptrs_.get_const_data()[row + 1];
         for (auto i = start; i < end; ++i) {
             const auto col = tmp->col_idxs_.get_const_data()[i];
-            const auto val = one<ValueType>();
             data.nonzeros.emplace_back(row, col, val);
         }
     }
