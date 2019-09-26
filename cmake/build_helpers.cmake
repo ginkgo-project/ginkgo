@@ -38,7 +38,11 @@ function(ginkgo_compile_features name)
         endif()
     endif()
 
-    set_target_properties(${name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    if (GINKGO_CHECK_CIRCULAR_DEPS)
+        target_link_libraries("${name}" PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
+    endif()
+
+    set_target_properties("${name}" PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endfunction()
 
 function(ginkgo_check_shared_library name)
