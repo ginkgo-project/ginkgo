@@ -169,7 +169,7 @@ TEST_F(Cgs, CanSetPreconditionerGenerator)
 }
 
 
-TEST_F(Cgs, CanSetPreconditioner)
+TEST_F(Cgs, CanSetPreconditionerInFactory)
 {
     std::shared_ptr<Solver> cgs_precond =
         Solver::build()
@@ -189,6 +189,72 @@ TEST_F(Cgs, CanSetPreconditioner)
 
     ASSERT_NE(precond.get(), nullptr);
     ASSERT_EQ(precond.get(), cgs_precond.get());
+}
+
+
+TEST_F(Cgs, ThrowsOnWrongPreconditionerInFactory)
+{
+    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1, 3});
+    std::shared_ptr<Solver> cgs_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(wrong_sized_mtx);
+
+    auto cgs_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_generated_preconditioner(cgs_precond)
+            .on(exec);
+
+    ASSERT_THROW(cgs_factory->generate(mtx), gko::DimensionMismatch);
+}
+
+
+TEST_F(Cgs, CanSetPreconditioner)
+{
+    std::shared_ptr<Solver> cgs_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(mtx);
+
+    auto cgs_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
+    auto solver = cgs_factory->generate(mtx);
+    solver->set_preconditioner(cgs_precond);
+    auto precond = solver->get_preconditioner();
+
+    ASSERT_NE(precond.get(), nullptr);
+    ASSERT_EQ(precond.get(), cgs_precond.get());
+}
+
+
+TEST_F(Cgs, ThrowOnWrongPreconditionerSet)
+{
+    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1, 3});
+    std::shared_ptr<Solver> cgs_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(wrong_sized_mtx);
+
+    auto cgs_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
+    auto solver = cgs_factory->generate(mtx);
+
+    ASSERT_THROW(solver->set_preconditioner(cgs_precond),
+                 gko::DimensionMismatch);
 }
 
 

@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -115,6 +116,17 @@ public:
      */
     std::shared_ptr<const LinOp> get_solver() const { return solver_; }
 
+    /**
+     * Sets the solver operator used as the inner solver.
+     *
+     * @param new_solver  the new inner solver
+     */
+    void set_solver(std::shared_ptr<const LinOp> new_solver)
+    {
+        GKO_ASSERT_EQUAL_DIMENSIONS(new_solver, this);
+        solver_ = new_solver;
+    }
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -158,6 +170,7 @@ protected:
     {
         if (parameters_.generated_solver) {
             solver_ = parameters_.generated_solver;
+            GKO_ASSERT_EQUAL_DIMENSIONS(solver_, this);
         } else if (parameters_.solver) {
             solver_ = parameters_.solver->generate(system_matrix_);
         } else {
