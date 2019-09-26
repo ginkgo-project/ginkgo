@@ -201,7 +201,7 @@ TEST_F(Gmres, CanSetKrylovDim)
 }
 
 
-TEST_F(Gmres, CanSetPreconditioner)
+TEST_F(Gmres, CanSetPreconditionerInFactory)
 {
     std::shared_ptr<Solver> gmres_precond =
         Solver::build()
@@ -221,6 +221,72 @@ TEST_F(Gmres, CanSetPreconditioner)
 
     ASSERT_NE(precond.get(), nullptr);
     ASSERT_EQ(precond.get(), gmres_precond.get());
+}
+
+
+TEST_F(Gmres, ThrowsOnWrongPreconditionerInFactory)
+{
+    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1, 3});
+    std::shared_ptr<Solver> gmres_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(wrong_sized_mtx);
+
+    auto gmres_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_generated_preconditioner(gmres_precond)
+            .on(exec);
+
+    ASSERT_THROW(gmres_factory->generate(mtx), gko::DimensionMismatch);
+}
+
+
+TEST_F(Gmres, CanSetPreconditioner)
+{
+    std::shared_ptr<Solver> gmres_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(mtx);
+
+    auto gmres_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
+    auto solver = gmres_factory->generate(mtx);
+    solver->set_preconditioner(gmres_precond);
+    auto precond = solver->get_preconditioner();
+
+    ASSERT_NE(precond.get(), nullptr);
+    ASSERT_EQ(precond.get(), gmres_precond.get());
+}
+
+
+TEST_F(Gmres, ThrowOnWrongPreconditionerSet)
+{
+    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1, 3});
+    std::shared_ptr<Solver> gmres_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(wrong_sized_mtx);
+
+    auto gmres_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
+    auto solver = gmres_factory->generate(mtx);
+
+    ASSERT_THROW(solver->set_preconditioner(gmres_precond),
+                 gko::DimensionMismatch);
 }
 
 

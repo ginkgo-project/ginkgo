@@ -146,7 +146,7 @@ TEST_F(Ir, CanBeCleared)
 }
 
 
-TEST_F(Ir, CanSetInnerSolver)
+TEST_F(Ir, CanSetInnerSolverInFactory)
 {
     auto ir_factory =
         Solver::build()
@@ -167,7 +167,7 @@ TEST_F(Ir, CanSetInnerSolver)
 }
 
 
-TEST_F(Ir, CanSetGeneratedInnerSolver)
+TEST_F(Ir, CanSetGeneratedInnerSolverInFactory)
 {
     std::shared_ptr<Solver> ir_solver =
         Solver::build()
@@ -187,6 +187,71 @@ TEST_F(Ir, CanSetGeneratedInnerSolver)
 
     ASSERT_NE(inner_solver.get(), nullptr);
     ASSERT_EQ(inner_solver.get(), ir_solver.get());
+}
+
+
+TEST_F(Ir, ThrowsOnWrongInnerSolverInFactory)
+{
+    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1, 3});
+    std::shared_ptr<Solver> ir_solver =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(wrong_sized_mtx);
+
+    auto ir_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_generated_solver(ir_solver)
+            .on(exec);
+
+    ASSERT_THROW(ir_factory->generate(mtx), gko::DimensionMismatch);
+}
+
+
+TEST_F(Ir, CanSetInnerSolver)
+{
+    std::shared_ptr<Solver> ir_solver =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(mtx);
+
+    auto ir_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
+    auto solver = ir_factory->generate(mtx);
+    solver->set_solver(ir_solver);
+    auto inner_solver = solver->get_solver();
+
+    ASSERT_NE(inner_solver.get(), nullptr);
+    ASSERT_EQ(inner_solver.get(), ir_solver.get());
+}
+
+
+TEST_F(Ir, ThrowOnWrongInnerSolverSet)
+{
+    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1, 3});
+    std::shared_ptr<Solver> ir_solver =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(wrong_sized_mtx);
+
+    auto ir_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
+    auto solver = ir_factory->generate(mtx);
+
+    ASSERT_THROW(solver->set_solver(ir_solver), gko::DimensionMismatch);
 }
 
 

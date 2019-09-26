@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -92,6 +93,17 @@ public:
         return preconditioner_;
     }
 
+    /**
+     * Sets the preconditioner operator used by the solver.
+     *
+     * @param new_precond  the new preconditioner operator used by the solver
+     */
+    void set_preconditioner(std::shared_ptr<const LinOp> new_precond) override
+    {
+        GKO_ASSERT_EQUAL_DIMENSIONS(new_precond, this);
+        preconditioner_ = new_precond;
+    }
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -135,6 +147,7 @@ protected:
     {
         if (parameters_.generated_preconditioner) {
             preconditioner_ = parameters_.generated_preconditioner;
+            GKO_ASSERT_EQUAL_DIMENSIONS(preconditioner_, this);
         } else if (parameters_.preconditioner) {
             preconditioner_ =
                 parameters_.preconditioner->generate(system_matrix_);

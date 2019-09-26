@@ -149,7 +149,7 @@ TEST_F(UpperTrs, CanSetPreconditionerGenerator)
 }
 
 
-TEST_F(UpperTrs, CanSetPreconditioner)
+TEST_F(UpperTrs, CanSetPreconditionerInFactory)
 {
     std::shared_ptr<Solver> upper_trs_precond =
         Solver::build().on(exec)->generate(mtx);
@@ -163,6 +163,50 @@ TEST_F(UpperTrs, CanSetPreconditioner)
 
     ASSERT_NE(precond.get(), nullptr);
     ASSERT_EQ(precond.get(), upper_trs_precond.get());
+}
+
+
+TEST_F(UpperTrs, ThrowsOnWrongPreconditionerInFactory)
+{
+    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{4, 4});
+    std::shared_ptr<Solver> upper_trs_precond =
+        Solver::build().on(exec)->generate(wrong_sized_mtx);
+
+    auto upper_trs_factory =
+        Solver::build()
+            .with_generated_preconditioner(upper_trs_precond)
+            .on(exec);
+
+    ASSERT_THROW(upper_trs_factory->generate(mtx), gko::DimensionMismatch);
+}
+
+
+TEST_F(UpperTrs, CanSetPreconditioner)
+{
+    std::shared_ptr<Solver> upper_trs_precond =
+        Solver::build().on(exec)->generate(mtx);
+
+    auto upper_trs_factory = Solver::build().on(exec);
+    auto solver = upper_trs_factory->generate(mtx);
+    solver->set_preconditioner(upper_trs_precond);
+    auto precond = solver->get_preconditioner();
+
+    ASSERT_NE(precond.get(), nullptr);
+    ASSERT_EQ(precond.get(), upper_trs_precond.get());
+}
+
+
+TEST_F(UpperTrs, ThrowOnWrongPreconditionerSet)
+{
+    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{4, 4});
+    std::shared_ptr<Solver> upper_trs_precond =
+        Solver::build().on(exec)->generate(wrong_sized_mtx);
+
+    auto upper_trs_factory = Solver::build().on(exec);
+    auto solver = upper_trs_factory->generate(mtx);
+
+    ASSERT_THROW(solver->set_preconditioner(upper_trs_precond),
+                 gko::DimensionMismatch);
 }
 
 
