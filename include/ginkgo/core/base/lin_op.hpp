@@ -471,7 +471,10 @@ public:
      *
      * @return the preconditioner operator used by the Preconditionable
      */
-    virtual std::shared_ptr<const LinOp> get_preconditioner() const = 0;
+    std::shared_ptr<const LinOp> get_preconditioner() const
+    {
+        return preconditioner_;
+    }
 
     /**
      * Sets the preconditioner operator used by the Preconditionable.
@@ -479,8 +482,13 @@ public:
      * @param new_precond  the new preconditioner operator used by the
      *                     Preconditionable
      */
-    virtual void set_preconditioner(
-        std::shared_ptr<const LinOp> new_precond) = 0;
+    void set_preconditioner(std::shared_ptr<const LinOp> new_precond)
+    {
+        preconditioner_ = new_precond;
+    }
+
+private:
+    std::shared_ptr<const LinOp> preconditioner_{};
 };
 
 

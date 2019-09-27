@@ -230,26 +230,4 @@ TEST_F(Bicgstab, CanSetPreconditioner)
 }
 
 
-TEST_F(Bicgstab, ThrowOnWrongPreconditionerSet)
-{
-    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1, 3});
-    std::shared_ptr<Solver> bicgstab_precond =
-        Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .on(exec)
-            ->generate(wrong_sized_mtx);
-
-    auto bicgstab_factory =
-        Solver::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .on(exec);
-    auto solver = bicgstab_factory->generate(mtx);
-
-    ASSERT_THROW(solver->set_preconditioner(bicgstab_precond),
-                 gko::DimensionMismatch);
-}
-
-
 }  // namespace
