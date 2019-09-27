@@ -40,7 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/solver/cg.hpp>
 
 
 #include "core/test/utils/assertions.hpp"
@@ -52,17 +51,13 @@ namespace {
 class UpperTrs : public ::testing::Test {
 protected:
     using Solver = gko::solver::UpperTrs<>;
-    using CgSolver = gko::solver::Cg<>;
 
     UpperTrs()
         : exec(gko::ReferenceExecutor::create()),
-          prec_fac(CgSolver::build().on(exec)),
-          upper_trs_factory(
-              Solver::build().with_preconditioner(prec_fac).on(exec))
+          upper_trs_factory(Solver::build().on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<CgSolver::Factory> prec_fac;
     std::unique_ptr<Solver::Factory> upper_trs_factory;
 };
 
@@ -70,14 +65,6 @@ protected:
 TEST_F(UpperTrs, UpperTrsFactoryKnowsItsExecutor)
 {
     ASSERT_EQ(upper_trs_factory->get_executor(), exec);
-}
-
-
-TEST_F(UpperTrs, UpperTrsFactoryKnowsItsPrecond)
-{
-    ASSERT_EQ(static_cast<const CgSolver::Factory *>(
-                  upper_trs_factory->get_parameters().preconditioner.get()),
-              prec_fac.get());
 }
 
 

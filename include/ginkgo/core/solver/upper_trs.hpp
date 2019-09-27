@@ -76,8 +76,7 @@ struct SolveStruct;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class UpperTrs : public EnableLinOp<UpperTrs<ValueType, IndexType>>,
-                 public Preconditionable {
+class UpperTrs : public EnableLinOp<UpperTrs<ValueType, IndexType>> {
     friend class EnableLinOp<UpperTrs>;
     friend class EnablePolymorphicObject<UpperTrs, LinOp>;
 
@@ -96,42 +95,8 @@ public:
         return system_matrix_;
     }
 
-    /**
-     * Returns the preconditioner operator used by the solver.
-     *
-     * @return the preconditioner operator used by the solver
-     */
-    std::shared_ptr<const LinOp> get_preconditioner() const override
-    {
-        return preconditioner_;
-    }
-
-    /**
-     * Sets the preconditioner operator used by the solver.
-     *
-     * @param new_precond  the new preconditioner operator used by the solver
-     */
-    void set_preconditioner(std::shared_ptr<const LinOp> new_precond) override
-    {
-        GKO_ASSERT_EQUAL_DIMENSIONS(new_precond, this);
-        preconditioner_ = new_precond;
-    }
-
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
-        /**
-         * Preconditioner factory.
-         */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
-            preconditioner, nullptr);
-
-        /**
-         * Already generated preconditioner. If one is provided, the factory
-         * `preconditioner` will be ignored.
-         */
-        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER(
-            generated_preconditioner, nullptr);
-
         /**
          * Number of right hand sides.
          *
@@ -183,23 +148,12 @@ protected:
             system_matrix_ =
                 copy_and_convert_to<CsrMatrix>(exec, system_matrix);
         }
-        if (parameters_.generated_preconditioner) {
-            preconditioner_ = parameters_.generated_preconditioner;
-            GKO_ASSERT_EQUAL_DIMENSIONS(preconditioner_, this);
-        } else if (parameters_.preconditioner) {
-            preconditioner_ =
-                parameters_.preconditioner->generate(system_matrix_);
-        } else {
-            preconditioner_ = matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()[0]);
-        }
         this->init_trs_solve_struct();
         this->generate();
     }
 
 private:
     std::shared_ptr<const matrix::Csr<ValueType, IndexType>> system_matrix_{};
-    std::shared_ptr<const LinOp> preconditioner_{};
     std::shared_ptr<solver::SolveStruct> solve_struct_;
 };
 

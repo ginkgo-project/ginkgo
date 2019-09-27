@@ -83,27 +83,6 @@ public:
         return system_matrix_;
     }
 
-    /**
-     * Returns the preconditioner operator used by the solver.
-     *
-     * @return the preconditioner operator used by the solver
-     */
-    std::shared_ptr<const LinOp> get_preconditioner() const override
-    {
-        return preconditioner_;
-    }
-
-    /**
-     * Sets the preconditioner operator used by the solver.
-     *
-     * @param new_precond  the new preconditioner operator used by the solver
-     */
-    void set_preconditioner(std::shared_ptr<const LinOp> new_precond) override
-    {
-        GKO_ASSERT_EQUAL_DIMENSIONS(new_precond, this);
-        preconditioner_ = new_precond;
-    }
-
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -146,14 +125,15 @@ protected:
           system_matrix_{std::move(system_matrix)}
     {
         if (parameters_.generated_preconditioner) {
-            preconditioner_ = parameters_.generated_preconditioner;
-            GKO_ASSERT_EQUAL_DIMENSIONS(preconditioner_, this);
+            GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.generated_preconditioner,
+                                        this);
+            set_preconditioner(parameters_.generated_preconditioner);
         } else if (parameters_.preconditioner) {
-            preconditioner_ =
-                parameters_.preconditioner->generate(system_matrix_);
+            set_preconditioner(
+                parameters_.preconditioner->generate(system_matrix_));
         } else {
-            preconditioner_ = matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()[0]);
+            set_preconditioner(matrix::Identity<ValueType>::create(
+                this->get_executor(), this->get_size()[0]));
         }
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
@@ -161,7 +141,6 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const LinOp> preconditioner_{};
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
 };
 
