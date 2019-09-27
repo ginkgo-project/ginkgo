@@ -9,9 +9,9 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 194)">
 <title>Graphical Class Hierarchy</title>
 <polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-194 697,-194 697,4 -4,4"/>
-<!-- Node292 -->
+<!-- Node297 -->
 <g id="node1" class="node">
-<title>Node292</title>
+<title>Node297</title>
 <polygon fill="#ffffff" stroke="#bfbfbf" points="0,-88 0,-107 59,-107 59,-88 0,-88"/>
 <text text-anchor="middle" x="29.5" y="-95" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Criterion</text>
 </g>
@@ -25,15 +25,15 @@
 </a>
 </g>
 </g>
-<!-- Node292&#45;&gt;Node0 -->
+<!-- Node297&#45;&gt;Node0 -->
 <g id="edge1" class="edge">
-<title>Node292&#45;&gt;Node0</title>
+<title>Node297&#45;&gt;Node0</title>
 <path fill="none" stroke="#191970" d="M46.1391,-114.2621C58.6122,-125.9554 76.6295,-141.0926 95,-150.5 101.6247,-153.8925 108.7831,-156.8482 116.0559,-159.4133"/>
 <polygon fill="#191970" stroke="#191970" points="48.4198,-111.5989 38.795,-107.17 43.5571,-116.6343 48.4198,-111.5989"/>
 </g>
-<!-- Node296 -->
+<!-- Node301 -->
 <g id="node5" class="node">
-<title>Node296</title>
+<title>Node301</title>
 <g id="a_node5"><a xlink:href="classgko_1_1EnableAbstractPolymorphicObject.html" target="_top" xlink:title="gko::EnableAbstractPolymorphic\lObject\&lt; Iteration, Criterion \&gt;">
 <polygon fill="#ffffff" stroke="#000000" points="95.5,-110.5 95.5,-140.5 270.5,-140.5 270.5,-110.5 95.5,-110.5"/>
 <text text-anchor="start" x="103.5" y="-128.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableAbstractPolymorphic</text>
@@ -41,15 +41,15 @@
 </a>
 </g>
 </g>
-<!-- Node292&#45;&gt;Node296 -->
+<!-- Node297&#45;&gt;Node301 -->
 <g id="edge4" class="edge">
-<title>Node292&#45;&gt;Node296</title>
+<title>Node297&#45;&gt;Node301</title>
 <path fill="none" stroke="#191970" d="M69.1684,-104.7359C78.8651,-106.5047 89.6013,-108.4631 100.4929,-110.4499"/>
 <polygon fill="#191970" stroke="#191970" points="69.5621,-101.2501 59.0963,-102.8987 68.3059,-108.1364 69.5621,-101.2501"/>
 </g>
-<!-- Node299 -->
+<!-- Node304 -->
 <g id="node8" class="node">
-<title>Node299</title>
+<title>Node304</title>
 <g id="a_node8"><a xlink:href="classgko_1_1EnableAbstractPolymorphicObject.html" target="_top" xlink:title="gko::EnableAbstractPolymorphic\lObject\&lt; ResidualNormReduction\l\&lt; ValueType \&gt;, Criterion \&gt;">
 <polygon fill="#ffffff" stroke="#000000" points="95,-50 95,-91 271,-91 271,-50 95,-50"/>
 <text text-anchor="start" x="103" y="-79" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableAbstractPolymorphic</text>
@@ -58,15 +58,15 @@
 </a>
 </g>
 </g>
-<!-- Node292&#45;&gt;Node299 -->
+<!-- Node297&#45;&gt;Node304 -->
 <g id="edge7" class="edge">
-<title>Node292&#45;&gt;Node299</title>
+<title>Node297&#45;&gt;Node304</title>
 <path fill="none" stroke="#191970" d="M69.1415,-90.5272C77.1233,-89.1233 85.8103,-87.5953 94.7091,-86.03"/>
 <polygon fill="#191970" stroke="#191970" points="68.3388,-87.1146 59.0963,-92.2941 69.5515,-94.0088 68.3388,-87.1146"/>
 </g>
-<!-- Node302 -->
+<!-- Node307 -->
 <g id="node11" class="node">
-<title>Node302</title>
+<title>Node307</title>
 <g id="a_node11"><a xlink:href="classgko_1_1EnableAbstractPolymorphicObject.html" target="_top" xlink:title="gko::EnableAbstractPolymorphic\lObject\&lt; Time, Criterion \&gt;">
 <polygon fill="#ffffff" stroke="#000000" points="95.5,-.5 95.5,-30.5 270.5,-30.5 270.5,-.5 95.5,-.5"/>
 <text text-anchor="start" x="103.5" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableAbstractPolymorphic</text>
@@ -74,9 +74,9 @@
 </a>
 </g>
 </g>
-<!-- Node292&#45;&gt;Node302 -->
+<!-- Node297&#45;&gt;Node307 -->
 <g id="edge10" class="edge">
-<title>Node292&#45;&gt;Node302</title>
+<title>Node297&#45;&gt;Node307</title>
 <path fill="none" stroke="#191970" d="M44.7323,-80.7132C57.129,-67.9901 75.6814,-50.9651 95,-40.5 101.9825,-36.7175 109.5943,-33.4589 117.3234,-30.6637"/>
 <polygon fill="#191970" stroke="#191970" points="42.186,-78.3119 37.8573,-87.9821 47.2716,-83.1219 42.186,-78.3119"/>
 </g>
@@ -111,9 +111,9 @@
 <path fill="none" stroke="#191970" d="M483.2211,-174.5C503.3401,-174.5 524.0629,-174.5 542.4092,-174.5"/>
 <polygon fill="#191970" stroke="#191970" points="483.0899,-171.0001 473.0899,-174.5 483.0899,-178.0001 483.0899,-171.0001"/>
 </g>
-<!-- Node297 -->
+<!-- Node302 -->
 <g id="node6" class="node">
-<title>Node297</title>
+<title>Node302</title>
 <g id="a_node6"><a xlink:href="classgko_1_1EnablePolymorphicObject.html" target="_top" xlink:title="gko::EnablePolymorphicObject\l\&lt; Iteration, Criterion \&gt;">
 <polygon fill="#ffffff" stroke="#000000" points="307,-110.5 307,-140.5 473,-140.5 473,-110.5 307,-110.5"/>
 <text text-anchor="start" x="315" y="-128.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnablePolymorphicObject</text>
@@ -121,30 +121,30 @@
 </a>
 </g>
 </g>
-<!-- Node296&#45;&gt;Node297 -->
+<!-- Node301&#45;&gt;Node302 -->
 <g id="edge5" class="edge">
-<title>Node296&#45;&gt;Node297</title>
+<title>Node301&#45;&gt;Node302</title>
 <path fill="none" stroke="#191970" d="M280.8807,-125.5C289.5121,-125.5 298.1958,-125.5 306.6906,-125.5"/>
 <polygon fill="#191970" stroke="#191970" points="280.7867,-122.0001 270.7866,-125.5 280.7866,-129.0001 280.7867,-122.0001"/>
 </g>
-<!-- Node298 -->
+<!-- Node303 -->
 <g id="node7" class="node">
-<title>Node298</title>
+<title>Node303</title>
 <g id="a_node7"><a xlink:href="classgko_1_1stop_1_1Iteration.html" target="_top" xlink:title="The Iteration class is a stopping criterion which stops the iteration process after a preset number o...">
 <polygon fill="#ffffff" stroke="#000000" points="546.5,-116 546.5,-135 655.5,-135 655.5,-116 546.5,-116"/>
 <text text-anchor="middle" x="601" y="-123" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::stop::Iteration</text>
 </a>
 </g>
 </g>
-<!-- Node297&#45;&gt;Node298 -->
+<!-- Node302&#45;&gt;Node303 -->
 <g id="edge6" class="edge">
-<title>Node297&#45;&gt;Node298</title>
+<title>Node302&#45;&gt;Node303</title>
 <path fill="none" stroke="#191970" d="M483.2458,-125.5C504.7611,-125.5 526.9656,-125.5 546.2145,-125.5"/>
 <polygon fill="#191970" stroke="#191970" points="483.0899,-122.0001 473.0899,-125.5 483.0899,-129.0001 483.0899,-122.0001"/>
 </g>
-<!-- Node300 -->
+<!-- Node305 -->
 <g id="node9" class="node">
-<title>Node300</title>
+<title>Node305</title>
 <g id="a_node9"><a xlink:href="classgko_1_1EnablePolymorphicObject.html" target="_top" xlink:title="gko::EnablePolymorphicObject\l\&lt; ResidualNormReduction\&lt;\l ValueType \&gt;, Criterion \&gt;">
 <polygon fill="#ffffff" stroke="#000000" points="307,-50 307,-91 473,-91 473,-50 307,-50"/>
 <text text-anchor="start" x="315" y="-79" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnablePolymorphicObject</text>
@@ -153,15 +153,15 @@
 </a>
 </g>
 </g>
-<!-- Node299&#45;&gt;Node300 -->
+<!-- Node304&#45;&gt;Node305 -->
 <g id="edge8" class="edge">
-<title>Node299&#45;&gt;Node300</title>
+<title>Node304&#45;&gt;Node305</title>
 <path fill="none" stroke="#191970" d="M281.1656,-70.5C289.7828,-70.5 298.4494,-70.5 306.9258,-70.5"/>
 <polygon fill="#191970" stroke="#191970" points="281.0868,-67.0001 271.0868,-70.5 281.0868,-74.0001 281.0868,-67.0001"/>
 </g>
-<!-- Node301 -->
+<!-- Node306 -->
 <g id="node10" class="node">
-<title>Node301</title>
+<title>Node306</title>
 <g id="a_node10"><a xlink:href="classgko_1_1stop_1_1ResidualNormReduction.html" target="_top" xlink:title="The ResidualNormReduction class is a stopping criterion which stops the iteration process when the re...">
 <polygon fill="#ffffff" stroke="#000000" points="509,-55.5 509,-85.5 693,-85.5 693,-55.5 509,-55.5"/>
 <text text-anchor="start" x="517" y="-73.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::stop::ResidualNormReduction</text>
@@ -169,15 +169,15 @@
 </a>
 </g>
 </g>
-<!-- Node300&#45;&gt;Node301 -->
+<!-- Node305&#45;&gt;Node306 -->
 <g id="edge9" class="edge">
-<title>Node300&#45;&gt;Node301</title>
+<title>Node305&#45;&gt;Node306</title>
 <path fill="none" stroke="#191970" d="M483.0936,-70.5C491.6704,-70.5 500.3582,-70.5 508.9259,-70.5"/>
 <polygon fill="#191970" stroke="#191970" points="483.0899,-67.0001 473.0899,-70.5 483.0899,-74.0001 483.0899,-67.0001"/>
 </g>
-<!-- Node303 -->
+<!-- Node308 -->
 <g id="node12" class="node">
-<title>Node303</title>
+<title>Node308</title>
 <g id="a_node12"><a xlink:href="classgko_1_1EnablePolymorphicObject.html" target="_top" xlink:title="gko::EnablePolymorphicObject\l\&lt; Time, Criterion \&gt;">
 <polygon fill="#ffffff" stroke="#000000" points="307,-.5 307,-30.5 473,-30.5 473,-.5 307,-.5"/>
 <text text-anchor="start" x="315" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnablePolymorphicObject</text>
@@ -185,24 +185,24 @@
 </a>
 </g>
 </g>
-<!-- Node302&#45;&gt;Node303 -->
+<!-- Node307&#45;&gt;Node308 -->
 <g id="edge11" class="edge">
-<title>Node302&#45;&gt;Node303</title>
+<title>Node307&#45;&gt;Node308</title>
 <path fill="none" stroke="#191970" d="M280.8807,-15.5C289.5121,-15.5 298.1958,-15.5 306.6906,-15.5"/>
 <polygon fill="#191970" stroke="#191970" points="280.7867,-12.0001 270.7866,-15.5 280.7866,-19.0001 280.7867,-12.0001"/>
 </g>
-<!-- Node304 -->
+<!-- Node309 -->
 <g id="node13" class="node">
-<title>Node304</title>
+<title>Node309</title>
 <g id="a_node13"><a xlink:href="classgko_1_1stop_1_1Time.html" target="_top" xlink:title="The Time class is a stopping criterion which stops the iteration process after a certain amout of tim...">
 <polygon fill="#ffffff" stroke="#000000" points="555,-6 555,-25 647,-25 647,-6 555,-6"/>
 <text text-anchor="middle" x="601" y="-13" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::stop::Time</text>
 </a>
 </g>
 </g>
-<!-- Node303&#45;&gt;Node304 -->
+<!-- Node308&#45;&gt;Node309 -->
 <g id="edge12" class="edge">
-<title>Node303&#45;&gt;Node304</title>
+<title>Node308&#45;&gt;Node309</title>
 <path fill="none" stroke="#191970" d="M483.2677,-15.5C508.0525,-15.5 533.7501,-15.5 554.7894,-15.5"/>
 <polygon fill="#191970" stroke="#191970" points="483.0899,-12.0001 473.0899,-15.5 483.0899,-19.0001 483.0899,-12.0001"/>
 </g>

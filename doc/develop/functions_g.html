@@ -93,6 +93,7 @@ $(function() {
 , <a class="el" href="classgko_1_1matrix_1_1Csr.html#a81c6294177a1be4873804c8a85a9fc64">gko::matrix::Csr&lt; ValueType, IndexType &gt;</a>
 , <a class="el" href="classgko_1_1matrix_1_1Ell.html#ac80ca9482997e97d88425214fd1b8aef">gko::matrix::Ell&lt; ValueType, IndexType &gt;</a>
 , <a class="el" href="classgko_1_1matrix_1_1Sellp.html#abb770ef6fed094f707c96219a8b69d11">gko::matrix::Sellp&lt; ValueType, IndexType &gt;</a>
+, <a class="el" href="classgko_1_1matrix_1_1Sparsity.html#a4ea6a0fd1cdd173d360f64efd6a8eaa9">gko::matrix::Sparsity&lt; ValueType, IndexType &gt;</a>
 </li>
 <li>get_conditioning()
 : <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#ad4cef85a520076fefc0e911ab205cf12">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;</a>
@@ -102,6 +103,7 @@ $(function() {
 , <a class="el" href="classgko_1_1matrix_1_1Csr.html#ac9d640d26449e0ee46c7cb2b80100d65">gko::matrix::Csr&lt; ValueType, IndexType &gt;</a>
 , <a class="el" href="classgko_1_1matrix_1_1Ell.html#addb3c84f52b090c75f519833fb379cef">gko::matrix::Ell&lt; ValueType, IndexType &gt;</a>
 , <a class="el" href="classgko_1_1matrix_1_1Sellp.html#a6b5417bd6f2c876925ce732c7526b562">gko::matrix::Sellp&lt; ValueType, IndexType &gt;</a>
+, <a class="el" href="classgko_1_1matrix_1_1Sparsity.html#af17ddb05d2e48bc1b8d0b169602c3f9c">gko::matrix::Sparsity&lt; ValueType, IndexType &gt;</a>
 </li>
 <li>get_const_coo_col_idxs()
 : <a class="el" href="classgko_1_1matrix_1_1Hybrid.html#ab637e1576b6449407ee2b57ac203e0f7">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;</a>
@@ -126,6 +128,7 @@ $(function() {
 </li>
 <li>get_const_row_ptrs()
 : <a class="el" href="classgko_1_1matrix_1_1Csr.html#a50c9ce521649450d7ae5ff488e42c190">gko::matrix::Csr&lt; ValueType, IndexType &gt;</a>
+, <a class="el" href="classgko_1_1matrix_1_1Sparsity.html#a930ba2c53f2c7e667265e836240b997a">gko::matrix::Sparsity&lt; ValueType, IndexType &gt;</a>
 </li>
 <li>get_const_slice_lengths()
 : <a class="el" href="classgko_1_1matrix_1_1Sellp.html#adf13bb4a4f8660b4ae27fe2ae6a874aa">gko::matrix::Sellp&lt; ValueType, IndexType &gt;</a>
@@ -135,6 +138,9 @@ $(function() {
 </li>
 <li>get_const_srow()
 : <a class="el" href="classgko_1_1matrix_1_1Csr.html#ac046f27c47848bf31c9234567661ef48">gko::matrix::Csr&lt; ValueType, IndexType &gt;</a>
+</li>
+<li>get_const_value()
+: <a class="el" href="classgko_1_1matrix_1_1Sparsity.html#a9314f4505be2d592b40527cd63ea4c08">gko::matrix::Sparsity&lt; ValueType, IndexType &gt;</a>
 </li>
 <li>get_const_values()
 : <a class="el" href="classgko_1_1matrix_1_1Coo.html#af0f6fe19d81bc4207aad66376f9c87c5">gko::matrix::Coo&lt; ValueType, IndexType &gt;</a>
@@ -249,6 +255,9 @@ $(function() {
 <li>get_num_multiprocessor()
 : <a class="el" href="classgko_1_1CudaExecutor.html#a449c2bf9c51b58a04fdb8b4a73377820">gko::CudaExecutor</a>
 </li>
+<li>get_num_nonzeros()
+: <a class="el" href="classgko_1_1matrix_1_1Sparsity.html#a72d5dd5f1860ac6d312ef7f0f68c403f">gko::matrix::Sparsity&lt; ValueType, IndexType &gt;</a>
+</li>
 <li>get_num_srow_elements()
 : <a class="el" href="classgko_1_1matrix_1_1Csr.html#a5b8c25c2fb1bbea62a3afdec8f8340c5">gko::matrix::Csr&lt; ValueType, IndexType &gt;</a>
 </li>
@@ -302,6 +311,7 @@ $(function() {
 </li>
 <li>get_row_ptrs()
 : <a class="el" href="classgko_1_1matrix_1_1Csr.html#a068e5158cf282fa977f0a137f8cd7f03">gko::matrix::Csr&lt; ValueType, IndexType &gt;</a>
+, <a class="el" href="classgko_1_1matrix_1_1Sparsity.html#af16880db90b23fd70c14cf444a854eaf">gko::matrix::Sparsity&lt; ValueType, IndexType &gt;</a>
 </li>
 <li>get_scalar()
 : <a class="el" href="classgko_1_1Perturbation.html#af3a1d57c22b34f276a9222eb248825ae">gko::Perturbation&lt; ValueType &gt;</a>
@@ -354,6 +364,9 @@ $(function() {
 </li>
 <li>get_u_solver()
 : <a class="el" href="classgko_1_1preconditioner_1_1Ilu.html#a59f3fbe0e393f48c900a06479dab618a">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply &gt;</a>
+</li>
+<li>get_value()
+: <a class="el" href="classgko_1_1matrix_1_1Sparsity.html#a1c089c1ee66116b771e4fe8b6fdf3f3b">gko::matrix::Sparsity&lt; ValueType, IndexType &gt;</a>
 </li>
 <li>get_values()
 : <a class="el" href="classgko_1_1matrix_1_1Coo.html#a1ce59517b8d6a8eeaacfed2b19d4057a">gko::matrix::Coo&lt; ValueType, IndexType &gt;</a>

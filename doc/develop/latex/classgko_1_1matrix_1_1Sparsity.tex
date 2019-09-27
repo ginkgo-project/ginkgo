@@ -1,0 +1,328 @@
+\hypertarget{classgko_1_1matrix_1_1Sparsity}{}\section{gko\+:\+:matrix\+:\+:Sparsity$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1matrix_1_1Sparsity}\index{gko\+::matrix\+::\+Sparsity$<$ Value\+Type, Index\+Type $>$@{gko\+::matrix\+::\+Sparsity$<$ Value\+Type, Index\+Type $>$}}
+
+
+\hyperlink{classgko_1_1matrix_1_1Sparsity}{Sparsity} is a matrix format which stores only the sparsity pattern of a sparse matrix by compressing each row of the matrix (compressed sparse row format).  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/matrix/sparsity.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+:\+:matrix\+:\+:Sparsity$<$ Value\+Type, Index\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1matrix_1_1Sparsity__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_af58098a9d00b623afdfcd314312b31d0}\label{classgko_1_1matrix_1_1Sparsity_af58098a9d00b623afdfcd314312b31d0}} 
+using {\bfseries index\+\_\+type} = Index\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_a2e5ee25884f01879461bb2ba62e7cefa}\label{classgko_1_1matrix_1_1Sparsity_a2e5ee25884f01879461bb2ba62e7cefa}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_a0b2121e0a3121c7a3c8208b450788799}\label{classgko_1_1matrix_1_1Sparsity_a0b2121e0a3121c7a3c8208b450788799}} 
+using {\bfseries mat\+\_\+data} = \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$
+\end{DoxyCompactItemize}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \hyperlink{classgko_1_1matrix_1_1Sparsity_a9515162e2e6bca7541a0cbcc8f07c48f}{read} (const \hyperlink{structgko_1_1matrix__data}{mat\+\_\+data} \&data) override
+\begin{DoxyCompactList}\small\item\em Reads a matrix from a \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure. \end{DoxyCompactList}\item 
+void \hyperlink{classgko_1_1matrix_1_1Sparsity_a19da921c91836bc5a6fc20e3abc5c812}{write} (\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data} \&data) const override
+\begin{DoxyCompactList}\small\item\em Writes a matrix to a \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ \hyperlink{classgko_1_1matrix_1_1Sparsity_a524ae904a3a1335fe2d4da8d43541872}{transpose} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \hyperlink{classgko_1_1LinOp}{Lin\+Op} representing the transpose of the \hyperlink{classgko_1_1Transposable}{Transposable} object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ \hyperlink{classgko_1_1matrix_1_1Sparsity_ac72ca6ceac90d47fce0816e760d22fd2}{conj\+\_\+transpose} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \hyperlink{classgko_1_1LinOp}{Lin\+Op} representing the conjugate transpose of the \hyperlink{classgko_1_1Transposable}{Transposable} object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1matrix_1_1Sparsity}{Sparsity} $>$ \hyperlink{classgko_1_1matrix_1_1Sparsity_a505956075f66c61668295f4b37506bfd}{to\+\_\+adjacency\+\_\+matrix} () const
+\begin{DoxyCompactList}\small\item\em Transforms the sparsity matrix to an adjacency matrix. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_a061c5ef316fe8732aedb12713b02faba}\label{classgko_1_1matrix_1_1Sparsity_a061c5ef316fe8732aedb12713b02faba}} 
+void \hyperlink{classgko_1_1matrix_1_1Sparsity_a061c5ef316fe8732aedb12713b02faba}{sort\+\_\+by\+\_\+column\+\_\+index} ()
+\begin{DoxyCompactList}\small\item\em Sorts each row by column index. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_a0c04a011a968188dc9c0ac5bc58df1f4}\label{classgko_1_1matrix_1_1Sparsity_a0c04a011a968188dc9c0ac5bc58df1f4}} 
+bool {\bfseries is\+\_\+sorted\+\_\+by\+\_\+column\+\_\+index} () const
+\item 
+index\+\_\+type $\ast$ \hyperlink{classgko_1_1matrix_1_1Sparsity_a4ea6a0fd1cdd173d360f64efd6a8eaa9}{get\+\_\+col\+\_\+idxs} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the column indices of the matrix. \end{DoxyCompactList}\item 
+const index\+\_\+type $\ast$ \hyperlink{classgko_1_1matrix_1_1Sparsity_af17ddb05d2e48bc1b8d0b169602c3f9c}{get\+\_\+const\+\_\+col\+\_\+idxs} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the column indices of the matrix. \end{DoxyCompactList}\item 
+index\+\_\+type $\ast$ \hyperlink{classgko_1_1matrix_1_1Sparsity_af16880db90b23fd70c14cf444a854eaf}{get\+\_\+row\+\_\+ptrs} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the row pointers of the matrix. \end{DoxyCompactList}\item 
+const index\+\_\+type $\ast$ \hyperlink{classgko_1_1matrix_1_1Sparsity_a930ba2c53f2c7e667265e836240b997a}{get\+\_\+const\+\_\+row\+\_\+ptrs} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the row pointers of the matrix. \end{DoxyCompactList}\item 
+value\+\_\+type $\ast$ \hyperlink{classgko_1_1matrix_1_1Sparsity_a1c089c1ee66116b771e4fe8b6fdf3f3b}{get\+\_\+value} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the value stored in the matrix. \end{DoxyCompactList}\item 
+const value\+\_\+type $\ast$ \hyperlink{classgko_1_1matrix_1_1Sparsity_a9314f4505be2d592b40527cd63ea4c08}{get\+\_\+const\+\_\+value} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the value stored in the matrix. \end{DoxyCompactList}\item 
+\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{classgko_1_1matrix_1_1Sparsity_a72d5dd5f1860ac6d312ef7f0f68c403f}{get\+\_\+num\+\_\+nonzeros} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the number of elements explicitly stored in the matrix. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_ab1e757c1defbb5666eb911e188a05aee}\label{classgko_1_1matrix_1_1Sparsity_ab1e757c1defbb5666eb911e188a05aee}} 
+class {\bfseries Enable\+Create\+Method$<$ Sparsity $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_a8735a8e27517fea026c73300d695f1fe}\label{classgko_1_1matrix_1_1Sparsity_a8735a8e27517fea026c73300d695f1fe}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Sparsity, Lin\+Op $>$}
+\end{DoxyCompactItemize}
+\subsection*{Additional Inherited Members}
+
+
+\subsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::matrix\+::\+Sparsity$<$ Value\+Type, Index\+Type $>$}
+
+\hyperlink{classgko_1_1matrix_1_1Sparsity}{Sparsity} is a matrix format which stores only the sparsity pattern of a sparse matrix by compressing each row of the matrix (compressed sparse row format). 
+
+The values of the nonzero elements are stored as a value array of length 1. All the values in the matrix are equal to this value. By default, this value is set to 1.\+0. A row pointer array also stores the linearized starting index of each row. An additional column index array is used to identify the column where a nonzero is present.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of vectors in apply \\
+\hline
+{\em Index\+Type} & precision of matrix indexes \\
+\hline
+\end{DoxyTemplParams}
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_ac72ca6ceac90d47fce0816e760d22fd2}\label{classgko_1_1matrix_1_1Sparsity_ac72ca6ceac90d47fce0816e760d22fd2}} 
+\index{gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}!conj\+\_\+transpose@{conj\+\_\+transpose}}
+\index{conj\+\_\+transpose@{conj\+\_\+transpose}!gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}}
+\subsubsection{\texorpdfstring{conj\+\_\+transpose()}{conj\_transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+std\+::unique\+\_\+ptr$<$\hyperlink{classgko_1_1LinOp}{Lin\+Op}$>$ \hyperlink{classgko_1_1matrix_1_1Sparsity}{gko\+::matrix\+::\+Sparsity}$<$ Value\+Type, Index\+Type $>$\+::conj\+\_\+transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \hyperlink{classgko_1_1LinOp}{Lin\+Op} representing the conjugate transpose of the \hyperlink{classgko_1_1Transposable}{Transposable} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new conjugate transposed object 
+\end{DoxyReturn}
+
+
+Implements \hyperlink{classgko_1_1Transposable_ab41b669288740cf2a6f7bf76e875b077}{gko\+::\+Transposable}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_a4ea6a0fd1cdd173d360f64efd6a8eaa9}\label{classgko_1_1matrix_1_1Sparsity_a4ea6a0fd1cdd173d360f64efd6a8eaa9}} 
+\index{gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}!get\+\_\+col\+\_\+idxs@{get\+\_\+col\+\_\+idxs}}
+\index{get\+\_\+col\+\_\+idxs@{get\+\_\+col\+\_\+idxs}!gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}}
+\subsubsection{\texorpdfstring{get\+\_\+col\+\_\+idxs()}{get\_col\_idxs()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+index\+\_\+type$\ast$ \hyperlink{classgko_1_1matrix_1_1Sparsity}{gko\+::matrix\+::\+Sparsity}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the column indices of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the column indices of the matrix. 
+\end{DoxyReturn}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_af17ddb05d2e48bc1b8d0b169602c3f9c}\label{classgko_1_1matrix_1_1Sparsity_af17ddb05d2e48bc1b8d0b169602c3f9c}} 
+\index{gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}!get\+\_\+const\+\_\+col\+\_\+idxs@{get\+\_\+const\+\_\+col\+\_\+idxs}}
+\index{get\+\_\+const\+\_\+col\+\_\+idxs@{get\+\_\+const\+\_\+col\+\_\+idxs}!gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}}
+\subsubsection{\texorpdfstring{get\+\_\+const\+\_\+col\+\_\+idxs()}{get\_const\_col\_idxs()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+const index\+\_\+type$\ast$ \hyperlink{classgko_1_1matrix_1_1Sparsity}{gko\+::matrix\+::\+Sparsity}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the column indices of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the column indices of the matrix.
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_a930ba2c53f2c7e667265e836240b997a}\label{classgko_1_1matrix_1_1Sparsity_a930ba2c53f2c7e667265e836240b997a}} 
+\index{gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}!get\+\_\+const\+\_\+row\+\_\+ptrs@{get\+\_\+const\+\_\+row\+\_\+ptrs}}
+\index{get\+\_\+const\+\_\+row\+\_\+ptrs@{get\+\_\+const\+\_\+row\+\_\+ptrs}!gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}}
+\subsubsection{\texorpdfstring{get\+\_\+const\+\_\+row\+\_\+ptrs()}{get\_const\_row\_ptrs()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+const index\+\_\+type$\ast$ \hyperlink{classgko_1_1matrix_1_1Sparsity}{gko\+::matrix\+::\+Sparsity}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+row\+\_\+ptrs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the row pointers of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the row pointers of the matrix.
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_a9314f4505be2d592b40527cd63ea4c08}\label{classgko_1_1matrix_1_1Sparsity_a9314f4505be2d592b40527cd63ea4c08}} 
+\index{gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}!get\+\_\+const\+\_\+value@{get\+\_\+const\+\_\+value}}
+\index{get\+\_\+const\+\_\+value@{get\+\_\+const\+\_\+value}!gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}}
+\subsubsection{\texorpdfstring{get\+\_\+const\+\_\+value()}{get\_const\_value()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+const value\+\_\+type$\ast$ \hyperlink{classgko_1_1matrix_1_1Sparsity}{gko\+::matrix\+::\+Sparsity}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+value (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the value stored in the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the value of the matrix.
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_a72d5dd5f1860ac6d312ef7f0f68c403f}\label{classgko_1_1matrix_1_1Sparsity_a72d5dd5f1860ac6d312ef7f0f68c403f}} 
+\index{gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}!get\+\_\+num\+\_\+nonzeros@{get\+\_\+num\+\_\+nonzeros}}
+\index{get\+\_\+num\+\_\+nonzeros@{get\+\_\+num\+\_\+nonzeros}!gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}}
+\subsubsection{\texorpdfstring{get\+\_\+num\+\_\+nonzeros()}{get\_num\_nonzeros()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{classgko_1_1matrix_1_1Sparsity}{gko\+::matrix\+::\+Sparsity}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+num\+\_\+nonzeros (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the number of elements explicitly stored in the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the number of elements explicitly stored in the matrix 
+\end{DoxyReturn}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data(), gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+num\+\_\+elems(), and gko\+::\+Lin\+Op\+::get\+\_\+size().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_af16880db90b23fd70c14cf444a854eaf}\label{classgko_1_1matrix_1_1Sparsity_af16880db90b23fd70c14cf444a854eaf}} 
+\index{gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}!get\+\_\+row\+\_\+ptrs@{get\+\_\+row\+\_\+ptrs}}
+\index{get\+\_\+row\+\_\+ptrs@{get\+\_\+row\+\_\+ptrs}!gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}}
+\subsubsection{\texorpdfstring{get\+\_\+row\+\_\+ptrs()}{get\_row\_ptrs()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+index\+\_\+type$\ast$ \hyperlink{classgko_1_1matrix_1_1Sparsity}{gko\+::matrix\+::\+Sparsity}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+row\+\_\+ptrs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the row pointers of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the row pointers of the matrix. 
+\end{DoxyReturn}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_a1c089c1ee66116b771e4fe8b6fdf3f3b}\label{classgko_1_1matrix_1_1Sparsity_a1c089c1ee66116b771e4fe8b6fdf3f3b}} 
+\index{gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}!get\+\_\+value@{get\+\_\+value}}
+\index{get\+\_\+value@{get\+\_\+value}!gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}}
+\subsubsection{\texorpdfstring{get\+\_\+value()}{get\_value()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+value\+\_\+type$\ast$ \hyperlink{classgko_1_1matrix_1_1Sparsity}{gko\+::matrix\+::\+Sparsity}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+value (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the value stored in the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the value of the matrix. 
+\end{DoxyReturn}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_a9515162e2e6bca7541a0cbcc8f07c48f}\label{classgko_1_1matrix_1_1Sparsity_a9515162e2e6bca7541a0cbcc8f07c48f}} 
+\index{gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}!read@{read}}
+\index{read@{read}!gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}}
+\subsubsection{\texorpdfstring{read()}{read()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+void \hyperlink{classgko_1_1matrix_1_1Sparsity}{gko\+::matrix\+::\+Sparsity}$<$ Value\+Type, Index\+Type $>$\+::read (\begin{DoxyParamCaption}\item[{const \hyperlink{structgko_1_1matrix__data}{mat\+\_\+data} \&}]{data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Reads a matrix from a \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em data} & the \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure \\
+\hline
+\end{DoxyParams}
+
+
+Implements \hyperlink{classgko_1_1ReadableFromMatrixData_add5c12e23b3ac3c8fbd607fa5a9656bb}{gko\+::\+Readable\+From\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_a505956075f66c61668295f4b37506bfd}\label{classgko_1_1matrix_1_1Sparsity_a505956075f66c61668295f4b37506bfd}} 
+\index{gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}!to\+\_\+adjacency\+\_\+matrix@{to\+\_\+adjacency\+\_\+matrix}}
+\index{to\+\_\+adjacency\+\_\+matrix@{to\+\_\+adjacency\+\_\+matrix}!gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}}
+\subsubsection{\texorpdfstring{to\+\_\+adjacency\+\_\+matrix()}{to\_adjacency\_matrix()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+std\+::unique\+\_\+ptr$<$\hyperlink{classgko_1_1matrix_1_1Sparsity}{Sparsity}$>$ \hyperlink{classgko_1_1matrix_1_1Sparsity}{gko\+::matrix\+::\+Sparsity}$<$ Value\+Type, Index\+Type $>$\+::to\+\_\+adjacency\+\_\+matrix (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Transforms the sparsity matrix to an adjacency matrix. 
+
+As the adjacency matrix has to be square, the input \hyperlink{classgko_1_1matrix_1_1Sparsity}{Sparsity} matrix for this function to work has to be square.
+
+\begin{DoxyNote}{Note}
+The adjacency matrix in this case is the sparsity pattern but with the diagonal ones removed. This is mainly used for the reordering/partitioning as taken in by graph libraries such as M\+E\+T\+IS. 
+\end{DoxyNote}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_a524ae904a3a1335fe2d4da8d43541872}\label{classgko_1_1matrix_1_1Sparsity_a524ae904a3a1335fe2d4da8d43541872}} 
+\index{gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}!transpose@{transpose}}
+\index{transpose@{transpose}!gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}}
+\subsubsection{\texorpdfstring{transpose()}{transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+std\+::unique\+\_\+ptr$<$\hyperlink{classgko_1_1LinOp}{Lin\+Op}$>$ \hyperlink{classgko_1_1matrix_1_1Sparsity}{gko\+::matrix\+::\+Sparsity}$<$ Value\+Type, Index\+Type $>$\+::transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \hyperlink{classgko_1_1LinOp}{Lin\+Op} representing the transpose of the \hyperlink{classgko_1_1Transposable}{Transposable} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new transposed object 
+\end{DoxyReturn}
+
+
+Implements \hyperlink{classgko_1_1Transposable_a5c6b778b71b47d53e0bda6ccf894d318}{gko\+::\+Transposable}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sparsity_a19da921c91836bc5a6fc20e3abc5c812}\label{classgko_1_1matrix_1_1Sparsity_a19da921c91836bc5a6fc20e3abc5c812}} 
+\index{gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}!write@{write}}
+\index{write@{write}!gko\+::matrix\+::\+Sparsity@{gko\+::matrix\+::\+Sparsity}}
+\subsubsection{\texorpdfstring{write()}{write()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+void \hyperlink{classgko_1_1matrix_1_1Sparsity}{gko\+::matrix\+::\+Sparsity}$<$ Value\+Type, Index\+Type $>$\+::write (\begin{DoxyParamCaption}\item[{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data} \&}]{data }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Writes a matrix to a \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em data} & the \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure \\
+\hline
+\end{DoxyParams}
+
+
+Implements \hyperlink{classgko_1_1WritableToMatrixData_a96036c3a4bf4c67fa93002808b8b14e2}{gko\+::\+Writable\+To\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/matrix/sparsity.\+hpp (46b8000b)\end{DoxyCompactItemize}
