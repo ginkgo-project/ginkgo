@@ -471,7 +471,7 @@ public:
      *
      * @return the preconditioner operator used by the Preconditionable
      */
-    std::shared_ptr<const LinOp> get_preconditioner() const
+    virtual std::shared_ptr<const LinOp> get_preconditioner() const
     {
         return preconditioner_;
     }
@@ -482,7 +482,7 @@ public:
      * @param new_precond  the new preconditioner operator used by the
      *                     Preconditionable
      */
-    void set_preconditioner(std::shared_ptr<const LinOp> new_precond)
+    virtual void set_preconditioner(std::shared_ptr<const LinOp> new_precond)
     {
         preconditioner_ = new_precond;
     }
