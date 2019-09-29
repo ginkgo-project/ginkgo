@@ -104,13 +104,6 @@ public:
             preconditioner, nullptr);
 
         /**
-         * Already generated preconditioner. If one is provided, the factory
-         * `preconditioner` will be ignored.
-         */
-        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER(
-            generated_preconditioner, nullptr);
-
-        /**
          * Number of right hand sides.
          *
          * @note This value is currently a dummy value which is not used by the
