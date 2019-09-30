@@ -46,15 +46,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 #include <vector>
 
-// #include<cuda_runtime.h>
 
 #if GKO_HAVE_HWLOC
 #include <hwloc.h>
-// #include <hwloc/cuda.h>
+#endif
+
+#if GKO_HAVE_HWLOC == 0
+struct hwloc_obj_type_t {};
 #endif
 
 
 struct hwloc_topology;
+
 
 namespace gko {
 namespace machine_config {
@@ -188,6 +191,7 @@ private:
         //         }
         //     }
         // }
+        // #endif
     }
 
     hwloc_topology *init_topology()
