@@ -178,11 +178,11 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             // Solve upper triangular.
             // y = hessenberg \ residual_norm_collection
 
-            preconditioner_->apply(before_preconditioner.get(),
-                                   after_preconditioner.get());
+            get_preconditioner()->apply(before_preconditioner.get(),
+                                        after_preconditioner.get());
             dense_x->add_scaled(one_op.get(), after_preconditioner.get());
             // Solve x
-            // x = x + preconditioner_ * krylov_bases * y
+            // x = x + get_preconditioner() * krylov_bases * y
             residual->copy_from(dense_b);
             // residual = dense_b
             system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
@@ -199,9 +199,9 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             restart_iter = 0;
         }
 
-        apply_preconditioner(preconditioner_.get(), krylov_bases.get(),
+        apply_preconditioner(get_preconditioner().get(), krylov_bases.get(),
                              preconditioned_vector.get(), restart_iter);
-        // preconditioned_vector = preconditioner_ *
+        // preconditioned_vector = get_preconditioner() *
         //                         krylov_bases(:, restart_iter)
 
         // Do Arnoldi and givens rotation
@@ -262,11 +262,11 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // Solve upper triangular.
     // y = hessenberg \ residual_norm_collection
 
-    preconditioner_->apply(before_preconditioner.get(),
-                           after_preconditioner.get());
+    get_preconditioner()->apply(before_preconditioner.get(),
+                                after_preconditioner.get());
     dense_x->add_scaled(one_op.get(), after_preconditioner.get());
     // Solve x
-    // x = x + preconditioner_ * krylov_bases * y
+    // x = x + get_preconditioner() * krylov_bases * y
 }
 
 

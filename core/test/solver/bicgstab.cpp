@@ -163,4 +163,71 @@ TEST_F(Bicgstab, CanSetPreconditionerGenerator)
 }
 
 
+TEST_F(Bicgstab, CanSetPreconditionerInFactory)
+{
+    std::shared_ptr<Solver> bicgstab_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(mtx);
+
+    auto bicgstab_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_generated_preconditioner(bicgstab_precond)
+            .on(exec);
+    auto solver = bicgstab_factory->generate(mtx);
+    auto precond = solver->get_preconditioner();
+
+    ASSERT_NE(precond.get(), nullptr);
+    ASSERT_EQ(precond.get(), bicgstab_precond.get());
+}
+
+
+TEST_F(Bicgstab, ThrowsOnWrongPreconditionerInFactory)
+{
+    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1, 3});
+    std::shared_ptr<Solver> bicgstab_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(wrong_sized_mtx);
+
+    auto bicgstab_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_generated_preconditioner(bicgstab_precond)
+            .on(exec);
+
+    ASSERT_THROW(bicgstab_factory->generate(mtx), gko::DimensionMismatch);
+}
+
+
+TEST_F(Bicgstab, CanSetPreconditioner)
+{
+    std::shared_ptr<Solver> bicgstab_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(mtx);
+
+    auto bicgstab_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
+    auto solver = bicgstab_factory->generate(mtx);
+    solver->set_preconditioner(bicgstab_precond);
+    auto precond = solver->get_preconditioner();
+
+    ASSERT_NE(precond.get(), nullptr);
+    ASSERT_EQ(precond.get(), bicgstab_precond.get());
+}
+
+
 }  // namespace

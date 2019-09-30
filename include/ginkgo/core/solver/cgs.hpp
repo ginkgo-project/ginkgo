@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -82,16 +83,6 @@ public:
         return system_matrix_;
     }
 
-    /**
-     * Returns the preconditioner operator used by the solver.
-     *
-     * @return the preconditioner operator used by the solver
-     */
-    std::shared_ptr<const LinOp> get_preconditioner() const override
-    {
-        return preconditioner_;
-    }
-
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -105,6 +96,13 @@ public:
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
             preconditioner, nullptr);
+
+        /**
+         * Already generated preconditioner. If one is provided, the factory
+         * `preconditioner` will be ignored.
+         */
+        std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER(
+            generated_preconditioner, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Cgs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -126,12 +124,16 @@ protected:
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {
-        if (parameters_.preconditioner) {
-            preconditioner_ =
-                parameters_.preconditioner->generate(system_matrix_);
+        if (parameters_.generated_preconditioner) {
+            GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.generated_preconditioner,
+                                        this);
+            set_preconditioner(parameters_.generated_preconditioner);
+        } else if (parameters_.preconditioner) {
+            set_preconditioner(
+                parameters_.preconditioner->generate(system_matrix_));
         } else {
-            preconditioner_ = matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()[0]);
+            set_preconditioner(matrix::Identity<ValueType>::create(
+                this->get_executor(), this->get_size()[0]));
         }
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
@@ -139,7 +141,6 @@ protected:
 
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const LinOp> preconditioner_{};
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
 };
 

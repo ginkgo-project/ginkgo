@@ -130,23 +130,4 @@ TEST_F(UpperTrs, CanBeCleared)
 }
 
 
-TEST_F(UpperTrs, CanSetPreconditionerGenerator)
-{
-    auto upper_trs_factory =
-        Solver::build().with_preconditioner(Solver::build().on(exec)).on(exec);
-    auto solver = upper_trs_factory->generate(mtx);
-
-    auto precond = dynamic_cast<const gko::solver::UpperTrs<> *>(
-        static_cast<gko::solver::UpperTrs<> *>(solver.get())
-            ->get_preconditioner()
-            .get());
-
-    ASSERT_NE(precond, nullptr);
-    ASSERT_EQ(precond->get_size(), gko::dim<2>(3, 3));
-    GKO_ASSERT_MTX_NEAR(
-        static_cast<const CsrMtx *>(precond->get_system_matrix().get()),
-        csr_mtx.get(), 0);
-}
-
-
 }  // namespace

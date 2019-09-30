@@ -159,4 +159,71 @@ TEST_F(Fcg, CanSetPreconditionerGenerator)
 }
 
 
+TEST_F(Fcg, CanSetPreconditionerInFactory)
+{
+    std::shared_ptr<Solver> fcg_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(mtx);
+
+    auto fcg_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_generated_preconditioner(fcg_precond)
+            .on(exec);
+    auto solver = fcg_factory->generate(mtx);
+    auto precond = solver->get_preconditioner();
+
+    ASSERT_NE(precond.get(), nullptr);
+    ASSERT_EQ(precond.get(), fcg_precond.get());
+}
+
+
+TEST_F(Fcg, ThrowsOnWrongPreconditionerInFactory)
+{
+    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1, 3});
+    std::shared_ptr<Solver> fcg_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(wrong_sized_mtx);
+
+    auto fcg_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_generated_preconditioner(fcg_precond)
+            .on(exec);
+
+    ASSERT_THROW(fcg_factory->generate(mtx), gko::DimensionMismatch);
+}
+
+
+TEST_F(Fcg, CanSetPreconditioner)
+{
+    std::shared_ptr<Solver> fcg_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(mtx);
+
+    auto fcg_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
+    auto solver = fcg_factory->generate(mtx);
+    solver->set_preconditioner(fcg_precond);
+    auto precond = solver->get_preconditioner();
+
+    ASSERT_NE(precond.get(), nullptr);
+    ASSERT_EQ(precond.get(), fcg_precond.get());
+}
+
+
 }  // namespace

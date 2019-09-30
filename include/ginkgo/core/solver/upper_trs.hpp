@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dim.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -75,8 +76,7 @@ struct SolveStruct;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class UpperTrs : public EnableLinOp<UpperTrs<ValueType, IndexType>>,
-                 public Preconditionable {
+class UpperTrs : public EnableLinOp<UpperTrs<ValueType, IndexType>> {
     friend class EnableLinOp<UpperTrs>;
     friend class EnablePolymorphicObject<UpperTrs, LinOp>;
 
@@ -95,24 +95,8 @@ public:
         return system_matrix_;
     }
 
-    /**
-     * Returns the preconditioner operator used by the solver.
-     *
-     * @return the preconditioner operator used by the solver
-     */
-    std::shared_ptr<const LinOp> get_preconditioner() const override
-    {
-        return preconditioner_;
-    }
-
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
-        /**
-         * Preconditioner factory.
-         */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
-            preconditioner, nullptr);
-
         /**
          * Number of right hand sides.
          *
@@ -164,20 +148,12 @@ protected:
             system_matrix_ =
                 copy_and_convert_to<CsrMatrix>(exec, system_matrix);
         }
-        if (parameters_.preconditioner) {
-            preconditioner_ =
-                parameters_.preconditioner->generate(system_matrix_);
-        } else {
-            preconditioner_ = matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()[0]);
-        }
         this->init_trs_solve_struct();
         this->generate();
     }
 
 private:
     std::shared_ptr<const matrix::Csr<ValueType, IndexType>> system_matrix_{};
-    std::shared_ptr<const LinOp> preconditioner_{};
     std::shared_ptr<solver::SolveStruct> solve_struct_;
 };
 

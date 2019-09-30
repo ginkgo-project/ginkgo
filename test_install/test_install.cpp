@@ -176,6 +176,11 @@ int main(int, char **)
         auto test = gko::version_info::get().header_version;
     }
 
+    // core/factorization/par_ilu.hpp
+    {
+        auto test = gko::factorization::ParIlu<>::build().on(refExec);
+    }
+
     // core/log/convergence.hpp
     {
         auto test = gko::log::Convergence<>::create(refExec);
@@ -243,6 +248,10 @@ int main(int, char **)
     {
         using Mtx = gko::matrix::Sparsity<>;
         auto test = Mtx::create(refExec, gko::dim<2>{2, 2});
+
+    // core/preconditioner/ilu.hpp
+    {
+        auto test = gko::preconditioner::Ilu<>::build().on(refExec);
     }
 
     // core/preconditioner/jacobi.hpp

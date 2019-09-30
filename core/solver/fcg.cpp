@@ -106,7 +106,7 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     int iter = -1;
     while (true) {
-        preconditioner_->apply(r.get(), z.get());
+        get_preconditioner()->apply(r.get(), z.get());
         r->compute_dot(z.get(), rho.get());
         t->compute_dot(z.get(), rho_t.get());
 
