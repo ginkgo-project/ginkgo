@@ -272,6 +272,53 @@ TEST_F(Sparsity, NonSquareMtxIsTransposable)
 }
 
 
+TEST_F(Sparsity, CountsCorrectNumberOfDiagonalElements)
+{
+    // clang-format off
+  auto mtx2 = gko::initialize<gko::matrix::Sparsity<>>(
+                                                       {{1.0, 1.0, 1.0},
+                                                        {0.0, 1.0, 0.0},
+                                                        {0.0, 1.0, 1.0}}, exec);
+  auto mtx_s = gko::initialize<gko::matrix::Sparsity<>>(
+                                                       {{1.0, 1.0, 1.0},
+                                                        {0.0, 0.0, 0.0},
+                                                        {0.0, 1.0, 1.0}}, exec);
+    // clang-format on
+    gko::size_type m1_num_diags = 0;
+    gko::size_type ms_num_diags = 0;
+    gko::kernels::reference::sparsity::count_num_diagonal_elements(
+        exec, mtx2.get(), m1_num_diags);
+    gko::kernels::reference::sparsity::count_num_diagonal_elements(
+        exec, mtx_s.get(), ms_num_diags);
+
+    ASSERT_EQ(m1_num_diags, 3);
+    ASSERT_EQ(ms_num_diags, 2);
+}
+
+
+TEST_F(Sparsity, RemovesDiagonalElements)
+{
+    // clang-format off
+  auto mtx2 = gko::initialize<gko::matrix::Sparsity<>>(
+                                                       {{1.0, 1.0, 1.0},
+                                                        {0.0, 1.0, 0.0},
+                                                        {0.0, 1.0, 1.0}}, exec);
+  auto mtx_s = gko::initialize<gko::matrix::Sparsity<>>(
+                                                       {{0.0, 1.0, 1.0},
+                                                        {0.0, 0.0, 0.0},
+                                                        {0.0, 1.0, 0.0}}, exec);
+    // clang-format on
+    auto tmp_mtx = gko::matrix::Sparsity<>::create(exec, mtx_s->get_size(),
+                                                   mtx_s->get_num_nonzeros());
+    tmp_mtx->copy_from(mtx2.get());
+    gko::kernels::reference::sparsity::remove_diagonal_elements(
+        exec, tmp_mtx.get(), mtx2->get_const_row_ptrs(),
+        mtx2->get_const_col_idxs());
+
+    GKO_ASSERT_MTX_NEAR(tmp_mtx.get(), mtx_s.get(), 0.0);
+}
+
+
 TEST_F(Sparsity, SquareMtxIsConvertibleToAdjacencyMatrix)
 {
     // clang-format off

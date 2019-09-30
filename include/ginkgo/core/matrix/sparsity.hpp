@@ -83,7 +83,6 @@ public:
 
     using value_type = ValueType;
     using index_type = IndexType;
-    using value_type = ValueType;
 
     using mat_data = matrix_data<ValueType, IndexType>;
 
