@@ -125,7 +125,21 @@ template <typename ValueType, typename IndexType>
 void count_num_diagonal_elements(
     std::shared_ptr<const OmpExecutor> exec,
     const matrix::Sparsity<ValueType, IndexType> *matrix,
-    size_type &num_diagonal_elements) GKO_NOT_IMPLEMENTED;
+    size_type &num_diagonal_elements)
+{
+    auto num_rows = matrix->get_size()[0];
+    auto row_ptrs = matrix->get_const_row_ptrs();
+    auto col_idxs = matrix->get_const_col_idxs();
+    size_type num_diag = 0;
+    for (auto i = 0; i < num_rows; ++i) {
+        for (auto j = row_ptrs[i]; j < row_ptrs[i + 1]; ++j) {
+            if (col_idxs[j] == i) {
+                num_diag++;
+            }
+        }
+    }
+    num_diagonal_elements = num_diag;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL);
@@ -151,6 +165,7 @@ void remove_diagonal_elements(std::shared_ptr<const OmpExecutor> exec,
             }
         }
     }
+#pragma omp parallel for
     for (auto i = 0; i < temp_idxs.size(); ++i) {
         adj_idxs[i] = temp_idxs[i];
     }
