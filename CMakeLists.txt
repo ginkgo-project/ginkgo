@@ -13,6 +13,7 @@ option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" ON)
 option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" OFF)
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" OFF)
 option(GINKGO_BUILD_HIP "Compile kernels for AMD or NVIDIA GPUs" OFF)
+option(GINKGO_WITH_HWLOC "Add support for the Hardware Locality module from Open-MPI" OFF)
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
 option(GINKGO_SKIP_DEPENDENCY_UPDATE
     "Do not update dependencies each time the project is rebuilt" ON)
@@ -109,6 +110,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 include(CheckIncludeFileCXX)
 check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
 
+include(cmake/package_helpers.cmake)
 # Automatically find PAPI and search for the required 'sde' component
 set(GINKGO_HAVE_PAPI_SDE 0)
 find_package(PAPI OPTIONAL_COMPONENTS sde)
@@ -154,7 +156,7 @@ if (HWLOC_FOUND)
 endif()
 
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
-    ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
+  ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
 
 # This is modified from https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
 if(MSVC)
@@ -175,10 +177,10 @@ include(cmake/build_type_helpers.cmake)
 include(cmake/install_helpers.cmake)
 
 # Try to find the third party packages before using our subdirectories
-include(cmake/package_helpers.cmake)
 ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
 ginkgo_find_package(gflags gflags FALSE 2.2.2)
 ginkgo_find_package(RapidJSON rapidjson TRUE 1.1.0)
+
 add_subdirectory(third_party)    # Third-party tools and libraries
 
 # Ginkgo core libraries

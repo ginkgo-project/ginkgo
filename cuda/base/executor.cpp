@@ -206,6 +206,31 @@ void CudaExecutor::run(const Operation &op) const
 }
 
 
+// void CudaExecutor::load_gpus()
+// {
+//     // int ngpus = 0;
+//     // if (cudaGetDeviceCount(&ngpus) == cudaSuccess) {
+//     //     std::size_t num_in_numa = 0;
+//     //     int last_numa = 0;
+//     //     for (std::size_t i = 0; i < ngpus; i++, num_in_numa++) {
+//     //         auto obj = hwloc_cuda_get_device_osdev(topo_.get(), i);
+//     //         while (obj &&
+//     //                (!obj->nodeset ||
+//     //                hwloc_bitmap_iszero(obj->nodeset)))
+//     //             obj = obj->parent;
+//     //         if (obj && obj->nodeset) {
+//     //             auto this_numa = hwloc_bitmap_first(obj->nodeset);
+//     //             if (this_numa != last_numa) {
+//     //                 num_in_numa = 0;
+//     //             }
+//     //             gpus_.push_back(hwloc_obj_info{this_numa, i,
+//     //             num_in_numa}); last_numa = this_numa;
+//     //         }
+//     //     }
+//     // }
+// }
+
+
 int CudaExecutor::get_num_devices()
 {
     int deviceCount = 0;

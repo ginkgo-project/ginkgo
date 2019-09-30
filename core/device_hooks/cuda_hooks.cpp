@@ -101,6 +101,9 @@ void CudaExecutor::run(const Operation &op) const
 }
 
 
+// void CudaExecutor::load_gpus() GKO_NOT_COMPILED(cuda);
+
+
 std::string CudaError::get_error(int64)
 {
     return "ginkgo CUDA module is not compiled";
