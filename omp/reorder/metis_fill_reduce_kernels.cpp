@@ -86,7 +86,13 @@ void get_permutation(
                      permutation_arr, inv_permutation_arr));
 }
 #else
-    GKO_NOT_IMPLEMENTED;
+{
+    std::vector<IndexType> tmp(num_vertices, 0);
+    std::iota(tmp.begin(), tmp.end(), 0);
+    for (auto i = 0; i < num_vertices; ++i) {
+        permutation_mat->get_permutation()[i] = tmp[i];
+    }
+}
 #endif
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_METIS_INDEX_TYPE(

@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/sparsity.hpp>
-#include <ginkgo/core/reorder/reordering.hpp>
+#include <ginkgo/core/reorder/reordering_base.hpp>
 
 
 namespace gko {
@@ -80,8 +80,8 @@ namespace reorder {
 template <typename ValueType = default_precision, typename IndexType = int32>
 class MetisFillReduce
     : public EnablePolymorphicObject<MetisFillReduce<ValueType, IndexType>,
-                                     Reordering> {
-    friend class EnablePolymorphicObject<MetisFillReduce, Reordering>;
+                                     ReorderingBase> {
+    friend class EnablePolymorphicObject<MetisFillReduce, ReorderingBase>;
 
 public:
     using SparsityMatrix = matrix::Sparsity<ValueType, IndexType>;
@@ -128,14 +128,14 @@ public:
         bool GKO_FACTORY_PARAMETER(construct_inverse_permutation, false);
 
         /**
-         * The number of iterations the `compute` kernel will use when doing
-         * the reorder. The default value `0` means `Auto`, so the
-         * implementation decides on the actual value depending on the
-         * resources that are available.
+         * The weights associated with the vertices of the adjacency. Within
+         * METIS, this is either a nullptr or it **has** to be an array of
+         * non-zeros. Any array with equal non-zero weights is equivalent to
+         * when a nullptr is passed.
          */
         Array<IndexType> GKO_FACTORY_PARAMETER(vertex_weights, nullptr);
     };
-    GKO_ENABLE_REORDERING_FACTORY(MetisFillReduce, parameters, Factory);
+    GKO_ENABLE_REORDERING_BASE_FACTORY(MetisFillReduce, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
@@ -146,11 +146,13 @@ protected:
     void generate() const;
 
     explicit MetisFillReduce(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<MetisFillReduce, Reordering>(std::move(exec))
+        : EnablePolymorphicObject<MetisFillReduce, ReorderingBase>(
+              std::move(exec))
     {}
 
-    explicit MetisFillReduce(const Factory *factory, const ReorderingArgs &args)
-        : EnablePolymorphicObject<MetisFillReduce, Reordering>(
+    explicit MetisFillReduce(const Factory *factory,
+                             const ReorderingBaseArgs &args)
+        : EnablePolymorphicObject<MetisFillReduce, ReorderingBase>(
               factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
@@ -168,11 +170,12 @@ protected:
             // the diagonal elements and outputs an adjacency matrix.
             adjacency_matrix_ = tmp->to_adjacency_matrix();
         }
-        vertex_weights_ = std::shared_ptr<Array<IndexType>>(
-            new Array<IndexType>{exec, adjacency_matrix_->get_size()[0]});
-        // TODO: Fix this
-        for (auto i = 0; i < adjacency_matrix_->get_size()[0]; ++i) {
-            vertex_weights_->get_data()[i] = 1;
+        if (vertex_weights_ != nullptr) {
+            vertex_weights_ =
+                std::make_shared<Array<IndexType>>(parameters_.vertex_weights);
+        } else {
+            vertex_weights_ =
+                std::shared_ptr<Array<IndexType>>(new Array<IndexType>(exec));
         }
         permutation_ =
             PermutationMatrix::create(exec, adjacency_matrix_->get_size());
