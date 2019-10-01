@@ -154,8 +154,15 @@ void remove_diagonal_elements(std::shared_ptr<const OmpExecutor> exec,
     auto num_rows = matrix->get_size()[0];
     auto adj_ptrs = matrix->get_row_ptrs();
     auto adj_idxs = matrix->get_col_idxs();
-    for (auto i = 0; i <= num_rows; ++i) {
-        adj_ptrs[i] = row_ptrs[i] - i;
+    size_type num_diag = 0;
+    adj_ptrs[0] = row_ptrs[0];
+    for (auto i = 0; i < num_rows; ++i) {
+        for (auto j = row_ptrs[i]; j < row_ptrs[i + 1]; ++j) {
+            if (col_idxs[j] == i) {
+                num_diag++;
+            }
+        }
+        adj_ptrs[i + 1] = row_ptrs[i + 1] - num_diag;
     }
     std::vector<IndexType> temp_idxs;
     for (auto i = 0; i < num_rows; ++i) {

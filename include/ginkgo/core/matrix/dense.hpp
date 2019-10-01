@@ -194,7 +194,6 @@ public:
 
     void move_to(Sparsity<ValueType, int64> *result) override;
 
-
     void read(const mat_data &data) override;
 
     void read(const mat_data32 &data) override;

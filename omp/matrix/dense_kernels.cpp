@@ -463,10 +463,11 @@ void convert_to_sparsity(std::shared_ptr<const OmpExecutor> exec,
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
-    auto num_nonzeros = result->get_num_nonzeros();
 
     auto row_ptrs = result->get_row_ptrs();
     auto col_idxs = result->get_col_idxs();
+    auto value = result->get_value();
+    value[0] = one<ValueType>();
 
     size_type cur_ptr = 0;
     row_ptrs[0] = cur_ptr;

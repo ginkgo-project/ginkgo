@@ -164,14 +164,12 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<Sparsity<ValueType, IndexType>>
 Sparsity<ValueType, IndexType>::to_adjacency_matrix() const
 {
-    // Adjacency matrix has to be square.
-    GKO_ASSERT_IS_SQUARE_MATRIX(this);
     auto exec = this->get_executor();
+    // Adjacency matrix has to be square.
     GKO_ASSERT_IS_SQUARE_MATRIX(this);
     size_type num_diagonal_elements = 0;
     exec->run(sparsity::make_count_num_diagonal_elements(
         this, num_diagonal_elements));
-    ValueType one = 1.0;
     auto adj_mat =
         Sparsity::create(exec, this->get_size(),
                          this->get_num_nonzeros() - num_diagonal_elements);
