@@ -36,9 +36,26 @@ set(${PROJECT_NAME}_TSAN_LINKER_FLAGS   "-fsanitize=thread -static-libtsan -fno-
 set(${PROJECT_NAME}_ASAN_COMPILER_FLAGS "-g -O1 -fsanitize=address -fno-omit-frame-pointer" CACHE INTERNAL "")
 set(${PROJECT_NAME}_ASAN_LINKER_FLAGS   "-fsanitize=address -fno-omit-frame-pointer"        CACHE INTERNAL "")
 
+# We need to wrap all flags with `-Xcomplier` for HIP when using the NVCC backend
+function(GKO_XCOMPILER varname varlist)
+    set(tmp "")
+    foreach(item IN LISTS varlist)
+        set(tmp "${tmp} -Xcompiler \\\\\\\"${item}\\\\\\\"")
+    endforeach()
+    set(${varname} "${tmp}" CACHE INTERNAL "")
+endfunction()
+
+GKO_XCOMPILER(${PROJECT_NAME}_NVCC_COVERAGE_COMPILER_FLAGS "-g;-O0;--coverage")
+GKO_XCOMPILER(${PROJECT_NAME}_NVCC_COVERAGE_LINKER_FLAGS   "--coverage")
+GKO_XCOMPILER(${PROJECT_NAME}_NVCC_TSAN_COMPILER_FLAGS     "-g;-O1;-fsanitize=thread;-fno-omit-frame-pointer;-fPIC")
+GKO_XCOMPILER(${PROJECT_NAME}_NVCC_TSAN_LINKER_FLAGS       "-fsanitize=thread;-static-libtsan -fno-omit-frame-pointer -fPIC")
+GKO_XCOMPILER(${PROJECT_NAME}_NVCC_ASAN_COMPILER_FLAGS     "-g;-O1;-fsanitize=address;-fno-omit-frame-pointer")
+GKO_XCOMPILER(${PROJECT_NAME}_NVCC_ASAN_LINKER_FLAGS       "-fsanitize=address;-fno-omit-frame-pointer")
+
+
 get_property(ENABLED_LANGUAGES GLOBAL PROPERTY ENABLED_LANGUAGES)
 
-foreach(_LANG IN LISTS ENABLED_LANGUAGES)
+foreach(_LANG IN LISTS ENABLED_LANGUAGES ITEMS "HIP")
     include(Check${_LANG}CompilerFlag OPTIONAL)
     foreach(_TYPE IN LISTS ${PROJECT_NAME}_CUSTOM_BUILD_TYPES)
         # Required for check_<LANG>_compiler_flag. Caution, this can break several
@@ -49,7 +66,7 @@ foreach(_LANG IN LISTS ENABLED_LANGUAGES)
         if(_LANG STREQUAL "C")
             check_c_compiler_flag("${${PROJECT_NAME}_${_TYPE}_LINKER_FLAGS}"
                 ${PROJECT_NAME}_${_LANG}_${_TYPE}_SUPPORTED)
-        elseif(_LANG STREQUAL "CXX")
+        elseif(_LANG STREQUAL "CXX" OR _LANG STREQUAL "HIP")
             check_cxx_compiler_flag("${${PROJECT_NAME}_${_TYPE}_LINKER_FLAGS}"
                 ${PROJECT_NAME}_${_LANG}_${_TYPE}_SUPPORTED)
         else()
@@ -60,13 +77,23 @@ foreach(_LANG IN LISTS ENABLED_LANGUAGES)
 		        continue()
         endif()
         if(${PROJECT_NAME}_${_LANG}_${_TYPE}_SUPPORTED)
-            set(CMAKE_${_LANG}_FLAGS_${_TYPE}
-                ${${PROJECT_NAME}_${_TYPE}_COMPILER_FLAGS}
-                CACHE STRING "Flags used by the ${_LANG} compiler during ${_TYPE} builds." FORCE
-            )
-            mark_as_advanced(CMAKE_${_LANG}_FLAGS_${_TYPE})
-            set(${PROJECT_NAME}_${_TYPE}_SUPPORTED TRUE CACHE
-                STRING "Whether or not coverage is supported by at least one compiler." FORCE)
+            if(_LANG STREQUAL "HIP" AND GINKGO_HIP_PLATFORM STREQUAL "nvcc")
+                set(CMAKE_${_LANG}_FLAGS_${_TYPE}
+                    ${${PROJECT_NAME}_NVCC_${_TYPE}_COMPILER_FLAGS}
+                    CACHE STRING "Flags used by the ${_LANG} compiler during ${_TYPE} builds." FORCE
+                )
+                mark_as_advanced(CMAKE_${_LANG}_FLAGS_${_TYPE})
+                set(${PROJECT_NAME}_${_TYPE}_SUPPORTED TRUE CACHE
+                    STRING "Whether or not coverage is supported by at least one compiler." FORCE)
+            else()
+                set(CMAKE_${_LANG}_FLAGS_${_TYPE}
+                    ${${PROJECT_NAME}_${_TYPE}_COMPILER_FLAGS}
+                    CACHE STRING "Flags used by the ${_LANG} compiler during ${_TYPE} builds." FORCE
+                )
+                mark_as_advanced(CMAKE_${_LANG}_FLAGS_${_TYPE})
+                set(${PROJECT_NAME}_${_TYPE}_SUPPORTED TRUE CACHE
+                    STRING "Whether or not coverage is supported by at least one compiler." FORCE)
+            endif()
         endif()
         set(CMAKE_REQUIRED_LIBRARIES ${_CMAKE_REQUIRED_LIBRARIES})
     endforeach()
@@ -74,21 +101,6 @@ endforeach()
 
 
 foreach(_TYPE IN LISTS ${PROJECT_NAME}_CUSTOM_BUILD_TYPES)
-    if(${PROJECT_NAME}_${_TYPE}_SUPPORTED)
-        set(CMAKE_EXE_LINKER_FLAGS_${_TYPE}
-            "${${PROJECT_NAME}_${_TYPE}_LINKER_FLAGS}"
-            CACHE STRING "Flags used for linking binaries during ${_TYPE} builds." FORCE
-        )
-        set(CMAKE_SHARED_LINKER_FLAGS_${_TYPE}
-            "${${PROJECT_NAME}_${_TYPE}_LINKER_FLAGS}"
-            CACHE STRING "Flags used by the shared libraries linker during ${_TYPE} builds." FORCE
-        )
-        mark_as_advanced(
-           CMAKE_EXE_LINKER_FLAGS_${_TYPE}
-           CMAKE_SHARED_LINKER_FLAGS_${_TYPE}
-        )
-    endif()
-
     cmake_dependent_option(${PROJECT_NAME}_${_TYPE}_IN_CONFIGURATION_TYPES
         "Should the ${_TYPE} target be in the CMAKE_CONFIGURATION_TYPES list if supported ?" ON
         # No need for this option if we are not using a multi-config generator
