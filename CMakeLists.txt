@@ -102,13 +102,7 @@ if (GINKGO_WITH_IWYU)
   find_program(GINKGO_IWYU_PATH iwyu)
 endif()
 
-
-# Load CMake helpers and modules
-include(cmake/build_helpers.cmake)
-include(cmake/build_type_helpers.cmake)
-include(cmake/install_helpers.cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-
 
 # Find important header files, store the definitions in include/ginkgo/config.h.in
 # For details, see https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/How-To-Write-Platform-Checks
@@ -168,6 +162,11 @@ if(MSVC)
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
     endif()
 endif()
+
+# Load CMake helpers
+include(cmake/build_helpers.cmake)
+include(cmake/build_type_helpers.cmake)
+include(cmake/install_helpers.cmake)
 
 # Try to find the third party packages before using our subdirectories
 include(cmake/package_helpers.cmake)
