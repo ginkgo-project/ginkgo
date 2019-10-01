@@ -93,7 +93,6 @@ set(GINKGO_HIP_HCC_OPTIONS ${GINKGO_HIP_HCC_COMPILER_FLAGS})
 
 set_source_files_properties(${GINKGO_HIP_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
 hip_add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES} HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} NVCC_OPTIONS ${GINKGO_HIP_NVCC_OPTIONS} HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS} ${GINKGO_STATIC_OR_SHARED})
-set_target_properties(ginkgo_hip PROPERTIES LINKER_LANGUAGE HIP)
 
 if(GINKGO_HIP_AMDGPU AND GINKGO_HIP_PLATFORM MATCHES "hcc")
     foreach(target ${GINKGO_HIP_AMDGPU})
@@ -109,9 +108,12 @@ if(GINKGO_WITH_IWYU AND GINKGO_IWYU_PATH)
     set_property(TARGET ginkgo_hip PROPERTY CXX_INCLUDE_WHAT_YOU_USE ${GINKGO_IWYU_PATH})
 endif()
 
-# Ban `-hc` flag as INTERFACE_LINK_LIBRARIES since that is propagated when building
-# a static library, and it's definitely not a known option to any compiler.
 if(GINKGO_HIP_PLATFORM MATCHES "hcc")
+    # Fix the exception thrown bug with `hcc` backend and shared libraries
+    set_target_properties(ginkgo_hip PROPERTIES LINKER_LANGUAGE HIP)
+
+    # Ban `-hc` flag as INTERFACE_LINK_LIBRARIES since that is propagated when building
+    # a static library, and it's definitely not a known option to any compiler.
     get_target_property(GINKGO_HCCRT_ILL hcc::hccrt INTERFACE_LINK_LIBRARIES)
     string(REPLACE "-hc " "" GINKGO_HCCRT_NEW_ILL GINKGO_HCCRT_ILL)
     set_target_properties(hcc::hccrt PROPERTIES INTERFACE_LINK_LIBRARIES "${GINKGO_HCC_NEW_ILL}")
@@ -120,10 +122,6 @@ if(GINKGO_HIP_PLATFORM MATCHES "hcc")
 elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")
     find_package(CUDA 9.0 REQUIRED)
     target_link_libraries(ginkgo_hip PRIVATE ${CUDA_LIBRARIES})
-
-    # For some reason, in this case `hcc` decides to use `nvcc` for linking, which needs
-    # to append `-Xcompiler` to all options. Let's rather use a plain compiler for that.
-    set (CMAKE_HIP_CREATE_SHARED_LIBRARY "${CMAKE_CXX_COMPILER} <CMAKE_SHARED_LIBRARY_CXX_FLAGS> <LANGUAGE_COMPILE_FLAGS> <LINK_FLAGS> <CMAKE_SHARED_LIBRARY_CREATE_CXX_FLAGS> <SONAME_FLAG><TARGET_SONAME> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>")
 endif()
 
 target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse)
