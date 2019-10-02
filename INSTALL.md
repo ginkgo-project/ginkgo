@@ -81,6 +81,14 @@ Ginkgo adds the following additional switches to control what is being built:
     this option see the
     [`ARCHITECTURES` specification list](https://github.com/ginkgo-project/CudaArchitectureSelector/blob/master/CudaArchitectureSelector.cmake#L58)
     section in the documentation of the CudaArchitectureSelector CMake module.
+* `-DGINKGO_WINDOWS_SHARED_LIBRARY_RELPATH=<path>` where <path> is a relative
+    path with `PROJECT_BINARY_DIR`. Users must to add the absoulte path
+    (`PROJECT_BINARY_DIR`/`GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH`) into the
+    environment variable PATH when building shared libraries and executable
+    program, default is `windows_shared_library`.
+* `-DGINKGO_CHECK_PATH={ON, OFF}` checks the environment variable PATH is valid.
+    It is valid only when building shared libraries and executable program,
+    default is `ON`
 
 For example, to build everything (in debug mode), use:
 
