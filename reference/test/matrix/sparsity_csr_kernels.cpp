@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/sparsity_kernels.hpp"
+#include "core/matrix/sparsity_csr_kernels.hpp"
 
 
 #include <algorithm>
@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/sparsity.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include "core/test/utils/assertions.hpp"
@@ -52,12 +52,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class Sparsity : public ::testing::Test {
+class SparsityCsr : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Sparsity<>;
+    using Mtx = gko::matrix::SparsityCsr<>;
     using Vec = gko::matrix::Dense<>;
 
-    Sparsity()
+    SparsityCsr()
         : exec(gko::ReferenceExecutor::create()),
           mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4)),
           mtx2(Mtx::create(exec, gko::dim<2>{2, 3}, 5)),
@@ -152,7 +152,7 @@ protected:
 };
 
 
-TEST_F(Sparsity, AppliesToDenseVector)
+TEST_F(SparsityCsr, AppliesToDenseVector)
 {
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
     auto y = Vec::create(exec, gko::dim<2>{2, 1});
@@ -164,7 +164,7 @@ TEST_F(Sparsity, AppliesToDenseVector)
 }
 
 
-TEST_F(Sparsity, AppliesToDenseMatrix)
+TEST_F(SparsityCsr, AppliesToDenseMatrix)
 {
     auto x = gko::initialize<Vec>({{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}}, exec);
     auto y = Vec::create(exec, gko::dim<2>{2});
@@ -178,7 +178,7 @@ TEST_F(Sparsity, AppliesToDenseMatrix)
 }
 
 
-TEST_F(Sparsity, AppliesLinearCombinationToDenseVector)
+TEST_F(SparsityCsr, AppliesLinearCombinationToDenseVector)
 {
     auto alpha = gko::initialize<Vec>({-1.0}, exec);
     auto beta = gko::initialize<Vec>({2.0}, exec);
@@ -192,7 +192,7 @@ TEST_F(Sparsity, AppliesLinearCombinationToDenseVector)
 }
 
 
-TEST_F(Sparsity, AppliesLinearCombinationToDenseMatrix)
+TEST_F(SparsityCsr, AppliesLinearCombinationToDenseMatrix)
 {
     auto alpha = gko::initialize<Vec>({-1.0}, exec);
     auto beta = gko::initialize<Vec>({2.0}, exec);
@@ -208,7 +208,7 @@ TEST_F(Sparsity, AppliesLinearCombinationToDenseMatrix)
 }
 
 
-TEST_F(Sparsity, ApplyFailsOnWrongInnerDimension)
+TEST_F(SparsityCsr, ApplyFailsOnWrongInnerDimension)
 {
     auto x = Vec::create(exec, gko::dim<2>{2});
     auto y = Vec::create(exec, gko::dim<2>{2});
@@ -217,7 +217,7 @@ TEST_F(Sparsity, ApplyFailsOnWrongInnerDimension)
 }
 
 
-TEST_F(Sparsity, ApplyFailsOnWrongNumberOfRows)
+TEST_F(SparsityCsr, ApplyFailsOnWrongNumberOfRows)
 {
     auto x = Vec::create(exec, gko::dim<2>{3, 2});
     auto y = Vec::create(exec, gko::dim<2>{3, 2});
@@ -226,7 +226,7 @@ TEST_F(Sparsity, ApplyFailsOnWrongNumberOfRows)
 }
 
 
-TEST_F(Sparsity, ApplyFailsOnWrongNumberOfCols)
+TEST_F(SparsityCsr, ApplyFailsOnWrongNumberOfCols)
 {
     auto x = Vec::create(exec, gko::dim<2>{3});
     auto y = Vec::create(exec, gko::dim<2>{2});
@@ -235,10 +235,10 @@ TEST_F(Sparsity, ApplyFailsOnWrongNumberOfCols)
 }
 
 
-TEST_F(Sparsity, SquareMtxIsTransposable)
+TEST_F(SparsityCsr, SquareMtxIsTransposable)
 {
     // clang-format off
-   auto mtx2 = gko::initialize<gko::matrix::Sparsity<>>(
+   auto mtx2 = gko::initialize<gko::matrix::SparsityCsr<>>(
                {{1.0, 1.0, 1.0},
                 {0.0, 1.0, 0.0},
                 {0.0, 1.0, 1.0}}, exec);
@@ -246,7 +246,7 @@ TEST_F(Sparsity, SquareMtxIsTransposable)
 
     auto trans = mtx2->transpose();
     auto trans_as_sparsity =
-        static_cast<gko::matrix::Sparsity<> *>(trans.get());
+        static_cast<gko::matrix::SparsityCsr<> *>(trans.get());
 
     // clang-format off
    GKO_ASSERT_MTX_NEAR(trans_as_sparsity,
@@ -257,11 +257,11 @@ TEST_F(Sparsity, SquareMtxIsTransposable)
 }
 
 
-TEST_F(Sparsity, NonSquareMtxIsTransposable)
+TEST_F(SparsityCsr, NonSquareMtxIsTransposable)
 {
     auto trans = mtx->transpose();
     auto trans_as_sparsity =
-        static_cast<gko::matrix::Sparsity<> *>(trans.get());
+        static_cast<gko::matrix::SparsityCsr<> *>(trans.get());
 
     // clang-format off
    GKO_ASSERT_MTX_NEAR(trans_as_sparsity,
@@ -272,14 +272,14 @@ TEST_F(Sparsity, NonSquareMtxIsTransposable)
 }
 
 
-TEST_F(Sparsity, CountsCorrectNumberOfDiagonalElements)
+TEST_F(SparsityCsr, CountsCorrectNumberOfDiagonalElements)
 {
     // clang-format off
-    auto mtx2 = gko::initialize<gko::matrix::Sparsity<>>(
+    auto mtx2 = gko::initialize<gko::matrix::SparsityCsr<>>(
                                                          {{1.0, 1.0, 1.0},
                                                           {0.0, 1.0, 0.0},
                                                           {0.0, 1.0, 1.0}}, exec);
-    auto mtx_s = gko::initialize<gko::matrix::Sparsity<>>(
+    auto mtx_s = gko::initialize<gko::matrix::SparsityCsr<>>(
                                                           {{1.0, 1.0, 1.0},
                                                            {0.0, 0.0, 0.0},
                                                            {0.0, 1.0, 1.0}}, exec);
@@ -287,9 +287,9 @@ TEST_F(Sparsity, CountsCorrectNumberOfDiagonalElements)
     gko::size_type m2_num_diags = 0;
     gko::size_type ms_num_diags = 0;
 
-    gko::kernels::reference::sparsity::count_num_diagonal_elements(
+    gko::kernels::reference::sparsity_csr::count_num_diagonal_elements(
         exec, mtx2.get(), m2_num_diags);
-    gko::kernels::reference::sparsity::count_num_diagonal_elements(
+    gko::kernels::reference::sparsity_csr::count_num_diagonal_elements(
         exec, mtx_s.get(), ms_num_diags);
 
     ASSERT_EQ(m2_num_diags, 3);
@@ -297,23 +297,23 @@ TEST_F(Sparsity, CountsCorrectNumberOfDiagonalElements)
 }
 
 
-TEST_F(Sparsity, RemovesDiagonalElementsForFullRankMatrix)
+TEST_F(SparsityCsr, RemovesDiagonalElementsForFullRankMatrix)
 {
     // clang-format off
-    auto mtx2 = gko::initialize<gko::matrix::Sparsity<>>(
+    auto mtx2 = gko::initialize<gko::matrix::SparsityCsr<>>(
                                                          {{1.0, 1.0, 1.0},
                                                           {0.0, 1.0, 0.0},
                                                           {0.0, 1.0, 1.0}}, exec);
-    auto mtx_s = gko::initialize<gko::matrix::Sparsity<>>(
+    auto mtx_s = gko::initialize<gko::matrix::SparsityCsr<>>(
                                                           {{0.0, 1.0, 1.0},
                                                            {0.0, 0.0, 0.0},
                                                            {0.0, 1.0, 0.0}}, exec);
     // clang-format on
-    auto tmp_mtx = gko::matrix::Sparsity<>::create(exec, mtx_s->get_size(),
-                                                   mtx_s->get_num_nonzeros());
+    auto tmp_mtx = gko::matrix::SparsityCsr<>::create(
+        exec, mtx_s->get_size(), mtx_s->get_num_nonzeros());
     tmp_mtx->copy_from(mtx2.get());
 
-    gko::kernels::reference::sparsity::remove_diagonal_elements(
+    gko::kernels::reference::sparsity_csr::remove_diagonal_elements(
         exec, tmp_mtx.get(), mtx2->get_const_row_ptrs(),
         mtx2->get_const_col_idxs());
 
@@ -321,23 +321,23 @@ TEST_F(Sparsity, RemovesDiagonalElementsForFullRankMatrix)
 }
 
 
-TEST_F(Sparsity, RemovesDiagonalElementsForIncompleteRankMatrix)
+TEST_F(SparsityCsr, RemovesDiagonalElementsForIncompleteRankMatrix)
 {
     // clang-format off
-    auto mtx2 = gko::initialize<gko::matrix::Sparsity<>>(
+    auto mtx2 = gko::initialize<gko::matrix::SparsityCsr<>>(
                                                          {{1.0, 1.0, 1.0},
                                                           {0.0, 0.0, 0.0},
                                                           {0.0, 1.0, 1.0}}, exec);
-    auto mtx_s = gko::initialize<gko::matrix::Sparsity<>>(
+    auto mtx_s = gko::initialize<gko::matrix::SparsityCsr<>>(
                                                           {{0.0, 1.0, 1.0},
                                                            {0.0, 0.0, 0.0},
                                                            {0.0, 1.0, 0.0}}, exec);
     // clang-format on
-    auto tmp_mtx = gko::matrix::Sparsity<>::create(exec, mtx_s->get_size(),
-                                                   mtx_s->get_num_nonzeros());
+    auto tmp_mtx = gko::matrix::SparsityCsr<>::create(
+        exec, mtx_s->get_size(), mtx_s->get_num_nonzeros());
     tmp_mtx->copy_from(mtx2.get());
 
-    gko::kernels::reference::sparsity::remove_diagonal_elements(
+    gko::kernels::reference::sparsity_csr::remove_diagonal_elements(
         exec, tmp_mtx.get(), mtx2->get_const_row_ptrs(),
         mtx2->get_const_col_idxs());
 
@@ -345,14 +345,14 @@ TEST_F(Sparsity, RemovesDiagonalElementsForIncompleteRankMatrix)
 }
 
 
-TEST_F(Sparsity, SquareMtxIsConvertibleToAdjacencyMatrix)
+TEST_F(SparsityCsr, SquareMtxIsConvertibleToAdjacencyMatrix)
 {
     // clang-format off
-    auto mtx2 = gko::initialize<gko::matrix::Sparsity<>>(
+    auto mtx2 = gko::initialize<gko::matrix::SparsityCsr<>>(
                                                          {{1.0, 1.0, 1.0},
                                                           {0.0, 1.0, 0.0},
                                                           {0.0, 1.0, 1.0}}, exec);
-    auto mtx_s = gko::initialize<gko::matrix::Sparsity<>>(
+    auto mtx_s = gko::initialize<gko::matrix::SparsityCsr<>>(
                                                           {{0.0, 1.0, 1.0},
                                                            {0.0, 0.0, 0.0},
                                                            {0.0, 1.0, 0.0}}, exec);
@@ -364,13 +364,13 @@ TEST_F(Sparsity, SquareMtxIsConvertibleToAdjacencyMatrix)
 }
 
 
-TEST_F(Sparsity, NonSquareMtxIsNotConvertibleToAdjacencyMatrix)
+TEST_F(SparsityCsr, NonSquareMtxIsNotConvertibleToAdjacencyMatrix)
 {
     ASSERT_THROW(mtx->to_adjacency_matrix(), gko::DimensionMismatch);
 }
 
 
-TEST_F(Sparsity, RecognizeSortedMatrix)
+TEST_F(SparsityCsr, RecognizeSortedMatrix)
 {
     ASSERT_TRUE(mtx->is_sorted_by_column_index());
     ASSERT_TRUE(mtx2->is_sorted_by_column_index());
@@ -378,13 +378,13 @@ TEST_F(Sparsity, RecognizeSortedMatrix)
 }
 
 
-TEST_F(Sparsity, RecognizeUnsortedMatrix)
+TEST_F(SparsityCsr, RecognizeUnsortedMatrix)
 {
     ASSERT_FALSE(mtx3_unsorted->is_sorted_by_column_index());
 }
 
 
-TEST_F(Sparsity, SortSortedMatrix)
+TEST_F(SparsityCsr, SortSortedMatrix)
 {
     auto matrix = mtx3_sorted->clone();
 
@@ -394,7 +394,7 @@ TEST_F(Sparsity, SortSortedMatrix)
 }
 
 
-TEST_F(Sparsity, SortUnsortedMatrix)
+TEST_F(SparsityCsr, SortUnsortedMatrix)
 {
     auto matrix = mtx3_unsorted->clone();
 

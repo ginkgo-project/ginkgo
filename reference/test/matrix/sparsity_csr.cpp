@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/sparsity.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include <gtest/gtest.h>
@@ -49,15 +49,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class Sparsity : public ::testing::Test {
+class SparsityCsr : public ::testing::Test {
 protected:
     using v_type = double;
     using i_type = int;
-    using Mtx = gko::matrix::Sparsity<v_type, i_type>;
+    using Mtx = gko::matrix::SparsityCsr<v_type, i_type>;
     using Csr = gko::matrix::Csr<v_type, i_type>;
     using DenseMtx = gko::matrix::Dense<v_type>;
 
-    Sparsity()
+    SparsityCsr()
         : exec(gko::ReferenceExecutor::create()),
           mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4))
     {
@@ -77,7 +77,7 @@ protected:
 };
 
 
-TEST_F(Sparsity, CanBeCreatedFromExistingCsrMatrix)
+TEST_F(SparsityCsr, CanBeCreatedFromExistingCsrMatrix)
 {
     auto csr_mtx = gko::initialize<Csr>(
         {{2.0, 3.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 0.0, -3.0}}, exec);
@@ -90,7 +90,7 @@ TEST_F(Sparsity, CanBeCreatedFromExistingCsrMatrix)
 }
 
 
-TEST_F(Sparsity, CanBeCreatedFromExistingDenseMatrix)
+TEST_F(SparsityCsr, CanBeCreatedFromExistingDenseMatrix)
 {
     auto dense_mtx = gko::initialize<DenseMtx>(
         {{2.0, 3.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 0.0, -3.0}}, exec);

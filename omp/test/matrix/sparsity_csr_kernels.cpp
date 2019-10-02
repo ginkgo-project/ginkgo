@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/sparsity_kernels.hpp"
+#include "core/matrix/sparsity_csr_kernels.hpp"
 
 
 #include <memory>
@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/sparsity.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -53,14 +53,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class Sparsity : public ::testing::Test {
+class SparsityCsr : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Sparsity<>;
+    using Mtx = gko::matrix::SparsityCsr<>;
     using Vec = gko::matrix::Dense<>;
     using ComplexVec = gko::matrix::Dense<std::complex<double>>;
-    using ComplexMtx = gko::matrix::Sparsity<std::complex<double>>;
+    using ComplexMtx = gko::matrix::SparsityCsr<std::complex<double>>;
 
-    Sparsity() : mtx_size(532, 231), rand_engine(42) {}
+    SparsityCsr() : mtx_size(532, 231), rand_engine(42) {}
 
     void SetUp()
     {
@@ -162,7 +162,7 @@ protected:
 };
 
 
-TEST_F(Sparsity, SimpleApplyIsEquivalentToRef)
+TEST_F(SparsityCsr, SimpleApplyIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -173,7 +173,7 @@ TEST_F(Sparsity, SimpleApplyIsEquivalentToRef)
 }
 
 
-TEST_F(Sparsity, AdvancedApplyIsEquivalentToRef)
+TEST_F(SparsityCsr, AdvancedApplyIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -184,7 +184,7 @@ TEST_F(Sparsity, AdvancedApplyIsEquivalentToRef)
 }
 
 
-TEST_F(Sparsity, SimpleApplyToDenseMatrixIsEquivalentToRef)
+TEST_F(SparsityCsr, SimpleApplyToDenseMatrixIsEquivalentToRef)
 {
     set_up_apply_data(3);
 
@@ -195,7 +195,7 @@ TEST_F(Sparsity, SimpleApplyToDenseMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Sparsity, AdvancedApplyToDenseMatrixIsEquivalentToRef)
+TEST_F(SparsityCsr, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 {
     set_up_apply_data(3);
 
@@ -206,7 +206,7 @@ TEST_F(Sparsity, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Sparsity, TransposeIsEquivalentToRef)
+TEST_F(SparsityCsr, TransposeIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -218,34 +218,34 @@ TEST_F(Sparsity, TransposeIsEquivalentToRef)
 }
 
 
-TEST_F(Sparsity, CountsNumberOfDiagElementsIsEqualToRef)
+TEST_F(SparsityCsr, CountsNumberOfDiagElementsIsEqualToRef)
 {
     set_up_apply_data();
     gko::size_type num_diags = 0;
     gko::size_type d_num_diags = 0;
 
-    gko::kernels::reference::sparsity::count_num_diagonal_elements(
+    gko::kernels::reference::sparsity_csr::count_num_diagonal_elements(
         ref, mtx.get(), num_diags);
-    gko::kernels::omp::sparsity::count_num_diagonal_elements(omp, dmtx.get(),
-                                                             d_num_diags);
+    gko::kernels::omp::sparsity_csr::count_num_diagonal_elements(
+        omp, dmtx.get(), d_num_diags);
 
     ASSERT_EQ(d_num_diags, num_diags);
 }
 
 
-TEST_F(Sparsity, RemovesDiagElementsKernelIsEquivalentToRef)
+TEST_F(SparsityCsr, RemovesDiagElementsKernelIsEquivalentToRef)
 {
     set_up_apply_data();
     gko::size_type num_diags = 0;
-    gko::kernels::reference::sparsity::count_num_diagonal_elements(
+    gko::kernels::reference::sparsity_csr::count_num_diagonal_elements(
         ref, mtx.get(), num_diags);
     auto tmp =
         Mtx::create(ref, mtx->get_size(), mtx->get_num_nonzeros() - num_diags);
     auto d_tmp = Mtx::create(omp, dmtx->get_size(),
                              dmtx->get_num_nonzeros() - num_diags);
-    gko::kernels::reference::sparsity::remove_diagonal_elements(
+    gko::kernels::reference::sparsity_csr::remove_diagonal_elements(
         ref, tmp.get(), mtx->get_const_row_ptrs(), mtx->get_const_col_idxs());
-    gko::kernels::omp::sparsity::remove_diagonal_elements(
+    gko::kernels::omp::sparsity_csr::remove_diagonal_elements(
         omp, d_tmp.get(), dmtx->get_const_row_ptrs(),
         dmtx->get_const_col_idxs());
 
@@ -253,7 +253,7 @@ TEST_F(Sparsity, RemovesDiagElementsKernelIsEquivalentToRef)
 }
 
 
-TEST_F(Sparsity, RecognizeSortedMatrixIsEquivalentToRef)
+TEST_F(SparsityCsr, RecognizeSortedMatrixIsEquivalentToRef)
 {
     set_up_apply_data();
     bool is_sorted_omp{};
@@ -266,7 +266,7 @@ TEST_F(Sparsity, RecognizeSortedMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Sparsity, RecognizeUnsortedMatrixIsEquivalentToRef)
+TEST_F(SparsityCsr, RecognizeUnsortedMatrixIsEquivalentToRef)
 {
     auto uns_mtx = gen_unsorted_mtx();
     bool is_sorted_omp{};
@@ -279,7 +279,7 @@ TEST_F(Sparsity, RecognizeUnsortedMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Sparsity, SortSortedMatrixIsEquivalentToRef)
+TEST_F(SparsityCsr, SortSortedMatrixIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -291,7 +291,7 @@ TEST_F(Sparsity, SortSortedMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Sparsity, SortUnsortedMatrixIsEquivalentToRef)
+TEST_F(SparsityCsr, SortUnsortedMatrixIsEquivalentToRef)
 {
     auto uns_mtx = gen_unsorted_mtx();
 

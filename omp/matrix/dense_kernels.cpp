@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
-#include <ginkgo/core/matrix/sparsity.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 namespace gko {
@@ -458,7 +458,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_sparsity(std::shared_ptr<const OmpExecutor> exec,
-                         matrix::Sparsity<ValueType, IndexType> *result,
+                         matrix::SparsityCsr<ValueType, IndexType> *result,
                          const matrix::Dense<ValueType> *source)
 {
     auto num_rows = result->get_size()[0];
@@ -488,7 +488,7 @@ void convert_to_sparsity(std::shared_ptr<const OmpExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_KERNEL);
+    GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_CSR_KERNEL);
 
 
 template <typename ValueType>

@@ -30,12 +30,15 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/sparsity_kernels.hpp"
+#include "core/matrix/sparsity_csr_kernels.hpp"
 
 
 #include <algorithm>
 #include <numeric>
 #include <utility>
+
+
+#include <omp.h>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -44,28 +47,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/iterator_factory.hpp"
-#include "reference/components/format_conversion.hpp"
+#include "omp/components/format_conversion.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace reference {
+namespace omp {
 /**
- * @brief The Sparsity pattern format namespace.
- * @ref Sparsity
+ * @brief The SparsityCsr pattern format namespace.
+ *
  * @ingroup sparsity
  */
-namespace sparsity {
+namespace sparsity_csr {
 
 
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const ReferenceExecutor> exec,
-          const matrix::Sparsity<ValueType, IndexType> *a,
+void spmv(std::shared_ptr<const OmpExecutor> exec,
+          const matrix::SparsityCsr<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
 
+#pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
             c->at(row, j) = zero<ValueType>();
@@ -81,13 +85,14 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SPARSITY_SPMV_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
+void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::Dense<ValueType> *alpha,
-                   const matrix::Sparsity<ValueType, IndexType> *a,
+                   const matrix::SparsityCsr<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c)
@@ -97,6 +102,7 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     auto valpha = alpha->at(0, 0);
     auto vbeta = beta->at(0, 0);
 
+#pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c->get_size()[1]; ++j) {
             c->at(row, j) *= vbeta;
@@ -113,13 +119,13 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_ADVANCED_SPMV_KERNEL);
+    GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void count_num_diagonal_elements(
-    std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Sparsity<ValueType, IndexType> *matrix,
+    std::shared_ptr<const OmpExecutor> exec,
+    const matrix::SparsityCsr<ValueType, IndexType> *matrix,
     size_type &num_diagonal_elements)
 {
     auto num_rows = matrix->get_size()[0];
@@ -137,12 +143,12 @@ void count_num_diagonal_elements(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL);
+    GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void remove_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
-                              matrix::Sparsity<ValueType, IndexType> *matrix,
+void remove_diagonal_elements(std::shared_ptr<const OmpExecutor> exec,
+                              matrix::SparsityCsr<ValueType, IndexType> *matrix,
                               const IndexType *row_ptrs,
                               const IndexType *col_idxs)
 {
@@ -167,13 +173,14 @@ void remove_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
     }
+#pragma omp parallel for
     for (auto i = 0; i < temp_idxs.size(); ++i) {
         adj_idxs[i] = temp_idxs[i];
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_REMOVE_DIAGONAL_ELEMENTS_KERNEL);
+    GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL);
 
 
 template <typename IndexType>
@@ -192,9 +199,10 @@ inline void convert_sparsity_to_csc(size_type num_rows,
 
 
 template <typename ValueType, typename IndexType>
-void transpose_and_transform(std::shared_ptr<const ReferenceExecutor> exec,
-                             matrix::Sparsity<ValueType, IndexType> *trans,
-                             const matrix::Sparsity<ValueType, IndexType> *orig)
+void transpose_and_transform(
+    std::shared_ptr<const OmpExecutor> exec,
+    matrix::SparsityCsr<ValueType, IndexType> *trans,
+    const matrix::SparsityCsr<ValueType, IndexType> *orig)
 {
     auto trans_row_ptrs = trans->get_row_ptrs();
     auto orig_row_ptrs = orig->get_const_row_ptrs();
@@ -206,8 +214,8 @@ void transpose_and_transform(std::shared_ptr<const ReferenceExecutor> exec,
     auto orig_nnz = orig_row_ptrs[orig_num_rows];
 
     trans_row_ptrs[0] = 0;
-    convert_idxs_to_ptrs(orig_col_idxs, orig_nnz, trans_row_ptrs + 1,
-                         orig_num_cols);
+    convert_unsorted_idxs_to_ptrs(orig_col_idxs, orig_nnz, trans_row_ptrs + 1,
+                                  orig_num_cols);
 
     convert_sparsity_to_csc(orig_num_rows, orig_row_ptrs, orig_col_idxs,
                             trans_col_idxs, trans_row_ptrs + 1);
@@ -215,24 +223,25 @@ void transpose_and_transform(std::shared_ptr<const ReferenceExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void transpose(std::shared_ptr<const ReferenceExecutor> exec,
-               matrix::Sparsity<ValueType, IndexType> *trans,
-               const matrix::Sparsity<ValueType, IndexType> *orig)
+void transpose(std::shared_ptr<const OmpExecutor> exec,
+               matrix::SparsityCsr<ValueType, IndexType> *trans,
+               const matrix::SparsityCsr<ValueType, IndexType> *orig)
 {
     transpose_and_transform(exec, trans, orig);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_TRANSPOSE_KERNEL);
+    GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void sort_by_column_index(std::shared_ptr<const ReferenceExecutor> exec,
-                          matrix::Sparsity<ValueType, IndexType> *to_sort)
+void sort_by_column_index(std::shared_ptr<const OmpExecutor> exec,
+                          matrix::SparsityCsr<ValueType, IndexType> *to_sort)
 {
     auto row_ptrs = to_sort->get_row_ptrs();
     auto col_idxs = to_sort->get_col_idxs();
     const auto number_rows = to_sort->get_size()[0];
+#pragma omp parallel for
     for (size_type i = 0; i < number_rows; ++i) {
         auto start_row_idx = row_ptrs[i];
         auto row_nnz = row_ptrs[i + 1] - start_row_idx;
@@ -241,34 +250,39 @@ void sort_by_column_index(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_SORT_BY_COLUMN_INDEX);
+    GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX);
 
 
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
-    std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Sparsity<ValueType, IndexType> *to_check, bool *is_sorted)
+    std::shared_ptr<const OmpExecutor> exec,
+    const matrix::SparsityCsr<ValueType, IndexType> *to_check, bool *is_sorted)
 {
     const auto row_ptrs = to_check->get_const_row_ptrs();
     const auto col_idxs = to_check->get_const_col_idxs();
     const auto size = to_check->get_size();
+    bool local_is_sorted = true;
+#pragma omp parallel for shared(local_is_sorted)
     for (size_type i = 0; i < size[0]; ++i) {
-        for (auto idx = row_ptrs[i] + 1; idx < row_ptrs[i + 1]; ++idx) {
-            if (col_idxs[idx - 1] > col_idxs[idx]) {
-                *is_sorted = false;
-                return;
+#pragma omp flush(local_is_sorted)
+        // Skip comparison if any thread detects that it is not sorted
+        if (local_is_sorted) {
+            for (auto idx = row_ptrs[i] + 1; idx < row_ptrs[i + 1]; ++idx) {
+                if (col_idxs[idx - 1] > col_idxs[idx]) {
+                    local_is_sorted = false;
+                    break;
+                }
             }
         }
     }
-    *is_sorted = true;
-    return;
+    *is_sorted = local_is_sorted;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_SPARSITY_IS_SORTED_BY_COLUMN_INDEX);
+    GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
-}  // namespace sparsity
-}  // namespace reference
+}  // namespace sparsity_csr
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko
