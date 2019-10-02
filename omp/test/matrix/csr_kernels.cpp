@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/sparsity.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -287,11 +287,11 @@ TEST_F(Csr, MoveToDenseIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, ConvertToSparsityIsEquivalentToRef)
+TEST_F(Csr, ConvertToSparsityCsrIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto sparsity_mtx = gko::matrix::Sparsity<>::create(ref);
-    auto d_sparsity_mtx = gko::matrix::Sparsity<>::create(omp);
+    auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(ref);
+    auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(omp);
 
     mtx->convert_to(sparsity_mtx.get());
     dmtx->convert_to(d_sparsity_mtx.get());
@@ -300,11 +300,11 @@ TEST_F(Csr, ConvertToSparsityIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, MoveToSparsityIsEquivalentToRef)
+TEST_F(Csr, MoveToSparsityCsrIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto sparsity_mtx = gko::matrix::Sparsity<>::create(ref);
-    auto d_sparsity_mtx = gko::matrix::Sparsity<>::create(omp);
+    auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(ref);
+    auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(omp);
 
     mtx->move_to(sparsity_mtx.get());
     dmtx->move_to(d_sparsity_mtx.get());

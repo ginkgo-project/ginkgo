@@ -66,7 +66,7 @@ template <typename ValueType, typename IndexType>
 class Sellp;
 
 template <typename ValueType, typename IndexType>
-class Sparsity;
+class SparsityCsr;
 
 
 /**
@@ -97,8 +97,8 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
               public ConvertibleTo<Hybrid<ValueType, int64>>,
               public ConvertibleTo<Sellp<ValueType, int32>>,
               public ConvertibleTo<Sellp<ValueType, int64>>,
-              public ConvertibleTo<Sparsity<ValueType, int32>>,
-              public ConvertibleTo<Sparsity<ValueType, int64>>,
+              public ConvertibleTo<SparsityCsr<ValueType, int32>>,
+              public ConvertibleTo<SparsityCsr<ValueType, int64>>,
               public ReadableFromMatrixData<ValueType, int32>,
               public ReadableFromMatrixData<ValueType, int64>,
               public WritableToMatrixData<ValueType, int32>,
@@ -116,8 +116,8 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
     friend class Hybrid<ValueType, int64>;
     friend class Sellp<ValueType, int32>;
     friend class Sellp<ValueType, int64>;
-    friend class Sparsity<ValueType, int32>;
-    friend class Sparsity<ValueType, int64>;
+    friend class SparsityCsr<ValueType, int32>;
+    friend class SparsityCsr<ValueType, int64>;
 
 public:
     using EnableLinOp<Dense>::convert_to;
@@ -186,13 +186,13 @@ public:
 
     void move_to(Sellp<ValueType, int64> *result) override;
 
-    void convert_to(Sparsity<ValueType, int32> *result) const override;
+    void convert_to(SparsityCsr<ValueType, int32> *result) const override;
 
-    void move_to(Sparsity<ValueType, int32> *result) override;
+    void move_to(SparsityCsr<ValueType, int32> *result) override;
 
-    void convert_to(Sparsity<ValueType, int64> *result) const override;
+    void convert_to(SparsityCsr<ValueType, int64> *result) const override;
 
-    void move_to(Sparsity<ValueType, int64> *result) override;
+    void move_to(SparsityCsr<ValueType, int64> *result) override;
 
     void read(const mat_data &data) override;
 

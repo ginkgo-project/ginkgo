@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/sparsity.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include <memory>
@@ -46,13 +46,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class Sparsity : public ::testing::Test {
+class SparsityCsr : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Sparsity<>;
+    using Mtx = gko::matrix::SparsityCsr<>;
 
-    Sparsity()
+    SparsityCsr()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Sparsity<>::create(exec, gko::dim<2>{2, 3}, 4))
+          mtx(gko::matrix::SparsityCsr<>::create(exec, gko::dim<2>{2, 3}, 4))
     {
         Mtx::index_type *c = mtx->get_col_idxs();
         Mtx::index_type *r = mtx->get_row_ptrs();
@@ -99,20 +99,20 @@ protected:
 };
 
 
-TEST_F(Sparsity, KnowsItsSize)
+TEST_F(SparsityCsr, KnowsItsSize)
 {
     ASSERT_EQ(mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(mtx->get_num_nonzeros(), 4);
 }
 
 
-TEST_F(Sparsity, ContainsCorrectData)
+TEST_F(SparsityCsr, ContainsCorrectData)
 {
     assert_equal_to_original_mtx(mtx.get());
 }
 
 
-TEST_F(Sparsity, CanBeEmpty)
+TEST_F(SparsityCsr, CanBeEmpty)
 {
     auto mtx = Mtx::create(exec);
 
@@ -120,22 +120,22 @@ TEST_F(Sparsity, CanBeEmpty)
 }
 
 
-TEST_F(Sparsity, SetsCorrectDefaultValue)
+TEST_F(SparsityCsr, SetsCorrectDefaultValue)
 {
-    auto mtx = gko::matrix::Sparsity<>::create(exec, gko::dim<2>{3, 2},
-                                               static_cast<gko::size_type>(0));
+    auto mtx = gko::matrix::SparsityCsr<>::create(
+        exec, gko::dim<2>{3, 2}, static_cast<gko::size_type>(0));
 
     ASSERT_EQ(mtx->get_const_value()[0], 1.0);
     ASSERT_EQ(mtx->get_value()[0], 1.0);
 }
 
 
-TEST_F(Sparsity, CanBeCreatedFromExistingData)
+TEST_F(SparsityCsr, CanBeCreatedFromExistingData)
 {
     gko::int32 col_idxs[] = {0, 1, 1, 0};
     gko::int32 row_ptrs[] = {0, 2, 3, 4};
 
-    auto mtx = gko::matrix::Sparsity<>::create(
+    auto mtx = gko::matrix::SparsityCsr<>::create(
         exec, gko::dim<2>{3, 2},
         gko::Array<gko::int32>::view(exec, 4, col_idxs),
         gko::Array<gko::int32>::view(exec, 4, row_ptrs), 2.0);
@@ -149,7 +149,7 @@ TEST_F(Sparsity, CanBeCreatedFromExistingData)
 }
 
 
-TEST_F(Sparsity, CanBeCopied)
+TEST_F(SparsityCsr, CanBeCopied)
 {
     auto copy = Mtx::create(exec);
 
@@ -160,7 +160,7 @@ TEST_F(Sparsity, CanBeCopied)
 }
 
 
-TEST_F(Sparsity, CanBeMoved)
+TEST_F(SparsityCsr, CanBeMoved)
 {
     auto copy = Mtx::create(exec);
 
@@ -170,7 +170,7 @@ TEST_F(Sparsity, CanBeMoved)
 }
 
 
-TEST_F(Sparsity, CanBeCloned)
+TEST_F(SparsityCsr, CanBeCloned)
 {
     auto clone = mtx->clone();
 
@@ -179,7 +179,7 @@ TEST_F(Sparsity, CanBeCloned)
 }
 
 
-TEST_F(Sparsity, CanBeCleared)
+TEST_F(SparsityCsr, CanBeCleared)
 {
     mtx->clear();
 
@@ -187,7 +187,7 @@ TEST_F(Sparsity, CanBeCleared)
 }
 
 
-TEST_F(Sparsity, CanBeReadFromMatrixData)
+TEST_F(SparsityCsr, CanBeReadFromMatrixData)
 {
     auto m = Mtx::create(exec);
 
@@ -203,7 +203,7 @@ TEST_F(Sparsity, CanBeReadFromMatrixData)
 }
 
 
-TEST_F(Sparsity, GeneratesCorrectMatrixData)
+TEST_F(SparsityCsr, GeneratesCorrectMatrixData)
 {
     using tpl = gko::matrix_data<>::nonzero_type;
     gko::matrix_data<> data;

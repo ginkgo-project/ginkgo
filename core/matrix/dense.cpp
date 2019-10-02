@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
-#include <ginkgo/core/matrix/sparsity.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include "core/matrix/dense_kernels.hpp"
@@ -185,15 +185,15 @@ inline void conversion_helper(Sellp<ValueType, IndexType> *result,
 
 template <typename ValueType, typename IndexType, typename MatrixType,
           typename OperationType>
-inline void conversion_helper(Sparsity<ValueType, IndexType> *result,
+inline void conversion_helper(SparsityCsr<ValueType, IndexType> *result,
                               MatrixType *source, const OperationType &op)
 {
     auto exec = source->get_executor();
 
     size_type num_stored_nonzeros = 0;
     exec->run(dense::make_count_nonzeros(source, &num_stored_nonzeros));
-    auto tmp = Sparsity<ValueType, IndexType>::create(exec, source->get_size(),
-                                                      num_stored_nonzeros);
+    auto tmp = SparsityCsr<ValueType, IndexType>::create(
+        exec, source->get_size(), num_stored_nonzeros);
     exec->run(op(tmp.get(), source));
     tmp->move_to(result);
 }
@@ -442,7 +442,7 @@ void Dense<ValueType>::move_to(Sellp<ValueType, int64> *result)
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(Sparsity<ValueType, int32> *result) const
+void Dense<ValueType>::convert_to(SparsityCsr<ValueType, int32> *result) const
 {
     conversion_helper(
         result, this,
@@ -452,14 +452,14 @@ void Dense<ValueType>::convert_to(Sparsity<ValueType, int32> *result) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Sparsity<ValueType, int32> *result)
+void Dense<ValueType>::move_to(SparsityCsr<ValueType, int32> *result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(Sparsity<ValueType, int64> *result) const
+void Dense<ValueType>::convert_to(SparsityCsr<ValueType, int64> *result) const
 {
     conversion_helper(
         result, this,
@@ -469,7 +469,7 @@ void Dense<ValueType>::convert_to(Sparsity<ValueType, int64> *result) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Sparsity<ValueType, int64> *result)
+void Dense<ValueType>::move_to(SparsityCsr<ValueType, int64> *result)
 {
     this->convert_to(result);
 }
