@@ -99,10 +99,11 @@ __device__ GKO_INLINE std::complex<double> one<std::complex<double>>()
 // as a __device__ function, so it results in a compiler error.
 // Here, `isfinite` is written by hand, which might not be as performant as the
 // intrinsic function from CUDA, but it compiles and works.
-#if defined(__CUDA_ARCH__) && (defined(_MSC_VER) ||                    \
-    (defined(__CUDACC_VER_MAJOR__) && defined(__CUDACC_VER_MINOR__) && \
-    (__CUDACC_VER_MAJOR__ * 1000 + __CUDACC_VER_MINOR__) < 9002 &&     \
-    (defined(__clang__) || defined(__ICC) || defined(__ICL))))
+#if defined(__CUDA_ARCH__) &&                                           \
+    (defined(_MSC_VER) ||                                               \
+     (defined(__CUDACC_VER_MAJOR__) && defined(__CUDACC_VER_MINOR__) && \
+      (__CUDACC_VER_MAJOR__ * 1000 + __CUDACC_VER_MINOR__) < 9002 &&    \
+      (defined(__clang__) || defined(__ICC) || defined(__ICL))))
 
 
 namespace detail {
