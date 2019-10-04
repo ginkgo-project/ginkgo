@@ -33,9 +33,7 @@ if (GINKGO_HIP_PLATFORM MATCHES "nvcc") # ensure ENV{CUDA_PATH} is set by the us
      endif()
 endif()
 
-if (GINKGO_HIP_PLATFORM STREQUAL "hcc" AND NOT GINKGO_HIP_AMDGPU)
-    message(WARNING "GINKGO_HIP_AMDGPU is not set. Set this flag if HIP complains about missing"
-        " `--amdgpu_target` option.")
+if (GINKGO_HIP_PLATFORM STREQUAL "hcc")
     # This is required by hipblas/hipsparse in the case where the platform is hcc.
     # For nvcc platform, these aren't required and only cause trouble.
     list(APPEND CMAKE_PREFIX_PATH
@@ -97,6 +95,7 @@ hip_add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOUR
 if(GINKGO_HIP_AMDGPU AND GINKGO_HIP_PLATFORM MATCHES "hcc")
     foreach(target ${GINKGO_HIP_AMDGPU})
         target_compile_options(ginkgo_hip PRIVATE --amdgpu-target=${target})
+        target_link_libraries(ginkgo_hip PRIVATE --amdgpu-target=${target})
     endforeach()
 endif()
 
