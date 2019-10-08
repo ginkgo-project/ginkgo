@@ -30,8 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MATRIX_SPARSITY_HPP_
-#define GKO_CORE_MATRIX_SPARSITY_HPP_
+#ifndef GKO_CORE_MATRIX_SPARSITY_CSR_HPP_
+#define GKO_CORE_MATRIX_SPARSITY_CSR_HPP_
+
+
+#include <vector>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -42,8 +45,12 @@ namespace gko {
 namespace matrix {
 
 
+template <typename ValueType, typename IndexType>
+class Csr;
+
+
 /**
- * Sparsity is a matrix format which stores only the sparsity pattern of a
+ * SparsityCsr is a matrix format which stores only the sparsity pattern of a
  * sparse matrix by compressing each row of the matrix (compressed sparse row
  * format).
  *
@@ -61,20 +68,22 @@ namespace matrix {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Sparsity : public EnableLinOp<Sparsity<ValueType, IndexType>>,
-                 public EnableCreateMethod<Sparsity<ValueType, IndexType>>,
-                 public ReadableFromMatrixData<ValueType, IndexType>,
-                 public WritableToMatrixData<ValueType, IndexType>,
-                 public Transposable {
-    friend class EnableCreateMethod<Sparsity>;
-    friend class EnablePolymorphicObject<Sparsity, LinOp>;
+class SparsityCsr
+    : public EnableLinOp<SparsityCsr<ValueType, IndexType>>,
+      public EnableCreateMethod<SparsityCsr<ValueType, IndexType>>,
+      public ReadableFromMatrixData<ValueType, IndexType>,
+      public WritableToMatrixData<ValueType, IndexType>,
+      public Transposable {
+    friend class EnableCreateMethod<SparsityCsr>;
+    friend class EnablePolymorphicObject<SparsityCsr, LinOp>;
+    friend class Csr<ValueType, IndexType>;
 
 public:
-    using EnableLinOp<Sparsity>::convert_to;
-    using EnableLinOp<Sparsity>::move_to;
+    using EnableLinOp<SparsityCsr>::convert_to;
+    using EnableLinOp<SparsityCsr>::move_to;
 
-    using index_type = IndexType;
     using value_type = ValueType;
+    using index_type = IndexType;
 
     using mat_data = matrix_data<ValueType, IndexType>;
 
@@ -88,14 +97,14 @@ public:
 
     /**
      * Transforms the sparsity matrix to an adjacency matrix. As the adjacency
-     * matrix has to be square, the input Sparsity matrix for this function to
-     * work has to be square.
+     * matrix has to be square, the input SparsityCsr matrix for this function
+     * to work has to be square.
      *
      * @note The adjacency matrix in this case is the sparsity pattern but with
      * the diagonal ones removed. This is mainly used for the
      * reordering/partitioning as taken in by graph libraries such as METIS.
      */
-    std::unique_ptr<Sparsity> to_adjacency_matrix() const;
+    std::unique_ptr<SparsityCsr> to_adjacency_matrix() const;
 
     /**
      * Sorts each row by column index
@@ -117,7 +126,7 @@ public:
     index_type *get_col_idxs() noexcept { return col_idxs_.get_data(); }
 
     /**
-     * @copydoc Sparsity::get_col_idxs()
+     * @copydoc SparsityCsr::get_col_idxs()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
@@ -136,7 +145,7 @@ public:
     index_type *get_row_ptrs() noexcept { return row_ptrs_.get_data(); }
 
     /**
-     * @copydoc Sparsity::get_row_ptrs()
+     * @copydoc SparsityCsr::get_row_ptrs()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
@@ -155,7 +164,7 @@ public:
     value_type *get_value() noexcept { return value_.get_data(); }
 
     /**
-     * @copydoc Sparsity::get_value()
+     * @copydoc SparsityCsr::get_value()
      *
      * @note This is the constant version of the function, which can be
      *       significantly more memory efficient than the non-constant version,
@@ -179,15 +188,15 @@ public:
 
 protected:
     /**
-     * Creates an uninitialized Sparsity matrix of the specified size.
+     * Creates an uninitialized SparsityCsr matrix of the specified size.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
      */
-    Sparsity(std::shared_ptr<const Executor> exec,
-             const dim<2> &size = dim<2>{}, size_type num_nonzeros = {})
-        : EnableLinOp<Sparsity>(exec, size),
+    SparsityCsr(std::shared_ptr<const Executor> exec,
+                const dim<2> &size = dim<2>{}, size_type num_nonzeros = {})
+        : EnableLinOp<SparsityCsr>(exec, size),
           col_idxs_(exec, num_nonzeros),
           // avoid allocation for empty matrix
           row_ptrs_(exec, size[0] + (size[0] > 0))
@@ -202,7 +211,7 @@ protected:
     }
 
     /**
-     * Creates a Sparsity matrix from already allocated (and initialized) row
+     * Creates a SparsityCsr matrix from already allocated (and initialized) row
      * pointer and column index arrays.
      *
      * @tparam ColIdxsArray  type of `col_idxs` array
@@ -221,10 +230,10 @@ protected:
      *       matrix.
      */
     template <typename ColIdxsArray, typename RowPtrsArray>
-    Sparsity(std::shared_ptr<const Executor> exec, const dim<2> &size,
-             ColIdxsArray &&col_idxs, RowPtrsArray &&row_ptrs,
-             value_type value = one<ValueType>())
-        : EnableLinOp<Sparsity>(exec, size),
+    SparsityCsr(std::shared_ptr<const Executor> exec, const dim<2> &size,
+                ColIdxsArray &&col_idxs, RowPtrsArray &&row_ptrs,
+                value_type value = one<ValueType>())
+        : EnableLinOp<SparsityCsr>(exec, size),
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}
     {
@@ -234,6 +243,21 @@ protected:
         GKO_ENSURE_IN_BOUNDS(col_idxs_.get_num_elems() - 1,
                              col_idxs_.get_num_elems());
         GKO_ENSURE_IN_BOUNDS(this->get_size()[0], row_ptrs_.get_num_elems());
+    }
+
+    /**
+     * Creates a Sparsity matrix from an existing matrix. Uses the
+     * `copy_and_convert_to` functionality.
+     *
+     * @param exec  Executor associated to the matrix
+     * @param matrix The input matrix
+     */
+    SparsityCsr(std::shared_ptr<const Executor> exec,
+                std::shared_ptr<const LinOp> matrix)
+        : EnableLinOp<SparsityCsr>(exec, matrix->get_size())
+    {
+        auto tmp_ = copy_and_convert_to<SparsityCsr>(exec, matrix);
+        this->copy_from(std::move(tmp_.get()));
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -252,4 +276,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_MATRIX_SPARSITY_HPP_
+#endif  // GKO_CORE_MATRIX_SPARSITY_CSR_HPP_

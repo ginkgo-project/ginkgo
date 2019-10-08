@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include "core/test/utils/assertions.hpp"
@@ -61,6 +62,7 @@ protected:
     using Coo = gko::matrix::Coo<>;
     using Mtx = gko::matrix::Csr<>;
     using Sellp = gko::matrix::Sellp<>;
+    using SparsityCsr = gko::matrix::SparsityCsr<>;
     using Ell = gko::matrix::Ell<>;
     using Hybrid = gko::matrix::Hybrid<>;
     using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
@@ -236,6 +238,22 @@ protected:
         EXPECT_EQ(v[65], 0.0);
         EXPECT_EQ(v[128], 2.0);
         EXPECT_EQ(v[129], 0.0);
+    }
+
+    void assert_equal_to_mtx(const SparsityCsr *m)
+    {
+        auto *c = m->get_const_col_idxs();
+        auto *r = m->get_const_row_ptrs();
+
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_num_nonzeros(), 4);
+        EXPECT_EQ(r[0], 0);
+        EXPECT_EQ(r[1], 3);
+        EXPECT_EQ(r[2], 4);
+        EXPECT_EQ(c[0], 0);
+        EXPECT_EQ(c[1], 1);
+        EXPECT_EQ(c[2], 2);
+        EXPECT_EQ(c[3], 1);
     }
 
     void assert_equal_to_mtx(const Ell *m)
@@ -471,6 +489,28 @@ TEST_F(Csr, MovesToSellp)
     csr_ref->move_to(sellp_mtx.get());
 
     assert_equal_to_mtx(sellp_mtx.get());
+}
+
+
+TEST_F(Csr, ConvertsToSparsityCsr)
+{
+    auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(mtx->get_executor());
+
+    mtx->convert_to(sparsity_mtx.get());
+
+    assert_equal_to_mtx(sparsity_mtx.get());
+}
+
+
+TEST_F(Csr, MovesToSparsityCsr)
+{
+    auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(mtx->get_executor());
+    auto csr_ref = gko::matrix::Csr<>::create(mtx->get_executor());
+
+    csr_ref->copy_from(mtx.get());
+    csr_ref->move_to(sparsity_mtx.get());
+
+    assert_equal_to_mtx(sparsity_mtx.get());
 }
 
 

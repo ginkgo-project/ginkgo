@@ -57,6 +57,9 @@ class Hybrid;
 template <typename ValueType, typename IndexType>
 class Sellp;
 
+template <typename ValueType, typename IndexType>
+class SparsityCsr;
+
 
 /**
  * CSR is a matrix format which stores only the nonzero coefficients by
@@ -82,6 +85,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Ell<ValueType, IndexType>>,
             public ConvertibleTo<Hybrid<ValueType, IndexType>>,
             public ConvertibleTo<Sellp<ValueType, IndexType>>,
+            public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
             public Transposable {
@@ -92,6 +96,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class Ell<ValueType, IndexType>;
     friend class Hybrid<ValueType, IndexType>;
     friend class Sellp<ValueType, IndexType>;
+    friend class SparsityCsr<ValueType, IndexType>;
 
 public:
     using EnableLinOp<Csr>::convert_to;
@@ -298,6 +303,10 @@ public:
     void convert_to(Sellp<ValueType, IndexType> *result) const override;
 
     void move_to(Sellp<ValueType, IndexType> *result) override;
+
+    void convert_to(SparsityCsr<ValueType, IndexType> *result) const override;
+
+    void move_to(SparsityCsr<ValueType, IndexType> *result) override;
 
     void read(const mat_data &data) override;
 

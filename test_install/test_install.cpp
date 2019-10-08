@@ -244,9 +244,9 @@ int main(int, char **)
         auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2);
     }
 
-    // core/matrix/sparsity.hpp
+    // core/matrix/sparsity_csr.hpp
     {
-        using Mtx = gko::matrix::Sparsity<>;
+        using Mtx = gko::matrix::SparsityCsr<>;
         auto test = Mtx::create(refExec, gko::dim<2>{2, 2});
 
     // core/preconditioner/ilu.hpp
