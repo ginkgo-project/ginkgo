@@ -86,7 +86,7 @@ TEST_F(SparsityCsr, CanBeCreatedFromExistingCsrMatrix)
 
     auto mtx = Mtx::create(exec, std::move(csr_mtx));
 
-    GKO_ASSERT_MTX_NEAR(comp_mtx.get(), mtx.get(), 0.0)
+    GKO_ASSERT_MTX_NEAR(comp_mtx.get(), mtx.get(), 0.0);
 }
 
 
@@ -99,7 +99,7 @@ TEST_F(SparsityCsr, CanBeCreatedFromExistingDenseMatrix)
 
     auto mtx = Mtx::create(exec, std::move(dense_mtx));
 
-    GKO_ASSERT_MTX_NEAR(comp_mtx.get(), mtx.get(), 0.0)
+    GKO_ASSERT_MTX_NEAR(comp_mtx.get(), mtx.get(), 0.0);
 }
 
 

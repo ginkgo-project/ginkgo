@@ -92,7 +92,7 @@ template <typename ValueType, typename IndexType>
 void count_num_diagonal_elements(
     std::shared_ptr<const CudaExecutor> exec,
     const matrix::SparsityCsr<ValueType, IndexType> *matrix,
-    size_type &num_diagonal_elements) GKO_NOT_IMPLEMENTED;
+    size_type *num_diagonal_elements) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL);

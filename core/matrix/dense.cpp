@@ -76,7 +76,7 @@ GKO_REGISTER_OPERATION(convert_to_csr, dense::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_ell, dense::convert_to_ell);
 GKO_REGISTER_OPERATION(convert_to_hybrid, dense::convert_to_hybrid);
 GKO_REGISTER_OPERATION(convert_to_sellp, dense::convert_to_sellp);
-GKO_REGISTER_OPERATION(convert_to_sparsity, dense::convert_to_sparsity);
+GKO_REGISTER_OPERATION(convert_to_sparsity_csr, dense::convert_to_sparsity_csr);
 
 
 }  // namespace dense
@@ -444,10 +444,9 @@ void Dense<ValueType>::move_to(Sellp<ValueType, int64> *result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(SparsityCsr<ValueType, int32> *result) const
 {
-    conversion_helper(
-        result, this,
-        dense::template make_convert_to_sparsity<decltype(result),
-                                                 const Dense<ValueType> *&>);
+    conversion_helper(result, this,
+                      dense::template make_convert_to_sparsity_csr<
+                          decltype(result), const Dense<ValueType> *&>);
 }
 
 
@@ -461,10 +460,9 @@ void Dense<ValueType>::move_to(SparsityCsr<ValueType, int32> *result)
 template <typename ValueType>
 void Dense<ValueType>::convert_to(SparsityCsr<ValueType, int64> *result) const
 {
-    conversion_helper(
-        result, this,
-        dense::template make_convert_to_sparsity<decltype(result),
-                                                 const Dense<ValueType> *&>);
+    conversion_helper(result, this,
+                      dense::template make_convert_to_sparsity_csr<
+                          decltype(result), const Dense<ValueType> *&>);
 }
 
 

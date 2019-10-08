@@ -732,9 +732,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_sparsity(std::shared_ptr<const CudaExecutor> exec,
-                         matrix::SparsityCsr<ValueType, IndexType> *result,
-                         const matrix::Dense<ValueType> *source)
+void convert_to_sparsity_csr(std::shared_ptr<const CudaExecutor> exec,
+                             matrix::SparsityCsr<ValueType, IndexType> *result,
+                             const matrix::Dense<ValueType> *source)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

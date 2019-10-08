@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -377,6 +378,52 @@ TEST_F(Dense, MovesToCsr)
     EXPECT_EQ(v[1], 3.0);
     EXPECT_EQ(v[2], 2.0);
     EXPECT_EQ(v[3], 5.0);
+}
+
+
+TEST_F(Dense, ConvertsToSparsityCsr)
+{
+    auto sparsity_csr_mtx =
+        gko::matrix::SparsityCsr<>::create(mtx4->get_executor());
+
+    mtx4->convert_to(sparsity_csr_mtx.get());
+    auto v = sparsity_csr_mtx->get_const_value();
+    auto c = sparsity_csr_mtx->get_const_col_idxs();
+    auto r = sparsity_csr_mtx->get_const_row_ptrs();
+
+    ASSERT_EQ(sparsity_csr_mtx->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(sparsity_csr_mtx->get_num_nonzeros(), 4);
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 3);
+    EXPECT_EQ(r[2], 4);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 1);
+    EXPECT_EQ(v[0], 1.0);
+}
+
+
+TEST_F(Dense, MovesToSparsityCsr)
+{
+    auto sparsity_csr_mtx =
+        gko::matrix::SparsityCsr<>::create(mtx4->get_executor());
+
+    mtx4->move_to(sparsity_csr_mtx.get());
+    auto v = sparsity_csr_mtx->get_const_value();
+    auto c = sparsity_csr_mtx->get_const_col_idxs();
+    auto r = sparsity_csr_mtx->get_const_row_ptrs();
+
+    ASSERT_EQ(sparsity_csr_mtx->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(sparsity_csr_mtx->get_num_nonzeros(), 4);
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 3);
+    EXPECT_EQ(r[2], 4);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 1);
+    EXPECT_EQ(v[0], 1.0);
 }
 
 

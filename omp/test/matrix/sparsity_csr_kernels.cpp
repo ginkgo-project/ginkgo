@@ -225,9 +225,9 @@ TEST_F(SparsityCsr, CountsNumberOfDiagElementsIsEqualToRef)
     gko::size_type d_num_diags = 0;
 
     gko::kernels::reference::sparsity_csr::count_num_diagonal_elements(
-        ref, mtx.get(), num_diags);
+        ref, mtx.get(), &num_diags);
     gko::kernels::omp::sparsity_csr::count_num_diagonal_elements(
-        omp, dmtx.get(), d_num_diags);
+        omp, dmtx.get(), &d_num_diags);
 
     ASSERT_EQ(d_num_diags, num_diags);
 }
@@ -238,11 +238,12 @@ TEST_F(SparsityCsr, RemovesDiagElementsKernelIsEquivalentToRef)
     set_up_apply_data();
     gko::size_type num_diags = 0;
     gko::kernels::reference::sparsity_csr::count_num_diagonal_elements(
-        ref, mtx.get(), num_diags);
+        ref, mtx.get(), &num_diags);
     auto tmp =
         Mtx::create(ref, mtx->get_size(), mtx->get_num_nonzeros() - num_diags);
     auto d_tmp = Mtx::create(omp, dmtx->get_size(),
                              dmtx->get_num_nonzeros() - num_diags);
+
     gko::kernels::reference::sparsity_csr::remove_diagonal_elements(
         ref, tmp.get(), mtx->get_const_row_ptrs(), mtx->get_const_col_idxs());
     gko::kernels::omp::sparsity_csr::remove_diagonal_elements(

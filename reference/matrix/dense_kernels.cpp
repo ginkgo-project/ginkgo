@@ -416,9 +416,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_sparsity(std::shared_ptr<const ReferenceExecutor> exec,
-                         matrix::SparsityCsr<ValueType, IndexType> *result,
-                         const matrix::Dense<ValueType> *source)
+void convert_to_sparsity_csr(std::shared_ptr<const ReferenceExecutor> exec,
+                             matrix::SparsityCsr<ValueType, IndexType> *result,
+                             const matrix::Dense<ValueType> *source)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
