@@ -1,0 +1,1 @@
+ginkgo_create_hip_test(coo_kernels)

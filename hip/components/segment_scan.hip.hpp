@@ -30,10 +30,14 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "hip/components/zero_array.hip.hpp"
+#ifndef GKO_HIP_COMPONENTS_SEGMENT_SCAN_CUH_
+#define GKO_HIP_COMPONENTS_SEGMENT_SCAN_CUH_
 
 
-#include <hip/hip_runtime.h>
+#include <ginkgo/core/base/std_extensions.hpp>
+
+
+#include "hip/components/cooperative_groups.hip.hpp"
 
 
 namespace gko {
@@ -41,42 +45,41 @@ namespace kernels {
 namespace hip {
 
 
-constexpr int default_block_size = 512;
-
-
-namespace kernel {
-
-
-template <typename ValueType>
-__global__ void zero_array(size_type n, ValueType *__restrict__ array)
+/**
+ * @internal
+ *
+ * Compute a segement scan using add operation (+) of a subwarp. Each segment
+ * performs suffix sum. Works on the source array and returns whether the thread
+ * is the first element of its segment with same `ind`.
+ */
+template <size_type subwarp_size, typename ValueType, typename IndexType>
+__device__ __forceinline__ bool segment_scan(
+    const group::thread_block_tile<subwarp_size> &group, const IndexType ind,
+    ValueType *__restrict__ val)
 {
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    if (tidx < n) {
-        array[tidx] = zero<ValueType>();
+    bool head = true;
+#pragma unroll
+    for (int i = 1; i < subwarp_size; i <<= 1) {
+        const IndexType add_ind = group.shfl_up(ind, i);
+        ValueType add_val = zero<ValueType>();
+        if (add_ind == ind && threadIdx.x >= i) {
+            add_val = *val;
+            if (i == 1) {
+                head = false;
+            }
+        }
+        add_val = group.shfl_down(add_val, i);
+        if (threadIdx.x < subwarp_size - i) {
+            *val += add_val;
+        }
     }
+    return head;
 }
-
-
-}  // namespace kernel
-
-
-template <typename ValueType>
-void zero_array(size_type n, ValueType *array)
-{
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
-    hipLaunchKernelGGL(kernel::zero_array, dim3(grid_size), dim3(block_size), 0,
-                       0, n, array);
-}
-
-
-#define GKO_DECLARE_ZERO_ARRAY(_type) \
-    void zero_array<_type>(size_type n, _type * array);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_ZERO_ARRAY);
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ZERO_ARRAY);
 
 
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif  // GKO_HIP_COMPONENTS_SEGMENT_SCAN_CUH_
