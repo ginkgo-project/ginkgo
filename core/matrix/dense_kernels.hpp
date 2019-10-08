@@ -98,10 +98,10 @@ namespace kernels {
                           matrix::Sellp<_type, _prec> *other,          \
                           const matrix::Dense<_type> *source)
 
-#define GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_CSR_KERNEL(_type, _prec)    \
-    void convert_to_sparsity(std::shared_ptr<const DefaultExecutor> exec, \
-                             matrix::SparsityCsr<_type, _prec> *other,    \
-                             const matrix::Dense<_type> *source)
+#define GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_CSR_KERNEL(_type, _prec)        \
+    void convert_to_sparsity_csr(std::shared_ptr<const DefaultExecutor> exec, \
+                                 matrix::SparsityCsr<_type, _prec> *other,    \
+                                 const matrix::Dense<_type> *source)
 
 #define GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(_type)               \
     void count_nonzeros(std::shared_ptr<const DefaultExecutor> exec, \

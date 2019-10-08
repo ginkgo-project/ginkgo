@@ -197,7 +197,11 @@ void Csr<ValueType, IndexType>::convert_to(
         exec, this->get_size(), this->get_num_stored_elements());
     tmp->col_idxs_ = this->col_idxs_;
     tmp->row_ptrs_ = this->row_ptrs_;
-    tmp->value_ = gko::Array<ValueType>(exec, {one<ValueType>()});
+    if (result->value_.get_data()) {
+        tmp->value_ = result->value_;
+    } else {
+        tmp->value_ = gko::Array<ValueType>(exec, {one<ValueType>()});
+    }
     tmp->move_to(result);
 }
 

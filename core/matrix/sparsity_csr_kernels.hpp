@@ -68,7 +68,7 @@ namespace kernels {
     void count_num_diagonal_elements(                                          \
         std::shared_ptr<const DefaultExecutor> exec,                           \
         const matrix::SparsityCsr<ValueType, IndexType> *matrix,               \
-        size_type &num_diagonal_elements)
+        size_type *num_diagonal_elements)
 
 #define GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL(ValueType, IndexType) \
     void transpose(std::shared_ptr<const DefaultExecutor> exec,         \

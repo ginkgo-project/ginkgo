@@ -68,6 +68,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
 {
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
+    auto val = a->get_const_value()[0];
 
 #pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
@@ -76,7 +77,6 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
         }
         for (size_type k = row_ptrs[row];
              k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-            auto val = one<ValueType>();
             auto col = col_idxs[k];
             for (size_type j = 0; j < c->get_size()[1]; ++j) {
                 c->at(row, j) += val * b->at(col, j);
@@ -101,6 +101,7 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     auto col_idxs = a->get_const_col_idxs();
     auto valpha = alpha->at(0, 0);
     auto vbeta = beta->at(0, 0);
+    auto val = a->get_const_value()[0];
 
 #pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
@@ -109,7 +110,6 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
         }
         for (size_type k = row_ptrs[row];
              k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
-            auto val = one<ValueType>();
             auto col = col_idxs[k];
             for (size_type j = 0; j < c->get_size()[1]; ++j) {
                 c->at(row, j) += valpha * val * b->at(col, j);
@@ -126,7 +126,7 @@ template <typename ValueType, typename IndexType>
 void count_num_diagonal_elements(
     std::shared_ptr<const OmpExecutor> exec,
     const matrix::SparsityCsr<ValueType, IndexType> *matrix,
-    size_type &num_diagonal_elements)
+    size_type *num_diagonal_elements)
 {
     auto num_rows = matrix->get_size()[0];
     auto row_ptrs = matrix->get_const_row_ptrs();
@@ -139,7 +139,7 @@ void count_num_diagonal_elements(
             }
         }
     }
-    num_diagonal_elements = num_diag;
+    *num_diagonal_elements = num_diag;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -165,17 +165,14 @@ void remove_diagonal_elements(std::shared_ptr<const OmpExecutor> exec,
         }
         adj_ptrs[i + 1] = row_ptrs[i + 1] - num_diag;
     }
-    std::vector<IndexType> temp_idxs;
+    auto nnz = 0;
     for (auto i = 0; i < num_rows; ++i) {
         for (auto j = row_ptrs[i]; j < row_ptrs[i + 1]; ++j) {
             if (col_idxs[j] != i) {
-                temp_idxs.push_back(col_idxs[j]);
+                adj_idxs[nnz] = col_idxs[j];
+                nnz++;
             }
         }
-    }
-#pragma omp parallel for
-    for (auto i = 0; i < temp_idxs.size(); ++i) {
-        adj_idxs[i] = temp_idxs[i];
     }
 }
 

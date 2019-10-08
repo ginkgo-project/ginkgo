@@ -171,7 +171,7 @@ SparsityCsr<ValueType, IndexType>::to_adjacency_matrix() const
     GKO_ASSERT_IS_SQUARE_MATRIX(this);
     size_type num_diagonal_elements = 0;
     exec->run(sparsity_csr::make_count_num_diagonal_elements(
-        this, num_diagonal_elements));
+        this, &num_diagonal_elements));
     auto adj_mat =
         SparsityCsr::create(exec, this->get_size(),
                             this->get_num_nonzeros() - num_diagonal_elements);

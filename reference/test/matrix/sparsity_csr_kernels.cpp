@@ -288,9 +288,9 @@ TEST_F(SparsityCsr, CountsCorrectNumberOfDiagonalElements)
     gko::size_type ms_num_diags = 0;
 
     gko::kernels::reference::sparsity_csr::count_num_diagonal_elements(
-        exec, mtx2.get(), m2_num_diags);
+        exec, mtx2.get(), &m2_num_diags);
     gko::kernels::reference::sparsity_csr::count_num_diagonal_elements(
-        exec, mtx_s.get(), ms_num_diags);
+        exec, mtx_s.get(), &ms_num_diags);
 
     ASSERT_EQ(m2_num_diags, 3);
     ASSERT_EQ(ms_num_diags, 2);
