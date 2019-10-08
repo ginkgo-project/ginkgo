@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/base/types.hip.hpp"
 #include "hip/components/atomic.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/format_conversion.hip.hpp"
 #include "hip/components/segment_scan.hip.hpp"
 #include "hip/components/zero_array.hip.hpp"
 
@@ -292,9 +293,7 @@ void spmv2(std::shared_ptr<const HipExecutor> exec,
     const auto nnz = a->get_num_stored_elements();
     const auto b_ncols = b->get_size()[1];
     const dim3 coo_block(hip_config::warp_size, warps_in_block, 1);
-    const auto nwarps =
-        std::min(static_cast<size_type>(300),
-                 static_cast<size_type>(ceildiv(nnz, hip_config::warp_size)));
+    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0) {
         if (b_ncols < 4) {
@@ -332,9 +331,7 @@ void advanced_spmv2(std::shared_ptr<const HipExecutor> exec,
                     matrix::Dense<ValueType> *c)
 {
     const auto nnz = a->get_num_stored_elements();
-    const auto nwarps =
-        std::min(static_cast<size_type>(300),
-                 static_cast<size_type>(ceildiv(nnz, hip_config::warp_size)));
+    const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
     const dim3 coo_block(hip_config::warp_size, warps_in_block, 1);
     const auto b_ncols = b->get_size()[1];
 
@@ -371,10 +368,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 namespace kernel {
 
 template <typename IndexType>
-__global__ void convert_row_idxs_to_ptrs(const IndexType *__restrict__ idxs,
-                                         size_type num_nonzeros,
-                                         IndexType *__restrict__ ptrs,
-                                         size_type length)
+__global__ __launch_bounds__(default_block_size) void convert_row_idxs_to_ptrs(
+    const IndexType *__restrict__ idxs, size_type num_nonzeros,
+    IndexType *__restrict__ ptrs, size_type length)
 {
     const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -432,9 +428,9 @@ namespace kernel {
 
 
 template <typename ValueType>
-__global__ void initialize_zero_dense(size_type num_rows, size_type num_cols,
-                                      size_type stride,
-                                      ValueType *__restrict__ result)
+__global__ __launch_bounds__(default_block_size) void initialize_zero_dense(
+    size_type num_rows, size_type num_cols, size_type stride,
+    ValueType *__restrict__ result)
 {
     const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
     const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
@@ -445,11 +441,11 @@ __global__ void initialize_zero_dense(size_type num_rows, size_type num_cols,
 
 
 template <typename ValueType, typename IndexType>
-__global__ void fill_in_dense(size_type nnz,
-                              const IndexType *__restrict__ row_idxs,
-                              const IndexType *__restrict__ col_idxs,
-                              const ValueType *__restrict__ values,
-                              size_type stride, ValueType *__restrict__ result)
+__global__ __launch_bounds__(default_block_size) void fill_in_dense(
+    size_type nnz, const IndexType *__restrict__ row_idxs,
+    const IndexType *__restrict__ col_idxs,
+    const ValueType *__restrict__ values, size_type stride,
+    ValueType *__restrict__ result)
 {
     const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
     if (tidx < nnz) {
