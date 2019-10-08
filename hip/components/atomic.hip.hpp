@@ -30,13 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_COMPONENTS_ATOMIC_CUH_
-#define GKO_CUDA_COMPONENTS_ATOMIC_CUH_
+#ifndef GKO_HIP_COMPONENTS_ATOMIC_CUH_
+#define GKO_HIP_COMPONENTS_ATOMIC_CUH_
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace hip {
 
 
 namespace detail {
@@ -90,12 +90,6 @@ GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned long long int);
 // Support 32-bit ATOMIC_ADD
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
 
-
-#if !(defined(CUDA_VERSION) && (CUDA_VERSION < 10100))
-// CUDA 10.1 starts supporting 16-bit unsigned short int atomicCAS
-GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned short int);
-#endif
-
 #undef GKO_BIND_ATOMIC_HELPER_STRUCTURE
 
 
@@ -121,31 +115,6 @@ GKO_BIND_ATOMIC_ADD(unsigned int);
 GKO_BIND_ATOMIC_ADD(unsigned long long int);
 GKO_BIND_ATOMIC_ADD(float);
 
-
-#if !((defined(CUDA_VERSION) && (CUDA_VERSION < 8000)) || \
-      (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)))
-// CUDA 8.0 starts suppoting 64-bit double atomicAdd on devices of compute
-// capability 6.x and higher
-GKO_BIND_ATOMIC_ADD(double);
-#endif
-
-#if !((defined(CUDA_VERSION) && (CUDA_VERSION < 10000)) || \
-      (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 700)))
-// CUDA 10.0 starts supporting 16-bit __half floating-point atomicAdd on devices
-// of compute capability 7.x and higher.
-GKO_BIND_ATOMIC_ADD(__half);
-#endif
-
-#if !((defined(CUDA_VERSION) && (CUDA_VERSION < 10000)) || \
-      (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)))
-// CUDA 10.0 starts supporting 32-bit __half2 floating-point atomicAdd on
-// devices of compute capability 6.x and higher. note: The atomicity of the
-// __half2 add operation is guaranteed separately for each of the two __half
-// elements; the entire __half2 is not guaranteed to be atomic as a single
-// 32-bit access.
-GKO_BIND_ATOMIC_ADD(__half2);
-#endif
-
 #undef GKO_BIND_ATOMIC_ADD
 
 
@@ -157,7 +126,7 @@ GKO_BIND_ATOMIC_ADD(__half2);
 __forceinline__ __device__ void atomic_add(
     thrust::complex<float> *__restrict__ address, thrust::complex<float> val)
 {
-    cuComplex *cuaddr = reinterpret_cast<cuComplex *>(address);
+    hipComplex *cuaddr = reinterpret_cast<hipComplex *>(address);
     // Separate to real part and imag part
     atomic_add(&(cuaddr->x), val.real());
     atomic_add(&(cuaddr->y), val.imag());
@@ -171,16 +140,16 @@ __forceinline__ __device__ void atomic_add(
 __forceinline__ __device__ void atomic_add(
     thrust::complex<double> *__restrict__ address, thrust::complex<double> val)
 {
-    cuDoubleComplex *cuaddr = reinterpret_cast<cuDoubleComplex *>(address);
+    hipDoubleComplex *cuaddr = reinterpret_cast<hipDoubleComplex *>(address);
     // Separate to real part and imag part
     atomic_add(&(cuaddr->x), val.real());
     atomic_add(&(cuaddr->y), val.imag());
 }
 
 
-}  // namespace cuda
+}  // namespace hip
 }  // namespace kernels
 }  // namespace gko
 
 
-#endif  // GKO_CUDA_COMPONENTS_ATOMIC_CUH_
+#endif  // GKO_HIP_COMPONENTS_ATOMIC_CUH_

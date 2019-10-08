@@ -30,11 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_COMPONENTS_COOPERATIVE_GROUPS_CUH_
-#define GKO_CUDA_COMPONENTS_COOPERATIVE_GROUPS_CUH_
-
-
-#include <cooperative_groups.h>
+#ifndef GKO_HIP_COMPONENTS_COOPERATIVE_GROUPS_CUH_
+#define GKO_HIP_COMPONENTS_COOPERATIVE_GROUPS_CUH_
 
 
 #include <ginkgo/core/base/std_extensions.hpp>
@@ -44,10 +41,10 @@ namespace gko {
 
 
 /**
- * Ginkgo uses cooperative groups introduced in CUDA 9.0 to handle communication
+ * Ginkgo uses cooperative groups introduced in HIP 9.0 to handle communication
  * among the threads.
  *
- * However, CUDA's implementation of cooperative groups is still quite limited
+ * However, HIP's implementation of cooperative groups is still quite limited
  * in functionality, and some parts are not supported on all hardware
  * interesting for Ginkgo. For this reason, Ginkgo exposes only a part of the
  * original functionality, and possibly extends it if it is required. Thus,
@@ -56,7 +53,7 @@ namespace gko {
  * by Ginkgo's implementation is equivalent to the standard interface, with some
  * useful extensions.
  *
- * A cooperative group (both from standard CUDA and from Ginkgo) is not a
+ * A cooperative group (both from standard HIP and from Ginkgo) is not a
  * specific type, but a concept. That is, any type  satisfying the interface
  * imposed by the cooperative groups API is considered a cooperative
  * group (a.k.a. "duck typing"). To maximize the generality of components than
@@ -69,7 +66,7 @@ namespace gko {
  * Instead, use the thread_rank() method of the group to distinguish between
  * distinct threads of a group.
  *
- * The original CUDA implementation does not provide ways to verify if a certain
+ * The original HIP implementation does not provide ways to verify if a certain
  * type represents a cooperative group. Ginkgo's implementation provides
  * metafunctions which do that. Additionally, not all cooperative groups have
  * equivalent functionality, so Ginkgo splits the cooperative group concept into
@@ -112,150 +109,19 @@ namespace gko {
  *       to existing cooperative groups, or create new groups if the existing
  *       groups do not cover your use-case. For an example, see the
  *       enable_extended_shuffle mixin, which adds extended shuffles support
- *       to built-in CUDA cooperative groups.
+ *       to built-in HIP cooperative groups.
  */
 namespace group {
 
 
-// See <CUDA directory>/include/cooperative_groups.h for documentation and
-// implementation of the original CUDA cooperative groups API. You can use this
+// See <HIP directory>/include/cooperative_groups.h for documentation and
+// implementation of the original HIP cooperative groups API. You can use this
 // file to define new or modify existing groups.
 
 
 // metafunctions
 
 
-namespace detail {
-
-
-template <typename T>
-struct is_group_impl : std::false_type {};
-
-
-template <typename T>
-struct is_synchronizable_group_impl : std::false_type {};
-
-
-template <typename T>
-struct is_communicator_group_impl : std::true_type {};
-
-}  // namespace detail
-
-
-/**
- * Check if T is a Group.
- */
-template <typename T>
-using is_group = detail::is_group_impl<xstd::decay_t<T>>;
-
-
-/**
- * Check if T is a SynchronizableGroup.
- */
-template <typename T>
-using is_synchronizable_group =
-    detail::is_synchronizable_group_impl<xstd::decay_t<T>>;
-
-
-/**
- * Check if T is a CommunicatorGroup.
- */
-template <typename T>
-using is_communicator_group =
-    detail::is_communicator_group_impl<xstd::decay_t<T>>;
-
-
-// types
-
-
-using cooperative_groups::thread_group;
-// public API:
-// void sync() const
-// unsigned size() const
-// unsigned thread_rank() const
-//
-// protected API:
-// _data (union) {
-//   unsigned type;
-//   coalesced {
-//     unsigned type;
-//     unsigned size;
-//     unsigned mask
-//   };
-//   buffer {
-//     void *ptr[2];
-//   }
-// }
-// operator=
-// thread_group(__internal::groupType type)
-
-namespace detail {
-template <>
-struct is_group_impl<thread_group> : std::true_type {};
-}  // namespace detail
-
-
-// Do not use grid_group. Need to launch kernels with cuLaunchCooperativeKernel
-// for this to work, and the device has to support it. It's not available on
-// some older hardware we're trying to support.
-//
-// using cooperative_groups::grid_group;
-// public API:
-// grid_group()
-// bool is_valid() const
-// void sync() const
-// unsigned size() const
-// unsigned thread_rank() const
-// dim3 group_dim() const
-
-
-/**
- * This is a limited implementation of the CUDA grid_group that works even on
- * devices that do not support device-wide synchronization and without special
- * kernel launch syntax.
- *
- * Note that this implementation (as well as the one from CUDA's cooperative
- * groups) does not support large grids, since it uses 32 bits to represent
- * sizes and ranks, while at least 73 bits (63 bit grid + 10 bit block) would
- * have to be used to represent the full space of thread ranks.
- */
-class grid_group {
-    friend __device__ grid_group this_grid();
-
-public:
-    __device__ unsigned size() const noexcept { return data_.size; }
-
-    __device__ unsigned thread_rank() const noexcept { return data_.rank; }
-
-private:
-    __device__ grid_group()
-        : data_{blockDim.x * blockDim.y * blockDim.z * gridDim.x * gridDim.y *
-                    gridDim.z,
-                threadIdx.x +
-                    blockDim.x *
-                        (threadIdx.y +
-                         blockDim.y *
-                             (threadIdx.z +
-                              blockDim.z *
-                                  (blockIdx.x +
-                                   gridDim.x *
-                                       (blockIdx.y + gridDim.y * blockIdx.z))))}
-    {}
-
-    struct alignas(8) {
-        unsigned size;
-        unsigned rank;
-    } data_;
-};
-
-
-namespace detail {
-template <>
-struct is_group_impl<grid_group> : std::true_type {};
-}  // namespace detail
-
-
-using cooperative_groups::thread_block;
 // inherits thread_group
 //
 // public API:
@@ -267,41 +133,102 @@ using cooperative_groups::thread_block;
 // dim3 group_dim() const
 
 namespace detail {
-template <>
-struct is_group_impl<thread_block> : std::true_type {};
-template <>
-struct is_synchronizable_group_impl<thread_block> : std::true_type {};
-}  // namespace detail
 
 
-// You probably don't want to use it, the implementation is incomplete and
-// buggy.
-using cooperative_groups::coalesced_group;
-// inherits thread_group
-//
-// public API:
-// unsigned size() const
-// unsigned thread_rank() const
-// unsigned sync() const
-// T shfl(T, unsigned) const   // bug - should be int
-// T shfl_up(T, int) const     // bug - should be unsigned
-// T shfl_down(T, int) const   // bug - should be unsigned
-// int any(int) const
-// int all(int) const
-// unsigned ballot(int) const
-//
-// c.c. 7.0 and higher
-// unsigned match_any(T) const
-// unsigned match_all(T) const
+template <size_type Size>
+class thread_block_tile {
+public:
+    __device__ thread_block_tile()
+        : data_{Size, static_cast<unsigned>(
+                          threadIdx.x +
+                          blockDim.x *
+                              (threadIdx.y + blockDim.y * threadIdx.z) % Size)}
+    {}
 
-namespace detail {
-template <>
-struct is_group_impl<coalesced_group> : std::true_type {};
-template <>
-struct is_synchronizable_group_impl<coalesced_group> : std::true_type {};
-// some bugs, and incomplete interface, so not a communicator group for now
-// template <>
-// struct is_communicator_group_impl<coalesced_group> : std::true_type {};
+    __device__ unsigned thread_rank() const noexcept { return data_.rank; }
+
+    __device__ unsigned size() const noexcept { return data_.size; }
+
+    __device__ void sync() {}
+
+    __device__ __forceinline__ int32 shfl(int32 var, int32 srcLane) const
+        noexcept
+    {
+        return __shfl(var, srcLane, Size);
+    }
+
+    __device__ __forceinline__ float shfl(float var, int32 srcLane) const
+        noexcept
+    {
+        return __shfl(var, srcLane, Size);
+    }
+
+    __device__ __forceinline__ int32 shfl_up(int32 var, uint32 delta) const
+        noexcept
+    {
+        return __shfl_up(var, delta, Size);
+    }
+
+    __device__ __forceinline__ uint32 shfl_up(uint32 var, uint32 delta) const
+        noexcept
+    {
+        return __shfl_up(var, delta, Size);
+    }
+
+    __device__ __forceinline__ float shfl_up(float var, uint32 delta) const
+        noexcept
+    {
+        return __shfl_up(var, delta, Size);
+    }
+
+    __device__ __forceinline__ int32 shfl_down(int32 var, uint32 delta) const
+        noexcept
+    {
+        return __shfl_down(var, delta, Size);
+    }
+
+    __device__ __forceinline__ int32 shfl_down(uint32 var, uint32 delta) const
+        noexcept
+    {
+        return __shfl_down(var, delta, Size);
+    }
+
+    __device__ __forceinline__ float shfl_down(float var, uint32 delta) const
+        noexcept
+    {
+        return __shfl_down(var, delta, Size);
+    }
+
+    __device__ __forceinline__ int32 shfl_xor(int32 var, int32 laneMask) const
+        noexcept
+    {
+        return __shfl_xor(var, laneMask, Size);
+    }
+
+    __device__ __forceinline__ float shfl_xor(float var, int32 laneMask) const
+        noexcept
+    {
+        return __shfl_xor(var, laneMask, Size);
+    }
+
+    __device__ __forceinline__ int any(int predicate) const noexcept
+    {
+        return __any(predicate);
+    }
+
+    __device__ __forceinline__ int all(int predicate) const noexcept
+    {
+        return __any(predicate);
+    }
+
+private:
+    struct alignas(8) {
+        unsigned size;
+        unsigned rank;
+    } data_;
+};
+
+
 }  // namespace detail
 
 
@@ -365,88 +292,17 @@ private:
 // Implementing this as a using directive messes up with SFINAE for some reason,
 // probably a bug in NVCC. If it is a complete type, everything works fine.
 template <size_type Size>
-struct thread_block_tile : detail::enable_extended_shuffle<
-                               cooperative_groups::thread_block_tile<Size>> {
+struct thread_block_tile
+    : detail::enable_extended_shuffle<detail::thread_block_tile<Size>> {
     using detail::enable_extended_shuffle<
-        cooperative_groups::thread_block_tile<Size>>::enable_extended_shuffle;
+        detail::thread_block_tile<Size>>::enable_extended_shuffle;
 };
-// inherits thread_group
-//
-// public API:
-// void sync() const
-// unsigned thread_rank() const
-// usigned size() const
-// T shfl(T, int)
-// T shfl_up(T, unsigned)
-// T shfl_down(T, unsigned)
-// T shfl_xor(T, unsigned)
-// int any(int) const
-// int all(int) const
-// unsigned ballot(int) const
-//
-// c.c. 7.0 and higher
-// unsigned match_any(T) const  // TODO: implement for all types
-// unsigned match_all(T) const  // TODO: implement for all types
-
-namespace detail {
-template <size_type Size>
-struct is_group_impl<thread_block_tile<Size>> : std::true_type {};
-template <size_type Size>
-struct is_synchronizable_group_impl<thread_block_tile<Size>> : std::true_type {
-};
-template <size_type Size>
-struct is_communicator_group_impl<thread_block_tile<Size>> : std::true_type {};
-// make sure the original CUDA group is recognized whenever possible
-template <size_type Size>
-struct is_group_impl<cooperative_groups::thread_block_tile<Size>>
-    : std::true_type {};
-template <size_type Size>
-struct is_synchronizable_group_impl<cooperative_groups::thread_block_tile<Size>>
-    : std::true_type {};
-}  // namespace detail
 
 
-// top-level functions
-
-
-// thread_group this_thread()
-using cooperative_groups::this_thread;
-
-
-// Not using this, as grid_group is not universally supported.
-// grid_group this_grid()
-// using cooperative_groups::this_grid;
-// Instead, use our limited implementation:
-__device__ inline grid_group this_grid() { return {}; }
-
-
-// thread_block this_thread_block()
-using cooperative_groups::this_thread_block;
-
-
-// coalesced_group coalesced_threads()
-using cooperative_groups::coalesced_threads;
-
-
-// void sync(group)
-using cooperative_groups::sync;
-
-
-// unsigned thread_rank(group)
-using cooperative_groups::thread_rank;
-
-
-// unsigned group_size(group)
-using cooperative_groups::group_size;
-
-
-// Need to implement our own tiled_partition functions to make sure they return
-// our extended version of the thread_block_tile in the templated case.
-template <typename Group>
-__device__ __forceinline__ auto tiled_partition(const Group &g)
-    -> decltype(cooperative_groups::tiled_partition(g))
+struct fake_group {};
+__device__ __forceinline__ fake_group this_thread_block()
 {
-    return cooperative_groups::tiled_partition(g);
+    return fake_group{};
 }
 
 
@@ -462,4 +318,4 @@ __device__ __forceinline__ thread_block_tile<Size> tiled_partition(
 }  // namespace gko
 
 
-#endif  // GKO_CUDA_COMPONENTS_COOPERATIVE_GROUPS_CUH_
+#endif  // GKO_HIP_COMPONENTS_COOPERATIVE_GROUPS_CUH_

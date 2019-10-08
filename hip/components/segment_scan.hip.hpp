@@ -30,20 +30,19 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_COMPONENTS_SEGMENT_SCAN_CUH_
-#define GKO_CUDA_COMPONENTS_SEGMENT_SCAN_CUH_
+#ifndef GKO_HIP_COMPONENTS_SEGMENT_SCAN_CUH_
+#define GKO_HIP_COMPONENTS_SEGMENT_SCAN_CUH_
 
 
 #include <ginkgo/core/base/std_extensions.hpp>
 
 
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/thread_ids.cuh"
+#include "hip/components/cooperative_groups.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace hip {
 
 
 /**
@@ -78,9 +77,9 @@ __device__ __forceinline__ bool segment_scan(
 }
 
 
-}  // namespace cuda
+}  // namespace hip
 }  // namespace kernels
 }  // namespace gko
 
 
-#endif  // GKO_CUDA_COMPONENTS_SEGMENT_SCAN_CUH_
+#endif  // GKO_HIP_COMPONENTS_SEGMENT_SCAN_CUH_

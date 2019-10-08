@@ -62,15 +62,15 @@ protected:
 
     void SetUp()
     {
-        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
+        ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        cuda = gko::CudaExecutor::create(0, ref);
+        hip = gko::HipExecutor::create(0, ref);
     }
 
     void TearDown()
     {
-        if (cuda != nullptr) {
-            ASSERT_NO_THROW(cuda->synchronize());
+        if (hip != nullptr) {
+            ASSERT_NO_THROW(hip->synchronize());
         }
     }
 
@@ -89,21 +89,21 @@ protected:
         y = gen_mtx(231, num_vectors);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
-        dmtx = Mtx::create(cuda);
+        dmtx = Mtx::create(hip);
         dmtx->copy_from(mtx.get());
-        dresult = Vec::create(cuda);
+        dresult = Vec::create(hip);
         dresult->copy_from(expected.get());
-        dy = Vec::create(cuda);
+        dy = Vec::create(hip);
         dy->copy_from(y.get());
-        dalpha = Vec::create(cuda);
+        dalpha = Vec::create(hip);
         dalpha->copy_from(alpha.get());
-        dbeta = Vec::create(cuda);
+        dbeta = Vec::create(hip);
         dbeta->copy_from(beta.get());
     }
 
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> cuda;
+    std::shared_ptr<const gko::HipExecutor> hip;
 
     std::ranlux48 rand_engine;
 
@@ -213,7 +213,7 @@ TEST_F(Coo, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_data();
     auto dense_mtx = gko::matrix::Dense<>::create(ref);
-    auto ddense_mtx = gko::matrix::Dense<>::create(cuda);
+    auto ddense_mtx = gko::matrix::Dense<>::create(hip);
 
     mtx->convert_to(dense_mtx.get());
     dmtx->convert_to(ddense_mtx.get());
@@ -227,7 +227,7 @@ TEST_F(Coo, ConvertToCsrIsEquivalentToRef)
     set_up_apply_data();
     auto dense_mtx = gko::matrix::Dense<>::create(ref);
     auto csr_mtx = gko::matrix::Csr<>::create(ref);
-    auto dcsr_mtx = gko::matrix::Csr<>::create(cuda);
+    auto dcsr_mtx = gko::matrix::Csr<>::create(hip);
 
     mtx->convert_to(dense_mtx.get());
     dense_mtx->convert_to(csr_mtx.get());
