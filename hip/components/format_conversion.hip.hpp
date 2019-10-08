@@ -30,54 +30,47 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "hip/components/zero_array.hip.hpp"
+#ifndef GKO_HIP_COMPONENTS_FORMAT_CONVERSION_HPP_
+#define GKO_HIP_COMPONENTS_FORMAT_CONVERSION_HPP_
 
 
-#include <hip/hip_runtime.h>
+#include <ginkgo/core/base/std_extensions.hpp>
 
 
 namespace gko {
 namespace kernels {
 namespace hip {
+namespace host_kernel {
 
 
-constexpr int default_block_size = 512;
-
-
-namespace kernel {
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void zero_array(
-    size_type n, ValueType *__restrict__ array)
+/**
+ * @internal
+ *
+ * It calculates the number of warps used in Coo Spmv by GPU architecture and
+ * the number of stored elements.
+ */
+template <size_type subwarp_size = hip_config::warp_size>
+__host__ size_type calculate_nwarps(std::shared_ptr<const HipExecutor> exec,
+                                    const size_type nnz)
 {
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    if (tidx < n) {
-        array[tidx] = zero<ValueType>();
+    size_type nwarps_in_hip = exec->get_num_multiprocessor() *
+                              exec->get_max_num_threads_per_multiprocessor() /
+                              subwarp_size;
+    size_type multiple = 8;
+    if (nnz >= 2000000) {
+        multiple = 128;
+    } else if (nnz >= 200000) {
+        multiple = 32;
     }
+    return std::min(multiple * nwarps_in_hip, static_cast<size_type>(ceildiv(
+                                                  nnz, hip_config::warp_size)));
 }
 
 
-}  // namespace kernel
-
-
-template <typename ValueType>
-void zero_array(size_type n, ValueType *array)
-{
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
-    hipLaunchKernelGGL(kernel::zero_array, dim3(grid_size), dim3(block_size), 0,
-                       0, n, array);
-}
-
-
-#define GKO_DECLARE_ZERO_ARRAY(_type) \
-    void zero_array<_type>(size_type n, _type * array);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_ZERO_ARRAY);
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ZERO_ARRAY);
-
-
+}  // namespace host_kernel
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif  // GKO_CUDA_COMPONENTS_FORMAT_CONVERSION_CUH_

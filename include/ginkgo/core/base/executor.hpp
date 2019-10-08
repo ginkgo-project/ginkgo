@@ -1038,6 +1038,14 @@ public:
     int get_num_multiprocessor() const noexcept { return num_multiprocessor_; }
 
     /**
+     * Get the maximum number of threads per multiprocessor of this executor.
+     */
+    int get_max_num_threads_per_multiprocessor() const noexcept
+    {
+        return max_num_threads_per_multiprocessor_;
+    }
+
+    /**
      * Get the cublas handle for this executor
      *
      * @return  the cublas handle (cublasContext*) for this executor
@@ -1096,6 +1104,7 @@ private:
     int device_id_;
     std::shared_ptr<Executor> master_;
     int num_multiprocessor_;
+    int max_num_threads_per_multiprocessor_;
 
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;

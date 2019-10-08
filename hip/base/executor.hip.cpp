@@ -172,6 +172,9 @@ void HipExecutor::set_gpu_property()
         GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
             &num_multiprocessor_, hipDeviceAttributeMultiprocessorCount,
             device_id_));
+        GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
+            &max_num_threads_per_multiprocessor_,
+            hipDeviceAttributeMaxThreadsPerMultiProcessor, device_id_));
     }
 }
 
