@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto res = gko::initialize<vec>({0.0}, exec);
     A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
-    b->compute_norm2(lend(res));
+    b->compute_norm2(gko::lend(res));
 
     std::cout << "Residual norm sqrt(r^T r): \n";
     write(std::cout, gko::lend(res));
