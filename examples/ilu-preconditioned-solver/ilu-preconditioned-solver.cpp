@@ -114,5 +114,5 @@ int main(int argc, char *argv[])
     b->compute_norm2(lend(res));
 
     std::cout << "Residual norm sqrt(r^T r): \n";
-    write(std::cout, lend(res));
+    write(std::cout, gko::lend(res));
 }
