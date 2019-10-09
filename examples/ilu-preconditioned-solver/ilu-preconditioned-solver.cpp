@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/ginkgo.hpp>
 
 
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -84,8 +85,9 @@ int main(int argc, char *argv[])
     auto ilu_preconditioner = ilu_pre_factory->generate(gko::share(par_ilu));
 
     // Use preconditioner inside GMRES solver factory
-    // Generating a factory makes sense if there are several systems for which
-    // the generated ILU preconditioner is expected to be effective
+    // Generating a solver factory tied to a specific preconditioner makes sense
+    // if there are several very similar systems to solve, and the same
+    // solver+preconditioner combination is expected to be effective.
     auto ilu_gmres_factory =
         gko::solver::Gmres<>::build()
             .with_criteria(
@@ -104,7 +106,7 @@ int main(int argc, char *argv[])
 
     // Print solution
     std::cout << "Solution (x): \n";
-    write(std::cout, lend(x));
+    write(std::cout, gko::lend(x));
 
     // Calculate residual
     auto one = gko::initialize<vec>({1.0}, exec);

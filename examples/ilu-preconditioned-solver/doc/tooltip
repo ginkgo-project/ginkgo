@@ -1,1 +1,4 @@
-Use a preconditioner in Ginkgo. Solve a linear system.
+Generate an incomplete factorization. 
+Generate an ILU preconditioner from a factorization. 
+Use an ILU preconditioner in an iterative solver. 
+Solve a linear system.
