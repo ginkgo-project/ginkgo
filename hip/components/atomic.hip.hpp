@@ -114,6 +114,7 @@ GKO_BIND_ATOMIC_ADD(int);
 GKO_BIND_ATOMIC_ADD(unsigned int);
 GKO_BIND_ATOMIC_ADD(unsigned long long int);
 GKO_BIND_ATOMIC_ADD(float);
+GKO_BIND_ATOMIC_ADD(double);
 
 #undef GKO_BIND_ATOMIC_ADD
 

@@ -88,6 +88,10 @@ if (NOT GINKGO_HIP_THRUST_PATH)
 endif()
 
 
+set(HIP_INCLUDE_DIRS ${HIP_INCLUDE_DIRS} PARENT_SCOPE)
+set(HIPSPARSE_INCLUDE_DIRS ${HIPSPARSE_INCLUDE_DIRS} PARENT_SCOPE)
+set(HIPBLAS_INCLUDE_DIRS ${HIPBLAS_INCLUDE_DIRS} PARENT_SCOPE)
+set(GINKGO_HIP_THRUST_PATH ${GINKGO_HIP_THRUST_PATH} PARENT_SCOPE)
 set(GINKGO_HIP_SOURCES
     base/exception.hip.cpp
     base/executor.hip.cpp
@@ -146,6 +150,8 @@ if(GINKGO_WITH_IWYU AND GINKGO_IWYU_PATH)
     set_property(TARGET ginkgo_hip PROPERTY CXX_INCLUDE_WHAT_YOU_USE ${GINKGO_IWYU_PATH})
 endif()
 
+
+
 if(GINKGO_HIP_PLATFORM MATCHES "hcc")
     # Fix the exception thrown bug with `hcc` backend and shared libraries
     set_target_properties(ginkgo_hip PROPERTIES LINKER_LANGUAGE HIP)
@@ -176,6 +182,9 @@ target_include_directories(ginkgo_hip
 ginkgo_compile_features(ginkgo_hip)
 ginkgo_default_includes(ginkgo_hip)
 ginkgo_install_library(ginkgo_hip hip)
+set(TEMP hip::device)
+message("hip::device ${TEMP}")
+message("~~CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH}")
 
 if(GINKGO_BUILD_TESTS)
   # Here, we go through all of Ginkgo's dependencies to build a `-Wl,-rpath` string since for
