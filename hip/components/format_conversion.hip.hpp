@@ -53,9 +53,8 @@ template <size_type subwarp_size = hip_config::warp_size>
 __host__ size_type calculate_nwarps(std::shared_ptr<const HipExecutor> exec,
                                     const size_type nnz)
 {
-    size_type nwarps_in_hip = exec->get_num_multiprocessor() *
-                              exec->get_max_num_threads_per_multiprocessor() /
-                              subwarp_size;
+    // One multiprocessor has 4 SIMD
+    size_type nwarps_in_hip = exec->get_num_multiprocessor() * 4;
     size_type multiple = 8;
     if (nnz >= 2000000) {
         multiple = 128;

@@ -320,6 +320,20 @@ inline void destroy_hipsparse_handle(hipsparseContext *handle)
 }
 
 
+inline hipsparseMatDescr *create_mat_descr()
+{
+    hipsparseMatDescr_t descr{};
+    GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseCreateMatDescr(&descr));
+    return reinterpret_cast<hipsparseMatDescr *>(descr);
+}
+
+
+inline void destroy(hipsparseMatDescr *descr)
+{
+    GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseDestroyMatDescr(reinterpret_cast<hipsparseMatDescr_t>(descr)));
+}
+
+
 }  // namespace hipsparse
 }  // namespace hip
 }  // namespace kernels

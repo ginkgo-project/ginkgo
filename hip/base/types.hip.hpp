@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_BASE_TYPES_HPP_
 
 
-#include <hip/device_functions.h>
+
 #include <hip/hip_complex.h>
 #include <hip/hip_runtime.h>
 #include <hipblas.h>
@@ -252,7 +252,7 @@ struct hip_config {
      * `device_functions.h`.
      */
 #if GINKGO_HIP_PLATFORM_HCC
-    static constexpr uint32 warp_size = warpSize;
+    static constexpr uint32 warp_size = 64;
 #else  // GINKGO_HIP_PLATFORM_NVCC
     static constexpr uint32 warp_size = 32;
 #endif
