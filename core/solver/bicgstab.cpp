@@ -108,7 +108,6 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, r.get());
     rr->copy_from(r.get());
-    system_matrix_->apply(r.get(), v.get());
 
     int iter = -1;
     while (true) {
