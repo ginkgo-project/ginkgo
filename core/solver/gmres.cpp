@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
 
 
 #include "core/solver/gmres_kernels.hpp"
@@ -66,18 +67,25 @@ namespace {
 
 
 template <typename ValueType>
-void apply_preconditioner(const LinOp *preconditioner,
-                          matrix::Dense<ValueType> *krylov_bases,
-                          matrix::Dense<ValueType> *preconditioned_vector,
-                          const size_type iter)
+void apply_preconditioner(
+    const LinOp *preconditioner, matrix::Dense<ValueType> *krylov_bases,
+    std::shared_ptr<matrix::Dense<ValueType>> &preconditioned_vector,
+    const size_type iter)
 {
-    auto target_basis = krylov_bases->create_submatrix(
-        span{0, krylov_bases->get_size()[0]},
-        span{iter * preconditioned_vector->get_size()[1],
-             (iter + 1) * preconditioned_vector->get_size()[1]});
+    std::shared_ptr<matrix::Dense<ValueType>> target_basis =
+        krylov_bases->create_submatrix(
+            span{0, krylov_bases->get_size()[0]},
+            span{iter * preconditioned_vector->get_size()[1],
+                 (iter + 1) * preconditioned_vector->get_size()[1]});
 
     // Apply preconditioner
-    preconditioner->apply(target_basis.get(), preconditioned_vector);
+    auto identity_pointer =
+        dynamic_cast<const matrix::Identity<ValueType> *>(preconditioner);
+    if (identity_pointer) {
+        preconditioned_vector = target_basis;
+    } else {
+        preconditioner->apply(target_basis.get(), preconditioned_vector.get());
+    }
 }
 
 
@@ -105,7 +113,8 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         exec, dim<2>{system_matrix_->get_size()[1],
                      (krylov_dim_ + 1) * dense_b->get_size()[1]});
     auto next_krylov_basis = Vector::create_with_config_of(dense_b);
-    auto preconditioned_vector = Vector::create_with_config_of(dense_b);
+    std::shared_ptr<matrix::Dense<ValueType>> preconditioned_vector =
+        Vector::create_with_config_of(dense_b);
     auto hessenberg = Vector::create(
         exec, dim<2>{krylov_dim_ + 1, krylov_dim_ * dense_b->get_size()[1]});
     auto givens_sin =
@@ -200,7 +209,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         }
 
         apply_preconditioner(get_preconditioner().get(), krylov_bases.get(),
-                             preconditioned_vector.get(), restart_iter);
+                             preconditioned_vector, restart_iter);
         // preconditioned_vector = get_preconditioner() *
         //                         krylov_bases(:, restart_iter)
 
