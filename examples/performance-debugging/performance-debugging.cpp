@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cstdlib>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -80,8 +81,8 @@ double compute_norm(const vec<ValueType> *b)
 {
     auto exec = b->get_executor();
     auto b_norm = gko::initialize<vec<ValueType>>({0.0}, exec);
-    b->compute_norm2(lend(b_norm));
-    return get_norm(lend(b_norm));
+    b->compute_norm2(gko::lend(b_norm));
+    return get_norm(gko::lend(b_norm));
 }
 
 
@@ -92,9 +93,10 @@ double compute_residual_norm(const gko::LinOp *system_matrix,
     auto exec = system_matrix->get_executor();
     auto one = gko::initialize<vec<ValueType>>({1.0}, exec);
     auto neg_one = gko::initialize<vec<ValueType>>({-1.0}, exec);
-    auto res = clone(b);
-    system_matrix->apply(lend(one), lend(x), lend(neg_one), lend(res));
-    return compute_norm(lend(res));
+    auto res = gko::clone(b);
+    system_matrix->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one),
+                         gko::lend(res));
+    return compute_norm(gko::lend(res));
 }
 
 
@@ -352,7 +354,7 @@ int main(int argc, char *argv[])
     // Pick a maximum iteration count
     auto max_iters = 2000u;
     // Pick an output file name
-    auto of_name = "data.txt";
+    auto of_name = "log.txt";
 
 
     // Simple shortcut
@@ -413,17 +415,17 @@ int main(int argc, char *argv[])
     // Do a warmup run
     {
         // Clone x to not overwrite the original one
-        auto x_clone = clone(x);
+        auto x_clone = gko::clone(x);
 
         // Generate and call apply on a solver
-        solver_factory->generate(A)->apply(lend(b), lend(x_clone));
+        solver_factory->generate(A)->apply(gko::lend(b), gko::lend(x_clone));
         exec->synchronize();
     }
 
     // Do a timed run
     {
         // Clone x to not overwrite the original one
-        auto x_clone = clone(x);
+        auto x_clone = gko::clone(x);
 
         // Synchronize ensures no operation are ongoing
         exec->synchronize();
@@ -444,7 +446,7 @@ int main(int argc, char *argv[])
         // Similarly time the apply
         exec->synchronize();
         auto a_tic = std::chrono::steady_clock::now();
-        generated_solver->apply(lend(b), lend(x_clone));
+        generated_solver->apply(gko::lend(b), gko::lend(x_clone));
         exec->synchronize();
         auto a_tac = std::chrono::steady_clock::now();
         auto apply_time =
@@ -452,8 +454,8 @@ int main(int argc, char *argv[])
         output_file << "Apply time (ns): " << apply_time.count() << std::endl;
 
         // Compute the residual norm
-        auto residual =
-            utils::compute_residual_norm(lend(A), lend(b), lend(x_clone));
+        auto residual = utils::compute_residual_norm(gko::lend(A), gko::lend(b),
+                                                     gko::lend(x_clone));
         output_file << "Residual_norm: " << residual << std::endl;
     }
 
@@ -482,7 +484,7 @@ int main(int argc, char *argv[])
             exec, gko::lend(A), gko::lend(b));
         generated_solver->add_logger(res_logger);
         // Solve the system
-        generated_solver->apply(lend(b), lend(x_clone));
+        generated_solver->apply(gko::lend(b), gko::lend(x_clone));
         exec->remove_logger(gko::lend(apply_logger));
         // Write the data to the output file
         output_file << "Apply operations times (ns):" << std::endl;

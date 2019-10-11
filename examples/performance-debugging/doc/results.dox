@@ -20,10 +20,10 @@ Solution, maximum first ten entries:
         0
         0
 ];
-The performance and residual data can be found in data.txt
+The performance and residual data can be found in log.txt
 @endcode
 
-Here is a sample output in the file data.txt:
+Here is a sample output in the file log.txt:
 @code{.cpp}
 Generate time (ns): 3596
 Apply time (ns): 253224
