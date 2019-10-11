@@ -33,16 +33,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/ginkgo.hpp>
 
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <fstream>
-#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <map>
 #include <ostream>
-#include <random>
-#include <regex>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -309,6 +307,9 @@ private:
 }  // namespace loggers
 
 
+namespace {
+
+
 // Print usage help
 void print_usage(const char *filename)
 {
@@ -319,6 +320,20 @@ void print_usage(const char *filename)
               << std::endl;
     std::exit(-1);
 }
+
+
+void print_vector(const gko::matrix::Dense<> *vec)
+{
+    auto elements_to_print = std::min(gko::size_type(10), vec->get_size()[0]);
+    std::cout << "[" << std::endl;
+    for (int i = 0; i < elements_to_print; ++i) {
+        std::cout << "\t" << vec->at(i) << std::endl;
+    }
+    std::cout << "];" << std::endl;
+}
+
+
+}  // namespace
 
 
 int main(int argc, char *argv[])
@@ -476,8 +491,8 @@ int main(int argc, char *argv[])
     }
 
     // Print solution
-    std::cout << "Solution (x): \n";
-    write(std::cout, lend(x));
+    std::cout << "Solution, first ten entries: \n";
+    print_vector(gko::lend(x));
 
     // Print output file location
     std::cout << "The performance and residual data can be found in " << of_name
