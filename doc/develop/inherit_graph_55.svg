@@ -12,7 +12,7 @@
 <!-- Node0 -->
 <g id="node1" class="node">
 <title>Node0</title>
-<g id="a_node1"><a xlink:href="classgko_1_1executor__deleter.html" target="_top" xlink:title="This is a deleter that uses an executor&#39;s free method to deallocate the data. ">
+<g id="a_node1"><a xlink:href="classgko_1_1executor__deleter.html" target="_top" xlink:title="This is a deleter that uses an executor&#39;s free method to deallocate the data.">
 <polygon fill="#ffffff" stroke="#000000" points="0,-.5 0,-19.5 152,-19.5 152,-.5 0,-.5"/>
 <text text-anchor="middle" x="76" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::executor_deleter&lt; T &gt;</text>
 </a>

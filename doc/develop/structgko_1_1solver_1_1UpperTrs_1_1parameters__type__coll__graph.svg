@@ -9,18 +9,21 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 225)">
 <title>gko::solver::UpperTrs&lt; ValueType, IndexType &gt;::parameters_type</title>
 <polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-225 194.5,-225 194.5,4 -4,4"/>
-<!-- Node0 -->
+<!-- Node1 -->
 <g id="node1" class="node">
-<title>Node0</title>
+<title>Node1</title>
+<g id="a_node1"><a xlink:title=" ">
 <polygon fill="#bfbfbf" stroke="#000000" points="23,-.5 23,-41.5 156,-41.5 156,-.5 23,-.5"/>
 <text text-anchor="start" x="31" y="-29.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::UpperTrs</text>
 <text text-anchor="start" x="31" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; ValueType, IndexType</text>
 <text text-anchor="middle" x="89.5" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &gt;::parameters_type</text>
+</a>
 </g>
-<!-- Node1 -->
+</g>
+<!-- Node2 -->
 <g id="node2" class="node">
-<title>Node1</title>
-<g id="a_node2"><a xlink:href="structgko_1_1enable__parameters__type.html" target="_top" xlink:title="gko::enable_parameters\l_type\&lt; parameters_type,\l Factory \&gt;">
+<title>Node2</title>
+<g id="a_node2"><a xlink:href="structgko_1_1enable__parameters__type.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="19,-79.5 19,-120.5 160,-120.5 160,-79.5 19,-79.5"/>
 <text text-anchor="start" x="27" y="-108.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::enable_parameters</text>
 <text text-anchor="start" x="27" y="-97.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">_type&lt; parameters_type,</text>
@@ -28,15 +31,15 @@
 </a>
 </g>
 </g>
-<!-- Node1&#45;&gt;Node0 -->
+<!-- Node2&#45;&gt;Node1 -->
 <g id="edge1" class="edge">
-<title>Node1&#45;&gt;Node0</title>
+<title>Node2&#45;&gt;Node1</title>
 <path fill="none" stroke="#191970" d="M89.5,-69.2029C89.5,-59.9553 89.5,-50.038 89.5,-41.6177"/>
 <polygon fill="#191970" stroke="#191970" points="86.0001,-69.2436 89.5,-79.2437 93.0001,-69.2437 86.0001,-69.2436"/>
 </g>
-<!-- Node2 -->
+<!-- Node3 -->
 <g id="node3" class="node">
-<title>Node2</title>
+<title>Node3</title>
 <g id="a_node3"><a xlink:href="structgko_1_1enable__parameters__type.html" target="_top" xlink:title="The enable_parameters_type mixin is used to create a base implementation of the factory parameters st...">
 <polygon fill="#ffffff" stroke="#000000" points="0,-179.5 0,-220.5 179,-220.5 179,-179.5 0,-179.5"/>
 <text text-anchor="start" x="8" y="-208.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::enable_parameters</text>
@@ -45,9 +48,9 @@
 </a>
 </g>
 </g>
-<!-- Node2&#45;&gt;Node1 -->
+<!-- Node3&#45;&gt;Node2 -->
 <g id="edge2" class="edge">
-<title>Node2&#45;&gt;Node1</title>
+<title>Node3&#45;&gt;Node2</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M89.5,-168.9703C89.5,-153.2668 89.5,-134.6321 89.5,-120.6935"/>
 <polygon fill="#ffa500" stroke="#ffa500" points="86.0001,-169.2799 89.5,-179.2799 93.0001,-169.28 86.0001,-169.2799"/>
 <text text-anchor="start" x="89.5" y="-153" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; parameters_type,</text>

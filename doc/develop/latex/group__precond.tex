@@ -1,4 +1,4 @@
-\hypertarget{group__precond}{}\section{Preconditioners}
+\hypertarget{group__precond}{}\doxysection{Preconditioners}
 \label{group__precond}\index{Preconditioners@{Preconditioners}}
 
 
@@ -13,24 +13,24 @@ Collaboration diagram for Preconditioners\+:
 \includegraphics[width=350pt]{group__precond}
 \end{center}
 \end{figure}
-\subsection*{Namespaces}
+\doxysubsection*{Namespaces}
 \begin{DoxyCompactItemize}
 \item 
- \hyperlink{namespacegko_1_1preconditioner}{gko\+::preconditioner}
+ \mbox{\hyperlink{namespacegko_1_1preconditioner}{gko\+::preconditioner}}
 \begin{DoxyCompactList}\small\item\em The Preconditioner namespace. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\subsection*{Classes}
+\doxysubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
-class \hyperlink{classgko_1_1Preconditionable}{gko\+::\+Preconditionable}
-\begin{DoxyCompactList}\small\item\em A \hyperlink{classgko_1_1LinOp}{Lin\+Op} implementing this interface can be preconditioned. \end{DoxyCompactList}\item 
-class \hyperlink{classgko_1_1preconditioner_1_1Ilu}{gko\+::preconditioner\+::\+Ilu$<$ L\+Solver\+Type, U\+Solver\+Type, Reverse\+Apply $>$}
+class \mbox{\hyperlink{classgko_1_1Preconditionable}{gko\+::\+Preconditionable}}
+\begin{DoxyCompactList}\small\item\em A \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} implementing this interface can be preconditioned. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Ilu}{gko\+::preconditioner\+::\+Ilu$<$ L\+Solver\+Type, U\+Solver\+Type, Reverse\+Apply, Index\+Type\+Par\+Ilu $>$}}
 \begin{DoxyCompactList}\small\item\em The Incomplete LU (I\+LU) preconditioner solves the equation $LUx = b$ for a given lower triangular matrix L, an upper triangular matrix U and the right hand side b (can contain multiple right hand sides). \end{DoxyCompactList}\item 
-struct \hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ Index\+Type $>$}
+struct \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ Index\+Type $>$}}
 \begin{DoxyCompactList}\small\item\em Defines the parameters of the interleaved block storage scheme used by block-\/\+Jacobi blocks. \end{DoxyCompactList}\item 
-class \hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko\+::preconditioner\+::\+Jacobi$<$ Value\+Type, Index\+Type $>$}
+class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko\+::preconditioner\+::\+Jacobi$<$ Value\+Type, Index\+Type $>$}}
 \begin{DoxyCompactList}\small\item\em A block-\/\+Jacobi preconditioner is a block-\/diagonal linear operator, obtained by inverting the diagonal blocks of the source operator. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
-\subsection{Detailed Description}
+\doxysubsection{Detailed Description}
 A module dedicated to the implementation and usage of the Preconditioners in Ginkgo. 
 

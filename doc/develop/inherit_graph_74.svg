@@ -12,7 +12,7 @@
 <!-- Node0 -->
 <g id="node1" class="node">
 <title>Node0</title>
-<g id="a_node1"><a xlink:href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html" target="_top" xlink:title="gko::preconditioner\l::block_interleaved\l_storage_scheme\&lt; index\l_type \&gt;">
+<g id="a_node1"><a xlink:href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="0,-.5 0,-52.5 140,-52.5 140,-.5 0,-.5"/>
 <text text-anchor="start" x="8" y="-40.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::preconditioner</text>
 <text text-anchor="start" x="8" y="-29.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">::block_interleaved</text>

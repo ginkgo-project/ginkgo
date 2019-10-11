@@ -1,5 +1,5 @@
-\hypertarget{classgko_1_1matrix_1_1Identity}{}\section{gko\+:\+:matrix\+:\+:Identity$<$ Value\+Type $>$ Class Template Reference}
-\label{classgko_1_1matrix_1_1Identity}\index{gko\+::matrix\+::\+Identity$<$ Value\+Type $>$@{gko\+::matrix\+::\+Identity$<$ Value\+Type $>$}}
+\hypertarget{classgko_1_1matrix_1_1Identity}{}\doxysection{gko\+::matrix\+::Identity$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1matrix_1_1Identity}\index{gko::matrix::Identity$<$ ValueType $>$@{gko::matrix::Identity$<$ ValueType $>$}}
 
 
 This class is a utility which efficiently implements the identity matrix (a linear operator which maps each vector to itself).  
@@ -11,7 +11,7 @@ This class is a utility which efficiently implements the identity matrix (a line
 
 
 
-Collaboration diagram for gko\+:\+:matrix\+:\+:Identity$<$ Value\+Type $>$\+:
+Collaboration diagram for gko\+::matrix\+::Identity$<$ Value\+Type $>$\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -19,13 +19,13 @@ Collaboration diagram for gko\+:\+:matrix\+:\+:Identity$<$ Value\+Type $>$\+:
 \includegraphics[width=350pt]{classgko_1_1matrix_1_1Identity__coll__graph}
 \end{center}
 \end{figure}
-\subsection*{Public Types}
+\doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Identity_aa84aa862065ce17dde7941b77d0ca209}\label{classgko_1_1matrix_1_1Identity_aa84aa862065ce17dde7941b77d0ca209}} 
 using {\bfseries value\+\_\+type} = Value\+Type
 \end{DoxyCompactItemize}
-\subsection*{Friends}
+\doxysubsection*{Friends}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Identity_ab9d7730057c8c909a698f79f71c901d8}\label{classgko_1_1matrix_1_1Identity_ab9d7730057c8c909a698f79f71c901d8}} 
@@ -34,16 +34,16 @@ class {\bfseries Enable\+Polymorphic\+Object$<$ Identity, Lin\+Op $>$}
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Identity_aef11cbf5c667400c66e803f76cb5d520}\label{classgko_1_1matrix_1_1Identity_aef11cbf5c667400c66e803f76cb5d520}} 
 class {\bfseries Enable\+Create\+Method$<$ Identity $>$}
 \end{DoxyCompactItemize}
-\subsection*{Additional Inherited Members}
+\doxysubsection*{Additional Inherited Members}
 
 
-\subsection{Detailed Description}
+\doxysubsection{Detailed Description}
 \subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
 class gko\+::matrix\+::\+Identity$<$ Value\+Type $>$}
 
 This class is a utility which efficiently implements the identity matrix (a linear operator which maps each vector to itself). 
 
-Thus, objects of the \hyperlink{classgko_1_1matrix_1_1Identity}{Identity} class always represent a square matrix, and don\textquotesingle{}t require any storage for their values. The apply method is implemented as a simple copy (or a linear combination).
+Thus, objects of the \mbox{\hyperlink{classgko_1_1matrix_1_1Identity}{Identity}} class always represent a square matrix, and don\textquotesingle{}t require any storage for their values. The apply method is implemented as a simple copy (or a linear combination).
 
 \begin{DoxyNote}{Note}
 This class is useful when composing it with other operators. For example, it can be used instead of a preconditioner in Krylov solvers, if one wants to run a \char`\"{}plain\char`\"{} solver, without using a preconditioner.

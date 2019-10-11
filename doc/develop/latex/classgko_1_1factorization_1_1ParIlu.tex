@@ -1,5 +1,5 @@
-\hypertarget{classgko_1_1factorization_1_1ParIlu}{}\section{gko\+:\+:factorization\+:\+:Par\+Ilu$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
-\label{classgko_1_1factorization_1_1ParIlu}\index{gko\+::factorization\+::\+Par\+Ilu$<$ Value\+Type, Index\+Type $>$@{gko\+::factorization\+::\+Par\+Ilu$<$ Value\+Type, Index\+Type $>$}}
+\hypertarget{classgko_1_1factorization_1_1ParIlu}{}\doxysection{gko\+::factorization\+::Par\+Ilu$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1factorization_1_1ParIlu}\index{gko::factorization::ParIlu$<$ ValueType, IndexType $>$@{gko::factorization::ParIlu$<$ ValueType, IndexType $>$}}
 
 
 Par\+I\+LU is an incomplete LU factorization which is computed in parallel.  
@@ -11,7 +11,7 @@ Par\+I\+LU is an incomplete LU factorization which is computed in parallel.
 
 
 
-Collaboration diagram for gko\+:\+:factorization\+:\+:Par\+Ilu$<$ Value\+Type, Index\+Type $>$\+:
+Collaboration diagram for gko\+::factorization\+::Par\+Ilu$<$ Value\+Type, Index\+Type $>$\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -19,14 +19,14 @@ Collaboration diagram for gko\+:\+:factorization\+:\+:Par\+Ilu$<$ Value\+Type, I
 \includegraphics[width=350pt]{classgko_1_1factorization_1_1ParIlu__coll__graph}
 \end{center}
 \end{figure}
-\subsection*{Classes}
+\doxysubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
-class \hyperlink{classgko_1_1factorization_1_1ParIlu_1_1Factory}{Factory}
+class \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlu_1_1Factory}{Factory}}
 \item 
-struct \hyperlink{structgko_1_1factorization_1_1ParIlu_1_1parameters__type}{parameters\+\_\+type}
+struct \mbox{\hyperlink{structgko_1_1factorization_1_1ParIlu_1_1parameters__type}{parameters\+\_\+type}}
 \end{DoxyCompactItemize}
-\subsection*{Public Types}
+\doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_acad8911da0088ca766a1cef155e5e405}\label{classgko_1_1factorization_1_1ParIlu_acad8911da0088ca766a1cef155e5e405}} 
@@ -36,35 +36,35 @@ using {\bfseries value\+\_\+type} = Value\+Type
 using {\bfseries index\+\_\+type} = Index\+Type
 \item 
 \mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a125b96d5b1c81df5b2dd4479d8eb7854}\label{classgko_1_1factorization_1_1ParIlu_a125b96d5b1c81df5b2dd4479d8eb7854}} 
-using {\bfseries l\+\_\+matrix\+\_\+type} = \hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$
+using {\bfseries l\+\_\+matrix\+\_\+type} = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$
 \item 
 \mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a42829761e1a7a7713cbace50a8197811}\label{classgko_1_1factorization_1_1ParIlu_a42829761e1a7a7713cbace50a8197811}} 
-using {\bfseries u\+\_\+matrix\+\_\+type} = \hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$
+using {\bfseries u\+\_\+matrix\+\_\+type} = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$
 \end{DoxyCompactItemize}
-\subsection*{Public Member Functions}
+\doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a237f590d6f802b732936b6da20dae86c}\label{classgko_1_1factorization_1_1ParIlu_a237f590d6f802b732936b6da20dae86c}} 
-std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1matrix_1_1Csr}{l\+\_\+matrix\+\_\+type} $>$ {\bfseries get\+\_\+l\+\_\+factor} () const
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{l\+\_\+matrix\+\_\+type}} $>$ {\bfseries get\+\_\+l\+\_\+factor} () const
 \item 
 \mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a75d0504d863b0dc2a8fd8efa395b2a39}\label{classgko_1_1factorization_1_1ParIlu_a75d0504d863b0dc2a8fd8efa395b2a39}} 
-std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1matrix_1_1Csr}{u\+\_\+matrix\+\_\+type} $>$ {\bfseries get\+\_\+u\+\_\+factor} () const
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{u\+\_\+matrix\+\_\+type}} $>$ {\bfseries get\+\_\+u\+\_\+factor} () const
 \item 
 \mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a1055caaa79b253fad67fa4e6d584c420}\label{classgko_1_1factorization_1_1ParIlu_a1055caaa79b253fad67fa4e6d584c420}} 
-const \hyperlink{structgko_1_1factorization_1_1ParIlu_1_1parameters__type}{parameters\+\_\+type} \& {\bfseries get\+\_\+parameters} () const
+const \mbox{\hyperlink{structgko_1_1factorization_1_1ParIlu_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
 \end{DoxyCompactItemize}
-\subsection*{Static Public Member Functions}
+\doxysubsection*{Static Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_abb7e4c208a809f3101b87713dfe867d3}\label{classgko_1_1factorization_1_1ParIlu_abb7e4c208a809f3101b87713dfe867d3}} 
-{\footnotesize template$<$typename... Args$>$ }\\static std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1Composition}{Composition}$<$ Value\+Type $>$ $>$ {\bfseries create} (Args \&\&... args)=delete
+{\footnotesize template$<$typename... Args$>$ }\\static std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Composition}{Composition}}$<$ Value\+Type $>$ $>$ {\bfseries create} (Args \&\&... args)=delete
 \item 
 \mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a304722cc01ca9d5fd33ac988c0949b5e}\label{classgko_1_1factorization_1_1ParIlu_a304722cc01ca9d5fd33ac988c0949b5e}} 
-static auto {\bfseries build} () -\/$>$ decltype(\hyperlink{classgko_1_1factorization_1_1ParIlu_1_1Factory}{Factory} \+::create())
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1factorization_1_1ParIlu_1_1Factory}{Factory}} \+::create())
 \end{DoxyCompactItemize}
 
 
-\subsection{Detailed Description}
+\doxysubsection{Detailed Description}
 \subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
 class gko\+::factorization\+::\+Par\+Ilu$<$ Value\+Type, Index\+Type $>$}
 

@@ -1,4 +1,5 @@
 <map id="gko::BadDimension" name="gko::BadDimension">
-<area shape="rect" id="node2" href="$classgko_1_1Error.html" title="The Error class is used to report exceptional behaviour in library functions. " alt="" coords="37,80,123,107"/>
-<area shape="rect" id="node3" title="STL class. " alt="" coords="23,5,137,32"/>
+<area shape="rect" id="node1" title="BadDimension is thrown if an operation is being applied to a LinOp with bad dimensions." alt="" coords="5,155,155,181"/>
+<area shape="rect" id="node2" href="$classgko_1_1Error.html" title="The Error class is used to report exceptional behaviour in library functions." alt="" coords="37,80,123,107"/>
+<area shape="rect" id="node3" title="STL class." alt="" coords="23,5,137,32"/>
 </map>

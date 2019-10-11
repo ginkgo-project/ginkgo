@@ -1,8 +1,8 @@
-\hypertarget{classgko_1_1EnablePolymorphicObject}{}\section{gko\+:\+:Enable\+Polymorphic\+Object$<$ Concrete\+Object, Polymorphic\+Base $>$ Class Template Reference}
-\label{classgko_1_1EnablePolymorphicObject}\index{gko\+::\+Enable\+Polymorphic\+Object$<$ Concrete\+Object, Polymorphic\+Base $>$@{gko\+::\+Enable\+Polymorphic\+Object$<$ Concrete\+Object, Polymorphic\+Base $>$}}
+\hypertarget{classgko_1_1EnablePolymorphicObject}{}\doxysection{gko\+::Enable\+Polymorphic\+Object$<$ Concrete\+Object, Polymorphic\+Base $>$ Class Template Reference}
+\label{classgko_1_1EnablePolymorphicObject}\index{gko::EnablePolymorphicObject$<$ ConcreteObject, PolymorphicBase $>$@{gko::EnablePolymorphicObject$<$ ConcreteObject, PolymorphicBase $>$}}
 
 
-This mixin inherits from (a subclass of) \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} and provides a base implementation of a new concrete polymorphic object.  
+This mixin inherits from (a subclass of) \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} and provides a base implementation of a new concrete polymorphic object.  
 
 
 
@@ -11,7 +11,7 @@ This mixin inherits from (a subclass of) \hyperlink{classgko_1_1PolymorphicObjec
 
 
 
-Collaboration diagram for gko\+:\+:Enable\+Polymorphic\+Object$<$ Concrete\+Object, Polymorphic\+Base $>$\+:
+Collaboration diagram for gko\+::Enable\+Polymorphic\+Object$<$ Concrete\+Object, Polymorphic\+Base $>$\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -19,32 +19,32 @@ Collaboration diagram for gko\+:\+:Enable\+Polymorphic\+Object$<$ Concrete\+Obje
 \includegraphics[width=350pt]{classgko_1_1EnablePolymorphicObject__coll__graph}
 \end{center}
 \end{figure}
-\subsection*{Additional Inherited Members}
+\doxysubsection*{Additional Inherited Members}
 
 
-\subsection{Detailed Description}
+\doxysubsection{Detailed Description}
 \subsubsection*{template$<$typename Concrete\+Object, typename Polymorphic\+Base = Polymorphic\+Object$>$\newline
 class gko\+::\+Enable\+Polymorphic\+Object$<$ Concrete\+Object, Polymorphic\+Base $>$}
 
-This mixin inherits from (a subclass of) \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} and provides a base implementation of a new concrete polymorphic object. 
+This mixin inherits from (a subclass of) \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} and provides a base implementation of a new concrete polymorphic object. 
 
-The mixin changes parameter and return types of appropriate public methods of \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object} in the same way \hyperlink{classgko_1_1EnableAbstractPolymorphicObject}{Enable\+Abstract\+Polymorphic\+Object} does. In addition, it also provides default implementations of \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}\textquotesingle{}s vritual methods by using the {\itshape executor default constructor} and the assignment operator of Concrete\+Object. Consequently, the following is a minimal example of \hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}\+:
+The mixin changes parameter and return types of appropriate public methods of \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} in the same way \mbox{\hyperlink{classgko_1_1EnableAbstractPolymorphicObject}{Enable\+Abstract\+Polymorphic\+Object}} does. In addition, it also provides default implementations of \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}}\textquotesingle{}s vritual methods by using the {\itshape executor default constructor} and the assignment operator of Concrete\+Object. Consequently, the following is a minimal example of \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}}\+:
 
 
-\begin{DoxyCode}
-\{c++\}
-\textcolor{keyword}{struct }MyObject : EnablePolymorphicObject<MyObject> \{
-    MyObject(std::shared\_ptr<const Executor> exec)
-        : EnablePolymorphicObject<MyObject>(\hyperlink{namespacestd}{std}::move(exec))
-    \{\}
-\};
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{c++\}}
+\DoxyCodeLine{\textcolor{keyword}{struct }MyObject : EnablePolymorphicObject<MyObject> \{}
+\DoxyCodeLine{    MyObject(std::shared\_ptr<const Executor> exec)}
+\DoxyCodeLine{        : EnablePolymorphicObject<MyObject>(std::move(exec))}
+\DoxyCodeLine{    \{\}}
+\DoxyCodeLine{\};}
 \end{DoxyCode}
 
 
 In a way, this mixin can be viewed as an extension of default constructor/destructor/assignment operators.
 
 \begin{DoxyNote}{Note}
-This mixin does not enable copying the polymorphic object to the object of the same type (i.\+e. it does not implement the Convertible\+To$<$\+Concrete\+Object$>$ interface). To enable a default implementation of this interface see the \hyperlink{classgko_1_1EnablePolymorphicAssignment}{Enable\+Polymorphic\+Assignment} mixin.
+This mixin does not enable copying the polymorphic object to the object of the same type (i.\+e. it does not implement the Convertible\+To$<$\+Concrete\+Object$>$ interface). To enable a default implementation of this interface see the \mbox{\hyperlink{classgko_1_1EnablePolymorphicAssignment}{Enable\+Polymorphic\+Assignment}} mixin.
 \end{DoxyNote}
 
 \begin{DoxyTemplParams}{Template Parameters}

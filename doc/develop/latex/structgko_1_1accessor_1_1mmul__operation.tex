@@ -1,6 +1,6 @@
-\hypertarget{structgko_1_1accessor_1_1mmul__operation}{}\section{gko\+:\+:accessor\+:\+:mmul\+\_\+operation$<$ Kind, First\+Accessor, Second\+Accessor $>$ Struct Template Reference}
-\label{structgko_1_1accessor_1_1mmul__operation}\index{gko\+::accessor\+::mmul\+\_\+operation$<$ Kind, First\+Accessor, Second\+Accessor $>$@{gko\+::accessor\+::mmul\+\_\+operation$<$ Kind, First\+Accessor, Second\+Accessor $>$}}
-\subsection*{Public Types}
+\hypertarget{structgko_1_1accessor_1_1mmul__operation}{}\doxysection{gko\+::accessor\+::mmul\+\_\+operation$<$ Kind, First\+Accessor, Second\+Accessor $>$ Struct Template Reference}
+\label{structgko_1_1accessor_1_1mmul__operation}\index{gko::accessor::mmul\_operation$<$ Kind, FirstAccessor, SecondAccessor $>$@{gko::accessor::mmul\_operation$<$ Kind, FirstAccessor, SecondAccessor $>$}}
+\doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{structgko_1_1accessor_1_1mmul__operation_a8de9b9e6f536e3c8cfa75a478eedeb72}\label{structgko_1_1accessor_1_1mmul__operation_a8de9b9e6f536e3c8cfa75a478eedeb72}} 
@@ -9,7 +9,7 @@ using {\bfseries first\+\_\+accessor} = First\+Accessor
 \mbox{\Hypertarget{structgko_1_1accessor_1_1mmul__operation_a05a1c9e665fd577a09af8e4107f8b9de}\label{structgko_1_1accessor_1_1mmul__operation_a05a1c9e665fd577a09af8e4107f8b9de}} 
 using {\bfseries second\+\_\+accessor} = Second\+Accessor
 \end{DoxyCompactItemize}
-\subsection*{Public Member Functions}
+\doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{structgko_1_1accessor_1_1mmul__operation_a472e957cd98afc95ca3d4d3c7addb0f7}\label{structgko_1_1accessor_1_1mmul__operation_a472e957cd98afc95ca3d4d3c7addb0f7}} 
@@ -19,12 +19,12 @@ using {\bfseries second\+\_\+accessor} = Second\+Accessor
 {\footnotesize template$<$typename First\+Dimension , typename Second\+Dimension , typename... Dimension\+Types$>$ }\\auto {\bfseries operator()} (const First\+Dimension \&row, const Second\+Dimension \&col, const Dimension\+Types \&... rest) const -\/$>$ decltype(std\+::declval$<$ First\+Accessor $>$()(row, 0, rest...) $\ast$std\+::declval$<$ Second\+Accessor $>$()(0, col, rest...)+std\+::declval$<$ First\+Accessor $>$()(row, 1, rest...) $\ast$std\+::declval$<$ Second\+Accessor $>$()(1, col, rest...))
 \item 
 \mbox{\Hypertarget{structgko_1_1accessor_1_1mmul__operation_a4e776fd888efc17b80b1f87ac49d2818}\label{structgko_1_1accessor_1_1mmul__operation_a4e776fd888efc17b80b1f87ac49d2818}} 
-constexpr \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} {\bfseries length} (\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} dimension) const
+constexpr \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} {\bfseries length} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} dimension) const
 \item 
 \mbox{\Hypertarget{structgko_1_1accessor_1_1mmul__operation_a690fcc7b846e13fe5df655c4c5b90e80}\label{structgko_1_1accessor_1_1mmul__operation_a690fcc7b846e13fe5df655c4c5b90e80}} 
 {\footnotesize template$<$typename Other\+Accessor $>$ }\\void {\bfseries copy\+\_\+from} (const Other\+Accessor \&other) const =delete
 \end{DoxyCompactItemize}
-\subsection*{Public Attributes}
+\doxysubsection*{Public Attributes}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{structgko_1_1accessor_1_1mmul__operation_ab176f057bb44eb0a5cb7711c55aa39bc}\label{structgko_1_1accessor_1_1mmul__operation_ab176f057bb44eb0a5cb7711c55aa39bc}} 
@@ -33,11 +33,11 @@ const first\+\_\+accessor {\bfseries first}
 \mbox{\Hypertarget{structgko_1_1accessor_1_1mmul__operation_a91e83e9e0ae033f697f52d2a1ae4a6a5}\label{structgko_1_1accessor_1_1mmul__operation_a91e83e9e0ae033f697f52d2a1ae4a6a5}} 
 const second\+\_\+accessor {\bfseries second}
 \end{DoxyCompactItemize}
-\subsection*{Static Public Attributes}
+\doxysubsection*{Static Public Attributes}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{structgko_1_1accessor_1_1mmul__operation_ae8057c37357eae7ea962f11aab54a38e}\label{structgko_1_1accessor_1_1mmul__operation_ae8057c37357eae7ea962f11aab54a38e}} 
-static constexpr \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} {\bfseries dimensionality} = first\+\_\+accessor\+::dimensionality
+static constexpr \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} {\bfseries dimensionality} = first\+\_\+accessor\+::dimensionality
 \end{DoxyCompactItemize}
 
 

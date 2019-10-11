@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['layout_5ftype',['layout_type',['../namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68',1,'gko']]]
+  ['layout_5ftype_1264',['layout_type',['../namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68',1,'gko']]]
 ];

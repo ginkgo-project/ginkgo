@@ -1,4 +1,5 @@
 <map id="gko::NotSupported" name="gko::NotSupported">
-<area shape="rect" id="node2" href="$classgko_1_1Error.html" title="The Error class is used to report exceptional behaviour in library functions. " alt="" coords="34,80,119,107"/>
-<area shape="rect" id="node3" title="STL class. " alt="" coords="19,5,134,32"/>
+<area shape="rect" id="node1" title="NotSupported is thrown in case it is not possible to perform the requested operation on the given obj..." alt="" coords="5,155,148,181"/>
+<area shape="rect" id="node2" href="$classgko_1_1Error.html" title="The Error class is used to report exceptional behaviour in library functions." alt="" coords="34,80,119,107"/>
+<area shape="rect" id="node3" title="STL class." alt="" coords="19,5,134,32"/>
 </map>

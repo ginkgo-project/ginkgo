@@ -1,50 +1,50 @@
-\hypertarget{classgko_1_1ReadableFromMatrixData}{}\section{gko\+:\+:Readable\+From\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
-\label{classgko_1_1ReadableFromMatrixData}\index{gko\+::\+Readable\+From\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$@{gko\+::\+Readable\+From\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$}}
+\hypertarget{classgko_1_1ReadableFromMatrixData}{}\doxysection{gko\+::Readable\+From\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1ReadableFromMatrixData}\index{gko::ReadableFromMatrixData$<$ ValueType, IndexType $>$@{gko::ReadableFromMatrixData$<$ ValueType, IndexType $>$}}
 
 
-A \hyperlink{classgko_1_1LinOp}{Lin\+Op} implementing this interface can read its data from a \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure.  
+A \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} implementing this interface can read its data from a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure.  
 
 
 
 
 {\ttfamily \#include $<$ginkgo/core/base/lin\+\_\+op.\+hpp$>$}
 
-\subsection*{Public Member Functions}
+\doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-virtual void \hyperlink{classgko_1_1ReadableFromMatrixData_add5c12e23b3ac3c8fbd607fa5a9656bb}{read} (const \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$ \&data)=0
-\begin{DoxyCompactList}\small\item\em Reads a matrix from a \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure. \end{DoxyCompactList}\end{DoxyCompactItemize}
+virtual void \mbox{\hyperlink{classgko_1_1ReadableFromMatrixData_add5c12e23b3ac3c8fbd607fa5a9656bb}{read}} (const \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$ \&data)=0
+\begin{DoxyCompactList}\small\item\em Reads a matrix from a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
-\subsection{Detailed Description}
+\doxysubsection{Detailed Description}
 \subsubsection*{template$<$typename Value\+Type, typename Index\+Type$>$\newline
 class gko\+::\+Readable\+From\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$}
 
-A \hyperlink{classgko_1_1LinOp}{Lin\+Op} implementing this interface can read its data from a \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure. 
+A \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} implementing this interface can read its data from a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. 
 
-\subsection{Member Function Documentation}
+\doxysubsection{Member Function Documentation}
 \mbox{\Hypertarget{classgko_1_1ReadableFromMatrixData_add5c12e23b3ac3c8fbd607fa5a9656bb}\label{classgko_1_1ReadableFromMatrixData_add5c12e23b3ac3c8fbd607fa5a9656bb}} 
-\index{gko\+::\+Readable\+From\+Matrix\+Data@{gko\+::\+Readable\+From\+Matrix\+Data}!read@{read}}
-\index{read@{read}!gko\+::\+Readable\+From\+Matrix\+Data@{gko\+::\+Readable\+From\+Matrix\+Data}}
-\subsubsection{\texorpdfstring{read()}{read()}}
+\index{gko::ReadableFromMatrixData$<$ ValueType, IndexType $>$@{gko::ReadableFromMatrixData$<$ ValueType, IndexType $>$}!read@{read}}
+\index{read@{read}!gko::ReadableFromMatrixData$<$ ValueType, IndexType $>$@{gko::ReadableFromMatrixData$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{read()}{read()}}
 {\footnotesize\ttfamily template$<$typename Value\+Type, typename Index\+Type$>$ \\
-virtual void \hyperlink{classgko_1_1ReadableFromMatrixData}{gko\+::\+Readable\+From\+Matrix\+Data}$<$ Value\+Type, Index\+Type $>$\+::read (\begin{DoxyParamCaption}\item[{const \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$ \&}]{data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
+virtual void \mbox{\hyperlink{classgko_1_1ReadableFromMatrixData}{gko\+::\+Readable\+From\+Matrix\+Data}}$<$ Value\+Type, Index\+Type $>$\+::read (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$ \&}]{data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
 
 
 
-Reads a matrix from a \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure. 
+Reads a matrix from a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. 
 
 
 \begin{DoxyParams}{Parameters}
-{\em data} & the \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} structure \\
+{\em data} & the \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure \\
 \hline
 \end{DoxyParams}
 
 
-Implemented in \hyperlink{classgko_1_1matrix_1_1Hybrid_a7eff2922ae21e9722b343ca1832d8bf5}{gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$}, \hyperlink{classgko_1_1matrix_1_1Csr_ac4db41146ed3c3a8653b03d6b2c6c675}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$}, \hyperlink{classgko_1_1matrix_1_1Coo_ac0d4aeb19d9f55b62bea18bad1a408f5}{gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$}, \hyperlink{classgko_1_1matrix_1_1Ell_a2c877d9f7bbc57f97df5ab443954a6fd}{gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$}, \hyperlink{classgko_1_1matrix_1_1Sellp_a2c5ff4a3f190daf7d70bbd8451d13edd}{gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$}, and \hyperlink{classgko_1_1matrix_1_1Sparsity_a9515162e2e6bca7541a0cbcc8f07c48f}{gko\+::matrix\+::\+Sparsity$<$ Value\+Type, Index\+Type $>$}.
+Implemented in \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a7eff2922ae21e9722b343ca1832d8bf5}{gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_ac4db41146ed3c3a8653b03d6b2c6c675}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Coo_ac0d4aeb19d9f55b62bea18bad1a408f5}{gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a2c877d9f7bbc57f97df5ab443954a6fd}{gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_a2c5ff4a3f190daf7d70bbd8451d13edd}{gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$}}, and \mbox{\hyperlink{classgko_1_1matrix_1_1SparsityCsr_a7e11ffa38c6f22915b8f8327b679fd65}{gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$}}.
 
 
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/lin\+\_\+op.\+hpp (fb72cdf1)\end{DoxyCompactItemize}
+ginkgo/core/base/lin\+\_\+op.\+hpp (4c758394)\end{DoxyCompactItemize}

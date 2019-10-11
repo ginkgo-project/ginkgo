@@ -1,8 +1,8 @@
-\hypertarget{classgko_1_1solver_1_1LowerTrs}{}\section{gko\+:\+:solver\+:\+:Lower\+Trs$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
-\label{classgko_1_1solver_1_1LowerTrs}\index{gko\+::solver\+::\+Lower\+Trs$<$ Value\+Type, Index\+Type $>$@{gko\+::solver\+::\+Lower\+Trs$<$ Value\+Type, Index\+Type $>$}}
+\hypertarget{classgko_1_1solver_1_1LowerTrs}{}\doxysection{gko\+::solver\+::Lower\+Trs$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1solver_1_1LowerTrs}\index{gko::solver::LowerTrs$<$ ValueType, IndexType $>$@{gko::solver::LowerTrs$<$ ValueType, IndexType $>$}}
 
 
-\hyperlink{classgko_1_1solver_1_1LowerTrs}{Lower\+Trs} is the triangular solver which solves the system L x = b, when L is a lower triangular matrix.  
+\mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs}{Lower\+Trs}} is the triangular solver which solves the system L x = b, when L is a lower triangular matrix.  
 
 
 
@@ -11,7 +11,7 @@
 
 
 
-Collaboration diagram for gko\+:\+:solver\+:\+:Lower\+Trs$<$ Value\+Type, Index\+Type $>$\+:
+Collaboration diagram for gko\+::solver\+::Lower\+Trs$<$ Value\+Type, Index\+Type $>$\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -19,14 +19,14 @@ Collaboration diagram for gko\+:\+:solver\+:\+:Lower\+Trs$<$ Value\+Type, Index\
 \includegraphics[width=350pt]{classgko_1_1solver_1_1LowerTrs__coll__graph}
 \end{center}
 \end{figure}
-\subsection*{Classes}
+\doxysubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
-class \hyperlink{classgko_1_1solver_1_1LowerTrs_1_1Factory}{Factory}
+class \mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs_1_1Factory}{Factory}}
 \item 
-struct \hyperlink{structgko_1_1solver_1_1LowerTrs_1_1parameters__type}{parameters\+\_\+type}
+struct \mbox{\hyperlink{structgko_1_1solver_1_1LowerTrs_1_1parameters__type}{parameters\+\_\+type}}
 \end{DoxyCompactItemize}
-\subsection*{Public Types}
+\doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_af9fd3dacca99c98ff60f8b298c0203d4}\label{classgko_1_1solver_1_1LowerTrs_af9fd3dacca99c98ff60f8b298c0203d4}} 
@@ -35,23 +35,21 @@ using {\bfseries value\+\_\+type} = Value\+Type
 \mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_af62154ef2a638549c3b445a011c0d26a}\label{classgko_1_1solver_1_1LowerTrs_af62154ef2a638549c3b445a011c0d26a}} 
 using {\bfseries index\+\_\+type} = Index\+Type
 \end{DoxyCompactItemize}
-\subsection*{Public Member Functions}
+\doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}$<$ Value\+Type, Index\+Type $>$ $>$ \hyperlink{classgko_1_1solver_1_1LowerTrs_a1f18336cc86c363eb41da44c2d282497}{get\+\_\+system\+\_\+matrix} () const
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$ $>$ \mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs_a1f18336cc86c363eb41da44c2d282497}{get\+\_\+system\+\_\+matrix}} () const
 \begin{DoxyCompactList}\small\item\em Gets the system operator (C\+SR matrix) of the linear system. \end{DoxyCompactList}\item 
-std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ \hyperlink{classgko_1_1solver_1_1LowerTrs_a9ee1b8b9f5420c4214f22d15bf61e755}{get\+\_\+preconditioner} () const override
-\begin{DoxyCompactList}\small\item\em Returns the preconditioner operator used by the solver. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_a1dd87ee6836fff7e9a62f2971f7cc5e1}\label{classgko_1_1solver_1_1LowerTrs_a1dd87ee6836fff7e9a62f2971f7cc5e1}} 
-const \hyperlink{structgko_1_1solver_1_1LowerTrs_1_1parameters__type}{parameters\+\_\+type} \& {\bfseries get\+\_\+parameters} () const
+const \mbox{\hyperlink{structgko_1_1solver_1_1LowerTrs_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
 \end{DoxyCompactItemize}
-\subsection*{Static Public Member Functions}
+\doxysubsection*{Static Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_a0e54d12a1ae4dd748921c30bfba3c035}\label{classgko_1_1solver_1_1LowerTrs_a0e54d12a1ae4dd748921c30bfba3c035}} 
-static auto {\bfseries build} () -\/$>$ decltype(\hyperlink{classgko_1_1solver_1_1LowerTrs_1_1Factory}{Factory} \+::create())
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs_1_1Factory}{Factory}} \+::create())
 \end{DoxyCompactItemize}
-\subsection*{Friends}
+\doxysubsection*{Friends}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_a5c81503df42d4ccbfaffe2853edfb9d3}\label{classgko_1_1solver_1_1LowerTrs_a5c81503df42d4ccbfaffe2853edfb9d3}} 
@@ -62,11 +60,11 @@ class {\bfseries Enable\+Polymorphic\+Object$<$ Lower\+Trs, Lin\+Op $>$}
 \end{DoxyCompactItemize}
 
 
-\subsection{Detailed Description}
+\doxysubsection{Detailed Description}
 \subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
 class gko\+::solver\+::\+Lower\+Trs$<$ Value\+Type, Index\+Type $>$}
 
-\hyperlink{classgko_1_1solver_1_1LowerTrs}{Lower\+Trs} is the triangular solver which solves the system L x = b, when L is a lower triangular matrix. 
+\mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs}{Lower\+Trs}} is the triangular solver which solves the system L x = b, when L is a lower triangular matrix. 
 
 It works best when passing in a matrix in C\+SR format. If the matrix is not in C\+SR, then the generate step converts it into a C\+SR matrix. The generation fails if the matrix is not convertible to C\+SR.
 
@@ -82,31 +80,13 @@ As the constructor uses the copy and convert functionality, it is not possible t
 \end{DoxyTemplParams}
 
 
-\subsection{Member Function Documentation}
-\mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_a9ee1b8b9f5420c4214f22d15bf61e755}\label{classgko_1_1solver_1_1LowerTrs_a9ee1b8b9f5420c4214f22d15bf61e755}} 
-\index{gko\+::solver\+::\+Lower\+Trs@{gko\+::solver\+::\+Lower\+Trs}!get\+\_\+preconditioner@{get\+\_\+preconditioner}}
-\index{get\+\_\+preconditioner@{get\+\_\+preconditioner}!gko\+::solver\+::\+Lower\+Trs@{gko\+::solver\+::\+Lower\+Trs}}
-\subsubsection{\texorpdfstring{get\+\_\+preconditioner()}{get\_preconditioner()}}
-{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
-std\+::shared\+\_\+ptr$<$const \hyperlink{classgko_1_1LinOp}{Lin\+Op}$>$ \hyperlink{classgko_1_1solver_1_1LowerTrs}{gko\+::solver\+::\+Lower\+Trs}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+preconditioner (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
-
-
-
-Returns the preconditioner operator used by the solver. 
-
-\begin{DoxyReturn}{Returns}
-the preconditioner operator used by the solver 
-\end{DoxyReturn}
-
-
-Implements \hyperlink{classgko_1_1Preconditionable_ad9545089aef0dfc83bc7a74e5bf1d748}{gko\+::\+Preconditionable}.
-
+\doxysubsection{Member Function Documentation}
 \mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_a1f18336cc86c363eb41da44c2d282497}\label{classgko_1_1solver_1_1LowerTrs_a1f18336cc86c363eb41da44c2d282497}} 
-\index{gko\+::solver\+::\+Lower\+Trs@{gko\+::solver\+::\+Lower\+Trs}!get\+\_\+system\+\_\+matrix@{get\+\_\+system\+\_\+matrix}}
-\index{get\+\_\+system\+\_\+matrix@{get\+\_\+system\+\_\+matrix}!gko\+::solver\+::\+Lower\+Trs@{gko\+::solver\+::\+Lower\+Trs}}
-\subsubsection{\texorpdfstring{get\+\_\+system\+\_\+matrix()}{get\_system\_matrix()}}
+\index{gko::solver::LowerTrs$<$ ValueType, IndexType $>$@{gko::solver::LowerTrs$<$ ValueType, IndexType $>$}!get\_system\_matrix@{get\_system\_matrix}}
+\index{get\_system\_matrix@{get\_system\_matrix}!gko::solver::LowerTrs$<$ ValueType, IndexType $>$@{gko::solver::LowerTrs$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_system\_matrix()}{get\_system\_matrix()}}
 {\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
-std\+::shared\+\_\+ptr$<$const \hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}$<$Value\+Type, Index\+Type$>$ $>$ \hyperlink{classgko_1_1solver_1_1LowerTrs}{gko\+::solver\+::\+Lower\+Trs}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+system\+\_\+matrix (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$Value\+Type, Index\+Type$>$ $>$ \mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs}{gko\+::solver\+::\+Lower\+Trs}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+system\+\_\+matrix (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -119,4 +99,4 @@ the system operator (C\+SR matrix)
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/solver/lower\+\_\+trs.\+hpp (050c7273)\end{DoxyCompactItemize}
+ginkgo/core/solver/lower\+\_\+trs.\+hpp (4c758394)\end{DoxyCompactItemize}

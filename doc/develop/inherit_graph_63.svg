@@ -12,7 +12,7 @@
 <!-- Node0 -->
 <g id="node1" class="node">
 <title>Node0</title>
-<g id="a_node1"><a xlink:href="structgko_1_1log_1_1operation__data.html" target="_top" xlink:title="Struct representing Operator related data. ">
+<g id="a_node1"><a xlink:href="structgko_1_1log_1_1operation__data.html" target="_top" xlink:title="Struct representing Operator related data.">
 <polygon fill="#ffffff" stroke="#000000" points="0,-.5 0,-19.5 135,-19.5 135,-.5 0,-.5"/>
 <text text-anchor="middle" x="67.5" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::log::operation_data</text>
 </a>

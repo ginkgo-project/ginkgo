@@ -12,7 +12,7 @@
 <!-- Node0 -->
 <g id="node1" class="node">
 <title>Node0</title>
-<g id="a_node1"><a xlink:href="classgko_1_1executor__deleter_3_01T[]_4.html" target="_top" xlink:title="gko::executor_deleter\l\&lt; T[]\&gt;">
+<g id="a_node1"><a xlink:href="classgko_1_1executor__deleter_3_01T_0f_0e_4.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="0,-.5 0,-30.5 123,-30.5 123,-.5 0,-.5"/>
 <text text-anchor="start" x="8" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::executor_deleter</text>
 <text text-anchor="middle" x="61.5" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; T[]&gt;</text>

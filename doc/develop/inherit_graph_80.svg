@@ -12,7 +12,7 @@
 <!-- Node0 -->
 <g id="node1" class="node">
 <title>Node0</title>
-<g id="a_node1"><a xlink:href="classgko_1_1stopping__status.html" target="_top" xlink:title="This class is used to keep track of the stopping status of one vector. ">
+<g id="a_node1"><a xlink:href="classgko_1_1stopping__status.html" target="_top" xlink:title="This class is used to keep track of the stopping status of one vector.">
 <polygon fill="#ffffff" stroke="#000000" points="0,-.5 0,-19.5 118,-19.5 118,-.5 0,-.5"/>
 <text text-anchor="middle" x="59" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::stopping_status</text>
 </a>

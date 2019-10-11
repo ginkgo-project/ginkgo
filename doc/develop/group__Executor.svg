@@ -9,72 +9,75 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 156.9119)">
 <title>Executors</title>
 <polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-156.9119 332,-156.9119 332,4 -4,4"/>
-<!-- Node2 -->
+<!-- Node3 -->
 <g id="node1" class="node">
-<title>Node2</title>
-<g id="a_node1"><a xlink:href="group__exec__omp.html" target="_top" xlink:title="A module dedicated to the implementation and usage of the OpenMP executor in Ginkgo. ">
-<polygon fill="#ffffff" stroke="#000000" points="221.5,-123.8678 221.5,-142.8678 323.5,-142.8678 323.5,-123.8678 221.5,-123.8678"/>
+<title>Node3</title>
+<g id="a_node1"><a xlink:href="group__exec__omp.html" target="_top" xlink:title="A module dedicated to the implementation and usage of the OpenMP executor in Ginkgo.">
+<polygon fill="#ffffff" stroke="#000000" points="323.5,-142.8678 221.5,-142.8678 221.5,-123.8678 323.5,-123.8678 323.5,-142.8678"/>
 <text text-anchor="middle" x="272.5" y="-130.8678" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">OpenMP Executor</text>
 </a>
 </g>
 </g>
-<!-- Node1 -->
+<!-- Node2 -->
 <g id="node2" class="node">
-<title>Node1</title>
-<g id="a_node2"><a xlink:href="group__exec__cuda.html" target="_top" xlink:title="A module dedicated to the implementation and usage of the CUDA executor in Ginkgo. ">
-<polygon fill="#ffffff" stroke="#000000" points="227,-75.8678 227,-94.8678 318,-94.8678 318,-75.8678 227,-75.8678"/>
+<title>Node2</title>
+<g id="a_node2"><a xlink:href="group__exec__cuda.html" target="_top" xlink:title="A module dedicated to the implementation and usage of the CUDA executor in Ginkgo.">
+<polygon fill="#ffffff" stroke="#000000" points="318,-94.8678 227,-94.8678 227,-75.8678 318,-75.8678 318,-94.8678"/>
 <text text-anchor="middle" x="272.5" y="-82.8678" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">CUDA Executor</text>
 </a>
 </g>
 </g>
-<!-- Node0 -->
+<!-- Node1 -->
 <g id="node3" class="node">
-<title>Node0</title>
-<polygon fill="#bfbfbf" stroke="#000000" points="0,-70.8678 0,-89.8678 65,-89.8678 65,-70.8678 0,-70.8678"/>
+<title>Node1</title>
+<g id="a_node3"><a xlink:title="A module dedicated to the implementation and usage of the executors in Ginkgo.">
+<polygon fill="#bfbfbf" stroke="#000000" points="65,-89.8678 0,-89.8678 0,-70.8678 65,-70.8678 65,-89.8678"/>
 <text text-anchor="middle" x="32.5" y="-77.8678" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Executors</text>
+</a>
 </g>
-<!-- Node0&#45;&gt;Node2 -->
+</g>
+<!-- Node1&#45;&gt;Node3 -->
 <g id="edge2" class="edge">
-<title>Node0&#45;&gt;Node2</title>
+<title>Node1&#45;&gt;Node3</title>
 <path fill="none" stroke="#000000" d="M42.5876,-98.7468C51.2805,-112.5014 65.2285,-130.2774 83,-138.3678 133.1712,-161.2079 198.8145,-152.0191 238.2046,-142.9362"/>
 <polygon fill="#000000" stroke="#000000" points="45.5349,-96.8548 37.4265,-90.0353 39.5124,-100.4228 45.5349,-96.8548"/>
 </g>
-<!-- Node0&#45;&gt;Node2 -->
+<!-- Node1&#45;&gt;Node3 -->
 <g id="edge4" class="edge">
-<title>Node0&#45;&gt;Node2</title>
+<title>Node1&#45;&gt;Node3</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M60.648,-89.9106C67.8853,-92.1916 75.6927,-94.5033 83,-96.3678 129.4463,-108.2189 183.1325,-118.3751 221.4777,-125.032"/>
 <text text-anchor="middle" x="141" y="-122.3678" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::OmpExecutor</text>
 </g>
-<!-- Node0&#45;&gt;Node1 -->
+<!-- Node1&#45;&gt;Node2 -->
 <g id="edge1" class="edge">
-<title>Node0&#45;&gt;Node1</title>
+<title>Node1&#45;&gt;Node2</title>
 <path fill="none" stroke="#000000" d="M75.1775,-81.2569C117.8196,-82.1453 183.1502,-83.5063 226.8206,-84.4161"/>
 <polygon fill="#000000" stroke="#000000" points="75.188,-77.7565 65.1172,-81.0473 75.0421,-84.755 75.188,-77.7565"/>
 </g>
-<!-- Node0&#45;&gt;Node1 -->
+<!-- Node1&#45;&gt;Node2 -->
 <g id="edge6" class="edge">
-<title>Node0&#45;&gt;Node1</title>
+<title>Node1&#45;&gt;Node2</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M61.5938,-70.8624C68.5334,-68.9978 75.9683,-67.3244 83,-66.3678 134.085,-59.4178 147.8563,-59.8643 199,-66.3678 213.6435,-68.2299 229.5423,-72.0994 242.7952,-75.8634"/>
 <text text-anchor="middle" x="141" y="-69.3678" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::CudaExecutor</text>
 </g>
-<!-- Node3 -->
+<!-- Node4 -->
 <g id="node4" class="node">
-<title>Node3</title>
-<g id="a_node4"><a xlink:href="group__exec__ref.html" target="_top" xlink:title="A module dedicated to the implementation and usage of the Reference executor in Ginkgo. ">
-<polygon fill="#ffffff" stroke="#000000" points="217,-11.8678 217,-30.8678 328,-30.8678 328,-11.8678 217,-11.8678"/>
+<title>Node4</title>
+<g id="a_node4"><a xlink:href="group__exec__ref.html" target="_top" xlink:title="A module dedicated to the implementation and usage of the Reference executor in Ginkgo.">
+<polygon fill="#ffffff" stroke="#000000" points="328,-30.8678 217,-30.8678 217,-11.8678 328,-11.8678 328,-30.8678"/>
 <text text-anchor="middle" x="272.5" y="-18.8678" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Reference Executor</text>
 </a>
 </g>
 </g>
-<!-- Node0&#45;&gt;Node3 -->
+<!-- Node1&#45;&gt;Node4 -->
 <g id="edge3" class="edge">
-<title>Node0&#45;&gt;Node3</title>
+<title>Node1&#45;&gt;Node4</title>
 <path fill="none" stroke="#000000" d="M58.9134,-66.2241C66.5233,-62.5901 74.9482,-58.975 83,-56.3678 126.9237,-42.1454 178.5587,-33.0859 216.8275,-27.756"/>
 <polygon fill="#000000" stroke="#000000" points="57.1906,-63.172 49.7994,-70.763 60.3111,-69.438 57.1906,-63.172"/>
 </g>
-<!-- Node0&#45;&gt;Node3 -->
+<!-- Node1&#45;&gt;Node4 -->
 <g id="edge5" class="edge">
-<title>Node0&#45;&gt;Node3</title>
+<title>Node1&#45;&gt;Node4</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M36.6324,-70.5781C43.6269,-55.4486 59.3827,-26.9264 83,-15.3678 133.8516,9.5197 201.9147,-1.7439 241.1061,-11.8151"/>
 <text text-anchor="middle" x="141" y="-18.3678" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::ReferenceExecutor</text>
 </g>

@@ -9,16 +9,19 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 102)">
 <title>gko::EnablePolymorphicAssignment&lt; ConcreteType, ResultType &gt;</title>
 <polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-102 196,-102 196,4 -4,4"/>
-<!-- Node0 -->
+<!-- Node1 -->
 <g id="node1" class="node">
-<title>Node0</title>
+<title>Node1</title>
+<g id="a_node1"><a xlink:title="This mixin is used to enable a default PolymorphicObject::copy_from() implementation for objects that...">
 <polygon fill="#bfbfbf" stroke="#000000" points="0,-.5 0,-30.5 192,-30.5 192,-.5 0,-.5"/>
 <text text-anchor="start" x="8" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnablePolymorphicAssignment</text>
 <text text-anchor="middle" x="96" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; ConcreteType, ResultType &gt;</text>
+</a>
 </g>
-<!-- Node1 -->
+</g>
+<!-- Node2 -->
 <g id="node2" class="node">
-<title>Node1</title>
+<title>Node2</title>
 <g id="a_node2"><a xlink:href="classgko_1_1ConvertibleTo.html" target="_top" xlink:title="ConvertibleTo interface is used to mark that the implementer can be converted to the object of Result...">
 <polygon fill="#ffffff" stroke="#000000" points="42.5,-67.5 42.5,-97.5 149.5,-97.5 149.5,-67.5 42.5,-67.5"/>
 <text text-anchor="start" x="50.5" y="-85.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::ConvertibleTo</text>
@@ -26,9 +29,9 @@
 </a>
 </g>
 </g>
-<!-- Node1&#45;&gt;Node0 -->
+<!-- Node2&#45;&gt;Node1 -->
 <g id="edge1" class="edge">
-<title>Node1&#45;&gt;Node0</title>
+<title>Node2&#45;&gt;Node1</title>
 <path fill="none" stroke="#191970" d="M96,-57.0249C96,-48.128 96,-38.4287 96,-30.6432"/>
 <polygon fill="#191970" stroke="#191970" points="92.5001,-57.2966 96,-67.2967 99.5001,-57.2967 92.5001,-57.2966"/>
 </g>

@@ -9,19 +9,22 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 57)">
 <title>Graphical Class Hierarchy</title>
 <polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-57 385,-57 385,4 -4,4"/>
-<!-- Node240 -->
+<!-- Node241 -->
 <g id="node1" class="node">
-<title>Node240</title>
+<title>Node241</title>
+<g id="a_node1"><a xlink:title=" ">
 <polygon fill="#ffffff" stroke="#bfbfbf" points="0,-.5 0,-52.5 202,-52.5 202,-.5 0,-.5"/>
 <text text-anchor="start" x="8" y="-40.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::detail::implement</text>
 <text text-anchor="start" x="8" y="-29.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">_binary_operation&lt; Kind,</text>
 <text text-anchor="start" x="8" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> FirstOperand, SecondOperand,</text>
 <text text-anchor="middle" x="101" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> ::gko::accessor::detail::bitwise_and &gt;</text>
+</a>
+</g>
 </g>
 <!-- Node0 -->
 <g id="node2" class="node">
 <title>Node0</title>
-<g id="a_node2"><a xlink:href="structgko_1_1accessor_1_1bitwise__and.html" target="_top" xlink:title="gko::accessor::bitwise\l_and\&lt; Kind, FirstOperand,\l SecondOperand \&gt;">
+<g id="a_node2"><a xlink:href="structgko_1_1accessor_1_1bitwise__and.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="238,-6 238,-47 381,-47 381,-6 238,-6"/>
 <text text-anchor="start" x="246" y="-35" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::accessor::bitwise</text>
 <text text-anchor="start" x="246" y="-24" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">_and&lt; Kind, FirstOperand,</text>
@@ -29,9 +32,9 @@
 </a>
 </g>
 </g>
-<!-- Node240&#45;&gt;Node0 -->
+<!-- Node241&#45;&gt;Node0 -->
 <g id="edge1" class="edge">
-<title>Node240&#45;&gt;Node0</title>
+<title>Node241&#45;&gt;Node0</title>
 <path fill="none" stroke="#191970" d="M212.3499,-26.5C220.9859,-26.5 229.5567,-26.5 237.8236,-26.5"/>
 <polygon fill="#191970" stroke="#191970" points="212.1962,-23.0001 202.1962,-26.5 212.1962,-30.0001 212.1962,-23.0001"/>
 </g>

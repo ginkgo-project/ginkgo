@@ -9,24 +9,27 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 80)">
 <title>gko::log::Stream&lt; ValueType &gt;</title>
 <polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-80 173,-80 173,4 -4,4"/>
-<!-- Node0 -->
+<!-- Node1 -->
 <g id="node1" class="node">
-<title>Node0</title>
+<title>Node1</title>
+<g id="a_node1"><a xlink:title="Stream is a Logger which logs every event to a stream.">
 <polygon fill="#bfbfbf" stroke="#000000" points="0,-.5 0,-19.5 169,-19.5 169,-.5 0,-.5"/>
 <text text-anchor="middle" x="84.5" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::log::Stream&lt; ValueType &gt;</text>
+</a>
 </g>
-<!-- Node1 -->
+</g>
+<!-- Node2 -->
 <g id="node2" class="node">
-<title>Node1</title>
-<g id="a_node2"><a xlink:href="classgko_1_1log_1_1Logger.html" target="_top" xlink:title="gko::log::Logger">
+<title>Node2</title>
+<g id="a_node2"><a xlink:href="classgko_1_1log_1_1Logger.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="37,-56.5 37,-75.5 132,-75.5 132,-56.5 37,-56.5"/>
 <text text-anchor="middle" x="84.5" y="-63.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::log::Logger</text>
 </a>
 </g>
 </g>
-<!-- Node1&#45;&gt;Node0 -->
+<!-- Node2&#45;&gt;Node1 -->
 <g id="edge1" class="edge">
-<title>Node1&#45;&gt;Node0</title>
+<title>Node2&#45;&gt;Node1</title>
 <path fill="none" stroke="#191970" d="M84.5,-46.1575C84.5,-37.155 84.5,-26.9199 84.5,-19.6427"/>
 <polygon fill="#191970" stroke="#191970" points="81.0001,-46.2455 84.5,-56.2455 88.0001,-46.2456 81.0001,-46.2455"/>
 </g>

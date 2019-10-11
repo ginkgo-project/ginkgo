@@ -1,5 +1,5 @@
-\hypertarget{structgko_1_1stop_1_1CriterionArgs}{}\section{gko\+:\+:stop\+:\+:Criterion\+Args Struct Reference}
-\label{structgko_1_1stop_1_1CriterionArgs}\index{gko\+::stop\+::\+Criterion\+Args@{gko\+::stop\+::\+Criterion\+Args}}
+\hypertarget{structgko_1_1stop_1_1CriterionArgs}{}\doxysection{gko\+::stop\+::Criterion\+Args Struct Reference}
+\label{structgko_1_1stop_1_1CriterionArgs}\index{gko::stop::CriterionArgs@{gko::stop::CriterionArgs}}
 
 
 This struct is used to pass parameters to the Enable\+Default\+Criterion\+Factory\+Criterion\+Factory\+::generate() method.  
@@ -11,7 +11,7 @@ This struct is used to pass parameters to the Enable\+Default\+Criterion\+Factor
 
 
 
-Collaboration diagram for gko\+:\+:stop\+:\+:Criterion\+Args\+:
+Collaboration diagram for gko\+::stop\+::Criterion\+Args\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -19,36 +19,36 @@ Collaboration diagram for gko\+:\+:stop\+:\+:Criterion\+Args\+:
 \includegraphics[width=350pt]{structgko_1_1stop_1_1CriterionArgs__coll__graph}
 \end{center}
 \end{figure}
-\subsection*{Public Member Functions}
+\doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{structgko_1_1stop_1_1CriterionArgs_aee534b8a229d17a5cca30e6fe2dcc05e}\label{structgko_1_1stop_1_1CriterionArgs_aee534b8a229d17a5cca30e6fe2dcc05e}} 
-{\bfseries Criterion\+Args} (std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ system\+\_\+matrix, std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ b, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$x, const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$initial\+\_\+residual=nullptr)
+{\bfseries Criterion\+Args} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ system\+\_\+matrix, std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ b, const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$x, const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$initial\+\_\+residual=nullptr)
 \end{DoxyCompactItemize}
-\subsection*{Public Attributes}
+\doxysubsection*{Public Attributes}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{structgko_1_1stop_1_1CriterionArgs_a2aa22bea76fd64352a446cf6c5570807}\label{structgko_1_1stop_1_1CriterionArgs_a2aa22bea76fd64352a446cf6c5570807}} 
-std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ {\bfseries system\+\_\+matrix}
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ {\bfseries system\+\_\+matrix}
 \item 
 \mbox{\Hypertarget{structgko_1_1stop_1_1CriterionArgs_a994457497657a0308c5343e711ec4c3e}\label{structgko_1_1stop_1_1CriterionArgs_a994457497657a0308c5343e711ec4c3e}} 
-std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ {\bfseries b}
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ {\bfseries b}
 \item 
 \mbox{\Hypertarget{structgko_1_1stop_1_1CriterionArgs_a766a5c79ca77e74703888786e0011a73}\label{structgko_1_1stop_1_1CriterionArgs_a766a5c79ca77e74703888786e0011a73}} 
-const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$ {\bfseries x}
+const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$ {\bfseries x}
 \item 
 \mbox{\Hypertarget{structgko_1_1stop_1_1CriterionArgs_af7233105d01a9b055b15652daf179a67}\label{structgko_1_1stop_1_1CriterionArgs_af7233105d01a9b055b15652daf179a67}} 
-const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $\ast$ {\bfseries initial\+\_\+residual}
+const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$ {\bfseries initial\+\_\+residual}
 \end{DoxyCompactItemize}
 
 
-\subsection{Detailed Description}
+\doxysubsection{Detailed Description}
 This struct is used to pass parameters to the Enable\+Default\+Criterion\+Factory\+Criterion\+Factory\+::generate() method. 
 
 It is the Components\+Type of Criterion\+Factory.
 
 \begin{DoxyNote}{Note}
-Dependly on the use case, some of these parameters can be {\ttfamily nullptr} as only some stopping criterion require them to be set. An example is the {\ttfamily \hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{Residual\+Norm\+Reduction}} which really requires the {\ttfamily initial\+\_\+residual} to be set. 
+Dependly on the use case, some of these parameters can be {\ttfamily nullptr} as only some stopping criterion require them to be set. An example is the {\ttfamily \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{Residual\+Norm\+Reduction}}} which really requires the {\ttfamily initial\+\_\+residual} to be set. 
 \end{DoxyNote}
 
 

@@ -1,5 +1,5 @@
-\hypertarget{classgko_1_1version__info}{}\section{gko\+:\+:version\+\_\+info Class Reference}
-\label{classgko_1_1version__info}\index{gko\+::version\+\_\+info@{gko\+::version\+\_\+info}}
+\hypertarget{classgko_1_1version__info}{}\doxysection{gko\+::version\+\_\+info Class Reference}
+\label{classgko_1_1version__info}\index{gko::version\_info@{gko::version\_info}}
 
 
 Ginkgo uses version numbers to label new features and to communicate backward compatibility guarantees\+:  
@@ -11,7 +11,7 @@ Ginkgo uses version numbers to label new features and to communicate backward co
 
 
 
-Collaboration diagram for gko\+:\+:version\+\_\+info\+:
+Collaboration diagram for gko\+::version\+\_\+info\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -19,28 +19,28 @@ Collaboration diagram for gko\+:\+:version\+\_\+info\+:
 \includegraphics[width=219pt]{classgko_1_1version__info__coll__graph}
 \end{center}
 \end{figure}
-\subsection*{Static Public Member Functions}
+\doxysubsection*{Static Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-static const \hyperlink{classgko_1_1version__info}{version\+\_\+info} \& \hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{get} ()
-\begin{DoxyCompactList}\small\item\em Returns an instance of \hyperlink{classgko_1_1version__info}{version\+\_\+info}. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\subsection*{Public Attributes}
+static const \mbox{\hyperlink{classgko_1_1version__info}{version\+\_\+info}} \& \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{get}} ()
+\begin{DoxyCompactList}\small\item\em Returns an instance of \mbox{\hyperlink{classgko_1_1version__info}{version\+\_\+info}}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classgko_1_1version__info_a5b8240b191920dc3688ccfbbd8ae3378}\label{classgko_1_1version__info_a5b8240b191920dc3688ccfbbd8ae3378}} 
-\hyperlink{structgko_1_1version}{version} \hyperlink{classgko_1_1version__info_a5b8240b191920dc3688ccfbbd8ae3378}{header\+\_\+version}
+\mbox{\hyperlink{structgko_1_1version}{version}} \mbox{\hyperlink{classgko_1_1version__info_a5b8240b191920dc3688ccfbbd8ae3378}{header\+\_\+version}}
 \begin{DoxyCompactList}\small\item\em Contains version information of the header files. \end{DoxyCompactList}\item 
-\hyperlink{structgko_1_1version}{version} \hyperlink{classgko_1_1version__info_a85dd2724c9c37cb7f315a99dc03f0d72}{core\+\_\+version}
+\mbox{\hyperlink{structgko_1_1version}{version}} \mbox{\hyperlink{classgko_1_1version__info_a85dd2724c9c37cb7f315a99dc03f0d72}{core\+\_\+version}}
 \begin{DoxyCompactList}\small\item\em Contains version information of the core library. \end{DoxyCompactList}\item 
-\hyperlink{structgko_1_1version}{version} \hyperlink{classgko_1_1version__info_a772fcf25f93d719b733602b4bba7d7ec}{reference\+\_\+version}
+\mbox{\hyperlink{structgko_1_1version}{version}} \mbox{\hyperlink{classgko_1_1version__info_a772fcf25f93d719b733602b4bba7d7ec}{reference\+\_\+version}}
 \begin{DoxyCompactList}\small\item\em Contains version information of the reference module. \end{DoxyCompactList}\item 
-\hyperlink{structgko_1_1version}{version} \hyperlink{classgko_1_1version__info_a795e1a6f8bdb0a4157b2d52b92e7b44e}{omp\+\_\+version}
+\mbox{\hyperlink{structgko_1_1version}{version}} \mbox{\hyperlink{classgko_1_1version__info_a795e1a6f8bdb0a4157b2d52b92e7b44e}{omp\+\_\+version}}
 \begin{DoxyCompactList}\small\item\em Contains version information of the O\+MP module. \end{DoxyCompactList}\item 
-\hyperlink{structgko_1_1version}{version} \hyperlink{classgko_1_1version__info_a75d283ac87b2f80abdc48fa48b3a5d51}{cuda\+\_\+version}
+\mbox{\hyperlink{structgko_1_1version}{version}} \mbox{\hyperlink{classgko_1_1version__info_a75d283ac87b2f80abdc48fa48b3a5d51}{cuda\+\_\+version}}
 \begin{DoxyCompactList}\small\item\em Contains version information of the C\+U\+DA module. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
-\subsection{Detailed Description}
+\doxysubsection{Detailed Description}
 Ginkgo uses version numbers to label new features and to communicate backward compatibility guarantees\+: 
 
 
@@ -50,60 +50,60 @@ Ginkgo uses version numbers to label new features and to communicate backward co
 \item Versions with the same major an minor version numbers, but different patch numbers have exactly the same interface, but the functionality may be different (something that is not implemented or has a bug in an earlier version may have this implemented or fixed in a later version).
 \end{DoxyEnumerate}
 
-This structure provides versions of different parts of Ginkgo\+: the headers, the core and the kernel modules (reference, Open\+MP, C\+U\+DA). To obtain an instance of \hyperlink{classgko_1_1version__info}{version\+\_\+info} filled with information about the current version of Ginkgo, call the \hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{version\+\_\+info\+::get()} static method. 
+This structure provides versions of different parts of Ginkgo\+: the headers, the core and the kernel modules (reference, Open\+MP, C\+U\+DA). To obtain an instance of \mbox{\hyperlink{classgko_1_1version__info}{version\+\_\+info}} filled with information about the current version of Ginkgo, call the \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{version\+\_\+info\+::get()}} static method. 
 
-\subsection{Member Function Documentation}
+\doxysubsection{Member Function Documentation}
 \mbox{\Hypertarget{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}\label{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}} 
-\index{gko\+::version\+\_\+info@{gko\+::version\+\_\+info}!get@{get}}
-\index{get@{get}!gko\+::version\+\_\+info@{gko\+::version\+\_\+info}}
-\subsubsection{\texorpdfstring{get()}{get()}}
-{\footnotesize\ttfamily static const \hyperlink{classgko_1_1version__info}{version\+\_\+info}\& gko\+::version\+\_\+info\+::get (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+\index{gko::version\_info@{gko::version\_info}!get@{get}}
+\index{get@{get}!gko::version\_info@{gko::version\_info}}
+\doxysubsubsection{\texorpdfstring{get()}{get()}}
+{\footnotesize\ttfamily static const \mbox{\hyperlink{classgko_1_1version__info}{version\+\_\+info}}\& gko\+::version\+\_\+info\+::get (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
 
 
 
-Returns an instance of \hyperlink{classgko_1_1version__info}{version\+\_\+info}. 
+Returns an instance of \mbox{\hyperlink{classgko_1_1version__info}{version\+\_\+info}}. 
 
 \begin{DoxyReturn}{Returns}
 an instance of version info 
 \end{DoxyReturn}
 
 
-\subsection{Member Data Documentation}
+\doxysubsection{Member Data Documentation}
 \mbox{\Hypertarget{classgko_1_1version__info_a85dd2724c9c37cb7f315a99dc03f0d72}\label{classgko_1_1version__info_a85dd2724c9c37cb7f315a99dc03f0d72}} 
-\index{gko\+::version\+\_\+info@{gko\+::version\+\_\+info}!core\+\_\+version@{core\+\_\+version}}
-\index{core\+\_\+version@{core\+\_\+version}!gko\+::version\+\_\+info@{gko\+::version\+\_\+info}}
-\subsubsection{\texorpdfstring{core\+\_\+version}{core\_version}}
-{\footnotesize\ttfamily \hyperlink{structgko_1_1version}{version} gko\+::version\+\_\+info\+::core\+\_\+version}
+\index{gko::version\_info@{gko::version\_info}!core\_version@{core\_version}}
+\index{core\_version@{core\_version}!gko::version\_info@{gko::version\_info}}
+\doxysubsubsection{\texorpdfstring{core\_version}{core\_version}}
+{\footnotesize\ttfamily \mbox{\hyperlink{structgko_1_1version}{version}} gko\+::version\+\_\+info\+::core\+\_\+version}
 
 
 
 Contains version information of the core library. 
 
 This is the version of the static/shared library called \char`\"{}ginkgo\char`\"{}. \mbox{\Hypertarget{classgko_1_1version__info_a75d283ac87b2f80abdc48fa48b3a5d51}\label{classgko_1_1version__info_a75d283ac87b2f80abdc48fa48b3a5d51}} 
-\index{gko\+::version\+\_\+info@{gko\+::version\+\_\+info}!cuda\+\_\+version@{cuda\+\_\+version}}
-\index{cuda\+\_\+version@{cuda\+\_\+version}!gko\+::version\+\_\+info@{gko\+::version\+\_\+info}}
-\subsubsection{\texorpdfstring{cuda\+\_\+version}{cuda\_version}}
-{\footnotesize\ttfamily \hyperlink{structgko_1_1version}{version} gko\+::version\+\_\+info\+::cuda\+\_\+version}
+\index{gko::version\_info@{gko::version\_info}!cuda\_version@{cuda\_version}}
+\index{cuda\_version@{cuda\_version}!gko::version\_info@{gko::version\_info}}
+\doxysubsubsection{\texorpdfstring{cuda\_version}{cuda\_version}}
+{\footnotesize\ttfamily \mbox{\hyperlink{structgko_1_1version}{version}} gko\+::version\+\_\+info\+::cuda\+\_\+version}
 
 
 
 Contains version information of the C\+U\+DA module. 
 
 This is the version of the static/shared library called \char`\"{}ginkgo\+\_\+cuda\char`\"{}. \mbox{\Hypertarget{classgko_1_1version__info_a795e1a6f8bdb0a4157b2d52b92e7b44e}\label{classgko_1_1version__info_a795e1a6f8bdb0a4157b2d52b92e7b44e}} 
-\index{gko\+::version\+\_\+info@{gko\+::version\+\_\+info}!omp\+\_\+version@{omp\+\_\+version}}
-\index{omp\+\_\+version@{omp\+\_\+version}!gko\+::version\+\_\+info@{gko\+::version\+\_\+info}}
-\subsubsection{\texorpdfstring{omp\+\_\+version}{omp\_version}}
-{\footnotesize\ttfamily \hyperlink{structgko_1_1version}{version} gko\+::version\+\_\+info\+::omp\+\_\+version}
+\index{gko::version\_info@{gko::version\_info}!omp\_version@{omp\_version}}
+\index{omp\_version@{omp\_version}!gko::version\_info@{gko::version\_info}}
+\doxysubsubsection{\texorpdfstring{omp\_version}{omp\_version}}
+{\footnotesize\ttfamily \mbox{\hyperlink{structgko_1_1version}{version}} gko\+::version\+\_\+info\+::omp\+\_\+version}
 
 
 
 Contains version information of the O\+MP module. 
 
 This is the version of the static/shared library called \char`\"{}ginkgo\+\_\+omp\char`\"{}. \mbox{\Hypertarget{classgko_1_1version__info_a772fcf25f93d719b733602b4bba7d7ec}\label{classgko_1_1version__info_a772fcf25f93d719b733602b4bba7d7ec}} 
-\index{gko\+::version\+\_\+info@{gko\+::version\+\_\+info}!reference\+\_\+version@{reference\+\_\+version}}
-\index{reference\+\_\+version@{reference\+\_\+version}!gko\+::version\+\_\+info@{gko\+::version\+\_\+info}}
-\subsubsection{\texorpdfstring{reference\+\_\+version}{reference\_version}}
-{\footnotesize\ttfamily \hyperlink{structgko_1_1version}{version} gko\+::version\+\_\+info\+::reference\+\_\+version}
+\index{gko::version\_info@{gko::version\_info}!reference\_version@{reference\_version}}
+\index{reference\_version@{reference\_version}!gko::version\_info@{gko::version\_info}}
+\doxysubsubsection{\texorpdfstring{reference\_version}{reference\_version}}
+{\footnotesize\ttfamily \mbox{\hyperlink{structgko_1_1version}{version}} gko\+::version\+\_\+info\+::reference\+\_\+version}
 
 
 
