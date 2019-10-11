@@ -5,9 +5,14 @@ coverage:
         target: auto
         threshold: 5
         base: auto
-
     project:
       default:
         target: auto
         threshold: 2
         base: auto
+  ignore:
+    - "**/third_party/"
+    - "**/test/"
+    - "**/benchmark/"
+    - "**/examples/"
+    - "**/c\\+\\+/"
