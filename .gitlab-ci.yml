@@ -54,6 +54,7 @@ stages:
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
+    - make -j$(grep "core id" /proc/cpuinfo | sort -u | wc -l) || true
     - make -j$(grep "core id" /proc/cpuinfo | sort -u | wc -l)
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
@@ -291,6 +292,48 @@ build/cuda101/intel/cuda/debug/static:
     - cuda
     - gpu
 
+build/cuda101/clang/hip/release/shared:
+  <<: *default_build
+  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  variables:
+    <<: *default_variables
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
+    BUILD_TYPE: Release
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+  tags:
+    - cuda
+    - gpu
+
+# HIP AMD
+build/amd/gcc/hip/debug/shared:
+  <<: *default_build
+  image: localhost:5000/gko-amd-gnu7-llvm60
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_HIP: "ON"
+    BUILD_TYPE: Debug
+  tags:
+    - amd
+    - gpu
+
+build/amd/clang/hip/release/static:
+  <<: *default_build
+  image: localhost:5000/gko-amd-gnu7-llvm60
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_HIP: "ON"
+    BUILD_TYPE: Release
+    BUILD_SHARED_LIBS: "OFF"
+  tags:
+    - amd
+    - gpu
+
 # no cuda but latest gcc and clang
 build/nocuda/gcc/core/debug/static:
   <<: *default_build
@@ -373,6 +416,7 @@ warnings:
     <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
     CXX_FLAGS: "-Werror=pedantic -pedantic-errors"
   dependencies: []
   allow_failure: yes
@@ -389,6 +433,7 @@ no-circular-deps:
     <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_CHECK_CIRCULAR_DEPS=on'
   dependencies: []
   allow_failure: no
@@ -405,6 +450,7 @@ clang-tidy:
     <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_CLANG_TIDY=ON'
   dependencies: []
   allow_failure: yes
@@ -420,6 +466,7 @@ iwyu:
     <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_CUDA: "HIP"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_IWYU=ON'
   dependencies: []
   allow_failure: yes
