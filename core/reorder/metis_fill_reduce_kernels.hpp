@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
-#include <ginkgo/core/matrix/sparsity.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 namespace gko {
@@ -57,7 +57,7 @@ namespace kernels {
                                                              IndexType)      \
     void get_permutation(                                                    \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_vertices, \
-        std::shared_ptr<matrix::Sparsity<ValueType, IndexType>>              \
+        std::shared_ptr<matrix::SparsityCsr<ValueType, IndexType>>           \
             adjacency_matrix,                                                \
         std::shared_ptr<Array<IndexType>> vertex_weights,                    \
         std::shared_ptr<matrix::Permutation<IndexType>> permutation_mat,     \

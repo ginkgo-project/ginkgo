@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
-#include <ginkgo/core/matrix/sparsity.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #if GKO_HAVE_METIS
@@ -67,7 +67,7 @@ namespace metis_fill_reduce {
 template <typename ValueType, typename IndexType>
 void get_permutation(
     std::shared_ptr<const OmpExecutor> exec, size_type num_vertices,
-    std::shared_ptr<matrix::Sparsity<ValueType, IndexType>> adjacency_matrix,
+    std::shared_ptr<matrix::SparsityCsr<ValueType, IndexType>> adjacency_matrix,
     std::shared_ptr<Array<IndexType>> vertex_weights,
     std::shared_ptr<matrix::Permutation<IndexType>> permutation_mat,
     std::shared_ptr<matrix::Permutation<IndexType>> inv_permutation_mat)

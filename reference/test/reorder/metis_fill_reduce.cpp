@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/metis_types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/sparsity.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -83,7 +83,7 @@ TEST_F(MetisFillReduce, FactoryCreatesCorrectReorderOp)
 {
     auto adj_mtx = reorder_op->get_adjacency_matrix();
 
-    auto tmp = gko::matrix::Sparsity<v_type, i_type>::create(exec, ani4_mtx);
+    auto tmp = gko::matrix::SparsityCsr<v_type, i_type>::create(exec, ani4_mtx);
     auto comp_mtx = tmp->to_adjacency_matrix();
     ASSERT_NE(reorder_op->get_adjacency_matrix(), nullptr);
     GKO_ASSERT_MTX_NEAR(adj_mtx.get(), comp_mtx.get(), 0);

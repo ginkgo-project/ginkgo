@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
-#include <ginkgo/core/matrix/sparsity.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include "core/matrix/csr_kernels.hpp"

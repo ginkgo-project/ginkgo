@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
-#include <ginkgo/core/matrix/sparsity.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 #include <ginkgo/core/reorder/reordering_base.hpp>
 
 
@@ -84,7 +84,7 @@ class MetisFillReduce
     friend class EnablePolymorphicObject<MetisFillReduce, ReorderingBase>;
 
 public:
-    using SparsityMatrix = matrix::Sparsity<ValueType, IndexType>;
+    using SparsityMatrix = matrix::SparsityCsr<ValueType, IndexType>;
     using PermutationMatrix = matrix::Permutation<IndexType>;
 
     /**
