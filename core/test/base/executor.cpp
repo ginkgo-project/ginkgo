@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception.hpp>
-
+#include <iostream>
 
 namespace {
 
@@ -79,6 +79,21 @@ TEST(OmpExecutor, RunsCorrectOperation)
 
     omp->run(ExampleOperation(value));
     ASSERT_EQ(1, value);
+}
+
+
+TEST(OmpExecutor, GetsExecInfo)
+{
+    int num_pus = 0;
+    int num_cores = 0;
+    int num_numas = 0;
+    auto omp = gko::OmpExecutor::create();
+    auto omp_info = omp->get_exec_info();
+    num_pus = omp_info->get_num_pus();
+    num_cores = omp_info->get_num_cores();
+    num_numas = omp_info->get_num_numas();
+    std::cout << " num cores omp " << num_cores << " num pus " << num_pus
+              << " num numas " << num_numas << std::endl;
 }
 
 

@@ -35,6 +35,7 @@ target_link_libraries(ginkgo_omp PUBLIC ginkgo_cuda)
 # Need to link against ginkgo_hip for the `raw_copy_to(HipExecutor ...)` method
 target_link_libraries(ginkgo_omp PUBLIC ginkgo_hip)
 
+
 ginkgo_default_includes(ginkgo_omp)
 ginkgo_install_library(ginkgo_omp omp)
 
