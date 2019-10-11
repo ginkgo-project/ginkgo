@@ -115,7 +115,7 @@ include(cmake/package_helpers.cmake)
 set(GINKGO_HAVE_PAPI_SDE 0)
 find_package(PAPI OPTIONAL_COMPONENTS sde)
 if (PAPI_sde_FOUND)
-    set(GINKGO_HAVE_PAPI_SDE 1)
+  set(GINKGO_HAVE_PAPI_SDE 1)
 endif()
 
 set(GINKGO_HIP_PLATFORM_NVCC 0)
@@ -149,10 +149,14 @@ if (GINKGO_BUILD_HIP)
     endif()
 
 # Automatically find HWLOC
+set(HWLOC_XMLFILE "${CMAKE_SOURCE_DIR}/topo.xml")
 set(GINKGO_HAVE_HWLOC 0)
-find_package(HWLOC)
-if (HWLOC_FOUND)
+if(GINKGO_WITH_HWLOC)
+  find_package(HWLOC)
+  set(GKO_HWLOC_TOPO_XMLFILE "${HWLOC_XMLFILE}")
+  if(HWLOC_FOUND)
     set(GINKGO_HAVE_HWLOC 1)
+  endif()
 endif()
 
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in

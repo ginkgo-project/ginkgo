@@ -51,6 +51,8 @@ else()
     set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_DYNAMIC}" CACHE STRING "Path to a library" FORCE)
 endif()
 
+find_library(CUDA_LIBS cuda
+  HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 find_library(CUBLAS cublas
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 find_library(CUSPARSE cusparse
@@ -105,7 +107,7 @@ target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_CO
 ginkgo_compile_features(ginkgo_cuda)
 target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
-target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE})
+target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_LIBS} ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE})
 
 # Need to link against ginkgo_hip for the `raw_copy_to(HipExecutor ...)` method
 target_link_libraries(ginkgo_cuda PUBLIC ginkgo_hip)

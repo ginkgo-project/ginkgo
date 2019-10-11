@@ -45,8 +45,14 @@ endif()
 ginkgo_compile_features(ginkgo)
 
 target_compile_options(ginkgo PRIVATE "${GINKGO_COMPILER_FLAGS}")
-# add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo
-# regardless of whether it is installed or added as a subdirectory
+
+if (GINKGO_HAVE_HWLOC)
+  target_link_libraries(ginkgo PUBLIC ${HWLOC_hwloc_LIBRARY})
+  target_include_directories(ginkgo PUBLIC ${HWLOC_hwloc.h_DIRS})
+endif()
+
+#add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo
+#regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
 target_link_libraries(ginkgo
     PUBLIC ginkgo_omp ginkgo_cuda ginkgo_reference ginkgo_hip)
@@ -59,4 +65,3 @@ ginkgo_install_library(ginkgo core)
 if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
-

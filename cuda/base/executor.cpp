@@ -33,9 +33,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include <errno.h>
+#include <stdio.h>
+#include <string.h>
 #include <iostream>
 
 
+#include <cuda.h>
 #include <cuda_runtime.h>
 
 
@@ -47,6 +51,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/device_guard.hpp"
 
+#if GKO_HAVE_HWLOC
+#include "hwloc/cuda.h"
+#endif
 
 namespace gko {
 namespace {
@@ -102,6 +109,63 @@ inline int convert_sm_ver_to_cores(int major, int minor)
 
 
 }  // namespace
+
+
+namespace machine_config {
+
+
+template <>
+void topology<CudaExecutor>::load_gpus()
+{
+#if GKO_HAVE_HWLOC
+    std::size_t num_in_numa = 0;
+    int last_numa = 0;
+    auto topology = this->topo_.get();
+    int ngpus = 0;
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDeviceCount(&ngpus));
+    auto n_objs = hwloc_get_nbobjs_by_type(topology, HWLOC_OBJ_OS_DEVICE);
+    for (std::size_t i = 1; i < n_objs; i++, num_in_numa++) {
+        hwloc_obj_t obj = NULL;
+        while ((obj = hwloc_get_next_osdev(topology, obj)) != NULL) {
+            if (HWLOC_OBJ_OSDEV_COPROC == obj->attr->osdev.type && obj->name &&
+                !strncmp("cuda", obj->name, 4) &&
+                atoi(obj->name + 4) == (int)i) {
+                while (obj &&
+                       (!obj->nodeset || hwloc_bitmap_iszero(obj->nodeset)))
+                    obj = obj->parent;
+                if (obj && obj->nodeset) {
+                    auto this_numa = hwloc_bitmap_first(obj->nodeset);
+                    if (this_numa != last_numa) {
+                        num_in_numa = 0;
+                    }
+                    this->gpus_.push_back(
+                        hwloc_obj_info{obj, this_numa, i, num_in_numa});
+                    last_numa = this_numa;
+                }
+            } else if (HWLOC_OBJ_OSDEV_GPU == obj->attr->osdev.type &&
+                       obj->name && !strncmp("card", obj->name, 4) &&
+                       atoi(obj->name + 4) == (int)i) {
+                while (obj &&
+                       (!obj->nodeset || hwloc_bitmap_iszero(obj->nodeset)))
+                    obj = obj->parent;
+                if (obj && obj->nodeset) {
+                    auto this_numa = hwloc_bitmap_first(obj->nodeset);
+                    if (this_numa != last_numa) {
+                        num_in_numa = 0;
+                    }
+                    this->gpus_.push_back(
+                        hwloc_obj_info{obj, this_numa, i, num_in_numa});
+                    last_numa = this_numa;
+                }
+            }
+        }
+    }
+
+#endif
+}
+
+
+}  // namespace machine_config
 
 
 std::shared_ptr<CudaExecutor> CudaExecutor::create(
@@ -206,31 +270,6 @@ void CudaExecutor::run(const Operation &op) const
 }
 
 
-// void CudaExecutor::load_gpus()
-// {
-//     // int ngpus = 0;
-//     // if (cudaGetDeviceCount(&ngpus) == cudaSuccess) {
-//     //     std::size_t num_in_numa = 0;
-//     //     int last_numa = 0;
-//     //     for (std::size_t i = 0; i < ngpus; i++, num_in_numa++) {
-//     //         auto obj = hwloc_cuda_get_device_osdev(topo_.get(), i);
-//     //         while (obj &&
-//     //                (!obj->nodeset ||
-//     //                hwloc_bitmap_iszero(obj->nodeset)))
-//     //             obj = obj->parent;
-//     //         if (obj && obj->nodeset) {
-//     //             auto this_numa = hwloc_bitmap_first(obj->nodeset);
-//     //             if (this_numa != last_numa) {
-//     //                 num_in_numa = 0;
-//     //             }
-//     //             gpus_.push_back(hwloc_obj_info{this_numa, i,
-//     //             num_in_numa}); last_numa = this_numa;
-//     //         }
-//     //     }
-//     // }
-// }
-
-
 int CudaExecutor::get_num_devices()
 {
     int deviceCount = 0;
@@ -256,9 +295,6 @@ void CudaExecutor::set_gpu_property()
         num_cores_per_sm_ = convert_sm_ver_to_cores(major_, minor_);
     }
 }
-
-
-// void CudaExecutor::set_machine_info() {}
 
 
 void CudaExecutor::init_handles()

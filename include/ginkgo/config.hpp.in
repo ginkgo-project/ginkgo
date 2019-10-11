@@ -49,6 +49,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_VERBOSE_LEVEL @GINKGO_VERBOSE_LEVEL@
 // clang-format on
 
+// clang-format off
+#define GKO_HWLOC_XMLFILE "@HWLOC_XMLFILE@"
+// clang-format on
 
 /* Is Itanium ABI available? */
 #cmakedefine GKO_HAVE_CXXABI_H

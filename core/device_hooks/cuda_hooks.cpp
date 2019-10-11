@@ -62,6 +62,8 @@ void OmpExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
     GKO_NOT_COMPILED(cuda);
 
 
+// void machine_config::topology::load_gpus() {}
+
 void CudaExecutor::raw_free(void *ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
@@ -91,17 +93,11 @@ void CudaExecutor::raw_copy_to(const HipExecutor *, size_type num_bytes,
 void CudaExecutor::synchronize() const GKO_NOT_COMPILED(cuda);
 
 
-// void CudaExecutor::set_machine_info() {}
-
-
 void CudaExecutor::run(const Operation &op) const
 {
     op.run(
         std::static_pointer_cast<const CudaExecutor>(this->shared_from_this()));
 }
-
-
-// void CudaExecutor::load_gpus() GKO_NOT_COMPILED(cuda);
 
 
 std::string CudaError::get_error(int64)
