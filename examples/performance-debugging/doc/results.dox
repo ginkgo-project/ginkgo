@@ -1,0 +1,92 @@
+<h1>Results</h1>
+This is the expected standard output:
+
+@code{.cpp}
+This is Ginkgo 1.0.0 (develop)
+    running with core module 1.0.0 (develop)
+    the reference module is  1.0.0 (develop)
+    the OpenMP    module is  1.0.0 (develop)
+    the CUDA      module is  not compiled
+Solution, maximum first ten entries:
+[
+        0
+        0
+        0
+        0
+        0
+        0
+        0
+        0
+        0
+        0
+];
+The performance and residual data can be found in log.txt
+@endcode
+
+Here is a sample output in the file log.txt:
+@code{.cpp}
+Generate time (ns): 3596
+Apply time (ns): 253224
+Residual_norm: 2.10788e-15
+Generate operations times (ns):
+Apply operations times (ns):
+        allocate: 40497
+        cg::initialize#8: 2306
+        cg::step_1#5: 29808
+        cg::step_2#7: 32354
+        copy: 16858
+        csr::advanced_spmv#5: 51669
+        csr::spmv#3: 46915
+        dense::compute_dot#3: 28548
+        dense::compute_norm2#2: 45677
+        free: 25109
+        residual_norm_reduction::residual_norm_reduction#9: 10617
+Recurrent Residual Norms:
+[
+        4.3589
+        2.30455
+        1.46771
+        0.984875
+        0.741833
+        0.513623
+        0.384165
+        0.316439
+        0.227709
+        0.170312
+        0.0973722
+        0.0616831
+        0.0454123
+        0.031953
+        0.0161606
+        0.00657015
+        0.00264367
+        0.000858809
+        0.000286461
+        1.64195e-15
+];
+True Residual Norms:
+[
+        4.3589
+        2.30455
+        1.46771
+        0.984875
+        0.741833
+        0.513623
+        0.384165
+        0.316439
+        0.227709
+        0.170312
+        0.0973722
+        0.0616831
+        0.0454123
+        0.031953
+        0.0161606
+        0.00657015
+        0.00264367
+        0.000858809
+        0.000286461
+        2.10788e-15
+];
+@endcode
+
+<h4> Comments about programming and debugging </h4>
