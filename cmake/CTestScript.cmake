@@ -144,7 +144,6 @@ ctest_read_custom_files( ${CTEST_BINARY_DIRECTORY} )
 if (DEFINED GINKGO_SONARQUBE_TEST)
     set(CTEST_BUILD_COMMAND "build-wrapper-linux-x86-64 --out-dir bw-output make -j${PROC_COUNT}")
 endif()
-ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" APPEND CAPTURE_CMAKE_ERROR FIRST_BUILD)
 ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" APPEND)
 ctest_submit(PARTS Build)
 
