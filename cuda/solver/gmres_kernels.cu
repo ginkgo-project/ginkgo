@@ -272,8 +272,8 @@ __global__ __launch_bounds__(block_size) void update_hessenberg_kernel(
 }
 
 
-template <int tile_dim, typename ValueType>
-__global__ __launch_bounds__(tile_dim *tile_dim) void multidot_kernel(
+template <int tile_dimx, int tile_dimy, typename ValueType>
+__global__ __launch_bounds__(tile_dimx *tile_dimy) void multidot_kernel(
     size_type k, size_type num_rows, size_type num_cols,
     const ValueType *__restrict__ next_krylov_basis,
     size_type stride_next_krylov, const ValueType *__restrict__ krylov_bases,
@@ -281,39 +281,49 @@ __global__ __launch_bounds__(tile_dim *tile_dim) void multidot_kernel(
     size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
-    const auto tidy = threadIdx.y;
-    const auto tidx = threadIdx.x;
-    const auto col_idx = blockIdx.x * tile_dim + tidx;
-    const auto num = ceildiv(num_rows, blockDim.y);
+    const auto tid = threadIdx.x;
+    const auto tidy = tid / tile_dimx;
+    const auto tidx = tid % tile_dimx;
+    const auto col_idx = blockIdx.x * tile_dimx + tidx;
+    const auto num = ceildiv(num_rows, tile_dimy);
     const auto start_row = blockIdx.y * num;
     const auto end_row =
         ((blockIdx.y + 1) * num > num_rows) ? num_rows : (blockIdx.y + 1) * num;
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
-    __shared__ UninitializedArray<ValueType, tile_dim *(tile_dim + 1)>
+    __shared__ UninitializedArray<ValueType, (tile_dimx) * (tile_dimy + 1)>
         reduction_helper_array;
     ValueType *__restrict__ reduction_helper = reduction_helper_array;
 
     ValueType local_res = zero<ValueType>();
     const auto krylov_col = k * num_cols + col_idx;
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
-        for (size_type i = start_row + tidy; i < end_row; i += blockDim.y) {
+        for (size_type i = start_row + tidy; i < end_row; i += tile_dimy) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
             const auto krylov_idx = i * stride_krylov + krylov_col;
             local_res +=
                 next_krylov_basis[next_krylov_idx] * krylov_bases[krylov_idx];
         }
     }
-    reduction_helper[tidx * (tile_dim + 1) + tidy] = local_res;
+    const auto new_tidx = tid % tile_dimy;
+    const auto new_tidy = tid / tile_dimy;
+    // if (new_tidy != tidx) {
+    // (tidx, tidy)
+    reduction_helper[tidx * (tile_dimy + 1) + tidy] = local_res;
+    // }
     __syncthreads();
-    local_res = reduction_helper[tidy * (tile_dim + 1) + tidx];
+    // if (new_tidy != tidx) {
+    // (new_tidy, new_tidx) takes (new_tidx, new_tidy) value
+    // (new_tidx, new_tidy) take (new_tidy, new_tidx)
+    local_res = reduction_helper[new_tidy * (tile_dimy + 1) + new_tidx];
+    // }
     const auto tile_block =
-        group::tiled_partition<tile_dim>(group::this_thread_block());
+        group::tiled_partition<tile_dimy>(group::this_thread_block());
     const auto sum =
         reduce(tile_block, local_res,
                [](const ValueType &a, const ValueType &b) { return a + b; });
-    const auto new_col_idx = blockIdx.x * tile_dim + tidy;
-    if (tidx == 0 && new_col_idx < num_cols &&
+    const auto new_col_idx = blockIdx.x * tile_dimx + new_tidy;
+    if (new_tidx == 0 && new_col_idx < num_cols &&
         !stop_status[new_col_idx].has_stopped()) {
         const auto hessenberg_idx = k * stride_hessenberg + new_col_idx;
         atomic_add(hessenberg_iter + hessenberg_idx, sum);
@@ -445,17 +455,20 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
                                 k * stride_hessenberg + col_idx);
             }
         } else {
+            constexpr int cols_per_block = 32;
+            constexpr int rows_per_block = 32;
             zero_array(dim_size[1],
                        hessenberg_iter->get_values() + k * stride_hessenberg);
-            multidot_kernel<32><<<dim3{ceildiv(dim_size[1], 32),
-                                       exec->get_num_multiprocessor() * 2},
-                                  dim3{32, 32}>>>(
-                k, dim_size[0], dim_size[1],
-                as_cuda_type(next_krylov_basis->get_const_values()),
-                stride_next_krylov,
-                as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
-                as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
-                as_cuda_type(stop_status));
+            multidot_kernel<rows_per_block, cols_per_block>
+                <<<dim3{static_cast<uint>(ceildiv(dim_size[1], cols_per_block)),
+                        static_cast<uint>(exec->get_num_multiprocessor() * 2)},
+                   cols_per_block * rows_per_block>>>(
+                    k, dim_size[0], dim_size[1],
+                    as_cuda_type(next_krylov_basis->get_const_values()),
+                    stride_next_krylov,
+                    as_cuda_type(krylov_bases->get_const_values()),
+                    stride_krylov, as_cuda_type(hessenberg_iter->get_values()),
+                    stride_hessenberg, as_cuda_type(stop_status));
         }
         update_next_krylov_kernel<default_block_size>
             <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
