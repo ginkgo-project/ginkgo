@@ -14,6 +14,15 @@ if(NOT DEFINED HIPSPARSE_PATH)
     endif()
 endif()
 
+
+## Both the definition of `HCC_PATH` and `HIP_HIPCC_CMAKE_LINKER_HELPER` are required
+## before including `FindHIP`, as these are essential but not defined in the beginning
+## of the `FindHIP` file itself. Not defining these currently results in:
+## 1. Without `HCC_PATH`: the `hcc` backend not working properly if it is wrongly set,
+##    if it is not set, popentially all compilation could fail.
+## 2. Without `HIP_HIPCC_CMAKE_LINKER_HELPER` two compilations are required, since
+##    `FindHIP` defines this only in macro calls, which we call much later on after
+##    including the file itself.
 if(NOT DEFINED HCC_PATH)
     if(NOT DEFINED ENV{HCC_PATH})
         set(HCC_PATH "/opt/rocm/hcc" CACHE PATH "Path to which HCC has been installed")
@@ -22,6 +31,25 @@ if(NOT DEFINED HCC_PATH)
     endif()
     set(HCC_HOME "${HCC_PATH}")
 endif()
+
+# Find HIPCC_CMAKE_LINKER_HELPER executable
+find_program(
+    HIP_HIPCC_CMAKE_LINKER_HELPER
+    NAMES hipcc_cmake_linker_helper
+    PATHS
+    "${HIP_ROOT_DIR}"
+    ENV ROCM_PATH
+    ENV HIP_PATH
+    /opt/rocm
+    /opt/rocm/hip
+    PATH_SUFFIXES bin
+    NO_DEFAULT_PATH
+)
+if(NOT HIP_HIPCC_CMAKE_LINKER_HELPER)
+    # Now search in default paths
+    find_program(HIP_HIPCC_CMAKE_LINKER_HELPER hipcc_cmake_linker_helper)
+endif()
+
 
 if (GINKGO_HIP_PLATFORM MATCHES "nvcc") # ensure ENV{CUDA_PATH} is set by the user
     if (NOT DEFINED ENV{CUDA_PATH})
