@@ -286,7 +286,7 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
     const auto tidx = threadIdx.x;
     const auto tidy = threadIdx.y;
     const auto col_idx = blockIdx.x * default_dot_dim + tidx;
-    const auto num = ceildiv(num_rows, default_dot_dim);
+    const auto num = ceildiv(num_rows, gridDim.y);
     const auto start_row = blockIdx.y * num;
     const auto end_row =
         ((blockIdx.y + 1) * num > num_rows) ? num_rows : (blockIdx.y + 1) * num;
