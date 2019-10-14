@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 
+#include "benchmark/utils/common.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
 
@@ -58,8 +59,7 @@ DEFINE_double(rel_res_goal, 1e-6, "The relative residual goal of the solver");
 
 DEFINE_string(solvers, "cg",
               "A comma-separated list of solvers to run."
-              "Supported values are: bicgstab, cg, cgs, fcg, gmres, ir, "
-              "lower_trs, upper_trs");
+              "Supported values are: bicgstab, cg, cgs, fcg, gmres");
 
 DEFINE_string(preconditioners, "none",
               "A comma-separated list of preconditioners to use."
@@ -88,16 +88,6 @@ void validate_option_object(const rapidjson::Value &value)
         print_config_error_and_exit();
     }
 }
-
-
-const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
-                                std::shared_ptr<const gko::Executor>,
-                                const rapidjson::Value &)>>
-    matrix_factory{{"csr", read_matrix<gko::matrix::Csr<>>},
-                   {"coo", read_matrix<gko::matrix::Coo<>>},
-                   {"ell", read_matrix<gko::matrix::Ell<>>},
-                   {"hybrid", read_matrix<gko::matrix::Hybrid<>>},
-                   {"sellp", read_matrix<gko::matrix::Sellp<>>}};
 
 
 // solver mapping
