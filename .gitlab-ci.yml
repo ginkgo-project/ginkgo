@@ -315,7 +315,7 @@ build/nocuda/clang/core/release/shared:
 
 build/nocuda/intel/core/debug/shared:
   <<: *default_build
-  image: localhost:5000/gko-nocuda-gnu9-llvm8
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
   variables:
     <<: *default_variables
     C_COMPILER: icc
@@ -350,7 +350,7 @@ build/nocuda/clang/omp/debug/static:
 
 build/nocuda/intel/omp/release/static:
   <<: *default_build
-  image: localhost:5000/gko-nocuda-gnu9-llvm8
+  image: localhost:5000/gko-nocuda-gnu8-llvm70
   variables:
     <<: *default_variables
     C_COMPILER: icc
