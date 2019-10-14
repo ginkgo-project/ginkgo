@@ -230,50 +230,6 @@ __global__
 }
 
 
-// Must be called with at least `num_cols` blocks, each with `block_size`
-// threads. `block_size` must be a power of 2.
-template <int block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void update_hessenberg_kernel(
-    size_type k, size_type num_rows, size_type num_cols,
-    const ValueType *__restrict__ next_krylov_basis,
-    size_type stride_next_krylov, const ValueType *__restrict__ krylov_bases,
-    size_type stride_krylov, ValueType *__restrict__ hessenberg_iter,
-    size_type stride_hessenberg,
-    const stopping_status *__restrict__ stop_status)
-{
-    const auto tidx = threadIdx.x;
-    const auto col_idx = blockIdx.x;
-
-    // Used that way to get around dynamic initialization warning and
-    // template error when using `reduction_helper_array` directly in `reduce`
-    __shared__ UninitializedArray<ValueType, block_size> reduction_helper_array;
-    ValueType *__restrict__ reduction_helper = reduction_helper_array;
-
-    if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
-        ValueType local_res{};
-        const auto krylov_col = k * num_cols + col_idx;
-        for (size_type i = tidx; i < num_rows; i += block_size) {
-            const auto next_krylov_idx = i * stride_next_krylov + col_idx;
-            const auto krylov_idx = i * stride_krylov + krylov_col;
-
-            local_res +=
-                next_krylov_basis[next_krylov_idx] * krylov_bases[krylov_idx];
-        }
-
-        reduction_helper[tidx] = local_res;
-
-        // Perform thread block reduction. Result is in reduction_helper[0]
-        reduce(group::this_thread_block(), reduction_helper,
-               [](const ValueType &a, const ValueType &b) { return a + b; });
-
-        if (tidx == 0) {
-            const auto hessenberg_idx = k * stride_hessenberg + col_idx;
-            hessenberg_iter[hessenberg_idx] = reduction_helper[0];
-        }
-    }
-}
-
-
 template <typename ValueType>
 __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
     size_type k, size_type num_rows, size_type num_cols,
@@ -442,22 +398,12 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
     for (size_type k = 0; k < iter + 1; ++k) {
         zero_array(dim_size[1],
                    hessenberg_iter->get_values() + k * stride_hessenberg);
-        if (dim_size[1] == 1) {
-            cublas::dot(cublas_handle, dim_size[0],
-                        next_krylov_basis->get_const_values(),
-                        stride_next_krylov,
-                        krylov_bases->get_const_values() + k * dim_size[1],
-                        stride_krylov,
-                        hessenberg_iter->get_values() + k * stride_hessenberg);
-        } else {
-            multidot_kernel<<<grid_size, block_size>>>(
-                k, dim_size[0], dim_size[1],
-                as_cuda_type(next_krylov_basis->get_const_values()),
-                stride_next_krylov,
-                as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
-                as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
-                as_cuda_type(stop_status));
-        }
+        multidot_kernel<<<grid_size, block_size>>>(
+            k, dim_size[0], dim_size[1],
+            as_cuda_type(next_krylov_basis->get_const_values()),
+            stride_next_krylov, as_cuda_type(krylov_bases->get_const_values()),
+            stride_krylov, as_cuda_type(hessenberg_iter->get_values()),
+            stride_hessenberg, as_cuda_type(stop_status));
         update_next_krylov_kernel<default_block_size>
             <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
                default_block_size>>>(
