@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <typeinfo>
 
 
+#include "benchmark/utils/common.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/spmv_common.hpp"
@@ -62,17 +63,6 @@ DEFINE_string(
     "Matrix-Vector Multiplication on CUDA.\n"
     "hybrid: Hybrid uses ell and coo to represent the matrix.\n"
     "sellp: Sliced Ellpack format.\n");
-
-
-const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
-                                std::shared_ptr<const gko::Executor>,
-                                const gko::matrix_data<> &)>>
-    matrix_factory{
-        {"csr", READ_MATRIX(csr, std::make_shared<csr::automatical>())},
-        {"coo", read_matrix_from_data<gko::matrix::Coo<>>},
-        {"ell", read_matrix_from_data<gko::matrix::Ell<>>},
-        {"hybrid", read_matrix_from_data<hybrid>},
-        {"sellp", read_matrix_from_data<gko::matrix::Sellp<>>}};
 
 
 // This function supposes that management of `FLAGS_overwrite` is done before

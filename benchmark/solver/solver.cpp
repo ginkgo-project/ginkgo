@@ -65,6 +65,9 @@ DEFINE_string(preconditioners, "none",
               "A comma-separated list of preconditioners to use."
               "Supported values are: none, jacobi, adaptive-jacobi");
 
+DEFINE_uint32(
+    nrhs, 1,
+    "The number of right hand sides. Record the residual only when nrhs == 1.");
 
 // input validation
 [[noreturn]] void print_config_error_and_exit() {
@@ -106,6 +109,7 @@ std::unique_ptr<gko::LinOpFactory> create_solver(
         .with_preconditioner(give(precond))
         .on(exec);
 }
+
 
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                                 std::shared_ptr<const gko::Executor>,
@@ -239,8 +243,10 @@ void solve_system(const std::string &solver_name,
                           rapidjson::Value(rapidjson::kArrayType), allocator);
         add_or_set_member(solver_json, "true_residuals",
                           rapidjson::Value(rapidjson::kArrayType), allocator);
-        // auto rhs_norm = compute_norm(lend(b));
-        // add_or_set_member(solver_json, "rhs_norm", rhs_norm, allocator);
+        if (FLAGS_nrhs == 1) {
+            auto rhs_norm = compute_norm(lend(b));
+            add_or_set_member(solver_json, "rhs_norm", rhs_norm, allocator);
+        }
         for (auto stage : {"generate", "apply"}) {
             add_or_set_member(solver_json, stage,
                               rapidjson::Value(rapidjson::kObjectType),
@@ -277,11 +283,13 @@ void solve_system(const std::string &solver_name,
 
             auto apply_logger = std::make_shared<OperationLogger>(exec);
             exec->add_logger(apply_logger);
-            // auto res_logger = std::make_shared<ResidualLogger<etype>>(
-            //     exec, lend(system_matrix), b,
-            //     solver_json["recurrent_residuals"],
-            //     solver_json["true_residuals"], allocator);
-            // solver->add_logger(res_logger);
+            if (FLAGS_nrhs == 1) {
+                auto res_logger = std::make_shared<ResidualLogger<etype>>(
+                    exec, lend(system_matrix), b,
+                    solver_json["recurrent_residuals"],
+                    solver_json["true_residuals"], allocator);
+                solver->add_logger(res_logger);
+            }
 
             solver->apply(lend(b), lend(x_clone));
 
@@ -321,12 +329,12 @@ void solve_system(const std::string &solver_name,
                                                                      a_tic);
             add_or_set_member(solver_json["apply"], "time", apply_time.count(),
                               allocator);
-
-            // auto residual = compute_residual_norm(lend(system_matrix),
-            // lend(b),
-            //                                       lend(x_clone));
-            // add_or_set_member(solver_json, "residual_norm", residual,
-            //                   allocator);
+            if (FLAGS_nrhs == 1) {
+                auto residual = compute_residual_norm(lend(system_matrix),
+                                                      lend(b), lend(x_clone));
+                add_or_set_member(solver_json, "residual_norm", residual,
+                                  allocator);
+            }
         }
 
         // compute and write benchmark data
@@ -358,7 +366,9 @@ int main(int argc, char *argv[])
     std::string extra_information = "Running " + FLAGS_solvers + " with " +
                                     std::to_string(FLAGS_max_iters) +
                                     " iterations and residual goal of " +
-                                    std::to_string(FLAGS_rel_res_goal) + "\n";
+                                    std::to_string(FLAGS_rel_res_goal) +
+                                    "\nThe number of right hand sides is " +
+                                    std::to_string(FLAGS_nrhs) + "\n";
     print_general_information(extra_information);
 
     auto exec = get_executor();
@@ -399,13 +409,16 @@ int main(int argc, char *argv[])
                 continue;
             }
             std::clog << "Running test case: " << test_case << std::endl;
+            std::ifstream mtx_fd(test_case["filename"].GetString());
+            auto data = gko::read_raw<etype>(mtx_fd);
 
             auto system_matrix = share(matrix_factory.at(
-                test_case["optimal"]["spmv"].GetString())(exec, test_case));
+                test_case["optimal"]["spmv"].GetString())(exec, data));
             auto b = create_matrix<etype>(
-                exec, gko::dim<2>{system_matrix->get_size()[0], 1}, engine);
+                exec, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
+                engine);
             auto x = create_matrix<etype>(
-                exec, gko::dim<2>{system_matrix->get_size()[0], 1});
+                exec, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs});
 
             std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
                       << ", " << system_matrix->get_size()[1] << ")"
