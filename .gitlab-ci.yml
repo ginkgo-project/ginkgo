@@ -3,7 +3,6 @@ image: localhost:5000/gko-cuda100-gnu7-llvm60
 stages:
   - sync
   - build
-  - test
   - code_quality
   - deploy
   - QoS_tools
@@ -19,6 +18,7 @@ stages:
   C_COMPILER: gcc
   CXX_COMPILER: g++
   BUILD_TYPE: Debug
+  BUILD_SHARED_LIBS: "ON"
   BUILD_REFERENCE: "ON"
   BUILD_OMP: "OFF"
   BUILD_CUDA: "OFF"
@@ -48,47 +48,17 @@ stages:
     - cmake ${CI_PROJECT_DIR}
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
         -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_FLAGS="${CXX_FLAGS}"
-        -DCMAKE_CUDA_HOST_COMPILER=$(which ${CXX_COMPILER}) ${EXTRA_CMAKE_FLAGS}
+        -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} ${EXTRA_CMAKE_FLAGS}
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
     - make -j$(grep "core id" /proc/cpuinfo | sort -u | wc -l)
-  artifacts:
-    paths:
-      - "build/*/*/*/*/*/CMakeCache.txt"
-      - "build/*/*/*/*/*/*.cmake"
-      - "build/*/*/*/*/*/core/test/*/[a-z_]*"
-      - "build/*/*/*/*/*/cuda/test/*/[a-z_]*"
-      - "build/*/*/*/*/*/omp/test/*/[a-z_]*"
-      - "build/*/*/*/*/*/reference/test/*/[a-z_]*"
-      - "build/*/*/*/*/*/core/libginkgo*"
-      - "build/*/*/*/*/*/cuda/libginkgo*"
-      - "build/*/*/*/*/*/omp/libginkgo*"
-      - "build/*/*/*/*/*/reference/libginkgo*"
-      - "build/*/*/*/*/*/core/device_hooks/libginkgo*"
-      - "build/*/*/*/*/*/*/CTestTestfile.cmake"
-      - "build/*/*/*/*/*/*/*/CTestTestfile.cmake"
-      - "build/*/*/*/*/*/*/*/*/CTestTestfile.cmake"
-  except:
-      - schedules
-# build paths are of the form: build/<cuda_version>/<compiler>/<module(s)>/{debug,release}/{shared,static}/
-# see: the name of our building jobs
-#
-# All CTestTestfile.cmake files have to be added for the `ctest` command to
-# work. These files are found recursively starting from the build directory in
-# every subdirectory.
-
-.test_template: &default_test
-  stage: test
-  before_script: *default_before_script
-  script:
-    - cd ${CI_JOB_NAME/test/build}
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
     - ctest -V
+  dependencies: []
   except:
       - schedules
-
 
 sync:
   stage: sync
@@ -111,7 +81,7 @@ sync:
 
 
 # Build jobs
-build/cuda90/gcc/all/debug/shared:
+build/cuda90/gcc/cuda/debug/shared:
   <<: *default_build
   image: localhost:5000/gko-cuda90-gnu5-llvm39
   variables:
@@ -119,10 +89,13 @@ build/cuda90/gcc/all/debug/shared:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: Debug
-    EXTRA_CMAKE_FLAGS: &cuda_flags_shared
-      "-DGINKGO_CUDA_ARCHITECTURES=35 -DBUILD_SHARED_LIBS=ON"
+    EXTRA_CMAKE_FLAGS: &cuda_flags
+      "-DGINKGO_CUDA_ARCHITECTURES=35 -DCMAKE_CUDA_HOST_COMPILER=${CXX_COMPILER}"
+  tags:
+    - cuda
+    - gpu
 
-build/cuda90/clang/all/release/static:
+build/cuda90/clang/cuda/release/static:
   <<: *default_build
   image: localhost:5000/gko-cuda90-gnu5-llvm39
   variables:
@@ -132,20 +105,27 @@ build/cuda90/clang/all/release/static:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: Release
-    EXTRA_CMAKE_FLAGS: &cuda_flags_static
-      "-DGINKGO_CUDA_ARCHITECTURES=35 -DBUILD_SHARED_LIBS=OFF"
+    BUILD_SHARED_LIBS: "OFF"
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+  tags:
+    - cuda
+    - gpu
 
 # cuda 9.1 and friends
-build/cuda91/gcc/all/debug/static:
+build/cuda91/gcc/cuda/debug/static:
   <<: *default_build
   image: localhost:5000/gko-cuda91-gnu6-llvm40
   variables:
     <<: *default_variables
     BUILD_CUDA: "ON"
     BUILD_TYPE: Debug
-    EXTRA_CMAKE_FLAGS: *cuda_flags_static
+    BUILD_SHARED_LIBS: "OFF"
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+  tags:
+    - cuda
+    - gpu
 
-build/cuda91/clang/all/release/shared:
+build/cuda91/clang/cuda/release/shared:
   <<: *default_build
   image: localhost:5000/gko-cuda91-gnu6-llvm40
   variables:
@@ -155,9 +135,12 @@ build/cuda91/clang/all/release/shared:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: Release
-    EXTRA_CMAKE_FLAGS: *cuda_flags_shared
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+  tags:
+    - cuda
+    - gpu
 
-build/cuda91/intel/all/debug/shared:
+build/cuda91/intel/cuda/debug/shared:
   <<: *default_build
   image: localhost:5000/gko-cuda91-gnu6-llvm40
   variables:
@@ -167,10 +150,13 @@ build/cuda91/intel/all/debug/shared:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: Debug
-    EXTRA_CMAKE_FLAGS: *cuda_flags_shared
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+  tags:
+    - cuda
+    - gpu
 
 # cuda 9.2 and friends
-build/cuda92/gcc/all/release/shared:
+build/cuda92/gcc/cuda/release/shared:
   <<: *default_build
   image: localhost:5000/gko-cuda92-gnu7-llvm50
   variables:
@@ -178,9 +164,12 @@ build/cuda92/gcc/all/release/shared:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: Release
-    EXTRA_CMAKE_FLAGS: *cuda_flags_shared
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+  tags:
+    - cuda
+    - gpu
 
-build/cuda92/clang/all/debug/static:
+build/cuda92/clang/cuda/debug/static:
   <<: *default_build
   image: localhost:5000/gko-cuda92-gnu7-llvm50
   variables:
@@ -189,9 +178,13 @@ build/cuda92/clang/all/debug/static:
     CXX_COMPILER: clang++
     BUILD_CUDA: "ON"
     BUILD_TYPE: Debug
-    EXTRA_CMAKE_FLAGS: *cuda_flags_static
+    BUILD_SHARED_LIBS: "OFF"
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+  tags:
+    - cuda
+    - gpu
 
-build/cuda92/intel/all/release/static:
+build/cuda92/intel/cuda/release/static:
   <<: *default_build
   image: localhost:5000/gko-cuda92-gnu7-llvm50
   variables:
@@ -201,10 +194,14 @@ build/cuda92/intel/all/release/static:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: Release
-    EXTRA_CMAKE_FLAGS: *cuda_flags_static
+    BUILD_SHARED_LIBS: "OFF"
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+  tags:
+    - cuda
+    - gpu
 
 # cuda 10.0 and friends
-build/cuda100/gcc/all/debug/shared:
+build/cuda100/gcc/cuda/debug/shared:
   <<: *default_build
   image: localhost:5000/gko-cuda100-gnu7-llvm60
   variables:
@@ -212,9 +209,12 @@ build/cuda100/gcc/all/debug/shared:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: Debug
-    EXTRA_CMAKE_FLAGS: *cuda_flags_shared
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+  tags:
+    - cuda
+    - gpu
 
-build/cuda100/clang/all/release/static:
+build/cuda100/clang/cuda/release/static:
   <<: *default_build
   image: localhost:5000/gko-cuda100-gnu7-llvm60
   variables:
@@ -224,9 +224,13 @@ build/cuda100/clang/all/release/static:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: Release
-    EXTRA_CMAKE_FLAGS: *cuda_flags_static
+    BUILD_SHARED_LIBS: "OFF"
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+  tags:
+    - cuda
+    - gpu
 
-build/cuda100/intel/all/release/shared:
+build/cuda100/intel/cuda/release/shared:
   <<: *default_build
   image: localhost:5000/gko-cuda100-gnu7-llvm60
   variables:
@@ -236,186 +240,133 @@ build/cuda100/intel/all/release/shared:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: Release
-    EXTRA_CMAKE_FLAGS: *cuda_flags_shared
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+  tags:
+    - cuda
+    - gpu
 
-# no cuda but latest gcc and "soon" clang 7
+# cuda 10.1 and friends
+build/cuda101/gcc/cuda/debug/shared:
+  <<: *default_build
+  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  variables:
+    <<: *default_variables
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: Debug
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+  tags:
+    - cuda
+    - gpu
+
+build/cuda101/clang/cuda/release/static:
+  <<: *default_build
+  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  variables:
+    <<: *default_variables
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: Debug
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+  tags:
+    - cuda
+    - gpu
+
+build/cuda101/intel/cuda/debug/static:
+  <<: *default_build
+  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  variables:
+    <<: *default_variables
+    C_COMPILER: icc
+    CXX_COMPILER: icpc
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: Debug
+    EXTRA_CMAKE_FLAGS: *cuda_flags
+  tags:
+    - cuda
+    - gpu
+
+# no cuda but latest gcc and clang
 build/nocuda/gcc/core/debug/static:
   <<: *default_build
-  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     BUILD_REFERENCE: "OFF"
     BUILD_TYPE: Debug
-    EXTRA_CMAKE_FLAGS: &flags_static
-      -DBUILD_SHARED_LIBS=OFF
+    BUILD_SHARED_LIBS: "OFF"
+  tags:
+    - cpu
 
 build/nocuda/clang/core/release/shared:
   <<: *default_build
-  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     C_COMPILER: clang
     CXX_COMPILER: clang++
     BUILD_REFERENCE: "OFF"
     BUILD_TYPE: Release
-    EXTRA_CMAKE_FLAGS: &flags_shared
-      -DBUILD_SHARED_LIBS=ON
+  tags:
+    - cpu
 
 build/nocuda/intel/core/debug/shared:
   <<: *default_build
-  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     C_COMPILER: icc
     CXX_COMPILER: icpc
     BUILD_REFERENCE: "OFF"
     BUILD_TYPE: Debug
-    EXTRA_CMAKE_FLAGS: *flags_shared
+  tags:
+    - cpu
 
 build/nocuda/gcc/omp/release/shared:
   <<: *default_build
-  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_TYPE: Release
-    EXTRA_CMAKE_FLAGS: *flags_shared
+  tags:
+    - cpu
 
 build/nocuda/clang/omp/debug/static:
   <<: *default_build
-  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     C_COMPILER: clang
     CXX_COMPILER: clang++
     BUILD_OMP: "ON"
     BUILD_TYPE: Debug
-    EXTRA_CMAKE_FLAGS: *flags_static
+    BUILD_SHARED_LIBS: "OFF"
+  tags:
+    - cpu
 
 build/nocuda/intel/omp/release/static:
   <<: *default_build
-  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     C_COMPILER: icc
     CXX_COMPILER: icpc
     BUILD_OMP: "ON"
     BUILD_TYPE: Release
-    EXTRA_CMAKE_FLAGS: *flags_static
-
-# Test jobs
-test/cuda90/gcc/all/debug/shared:
-  <<: *default_test
-  image: localhost:5000/gko-cuda90-gnu5-llvm39
-  dependencies:
-    - build/cuda90/gcc/all/debug/shared
-
-test/cuda90/clang/all/release/static:
-  <<: *default_test
-  image: localhost:5000/gko-cuda90-gnu5-llvm39
-  dependencies:
-    - build/cuda90/clang/all/release/static
-
-# cuda 9.1 and friends
-test/cuda91/gcc/all/debug/static:
-  <<: *default_test
-  image: localhost:5000/gko-cuda91-gnu6-llvm40
-  dependencies:
-    - build/cuda91/gcc/all/debug/static
-
-test/cuda91/clang/all/release/shared:
-  <<: *default_test
-  image: localhost:5000/gko-cuda91-gnu6-llvm40
-  dependencies:
-    - build/cuda91/clang/all/release/shared
-
-test/cuda91/intel/all/debug/shared:
-  <<: *default_test
-  image: localhost:5000/gko-cuda91-gnu6-llvm40
-  dependencies:
-    - build/cuda91/intel/all/debug/shared
-
-# cuda 9.2 and friends
-test/cuda92/gcc/all/release/shared:
-  <<: *default_test
-  image: localhost:5000/gko-cuda92-gnu7-llvm50
-  dependencies:
-    - build/cuda92/gcc/all/release/shared
-
-test/cuda92/clang/all/debug/static:
-  <<: *default_test
-  image: localhost:5000/gko-cuda92-gnu7-llvm50
-  dependencies:
-    - build/cuda92/clang/all/debug/static
-
-test/cuda92/intel/all/release/static:
-  <<: *default_test
-  image: localhost:5000/gko-cuda92-gnu7-llvm50
-  dependencies:
-    - build/cuda92/intel/all/release/static
-
-# cuda 10.0 and friends
-test/cuda100/gcc/all/debug/shared:
-  <<: *default_test
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
-  dependencies:
-    - build/cuda100/gcc/all/debug/shared
-
-test/cuda100/clang/all/release/static:
-  <<: *default_test
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
-  dependencies:
-    - build/cuda100/clang/all/release/static
-
-test/cuda100/intel/all/release/shared:
-  <<: *default_test
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
-  dependencies:
-    - build/cuda100/intel/all/release/shared
-
-# no cuda but latest gcc and "soon" clang 7
-test/nocuda/gcc/core/debug/static:
-  <<: *default_test
-  image: localhost:5000/gko-nocuda-gnu8-llvm70
-  dependencies:
-    - build/nocuda/gcc/core/debug/static
-
-test/nocuda/clang/core/release/shared:
-  <<: *default_test
-  image: localhost:5000/gko-nocuda-gnu8-llvm70
-  dependencies:
-    - build/nocuda/clang/core/release/shared
-
-test/nocuda/intel/core/debug/shared:
-  <<: *default_test
-  image: localhost:5000/gko-nocuda-gnu8-llvm70
-  dependencies:
-    - build/nocuda/intel/core/debug/shared
-
-test/nocuda/gcc/omp/release/shared:
-  <<: *default_test
-  image: localhost:5000/gko-nocuda-gnu8-llvm70
-  dependencies:
-    - build/nocuda/gcc/omp/release/shared
-
-test/nocuda/clang/omp/debug/static:
-  <<: *default_test
-  image: localhost:5000/gko-nocuda-gnu8-llvm70
-  dependencies:
-    - build/nocuda/clang/omp/debug/static
-
-test/nocuda/intel/omp/release/static:
-  <<: *default_test
-  image: localhost:5000/gko-nocuda-gnu8-llvm70
-  dependencies:
-    - build/nocuda/intel/omp/release/static
+    BUILD_SHARED_LIBS: "OFF"
+  tags:
+    - cpu
 
 
 # Job with important warnings as error
 warnings:
   <<: *default_build
   stage: code_quality
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  image: localhost:5000/gko-cuda101-gnu8-llvm70
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -423,26 +374,31 @@ warnings:
     CXX_FLAGS: "-Werror=pedantic -pedantic-errors"
   dependencies: []
   allow_failure: yes
+  tags:
+    - cuda
+    - gpu
 
 # Ensure kernel modules do not depend on core
 no-circular-deps:
   <<: *default_build
   stage: code_quality
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  image: localhost:5000/gko-cuda101-gnu8-llvm70
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    EXTRA_CMAKE_FLAGS: '-DCMAKE_SHARED_LINKER_FLAGS="-Wl,--no-undefined"
-      -DCMAKE_EXE_LINKER_FLAGS="-Wl,--no-undefined"'
+    EXTRA_CMAKE_FLAGS: '-DGINKGO_CHECK_CIRCULAR_DEPS=on'
   dependencies: []
   allow_failure: no
+  tags:
+    - cuda
+    - gpu
 
 # Run clang-tidy and iwyu
 clang-tidy:
   <<: *default_build
   stage: code_quality
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  image: localhost:5000/gko-cuda101-gnu8-llvm70
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -450,11 +406,14 @@ clang-tidy:
     EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_CLANG_TIDY=ON'
   dependencies: []
   allow_failure: yes
+  tags:
+    - cuda
+    - gpu
 
 iwyu:
   <<: *default_build
   stage: code_quality
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  image: localhost:5000/gko-cuda101-gnu8-llvm70
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -462,12 +421,15 @@ iwyu:
     EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_IWYU=ON'
   dependencies: []
   allow_failure: yes
+  tags:
+    - cuda
+    - gpu
 
 # Code analysis, coverage and reporting tool
 # For short living branches or PRs, try to detect an open PR
 sonarqube_cov_:
   stage: code_quality
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  image: localhost:5000/gko-cuda101-gnu8-llvm70
   before_script: *default_before_script
   script:
     - PR_ID=$(curl "https://api.github.com/search/issues?q=sha:${CI_COMMIT_SHA}"
@@ -499,12 +461,15 @@ sonarqube_cov_:
   only:
     variables:
       - $PUBLIC_CI_TAG
+  tags:
+    - cuda
+    - gpu
 
 # For long living branches, do not detect the PR. A PR would always be detected
 # (the one that was merged).
 sonarqube_cov:
   stage: code_quality
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  image: localhost:5000/gko-cuda101-gnu8-llvm70
   before_script: *default_before_script
   script:
     - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
@@ -522,12 +487,15 @@ sonarqube_cov:
       - tags
     variables:
       - $PUBLIC_CI_TAG
+  tags:
+    - cuda
+    - gpu
 
 
 # Deploy documentation to github-pages
 gh-pages:
   stage: deploy
-  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     PUBLIC_REPO: git@github.com:ginkgo-project/ginkgo.git
@@ -539,8 +507,9 @@ gh-pages:
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
         -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DBUILD_SHARED_LIBS=ON
         ${EXTRA_CMAKE_FLAGS} -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=OFF
-        -DGINKGO_BUILD_OMP=OFF -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_TESTS=OFF
-        -DGINKGO_BUILD_EXAMPLES=OFF -DGINKGO_BUILD_DOC=ON -DGINKGO_DOC_GENERATE_PDF=ON
+        -DGINKGO_BUILD_OMP=OFF -DGINKGO_BUILD_CUDA=OFF
+        -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_EXAMPLES=OFF
+        -DGINKGO_BUILD_DOC=ON -DGINKGO_DOC_GENERATE_PDF=ON
     - make usr
     - make pdf
     - popd
@@ -570,7 +539,7 @@ gh-pages:
 
 threadsanitizer:
   stage: QoS_tools
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  image: localhost:5000/gko-cuda101-gnu8-llvm70
   before_script: *default_before_script
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=TSAN
@@ -583,10 +552,13 @@ threadsanitizer:
       - tags
     variables:
       - $PUBLIC_CI_TAG
+  tags:
+    - cuda
+    - gpu
 
 addresssanitizer:
   stage: QoS_tools
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  image: localhost:5000/gko-cuda101-gnu8-llvm70
   before_script: *default_before_script
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=ASAN
@@ -599,10 +571,13 @@ addresssanitizer:
       - tags
     variables:
       - $PUBLIC_CI_TAG
+  tags:
+    - cuda
+    - gpu
 
 valgrind:
   stage: QoS_tools
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  image: localhost:5000/gko-cuda101-gnu8-llvm70
   before_script: *default_before_script
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_MEMORYCHECK_TYPE=Valgrind
@@ -614,6 +589,9 @@ valgrind:
       - tags
     variables:
       - $PUBLIC_CI_TAG
+  tags:
+    - cuda
+    - gpu
 
 
 # Benchmark build
