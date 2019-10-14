@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_BENCHMARK_SPMV_CUDA_LINOPS_HPP_
-#define GKO_BENCHMARK_SPMV_CUDA_LINOPS_HPP_
+#ifndef GKO_BENCHMARK_UTILS_CUDA_LINOPS_HPP_
+#define GKO_BENCHMARK_UTILS_CUDA_LINOPS_HPP_
 
 
 #include <ginkgo/ginkgo.hpp>
@@ -477,4 +477,4 @@ using cusp_ell =
     detail::CuspHybrid<double, gko::int32, CUSPARSE_HYB_PARTITION_MAX, 0>;
 using cusp_hybrid = detail::CuspHybrid<>;
 
-#endif  // GKO_BENCHMARK_SPMV_CUDA_LINOPS_HPP_
+#endif  // GKO_BENCHMARK_UTILS_CUDA_LINOPS_HPP_
