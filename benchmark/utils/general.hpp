@@ -280,6 +280,15 @@ std::unique_ptr<vec<ValueType>> create_vector(
     return res;
 }
 
+template <typename ValueType>
+std::unique_ptr<vec<ValueType>> create_matrix(
+    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
+{
+    auto res = vec<ValueType>::create(exec);
+    res->read(gko::matrix_data<ValueType>(size));
+    return res;
+}
+
 
 // creates a random matrix
 template <typename ValueType, typename RandomEngine>
@@ -335,4 +344,4 @@ double compute_residual_norm(const gko::LinOp *system_matrix,
 }
 
 
-#endif  // GKO_BENCHMARK_UTILS_HPP_
+#endif  // GKO_BENCHMARK_UTILS_GENERAL_HPP_

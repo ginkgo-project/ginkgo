@@ -58,7 +58,8 @@ DEFINE_double(rel_res_goal, 1e-6, "The relative residual goal of the solver");
 
 DEFINE_string(solvers, "cg",
               "A comma-separated list of solvers to run."
-              "Supported values are: cg, bicgstab, cgs, fcg");
+              "Supported values are: bicgstab, cg, cgs, fcg, gmres, ir, "
+              "lower_trs, upper_trs");
 
 DEFINE_string(preconditioners, "none",
               "A comma-separated list of preconditioners to use."
@@ -66,8 +67,7 @@ DEFINE_string(preconditioners, "none",
 
 
 // input validation
-[[noreturn]] void print_config_error_and_exit()
-{
+[[noreturn]] void print_config_error_and_exit() {
     std::cerr << "Input has to be a JSON array of matrix configurations:\n"
               << "  [\n"
               << "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
@@ -120,8 +120,8 @@ std::unique_ptr<gko::LinOpFactory> create_solver(
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                                 std::shared_ptr<const gko::Executor>,
                                 std::shared_ptr<const gko::LinOpFactory>)>>
-    solver_factory{{"cg", create_solver<gko::solver::Cg<>>},
-                   {"bicgstab", create_solver<gko::solver::Bicgstab<>>},
+    solver_factory{{"bicgstab", create_solver<gko::solver::Bicgstab<>>},
+                   {"cg", create_solver<gko::solver::Cg<>>},
                    {"cgs", create_solver<gko::solver::Cgs<>>},
                    {"fcg", create_solver<gko::solver::Fcg<>>},
                    {"gmres", create_solver<gko::solver::Gmres<>>}};
@@ -249,8 +249,8 @@ void solve_system(const std::string &solver_name,
                           rapidjson::Value(rapidjson::kArrayType), allocator);
         add_or_set_member(solver_json, "true_residuals",
                           rapidjson::Value(rapidjson::kArrayType), allocator);
-        auto rhs_norm = compute_norm(lend(b));
-        add_or_set_member(solver_json, "rhs_norm", rhs_norm, allocator);
+        // auto rhs_norm = compute_norm(lend(b));
+        // add_or_set_member(solver_json, "rhs_norm", rhs_norm, allocator);
         for (auto stage : {"generate", "apply"}) {
             add_or_set_member(solver_json, stage,
                               rapidjson::Value(rapidjson::kObjectType),
@@ -287,11 +287,11 @@ void solve_system(const std::string &solver_name,
 
             auto apply_logger = std::make_shared<OperationLogger>(exec);
             exec->add_logger(apply_logger);
-            auto res_logger = std::make_shared<ResidualLogger<etype>>(
-                exec, lend(system_matrix), b,
-                solver_json["recurrent_residuals"],
-                solver_json["true_residuals"], allocator);
-            solver->add_logger(res_logger);
+            // auto res_logger = std::make_shared<ResidualLogger<etype>>(
+            //     exec, lend(system_matrix), b,
+            //     solver_json["recurrent_residuals"],
+            //     solver_json["true_residuals"], allocator);
+            // solver->add_logger(res_logger);
 
             solver->apply(lend(b), lend(x_clone));
 
@@ -332,10 +332,11 @@ void solve_system(const std::string &solver_name,
             add_or_set_member(solver_json["apply"], "time", apply_time.count(),
                               allocator);
 
-            auto residual = compute_residual_norm(lend(system_matrix), lend(b),
-                                                  lend(x_clone));
-            add_or_set_member(solver_json, "residual_norm", residual,
-                              allocator);
+            // auto residual = compute_residual_norm(lend(system_matrix),
+            // lend(b),
+            //                                       lend(x_clone));
+            // add_or_set_member(solver_json, "residual_norm", residual,
+            //                   allocator);
         }
 
         // compute and write benchmark data
@@ -411,9 +412,10 @@ int main(int argc, char *argv[])
 
             auto system_matrix = share(matrix_factory.at(
                 test_case["optimal"]["spmv"].GetString())(exec, test_case));
-            auto b = create_vector<etype>(exec, system_matrix->get_size()[0],
-                                          engine);
-            auto x = create_vector<etype>(exec, system_matrix->get_size()[0]);
+            auto b = create_matrix<etype>(
+                exec, gko::dim<2>{system_matrix->get_size()[0], 1}, engine);
+            auto x = create_matrix<etype>(
+                exec, gko::dim<2>{system_matrix->get_size()[0], 1});
 
             std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
                       << ", " << system_matrix->get_size()[1] << ")"

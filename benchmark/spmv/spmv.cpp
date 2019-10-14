@@ -43,14 +43,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <typeinfo>
 
 
+#include "benchmark/utils/common.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/spmv_common.hpp"
-
-
-#ifdef HAS_CUDA
-#include "cuda_linops.hpp"
-#endif  // HAS_CUDA
 
 
 using etype = double;
@@ -92,54 +88,6 @@ DEFINE_string(
     "cusp_csrmm: benchmark CuSPARSE with the cusparseXcsrmv_mm function.\n");
 
 DEFINE_uint32(nrhs, 1, "The number of right hand sides");
-
-
-const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
-                                std::shared_ptr<const gko::Executor>,
-                                const gko::matrix_data<> &)>>
-    matrix_factory{
-        {"csr", READ_MATRIX(csr, std::make_shared<csr::automatical>())},
-        {"csri", READ_MATRIX(csr, std::make_shared<csr::load_balance>())},
-        {"csrm", READ_MATRIX(csr, std::make_shared<csr::merge_path>())},
-        {"csrc", READ_MATRIX(csr, std::make_shared<csr::classical>())},
-        {"coo", read_matrix_from_data<gko::matrix::Coo<>>},
-        {"ell", read_matrix_from_data<gko::matrix::Ell<>>},
-#ifdef HAS_CUDA
-        {"cusp_csr", read_matrix_from_data<cusp_csr>},
-        {"cusp_csrmp", read_matrix_from_data<cusp_csrmp>},
-        {"cusp_csrex", read_matrix_from_data<cusp_csrex>},
-        {"cusp_csrmm", read_matrix_from_data<cusp_csrmm>},
-        {"cusp_hybrid", read_matrix_from_data<cusp_hybrid>},
-        {"cusp_coo", read_matrix_from_data<cusp_coo>},
-        {"cusp_ell", read_matrix_from_data<cusp_ell>},
-#endif  // HAS_CUDA
-        {"hybrid", read_matrix_from_data<hybrid>},
-        {"hybrid0",
-         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0))},
-        {"hybrid25",
-         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0.25))},
-        {"hybrid33",
-         READ_MATRIX(hybrid,
-                     std::make_shared<hybrid::imbalance_limit>(1.0 / 3.0))},
-        {"hybrid40",
-         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0.4))},
-        {"hybrid60",
-         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0.6))},
-        {"hybrid80",
-         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0.8))},
-        {"hybridlimit0",
-         READ_MATRIX(hybrid,
-                     std::make_shared<hybrid::imbalance_bounded_limit>(0))},
-        {"hybridlimit25",
-         READ_MATRIX(hybrid,
-                     std::make_shared<hybrid::imbalance_bounded_limit>(0.25))},
-        {"hybridlimit33",
-         READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_bounded_limit>(
-                                 1.0 / 3.0))},
-        {"hybridminstorage",
-         READ_MATRIX(hybrid,
-                     std::make_shared<hybrid::minimal_storage_limit>())},
-        {"sellp", read_matrix_from_data<gko::matrix::Sellp<>>}};
 
 
 // This function supposes that management of `FLAGS_overwrite` is done before
