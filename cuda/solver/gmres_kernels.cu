@@ -440,6 +440,8 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
                          exec->get_num_multiprocessor() * 2);
     const dim3 block_size(default_dot_dim, default_dot_dim);
     for (size_type k = 0; k < iter + 1; ++k) {
+        zero_array(dim_size[1],
+                   hessenberg_iter->get_values() + k * stride_hessenberg);
         if (dim_size[1] == 1) {
             cublas::dot(cublas_handle, dim_size[0],
                         next_krylov_basis->get_const_values(),
@@ -448,8 +450,6 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
                         stride_krylov,
                         hessenberg_iter->get_values() + k * stride_hessenberg);
         } else {
-            zero_array(dim_size[1],
-                       hessenberg_iter->get_values() + k * stride_hessenberg);
             multidot_kernel<<<grid_size, block_size>>>(
                 k, dim_size[0], dim_size[1],
                 as_cuda_type(next_krylov_basis->get_const_values()),
