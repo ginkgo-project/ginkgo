@@ -71,6 +71,8 @@ DEFINE_uint32(
     nrhs, 1,
     "The number of right hand sides. Record the residual only when nrhs == 1.");
 
+DECLARE_uint32(repetitions);
+
 // input validation
 [[noreturn]] void print_config_error_and_exit() {
     std::cerr << "Input has to be a JSON array of matrix configurations:\n"
@@ -258,6 +260,17 @@ void solve_system(const std::string &solver_name,
                               allocator);
         }
 
+        // warm run
+        for (unsigned int i = 0; i < FLAGS_warmup; i++) {
+            auto x_clone = clone(x);
+            auto precond = precond_factory.at(precond_name)(exec);
+            auto solver = solver_factory.at(solver_name)(exec, give(precond))
+                              ->generate(system_matrix);
+            solver->apply(lend(b), lend(x_clone));
+            exec->synchronize();
+        }
+
+        // detail run
         if (FLAGS_detailed) {
             // slow run, get the time of each functions
             auto x_clone = clone(x);
@@ -306,7 +319,9 @@ void solve_system(const std::string &solver_name,
         }
 
         // timed run
-        {
+        std::chrono::nanoseconds apply_time(0);
+        std::chrono::nanoseconds generate_time(0);
+        for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
             auto x_clone = clone(x);
 
             exec->synchronize();
@@ -318,11 +333,9 @@ void solve_system(const std::string &solver_name,
 
             exec->synchronize();
             auto g_tac = std::chrono::steady_clock::now();
-            auto generate_time =
+            generate_time +=
                 std::chrono::duration_cast<std::chrono::nanoseconds>(g_tac -
                                                                      g_tic);
-            add_or_set_member(solver_json["generate"], "time",
-                              generate_time.count(), allocator);
 
             exec->synchronize();
             auto a_tic = std::chrono::steady_clock::now();
@@ -331,18 +344,24 @@ void solve_system(const std::string &solver_name,
 
             exec->synchronize();
             auto a_tac = std::chrono::steady_clock::now();
-            auto apply_time =
-                std::chrono::duration_cast<std::chrono::nanoseconds>(a_tac -
-                                                                     a_tic);
-            add_or_set_member(solver_json["apply"], "time", apply_time.count(),
-                              allocator);
-            if (FLAGS_nrhs == 1) {
+            apply_time += std::chrono::duration_cast<std::chrono::nanoseconds>(
+                a_tac - a_tic);
+
+            if (FLAGS_nrhs == 1 && i == FLAGS_repetitions - 1) {
                 auto residual = compute_residual_norm(lend(system_matrix),
                                                       lend(b), lend(x_clone));
                 add_or_set_member(solver_json, "residual_norm", residual,
                                   allocator);
             }
         }
+        add_or_set_member(
+            solver_json["generate"], "time",
+            static_cast<double>(generate_time.count()) / FLAGS_repetitions,
+            allocator);
+        add_or_set_member(
+            solver_json["apply"], "time",
+            static_cast<double>(apply_time.count()) / FLAGS_repetitions,
+            allocator);
 
         // compute and write benchmark data
         add_or_set_member(solver_json, "completed", true, allocator);
@@ -357,6 +376,8 @@ void solve_system(const std::string &solver_name,
 
 int main(int argc, char *argv[])
 {
+    // Set the default repetitions = 1.
+    FLAGS_repetitions = 1;
     std::string header =
         "A benchmark for measuring performance of Ginkgo's solvers.\n";
     std::string format =
