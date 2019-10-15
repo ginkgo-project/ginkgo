@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 
+#include "benchmark/utils/common.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/spmv_common.hpp"
@@ -50,8 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Command-line arguments
 DEFINE_uint32(max_block_size, 32,
               "Maximal block size of the block-Jacobi preconditioner");
-
-DEFINE_string(matrix_format, "csr", "The format in which to read the matrix");
 
 DEFINE_string(preconditioners, "jacobi",
               "A comma-separated list of solvers to run."
@@ -66,6 +65,8 @@ DEFINE_string(storage_optimization, "0,0",
 DEFINE_double(accuracy, 1e-1,
               "This value is used as the accuracy flag of the adaptive Jacobi "
               "preconditioner.");
+
+DECLARE_string(formats);
 
 
 // some shortcuts
@@ -85,16 +86,6 @@ gko::precision_reduction parse_storage_optimization(const std::string &flag)
     }
     return gko::precision_reduction(std::stoi(parts[0]), std::stoi(parts[1]));
 }
-
-
-const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
-                                std::shared_ptr<const gko::Executor>,
-                                const rapidjson::Value &)>>
-    matrix_factory{{"csr", read_matrix<gko::matrix::Csr<etype>>},
-                   {"coo", read_matrix<gko::matrix::Coo<etype>>},
-                   {"ell", read_matrix<gko::matrix::Ell<etype>>},
-                   {"hybrid", read_matrix<gko::matrix::Hybrid<etype>>},
-                   {"sellp", read_matrix<gko::matrix::Sellp<etype>>}};
 
 
 // preconditioner mapping
@@ -244,6 +235,8 @@ void run_preconditioner(const char *precond_name,
 
 int main(int argc, char *argv[])
 {
+    // Use csr as the default format
+    FLAGS_formats = "csr";
     std::string header =
         "A benchmark for measuring preconditioner performance.\n";
     std::string format = std::string() + "  [\n" +
@@ -259,6 +252,12 @@ int main(int argc, char *argv[])
     auto &engine = get_engine();
 
     auto preconditioners = split(FLAGS_preconditioners, ',');
+
+    auto formats = split(FLAGS_formats, ',');
+    if (formats.size() != 1) {
+        std::cerr << "Preconditioner only supports one format" << std::endl;
+        std::exit(1);
+    }
 
     rapidjson::IStreamWrapper jcin(std::cin);
     rapidjson::Document test_cases;
@@ -288,8 +287,11 @@ int main(int argc, char *argv[])
             }
             std::clog << "Running test case: " << test_case << std::endl;
 
+            std::ifstream mtx_fd(test_case["filename"].GetString());
+            auto data = gko::read_raw<etype>(mtx_fd);
+
             auto system_matrix =
-                share(matrix_factory.at(FLAGS_matrix_format)(exec, test_case));
+                share(matrix_factory.at(FLAGS_formats)(exec, data));
             auto b = create_vector<etype>(exec, system_matrix->get_size()[0],
                                           engine);
             auto x = create_vector<etype>(exec, system_matrix->get_size()[0]);

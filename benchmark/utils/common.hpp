@@ -40,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 
 
+#include <gflags/gflags.h>
+
+
 #ifdef HAS_CUDA
 #include "cuda_linops.hpp"
 #endif  // HAS_CUDA
@@ -48,6 +51,52 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // some shortcuts
 using hybrid = gko::matrix::Hybrid<>;
 using csr = gko::matrix::Csr<>;
+
+// the formats command-line argument
+// If define DISABLE_FORMATS_COMMAND, do not define this argument.
+#ifndef DISABLE_FORMATS_COMMAND
+DEFINE_string(
+    formats, "coo",
+    "A comma-separated list of formats to run."
+    "Supported values are: coo, csr, ell, sellp, hybrid, hybrid0, "
+    "hybrid25, hybrid33, hybrid40, hybrid60, hybrid80, hybridlimit0, "
+    "hybridlimit25, hybridlimit33, hybridminstorage"
+#ifdef HAS_CUDA
+    ", cusp_csr, cusp_csrex, cusp_csrmp, cusp_csrmm, cusp_coo, cusp_ell, "
+    "cusp_hybrid"
+#endif  // HAS_CUDA
+    ".\n"
+    "coo: Coordinate storage. The CUDA kernel uses the load-balancing approach "
+    "suggested in Flegar et al.: Overcoming Load Imbalance for Irregular "
+    "Sparse Matrices.\n"
+    "csr: Compressed Sparse Row storage. Ginkgo implementation with automatic "
+    "strategy.\n"
+    "csrc: Ginkgo's CSR implementation with automatic stategy.\n"
+    "csri: Ginkgo's CSR implementation with inbalance strategy.\n"
+    "csrm: Ginkgo's CSR implementation with merge_path strategy.\n"
+    "ell: Ellpack format according to Bell and Garland: Efficient Sparse "
+    "Matrix-Vector Multiplication on CUDA.\n"
+    "sellp: Sliced Ellpack uses a default block size of 32.\n"
+    "hybrid: Hybrid uses ell and coo to represent the matrix.\n"
+    "hybrid0, hybrid25, hybrid33, hybrid40, hybrid60, hybrid80: Hybrid uses "
+    "the row distribution to decide the partition.\n"
+    "hybridlimit0, hybridlimit25, hybrid33: Add the upper bound on the ell "
+    "part of hybrid0, hybrid25, hybrid33.\n"
+    "hybridminstorage: Hybrid uses the minimal storage to store the matrix."
+#ifdef HAS_CUDA
+    "\n"
+    "cusp_hybrid: benchmark CuSPARSE spmv with cusparseXhybmv and an automatic "
+    "partition.\n"
+    "cusp_coo: use cusparseXhybmv with a CUSPARSE_HYB_PARTITION_USER "
+    "partition.\n"
+    "cusp_ell: use cusparseXhybmv with CUSPARSE_HYB_PARTITION_MAX partition.\n"
+    "cusp_csr: benchmark CuSPARSE with the cusparseXcsrmv function.\n"
+    "cusp_csrex: benchmark CuSPARSE with the cusparseXcsrmvEx function.\n"
+    "cusp_csrmp: benchmark CuSPARSE with the cusparseXcsrmv_mp function.\n"
+    "cusp_csrmm: benchmark CuSPARSE with the cusparseXcsrmv_mm function."
+#endif  // HAS_CUDA
+);
+#endif  // DISABLE_FORMATS_COMMAND
 
 
 /**
