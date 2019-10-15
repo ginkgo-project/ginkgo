@@ -123,7 +123,8 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
     solver_factory{{"cg", create_solver<gko::solver::Cg<>>},
                    {"bicgstab", create_solver<gko::solver::Bicgstab<>>},
                    {"cgs", create_solver<gko::solver::Cgs<>>},
-                   {"fcg", create_solver<gko::solver::Fcg<>>}};
+                   {"fcg", create_solver<gko::solver::Fcg<>>},
+                   {"gmres", create_solver<gko::solver::Gmres<>>}};
 
 
 // TODO: Workaround until GPU matrix conversions are implemented
