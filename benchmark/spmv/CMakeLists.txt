@@ -2,11 +2,6 @@ add_executable(spmv spmv.cpp)
 target_link_libraries(spmv ginkgo gflags rapidjson)
 if (GINKGO_BUILD_CUDA)
     target_compile_definitions(spmv PRIVATE HAS_CUDA=1)
-    if("${CUDA_RUNTIME_LIBS}" MATCHES "Threads::Threads")
-        # need to import Threads
-        set(THREADS_PREFER_PTHREAD_FLAG ON)
-        find_package(Threads REQUIRED)
-    endif()
     target_link_libraries(spmv ginkgo ${CUDA_RUNTIME_LIBS}
         ${CUBLAS} ${CUSPARSE})
     target_include_directories(spmv SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})

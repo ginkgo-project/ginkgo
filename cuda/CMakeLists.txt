@@ -34,25 +34,23 @@ set(CMAKE_CUDA_COMPILER_VERSION ${CMAKE_CUDA_COMPILER_VERSION} PARENT_SCOPE)
 set(CUDA_INCLUDE_DIRS ${CUDA_INCLUDE_DIRS} PARENT_SCOPE)
 
 
-# nvcc uses static cudartlibrary by default
+# MSVC nvcc uses static cudartlibrary by default, and other platforms use shared cudartlibrary.
 # add `-cudart shared` or `-cudart=shared` according system into CMAKE_CUDA_FLAGS/GINKGO_CUDA_COMPILER_FLAGS
-# to force nvcc to use dynamic cudart library.
+# to force nvcc to use dynamic cudart library in MSVC.
 find_library(CUDA_RUNTIME_LIBS_DYNAMIC cudart
         HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 find_library(CUDA_RUNTIME_LIBS_STATIC cudart_static
         HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
-
-if("${CMAKE_CUDA_FLAGS}" MATCHES "-cudart(=| )shared" OR "${GINKGO_CUDA_COMPILER_FLAGS}" MATCHES "-cudart(=| )shared")
-    set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_DYNAMIC}" CACHE STRING "Path to a library" FORCE)
-else()
-    set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_STATIC}" CACHE STRING "Path to a library" FORCE)
-    if(NOT MSVC)
-        set(THREADS_PREFER_PTHREAD_FLAG ON)
-        find_package(Threads REQUIRED)
-        # link cudart_static need rt, pthread, and dl
-        set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_STATIC};rt;Threads::Threads;-Wl,--no-as-needed;dl" CACHE STRING "Path to a library" FORCE)
+if(MSVC)
+    if("${CMAKE_CUDA_FLAGS}" MATCHES "-cudart(=| )shared" OR "${GINKGO_CUDA_COMPILER_FLAGS}" MATCHES "-cudart(=| )shared")
+        set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_DYNAMIC}" CACHE STRING "Path to a library" FORCE)
+    else()
+        set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_STATIC}" CACHE STRING "Path to a library" FORCE)
     endif()
+else()
+    set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_DYNAMIC}" CACHE STRING "Path to a library" FORCE)
 endif()
+
 find_library(CUBLAS cublas
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 find_library(CUSPARSE cusparse
