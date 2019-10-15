@@ -51,19 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using etype = double;
 
-// Command-line arguments
-DEFINE_string(
-    formats, "coo",
-    "A comma-separated list of formats to benchmark. All conversions from the "
-    "formats given as argument to existing Ginkgo formats are benchmarked.\n"
-    "Supported values are: coo, csr, ell, hybrid, sellp"
-    "coo: Coordinate storage.\n"
-    "csr: Compressed Sparse Row storage.\n"
-    "ell: Ellpack format according to Bell and Garland: Efficient Sparse "
-    "Matrix-Vector Multiplication on CUDA.\n"
-    "hybrid: Hybrid uses ell and coo to represent the matrix.\n"
-    "sellp: Sliced Ellpack format.\n");
-
 
 // This function supposes that management of `FLAGS_overwrite` is done before
 // calling it
