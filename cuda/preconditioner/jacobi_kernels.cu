@@ -134,7 +134,7 @@ __global__ void generate_natural_block_pointer(
     }
     size_type num_blocks = 1;
     int32 current_block_size = 1;
-    for (size_type i = 1; i < num_rows; ++i) {
+    for (size_type i = 0; i < num_rows - 1; ++i) {
         if ((matching_next_row[i]) && (current_block_size < max_block_size)) {
             ++current_block_size;
         } else {
@@ -157,7 +157,7 @@ size_type find_natural_blocks(std::shared_ptr<const CudaExecutor> exec,
 {
     Array<size_type> nums(exec, 1);
 
-    Array<bool> matching_next_row(exec, mtx->get_size()[0]);
+    Array<bool> matching_next_row(exec, mtx->get_size()[0] - 1);
 
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
