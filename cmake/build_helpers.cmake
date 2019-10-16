@@ -73,7 +73,7 @@ function(ginkgo_check_shared_library name)
     endif()
 endfunction()
 
-function(ginkgo_turn_windows_link lang from to)
+function(ginkgo_switch_windows_link lang from to)
     foreach(flag_var
         "CMAKE_${lang}_FLAGS" "CMAKE_${lang}_FLAGS_DEBUG" "CMAKE_${lang}_FLAGS_RELEASE"
         "CMAKE_${lang}_FLAGS_MINSIZEREL" "CMAKE_${lang}_FLAGS_RELWITHDEBINFO"
@@ -88,10 +88,10 @@ function(ginkgo_turn_windows_link lang from to)
     endforeach()
 endfunction()
 
-macro(ginkgo_turn_to_windows_static lang)
-    ginkgo_turn_windows_link(${lang} "MD" "MT")
+macro(ginkgo_switch_to_windows_static lang)
+    ginkgo_switch_windows_link(${lang} "MD" "MT")
 endmacro()
 
-macro(ginkgo_turn_to_windows_dynamic lang)
-    ginkgo_turn_windows_link(${lang} "MT" "MD")
+macro(ginkgo_switch_to_windows_dynamic lang)
+    ginkgo_switch_windows_link(${lang} "MT" "MD")
 endmacro()

@@ -112,12 +112,12 @@ configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
 # This is modified from https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
 if(MSVC)
     if(BUILD_SHARED_LIBS)
-        ginkgo_turn_to_windows_dynamic("CXX")
-        ginkgo_turn_to_windows_dynamic("C")
+        ginkgo_switch_to_windows_dynamic("CXX")
+        ginkgo_switch_to_windows_dynamic("C")
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
     else()
-        ginkgo_turn_to_windows_static("CXX")
-        ginkgo_turn_to_windows_static("C")
+        ginkgo_switch_to_windows_static("CXX")
+        ginkgo_switch_to_windows_static("C")
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
     endif()
 endif()
@@ -128,6 +128,7 @@ ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
 ginkgo_find_package(gflags gflags FALSE 2.2.2)
 ginkgo_find_package(RapidJSON rapidjson TRUE 1.1.0)
 add_subdirectory(third_party)    # Third-party tools and libraries
+
 # Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be
 # propagated to the other parts of Ginkgo in case of building as static libraries
 if(GINKGO_BUILD_CUDA)
