@@ -17,9 +17,9 @@ endif()
 # This is modified from https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
 if(MSVC)
     if(BUILD_SHARED_LIBS)
-        ginkgo_turn_to_windows_dynamic("CUDA")
+        ginkgo_switch_to_windows_dynamic("CUDA")
     else()
-        ginkgo_turn_to_windows_static("CUDA")
+        ginkgo_switch_to_windows_static("CUDA")
     endif()
 endif()
 

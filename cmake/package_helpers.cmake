@@ -119,9 +119,7 @@ macro(ginkgo_add_external_target new_target external_name includedir libdir buil
         # Since we do not really manage other build types, let's globally use the DEBUG symbols
         if(MSVC)
         # Only Debug build uses MDd or MTd, and others use MD or MT.
-        # MSVC would like to use same runtime library, so we use Debug third-party in Debug and Release third-party in Release.
-            set_target_properties(${new_target} PROPERTIES IMPORTED_LOCATION_DEBUG
-                    ${${external_name}_LIBRARY_DEBUG})
+        # MSVC would like to use same runtime library, so we use Debug third-party in Debug and Release third-party in others.
             set_target_properties(${new_target} PROPERTIES IMPORTED_LOCATION
                     ${${external_name}_LIBRARY_RELEASE})
         else()
