@@ -66,8 +66,6 @@ DEFINE_double(accuracy, 1e-1,
               "This value is used as the accuracy flag of the adaptive Jacobi "
               "preconditioner.");
 
-DECLARE_string(formats);
-
 
 // some shortcuts
 using etype = double;

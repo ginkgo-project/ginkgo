@@ -71,7 +71,6 @@ DEFINE_uint32(
     nrhs, 1,
     "The number of right hand sides. Record the residual only when nrhs == 1.");
 
-DECLARE_uint32(repetitions);
 
 // input validation
 [[noreturn]] void print_config_error_and_exit() {
