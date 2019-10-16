@@ -84,6 +84,7 @@ __device__ __forceinline__ void extract_transposed_diag_blocks(
             if (threadIdx.y == b && threadIdx.x < max_block_size) {
                 workspace[threadIdx.x] = zero<ValueType>();
             }
+            warp.sync();
             const auto row = bstart + i;
             const auto rstart = row_ptrs[row] + tid;
             const auto rend = row_ptrs[row + 1];
@@ -101,6 +102,7 @@ __device__ __forceinline__ void extract_transposed_diag_blocks(
             if (threadIdx.y == b && threadIdx.x < bsize) {
                 block_row[i * increment] = workspace[threadIdx.x];
             }
+            warp.sync();
         }
     }
 }
