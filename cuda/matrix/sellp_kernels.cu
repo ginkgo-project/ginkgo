@@ -62,6 +62,7 @@ namespace {
 
 constexpr auto default_block_size = 512;
 
+
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(matrix::default_slice_size) void spmv_kernel(
     size_type num_rows, size_type num_right_hand_sides, size_type b_stride,

@@ -32,9 +32,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception.hpp>
 
+
 #include <hip/hip_runtime.h>
 #include <hipblas.h>
 #include <hipsparse.h>
+
 
 namespace gko {
 
@@ -64,6 +66,8 @@ std::string HipblasError::get_error(int64 error_code)
     GKO_REGISTER_HIPBLAS_ERROR(HIPBLAS_STATUS_INTERNAL_ERROR);
     GKO_REGISTER_HIPBLAS_ERROR(HIPBLAS_STATUS_NOT_SUPPORTED);
     return "Unknown error";
+
+#undef GKO_REGISTER_HIPBLAS_ERROR
 }
 
 
@@ -83,6 +87,8 @@ std::string HipsparseError::get_error(int64 error_code)
     GKO_REGISTER_HIPSPARSE_ERROR(HIPSPARSE_STATUS_INTERNAL_ERROR);
     GKO_REGISTER_HIPSPARSE_ERROR(HIPSPARSE_STATUS_MATRIX_TYPE_NOT_SUPPORTED);
     return "Unknown error";
+
+#undef GKO_REGISTER_HIPSPARSE_ERROR
 }
 
 
