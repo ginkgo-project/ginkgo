@@ -95,7 +95,7 @@ if float(cuda_version) >= float(9.2):
 
 
 # Convert from CUDA version to Intel Compiler years
-intel_versions = {'9.0' : '2017', '9.1' : '2017', '9.2' : '2017', '10.0' : '2018'}
+intel_versions = {'9.0' : '2017', '9.1' : '2017', '9.2' : '2017', '10.0' : '2018', '10.1' : '2019'}
 intel_path = 'intel/parallel_studio_xe_{}/compilers_and_libraries/linux/'.format(intel_versions.get(cuda_version))
 if os.path.isdir(intel_path):
     Stage0 += copy(src=intel_path+'bin/intel64/', dest='/opt/intel/bin/')

@@ -37,11 +37,11 @@ Stage0 += apt_get(ospackages=['ca-certificates']) # weird github certificates pr
 Stage0 += apt_get(ospackages=['bison', 'flex'])
 
 # GNU compilers
-gnu_version = USERARG.get('gnu', '8')
+gnu_version = USERARG.get('gnu', '9')
 Stage0 += gnu(version=gnu_version, extra_repository=True)
 
 # Clang compilers
-llvm_version = USERARG.get('llvm', '7')
+llvm_version = USERARG.get('llvm', '8')
 clang_ver = 'clang-{}'.format(llvm_version)
 repo_ver = ['deb http://apt.llvm.org/{}/ llvm-toolchain-{}-{} main'.format(release_name, release_name, llvm_version)]
 Stage0 += apt_get(ospackages=[clang_ver, 'libomp-dev'], repositories=repo_ver, keys=['https://apt.llvm.org/llvm-snapshot.gpg.key'])

@@ -11,8 +11,4 @@ coverage:
         threshold: 2
         base: auto
   ignore:
-    - "**/third_party/"
     - "**/test/"
-    - "**/benchmark/"
-    - "**/examples/"
-    - "**/c\\+\\+/"
