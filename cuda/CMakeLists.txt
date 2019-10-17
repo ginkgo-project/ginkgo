@@ -35,14 +35,14 @@ set(CUDA_INCLUDE_DIRS ${CUDA_INCLUDE_DIRS} PARENT_SCOPE)
 
 
 # MSVC nvcc uses static cudartlibrary by default, and other platforms use shared cudartlibrary.
-# add `-cudart shared` or `-cudart=shared` according system into CMAKE_CUDA_FLAGS/GINKGO_CUDA_COMPILER_FLAGS
+# add `-cudart shared` or `-cudart=shared` according system into CMAKE_CUDA_FLAGS
 # to force nvcc to use dynamic cudart library in MSVC.
 find_library(CUDA_RUNTIME_LIBS_DYNAMIC cudart
         HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 find_library(CUDA_RUNTIME_LIBS_STATIC cudart_static
         HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 if(MSVC)
-    if("${CMAKE_CUDA_FLAGS}" MATCHES "-cudart(=| )shared" OR "${GINKGO_CUDA_COMPILER_FLAGS}" MATCHES "-cudart(=| )shared")
+    if("${CMAKE_CUDA_FLAGS}" MATCHES "-cudart(=| )shared")
         set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_DYNAMIC}" CACHE STRING "Path to a library" FORCE)
     else()
         set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_STATIC}" CACHE STRING "Path to a library" FORCE)
