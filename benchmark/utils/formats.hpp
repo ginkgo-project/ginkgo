@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif  // HAS_CUDA
 
 
-namespace {
+namespace formats {
 
 
 std::string available_format =
@@ -99,11 +99,11 @@ std::string format_command =
     available_format + format_description;
 
 
-}  // namespace
+}  // namespace formats
 
 
 // the formats command-line argument
-DEFINE_string(formats, "coo", format_command.c_str());
+DEFINE_string(formats, "coo", formats::format_command.c_str());
 
 
 namespace formats {
