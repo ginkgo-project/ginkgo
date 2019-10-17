@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <typeinfo>
 
 
-#include "benchmark/utils/common.hpp"
+#include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/spmv_common.hpp"
@@ -66,7 +66,8 @@ void convert_matrix(const gko::LinOp *matrix_from, const char *format_to,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
 
         gko::matrix_data<> data{gko::dim<2>{1, 1}, 1};
-        auto matrix_to = share(matrix_factory.at(format_to)(exec, data));
+        auto matrix_to =
+            share(formats::matrix_factory.at(format_to)(exec, data));
         // warm run
         for (unsigned int i = 0; i < FLAGS_warmup; i++) {
             exec->synchronize();
@@ -153,8 +154,8 @@ int main(int argc, char *argv[])
         for (const auto &format_from : formats) {
             try {
                 auto matrix_from =
-                    share(matrix_factory.at(format_from)(exec, data));
-                for (const auto &format : matrix_factory) {
+                    share(formats::matrix_factory.at(format_from)(exec, data));
+                for (const auto &format : formats::matrix_factory) {
                     const auto format_to = std::get<0>(format);
                     if (format_from == format_to) {
                         continue;
@@ -175,7 +176,7 @@ int main(int argc, char *argv[])
                 }
                 backup_results(test_cases);
             } catch (const gko::AllocationError &e) {
-                for (const auto &format : matrix_factory) {
+                for (const auto &format : formats::matrix_factory) {
                     const auto format_to = std::get<0>(format);
                     auto conversion_name =
                         std::string(format_from) + "-" + format_to;

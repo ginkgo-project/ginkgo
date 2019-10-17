@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #define DISABLE_FORMATS_COMMAND
-#include "benchmark/utils/common.hpp"
+#include "benchmark/utils/formats.hpp"
 #undef DISABLE_FORMATS_COMMAND
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
@@ -439,7 +439,7 @@ int main(int argc, char *argv[])
             std::ifstream mtx_fd(test_case["filename"].GetString());
             auto data = gko::read_raw<etype>(mtx_fd);
 
-            auto system_matrix = share(matrix_factory.at(
+            auto system_matrix = share(formats::matrix_factory.at(
                 test_case["optimal"]["spmv"].GetString())(exec, data));
             auto b = create_matrix<etype>(
                 exec, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},

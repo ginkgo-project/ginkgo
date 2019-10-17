@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <typeinfo>
 
 
-#include "benchmark/utils/common.hpp"
+#include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/spmv_common.hpp"
@@ -71,7 +71,8 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
 
         auto storage_logger = std::make_shared<StorageLogger>(exec);
         exec->add_logger(storage_logger);
-        auto system_matrix = share(matrix_factory.at(format_name)(exec, data));
+        auto system_matrix =
+            share(formats::matrix_factory.at(format_name)(exec, data));
         exec->remove_logger(gko::lend(storage_logger));
         storage_logger->write_data(spmv_case[format_name], allocator);
         // warm run

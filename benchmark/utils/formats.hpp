@@ -30,14 +30,15 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_BENCHMARK_UTILS_COMMON_HPP_
-#define GKO_BENCHMARK_UTILS_COMMON_HPP_
+#ifndef GKO_BENCHMARK_UTILS_FORMATS_HPP_
+#define GKO_BENCHMARK_UTILS_FORMATS_HPP_
 
 
 #include <ginkgo/ginkgo.hpp>
 
 
 #include <map>
+#include <string>
 
 
 #include <gflags/gflags.h>
@@ -48,24 +49,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif  // HAS_CUDA
 
 
-// some shortcuts
-using hybrid = gko::matrix::Hybrid<>;
-using csr = gko::matrix::Csr<>;
+namespace {
 
-// the formats command-line argument
-// If define DISABLE_FORMATS_COMMAND, do not define this argument.
-#ifndef DISABLE_FORMATS_COMMAND
-DEFINE_string(
-    formats, "coo",
-    "A comma-separated list of formats to run."
-    "Supported values are: coo, csr, ell, sellp, hybrid, hybrid0, "
-    "hybrid25, hybrid33, hybrid40, hybrid60, hybrid80, hybridlimit0, "
-    "hybridlimit25, hybridlimit33, hybridminstorage"
+
+std::string available_format =
+    "coo, csr, ell, sellp, hybrid, hybrid0, hybrid25, hybrid33, hybrid40, "
+    "hybrid60, hybrid80, hybridlimit0, hybridlimit25, hybridlimit33, "
+    "hybridminstorage"
 #ifdef HAS_CUDA
     ", cusp_csr, cusp_csrex, cusp_csrmp, cusp_csrmm, cusp_coo, cusp_ell, "
     "cusp_hybrid"
 #endif  // HAS_CUDA
-    ".\n"
+    ".\n";
+
+std::string format_description =
     "coo: Coordinate storage. The CUDA kernel uses the load-balancing approach "
     "suggested in Flegar et al.: Overcoming Load Imbalance for Irregular "
     "Sparse Matrices.\n"
@@ -95,9 +92,29 @@ DEFINE_string(
     "cusp_csrmp: benchmark CuSPARSE with the cusparseXcsrmv_mp function.\n"
     "cusp_csrmm: benchmark CuSPARSE with the cusparseXcsrmv_mm function."
 #endif  // HAS_CUDA
-);
+    ;
+
+std::string format_command =
+    "A comma-separated list of formats to run. Supported values are: " +
+    available_format + format_description;
+
+
+}  // namespace
+
+
+// the formats command-line argument
+// If define DISABLE_FORMATS_COMMAND, do not define this argument.
+#ifndef DISABLE_FORMATS_COMMAND
+DEFINE_string(formats, "coo", format_command.c_str());
 #endif  // DISABLE_FORMATS_COMMAND
 
+
+namespace formats {
+
+
+// some shortcuts
+using hybrid = gko::matrix::Hybrid<>;
+using csr = gko::matrix::Csr<>;
 
 /**
  * Creates a Ginkgo matrix from the intermediate data representation format
@@ -182,4 +199,6 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"sellp", read_matrix_from_data<gko::matrix::Sellp<>>}};
 
 
-#endif  // GKO_BENCHMARK_UTILS_COMMON_HPP_
+}  // namespace formats
+
+#endif  // GKO_BENCHMARK_UTILS_FORMATS_HPP_
