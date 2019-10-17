@@ -57,7 +57,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif  // defined(__CUDACC__) || defined(__HIPCC__)
 
 
-#if (defined(__CUDA_ARCH__) && defined(__APPLE__)) || defined(__HIPCC__)
+#if (defined(__CUDA_ARCH__) && defined(__APPLE__)) || \
+    defined(__HIP_DEVICE_COMPILE__)
 
 #ifdef NDEBUG
 #define GKO_ASSERT(condition) ((void)0)
@@ -71,12 +72,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                          __FILE__, __LINE__, __func__)))
 #endif  // NDEBUG
 
-#else  // (defined(__CUDA_ARCH__) && defined(__APPLE__)) || defined(__HIPCC__)
+#else  // (defined(__CUDA_ARCH__) && defined(__APPLE__)) ||
+       // defined(__HIP_DEVICE_COMPILE__)
 
 // Handle assertions normally on other systems
 #define GKO_ASSERT(condition) assert(condition)
 
-#endif  // (defined(__CUDA_ARCH__) && defined(__APPLE__)) || defined(__HIPCC__)
+#endif  // (defined(__CUDA_ARCH__) && defined(__APPLE__)) ||
+        // defined(__HIP_DEVICE_COMPILE__)
 
 
 // Handle deprecated notices correctly on different systems
