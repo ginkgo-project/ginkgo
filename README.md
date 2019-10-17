@@ -53,10 +53,27 @@ following:
 
 ### Windows
 
-Windows is currently not supported, but we are working on porting the library
-there. If you are interested in helping us with this effort, feel free to
-contact one of the developers. (The library itself doesn't use any non-standard
-C++ features, so most of the effort here is in modifying the build system.)
+The prequirement needs to be verified
+*   _cmake 3.9+_
+*   C++11 compliant 64-bits compiler:
+    *   _MinGW : gcc 5.3+, 6.3+, 7.3+, 8.1+_
+    *   _CygWin : gcc 5.3+, 6.3+, 7.3+, 8.1+_
+    *   _Microsoft Visual Studio : VS 2017 15.7+_
+
+__NOTE:__ Need to add `--autocrlf=input` after `git clone` in _CygWin_.
+
+The Ginkgo CUDA module has the following __additional__ requirements:
+
+*   _CUDA 9.0+_
+*   _Microsoft Visual Studio_
+*   Any host compiler restrictions your version of CUDA may impose also apply
+    here. For the newest CUDA version, this information can be found in the
+    [CUDA installation guide for Windows](https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html)
+
+The Ginkgo OMP module has the following __additional__ requirements:
+*  _MinGW_ or _Cygwin_
+
+__NOTE:__ _Microsoft Visual Studio_ only supports OpenMP 2.0, so it can not compile the ginkgo OMP module.
 
 __NOTE:__ Some restrictions will also apply on the version of C and C++ standard
 libraries installed on the system. This needs further investigation.

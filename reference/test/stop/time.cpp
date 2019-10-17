@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 #include <chrono>
 #include <thread>
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
 #endif
 
@@ -51,7 +51,7 @@ using double_seconds = std::chrono::duration<double, std::milli>;
 
 inline void sleep_millisecond(unsigned int ms)
 {
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
     Sleep(ms);
 #else
     std::this_thread::sleep_for(std::chrono::milliseconds(ms));

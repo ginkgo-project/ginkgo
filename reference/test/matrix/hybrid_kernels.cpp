@@ -96,7 +96,7 @@ protected:
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
         auto r = m->get_const_row_ptrs();
-        
+
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 4);
         EXPECT_EQ(r[0], 0);

@@ -77,7 +77,7 @@ void Combination<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 {
     if (cache_.intermediate_x == nullptr ||
         cache_.intermediate_x->get_size() != x->get_size()) {
-        cache_.intermediate_x = clone(x);
+        cache_.intermediate_x = x->clone();
     }
     this->apply_impl(b, lend(cache_.intermediate_x));
     auto dense_x = as<matrix::Dense<ValueType>>(x);

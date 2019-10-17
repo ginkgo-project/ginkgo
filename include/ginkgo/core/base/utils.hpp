@@ -120,9 +120,12 @@ template <typename T>
 struct have_ownership_impl<std::shared_ptr<T>> : std::true_type {};
 
 template <typename T>
+using have_ownership_s = have_ownership_impl<typename std::decay<T>::type>;
+
+template <typename T>
 constexpr bool have_ownership()
 {
-    return have_ownership_impl<typename std::decay<T>::type>::value;
+    return have_ownership_s<T>::value;
 }
 
 
@@ -244,7 +247,7 @@ inline typename std::remove_reference<OwningPointer>::type &&give(
  *       same as calling .get() on the smart pointer.
  */
 template <typename Pointer>
-inline typename std::enable_if<detail::have_ownership<Pointer>(),
+inline typename std::enable_if<detail::have_ownership_s<Pointer>::value,
                                detail::pointee<Pointer> *>::type
 lend(const Pointer &p)
 {
@@ -262,7 +265,7 @@ lend(const Pointer &p)
  *       returns `p`.
  */
 template <typename Pointer>
-inline typename std::enable_if<!detail::have_ownership<Pointer>(),
+inline typename std::enable_if<!detail::have_ownership_s<Pointer>::value,
                                detail::pointee<Pointer> *>::type
 lend(const Pointer &p)
 {

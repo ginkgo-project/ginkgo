@@ -8,6 +8,10 @@ Use the standard cmake build procedure:
 mkdir build; cd build
 cmake -G "Unix Makefiles" [OPTIONS] .. && make
 ```
+Use `cmake --build .` in some systems like MinGW or Microsoft Visual Studio which do not use `make`.
+
+For Microsoft Visual Studio, use `cmake --build . --config <build_type>` to decide the build type. The possible options are `Debug`, `Release`, `RelWithDebInfo` and `MinSizeRel`.
+
 Replace `[OPTIONS]` with desired cmake options for your build.
 Ginkgo adds the following additional switches to control what is being built:
 
@@ -81,6 +85,14 @@ Ginkgo adds the following additional switches to control what is being built:
     this option see the
     [`ARCHITECTURES` specification list](https://github.com/ginkgo-project/CudaArchitectureSelector/blob/master/CudaArchitectureSelector.cmake#L58)
     section in the documentation of the CudaArchitectureSelector CMake module.
+* `-DGINKGO_WINDOWS_SHARED_LIBRARY_RELPATH=<path>` where <path> is a relative
+    path built with `PROJECT_BINARY_DIR`. Users must add the absolute path
+    (`PROJECT_BINARY_DIR`/`GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH`) into the
+    environment variable PATH when building shared libraries and executable
+    program, default is `windows_shared_library`.
+* `-DGINKGO_CHECK_PATH={ON, OFF}` checks if the environment variable PATH is valid.
+    It is checked only when building shared libraries and executable program,
+    default is `ON`
 
 For example, to build everything (in debug mode), use:
 

@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 
 
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 
 
@@ -253,6 +254,22 @@ TEST(MtxReader, ReadsSparseComplexHermitianMtx)
     ASSERT_EQ(v[1], tpl(0, 2, cpx(2.0, 4.0)));
     ASSERT_EQ(v[2], tpl(1, 0, cpx(3.0, -1.0)));
     ASSERT_EQ(v[3], tpl(2, 0, cpx(2.0, -4.0)));
+}
+
+
+TEST(MtxReader, FailsWhenReadingSparseComplexMtxToRealMtx)
+{
+    using cpx = std::complex<double>;
+    using tpl = gko::matrix_data<cpx, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix coordinate complex general\n"
+        "2 3 4\n"
+        "1 1 1.0 2.0\n"
+        "2 2 5.0 3.0\n"
+        "1 2 3.0 1.0\n"
+        "1 3 2.0 4.0\n");
+
+    ASSERT_THROW((gko::read_raw<double, gko::int32>(iss)), gko::StreamError);
 }
 
 

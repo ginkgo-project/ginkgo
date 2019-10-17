@@ -15,12 +15,30 @@ function(ginkgo_load_git_package package_name package_url package_tag)
         message(FATAL_ERROR
             "CMake step for ${package_name}/download failed: ${result}")
     endif()
-    execute_process(COMMAND ${CMAKE_COMMAND} --build .
-        RESULT_VARIABLE result
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/download)
-    if(result)
-        message(FATAL_ERROR
-            "Build step for ${package_name}/download failed: ${result}")
+    if(MSVC)
+        # MSVC decides the build_type in build step not cmake step, so Ginkgo builds Debug and Release type.
+        execute_process(COMMAND ${CMAKE_COMMAND} --build . --config Debug
+            RESULT_VARIABLE result
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/download)
+        if(result)
+            message(FATAL_ERROR
+                "Build Debug step for ${package_name}/download failed: ${result}")
+        endif()
+        execute_process(COMMAND ${CMAKE_COMMAND} --build . --config Release
+            RESULT_VARIABLE result
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/download)
+        if(result)
+            message(FATAL_ERROR
+                "Build Release step for ${package_name}/download failed: ${result}")
+        endif()
+    else()
+        execute_process(COMMAND ${CMAKE_COMMAND} --build .
+            RESULT_VARIABLE result
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/download)
+        if(result)
+            message(FATAL_ERROR
+                "Build step for ${package_name}/download failed: ${result}")
+        endif()
     endif()
 endfunction()
 
@@ -76,9 +94,14 @@ macro(ginkgo_add_external_target new_target external_name includedir libdir buil
     # Declare include directories and library files
     set(${external_name}_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/${libdir})
     set(${external_name}_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/${includedir}")
-    set(${external_name}_LIBRARY_RELEASE "${${external_name}_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${CMAKE_${build_type}_LIBRARY_PREFIX}${external_name}${CMAKE_${build_type}_LIBRARY_SUFFIX}")
-    set(${external_name}_LIBRARY_DEBUG "${${external_name}_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${CMAKE_${build_type}_LIBRARY_PREFIX}${external_name}${debug_postfix}${CMAKE_${build_type}_LIBRARY_SUFFIX}")
-
+    if(MSVC)
+        # Ginkgo only builds Debug and Release, so set the path without CMAKE_CFG_INTDIR.
+        set(${external_name}_LIBRARY_RELEASE "${${external_name}_BINARY_DIR}/Release/${CMAKE_${build_type}_LIBRARY_PREFIX}${external_name}${CMAKE_${build_type}_LIBRARY_SUFFIX}")
+        set(${external_name}_LIBRARY_DEBUG "${${external_name}_BINARY_DIR}/Debug/${CMAKE_${build_type}_LIBRARY_PREFIX}${external_name}${debug_postfix}${CMAKE_${build_type}_LIBRARY_SUFFIX}")
+    else()
+        set(${external_name}_LIBRARY_RELEASE "${${external_name}_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${CMAKE_${build_type}_LIBRARY_PREFIX}${external_name}${CMAKE_${build_type}_LIBRARY_SUFFIX}")
+        set(${external_name}_LIBRARY_DEBUG "${${external_name}_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${CMAKE_${build_type}_LIBRARY_PREFIX}${external_name}${debug_postfix}${CMAKE_${build_type}_LIBRARY_SUFFIX}")
+    endif()
     # Create an IMPORTED external library available in the GLOBAL scope
     if (${header_only})
         add_library(${new_target} INTERFACE)
@@ -94,10 +117,17 @@ macro(ginkgo_add_external_target new_target external_name includedir libdir buil
         set_target_properties(${new_target} PROPERTIES IMPORTED_LOCATION_RELEASE ${${external_name}_LIBRARY_RELEASE})
         set_target_properties(${new_target} PROPERTIES IMPORTED_LOCATION_DEBUG ${${external_name}_LIBRARY_DEBUG})
         # Since we do not really manage other build types, let's globally use the DEBUG symbols
-        if (NOT CMAKE_BUILD_TYPE MATCHES "[Rr][Ee][Ll][Ee][Aa][Ss][Ee]"
-            AND NOT CMAKE_BUILD_TYPE MATCHES "[Dd][Ee][Bb][Uu][Gg]")
+        if(MSVC)
+        # Only Debug build uses MDd or MTd, and others use MD or MT.
+        # MSVC would like to use same runtime library, so we use Debug third-party in Debug and Release third-party in others.
             set_target_properties(${new_target} PROPERTIES IMPORTED_LOCATION
-                ${${external_name}_LIBRARY_DEBUG})
+                    ${${external_name}_LIBRARY_RELEASE})
+        else()
+            if (NOT CMAKE_BUILD_TYPE MATCHES "[Rr][Ee][Ll][Ee][Aa][Ss][Ee]"
+                AND NOT CMAKE_BUILD_TYPE MATCHES "[Dd][Ee][Bb][Uu][Gg]")
+                set_target_properties(${new_target} PROPERTIES IMPORTED_LOCATION
+                    ${${external_name}_LIBRARY_DEBUG})
+            endif()
         endif()
     endif()
     set_target_properties(${new_target} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${${external_name}_INCLUDE_DIR})

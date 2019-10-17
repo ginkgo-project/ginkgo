@@ -22,8 +22,13 @@ option(GINKGO_WITH_CLANG_TIDY "Make Ginkgo call `clang-tidy` to find programming
 option(GINKGO_WITH_IWYU "Make Ginkgo call `iwyu` (Include What You Use) to find include issues." OFF)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
     "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
-set(GINKGO_COMPILER_FLAGS "-Wpedantic" CACHE STRING
-    "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic`")
+if(MSVC)
+    set(GINKGO_COMPILER_FLAGS "" CACHE STRING
+        "Set the required CXX compiler flags, mainly used for warnings. Current default is ``")
+else()
+    set(GINKGO_COMPILER_FLAGS "-Wpedantic" CACHE STRING
+        "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic`")
+endif()
 set(GINKGO_CUDA_COMPILER_FLAGS "" CACHE STRING
     "Set the required NVCC compiler flags, mainly used for warnings. Current default is an empty string")
 set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
@@ -32,7 +37,7 @@ option(GINKGO_CUDA_DEFAULT_HOST_COMPILER "Tell Ginkgo to not automatically set t
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
 
-if(BUILD_SHARED_LIBS AND WIN32 AND (GINKGO_BUILD_TESTS OR GINKGO_BUILD_EXAMPLES OR GINKGO_BUILD_BENCHMARKS))
+if(BUILD_SHARED_LIBS AND (WIN32 OR CYGWIN) AND (GINKGO_BUILD_TESTS OR GINKGO_BUILD_EXAMPLES OR GINKGO_BUILD_BENCHMARKS))
     # Change shared libraries output only if this build has executable program with shared libraries.
     set(GINKGO_CHANGED_SHARED_LIBRARY TRUE)
     option(GINKGO_CHECK_PATH "Tell Ginkgo to check if the environment variable PATH is available for this build." ON)
@@ -104,6 +109,19 @@ endif()
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
     ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
 
+# This is modified from https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
+if(MSVC)
+    if(BUILD_SHARED_LIBS)
+        ginkgo_switch_to_windows_dynamic("CXX")
+        ginkgo_switch_to_windows_dynamic("C")
+        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+    else()
+        ginkgo_switch_to_windows_static("CXX")
+        ginkgo_switch_to_windows_static("C")
+        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
+    endif()
+endif()
+
 # Try to find the third party packages before using our subdirectories
 include(cmake/package_helpers.cmake)
 ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
@@ -142,9 +160,13 @@ if(GINKGO_DEVEL_TOOLS)
 endif()
 
 # Generate the global `ginkgo/ginkgo.hpp` header with every call of make
-add_custom_target(generate_ginkgo_header ALL
+find_program(BASH bash)
+if(NOT "${BASH}" STREQUAL "BASH-NOTFOUND")
+    add_custom_target(generate_ginkgo_header ALL
         COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/update_ginkgo_header.sh
         WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
+endif()
+unset(BASH CACHE)
 
 
 # Installation

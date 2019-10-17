@@ -6,6 +6,23 @@ if (NOT BUILD_SHARED_LIBS)
     set(CMAKE_CUDA_DEVICE_LINK_EXECUTABLE ${CMAKE_CUDA_DEVICE_LINK_EXECUTABLE} PARENT_SCOPE)
 endif()
 
+# MSVC can not find CUDA automatically
+# Use CUDA_COMPILER PATH to define the CUDA TOOLKIT ROOT DIR
+if ("${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}" STREQUAL "")
+    string(REPLACE "/bin/nvcc.exe" "" CMAKE_CUDA_ROOT_DIR ${CMAKE_CUDA_COMPILER})
+    set(CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES "${CMAKE_CUDA_ROOT_DIR}/include")
+    set(CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES "${CMAKE_CUDA_ROOT_DIR}/lib/x64")
+endif()
+
+# This is modified from https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
+if(MSVC)
+    if(BUILD_SHARED_LIBS)
+        ginkgo_switch_to_windows_dynamic("CUDA")
+    else()
+        ginkgo_switch_to_windows_static("CUDA")
+    endif()
+endif()
+
 include(CudaArchitectureSelector)
 
 set(CUDA_INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
@@ -16,8 +33,24 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}" PARENT_SCOPE)
 set(CMAKE_CUDA_COMPILER_VERSION ${CMAKE_CUDA_COMPILER_VERSION} PARENT_SCOPE)
 set(CUDA_INCLUDE_DIRS ${CUDA_INCLUDE_DIRS} PARENT_SCOPE)
 
-find_library(CUDA_RUNTIME_LIBS cudart
-    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+
+# MSVC nvcc uses static cudartlibrary by default, and other platforms use shared cudartlibrary.
+# add `-cudart shared` or `-cudart=shared` according system into CMAKE_CUDA_FLAGS
+# to force nvcc to use dynamic cudart library in MSVC.
+find_library(CUDA_RUNTIME_LIBS_DYNAMIC cudart
+        HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+find_library(CUDA_RUNTIME_LIBS_STATIC cudart_static
+        HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+if(MSVC)
+    if("${CMAKE_CUDA_FLAGS}" MATCHES "-cudart(=| )shared")
+        set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_DYNAMIC}" CACHE STRING "Path to a library" FORCE)
+    else()
+        set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_STATIC}" CACHE STRING "Path to a library" FORCE)
+    endif()
+else()
+    set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_DYNAMIC}" CACHE STRING "Path to a library" FORCE)
+endif()
+
 find_library(CUBLAS cublas
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 find_library(CUSPARSE cusparse

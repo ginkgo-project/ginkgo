@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/utils.hpp>
 
 
 #include <cmath>
@@ -517,8 +518,12 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T get_superior_power(
 // distinguishing between the CUDA `isfinite` and the `std::isfinite` when
 // it is put into the `gko` namespace, only enable `std::isfinite` when
 // compiling host code.
-using std::isfinite;  // use the optimized function for all supported types
-
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<!is_complex_s<T>::value, bool>
+isfinite(const T &value)
+{
+    return std::isfinite(value);
+}
 
 #endif  // defined(__CUDA_ARCH__)
 
