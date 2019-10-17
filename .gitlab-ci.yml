@@ -83,13 +83,14 @@ sync:
 
 
 # Build jobs
-build/cuda90/gcc/cuda/debug/shared:
+build/cuda90/gcc/all/debug/shared:
   <<: *default_build
   image: localhost:5000/gko-cuda90-gnu5-llvm39
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
     BUILD_TYPE: Debug
     EXTRA_CMAKE_FLAGS: &cuda_flags
       "-DGINKGO_CUDA_ARCHITECTURES=35 -DCMAKE_CUDA_HOST_COMPILER=${CXX_COMPILER}"
@@ -97,7 +98,7 @@ build/cuda90/gcc/cuda/debug/shared:
     - cuda
     - gpu
 
-build/cuda90/clang/cuda/release/static:
+build/cuda90/clang/all/release/static:
   <<: *default_build
   image: localhost:5000/gko-cuda90-gnu5-llvm39
   variables:
@@ -106,6 +107,7 @@ build/cuda90/clang/cuda/release/static:
     CXX_COMPILER: clang++
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
     BUILD_TYPE: Release
     BUILD_SHARED_LIBS: "OFF"
     EXTRA_CMAKE_FLAGS: *cuda_flags
@@ -114,12 +116,14 @@ build/cuda90/clang/cuda/release/static:
     - gpu
 
 # cuda 9.1 and friends
-build/cuda91/gcc/cuda/debug/static:
+build/cuda91/gcc/all/debug/static:
   <<: *default_build
   image: localhost:5000/gko-cuda91-gnu6-llvm40
   variables:
     <<: *default_variables
+    BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
     BUILD_TYPE: Debug
     BUILD_SHARED_LIBS: "OFF"
     EXTRA_CMAKE_FLAGS: *cuda_flags
@@ -127,7 +131,7 @@ build/cuda91/gcc/cuda/debug/static:
     - cuda
     - gpu
 
-build/cuda91/clang/cuda/release/shared:
+build/cuda91/clang/all/release/shared:
   <<: *default_build
   image: localhost:5000/gko-cuda91-gnu6-llvm40
   variables:
@@ -136,6 +140,7 @@ build/cuda91/clang/cuda/release/shared:
     CXX_COMPILER: clang++
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
     BUILD_TYPE: Release
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
@@ -158,27 +163,30 @@ build/cuda91/intel/cuda/debug/shared:
     - gpu
 
 # cuda 9.2 and friends
-build/cuda92/gcc/cuda/release/shared:
+build/cuda92/gcc/all/release/shared:
   <<: *default_build
   image: localhost:5000/gko-cuda92-gnu7-llvm50
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
     BUILD_TYPE: Release
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
     - cuda
     - gpu
 
-build/cuda92/clang/cuda/debug/static:
+build/cuda92/clang/all/debug/static:
   <<: *default_build
   image: localhost:5000/gko-cuda92-gnu7-llvm50
   variables:
     <<: *default_variables
     C_COMPILER: clang
     CXX_COMPILER: clang++
+    BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
     BUILD_TYPE: Debug
     BUILD_SHARED_LIBS: "OFF"
     EXTRA_CMAKE_FLAGS: *cuda_flags
@@ -203,20 +211,21 @@ build/cuda92/intel/cuda/release/static:
     - gpu
 
 # cuda 10.0 and friends
-build/cuda100/gcc/cuda/debug/shared:
+build/cuda100/gcc/all/debug/shared:
   <<: *default_build
   image: localhost:5000/gko-cuda100-gnu7-llvm60
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
     BUILD_TYPE: Debug
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
     - cuda
     - gpu
 
-build/cuda100/clang/cuda/release/static:
+build/cuda100/clang/all/release/static:
   <<: *default_build
   image: localhost:5000/gko-cuda100-gnu7-llvm60
   variables:
@@ -225,6 +234,7 @@ build/cuda100/clang/cuda/release/static:
     CXX_COMPILER: clang++
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
     BUILD_TYPE: Release
     BUILD_SHARED_LIBS: "OFF"
     EXTRA_CMAKE_FLAGS: *cuda_flags
@@ -248,20 +258,21 @@ build/cuda100/intel/cuda/release/shared:
     - gpu
 
 # cuda 10.1 and friends
-build/cuda101/gcc/cuda/debug/shared:
+build/cuda101/gcc/all/debug/shared:
   <<: *default_build
   image: localhost:5000/gko-cuda101-gnu8-llvm70
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
     BUILD_TYPE: Debug
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
     - cuda
     - gpu
 
-build/cuda101/clang/cuda/release/static:
+build/cuda101/clang/all/release/static:
   <<: *default_build
   image: localhost:5000/gko-cuda101-gnu8-llvm70
   variables:
@@ -270,6 +281,7 @@ build/cuda101/clang/cuda/release/static:
     CXX_COMPILER: clang++
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
     BUILD_TYPE: Debug
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
@@ -286,22 +298,6 @@ build/cuda101/intel/cuda/debug/static:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: Debug
-    EXTRA_CMAKE_FLAGS: *cuda_flags
-  tags:
-    - cuda
-    - gpu
-
-build/cuda101/clang/hip/release/shared:
-  <<: *default_build
-  image: localhost:5000/gko-cuda101-gnu8-llvm70
-  variables:
-    <<: *default_variables
-    C_COMPILER: clang
-    CXX_COMPILER: clang++
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
-    BUILD_TYPE: Release
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
     - cuda
