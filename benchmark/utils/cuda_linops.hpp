@@ -74,11 +74,17 @@ protected:
         this->initialize_descr();
     }
 
+    ~CuspBase() = default;
+
+    CuspBase(const CuspBase &other) = delete;
+
     CuspBase &operator=(const CuspBase &other)
     {
-        gko::LinOp::operator=(other);
-        this->gpu_exec_ = other.gpu_exec_;
-        this->initialize_descr();
+        if (this != &other) {
+            gko::LinOp::operator=(other);
+            this->gpu_exec_ = other.gpu_exec_;
+            this->initialize_descr();
+        }
         return *this;
     }
 
@@ -312,15 +318,13 @@ public:
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::device_guard g{id};
         if (set_buffer_) {
-            try {
-                GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(buffer_));
-            } catch (const std::exception &e) {
-                std::cerr
-                    << "Error when unallocating CuspCsrEx temporary buffer: "
-                    << e.what() << std::endl;
-            }
+            GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(buffer_));
         }
     }
+
+    CuspCsrEx(const CuspCsrEx &other) = delete;
+
+    CuspCsrEx &operator=(const CuspCsrEx &other) = default;
 
 protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
@@ -418,13 +422,12 @@ public:
     {
         const auto id = this->get_gpu_exec()->get_device_id();
         gko::device_guard g{id};
-        try {
-            GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyHybMat(hyb_));
-        } catch (const std::exception &e) {
-            std::cerr << "Error when unallocating CuspHybrid hyb_ matrix: "
-                      << e.what() << std::endl;
-        }
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyHybMat(hyb_));
     }
+
+    CuspHybrid(const CuspHybrid &other) = delete;
+
+    CuspHybrid &operator=(const CuspHybrid &other) = default;
 
 protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
