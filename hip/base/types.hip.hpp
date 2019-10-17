@@ -46,8 +46,6 @@ namespace gko {
 
 namespace kernels {
 namespace hip {
-
-
 namespace detail {
 
 
@@ -130,7 +128,6 @@ template <>
 struct hip_type_impl<hipComplex> {
     using type = thrust::complex<float>;
 };
-
 
 template <typename T>
 constexpr hipblasDatatype_t hip_data_type_impl()
