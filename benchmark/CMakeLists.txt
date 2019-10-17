@@ -4,6 +4,16 @@ if (NOT CMAKE_BUILD_TYPE STREQUAL "Release")
         "will be affected")
 endif()
 
+function(ginkgo_benchmark_cusp_linops name)
+    target_compile_definitions("${name}" PRIVATE HAS_CUDA=1)
+    target_link_libraries("${name}" ginkgo ${CUDA_RUNTIME_LIBS}
+        ${CUBLAS} ${CUSPARSE})
+    target_include_directories("${name}" SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
+    if(CMAKE_CUDA_COMPILER_VERSION GREATER_EQUAL "9.2")
+        target_compile_definitions("${name}" PRIVATE ALLOWMP=1)
+    endif()
+endfunction()
+
 add_subdirectory(conversions)
 add_subdirectory(matrix_generator)
 add_subdirectory(matrix_statistics)

@@ -103,10 +103,7 @@ std::string format_command =
 
 
 // the formats command-line argument
-// If define DISABLE_FORMATS_COMMAND, do not define this argument.
-#ifndef DISABLE_FORMATS_COMMAND
 DEFINE_string(formats, "coo", format_command.c_str());
-#endif  // DISABLE_FORMATS_COMMAND
 
 
 namespace formats {

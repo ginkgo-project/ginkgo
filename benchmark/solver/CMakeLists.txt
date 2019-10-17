@@ -1,11 +1,5 @@
 add_executable(solver solver.cpp)
 target_link_libraries(solver ginkgo gflags rapidjson)
 if (GINKGO_BUILD_CUDA)
-    target_compile_definitions(solver PRIVATE HAS_CUDA=1)
-    target_link_libraries(solver ginkgo ${CUDA_RUNTIME_LIBS}
-        ${CUBLAS} ${CUSPARSE})
-    target_include_directories(solver SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
-    if(CMAKE_CUDA_COMPILER_VERSION GREATER_EQUAL "9.2")
-        target_compile_definitions(solver PRIVATE ALLOWMP=1)
-    endif()
+    ginkgo_benchmark_cusp_linops(solver)
 endif()

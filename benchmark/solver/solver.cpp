@@ -42,9 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 
-#define DISABLE_FORMATS_COMMAND
 #include "benchmark/utils/formats.hpp"
-#undef DISABLE_FORMATS_COMMAND
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
 
