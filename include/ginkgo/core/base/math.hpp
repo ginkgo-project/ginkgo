@@ -561,7 +561,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T get_superior_power(
 }
 
 
-#if !defined(__CUDA_ARCH__)
+#if !(defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
 
 
 // Since a lot of compiler in combination with CUDA seem to have difficulties
@@ -575,7 +575,7 @@ isfinite(const T &value)
     return std::isfinite(value);
 }
 
-#endif  // defined(__CUDA_ARCH__)
+#endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
 
 
 /**
