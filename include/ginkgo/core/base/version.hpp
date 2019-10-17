@@ -39,7 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ostream>
-#include <tuple>
 
 
 namespace gko {
@@ -81,24 +80,41 @@ struct version {
     const char *const tag;
 };
 
+inline bool operator==(const version &first, const version &second)
+{
+    return first.major == second.major && first.minor == second.minor &&
+           first.patch == second.patch;
+}
 
-#define GKO_ENABLE_VERSION_COMPARISON(_operator)                             \
-    inline bool operator _operator(const version &first,                     \
-                                   const version &second)                    \
-    {                                                                        \
-        return std::tie(first.major, first.minor, first.patch)               \
-            _operator std::tie(second.major, second.minor, second.patch);    \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
+inline bool operator!=(const version &first, const version &second)
+{
+    return !(first == second);
+}
 
-GKO_ENABLE_VERSION_COMPARISON(<);
-GKO_ENABLE_VERSION_COMPARISON(<=);
-GKO_ENABLE_VERSION_COMPARISON(==);
-GKO_ENABLE_VERSION_COMPARISON(!=);
-GKO_ENABLE_VERSION_COMPARISON(>=);
-GKO_ENABLE_VERSION_COMPARISON(>);
+inline bool operator<(const version &first, const version &second)
+{
+    if (first.major < second.major) return true;
+    if (first.major == second.major && first.minor < second.minor) return true;
+    if (first.major == first.major && first.minor == second.minor &&
+        first.patch < second.patch)
+        return true;
+    return false;
+}
+
+inline bool operator<=(const version &first, const version &second)
+{
+    return !(second < first);
+}
+
+inline bool operator>(const version &first, const version &second)
+{
+    return second < first;
+}
+
+inline bool operator>=(const version &first, const version &second)
+{
+    return !(first < second);
+}
 
 #undef GKO_ENABLE_VERSION_COMPARISON
 
