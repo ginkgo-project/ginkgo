@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 
-#include "benchmark/utils/common.hpp"
+#include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/spmv_common.hpp"
@@ -289,7 +289,7 @@ int main(int argc, char *argv[])
             auto data = gko::read_raw<etype>(mtx_fd);
 
             auto system_matrix =
-                share(matrix_factory.at(FLAGS_formats)(exec, data));
+                share(formats::matrix_factory.at(FLAGS_formats)(exec, data));
             auto b = create_vector<etype>(exec, system_matrix->get_size()[0],
                                           engine);
             auto x = create_vector<etype>(exec, system_matrix->get_size()[0]);
