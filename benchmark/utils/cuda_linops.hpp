@@ -316,9 +316,15 @@ public:
     ~CuspCsrEx() override
     {
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
         if (set_buffer_) {
-            GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(buffer_));
+            try {
+                gko::device_guard g{id};
+                GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(buffer_));
+            } catch (const std::exception &e) {
+                std::cerr
+                    << "Error when unallocating CuspCsrEx temporary buffer: "
+                    << e.what() << std::endl;
+            }
         }
     }
 
@@ -421,8 +427,13 @@ public:
     ~CuspHybrid() override
     {
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyHybMat(hyb_));
+        try {
+            gko::device_guard g{id};
+            GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyHybMat(hyb_));
+        } catch (const std::exception &e) {
+            std::cerr << "Error when unallocating CuspHybrid hyb_ matrix: "
+                      << e.what() << std::endl;
+        }
     }
 
     CuspHybrid(const CuspHybrid &other) = delete;
