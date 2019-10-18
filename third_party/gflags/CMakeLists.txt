@@ -3,7 +3,7 @@ if(MSVC)
     # use the ginkgo's flags to use the same runtime libraries as ginkgo
     ginkgo_load_git_package(gflags_external
         "https://github.com/gflags/gflags.git"
-        "e171aa2d15ed9eb17054558e0b3a6a413bb01067"
+        "0b7f8db2c6b1b0b2451da0923a9ab09cc610e8d1"
         "-DGFLAGS_BUILD_TESTING=OFF" "-DGFLAGS_BUILD_gflags_LIB=OFF"
         "-DGFLAGS_BUILD_gflags_nothreads_LIB=ON" "-DGFLAGS_BUILD_STATIC_LIBS=ON"
         "-DGFLAGS_BUILD_PACKAGING=OFF" "-DCMAKE_CXX_FLAGS_DEBUG=${CMAKE_CXX_FLAGS_DEBUG}"
@@ -12,7 +12,7 @@ if(MSVC)
 else()
     ginkgo_load_git_package(gflags_external
         "https://github.com/gflags/gflags.git"
-        "e171aa2d15ed9eb17054558e0b3a6a413bb01067"
+        "0b7f8db2c6b1b0b2451da0923a9ab09cc610e8d1"
         "-DGFLAGS_BUILD_TESTING=OFF" "-DGFLAGS_BUILD_gflags_LIB=OFF"
         "-DGFLAGS_BUILD_gflags_nothreads_LIB=ON" "-DGFLAGS_BUILD_STATIC_LIBS=ON"
         "-DGFLAGS_BUILD_PACKAGING=OFF")
