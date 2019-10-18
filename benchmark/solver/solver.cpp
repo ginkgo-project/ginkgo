@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 
+#include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
 
@@ -58,16 +59,19 @@ DEFINE_double(rel_res_goal, 1e-6, "The relative residual goal of the solver");
 
 DEFINE_string(solvers, "cg",
               "A comma-separated list of solvers to run."
-              "Supported values are: cg, bicgstab, cgs, fcg");
+              "Supported values are: bicgstab, cg, cgs, fcg, gmres");
 
 DEFINE_string(preconditioners, "none",
               "A comma-separated list of preconditioners to use."
               "Supported values are: none, jacobi, adaptive-jacobi");
 
+DEFINE_uint32(
+    nrhs, 1,
+    "The number of right hand sides. Record the residual only when nrhs == 1.");
+
 
 // input validation
-[[noreturn]] void print_config_error_and_exit()
-{
+[[noreturn]] void print_config_error_and_exit() {
     std::cerr << "Input has to be a JSON array of matrix configurations:\n"
               << "  [\n"
               << "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
@@ -90,16 +94,6 @@ void validate_option_object(const rapidjson::Value &value)
 }
 
 
-const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
-                                std::shared_ptr<const gko::Executor>,
-                                const rapidjson::Value &)>>
-    matrix_factory{{"csr", read_matrix<gko::matrix::Csr<>>},
-                   {"coo", read_matrix<gko::matrix::Coo<>>},
-                   {"ell", read_matrix<gko::matrix::Ell<>>},
-                   {"hybrid", read_matrix<gko::matrix::Hybrid<>>},
-                   {"sellp", read_matrix<gko::matrix::Sellp<>>}};
-
-
 // solver mapping
 template <typename SolverType>
 std::unique_ptr<gko::LinOpFactory> create_solver(
@@ -117,11 +111,12 @@ std::unique_ptr<gko::LinOpFactory> create_solver(
         .on(exec);
 }
 
+
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                                 std::shared_ptr<const gko::Executor>,
                                 std::shared_ptr<const gko::LinOpFactory>)>>
-    solver_factory{{"cg", create_solver<gko::solver::Cg<>>},
-                   {"bicgstab", create_solver<gko::solver::Bicgstab<>>},
+    solver_factory{{"bicgstab", create_solver<gko::solver::Bicgstab<>>},
+                   {"cg", create_solver<gko::solver::Cg<>>},
                    {"cgs", create_solver<gko::solver::Cgs<>>},
                    {"fcg", create_solver<gko::solver::Fcg<>>},
                    {"gmres", create_solver<gko::solver::Gmres<>>}};
@@ -249,8 +244,10 @@ void solve_system(const std::string &solver_name,
                           rapidjson::Value(rapidjson::kArrayType), allocator);
         add_or_set_member(solver_json, "true_residuals",
                           rapidjson::Value(rapidjson::kArrayType), allocator);
-        auto rhs_norm = compute_norm(lend(b));
-        add_or_set_member(solver_json, "rhs_norm", rhs_norm, allocator);
+        if (FLAGS_nrhs == 1) {
+            auto rhs_norm = compute_norm(lend(b));
+            add_or_set_member(solver_json, "rhs_norm", rhs_norm, allocator);
+        }
         for (auto stage : {"generate", "apply"}) {
             add_or_set_member(solver_json, stage,
                               rapidjson::Value(rapidjson::kObjectType),
@@ -260,8 +257,19 @@ void solve_system(const std::string &solver_name,
                               allocator);
         }
 
+        // warm run
+        for (unsigned int i = 0; i < FLAGS_warmup; i++) {
+            auto x_clone = clone(x);
+            auto precond = precond_factory.at(precond_name)(exec);
+            auto solver = solver_factory.at(solver_name)(exec, give(precond))
+                              ->generate(system_matrix);
+            solver->apply(lend(b), lend(x_clone));
+            exec->synchronize();
+        }
+
+        // detail run
         if (FLAGS_detailed) {
-            // slow run, gets the recurrent and true residuals of each iteration
+            // slow run, get the time of each functions
             auto x_clone = clone(x);
 
             auto gen_logger = std::make_shared<OperationLogger>(exec);
@@ -287,21 +295,30 @@ void solve_system(const std::string &solver_name,
 
             auto apply_logger = std::make_shared<OperationLogger>(exec);
             exec->add_logger(apply_logger);
-            auto res_logger = std::make_shared<ResidualLogger<etype>>(
-                exec, lend(system_matrix), b,
-                solver_json["recurrent_residuals"],
-                solver_json["true_residuals"], allocator);
-            solver->add_logger(res_logger);
 
             solver->apply(lend(b), lend(x_clone));
 
             exec->remove_logger(gko::lend(apply_logger));
             apply_logger->write_data(solver_json["apply"]["components"],
                                      allocator, 1);
+
+            // slow run, gets the recurrent and true residuals of each iteration
+            if (FLAGS_nrhs == 1) {
+                x_clone = clone(x);
+                auto res_logger = std::make_shared<ResidualLogger<etype>>(
+                    exec, lend(system_matrix), b,
+                    solver_json["recurrent_residuals"],
+                    solver_json["true_residuals"], allocator);
+                solver->add_logger(res_logger);
+                solver->apply(lend(b), lend(x_clone));
+            }
+            exec->synchronize();
         }
 
         // timed run
-        {
+        std::chrono::nanoseconds apply_time(0);
+        std::chrono::nanoseconds generate_time(0);
+        for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
             auto x_clone = clone(x);
 
             exec->synchronize();
@@ -313,11 +330,9 @@ void solve_system(const std::string &solver_name,
 
             exec->synchronize();
             auto g_tac = std::chrono::steady_clock::now();
-            auto generate_time =
+            generate_time +=
                 std::chrono::duration_cast<std::chrono::nanoseconds>(g_tac -
                                                                      g_tic);
-            add_or_set_member(solver_json["generate"], "time",
-                              generate_time.count(), allocator);
 
             exec->synchronize();
             auto a_tic = std::chrono::steady_clock::now();
@@ -326,17 +341,24 @@ void solve_system(const std::string &solver_name,
 
             exec->synchronize();
             auto a_tac = std::chrono::steady_clock::now();
-            auto apply_time =
-                std::chrono::duration_cast<std::chrono::nanoseconds>(a_tac -
-                                                                     a_tic);
-            add_or_set_member(solver_json["apply"], "time", apply_time.count(),
-                              allocator);
+            apply_time += std::chrono::duration_cast<std::chrono::nanoseconds>(
+                a_tac - a_tic);
 
-            auto residual = compute_residual_norm(lend(system_matrix), lend(b),
-                                                  lend(x_clone));
-            add_or_set_member(solver_json, "residual_norm", residual,
-                              allocator);
+            if (FLAGS_nrhs == 1 && i == FLAGS_repetitions - 1) {
+                auto residual = compute_residual_norm(lend(system_matrix),
+                                                      lend(b), lend(x_clone));
+                add_or_set_member(solver_json, "residual_norm", residual,
+                                  allocator);
+            }
         }
+        add_or_set_member(
+            solver_json["generate"], "time",
+            static_cast<double>(generate_time.count()) / FLAGS_repetitions,
+            allocator);
+        add_or_set_member(
+            solver_json["apply"], "time",
+            static_cast<double>(apply_time.count()) / FLAGS_repetitions,
+            allocator);
 
         // compute and write benchmark data
         add_or_set_member(solver_json, "completed", true, allocator);
@@ -351,6 +373,8 @@ void solve_system(const std::string &solver_name,
 
 int main(int argc, char *argv[])
 {
+    // Set the default repetitions = 1.
+    FLAGS_repetitions = 1;
     std::string header =
         "A benchmark for measuring performance of Ginkgo's solvers.\n";
     std::string format =
@@ -367,7 +391,9 @@ int main(int argc, char *argv[])
     std::string extra_information = "Running " + FLAGS_solvers + " with " +
                                     std::to_string(FLAGS_max_iters) +
                                     " iterations and residual goal of " +
-                                    std::to_string(FLAGS_rel_res_goal) + "\n";
+                                    std::to_string(FLAGS_rel_res_goal) +
+                                    "\nThe number of right hand sides is " +
+                                    std::to_string(FLAGS_nrhs) + "\n";
     print_general_information(extra_information);
 
     auto exec = get_executor();
@@ -408,12 +434,16 @@ int main(int argc, char *argv[])
                 continue;
             }
             std::clog << "Running test case: " << test_case << std::endl;
+            std::ifstream mtx_fd(test_case["filename"].GetString());
+            auto data = gko::read_raw<etype>(mtx_fd);
 
-            auto system_matrix = share(matrix_factory.at(
-                test_case["optimal"]["spmv"].GetString())(exec, test_case));
-            auto b = create_vector<etype>(exec, system_matrix->get_size()[0],
-                                          engine);
-            auto x = create_vector<etype>(exec, system_matrix->get_size()[0]);
+            auto system_matrix = share(formats::matrix_factory.at(
+                test_case["optimal"]["spmv"].GetString())(exec, data));
+            auto b = create_matrix<etype>(
+                exec, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
+                engine);
+            auto x = create_matrix<etype>(
+                exec, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs});
 
             std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
                       << ", " << system_matrix->get_size()[1] << ")"

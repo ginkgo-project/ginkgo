@@ -1,2 +1,5 @@
 add_executable(solver solver.cpp)
 target_link_libraries(solver ginkgo gflags rapidjson)
+if (GINKGO_BUILD_CUDA)
+    ginkgo_benchmark_cusp_linops(solver)
+endif()

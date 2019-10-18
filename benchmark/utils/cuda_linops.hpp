@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_BENCHMARK_SPMV_CUDA_LINOPS_HPP_
-#define GKO_BENCHMARK_SPMV_CUDA_LINOPS_HPP_
+#ifndef GKO_BENCHMARK_UTILS_CUDA_LINOPS_HPP_
+#define GKO_BENCHMARK_UTILS_CUDA_LINOPS_HPP_
 
 
 #include <ginkgo/ginkgo.hpp>
@@ -74,11 +74,17 @@ protected:
         this->initialize_descr();
     }
 
+    ~CuspBase() = default;
+
+    CuspBase(const CuspBase &other) = delete;
+
     CuspBase &operator=(const CuspBase &other)
     {
-        gko::LinOp::operator=(other);
-        this->gpu_exec_ = other.gpu_exec_;
-        this->initialize_descr();
+        if (this != &other) {
+            gko::LinOp::operator=(other);
+            this->gpu_exec_ = other.gpu_exec_;
+            this->initialize_descr();
+        }
         return *this;
     }
 
@@ -310,9 +316,9 @@ public:
     ~CuspCsrEx() override
     {
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
         if (set_buffer_) {
             try {
+                gko::device_guard g{id};
                 GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(buffer_));
             } catch (const std::exception &e) {
                 std::cerr
@@ -321,6 +327,10 @@ public:
             }
         }
     }
+
+    CuspCsrEx(const CuspCsrEx &other) = delete;
+
+    CuspCsrEx &operator=(const CuspCsrEx &other) = default;
 
 protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
@@ -417,14 +427,18 @@ public:
     ~CuspHybrid() override
     {
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
         try {
+            gko::device_guard g{id};
             GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyHybMat(hyb_));
         } catch (const std::exception &e) {
             std::cerr << "Error when unallocating CuspHybrid hyb_ matrix: "
                       << e.what() << std::endl;
         }
     }
+
+    CuspHybrid(const CuspHybrid &other) = delete;
+
+    CuspHybrid &operator=(const CuspHybrid &other) = default;
 
 protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
@@ -477,4 +491,4 @@ using cusp_ell =
     detail::CuspHybrid<double, gko::int32, CUSPARSE_HYB_PARTITION_MAX, 0>;
 using cusp_hybrid = detail::CuspHybrid<>;
 
-#endif  // GKO_BENCHMARK_SPMV_CUDA_LINOPS_HPP_
+#endif  // GKO_BENCHMARK_UTILS_CUDA_LINOPS_HPP_

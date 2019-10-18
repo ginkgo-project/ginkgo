@@ -1,11 +1,5 @@
 add_executable(spmv spmv.cpp)
 target_link_libraries(spmv ginkgo gflags rapidjson)
 if (GINKGO_BUILD_CUDA)
-    target_compile_definitions(spmv PRIVATE HAS_CUDA=1)
-    target_link_libraries(spmv ginkgo ${CUDA_RUNTIME_LIBS}
-        ${CUBLAS} ${CUSPARSE})
-    target_include_directories(spmv SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
-    if(CMAKE_CUDA_COMPILER_VERSION GREATER_EQUAL "9.2")
-        target_compile_definitions(spmv PRIVATE ALLOWMP=1)
-    endif()
+    ginkgo_benchmark_cusp_linops(spmv)
 endif()
