@@ -80,7 +80,6 @@ VERBATIM_HEADERS       = YES
 # External references
 ALLEXTERNALS           = NO
 EXTERNAL_GROUPS        = YES
-PERL_PATH              = @PERL_EXECUTABLE@
 
 # Graph generation
 CLASS_DIAGRAMS         = YES
