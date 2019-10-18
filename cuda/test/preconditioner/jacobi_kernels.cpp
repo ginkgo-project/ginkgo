@@ -295,7 +295,7 @@ TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithBlockSize32)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-14);
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-13);
 }
 
 
@@ -307,7 +307,7 @@ TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithDifferentBlockSize)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-14);
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-13);
 }
 
 
@@ -319,7 +319,7 @@ TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithMPW)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-14);
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-13);
 }
 
 
@@ -424,7 +424,7 @@ TEST_F(Jacobi, ComputesTheSameConditionNumberAsRef)
 
     for (int i = 0; i < gko::as<Bj>(bj.get())->get_num_blocks(); ++i) {
         EXPECT_NEAR(bj->get_conditioning()[i], d_bj->get_conditioning()[i],
-                    1e-11);
+                    1e-9);
     }
 }
 
@@ -492,7 +492,7 @@ TEST_F(Jacobi, CudaPreconditionerEquivalentToRefWithFullPrecision)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-14);
+    GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-13);
 }
 
 
@@ -617,7 +617,7 @@ TEST_F(Jacobi, CudaApplyEquivalentToRefWithQuarteredPrecision)
     bj->apply(b.get(), x.get());
     d_bj->apply(d_b.get(), d_x.get());
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-3);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-2);
 }
 
 
