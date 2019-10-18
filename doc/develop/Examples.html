@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/89714567 branch based on develop. Ginkgo version 1.0.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/89851297 branch based on develop. Ginkgo version 1.0.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -83,74 +83,82 @@ or <b><a href="#topic">grouped by topic</a></b>. </li>
 <p>By default, Ginkgo is compiled with at least <code>-DGINKGO_BUILD_REFERENCE=ON</code>. To execute on a GPU, you need to have a GPU on the system and must have compiled Ginkgo with the <code>-DGINKGO_BUILD_CUDA=ON</code> option.</p>
 <p><a class="anchor" id="graph"></a> <a class="anchor" id="ExampleConnectionGraph"></a> </p><h3>Connections between example programs</h3>
 <p>The following graph shows the connections between example programs and how they build on each other. Click on any of the boxes to go to one of the programs. If you hover your mouse pointer over a box, a brief description of the program should appear. </p><div class="dotgraph">
-<iframe scrolling="no" frameborder="0" src="dot_inline_dotgraph_1.svg" width="2108" height="550"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
+<iframe scrolling="no" frameborder="0" src="dot_inline_dotgraph_1.svg" width="1920" height="696"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
 <p><b>Legend:</b><br  />
  </p><div class="dotgraph">
 <iframe scrolling="no" frameborder="0" src="dot_inline_dotgraph_2.svg" width="951" height="183"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
 <p><a class="anchor" id="list"></a> </p><h3>Example programs </h3>
 <table align="center" width="90%">
 <tr valign="top">
-<td width="260px">simple_solver </td><td><p class="starttd">A minimal CG solver in Ginkgo, which reads a matrix from a file. </p>
+<td width="260px"><a class="el" href="simple_solver.html">The simple-solver program</a> </td><td><p class="starttd">A minimal CG solver in Ginkgo, which reads a matrix from a file. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>minimal_cuda_solver </td><td><p class="starttd">A minimal solver on the CUDA executor than can be run on NVIDIA GPU's. </p>
+<td><a class="el" href="minimal_cuda_solver.html">The minimal-cuda-solver program</a> </td><td><p class="starttd">A minimal solver on the CUDA executor than can be run on NVIDIA GPU's. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>poisson_solver </td><td><p class="starttd">Solve an actual physically relevant problem, the poisson problem. The matrix is generated within Ginkgo. </p>
+<td><a class="el" href="poisson_solver.html">The poisson-solver program</a> </td><td><p class="starttd">Solve an actual physically relevant problem, the poisson problem. The matrix is generated within Ginkgo. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>preconditioned_solver </td><td><p class="starttd">Using a Jacobi preconditioner to solve a linear system. </p>
+<td><a class="el" href="preconditioned_solver.html">The preconditioned-solver program</a> </td><td><p class="starttd">Using a Jacobi preconditioner to solve a linear system. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>three_pt_stencil_solver </td><td><p class="starttd">Using a three point stencil to solve the poisson equation with array views. </p>
+<td><a class="el" href="ilu_preconditioned_solver.html">The ilu-preconditioned-solver program</a> </td><td><p class="starttd">Using an ILU preconditioner to solve a linear system. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>nine_pt_stencil_solver </td><td><p class="starttd">Using a nine point 2D stencil to solve the poisson equation with array views. </p>
+<td><a class="el" href="performance_debugging.html">The performance-debugging program</a> </td><td><p class="starttd">Using Loggers to debug the performance within Ginkgo. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>twentyseven_pt_stencil_solver </td><td><p class="starttd">Using a twentyseven point 3D stencil to solve the poisson equation with array views. </p>
+<td><a class="el" href="three_pt_stencil_solver.html">The three-pt-stencil-solver program</a> </td><td><p class="starttd">Using a three point stencil to solve the poisson equation with array views. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>external_lib_interfacing </td><td><p class="starttd">Using Ginkgo's solver with the external library deal.II. </p>
+<td><a class="el" href="nine_pt_stencil_solver.html">The nine-pt-stencil-solver program</a> </td><td><p class="starttd">Using a nine point 2D stencil to solve the poisson equation with array views. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td width="260px">custom_logger </td><td><p class="starttd">Creating a custom logger specifically for comparing the recurrent and the real residual norms. </p>
+<td><a class="el" href="twentyseven_pt_stencil_solver.html">The twentyseven-pt-stencil-solver program</a> </td><td><p class="starttd">Using a twentyseven point 3D stencil to solve the poisson equation with array views. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>custom_matrix_format </td><td><p class="starttd">Creating a matrix-free stencil solver by using Ginkgo's advanced methods to build your own custom matrix format. </p>
+<td><a class="el" href="external_lib_interfacing.html">The external-lib-interfacing program</a> </td><td><p class="starttd">Using Ginkgo's solver with the external library deal.II. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>inverse_iteration </td><td><p class="starttd">Using Ginkgo to compute eigenvalues of a matrix with the inverse iteration method. </p>
+<td width="260px"><a class="el" href="custom_logger.html">The custom-logger program</a> </td><td><p class="starttd">Creating a custom logger specifically for comparing the recurrent and the real residual norms. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>simple_solver_logging </td><td><p class="starttd">Using the logging functionality in Ginkgo to get solver and other information to diagnose and debug your code. </p>
+<td><a class="el" href="custom_matrix_format.html">The custom-matrix-format program</a> </td><td><p class="starttd">Creating a matrix-free stencil solver by using Ginkgo's advanced methods to build your own custom matrix format. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>papi_logging </td><td><p class="starttd">Using the PAPI logging library in Ginkgo to get advanced information about your code and its behaviour. </p>
+<td><a class="el" href="inverse_iteration.html">The inverse-iteration program</a> </td><td><p class="starttd">Using Ginkgo to compute eigenvalues of a matrix with the inverse iteration method. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>ginkgo_overhead </td><td><p class="starttd">Measuring the overhead of the Ginkgo library. </p>
+<td><a class="el" href="simple_solver_logging.html">The simple-solver-logging program</a> </td><td><p class="starttd">Using the logging functionality in Ginkgo to get solver and other information to diagnose and debug your code. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>custom_stopping_criterion </td><td><p class="starttd">Creating a custom stopping criterion for the iterative solution process. </p>
+<td><a class="el" href="papi_logging.html">The papi-logging program</a> </td><td><p class="starttd">Using the PAPI logging library in Ginkgo to get advanced information about your code and its behaviour. </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>ginkgo_ranges </td><td><p class="starttd">Using the ranges concept to factorize a matrix with the LU factorization. </p>
+<td><a class="el" href="ginkgo_overhead.html">The ginkgo-overhead program</a> </td><td><p class="starttd">Measuring the overhead of the Ginkgo library. </p>
+<p class="endtd"></p>
+</td></tr>
+<tr valign="top">
+<td><a class="el" href="custom_stopping_criterion.html">The custom-stopping-criterion program</a> </td><td><p class="starttd">Creating a custom stopping criterion for the iterative solution process. </p>
+<p class="endtd"></p>
+</td></tr>
+<tr valign="top">
+<td><a class="el" href="ginkgo_ranges.html">The ginkgo-ranges program</a> </td><td><p class="starttd">Using the ranges concept to factorize a matrix with the LU factorization. </p>
 <p class="endtd"></p>
 </td></tr>
 </table>
@@ -158,54 +166,58 @@ or <b><a href="#topic">grouped by topic</a></b>. </li>
 <h4><b>Basic techniques</b></h4>
 <table align="center" width="90%">
 <tr valign="top">
-<td>Solving a simple linear system with choice of executors.  </td><td><p class="starttd">simple_solver  </p>
+<td>Solving a simple linear system with choice of executors.  </td><td><p class="starttd"><a class="el" href="simple_solver.html">The simple-solver program</a>  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>Using the CUDA executor  </td><td><p class="starttd">minimal_cuda_solver  </p>
+<td>Debug the performance of a solver using loggers.  </td><td><p class="starttd"><a class="el" href="performance_debugging.html">The performance-debugging program</a>  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td width="400px">Using preconditioners  </td><td><p class="starttd">preconditioned_solver  </p>
+<td>Using the CUDA executor  </td><td><p class="starttd"><a class="el" href="minimal_cuda_solver.html">The minimal-cuda-solver program</a>  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td width="400px">Solving a physically relevant problem  </td><td><p class="starttd">poisson_solver, three_pt_stencil_solver, nine_pt_stencil_solver, twentyseven_pt_stencil_solver, custom_matrix_format  </p>
+<td width="400px">Using preconditioners  </td><td><p class="starttd"><a class="el" href="preconditioned_solver.html">The preconditioned-solver program</a>, <a class="el" href="ilu_preconditioned_solver.html">The ilu-preconditioned-solver program</a>  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td width="400px">Reading in a matrix and right hand side from a file.  </td><td><p class="starttd">simple_solver, minimal_cuda_solver, preconditioned_solver, inverse_iteration, simple_solver_logging, papi_logging, custom_stopping_criterion, custom_logger  </p>
+<td width="400px">Solving a physically relevant problem  </td><td><p class="starttd"><a class="el" href="poisson_solver.html">The poisson-solver program</a>, <a class="el" href="three_pt_stencil_solver.html">The three-pt-stencil-solver program</a>, <a class="el" href="nine_pt_stencil_solver.html">The nine-pt-stencil-solver program</a>, <a class="el" href="twentyseven_pt_stencil_solver.html">The twentyseven-pt-stencil-solver program</a>, <a class="el" href="custom_matrix_format.html">The custom-matrix-format program</a>  </p>
+<p class="endtd"></p>
+</td></tr>
+<tr valign="top">
+<td width="400px">Reading in a matrix and right hand side from a file.  </td><td><p class="starttd"><a class="el" href="simple_solver.html">The simple-solver program</a>, <a class="el" href="minimal_cuda_solver.html">The minimal-cuda-solver program</a>, <a class="el" href="preconditioned_solver.html">The preconditioned-solver program</a>, <a class="el" href="ilu_preconditioned_solver.html">The ilu-preconditioned-solver program</a>, <a class="el" href="inverse_iteration.html">The inverse-iteration program</a>, <a class="el" href="simple_solver_logging.html">The simple-solver-logging program</a>, <a class="el" href="papi_logging.html">The papi-logging program</a>, <a class="el" href="custom_stopping_criterion.html">The custom-stopping-criterion program</a>, <a class="el" href="custom_logger.html">The custom-logger program</a>  </p>
 <p class="endtd"></p>
 </td></tr>
 </table>
 <h4><b>Advanced techniques</b></h4>
 <table align="center" width="90%">
 <tr valign="top">
-<td>Using Ginkgo with external libraries.  </td><td><p class="starttd">external_lib_interfacing  </p>
+<td>Using Ginkgo with external libraries.  </td><td><p class="starttd"><a class="el" href="external_lib_interfacing.html">The external-lib-interfacing program</a>  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td width="400px">Customizing Ginkgo  </td><td><p class="starttd">custom_logger, custom_stopping_criterion, custom_matrix_format  </p>
+<td width="400px">Customizing Ginkgo  </td><td><p class="starttd"><a class="el" href="custom_logger.html">The custom-logger program</a>, <a class="el" href="custom_stopping_criterion.html">The custom-stopping-criterion program</a>, <a class="el" href="custom_matrix_format.html">The custom-matrix-format program</a>  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td width="400px">Writing your own matrix format  </td><td><p class="starttd">custom_matrix_format  </p>
+<td width="400px">Writing your own matrix format  </td><td><p class="starttd"><a class="el" href="custom_matrix_format.html">The custom-matrix-format program</a>  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>Using Ginkgo to construct more complex linear algebra routines.  </td><td><p class="starttd">inverse_iteration  </p>
+<td>Using Ginkgo to construct more complex linear algebra routines.  </td><td><p class="starttd"><a class="el" href="inverse_iteration.html">The inverse-iteration program</a>  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>Logging within Ginkgo.  </td><td><p class="starttd">simple_solver_logging, papi_logging, custom_logger  </p>
+<td>Logging within Ginkgo.  </td><td><p class="starttd"><a class="el" href="simple_solver_logging.html">The simple-solver-logging program</a>, <a class="el" href="papi_logging.html">The papi-logging program</a>, <a class="el" href="custom_logger.html">The custom-logger program</a>  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>Constructing your own stopping criterion.  </td><td><p class="starttd">custom_stopping_criterion  </p>
+<td>Constructing your own stopping criterion.  </td><td><p class="starttd"><a class="el" href="custom_stopping_criterion.html">The custom-stopping-criterion program</a>  </p>
 <p class="endtd"></p>
 </td></tr>
 <tr valign="top">
-<td>Using ranges in Ginkgo.  </td><td>ginkgo_ranges   </td></tr>
+<td>Using ranges in Ginkgo.  </td><td><a class="el" href="ginkgo_ranges.html">The ginkgo-ranges program</a>   </td></tr>
 </table>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->

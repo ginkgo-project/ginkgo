@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/89714567 branch based on develop. Ginkgo version 1.0.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/89851297 branch based on develop. Ginkgo version 1.0.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -211,7 +211,7 @@ Typedefs</h2></td></tr>
 <h1><a class="anchor" id="linop_3"></a>
 Advantages of this approach and usage</h1>
 <p>A common interface often allows for writing more generic code. If a user's routine requires only operations provided by the <a class="el" href="classgko_1_1LinOp.html">LinOp</a> interface, the same code can be used for any kind of linear operators, independent of whether these are matrices, solvers or preconditioners. This feature is also extensively used in Ginkgo itself. For example, a preconditioner used inside a Krylov solver is a <a class="el" href="classgko_1_1LinOp.html">LinOp</a>. This allows the user to supply a wide variety of preconditioners: either the ones which were designed to be used in this scenario (like ILU or block-Jacobi), a user-supplied matrix which is known to be a good preconditioner for the specific problem, or even another solver (e.g., if constructing a flexible GMRES solver).</p>
-<p>For example, a matrix free implementation would require the user to provide an apply implementation and instead of passing the generated matrix to the solver, they would have to provide their apply implementation for all the executors needed and no other code needs to be changed. See custom_matrix_format example for more details.</p>
+<p>For example, a matrix free implementation would require the user to provide an apply implementation and instead of passing the generated matrix to the solver, they would have to provide their apply implementation for all the executors needed and no other code needs to be changed. See <a class="el" href="custom_matrix_format.html">The custom-matrix-format program</a> example for more details.</p>
 <h1><a class="anchor" id="linop_concept"></a>
 Linear operator as a concept</h1>
 <p>The linear operator (<a class="el" href="classgko_1_1LinOp.html">LinOp</a>) is a base class for all linear algebra objects in Ginkgo. The main benefit of having a single base class for the entire collection of linear algebra objects (as opposed to having separate hierarchies for matrices, solvers and preconditioners) is the generality it provides.</p>
