@@ -105,6 +105,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *       </td></tr>
  *
  *   <tr valign="top">
+ *       <td>@ref ilu_preconditioned_solver</td>
+ *       <td> Using an ILU preconditioner to solve a linear system.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
+ *       <td>@ref performance_debugging</td>
+ *       <td> Using Loggers to debug the performance within Ginkgo.
+ *       </td></tr>
+ *
+ *   <tr valign="top">
  *       <td>@ref three_pt_stencil_solver</td>
  *       <td> Using a three point stencil to solve the poisson equation with
  *            array views.
@@ -191,6 +201,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   </tr>
  *
  *   <tr valign="top">
+ *     <td> Debug the performance of a solver using loggers.
+ *     </td>
+ *     <td>@ref performance_debugging
+ *     </td>
+ *   </tr>
+ *
+ *   <tr valign="top">
  *     <td> Using the CUDA executor
  *     </td>
  *     <td>@ref minimal_cuda_solver
@@ -200,7 +217,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   <tr valign="top">
  *     <td width="400px"> Using preconditioners
  *     </td>
- *     <td>@ref preconditioned_solver
+ *     <td>@ref preconditioned_solver,
+ *         @ref ilu_preconditioned_solver
  *     </td>
  *   </tr>
  *
@@ -221,6 +239,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *     <td>@ref simple_solver,
  *         @ref minimal_cuda_solver,
  *         @ref preconditioned_solver,
+ *         @ref ilu_preconditioned_solver,
  *         @ref inverse_iteration,
  *         @ref simple_solver_logging,
  *         @ref papi_logging,
