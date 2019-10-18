@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/89504347 branch based on develop. Ginkgo version 1.0.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/89621311 branch based on develop. Ginkgo version 1.0.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -453,6 +453,10 @@ Functions</h2></td></tr>
 <tr class="memitem:ad39645fe8148a8a812a9528865a77600"><td class="memTemplItemLeft" align="right" valign="top">constexpr T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#ad39645fe8148a8a812a9528865a77600">get_superior_power</a> (const T &amp;base, const T &amp;limit, const T &amp;hint=T{1}) noexcept</td></tr>
 <tr class="memdesc:ad39645fe8148a8a812a9528865a77600"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the smallest power of <code>base</code> not smaller than <code>limit</code>.  <a href="namespacegko.html#ad39645fe8148a8a812a9528865a77600">More...</a><br /></td></tr>
 <tr class="separator:ad39645fe8148a8a812a9528865a77600"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a23a34246f622b7e45cd5e40dc7f1f16e"><td class="memTemplParams" colspan="2"><a id="a23a34246f622b7e45cd5e40dc7f1f16e"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a23a34246f622b7e45cd5e40dc7f1f16e"><td class="memTemplItemLeft" align="right" valign="top">xstd::enable_if_t&lt;!<a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, bool &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>isfinite</b> (const T &amp;value)</td></tr>
+<tr class="separator:a23a34246f622b7e45cd5e40dc7f1f16e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afb0f20b5d373f9439702e723d48548fa"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
 <tr class="memitem:afb0f20b5d373f9439702e723d48548fa"><td class="memTemplItemLeft" align="right" valign="top">xstd::enable_if_t&lt; <a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, bool &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#afb0f20b5d373f9439702e723d48548fa">isfinite</a> (const T &amp;value)</td></tr>
 <tr class="memdesc:afb0f20b5d373f9439702e723d48548fa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if all components of a complex value are finite, meaning they are neither +/- infinity nor NaN.  <a href="namespacegko.html#afb0f20b5d373f9439702e723d48548fa">More...</a><br /></td></tr>
@@ -912,14 +916,14 @@ template&lt;typename FirstOperand , typename SecondAccessor &gt; </td></tr>
 <tr class="memitem:acbd3fd6d07e498892881e8e2ab0b4167"><td class="memTemplItemLeft" align="right" valign="top">std::remove_reference&lt; OwningPointer &gt;::type &amp;&amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#acbd3fd6d07e498892881e8e2ab0b4167">give</a> (OwningPointer &amp;&amp;p)</td></tr>
 <tr class="memdesc:acbd3fd6d07e498892881e8e2ab0b4167"><td class="mdescLeft">&#160;</td><td class="mdescRight">Marks that the object pointed to by <code>p</code> can be given to the callee.  <a href="namespacegko.html#acbd3fd6d07e498892881e8e2ab0b4167">More...</a><br /></td></tr>
 <tr class="separator:acbd3fd6d07e498892881e8e2ab0b4167"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa8cb4876b72e5e1036ea9575443c439b"><td class="memTemplParams" colspan="2">template&lt;typename Pointer &gt; </td></tr>
-<tr class="memitem:aa8cb4876b72e5e1036ea9575443c439b"><td class="memTemplItemLeft" align="right" valign="top">std::enable_if&lt; detail::have_ownership&lt; Pointer &gt;), detail::pointee&lt; Pointer &gt; * &gt;::type&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#aa8cb4876b72e5e1036ea9575443c439b">lend</a> (const Pointer &amp;p)</td></tr>
-<tr class="memdesc:aa8cb4876b72e5e1036ea9575443c439b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a non-owning (plain) pointer to the object pointed to by <code>p</code>.  <a href="namespacegko.html#aa8cb4876b72e5e1036ea9575443c439b">More...</a><br /></td></tr>
-<tr class="separator:aa8cb4876b72e5e1036ea9575443c439b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa0c1deeb105cfb5a635b5f41cb5e8321"><td class="memTemplParams" colspan="2">template&lt;typename Pointer &gt; </td></tr>
-<tr class="memitem:aa0c1deeb105cfb5a635b5f41cb5e8321"><td class="memTemplItemLeft" align="right" valign="top">std::enable_if&lt;!detail::have_ownership&lt; Pointer &gt;), detail::pointee&lt; Pointer &gt; * &gt;::type&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#aa0c1deeb105cfb5a635b5f41cb5e8321">lend</a> (const Pointer &amp;p)</td></tr>
-<tr class="memdesc:aa0c1deeb105cfb5a635b5f41cb5e8321"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a non-owning (plain) pointer to the object pointed to by <code>p</code>.  <a href="namespacegko.html#aa0c1deeb105cfb5a635b5f41cb5e8321">More...</a><br /></td></tr>
-<tr class="separator:aa0c1deeb105cfb5a635b5f41cb5e8321"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4edc2273b5627ec552ea423b60493be3"><td class="memTemplParams" colspan="2">template&lt;typename Pointer &gt; </td></tr>
+<tr class="memitem:a4edc2273b5627ec552ea423b60493be3"><td class="memTemplItemLeft" align="right" valign="top">std::enable_if&lt; detail::have_ownership_s&lt; Pointer &gt;::value, detail::pointee&lt; Pointer &gt; * &gt;::type&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a> (const Pointer &amp;p)</td></tr>
+<tr class="memdesc:a4edc2273b5627ec552ea423b60493be3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a non-owning (plain) pointer to the object pointed to by <code>p</code>.  <a href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">More...</a><br /></td></tr>
+<tr class="separator:a4edc2273b5627ec552ea423b60493be3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9d45734020b4487bdffc1f6a12d98672"><td class="memTemplParams" colspan="2">template&lt;typename Pointer &gt; </td></tr>
+<tr class="memitem:a9d45734020b4487bdffc1f6a12d98672"><td class="memTemplItemLeft" align="right" valign="top">std::enable_if&lt;!detail::have_ownership_s&lt; Pointer &gt;::value, detail::pointee&lt; Pointer &gt; * &gt;::type&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a9d45734020b4487bdffc1f6a12d98672">lend</a> (const Pointer &amp;p)</td></tr>
+<tr class="memdesc:a9d45734020b4487bdffc1f6a12d98672"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a non-owning (plain) pointer to the object pointed to by <code>p</code>.  <a href="namespacegko.html#a9d45734020b4487bdffc1f6a12d98672">More...</a><br /></td></tr>
+<tr class="separator:a9d45734020b4487bdffc1f6a12d98672"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a73ce7e87aec389b5210630bb617b4baa"><td class="memTemplParams" colspan="2">template&lt;typename T , typename U &gt; </td></tr>
 <tr class="memitem:a73ce7e87aec389b5210630bb617b4baa"><td class="memTemplItemLeft" align="right" valign="top">std::decay&lt; T &gt;::type *&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a73ce7e87aec389b5210630bb617b4baa">as</a> (U *obj)</td></tr>
 <tr class="memdesc:a73ce7e87aec389b5210630bb617b4baa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performs polymorphic type conversion.  <a href="namespacegko.html#a73ce7e87aec389b5210630bb617b4baa">More...</a><br /></td></tr>
@@ -1844,8 +1848,8 @@ template&lt;typename T &gt; </div>
 
 </div>
 </div>
-<a id="aa8cb4876b72e5e1036ea9575443c439b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa8cb4876b72e5e1036ea9575443c439b">&#9670;&nbsp;</a></span>lend() <span class="overload">[1/2]</span></h2>
+<a id="a4edc2273b5627ec552ea423b60493be3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4edc2273b5627ec552ea423b60493be3">&#9670;&nbsp;</a></span>lend() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1856,7 +1860,7 @@ template&lt;typename Pointer &gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">std::enable_if&lt;detail::have_ownership&lt;Pointer&gt;), detail::pointee&lt;Pointer&gt; *&gt;::type gko::lend </td>
+          <td class="memname">std::enable_if&lt;detail::have_ownership_s&lt;Pointer&gt;::value, detail::pointee&lt;Pointer&gt; *&gt;::type gko::lend </td>
           <td>(</td>
           <td class="paramtype">const Pointer &amp;&#160;</td>
           <td class="paramname"><em>p</em></td><td>)</td>
@@ -1889,8 +1893,8 @@ template&lt;typename Pointer &gt; </div>
 
 </div>
 </div>
-<a id="aa0c1deeb105cfb5a635b5f41cb5e8321"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa0c1deeb105cfb5a635b5f41cb5e8321">&#9670;&nbsp;</a></span>lend() <span class="overload">[2/2]</span></h2>
+<a id="a9d45734020b4487bdffc1f6a12d98672"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9d45734020b4487bdffc1f6a12d98672">&#9670;&nbsp;</a></span>lend() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1901,7 +1905,7 @@ template&lt;typename Pointer &gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">std::enable_if&lt;!detail::have_ownership&lt;Pointer&gt;), detail::pointee&lt;Pointer&gt; *&gt;::type gko::lend </td>
+          <td class="memname">std::enable_if&lt;!detail::have_ownership_s&lt;Pointer&gt;::value, detail::pointee&lt;Pointer&gt; *&gt;::type gko::lend </td>
           <td>(</td>
           <td class="paramtype">const Pointer &amp;&#160;</td>
           <td class="paramname"><em>p</em></td><td>)</td>

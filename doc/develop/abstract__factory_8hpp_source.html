@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/base/abstract_factory.hpp (8045ac75) Source File</title>
+<title>Ginkgo: ginkgo/core/base/abstract_factory.hpp (5a90a88d) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/89504347 branch based on develop. Ginkgo version 1.0.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/89621311 branch based on develop. Ginkgo version 1.0.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -189,8 +189,8 @@ $(function() {
 <div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160; </div>
 <div class="line"><a name="l00221"></a><span class="lineno">  221</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> TheFactory, <span class="keyword">typename</span> TheType&gt;</div>
 <div class="line"><a name="l00222"></a><span class="lineno">  222</span>&#160;    <span class="keyword">typename</span> std::enable_if&lt;</div>
-<div class="line"><a name="l00223"></a><span class="lineno">  223</span>&#160;        not std::is_base_of&lt;log::Loggable, TheType&gt;::value ||</div>
-<div class="line"><a name="l00224"></a><span class="lineno">  224</span>&#160;            not std::is_base_of&lt;log::Loggable, TheFactory&gt;::value,</div>
+<div class="line"><a name="l00223"></a><span class="lineno">  223</span>&#160;        !std::is_base_of&lt;log::Loggable, TheType&gt;::value ||</div>
+<div class="line"><a name="l00224"></a><span class="lineno">  224</span>&#160;            !std::is_base_of&lt;log::Loggable, TheFactory&gt;::value,</div>
 <div class="line"><a name="l00225"></a><span class="lineno">  225</span>&#160;        <span class="keywordtype">void</span>&gt;::type</div>
 <div class="line"><a name="l00226"></a><span class="lineno">  226</span>&#160;    propagate_loggers(TheType *product)<span class="keyword"> const</span></div>
 <div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;<span class="keyword">    </span>{}</div>

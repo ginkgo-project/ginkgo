@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/89504347 branch based on develop. Ginkgo version 1.0.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/89621311 branch based on develop. Ginkgo version 1.0.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -74,7 +74,9 @@ Building</h2>
 <p>Use the standard cmake build procedure:</p>
 <div class="fragment"><div class="line">mkdir build; cd build</div>
 <div class="line">cmake -G &quot;Unix Makefiles&quot; [OPTIONS] .. &amp;&amp; make</div>
-</div><!-- fragment --><p> Replace <code>[OPTIONS]</code> with desired cmake options for your build. Ginkgo adds the following additional switches to control what is being built:</p>
+</div><!-- fragment --><p> Use <code>cmake --build .</code> in some systems like MinGW or Microsoft Visual Studio which do not use <code>make</code>.</p>
+<p>For Microsoft Visual Studio, use <code>cmake --build . --config &lt;build_type&gt;</code> to decide the build type. The possible options are <code>Debug</code>, <code>Release</code>, <code>RelWithDebInfo</code> and <code>MinSizeRel</code>.</p>
+<p>Replace <code>[OPTIONS]</code> with desired cmake options for your build. Ginkgo adds the following additional switches to control what is being built:</p>
 <ul>
 <li><code>-DGINKGO_DEVEL_TOOLS={ON, OFF}</code> sets up the build system for development (requires clang-format, will also download git-cmake-format), default is <code>ON</code></li>
 <li><code>-DGINKGO_BUILD_TESTS={ON, OFF}</code> builds Ginkgo's tests (will download googletest), default is <code>ON</code></li>
@@ -108,6 +110,8 @@ Building</h2>
 </ul>
 <p class="startli"><code>Auto</code> will automatically detect the present CUDA-enabled GPU architectures in the system. <code>Kepler</code>, <code>Maxwell</code>, <code>Pascal</code> and <code>Volta</code> will add flags for all architectures of that particular NVIDIA GPU generation. <code>COMPUTE</code> and <code>CODE</code> are placeholders that should be replaced with compute and code numbers (e.g. for <code>compute_70</code> and <code>sm_70</code> <code>COMPUTE</code> and <code>CODE</code> should be replaced with <code>70</code>. Default is <code>Auto</code>. For a more detailed explanation of this option see the <a href="https://github.com/ginkgo-project/CudaArchitectureSelector/blob/master/CudaArchitectureSelector.cmake#L58"><code>ARCHITECTURES</code> specification list</a> section in the documentation of the CudaArchitectureSelector CMake module.</p>
 </li>
+<li><code>-DGINKGO_WINDOWS_SHARED_LIBRARY_RELPATH=&lt;path&gt;</code> where &lt;path&gt; is a relative path built with <code>PROJECT_BINARY_DIR</code>. Users must add the absolute path (<code>PROJECT_BINARY_DIR</code>/<code>GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH</code>) into the environment variable PATH when building shared libraries and executable program, default is <code>windows_shared_library</code>.</li>
+<li><code>-DGINKGO_CHECK_PATH={ON, OFF}</code> checks if the environment variable PATH is valid. It is checked only when building shared libraries and executable program, default is <code>ON</code></li>
 </ul>
 <p>For example, to build everything (in debug mode), use:</p>
 <div class="fragment"><div class="line">cmake  -G &quot;Unix Makefiles&quot; -H. -BDebug -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \</div>

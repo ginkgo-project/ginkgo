@@ -134,9 +134,9 @@ Finally, direct manipulation of \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} ob
 \DoxyCodeLine{    \textcolor{keyword}{auto} tmp = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{gko::clone}}(x0);}
 \DoxyCodeLine{    \textcolor{keyword}{auto} \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} = Dense<>::create(L-\/>get\_executor(), \{1.0,\});}
 \DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < iters; ++i) \{}
-\DoxyCodeLine{        L-\/>apply(\mbox{\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}}(tmp), \mbox{\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}}(x));}
-\DoxyCodeLine{        x-\/>add\_scaled(\mbox{\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}}(\mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}}), \mbox{\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}}(b));}
-\DoxyCodeLine{        tmp-\/>copy\_from(\mbox{\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{gko::lend}}(x));}
+\DoxyCodeLine{        L-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(tmp), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(x));}
+\DoxyCodeLine{        x-\/>add\_scaled(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(\mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}}), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(b));}
+\DoxyCodeLine{        tmp-\/>copy\_from(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(x));}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{    \textcolor{keywordflow}{return} x;}
 \DoxyCodeLine{\}}
@@ -210,38 +210,6 @@ Defines a build method for the factory, simplifying its construction by removing
 \doxysubsubsection{\texorpdfstring{GKO\_ENABLE\_LIN\_OP\_FACTORY}{GKO\_ENABLE\_LIN\_OP\_FACTORY}}
 {\footnotesize\ttfamily \#define G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+L\+I\+N\+\_\+\+O\+P\+\_\+\+F\+A\+C\+T\+O\+RY(\begin{DoxyParamCaption}\item[{}]{\+\_\+lin\+\_\+op,  }\item[{}]{\+\_\+parameters\+\_\+name,  }\item[{}]{\+\_\+factory\+\_\+name }\end{DoxyParamCaption})}
 
-{\bfseries Value\+:}
-\begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{public}:                                                                      \(\backslash\)}
-\DoxyCodeLine{    const \_parameters\_name\#\#\_type \&get\_\#\#\_parameters\_name() const            \(\backslash\)}
-\DoxyCodeLine{    \{                                                                        \(\backslash\)}
-\DoxyCodeLine{        return \_parameters\_name\#\#\_;                                          \(\backslash\)}
-\DoxyCodeLine{    \}                                                                        \(\backslash\)}
-\DoxyCodeLine{                                                                             \(\backslash\)}
-\DoxyCodeLine{    class \_factory\_name                                                      \(\backslash\)}
-\DoxyCodeLine{        : \mbox{\hyperlink{group__LinOp_ga24628d477cba68b31cea690572c51912}{public ::gko::EnableDefaultLinOpFactory}}<\_factory\_name, \_lin\_op,    \(\backslash\)}
-\DoxyCodeLine{                                                  \_parameters\_name\#\#\_type> \{ \(\backslash\)}
-\DoxyCodeLine{        friend class ::gko::EnablePolymorphicObject<\_factory\_name,           \(\backslash\)}
-\DoxyCodeLine{                                                    \mbox{\hyperlink{classgko_1_1LinOpFactory}{::gko::LinOpFactory}}>;    \(\backslash\)}
-\DoxyCodeLine{        friend class ::gko::enable\_parameters\_type<\_parameters\_name\#\#\_type,  \(\backslash\)}
-\DoxyCodeLine{                                                   \_factory\_name>;           \mbox{\hyperlink{group__LinOp_ga24628d477cba68b31cea690572c51912}{\(\backslash\)}}}
-\DoxyCodeLine{\mbox{\hyperlink{group__LinOp_ga24628d477cba68b31cea690572c51912}{        using ::gko::EnableDefaultLinOpFactory}}<                              \(\backslash\)}
-\DoxyCodeLine{            \_factory\_name, \_lin\_op,                                          \(\backslash\)}
-\DoxyCodeLine{            \_parameters\_name\#\#\_type>\mbox{\hyperlink{group__LinOp_ga24628d477cba68b31cea690572c51912}{::EnableDefaultLinOpFactory}};             \(\backslash\)}
-\DoxyCodeLine{    \};                                                                       \mbox{\hyperlink{group__LinOp_ga24628d477cba68b31cea690572c51912}{\(\backslash\)}}}
-\DoxyCodeLine{\mbox{\hyperlink{group__LinOp_ga24628d477cba68b31cea690572c51912}{    friend ::gko::EnableDefaultLinOpFactory}}<\_factory\_name, \_lin\_op,          \(\backslash\)}
-\DoxyCodeLine{                                            \_parameters\_name\#\#\_type>;        \(\backslash\)}
-\DoxyCodeLine{                                                                             \(\backslash\)}
-\DoxyCodeLine{                                                                             \(\backslash\)}
-\DoxyCodeLine{private:                                                                     \(\backslash\)}
-\DoxyCodeLine{    \_parameters\_name\#\#\_type \_parameters\_name\#\#\_;                             \(\backslash\)}
-\DoxyCodeLine{                                                                             \(\backslash\)}
-\DoxyCodeLine{public:                                                                      \(\backslash\)}
-\DoxyCodeLine{    static\_assert(\textcolor{keyword}{true},                                                      \(\backslash\)}
-\DoxyCodeLine{                  \textcolor{stringliteral}{"This assert is used to counter the false positive extra "} \(\backslash\)}
-\DoxyCodeLine{                  \textcolor{stringliteral}{"semi-\/colon warnings"})}
-
-\end{DoxyCode}
 
 
 This macro will generate a default implementation of a Lin\+Op\+Factory for the Lin\+Op subclass it is defined in. 

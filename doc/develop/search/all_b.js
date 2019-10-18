@@ -3,7 +3,7 @@ var searchData=
   ['l_5fsolver_5ffactory_438',['l_solver_factory',['../structgko_1_1preconditioner_1_1Ilu_1_1parameters__type.html#a2e9fb9503481ca09a2c3a5bc77381e02',1,'gko::preconditioner::Ilu::parameters_type']]],
   ['layout_5ftype_439',['layout_type',['../namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68',1,'gko']]],
   ['left_5fshift_440',['left_shift',['../structgko_1_1accessor_1_1left__shift.html',1,'gko::accessor']]],
-  ['lend_441',['lend',['../namespacegko.html#aa8cb4876b72e5e1036ea9575443c439b',1,'gko::lend(const Pointer &amp;p)'],['../namespacegko.html#aa0c1deeb105cfb5a635b5f41cb5e8321',1,'gko::lend(const Pointer &amp;p)']]],
+  ['lend_441',['lend',['../namespacegko.html#a4edc2273b5627ec552ea423b60493be3',1,'gko::lend(const Pointer &amp;p)'],['../namespacegko.html#a9d45734020b4487bdffc1f6a12d98672',1,'gko::lend(const Pointer &amp;p)']]],
   ['length_442',['length',['../classgko_1_1range.html#a3ac8b238c377da9cc05d7c728efabfc8',1,'gko::range::length()'],['../classgko_1_1accessor_1_1row__major.html#a438bb22bf86a33db403119bcb914dacc',1,'gko::accessor::row_major::length()']]],
   ['lengths_443',['lengths',['../classgko_1_1accessor_1_1row__major.html#a4912695f06056d9e46cb335168bf28c9',1,'gko::accessor::row_major']]],
   ['less_444',['less',['../structgko_1_1accessor_1_1less.html',1,'gko::accessor']]],

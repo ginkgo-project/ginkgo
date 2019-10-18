@@ -6,7 +6,11 @@ Use the standard cmake build procedure\+:
 \DoxyCodeLine{mkdir build; cd build}
 \DoxyCodeLine{cmake -\/G "Unix Makefiles" [OPTIONS] .. \&\& make}
 \end{DoxyCode}
- Replace {\ttfamily \mbox{[}O\+P\+T\+I\+O\+NS\mbox{]}} with desired cmake options for your build. Ginkgo adds the following additional switches to control what is being built\+:
+ Use {\ttfamily cmake -\/-\/build .} in some systems like Min\+GW or Microsoft Visual Studio which do not use {\ttfamily make}.
+
+For Microsoft Visual Studio, use {\ttfamily cmake -\/-\/build . -\/-\/config $<$build\+\_\+type$>$} to decide the build type. The possible options are {\ttfamily Debug}, {\ttfamily Release}, {\ttfamily Rel\+With\+Deb\+Info} and {\ttfamily Min\+Size\+Rel}.
+
+Replace {\ttfamily \mbox{[}O\+P\+T\+I\+O\+NS\mbox{]}} with desired cmake options for your build. Ginkgo adds the following additional switches to control what is being built\+:
 
 
 \begin{DoxyItemize}
@@ -43,6 +47,8 @@ Use the standard cmake build procedure\+:
 \end{DoxyItemize}
 
 {\ttfamily Auto} will automatically detect the present C\+U\+D\+A-\/enabled G\+PU architectures in the system. {\ttfamily Kepler}, {\ttfamily Maxwell}, {\ttfamily Pascal} and {\ttfamily Volta} will add flags for all architectures of that particular N\+V\+I\+D\+IA G\+PU generation. {\ttfamily C\+O\+M\+P\+U\+TE} and {\ttfamily C\+O\+DE} are placeholders that should be replaced with compute and code numbers (e.\+g. for {\ttfamily compute\+\_\+70} and {\ttfamily sm\+\_\+70} {\ttfamily C\+O\+M\+P\+U\+TE} and {\ttfamily C\+O\+DE} should be replaced with {\ttfamily 70}. Default is {\ttfamily Auto}. For a more detailed explanation of this option see the \href{https://github.com/ginkgo-project/CudaArchitectureSelector/blob/master/CudaArchitectureSelector.cmake\#L58}{\texttt{ {\ttfamily A\+R\+C\+H\+I\+T\+E\+C\+T\+U\+R\+ES} specification list}} section in the documentation of the Cuda\+Architecture\+Selector C\+Make module.
+\item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+W\+I\+N\+D\+O\+W\+S\+\_\+\+S\+H\+A\+R\+E\+D\+\_\+\+L\+I\+B\+R\+A\+R\+Y\+\_\+\+R\+E\+L\+P\+A\+TH=$<$path$>$} where $<$path$>$ is a relative path built with {\ttfamily P\+R\+O\+J\+E\+C\+T\+\_\+\+B\+I\+N\+A\+R\+Y\+\_\+\+D\+IR}. Users must add the absolute path ({\ttfamily P\+R\+O\+J\+E\+C\+T\+\_\+\+B\+I\+N\+A\+R\+Y\+\_\+\+D\+IR}/{\ttfamily G\+I\+N\+K\+G\+O\+\_\+\+W\+I\+N\+D\+O\+W\+S\+\_\+\+S\+H\+A\+R\+E\+D\+\_\+\+L\+I\+B\+R\+A\+R\+Y\+\_\+\+R\+E\+L\+P\+A\+TH}) into the environment variable P\+A\+TH when building shared libraries and executable program, default is {\ttfamily windows\+\_\+shared\+\_\+library}.
+\item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+C\+H\+E\+C\+K\+\_\+\+P\+A\+TH=\{ON, O\+FF\}} checks if the environment variable P\+A\+TH is valid. It is checked only when building shared libraries and executable program, default is {\ttfamily ON}
 \end{DoxyItemize}
 
 For example, to build everything (in debug mode), use\+:

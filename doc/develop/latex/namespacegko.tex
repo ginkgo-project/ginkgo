@@ -255,6 +255,9 @@ constexpr \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64
 \begin{DoxyCompactList}\small\item\em Returns the position of the most significant bit of the number. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\constexpr T \mbox{\hyperlink{namespacegko_ad39645fe8148a8a812a9528865a77600}{get\+\_\+superior\+\_\+power}} (const T \&base, const T \&limit, const T \&hint=T\{1\}) noexcept
 \begin{DoxyCompactList}\small\item\em Returns the smallest power of {\ttfamily base} not smaller than {\ttfamily limit}. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{namespacegko_a23a34246f622b7e45cd5e40dc7f1f16e}\label{namespacegko_a23a34246f622b7e45cd5e40dc7f1f16e}} 
+{\footnotesize template$<$typename T $>$ }\\xstd\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, bool $>$ {\bfseries isfinite} (const T \&value)
+\item 
 {\footnotesize template$<$typename T $>$ }\\xstd\+::enable\+\_\+if\+\_\+t$<$ \mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, bool $>$ \mbox{\hyperlink{namespacegko_afb0f20b5d373f9439702e723d48548fa}{isfinite}} (const T \&value)
 \begin{DoxyCompactList}\small\item\em Checks if all components of a complex value are finite, meaning they are neither +/-\/ infinity nor NaN. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ }\\\mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$ \mbox{\hyperlink{namespacegko_a0b476e0e3df616b08efe85000bff8da0}{read\+\_\+raw}} (std\+::istream \&is)
@@ -591,9 +594,9 @@ constexpr bool \mbox{\hyperlink{namespacegko_a61d408b4cd77aae6cac7a40c8307fddb}{
 \begin{DoxyCompactList}\small\item\em Marks the object pointed to by {\ttfamily p} as shared. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename Owning\+Pointer $>$ }\\std\+::remove\+\_\+reference$<$ Owning\+Pointer $>$\+::type \&\& \mbox{\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{give}} (Owning\+Pointer \&\&p)
 \begin{DoxyCompactList}\small\item\em Marks that the object pointed to by {\ttfamily p} can be given to the callee. \end{DoxyCompactList}\item 
-{\footnotesize template$<$typename Pointer $>$ }\\std\+::enable\+\_\+if$<$ detail\+::have\+\_\+ownership$<$ Pointer $>$), detail\+::pointee$<$ Pointer $>$ $\ast$ $>$\+::type \mbox{\hyperlink{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}{lend}} (const Pointer \&p)
+{\footnotesize template$<$typename Pointer $>$ }\\std\+::enable\+\_\+if$<$ detail\+::have\+\_\+ownership\+\_\+s$<$ Pointer $>$\+::value, detail\+::pointee$<$ Pointer $>$ $\ast$ $>$\+::type \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}} (const Pointer \&p)
 \begin{DoxyCompactList}\small\item\em Returns a non-\/owning (plain) pointer to the object pointed to by {\ttfamily p}. \end{DoxyCompactList}\item 
-{\footnotesize template$<$typename Pointer $>$ }\\std\+::enable\+\_\+if$<$!detail\+::have\+\_\+ownership$<$ Pointer $>$), detail\+::pointee$<$ Pointer $>$ $\ast$ $>$\+::type \mbox{\hyperlink{namespacegko_aa0c1deeb105cfb5a635b5f41cb5e8321}{lend}} (const Pointer \&p)
+{\footnotesize template$<$typename Pointer $>$ }\\std\+::enable\+\_\+if$<$!detail\+::have\+\_\+ownership\+\_\+s$<$ Pointer $>$\+::value, detail\+::pointee$<$ Pointer $>$ $\ast$ $>$\+::type \mbox{\hyperlink{namespacegko_a9d45734020b4487bdffc1f6a12d98672}{lend}} (const Pointer \&p)
 \begin{DoxyCompactList}\small\item\em Returns a non-\/owning (plain) pointer to the object pointed to by {\ttfamily p}. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T , typename U $>$ }\\std\+::decay$<$ T $>$\+::type $\ast$ \mbox{\hyperlink{namespacegko_a73ce7e87aec389b5210630bb617b4baa}{as}} (U $\ast$obj)
 \begin{DoxyCompactList}\small\item\em Performs polymorphic type conversion. \end{DoxyCompactList}\item 
@@ -1150,12 +1153,12 @@ Checks if all components of a complex value are finite, meaning they are neither
 {\em value} & complex value to check\\
 \hline
 \end{DoxyParams}
-returns {\ttfamily true} if both components of the given value are finite, meaning they are neither +/-\/ infinity nor NaN. \mbox{\Hypertarget{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}\label{namespacegko_aa8cb4876b72e5e1036ea9575443c439b}} 
+returns {\ttfamily true} if both components of the given value are finite, meaning they are neither +/-\/ infinity nor NaN. \mbox{\Hypertarget{namespacegko_a4edc2273b5627ec552ea423b60493be3}\label{namespacegko_a4edc2273b5627ec552ea423b60493be3}} 
 \index{gko@{gko}!lend@{lend}}
 \index{lend@{lend}!gko@{gko}}
 \doxysubsubsection{\texorpdfstring{lend()}{lend()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
 {\footnotesize\ttfamily template$<$typename Pointer $>$ \\
-std\+::enable\+\_\+if$<$detail\+::have\+\_\+ownership$<$Pointer$>$), detail\+::pointee$<$Pointer$>$ $\ast$$>$\+::type gko\+::lend (\begin{DoxyParamCaption}\item[{const Pointer \&}]{p }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+std\+::enable\+\_\+if$<$detail\+::have\+\_\+ownership\+\_\+s$<$Pointer$>$\+::value, detail\+::pointee$<$Pointer$>$ $\ast$$>$\+::type gko\+::lend (\begin{DoxyParamCaption}\item[{const Pointer \&}]{p }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -1178,12 +1181,12 @@ This is the overload for owning (smart) pointers, that behaves the same as calli
 
 Referenced by gko\+::log\+::\+Enable\+Logging$<$ Executor $>$\+::remove\+\_\+logger().
 
-\mbox{\Hypertarget{namespacegko_aa0c1deeb105cfb5a635b5f41cb5e8321}\label{namespacegko_aa0c1deeb105cfb5a635b5f41cb5e8321}} 
+\mbox{\Hypertarget{namespacegko_a9d45734020b4487bdffc1f6a12d98672}\label{namespacegko_a9d45734020b4487bdffc1f6a12d98672}} 
 \index{gko@{gko}!lend@{lend}}
 \index{lend@{lend}!gko@{gko}}
 \doxysubsubsection{\texorpdfstring{lend()}{lend()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
 {\footnotesize\ttfamily template$<$typename Pointer $>$ \\
-std\+::enable\+\_\+if$<$!detail\+::have\+\_\+ownership$<$Pointer$>$), detail\+::pointee$<$Pointer$>$ $\ast$$>$\+::type gko\+::lend (\begin{DoxyParamCaption}\item[{const Pointer \&}]{p }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+std\+::enable\+\_\+if$<$!detail\+::have\+\_\+ownership\+\_\+s$<$Pointer$>$\+::value, detail\+::pointee$<$Pointer$>$ $\ast$$>$\+::type gko\+::lend (\begin{DoxyParamCaption}\item[{const Pointer \&}]{p }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 

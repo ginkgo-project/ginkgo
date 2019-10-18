@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/base/executor.hpp (f1a4eb68) Source File</title>
+<title>Ginkgo: ginkgo/core/base/executor.hpp (5a90a88d) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/89504347 branch based on develop. Ginkgo version 1.0.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/89621311 branch based on develop. Ginkgo version 1.0.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -490,7 +490,7 @@ $(function() {
 <div class="line"><a name="l00797"></a><span class="lineno">  797</span>&#160; </div>
 <div class="line"><a name="l00804"></a><span class="lineno"><a class="line" href="classgko_1_1CudaExecutor.html">  804</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1CudaExecutor.html">CudaExecutor</a> : <span class="keyword">public</span> detail::ExecutorBase&lt;CudaExecutor&gt;,</div>
 <div class="line"><a name="l00805"></a><span class="lineno">  805</span>&#160;                     <span class="keyword">public</span> std::enable_shared_from_this&lt;CudaExecutor&gt; {</div>
-<div class="line"><a name="l00806"></a><span class="lineno">  806</span>&#160;    <span class="keyword">friend</span> <span class="keyword">class </span>ExecutorBase&lt;CudaExecutor&gt;;</div>
+<div class="line"><a name="l00806"></a><span class="lineno">  806</span>&#160;    <span class="keyword">friend</span> <span class="keyword">class </span>detail::ExecutorBase&lt;CudaExecutor&gt;;</div>
 <div class="line"><a name="l00807"></a><span class="lineno">  807</span>&#160; </div>
 <div class="line"><a name="l00808"></a><span class="lineno">  808</span>&#160;<span class="keyword">public</span>:</div>
 <div class="line"><a name="l00816"></a><span class="lineno">  816</span>&#160;    <span class="keyword">static</span> std::shared_ptr&lt;CudaExecutor&gt; create(</div>
