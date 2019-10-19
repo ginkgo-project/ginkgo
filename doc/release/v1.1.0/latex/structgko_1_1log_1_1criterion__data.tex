@@ -1,0 +1,68 @@
+\hypertarget{structgko_1_1log_1_1criterion__data}{}\doxysection{gko\+::log\+::criterion\+\_\+data Struct Reference}
+\label{structgko_1_1log_1_1criterion__data}\index{gko::log::criterion\_data@{gko::log::criterion\_data}}
+
+
+Struct representing Criterion related data.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/log/record.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::log\+::criterion\+\_\+data\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{structgko_1_1log_1_1criterion__data__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1criterion__data_a8643df5a8f5d0cb01f80823fbdc3f5a0}\label{structgko_1_1log_1_1criterion__data_a8643df5a8f5d0cb01f80823fbdc3f5a0}} 
+{\bfseries criterion\+\_\+data} (const \mbox{\hyperlink{classgko_1_1stop_1_1Criterion}{stop\+::\+Criterion}} $\ast$criterion, const \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \&num\+\_\+iterations, const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$residual, const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$residual\+\_\+norm, const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$solution, const \mbox{\hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8}} stopping\+\_\+id, const bool set\+\_\+finalized, const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status}} $>$ $\ast$status=nullptr, const bool one\+Changed=false, const bool converged=false)
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1criterion__data_aa0548110c547da9a8483927718884f4a}\label{structgko_1_1log_1_1criterion__data_aa0548110c547da9a8483927718884f4a}} 
+const \mbox{\hyperlink{classgko_1_1stop_1_1Criterion}{stop\+::\+Criterion}} $\ast$ {\bfseries criterion}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1criterion__data_afab8df7b4785439a9267bc652d6deb63}\label{structgko_1_1log_1_1criterion__data_afab8df7b4785439a9267bc652d6deb63}} 
+const \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} {\bfseries num\+\_\+iterations}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1criterion__data_adc825d1d8a8e1c69e172ee582319a82a}\label{structgko_1_1log_1_1criterion__data_adc825d1d8a8e1c69e172ee582319a82a}} 
+std\+::unique\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ {\bfseries residual}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1criterion__data_a425258f5b1cb46ae3f117eace796a1f7}\label{structgko_1_1log_1_1criterion__data_a425258f5b1cb46ae3f117eace796a1f7}} 
+std\+::unique\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ {\bfseries residual\+\_\+norm}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1criterion__data_a23bddbadadb1ce48d21d41f8ac515d10}\label{structgko_1_1log_1_1criterion__data_a23bddbadadb1ce48d21d41f8ac515d10}} 
+std\+::unique\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ {\bfseries solution}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1criterion__data_ae406ca3e9f745e24edf545d33efdd7ce}\label{structgko_1_1log_1_1criterion__data_ae406ca3e9f745e24edf545d33efdd7ce}} 
+const \mbox{\hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8}} {\bfseries stopping\+\_\+id}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1criterion__data_a4c807636a64d3b1078572aac0c0ce95f}\label{structgko_1_1log_1_1criterion__data_a4c807636a64d3b1078572aac0c0ce95f}} 
+const bool {\bfseries set\+\_\+finalized}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1criterion__data_af795c317fb08a115e077fe30f27812c1}\label{structgko_1_1log_1_1criterion__data_af795c317fb08a115e077fe30f27812c1}} 
+const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status}} $>$ $\ast$ {\bfseries status}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1criterion__data_ac0008d49d33f2fa1f972fb98279bb162}\label{structgko_1_1log_1_1criterion__data_ac0008d49d33f2fa1f972fb98279bb162}} 
+const bool {\bfseries one\+Changed}
+\item 
+\mbox{\Hypertarget{structgko_1_1log_1_1criterion__data_aa8fe52a61886be70613da84cfb3868f8}\label{structgko_1_1log_1_1criterion__data_aa8fe52a61886be70613da84cfb3868f8}} 
+const bool {\bfseries converged}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Struct representing Criterion related data. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/log/record.\+hpp (f0a50f96)\end{DoxyCompactItemize}

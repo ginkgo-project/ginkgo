@@ -1,0 +1,94 @@
+\hypertarget{classgko_1_1solver_1_1Bicgstab}{}\doxysection{gko\+::solver\+::Bicgstab$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1solver_1_1Bicgstab}\index{gko::solver::Bicgstab$<$ ValueType $>$@{gko::solver::Bicgstab$<$ ValueType $>$}}
+
+
+Bi\+C\+G\+S\+T\+AB or the Bi-\/\+Conjugate Gradient-\/\+Stabilized is a Krylov subspace solver.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/solver/bicgstab.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::solver\+::Bicgstab$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1solver_1_1Bicgstab__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1solver_1_1Bicgstab_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Bicgstab_ab670b7a800a5b86f4733adfe314a67a7}\label{classgko_1_1solver_1_1Bicgstab_ab670b7a800a5b86f4733adfe314a67a7}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab_ada73e8ca3e8924011c8780cab92f651e}{get\+\_\+system\+\_\+matrix}} () const
+\begin{DoxyCompactList}\small\item\em Gets the system operator (matrix) of the linear system. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Bicgstab_ad9f55802a39cbf339c400f3a5eeb7a4a}\label{classgko_1_1solver_1_1Bicgstab_ad9f55802a39cbf339c400f3a5eeb7a4a}} 
+const \mbox{\hyperlink{structgko_1_1solver_1_1Bicgstab_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Bicgstab_abf0ea911ffb1bd2736dfd9ebfaa46a38}\label{classgko_1_1solver_1_1Bicgstab_abf0ea911ffb1bd2736dfd9ebfaa46a38}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Bicgstab_ab135a56fe121f9011363f034f1cd292e}\label{classgko_1_1solver_1_1Bicgstab_ab135a56fe121f9011363f034f1cd292e}} 
+class {\bfseries Enable\+Lin\+Op$<$ Bicgstab $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Bicgstab_acd2682c6fc5c060a57df8f9cfad990b5}\label{classgko_1_1solver_1_1Bicgstab_acd2682c6fc5c060a57df8f9cfad990b5}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Bicgstab, Lin\+Op $>$}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::solver\+::\+Bicgstab$<$ Value\+Type $>$}
+
+Bi\+C\+G\+S\+T\+AB or the Bi-\/\+Conjugate Gradient-\/\+Stabilized is a Krylov subspace solver. 
+
+Being a generic solver, it is capable of solving general matrices, including non-\/s.\+p.\+d matrices. Though, the memory and the computational requirement of the Bi\+C\+G\+S\+T\+AB solver are higher than of its s.\+p.\+d solver counterpart, it has the capability to solve generic systems. It was developed by stabilizing the Bi\+CG method.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of the elements of the system matrix. \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Bicgstab_ada73e8ca3e8924011c8780cab92f651e}\label{classgko_1_1solver_1_1Bicgstab_ada73e8ca3e8924011c8780cab92f651e}} 
+\index{gko::solver::Bicgstab$<$ ValueType $>$@{gko::solver::Bicgstab$<$ ValueType $>$}!get\_system\_matrix@{get\_system\_matrix}}
+\index{get\_system\_matrix@{get\_system\_matrix}!gko::solver::Bicgstab$<$ ValueType $>$@{gko::solver::Bicgstab$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_system\_matrix()}{get\_system\_matrix()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab}{gko\+::solver\+::\+Bicgstab}}$<$ Value\+Type $>$\+::get\+\_\+system\+\_\+matrix (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the system operator (matrix) of the linear system. 
+
+\begin{DoxyReturn}{Returns}
+the system operator (matrix) 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/solver/bicgstab.\+hpp (4d55c5d3)\end{DoxyCompactItemize}

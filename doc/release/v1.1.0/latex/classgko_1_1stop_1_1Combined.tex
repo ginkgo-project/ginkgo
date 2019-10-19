@@ -1,0 +1,56 @@
+\hypertarget{classgko_1_1stop_1_1Combined}{}\doxysection{gko\+::stop\+::Combined Class Reference}
+\label{classgko_1_1stop_1_1Combined}\index{gko::stop::Combined@{gko::stop::Combined}}
+
+
+The \mbox{\hyperlink{classgko_1_1stop_1_1Combined}{Combined}} class is used to combine multiple criterions together through an OR operation.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/stop/combined.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::stop\+::Combined\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1stop_1_1Combined__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1Combined_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1stop_1_1Combined_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1Combined_a0acc22e2dcbbf1493f9acb2fc77dbecd}\label{classgko_1_1stop_1_1Combined_a0acc22e2dcbbf1493f9acb2fc77dbecd}} 
+const \mbox{\hyperlink{structgko_1_1stop_1_1Combined_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1Combined_a3ffe259b8b3fe34b14ec3e55ec6891a8}\label{classgko_1_1stop_1_1Combined_a3ffe259b8b3fe34b14ec3e55ec6891a8}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1stop_1_1Combined_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1Combined_a7c6977e97337814148e9c8ba5801ebf9}\label{classgko_1_1stop_1_1Combined_a7c6977e97337814148e9c8ba5801ebf9}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Combined, Criterion $>$}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The \mbox{\hyperlink{classgko_1_1stop_1_1Combined}{Combined}} class is used to combine multiple criterions together through an OR operation. 
+
+The typical use case is to stop the iteration process if any of the criteria is fulfilled, e.\+g. a number of iterations, the relative residual norm has reached a threshold, etc. 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/stop/combined.\+hpp (f1a4eb68)\end{DoxyCompactItemize}

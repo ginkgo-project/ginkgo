@@ -1,0 +1,54 @@
+\hypertarget{classgko_1_1null__deleter}{}\doxysection{gko\+::null\+\_\+deleter$<$ T $>$ Class Template Reference}
+\label{classgko_1_1null__deleter}\index{gko::null\_deleter$<$ T $>$@{gko::null\_deleter$<$ T $>$}}
+
+
+This is a deleter that does not delete the object.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/utils.\+hpp$>$}
+
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1null__deleter_a07da79e3ea35a385173550a451b59bcf}\label{classgko_1_1null__deleter_a07da79e3ea35a385173550a451b59bcf}} 
+using {\bfseries pointer} = T $\ast$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{classgko_1_1null__deleter_a09fc153e500a30edaa572f2c6cb674ab}{operator()}} (pointer) const noexcept
+\begin{DoxyCompactList}\small\item\em Deletes the object. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename T$>$\newline
+class gko\+::null\+\_\+deleter$<$ T $>$}
+
+This is a deleter that does not delete the object. 
+
+It is useful where the object has been allocated elsewhere and will be deleted manually. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1null__deleter_a09fc153e500a30edaa572f2c6cb674ab}\label{classgko_1_1null__deleter_a09fc153e500a30edaa572f2c6cb674ab}} 
+\index{gko::null\_deleter$<$ T $>$@{gko::null\_deleter$<$ T $>$}!operator()@{operator()}}
+\index{operator()@{operator()}!gko::null\_deleter$<$ T $>$@{gko::null\_deleter$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{operator()()}{operator()()}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+void \mbox{\hyperlink{classgko_1_1null__deleter}{gko\+::null\+\_\+deleter}}$<$ T $>$\+::operator() (\begin{DoxyParamCaption}\item[{pointer}]{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Deletes the object. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em ptr} & pointer to the object being deleted \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/utils.\+hpp (ffa4bb4e)\end{DoxyCompactItemize}

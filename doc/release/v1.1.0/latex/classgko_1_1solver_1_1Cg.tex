@@ -1,0 +1,96 @@
+\hypertarget{classgko_1_1solver_1_1Cg}{}\doxysection{gko\+::solver\+::Cg$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1solver_1_1Cg}\index{gko::solver::Cg$<$ ValueType $>$@{gko::solver::Cg$<$ ValueType $>$}}
+
+
+CG or the conjugate gradient method is an iterative type Krylov subspace method which is suitable for symmetric positive definite methods.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/solver/cg.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::solver\+::Cg$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1solver_1_1Cg__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1solver_1_1Cg_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1solver_1_1Cg_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Cg_a010f8f5b0b315108a3990052a73f80b0}\label{classgko_1_1solver_1_1Cg_a010f8f5b0b315108a3990052a73f80b0}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Cg_a09d50a99fdc668316757ee253386ad2a}{get\+\_\+system\+\_\+matrix}} () const
+\begin{DoxyCompactList}\small\item\em Gets the system operator (matrix) of the linear system. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Cg_a548b5ff27c59e50f78eb96a0463453ae}\label{classgko_1_1solver_1_1Cg_a548b5ff27c59e50f78eb96a0463453ae}} 
+const \mbox{\hyperlink{structgko_1_1solver_1_1Cg_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Cg_a3d16ac7e3132362573b9af81cbccdf69}\label{classgko_1_1solver_1_1Cg_a3d16ac7e3132362573b9af81cbccdf69}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1solver_1_1Cg_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Cg_addd5cadb50dadd7e118776aeee9eb1c4}\label{classgko_1_1solver_1_1Cg_addd5cadb50dadd7e118776aeee9eb1c4}} 
+class {\bfseries Enable\+Lin\+Op$<$ Cg $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Cg_a4a8963db94d0c3f4136daf08823c6b09}\label{classgko_1_1solver_1_1Cg_a4a8963db94d0c3f4136daf08823c6b09}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Cg, Lin\+Op $>$}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::solver\+::\+Cg$<$ Value\+Type $>$}
+
+CG or the conjugate gradient method is an iterative type Krylov subspace method which is suitable for symmetric positive definite methods. 
+
+Though this method performs very well for symmetric positive definite matrices, it is in general not suitable for general matrices.
+
+The implementation in Ginkgo makes use of the merged kernel to make the best use of data locality. The inner operations in one iteration of CG are merged into 2 separate steps.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of matrix elements \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Cg_a09d50a99fdc668316757ee253386ad2a}\label{classgko_1_1solver_1_1Cg_a09d50a99fdc668316757ee253386ad2a}} 
+\index{gko::solver::Cg$<$ ValueType $>$@{gko::solver::Cg$<$ ValueType $>$}!get\_system\_matrix@{get\_system\_matrix}}
+\index{get\_system\_matrix@{get\_system\_matrix}!gko::solver::Cg$<$ ValueType $>$@{gko::solver::Cg$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_system\_matrix()}{get\_system\_matrix()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko\+::solver\+::\+Cg}}$<$ Value\+Type $>$\+::get\+\_\+system\+\_\+matrix (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the system operator (matrix) of the linear system. 
+
+\begin{DoxyReturn}{Returns}
+the system operator (matrix) 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/solver/cg.\+hpp (4d55c5d3)\end{DoxyCompactItemize}

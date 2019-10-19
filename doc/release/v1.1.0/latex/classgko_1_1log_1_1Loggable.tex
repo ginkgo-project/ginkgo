@@ -1,0 +1,72 @@
+\hypertarget{classgko_1_1log_1_1Loggable}{}\doxysection{gko\+::log\+::Loggable Class Reference}
+\label{classgko_1_1log_1_1Loggable}\index{gko::log::Loggable@{gko::log::Loggable}}
+
+
+\mbox{\hyperlink{classgko_1_1log_1_1Loggable}{Loggable}} class is an interface which should be implemented by classes wanting to support logging.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/log/logger.\+hpp$>$}
+
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+virtual void \mbox{\hyperlink{classgko_1_1log_1_1Loggable_aa2bb887b5ef7e75fa1a30ee1896ed932}{add\+\_\+logger}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1log_1_1Logger}{Logger}} $>$ logger)=0
+\begin{DoxyCompactList}\small\item\em Adds a new logger to the list of subscribed loggers. \end{DoxyCompactList}\item 
+virtual void \mbox{\hyperlink{classgko_1_1log_1_1Loggable_a5de4092a74cf04f30f13636d49aaec8b}{remove\+\_\+logger}} (const \mbox{\hyperlink{classgko_1_1log_1_1Logger}{Logger}} $\ast$logger)=0
+\begin{DoxyCompactList}\small\item\em Removes a logger from the list of subscribed loggers. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\mbox{\hyperlink{classgko_1_1log_1_1Loggable}{Loggable}} class is an interface which should be implemented by classes wanting to support logging. 
+
+For most cases, one can rely on the \mbox{\hyperlink{classgko_1_1log_1_1EnableLogging}{Enable\+Logging}} mixin which provides a default implementation of this interface. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1log_1_1Loggable_aa2bb887b5ef7e75fa1a30ee1896ed932}\label{classgko_1_1log_1_1Loggable_aa2bb887b5ef7e75fa1a30ee1896ed932}} 
+\index{gko::log::Loggable@{gko::log::Loggable}!add\_logger@{add\_logger}}
+\index{add\_logger@{add\_logger}!gko::log::Loggable@{gko::log::Loggable}}
+\doxysubsubsection{\texorpdfstring{add\_logger()}{add\_logger()}}
+{\footnotesize\ttfamily virtual void gko\+::log\+::\+Loggable\+::add\+\_\+logger (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1log_1_1Logger}{Logger}} $>$}]{logger }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+Adds a new logger to the list of subscribed loggers. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em logger} & the logger to add \\
+\hline
+\end{DoxyParams}
+
+
+Implemented in \mbox{\hyperlink{classgko_1_1log_1_1EnableLogging_a7b3493c14a37b4d46487d9c636d784f2}{gko\+::log\+::\+Enable\+Logging$<$ Concrete\+Loggable, Polymorphic\+Base $>$}}, \mbox{\hyperlink{classgko_1_1log_1_1EnableLogging_a7b3493c14a37b4d46487d9c636d784f2}{gko\+::log\+::\+Enable\+Logging$<$ Polymorphic\+Object $>$}}, and \mbox{\hyperlink{classgko_1_1log_1_1EnableLogging_a7b3493c14a37b4d46487d9c636d784f2}{gko\+::log\+::\+Enable\+Logging$<$ Executor $>$}}.
+
+\mbox{\Hypertarget{classgko_1_1log_1_1Loggable_a5de4092a74cf04f30f13636d49aaec8b}\label{classgko_1_1log_1_1Loggable_a5de4092a74cf04f30f13636d49aaec8b}} 
+\index{gko::log::Loggable@{gko::log::Loggable}!remove\_logger@{remove\_logger}}
+\index{remove\_logger@{remove\_logger}!gko::log::Loggable@{gko::log::Loggable}}
+\doxysubsubsection{\texorpdfstring{remove\_logger()}{remove\_logger()}}
+{\footnotesize\ttfamily virtual void gko\+::log\+::\+Loggable\+::remove\+\_\+logger (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1log_1_1Logger}{Logger}} $\ast$}]{logger }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+Removes a logger from the list of subscribed loggers. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em logger} & the logger to remove\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+The comparison is done using the logger\textquotesingle{}s object unique identity. Thus, two loggers constructed in the same way are not considered equal. 
+\end{DoxyNote}
+
+
+Implemented in \mbox{\hyperlink{classgko_1_1log_1_1EnableLogging_aba5317f8a03956a61d770e9b07fc65cc}{gko\+::log\+::\+Enable\+Logging$<$ Concrete\+Loggable, Polymorphic\+Base $>$}}, \mbox{\hyperlink{classgko_1_1log_1_1EnableLogging_aba5317f8a03956a61d770e9b07fc65cc}{gko\+::log\+::\+Enable\+Logging$<$ Polymorphic\+Object $>$}}, and \mbox{\hyperlink{classgko_1_1log_1_1EnableLogging_aba5317f8a03956a61d770e9b07fc65cc}{gko\+::log\+::\+Enable\+Logging$<$ Executor $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/log/logger.\+hpp (0d7578c9)\end{DoxyCompactItemize}

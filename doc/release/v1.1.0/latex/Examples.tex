@@ -1,0 +1,150 @@
+Here you can find example programs that demonstrate the usage of Ginkgo. Some examples are built on one another and some are stand-\/alone and demonstrate a concept of Ginkgo, which can be used in your own code.
+
+You can browse the available example programs 
+\begin{DoxyEnumerate}
+\item as {\bfseries{\href{\#graph}{\texttt{ a graph}}}} that shows how example programs build upon each other. 
+\item as {\bfseries{\href{\#list}{\texttt{ a list}}}} that provides a short synopsis of each program. 
+\item or {\bfseries{\href{\#topic}{\texttt{ grouped by topic}}}}. 
+\end{DoxyEnumerate}
+
+By default, all Ginkgo examples are built using C\+Make.
+
+An example for building the examples and using Ginkgo as an external library without C\+Make can be found in the script provided for each example, which should be called with the form\+: {\ttfamily ./build.sh P\+A\+T\+H\+\_\+\+T\+O\+\_\+\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+D\+IR }
+
+By default, Ginkgo is compiled with at least {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+R\+E\+F\+E\+R\+E\+N\+CE=ON}. To execute on a G\+PU, you need to have a G\+PU on the system and must have compiled Ginkgo with the {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+C\+U\+DA=ON} option.
+
+\label{_graph}%
+ \label{Examples_ExampleConnectionGraph}%
+\Hypertarget{Examples_ExampleConnectionGraph}%
+ \doxysubsubsection*{Connections between example programs}
+
+The following graph shows the connections between example programs and how they build on each other. Click on any of the boxes to go to one of the programs. If you hover your mouse pointer over a box, a brief description of the program should appear. 
+\begin{DoxyImageNoCaption}
+  \mbox{\includegraphics[width=\textwidth,height=\textheight/2,keepaspectratio=true]{dot_inline_dotgraph_1}}
+\end{DoxyImageNoCaption}
+
+
+{\bfseries{Legend\+:}}~\newline
+ 
+\begin{DoxyImageNoCaption}
+  \mbox{\includegraphics[width=\textwidth,height=\textheight/2,keepaspectratio=true]{dot_inline_dotgraph_2}}
+\end{DoxyImageNoCaption}
+
+
+\label{_list}%
+ \doxysubsubsection*{Example programs }
+
+\tabulinesep=1mm
+\begin{longtabu}spread 0pt [c]{*{2}{|X[-1]}|}
+\hline
+\mbox{\hyperlink{simple_solver}{The simple-\/solver program}} &A minimal CG solver in Ginkgo, which reads a matrix from a file. 
+
+\\\cline{1-2}
+\mbox{\hyperlink{minimal_cuda_solver}{The minimal-\/cuda-\/solver program}} &A minimal solver on the C\+U\+DA executor than can be run on N\+V\+I\+D\+IA G\+PU\textquotesingle{}s. 
+
+\\\cline{1-2}
+\mbox{\hyperlink{poisson_solver}{The poisson-\/solver program}} &Solve an actual physically relevant problem, the poisson problem. The matrix is generated within Ginkgo. 
+
+\\\cline{1-2}
+\mbox{\hyperlink{preconditioned_solver}{The preconditioned-\/solver program}} &Using a Jacobi preconditioner to solve a linear system. 
+
+\\\cline{1-2}
+\mbox{\hyperlink{ilu_preconditioned_solver}{The ilu-\/preconditioned-\/solver program}} &Using an I\+LU preconditioner to solve a linear system. 
+
+\\\cline{1-2}
+\mbox{\hyperlink{performance_debugging}{The performance-\/debugging program}} &Using Loggers to debug the performance within Ginkgo. 
+
+\\\cline{1-2}
+\mbox{\hyperlink{three_pt_stencil_solver}{The three-\/pt-\/stencil-\/solver program}} &Using a three point stencil to solve the poisson equation with array views. 
+
+\\\cline{1-2}
+\mbox{\hyperlink{nine_pt_stencil_solver}{The nine-\/pt-\/stencil-\/solver program}} &Using a nine point 2D stencil to solve the poisson equation with array views. 
+
+\\\cline{1-2}
+\mbox{\hyperlink{twentyseven_pt_stencil_solver}{The twentyseven-\/pt-\/stencil-\/solver program}} &Using a twentyseven point 3D stencil to solve the poisson equation with array views. 
+
+\\\cline{1-2}
+\mbox{\hyperlink{external_lib_interfacing}{The external-\/lib-\/interfacing program}} &Using Ginkgo\textquotesingle{}s solver with the external library deal.\+II. 
+
+\\\cline{1-2}
+\mbox{\hyperlink{custom_logger}{The custom-\/logger program}} &Creating a custom logger specifically for comparing the recurrent and the real residual norms. 
+
+\\\cline{1-2}
+\mbox{\hyperlink{custom_matrix_format}{The custom-\/matrix-\/format program}} &Creating a matrix-\/free stencil solver by using Ginkgo\textquotesingle{}s advanced methods to build your own custom matrix format. 
+
+\\\cline{1-2}
+\mbox{\hyperlink{inverse_iteration}{The inverse-\/iteration program}} &Using Ginkgo to compute eigenvalues of a matrix with the inverse iteration method. 
+
+\\\cline{1-2}
+\mbox{\hyperlink{simple_solver_logging}{The simple-\/solver-\/logging program}} &Using the logging functionality in Ginkgo to get solver and other information to diagnose and debug your code. 
+
+\\\cline{1-2}
+\mbox{\hyperlink{papi_logging}{The papi-\/logging program}} &Using the P\+A\+PI logging library in Ginkgo to get advanced information about your code and its behaviour. 
+
+\\\cline{1-2}
+\mbox{\hyperlink{ginkgo_overhead}{The ginkgo-\/overhead program}} &Measuring the overhead of the Ginkgo library. 
+
+\\\cline{1-2}
+\mbox{\hyperlink{custom_stopping_criterion}{The custom-\/stopping-\/criterion program}} &Creating a custom stopping criterion for the iterative solution process. 
+
+\\\cline{1-2}
+\mbox{\hyperlink{ginkgo_ranges}{The ginkgo-\/ranges program}} &Using the ranges concept to factorize a matrix with the LU factorization. 
+
+\\\cline{1-2}
+\end{longtabu}
+
+
+\label{_topic}%
+ \doxysubsubsection*{Example programs grouped by topics}
+
+\doxyparagraph*{{\bfseries{Basic techniques}}}
+
+\tabulinesep=1mm
+\begin{longtabu}spread 0pt [c]{*{2}{|X[-1]}|}
+\hline
+Solving a simple linear system with choice of executors.  &\mbox{\hyperlink{simple_solver}{The simple-\/solver program}}  
+
+\\\cline{1-2}
+Debug the performance of a solver using loggers.  &\mbox{\hyperlink{performance_debugging}{The performance-\/debugging program}}  
+
+\\\cline{1-2}
+Using the C\+U\+DA executor  &\mbox{\hyperlink{minimal_cuda_solver}{The minimal-\/cuda-\/solver program}}  
+
+\\\cline{1-2}
+Using preconditioners  &\mbox{\hyperlink{preconditioned_solver}{The preconditioned-\/solver program}}, \mbox{\hyperlink{ilu_preconditioned_solver}{The ilu-\/preconditioned-\/solver program}}  
+
+\\\cline{1-2}
+Solving a physically relevant problem  &\mbox{\hyperlink{poisson_solver}{The poisson-\/solver program}}, \mbox{\hyperlink{three_pt_stencil_solver}{The three-\/pt-\/stencil-\/solver program}}, \mbox{\hyperlink{nine_pt_stencil_solver}{The nine-\/pt-\/stencil-\/solver program}}, \mbox{\hyperlink{twentyseven_pt_stencil_solver}{The twentyseven-\/pt-\/stencil-\/solver program}}, \mbox{\hyperlink{custom_matrix_format}{The custom-\/matrix-\/format program}}  
+
+\\\cline{1-2}
+Reading in a matrix and right hand side from a file.  &\mbox{\hyperlink{simple_solver}{The simple-\/solver program}}, \mbox{\hyperlink{minimal_cuda_solver}{The minimal-\/cuda-\/solver program}}, \mbox{\hyperlink{preconditioned_solver}{The preconditioned-\/solver program}}, \mbox{\hyperlink{ilu_preconditioned_solver}{The ilu-\/preconditioned-\/solver program}}, \mbox{\hyperlink{inverse_iteration}{The inverse-\/iteration program}}, \mbox{\hyperlink{simple_solver_logging}{The simple-\/solver-\/logging program}}, \mbox{\hyperlink{papi_logging}{The papi-\/logging program}}, \mbox{\hyperlink{custom_stopping_criterion}{The custom-\/stopping-\/criterion program}}, \mbox{\hyperlink{custom_logger}{The custom-\/logger program}}  
+
+\\\cline{1-2}
+\end{longtabu}
+
+
+\doxyparagraph*{{\bfseries{Advanced techniques}}}
+
+\tabulinesep=1mm
+\begin{longtabu}spread 0pt [c]{*{2}{|X[-1]}|}
+\hline
+Using Ginkgo with external libraries.  &\mbox{\hyperlink{external_lib_interfacing}{The external-\/lib-\/interfacing program}}  
+
+\\\cline{1-2}
+Customizing Ginkgo  &\mbox{\hyperlink{custom_logger}{The custom-\/logger program}}, \mbox{\hyperlink{custom_stopping_criterion}{The custom-\/stopping-\/criterion program}}, \mbox{\hyperlink{custom_matrix_format}{The custom-\/matrix-\/format program}}  
+
+\\\cline{1-2}
+Writing your own matrix format  &\mbox{\hyperlink{custom_matrix_format}{The custom-\/matrix-\/format program}}  
+
+\\\cline{1-2}
+Using Ginkgo to construct more complex linear algebra routines.  &\mbox{\hyperlink{inverse_iteration}{The inverse-\/iteration program}}  
+
+\\\cline{1-2}
+Logging within Ginkgo.  &\mbox{\hyperlink{simple_solver_logging}{The simple-\/solver-\/logging program}}, \mbox{\hyperlink{papi_logging}{The papi-\/logging program}}, \mbox{\hyperlink{custom_logger}{The custom-\/logger program}}  
+
+\\\cline{1-2}
+Constructing your own stopping criterion.  &\mbox{\hyperlink{custom_stopping_criterion}{The custom-\/stopping-\/criterion program}}  
+
+\\\cline{1-2}
+Using ranges in Ginkgo.  &\mbox{\hyperlink{ginkgo_ranges}{The ginkgo-\/ranges program}}   \\\cline{1-2}
+\end{longtabu}

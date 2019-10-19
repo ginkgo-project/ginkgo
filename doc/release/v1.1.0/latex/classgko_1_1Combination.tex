@@ -1,0 +1,98 @@
+\hypertarget{classgko_1_1Combination}{}\doxysection{gko\+::Combination$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1Combination}\index{gko::Combination$<$ ValueType $>$@{gko::Combination$<$ ValueType $>$}}
+
+
+The \mbox{\hyperlink{classgko_1_1Combination}{Combination}} class can be used to construct a linear combination of multiple linear operators {\ttfamily c1 $\ast$ op1 + c2 $\ast$ op2 + ... } 
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/combination.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Combination$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1Combination__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1Combination_a503b5d7f5f35f6ff697e44a850f10f9f}\label{classgko_1_1Combination_a503b5d7f5f35f6ff697e44a850f10f9f}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ $>$ \& \mbox{\hyperlink{classgko_1_1Combination_ad5844423c39d70ee90d5dc432c83261f}{get\+\_\+coefficients}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns a list of coefficients of the combination. \end{DoxyCompactList}\item 
+const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ $>$ \& \mbox{\hyperlink{classgko_1_1Combination_a75a81c2b91441ddea98949ef54f62441}{get\+\_\+operators}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns a list of operators of the combination. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1Combination_ae096eca62ea7e5640d99ece073cf1194}\label{classgko_1_1Combination_ae096eca62ea7e5640d99ece073cf1194}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Combination, Lin\+Op $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1Combination_a54ec531b3585ab2f8572e20e3bebb9d1}\label{classgko_1_1Combination_a54ec531b3585ab2f8572e20e3bebb9d1}} 
+class {\bfseries Enable\+Create\+Method$<$ Combination $>$}
+\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::\+Combination$<$ Value\+Type $>$}
+
+The \mbox{\hyperlink{classgko_1_1Combination}{Combination}} class can be used to construct a linear combination of multiple linear operators {\ttfamily c1 $\ast$ op1 + c2 $\ast$ op2 + ... }
+
+
+\begin{DoxyItemize}
+\item ck $\ast$ opk.
+\end{DoxyItemize}
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of input and result vectors \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1Combination_ad5844423c39d70ee90d5dc432c83261f}\label{classgko_1_1Combination_ad5844423c39d70ee90d5dc432c83261f}} 
+\index{gko::Combination$<$ ValueType $>$@{gko::Combination$<$ ValueType $>$}!get\_coefficients@{get\_coefficients}}
+\index{get\_coefficients@{get\_coefficients}!gko::Combination$<$ ValueType $>$@{gko::Combination$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_coefficients()}{get\_coefficients()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+const std\+::vector$<$std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ $>$\& \mbox{\hyperlink{classgko_1_1Combination}{gko\+::\+Combination}}$<$ Value\+Type $>$\+::get\+\_\+coefficients (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns a list of coefficients of the combination. 
+
+\begin{DoxyReturn}{Returns}
+a list of coefficients 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1Combination_a75a81c2b91441ddea98949ef54f62441}\label{classgko_1_1Combination_a75a81c2b91441ddea98949ef54f62441}} 
+\index{gko::Combination$<$ ValueType $>$@{gko::Combination$<$ ValueType $>$}!get\_operators@{get\_operators}}
+\index{get\_operators@{get\_operators}!gko::Combination$<$ ValueType $>$@{gko::Combination$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_operators()}{get\_operators()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+const std\+::vector$<$std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ $>$\& \mbox{\hyperlink{classgko_1_1Combination}{gko\+::\+Combination}}$<$ Value\+Type $>$\+::get\+\_\+operators (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns a list of operators of the combination. 
+
+\begin{DoxyReturn}{Returns}
+a list of operators 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/combination.\+hpp (b6e1321a)\end{DoxyCompactItemize}

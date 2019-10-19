@@ -1,0 +1,468 @@
+The custom stopping criterion creation example..
+
+This example depends on simple-\/solver, minimal-\/cuda-\/solver.
+
+ \label{_Intro}%
+ \label{_Introduction}%
+\doxysection*{Introduction}
+
+\label{_Abouttheexample}%
+\doxysubsubsection*{About the example }
+
+\label{_CommProg}%
+ \doxysection*{The commented program}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <fstream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <thread>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{/ **}
+\DoxyCodeLine{ * The ByInteraction \textcolor{keyword}{class }is a criterion which asks for user input to stop}
+\DoxyCodeLine{ * the iteration process. Using \textcolor{keyword}{this} criterion is slightly more complex than the}
+\DoxyCodeLine{ * other ones, because it is asynchronous therefore requires the use of threads.}
+\DoxyCodeLine{ * /}
+\DoxyCodeLine{\textcolor{keyword}{class }ByInteraction}
+\DoxyCodeLine{    : \textcolor{keyword}{public} \mbox{\hyperlink{classgko_1_1EnablePolymorphicObject}{gko::EnablePolymorphicObject}}<ByInteraction, gko::stop::Criterion> \{}
+\DoxyCodeLine{    \textcolor{keyword}{friend} \textcolor{keyword}{class }\mbox{\hyperlink{classgko_1_1EnablePolymorphicObject}{gko::EnablePolymorphicObject}}<ByInteraction,}
+\DoxyCodeLine{                                              \mbox{\hyperlink{namespacegko}{gko}}::stop::Criterion>;}
+\DoxyCodeLine{    using Criterion = \mbox{\hyperlink{classgko_1_1stop_1_1Criterion}{gko::stop::Criterion}};}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{public}:}
+\DoxyCodeLine{    \mbox{\hyperlink{group__LinOp_ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358}{GKO\_CREATE\_FACTORY\_PARAMETERS}}(parameters, Factory)}
+\DoxyCodeLine{    \{}
+\DoxyCodeLine{        / **}
+\DoxyCodeLine{         * Boolean set by the user to stop the iteration process}
+\DoxyCodeLine{         * /}
+\DoxyCodeLine{        std::add\_pointer<volatile bool>::type \mbox{\hyperlink{group__LinOp_gaa037309884bbd0562b897cee95dd91c8}{GKO\_FACTORY\_PARAMETER}}(}
+\DoxyCodeLine{            stop\_iteration\_process, \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{    \};}
+\DoxyCodeLine{    \mbox{\hyperlink{group__stop_ga5a998013602bad749e586a5664670cae}{GKO\_ENABLE\_CRITERION\_FACTORY}}(ByInteraction, parameters, Factory);}
+\DoxyCodeLine{    \mbox{\hyperlink{group__LinOp_ga521f65604cc4cf427dcb2ecfa49b757c}{GKO\_ENABLE\_BUILD\_METHOD}}(Factory);}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{protected}:}
+\DoxyCodeLine{    \textcolor{keywordtype}{bool} check\_impl(\mbox{\hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{gko::uint8}} stoppingId, \textcolor{keywordtype}{bool} setFinalized,}
+\DoxyCodeLine{                    \mbox{\hyperlink{classgko_1_1Array}{gko::Array<gko::stopping\_status>}} *stop\_status,}
+\DoxyCodeLine{                    \textcolor{keywordtype}{bool} *one\_changed, \textcolor{keyword}{const} Criterion::Updater \&)\textcolor{keyword}{ override}}
+\DoxyCodeLine{\textcolor{keyword}{    }\{}
+\DoxyCodeLine{        \textcolor{keywordtype}{bool} result = *(parameters\_.stop\_iteration\_process);}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (result) \{}
+\DoxyCodeLine{            this-\/>set\_all\_statuses(stoppingId, setFinalized, stop\_status);}
+\DoxyCodeLine{            *one\_changed = \textcolor{keyword}{true};}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keywordflow}{return} result;}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{explicit} ByInteraction(std::shared\_ptr<const gko::Executor> exec)}
+\DoxyCodeLine{        : EnablePolymorphicObject<ByInteraction, Criterion>(std::move(exec))}
+\DoxyCodeLine{    \{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{explicit} ByInteraction(\textcolor{keyword}{const} Factory *factory,}
+\DoxyCodeLine{                           \textcolor{keyword}{const} \mbox{\hyperlink{structgko_1_1stop_1_1CriterionArgs}{gko::stop::CriterionArgs}} \&args)}
+\DoxyCodeLine{}
+\DoxyCodeLine{        : EnablePolymorphicObject<ByInteraction, Criterion>(}
+\DoxyCodeLine{              factory-\/>get\_executor()),}
+\DoxyCodeLine{          parameters\_\{factory-\/>get\_parameters()\}}
+\DoxyCodeLine{    \{\}}
+\DoxyCodeLine{\};}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} run\_solver(\textcolor{keyword}{volatile} \textcolor{keywordtype}{bool} *stop\_iteration\_process,}
+\DoxyCodeLine{                std::shared\_ptr<gko::Executor> exec)}
+\DoxyCodeLine{\{}
+\end{DoxyCode}
+
+
+Some shortcuts
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} bicg = \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab}{gko::solver::Bicgstab<>}};}
+\end{DoxyCode}
+
+
+Read Data
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} A = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));}
+\DoxyCodeLine{\textcolor{keyword}{auto} b = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/b.mtx"}), exec);}
+\DoxyCodeLine{\textcolor{keyword}{auto} x = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/x0.mtx"}), exec);}
+\end{DoxyCode}
+
+
+Create solver factory and solve system
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} solver = bicg::build()}
+\DoxyCodeLine{                  .with\_criteria(ByInteraction::build()}
+\DoxyCodeLine{                                     .with\_stop\_iteration\_process(}
+\DoxyCodeLine{                                         stop\_iteration\_process)}
+\DoxyCodeLine{                                     .on(exec))}
+\DoxyCodeLine{                  .on(exec)}
+\DoxyCodeLine{                  -\/>generate(A);}
+\DoxyCodeLine{solver-\/>add\_logger(\mbox{\hyperlink{classgko_1_1log_1_1Stream}{gko::log::Stream<>::create}}(}
+\DoxyCodeLine{    exec, gko::log::Logger::iteration\_complete\_mask, std::cout, \textcolor{keyword}{true}));}
+\DoxyCodeLine{solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\DoxyCodeLine{}
+\DoxyCodeLine{std::cout << \textcolor{stringliteral}{"Solver stopped"} << std::endl;}
+\end{DoxyCode}
+
+
+Print solution
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::cout << \textcolor{stringliteral}{"Solution (x): \(\backslash\)n"};}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\end{DoxyCode}
+
+
+Calculate residual
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    \textcolor{keyword}{auto} \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} = gko::initialize<vec>(\{1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} neg\_one = gko::initialize<vec>(\{-\/1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} res = gko::initialize<vec>(\{0.0\}, exec);}
+\DoxyCodeLine{    A-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(neg\_one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b));}
+\DoxyCodeLine{    b-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(res));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Residual norm sqrt(r\string^T r): \(\backslash\)n"};}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(res));}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\end{DoxyCode}
+
+
+Print version information
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::cout << \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}}() << std::endl;}
+\end{DoxyCode}
+
+
+Figure out where to run the code
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::shared\_ptr<gko::Executor> exec;}
+\DoxyCodeLine{\textcolor{keywordflow}{if} (argc == 1 || std::string(argv[1]) == \textcolor{stringliteral}{"reference"}) \{}
+\DoxyCodeLine{    exec = gko::ReferenceExecutor::create();}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"omp"}) \{}
+\DoxyCodeLine{    exec = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"cuda"} \&\&}
+\DoxyCodeLine{           \mbox{\hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{gko::CudaExecutor::get\_num\_devices}}() > 0) \{}
+\DoxyCodeLine{    exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" [executor]"} << std::endl;}
+\DoxyCodeLine{    std::exit(-\/1);}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+Declare a user controled boolean for the iteration process
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{volatile} \textcolor{keywordtype}{bool} stop\_iteration\_process\{\};}
+\end{DoxyCode}
+
+
+Create a new a thread to launch the solver
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::thread t(run\_solver, \&stop\_iteration\_process, exec);}
+\end{DoxyCode}
+
+
+Look for an input command \char`\"{}stop\char`\"{} in the console, which sets the boolean to true
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Type 'stop' to stop the iteration process"} << std::endl;}
+\DoxyCodeLine{    std::string command;}
+\DoxyCodeLine{    \textcolor{keywordflow}{while} (std::cin >> command) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (command == \textcolor{stringliteral}{"stop"}) \{}
+\DoxyCodeLine{            \textcolor{keywordflow}{break};}
+\DoxyCodeLine{        \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{            std::cout << \textcolor{stringliteral}{"Unknown command"} << std::endl;}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"User input command 'stop' -\/ The solver will stop!"}}
+\DoxyCodeLine{              << std::endl;}
+\DoxyCodeLine{    stop\_iteration\_process = \textcolor{keyword}{true};}
+\DoxyCodeLine{    t.join();}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+ \label{_Results}%
+\doxysection*{Results}
+
+This is the expected output\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{.}
+\DoxyCodeLine{.}
+\DoxyCodeLine{.}
+\DoxyCodeLine{.}
+\DoxyCodeLine{.}
+\DoxyCodeLine{[LOG] >>> iteration 15331 completed with solver LinOp[\mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab}{gko::solver::Bicgstab<double>}},0x7f2f38003c10] with residual LinOp[\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}},0x7f2f380048e0], solution LinOp[\mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} \textcolor{keyword}{const}*,0] and residual\_norm LinOp[\mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} \textcolor{keyword}{const}*,0]}
+\DoxyCodeLine{LinOp[\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}},0x7f2f380048e0][}
+\DoxyCodeLine{        6.21705e-\/164}
+\DoxyCodeLine{        -\/1.18919e-\/164}
+\DoxyCodeLine{        7.89129e-\/165}
+\DoxyCodeLine{        -\/6.78013e-\/165}
+\DoxyCodeLine{        -\/2.42405e-\/164}
+\DoxyCodeLine{        -\/4.29503e-\/165}
+\DoxyCodeLine{        6.16567e-\/166}
+\DoxyCodeLine{        -\/3.34064e-\/164}
+\DoxyCodeLine{        6.38335e-\/165}
+\DoxyCodeLine{        7.86768e-\/165}
+\DoxyCodeLine{        -\/1.80969e-\/165}
+\DoxyCodeLine{        -\/4.17609e-\/166                   }
+\DoxyCodeLine{        2.5395e-\/165}
+\DoxyCodeLine{        -\/5.34283e-\/166}
+\DoxyCodeLine{        -\/4.10476e-\/166}
+\DoxyCodeLine{        -\/1.50132e-\/166}
+\DoxyCodeLine{        -\/1.25732e-\/165}
+\DoxyCodeLine{        -\/1.82819e-\/166}
+\DoxyCodeLine{        -\/2.0927e-\/165}
+\DoxyCodeLine{]        }
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{comment}{// Typing 'stop' stops the solver.}}
+\DoxyCodeLine{}
+\DoxyCodeLine{User input command \textcolor{stringliteral}{'stop'} -\/ The solver will stop}
+\DoxyCodeLine{}
+\DoxyCodeLine{LinOp[\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}},0x7f2f38004730][}
+\DoxyCodeLine{        0.252218}
+\DoxyCodeLine{        0.108645}
+\DoxyCodeLine{        0.0662811}
+\DoxyCodeLine{        0.0630433}
+\DoxyCodeLine{        0.0384088}
+\DoxyCodeLine{        0.0396536}
+\DoxyCodeLine{        0.0402648}
+\DoxyCodeLine{        0.0338935}
+\DoxyCodeLine{        0.0193098}
+\DoxyCodeLine{        0.0234653}
+\DoxyCodeLine{        0.0211499}
+\DoxyCodeLine{        0.0196413}
+\DoxyCodeLine{        0.0199151}
+\DoxyCodeLine{        0.0181674}
+\DoxyCodeLine{        0.0162722}
+\DoxyCodeLine{        0.0150714}
+\DoxyCodeLine{        0.0107016}
+\DoxyCodeLine{        0.0121141}
+\DoxyCodeLine{        0.0123025}
+\DoxyCodeLine{]}
+\DoxyCodeLine{}
+\DoxyCodeLine{Solver stopped}
+\DoxyCodeLine{Solution (x):}
+\DoxyCodeLine{\%\%MatrixMarket matrix \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{array}} \mbox{\hyperlink{namespacegko_ae23cfd886cee6e88d77bcbbbe1928b78}{real}} general}
+\DoxyCodeLine{19 1}
+\DoxyCodeLine{0.252218}
+\DoxyCodeLine{0.108645}
+\DoxyCodeLine{0.0662811}
+\DoxyCodeLine{0.0630433}
+\DoxyCodeLine{0.0384088}
+\DoxyCodeLine{0.0396536}
+\DoxyCodeLine{0.0402648}
+\DoxyCodeLine{0.0338935}
+\DoxyCodeLine{0.0193098}
+\DoxyCodeLine{0.0234653}
+\DoxyCodeLine{0.0211499}
+\DoxyCodeLine{0.0196413}
+\DoxyCodeLine{0.0199151}
+\DoxyCodeLine{0.0181674}
+\DoxyCodeLine{0.0162722}
+\DoxyCodeLine{0.0150714}
+\DoxyCodeLine{0.0107016}
+\DoxyCodeLine{0.0121141}
+\DoxyCodeLine{0.0123025}
+\DoxyCodeLine{Residual norm sqrt(r\string^T r):}
+\DoxyCodeLine{\%\%MatrixMarket matrix \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{array}} \mbox{\hyperlink{namespacegko_ae23cfd886cee6e88d77bcbbbe1928b78}{real}} general}
+\DoxyCodeLine{1 1}
+\DoxyCodeLine{1.06135e-\/15}
+\end{DoxyCode}
+
+
+\label{_Commentsaboutprogramminganddebugging}%
+\doxyparagraph*{Comments about programming and debugging }
+
+\label{_PlainProg}%
+ \doxysection*{The plain program}
+
+
+\begin{DoxyCodeInclude}{0}
+\DoxyCodeLine{\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}}
+\DoxyCodeLine{\textcolor{comment}{Copyright (c) 2017-\/2019, the Ginkgo authors}}
+\DoxyCodeLine{\textcolor{comment}{All rights reserved.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{Redistribution and use in source and binary forms, with or without}}
+\DoxyCodeLine{\textcolor{comment}{modification, are permitted provided that the following conditions}}
+\DoxyCodeLine{\textcolor{comment}{are met:}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{1. Redistributions of source code must retain the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{2. Redistributions in binary form must reproduce the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer in the}}
+\DoxyCodeLine{\textcolor{comment}{documentation and/or other materials provided with the distribution.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{3. Neither the name of the copyright holder nor the names of its}}
+\DoxyCodeLine{\textcolor{comment}{contributors may be used to endorse or promote products derived from}}
+\DoxyCodeLine{\textcolor{comment}{this software without specific prior written permission.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS}}
+\DoxyCodeLine{\textcolor{comment}{IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED}}
+\DoxyCodeLine{\textcolor{comment}{TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A}}
+\DoxyCodeLine{\textcolor{comment}{PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT}}
+\DoxyCodeLine{\textcolor{comment}{HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,}}
+\DoxyCodeLine{\textcolor{comment}{SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT}}
+\DoxyCodeLine{\textcolor{comment}{LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,}}
+\DoxyCodeLine{\textcolor{comment}{DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY}}
+\DoxyCodeLine{\textcolor{comment}{THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}}
+\DoxyCodeLine{\textcolor{comment}{(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}}
+\DoxyCodeLine{\textcolor{comment}{OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}}
+\DoxyCodeLine{\textcolor{comment}{******************************<GINKGO LICENSE>*******************************/}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <fstream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <thread>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{class }ByInteraction}
+\DoxyCodeLine{    : \textcolor{keyword}{public} \mbox{\hyperlink{classgko_1_1EnablePolymorphicObject}{gko::EnablePolymorphicObject}}<ByInteraction, gko::stop::Criterion> \{}
+\DoxyCodeLine{    \textcolor{keyword}{friend} \textcolor{keyword}{class }\mbox{\hyperlink{classgko_1_1EnablePolymorphicObject}{gko::EnablePolymorphicObject}}<ByInteraction,}
+\DoxyCodeLine{                                              \mbox{\hyperlink{namespacegko}{gko}}::stop::Criterion>;}
+\DoxyCodeLine{    using Criterion = \mbox{\hyperlink{classgko_1_1stop_1_1Criterion}{gko::stop::Criterion}};}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{public}:}
+\DoxyCodeLine{    \mbox{\hyperlink{group__LinOp_ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358}{GKO\_CREATE\_FACTORY\_PARAMETERS}}(parameters, Factory)}
+\DoxyCodeLine{    \{}
+\DoxyCodeLine{        std::add\_pointer<volatile bool>::type \mbox{\hyperlink{group__LinOp_gaa037309884bbd0562b897cee95dd91c8}{GKO\_FACTORY\_PARAMETER}}(}
+\DoxyCodeLine{            stop\_iteration\_process, \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{    \};}
+\DoxyCodeLine{    \mbox{\hyperlink{group__stop_ga5a998013602bad749e586a5664670cae}{GKO\_ENABLE\_CRITERION\_FACTORY}}(ByInteraction, parameters, Factory);}
+\DoxyCodeLine{    \mbox{\hyperlink{group__LinOp_ga521f65604cc4cf427dcb2ecfa49b757c}{GKO\_ENABLE\_BUILD\_METHOD}}(Factory);}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{protected}:}
+\DoxyCodeLine{    \textcolor{keywordtype}{bool} check\_impl(\mbox{\hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{gko::uint8}} stoppingId, \textcolor{keywordtype}{bool} setFinalized,}
+\DoxyCodeLine{                    \mbox{\hyperlink{classgko_1_1Array}{gko::Array<gko::stopping\_status>}} *stop\_status,}
+\DoxyCodeLine{                    \textcolor{keywordtype}{bool} *one\_changed, \textcolor{keyword}{const} Criterion::Updater \&)\textcolor{keyword}{ override}}
+\DoxyCodeLine{\textcolor{keyword}{    }\{}
+\DoxyCodeLine{        \textcolor{keywordtype}{bool} result = *(parameters\_.stop\_iteration\_process);}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (result) \{}
+\DoxyCodeLine{            this-\/>set\_all\_statuses(stoppingId, setFinalized, stop\_status);}
+\DoxyCodeLine{            *one\_changed = \textcolor{keyword}{true};}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keywordflow}{return} result;}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{explicit} ByInteraction(std::shared\_ptr<const gko::Executor> exec)}
+\DoxyCodeLine{        : EnablePolymorphicObject<ByInteraction, Criterion>(std::move(exec))}
+\DoxyCodeLine{    \{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{explicit} ByInteraction(\textcolor{keyword}{const} Factory *factory,}
+\DoxyCodeLine{                           \textcolor{keyword}{const} \mbox{\hyperlink{structgko_1_1stop_1_1CriterionArgs}{gko::stop::CriterionArgs}} \&args)}
+\DoxyCodeLine{}
+\DoxyCodeLine{        : EnablePolymorphicObject<ByInteraction, Criterion>(}
+\DoxyCodeLine{              factory-\/>get\_executor()),}
+\DoxyCodeLine{          parameters\_\{factory-\/>get\_parameters()\}}
+\DoxyCodeLine{    \{\}}
+\DoxyCodeLine{\};}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} run\_solver(\textcolor{keyword}{volatile} \textcolor{keywordtype}{bool} *stop\_iteration\_process,}
+\DoxyCodeLine{                std::shared\_ptr<gko::Executor> exec)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} bicg = \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab}{gko::solver::Bicgstab<>}};}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} A = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));}
+\DoxyCodeLine{    \textcolor{keyword}{auto} b = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/b.mtx"}), exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} x = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/x0.mtx"}), exec);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} solver = bicg::build()}
+\DoxyCodeLine{                      .with\_criteria(ByInteraction::build()}
+\DoxyCodeLine{                                         .with\_stop\_iteration\_process(}
+\DoxyCodeLine{                                             stop\_iteration\_process)}
+\DoxyCodeLine{                                         .on(exec))}
+\DoxyCodeLine{                      .on(exec)}
+\DoxyCodeLine{                      -\/>generate(A);}
+\DoxyCodeLine{    solver-\/>add\_logger(\mbox{\hyperlink{classgko_1_1log_1_1Stream}{gko::log::Stream<>::create}}(}
+\DoxyCodeLine{        exec, gko::log::Logger::iteration\_complete\_mask, std::cout, \textcolor{keyword}{true}));}
+\DoxyCodeLine{    solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Solver stopped"} << std::endl;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Solution (x): \(\backslash\)n"};}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} = gko::initialize<vec>(\{1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} neg\_one = gko::initialize<vec>(\{-\/1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} res = gko::initialize<vec>(\{0.0\}, exec);}
+\DoxyCodeLine{    A-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(neg\_one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b));}
+\DoxyCodeLine{    b-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(res));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Residual norm sqrt(r\string^T r): \(\backslash\)n"};}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(res));}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    std::cout << \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}}() << std::endl;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::shared\_ptr<gko::Executor> exec;}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc == 1 || std::string(argv[1]) == \textcolor{stringliteral}{"reference"}) \{}
+\DoxyCodeLine{        exec = gko::ReferenceExecutor::create();}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"omp"}) \{}
+\DoxyCodeLine{        exec = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"cuda"} \&\&}
+\DoxyCodeLine{               \mbox{\hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{gko::CudaExecutor::get\_num\_devices}}() > 0) \{}
+\DoxyCodeLine{        exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" [executor]"} << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{volatile} \textcolor{keywordtype}{bool} stop\_iteration\_process\{\};}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::thread t(run\_solver, \&stop\_iteration\_process, exec);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Type 'stop' to stop the iteration process"} << std::endl;}
+\DoxyCodeLine{    std::string command;}
+\DoxyCodeLine{    \textcolor{keywordflow}{while} (std::cin >> command) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (command == \textcolor{stringliteral}{"stop"}) \{}
+\DoxyCodeLine{            \textcolor{keywordflow}{break};}
+\DoxyCodeLine{        \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{            std::cout << \textcolor{stringliteral}{"Unknown command"} << std::endl;}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"User input command 'stop' -\/ The solver will stop!"}}
+\DoxyCodeLine{              << std::endl;}
+\DoxyCodeLine{    stop\_iteration\_process = \textcolor{keyword}{true};}
+\DoxyCodeLine{    t.join();}
+\DoxyCodeLine{\}}
+\end{DoxyCodeInclude}
+ 

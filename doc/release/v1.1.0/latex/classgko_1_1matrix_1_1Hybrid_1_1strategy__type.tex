@@ -1,0 +1,124 @@
+\hypertarget{classgko_1_1matrix_1_1Hybrid_1_1strategy__type}{}\doxysection{gko\+::matrix\+::Hybrid$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type Class Reference}
+\label{classgko_1_1matrix_1_1Hybrid_1_1strategy__type}\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::strategy\_type@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::strategy\_type}}
+
+
+\mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type}{strategy\+\_\+type}} is to decide how to set the hybrid config.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/matrix/hybrid.\+hpp$>$}
+
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_a307425e7a1b925583cec9d6dd30be301}\label{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_a307425e7a1b925583cec9d6dd30be301}} 
+\mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_a307425e7a1b925583cec9d6dd30be301}{strategy\+\_\+type}} ()
+\begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type}{strategy\+\_\+type}}. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_af784a54f979bcdf55e1e76b64850dd68}{compute\+\_\+hybrid\+\_\+config}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $>$ \&row\+\_\+nnz, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $\ast$ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $\ast$coo\+\_\+nnz)
+\begin{DoxyCompactList}\small\item\em Computes the config of the \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{Hybrid}} matrix (ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row and coo\+\_\+nnz). \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_a9282863b7637d6e3612bdf3bd9762b0a}{get\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the number of stored elements per row of the ell part. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_ae4e8729245df69e1b48ec56846e43b88}{get\+\_\+coo\+\_\+nnz}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the number of nonzeros of the coo part. \end{DoxyCompactList}\item 
+virtual \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_a0a0cd4024f27c7d0f286f35fc0a6de60}{compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row}} (\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $>$ $\ast$row\+\_\+nnz) const =0
+\begin{DoxyCompactList}\small\item\em Computes the number of stored elements per row of the ell part. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}
+
+\mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type}{strategy\+\_\+type}} is to decide how to set the hybrid config. 
+
+It computes the number of stored elements per row of the ell part and then set the number of residual nonzeros as the number of nonzeros of the coo part.
+
+The practical strategy method should inherit \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type}{strategy\+\_\+type}} and implement its {\ttfamily compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row} function. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_a0a0cd4024f27c7d0f286f35fc0a6de60}\label{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_a0a0cd4024f27c7d0f286f35fc0a6de60}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::strategy\_type@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::strategy\_type}!compute\_ell\_num\_stored\_elements\_per\_row@{compute\_ell\_num\_stored\_elements\_per\_row}}
+\index{compute\_ell\_num\_stored\_elements\_per\_row@{compute\_ell\_num\_stored\_elements\_per\_row}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$::strategy\_type@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::strategy\_type}}
+\doxysubsubsection{\texorpdfstring{compute\_ell\_num\_stored\_elements\_per\_row()}{compute\_ell\_num\_stored\_elements\_per\_row()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+virtual \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type\+::compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $>$ $\ast$}]{row\+\_\+nnz }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+Computes the number of stored elements per row of the ell part. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row\+\_\+nnz} & the number of nonzeros of each row\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the number of stored elements per row of the ell part 
+\end{DoxyReturn}
+
+
+Implemented in \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1automatic_a804d556fbcbe8ed754e167f270b16118}{gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::automatic}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1minimal__storage__limit_a381273c294099363637e40cb536fa63a}{gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::minimal\+\_\+storage\+\_\+limit}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__bounded__limit_ae68c0d740e1424f5cdb3be5919a856b8}{gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+bounded\+\_\+limit}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit_aa95250e2c38d516dbd2fbf5bdfa67e72}{gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+limit}}, and \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1column__limit_afb410def66106b711ac094fd31d48aba}{gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::column\+\_\+limit}}.
+
+
+
+Referenced by gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type\+::compute\+\_\+hybrid\+\_\+config().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_af784a54f979bcdf55e1e76b64850dd68}\label{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_af784a54f979bcdf55e1e76b64850dd68}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::strategy\_type@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::strategy\_type}!compute\_hybrid\_config@{compute\_hybrid\_config}}
+\index{compute\_hybrid\_config@{compute\_hybrid\_config}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$::strategy\_type@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::strategy\_type}}
+\doxysubsubsection{\texorpdfstring{compute\_hybrid\_config()}{compute\_hybrid\_config()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type\+::compute\+\_\+hybrid\+\_\+config (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $>$ \&}]{row\+\_\+nnz,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $\ast$}]{ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $\ast$}]{coo\+\_\+nnz }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Computes the config of the \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{Hybrid}} matrix (ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row and coo\+\_\+nnz). 
+
+For now, it copies row\+\_\+nnz to the reference executor and performs all operations on the reference executor.
+
+
+\begin{DoxyParams}{Parameters}
+{\em row\+\_\+nnz} & the number of nonzeros of each row \\
+\hline
+{\em ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row} & the output number of stored elements per row of the ell part \\
+\hline
+{\em coo\+\_\+nnz} & the output number of nonzeros of the coo part \\
+\hline
+\end{DoxyParams}
+
+
+References gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type\+::compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row(), gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+executor(), and gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+num\+\_\+elems().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_ae4e8729245df69e1b48ec56846e43b88}\label{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_ae4e8729245df69e1b48ec56846e43b88}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::strategy\_type@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::strategy\_type}!get\_coo\_nnz@{get\_coo\_nnz}}
+\index{get\_coo\_nnz@{get\_coo\_nnz}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$::strategy\_type@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::strategy\_type}}
+\doxysubsubsection{\texorpdfstring{get\_coo\_nnz()}{get\_coo\_nnz()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type\+::get\+\_\+coo\+\_\+nnz (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the number of nonzeros of the coo part. 
+
+\begin{DoxyReturn}{Returns}
+the number of nonzeros of the coo part 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_a9282863b7637d6e3612bdf3bd9762b0a}\label{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_a9282863b7637d6e3612bdf3bd9762b0a}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::strategy\_type@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::strategy\_type}!get\_ell\_num\_stored\_elements\_per\_row@{get\_ell\_num\_stored\_elements\_per\_row}}
+\index{get\_ell\_num\_stored\_elements\_per\_row@{get\_ell\_num\_stored\_elements\_per\_row}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$::strategy\_type@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::strategy\_type}}
+\doxysubsubsection{\texorpdfstring{get\_ell\_num\_stored\_elements\_per\_row()}{get\_ell\_num\_stored\_elements\_per\_row()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type\+::get\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the number of stored elements per row of the ell part. 
+
+\begin{DoxyReturn}{Returns}
+the number of stored elements per row of the ell part 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/matrix/hybrid.\+hpp (4b82e692)\end{DoxyCompactItemize}

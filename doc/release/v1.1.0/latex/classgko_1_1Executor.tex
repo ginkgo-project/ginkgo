@@ -1,0 +1,268 @@
+\hypertarget{classgko_1_1Executor}{}\doxysection{gko\+::Executor Class Reference}
+\label{classgko_1_1Executor}\index{gko::Executor@{gko::Executor}}
+
+
+The first step in using the Ginkgo library consists of creating an executor.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/executor.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Executor\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=341pt]{classgko_1_1Executor__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1Executor_a4d564aa4d197e1cd8a563b611d3ea8dc}\label{classgko_1_1Executor_a4d564aa4d197e1cd8a563b611d3ea8dc}} 
+{\bfseries Executor} (\mbox{\hyperlink{classgko_1_1Executor}{Executor}} \&)=delete
+\item 
+\mbox{\Hypertarget{classgko_1_1Executor_a00faff4350dd1227d6239e7820e1005c}\label{classgko_1_1Executor_a00faff4350dd1227d6239e7820e1005c}} 
+{\bfseries Executor} (\mbox{\hyperlink{classgko_1_1Executor}{Executor}} \&\&)=default
+\item 
+\mbox{\Hypertarget{classgko_1_1Executor_a4560be68217900e62c7ee257daff3d5d}\label{classgko_1_1Executor_a4560be68217900e62c7ee257daff3d5d}} 
+\mbox{\hyperlink{classgko_1_1Executor}{Executor}} \& {\bfseries operator=} (\mbox{\hyperlink{classgko_1_1Executor}{Executor}} \&)=delete
+\item 
+\mbox{\Hypertarget{classgko_1_1Executor_a76b9c265cee1598df90f2189feb8dc53}\label{classgko_1_1Executor_a76b9c265cee1598df90f2189feb8dc53}} 
+\mbox{\hyperlink{classgko_1_1Executor}{Executor}} \& {\bfseries operator=} (\mbox{\hyperlink{classgko_1_1Executor}{Executor}} \&\&)=default
+\item 
+virtual void \mbox{\hyperlink{classgko_1_1Executor_a1de8e2668b76e66690acf5eef9e8324d}{run}} (const \mbox{\hyperlink{classgko_1_1Operation}{Operation}} \&op) const =0
+\begin{DoxyCompactList}\small\item\em Runs the specified \mbox{\hyperlink{classgko_1_1Operation}{Operation}} using this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename Closure\+Omp , typename Closure\+Cuda $>$ }\\void \mbox{\hyperlink{classgko_1_1Executor_a62cd3749291cf73a594a931a2b47ac53}{run}} (const Closure\+Omp \&op\+\_\+omp, const Closure\+Cuda \&op\+\_\+cuda) const
+\begin{DoxyCompactList}\small\item\em Runs one of the passed in functors, depending on the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} type. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\T $\ast$ \mbox{\hyperlink{classgko_1_1Executor_a5a216c2b1f7ceb8a0190c08941c1c687}{alloc}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} num\+\_\+elems) const
+\begin{DoxyCompactList}\small\item\em Allocates memory in this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1Executor_a0befe43d21c93e199d1620eaae4ccc0c}{free}} (void $\ast$ptr) const noexcept
+\begin{DoxyCompactList}\small\item\em Frees memory previously allocated with \mbox{\hyperlink{classgko_1_1Executor_a5a216c2b1f7ceb8a0190c08941c1c687}{Executor\+::alloc()}}. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\void \mbox{\hyperlink{classgko_1_1Executor_adf7573e4a7e267fcb821eb9049a1054f}{copy\+\_\+from}} (const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $\ast$src\+\_\+exec, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} num\+\_\+elems, const T $\ast$src\+\_\+ptr, T $\ast$dest\+\_\+ptr) const
+\begin{DoxyCompactList}\small\item\em Copies data from another \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+virtual std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ \mbox{\hyperlink{classgko_1_1Executor_acaec4f999d52fc71e5e5a3d3ad93609c}{get\+\_\+master}} () noexcept=0
+\begin{DoxyCompactList}\small\item\em Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+virtual std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ \mbox{\hyperlink{classgko_1_1Executor_a261386e439c8daa6e0d95dc331b9bfeb}{get\+\_\+master}} () const noexcept=0
+\begin{DoxyCompactList}\small\item\em Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1Executor_a24eeee7648c0f0fd07c9866d07154875}\label{classgko_1_1Executor_a24eeee7648c0f0fd07c9866d07154875}} 
+virtual void \mbox{\hyperlink{classgko_1_1Executor_a24eeee7648c0f0fd07c9866d07154875}{synchronize}} () const =0
+\begin{DoxyCompactList}\small\item\em Synchronize the operations launched on the executor with its master. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The first step in using the Ginkgo library consists of creating an executor. 
+
+Executors are used to specify the location for the data of linear algebra objects, and to determine where the operations will be executed. Ginkgo currently supports three different executor types\+:
+
+
+\begin{DoxyItemize}
+\item \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} specifies that the data should be stored and the associated operations executed on an Open\+M\+P-\/supporting device (e.\+g. host C\+PU);
+\item \mbox{\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}} specifies that the data should be stored and the operations executed on the N\+V\+I\+D\+IA G\+PU accelerator;
+\item \mbox{\hyperlink{classgko_1_1ReferenceExecutor}{Reference\+Executor}} executes a non-\/optimized reference implementation, which can be used to debug the library.
+\end{DoxyItemize}
+
+The following code snippet demonstrates the simplest possible use of the Ginkgo library\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} omp = gko::create<gko::OmpExecutor>();}
+\DoxyCodeLine{\textcolor{keyword}{auto} A = gko::read\_from\_mtx<gko::matrix::Csr<float>>(\textcolor{stringliteral}{"A.mtx"}, omp);}
+\end{DoxyCode}
+
+
+First, we create a O\+MP executor, which will be used in the next line to specify where we want the data for the matrix A to be stored. The second line will read a matrix from the matrix market file \textquotesingle{}A.\+mtx\textquotesingle{}, and store the data on the C\+PU in C\+SR format (\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}} is a Ginkgo matrix class which stores its data in C\+SR format). At this point, matrix A is bound to the C\+PU, and any routines called on it will be performed on the C\+PU. This approach is usually desired in sparse linear algebra, as the cost of individual operations is several orders of magnitude lower than the cost of copying the matrix to the G\+PU.
+
+If matrix A is going to be reused multiple times, it could be beneficial to copy it over to the accelerator, and perform the operations there, as demonstrated by the next code snippet\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} cuda = gko::create<gko::CudaExecutor>(0, omp);}
+\DoxyCodeLine{\textcolor{keyword}{auto} dA = gko::copy\_to<gko::matrix::Csr<float>>(A.get(), cuda);}
+\end{DoxyCode}
+
+
+The first line of the snippet creates a new C\+U\+DA executor. Since there may be multiple N\+V\+I\+D\+IA G\+P\+Us present on the system, the first parameter instructs the library to use the first device (i.\+e. the one with device ID zero, as in cuda\+Set\+Device() routine from the C\+U\+DA runtime A\+PI). In addition, since G\+P\+Us are not stand-\/alone processors, it is required to pass a \char`\"{}master\char`\"{} \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} which will be used to schedule the requested C\+U\+DA kernels on the accelerator.
+
+The second command creates a copy of the matrix A on the G\+PU. Notice the use of the get() method. As Ginkgo aims to provide automatic memory management of its objects, the result of calling gko\+::read\+\_\+from\+\_\+mtx() is a smart pointer (std\+::unique\+\_\+ptr) to the created object. On the other hand, as the library will not hold a reference to A once the copy is completed, the input parameter for gko\+::copy\+\_\+to() is a plain pointer. Thus, the get() method is used to convert from a std\+::unique\+\_\+ptr to a plain pointer, as expected by gko\+::copy\+\_\+to().
+
+As a side note, the gko\+::copy\+\_\+to routine is far more powerful than just copying data between different devices. It can also be used to convert data between different formats. For example, if the above code used \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{gko\+::matrix\+::\+Ell}} as the template parameter, dA would be stored on the G\+PU, in E\+L\+L\+P\+A\+CK format.
+
+Finally, if all the processing of the matrix is supposed to be done on the G\+PU, and a C\+PU copy of the matrix is not required, we could have read the matrix to the G\+PU directly\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} omp = gko::create<gko::OmpExecutor>();}
+\DoxyCodeLine{\textcolor{keyword}{auto} cuda = gko::create<gko::CudaExecutor>(0, omp);}
+\DoxyCodeLine{\textcolor{keyword}{auto} dA = gko::read\_from\_mtx<gko::matrix::Csr<float>>(\textcolor{stringliteral}{"A.mtx"}, cuda);}
+\end{DoxyCode}
+ Notice that even though reading the matrix directly from a file to the accelerator is not supported, the library is designed to abstract away the intermediate step of reading the matrix to the C\+PU memory. This is a general design approach taken by the library\+: in case an operation is not supported by the device, the data will be copied to the C\+PU, the operation performed there, and finally the results copied back to the device. This approach makes using the library more concise, as explicit copies are not required by the user. Nevertheless, this feature should be taken into account when considering performance implications of using such operations. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1Executor_a5a216c2b1f7ceb8a0190c08941c1c687}\label{classgko_1_1Executor_a5a216c2b1f7ceb8a0190c08941c1c687}} 
+\index{gko::Executor@{gko::Executor}!alloc@{alloc}}
+\index{alloc@{alloc}!gko::Executor@{gko::Executor}}
+\doxysubsubsection{\texorpdfstring{alloc()}{alloc()}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+T$\ast$ gko\+::\+Executor\+::alloc (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{num\+\_\+elems }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Allocates memory in this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & datatype to allocate\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em num\+\_\+elems} & number of elements of type T to allocate\\
+\hline
+\end{DoxyParams}
+
+\begin{DoxyExceptions}{Exceptions}
+{\em \mbox{\hyperlink{classgko_1_1AllocationError}{Allocation\+Error}}} & if the allocation failed\\
+\hline
+\end{DoxyExceptions}
+\begin{DoxyReturn}{Returns}
+pointer to allocated memory 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1Executor_adf7573e4a7e267fcb821eb9049a1054f}\label{classgko_1_1Executor_adf7573e4a7e267fcb821eb9049a1054f}} 
+\index{gko::Executor@{gko::Executor}!copy\_from@{copy\_from}}
+\index{copy\_from@{copy\_from}!gko::Executor@{gko::Executor}}
+\doxysubsubsection{\texorpdfstring{copy\_from()}{copy\_from()}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+void gko\+::\+Executor\+::copy\+\_\+from (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $\ast$}]{src\+\_\+exec,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{num\+\_\+elems,  }\item[{const T $\ast$}]{src\+\_\+ptr,  }\item[{T $\ast$}]{dest\+\_\+ptr }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Copies data from another \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & datatype to copy\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em src\+\_\+exec} & \mbox{\hyperlink{classgko_1_1Executor}{Executor}} from which the memory will be copied \\
+\hline
+{\em num\+\_\+elems} & number of elements of type T to copy \\
+\hline
+{\em src\+\_\+ptr} & pointer to a block of memory containing the data to be copied \\
+\hline
+{\em dest\+\_\+ptr} & pointer to an allocated block of memory where the data will be copied to \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1Executor_a0befe43d21c93e199d1620eaae4ccc0c}\label{classgko_1_1Executor_a0befe43d21c93e199d1620eaae4ccc0c}} 
+\index{gko::Executor@{gko::Executor}!free@{free}}
+\index{free@{free}!gko::Executor@{gko::Executor}}
+\doxysubsubsection{\texorpdfstring{free()}{free()}}
+{\footnotesize\ttfamily void gko\+::\+Executor\+::free (\begin{DoxyParamCaption}\item[{void $\ast$}]{ptr }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Frees memory previously allocated with \mbox{\hyperlink{classgko_1_1Executor_a5a216c2b1f7ceb8a0190c08941c1c687}{Executor\+::alloc()}}. 
+
+If {\ttfamily ptr} is a {\ttfamily nullptr}, the function has no effect.
+
+
+\begin{DoxyParams}{Parameters}
+{\em ptr} & pointer to the allocated memory block \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1Executor_a261386e439c8daa6e0d95dc331b9bfeb}\label{classgko_1_1Executor_a261386e439c8daa6e0d95dc331b9bfeb}} 
+\index{gko::Executor@{gko::Executor}!get\_master@{get\_master}}
+\index{get\_master@{get\_master}!gko::Executor@{gko::Executor}}
+\doxysubsubsection{\texorpdfstring{get\_master()}{get\_master()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily virtual std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1Executor}{Executor}}$>$ gko\+::\+Executor\+::get\+\_\+master (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [pure virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+
+\begin{DoxyReturn}{Returns}
+the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+\end{DoxyReturn}
+
+
+Implemented in \mbox{\hyperlink{classgko_1_1CudaExecutor_a75295b3424224f907958abfa95c66298}{gko\+::\+Cuda\+Executor}}, and \mbox{\hyperlink{classgko_1_1OmpExecutor_ab297a7eba78463784d4d2ca08b03c675}{gko\+::\+Omp\+Executor}}.
+
+\mbox{\Hypertarget{classgko_1_1Executor_acaec4f999d52fc71e5e5a3d3ad93609c}\label{classgko_1_1Executor_acaec4f999d52fc71e5e5a3d3ad93609c}} 
+\index{gko::Executor@{gko::Executor}!get\_master@{get\_master}}
+\index{get\_master@{get\_master}!gko::Executor@{gko::Executor}}
+\doxysubsubsection{\texorpdfstring{get\_master()}{get\_master()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily virtual std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1Executor}{Executor}}$>$ gko\+::\+Executor\+::get\+\_\+master (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+
+\begin{DoxyReturn}{Returns}
+the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+\end{DoxyReturn}
+
+
+Implemented in \mbox{\hyperlink{classgko_1_1CudaExecutor_a59a618e0d48b42fe699e9d4cf347b491}{gko\+::\+Cuda\+Executor}}, and \mbox{\hyperlink{classgko_1_1OmpExecutor_a5b83349e601d473cf8768c0bdbcaca8c}{gko\+::\+Omp\+Executor}}.
+
+\mbox{\Hypertarget{classgko_1_1Executor_a62cd3749291cf73a594a931a2b47ac53}\label{classgko_1_1Executor_a62cd3749291cf73a594a931a2b47ac53}} 
+\index{gko::Executor@{gko::Executor}!run@{run}}
+\index{run@{run}!gko::Executor@{gko::Executor}}
+\doxysubsubsection{\texorpdfstring{run()}{run()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename Closure\+Omp , typename Closure\+Cuda $>$ \\
+void gko\+::\+Executor\+::run (\begin{DoxyParamCaption}\item[{const Closure\+Omp \&}]{op\+\_\+omp,  }\item[{const Closure\+Cuda \&}]{op\+\_\+cuda }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Runs one of the passed in functors, depending on the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} type. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Closure\+Omp} & type of op\+\_\+omp \\
+\hline
+{\em Closure\+Cuda} & type of op\+\_\+cuda\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em op\+\_\+omp} & functor to run in case of a \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} or \mbox{\hyperlink{classgko_1_1ReferenceExecutor}{Reference\+Executor}} \\
+\hline
+{\em op\+\_\+cuda} & functor to run in case of a \mbox{\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}} \\
+\hline
+\end{DoxyParams}
+
+
+References run().
+
+\mbox{\Hypertarget{classgko_1_1Executor_a1de8e2668b76e66690acf5eef9e8324d}\label{classgko_1_1Executor_a1de8e2668b76e66690acf5eef9e8324d}} 
+\index{gko::Executor@{gko::Executor}!run@{run}}
+\index{run@{run}!gko::Executor@{gko::Executor}}
+\doxysubsubsection{\texorpdfstring{run()}{run()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily virtual void gko\+::\+Executor\+::run (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Operation}{Operation}} \&}]{op }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [pure virtual]}}
+
+
+
+Runs the specified \mbox{\hyperlink{classgko_1_1Operation}{Operation}} using this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em op} & the operation to run \\
+\hline
+\end{DoxyParams}
+
+
+Implemented in \mbox{\hyperlink{classgko_1_1CudaExecutor_a32a73a74403376d774933abf9663d59e}{gko\+::\+Cuda\+Executor}}, and \mbox{\hyperlink{classgko_1_1ReferenceExecutor_a82b41b42dbd26e8ac5b0146de79e5d34}{gko\+::\+Reference\+Executor}}.
+
+
+
+Referenced by run().
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/executor.\+hpp (97addc06)\end{DoxyCompactItemize}

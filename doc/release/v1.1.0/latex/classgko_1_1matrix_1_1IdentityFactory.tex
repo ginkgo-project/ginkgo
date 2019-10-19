@@ -1,0 +1,81 @@
+\hypertarget{classgko_1_1matrix_1_1IdentityFactory}{}\doxysection{gko\+::matrix\+::Identity\+Factory$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1matrix_1_1IdentityFactory}\index{gko::matrix::IdentityFactory$<$ ValueType $>$@{gko::matrix::IdentityFactory$<$ ValueType $>$}}
+
+
+This factory is a utility which can be used to generate \mbox{\hyperlink{classgko_1_1matrix_1_1Identity}{Identity}} operators.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/matrix/identity.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::matrix\+::Identity\+Factory$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1matrix_1_1IdentityFactory__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1IdentityFactory_a4af7caf18cf65cbbdc6882368f2577e2}\label{classgko_1_1matrix_1_1IdentityFactory_a4af7caf18cf65cbbdc6882368f2577e2}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1IdentityFactory}{Identity\+Factory}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1IdentityFactory_a653ce1d7377e69643828b9c46b4d0319}{create}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec)
+\begin{DoxyCompactList}\small\item\em Creates a new \mbox{\hyperlink{classgko_1_1matrix_1_1Identity}{Identity}} factory. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1IdentityFactory_a36019ea4bb76c763866bd3b014e0fa4d}\label{classgko_1_1matrix_1_1IdentityFactory_a36019ea4bb76c763866bd3b014e0fa4d}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Identity\+Factory, Lin\+Op\+Factory $>$}
+\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::matrix\+::\+Identity\+Factory$<$ Value\+Type $>$}
+
+This factory is a utility which can be used to generate \mbox{\hyperlink{classgko_1_1matrix_1_1Identity}{Identity}} operators. 
+
+The factory will generate the \mbox{\hyperlink{classgko_1_1matrix_1_1Identity}{Identity}} matrix with the same dimension as the passed in operator. It will throw an exception if the operator is not square.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of matrix elements \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1IdentityFactory_a653ce1d7377e69643828b9c46b4d0319}\label{classgko_1_1matrix_1_1IdentityFactory_a653ce1d7377e69643828b9c46b4d0319}} 
+\index{gko::matrix::IdentityFactory$<$ ValueType $>$@{gko::matrix::IdentityFactory$<$ ValueType $>$}!create@{create}}
+\index{create@{create}!gko::matrix::IdentityFactory$<$ ValueType $>$@{gko::matrix::IdentityFactory$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{create()}{create()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+static std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1IdentityFactory}{Identity\+Factory}}$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1IdentityFactory}{gko\+::matrix\+::\+Identity\+Factory}}$<$ Value\+Type $>$\+::create (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{exec }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+
+
+Creates a new \mbox{\hyperlink{classgko_1_1matrix_1_1Identity}{Identity}} factory. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor where the \mbox{\hyperlink{classgko_1_1matrix_1_1Identity}{Identity}} operator will be stored\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+a unique pointer to the newly created factory 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/matrix/identity.\+hpp (8045ac75)\end{DoxyCompactItemize}

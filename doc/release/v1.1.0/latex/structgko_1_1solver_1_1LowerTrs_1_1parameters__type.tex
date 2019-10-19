@@ -1,0 +1,52 @@
+\hypertarget{structgko_1_1solver_1_1LowerTrs_1_1parameters__type}{}\doxysection{gko\+::solver\+::Lower\+Trs$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type Struct Reference}
+\label{structgko_1_1solver_1_1LowerTrs_1_1parameters__type}\index{gko::solver::LowerTrs$<$ ValueType, IndexType $>$::parameters\_type@{gko::solver::LowerTrs$<$ ValueType, IndexType $>$::parameters\_type}}
+
+
+Collaboration diagram for gko\+::solver\+::Lower\+Trs$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{structgko_1_1solver_1_1LowerTrs_1_1parameters__type__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1LowerTrs_1_1parameters__type_a50930ebd4f0b4b1aa220aea402e6013b}\label{structgko_1_1solver_1_1LowerTrs_1_1parameters__type_a50930ebd4f0b4b1aa220aea402e6013b}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+preconditioner} (Args \&\&... \+\_\+value) const -\/$>$ const \+::gko\+::xstd\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1LowerTrs_1_1parameters__type_a052f9299a75dbd89c47bd85fd62ef9dd}\label{structgko_1_1solver_1_1LowerTrs_1_1parameters__type_a052f9299a75dbd89c47bd85fd62ef9dd}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+num\+\_\+rhs} (Args \&\&... \+\_\+value) const -\/$>$ const \+::gko\+::xstd\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1LowerTrs_1_1parameters__type_afebfcb78e6e519c5f720e9a984af0f36}\label{structgko_1_1solver_1_1LowerTrs_1_1parameters__type_afebfcb78e6e519c5f720e9a984af0f36}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOpFactory}{Lin\+Op\+Factory}} $>$ \mbox{\hyperlink{structgko_1_1solver_1_1LowerTrs_1_1parameters__type_afebfcb78e6e519c5f720e9a984af0f36}{preconditioner}} \{ nullptr \}
+\begin{DoxyCompactList}\small\item\em Preconditioner factory. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{gko\+::size\+\_\+type}} \mbox{\hyperlink{structgko_1_1solver_1_1LowerTrs_1_1parameters__type_a2221c5c06cfb041ad41e5a5bdf9968f2}{num\+\_\+rhs}} \{ 1u \}
+\begin{DoxyCompactList}\small\item\em Number of right hand sides. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structgko_1_1solver_1_1LowerTrs_1_1parameters__type_a2221c5c06cfb041ad41e5a5bdf9968f2}\label{structgko_1_1solver_1_1LowerTrs_1_1parameters__type_a2221c5c06cfb041ad41e5a5bdf9968f2}} 
+\index{gko::solver::LowerTrs$<$ ValueType, IndexType $>$::parameters\_type@{gko::solver::LowerTrs$<$ ValueType, IndexType $>$::parameters\_type}!num\_rhs@{num\_rhs}}
+\index{num\_rhs@{num\_rhs}!gko::solver::LowerTrs$<$ ValueType, IndexType $>$::parameters\_type@{gko::solver::LowerTrs$<$ ValueType, IndexType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{num\_rhs}{num\_rhs}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{gko\+::size\+\_\+type}} \mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs}{gko\+::solver\+::\+Lower\+Trs}}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::num\+\_\+rhs \{ 1u \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+Number of right hand sides. 
+
+\begin{DoxyNote}{Note}
+This value is currently a dummy value which is not used by the analysis step. It is possible that future algorithms (cusparse csrsm2) make use of the number of right hand sides for a more sophisticated implementation. Hence this parameter is left here. But currently, there is no need to use it. 
+\end{DoxyNote}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/solver/lower\+\_\+trs.\+hpp (faefed25)\end{DoxyCompactItemize}

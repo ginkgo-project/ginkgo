@@ -1,0 +1,84 @@
+\hypertarget{classgko_1_1copy__back__deleter}{}\doxysection{gko\+::copy\+\_\+back\+\_\+deleter$<$ T $>$ Class Template Reference}
+\label{classgko_1_1copy__back__deleter}\index{gko::copy\_back\_deleter$<$ T $>$@{gko::copy\_back\_deleter$<$ T $>$}}
+
+
+A \mbox{\hyperlink{classgko_1_1copy__back__deleter}{copy\+\_\+back\+\_\+deleter}} is a type of deleter that copies the data to an internally referenced object before performing the deletion.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/utils.\+hpp$>$}
+
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1copy__back__deleter_a55bb1515ad3849a704abb253a8cbb061}\label{classgko_1_1copy__back__deleter_a55bb1515ad3849a704abb253a8cbb061}} 
+using {\bfseries pointer} = T $\ast$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classgko_1_1copy__back__deleter_affa618330dcb3a4e3aeaffb69c39df5f}{copy\+\_\+back\+\_\+deleter}} (pointer original)
+\begin{DoxyCompactList}\small\item\em Creates a new deleter object. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1copy__back__deleter_a34bba76c78c23dccd814969e98c78b1b}{operator()}} (pointer ptr) const
+\begin{DoxyCompactList}\small\item\em Deletes the object. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename T$>$\newline
+class gko\+::copy\+\_\+back\+\_\+deleter$<$ T $>$}
+
+A \mbox{\hyperlink{classgko_1_1copy__back__deleter}{copy\+\_\+back\+\_\+deleter}} is a type of deleter that copies the data to an internally referenced object before performing the deletion. 
+
+The deleter will use the {\ttfamily copy\+\_\+from} method to perform the copy, and then delete the passed object using the {\ttfamily delete} keyword. This kind of deleter is useful when temporarily copying an object with the intent of copying it back once it goes out of scope.
+
+There is also a specialization for constant objects that does not perform the copy, since a constant object couldn\textquotesingle{}t have been changed.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & the type of object being deleted \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classgko_1_1copy__back__deleter_affa618330dcb3a4e3aeaffb69c39df5f}\label{classgko_1_1copy__back__deleter_affa618330dcb3a4e3aeaffb69c39df5f}} 
+\index{gko::copy\_back\_deleter$<$ T $>$@{gko::copy\_back\_deleter$<$ T $>$}!copy\_back\_deleter@{copy\_back\_deleter}}
+\index{copy\_back\_deleter@{copy\_back\_deleter}!gko::copy\_back\_deleter$<$ T $>$@{gko::copy\_back\_deleter$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{copy\_back\_deleter()}{copy\_back\_deleter()}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+\mbox{\hyperlink{classgko_1_1copy__back__deleter}{gko\+::copy\+\_\+back\+\_\+deleter}}$<$ T $>$\+::\mbox{\hyperlink{classgko_1_1copy__back__deleter}{copy\+\_\+back\+\_\+deleter}} (\begin{DoxyParamCaption}\item[{pointer}]{original }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Creates a new deleter object. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em original} & the origin object where the data will be copied before deletion \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1copy__back__deleter_a34bba76c78c23dccd814969e98c78b1b}\label{classgko_1_1copy__back__deleter_a34bba76c78c23dccd814969e98c78b1b}} 
+\index{gko::copy\_back\_deleter$<$ T $>$@{gko::copy\_back\_deleter$<$ T $>$}!operator()@{operator()}}
+\index{operator()@{operator()}!gko::copy\_back\_deleter$<$ T $>$@{gko::copy\_back\_deleter$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{operator()()}{operator()()}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+void \mbox{\hyperlink{classgko_1_1copy__back__deleter}{gko\+::copy\+\_\+back\+\_\+deleter}}$<$ T $>$\+::operator() (\begin{DoxyParamCaption}\item[{pointer}]{ptr }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Deletes the object. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em ptr} & pointer to the object being deleted \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/utils.\+hpp (ffa4bb4e)\end{DoxyCompactItemize}
