@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/89916672 branch based on master. Ginkgo version 1.1.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/89960200 branch based on master. Ginkgo version 1.1.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -86,9 +86,7 @@ $(function() {
 </ol></td><td width="50%" valign="top"><ol>
   <li value="3"> <a href="#Results" class=bold>Results</a>
     <ul>
-      <ul>
         <li><a href="#Commentsaboutprogramminganddebugging"> Comments about programming and debugging </a>
-    </ul>
     </ul>
   <li> <a href="#PlainProg" class=bold>The plain program</a>
 </ol> </td> </tr> </table>
@@ -242,7 +240,7 @@ $(function() {
 <div class="line">{ <span class="stringliteral">&quot;system_residual&quot;</span>: (+6.26422040e-12,+0.00000000e+00), <span class="stringliteral">&quot;eigenvalue&quot;</span>: (+1.92292034e+01,-3.14429218e-18), <span class="stringliteral">&quot;residual&quot;</span>: (+9.56961199e-06,+1.56478953e-24) },</div>
 <div class="line">{ <span class="stringliteral">&quot;system_residual&quot;</span>: (+1.41104829e-12,+0.00000000e+00), <span class="stringliteral">&quot;eigenvalue&quot;</span>: (+1.92292033e+01,-6.54656730e-16), <span class="stringliteral">&quot;residual&quot;</span>: (+5.47975753e-06,+1.86557918e-22) },</div>
 <div class="line">{ <span class="stringliteral">&quot;system_residual&quot;</span>: (+1.97926842e-10,+0.00000000e+00), <span class="stringliteral">&quot;eigenvalue&quot;</span>: (+1.92292033e+01,+1.58008702e-16), <span class="stringliteral">&quot;residual&quot;</span>: (+3.13794996e-06,-2.57849164e-23) },</div>
-</div><!-- fragment --><p><a class="anchor" id="Commentsaboutprogramminganddebugging"></a></p><h4>Comments about programming and debugging </h4>
+</div><!-- fragment --><p><a class="anchor" id="Commentsaboutprogramminganddebugging"></a></p><h3>Comments about programming and debugging </h3>
 <p><a class="anchor" id="PlainProg"></a> </p><h1>The plain program</h1>
 <div class="fragment"><div class="line"><span class="comment">/*******************************&lt;GINKGO LICENSE&gt;******************************</span></div>
 <div class="line"><span class="comment">Copyright (c) 2017-2019, the Ginkgo authors</span></div>
@@ -394,7 +392,7 @@ $(function() {
 <div class="ttc" id="aclassgko_1_1CudaExecutor_html_aef0258494d14de0e56149b920c5173e5"><div class="ttname"><a href="classgko_1_1CudaExecutor.html#aef0258494d14de0e56149b920c5173e5">gko::CudaExecutor::get_num_devices</a></div><div class="ttdeci">static int get_num_devices()</div><div class="ttdoc">Get the number of devices present on the system.</div></div>
 <div class="ttc" id="aclassgko_1_1matrix_1_1Dense_html"><div class="ttname"><a href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense</a></div><div class="ttdoc">Dense is a matrix format which explicitly stores all values of the matrix.</div><div class="ttdef"><b>Definition:</b> coo.hpp:55</div></div>
 <div class="ttc" id="aclassgko_1_1CudaExecutor_html_a2718a92034350650ef406ffdb60db090"><div class="ttname"><a href="classgko_1_1CudaExecutor.html#a2718a92034350650ef406ffdb60db090">gko::CudaExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; CudaExecutor &gt; create(int device_id, std::shared_ptr&lt; Executor &gt; master)</div><div class="ttdoc">Creates a new CudaExecutor.</div></div>
-<div class="ttc" id="aclassgko_1_1OmpExecutor_html_a33ca05fdd0fc928ee262fc9425304874"><div class="ttname"><a href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; OmpExecutor &gt; create()</div><div class="ttdoc">Creates a new OmpExecutor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:735</div></div>
+<div class="ttc" id="aclassgko_1_1OmpExecutor_html_a33ca05fdd0fc928ee262fc9425304874"><div class="ttname"><a href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; OmpExecutor &gt; create()</div><div class="ttdoc">Creates a new OmpExecutor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:736</div></div>
 <div class="ttc" id="aclassgko_1_1solver_1_1Bicgstab_html"><div class="ttname"><a href="classgko_1_1solver_1_1Bicgstab.html">gko::solver::Bicgstab</a></div><div class="ttdoc">BiCGSTAB or the Bi-Conjugate Gradient-Stabilized is a Krylov subspace solver.</div><div class="ttdef"><b>Definition:</b> bicgstab.hpp:76</div></div>
 <div class="ttc" id="aclassgko_1_1stop_1_1ResidualNormReduction_html"><div class="ttname"><a href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction</a></div><div class="ttdoc">The ResidualNormReduction class is a stopping criterion which stops the iteration process when the re...</div><div class="ttdef"><b>Definition:</b> residual_norm_reduction.hpp:64</div></div>
 <div class="ttc" id="anamespacegko_html_a1beb80750459e4201aa9d882d2d074c3"><div class="ttname"><a href="namespacegko.html#a1beb80750459e4201aa9d882d2d074c3">gko::clone</a></div><div class="ttdeci">detail::cloned_type&lt; Pointer &gt; clone(const Pointer &amp;p)</div><div class="ttdoc">Creates a unique clone of the object pointed to by p.</div><div class="ttdef"><b>Definition:</b> utils.hpp:159</div></div>

@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/89916672 branch based on master. Ginkgo version 1.1.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/89960200 branch based on master. Ginkgo version 1.1.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -86,9 +86,7 @@ $(function() {
 </ol></td><td width="50%" valign="top"><ol>
   <li value="3"> <a href="#Results" class=bold>Results</a>
     <ul>
-      <ul>
         <li><a href="#Commentsaboutprogramminganddebugging"> Comments about programming and debugging </a>
-    </ul>
     </ul>
   <li> <a href="#PlainProg" class=bold>The plain program</a>
 </ol> </td> </tr> </table>
@@ -312,7 +310,7 @@ $(function() {
 <div class="line">%%MatrixMarket matrix <a class="code" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5">array</a> <a class="code" href="namespacegko.html#ae23cfd886cee6e88d77bcbbbe1928b78">real</a> general</div>
 <div class="line">1 1</div>
 <div class="line">1.06135e-15</div>
-</div><!-- fragment --><p><a class="anchor" id="Commentsaboutprogramminganddebugging"></a></p><h4>Comments about programming and debugging </h4>
+</div><!-- fragment --><p><a class="anchor" id="Commentsaboutprogramminganddebugging"></a></p><h3>Comments about programming and debugging </h3>
 <p><a class="anchor" id="PlainProg"></a> </p><h1>The plain program</h1>
 <div class="fragment"><div class="line"><span class="comment">/*******************************&lt;GINKGO LICENSE&gt;******************************</span></div>
 <div class="line"><span class="comment">Copyright (c) 2017-2019, the Ginkgo authors</span></div>
@@ -482,7 +480,7 @@ $(function() {
 <div class="ttc" id="aclassgko_1_1matrix_1_1Dense_html"><div class="ttname"><a href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense</a></div><div class="ttdoc">Dense is a matrix format which explicitly stores all values of the matrix.</div><div class="ttdef"><b>Definition:</b> coo.hpp:55</div></div>
 <div class="ttc" id="aclassgko_1_1CudaExecutor_html_a2718a92034350650ef406ffdb60db090"><div class="ttname"><a href="classgko_1_1CudaExecutor.html#a2718a92034350650ef406ffdb60db090">gko::CudaExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; CudaExecutor &gt; create(int device_id, std::shared_ptr&lt; Executor &gt; master)</div><div class="ttdoc">Creates a new CudaExecutor.</div></div>
 <div class="ttc" id="agroup__LinOp_html_gaa037309884bbd0562b897cee95dd91c8"><div class="ttname"><a href="group__LinOp.html#gaa037309884bbd0562b897cee95dd91c8">GKO_FACTORY_PARAMETER</a></div><div class="ttdeci">#define GKO_FACTORY_PARAMETER(_name,...)</div><div class="ttdoc">Creates a factory parameter in the factory parameters structure.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:776</div></div>
-<div class="ttc" id="aclassgko_1_1OmpExecutor_html_a33ca05fdd0fc928ee262fc9425304874"><div class="ttname"><a href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; OmpExecutor &gt; create()</div><div class="ttdoc">Creates a new OmpExecutor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:735</div></div>
+<div class="ttc" id="aclassgko_1_1OmpExecutor_html_a33ca05fdd0fc928ee262fc9425304874"><div class="ttname"><a href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; OmpExecutor &gt; create()</div><div class="ttdoc">Creates a new OmpExecutor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:736</div></div>
 <div class="ttc" id="aclassgko_1_1solver_1_1Bicgstab_html"><div class="ttname"><a href="classgko_1_1solver_1_1Bicgstab.html">gko::solver::Bicgstab</a></div><div class="ttdoc">BiCGSTAB or the Bi-Conjugate Gradient-Stabilized is a Krylov subspace solver.</div><div class="ttdef"><b>Definition:</b> bicgstab.hpp:76</div></div>
 <div class="ttc" id="agroup__stop_html_ga5a998013602bad749e586a5664670cae"><div class="ttname"><a href="group__stop.html#ga5a998013602bad749e586a5664670cae">GKO_ENABLE_CRITERION_FACTORY</a></div><div class="ttdeci">#define GKO_ENABLE_CRITERION_FACTORY(_criterion, _parameters_name, _factory_name)</div><div class="ttdoc">This macro will generate a default implementation of a CriterionFactory for the Criterion subclass it...</div><div class="ttdef"><b>Definition:</b> criterion.hpp:280</div></div>
 <div class="ttc" id="anamespacegko_html_a859dc47a462721d83728d91ab7fa2148"><div class="ttname"><a href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148">gko::write</a></div><div class="ttdeci">void write(StreamType &amp;&amp;os, MatrixType *matrix, layout_type layout=layout_type::array)</div><div class="ttdoc">Reads a matrix stored in matrix market format from an input stream.</div><div class="ttdef"><b>Definition:</b> mtx_io.hpp:134</div></div>
