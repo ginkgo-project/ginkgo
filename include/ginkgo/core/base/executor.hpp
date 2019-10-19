@@ -200,7 +200,7 @@ public:                                                                      \
 private:                                                                     \
     template <int... Ns>                                                     \
     void call(::gko::syn::value_list<int, Ns...>,                            \
-              std::shared_ptr<const ::gko::_type> exec) const                \
+              std::shared_ptr<const ::gko::_type> &exec) const               \
     {                                                                        \
         ::gko::kernels::_namespace::_kernel(                                 \
             exec, std::forward<Args>(std::get<Ns>(data))...);                \
@@ -219,7 +219,7 @@ public:                                                                      \
 private:                                                                     \
     template <int... Ns>                                                     \
     void call(::gko::syn::value_list<int, Ns...>,                            \
-              std::shared_ptr<const ::gko::_type> exec) const                \
+              std::shared_ptr<const ::gko::_type> &exec) const               \
     {                                                                        \
         ::gko::kernels::_namespace::_kernel(                                 \
             exec, std::forward<Args>(std::get<Ns>(data))...);                \
@@ -285,42 +285,43 @@ private:                                                                     \
  *
  * @ingroup Executor
  */
-#define GKO_REGISTER_OPERATION(_name, _kernel)                                 \
-    template <typename... Args>                                                \
-    class _name##_operation : public Operation {                               \
-        using counts =                                                         \
-            ::gko::syn::as_list<::gko::syn::range<0, sizeof...(Args)>>;        \
-                                                                               \
-    public:                                                                    \
-        _name##_operation(Args &&... args) : data(std::forward<Args>(args)...) \
-        {}                                                                     \
-                                                                               \
-        const char *get_name() const noexcept override                         \
-        {                                                                      \
-            static auto name = [this] {                                        \
-                std::ostringstream oss;                                        \
-                oss << #_kernel << '#' << sizeof...(Args);                     \
-                return oss.str();                                              \
-            }();                                                               \
-            return name.c_str();                                               \
-        }                                                                      \
-                                                                               \
-        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(OmpExecutor, omp, _kernel);      \
-        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(CudaExecutor, cuda, _kernel);    \
-        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(ReferenceExecutor, reference,    \
-                                              _kernel);                        \
-                                                                               \
-    private:                                                                   \
-        mutable std::tuple<Args &&...> data;                                   \
-    };                                                                         \
-                                                                               \
-    template <typename... Args>                                                \
-    static _name##_operation<Args...> make_##_name(Args &&... args)            \
-    {                                                                          \
-        return _name##_operation<Args...>(std::forward<Args>(args)...);        \
-    }                                                                          \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
+#define GKO_REGISTER_OPERATION(_name, _kernel)                               \
+    template <typename... Args>                                              \
+    class _name##_operation : public Operation {                             \
+        using counts =                                                       \
+            ::gko::syn::as_list<::gko::syn::range<0, sizeof...(Args)>>;      \
+                                                                             \
+    public:                                                                  \
+        explicit _name##_operation(Args &&... args)                          \
+            : data(std::forward<Args>(args)...)                              \
+        {}                                                                   \
+                                                                             \
+        const char *get_name() const noexcept override                       \
+        {                                                                    \
+            static auto name = [this] {                                      \
+                std::ostringstream oss;                                      \
+                oss << #_kernel << '#' << sizeof...(Args);                   \
+                return oss.str();                                            \
+            }();                                                             \
+            return name.c_str();                                             \
+        }                                                                    \
+                                                                             \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(OmpExecutor, omp, _kernel);    \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(CudaExecutor, cuda, _kernel);  \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(ReferenceExecutor, reference,  \
+                                              _kernel);                      \
+                                                                             \
+    private:                                                                 \
+        mutable std::tuple<Args &&...> data;                                 \
+    };                                                                       \
+                                                                             \
+    template <typename... Args>                                              \
+    static _name##_operation<Args...> make_##_name(Args &&... args)          \
+    {                                                                        \
+        return _name##_operation<Args...>(std::forward<Args>(args)...);      \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
 
