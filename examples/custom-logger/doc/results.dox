@@ -54,5 +54,4 @@ Residual norm sqrt(r^T r):
 2.10788e-15
 @endcode
 
-<h4> Comments about programming and debugging </h4>
-
+<h3> Comments about programming and debugging </h3>
