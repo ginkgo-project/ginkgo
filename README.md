@@ -57,10 +57,10 @@ The prequirement needs to be verified
 *   _cmake 3.9+_
 *   C++11 compliant 64-bits compiler:
     *   _MinGW : gcc 5.3+, 6.3+, 7.3+, 8.1+_
-    *   _CygWin : gcc 5.3+, 6.3+, 7.3+, 8.1+_
+    *   _Cygwin : gcc 5.3+, 6.3+, 7.3+, 8.1+_
     *   _Microsoft Visual Studio : VS 2017 15.7+_
 
-__NOTE:__ Need to add `--autocrlf=input` after `git clone` in _CygWin_.
+__NOTE:__ Need to add `--autocrlf=input` after `git clone` in _Cygwin_.
 
 The Ginkgo CUDA module has the following __additional__ requirements:
 
