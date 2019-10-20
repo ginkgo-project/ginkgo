@@ -1,6 +1,6 @@
 # Changelog
 
-This file may not always be up to date in particular for the unrealeased
+This file may not always be up to date in particular for the unreleased
 commits. For a comprehensive list, use the following command:
 ```bash
 git log --first-parent
@@ -22,10 +22,10 @@ Supported systems and requirements:
   + Apple LLVM: 8.0+
   + CUDA module: CUDA 9.0+
 + Windows
-  + MinGW and CygWin: gcc 5.3+, 6.3+, 7.3+, 8.1+
+  + MinGW and Cygwin: gcc 5.3+, 6.3+, 7.3+, 8.1+
   + Microsoft Visual Studio: VS 2017 15.7+
   + CUDA module: CUDA 9.0+, Microsoft Visual Studio
-  + OpenMP module: MinGW or CygWin.
+  + OpenMP module: MinGW or Cygwin.
 
 
 The current known issues can be found in the [known issues
@@ -38,7 +38,7 @@ page](https://github.com/ginkgo-project/ginkgo/wiki/Known-Issues).
   algorithm ([#305](https://github.com/ginkgo-project/ginkgo/issues/305), [#315](https://github.com/ginkgo-project/ginkgo/issues/315), [#319](https://github.com/ginkgo-project/ginkgo/issues/319), [#324](https://github.com/ginkgo-project/ginkgo/issues/324))
 + New ILU preconditioner ([#348](https://github.com/ginkgo-project/ginkgo/issues/348), [#353](https://github.com/ginkgo-project/ginkgo/issues/353))
 + Windows MinGW and Cygwin support ([#347](https://github.com/ginkgo-project/ginkgo/issues/347))
-+ Windows Visual studio support ([#351](https://github.com/ginkgo-project/ginkgo/issues/351))
++ Windows Visual Studio support ([#351](https://github.com/ginkgo-project/ginkgo/issues/351))
 + New example showing how to use ParILU as a preconditioner ([#358](https://github.com/ginkgo-project/ginkgo/issues/358))
 + New example on using loggers for debugging ([#360](https://github.com/ginkgo-project/ginkgo/issues/360))
 + Add two new 9pt and 27pt stencil examples ([#300](https://github.com/ginkgo-project/ginkgo/issues/300), [#306](https://github.com/ginkgo-project/ginkgo/issues/306))
