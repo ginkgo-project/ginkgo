@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/hybrid.hpp>
+#include "core/matrix/hybrid_kernels.hpp"
 
 
 #include <gtest/gtest.h>
@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -50,11 +51,13 @@ class Hybrid : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Hybrid<>;
     using Vec = gko::matrix::Dense<>;
+    using Csr = gko::matrix::Csr<>;
 
     Hybrid()
         : exec(gko::ReferenceExecutor::create()),
           mtx1(Mtx::create(exec)),
-          mtx2(Mtx::create(exec))
+          mtx2(Mtx::create(exec)),
+          mtx3(Mtx::create(exec, gko::dim<2>{2, 3}, 2, 2, 2))
     {
         // clang-format off
         mtx1 = gko::initialize<Mtx>({{1.0, 3.0, 2.0},
@@ -63,11 +66,56 @@ protected:
             {{1.0, 3.0, 2.0},
              {0.0, 5.0, 0.0}}, exec, gko::dim<2>{}, 0, 16);
         // clang-format on
+
+        auto ell_val = mtx3->get_ell_values();
+        auto ell_col = mtx3->get_ell_col_idxs();
+        auto coo_val = mtx3->get_coo_values();
+        auto coo_col = mtx3->get_coo_col_idxs();
+        auto coo_row = mtx3->get_coo_row_idxs();
+
+        // Set Ell values
+        ell_val[0] = 1.0;
+        ell_val[1] = 0.0;
+        ell_val[2] = 3.0;
+        ell_val[3] = 5.0;
+        ell_col[0] = 0;
+        ell_col[1] = 0;
+        ell_col[2] = 1;
+        ell_col[3] = 1;
+        // Set Coo values
+        coo_val[0] = 2.0;
+        coo_val[1] = 0.0;
+        coo_col[0] = 2;
+        coo_col[1] = 2;
+        coo_row[0] = 0;
+        coo_row[1] = 1;
     }
 
-    std::shared_ptr<const gko::Executor> exec;
+    void assert_equal_to_mtx(const Csr *m)
+    {
+        auto v = m->get_const_values();
+        auto c = m->get_const_col_idxs();
+        auto r = m->get_const_row_ptrs();
+
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_num_stored_elements(), 4);
+        EXPECT_EQ(r[0], 0);
+        EXPECT_EQ(r[1], 3);
+        EXPECT_EQ(r[2], 4);
+        EXPECT_EQ(c[0], 0);
+        EXPECT_EQ(c[1], 1);
+        EXPECT_EQ(c[2], 2);
+        EXPECT_EQ(c[3], 1);
+        EXPECT_EQ(v[0], 1.0);
+        EXPECT_EQ(v[1], 3.0);
+        EXPECT_EQ(v[2], 2.0);
+        EXPECT_EQ(v[3], 5.0);
+    }
+
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<Mtx> mtx1;
     std::unique_ptr<Mtx> mtx2;
+    std::unique_ptr<Mtx> mtx3;
 };
 
 
@@ -191,6 +239,57 @@ TEST_F(Hybrid, MovesToDense)
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
+}
+
+
+TEST_F(Hybrid, ConvertsToCsr)
+{
+    auto csr_mtx = Csr::create(mtx1->get_executor());
+
+    mtx1->convert_to(csr_mtx.get());
+
+    assert_equal_to_mtx(csr_mtx.get());
+}
+
+
+TEST_F(Hybrid, MovesToCsr)
+{
+    auto csr_mtx = Csr::create(mtx1->get_executor());
+
+    mtx1->move_to(csr_mtx.get());
+
+    assert_equal_to_mtx(csr_mtx.get());
+}
+
+
+TEST_F(Hybrid, ConvertsToCsrWithoutZeros)
+{
+    auto csr_mtx = Csr::create(mtx3->get_executor());
+
+    mtx3->convert_to(csr_mtx.get());
+
+    assert_equal_to_mtx(csr_mtx.get());
+}
+
+
+TEST_F(Hybrid, MovesToCsrWithoutZeros)
+{
+    auto csr_mtx = Csr::create(mtx3->get_executor());
+
+    mtx3->move_to(csr_mtx.get());
+
+    assert_equal_to_mtx(csr_mtx.get());
+}
+
+
+TEST_F(Hybrid, CountsNonzeros)
+{
+    gko::size_type nonzeros;
+
+    gko::kernels::reference::hybrid::count_nonzeros(exec, mtx1.get(),
+                                                    &nonzeros);
+
+    ASSERT_EQ(nonzeros, 4);
 }
 
 

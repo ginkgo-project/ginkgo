@@ -47,7 +47,7 @@ using etype = double;
 
 
 namespace {
-auto input_format =
+std::string input_format =
     "  [\n"
     "    {\n"
     "      \"filename\": \"<output-file>\",\n"
@@ -73,7 +73,7 @@ auto input_format =
 
 
 // input validation
-void print_config_error_and_exit(int code = 1)
+[[noreturn]] void print_config_error_and_exit(int code = 1)
 {
     std::cerr << "Input has to be a JSON array of matrix configurations:\n"
               << input_format << std::endl;
@@ -89,23 +89,6 @@ void validate_option_object(const rapidjson::Value &value)
         !value["problem"]["type"].IsString()) {
         print_config_error_and_exit(2);
     }
-}
-
-
-void initialize_argument_parsing(int *argc, char **argv[])
-{
-    std::ostringstream doc;
-    doc << "A utility that generates various types of matrices.\n"
-        << "Usage: " << (*argv)[0] << " [options]\n"
-        << "  The standard input should contain a JSON array of matrix\n"
-        << "  configurations in the following format:\n"
-        << input_format << std::endl;
-
-    gflags::SetUsageMessage(doc.str());
-    std::ostringstream ver;
-    ver << gko::version_info::get();
-    gflags::SetVersionString(ver.str());
-    gflags::ParseCommandLineFlags(argc, argv, true);
 }
 
 
@@ -137,7 +120,10 @@ std::map<std::string, generator_function> generator{
 
 int main(int argc, char *argv[])
 {
-    initialize_argument_parsing(&argc, &argv);
+    std::string header =
+        "A utility that generates various types of "
+        "matrices.\n";
+    initialize_argument_parsing(&argc, &argv, header, input_format);
 
     std::clog << gko::version_info::get() << std::endl;
 
@@ -150,7 +136,8 @@ int main(int argc, char *argv[])
         print_config_error_and_exit(1);
     }
 
-    for (auto &config : configurations.GetArray()) try {
+    for (auto &config : configurations.GetArray()) {
+        try {
             validate_option_object(config);
             std::clog << "Generating matrix: " << config << std::endl;
             auto filename = config["filename"].GetString();
@@ -158,10 +145,11 @@ int main(int argc, char *argv[])
             auto mdata = generator[type](config["problem"], engine);
             std::ofstream ofs(filename);
             gko::write_raw(ofs, mdata, gko::layout_type::coordinate);
-        } catch (std::exception &e) {
+        } catch (const std::exception &e) {
             std::cerr << "Error generating matrix, what(): " << e.what()
                       << std::endl;
         }
+    }
 
     std::cout << configurations;
 }

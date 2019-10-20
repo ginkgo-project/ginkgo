@@ -120,23 +120,28 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // beta = rho / rho_prev
         // u = r + beta * q;
         // p = u + beta * ( q + beta * p );
-        preconditioner_->apply(p.get(), t.get());
+        get_preconditioner()->apply(p.get(), t.get());
         system_matrix_->apply(t.get(), v_hat.get());
         r_tld->compute_dot(v_hat.get(), gamma.get());
         exec->run(cgs::make_step_2(u.get(), v_hat.get(), q.get(), t.get(),
                                    alpha.get(), rho.get(), gamma.get(),
                                    &stop_status));
+
+        ++iter;
+        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
+                                                            dense_x);
+
         // alpha = rho / gamma
         // q = u - alpha * v_hat
         // t = u + q
-        preconditioner_->apply(t.get(), u_hat.get());
+        get_preconditioner()->apply(t.get(), u_hat.get());
         system_matrix_->apply(u_hat.get(), t.get());
         exec->run(cgs::make_step_3(t.get(), u_hat.get(), r.get(), dense_x,
                                    alpha.get(), &stop_status));
         // r = r -alpha * t
         // x = x + alpha * u_hat
 
-        iter += 2;
+        ++iter;
         this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
                                                             dense_x);
         if (stop_criterion->update()

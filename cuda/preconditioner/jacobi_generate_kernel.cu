@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
 #include "cuda/components/warp_blas.cuh"
+#include "cuda/components/zero_array.hpp"
 #include "cuda/preconditioner/jacobi_common.hpp"
 
 
@@ -296,6 +297,7 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
               Array<precision_reduction> &block_precisions,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
+    zero_array(blocks.get_num_elems(), blocks.get_data());
     select_generate(compiled_kernels(),
                     [&](int compiled_block_size) {
                         return max_block_size <= compiled_block_size;

@@ -6,5 +6,4 @@ Running 1000000 iterations of the CG solver took a total of 1.50535 seconds.
         Average library overhead:     1505.35 [nanoseconds / iteration]
 @endcode
 
-<h4> Comments about programming and debugging </h4>
-
+<h3> Comments about programming and debugging </h3>

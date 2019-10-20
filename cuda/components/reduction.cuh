@@ -34,16 +34,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_COMPONENTS_REDUCTION_CUH_
 
 
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 
 
+#include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/thread_ids.cuh"
+#include "cuda/components/uninitialized_array.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace cuda {
+
+
+constexpr int default_block_size = 512;
 
 
 /**
@@ -169,6 +176,67 @@ __device__ void reduce_array(size_type size,
 
     // Stores the result of the reduction inside `result[0]`
     reduce(group::this_thread_block(), result, reduce_op);
+}
+
+
+/**
+ * @internal
+ *
+ * Computes a reduction using the add operation (+) on an array
+ * `source` of any size. Has to be called a second time on `result` to reduce
+ * an array larger than `default_block_size`.
+ */
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void reduce_add_array(
+    size_type size, const ValueType *__restrict__ source,
+    ValueType *__restrict__ result)
+{
+    __shared__ UninitializedArray<ValueType, default_block_size> block_sum;
+    reduce_array(size, source, static_cast<ValueType *>(block_sum),
+                 [](const ValueType &x, const ValueType &y) { return x + y; });
+
+    if (threadIdx.x == 0) {
+        result[blockIdx.x] = block_sum[0];
+    }
+}
+
+
+/**
+ * Compute a reduction using add operation (+).
+ *
+ * @param exec  Executor associated to the array
+ * @param size  size of the array
+ * @param source  the pointer of the array
+ *
+ * @return the reduction result
+ */
+template <typename ValueType>
+__host__ ValueType reduce_add_array(std::shared_ptr<const CudaExecutor> exec,
+                                    size_type size, const ValueType *source)
+{
+    auto block_results_val = source;
+    size_type grid_dim = size;
+    if (size > default_block_size) {
+        const auto n = ceildiv(size, default_block_size);
+        grid_dim = (n <= default_block_size) ? n : default_block_size;
+
+        auto block_results = Array<ValueType>(exec, grid_dim);
+
+        reduce_add_array<<<grid_dim, default_block_size>>>(
+            size, as_cuda_type(source), as_cuda_type(block_results.get_data()));
+
+        block_results_val = block_results.get_const_data();
+    }
+
+    auto d_result = Array<ValueType>(exec, 1);
+
+    reduce_add_array<<<1, default_block_size>>>(
+        grid_dim, as_cuda_type(block_results_val),
+        as_cuda_type(d_result.get_data()));
+    ValueType answer = zero<ValueType>();
+    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
+                                  &answer);
+    return answer;
 }
 
 

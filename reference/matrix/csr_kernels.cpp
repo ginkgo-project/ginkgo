@@ -43,10 +43,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/sellp.hpp>
 
 
+#include "core/base/iterator_factory.hpp"
 #include "reference/components/format_conversion.hpp"
 
 
@@ -394,6 +396,123 @@ void calculate_max_nnz_per_row(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
+                       matrix::Hybrid<ValueType, IndexType> *result,
+                       const matrix::Csr<ValueType, IndexType> *source)
+{
+    auto num_rows = result->get_size()[0];
+    auto num_cols = result->get_size()[1];
+    auto strategy = result->get_strategy();
+    auto ell_lim = strategy->get_ell_num_stored_elements_per_row();
+    auto coo_lim = strategy->get_coo_nnz();
+    auto coo_val = result->get_coo_values();
+    auto coo_col = result->get_coo_col_idxs();
+    auto coo_row = result->get_coo_row_idxs();
+
+    // Initial Hybrid Matrix
+    for (size_type i = 0; i < result->get_ell_num_stored_elements_per_row();
+         i++) {
+        for (size_type j = 0; j < result->get_ell_stride(); j++) {
+            result->ell_val_at(j, i) = zero<ValueType>();
+            result->ell_col_at(j, i) = 0;
+        }
+    }
+    for (size_type i = 0; i < result->get_coo_num_stored_elements(); i++) {
+        coo_val[i] = zero<ValueType>();
+        coo_col[i] = 0;
+        coo_row[i] = 0;
+    }
+
+    const auto csr_row_ptrs = source->get_const_row_ptrs();
+    const auto csr_vals = source->get_const_values();
+    size_type csr_idx = 0;
+    size_type coo_idx = 0;
+    for (IndexType row = 0; row < num_rows; row++) {
+        size_type ell_idx = 0;
+        while (csr_idx < csr_row_ptrs[row + 1]) {
+            const auto val = csr_vals[csr_idx];
+            if (ell_idx < ell_lim) {
+                result->ell_val_at(row, ell_idx) = val;
+                result->ell_col_at(row, ell_idx) =
+                    source->get_const_col_idxs()[csr_idx];
+                ell_idx++;
+            } else {
+                coo_val[coo_idx] = val;
+                coo_col[coo_idx] = source->get_const_col_idxs()[csr_idx];
+                coo_row[coo_idx] = row;
+                coo_idx++;
+            }
+            csr_idx++;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void calculate_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
+                                const matrix::Csr<ValueType, IndexType> *source,
+                                Array<size_type> *result)
+{
+    const auto row_ptrs = source->get_const_row_ptrs();
+    auto row_nnz_val = result->get_data();
+    for (size_type i = 0; i < result->get_num_elems(); i++) {
+        row_nnz_val[i] = row_ptrs[i + 1] - row_ptrs[i];
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_CALCULATE_NONZEROS_PER_ROW_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void sort_by_column_index(std::shared_ptr<const ReferenceExecutor> exec,
+                          matrix::Csr<ValueType, IndexType> *to_sort)
+{
+    auto values = to_sort->get_values();
+    auto row_ptrs = to_sort->get_row_ptrs();
+    auto col_idxs = to_sort->get_col_idxs();
+    const auto number_rows = to_sort->get_size()[0];
+    for (size_type i = 0; i < number_rows; ++i) {
+        auto start_row_idx = row_ptrs[i];
+        auto row_nnz = row_ptrs[i + 1] - start_row_idx;
+        auto helper = detail::IteratorFactory<IndexType, ValueType>(
+            col_idxs + start_row_idx, values + start_row_idx, row_nnz);
+        std::sort(helper.begin(), helper.end());
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX);
+
+
+template <typename ValueType, typename IndexType>
+void is_sorted_by_column_index(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const matrix::Csr<ValueType, IndexType> *to_check, bool *is_sorted)
+{
+    const auto row_ptrs = to_check->get_const_row_ptrs();
+    const auto col_idxs = to_check->get_const_col_idxs();
+    const auto size = to_check->get_size();
+    for (size_type i = 0; i < size[0]; ++i) {
+        for (auto idx = row_ptrs[i] + 1; idx < row_ptrs[i + 1]; ++idx) {
+            if (col_idxs[idx - 1] > col_idxs[idx]) {
+                *is_sorted = false;
+                return;
+            }
+        }
+    }
+    *is_sorted = true;
+    return;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
 }  // namespace csr

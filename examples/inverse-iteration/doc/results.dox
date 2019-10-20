@@ -24,5 +24,4 @@ This is the expected output:
 { "system_residual": (+1.97926842e-10,+0.00000000e+00), "eigenvalue": (+1.92292033e+01,+1.58008702e-16), "residual": (+3.13794996e-06,-2.57849164e-23) },
 @endcode
 
-<h4> Comments about programming and debugging </h4>
-
+<h3> Comments about programming and debugging </h3>

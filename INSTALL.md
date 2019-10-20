@@ -8,18 +8,23 @@ Use the standard cmake build procedure:
 mkdir build; cd build
 cmake -G "Unix Makefiles" [OPTIONS] .. && make
 ```
+Use `cmake --build .` in some systems like MinGW or Microsoft Visual Studio which do not use `make`.
+
+For Microsoft Visual Studio, use `cmake --build . --config <build_type>` to decide the build type. The possible options are `Debug`, `Release`, `RelWithDebInfo` and `MinSizeRel`.
+
 Replace `[OPTIONS]` with desired cmake options for your build.
 Ginkgo adds the following additional switches to control what is being built:
 
 *   `-DGINKGO_DEVEL_TOOLS={ON, OFF}` sets up the build system for development
     (requires clang-format, will also download git-cmake-format),
-    default is `ON`
+    default is `ON`.
 *   `-DGINKGO_BUILD_TESTS={ON, OFF}` builds Ginkgo's tests
-    (will download googletest), default is `ON`
+    (will download googletest), default is `ON`.
 *   `-DGINKGO_BUILD_BENCHMARKS={ON, OFF}` builds Ginkgo's benchmarks
-    (will download gflags and rapidjson), default is `ON`
+    (will download gflags and rapidjson), default is `ON`.
 *   `-DGINKGO_BUILD_EXAMPLES={ON, OFF}` builds Ginkgo's examples, default is `ON`
-*   `-DGINKGO_BUILD_EXTLIB_EXAMPLE={ON, OFF}` builds the interfacing example with deal.II, default is `OFF`
+*   `-DGINKGO_BUILD_EXTLIB_EXAMPLE={ON, OFF}` builds the interfacing example
+    with deal.II, default is `OFF`.
 *   `-DGINKGO_BUILD_REFERENCE={ON, OFF}` build reference implementations of the
     kernels, useful for testing, default is `ON`
 *   `-DGINKGO_BUILD_OMP={ON, OFF}` builds optimized OpenMP versions of the kernels,
@@ -36,17 +41,23 @@ Ginkgo adds the following additional switches to control what is being built:
     Ginkgo's documentation. The default is `OFF`.
 *   `-DGINKGO_EXPORT_BUILD_DIR={ON, OFF}` adds the Ginkgo build directory to the
     CMake package registry. The default is `OFF`.
+*   `-DGINKGO_WITH_CLANG_TIDY={ON, OFF}` makes Ginkgo call `clang-tidy` to find
+    programming issues. The path can be manually controlled with the CMake
+    variable `-DGINKGO_CLANG_TIDY_PATH=<path>`. The default is `OFF`.
+*   `-DGINKGO_WITH_IWYU={ON, OFF}` makes Ginkgo call `iwyu` to find include
+    issues. The path can be manually controlled with the CMake variable
+    `-DGINKGO_IWYU_PATH=<path>`. The default is `OFF`.
 *   `-DGINKGO_VERBOSE_LEVEL=integer` sets the verbosity of Ginkgo.
     * `0` disables all output in the main libraries,
     * `1` enables a few important messages related to unexpected behavior (default).
 *   `-DCMAKE_INSTALL_PREFIX=path` sets the installation path for `make install`.
-    The default value is usually something like `/usr/local`
+    The default value is usually something like `/usr/local`.
 *   `-DCMAKE_BUILD_TYPE=type` specifies which configuration will be used for
     this build of Ginkgo. The default is `RELEASE`. Supported values are CMake's
     standard build types such as `DEBUG` and `RELEASE` and the Ginkgo specific 
 	`COVERAGE`, `ASAN` (AddressSanitizer) and `TSAN` (ThreadSanitizer) types.
 *   `-DBUILD_SHARED_LIBS={ON, OFF}` builds ginkgo as shared libraries (`OFF`)
-    or as dynamic libraries (`ON`), default is `ON`
+    or as dynamic libraries (`ON`), default is `ON`.
 *   `-DGINKGO_JACOBI_FULL_OPTIMIZATIONS={ON, OFF}` use all the optimizations
     for the CUDA Jacobi algorithm. `OFF` by default. Setting this option to `ON`
     may lead to very slow compile time (>20 minutes) for the
@@ -75,6 +86,14 @@ Ginkgo adds the following additional switches to control what is being built:
     this option see the
     [`ARCHITECTURES` specification list](https://github.com/ginkgo-project/CudaArchitectureSelector/blob/master/CudaArchitectureSelector.cmake#L58)
     section in the documentation of the CudaArchitectureSelector CMake module.
+* `-DGINKGO_WINDOWS_SHARED_LIBRARY_RELPATH=<path>` where <path> is a relative
+    path built with `PROJECT_BINARY_DIR`. Users must add the absolute path
+    (`PROJECT_BINARY_DIR`/`GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH`) into the
+    environment variable PATH when building shared libraries and executable
+    program, default is `windows_shared_library`.
+* `-DGINKGO_CHECK_PATH={ON, OFF}` checks if the environment variable PATH is valid.
+    It is checked only when building shared libraries and executable program,
+    default is `ON`.
 
 For example, to build everything (in debug mode), use:
 
@@ -107,14 +126,26 @@ packages can be turned off by disabling the relevant options.
 
 By default, Ginkgo uses the internal version of each package. For each of the
 packages `GTEST`, `GFLAGS`, `RAPIDJSON` and `CAS`, it is possible to force
-Ginkgo to try to use an external version of a package. For this, set the CMake
-option `-DGINKGO_USE_EXTERNAL_<package>=ON`.
-
-If the external packages were not installed to the default location, the
-CMake option `-DCMAKE_PREFIX_PATH=<path-list>` needs to be set to the semicolon
-(`;`) separated list of install paths of these external packages. For more
-Information, see the [CMake documentation for CMAKE_PREFIX_PATH](https://cmake.org/cmake/help/v3.9/variable/CMAKE_PREFIX_PATH.html)
+Ginkgo to try to use an external version of a package. For this, Ginkgo provides
+two ways to find packages. To rely on the CMake `find_package` command, use the
+CMake option `-DGINKGO_USE_EXTERNAL_<package>=ON`. Note that, if the external
+packages were not installed to the default location, the CMake option
+`-DCMAKE_PREFIX_PATH=<path-list>` needs to be set to the semicolon (`;`)
+separated list of install paths of these external packages. For more
+Information, see the [CMake documentation for
+CMAKE_PREFIX_PATH](https://cmake.org/cmake/help/v3.9/variable/CMAKE_PREFIX_PATH.html)
 for details.
+
+To manually configure the paths, Ginkgo relies on the [standard xSDK Installation
+policies](https://xsdk.info/policies/) for all packages except `CAS` (as it is
+neither a library nor a header, it cannot be expressed through the `TPL`
+format):
++ `-DTPL_ENABLE_<package>=ON`
++ `-DTPL_<package>_LIBRARIES=/path/to/libraries.{so|a}`
++ `-DTPL_<package>_INCLUDE_DIRS=/path/to/header/directory`
+
+When applicable (e.g. for `GTest` libraries), a `;` separated list can be given
+to the `TPL_<package>_{LIBRARIES|INCLUDE_DIRS}` variables.
 
 ### Installing Ginkgo
 

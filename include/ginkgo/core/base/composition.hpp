@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 
 
@@ -151,6 +152,7 @@ private:
     // TODO: solve race conditions when multithreading
     mutable struct cache_struct {
         cache_struct() = default;
+        ~cache_struct() = default;
         cache_struct(const cache_struct &other) {}
         cache_struct &operator=(const cache_struct &other) { return *this; }
 

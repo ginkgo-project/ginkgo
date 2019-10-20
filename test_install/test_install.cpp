@@ -147,6 +147,14 @@ int main(int, char **)
             &testVar, 1u, 1u, 1u);
     }
 
+    // core/base/perturbation.hpp
+    {
+        using type1 = int;
+        static_assert(
+            std::is_same<gko::Perturbation<type1>::value_type, type1>::value,
+            "perturbation.hpp not included properly");
+    }
+
     // core/base/std_extensions.hpp
     {
         static_assert(std::is_same<gko::xstd::void_t<double>, void>::value,
@@ -166,6 +174,11 @@ int main(int, char **)
     // core/base/version.hpp
     {
         auto test = gko::version_info::get().header_version;
+    }
+
+    // core/factorization/par_ilu.hpp
+    {
+        auto test = gko::factorization::ParIlu<>::build().on(refExec);
     }
 
     // core/log/convergence.hpp
@@ -231,6 +244,16 @@ int main(int, char **)
         auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2);
     }
 
+    // core/matrix/sparsity_csr.hpp
+    {
+        using Mtx = gko::matrix::SparsityCsr<>;
+        auto test = Mtx::create(refExec, gko::dim<2>{2, 2});
+
+    // core/preconditioner/ilu.hpp
+    {
+        auto test = gko::preconditioner::Ilu<>::build().on(refExec);
+    }
+
     // core/preconditioner/jacobi.hpp
     {
         using Bj = gko::preconditioner::Jacobi<>;
@@ -286,7 +309,7 @@ int main(int, char **)
                                 refExec))
                         .on(refExec);
     }
-    
+
     // core/solver/ir.hpp
     {
         using Solver = gko::solver::Ir<>;
@@ -295,6 +318,12 @@ int main(int, char **)
                             gko::stop::Iteration::build().with_max_iters(1u).on(
                                 refExec))
                         .on(refExec);
+    }
+
+    // core/solver/lower_trs.hpp
+    {
+        using Solver = gko::solver::LowerTrs<>;
+        auto test = Solver::build().on(refExec);
     }
 
     // core/stop/

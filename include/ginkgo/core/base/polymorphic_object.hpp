@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_POLYMORPHIC_OBJECT_HPP_
 
 
+#include <memory>
+
+
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/log/logger.hpp>
@@ -426,6 +429,21 @@ std::unique_ptr<R, std::function<void(R *)>> copy_and_convert_to_impl(
 }
 
 
+template <typename R, typename T>
+std::shared_ptr<R> copy_and_convert_to_impl(
+    std::shared_ptr<const Executor> exec, std::shared_ptr<T> obj)
+{
+    auto obj_as_r = std::dynamic_pointer_cast<R>(obj);
+    if (obj_as_r != nullptr && obj->get_executor() == exec) {
+        return obj_as_r;
+    } else {
+        auto copy = R::create(exec);
+        as<ConvertibleTo<xstd::decay_t<R>>>(obj.get())->convert_to(lend(copy));
+        return {std::move(copy)};
+    }
+}
+
+
 }  // namespace detail
 
 
@@ -462,6 +480,46 @@ std::unique_ptr<R, std::function<void(R *)>> copy_and_convert_to(
 template <typename R, typename T>
 std::unique_ptr<const R, std::function<void(const R *)>> copy_and_convert_to(
     std::shared_ptr<const Executor> exec, const T *obj)
+{
+    return detail::copy_and_convert_to_impl<const R>(std::move(exec), obj);
+}
+
+
+/**
+ * Converts the object to R and places it on Executor exec. This is the version
+ * that takes in the std::shared_ptr and returns a std::shared_ptr
+ *
+ * If the object is already of the requested type and on the requested executor,
+ * the copy and conversion is avoided and a reference to the original object is
+ * returned instead.
+ *
+ * @tparam R  the type to which the object should be converted
+ * @tparam T  the type of the input object
+ *
+ * @param exec  the executor where the result should be placed
+ * @param obj  the object that should be converted
+ *
+ * @return a shared pointer to the converted
+ *         object
+ */
+template <typename R, typename T>
+std::shared_ptr<R> copy_and_convert_to(std::shared_ptr<const Executor> exec,
+                                       std::shared_ptr<T> obj)
+{
+    return detail::copy_and_convert_to_impl<R>(std::move(exec), obj);
+}
+
+
+/**
+ * @copydoc copy_and_convert_to(std::shared_ptr<const Executor>,
+ * std::shared_ptr<T>)
+ *
+ * @note This is a version of the function which adds the const qualifier to the
+ *       result if the input had the same qualifier.
+ */
+template <typename R, typename T>
+std::shared_ptr<const R> copy_and_convert_to(
+    std::shared_ptr<const Executor> exec, std::shared_ptr<const T> obj)
 {
     return detail::copy_and_convert_to_impl<const R>(std::move(exec), obj);
 }

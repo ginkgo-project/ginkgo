@@ -33,16 +33,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_kernels.hpp"
 
 
+#include <algorithm>
+
+
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include "core/test/utils/assertions.hpp"
@@ -56,19 +62,34 @@ protected:
     using Coo = gko::matrix::Coo<>;
     using Mtx = gko::matrix::Csr<>;
     using Sellp = gko::matrix::Sellp<>;
+    using SparsityCsr = gko::matrix::SparsityCsr<>;
     using Ell = gko::matrix::Ell<>;
+    using Hybrid = gko::matrix::Hybrid<>;
     using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
     using Vec = gko::matrix::Dense<>;
 
     Csr()
         : exec(gko::ReferenceExecutor::create()),
           mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4,
-                          std::make_shared<Mtx::load_balance>(2)))
+                          std::make_shared<Mtx::load_balance>(2))),
+          mtx2(Mtx::create(exec, gko::dim<2>{2, 3}, 5,
+                           std::make_shared<Mtx::classical>())),
+          mtx3_sorted(Mtx::create(exec, gko::dim<2>(3, 3), 7,
+                                  std::make_shared<Mtx::classical>())),
+          mtx3_unsorted(Mtx::create(exec, gko::dim<2>(3, 3), 7,
+                                    std::make_shared<Mtx::classical>()))
     {
-        Mtx::value_type *v = mtx->get_values();
-        Mtx::index_type *c = mtx->get_col_idxs();
-        Mtx::index_type *r = mtx->get_row_ptrs();
-        auto *s = mtx->get_srow();
+        this->create_mtx(mtx.get());
+        this->create_mtx2(mtx2.get());
+        this->create_mtx3(mtx3_sorted.get(), mtx3_unsorted.get());
+    }
+
+    void create_mtx(Mtx *m)
+    {
+        Mtx::value_type *v = m->get_values();
+        Mtx::index_type *c = m->get_col_idxs();
+        Mtx::index_type *r = m->get_row_ptrs();
+        auto *s = m->get_srow();
         /*
          * 1   3   2
          * 0   5   0
@@ -85,6 +106,88 @@ protected:
         v[2] = 2.0;
         v[3] = 5.0;
         s[0] = 0;
+    }
+
+    void create_mtx2(Mtx *m)
+    {
+        Mtx::value_type *v = m->get_values();
+        Mtx::index_type *c = m->get_col_idxs();
+        Mtx::index_type *r = m->get_row_ptrs();
+        // It keeps an explict zero
+        /*
+         *  1    3   2
+         * {0}   5   0
+         */
+        r[0] = 0;
+        r[1] = 3;
+        r[2] = 5;
+        c[0] = 0;
+        c[1] = 1;
+        c[2] = 2;
+        c[3] = 0;
+        c[4] = 1;
+        v[0] = 1.0;
+        v[1] = 3.0;
+        v[2] = 2.0;
+        v[3] = 0.0;
+        v[4] = 5.0;
+    }
+
+    void create_mtx3(Mtx *sorted, Mtx *unsorted)
+    {
+        auto vals_s = sorted->get_values();
+        auto cols_s = sorted->get_col_idxs();
+        auto rows_s = sorted->get_row_ptrs();
+        auto vals_u = unsorted->get_values();
+        auto cols_u = unsorted->get_col_idxs();
+        auto rows_u = unsorted->get_row_ptrs();
+        /* For both versions (sorted and unsorted), this matrix is stored:
+         * 0  2  1
+         * 3  1  8
+         * 2  0  3
+         * The unsorted matrix will have the (value, column) pair per row not
+         * sorted, which we still consider a valid CSR format.
+         */
+        rows_s[0] = 0;
+        rows_s[1] = 2;
+        rows_s[2] = 5;
+        rows_s[3] = 7;
+        rows_u[0] = 0;
+        rows_u[1] = 2;
+        rows_u[2] = 5;
+        rows_u[3] = 7;
+
+        vals_s[0] = 2.;
+        vals_s[1] = 1.;
+        vals_s[2] = 3.;
+        vals_s[3] = 1.;
+        vals_s[4] = 8.;
+        vals_s[5] = 2.;
+        vals_s[6] = 3.;
+        // Each row is stored rotated once to the left
+        vals_u[0] = 1.;
+        vals_u[1] = 2.;
+        vals_u[2] = 1.;
+        vals_u[3] = 8.;
+        vals_u[4] = 3.;
+        vals_u[5] = 3.;
+        vals_u[6] = 2.;
+
+        cols_s[0] = 1;
+        cols_s[1] = 2;
+        cols_s[2] = 0;
+        cols_s[3] = 1;
+        cols_s[4] = 2;
+        cols_s[5] = 0;
+        cols_s[6] = 2;
+        // The same applies for the columns
+        cols_u[0] = 2;
+        cols_u[1] = 1;
+        cols_u[2] = 1;
+        cols_u[3] = 2;
+        cols_u[4] = 0;
+        cols_u[5] = 2;
+        cols_u[6] = 0;
     }
 
     void assert_equal_to_mtx(const Coo *m)
@@ -137,6 +240,22 @@ protected:
         EXPECT_EQ(v[129], 0.0);
     }
 
+    void assert_equal_to_mtx(const SparsityCsr *m)
+    {
+        auto *c = m->get_const_col_idxs();
+        auto *r = m->get_const_row_ptrs();
+
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_num_nonzeros(), 4);
+        EXPECT_EQ(r[0], 0);
+        EXPECT_EQ(r[1], 3);
+        EXPECT_EQ(r[2], 4);
+        EXPECT_EQ(c[0], 0);
+        EXPECT_EQ(c[1], 1);
+        EXPECT_EQ(c[2], 2);
+        EXPECT_EQ(c[3], 1);
+    }
+
     void assert_equal_to_mtx(const Ell *m)
     {
         auto v = m->get_const_values();
@@ -158,9 +277,69 @@ protected:
         EXPECT_EQ(v[5], 0.0);
     }
 
+    void assert_equal_to_mtx(const Hybrid *m)
+    {
+        auto v = m->get_const_coo_values();
+        auto c = m->get_const_coo_col_idxs();
+        auto r = m->get_const_coo_row_idxs();
+        auto n = m->get_ell_num_stored_elements_per_row();
+        auto p = m->get_ell_stride();
+
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+        ASSERT_EQ(m->get_ell_num_stored_elements(), 0);
+        ASSERT_EQ(m->get_coo_num_stored_elements(), 4);
+        EXPECT_EQ(n, 0);
+        EXPECT_EQ(p, 2);
+        EXPECT_EQ(r[0], 0);
+        EXPECT_EQ(r[1], 0);
+        EXPECT_EQ(r[2], 0);
+        EXPECT_EQ(r[3], 1);
+        EXPECT_EQ(c[0], 0);
+        EXPECT_EQ(c[1], 1);
+        EXPECT_EQ(c[2], 2);
+        EXPECT_EQ(c[3], 1);
+        EXPECT_EQ(v[0], 1.0);
+        EXPECT_EQ(v[1], 3.0);
+        EXPECT_EQ(v[2], 2.0);
+        EXPECT_EQ(v[3], 5.0);
+    }
+
+    void assert_equal_to_mtx2(const Hybrid *m)
+    {
+        auto v = m->get_const_coo_values();
+        auto c = m->get_const_coo_col_idxs();
+        auto r = m->get_const_coo_row_idxs();
+        auto n = m->get_ell_num_stored_elements_per_row();
+        auto p = m->get_ell_stride();
+        auto ell_v = m->get_const_ell_values();
+        auto ell_c = m->get_const_ell_col_idxs();
+
+        ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
+        // Test Coo values
+        ASSERT_EQ(m->get_coo_num_stored_elements(), 1);
+        EXPECT_EQ(r[0], 0);
+        EXPECT_EQ(c[0], 2);
+        EXPECT_EQ(v[0], 2.0);
+        // Test Ell values
+        ASSERT_EQ(m->get_ell_num_stored_elements(), 4);
+        EXPECT_EQ(n, 2);
+        EXPECT_EQ(p, 2);
+        EXPECT_EQ(ell_v[0], 1);
+        EXPECT_EQ(ell_v[1], 0);
+        EXPECT_EQ(ell_v[2], 3);
+        EXPECT_EQ(ell_v[3], 5);
+        EXPECT_EQ(ell_c[0], 0);
+        EXPECT_EQ(ell_c[1], 0);
+        EXPECT_EQ(ell_c[2], 1);
+        EXPECT_EQ(ell_c[3], 1);
+    }
+
     std::complex<double> i{0, 1};
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<Mtx> mtx2;
+    std::unique_ptr<Mtx> mtx3_sorted;
+    std::unique_ptr<Mtx> mtx3_unsorted;
 };
 
 
@@ -202,6 +381,7 @@ TEST_F(Csr, AppliesLinearCombinationToDenseVector)
     EXPECT_EQ(y->at(0), -11.0);
     EXPECT_EQ(y->at(1), -1.0);
 }
+
 
 TEST_F(Csr, AppliesLinearCombinationToDenseMatrix)
 {
@@ -312,6 +492,89 @@ TEST_F(Csr, MovesToSellp)
 }
 
 
+TEST_F(Csr, ConvertsToSparsityCsr)
+{
+    auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(mtx->get_executor());
+
+    mtx->convert_to(sparsity_mtx.get());
+
+    assert_equal_to_mtx(sparsity_mtx.get());
+}
+
+
+TEST_F(Csr, MovesToSparsityCsr)
+{
+    auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(mtx->get_executor());
+    auto csr_ref = gko::matrix::Csr<>::create(mtx->get_executor());
+
+    csr_ref->copy_from(mtx.get());
+    csr_ref->move_to(sparsity_mtx.get());
+
+    assert_equal_to_mtx(sparsity_mtx.get());
+}
+
+
+TEST_F(Csr, ConvertsToHybridAutomatically)
+{
+    auto hybrid_mtx = gko::matrix::Hybrid<>::create(mtx->get_executor());
+
+    mtx->convert_to(hybrid_mtx.get());
+
+    assert_equal_to_mtx(hybrid_mtx.get());
+}
+
+
+TEST_F(Csr, MovesToHybridAutomatically)
+{
+    auto hybrid_mtx = gko::matrix::Hybrid<>::create(mtx->get_executor());
+    auto csr_ref = gko::matrix::Csr<>::create(mtx->get_executor());
+
+    csr_ref->copy_from(mtx.get());
+    csr_ref->move_to(hybrid_mtx.get());
+
+    assert_equal_to_mtx(hybrid_mtx.get());
+}
+
+
+TEST_F(Csr, ConvertsToHybridByColumn2)
+{
+    auto hybrid_mtx = gko::matrix::Hybrid<>::create(
+        mtx2->get_executor(),
+        std::make_shared<gko::matrix::Hybrid<>::column_limit>(2));
+
+    mtx2->convert_to(hybrid_mtx.get());
+
+    assert_equal_to_mtx2(hybrid_mtx.get());
+}
+
+
+TEST_F(Csr, MovesToHybridByColumn2)
+{
+    auto hybrid_mtx = gko::matrix::Hybrid<>::create(
+        mtx2->get_executor(),
+        std::make_shared<gko::matrix::Hybrid<>::column_limit>(2));
+    auto csr_ref = gko::matrix::Csr<>::create(mtx2->get_executor());
+
+    csr_ref->copy_from(mtx2.get());
+    csr_ref->move_to(hybrid_mtx.get());
+
+    assert_equal_to_mtx2(hybrid_mtx.get());
+}
+
+
+TEST_F(Csr, CalculatesNonzerosPerRow)
+{
+    gko::Array<gko::size_type> row_nnz(exec, mtx->get_size()[0]);
+
+    gko::kernels::reference::csr::calculate_nonzeros_per_row(exec, mtx.get(),
+                                                             &row_nnz);
+
+    auto row_nnz_val = row_nnz.get_data();
+    ASSERT_EQ(row_nnz_val[0], 3);
+    ASSERT_EQ(row_nnz_val[1], 1);
+}
+
+
 TEST_F(Csr, CalculatesTotalCols)
 {
     gko::size_type total_cols;
@@ -403,6 +666,40 @@ TEST_F(Csr, MtxIsConjugateTransposable)
                        {3.0 + 0.0 * i, 5.0 + 3.5 * i, 0.0 - 1.5 * i},
                        {2.0 + 0.0 * i, 0.0 + 0.0 * i, 2.0 + 0.0 * i}}), 0.0);
     // clang-format on
+}
+
+
+TEST_F(Csr, RecognizeSortedMatrix)
+{
+    ASSERT_TRUE(mtx->is_sorted_by_column_index());
+    ASSERT_TRUE(mtx2->is_sorted_by_column_index());
+    ASSERT_TRUE(mtx3_sorted->is_sorted_by_column_index());
+}
+
+
+TEST_F(Csr, RecognizeUnsortedMatrix)
+{
+    ASSERT_FALSE(mtx3_unsorted->is_sorted_by_column_index());
+}
+
+
+TEST_F(Csr, SortSortedMatrix)
+{
+    auto matrix = mtx3_sorted->clone();
+
+    matrix->sort_by_column_index();
+
+    GKO_ASSERT_MTX_NEAR(matrix, mtx3_sorted, 0.0);
+}
+
+
+TEST_F(Csr, SortUnsortedMatrix)
+{
+    auto matrix = mtx3_unsorted->clone();
+
+    matrix->sort_by_column_index();
+
+    GKO_ASSERT_MTX_NEAR(matrix, mtx3_sorted, 0.0);
 }
 
 

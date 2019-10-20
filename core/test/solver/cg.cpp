@@ -169,4 +169,71 @@ TEST_F(Cg, CanSetPreconditionerGenerator)
 }
 
 
+TEST_F(Cg, CanSetPreconditionerInFactory)
+{
+    std::shared_ptr<Solver> cg_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(mtx);
+
+    auto cg_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_generated_preconditioner(cg_precond)
+            .on(exec);
+    auto solver = cg_factory->generate(mtx);
+    auto precond = solver->get_preconditioner();
+
+    ASSERT_NE(precond.get(), nullptr);
+    ASSERT_EQ(precond.get(), cg_precond.get());
+}
+
+
+TEST_F(Cg, ThrowsOnWrongPreconditionerInFactory)
+{
+    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1, 3});
+    std::shared_ptr<Solver> cg_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(wrong_sized_mtx);
+
+    auto cg_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_generated_preconditioner(cg_precond)
+            .on(exec);
+
+    ASSERT_THROW(cg_factory->generate(mtx), gko::DimensionMismatch);
+}
+
+
+TEST_F(Cg, CanSetPreconditioner)
+{
+    std::shared_ptr<Solver> cg_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(mtx);
+
+    auto cg_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
+    auto solver = cg_factory->generate(mtx);
+    solver->set_preconditioner(cg_precond);
+    auto precond = solver->get_preconditioner();
+
+    ASSERT_NE(precond.get(), nullptr);
+    ASSERT_EQ(precond.get(), cg_precond.get());
+}
+
+
 }  // namespace

@@ -1,16 +1,8 @@
 cmake_minimum_required(VERSION 3.9)
 
-project(Ginkgo LANGUAGES C CXX VERSION 1.0.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
+project(Ginkgo LANGUAGES C CXX VERSION 1.1.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "master")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
-
-# Load CMake helpers and modules
-include(cmake/build_helpers.cmake)
-include(cmake/create_test.cmake)
-include(cmake/install_helpers.cmake)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-
-include(cmake/build_type_helpers.cmake)
 
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" ON)
@@ -22,20 +14,40 @@ option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" OFF)
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" OFF)
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
 option(GINKGO_SKIP_DEPENDENCY_UPDATE
-       "Do not update dependencies each time the project is rebuilt" ON)
+    "Do not update dependencies each time the project is rebuilt" ON)
 option(GINKGO_EXPORT_BUILD_DIR
     "Make Ginkgo export its build directory to the CMake package registry."
     OFF)
+option(GINKGO_WITH_CLANG_TIDY "Make Ginkgo call `clang-tidy` to find programming issues." OFF)
+option(GINKGO_WITH_IWYU "Make Ginkgo call `iwyu` (Include What You Use) to find include issues." OFF)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
-  "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
-set(GINKGO_COMPILER_FLAGS "-Wpedantic" CACHE STRING
-  "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic`")
+    "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
+if(MSVC)
+    set(GINKGO_COMPILER_FLAGS "" CACHE STRING
+        "Set the required CXX compiler flags, mainly used for warnings. Current default is ``")
+else()
+    set(GINKGO_COMPILER_FLAGS "-Wpedantic" CACHE STRING
+        "Set the required CXX compiler flags, mainly used for warnings. Current default is `-Wpedantic`")
+endif()
 set(GINKGO_CUDA_COMPILER_FLAGS "" CACHE STRING
-  "Set the required NVCC compiler flags, mainly used for warnings. Current default is an empty string")
+    "Set the required NVCC compiler flags, mainly used for warnings. Current default is an empty string")
 set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
     "A list of target NVIDIA GPU achitectures. See README.md for more detail.")
+option(GINKGO_CUDA_DEFAULT_HOST_COMPILER "Tell Ginkgo to not automatically set the CUDA host compiler" OFF)
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
+
+if(BUILD_SHARED_LIBS AND (WIN32 OR CYGWIN) AND (GINKGO_BUILD_TESTS OR GINKGO_BUILD_EXAMPLES OR GINKGO_BUILD_BENCHMARKS))
+    # Change shared libraries output only if this build has executable program with shared libraries.
+    set(GINKGO_CHANGED_SHARED_LIBRARY TRUE)
+    option(GINKGO_CHECK_PATH "Tell Ginkgo to check if the environment variable PATH is available for this build." ON)
+    set(GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH "windows_shared_library" CACHE STRING
+        "Set Ginkgo's shared library relative path in windows. Current default is `windows_shared_library`. \
+        This absoulte path ${PROJECT_BINARY_DIR}/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH must be in the environment variable PATH.")
+    set(GINKGO_WINDOWS_SHARED_LIBRARY_PATH ${PROJECT_BINARY_DIR}/${GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH})
+else()
+    set(GINKGO_CHANGED_SHARED_LIBRARY FALSE)
+endif()
 
 if(GINKGO_BUILD_TESTS AND (GINKGO_BUILD_CUDA OR GINKGO_BUILD_OMP))
     message(STATUS "GINKGO_BUILD_TESTS is ON, enabling GINKGO_BUILD_REFERENCE")
@@ -49,7 +61,7 @@ endif()
 
 # Ensure we have a debug postfix
 if(NOT DEFINED CMAKE_DEBUG_POSTFIX)
-  set(CMAKE_DEBUG_POSTFIX "d")
+    set(CMAKE_DEBUG_POSTFIX "d")
 endif()
 
 if(GINKGO_BUILD_TESTS)
@@ -58,9 +70,28 @@ if(GINKGO_BUILD_TESTS)
         ${CMAKE_CURRENT_LIST_DIR}/cmake/CTestCustom.cmake.in
         ${CMAKE_CURRENT_BINARY_DIR}/CTestCustom.cmake @ONLY)
 
+    # For testing, we need some special matrices
+    add_subdirectory(matrices)
+
     enable_testing()
     include(CTest)
 endif()
+
+if (GINKGO_WITH_CLANG_TIDY)
+  find_program(GINKGO_CLANG_TIDY_PATH clang-tidy)
+endif()
+
+if (GINKGO_WITH_IWYU)
+  find_program(GINKGO_IWYU_PATH iwyu)
+endif()
+
+
+# Load CMake helpers and modules
+include(cmake/build_helpers.cmake)
+include(cmake/build_type_helpers.cmake)
+include(cmake/create_test.cmake)
+include(cmake/install_helpers.cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 
 # Find important header files, store the definitions in include/ginkgo/config.h.in
@@ -78,14 +109,27 @@ endif()
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
     ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
 
+# This is modified from https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
+if(MSVC)
+    if(BUILD_SHARED_LIBS)
+        ginkgo_switch_to_windows_dynamic("CXX")
+        ginkgo_switch_to_windows_dynamic("C")
+        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+    else()
+        ginkgo_switch_to_windows_static("CXX")
+        ginkgo_switch_to_windows_static("C")
+        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
+    endif()
+endif()
+
 # Try to find the third party packages before using our subdirectories
 include(cmake/package_helpers.cmake)
-ginkgo_find_package(GTest 1.8.1)
-ginkgo_find_package(gflags 2.2.2)
-ginkgo_find_package(RapidJSON 1.1.0)
+ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
+ginkgo_find_package(gflags gflags FALSE 2.2.2)
+ginkgo_find_package(RapidJSON rapidjson TRUE 1.1.0)
 add_subdirectory(third_party)    # Third-party tools and libraries
 
-# Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be 
+# Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be
 # propagated to the other parts of Ginkgo in case of building as static libraries
 if(GINKGO_BUILD_CUDA)
     add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
@@ -116,9 +160,13 @@ if(GINKGO_DEVEL_TOOLS)
 endif()
 
 # Generate the global `ginkgo/ginkgo.hpp` header with every call of make
-add_custom_target(generate_ginkgo_header ALL
+find_program(BASH bash)
+if(NOT "${BASH}" STREQUAL "BASH-NOTFOUND")
+    add_custom_target(generate_ginkgo_header ALL
         COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/update_ginkgo_header.sh
         WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
+endif()
+unset(BASH CACHE)
 
 
 # Installation

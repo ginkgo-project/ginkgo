@@ -78,11 +78,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 // Handle deprecated notices correctly on different systems
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(__CYGWIN__)
 #define GKO_DEPRECATED(msg) __declspec(deprecated(msg))
 #else
 #define GKO_DEPRECATED(msg) __attribute__((deprecated(msg)))
-#endif  // defined(_WIN32)
+#endif  // defined(_WIN32) || defined(__CYGWIN__)
 
 
 namespace gko {

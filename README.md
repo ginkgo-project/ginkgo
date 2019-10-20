@@ -1,10 +1,9 @@
 ![Ginkgo](/assets/logo.png)
 
 [![Build status](https://gitlab.com/ginkgo-project/ginkgo-public-ci/badges/master/build.svg)](https://github.com/ginkgo-project/ginkgo/commits/master)
-[![Coverage](https://codecov.io/gh/ginkgo-project/ginkgo/branch/master/graph/badge.svg)](https://codecov.io/gh/ginkgo-project/ginkgo)
 [![CDash dashboard](https://img.shields.io/badge/CDash-Access-blue.svg)](http://my.cdash.org/index.php?project=Ginkgo+Project)
 [![Documentation](https://img.shields.io/badge/Documentation-latest-blue.svg)](https://ginkgo-project.github.io/ginkgo/doc/master/)
-[![License](https://img.shields.io/github/license/ginkgo-project/ginkgo.svg)](LICENSE)
+[![License](https://img.shields.io/github/license/ginkgo-project/ginkgo.svg)](./LICENSE)
 [![c++ standard](https://img.shields.io/badge/c%2B%2B-11-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
 
 Ginkgo is a high-performance linear algebra library for manycore systems, with a
@@ -34,6 +33,7 @@ For Ginkgo core library:
 *   C++11 compliant compiler, one of:
     *   _gcc 5.3+, 6.3+, 7.3+, 8.1+_
     *   _clang 3.9+_
+    *   _Intel compiler 2017+_
     *   _Apple LLVM 8.0+_ (__TODO__: verify)
 
 The Ginkgo CUDA module has the following __additional__ requirements:
@@ -48,13 +48,32 @@ In addition, if you want to contribute code to Ginkgo, you will also need the
 following:
 
 *   _clang-format 5.0.1+_ (ships as part of _clang_)
+*   _clang-tidy_ (optional, when setting the flag `-DGINKGO_WITH_CLANG_TIDY=ON`)
+*   _iwyu_ (Include What You Use, optional, when setting the flag `-DGINKGO_WITH_IWYU=ON`)
 
 ### Windows
 
-Windows is currently not supported, but we are working on porting the library
-there. If you are interested in helping us with this effort, feel free to
-contact one of the developers. (The library itself doesn't use any non-standard
-C++ features, so most of the effort here is in modifying the build system.)
+The prequirement needs to be verified
+*   _cmake 3.9+_
+*   C++11 compliant 64-bits compiler:
+    *   _MinGW : gcc 5.3+, 6.3+, 7.3+, 8.1+_
+    *   _Cygwin : gcc 5.3+, 6.3+, 7.3+, 8.1+_
+    *   _Microsoft Visual Studio : VS 2017 15.7+_
+
+__NOTE:__ Need to add `--autocrlf=input` after `git clone` in _Cygwin_.
+
+The Ginkgo CUDA module has the following __additional__ requirements:
+
+*   _CUDA 9.0+_
+*   _Microsoft Visual Studio_
+*   Any host compiler restrictions your version of CUDA may impose also apply
+    here. For the newest CUDA version, this information can be found in the
+    [CUDA installation guide for Windows](https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html)
+
+The Ginkgo OMP module has the following __additional__ requirements:
+*  _MinGW_ or _Cygwin_
+
+__NOTE:__ _Microsoft Visual Studio_ only supports OpenMP 2.0, so it can not compile the ginkgo OMP module.
 
 __NOTE:__ Some restrictions will also apply on the version of C and C++ standard
 libraries installed on the system. This needs further investigation.
@@ -91,7 +110,7 @@ Ginkgo does comprehensive unit tests using Google Tests. These tests are enabled
 A unique feature of Ginkgo is the ability to run benchmarks and view your results
 with the help of the [Ginkgo Performance Explorer (GPE)](https://ginkgo-project.github.io/gpe/). 
 
-More details about this can be found in the [documentation](https://ginkgo-project.github.io/ginkgo/doc/master/)
+More details about this can be found in the [BENCHMARKING.md page](./BENCHMARKING.md)
 
 Contributing to Ginkgo
 ---------------------------
@@ -103,7 +122,7 @@ external contributors like in the example below.
 
 #### Contributors
 I hereby place all my contributions in this codebase under a BSD-3-Clause
-license, as specified in the repository's [LICENSE](LICENSE) file.
+license, as specified in the repository's [LICENSE](./LICENSE) file.
 
 Name Surname <email@domain> Institution(s)
 
@@ -113,11 +132,16 @@ Contributing guidelines can be accessed in our Wiki under the [Developer's
 Homepage](https://github.com/ginkgo-project/ginkgo/wiki/Developers-Homepage).
 This page also contains other information useful to developers, such as writing
 proper commit messages, understanding Ginkgo's library design, relevant C++
-information, and more.
+information, and more. In general, always refer to this page for developer
+information.
 
-In general, always refer to this page for developer information. If you think
-that anything is missing, feel free to [create an
-issue](https://github.com/ginkgo-project/ginkgo/issues/new).  
+### Support
+If you have any question, bug to report or would like to propose a new feature,
+feel free to [create an
+issue on GitHub](https://github.com/ginkgo-project/ginkgo/issues/new). Another possibility
+is to send an email to [Ginkgo's main email address](ginkgo.library@gmail.com)
+or to contact any of the main [contributors](contributors.txt).
+
 
 ### Licensing
 

@@ -1,0 +1,1 @@
+ginkgo_create_test(par_ilu)

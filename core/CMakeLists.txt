@@ -8,7 +8,9 @@ target_sources(ginkgo
         base/composition.cpp
         base/executor.cpp
         base/mtx_io.cpp
+        base/perturbation.cpp
         base/version.cpp
+        factorization/par_ilu.cpp
         log/convergence.cpp
         log/logger.cpp
         log/record.cpp
@@ -20,6 +22,7 @@ target_sources(ginkgo
         matrix/hybrid.cpp
         matrix/identity.cpp
         matrix/sellp.cpp
+        matrix/sparsity_csr.cpp
         preconditioner/jacobi.cpp
         solver/bicgstab.cpp
         solver/cg.cpp
@@ -27,6 +30,8 @@ target_sources(ginkgo
         solver/fcg.cpp
         solver/gmres.cpp
         solver/ir.cpp
+        solver/lower_trs.cpp
+        solver/upper_trs.cpp
         stop/combined.cpp
         stop/criterion.cpp
         stop/iteration.cpp

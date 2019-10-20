@@ -100,6 +100,23 @@ TEST(AssertIsSquareMatrix, ThrowsWhenIsNotSquareMatrix)
 }
 
 
+TEST(AssertIsNonEmptymatrix, DoesNotThrowWhenIsNonEmptyMatrix)
+{
+    ASSERT_NO_THROW(GKO_ASSERT_IS_NON_EMPTY_MATRIX(gko::dim<2>(1, 1)));
+}
+
+
+TEST(AssertIsNonEmptyMatrix, ThrowsWhenIsEmptyMatrix)
+{
+    ASSERT_THROW(GKO_ASSERT_IS_NON_EMPTY_MATRIX(gko::dim<2>(0, 0)),
+                 gko::BadDimension);
+    ASSERT_THROW(GKO_ASSERT_IS_NON_EMPTY_MATRIX(gko::dim<2>(1, 0)),
+                 gko::BadDimension);
+    ASSERT_THROW(GKO_ASSERT_IS_NON_EMPTY_MATRIX(gko::dim<2>(0, 1)),
+                 gko::BadDimension);
+}
+
+
 TEST(AssertConformant, DoesNotThrowWhenConformant)
 {
     ASSERT_NO_THROW(

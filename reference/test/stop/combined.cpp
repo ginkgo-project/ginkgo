@@ -38,7 +38,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <gtest/gtest.h>
+#include <chrono>
 #include <thread>
+#if defined(_WIN32) || defined(__CYGWIN__)
+#include <windows.h>
+#endif
 
 
 namespace {
@@ -48,6 +52,16 @@ constexpr gko::size_type test_iterations = 10;
 constexpr int test_seconds = 999;  // we will never converge through seconds
 constexpr double eps = 1.0e-4;
 using double_seconds = std::chrono::duration<double>;
+
+
+inline void sleep_millisecond(unsigned int ms)
+{
+#if defined(_WIN32) || defined(__CYGWIN__)
+    Sleep(ms);
+#else
+    std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+#endif
+}
 
 
 class Combined : public ::testing::Test {
@@ -105,14 +119,14 @@ TEST_F(Combined, WaitsTillIteration)
  * the very small time picked and huge iteration count. */
 TEST_F(Combined, WaitsTillTime)
 {
-    constexpr double timelimit = 1.0e-9;
     constexpr int testiters = 10;
+    constexpr int timelimit_ms = 10;
     factory_ =
         gko::stop::Combined::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(9999u).on(exec_),
                 gko::stop::Time::build()
-                    .with_time_limit(std::chrono::nanoseconds(1))
+                    .with_time_limit(std::chrono::milliseconds(timelimit_ms))
                     .on(exec_))
             .on(exec_);
     unsigned int iters = 0;
@@ -124,8 +138,7 @@ TEST_F(Combined, WaitsTillTime)
     auto start = std::chrono::steady_clock::now();
 
     for (int i = 0; i < testiters; i++) {
-        std::this_thread::sleep_for(
-            std::chrono::duration<double>(timelimit / testiters));
+        sleep_millisecond(timelimit_ms / testiters);
         if (criterion->update().num_iterations(i).check(
                 RelativeStoppingId, true, &stop_status, &one_changed))
             break;
@@ -133,8 +146,7 @@ TEST_F(Combined, WaitsTillTime)
     auto time = std::chrono::steady_clock::now() - start;
     double time_d = std::chrono::duration_cast<double_seconds>(time).count();
 
-
-    ASSERT_GE(time_d + eps, 1.0e-9);
+    ASSERT_GE(time_d, timelimit_ms * 1e-3);
     ASSERT_EQ(static_cast<int>(stop_status.get_data()[0].get_id()), 2);
 }
 

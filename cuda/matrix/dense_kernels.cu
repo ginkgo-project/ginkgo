@@ -39,9 +39,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include "cuda/base/cublas_bindings.hpp"
+#include "cuda/base/pointer_mode_guard.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"
@@ -70,17 +72,16 @@ void simple_apply(std::shared_ptr<const CudaExecutor> exec,
 {
     if (cublas::is_supported<ValueType>::value) {
         auto handle = exec->get_cublas_handle();
-        GKO_ASSERT_NO_CUBLAS_ERRORS(
-            cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
-        auto alpha = one<ValueType>();
-        auto beta = zero<ValueType>();
-        cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, c->get_size()[1],
-                     c->get_size()[0], a->get_size()[1], &alpha,
-                     b->get_const_values(), b->get_stride(),
-                     a->get_const_values(), a->get_stride(), &beta,
-                     c->get_values(), c->get_stride());
-        GKO_ASSERT_NO_CUBLAS_ERRORS(
-            cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE));
+        {
+            cublas::pointer_mode_guard pm_guard(handle);
+            auto alpha = one<ValueType>();
+            auto beta = zero<ValueType>();
+            cublas::gemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, c->get_size()[1],
+                         c->get_size()[0], a->get_size()[1], &alpha,
+                         b->get_const_values(), b->get_stride(),
+                         a->get_const_values(), a->get_stride(), &beta,
+                         c->get_values(), c->get_stride());
+        }
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -730,24 +731,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL);
 
 
-namespace kernel {
+template <typename ValueType, typename IndexType>
+void convert_to_sparsity_csr(std::shared_ptr<const CudaExecutor> exec,
+                             matrix::SparsityCsr<ValueType, IndexType> *result,
+                             const matrix::Dense<ValueType> *source)
+    GKO_NOT_IMPLEMENTED;
 
-
-__global__ __launch_bounds__(default_block_size) void reduce_nnz(
-    size_type size, const size_type *__restrict__ nnz_per_row,
-    size_type *__restrict__ result)
-{
-    extern __shared__ size_type block_sum[];
-    reduce_array(size, nnz_per_row, block_sum,
-                 [](const size_type &x, const size_type &y) { return x + y; });
-
-    if (threadIdx.x == 0) {
-        result[blockIdx.x] = block_sum[0];
-    }
-}
-
-
-}  // namespace kernel
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_CSR_KERNEL);
 
 
 template <typename ValueType>
@@ -759,28 +750,7 @@ void count_nonzeros(std::shared_ptr<const CudaExecutor> exec,
 
     calculate_nonzeros_per_row(exec, source, &nnz_per_row);
 
-    const auto n = ceildiv(num_rows, default_block_size);
-    const size_type grid_dim =
-        (n <= default_block_size) ? n : default_block_size;
-
-    auto block_results = Array<size_type>(exec, grid_dim);
-
-    kernel::reduce_nnz<<<grid_dim, default_block_size,
-                         default_block_size * sizeof(size_type)>>>(
-        num_rows, as_cuda_type(nnz_per_row.get_const_data()),
-        as_cuda_type(block_results.get_data()));
-
-    auto d_result = Array<size_type>(exec, 1);
-
-    kernel::reduce_nnz<<<1, default_block_size,
-                         default_block_size * sizeof(size_type)>>>(
-        grid_dim, as_cuda_type(block_results.get_const_data()),
-        as_cuda_type(d_result.get_data()));
-
-    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
-                                  result);
-    d_result.clear();
-    block_results.clear();
+    *result = reduce_add_array(exec, num_rows, nnz_per_row.get_const_data());
     nnz_per_row.clear();
 }
 
@@ -878,12 +848,13 @@ __global__ __launch_bounds__(default_block_size) void reduce_max_nnz_per_slice(
     constexpr auto warp_size = cuda_config::warp_size;
     const auto warpid = tidx / warp_size;
     const auto tid_in_warp = tidx % warp_size;
+    const auto slice_num = ceildiv(num_rows, slice_size);
 
     size_type thread_result = 0;
     for (auto i = tid_in_warp; i < slice_size; i += warp_size) {
-        if (warpid * warp_size + i < num_rows) {
+        if (warpid * slice_size + i < num_rows) {
             thread_result =
-                max(thread_result, nnz_per_row[warpid * warp_size + i]);
+                max(thread_result, nnz_per_row[warpid * slice_size + i]);
         }
     }
 
@@ -893,7 +864,7 @@ __global__ __launch_bounds__(default_block_size) void reduce_max_nnz_per_slice(
         warp_tile, thread_result,
         [](const size_type &a, const size_type &b) { return max(a, b); });
 
-    if (tid_in_warp == 0) {
+    if (tid_in_warp == 0 && warpid < slice_num) {
         result[warpid] = ceildiv(warp_result, stride_factor) * stride_factor;
     }
 }
@@ -933,13 +904,15 @@ void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
 
     auto max_nnz_per_slice = Array<size_type>(exec, slice_num);
 
-    const auto grid_dim = ceildiv(slice_num, default_block_size);
+    auto grid_dim =
+        ceildiv(slice_num * cuda_config::warp_size, default_block_size);
 
     kernel::reduce_max_nnz_per_slice<<<grid_dim, default_block_size>>>(
         num_rows, slice_size, stride_factor,
         as_cuda_type(nnz_per_row.get_const_data()),
         as_cuda_type(max_nnz_per_slice.get_data()));
 
+    grid_dim = ceildiv(slice_num, default_block_size);
     auto block_results = Array<size_type>(exec, grid_dim);
 
     kernel::reduce_total_cols<<<grid_dim, default_block_size,
@@ -974,19 +947,16 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
 {
     if (cublas::is_supported<ValueType>::value) {
         auto handle = exec->get_cublas_handle();
-        GKO_ASSERT_NO_CUBLAS_ERRORS(
-            cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
-
-        auto alpha = one<ValueType>();
-        auto beta = zero<ValueType>();
-        cublas::geam(handle, CUBLAS_OP_T, CUBLAS_OP_N, orig->get_size()[0],
-                     orig->get_size()[1], &alpha, orig->get_const_values(),
-                     orig->get_stride(), &beta,
-                     static_cast<ValueType *>(nullptr), trans->get_size()[1],
-                     trans->get_values(), trans->get_stride());
-
-        GKO_ASSERT_NO_CUBLAS_ERRORS(
-            cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE));
+        {
+            cublas::pointer_mode_guard pm_guard(handle);
+            auto alpha = one<ValueType>();
+            auto beta = zero<ValueType>();
+            cublas::geam(
+                handle, CUBLAS_OP_T, CUBLAS_OP_N, orig->get_size()[0],
+                orig->get_size()[1], &alpha, orig->get_const_values(),
+                orig->get_stride(), &beta, static_cast<ValueType *>(nullptr),
+                trans->get_size()[1], trans->get_values(), trans->get_stride());
+        }
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -1003,19 +973,16 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
 {
     if (cublas::is_supported<ValueType>::value) {
         auto handle = exec->get_cublas_handle();
-        GKO_ASSERT_NO_CUBLAS_ERRORS(
-            cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
-
-        auto alpha = one<ValueType>();
-        auto beta = zero<ValueType>();
-        cublas::geam(handle, CUBLAS_OP_C, CUBLAS_OP_N, orig->get_size()[0],
-                     orig->get_size()[1], &alpha, orig->get_const_values(),
-                     orig->get_stride(), &beta,
-                     static_cast<ValueType *>(nullptr), trans->get_size()[1],
-                     trans->get_values(), trans->get_stride());
-
-        GKO_ASSERT_NO_CUBLAS_ERRORS(
-            cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST));
+        {
+            cublas::pointer_mode_guard pm_guard(handle);
+            auto alpha = one<ValueType>();
+            auto beta = zero<ValueType>();
+            cublas::geam(
+                handle, CUBLAS_OP_C, CUBLAS_OP_N, orig->get_size()[0],
+                orig->get_size()[1], &alpha, orig->get_const_values(),
+                orig->get_stride(), &beta, static_cast<ValueType *>(nullptr),
+                trans->get_size()[1], trans->get_values(), trans->get_stride());
+        }
     } else {
         GKO_NOT_IMPLEMENTED;
     }

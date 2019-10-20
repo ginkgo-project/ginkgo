@@ -45,7 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -387,6 +389,31 @@ TEST_F(Csr, MoveToEllIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(ell_mtx.get(), dell_mtx.get(), 1e-14);
 }
 
+TEST_F(Csr, ConvertToSparsityCsrIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(ref);
+    auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(cuda);
+
+    mtx->convert_to(sparsity_mtx.get());
+    dmtx->convert_to(d_sparsity_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(sparsity_mtx.get(), d_sparsity_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, MoveToSparsityCsrIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(ref);
+    auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(cuda);
+
+    mtx->move_to(sparsity_mtx.get());
+    dmtx->move_to(d_sparsity_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(sparsity_mtx.get(), d_sparsity_mtx.get(), 1e-14);
+}
+
 
 TEST_F(Csr, CalculateMaxNnzPerRowIsEquivalentToRef)
 {
@@ -467,6 +494,53 @@ TEST_F(Csr, CalculateTotalColsIsEquivalentToRef)
         cuda, dmtx.get(), &dtotal_cols, 2, gko::matrix::default_slice_size);
 
     ASSERT_EQ(total_cols, dtotal_cols);
+}
+
+
+TEST_F(Csr, CalculatesNonzerosPerRow)
+{
+    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    gko::Array<gko::size_type> row_nnz(ref, mtx->get_size()[0]);
+    gko::Array<gko::size_type> drow_nnz(cuda, dmtx->get_size()[0]);
+
+    gko::kernels::reference::csr::calculate_nonzeros_per_row(ref, mtx.get(),
+                                                             &row_nnz);
+    gko::kernels::cuda::csr::calculate_nonzeros_per_row(cuda, dmtx.get(),
+                                                        &drow_nnz);
+
+    GKO_ASSERT_ARRAY_EQ(&row_nnz, &drow_nnz);
+}
+
+
+TEST_F(Csr, ConvertToHybridIsEquivalentToRef)
+{
+    using Hybrid_type = gko::matrix::Hybrid<>;
+    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    auto hybrid_mtx = Hybrid_type::create(
+        ref, std::make_shared<Hybrid_type::column_limit>(2));
+    auto dhybrid_mtx = Hybrid_type::create(
+        cuda, std::make_shared<Hybrid_type::column_limit>(2));
+
+    mtx->convert_to(hybrid_mtx.get());
+    dmtx->convert_to(dhybrid_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(hybrid_mtx.get(), dhybrid_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, MoveToHybridIsEquivalentToRef)
+{
+    using Hybrid_type = gko::matrix::Hybrid<>;
+    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    auto hybrid_mtx = Hybrid_type::create(
+        ref, std::make_shared<Hybrid_type::column_limit>(2));
+    auto dhybrid_mtx = Hybrid_type::create(
+        cuda, std::make_shared<Hybrid_type::column_limit>(2));
+
+    mtx->move_to(hybrid_mtx.get());
+    dmtx->move_to(dhybrid_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(hybrid_mtx.get(), dhybrid_mtx.get(), 1e-14);
 }
 
 

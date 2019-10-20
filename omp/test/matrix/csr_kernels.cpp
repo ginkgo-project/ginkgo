@@ -33,7 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/csr_kernels.hpp"
 
 
+#include <iostream>
+
 #include <random>
+#include <utility>
 
 
 #include <gtest/gtest.h>
@@ -44,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -59,7 +63,7 @@ protected:
     using ComplexVec = gko::matrix::Dense<std::complex<double>>;
     using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
 
-    Csr() : rand_engine(42) {}
+    Csr() : mtx_size(532, 231), rand_engine(42) {}
 
     void SetUp()
     {
@@ -87,11 +91,12 @@ protected:
     void set_up_apply_data(int num_vectors = 1)
     {
         mtx = Mtx::create(ref);
-        mtx->copy_from(gen_mtx<Vec>(532, 231, 1));
+        mtx->copy_from(gen_mtx<Vec>(mtx_size[0], mtx_size[1], 1));
         complex_mtx = ComplexMtx::create(ref);
-        complex_mtx->copy_from(gen_mtx<ComplexVec>(532, 231, 1));
-        expected = gen_mtx<Vec>(532, num_vectors, 1);
-        y = gen_mtx<Vec>(231, num_vectors, 1);
+        complex_mtx->copy_from(
+            gen_mtx<ComplexVec>(mtx_size[0], mtx_size[1], 1));
+        expected = gen_mtx<Vec>(mtx_size[0], num_vectors, 1);
+        y = gen_mtx<Vec>(mtx_size[1], num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(omp);
@@ -108,9 +113,42 @@ protected:
         dbeta->copy_from(beta.get());
     }
 
+    struct matrix_pair {
+        std::unique_ptr<Mtx> ref;
+        std::unique_ptr<Mtx> omp;
+    };
+
+    matrix_pair gen_unsorted_mtx()
+    {
+        constexpr int min_nnz_per_row = 2;  // Must be larger/equal than 2
+        auto local_mtx_ref =
+            gen_mtx<Mtx>(mtx_size[0], mtx_size[1], min_nnz_per_row);
+        for (size_t row = 0; row < mtx_size[0]; ++row) {
+            const auto row_ptrs = local_mtx_ref->get_const_row_ptrs();
+            const auto start_row = row_ptrs[row];
+            auto col_idx = local_mtx_ref->get_col_idxs() + start_row;
+            auto vals = local_mtx_ref->get_values() + start_row;
+            const auto nnz_in_this_row = row_ptrs[row + 1] - row_ptrs[row];
+            auto swap_idx_dist =
+                std::uniform_int_distribution<>(0, nnz_in_this_row - 1);
+            // shuffle `nnz_in_this_row / 2` times
+            for (size_t perm = 0; perm < nnz_in_this_row; perm += 2) {
+                const auto idx1 = swap_idx_dist(rand_engine);
+                const auto idx2 = swap_idx_dist(rand_engine);
+                std::swap(col_idx[idx1], col_idx[idx2]);
+                std::swap(vals[idx1], vals[idx2]);
+            }
+        }
+        auto local_mtx_omp = Mtx::create(omp);
+        local_mtx_omp->copy_from(local_mtx_ref.get());
+
+        return {std::move(local_mtx_ref), std::move(local_mtx_omp)};
+    }
+
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::OmpExecutor> omp;
 
+    const gko::dim<2> mtx_size;
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> mtx;
@@ -229,10 +267,10 @@ TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
     auto dense_mtx = gko::matrix::Dense<>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<>::create(omp);
 
-    mtx->convert_to(ddense_mtx.get());
+    mtx->convert_to(dense_mtx.get());
     dmtx->convert_to(ddense_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), dense_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(ddense_mtx.get(), dense_mtx.get(), 1e-14);
 }
 
 
@@ -242,10 +280,133 @@ TEST_F(Csr, MoveToDenseIsEquivalentToRef)
     auto dense_mtx = gko::matrix::Dense<>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<>::create(omp);
 
-    mtx->move_to(ddense_mtx.get());
+    mtx->move_to(dense_mtx.get());
     dmtx->move_to(ddense_mtx.get());
 
-    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), dense_mtx.get(), 1e-14);
+    GKO_ASSERT_MTX_NEAR(ddense_mtx.get(), dense_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, ConvertToSparsityCsrIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(ref);
+    auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(omp);
+
+    mtx->convert_to(sparsity_mtx.get());
+    dmtx->convert_to(d_sparsity_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(d_sparsity_mtx.get(), sparsity_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, MoveToSparsityCsrIsEquivalentToRef)
+{
+    set_up_apply_data();
+    auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(ref);
+    auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(omp);
+
+    mtx->move_to(sparsity_mtx.get());
+    dmtx->move_to(d_sparsity_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(d_sparsity_mtx.get(), sparsity_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, CalculatesNonzerosPerRow)
+{
+    set_up_apply_data();
+    gko::Array<gko::size_type> row_nnz(ref, mtx->get_size()[0]);
+    gko::Array<gko::size_type> drow_nnz(omp, dmtx->get_size()[0]);
+
+    gko::kernels::reference::csr::calculate_nonzeros_per_row(ref, mtx.get(),
+                                                             &row_nnz);
+    gko::kernels::omp::csr::calculate_nonzeros_per_row(omp, dmtx.get(),
+                                                       &drow_nnz);
+
+    GKO_ASSERT_ARRAY_EQ(&row_nnz, &drow_nnz);
+}
+
+
+TEST_F(Csr, ConvertToHybridIsEquivalentToRef)
+{
+    using Hybrid_type = gko::matrix::Hybrid<>;
+    set_up_apply_data();
+    auto hybrid_mtx = Hybrid_type::create(
+        ref, std::make_shared<Hybrid_type::column_limit>(2));
+    auto dhybrid_mtx = Hybrid_type::create(
+        omp, std::make_shared<Hybrid_type::column_limit>(2));
+
+    mtx->convert_to(hybrid_mtx.get());
+    dmtx->convert_to(dhybrid_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(hybrid_mtx.get(), dhybrid_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, MoveToHybridIsEquivalentToRef)
+{
+    using Hybrid_type = gko::matrix::Hybrid<>;
+    set_up_apply_data();
+    auto hybrid_mtx = Hybrid_type::create(
+        ref, std::make_shared<Hybrid_type::column_limit>(2));
+    auto dhybrid_mtx = Hybrid_type::create(
+        omp, std::make_shared<Hybrid_type::column_limit>(2));
+
+    mtx->move_to(hybrid_mtx.get());
+    dmtx->move_to(dhybrid_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(hybrid_mtx.get(), dhybrid_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, RecognizeSortedMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+    bool is_sorted_omp{};
+    bool is_sorted_ref{};
+
+    is_sorted_ref = mtx->is_sorted_by_column_index();
+    is_sorted_omp = dmtx->is_sorted_by_column_index();
+
+    ASSERT_EQ(is_sorted_ref, is_sorted_omp);
+}
+
+
+TEST_F(Csr, RecognizeUnsortedMatrixIsEquivalentToRef)
+{
+    auto uns_mtx = gen_unsorted_mtx();
+    bool is_sorted_omp{};
+    bool is_sorted_ref{};
+
+    is_sorted_ref = uns_mtx.ref->is_sorted_by_column_index();
+    is_sorted_omp = uns_mtx.omp->is_sorted_by_column_index();
+
+    ASSERT_EQ(is_sorted_ref, is_sorted_omp);
+}
+
+
+TEST_F(Csr, SortSortedMatrixIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortUnsortedMatrixIsEquivalentToRef)
+{
+    auto uns_mtx = gen_unsorted_mtx();
+
+    uns_mtx.ref->sort_by_column_index();
+    uns_mtx.omp->sort_by_column_index();
+
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(uns_mtx.ref, uns_mtx.omp, 0);
 }
 
 

@@ -53,7 +53,7 @@ class Time : public EnablePolymorphicObject<Time, Criterion> {
     friend class EnablePolymorphicObject<Time, Criterion>;
 
 public:
-    using clock = std::chrono::system_clock;
+    using clock = std::chrono::steady_clock;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {

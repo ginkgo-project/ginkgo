@@ -67,7 +67,7 @@ __device__ __forceinline__ void extract_transposed_diag_blocks(
     auto bid = static_cast<size_type>(blockIdx.x) * warps_per_block *
                    processed_blocks +
                threadIdx.z * processed_blocks;
-    auto bstart = block_ptrs[bid];
+    auto bstart = (bid < num_blocks) ? block_ptrs[bid] : zero<IndexType>();
     IndexType bsize = 0;
 #pragma unroll
     for (int b = 0; b < processed_blocks; ++b, ++bid) {
@@ -84,6 +84,7 @@ __device__ __forceinline__ void extract_transposed_diag_blocks(
             if (threadIdx.y == b && threadIdx.x < max_block_size) {
                 workspace[threadIdx.x] = zero<ValueType>();
             }
+            warp.sync();
             const auto row = bstart + i;
             const auto rstart = row_ptrs[row] + tid;
             const auto rend = row_ptrs[row + 1];
@@ -101,6 +102,7 @@ __device__ __forceinline__ void extract_transposed_diag_blocks(
             if (threadIdx.y == b && threadIdx.x < bsize) {
                 block_row[i * increment] = workspace[threadIdx.x];
             }
+            warp.sync();
         }
     }
 }

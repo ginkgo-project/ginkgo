@@ -108,7 +108,6 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, r.get());
     rr->copy_from(r.get());
-    system_matrix_->apply(r.get(), v.get());
 
     int iter = -1;
     while (true) {
@@ -131,7 +130,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
 
-        preconditioner_->apply(p.get(), y.get());
+        get_preconditioner()->apply(p.get(), y.get());
         system_matrix_->apply(y.get(), v.get());
         rr->compute_dot(v.get(), beta.get());
         exec->run(bicgstab::make_step_2(r.get(), s.get(), v.get(), rho.get(),
@@ -156,7 +155,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             break;
         }
 
-        preconditioner_->apply(s.get(), z.get());
+        get_preconditioner()->apply(s.get(), z.get());
         system_matrix_->apply(z.get(), t.get());
         s->compute_dot(t.get(), gamma.get());
         t->compute_dot(t.get(), beta.get());

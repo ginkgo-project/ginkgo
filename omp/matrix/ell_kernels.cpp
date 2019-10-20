@@ -149,7 +149,22 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void count_nonzeros(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Ell<ValueType, IndexType> *source,
-                    size_type *result) GKO_NOT_IMPLEMENTED;
+                    size_type *result)
+{
+    size_type nonzeros = 0;
+    const auto num_rows = source->get_size()[0];
+    const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
+    const auto stride = source->get_stride();
+
+    for (size_type row = 0; row < num_rows; row++) {
+#pragma omp parallel for reduction(+ : nonzeros)
+        for (size_type i = 0; i < max_nnz_per_row; i++) {
+            nonzeros += (source->val_at(row, i) != zero<ValueType>());
+        }
+    }
+
+    *result = nonzeros;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL);

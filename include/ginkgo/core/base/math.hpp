@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/utils.hpp>
 
 
 #include <cmath>
@@ -92,6 +93,17 @@ struct is_complex_impl<std::complex<T>>
 template <typename T>
 using remove_complex = typename detail::remove_complex_impl<T>::type;
 
+
+/**
+ * Allows to check if T is a complex value during compile time by accessing the
+ * `value` attribute of this struct.
+ * If `value` is `true`, T is a complex type, if it is `false`, T is not a
+ * complex type.
+ *
+ * @tparam T  type to check
+ */
+template <typename T>
+using is_complex_s = detail::is_complex_impl<T>;
 
 /**
  * Checks if T is a complex type.
@@ -496,6 +508,42 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T get_superior_power(
     const T &base, const T &limit, const T &hint = T{1}) noexcept
 {
     return hint >= limit ? hint : get_superior_power(base, limit, hint * base);
+}
+
+
+#if !defined(__CUDA_ARCH__)
+
+
+// Since a lot of compiler in combination with CUDA seem to have difficulties
+// distinguishing between the CUDA `isfinite` and the `std::isfinite` when
+// it is put into the `gko` namespace, only enable `std::isfinite` when
+// compiling host code.
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<!is_complex_s<T>::value, bool>
+isfinite(const T &value)
+{
+    return std::isfinite(value);
+}
+
+#endif  // defined(__CUDA_ARCH__)
+
+
+/**
+ * Checks if all components of a complex value are finite, meaning they are
+ * neither +/- infinity nor NaN.
+ *
+ * @tparam T  complex type of the value to check
+ *
+ * @param value  complex value to check
+ *
+ * returns `true` if both components of the given value are finite, meaning
+ *         they are neither +/- infinity nor NaN.
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<is_complex_s<T>::value, bool>
+isfinite(const T &value)
+{
+    return isfinite(value.real()) && isfinite(value.imag());
 }
 
 

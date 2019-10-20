@@ -471,7 +471,24 @@ public:
      *
      * @return the preconditioner operator used by the Preconditionable
      */
-    virtual std::shared_ptr<const LinOp> get_preconditioner() const = 0;
+    virtual std::shared_ptr<const LinOp> get_preconditioner() const
+    {
+        return preconditioner_;
+    }
+
+    /**
+     * Sets the preconditioner operator used by the Preconditionable.
+     *
+     * @param new_precond  the new preconditioner operator used by the
+     *                     Preconditionable
+     */
+    virtual void set_preconditioner(std::shared_ptr<const LinOp> new_precond)
+    {
+        preconditioner_ = new_precond;
+    }
+
+private:
+    std::shared_ptr<const LinOp> preconditioner_{};
 };
 
 
@@ -702,9 +719,17 @@ public:                                                                      \
                                                     ::gko::LinOpFactory>;    \
         friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
                                                    _factory_name>;           \
-        using ::gko::EnableDefaultLinOpFactory<                              \
-            _factory_name, _lin_op,                                          \
-            _parameters_name##_type>::EnableDefaultLinOpFactory;             \
+        explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)  \
+            : ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,       \
+                                               _parameters_name##_type>(     \
+                  std::move(exec))                                           \
+        {}                                                                   \
+        explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec,  \
+                               const _parameters_name##_type &parameters)    \
+            : ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,       \
+                                               _parameters_name##_type>(     \
+                  std::move(exec), parameters)                               \
+        {}                                                                   \
     };                                                                       \
     friend ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,          \
                                             _parameters_name##_type>;        \
