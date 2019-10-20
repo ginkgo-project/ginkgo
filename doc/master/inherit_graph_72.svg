@@ -12,7 +12,7 @@
 <!-- Node0 -->
 <g id="node1" class="node">
 <title>Node0</title>
-<g id="a_node1"><a xlink:href="classgko_1_1Operation.html" target="_top" xlink:title="Operations can be used to define functionalities whose implementations differ among devices...">
+<g id="a_node1"><a xlink:href="classgko_1_1Operation.html" target="_top" xlink:title="Operations can be used to define functionalities whose implementations differ among devices.">
 <polygon fill="#ffffff" stroke="#000000" points="0,-.5 0,-19.5 89,-19.5 89,-.5 0,-.5"/>
 <text text-anchor="middle" x="44.5" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::Operation</text>
 </a>

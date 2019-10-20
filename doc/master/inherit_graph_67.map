@@ -1,5 +1,5 @@
 <map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
-<area shape="rect" id="node1" href="$classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html" title="strategy_type is to decide how to set the hybrid config. " alt="" coords="5,165,183,221"/>
+<area shape="rect" id="node1" href="$classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html" title="strategy_type is to decide how to set the hybrid config." alt="" coords="5,165,183,221"/>
 <area shape="rect" id="node2" href="$classgko_1_1matrix_1_1Hybrid_1_1automatic.html" title="automatic is a stratgy_type which decides the number of stored elements per row of the ell part autom..." alt="" coords="249,5,426,61"/>
 <area shape="rect" id="node3" href="$classgko_1_1matrix_1_1Hybrid_1_1column__limit.html" title="column_limit is a strategy_type which decides the number of stored elements per row of the ell part b..." alt="" coords="249,85,426,141"/>
 <area shape="rect" id="node4" href="$classgko_1_1matrix_1_1Hybrid_1_1imbalance__bounded__limit.html" title="imbalance_bounded_limit is a stratgy_type which decides the number of stored elements per row of the ..." alt="" coords="231,165,444,221"/>

@@ -1,3 +1,4 @@
 <map id="gko::log::EnableLogging&lt; ConcreteLoggable, PolymorphicBase &gt;" name="gko::log::EnableLogging&lt; ConcreteLoggable, PolymorphicBase &gt;">
-<area shape="rect" id="node2" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="56,5,197,32"/>
+<area shape="rect" id="node1" title="EnableLogging is a mixin which should be inherited by any class which wants to enable logging." alt="" coords="5,80,248,136"/>
+<area shape="rect" id="node2" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging." alt="" coords="56,5,197,32"/>
 </map>

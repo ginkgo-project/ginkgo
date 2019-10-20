@@ -1,3 +1,4 @@
 <map id="gko::version_info" name="gko::version_info">
-<area shape="rect" id="node2" href="$structgko_1_1version.html" title="This structure is used to represent versions of various Ginkgo modules. " alt="" coords="21,5,124,32"/>
+<area shape="rect" id="node1" title="Ginkgo uses version numbers to label new features and to communicate backward compatibility guarantee..." alt="" coords="5,153,140,180"/>
+<area shape="rect" id="node2" href="$structgko_1_1version.html" title="This structure is used to represent versions of various Ginkgo modules." alt="" coords="21,5,124,32"/>
 </map>

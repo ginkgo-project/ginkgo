@@ -1,7 +1,9 @@
 <map id="gko::log::polymorphic_object_data" name="gko::log::polymorphic_object_data">
-<area shape="rect" id="node3" title="STL class. " alt="" coords="18,207,175,234"/>
-<area shape="rect" id="node4" href="$classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. " alt="" coords="229,326,340,353"/>
-<area shape="rect" id="node5" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; Executor \&gt;" alt="" coords="200,200,377,241"/>
-<area shape="rect" id="node6" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="183,5,325,32"/>
-<area shape="rect" id="node7" href="$classgko_1_1log_1_1EnableLogging.html" title="EnableLogging is a mixin which should be inherited by any class which wants to enable logging..." alt="" coords="275,81,518,137"/>
+<area shape="rect" id="node1" title="Struct representing PolymorphicObject related data." alt="" coords="110,437,273,479"/>
+<area shape="rect" id="node2" title=" " alt="" coords="5,319,201,360"/>
+<area shape="rect" id="node3" title="STL class." alt="" coords="18,207,175,234"/>
+<area shape="rect" id="node4" href="$classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor." alt="" coords="229,326,340,353"/>
+<area shape="rect" id="node5" href="$classgko_1_1log_1_1EnableLogging.html" title=" " alt="" coords="200,200,377,241"/>
+<area shape="rect" id="node6" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging." alt="" coords="183,5,325,32"/>
+<area shape="rect" id="node7" href="$classgko_1_1log_1_1EnableLogging.html" title="EnableLogging is a mixin which should be inherited by any class which wants to enable logging." alt="" coords="275,81,518,137"/>
 </map>

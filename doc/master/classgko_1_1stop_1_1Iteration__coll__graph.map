@@ -1,7 +1,10 @@
 <map id="gko::stop::Iteration" name="gko::stop::Iteration">
-<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicObject.html" title="gko::EnablePolymorphicObject\l\&lt; Iteration, Criterion \&gt;" alt="" coords="1497,58,1719,99"/>
-<area shape="rect" id="node3" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; Iteration, Criterion \&gt;" alt="" coords="723,26,956,67"/>
+<area shape="rect" id="node1" title="The Iteration class is a stopping criterion which stops the iteration process after a preset number o..." alt="" coords="1768,65,1913,92"/>
+<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="1497,58,1719,99"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="723,26,956,67"/>
+<area shape="rect" id="node4" title=" " alt="" coords="279,5,358,32"/>
 <area shape="rect" id="node5" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="189,64,448,120"/>
-<area shape="rect" id="node8" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteObject, Polymorphic\lBase \&gt;" alt="" coords="705,92,973,148"/>
+<area shape="rect" id="node8" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="705,92,973,148"/>
+<area shape="rect" id="node6" title=" " alt="" coords="5,128,140,155"/>
 <area shape="rect" id="node7" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="1023,89,1296,130"/>
 </map>

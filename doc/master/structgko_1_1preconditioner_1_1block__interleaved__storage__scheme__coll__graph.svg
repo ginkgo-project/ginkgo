@@ -9,23 +9,29 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 124)">
 <title>gko::preconditioner::block_interleaved_storage_scheme&lt; IndexType &gt;</title>
 <polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-124 178,-124 178,4 -4,4"/>
-<!-- Node0 -->
+<!-- Node1 -->
 <g id="node1" class="node">
-<title>Node0</title>
+<title>Node1</title>
+<g id="a_node1"><a xlink:title="Defines the parameters of the interleaved block storage scheme used by block&#45;Jacobi blocks.">
 <polygon fill="#bfbfbf" stroke="#000000" points="0,-.5 0,-41.5 174,-41.5 174,-.5 0,-.5"/>
 <text text-anchor="start" x="8" y="-29.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::preconditioner</text>
 <text text-anchor="start" x="8" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">::block_interleaved</text>
 <text text-anchor="middle" x="87" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">_storage_scheme&lt; IndexType &gt;</text>
+</a>
 </g>
-<!-- Node1 -->
+</g>
+<!-- Node2 -->
 <g id="node2" class="node">
-<title>Node1</title>
+<title>Node2</title>
+<g id="a_node2"><a xlink:title=" ">
 <polygon fill="#ffffff" stroke="#bfbfbf" points="54,-100.5 54,-119.5 120,-119.5 120,-100.5 54,-100.5"/>
 <text text-anchor="middle" x="87" y="-107.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">IndexType</text>
+</a>
 </g>
-<!-- Node1&#45;&gt;Node0 -->
+</g>
+<!-- Node2&#45;&gt;Node1 -->
 <g id="edge1" class="edge">
-<title>Node1&#45;&gt;Node0</title>
+<title>Node2&#45;&gt;Node1</title>
 <path fill="none" stroke="#9a32cd" stroke-dasharray="5,2" d="M87,-90.1498C87,-75.6776 87,-56.124 87,-41.5022"/>
 <polygon fill="#9a32cd" stroke="#9a32cd" points="83.5001,-90.4754 87,-100.4754 90.5001,-90.4755 83.5001,-90.4754"/>
 <text text-anchor="middle" x="119" y="-74" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> group_offset</text>

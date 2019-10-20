@@ -9,39 +9,45 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 191)">
 <title>gko::accessor::row_major&lt; ValueType, Dimensionality &gt;</title>
 <polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-191 207,-191 207,4 -4,4"/>
-<!-- Node0 -->
+<!-- Node1 -->
 <g id="node1" class="node">
-<title>Node0</title>
+<title>Node1</title>
+<g id="a_node1"><a xlink:title="A row_major accessor is a bridge between a range and the row&#45;major memory layout.">
 <polygon fill="#bfbfbf" stroke="#000000" points="0,-.5 0,-30.5 203,-30.5 203,-.5 0,-.5"/>
 <text text-anchor="start" x="8" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::accessor::row</text>
 <text text-anchor="middle" x="101.5" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">_major&lt; ValueType, Dimensionality &gt;</text>
+</a>
 </g>
-<!-- Node1 -->
+</g>
+<!-- Node2 -->
 <g id="node2" class="node">
-<title>Node1</title>
+<title>Node2</title>
+<g id="a_node2"><a xlink:title=" ">
 <polygon fill="#ffffff" stroke="#bfbfbf" points="34.5,-78.5 34.5,-108.5 168.5,-108.5 168.5,-78.5 34.5,-78.5"/>
 <text text-anchor="start" x="42.5" y="-96.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">std::array&lt; const size</text>
 <text text-anchor="middle" x="101.5" y="-85.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">_type, dimensionality &gt;</text>
+</a>
 </g>
-<!-- Node1&#45;&gt;Node0 -->
+</g>
+<!-- Node2&#45;&gt;Node1 -->
 <g id="edge1" class="edge">
-<title>Node1&#45;&gt;Node0</title>
+<title>Node2&#45;&gt;Node1</title>
 <path fill="none" stroke="#9a32cd" stroke-dasharray="5,2" d="M101.5,-68.2875C101.5,-55.9187 101.5,-41.4264 101.5,-30.7592"/>
 <polygon fill="#9a32cd" stroke="#9a32cd" points="98.0001,-68.4608 101.5,-78.4608 105.0001,-68.4608 98.0001,-68.4608"/>
 <text text-anchor="middle" x="121.5" y="-52" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> lengths</text>
 </g>
-<!-- Node2 -->
+<!-- Node3 -->
 <g id="node3" class="node">
-<title>Node2</title>
-<g id="a_node3"><a xlink:title="STL class. ">
+<title>Node3</title>
+<g id="a_node3"><a xlink:title="STL class.">
 <polygon fill="#ffffff" stroke="#bfbfbf" points="55.5,-167.5 55.5,-186.5 147.5,-186.5 147.5,-167.5 55.5,-167.5"/>
 <text text-anchor="middle" x="101.5" y="-174.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">std::array&lt; T &gt;</text>
 </a>
 </g>
 </g>
-<!-- Node2&#45;&gt;Node1 -->
+<!-- Node3&#45;&gt;Node2 -->
 <g id="edge2" class="edge">
-<title>Node2&#45;&gt;Node1</title>
+<title>Node3&#45;&gt;Node2</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M101.5,-157.2427C101.5,-142.345 101.5,-122.2186 101.5,-108.597"/>
 <polygon fill="#ffa500" stroke="#ffa500" points="98.0001,-157.4215 101.5,-167.4215 105.0001,-157.4215 98.0001,-157.4215"/>
 <text text-anchor="start" x="101.5" y="-141" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; const size_type,</text>

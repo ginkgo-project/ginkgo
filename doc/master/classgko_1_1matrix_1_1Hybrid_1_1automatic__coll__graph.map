@@ -1,3 +1,4 @@
 <map id="gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::automatic" name="gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::automatic">
-<area shape="rect" id="node2" href="$classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html" title="strategy_type is to decide how to set the hybrid config. " alt="" coords="5,5,183,61"/>
+<area shape="rect" id="node1" title="automatic is a stratgy_type which decides the number of stored elements per row of the ell part autom..." alt="" coords="5,109,183,165"/>
+<area shape="rect" id="node2" href="$classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html" title="strategy_type is to decide how to set the hybrid config." alt="" coords="5,5,183,61"/>
 </map>

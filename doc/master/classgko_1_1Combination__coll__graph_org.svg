@@ -9,32 +9,35 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 329.5)">
 <title>gko::Combination&lt; ValueType &gt;</title>
 <polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-329.5 2314,-329.5 2314,4 -4,4"/>
-<!-- Node0 -->
+<!-- Node1 -->
 <g id="node1" class="node">
-<title>Node0</title>
+<title>Node1</title>
+<g id="a_node1"><a xlink:title="The Combination class can be used to construct a linear combination of multiple linear operators c1 *...">
 <polygon fill="#bfbfbf" stroke="#000000" points="2135,-88 2135,-107 2310,-107 2310,-88 2135,-88"/>
 <text text-anchor="middle" x="2222.5" y="-95" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::Combination&lt; ValueType &gt;</text>
+</a>
 </g>
-<!-- Node1 -->
+</g>
+<!-- Node2 -->
 <g id="node2" class="node">
-<title>Node1</title>
-<g id="a_node2"><a xlink:href="classgko_1_1EnableLinOp.html" target="_top" xlink:title="gko::EnableLinOp\&lt; Combination\l\&lt; ValueType \&gt; \&gt;">
+<title>Node2</title>
+<g id="a_node2"><a xlink:href="classgko_1_1EnableLinOp.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="1923,-116.5 1923,-146.5 2098,-146.5 2098,-116.5 1923,-116.5"/>
 <text text-anchor="start" x="1931" y="-134.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableLinOp&lt; Combination</text>
 <text text-anchor="middle" x="2010.5" y="-123.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; ValueType &gt; &gt;</text>
 </a>
 </g>
 </g>
-<!-- Node1&#45;&gt;Node0 -->
+<!-- Node2&#45;&gt;Node1 -->
 <g id="edge1" class="edge">
-<title>Node1&#45;&gt;Node0</title>
+<title>Node2&#45;&gt;Node1</title>
 <path fill="none" stroke="#191970" d="M2108.3152,-115.8127C2127.0539,-112.8074 2146.1357,-109.7471 2163.1995,-107.0105"/>
 <polygon fill="#191970" stroke="#191970" points="2107.5784,-112.386 2098.2588,-117.4255 2108.6869,-119.2977 2107.5784,-112.386"/>
 </g>
-<!-- Node2 -->
+<!-- Node3 -->
 <g id="node3" class="node">
-<title>Node2</title>
-<g id="a_node3"><a xlink:href="classgko_1_1EnablePolymorphicObject.html" target="_top" xlink:title="gko::EnablePolymorphicObject\l\&lt; Combination\&lt; ValueType\l \&gt;, LinOp \&gt;">
+<title>Node3</title>
+<g id="a_node3"><a xlink:href="classgko_1_1EnablePolymorphicObject.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="1561,-207 1561,-248 1727,-248 1727,-207 1561,-207"/>
 <text text-anchor="start" x="1569" y="-236" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnablePolymorphicObject</text>
 <text text-anchor="start" x="1569" y="-225" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; Combination&lt; ValueType</text>
@@ -42,16 +45,16 @@
 </a>
 </g>
 </g>
-<!-- Node2&#45;&gt;Node1 -->
+<!-- Node3&#45;&gt;Node2 -->
 <g id="edge2" class="edge">
-<title>Node2&#45;&gt;Node1</title>
+<title>Node3&#45;&gt;Node2</title>
 <path fill="none" stroke="#191970" d="M1735.3507,-204.454C1785.489,-191.7034 1848.7321,-175.4545 1905,-160.5 1921.7976,-156.0357 1940.0652,-151.0579 1956.6061,-146.504"/>
 <polygon fill="#191970" stroke="#191970" points="1734.3338,-201.1011 1725.5038,-206.956 1736.0577,-207.8855 1734.3338,-201.1011"/>
 </g>
-<!-- Node3 -->
+<!-- Node4 -->
 <g id="node4" class="node">
-<title>Node3</title>
-<g id="a_node4"><a xlink:href="classgko_1_1EnableAbstractPolymorphicObject.html" target="_top" xlink:title="gko::EnableAbstractPolymorphic\lObject\&lt; Combination\&lt; ValueType\l \&gt;, LinOp \&gt;">
+<title>Node4</title>
+<g id="a_node4"><a xlink:href="classgko_1_1EnableAbstractPolymorphicObject.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="1332.5,-268 1332.5,-309 1514.5,-309 1514.5,-268 1332.5,-268"/>
 <text text-anchor="start" x="1340.5" y="-297" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableAbstractPolymorphic</text>
 <text text-anchor="start" x="1340.5" y="-286" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Object&lt; Combination&lt; ValueType</text>
@@ -59,46 +62,46 @@
 </a>
 </g>
 </g>
-<!-- Node3&#45;&gt;Node2 -->
+<!-- Node4&#45;&gt;Node3 -->
 <g id="edge3" class="edge">
-<title>Node3&#45;&gt;Node2</title>
+<title>Node4&#45;&gt;Node3</title>
 <path fill="none" stroke="#191970" d="M1507.729,-265.1985C1528.098,-259.5636 1549.7236,-253.581 1569.6039,-248.0812"/>
 <polygon fill="#191970" stroke="#191970" points="1506.5486,-261.8936 1497.8438,-267.9332 1508.4151,-268.6402 1506.5486,-261.8936"/>
 </g>
-<!-- Node4 -->
+<!-- Node5 -->
 <g id="node5" class="node">
-<title>Node4</title>
-<g id="a_node5"><a xlink:href="classgko_1_1LinOp.html" target="_top" xlink:title="gko::LinOp">
+<title>Node5</title>
+<g id="a_node5"><a xlink:href="classgko_1_1LinOp.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="990.5,-274 990.5,-293 1058.5,-293 1058.5,-274 990.5,-274"/>
 <text text-anchor="middle" x="1024.5" y="-281" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::LinOp</text>
 </a>
 </g>
 </g>
-<!-- Node4&#45;&gt;Node3 -->
+<!-- Node5&#45;&gt;Node4 -->
 <g id="edge4" class="edge">
-<title>Node4&#45;&gt;Node3</title>
+<title>Node5&#45;&gt;Node4</title>
 <path fill="none" stroke="#191970" d="M1068.5541,-284.0521C1131.7825,-284.8444 1249.7185,-286.3223 1332.231,-287.3563"/>
 <polygon fill="#191970" stroke="#191970" points="1068.5616,-280.552 1058.5185,-283.9263 1068.4738,-287.5514 1068.5616,-280.552"/>
 </g>
-<!-- Node5 -->
+<!-- Node6 -->
 <g id="node6" class="node">
-<title>Node5</title>
-<g id="a_node6"><a xlink:href="classgko_1_1EnableAbstractPolymorphicObject.html" target="_top" xlink:title="gko::EnableAbstractPolymorphic\lObject\&lt; LinOp \&gt;">
+<title>Node6</title>
+<g id="a_node6"><a xlink:href="classgko_1_1EnableAbstractPolymorphicObject.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#ff0000" points="538,-263.5 538,-293.5 713,-293.5 713,-263.5 538,-263.5"/>
 <text text-anchor="start" x="546" y="-281.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableAbstractPolymorphic</text>
 <text text-anchor="middle" x="625.5" y="-270.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Object&lt; LinOp &gt;</text>
 </a>
 </g>
 </g>
-<!-- Node5&#45;&gt;Node4 -->
+<!-- Node6&#45;&gt;Node5 -->
 <g id="edge5" class="edge">
-<title>Node5&#45;&gt;Node4</title>
+<title>Node6&#45;&gt;Node5</title>
 <path fill="none" stroke="#191970" d="M723.1996,-279.7243C809.9858,-280.8119 931.8823,-282.3394 990.4546,-283.0734"/>
 <polygon fill="#191970" stroke="#191970" points="723.1053,-276.2229 713.0622,-279.5973 723.0176,-283.2224 723.1053,-276.2229"/>
 </g>
-<!-- Node10 -->
+<!-- Node11 -->
 <g id="node7" class="node">
-<title>Node10</title>
+<title>Node11</title>
 <g id="a_node7"><a xlink:href="classgko_1_1EnableAbstractPolymorphicObject.html" target="_top" xlink:title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne...">
 <polygon fill="#ffffff" stroke="#000000" points="138,-238 138,-279 332,-279 332,-238 138,-238"/>
 <text text-anchor="start" x="146" y="-267" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableAbstractPolymorphic</text>
@@ -107,25 +110,25 @@
 </a>
 </g>
 </g>
-<!-- Node10&#45;&gt;Node3 -->
+<!-- Node11&#45;&gt;Node4 -->
 <g id="edge8" class="edge">
-<title>Node10&#45;&gt;Node3</title>
+<title>Node11&#45;&gt;Node4</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M319.0668,-281.299C329.4342,-283.6367 339.9254,-285.78 350,-287.5 426.9882,-300.6442 446.979,-299.9407 525,-303.5 562.4528,-305.2086 935.491,-304.3525 1127,-302.5 1206.1186,-301.7347 1225.996,-303.8264 1305,-299.5 1313.8711,-299.0142 1323.1054,-298.3813 1332.3305,-297.6643"/>
 <polygon fill="#ffa500" stroke="#ffa500" points="319.7147,-277.8564 309.1824,-279.0055 318.1325,-284.6753 319.7147,-277.8564"/>
 <text text-anchor="start" x="755" y="-317.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; Combination&lt; ValueType</text>
 <text text-anchor="middle" x="824" y="-306.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &gt;, LinOp &gt;</text>
 </g>
-<!-- Node10&#45;&gt;Node5 -->
+<!-- Node11&#45;&gt;Node6 -->
 <g id="edge6" class="edge">
-<title>Node10&#45;&gt;Node5</title>
+<title>Node11&#45;&gt;Node6</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M342.3132,-265.0791C344.9005,-265.2226 347.4659,-265.3631 350,-265.5 412.755,-268.8904 483.5786,-272.2214 537.7017,-274.6628"/>
 <polygon fill="#ffa500" stroke="#ffa500" points="342.4252,-261.58 332.2444,-264.5127 342.032,-268.5689 342.4252,-261.58"/>
 <text text-anchor="middle" x="428.5" y="-275.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; LinOp &gt;</text>
 </g>
-<!-- Node13 -->
+<!-- Node14 -->
 <g id="node10" class="node">
-<title>Node13</title>
-<g id="a_node10"><a xlink:href="classgko_1_1EnableAbstractPolymorphicObject.html" target="_top" xlink:title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteObject, Polymorphic\lBase \&gt;">
+<title>Node14</title>
+<g id="a_node10"><a xlink:href="classgko_1_1EnableAbstractPolymorphicObject.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="525,-202 525,-243 726,-243 726,-202 525,-202"/>
 <text text-anchor="start" x="533" y="-231" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableAbstractPolymorphic</text>
 <text text-anchor="start" x="533" y="-220" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Object&lt; ConcreteObject, Polymorphic</text>
@@ -133,18 +136,18 @@
 </a>
 </g>
 </g>
-<!-- Node10&#45;&gt;Node13 -->
+<!-- Node11&#45;&gt;Node14 -->
 <g id="edge12" class="edge">
-<title>Node10&#45;&gt;Node13</title>
+<title>Node11&#45;&gt;Node14</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M342.267,-240.4177C344.8681,-240.0954 347.4488,-239.7887 350,-239.5 407.7355,-232.9665 472.5825,-228.8084 524.8529,-226.2412"/>
 <polygon fill="#ffa500" stroke="#ffa500" points="341.6177,-236.9726 332.1524,-241.7327 342.5202,-243.9142 341.6177,-236.9726"/>
 <text text-anchor="start" x="350" y="-253.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; ConcreteObject, Polymorphic</text>
 <text text-anchor="middle" x="428.5" y="-242.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Base &gt;</text>
 </g>
-<!-- Node20 -->
+<!-- Node21 -->
 <g id="node17" class="node">
-<title>Node20</title>
-<g id="a_node17"><a xlink:href="classgko_1_1EnableAbstractPolymorphicObject.html" target="_top" xlink:title="gko::EnableAbstractPolymorphic\lObject\&lt; ConcreteLinOp, Polymorphic\lBase \&gt;">
+<title>Node21</title>
+<g id="a_node17"><a xlink:href="classgko_1_1EnableAbstractPolymorphicObject.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="527,-137 527,-178 724,-178 724,-137 527,-137"/>
 <text text-anchor="start" x="535" y="-166" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableAbstractPolymorphic</text>
 <text text-anchor="start" x="535" y="-155" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Object&lt; ConcreteLinOp, Polymorphic</text>
@@ -152,41 +155,44 @@
 </a>
 </g>
 </g>
-<!-- Node10&#45;&gt;Node20 -->
+<!-- Node11&#45;&gt;Node21 -->
 <g id="edge22" class="edge">
-<title>Node10&#45;&gt;Node20</title>
+<title>Node11&#45;&gt;Node21</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M278.0125,-232.7702C299.0536,-221.2483 325.1509,-208.4866 350,-200.5 407.1479,-182.1325 473.5714,-171.4699 526.8767,-165.3574"/>
 <polygon fill="#ffa500" stroke="#ffa500" points="276.052,-229.8561 269.024,-237.7844 279.4622,-235.9692 276.052,-229.8561"/>
 <text text-anchor="start" x="352" y="-214.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; ConcreteLinOp, Polymorphic</text>
 <text text-anchor="middle" x="428.5" y="-203.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Base &gt;</text>
 </g>
-<!-- Node11 -->
+<!-- Node12 -->
 <g id="node8" class="node">
-<title>Node11</title>
+<title>Node12</title>
+<g id="a_node8"><a xlink:title=" ">
 <polygon fill="#ffffff" stroke="#bfbfbf" points="0,-200 0,-219 101,-219 101,-200 0,-200"/>
 <text text-anchor="middle" x="50.5" y="-207" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">PolymorphicBase</text>
+</a>
 </g>
-<!-- Node11&#45;&gt;Node10 -->
+</g>
+<!-- Node12&#45;&gt;Node11 -->
 <g id="edge7" class="edge">
-<title>Node11&#45;&gt;Node10</title>
+<title>Node12&#45;&gt;Node11</title>
 <path fill="none" stroke="#191970" d="M96.3988,-221.6899C114.8661,-226.5945 136.6815,-232.3883 157.4728,-237.9101"/>
 <polygon fill="#191970" stroke="#191970" points="97.0748,-218.2482 86.5114,-219.064 95.278,-225.0137 97.0748,-218.2482"/>
 </g>
-<!-- Node11&#45;&gt;Node13 -->
+<!-- Node12&#45;&gt;Node14 -->
 <g id="edge11" class="edge">
-<title>Node11&#45;&gt;Node13</title>
+<title>Node12&#45;&gt;Node14</title>
 <path fill="none" stroke="#191970" d="M111.106,-210.8702C209.5893,-213.0968 405.3646,-217.523 524.9499,-220.2267"/>
 <polygon fill="#191970" stroke="#191970" points="111.1001,-207.3693 101.0235,-210.6423 110.9418,-214.3675 111.1001,-207.3693"/>
 </g>
-<!-- Node11&#45;&gt;Node20 -->
+<!-- Node12&#45;&gt;Node21 -->
 <g id="edge21" class="edge">
-<title>Node11&#45;&gt;Node20</title>
+<title>Node12&#45;&gt;Node21</title>
 <path fill="none" stroke="#191970" d="M110.9853,-198.1624C171.2932,-187.3906 266.6901,-171.7889 350,-164.5 408.5066,-159.3812 474.2473,-157.5619 526.8332,-157.0547"/>
 <polygon fill="#191970" stroke="#191970" points="110.1021,-194.765 100.8801,-199.9808 111.3419,-201.6543 110.1021,-194.765"/>
 </g>
-<!-- Node12 -->
+<!-- Node13 -->
 <g id="node9" class="node">
-<title>Node12</title>
+<title>Node13</title>
 <g id="a_node9"><a xlink:href="classgko_1_1EnablePolymorphicObject.html" target="_top" xlink:title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne...">
 <polygon fill="#ffffff" stroke="#000000" points="922,-207.5 922,-237.5 1127,-237.5 1127,-207.5 922,-207.5"/>
 <text text-anchor="start" x="930" y="-225.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnablePolymorphicObject</text>
@@ -194,73 +200,73 @@
 </a>
 </g>
 </g>
-<!-- Node12&#45;&gt;Node2 -->
+<!-- Node13&#45;&gt;Node3 -->
 <g id="edge9" class="edge">
-<title>Node12&#45;&gt;Node2</title>
+<title>Node13&#45;&gt;Node3</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M1137.2748,-223.4102C1259.3835,-224.3958 1451.2914,-225.9446 1560.5414,-226.8264"/>
 <polygon fill="#ffa500" stroke="#ffa500" points="1137.1733,-219.9094 1127.1453,-223.3285 1137.1167,-226.9091 1137.1733,-219.9094"/>
 <text text-anchor="start" x="1354.5" y="-240.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; Combination&lt; ValueType</text>
 <text text-anchor="middle" x="1423.5" y="-229.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &gt;, LinOp &gt;</text>
 </g>
-<!-- Node19 -->
+<!-- Node20 -->
 <g id="node16" class="node">
-<title>Node19</title>
-<g id="a_node16"><a xlink:href="classgko_1_1EnablePolymorphicObject.html" target="_top" xlink:title="gko::EnablePolymorphicObject\l\&lt; ConcreteLinOp, PolymorphicBase \&gt;">
+<title>Node20</title>
+<g id="a_node16"><a xlink:href="classgko_1_1EnablePolymorphicObject.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="1323,-145.5 1323,-175.5 1524,-175.5 1524,-145.5 1323,-145.5"/>
 <text text-anchor="start" x="1331" y="-163.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnablePolymorphicObject</text>
 <text text-anchor="middle" x="1423.5" y="-152.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; ConcreteLinOp, PolymorphicBase &gt;</text>
 </a>
 </g>
 </g>
-<!-- Node12&#45;&gt;Node19 -->
+<!-- Node13&#45;&gt;Node20 -->
 <g id="edge23" class="edge">
-<title>Node12&#45;&gt;Node19</title>
+<title>Node13&#45;&gt;Node20</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M1086.2365,-204.8358C1104.9875,-199.954 1125.729,-195.0332 1145,-191.5 1203.4987,-180.7748 1269.6367,-173.2236 1322.7776,-168.2609"/>
 <polygon fill="#ffa500" stroke="#ffa500" points="1085.1108,-201.5132 1076.3395,-207.4558 1086.9022,-208.2801 1085.1108,-201.5132"/>
 <text text-anchor="start" x="1148.5" y="-205.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; ConcreteLinOp, Polymorphic</text>
 <text text-anchor="middle" x="1225" y="-194.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Base &gt;</text>
 </g>
-<!-- Node13&#45;&gt;Node12 -->
+<!-- Node14&#45;&gt;Node13 -->
 <g id="edge10" class="edge">
-<title>Node13&#45;&gt;Node12</title>
+<title>Node14&#45;&gt;Node13</title>
 <path fill="none" stroke="#191970" d="M736.4914,-222.5C794.4959,-222.5 865.0206,-222.5 921.7638,-222.5"/>
 <polygon fill="#191970" stroke="#191970" points="736.1846,-219.0001 726.1845,-222.5 736.1845,-226.0001 736.1846,-219.0001"/>
 </g>
-<!-- Node14 -->
+<!-- Node15 -->
 <g id="node11" class="node">
-<title>Node14</title>
-<g id="a_node11"><a xlink:href="classgko_1_1EnablePolymorphicAssignment.html" target="_top" xlink:title="gko::EnablePolymorphicAssignment\l\&lt; Combination\&lt; ValueType \&gt; \&gt;">
+<title>Node15</title>
+<g id="a_node11"><a xlink:href="classgko_1_1EnablePolymorphicAssignment.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="1327.5,-96.5 1327.5,-126.5 1519.5,-126.5 1519.5,-96.5 1327.5,-96.5"/>
 <text text-anchor="start" x="1335.5" y="-114.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnablePolymorphicAssignment</text>
 <text text-anchor="middle" x="1423.5" y="-103.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; Combination&lt; ValueType &gt; &gt;</text>
 </a>
 </g>
 </g>
-<!-- Node14&#45;&gt;Node1 -->
+<!-- Node15&#45;&gt;Node2 -->
 <g id="edge13" class="edge">
-<title>Node14&#45;&gt;Node1</title>
+<title>Node15&#45;&gt;Node2</title>
 <path fill="none" stroke="#191970" d="M1529.6942,-123.8986C1540.2613,-124.8879 1550.8348,-125.7808 1561,-126.5 1686.5306,-135.3809 1832.2623,-135.0577 1922.9418,-133.6019"/>
 <polygon fill="#191970" stroke="#191970" points="1529.8682,-120.3992 1519.5783,-122.9231 1529.1962,-127.3669 1529.8682,-120.3992"/>
 </g>
-<!-- Node15 -->
+<!-- Node16 -->
 <g id="node12" class="node">
-<title>Node15</title>
-<g id="a_node12"><a xlink:href="classgko_1_1ConvertibleTo.html" target="_top" xlink:title="gko::ConvertibleTo\l\&lt; Combination\&lt; ValueType \&gt; \&gt;">
+<title>Node16</title>
+<g id="a_node12"><a xlink:href="classgko_1_1ConvertibleTo.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="938,-98.5 938,-128.5 1111,-128.5 1111,-98.5 938,-98.5"/>
 <text text-anchor="start" x="946" y="-116.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::ConvertibleTo</text>
 <text text-anchor="middle" x="1024.5" y="-105.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; Combination&lt; ValueType &gt; &gt;</text>
 </a>
 </g>
 </g>
-<!-- Node15&#45;&gt;Node14 -->
+<!-- Node16&#45;&gt;Node15 -->
 <g id="edge14" class="edge">
-<title>Node15&#45;&gt;Node14</title>
+<title>Node16&#45;&gt;Node15</title>
 <path fill="none" stroke="#191970" d="M1121.342,-113.0146C1183.8731,-112.7011 1264.8993,-112.295 1327.3027,-111.9822"/>
 <polygon fill="#191970" stroke="#191970" points="1121.0594,-109.5159 1111.0771,-113.066 1121.0945,-116.5158 1121.0594,-109.5159"/>
 </g>
-<!-- Node16 -->
+<!-- Node17 -->
 <g id="node13" class="node">
-<title>Node16</title>
+<title>Node17</title>
 <g id="a_node13"><a xlink:href="classgko_1_1ConvertibleTo.html" target="_top" xlink:title="ConvertibleTo interface is used to mark that the implementer can be converted to the object of Result...">
 <polygon fill="#ffffff" stroke="#000000" points="572,-49.5 572,-79.5 679,-79.5 679,-49.5 572,-49.5"/>
 <text text-anchor="start" x="580" y="-67.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::ConvertibleTo</text>
@@ -268,16 +274,16 @@
 </a>
 </g>
 </g>
-<!-- Node16&#45;&gt;Node15 -->
+<!-- Node17&#45;&gt;Node16 -->
 <g id="edge15" class="edge">
-<title>Node16&#45;&gt;Node15</title>
+<title>Node17&#45;&gt;Node16</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M689.3447,-72.3406C756.5635,-80.5955 862.8185,-93.6444 937.6366,-102.8326"/>
 <polygon fill="#ffa500" stroke="#ffa500" points="689.663,-68.8535 679.3109,-71.1084 688.8097,-75.8013 689.663,-68.8535"/>
 <text text-anchor="middle" x="824" y="-101.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; Combination&lt; ValueType &gt; &gt;</text>
 </g>
-<!-- Node17 -->
+<!-- Node18 -->
 <g id="node14" class="node">
-<title>Node17</title>
+<title>Node18</title>
 <g id="a_node14"><a xlink:href="classgko_1_1EnablePolymorphicAssignment.html" target="_top" xlink:title="This mixin is used to enable a default PolymorphicObject::copy_from() implementation for objects that...">
 <polygon fill="#ffffff" stroke="#000000" points="928.5,-49.5 928.5,-79.5 1120.5,-79.5 1120.5,-49.5 928.5,-49.5"/>
 <text text-anchor="start" x="936.5" y="-67.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnablePolymorphicAssignment</text>
@@ -285,56 +291,56 @@
 </a>
 </g>
 </g>
-<!-- Node16&#45;&gt;Node17 -->
+<!-- Node17&#45;&gt;Node18 -->
 <g id="edge17" class="edge">
-<title>Node16&#45;&gt;Node17</title>
+<title>Node17&#45;&gt;Node18</title>
 <path fill="none" stroke="#191970" d="M689.3441,-64.5C753.8404,-64.5 854.2754,-64.5 928.396,-64.5"/>
 <polygon fill="#191970" stroke="#191970" points="689.311,-61.0001 679.3109,-64.5 689.3109,-68.0001 689.311,-61.0001"/>
 </g>
-<!-- Node22 -->
+<!-- Node23 -->
 <g id="node19" class="node">
-<title>Node22</title>
-<g id="a_node19"><a xlink:href="classgko_1_1ConvertibleTo.html" target="_top" xlink:title="gko::ConvertibleTo\l\&lt; ConcreteLinOp \&gt;">
+<title>Node23</title>
+<g id="a_node19"><a xlink:href="classgko_1_1ConvertibleTo.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="969.5,-.5 969.5,-30.5 1079.5,-30.5 1079.5,-.5 969.5,-.5"/>
 <text text-anchor="start" x="977.5" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::ConvertibleTo</text>
 <text text-anchor="middle" x="1024.5" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; ConcreteLinOp &gt;</text>
 </a>
 </g>
 </g>
-<!-- Node16&#45;&gt;Node22 -->
+<!-- Node17&#45;&gt;Node23 -->
 <g id="edge26" class="edge">
-<title>Node16&#45;&gt;Node22</title>
+<title>Node17&#45;&gt;Node23</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M689.3888,-56.3499C707.0756,-54.1108 726.2805,-51.6954 744,-49.5 822.2565,-39.8043 912.8338,-28.879 969.4025,-22.0912"/>
 <polygon fill="#ffa500" stroke="#ffa500" points="688.6537,-52.915 679.1733,-57.6449 689.5341,-59.8594 688.6537,-52.915"/>
 <text text-anchor="middle" x="824" y="-52.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; ConcreteLinOp &gt;</text>
 </g>
-<!-- Node17&#45;&gt;Node14 -->
+<!-- Node18&#45;&gt;Node15 -->
 <g id="edge16" class="edge">
-<title>Node17&#45;&gt;Node14</title>
+<title>Node18&#45;&gt;Node15</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M1130.5649,-76.9658C1183.0498,-83.1375 1247.3574,-90.7042 1305,-97.5 1312.3036,-98.3611 1319.8603,-99.2525 1327.4595,-100.1494"/>
 <polygon fill="#ffa500" stroke="#ffa500" points="1130.9097,-73.4823 1120.5693,-75.7905 1130.0922,-80.4344 1130.9097,-73.4823"/>
 <text text-anchor="middle" x="1225" y="-100.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; Combination&lt; ValueType &gt; &gt;</text>
 </g>
-<!-- Node21 -->
+<!-- Node22 -->
 <g id="node18" class="node">
-<title>Node21</title>
-<g id="a_node18"><a xlink:href="classgko_1_1EnablePolymorphicAssignment.html" target="_top" xlink:title="gko::EnablePolymorphicAssignment\l\&lt; ConcreteLinOp \&gt;">
+<title>Node22</title>
+<g id="a_node18"><a xlink:href="classgko_1_1EnablePolymorphicAssignment.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="1327.5,-38.5 1327.5,-68.5 1519.5,-68.5 1519.5,-38.5 1327.5,-38.5"/>
 <text text-anchor="start" x="1335.5" y="-56.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnablePolymorphicAssignment</text>
 <text text-anchor="middle" x="1423.5" y="-45.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; ConcreteLinOp &gt;</text>
 </a>
 </g>
 </g>
-<!-- Node17&#45;&gt;Node21 -->
+<!-- Node18&#45;&gt;Node22 -->
 <g id="edge27" class="edge">
-<title>Node17&#45;&gt;Node21</title>
+<title>Node18&#45;&gt;Node22</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M1131.1259,-55.1969C1135.8124,-54.9315 1140.4532,-54.6965 1145,-54.5 1205.6239,-51.8798 1273.7398,-51.5883 1327.4323,-51.972"/>
 <polygon fill="#ffa500" stroke="#ffa500" points="1130.5818,-51.7235 1120.8126,-55.8238 1131.0065,-58.7106 1130.5818,-51.7235"/>
 <text text-anchor="middle" x="1225" y="-57.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; ConcreteLinOp &gt;</text>
 </g>
-<!-- Node18 -->
+<!-- Node19 -->
 <g id="node15" class="node">
-<title>Node18</title>
+<title>Node19</title>
 <g id="a_node15"><a xlink:href="classgko_1_1EnableLinOp.html" target="_top" xlink:title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ...">
 <polygon fill="#ffffff" stroke="#000000" points="1566,-87.5 1566,-117.5 1722,-117.5 1722,-87.5 1566,-87.5"/>
 <text text-anchor="start" x="1574" y="-105.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableLinOp&lt; Concrete</text>
@@ -342,66 +348,66 @@
 </a>
 </g>
 </g>
-<!-- Node18&#45;&gt;Node1 -->
+<!-- Node19&#45;&gt;Node2 -->
 <g id="edge18" class="edge">
-<title>Node18&#45;&gt;Node1</title>
+<title>Node19&#45;&gt;Node2</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M1732.5086,-108.4612C1783.0564,-111.9864 1847.608,-116.6916 1905,-121.5 1910.7752,-121.9839 1916.7264,-122.5 1922.723,-123.0333"/>
 <polygon fill="#ffa500" stroke="#ffa500" points="1732.4862,-104.9513 1722.2677,-107.7497 1732.0011,-111.9344 1732.4862,-104.9513"/>
 <text text-anchor="middle" x="1825" y="-124.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; Combination&lt; ValueType &gt; &gt;</text>
 </g>
-<!-- Node19&#45;&gt;Node18 -->
+<!-- Node20&#45;&gt;Node19 -->
 <g id="edge19" class="edge">
-<title>Node19&#45;&gt;Node18</title>
+<title>Node20&#45;&gt;Node19</title>
 <path fill="none" stroke="#191970" d="M1494.724,-143.0128C1504.5684,-140.5286 1514.5424,-137.9763 1524,-135.5 1545.7382,-129.8082 1569.6188,-123.2947 1590.3134,-117.5665"/>
 <polygon fill="#191970" stroke="#191970" points="1493.7927,-139.6379 1484.9468,-145.469 1495.4982,-146.427 1493.7927,-139.6379"/>
 </g>
-<!-- Node20&#45;&gt;Node19 -->
+<!-- Node21&#45;&gt;Node20 -->
 <g id="edge20" class="edge">
-<title>Node20&#45;&gt;Node19</title>
+<title>Node21&#45;&gt;Node20</title>
 <path fill="none" stroke="#191970" d="M734.1848,-157.9086C889.3648,-158.492 1172.2677,-159.5555 1322.8777,-160.1217"/>
 <polygon fill="#191970" stroke="#191970" points="734.164,-154.4086 724.1508,-157.8709 734.1376,-161.4085 734.164,-154.4086"/>
 </g>
-<!-- Node21&#45;&gt;Node18 -->
+<!-- Node22&#45;&gt;Node19 -->
 <g id="edge24" class="edge">
-<title>Node21&#45;&gt;Node18</title>
+<title>Node22&#45;&gt;Node19</title>
 <path fill="none" stroke="#191970" d="M1501.1615,-70.7581C1525.7308,-76.218 1552.6725,-82.205 1576.4722,-87.4938"/>
 <polygon fill="#191970" stroke="#191970" points="1501.6769,-67.2873 1491.1558,-68.5346 1500.1584,-74.1207 1501.6769,-67.2873"/>
 </g>
-<!-- Node22&#45;&gt;Node21 -->
+<!-- Node23&#45;&gt;Node22 -->
 <g id="edge25" class="edge">
-<title>Node22&#45;&gt;Node21</title>
+<title>Node23&#45;&gt;Node22</title>
 <path fill="none" stroke="#191970" d="M1089.6014,-21.7001C1154.0971,-27.8426 1253.6233,-37.3213 1327.2496,-44.3333"/>
 <polygon fill="#191970" stroke="#191970" points="1089.8471,-18.2078 1079.5603,-20.7438 1089.1834,-25.1763 1089.8471,-18.2078"/>
 </g>
-<!-- Node23 -->
+<!-- Node24 -->
 <g id="node20" class="node">
-<title>Node23</title>
-<g id="a_node20"><a xlink:href="classgko_1_1EnableCreateMethod.html" target="_top" xlink:title="gko::EnableCreateMethod\l\&lt; Combination\&lt; ValueType \&gt; \&gt;">
+<title>Node24</title>
+<g id="a_node20"><a xlink:href="classgko_1_1EnableCreateMethod.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="1924,-58.5 1924,-88.5 2097,-88.5 2097,-58.5 1924,-58.5"/>
 <text text-anchor="start" x="1932" y="-76.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableCreateMethod</text>
 <text text-anchor="middle" x="2010.5" y="-65.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; Combination&lt; ValueType &gt; &gt;</text>
 </a>
 </g>
 </g>
-<!-- Node23&#45;&gt;Node0 -->
+<!-- Node24&#45;&gt;Node1 -->
 <g id="edge28" class="edge">
-<title>Node23&#45;&gt;Node0</title>
+<title>Node24&#45;&gt;Node1</title>
 <path fill="none" stroke="#191970" d="M2106.9982,-84.4243C2117.4444,-85.6069 2128.0145,-86.8035 2138.2986,-87.9678"/>
 <polygon fill="#191970" stroke="#191970" points="2107.3646,-80.9435 2097.0343,-83.2963 2106.5771,-87.8991 2107.3646,-80.9435"/>
 </g>
-<!-- Node24 -->
+<!-- Node25 -->
 <g id="node21" class="node">
-<title>Node24</title>
-<g id="a_node21"><a xlink:href="classgko_1_1EnableCreateMethod.html" target="_top" xlink:title="This mixin implements a static create() method on ConcreteType that dynamically allocates the memory...">
+<title>Node25</title>
+<g id="a_node21"><a xlink:href="classgko_1_1EnableCreateMethod.html" target="_top" xlink:title="This mixin implements a static create() method on ConcreteType that dynamically allocates the memory,...">
 <polygon fill="#ffffff" stroke="#000000" points="1573,-38.5 1573,-68.5 1715,-68.5 1715,-38.5 1573,-38.5"/>
 <text text-anchor="start" x="1581" y="-56.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableCreateMethod</text>
 <text text-anchor="middle" x="1644" y="-45.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; ConcreteType &gt;</text>
 </a>
 </g>
 </g>
-<!-- Node24&#45;&gt;Node23 -->
+<!-- Node25&#45;&gt;Node24 -->
 <g id="edge29" class="edge">
-<title>Node24&#45;&gt;Node23</title>
+<title>Node25&#45;&gt;Node24</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M1725.1073,-57.926C1784.0131,-61.1406 1863.6094,-65.4841 1923.7766,-68.7675"/>
 <polygon fill="#ffa500" stroke="#ffa500" points="1725.2753,-54.4301 1715.0995,-57.3799 1724.8938,-61.4197 1725.2753,-54.4301"/>
 <text text-anchor="middle" x="1825" y="-71.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; Combination&lt; ValueType &gt; &gt;</text>

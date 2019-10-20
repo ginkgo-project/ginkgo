@@ -1,5 +1,5 @@
-\hypertarget{structgko_1_1matrix__data}{}\section{gko\+:\+:matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$ Struct Template Reference}
-\label{structgko_1_1matrix__data}\index{gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$@{gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$}}
+\hypertarget{structgko_1_1matrix__data}{}\doxysection{gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$ Struct Template Reference}
+\label{structgko_1_1matrix__data}\index{gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}}
 
 
 This structure is used as an intermediate data type to store a sparse matrix.  
@@ -11,7 +11,7 @@ This structure is used as an intermediate data type to store a sparse matrix.
 
 
 
-Collaboration diagram for gko\+:\+:matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+:
+Collaboration diagram for gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -19,12 +19,12 @@ Collaboration diagram for gko\+:\+:matrix\+\_\+data$<$ Value\+Type, Index\+Type 
 \includegraphics[width=350pt]{structgko_1_1matrix__data__coll__graph}
 \end{center}
 \end{figure}
-\subsection*{Classes}
+\doxysubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
-struct \hyperlink{structgko_1_1matrix__data_1_1nonzero__type}{nonzero\+\_\+type}
+struct \mbox{\hyperlink{structgko_1_1matrix__data_1_1nonzero__type}{nonzero\+\_\+type}}
 \begin{DoxyCompactList}\small\item\em Type used to store nonzeros. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\subsection*{Public Types}
+\doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{structgko_1_1matrix__data_a6c838616006189780b02eb05d0c60fa6}\label{structgko_1_1matrix__data_a6c838616006189780b02eb05d0c60fa6}} 
@@ -33,52 +33,52 @@ using {\bfseries value\+\_\+type} = Value\+Type
 \mbox{\Hypertarget{structgko_1_1matrix__data_a60fc773e696c9295aff1d9f685a67712}\label{structgko_1_1matrix__data_a60fc773e696c9295aff1d9f685a67712}} 
 using {\bfseries index\+\_\+type} = Index\+Type
 \end{DoxyCompactItemize}
-\subsection*{Public Member Functions}
+\doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\hyperlink{structgko_1_1matrix__data_a4be80a4afbd7f905aa4e73fbeb9df762}{matrix\+\_\+data} (\hyperlink{structgko_1_1dim}{dim}$<$ 2 $>$ size\+\_\+=\hyperlink{structgko_1_1dim}{dim}$<$ 2 $>$\{\}, Value\+Type value=\hyperlink{namespacegko_a70dbe01ff95c7b953d3d737424c6feb5}{zero}$<$ Value\+Type $>$())
+\mbox{\hyperlink{structgko_1_1matrix__data_a4be80a4afbd7f905aa4e73fbeb9df762}{matrix\+\_\+data}} (\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$ size\+\_\+=\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$\{\}, Value\+Type value=\mbox{\hyperlink{namespacegko_a70dbe01ff95c7b953d3d737424c6feb5}{zero}}$<$ Value\+Type $>$())
 \begin{DoxyCompactList}\small\item\em Initializes a matrix filled with the specified value. \end{DoxyCompactList}\item 
-{\footnotesize template$<$typename Random\+Distribution , typename Random\+Engine $>$ }\\\hyperlink{structgko_1_1matrix__data_aea89944190aba3ace872bf31fd98fd3d}{matrix\+\_\+data} (\hyperlink{structgko_1_1dim}{dim}$<$ 2 $>$ size\+\_\+, Random\+Distribution \&\&dist, Random\+Engine \&\&engine)
+{\footnotesize template$<$typename Random\+Distribution , typename Random\+Engine $>$ }\\\mbox{\hyperlink{structgko_1_1matrix__data_aea89944190aba3ace872bf31fd98fd3d}{matrix\+\_\+data}} (\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$ size\+\_\+, Random\+Distribution \&\&dist, Random\+Engine \&\&engine)
 \begin{DoxyCompactList}\small\item\em Initializes a matrix with random values from the specified distribution. \end{DoxyCompactList}\item 
-\hyperlink{structgko_1_1matrix__data_adbba515151de75a490c3fb66cc56bc82}{matrix\+\_\+data} (std\+::initializer\+\_\+list$<$ std\+::initializer\+\_\+list$<$ Value\+Type $>$$>$ values)
+\mbox{\hyperlink{structgko_1_1matrix__data_adbba515151de75a490c3fb66cc56bc82}{matrix\+\_\+data}} (std\+::initializer\+\_\+list$<$ std\+::initializer\+\_\+list$<$ Value\+Type $>$$>$ values)
 \begin{DoxyCompactList}\small\item\em List-\/initializes the structure from a matrix of values. \end{DoxyCompactList}\item 
-\hyperlink{structgko_1_1matrix__data_a80074a1ab496f2332b126407de533e76}{matrix\+\_\+data} (\hyperlink{structgko_1_1dim}{dim}$<$ 2 $>$ size\+\_\+, std\+::initializer\+\_\+list$<$ detail\+::input\+\_\+triple$<$ Value\+Type, Index\+Type $>$$>$ nonzeros\+\_\+)
+\mbox{\hyperlink{structgko_1_1matrix__data_a80074a1ab496f2332b126407de533e76}{matrix\+\_\+data}} (\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$ size\+\_\+, std\+::initializer\+\_\+list$<$ detail\+::input\+\_\+triple$<$ Value\+Type, Index\+Type $>$$>$ nonzeros\+\_\+)
 \begin{DoxyCompactList}\small\item\em Initializes the structure from a list of nonzeros. \end{DoxyCompactList}\item 
-\hyperlink{structgko_1_1matrix__data_aa8398ce720b3db2ebde137419d032352}{matrix\+\_\+data} (\hyperlink{structgko_1_1dim}{dim}$<$ 2 $>$ size\+\_\+, const \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} \&block)
+\mbox{\hyperlink{structgko_1_1matrix__data_aa8398ce720b3db2ebde137419d032352}{matrix\+\_\+data}} (\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$ size\+\_\+, const \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} \&block)
 \begin{DoxyCompactList}\small\item\em Initializes a matrix out of a matrix block via duplication. \end{DoxyCompactList}\item 
-{\footnotesize template$<$typename Accessor $>$ }\\\hyperlink{structgko_1_1matrix__data_a380d2b8207621f3c997804afa6d729af}{matrix\+\_\+data} (const \hyperlink{classgko_1_1range}{range}$<$ Accessor $>$ \&data)
+{\footnotesize template$<$typename Accessor $>$ }\\\mbox{\hyperlink{structgko_1_1matrix__data_a380d2b8207621f3c997804afa6d729af}{matrix\+\_\+data}} (const \mbox{\hyperlink{classgko_1_1range}{range}}$<$ Accessor $>$ \&data)
 \begin{DoxyCompactList}\small\item\em Initializes a matrix from a range. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{structgko_1_1matrix__data_ac83a3b5d892fbd132fd9a7f50b0f83b8}\label{structgko_1_1matrix__data_ac83a3b5d892fbd132fd9a7f50b0f83b8}} 
-void \hyperlink{structgko_1_1matrix__data_ac83a3b5d892fbd132fd9a7f50b0f83b8}{ensure\+\_\+row\+\_\+major\+\_\+order} ()
+void \mbox{\hyperlink{structgko_1_1matrix__data_ac83a3b5d892fbd132fd9a7f50b0f83b8}{ensure\+\_\+row\+\_\+major\+\_\+order}} ()
 \begin{DoxyCompactList}\small\item\em Sorts the nonzero vector so the values follow row-\/major order. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\subsection*{Static Public Member Functions}
+\doxysubsection*{Static Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-static \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} \hyperlink{structgko_1_1matrix__data_a307091117617a342b9e576bcc9dd3c80}{diag} (\hyperlink{structgko_1_1dim}{dim}$<$ 2 $>$ size\+\_\+, Value\+Type value)
+static \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} \mbox{\hyperlink{structgko_1_1matrix__data_a307091117617a342b9e576bcc9dd3c80}{diag}} (\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$ size\+\_\+, Value\+Type value)
 \begin{DoxyCompactList}\small\item\em Initializes a diagonal matrix. \end{DoxyCompactList}\item 
-static \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} \hyperlink{structgko_1_1matrix__data_aa80c7201a72ebf5b79a793b8d38db8e2}{diag} (\hyperlink{structgko_1_1dim}{dim}$<$ 2 $>$ size\+\_\+, std\+::initializer\+\_\+list$<$ Value\+Type $>$ nonzeros\+\_\+)
+static \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} \mbox{\hyperlink{structgko_1_1matrix__data_aa80c7201a72ebf5b79a793b8d38db8e2}{diag}} (\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$ size\+\_\+, std\+::initializer\+\_\+list$<$ Value\+Type $>$ nonzeros\+\_\+)
 \begin{DoxyCompactList}\small\item\em Initializes a diagonal matrix using a list of diagonal elements. \end{DoxyCompactList}\item 
-static \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} \hyperlink{structgko_1_1matrix__data_a2d2fb8725ef69679a74f7bd2f627e776}{diag} (\hyperlink{structgko_1_1dim}{dim}$<$ 2 $>$ size\+\_\+, const \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} \&block)
+static \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} \mbox{\hyperlink{structgko_1_1matrix__data_a2d2fb8725ef69679a74f7bd2f627e776}{diag}} (\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$ size\+\_\+, const \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} \&block)
 \begin{DoxyCompactList}\small\item\em Initializes a block-\/diagonal matrix. \end{DoxyCompactList}\item 
-{\footnotesize template$<$typename Forward\+Iterator $>$ }\\static \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} \hyperlink{structgko_1_1matrix__data_a83d309b12caf3957c116ed1133da39a7}{diag} (Forward\+Iterator begin, Forward\+Iterator end)
+{\footnotesize template$<$typename Forward\+Iterator $>$ }\\static \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} \mbox{\hyperlink{structgko_1_1matrix__data_a83d309b12caf3957c116ed1133da39a7}{diag}} (Forward\+Iterator begin, Forward\+Iterator end)
 \begin{DoxyCompactList}\small\item\em Initializes a block-\/diagonal matrix from a list of diagonal blocks. \end{DoxyCompactList}\item 
-static \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} \hyperlink{structgko_1_1matrix__data_aa809c5fbd147b72b18efeca595338398}{diag} (std\+::initializer\+\_\+list$<$ \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} $>$ blocks)
+static \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} \mbox{\hyperlink{structgko_1_1matrix__data_aa809c5fbd147b72b18efeca595338398}{diag}} (std\+::initializer\+\_\+list$<$ \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} $>$ blocks)
 \begin{DoxyCompactList}\small\item\em Initializes a block-\/diagonal matrix from a list of diagonal blocks. \end{DoxyCompactList}\item 
-{\footnotesize template$<$typename Random\+Distribution , typename Random\+Engine $>$ }\\static \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} \hyperlink{structgko_1_1matrix__data_a84056e4ef41884be328ec78554074df1}{cond} (\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{structgko_1_1matrix__data_a30716bd9e39a7beed52fc56d737fc07b}{size}, \hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}$<$ Value\+Type $>$ condition\+\_\+number, Random\+Distribution \&\&dist, Random\+Engine \&\&engine, \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} num\+\_\+reflectors)
+{\footnotesize template$<$typename Random\+Distribution , typename Random\+Engine $>$ }\\static \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} \mbox{\hyperlink{structgko_1_1matrix__data_a84056e4ef41884be328ec78554074df1}{cond}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{structgko_1_1matrix__data_a30716bd9e39a7beed52fc56d737fc07b}{size}}, \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}}$<$ Value\+Type $>$ condition\+\_\+number, Random\+Distribution \&\&dist, Random\+Engine \&\&engine, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} num\+\_\+reflectors)
 \begin{DoxyCompactList}\small\item\em Initializes a random dense matrix with a specific condition number. \end{DoxyCompactList}\item 
-{\footnotesize template$<$typename Random\+Distribution , typename Random\+Engine $>$ }\\static \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} \hyperlink{structgko_1_1matrix__data_aff5d2293d78e83ed783b5b8e231e7ede}{cond} (\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{structgko_1_1matrix__data_a30716bd9e39a7beed52fc56d737fc07b}{size}, \hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}$<$ Value\+Type $>$ condition\+\_\+number, Random\+Distribution \&\&dist, Random\+Engine \&\&engine)
+{\footnotesize template$<$typename Random\+Distribution , typename Random\+Engine $>$ }\\static \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} \mbox{\hyperlink{structgko_1_1matrix__data_aff5d2293d78e83ed783b5b8e231e7ede}{cond}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{structgko_1_1matrix__data_a30716bd9e39a7beed52fc56d737fc07b}{size}}, \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}}$<$ Value\+Type $>$ condition\+\_\+number, Random\+Distribution \&\&dist, Random\+Engine \&\&engine)
 \begin{DoxyCompactList}\small\item\em Initializes a random dense matrix with a specific condition number. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\subsection*{Public Attributes}
+\doxysubsection*{Public Attributes}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{structgko_1_1matrix__data_a30716bd9e39a7beed52fc56d737fc07b}\label{structgko_1_1matrix__data_a30716bd9e39a7beed52fc56d737fc07b}} 
-\hyperlink{structgko_1_1dim}{dim}$<$ 2 $>$ \hyperlink{structgko_1_1matrix__data_a30716bd9e39a7beed52fc56d737fc07b}{size}
+\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$ \mbox{\hyperlink{structgko_1_1matrix__data_a30716bd9e39a7beed52fc56d737fc07b}{size}}
 \begin{DoxyCompactList}\small\item\em Size of the matrix. \end{DoxyCompactList}\item 
-std\+::vector$<$ \hyperlink{structgko_1_1matrix__data_1_1nonzero__type}{nonzero\+\_\+type} $>$ \hyperlink{structgko_1_1matrix__data_a4f6be92270fa96bccdc502c83d248dc0}{nonzeros}
+std\+::vector$<$ \mbox{\hyperlink{structgko_1_1matrix__data_1_1nonzero__type}{nonzero\+\_\+type}} $>$ \mbox{\hyperlink{structgko_1_1matrix__data_a4f6be92270fa96bccdc502c83d248dc0}{nonzeros}}
 \begin{DoxyCompactList}\small\item\em A vector of tuples storing the non-\/zeros of the matrix. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
-\subsection{Detailed Description}
+\doxysubsection{Detailed Description}
 \subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
 struct gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$}
 
@@ -102,13 +102,13 @@ This structure is not optimized for usual access patterns and it can only exist 
 \end{DoxyTemplParams}
 
 
-\subsection{Constructor \& Destructor Documentation}
+\doxysubsection{Constructor \& Destructor Documentation}
 \mbox{\Hypertarget{structgko_1_1matrix__data_a4be80a4afbd7f905aa4e73fbeb9df762}\label{structgko_1_1matrix__data_a4be80a4afbd7f905aa4e73fbeb9df762}} 
-\index{gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}!matrix\+\_\+data@{matrix\+\_\+data}}
-\index{matrix\+\_\+data@{matrix\+\_\+data}!gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}}
-\subsubsection{\texorpdfstring{matrix\+\_\+data()}{matrix\_data()}\hspace{0.1cm}{\footnotesize\ttfamily [1/6]}}
+\index{gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}!matrix\_data@{matrix\_data}}
+\index{matrix\_data@{matrix\_data}!gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{matrix\_data()}{matrix\_data()}\hspace{0.1cm}{\footnotesize\ttfamily [1/6]}}
 {\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
-\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$\+::\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} (\begin{DoxyParamCaption}\item[{\hyperlink{structgko_1_1dim}{dim}$<$ 2 $>$}]{size\+\_\+ = {\ttfamily \hyperlink{structgko_1_1dim}{dim}$<$2$>$\{\}},  }\item[{Value\+Type}]{value = {\ttfamily \hyperlink{namespacegko_a70dbe01ff95c7b953d3d737424c6feb5}{zero}$<$ValueType$>$()} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+\mbox{\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::\mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$}]{size\+\_\+ = {\ttfamily \mbox{\hyperlink{structgko_1_1dim}{dim}}$<$2$>$\{\}},  }\item[{Value\+Type}]{value = {\ttfamily \mbox{\hyperlink{namespacegko_a70dbe01ff95c7b953d3d737424c6feb5}{zero}}$<$ValueType$>$()} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -122,12 +122,12 @@ Initializes a matrix filled with the specified value.
 \hline
 \end{DoxyParams}
 \mbox{\Hypertarget{structgko_1_1matrix__data_aea89944190aba3ace872bf31fd98fd3d}\label{structgko_1_1matrix__data_aea89944190aba3ace872bf31fd98fd3d}} 
-\index{gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}!matrix\+\_\+data@{matrix\+\_\+data}}
-\index{matrix\+\_\+data@{matrix\+\_\+data}!gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}}
-\subsubsection{\texorpdfstring{matrix\+\_\+data()}{matrix\_data()}\hspace{0.1cm}{\footnotesize\ttfamily [2/6]}}
+\index{gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}!matrix\_data@{matrix\_data}}
+\index{matrix\_data@{matrix\_data}!gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{matrix\_data()}{matrix\_data()}\hspace{0.1cm}{\footnotesize\ttfamily [2/6]}}
 {\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
 template$<$typename Random\+Distribution , typename Random\+Engine $>$ \\
-\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$\+::\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} (\begin{DoxyParamCaption}\item[{\hyperlink{structgko_1_1dim}{dim}$<$ 2 $>$}]{size\+\_\+,  }\item[{Random\+Distribution \&\&}]{dist,  }\item[{Random\+Engine \&\&}]{engine }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+\mbox{\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::\mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$}]{size\+\_\+,  }\item[{Random\+Distribution \&\&}]{dist,  }\item[{Random\+Engine \&\&}]{engine }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -150,11 +150,11 @@ Initializes a matrix with random values from the specified distribution.
 \hline
 \end{DoxyParams}
 \mbox{\Hypertarget{structgko_1_1matrix__data_adbba515151de75a490c3fb66cc56bc82}\label{structgko_1_1matrix__data_adbba515151de75a490c3fb66cc56bc82}} 
-\index{gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}!matrix\+\_\+data@{matrix\+\_\+data}}
-\index{matrix\+\_\+data@{matrix\+\_\+data}!gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}}
-\subsubsection{\texorpdfstring{matrix\+\_\+data()}{matrix\_data()}\hspace{0.1cm}{\footnotesize\ttfamily [3/6]}}
+\index{gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}!matrix\_data@{matrix\_data}}
+\index{matrix\_data@{matrix\_data}!gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{matrix\_data()}{matrix\_data()}\hspace{0.1cm}{\footnotesize\ttfamily [3/6]}}
 {\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
-\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$\+::\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} (\begin{DoxyParamCaption}\item[{std\+::initializer\+\_\+list$<$ std\+::initializer\+\_\+list$<$ Value\+Type $>$$>$}]{values }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+\mbox{\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::\mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} (\begin{DoxyParamCaption}\item[{std\+::initializer\+\_\+list$<$ std\+::initializer\+\_\+list$<$ Value\+Type $>$$>$}]{values }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -166,11 +166,11 @@ List-\/initializes the structure from a matrix of values.
 \hline
 \end{DoxyParams}
 \mbox{\Hypertarget{structgko_1_1matrix__data_a80074a1ab496f2332b126407de533e76}\label{structgko_1_1matrix__data_a80074a1ab496f2332b126407de533e76}} 
-\index{gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}!matrix\+\_\+data@{matrix\+\_\+data}}
-\index{matrix\+\_\+data@{matrix\+\_\+data}!gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}}
-\subsubsection{\texorpdfstring{matrix\+\_\+data()}{matrix\_data()}\hspace{0.1cm}{\footnotesize\ttfamily [4/6]}}
+\index{gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}!matrix\_data@{matrix\_data}}
+\index{matrix\_data@{matrix\_data}!gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{matrix\_data()}{matrix\_data()}\hspace{0.1cm}{\footnotesize\ttfamily [4/6]}}
 {\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
-\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$\+::\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} (\begin{DoxyParamCaption}\item[{\hyperlink{structgko_1_1dim}{dim}$<$ 2 $>$}]{size\+\_\+,  }\item[{std\+::initializer\+\_\+list$<$ detail\+::input\+\_\+triple$<$ Value\+Type, Index\+Type $>$$>$}]{nonzeros\+\_\+ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+\mbox{\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::\mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$}]{size\+\_\+,  }\item[{std\+::initializer\+\_\+list$<$ detail\+::input\+\_\+triple$<$ Value\+Type, Index\+Type $>$$>$}]{nonzeros\+\_\+ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -184,11 +184,11 @@ Initializes the structure from a list of nonzeros.
 \hline
 \end{DoxyParams}
 \mbox{\Hypertarget{structgko_1_1matrix__data_aa8398ce720b3db2ebde137419d032352}\label{structgko_1_1matrix__data_aa8398ce720b3db2ebde137419d032352}} 
-\index{gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}!matrix\+\_\+data@{matrix\+\_\+data}}
-\index{matrix\+\_\+data@{matrix\+\_\+data}!gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}}
-\subsubsection{\texorpdfstring{matrix\+\_\+data()}{matrix\_data()}\hspace{0.1cm}{\footnotesize\ttfamily [5/6]}}
+\index{gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}!matrix\_data@{matrix\_data}}
+\index{matrix\_data@{matrix\_data}!gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{matrix\_data()}{matrix\_data()}\hspace{0.1cm}{\footnotesize\ttfamily [5/6]}}
 {\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
-\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$\+::\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} (\begin{DoxyParamCaption}\item[{\hyperlink{structgko_1_1dim}{dim}$<$ 2 $>$}]{size\+\_\+,  }\item[{const \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$ \&}]{block }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+\mbox{\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::\mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$}]{size\+\_\+,  }\item[{const \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$ \&}]{block }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -206,12 +206,12 @@ Initializes a matrix out of a matrix block via duplication.
 References gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::size.
 
 \mbox{\Hypertarget{structgko_1_1matrix__data_a380d2b8207621f3c997804afa6d729af}\label{structgko_1_1matrix__data_a380d2b8207621f3c997804afa6d729af}} 
-\index{gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}!matrix\+\_\+data@{matrix\+\_\+data}}
-\index{matrix\+\_\+data@{matrix\+\_\+data}!gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}}
-\subsubsection{\texorpdfstring{matrix\+\_\+data()}{matrix\_data()}\hspace{0.1cm}{\footnotesize\ttfamily [6/6]}}
+\index{gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}!matrix\_data@{matrix\_data}}
+\index{matrix\_data@{matrix\_data}!gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{matrix\_data()}{matrix\_data()}\hspace{0.1cm}{\footnotesize\ttfamily [6/6]}}
 {\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
 template$<$typename Accessor $>$ \\
-\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$\+::\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1range}{range}$<$ Accessor $>$ \&}]{data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+\mbox{\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::\mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1range}{range}}$<$ Accessor $>$ \&}]{data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -233,51 +233,14 @@ References gko\+::range$<$ Accessor $>$\+::length().
 
 
 
-\subsection{Member Function Documentation}
-\mbox{\Hypertarget{structgko_1_1matrix__data_a84056e4ef41884be328ec78554074df1}\label{structgko_1_1matrix__data_a84056e4ef41884be328ec78554074df1}} 
-\index{gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}!cond@{cond}}
-\index{cond@{cond}!gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}}
-\subsubsection{\texorpdfstring{cond()}{cond()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
-template$<$typename Random\+Distribution , typename Random\+Engine $>$ \\
-static \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} \hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$\+::cond (\begin{DoxyParamCaption}\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{size,  }\item[{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}$<$ Value\+Type $>$}]{condition\+\_\+number,  }\item[{Random\+Distribution \&\&}]{dist,  }\item[{Random\+Engine \&\&}]{engine,  }\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{num\+\_\+reflectors }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
-
-
-
-Initializes a random dense matrix with a specific condition number. 
-
-The matrix is generated by applying a series of random Hausholder reflectors to a diagonal matrix with diagonal entries uniformly distributed between {\ttfamily sqrt(condition\+\_\+number)} and {\ttfamily 1/sqrt(condition\+\_\+number)}.
-
-
-\begin{DoxyTemplParams}{Template Parameters}
-{\em Random\+Distribution} & the type of the random distribution \\
-\hline
-{\em Random\+Engine} & the type of the random engine\\
-\hline
-\end{DoxyTemplParams}
-
-\begin{DoxyParams}{Parameters}
-{\em size} & number of rows and columns of the matrix \\
-\hline
-{\em condition\+\_\+number} & condition number of the matrix \\
-\hline
-{\em dist} & random distribution used to generate reflectors \\
-\hline
-{\em engine} & random engine used to generate reflectors \\
-\hline
-{\em num\+\_\+reflectors} & number of reflectors to apply from each side\\
-\hline
-\end{DoxyParams}
-\begin{DoxyReturn}{Returns}
-the dense matrix with the specified condition number 
-\end{DoxyReturn}
+\doxysubsection{Member Function Documentation}
 \mbox{\Hypertarget{structgko_1_1matrix__data_aff5d2293d78e83ed783b5b8e231e7ede}\label{structgko_1_1matrix__data_aff5d2293d78e83ed783b5b8e231e7ede}} 
-\index{gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}!cond@{cond}}
-\index{cond@{cond}!gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}}
-\subsubsection{\texorpdfstring{cond()}{cond()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+\index{gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}!cond@{cond}}
+\index{cond@{cond}!gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{cond()}{cond()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
 {\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
 template$<$typename Random\+Distribution , typename Random\+Engine $>$ \\
-static \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} \hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$\+::cond (\begin{DoxyParamCaption}\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{size,  }\item[{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}$<$ Value\+Type $>$}]{condition\+\_\+number,  }\item[{Random\+Distribution \&\&}]{dist,  }\item[{Random\+Engine \&\&}]{engine }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+static \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} \mbox{\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::cond (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{size,  }\item[{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}}$<$ Value\+Type $>$}]{condition\+\_\+number,  }\item[{Random\+Distribution \&\&}]{dist,  }\item[{Random\+Engine \&\&}]{engine }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
 
 
 
@@ -308,62 +271,61 @@ This version of the function applies {\ttfamily size -\/ 1} reflectors to each s
 \begin{DoxyReturn}{Returns}
 the dense matrix with the specified condition number 
 \end{DoxyReturn}
-\mbox{\Hypertarget{structgko_1_1matrix__data_a307091117617a342b9e576bcc9dd3c80}\label{structgko_1_1matrix__data_a307091117617a342b9e576bcc9dd3c80}} 
-\index{gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}!diag@{diag}}
-\index{diag@{diag}!gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}}
-\subsubsection{\texorpdfstring{diag()}{diag()}\hspace{0.1cm}{\footnotesize\ttfamily [1/5]}}
+
+
+References gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::cond(), and gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::size.
+
+\mbox{\Hypertarget{structgko_1_1matrix__data_a84056e4ef41884be328ec78554074df1}\label{structgko_1_1matrix__data_a84056e4ef41884be328ec78554074df1}} 
+\index{gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}!cond@{cond}}
+\index{cond@{cond}!gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{cond()}{cond()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
 {\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
-static \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} \hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$\+::diag (\begin{DoxyParamCaption}\item[{\hyperlink{structgko_1_1dim}{dim}$<$ 2 $>$}]{size\+\_\+,  }\item[{Value\+Type}]{value }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+template$<$typename Random\+Distribution , typename Random\+Engine $>$ \\
+static \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} \mbox{\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::cond (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{size,  }\item[{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}}$<$ Value\+Type $>$}]{condition\+\_\+number,  }\item[{Random\+Distribution \&\&}]{dist,  }\item[{Random\+Engine \&\&}]{engine,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{num\+\_\+reflectors }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
 
 
 
-Initializes a diagonal matrix. 
+Initializes a random dense matrix with a specific condition number. 
 
+The matrix is generated by applying a series of random Hausholder reflectors to a diagonal matrix with diagonal entries uniformly distributed between {\ttfamily sqrt(condition\+\_\+number)} and {\ttfamily 1/sqrt(condition\+\_\+number)}.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Random\+Distribution} & the type of the random distribution \\
+\hline
+{\em Random\+Engine} & the type of the random engine\\
+\hline
+\end{DoxyTemplParams}
 
 \begin{DoxyParams}{Parameters}
-{\em size\+\_\+} & dimensions of the matrix \\
+{\em size} & number of rows and columns of the matrix \\
 \hline
-{\em value} & value used to fill the elements of the matrix\\
+{\em condition\+\_\+number} & condition number of the matrix \\
+\hline
+{\em dist} & random distribution used to generate reflectors \\
+\hline
+{\em engine} & random engine used to generate reflectors \\
+\hline
+{\em num\+\_\+reflectors} & number of reflectors to apply from each side\\
 \hline
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
-the diagonal matrix 
+the dense matrix with the specified condition number 
 \end{DoxyReturn}
 
 
-References gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::nonzeros.
-
-\mbox{\Hypertarget{structgko_1_1matrix__data_aa80c7201a72ebf5b79a793b8d38db8e2}\label{structgko_1_1matrix__data_aa80c7201a72ebf5b79a793b8d38db8e2}} 
-\index{gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}!diag@{diag}}
-\index{diag@{diag}!gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}}
-\subsubsection{\texorpdfstring{diag()}{diag()}\hspace{0.1cm}{\footnotesize\ttfamily [2/5]}}
-{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
-static \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} \hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$\+::diag (\begin{DoxyParamCaption}\item[{\hyperlink{structgko_1_1dim}{dim}$<$ 2 $>$}]{size\+\_\+,  }\item[{std\+::initializer\+\_\+list$<$ Value\+Type $>$}]{nonzeros\+\_\+ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+References gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::size.
 
 
 
-Initializes a diagonal matrix using a list of diagonal elements. 
-
-
-\begin{DoxyParams}{Parameters}
-{\em size\+\_\+} & dimensions of the matrix \\
-\hline
-{\em nonzeros\+\_\+} & list of diagonal elements\\
-\hline
-\end{DoxyParams}
-\begin{DoxyReturn}{Returns}
-the diagonal matrix 
-\end{DoxyReturn}
-
-
-References gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::nonzeros.
+Referenced by gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::cond().
 
 \mbox{\Hypertarget{structgko_1_1matrix__data_a2d2fb8725ef69679a74f7bd2f627e776}\label{structgko_1_1matrix__data_a2d2fb8725ef69679a74f7bd2f627e776}} 
-\index{gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}!diag@{diag}}
-\index{diag@{diag}!gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}}
-\subsubsection{\texorpdfstring{diag()}{diag()}\hspace{0.1cm}{\footnotesize\ttfamily [3/5]}}
+\index{gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}!diag@{diag}}
+\index{diag@{diag}!gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{diag()}{diag()}\hspace{0.1cm}{\footnotesize\ttfamily [1/5]}}
 {\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
-static \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} \hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$\+::diag (\begin{DoxyParamCaption}\item[{\hyperlink{structgko_1_1dim}{dim}$<$ 2 $>$}]{size\+\_\+,  }\item[{const \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$ \&}]{block }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+static \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} \mbox{\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::diag (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$}]{size\+\_\+,  }\item[{const \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$ \&}]{block }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
 
 
 
@@ -383,13 +345,67 @@ the block-\/diagonal matrix
 
 References gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::nonzeros, and gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::size.
 
+\mbox{\Hypertarget{structgko_1_1matrix__data_aa80c7201a72ebf5b79a793b8d38db8e2}\label{structgko_1_1matrix__data_aa80c7201a72ebf5b79a793b8d38db8e2}} 
+\index{gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}!diag@{diag}}
+\index{diag@{diag}!gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{diag()}{diag()}\hspace{0.1cm}{\footnotesize\ttfamily [2/5]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+static \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} \mbox{\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::diag (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$}]{size\+\_\+,  }\item[{std\+::initializer\+\_\+list$<$ Value\+Type $>$}]{nonzeros\+\_\+ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+
+
+Initializes a diagonal matrix using a list of diagonal elements. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em size\+\_\+} & dimensions of the matrix \\
+\hline
+{\em nonzeros\+\_\+} & list of diagonal elements\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the diagonal matrix 
+\end{DoxyReturn}
+
+
+References gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::nonzeros.
+
+\mbox{\Hypertarget{structgko_1_1matrix__data_a307091117617a342b9e576bcc9dd3c80}\label{structgko_1_1matrix__data_a307091117617a342b9e576bcc9dd3c80}} 
+\index{gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}!diag@{diag}}
+\index{diag@{diag}!gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{diag()}{diag()}\hspace{0.1cm}{\footnotesize\ttfamily [3/5]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+static \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} \mbox{\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::diag (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$}]{size\+\_\+,  }\item[{Value\+Type}]{value }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+
+
+Initializes a diagonal matrix. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em size\+\_\+} & dimensions of the matrix \\
+\hline
+{\em value} & value used to fill the elements of the matrix\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the diagonal matrix 
+\end{DoxyReturn}
+
+
+References gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::nonzeros.
+
+
+
+Referenced by gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::diag().
+
 \mbox{\Hypertarget{structgko_1_1matrix__data_a83d309b12caf3957c116ed1133da39a7}\label{structgko_1_1matrix__data_a83d309b12caf3957c116ed1133da39a7}} 
-\index{gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}!diag@{diag}}
-\index{diag@{diag}!gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}}
-\subsubsection{\texorpdfstring{diag()}{diag()}\hspace{0.1cm}{\footnotesize\ttfamily [4/5]}}
+\index{gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}!diag@{diag}}
+\index{diag@{diag}!gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{diag()}{diag()}\hspace{0.1cm}{\footnotesize\ttfamily [4/5]}}
 {\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
 template$<$typename Forward\+Iterator $>$ \\
-static \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} \hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$\+::diag (\begin{DoxyParamCaption}\item[{Forward\+Iterator}]{begin,  }\item[{Forward\+Iterator}]{end }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+static \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} \mbox{\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::diag (\begin{DoxyParamCaption}\item[{Forward\+Iterator}]{begin,  }\item[{Forward\+Iterator}]{end }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
 
 
 
@@ -415,11 +431,11 @@ the block-\/diagonal matrix with diagonal blocks set to the blocks between begin
 References gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::nonzeros.
 
 \mbox{\Hypertarget{structgko_1_1matrix__data_aa809c5fbd147b72b18efeca595338398}\label{structgko_1_1matrix__data_aa809c5fbd147b72b18efeca595338398}} 
-\index{gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}!diag@{diag}}
-\index{diag@{diag}!gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}}
-\subsubsection{\texorpdfstring{diag()}{diag()}\hspace{0.1cm}{\footnotesize\ttfamily [5/5]}}
+\index{gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}!diag@{diag}}
+\index{diag@{diag}!gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{diag()}{diag()}\hspace{0.1cm}{\footnotesize\ttfamily [5/5]}}
 {\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
-static \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data} \hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$\+::diag (\begin{DoxyParamCaption}\item[{std\+::initializer\+\_\+list$<$ \hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$ $>$}]{blocks }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+static \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} \mbox{\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::diag (\begin{DoxyParamCaption}\item[{std\+::initializer\+\_\+list$<$ \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$ $>$}]{blocks }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
 
 
 
@@ -435,13 +451,17 @@ the block-\/diagonal matrix with diagonal blocks set to the blocks passed in blo
 \end{DoxyReturn}
 
 
-\subsection{Member Data Documentation}
+References gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::diag().
+
+
+
+\doxysubsection{Member Data Documentation}
 \mbox{\Hypertarget{structgko_1_1matrix__data_a4f6be92270fa96bccdc502c83d248dc0}\label{structgko_1_1matrix__data_a4f6be92270fa96bccdc502c83d248dc0}} 
-\index{gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}!nonzeros@{nonzeros}}
-\index{nonzeros@{nonzeros}!gko\+::matrix\+\_\+data@{gko\+::matrix\+\_\+data}}
-\subsubsection{\texorpdfstring{nonzeros}{nonzeros}}
+\index{gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}!nonzeros@{nonzeros}}
+\index{nonzeros@{nonzeros}!gko::matrix\_data$<$ ValueType, IndexType $>$@{gko::matrix\_data$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{nonzeros}{nonzeros}}
 {\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
-std\+::vector$<$\hyperlink{structgko_1_1matrix__data_1_1nonzero__type}{nonzero\+\_\+type}$>$ \hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}$<$ Value\+Type, Index\+Type $>$\+::nonzeros}
+std\+::vector$<$\mbox{\hyperlink{structgko_1_1matrix__data_1_1nonzero__type}{nonzero\+\_\+type}}$>$ \mbox{\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$\+::nonzeros}
 
 
 
@@ -449,10 +469,10 @@ A vector of tuples storing the non-\/zeros of the matrix.
 
 The first two elements of the tuple are the row index and the column index of a matrix element, and its third element is the value at that position. 
 
-Referenced by gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::diag().
+Referenced by gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::diag(), and gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::ensure\+\_\+row\+\_\+major\+\_\+order().
 
 
 
 The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/matrix\+\_\+data.\+hpp (4bde4271)\end{DoxyCompactItemize}
+ginkgo/core/base/matrix\+\_\+data.\+hpp (ffa4bb4e)\end{DoxyCompactItemize}

@@ -1,30 +1,30 @@
-In addition to the unit tests designed to verify correctness, Ginkgo also includes a benchmark suite for checking its performance on the system. To compile the benchmarks, the flag {\ttfamily -\/\+D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+B\+E\+N\+C\+H\+M\+A\+R\+KS=ON} has to be set during the {\ttfamily cmake} step. In addition, the \href{https://github.com/ginkgo-project/ssget}{\tt {\ttfamily ssget} command-\/line utility} has to be installed on the system.
+In addition to the unit tests designed to verify correctness, Ginkgo also includes a benchmark suite for checking its performance on the system. To compile the benchmarks, the flag {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+B\+E\+N\+C\+H\+M\+A\+R\+KS=ON} has to be set during the {\ttfamily cmake} step. In addition, the \href{https://github.com/ginkgo-project/ssget}{\texttt{ {\ttfamily ssget} command-\/line utility}} has to be installed on the system.
 
-The benchmark suite tests Ginkgo\textquotesingle{}s performance using the \href{https://sparse.tamu.edu/}{\tt Suite\+Sparse matrix collection} and artificially generated matrices. The suite sparse collection will be downloaded automatically when the benchmarks are run. Please note that the entire collection requires roughly 100\+GB of disk storage in its compressed format, and roughly 25\+GB of additional disk space for intermediate data (such us uncompressing the archive). Additionally, the benchmark runs usually take a long time (Sp\+MV benchmarks on the complete collection take roughly 24h using the K20 G\+PU), and will stress the system.
+The benchmark suite tests Ginkgo\textquotesingle{}s performance using the \href{https://sparse.tamu.edu/}{\texttt{ Suite\+Sparse matrix collection}} and artificially generated matrices. The suite sparse collection will be downloaded automatically when the benchmarks are run. Please note that the entire collection requires roughly 100GB of disk storage in its compressed format, and roughly 25GB of additional disk space for intermediate data (such us uncompressing the archive). Additionally, the benchmark runs usually take a long time (Sp\+MV benchmarks on the complete collection take roughly 24h using the K20 G\+PU), and will stress the system.
 
 The benchmark suite is invoked using the {\ttfamily make benchmark} command in the build directory. The behavior of the suite can be modified using environment variables. Assuming the {\ttfamily bash} shell is used, these can either be specified via the {\ttfamily export} command to persist between multiple runs\+:
 
 
-\begin{DoxyCode}
-export VARIABLE="value"
-...
-make benchmark
+\begin{DoxyCode}{0}
+\DoxyCodeLine{export VARIABLE="value"}
+\DoxyCodeLine{...}
+\DoxyCodeLine{make benchmark}
 \end{DoxyCode}
 
 
 or specified on the fly, on the same line as the {\ttfamily make benchmark} command\+:
 
 
-\begin{DoxyCode}
-env VARIABLE="value" ... make benchmark
+\begin{DoxyCode}{0}
+\DoxyCodeLine{env VARIABLE="value" ... make benchmark}
 \end{DoxyCode}
 
 
 Since {\ttfamily make} sets any variables passed to it as temporary environment variables, the following shorthand can also be used\+:
 
 
-\begin{DoxyCode}
-make benchmark VARIABLE="value" ...
+\begin{DoxyCode}{0}
+\DoxyCodeLine{make benchmark VARIABLE="value" ...}
 \end{DoxyCode}
 
 
@@ -47,4 +47,4 @@ Supported environment variables are described in the following list\+:
 \item {\ttfamily S\+Y\+S\+T\+E\+M\+\_\+\+N\+A\+ME=$<$name$>$} -\/ the name of the system where the benchmarks are being run. This option only changes the directory where the benchmark results are stored. It can be used to avoid overwriting the benchmarks if multiple systems share the same filesystem, or when copying the results between systems. Default is {\ttfamily unknown}.
 \end{DoxyItemize}
 
-Once {\ttfamily make benchmark} completes, the results can be found in {\ttfamily $<$Ginkgo build directory$>$/benchmark/results/$<$S\+Y\+S\+T\+E\+M\+\_\+\+N\+A\+ME$>$/}. The files are written in the J\+S\+ON format, and can be analyzed using any of the data analysis tools that support J\+S\+ON. Alternatively, they can be uploaded to an online repository, and analyzed using Ginkgo\textquotesingle{}s free web tool \href{https://ginkgo-project.github.io/gpe/}{\tt Ginkgo Performance Explorer (G\+PE)}. (Make sure to change the \char`\"{}\+Performance data U\+R\+L\char`\"{} to your repository if using G\+PE.) 
+Once {\ttfamily make benchmark} completes, the results can be found in {\ttfamily $<$Ginkgo build directory$>$/benchmark/results/$<$S\+Y\+S\+T\+E\+M\+\_\+\+N\+A\+ME$>$/}. The files are written in the J\+S\+ON format, and can be analyzed using any of the data analysis tools that support J\+S\+ON. Alternatively, they can be uploaded to an online repository, and analyzed using Ginkgo\textquotesingle{}s free web tool \href{https://ginkgo-project.github.io/gpe/}{\texttt{ Ginkgo Performance Explorer (G\+PE)}}. (Make sure to change the \char`\"{}\+Performance data U\+R\+L\char`\"{} to your repository if using G\+PE.) 

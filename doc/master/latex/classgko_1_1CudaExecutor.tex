@@ -1,8 +1,8 @@
-\hypertarget{classgko_1_1CudaExecutor}{}\section{gko\+:\+:Cuda\+Executor Class Reference}
-\label{classgko_1_1CudaExecutor}\index{gko\+::\+Cuda\+Executor@{gko\+::\+Cuda\+Executor}}
+\hypertarget{classgko_1_1CudaExecutor}{}\doxysection{gko\+::Cuda\+Executor Class Reference}
+\label{classgko_1_1CudaExecutor}\index{gko::CudaExecutor@{gko::CudaExecutor}}
 
 
-This is the \hyperlink{classgko_1_1Executor}{Executor} subclass which represents the C\+U\+DA device.  
+This is the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} subclass which represents the C\+U\+DA device.  
 
 
 
@@ -11,7 +11,7 @@ This is the \hyperlink{classgko_1_1Executor}{Executor} subclass which represents
 
 
 
-Collaboration diagram for gko\+:\+:Cuda\+Executor\+:
+Collaboration diagram for gko\+::Cuda\+Executor\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -19,69 +19,63 @@ Collaboration diagram for gko\+:\+:Cuda\+Executor\+:
 \includegraphics[width=350pt]{classgko_1_1CudaExecutor__coll__graph}
 \end{center}
 \end{figure}
-\subsection*{Public Member Functions}
+\doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-std\+::shared\+\_\+ptr$<$ \hyperlink{classgko_1_1Executor}{Executor} $>$ \hyperlink{classgko_1_1CudaExecutor_a59a618e0d48b42fe699e9d4cf347b491}{get\+\_\+master} () noexcept override
-\begin{DoxyCompactList}\small\item\em Returns the master \hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor} of this \hyperlink{classgko_1_1Executor}{Executor}. \end{DoxyCompactList}\item 
-std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1Executor}{Executor} $>$ \hyperlink{classgko_1_1CudaExecutor_a75295b3424224f907958abfa95c66298}{get\+\_\+master} () const noexcept override
-\begin{DoxyCompactList}\small\item\em Returns the master \hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor} of this \hyperlink{classgko_1_1Executor}{Executor}. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ \mbox{\hyperlink{classgko_1_1CudaExecutor_a59a618e0d48b42fe699e9d4cf347b491}{get\+\_\+master}} () noexcept override
+\begin{DoxyCompactList}\small\item\em Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ \mbox{\hyperlink{classgko_1_1CudaExecutor_a75295b3424224f907958abfa95c66298}{get\+\_\+master}} () const noexcept override
+\begin{DoxyCompactList}\small\item\em Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_a903cf7e3460b14677c0bce5ca08a1b81}\label{classgko_1_1CudaExecutor_a903cf7e3460b14677c0bce5ca08a1b81}} 
-void \hyperlink{classgko_1_1CudaExecutor_a903cf7e3460b14677c0bce5ca08a1b81}{synchronize} () const override
+void \mbox{\hyperlink{classgko_1_1CudaExecutor_a903cf7e3460b14677c0bce5ca08a1b81}{synchronize}} () const override
 \begin{DoxyCompactList}\small\item\em Synchronize the operations launched on the executor with its master. \end{DoxyCompactList}\item 
-void \hyperlink{classgko_1_1CudaExecutor_a32a73a74403376d774933abf9663d59e}{run} (const \hyperlink{classgko_1_1Operation}{Operation} \&op) const override
-\begin{DoxyCompactList}\small\item\em Runs the specified \hyperlink{classgko_1_1Operation}{Operation} using this \hyperlink{classgko_1_1Executor}{Executor}. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1CudaExecutor_a32a73a74403376d774933abf9663d59e}{run}} (const \mbox{\hyperlink{classgko_1_1Operation}{Operation}} \&op) const override
+\begin{DoxyCompactList}\small\item\em Runs the specified \mbox{\hyperlink{classgko_1_1Operation}{Operation}} using this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_a7cfa915eadd2329eb897dc1ee2712488}\label{classgko_1_1CudaExecutor_a7cfa915eadd2329eb897dc1ee2712488}} 
-int \hyperlink{classgko_1_1CudaExecutor_a7cfa915eadd2329eb897dc1ee2712488}{get\+\_\+device\+\_\+id} () const noexcept
+int \mbox{\hyperlink{classgko_1_1CudaExecutor_a7cfa915eadd2329eb897dc1ee2712488}{get\+\_\+device\+\_\+id}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the C\+U\+DA device id of the device associated to this executor. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_a213c222fd8ef58952328fbe3a9b5ff39}\label{classgko_1_1CudaExecutor_a213c222fd8ef58952328fbe3a9b5ff39}} 
-int \hyperlink{classgko_1_1CudaExecutor_a213c222fd8ef58952328fbe3a9b5ff39}{get\+\_\+num\+\_\+cores\+\_\+per\+\_\+sm} () const noexcept
+int \mbox{\hyperlink{classgko_1_1CudaExecutor_a213c222fd8ef58952328fbe3a9b5ff39}{get\+\_\+num\+\_\+cores\+\_\+per\+\_\+sm}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the number of cores per SM of this executor. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_a449c2bf9c51b58a04fdb8b4a73377820}\label{classgko_1_1CudaExecutor_a449c2bf9c51b58a04fdb8b4a73377820}} 
-int \hyperlink{classgko_1_1CudaExecutor_a449c2bf9c51b58a04fdb8b4a73377820}{get\+\_\+num\+\_\+multiprocessor} () const noexcept
+int \mbox{\hyperlink{classgko_1_1CudaExecutor_a449c2bf9c51b58a04fdb8b4a73377820}{get\+\_\+num\+\_\+multiprocessor}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the number of multiprocessor of this executor. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_aa9d77db0b87322a8bef12380029b5310}\label{classgko_1_1CudaExecutor_aa9d77db0b87322a8bef12380029b5310}} 
-int \hyperlink{classgko_1_1CudaExecutor_aa9d77db0b87322a8bef12380029b5310}{get\+\_\+num\+\_\+warps} () const noexcept
+int \mbox{\hyperlink{classgko_1_1CudaExecutor_aa9d77db0b87322a8bef12380029b5310}{get\+\_\+num\+\_\+warps}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the number of warps of this executor. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_a3868f53f82b6398acb1ba1f9647a6e46}\label{classgko_1_1CudaExecutor_a3868f53f82b6398acb1ba1f9647a6e46}} 
-int \hyperlink{classgko_1_1CudaExecutor_a3868f53f82b6398acb1ba1f9647a6e46}{get\+\_\+major\+\_\+version} () const noexcept
+int \mbox{\hyperlink{classgko_1_1CudaExecutor_a3868f53f82b6398acb1ba1f9647a6e46}{get\+\_\+major\+\_\+version}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the major verion of compute capability. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_aa7d7a5cd7aeb38b8ab8fe3e4d1538481}\label{classgko_1_1CudaExecutor_aa7d7a5cd7aeb38b8ab8fe3e4d1538481}} 
-int \hyperlink{classgko_1_1CudaExecutor_aa7d7a5cd7aeb38b8ab8fe3e4d1538481}{get\+\_\+minor\+\_\+version} () const noexcept
+int \mbox{\hyperlink{classgko_1_1CudaExecutor_aa7d7a5cd7aeb38b8ab8fe3e4d1538481}{get\+\_\+minor\+\_\+version}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the minor verion of compute capability. \end{DoxyCompactList}\item 
-cublas\+Context $\ast$ \hyperlink{classgko_1_1CudaExecutor_a5b5f8febb914c9984bc77b15e7bb7601}{get\+\_\+cublas\+\_\+handle} () const
+cublas\+Context $\ast$ \mbox{\hyperlink{classgko_1_1CudaExecutor_a5b5f8febb914c9984bc77b15e7bb7601}{get\+\_\+cublas\+\_\+handle}} () const
 \begin{DoxyCompactList}\small\item\em Get the cublas handle for this executor. \end{DoxyCompactList}\item 
-cusparse\+Context $\ast$ \hyperlink{classgko_1_1CudaExecutor_ade84197157cc2695e5c94310692ab323}{get\+\_\+cusparse\+\_\+handle} () const
+cusparse\+Context $\ast$ \mbox{\hyperlink{classgko_1_1CudaExecutor_ade84197157cc2695e5c94310692ab323}{get\+\_\+cusparse\+\_\+handle}} () const
 \begin{DoxyCompactList}\small\item\em Get the cusparse handle for this executor. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\subsection*{Static Public Member Functions}
+\doxysubsection*{Static Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-static std\+::shared\+\_\+ptr$<$ \hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor} $>$ \hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{create} (int device\+\_\+id, std\+::shared\+\_\+ptr$<$ \hyperlink{classgko_1_1Executor}{Executor} $>$ master)
-\begin{DoxyCompactList}\small\item\em Creates a new \hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}. \end{DoxyCompactList}\item 
+static std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}} $>$ \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{create}} (int device\+\_\+id, std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ master)
+\begin{DoxyCompactList}\small\item\em Creates a new \mbox{\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}}. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}\label{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}} 
-static int \hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{get\+\_\+num\+\_\+devices} ()
+static int \mbox{\hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{get\+\_\+num\+\_\+devices}} ()
 \begin{DoxyCompactList}\small\item\em Get the number of devices present on the system. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\subsection*{Friends}
-\begin{DoxyCompactItemize}
-\item 
-\mbox{\Hypertarget{classgko_1_1CudaExecutor_ae0513f5102241a436433d40afb0e84f3}\label{classgko_1_1CudaExecutor_ae0513f5102241a436433d40afb0e84f3}} 
-class {\bfseries Executor\+Base$<$ Cuda\+Executor $>$}
-\end{DoxyCompactItemize}
 
 
-\subsection{Detailed Description}
-This is the \hyperlink{classgko_1_1Executor}{Executor} subclass which represents the C\+U\+DA device. 
+\doxysubsection{Detailed Description}
+This is the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} subclass which represents the C\+U\+DA device. 
 
-\subsection{Member Function Documentation}
+\doxysubsection{Member Function Documentation}
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}\label{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}} 
-\index{gko\+::\+Cuda\+Executor@{gko\+::\+Cuda\+Executor}!create@{create}}
-\index{create@{create}!gko\+::\+Cuda\+Executor@{gko\+::\+Cuda\+Executor}}
-\subsubsection{\texorpdfstring{create()}{create()}}
-{\footnotesize\ttfamily static std\+::shared\+\_\+ptr$<$\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}$>$ gko\+::\+Cuda\+Executor\+::create (\begin{DoxyParamCaption}\item[{int}]{device\+\_\+id,  }\item[{std\+::shared\+\_\+ptr$<$ \hyperlink{classgko_1_1Executor}{Executor} $>$}]{master }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+\index{gko::CudaExecutor@{gko::CudaExecutor}!create@{create}}
+\index{create@{create}!gko::CudaExecutor@{gko::CudaExecutor}}
+\doxysubsubsection{\texorpdfstring{create()}{create()}}
+{\footnotesize\ttfamily static std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}}$>$ gko\+::\+Cuda\+Executor\+::create (\begin{DoxyParamCaption}\item[{int}]{device\+\_\+id,  }\item[{std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{master }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
 
 
 
-Creates a new \hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}. 
+Creates a new \mbox{\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}}. 
 
 
 \begin{DoxyParams}{Parameters}
@@ -91,9 +85,9 @@ Creates a new \hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}.
 \hline
 \end{DoxyParams}
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_a5b5f8febb914c9984bc77b15e7bb7601}\label{classgko_1_1CudaExecutor_a5b5f8febb914c9984bc77b15e7bb7601}} 
-\index{gko\+::\+Cuda\+Executor@{gko\+::\+Cuda\+Executor}!get\+\_\+cublas\+\_\+handle@{get\+\_\+cublas\+\_\+handle}}
-\index{get\+\_\+cublas\+\_\+handle@{get\+\_\+cublas\+\_\+handle}!gko\+::\+Cuda\+Executor@{gko\+::\+Cuda\+Executor}}
-\subsubsection{\texorpdfstring{get\+\_\+cublas\+\_\+handle()}{get\_cublas\_handle()}}
+\index{gko::CudaExecutor@{gko::CudaExecutor}!get\_cublas\_handle@{get\_cublas\_handle}}
+\index{get\_cublas\_handle@{get\_cublas\_handle}!gko::CudaExecutor@{gko::CudaExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_cublas\_handle()}{get\_cublas\_handle()}}
 {\footnotesize\ttfamily cublas\+Context$\ast$ gko\+::\+Cuda\+Executor\+::get\+\_\+cublas\+\_\+handle (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
 
 
@@ -104,9 +98,9 @@ Get the cublas handle for this executor.
 the cublas handle (cublas\+Context$\ast$) for this executor 
 \end{DoxyReturn}
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_ade84197157cc2695e5c94310692ab323}\label{classgko_1_1CudaExecutor_ade84197157cc2695e5c94310692ab323}} 
-\index{gko\+::\+Cuda\+Executor@{gko\+::\+Cuda\+Executor}!get\+\_\+cusparse\+\_\+handle@{get\+\_\+cusparse\+\_\+handle}}
-\index{get\+\_\+cusparse\+\_\+handle@{get\+\_\+cusparse\+\_\+handle}!gko\+::\+Cuda\+Executor@{gko\+::\+Cuda\+Executor}}
-\subsubsection{\texorpdfstring{get\+\_\+cusparse\+\_\+handle()}{get\_cusparse\_handle()}}
+\index{gko::CudaExecutor@{gko::CudaExecutor}!get\_cusparse\_handle@{get\_cusparse\_handle}}
+\index{get\_cusparse\_handle@{get\_cusparse\_handle}!gko::CudaExecutor@{gko::CudaExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_cusparse\_handle()}{get\_cusparse\_handle()}}
 {\footnotesize\ttfamily cusparse\+Context$\ast$ gko\+::\+Cuda\+Executor\+::get\+\_\+cusparse\+\_\+handle (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
 
 
@@ -116,49 +110,49 @@ Get the cusparse handle for this executor.
 \begin{DoxyReturn}{Returns}
 the cusparse handle (cusparse\+Context$\ast$) for this executor 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classgko_1_1CudaExecutor_a59a618e0d48b42fe699e9d4cf347b491}\label{classgko_1_1CudaExecutor_a59a618e0d48b42fe699e9d4cf347b491}} 
-\index{gko\+::\+Cuda\+Executor@{gko\+::\+Cuda\+Executor}!get\+\_\+master@{get\+\_\+master}}
-\index{get\+\_\+master@{get\+\_\+master}!gko\+::\+Cuda\+Executor@{gko\+::\+Cuda\+Executor}}
-\subsubsection{\texorpdfstring{get\+\_\+master()}{get\_master()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$\hyperlink{classgko_1_1Executor}{Executor}$>$ gko\+::\+Cuda\+Executor\+::get\+\_\+master (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
-
-
-
-Returns the master \hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor} of this \hyperlink{classgko_1_1Executor}{Executor}. 
-
-\begin{DoxyReturn}{Returns}
-the master \hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor} of this \hyperlink{classgko_1_1Executor}{Executor}. 
-\end{DoxyReturn}
-
-
-Implements \hyperlink{classgko_1_1Executor_acaec4f999d52fc71e5e5a3d3ad93609c}{gko\+::\+Executor}.
-
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_a75295b3424224f907958abfa95c66298}\label{classgko_1_1CudaExecutor_a75295b3424224f907958abfa95c66298}} 
-\index{gko\+::\+Cuda\+Executor@{gko\+::\+Cuda\+Executor}!get\+\_\+master@{get\+\_\+master}}
-\index{get\+\_\+master@{get\+\_\+master}!gko\+::\+Cuda\+Executor@{gko\+::\+Cuda\+Executor}}
-\subsubsection{\texorpdfstring{get\+\_\+master()}{get\_master()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$const \hyperlink{classgko_1_1Executor}{Executor}$>$ gko\+::\+Cuda\+Executor\+::get\+\_\+master (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+\index{gko::CudaExecutor@{gko::CudaExecutor}!get\_master@{get\_master}}
+\index{get\_master@{get\_master}!gko::CudaExecutor@{gko::CudaExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_master()}{get\_master()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1Executor}{Executor}}$>$ gko\+::\+Cuda\+Executor\+::get\+\_\+master (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
 
 
 
-Returns the master \hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor} of this \hyperlink{classgko_1_1Executor}{Executor}. 
+Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
 
 \begin{DoxyReturn}{Returns}
-the master \hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor} of this \hyperlink{classgko_1_1Executor}{Executor}. 
+the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
 \end{DoxyReturn}
 
 
-Implements \hyperlink{classgko_1_1Executor_a261386e439c8daa6e0d95dc331b9bfeb}{gko\+::\+Executor}.
+Implements \mbox{\hyperlink{classgko_1_1Executor_a261386e439c8daa6e0d95dc331b9bfeb}{gko\+::\+Executor}}.
+
+\mbox{\Hypertarget{classgko_1_1CudaExecutor_a59a618e0d48b42fe699e9d4cf347b491}\label{classgko_1_1CudaExecutor_a59a618e0d48b42fe699e9d4cf347b491}} 
+\index{gko::CudaExecutor@{gko::CudaExecutor}!get\_master@{get\_master}}
+\index{get\_master@{get\_master}!gko::CudaExecutor@{gko::CudaExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_master()}{get\_master()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1Executor}{Executor}}$>$ gko\+::\+Cuda\+Executor\+::get\+\_\+master (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+
+\begin{DoxyReturn}{Returns}
+the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Executor_acaec4f999d52fc71e5e5a3d3ad93609c}{gko\+::\+Executor}}.
 
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_a32a73a74403376d774933abf9663d59e}\label{classgko_1_1CudaExecutor_a32a73a74403376d774933abf9663d59e}} 
-\index{gko\+::\+Cuda\+Executor@{gko\+::\+Cuda\+Executor}!run@{run}}
-\index{run@{run}!gko\+::\+Cuda\+Executor@{gko\+::\+Cuda\+Executor}}
-\subsubsection{\texorpdfstring{run()}{run()}}
-{\footnotesize\ttfamily void gko\+::\+Cuda\+Executor\+::run (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1Operation}{Operation} \&}]{op }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+\index{gko::CudaExecutor@{gko::CudaExecutor}!run@{run}}
+\index{run@{run}!gko::CudaExecutor@{gko::CudaExecutor}}
+\doxysubsubsection{\texorpdfstring{run()}{run()}}
+{\footnotesize\ttfamily void gko\+::\+Cuda\+Executor\+::run (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Operation}{Operation}} \&}]{op }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
 
 
 
-Runs the specified \hyperlink{classgko_1_1Operation}{Operation} using this \hyperlink{classgko_1_1Executor}{Executor}. 
+Runs the specified \mbox{\hyperlink{classgko_1_1Operation}{Operation}} using this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
 
 
 \begin{DoxyParams}{Parameters}
@@ -167,10 +161,10 @@ Runs the specified \hyperlink{classgko_1_1Operation}{Operation} using this \hype
 \end{DoxyParams}
 
 
-Implements \hyperlink{classgko_1_1Executor_a1de8e2668b76e66690acf5eef9e8324d}{gko\+::\+Executor}.
+Implements \mbox{\hyperlink{classgko_1_1Executor_a1de8e2668b76e66690acf5eef9e8324d}{gko\+::\+Executor}}.
 
 
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/executor.\+hpp (f1a4eb68)\end{DoxyCompactItemize}
+ginkgo/core/base/executor.\+hpp (d025bd85)\end{DoxyCompactItemize}

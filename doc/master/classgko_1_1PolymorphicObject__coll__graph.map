@@ -1,5 +1,6 @@
 <map id="gko::PolymorphicObject" name="gko::PolymorphicObject">
-<area shape="rect" id="node2" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; PolymorphicObject \&gt;" alt="" coords="5,200,183,241"/>
-<area shape="rect" id="node3" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="18,5,159,32"/>
-<area shape="rect" id="node4" href="$classgko_1_1log_1_1EnableLogging.html" title="EnableLogging is a mixin which should be inherited by any class which wants to enable logging..." alt="" coords="110,81,353,137"/>
+<area shape="rect" id="node1" title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall..." alt="" coords="5,291,183,317"/>
+<area shape="rect" id="node2" href="$classgko_1_1log_1_1EnableLogging.html" title=" " alt="" coords="5,200,183,241"/>
+<area shape="rect" id="node3" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging." alt="" coords="18,5,159,32"/>
+<area shape="rect" id="node4" href="$classgko_1_1log_1_1EnableLogging.html" title="EnableLogging is a mixin which should be inherited by any class which wants to enable logging." alt="" coords="110,81,353,137"/>
 </map>

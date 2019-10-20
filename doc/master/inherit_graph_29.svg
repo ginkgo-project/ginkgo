@@ -9,19 +9,22 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 57)">
 <title>Graphical Class Hierarchy</title>
 <polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-57 327,-57 327,4 -4,4"/>
-<!-- Node179 -->
+<!-- Node205 -->
 <g id="node1" class="node">
-<title>Node179</title>
+<title>Node205</title>
+<g id="a_node1"><a xlink:title=" ">
 <polygon fill="#ffffff" stroke="#bfbfbf" points="0,-.5 0,-52.5 167,-52.5 167,-.5 0,-.5"/>
 <text text-anchor="start" x="8" y="-40.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::detail::implement</text>
 <text text-anchor="start" x="8" y="-29.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">_binary_operation&lt; Kind,</text>
 <text text-anchor="start" x="8" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> FirstOperand, SecondOperand,</text>
 <text text-anchor="middle" x="83.5" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> ::gko::accessor::detail::sub &gt;</text>
+</a>
+</g>
 </g>
 <!-- Node0 -->
 <g id="node2" class="node">
 <title>Node0</title>
-<g id="a_node2"><a xlink:href="structgko_1_1accessor_1_1sub.html" target="_top" xlink:title="gko::accessor::sub\l\&lt; Kind, FirstOperand,\l SecondOperand \&gt;">
+<g id="a_node2"><a xlink:href="structgko_1_1accessor_1_1sub.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="203,-6 203,-47 323,-47 323,-6 203,-6"/>
 <text text-anchor="start" x="211" y="-35" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::accessor::sub</text>
 <text text-anchor="start" x="211" y="-24" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; Kind, FirstOperand,</text>
@@ -29,9 +32,9 @@
 </a>
 </g>
 </g>
-<!-- Node179&#45;&gt;Node0 -->
+<!-- Node205&#45;&gt;Node0 -->
 <g id="edge1" class="edge">
-<title>Node179&#45;&gt;Node0</title>
+<title>Node205&#45;&gt;Node0</title>
 <path fill="none" stroke="#191970" d="M177.4012,-26.5C186.082,-26.5 194.7108,-26.5 202.962,-26.5"/>
 <polygon fill="#191970" stroke="#191970" points="177.2065,-23.0001 167.2065,-26.5 177.2064,-30.0001 177.2065,-23.0001"/>
 </g>

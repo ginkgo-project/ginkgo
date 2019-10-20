@@ -1,5 +1,5 @@
-\hypertarget{classgko_1_1stopping__status}{}\section{gko\+:\+:stopping\+\_\+status Class Reference}
-\label{classgko_1_1stopping__status}\index{gko\+::stopping\+\_\+status@{gko\+::stopping\+\_\+status}}
+\hypertarget{classgko_1_1stopping__status}{}\doxysection{gko\+::stopping\+\_\+status Class Reference}
+\label{classgko_1_1stopping__status}\index{gko::stopping\_status@{gko::stopping\_status}}
 
 
 This class is used to keep track of the stopping status of one vector.  
@@ -9,45 +9,45 @@ This class is used to keep track of the stopping status of one vector.
 
 {\ttfamily \#include $<$ginkgo/core/stop/stopping\+\_\+status.\+hpp$>$}
 
-\subsection*{Public Member Functions}
+\doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-bool \hyperlink{classgko_1_1stopping__status_af374c7164dcf3adb27a15a669714abcc}{has\+\_\+stopped} () const noexcept
+bool \mbox{\hyperlink{classgko_1_1stopping__status_af374c7164dcf3adb27a15a669714abcc}{has\+\_\+stopped}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Check if any stopping criteria was fulfilled. \end{DoxyCompactList}\item 
-bool \hyperlink{classgko_1_1stopping__status_a825e74142fdaf17e9570d06db0b378db}{has\+\_\+converged} () const noexcept
+bool \mbox{\hyperlink{classgko_1_1stopping__status_a825e74142fdaf17e9570d06db0b378db}{has\+\_\+converged}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Check if convergence was reached. \end{DoxyCompactList}\item 
-bool \hyperlink{classgko_1_1stopping__status_a7c8b094d37449098ca4ddb1f4bbf10bd}{is\+\_\+finalized} () const noexcept
+bool \mbox{\hyperlink{classgko_1_1stopping__status_a7c8b094d37449098ca4ddb1f4bbf10bd}{is\+\_\+finalized}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Check if the corresponding vector stores the finalized result. \end{DoxyCompactList}\item 
-\hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8} \hyperlink{classgko_1_1stopping__status_ae3c4d0e7a01f4e1892a09f418ea0907d}{get\+\_\+id} () const noexcept
+\mbox{\hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8}} \mbox{\hyperlink{classgko_1_1stopping__status_ae3c4d0e7a01f4e1892a09f418ea0907d}{get\+\_\+id}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the id of the stopping criterion which caused the stop. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1stopping__status_afb227192722d1c20d11ae15719e1f930}\label{classgko_1_1stopping__status_afb227192722d1c20d11ae15719e1f930}} 
-void \hyperlink{classgko_1_1stopping__status_afb227192722d1c20d11ae15719e1f930}{reset} () noexcept
+void \mbox{\hyperlink{classgko_1_1stopping__status_afb227192722d1c20d11ae15719e1f930}{reset}} () noexcept
 \begin{DoxyCompactList}\small\item\em Clear all flags. \end{DoxyCompactList}\item 
-void \hyperlink{classgko_1_1stopping__status_ab13d4f214328c9574fdef6168c671de0}{stop} (\hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8} id, bool set\+\_\+finalized=true) noexcept
+void \mbox{\hyperlink{classgko_1_1stopping__status_ab13d4f214328c9574fdef6168c671de0}{stop}} (\mbox{\hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8}} id, bool set\+\_\+finalized=true) noexcept
 \begin{DoxyCompactList}\small\item\em Call if a stop occured due to a hard limit (and convergence was not reached). \end{DoxyCompactList}\item 
-void \hyperlink{classgko_1_1stopping__status_a611bf8c81a8e3b22bab8f19ff68e8a12}{converge} (\hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8} id, bool set\+\_\+finalized=true) noexcept
+void \mbox{\hyperlink{classgko_1_1stopping__status_a611bf8c81a8e3b22bab8f19ff68e8a12}{converge}} (\mbox{\hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8}} id, bool set\+\_\+finalized=true) noexcept
 \begin{DoxyCompactList}\small\item\em Call if convergence occured. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1stopping__status_a56d82a88a20cc1954981e75a66e996bc}\label{classgko_1_1stopping__status_a56d82a88a20cc1954981e75a66e996bc}} 
-void \hyperlink{classgko_1_1stopping__status_a56d82a88a20cc1954981e75a66e996bc}{finalize} () noexcept
+void \mbox{\hyperlink{classgko_1_1stopping__status_a56d82a88a20cc1954981e75a66e996bc}{finalize}} () noexcept
 \begin{DoxyCompactList}\small\item\em Set the result to be finalized (it needs to be stopped or converged first). \end{DoxyCompactList}\end{DoxyCompactItemize}
-\subsection*{Friends}
+\doxysubsection*{Friends}
 \begin{DoxyCompactItemize}
 \item 
-bool \hyperlink{classgko_1_1stopping__status_a7d7a8893aec4d1d561b4f684ca5d090e}{operator==} (const \hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status} \&x, const \hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status} \&y) noexcept
+bool \mbox{\hyperlink{classgko_1_1stopping__status_a7d7a8893aec4d1d561b4f684ca5d090e}{operator==}} (const \mbox{\hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status}} \&x, const \mbox{\hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status}} \&y) noexcept
 \begin{DoxyCompactList}\small\item\em Checks if two stopping statuses are equivalent. \end{DoxyCompactList}\item 
-bool \hyperlink{classgko_1_1stopping__status_a61e994f69678aab2be54a342d4725e6c}{operator!=} (const \hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status} \&x, const \hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status} \&y) noexcept
+bool \mbox{\hyperlink{classgko_1_1stopping__status_a61e994f69678aab2be54a342d4725e6c}{operator!=}} (const \mbox{\hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status}} \&x, const \mbox{\hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status}} \&y) noexcept
 \begin{DoxyCompactList}\small\item\em Checks if two stopping statuses are different. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
-\subsection{Detailed Description}
+\doxysubsection{Detailed Description}
 This class is used to keep track of the stopping status of one vector. 
 
-\subsection{Member Function Documentation}
+\doxysubsection{Member Function Documentation}
 \mbox{\Hypertarget{classgko_1_1stopping__status_a611bf8c81a8e3b22bab8f19ff68e8a12}\label{classgko_1_1stopping__status_a611bf8c81a8e3b22bab8f19ff68e8a12}} 
-\index{gko\+::stopping\+\_\+status@{gko\+::stopping\+\_\+status}!converge@{converge}}
-\index{converge@{converge}!gko\+::stopping\+\_\+status@{gko\+::stopping\+\_\+status}}
-\subsubsection{\texorpdfstring{converge()}{converge()}}
-{\footnotesize\ttfamily void gko\+::stopping\+\_\+status\+::converge (\begin{DoxyParamCaption}\item[{\hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8}}]{id,  }\item[{bool}]{set\+\_\+finalized = {\ttfamily true} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+\index{gko::stopping\_status@{gko::stopping\_status}!converge@{converge}}
+\index{converge@{converge}!gko::stopping\_status@{gko::stopping\_status}}
+\doxysubsubsection{\texorpdfstring{converge()}{converge()}}
+{\footnotesize\ttfamily void gko\+::stopping\+\_\+status\+::converge (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8}}}]{id,  }\item[{bool}]{set\+\_\+finalized = {\ttfamily true} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -65,10 +65,10 @@ Call if convergence occured.
 References has\+\_\+stopped().
 
 \mbox{\Hypertarget{classgko_1_1stopping__status_ae3c4d0e7a01f4e1892a09f418ea0907d}\label{classgko_1_1stopping__status_ae3c4d0e7a01f4e1892a09f418ea0907d}} 
-\index{gko\+::stopping\+\_\+status@{gko\+::stopping\+\_\+status}!get\+\_\+id@{get\+\_\+id}}
-\index{get\+\_\+id@{get\+\_\+id}!gko\+::stopping\+\_\+status@{gko\+::stopping\+\_\+status}}
-\subsubsection{\texorpdfstring{get\+\_\+id()}{get\_id()}}
-{\footnotesize\ttfamily \hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8} gko\+::stopping\+\_\+status\+::get\+\_\+id (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+\index{gko::stopping\_status@{gko::stopping\_status}!get\_id@{get\_id}}
+\index{get\_id@{get\_id}!gko::stopping\_status@{gko::stopping\_status}}
+\doxysubsubsection{\texorpdfstring{get\_id()}{get\_id()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8}} gko\+::stopping\+\_\+status\+::get\+\_\+id (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -82,9 +82,9 @@ Returns the id of the stopping criterion which caused the stop.
 Referenced by has\+\_\+stopped().
 
 \mbox{\Hypertarget{classgko_1_1stopping__status_a825e74142fdaf17e9570d06db0b378db}\label{classgko_1_1stopping__status_a825e74142fdaf17e9570d06db0b378db}} 
-\index{gko\+::stopping\+\_\+status@{gko\+::stopping\+\_\+status}!has\+\_\+converged@{has\+\_\+converged}}
-\index{has\+\_\+converged@{has\+\_\+converged}!gko\+::stopping\+\_\+status@{gko\+::stopping\+\_\+status}}
-\subsubsection{\texorpdfstring{has\+\_\+converged()}{has\_converged()}}
+\index{gko::stopping\_status@{gko::stopping\_status}!has\_converged@{has\_converged}}
+\index{has\_converged@{has\_converged}!gko::stopping\_status@{gko::stopping\_status}}
+\doxysubsubsection{\texorpdfstring{has\_converged()}{has\_converged()}}
 {\footnotesize\ttfamily bool gko\+::stopping\+\_\+status\+::has\+\_\+converged (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
@@ -95,9 +95,9 @@ Check if convergence was reached.
 Returns true if convergence was reached. 
 \end{DoxyReturn}
 \mbox{\Hypertarget{classgko_1_1stopping__status_af374c7164dcf3adb27a15a669714abcc}\label{classgko_1_1stopping__status_af374c7164dcf3adb27a15a669714abcc}} 
-\index{gko\+::stopping\+\_\+status@{gko\+::stopping\+\_\+status}!has\+\_\+stopped@{has\+\_\+stopped}}
-\index{has\+\_\+stopped@{has\+\_\+stopped}!gko\+::stopping\+\_\+status@{gko\+::stopping\+\_\+status}}
-\subsubsection{\texorpdfstring{has\+\_\+stopped()}{has\_stopped()}}
+\index{gko::stopping\_status@{gko::stopping\_status}!has\_stopped@{has\_stopped}}
+\index{has\_stopped@{has\_stopped}!gko::stopping\_status@{gko::stopping\_status}}
+\doxysubsubsection{\texorpdfstring{has\_stopped()}{has\_stopped()}}
 {\footnotesize\ttfamily bool gko\+::stopping\+\_\+status\+::has\+\_\+stopped (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
@@ -116,9 +116,9 @@ References get\+\_\+id().
 Referenced by converge(), finalize(), and stop().
 
 \mbox{\Hypertarget{classgko_1_1stopping__status_a7c8b094d37449098ca4ddb1f4bbf10bd}\label{classgko_1_1stopping__status_a7c8b094d37449098ca4ddb1f4bbf10bd}} 
-\index{gko\+::stopping\+\_\+status@{gko\+::stopping\+\_\+status}!is\+\_\+finalized@{is\+\_\+finalized}}
-\index{is\+\_\+finalized@{is\+\_\+finalized}!gko\+::stopping\+\_\+status@{gko\+::stopping\+\_\+status}}
-\subsubsection{\texorpdfstring{is\+\_\+finalized()}{is\_finalized()}}
+\index{gko::stopping\_status@{gko::stopping\_status}!is\_finalized@{is\_finalized}}
+\index{is\_finalized@{is\_finalized}!gko::stopping\_status@{gko::stopping\_status}}
+\doxysubsubsection{\texorpdfstring{is\_finalized()}{is\_finalized()}}
 {\footnotesize\ttfamily bool gko\+::stopping\+\_\+status\+::is\+\_\+finalized (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
@@ -129,10 +129,10 @@ Check if the corresponding vector stores the finalized result.
 Returns true if the corresponding vector stores the finalized result. 
 \end{DoxyReturn}
 \mbox{\Hypertarget{classgko_1_1stopping__status_ab13d4f214328c9574fdef6168c671de0}\label{classgko_1_1stopping__status_ab13d4f214328c9574fdef6168c671de0}} 
-\index{gko\+::stopping\+\_\+status@{gko\+::stopping\+\_\+status}!stop@{stop}}
-\index{stop@{stop}!gko\+::stopping\+\_\+status@{gko\+::stopping\+\_\+status}}
-\subsubsection{\texorpdfstring{stop()}{stop()}}
-{\footnotesize\ttfamily void gko\+::stopping\+\_\+status\+::stop (\begin{DoxyParamCaption}\item[{\hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8}}]{id,  }\item[{bool}]{set\+\_\+finalized = {\ttfamily true} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+\index{gko::stopping\_status@{gko::stopping\_status}!stop@{stop}}
+\index{stop@{stop}!gko::stopping\_status@{gko::stopping\_status}}
+\doxysubsubsection{\texorpdfstring{stop()}{stop()}}
+{\footnotesize\ttfamily void gko\+::stopping\+\_\+status\+::stop (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8}}}]{id,  }\item[{bool}]{set\+\_\+finalized = {\ttfamily true} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -151,12 +151,12 @@ References has\+\_\+stopped().
 
 
 
-\subsection{Friends And Related Function Documentation}
+\doxysubsection{Friends And Related Function Documentation}
 \mbox{\Hypertarget{classgko_1_1stopping__status_a61e994f69678aab2be54a342d4725e6c}\label{classgko_1_1stopping__status_a61e994f69678aab2be54a342d4725e6c}} 
-\index{gko\+::stopping\+\_\+status@{gko\+::stopping\+\_\+status}!operator"!=@{operator"!=}}
-\index{operator"!=@{operator"!=}!gko\+::stopping\+\_\+status@{gko\+::stopping\+\_\+status}}
-\subsubsection{\texorpdfstring{operator"!=}{operator!=}}
-{\footnotesize\ttfamily bool operator!= (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status} \&}]{x,  }\item[{const \hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status} \&}]{y }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [friend]}}
+\index{gko::stopping\_status@{gko::stopping\_status}!operator"!=@{operator"!=}}
+\index{operator"!=@{operator"!=}!gko::stopping\_status@{gko::stopping\_status}}
+\doxysubsubsection{\texorpdfstring{operator"!=}{operator!=}}
+{\footnotesize\ttfamily bool operator!= (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status}} \&}]{x,  }\item[{const \mbox{\hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status}} \&}]{y }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [friend]}}
 
 
 
@@ -173,10 +173,10 @@ Checks if two stopping statuses are different.
 true if and only if {\ttfamily !(x == y)} 
 \end{DoxyReturn}
 \mbox{\Hypertarget{classgko_1_1stopping__status_a7d7a8893aec4d1d561b4f684ca5d090e}\label{classgko_1_1stopping__status_a7d7a8893aec4d1d561b4f684ca5d090e}} 
-\index{gko\+::stopping\+\_\+status@{gko\+::stopping\+\_\+status}!operator==@{operator==}}
-\index{operator==@{operator==}!gko\+::stopping\+\_\+status@{gko\+::stopping\+\_\+status}}
-\subsubsection{\texorpdfstring{operator==}{operator==}}
-{\footnotesize\ttfamily bool operator== (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status} \&}]{x,  }\item[{const \hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status} \&}]{y }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [friend]}}
+\index{gko::stopping\_status@{gko::stopping\_status}!operator==@{operator==}}
+\index{operator==@{operator==}!gko::stopping\_status@{gko::stopping\_status}}
+\doxysubsubsection{\texorpdfstring{operator==}{operator==}}
+{\footnotesize\ttfamily bool operator== (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status}} \&}]{x,  }\item[{const \mbox{\hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status}} \&}]{y }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [friend]}}
 
 
 

@@ -12,7 +12,7 @@
 <!-- Node0 -->
 <g id="node1" class="node">
 <title>Node0</title>
-<g id="a_node1"><a xlink:href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html" target="_top" xlink:title="strategy_type is to decide how to set the hybrid config. ">
+<g id="a_node1"><a xlink:href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html" target="_top" xlink:title="strategy_type is to decide how to set the hybrid config.">
 <polygon fill="#ffffff" stroke="#000000" points="0,-120.5 0,-161.5 133,-161.5 133,-120.5 0,-120.5"/>
 <text text-anchor="start" x="8" y="-149.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Hybrid</text>
 <text text-anchor="start" x="8" y="-138.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; ValueType, IndexType</text>

@@ -12,7 +12,7 @@
 <!-- Node0 -->
 <g id="node1" class="node">
 <title>Node0</title>
-<g id="a_node1"><a xlink:href="structgko_1_1syn_1_1value__list.html" target="_top" xlink:title="gko::syn::value_list\l\&lt; T, Values \&gt;">
+<g id="a_node1"><a xlink:href="structgko_1_1syn_1_1value__list.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="0,-.5 0,-30.5 111,-30.5 111,-.5 0,-.5"/>
 <text text-anchor="start" x="8" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::syn::value_list</text>
 <text text-anchor="middle" x="55.5" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; T, Values &gt;</text>

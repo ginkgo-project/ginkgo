@@ -1,4 +1,5 @@
 <map id="gko::stop::Time::parameters_type" name="gko::stop::Time::parameters_type">
-<area shape="rect" id="node2" href="$structgko_1_1enable__parameters__type.html" title="gko::enable_parameters\l_type\&lt; parameters_type,\l Factory \&gt;" alt="" coords="33,139,221,195"/>
+<area shape="rect" id="node1" title=" " alt="" coords="5,244,248,271"/>
+<area shape="rect" id="node2" href="$structgko_1_1enable__parameters__type.html" title=" " alt="" coords="33,139,221,195"/>
 <area shape="rect" id="node3" href="$structgko_1_1enable__parameters__type.html" title="The enable_parameters_type mixin is used to create a base implementation of the factory parameters st..." alt="" coords="7,5,246,61"/>
 </map>

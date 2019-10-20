@@ -1,5 +1,5 @@
-\hypertarget{structgko_1_1span}{}\section{gko\+:\+:span Struct Reference}
-\label{structgko_1_1span}\index{gko\+::span@{gko\+::span}}
+\hypertarget{structgko_1_1span}{}\doxysection{gko\+::span Struct Reference}
+\label{structgko_1_1span}\index{gko::span@{gko::span}}
 
 
 A span is a lightweight structure used to create sub-\/ranges from other ranges.  
@@ -9,27 +9,27 @@ A span is a lightweight structure used to create sub-\/ranges from other ranges.
 
 {\ttfamily \#include $<$ginkgo/core/base/range.\+hpp$>$}
 
-\subsection*{Public Member Functions}
+\doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-constexpr \hyperlink{structgko_1_1span_a2aafb0414ef14fac91296066f7426d6d}{span} (\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} point) noexcept
+constexpr \mbox{\hyperlink{structgko_1_1span_a2aafb0414ef14fac91296066f7426d6d}{span}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} point) noexcept
 \begin{DoxyCompactList}\small\item\em Creates a span representing a point {\ttfamily point}. \end{DoxyCompactList}\item 
-constexpr \hyperlink{structgko_1_1span_a1566e1ab67312a6b9ece66fa4f5c8799}{span} (\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{structgko_1_1span_a54ff06eda27a98b62e83c7e9e7b6dcd7}{begin}, \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{structgko_1_1span_af68200dea4456e1bd3511c3b14bc2886}{end}) noexcept
+constexpr \mbox{\hyperlink{structgko_1_1span_a1566e1ab67312a6b9ece66fa4f5c8799}{span}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{structgko_1_1span_a54ff06eda27a98b62e83c7e9e7b6dcd7}{begin}}, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{structgko_1_1span_af68200dea4456e1bd3511c3b14bc2886}{end}}) noexcept
 \begin{DoxyCompactList}\small\item\em Creates a span. \end{DoxyCompactList}\item 
-constexpr bool \hyperlink{structgko_1_1span_a32a87f434708e6857820858503f9b133}{is\+\_\+valid} () const
+constexpr bool \mbox{\hyperlink{structgko_1_1span_a32a87f434708e6857820858503f9b133}{is\+\_\+valid}} () const
 \begin{DoxyCompactList}\small\item\em Checks if a span is valid. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\subsection*{Public Attributes}
+\doxysubsection*{Public Attributes}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{structgko_1_1span_a54ff06eda27a98b62e83c7e9e7b6dcd7}\label{structgko_1_1span_a54ff06eda27a98b62e83c7e9e7b6dcd7}} 
-const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{structgko_1_1span_a54ff06eda27a98b62e83c7e9e7b6dcd7}{begin}
+const \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{structgko_1_1span_a54ff06eda27a98b62e83c7e9e7b6dcd7}{begin}}
 \begin{DoxyCompactList}\small\item\em Beginning of the span. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{structgko_1_1span_af68200dea4456e1bd3511c3b14bc2886}\label{structgko_1_1span_af68200dea4456e1bd3511c3b14bc2886}} 
-const \hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{structgko_1_1span_af68200dea4456e1bd3511c3b14bc2886}{end}
+const \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{structgko_1_1span_af68200dea4456e1bd3511c3b14bc2886}{end}}
 \begin{DoxyCompactList}\small\item\em End of the span. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
-\subsection{Detailed Description}
+\doxysubsection{Detailed Description}
 A span is a lightweight structure used to create sub-\/ranges from other ranges. 
 
 A {\ttfamily span s} represents a contiguous set of indexes in one dimension of the range, starting on index {\ttfamily s.\+begin} (inclusive) and ending at index {\ttfamily s.\+end} (exclusive). A span is only valid if its starting index is smaller than its ending index.
@@ -46,12 +46,12 @@ Note that the orders are in fact partial -\/ there are spans {\ttfamily x} and {
 
 In addition, {\ttfamily $<$=} is a distinct order from {\ttfamily $<$}, and not just an extension of the strict order to its weak equivalent. Thus, {\ttfamily x $<$= y} is not equivalent to {\ttfamily x $<$ y $\vert$$\vert$ x == y}. 
 
-\subsection{Constructor \& Destructor Documentation}
+\doxysubsection{Constructor \& Destructor Documentation}
 \mbox{\Hypertarget{structgko_1_1span_a2aafb0414ef14fac91296066f7426d6d}\label{structgko_1_1span_a2aafb0414ef14fac91296066f7426d6d}} 
-\index{gko\+::span@{gko\+::span}!span@{span}}
-\index{span@{span}!gko\+::span@{gko\+::span}}
-\subsubsection{\texorpdfstring{span()}{span()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
-{\footnotesize\ttfamily constexpr gko\+::span\+::span (\begin{DoxyParamCaption}\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{point }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+\index{gko::span@{gko::span}!span@{span}}
+\index{span@{span}!gko::span@{gko::span}}
+\doxysubsubsection{\texorpdfstring{span()}{span()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily constexpr gko\+::span\+::span (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{point }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
 
 
 
@@ -65,10 +65,10 @@ The {\ttfamily begin} of this span is set to {\ttfamily point}, and the {\ttfami
 \hline
 \end{DoxyParams}
 \mbox{\Hypertarget{structgko_1_1span_a1566e1ab67312a6b9ece66fa4f5c8799}\label{structgko_1_1span_a1566e1ab67312a6b9ece66fa4f5c8799}} 
-\index{gko\+::span@{gko\+::span}!span@{span}}
-\index{span@{span}!gko\+::span@{gko\+::span}}
-\subsubsection{\texorpdfstring{span()}{span()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
-{\footnotesize\ttfamily constexpr gko\+::span\+::span (\begin{DoxyParamCaption}\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{begin,  }\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{end }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+\index{gko::span@{gko::span}!span@{span}}
+\index{span@{span}!gko::span@{gko::span}}
+\doxysubsubsection{\texorpdfstring{span()}{span()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily constexpr gko\+::span\+::span (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{begin,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{end }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
 
 
 
@@ -83,16 +83,16 @@ Creates a span.
 \end{DoxyParams}
 
 
-References begin, and end.
+References begin.
 
 
 
-\subsection{Member Function Documentation}
+\doxysubsection{Member Function Documentation}
 \mbox{\Hypertarget{structgko_1_1span_a32a87f434708e6857820858503f9b133}\label{structgko_1_1span_a32a87f434708e6857820858503f9b133}} 
-\index{gko\+::span@{gko\+::span}!is\+\_\+valid@{is\+\_\+valid}}
-\index{is\+\_\+valid@{is\+\_\+valid}!gko\+::span@{gko\+::span}}
-\subsubsection{\texorpdfstring{is\+\_\+valid()}{is\_valid()}}
-{\footnotesize\ttfamily constexpr bool gko\+::span\+::is\+\_\+valid (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+\index{gko::span@{gko::span}!is\_valid@{is\_valid}}
+\index{is\_valid@{is\_valid}!gko::span@{gko::span}}
+\doxysubsubsection{\texorpdfstring{is\_valid()}{is\_valid()}}
+{\footnotesize\ttfamily constexpr bool gko\+::span\+::is\+\_\+valid (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}}
 
 
 

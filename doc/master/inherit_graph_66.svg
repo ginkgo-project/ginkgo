@@ -12,7 +12,7 @@
 <!-- Node0 -->
 <g id="node1" class="node">
 <title>Node0</title>
-<g id="a_node1"><a xlink:href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html" target="_top" xlink:title="gko::matrix::Csr\&lt; ValueType,\l IndexType \&gt;::strategy_type">
+<g id="a_node1"><a xlink:href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="0,-98.5 0,-128.5 158,-128.5 158,-98.5 0,-98.5"/>
 <text text-anchor="start" x="8" y="-116.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Csr&lt; ValueType,</text>
 <text text-anchor="middle" x="79" y="-105.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> IndexType &gt;::strategy_type</text>
@@ -22,7 +22,7 @@
 <!-- Node1 -->
 <g id="node2" class="node">
 <title>Node1</title>
-<g id="a_node2"><a xlink:href="classgko_1_1matrix_1_1Csr_1_1automatical.html" target="_top" xlink:title="gko::matrix::Csr\&lt; ValueType,\l IndexType \&gt;::automatical">
+<g id="a_node2"><a xlink:href="classgko_1_1matrix_1_1Csr_1_1automatical.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="194,-196.5 194,-226.5 352,-226.5 352,-196.5 194,-196.5"/>
 <text text-anchor="start" x="202" y="-214.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Csr&lt; ValueType,</text>
 <text text-anchor="middle" x="273" y="-203.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> IndexType &gt;::automatical</text>
@@ -38,7 +38,7 @@
 <!-- Node2 -->
 <g id="node3" class="node">
 <title>Node2</title>
-<g id="a_node3"><a xlink:href="classgko_1_1matrix_1_1Csr_1_1classical.html" target="_top" xlink:title="gko::matrix::Csr\&lt; ValueType,\l IndexType \&gt;::classical">
+<g id="a_node3"><a xlink:href="classgko_1_1matrix_1_1Csr_1_1classical.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="194,-147.5 194,-177.5 352,-177.5 352,-147.5 194,-147.5"/>
 <text text-anchor="start" x="202" y="-165.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Csr&lt; ValueType,</text>
 <text text-anchor="middle" x="273" y="-154.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> IndexType &gt;::classical</text>
@@ -54,7 +54,7 @@
 <!-- Node3 -->
 <g id="node4" class="node">
 <title>Node3</title>
-<g id="a_node4"><a xlink:href="classgko_1_1matrix_1_1Csr_1_1cusparse.html" target="_top" xlink:title="gko::matrix::Csr\&lt; ValueType,\l IndexType \&gt;::cusparse">
+<g id="a_node4"><a xlink:href="classgko_1_1matrix_1_1Csr_1_1cusparse.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="194,-98.5 194,-128.5 352,-128.5 352,-98.5 194,-98.5"/>
 <text text-anchor="start" x="202" y="-116.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Csr&lt; ValueType,</text>
 <text text-anchor="middle" x="273" y="-105.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> IndexType &gt;::cusparse</text>
@@ -70,7 +70,7 @@
 <!-- Node4 -->
 <g id="node5" class="node">
 <title>Node4</title>
-<g id="a_node5"><a xlink:href="classgko_1_1matrix_1_1Csr_1_1load__balance.html" target="_top" xlink:title="gko::matrix::Csr\&lt; ValueType,\l IndexType \&gt;::load_balance">
+<g id="a_node5"><a xlink:href="classgko_1_1matrix_1_1Csr_1_1load__balance.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="194,-49.5 194,-79.5 352,-79.5 352,-49.5 194,-49.5"/>
 <text text-anchor="start" x="202" y="-67.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Csr&lt; ValueType,</text>
 <text text-anchor="middle" x="273" y="-56.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> IndexType &gt;::load_balance</text>
@@ -86,7 +86,7 @@
 <!-- Node5 -->
 <g id="node6" class="node">
 <title>Node5</title>
-<g id="a_node6"><a xlink:href="classgko_1_1matrix_1_1Csr_1_1merge__path.html" target="_top" xlink:title="gko::matrix::Csr\&lt; ValueType,\l IndexType \&gt;::merge_path">
+<g id="a_node6"><a xlink:href="classgko_1_1matrix_1_1Csr_1_1merge__path.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="194,-.5 194,-30.5 352,-30.5 352,-.5 194,-.5"/>
 <text text-anchor="start" x="202" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Csr&lt; ValueType,</text>
 <text text-anchor="middle" x="273" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> IndexType &gt;::merge_path</text>

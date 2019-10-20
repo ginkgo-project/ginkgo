@@ -1,7 +1,10 @@
 <map id="gko::ReferenceExecutor" name="gko::ReferenceExecutor">
-<area shape="rect" id="node2" href="$classgko_1_1OmpExecutor.html" title="This is the Executor subclass which represents the OpenMP device (typically CPU). ..." alt="" coords="1224,62,1367,89"/>
-<area shape="rect" id="node4" href="$classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor. " alt="" coords="805,13,916,39"/>
-<area shape="rect" id="node5" href="$classgko_1_1log_1_1EnableLogging.html" title="gko::log::EnableLogging\l\&lt; Executor \&gt;" alt="" coords="579,5,756,47"/>
-<area shape="rect" id="node6" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging..." alt="" coords="5,21,147,47"/>
-<area shape="rect" id="node7" href="$classgko_1_1log_1_1EnableLogging.html" title="EnableLogging is a mixin which should be inherited by any class which wants to enable logging..." alt="" coords="196,38,439,94"/>
+<area shape="rect" id="node1" title="This is a specialization of the OmpExecutor, which runs the reference implementations of the kernels ..." alt="" coords="1416,62,1592,89"/>
+<area shape="rect" id="node2" href="$classgko_1_1OmpExecutor.html" title="This is the Executor subclass which represents the OpenMP device (typically CPU)." alt="" coords="1224,62,1367,89"/>
+<area shape="rect" id="node3" title=" " alt="" coords="976,5,1164,47"/>
+<area shape="rect" id="node4" href="$classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor." alt="" coords="805,13,916,39"/>
+<area shape="rect" id="node5" href="$classgko_1_1log_1_1EnableLogging.html" title=" " alt="" coords="579,5,756,47"/>
+<area shape="rect" id="node6" href="$classgko_1_1log_1_1Loggable.html" title="Loggable class is an interface which should be implemented by classes wanting to support logging." alt="" coords="5,21,147,47"/>
+<area shape="rect" id="node7" href="$classgko_1_1log_1_1EnableLogging.html" title="EnableLogging is a mixin which should be inherited by any class which wants to enable logging." alt="" coords="196,38,439,94"/>
+<area shape="rect" id="node8" title=" " alt="" coords="965,71,1175,112"/>
 </map>

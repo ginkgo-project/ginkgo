@@ -1,3 +1,4 @@
 <map id="SpMV employing different Matrix formats" name="SpMV employing different Matrix formats">
-<area shape="rect" id="node2" href="$group__LinOp.html" title="A module dedicated to the implementation and usage of the Linear operators in Ginkgo. " alt="" coords="425,109,556,136"/>
+<area shape="rect" id="node1" title="A module dedicated to the implementation and usage of the various Matrix Formats in Ginkgo." alt="" coords="5,117,196,157"/>
+<area shape="rect" id="node2" href="$group__LinOp.html" title="A module dedicated to the implementation and usage of the Linear operators in Ginkgo." alt="" coords="425,125,556,150"/>
 </map>

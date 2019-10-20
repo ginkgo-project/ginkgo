@@ -1,82 +1,79 @@
-\hypertarget{classgko_1_1Transposable}{}\section{gko\+:\+:Transposable Class Reference}
-\label{classgko_1_1Transposable}\index{gko\+::\+Transposable@{gko\+::\+Transposable}}
+\hypertarget{classgko_1_1Transposable}{}\doxysection{gko\+::Transposable Class Reference}
+\label{classgko_1_1Transposable}\index{gko::Transposable@{gko::Transposable}}
 
 
-Linear operators which support transposition should implement the \hyperlink{classgko_1_1Transposable}{Transposable} interface.  
+Linear operators which support transposition should implement the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} interface.  
 
 
 
 
 {\ttfamily \#include $<$ginkgo/core/base/lin\+\_\+op.\+hpp$>$}
 
-\subsection*{Public Member Functions}
+\doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-virtual std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ \hyperlink{classgko_1_1Transposable_a5c6b778b71b47d53e0bda6ccf894d318}{transpose} () const =0
-\begin{DoxyCompactList}\small\item\em Returns a \hyperlink{classgko_1_1LinOp}{Lin\+Op} representing the transpose of the \hyperlink{classgko_1_1Transposable}{Transposable} object. \end{DoxyCompactList}\item 
-virtual std\+::unique\+\_\+ptr$<$ \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ \hyperlink{classgko_1_1Transposable_ab41b669288740cf2a6f7bf76e875b077}{conj\+\_\+transpose} () const =0
-\begin{DoxyCompactList}\small\item\em Returns a \hyperlink{classgko_1_1LinOp}{Lin\+Op} representing the conjugate transpose of the \hyperlink{classgko_1_1Transposable}{Transposable} object. \end{DoxyCompactList}\end{DoxyCompactItemize}
+virtual std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1Transposable_a5c6b778b71b47d53e0bda6ccf894d318}{transpose}} () const =0
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\item 
+virtual std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1Transposable_ab41b669288740cf2a6f7bf76e875b077}{conj\+\_\+transpose}} () const =0
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
-\subsection{Detailed Description}
-Linear operators which support transposition should implement the \hyperlink{classgko_1_1Transposable}{Transposable} interface. 
+\doxysubsection{Detailed Description}
+Linear operators which support transposition should implement the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} interface. 
 
 It provides two functionalities, the normal transpose and the conjugate transpose.
 
 The normal transpose returns the transpose of the linear operator without changing any of its elements representing the operation, $B = A^{T}$.
 
-The conjugate transpose returns the conjugate of each of the elements and additionally transposes the linear operator representing the operation, $B = A^{H}$.
+The conjugate transpose returns the conjugate of each of the elements and additionally transposes the linear operator representing the operation, $B = A^{H}$.\hypertarget{classgko_1_1Transposable_autotoc_md8}{}\doxysubsubsection{Example\+: Transposing a Csr matrix\+:}\label{classgko_1_1Transposable_autotoc_md8}
 
-\subsubsection*{Example\+: Transposing a Csr matrix\+: }
-
-
-\begin{DoxyCode}
-\{c++\}
-\textcolor{comment}{//Transposing an object of LinOp type.}
-\textcolor{comment}{//The object you want to transpose.}
-\textcolor{keyword}{auto} op = matrix::Csr::create(exec);
-\textcolor{comment}{//Transpose the object by first converting it to a transposable type.}
-\textcolor{keyword}{auto} trans = op->transpose();
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{c++\}}
+\DoxyCodeLine{\textcolor{comment}{//Transposing an object of LinOp type.}}
+\DoxyCodeLine{\textcolor{comment}{//The object you want to transpose.}}
+\DoxyCodeLine{\textcolor{keyword}{auto} op = matrix::Csr::create(exec);}
+\DoxyCodeLine{\textcolor{comment}{//Transpose the object by first converting it to a transposable type.}}
+\DoxyCodeLine{\textcolor{keyword}{auto} trans = op-\/>transpose();}
 \end{DoxyCode}
  
 
-\subsection{Member Function Documentation}
+\doxysubsection{Member Function Documentation}
 \mbox{\Hypertarget{classgko_1_1Transposable_ab41b669288740cf2a6f7bf76e875b077}\label{classgko_1_1Transposable_ab41b669288740cf2a6f7bf76e875b077}} 
-\index{gko\+::\+Transposable@{gko\+::\+Transposable}!conj\+\_\+transpose@{conj\+\_\+transpose}}
-\index{conj\+\_\+transpose@{conj\+\_\+transpose}!gko\+::\+Transposable@{gko\+::\+Transposable}}
-\subsubsection{\texorpdfstring{conj\+\_\+transpose()}{conj\_transpose()}}
-{\footnotesize\ttfamily virtual std\+::unique\+\_\+ptr$<$\hyperlink{classgko_1_1LinOp}{Lin\+Op}$>$ gko\+::\+Transposable\+::conj\+\_\+transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [pure virtual]}}
+\index{gko::Transposable@{gko::Transposable}!conj\_transpose@{conj\_transpose}}
+\index{conj\_transpose@{conj\_transpose}!gko::Transposable@{gko::Transposable}}
+\doxysubsubsection{\texorpdfstring{conj\_transpose()}{conj\_transpose()}}
+{\footnotesize\ttfamily virtual std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ gko\+::\+Transposable\+::conj\+\_\+transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [pure virtual]}}
 
 
 
-Returns a \hyperlink{classgko_1_1LinOp}{Lin\+Op} representing the conjugate transpose of the \hyperlink{classgko_1_1Transposable}{Transposable} object. 
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
 
 \begin{DoxyReturn}{Returns}
 a pointer to the new conjugate transposed object 
 \end{DoxyReturn}
 
 
-Implemented in \hyperlink{classgko_1_1matrix_1_1Csr_a38820451af5424f18b767667f3067d72}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$}, and \hyperlink{classgko_1_1matrix_1_1Dense_a19890b1448497a50d57c16ed4c3bd820}{gko\+::matrix\+::\+Dense$<$ Value\+Type $>$}.
+Implemented in \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_a38820451af5424f18b767667f3067d72}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a19890b1448497a50d57c16ed4c3bd820}{gko\+::matrix\+::\+Dense$<$ Value\+Type $>$}}, and \mbox{\hyperlink{classgko_1_1matrix_1_1SparsityCsr_a13a497b072cea219330031033372192c}{gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$}}.
 
 \mbox{\Hypertarget{classgko_1_1Transposable_a5c6b778b71b47d53e0bda6ccf894d318}\label{classgko_1_1Transposable_a5c6b778b71b47d53e0bda6ccf894d318}} 
-\index{gko\+::\+Transposable@{gko\+::\+Transposable}!transpose@{transpose}}
-\index{transpose@{transpose}!gko\+::\+Transposable@{gko\+::\+Transposable}}
-\subsubsection{\texorpdfstring{transpose()}{transpose()}}
-{\footnotesize\ttfamily virtual std\+::unique\+\_\+ptr$<$\hyperlink{classgko_1_1LinOp}{Lin\+Op}$>$ gko\+::\+Transposable\+::transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [pure virtual]}}
+\index{gko::Transposable@{gko::Transposable}!transpose@{transpose}}
+\index{transpose@{transpose}!gko::Transposable@{gko::Transposable}}
+\doxysubsubsection{\texorpdfstring{transpose()}{transpose()}}
+{\footnotesize\ttfamily virtual std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ gko\+::\+Transposable\+::transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [pure virtual]}}
 
 
 
-Returns a \hyperlink{classgko_1_1LinOp}{Lin\+Op} representing the transpose of the \hyperlink{classgko_1_1Transposable}{Transposable} object. 
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
 
 \begin{DoxyReturn}{Returns}
 a pointer to the new transposed object 
 \end{DoxyReturn}
 
 
-Implemented in \hyperlink{classgko_1_1matrix_1_1Csr_ab79e609214d6b4834d5961ee0a7d3519}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$}, and \hyperlink{classgko_1_1matrix_1_1Dense_a64ea8e876f5390a535a2ef486bd5ab9a}{gko\+::matrix\+::\+Dense$<$ Value\+Type $>$}.
+Implemented in \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_ab79e609214d6b4834d5961ee0a7d3519}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a64ea8e876f5390a535a2ef486bd5ab9a}{gko\+::matrix\+::\+Dense$<$ Value\+Type $>$}}, and \mbox{\hyperlink{classgko_1_1matrix_1_1SparsityCsr_a9ff17280236795c1bea1b244857f3709}{gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$}}.
 
 
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/lin\+\_\+op.\+hpp (fb72cdf1)\end{DoxyCompactItemize}
+ginkgo/core/base/lin\+\_\+op.\+hpp (da788090)\end{DoxyCompactItemize}

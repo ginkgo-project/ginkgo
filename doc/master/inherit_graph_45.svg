@@ -12,7 +12,7 @@
 <!-- Node0 -->
 <g id="node1" class="node">
 <title>Node0</title>
-<g id="a_node1"><a xlink:href="structgko_1_1default__converter.html" target="_top" xlink:title="Used to convert objects of type S to objects of type R using static_cast. ">
+<g id="a_node1"><a xlink:href="structgko_1_1default__converter.html" target="_top" xlink:title="Used to convert objects of type S to objects of type R using static_cast.">
 <polygon fill="#ffffff" stroke="#000000" points="0,-.5 0,-30.5 127,-30.5 127,-.5 0,-.5"/>
 <text text-anchor="start" x="8" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::default_converter</text>
 <text text-anchor="middle" x="63.5" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; S, R &gt;</text>

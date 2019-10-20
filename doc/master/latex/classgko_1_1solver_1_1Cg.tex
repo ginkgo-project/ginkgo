@@ -1,5 +1,5 @@
-\hypertarget{classgko_1_1solver_1_1Cg}{}\section{gko\+:\+:solver\+:\+:Cg$<$ Value\+Type $>$ Class Template Reference}
-\label{classgko_1_1solver_1_1Cg}\index{gko\+::solver\+::\+Cg$<$ Value\+Type $>$@{gko\+::solver\+::\+Cg$<$ Value\+Type $>$}}
+\hypertarget{classgko_1_1solver_1_1Cg}{}\doxysection{gko\+::solver\+::Cg$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1solver_1_1Cg}\index{gko::solver::Cg$<$ ValueType $>$@{gko::solver::Cg$<$ ValueType $>$}}
 
 
 CG or the conjugate gradient method is an iterative type Krylov subspace method which is suitable for symmetric positive definite methods.  
@@ -11,7 +11,7 @@ CG or the conjugate gradient method is an iterative type Krylov subspace method 
 
 
 
-Collaboration diagram for gko\+:\+:solver\+:\+:Cg$<$ Value\+Type $>$\+:
+Collaboration diagram for gko\+::solver\+::Cg$<$ Value\+Type $>$\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -19,36 +19,34 @@ Collaboration diagram for gko\+:\+:solver\+:\+:Cg$<$ Value\+Type $>$\+:
 \includegraphics[width=350pt]{classgko_1_1solver_1_1Cg__coll__graph}
 \end{center}
 \end{figure}
-\subsection*{Classes}
+\doxysubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
-class \hyperlink{classgko_1_1solver_1_1Cg_1_1Factory}{Factory}
+class \mbox{\hyperlink{classgko_1_1solver_1_1Cg_1_1Factory}{Factory}}
 \item 
-struct \hyperlink{structgko_1_1solver_1_1Cg_1_1parameters__type}{parameters\+\_\+type}
+struct \mbox{\hyperlink{structgko_1_1solver_1_1Cg_1_1parameters__type}{parameters\+\_\+type}}
 \end{DoxyCompactItemize}
-\subsection*{Public Types}
+\doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classgko_1_1solver_1_1Cg_a010f8f5b0b315108a3990052a73f80b0}\label{classgko_1_1solver_1_1Cg_a010f8f5b0b315108a3990052a73f80b0}} 
 using {\bfseries value\+\_\+type} = Value\+Type
 \end{DoxyCompactItemize}
-\subsection*{Public Member Functions}
+\doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ \hyperlink{classgko_1_1solver_1_1Cg_a09d50a99fdc668316757ee253386ad2a}{get\+\_\+system\+\_\+matrix} () const
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Cg_a09d50a99fdc668316757ee253386ad2a}{get\+\_\+system\+\_\+matrix}} () const
 \begin{DoxyCompactList}\small\item\em Gets the system operator (matrix) of the linear system. \end{DoxyCompactList}\item 
-std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ \hyperlink{classgko_1_1solver_1_1Cg_a797544ecc8d86d2798014e7f5f5baf4f}{get\+\_\+preconditioner} () const override
-\begin{DoxyCompactList}\small\item\em Returns the preconditioner operator used by the solver. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1solver_1_1Cg_a548b5ff27c59e50f78eb96a0463453ae}\label{classgko_1_1solver_1_1Cg_a548b5ff27c59e50f78eb96a0463453ae}} 
-const \hyperlink{structgko_1_1solver_1_1Cg_1_1parameters__type}{parameters\+\_\+type} \& {\bfseries get\+\_\+parameters} () const
+const \mbox{\hyperlink{structgko_1_1solver_1_1Cg_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
 \end{DoxyCompactItemize}
-\subsection*{Static Public Member Functions}
+\doxysubsection*{Static Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classgko_1_1solver_1_1Cg_a3d16ac7e3132362573b9af81cbccdf69}\label{classgko_1_1solver_1_1Cg_a3d16ac7e3132362573b9af81cbccdf69}} 
-static auto {\bfseries build} () -\/$>$ decltype(\hyperlink{classgko_1_1solver_1_1Cg_1_1Factory}{Factory} \+::create())
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1solver_1_1Cg_1_1Factory}{Factory}} \+::create())
 \end{DoxyCompactItemize}
-\subsection*{Friends}
+\doxysubsection*{Friends}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classgko_1_1solver_1_1Cg_addd5cadb50dadd7e118776aeee9eb1c4}\label{classgko_1_1solver_1_1Cg_addd5cadb50dadd7e118776aeee9eb1c4}} 
@@ -59,7 +57,7 @@ class {\bfseries Enable\+Polymorphic\+Object$<$ Cg, Lin\+Op $>$}
 \end{DoxyCompactItemize}
 
 
-\subsection{Detailed Description}
+\doxysubsection{Detailed Description}
 \subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
 class gko\+::solver\+::\+Cg$<$ Value\+Type $>$}
 
@@ -76,31 +74,13 @@ The implementation in Ginkgo makes use of the merged kernel to make the best use
 \end{DoxyTemplParams}
 
 
-\subsection{Member Function Documentation}
-\mbox{\Hypertarget{classgko_1_1solver_1_1Cg_a797544ecc8d86d2798014e7f5f5baf4f}\label{classgko_1_1solver_1_1Cg_a797544ecc8d86d2798014e7f5f5baf4f}} 
-\index{gko\+::solver\+::\+Cg@{gko\+::solver\+::\+Cg}!get\+\_\+preconditioner@{get\+\_\+preconditioner}}
-\index{get\+\_\+preconditioner@{get\+\_\+preconditioner}!gko\+::solver\+::\+Cg@{gko\+::solver\+::\+Cg}}
-\subsubsection{\texorpdfstring{get\+\_\+preconditioner()}{get\_preconditioner()}}
-{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
-std\+::shared\+\_\+ptr$<$const \hyperlink{classgko_1_1LinOp}{Lin\+Op}$>$ \hyperlink{classgko_1_1solver_1_1Cg}{gko\+::solver\+::\+Cg}$<$ Value\+Type $>$\+::get\+\_\+preconditioner (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
-
-
-
-Returns the preconditioner operator used by the solver. 
-
-\begin{DoxyReturn}{Returns}
-the preconditioner operator used by the solver 
-\end{DoxyReturn}
-
-
-Implements \hyperlink{classgko_1_1Preconditionable_ad9545089aef0dfc83bc7a74e5bf1d748}{gko\+::\+Preconditionable}.
-
+\doxysubsection{Member Function Documentation}
 \mbox{\Hypertarget{classgko_1_1solver_1_1Cg_a09d50a99fdc668316757ee253386ad2a}\label{classgko_1_1solver_1_1Cg_a09d50a99fdc668316757ee253386ad2a}} 
-\index{gko\+::solver\+::\+Cg@{gko\+::solver\+::\+Cg}!get\+\_\+system\+\_\+matrix@{get\+\_\+system\+\_\+matrix}}
-\index{get\+\_\+system\+\_\+matrix@{get\+\_\+system\+\_\+matrix}!gko\+::solver\+::\+Cg@{gko\+::solver\+::\+Cg}}
-\subsubsection{\texorpdfstring{get\+\_\+system\+\_\+matrix()}{get\_system\_matrix()}}
+\index{gko::solver::Cg$<$ ValueType $>$@{gko::solver::Cg$<$ ValueType $>$}!get\_system\_matrix@{get\_system\_matrix}}
+\index{get\_system\_matrix@{get\_system\_matrix}!gko::solver::Cg$<$ ValueType $>$@{gko::solver::Cg$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_system\_matrix()}{get\_system\_matrix()}}
 {\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
-std\+::shared\+\_\+ptr$<$const \hyperlink{classgko_1_1LinOp}{Lin\+Op}$>$ \hyperlink{classgko_1_1solver_1_1Cg}{gko\+::solver\+::\+Cg}$<$ Value\+Type $>$\+::get\+\_\+system\+\_\+matrix (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko\+::solver\+::\+Cg}}$<$ Value\+Type $>$\+::get\+\_\+system\+\_\+matrix (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -113,4 +93,4 @@ the system operator (matrix)
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/solver/cg.\+hpp (f1a4eb68)\end{DoxyCompactItemize}
+ginkgo/core/solver/cg.\+hpp (4d55c5d3)\end{DoxyCompactItemize}

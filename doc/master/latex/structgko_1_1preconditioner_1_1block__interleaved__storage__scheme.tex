@@ -1,5 +1,5 @@
-\hypertarget{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{}\section{gko\+:\+:preconditioner\+:\+:block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ Index\+Type $>$ Struct Template Reference}
-\label{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}\index{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ Index\+Type $>$@{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ Index\+Type $>$}}
+\hypertarget{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{}\doxysection{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ Index\+Type $>$ Struct Template Reference}
+\label{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}\index{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$@{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$}}
 
 
 Defines the parameters of the interleaved block storage scheme used by block-\/\+Jacobi blocks.  
@@ -11,7 +11,7 @@ Defines the parameters of the interleaved block storage scheme used by block-\/\
 
 
 
-Collaboration diagram for gko\+:\+:preconditioner\+:\+:block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ Index\+Type $>$\+:
+Collaboration diagram for gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ Index\+Type $>$\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -19,35 +19,38 @@ Collaboration diagram for gko\+:\+:preconditioner\+:\+:block\+\_\+interleaved\+\
 \includegraphics[width=254pt]{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme__coll__graph}
 \end{center}
 \end{figure}
-\subsection*{Public Member Functions}
+\doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-Index\+Type \hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_af5eee19f00b1cd4c378ac3410be72093}{get\+\_\+group\+\_\+size} () const noexcept
+\mbox{\Hypertarget{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_a80d0c7d6caf4b5a30bdf9fdecec6a8bd}\label{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_a80d0c7d6caf4b5a30bdf9fdecec6a8bd}} 
+{\bfseries block\+\_\+interleaved\+\_\+storage\+\_\+scheme} (Index\+Type \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_ada09b37f171d433cc74818961fc6eccc}{block\+\_\+offset}}, Index\+Type \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_aa8a6723ef709e69bda55eaabaeee582e}{group\+\_\+offset}}, \mbox{\hyperlink{namespacegko_a318c831e3fe269ba04c6ed8bf5a71073}{uint32}} \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_a8fa279f4178c767bdbf52ef4d7e23ad1}{group\+\_\+power}})
+\item 
+Index\+Type \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_af5eee19f00b1cd4c378ac3410be72093}{get\+\_\+group\+\_\+size}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Returns the number of elements in the group. \end{DoxyCompactList}\item 
-\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_ae46b38432c1e1b87d5743a649f2cfe84}{compute\+\_\+storage\+\_\+space} (\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} num\+\_\+blocks) const noexcept
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_ae46b38432c1e1b87d5743a649f2cfe84}{compute\+\_\+storage\+\_\+space}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} num\+\_\+blocks) const noexcept
 \begin{DoxyCompactList}\small\item\em Computes the storage space required for the requested number of blocks. \end{DoxyCompactList}\item 
-Index\+Type \hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_a66a04b4dc90547fde872359c78ee22a4}{get\+\_\+group\+\_\+offset} (Index\+Type block\+\_\+id) const noexcept
+Index\+Type \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_a66a04b4dc90547fde872359c78ee22a4}{get\+\_\+group\+\_\+offset}} (Index\+Type block\+\_\+id) const noexcept
 \begin{DoxyCompactList}\small\item\em Returns the offset of the group belonging to the block with the given ID. \end{DoxyCompactList}\item 
-Index\+Type \hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_a6384280dc1ad46fc1589d0b9165fd022}{get\+\_\+block\+\_\+offset} (Index\+Type block\+\_\+id) const noexcept
+Index\+Type \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_a6384280dc1ad46fc1589d0b9165fd022}{get\+\_\+block\+\_\+offset}} (Index\+Type block\+\_\+id) const noexcept
 \begin{DoxyCompactList}\small\item\em Returns the offset of the block with the given ID within its group. \end{DoxyCompactList}\item 
-Index\+Type \hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_ad8356b187814609c7d77bd03e025c48f}{get\+\_\+global\+\_\+block\+\_\+offset} (Index\+Type block\+\_\+id) const noexcept
+Index\+Type \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_ad8356b187814609c7d77bd03e025c48f}{get\+\_\+global\+\_\+block\+\_\+offset}} (Index\+Type block\+\_\+id) const noexcept
 \begin{DoxyCompactList}\small\item\em Returns the offset of the block with the given ID. \end{DoxyCompactList}\item 
-Index\+Type \hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_aa07119fbf99fae71b1f9c4f693e14ce4}{get\+\_\+stride} () const noexcept
+Index\+Type \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_aa07119fbf99fae71b1f9c4f693e14ce4}{get\+\_\+stride}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Returns the stride between columns of the block. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\subsection*{Public Attributes}
+\doxysubsection*{Public Attributes}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_ada09b37f171d433cc74818961fc6eccc}\label{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_ada09b37f171d433cc74818961fc6eccc}} 
-Index\+Type \hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_ada09b37f171d433cc74818961fc6eccc}{block\+\_\+offset}
+Index\+Type \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_ada09b37f171d433cc74818961fc6eccc}{block\+\_\+offset}}
 \begin{DoxyCompactList}\small\item\em The offset between consecutive blocks within the group. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_aa8a6723ef709e69bda55eaabaeee582e}\label{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_aa8a6723ef709e69bda55eaabaeee582e}} 
-Index\+Type \hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_aa8a6723ef709e69bda55eaabaeee582e}{group\+\_\+offset}
+Index\+Type \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_aa8a6723ef709e69bda55eaabaeee582e}{group\+\_\+offset}}
 \begin{DoxyCompactList}\small\item\em The offset between two block groups. \end{DoxyCompactList}\item 
-\hyperlink{namespacegko_a318c831e3fe269ba04c6ed8bf5a71073}{uint32} \hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_a8fa279f4178c767bdbf52ef4d7e23ad1}{group\+\_\+power}
+\mbox{\hyperlink{namespacegko_a318c831e3fe269ba04c6ed8bf5a71073}{uint32}} \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_a8fa279f4178c767bdbf52ef4d7e23ad1}{group\+\_\+power}}
 \begin{DoxyCompactList}\small\item\em Then base 2 power of the group. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
-\subsection{Detailed Description}
+\doxysubsection{Detailed Description}
 \subsubsection*{template$<$typename Index\+Type$>$\newline
 struct gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ Index\+Type $>$}
 
@@ -60,13 +63,13 @@ Defines the parameters of the interleaved block storage scheme used by block-\/\
 \end{DoxyTemplParams}
 
 
-\subsection{Member Function Documentation}
+\doxysubsection{Member Function Documentation}
 \mbox{\Hypertarget{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_ae46b38432c1e1b87d5743a649f2cfe84}\label{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_ae46b38432c1e1b87d5743a649f2cfe84}} 
-\index{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme@{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}!compute\+\_\+storage\+\_\+space@{compute\+\_\+storage\+\_\+space}}
-\index{compute\+\_\+storage\+\_\+space@{compute\+\_\+storage\+\_\+space}!gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme@{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}}
-\subsubsection{\texorpdfstring{compute\+\_\+storage\+\_\+space()}{compute\_storage\_space()}}
+\index{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$@{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$}!compute\_storage\_space@{compute\_storage\_space}}
+\index{compute\_storage\_space@{compute\_storage\_space}!gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$@{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{compute\_storage\_space()}{compute\_storage\_space()}}
 {\footnotesize\ttfamily template$<$typename Index\+Type$>$ \\
-\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type} \hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}$<$ Index\+Type $>$\+::compute\+\_\+storage\+\_\+space (\begin{DoxyParamCaption}\item[{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}]{num\+\_\+blocks }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}}$<$ Index\+Type $>$\+::compute\+\_\+storage\+\_\+space (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{num\+\_\+blocks }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -84,11 +87,11 @@ the total memory (as the number of elements) that need to be allocated for the s
 To simplify using the method in situations where the number of blocks is not known, for a special input {\ttfamily size\+\_\+type\{\} -\/ 1} the method returns {\ttfamily 0} to avoid overallocation of memory. 
 \end{DoxyNote}
 \mbox{\Hypertarget{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_a6384280dc1ad46fc1589d0b9165fd022}\label{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_a6384280dc1ad46fc1589d0b9165fd022}} 
-\index{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme@{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}!get\+\_\+block\+\_\+offset@{get\+\_\+block\+\_\+offset}}
-\index{get\+\_\+block\+\_\+offset@{get\+\_\+block\+\_\+offset}!gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme@{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}}
-\subsubsection{\texorpdfstring{get\+\_\+block\+\_\+offset()}{get\_block\_offset()}}
+\index{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$@{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$}!get\_block\_offset@{get\_block\_offset}}
+\index{get\_block\_offset@{get\_block\_offset}!gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$@{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_block\_offset()}{get\_block\_offset()}}
 {\footnotesize\ttfamily template$<$typename Index\+Type$>$ \\
-Index\+Type \hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}$<$ Index\+Type $>$\+::get\+\_\+block\+\_\+offset (\begin{DoxyParamCaption}\item[{Index\+Type}]{block\+\_\+id }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+Index\+Type \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}}$<$ Index\+Type $>$\+::get\+\_\+block\+\_\+offset (\begin{DoxyParamCaption}\item[{Index\+Type}]{block\+\_\+id }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -107,11 +110,11 @@ the offset of the block with ID {\ttfamily block\+\_\+id} within its group
 Referenced by gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ index\+\_\+type $>$\+::get\+\_\+global\+\_\+block\+\_\+offset().
 
 \mbox{\Hypertarget{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_ad8356b187814609c7d77bd03e025c48f}\label{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_ad8356b187814609c7d77bd03e025c48f}} 
-\index{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme@{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}!get\+\_\+global\+\_\+block\+\_\+offset@{get\+\_\+global\+\_\+block\+\_\+offset}}
-\index{get\+\_\+global\+\_\+block\+\_\+offset@{get\+\_\+global\+\_\+block\+\_\+offset}!gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme@{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}}
-\subsubsection{\texorpdfstring{get\+\_\+global\+\_\+block\+\_\+offset()}{get\_global\_block\_offset()}}
+\index{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$@{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$}!get\_global\_block\_offset@{get\_global\_block\_offset}}
+\index{get\_global\_block\_offset@{get\_global\_block\_offset}!gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$@{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_global\_block\_offset()}{get\_global\_block\_offset()}}
 {\footnotesize\ttfamily template$<$typename Index\+Type$>$ \\
-Index\+Type \hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}$<$ Index\+Type $>$\+::get\+\_\+global\+\_\+block\+\_\+offset (\begin{DoxyParamCaption}\item[{Index\+Type}]{block\+\_\+id }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+Index\+Type \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}}$<$ Index\+Type $>$\+::get\+\_\+global\+\_\+block\+\_\+offset (\begin{DoxyParamCaption}\item[{Index\+Type}]{block\+\_\+id }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -126,11 +129,11 @@ Returns the offset of the block with the given ID.
 the offset of the block with ID {\ttfamily block\+\_\+id} 
 \end{DoxyReturn}
 \mbox{\Hypertarget{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_a66a04b4dc90547fde872359c78ee22a4}\label{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_a66a04b4dc90547fde872359c78ee22a4}} 
-\index{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme@{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}!get\+\_\+group\+\_\+offset@{get\+\_\+group\+\_\+offset}}
-\index{get\+\_\+group\+\_\+offset@{get\+\_\+group\+\_\+offset}!gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme@{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}}
-\subsubsection{\texorpdfstring{get\+\_\+group\+\_\+offset()}{get\_group\_offset()}}
+\index{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$@{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$}!get\_group\_offset@{get\_group\_offset}}
+\index{get\_group\_offset@{get\_group\_offset}!gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$@{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_group\_offset()}{get\_group\_offset()}}
 {\footnotesize\ttfamily template$<$typename Index\+Type$>$ \\
-Index\+Type \hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}$<$ Index\+Type $>$\+::get\+\_\+group\+\_\+offset (\begin{DoxyParamCaption}\item[{Index\+Type}]{block\+\_\+id }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+Index\+Type \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}}$<$ Index\+Type $>$\+::get\+\_\+group\+\_\+offset (\begin{DoxyParamCaption}\item[{Index\+Type}]{block\+\_\+id }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -149,11 +152,11 @@ the offset of the group belonging to block with ID {\ttfamily block\+\_\+id}
 Referenced by gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ index\+\_\+type $>$\+::get\+\_\+global\+\_\+block\+\_\+offset().
 
 \mbox{\Hypertarget{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_af5eee19f00b1cd4c378ac3410be72093}\label{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_af5eee19f00b1cd4c378ac3410be72093}} 
-\index{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme@{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}!get\+\_\+group\+\_\+size@{get\+\_\+group\+\_\+size}}
-\index{get\+\_\+group\+\_\+size@{get\+\_\+group\+\_\+size}!gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme@{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}}
-\subsubsection{\texorpdfstring{get\+\_\+group\+\_\+size()}{get\_group\_size()}}
+\index{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$@{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$}!get\_group\_size@{get\_group\_size}}
+\index{get\_group\_size@{get\_group\_size}!gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$@{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_group\_size()}{get\_group\_size()}}
 {\footnotesize\ttfamily template$<$typename Index\+Type$>$ \\
-Index\+Type \hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}$<$ Index\+Type $>$\+::get\+\_\+group\+\_\+size (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+Index\+Type \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}}$<$ Index\+Type $>$\+::get\+\_\+group\+\_\+size (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -167,11 +170,11 @@ the number of elements in the group
 Referenced by gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ index\+\_\+type $>$\+::compute\+\_\+storage\+\_\+space(), and gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ index\+\_\+type $>$\+::get\+\_\+block\+\_\+offset().
 
 \mbox{\Hypertarget{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_aa07119fbf99fae71b1f9c4f693e14ce4}\label{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_aa07119fbf99fae71b1f9c4f693e14ce4}} 
-\index{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme@{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}!get\+\_\+stride@{get\+\_\+stride}}
-\index{get\+\_\+stride@{get\+\_\+stride}!gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme@{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}}
-\subsubsection{\texorpdfstring{get\+\_\+stride()}{get\_stride()}}
+\index{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$@{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$}!get\_stride@{get\_stride}}
+\index{get\_stride@{get\_stride}!gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$@{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_stride()}{get\_stride()}}
 {\footnotesize\ttfamily template$<$typename Index\+Type$>$ \\
-Index\+Type \hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}$<$ Index\+Type $>$\+::get\+\_\+stride (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+Index\+Type \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}}$<$ Index\+Type $>$\+::get\+\_\+stride (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -182,13 +185,13 @@ stride between columns of the block
 \end{DoxyReturn}
 
 
-\subsection{Member Data Documentation}
+\doxysubsection{Member Data Documentation}
 \mbox{\Hypertarget{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_a8fa279f4178c767bdbf52ef4d7e23ad1}\label{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme_a8fa279f4178c767bdbf52ef4d7e23ad1}} 
-\index{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme@{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}!group\+\_\+power@{group\+\_\+power}}
-\index{group\+\_\+power@{group\+\_\+power}!gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme@{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}}
-\subsubsection{\texorpdfstring{group\+\_\+power}{group\_power}}
+\index{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$@{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$}!group\_power@{group\_power}}
+\index{group\_power@{group\_power}!gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$@{gko::preconditioner::block\_interleaved\_storage\_scheme$<$ IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{group\_power}{group\_power}}
 {\footnotesize\ttfamily template$<$typename Index\+Type$>$ \\
-\hyperlink{namespacegko_a318c831e3fe269ba04c6ed8bf5a71073}{uint32} \hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}$<$ Index\+Type $>$\+::group\+\_\+power}
+\mbox{\hyperlink{namespacegko_a318c831e3fe269ba04c6ed8bf5a71073}{uint32}} \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme}}$<$ Index\+Type $>$\+::group\+\_\+power}
 
 
 
@@ -196,10 +199,10 @@ Then base 2 power of the group.
 
 I.\+e. the group contains {\ttfamily 1 $<$$<$ group\+\_\+power} elements. 
 
-Referenced by gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ index\+\_\+type $>$\+::get\+\_\+group\+\_\+offset(), and gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ index\+\_\+type $>$\+::get\+\_\+stride().
+Referenced by gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ index\+\_\+type $>$\+::get\+\_\+group\+\_\+offset(), gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ index\+\_\+type $>$\+::get\+\_\+group\+\_\+size(), and gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ index\+\_\+type $>$\+::get\+\_\+stride().
 
 
 
 The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/preconditioner/jacobi.\+hpp (8045ac75)\end{DoxyCompactItemize}
+ginkgo/core/preconditioner/jacobi.\+hpp (42eeea81)\end{DoxyCompactItemize}

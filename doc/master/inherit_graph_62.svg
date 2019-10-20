@@ -12,7 +12,7 @@
 <!-- Node0 -->
 <g id="node1" class="node">
 <title>Node0</title>
-<g id="a_node1"><a xlink:href="classgko_1_1log_1_1Logger.html" target="_top" xlink:title="gko::log::Logger">
+<g id="a_node1"><a xlink:href="classgko_1_1log_1_1Logger.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="0,-38.5 0,-57.5 95,-57.5 95,-38.5 0,-38.5"/>
 <text text-anchor="middle" x="47.5" y="-45.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::log::Logger</text>
 </a>
@@ -21,7 +21,7 @@
 <!-- Node1 -->
 <g id="node2" class="node">
 <title>Node1</title>
-<g id="a_node2"><a xlink:href="classgko_1_1log_1_1Convergence.html" target="_top" xlink:title="Convergence is a Logger which logs data strictly from the criterion_check_completed event...">
+<g id="a_node2"><a xlink:href="classgko_1_1log_1_1Convergence.html" target="_top" xlink:title="Convergence is a Logger which logs data strictly from the criterion_check_completed event.">
 <polygon fill="#ffffff" stroke="#000000" points="153,-77 153,-107 278,-107 278,-77 153,-77"/>
 <text text-anchor="start" x="161" y="-95" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::log::Convergence</text>
 <text text-anchor="middle" x="215.5" y="-84" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; ValueType &gt;</text>
@@ -37,7 +37,7 @@
 <!-- Node2 -->
 <g id="node3" class="node">
 <title>Node2</title>
-<g id="a_node3"><a xlink:href="classgko_1_1log_1_1Record.html" target="_top" xlink:title="Record is a Logger which logs every event to an object. ">
+<g id="a_node3"><a xlink:href="classgko_1_1log_1_1Record.html" target="_top" xlink:title="Record is a Logger which logs every event to an object.">
 <polygon fill="#ffffff" stroke="#000000" points="168,-38.5 168,-57.5 263,-57.5 263,-38.5 168,-38.5"/>
 <text text-anchor="middle" x="215.5" y="-45.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::log::Record</text>
 </a>
@@ -52,7 +52,7 @@
 <!-- Node3 -->
 <g id="node4" class="node">
 <title>Node3</title>
-<g id="a_node4"><a xlink:href="classgko_1_1log_1_1Stream.html" target="_top" xlink:title="Stream is a Logger which logs every event to a stream. ">
+<g id="a_node4"><a xlink:href="classgko_1_1log_1_1Stream.html" target="_top" xlink:title="Stream is a Logger which logs every event to a stream.">
 <polygon fill="#ffffff" stroke="#000000" points="131,-.5 131,-19.5 300,-19.5 300,-.5 131,-.5"/>
 <text text-anchor="middle" x="215.5" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::log::Stream&lt; ValueType &gt;</text>
 </a>

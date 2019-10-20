@@ -1,8 +1,8 @@
-\hypertarget{classgko_1_1Composition}{}\section{gko\+:\+:Composition$<$ Value\+Type $>$ Class Template Reference}
-\label{classgko_1_1Composition}\index{gko\+::\+Composition$<$ Value\+Type $>$@{gko\+::\+Composition$<$ Value\+Type $>$}}
+\hypertarget{classgko_1_1Composition}{}\doxysection{gko\+::Composition$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1Composition}\index{gko::Composition$<$ ValueType $>$@{gko::Composition$<$ ValueType $>$}}
 
 
-The \hyperlink{classgko_1_1Composition}{Composition} class can be used to compose linear operators {\ttfamily op1, op2, ..., opn} and obtain the operator `op1 $\ast$ op2 $\ast$ ...  
+The \mbox{\hyperlink{classgko_1_1Composition}{Composition}} class can be used to compose linear operators {\ttfamily op1, op2, ..., opn} and obtain the operator {\ttfamily op1 $\ast$ op2 $\ast$ ... } 
 
 
 
@@ -11,7 +11,7 @@ The \hyperlink{classgko_1_1Composition}{Composition} class can be used to compos
 
 
 
-Collaboration diagram for gko\+:\+:Composition$<$ Value\+Type $>$\+:
+Collaboration diagram for gko\+::Composition$<$ Value\+Type $>$\+:
 \nopagebreak
 \begin{figure}[H]
 \begin{center}
@@ -19,18 +19,18 @@ Collaboration diagram for gko\+:\+:Composition$<$ Value\+Type $>$\+:
 \includegraphics[width=350pt]{classgko_1_1Composition__coll__graph}
 \end{center}
 \end{figure}
-\subsection*{Public Types}
+\doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classgko_1_1Composition_ab565c6599fe56bf6b96f4c48f5992d6b}\label{classgko_1_1Composition_ab565c6599fe56bf6b96f4c48f5992d6b}} 
 using {\bfseries value\+\_\+type} = Value\+Type
 \end{DoxyCompactItemize}
-\subsection*{Public Member Functions}
+\doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1LinOp}{Lin\+Op} $>$ $>$ \& \hyperlink{classgko_1_1Composition_a196507096c635aba24e1074050827c68}{get\+\_\+operators} () const noexcept
+const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ $>$ \& \mbox{\hyperlink{classgko_1_1Composition_a196507096c635aba24e1074050827c68}{get\+\_\+operators}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Returns a list of operators of the composition. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\subsection*{Friends}
+\doxysubsection*{Friends}
 \begin{DoxyCompactItemize}
 \item 
 \mbox{\Hypertarget{classgko_1_1Composition_afa7c3f077edf67d0b19255dd78af3ecb}\label{classgko_1_1Composition_afa7c3f077edf67d0b19255dd78af3ecb}} 
@@ -39,18 +39,18 @@ class {\bfseries Enable\+Polymorphic\+Object$<$ Composition, Lin\+Op $>$}
 \mbox{\Hypertarget{classgko_1_1Composition_a0350dc3dedd61760b46c3afd62943e6c}\label{classgko_1_1Composition_a0350dc3dedd61760b46c3afd62943e6c}} 
 class {\bfseries Enable\+Create\+Method$<$ Composition $>$}
 \end{DoxyCompactItemize}
-\subsection*{Additional Inherited Members}
+\doxysubsection*{Additional Inherited Members}
 
 
-\subsection{Detailed Description}
+\doxysubsection{Detailed Description}
 \subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
 class gko\+::\+Composition$<$ Value\+Type $>$}
 
-The \hyperlink{classgko_1_1Composition}{Composition} class can be used to compose linear operators {\ttfamily op1, op2, ..., opn} and obtain the operator `op1 $\ast$ op2 $\ast$ ... 
+The \mbox{\hyperlink{classgko_1_1Composition}{Composition}} class can be used to compose linear operators {\ttfamily op1, op2, ..., opn} and obtain the operator {\ttfamily op1 $\ast$ op2 $\ast$ ... }
 
 
 \begin{DoxyItemize}
-\item opn`.
+\item opn.
 \end{DoxyItemize}
 
 
@@ -60,13 +60,13 @@ The \hyperlink{classgko_1_1Composition}{Composition} class can be used to compos
 \end{DoxyTemplParams}
 
 
-\subsection{Member Function Documentation}
+\doxysubsection{Member Function Documentation}
 \mbox{\Hypertarget{classgko_1_1Composition_a196507096c635aba24e1074050827c68}\label{classgko_1_1Composition_a196507096c635aba24e1074050827c68}} 
-\index{gko\+::\+Composition@{gko\+::\+Composition}!get\+\_\+operators@{get\+\_\+operators}}
-\index{get\+\_\+operators@{get\+\_\+operators}!gko\+::\+Composition@{gko\+::\+Composition}}
-\subsubsection{\texorpdfstring{get\+\_\+operators()}{get\_operators()}}
+\index{gko::Composition$<$ ValueType $>$@{gko::Composition$<$ ValueType $>$}!get\_operators@{get\_operators}}
+\index{get\_operators@{get\_operators}!gko::Composition$<$ ValueType $>$@{gko::Composition$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_operators()}{get\_operators()}}
 {\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
-const std\+::vector$<$std\+::shared\+\_\+ptr$<$const \hyperlink{classgko_1_1LinOp}{Lin\+Op}$>$ $>$\& \hyperlink{classgko_1_1Composition}{gko\+::\+Composition}$<$ Value\+Type $>$\+::get\+\_\+operators (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+const std\+::vector$<$std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ $>$\& \mbox{\hyperlink{classgko_1_1Composition}{gko\+::\+Composition}}$<$ Value\+Type $>$\+::get\+\_\+operators (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
 
 
 
@@ -79,4 +79,4 @@ a list of operators
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/composition.\+hpp (f1a4eb68)\end{DoxyCompactItemize}
+ginkgo/core/base/composition.\+hpp (b6e1321a)\end{DoxyCompactItemize}

@@ -5,36 +5,39 @@
  -->
 <!-- Title: OpenMP Executor Pages: 1 -->
 <svg width="302pt" height="29pt"
- viewBox="0.00 0.00 302.00 29.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 25)">
+ viewBox="0.00 0.00 302.00 28.50" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 24.5)">
 <title>OpenMP Executor</title>
-<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-25 298,-25 298,4 -4,4"/>
-<!-- Node0 -->
-<g id="node1" class="node">
-<title>Node0</title>
-<polygon fill="#bfbfbf" stroke="#000000" points="0,-.5 0,-19.5 102,-19.5 102,-.5 0,-.5"/>
-<text text-anchor="middle" x="51" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">OpenMP Executor</text>
-</g>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-24.5 298,-24.5 298,4 -4,4"/>
 <!-- Node1 -->
-<g id="node2" class="node">
+<g id="node1" class="node">
 <title>Node1</title>
-<g id="a_node2"><a xlink:href="group__Executor.html" target="_top" xlink:title="A module dedicated to the implementation and usage of the executors in Ginkgo. ">
-<polygon fill="#ffffff" stroke="#000000" points="229,-.5 229,-19.5 294,-19.5 294,-.5 229,-.5"/>
-<text text-anchor="middle" x="261.5" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Executors</text>
+<g id="a_node1"><a xlink:title="A module dedicated to the implementation and usage of the OpenMP executor in Ginkgo.">
+<polygon fill="#bfbfbf" stroke="#000000" points="102,-19 0,-19 0,0 102,0 102,-19"/>
+<text text-anchor="middle" x="51" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">OpenMP Executor</text>
 </a>
 </g>
 </g>
-<!-- Node0&#45;&gt;Node1 -->
-<g id="edge2" class="edge">
-<title>Node0&#45;&gt;Node1</title>
-<path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M102.2249,-10C141.6546,-10 194.963,-10 228.7953,-10"/>
-<text text-anchor="middle" x="165.5" y="-13" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::OmpExecutor</text>
+<!-- Node2 -->
+<g id="node2" class="node">
+<title>Node2</title>
+<g id="a_node2"><a xlink:href="group__Executor.html" target="_top" xlink:title="A module dedicated to the implementation and usage of the executors in Ginkgo.">
+<polygon fill="#ffffff" stroke="#000000" points="294,-19 229,-19 229,0 294,0 294,-19"/>
+<text text-anchor="middle" x="261.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Executors</text>
+</a>
 </g>
-<!-- Node1&#45;&gt;Node0 -->
+</g>
+<!-- Node1&#45;&gt;Node2 -->
+<g id="edge2" class="edge">
+<title>Node1&#45;&gt;Node2</title>
+<path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M102.2249,-9.5C141.6546,-9.5 194.963,-9.5 228.7953,-9.5"/>
+<text text-anchor="middle" x="165.5" y="-12.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::OmpExecutor</text>
+</g>
+<!-- Node2&#45;&gt;Node1 -->
 <g id="edge1" class="edge">
-<title>Node1&#45;&gt;Node0</title>
-<path fill="none" stroke="#000000" d="M218.7641,-8.189C216.1372,-8.1144 213.5331,-8.0501 211,-8 170.5635,-7.1996 160.4402,-7.414 120,-8 114.2482,-8.0833 108.2275,-8.2057 102.241,-8.3496"/>
-<polygon fill="#000000" stroke="#000000" points="218.7982,-11.6919 228.9069,-8.5196 219.0263,-4.6956 218.7982,-11.6919"/>
+<title>Node2&#45;&gt;Node1</title>
+<path fill="none" stroke="#000000" d="M218.7641,-7.689C216.1372,-7.6144 213.5331,-7.5501 211,-7.5 170.5635,-6.6996 160.4402,-6.914 120,-7.5 114.2482,-7.5833 108.2275,-7.7057 102.241,-7.8496"/>
+<polygon fill="#000000" stroke="#000000" points="218.7982,-11.1919 228.9069,-8.0196 219.0263,-4.1956 218.7982,-11.1919"/>
 </g>
 </g>
 </svg>

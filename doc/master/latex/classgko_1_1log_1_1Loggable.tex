@@ -1,34 +1,34 @@
-\hypertarget{classgko_1_1log_1_1Loggable}{}\section{gko\+:\+:log\+:\+:Loggable Class Reference}
-\label{classgko_1_1log_1_1Loggable}\index{gko\+::log\+::\+Loggable@{gko\+::log\+::\+Loggable}}
+\hypertarget{classgko_1_1log_1_1Loggable}{}\doxysection{gko\+::log\+::Loggable Class Reference}
+\label{classgko_1_1log_1_1Loggable}\index{gko::log::Loggable@{gko::log::Loggable}}
 
 
-\hyperlink{classgko_1_1log_1_1Loggable}{Loggable} class is an interface which should be implemented by classes wanting to support logging.  
+\mbox{\hyperlink{classgko_1_1log_1_1Loggable}{Loggable}} class is an interface which should be implemented by classes wanting to support logging.  
 
 
 
 
 {\ttfamily \#include $<$ginkgo/core/log/logger.\+hpp$>$}
 
-\subsection*{Public Member Functions}
+\doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-virtual void \hyperlink{classgko_1_1log_1_1Loggable_aa2bb887b5ef7e75fa1a30ee1896ed932}{add\+\_\+logger} (std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1log_1_1Logger}{Logger} $>$ logger)=0
+virtual void \mbox{\hyperlink{classgko_1_1log_1_1Loggable_aa2bb887b5ef7e75fa1a30ee1896ed932}{add\+\_\+logger}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1log_1_1Logger}{Logger}} $>$ logger)=0
 \begin{DoxyCompactList}\small\item\em Adds a new logger to the list of subscribed loggers. \end{DoxyCompactList}\item 
-virtual void \hyperlink{classgko_1_1log_1_1Loggable_a5de4092a74cf04f30f13636d49aaec8b}{remove\+\_\+logger} (const \hyperlink{classgko_1_1log_1_1Logger}{Logger} $\ast$logger)=0
+virtual void \mbox{\hyperlink{classgko_1_1log_1_1Loggable_a5de4092a74cf04f30f13636d49aaec8b}{remove\+\_\+logger}} (const \mbox{\hyperlink{classgko_1_1log_1_1Logger}{Logger}} $\ast$logger)=0
 \begin{DoxyCompactList}\small\item\em Removes a logger from the list of subscribed loggers. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
-\subsection{Detailed Description}
-\hyperlink{classgko_1_1log_1_1Loggable}{Loggable} class is an interface which should be implemented by classes wanting to support logging. 
+\doxysubsection{Detailed Description}
+\mbox{\hyperlink{classgko_1_1log_1_1Loggable}{Loggable}} class is an interface which should be implemented by classes wanting to support logging. 
 
-For most cases, one can rely on the \hyperlink{classgko_1_1log_1_1EnableLogging}{Enable\+Logging} mixin which provides a default implementation of this interface. 
+For most cases, one can rely on the \mbox{\hyperlink{classgko_1_1log_1_1EnableLogging}{Enable\+Logging}} mixin which provides a default implementation of this interface. 
 
-\subsection{Member Function Documentation}
+\doxysubsection{Member Function Documentation}
 \mbox{\Hypertarget{classgko_1_1log_1_1Loggable_aa2bb887b5ef7e75fa1a30ee1896ed932}\label{classgko_1_1log_1_1Loggable_aa2bb887b5ef7e75fa1a30ee1896ed932}} 
-\index{gko\+::log\+::\+Loggable@{gko\+::log\+::\+Loggable}!add\+\_\+logger@{add\+\_\+logger}}
-\index{add\+\_\+logger@{add\+\_\+logger}!gko\+::log\+::\+Loggable@{gko\+::log\+::\+Loggable}}
-\subsubsection{\texorpdfstring{add\+\_\+logger()}{add\_logger()}}
-{\footnotesize\ttfamily virtual void gko\+::log\+::\+Loggable\+::add\+\_\+logger (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \hyperlink{classgko_1_1log_1_1Logger}{Logger} $>$}]{logger }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
+\index{gko::log::Loggable@{gko::log::Loggable}!add\_logger@{add\_logger}}
+\index{add\_logger@{add\_logger}!gko::log::Loggable@{gko::log::Loggable}}
+\doxysubsubsection{\texorpdfstring{add\_logger()}{add\_logger()}}
+{\footnotesize\ttfamily virtual void gko\+::log\+::\+Loggable\+::add\+\_\+logger (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1log_1_1Logger}{Logger}} $>$}]{logger }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
 
 
 
@@ -41,13 +41,13 @@ Adds a new logger to the list of subscribed loggers.
 \end{DoxyParams}
 
 
-Implemented in \hyperlink{classgko_1_1log_1_1EnableLogging_a7b3493c14a37b4d46487d9c636d784f2}{gko\+::log\+::\+Enable\+Logging$<$ Concrete\+Loggable, Polymorphic\+Base $>$}, \hyperlink{classgko_1_1log_1_1EnableLogging_a7b3493c14a37b4d46487d9c636d784f2}{gko\+::log\+::\+Enable\+Logging$<$ Polymorphic\+Object $>$}, and \hyperlink{classgko_1_1log_1_1EnableLogging_a7b3493c14a37b4d46487d9c636d784f2}{gko\+::log\+::\+Enable\+Logging$<$ Executor $>$}.
+Implemented in \mbox{\hyperlink{classgko_1_1log_1_1EnableLogging_a7b3493c14a37b4d46487d9c636d784f2}{gko\+::log\+::\+Enable\+Logging$<$ Concrete\+Loggable, Polymorphic\+Base $>$}}, \mbox{\hyperlink{classgko_1_1log_1_1EnableLogging_a7b3493c14a37b4d46487d9c636d784f2}{gko\+::log\+::\+Enable\+Logging$<$ Polymorphic\+Object $>$}}, and \mbox{\hyperlink{classgko_1_1log_1_1EnableLogging_a7b3493c14a37b4d46487d9c636d784f2}{gko\+::log\+::\+Enable\+Logging$<$ Executor $>$}}.
 
 \mbox{\Hypertarget{classgko_1_1log_1_1Loggable_a5de4092a74cf04f30f13636d49aaec8b}\label{classgko_1_1log_1_1Loggable_a5de4092a74cf04f30f13636d49aaec8b}} 
-\index{gko\+::log\+::\+Loggable@{gko\+::log\+::\+Loggable}!remove\+\_\+logger@{remove\+\_\+logger}}
-\index{remove\+\_\+logger@{remove\+\_\+logger}!gko\+::log\+::\+Loggable@{gko\+::log\+::\+Loggable}}
-\subsubsection{\texorpdfstring{remove\+\_\+logger()}{remove\_logger()}}
-{\footnotesize\ttfamily virtual void gko\+::log\+::\+Loggable\+::remove\+\_\+logger (\begin{DoxyParamCaption}\item[{const \hyperlink{classgko_1_1log_1_1Logger}{Logger} $\ast$}]{logger }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
+\index{gko::log::Loggable@{gko::log::Loggable}!remove\_logger@{remove\_logger}}
+\index{remove\_logger@{remove\_logger}!gko::log::Loggable@{gko::log::Loggable}}
+\doxysubsubsection{\texorpdfstring{remove\_logger()}{remove\_logger()}}
+{\footnotesize\ttfamily virtual void gko\+::log\+::\+Loggable\+::remove\+\_\+logger (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1log_1_1Logger}{Logger}} $\ast$}]{logger }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [pure virtual]}}
 
 
 
@@ -63,7 +63,7 @@ The comparison is done using the logger\textquotesingle{}s object unique identit
 \end{DoxyNote}
 
 
-Implemented in \hyperlink{classgko_1_1log_1_1EnableLogging_aba5317f8a03956a61d770e9b07fc65cc}{gko\+::log\+::\+Enable\+Logging$<$ Concrete\+Loggable, Polymorphic\+Base $>$}, \hyperlink{classgko_1_1log_1_1EnableLogging_aba5317f8a03956a61d770e9b07fc65cc}{gko\+::log\+::\+Enable\+Logging$<$ Polymorphic\+Object $>$}, and \hyperlink{classgko_1_1log_1_1EnableLogging_aba5317f8a03956a61d770e9b07fc65cc}{gko\+::log\+::\+Enable\+Logging$<$ Executor $>$}.
+Implemented in \mbox{\hyperlink{classgko_1_1log_1_1EnableLogging_aba5317f8a03956a61d770e9b07fc65cc}{gko\+::log\+::\+Enable\+Logging$<$ Concrete\+Loggable, Polymorphic\+Base $>$}}, \mbox{\hyperlink{classgko_1_1log_1_1EnableLogging_aba5317f8a03956a61d770e9b07fc65cc}{gko\+::log\+::\+Enable\+Logging$<$ Polymorphic\+Object $>$}}, and \mbox{\hyperlink{classgko_1_1log_1_1EnableLogging_aba5317f8a03956a61d770e9b07fc65cc}{gko\+::log\+::\+Enable\+Logging$<$ Executor $>$}}.
 
 
 

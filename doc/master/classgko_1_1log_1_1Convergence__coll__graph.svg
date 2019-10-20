@@ -9,25 +9,28 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 91)">
 <title>gko::log::Convergence&lt; ValueType &gt;</title>
 <polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-91 129,-91 129,4 -4,4"/>
-<!-- Node0 -->
+<!-- Node1 -->
 <g id="node1" class="node">
-<title>Node0</title>
+<title>Node1</title>
+<g id="a_node1"><a xlink:title="Convergence is a Logger which logs data strictly from the criterion_check_completed event.">
 <polygon fill="#bfbfbf" stroke="#000000" points="0,-.5 0,-30.5 125,-30.5 125,-.5 0,-.5"/>
 <text text-anchor="start" x="8" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::log::Convergence</text>
 <text text-anchor="middle" x="62.5" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; ValueType &gt;</text>
+</a>
 </g>
-<!-- Node1 -->
+</g>
+<!-- Node2 -->
 <g id="node2" class="node">
-<title>Node1</title>
-<g id="a_node2"><a xlink:href="classgko_1_1log_1_1Logger.html" target="_top" xlink:title="gko::log::Logger">
+<title>Node2</title>
+<g id="a_node2"><a xlink:href="classgko_1_1log_1_1Logger.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="15,-67.5 15,-86.5 110,-86.5 110,-67.5 15,-67.5"/>
 <text text-anchor="middle" x="62.5" y="-74.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::log::Logger</text>
 </a>
 </g>
 </g>
-<!-- Node1&#45;&gt;Node0 -->
+<!-- Node2&#45;&gt;Node1 -->
 <g id="edge1" class="edge">
-<title>Node1&#45;&gt;Node0</title>
+<title>Node2&#45;&gt;Node1</title>
 <path fill="none" stroke="#191970" d="M62.5,-57.3693C62.5,-48.681 62.5,-38.6241 62.5,-30.5446"/>
 <polygon fill="#191970" stroke="#191970" points="59.0001,-57.3906 62.5,-67.3906 66.0001,-57.3907 59.0001,-57.3906"/>
 </g>

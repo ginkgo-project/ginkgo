@@ -1,4 +1,5 @@
 <map id="gko::OutOfBoundsError" name="gko::OutOfBoundsError">
-<area shape="rect" id="node2" href="$classgko_1_1Error.html" title="The Error class is used to report exceptional behaviour in library functions. " alt="" coords="48,80,133,107"/>
-<area shape="rect" id="node3" title="STL class. " alt="" coords="33,5,148,32"/>
+<area shape="rect" id="node1" title="OutOfBoundsError is thrown if a memory access is detected to be out&#45;of&#45;bounds." alt="" coords="5,155,176,181"/>
+<area shape="rect" id="node2" href="$classgko_1_1Error.html" title="The Error class is used to report exceptional behaviour in library functions." alt="" coords="48,80,133,107"/>
+<area shape="rect" id="node3" title="STL class." alt="" coords="33,5,148,32"/>
 </map>
