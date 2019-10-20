@@ -1,0 +1,104 @@
+\hypertarget{classgko_1_1EnablePolymorphicAssignment}{}\doxysection{gko\+::Enable\+Polymorphic\+Assignment$<$ Concrete\+Type, Result\+Type $>$ Class Template Reference}
+\label{classgko_1_1EnablePolymorphicAssignment}\index{gko::EnablePolymorphicAssignment$<$ ConcreteType, ResultType $>$@{gko::EnablePolymorphicAssignment$<$ ConcreteType, ResultType $>$}}
+
+
+This mixin is used to enable a default \mbox{\hyperlink{classgko_1_1PolymorphicObject_a5e6f713938293cfbe788d00480eb4d81}{Polymorphic\+Object\+::copy\+\_\+from()}} implementation for objects that have implemented conversions between them.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/polymorphic\+\_\+object.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Enable\+Polymorphic\+Assignment$<$ Concrete\+Type, Result\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=272pt]{classgko_1_1EnablePolymorphicAssignment__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1EnablePolymorphicAssignment_a2e92aa4e8262a8f6625330b76a24deeb}\label{classgko_1_1EnablePolymorphicAssignment_a2e92aa4e8262a8f6625330b76a24deeb}} 
+using {\bfseries result\+\_\+type} = Result\+Type
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{classgko_1_1EnablePolymorphicAssignment_a6b7e6872e96084636f8ab5091063ada8}{convert\+\_\+to}} (result\+\_\+type $\ast$result) const override
+\begin{DoxyCompactList}\small\item\em Converts the implementer to an object of type result\+\_\+type. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1EnablePolymorphicAssignment_a0a4cf244139e7761d6a91c61e029810e}{move\+\_\+to}} (result\+\_\+type $\ast$result) override
+\begin{DoxyCompactList}\small\item\em Converts the implementer to an object of type result\+\_\+type by moving data from this object. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Concrete\+Type, typename Result\+Type = Concrete\+Type$>$\newline
+class gko\+::\+Enable\+Polymorphic\+Assignment$<$ Concrete\+Type, Result\+Type $>$}
+
+This mixin is used to enable a default \mbox{\hyperlink{classgko_1_1PolymorphicObject_a5e6f713938293cfbe788d00480eb4d81}{Polymorphic\+Object\+::copy\+\_\+from()}} implementation for objects that have implemented conversions between them. 
+
+The requirement is that there is either a conversion constructor from {\ttfamily Concrete\+Type} in {\ttfamily Result\+Type}, or a conversion operator to {\ttfamily Result\+Type} in {\ttfamily Concrete\+Type}.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Concrete\+Type} & the concrete type from which the copy\+\_\+from is being enabled \mbox{[}C\+R\+TP parameter\mbox{]} \\
+\hline
+{\em Result\+Type} & the type to which copy\+\_\+from is being enabled \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1EnablePolymorphicAssignment_a6b7e6872e96084636f8ab5091063ada8}\label{classgko_1_1EnablePolymorphicAssignment_a6b7e6872e96084636f8ab5091063ada8}} 
+\index{gko::EnablePolymorphicAssignment$<$ ConcreteType, ResultType $>$@{gko::EnablePolymorphicAssignment$<$ ConcreteType, ResultType $>$}!convert\_to@{convert\_to}}
+\index{convert\_to@{convert\_to}!gko::EnablePolymorphicAssignment$<$ ConcreteType, ResultType $>$@{gko::EnablePolymorphicAssignment$<$ ConcreteType, ResultType $>$}}
+\doxysubsubsection{\texorpdfstring{convert\_to()}{convert\_to()}}
+{\footnotesize\ttfamily template$<$typename Concrete\+Type, typename Result\+Type = Concrete\+Type$>$ \\
+void \mbox{\hyperlink{classgko_1_1EnablePolymorphicAssignment}{gko\+::\+Enable\+Polymorphic\+Assignment}}$<$ Concrete\+Type, Result\+Type $>$\+::convert\+\_\+to (\begin{DoxyParamCaption}\item[{result\+\_\+type $\ast$}]{result }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Converts the implementer to an object of type result\+\_\+type. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em result} & the object used to store the result of the conversion \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classgko_1_1ConvertibleTo_aa7f3420babcbed39ee15bc020bed4f7e}{gko\+::\+Convertible\+To$<$ Result\+Type $>$}}.
+
+\mbox{\Hypertarget{classgko_1_1EnablePolymorphicAssignment_a0a4cf244139e7761d6a91c61e029810e}\label{classgko_1_1EnablePolymorphicAssignment_a0a4cf244139e7761d6a91c61e029810e}} 
+\index{gko::EnablePolymorphicAssignment$<$ ConcreteType, ResultType $>$@{gko::EnablePolymorphicAssignment$<$ ConcreteType, ResultType $>$}!move\_to@{move\_to}}
+\index{move\_to@{move\_to}!gko::EnablePolymorphicAssignment$<$ ConcreteType, ResultType $>$@{gko::EnablePolymorphicAssignment$<$ ConcreteType, ResultType $>$}}
+\doxysubsubsection{\texorpdfstring{move\_to()}{move\_to()}}
+{\footnotesize\ttfamily template$<$typename Concrete\+Type, typename Result\+Type = Concrete\+Type$>$ \\
+void \mbox{\hyperlink{classgko_1_1EnablePolymorphicAssignment}{gko\+::\+Enable\+Polymorphic\+Assignment}}$<$ Concrete\+Type, Result\+Type $>$\+::move\+\_\+to (\begin{DoxyParamCaption}\item[{result\+\_\+type $\ast$}]{result }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Converts the implementer to an object of type result\+\_\+type by moving data from this object. 
+
+This method is used when the implementer is a temporary object, and move semantics can be used.
+
+
+\begin{DoxyParams}{Parameters}
+{\em result} & the object used to emplace the result of the conversion\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+\mbox{\hyperlink{classgko_1_1ConvertibleTo_ab9047c7c49e0f83c79b54c0034d6197b}{Convertible\+To\+::move\+\_\+to}} can be implemented by simply calling \mbox{\hyperlink{classgko_1_1ConvertibleTo_aa7f3420babcbed39ee15bc020bed4f7e}{Convertible\+To\+::convert\+\_\+to}}. However, this operation can often be optimized by exploiting the fact that implementer\textquotesingle{}s data can be moved to the result. 
+\end{DoxyNote}
+
+
+Implements \mbox{\hyperlink{classgko_1_1ConvertibleTo_ab9047c7c49e0f83c79b54c0034d6197b}{gko\+::\+Convertible\+To$<$ Result\+Type $>$}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/polymorphic\+\_\+object.\+hpp (cdc8145a)\end{DoxyCompactItemize}

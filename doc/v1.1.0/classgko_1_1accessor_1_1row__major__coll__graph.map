@@ -1,0 +1,5 @@
+<map id="gko::accessor::row_major&lt; ValueType, Dimensionality &gt;" name="gko::accessor::row_major&lt; ValueType, Dimensionality &gt;">
+<area shape="rect" id="node1" title="A row_major accessor is a bridge between a range and the row&#45;major memory layout." alt="" coords="5,213,276,255"/>
+<area shape="rect" id="node2" title=" " alt="" coords="51,109,230,151"/>
+<area shape="rect" id="node3" title="STL class." alt="" coords="79,5,202,32"/>
+</map>

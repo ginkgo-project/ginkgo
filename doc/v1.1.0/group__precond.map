@@ -1,0 +1,4 @@
+<map id="Preconditioners" name="Preconditioners">
+<area shape="rect" id="node1" title="A module dedicated to the implementation and usage of the Preconditioners in Ginkgo." alt="" coords="5,95,128,121"/>
+<area shape="rect" id="node2" href="$group__LinOp.html" title="A module dedicated to the implementation and usage of the Linear operators in Ginkgo." alt="" coords="327,95,457,121"/>
+</map>

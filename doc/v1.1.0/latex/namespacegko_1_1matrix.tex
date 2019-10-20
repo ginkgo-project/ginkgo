@@ -1,0 +1,41 @@
+\hypertarget{namespacegko_1_1matrix}{}\doxysection{gko\+::matrix Namespace Reference}
+\label{namespacegko_1_1matrix}\index{gko::matrix@{gko::matrix}}
+
+
+The matrix namespace.  
+
+
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Coo}{Coo}}
+\begin{DoxyCompactList}\small\item\em C\+OO stores a matrix in the coordinate matrix format. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}}
+\begin{DoxyCompactList}\small\item\em C\+SR is a matrix format which stores only the nonzero coefficients by compressing each row of the matrix (compressed sparse row format). \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} is a matrix format which explicitly stores all values of the matrix. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{Ell}}
+\begin{DoxyCompactList}\small\item\em E\+LL is a matrix format where stride with explicit zeros is used such that all rows have the same number of stored elements. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{Hybrid}}
+\begin{DoxyCompactList}\small\item\em H\+Y\+B\+R\+ID is a matrix format which splits the matrix into E\+L\+L\+P\+A\+CK and C\+OO format. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Identity}{Identity}}
+\begin{DoxyCompactList}\small\item\em This class is a utility which efficiently implements the identity matrix (a linear operator which maps each vector to itself). \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1IdentityFactory}{Identity\+Factory}}
+\begin{DoxyCompactList}\small\item\em This factory is a utility which can be used to generate \mbox{\hyperlink{classgko_1_1matrix_1_1Identity}{Identity}} operators. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{Sellp}}
+\begin{DoxyCompactList}\small\item\em S\+E\+L\+L-\/P is a matrix format similar to E\+LL format. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1SparsityCsr}{Sparsity\+Csr}}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1matrix_1_1SparsityCsr}{Sparsity\+Csr}} is a matrix format which stores only the sparsity pattern of a sparse matrix by compressing each row of the matrix (compressed sparse row format). \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{namespacegko_1_1matrix_a80dd7829c1ed8b1bed2e182f4a9c5634}\label{namespacegko_1_1matrix_a80dd7829c1ed8b1bed2e182f4a9c5634}} 
+constexpr int {\bfseries default\+\_\+slice\+\_\+size} = 64
+\item 
+\mbox{\Hypertarget{namespacegko_1_1matrix_a26ccb7bd77d0d18162e18a76d0277a80}\label{namespacegko_1_1matrix_a26ccb7bd77d0d18162e18a76d0277a80}} 
+constexpr int {\bfseries default\+\_\+stride\+\_\+factor} = 1
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The matrix namespace. 

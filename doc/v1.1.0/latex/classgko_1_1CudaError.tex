@@ -1,0 +1,58 @@
+\hypertarget{classgko_1_1CudaError}{}\doxysection{gko\+::Cuda\+Error Class Reference}
+\label{classgko_1_1CudaError}\index{gko::CudaError@{gko::CudaError}}
+
+
+\mbox{\hyperlink{classgko_1_1CudaError}{Cuda\+Error}} is thrown when a C\+U\+DA routine throws a non-\/zero error code.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/exception.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Cuda\+Error\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=169pt]{classgko_1_1CudaError__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classgko_1_1CudaError_aa4f4d466d2ccdb9da5e331d8dad92d39}{Cuda\+Error}} (const std\+::string \&file, int line, const std\+::string \&func, \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}} error\+\_\+code)
+\begin{DoxyCompactList}\small\item\em Initializes a C\+U\+DA error. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\mbox{\hyperlink{classgko_1_1CudaError}{Cuda\+Error}} is thrown when a C\+U\+DA routine throws a non-\/zero error code. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classgko_1_1CudaError_aa4f4d466d2ccdb9da5e331d8dad92d39}\label{classgko_1_1CudaError_aa4f4d466d2ccdb9da5e331d8dad92d39}} 
+\index{gko::CudaError@{gko::CudaError}!CudaError@{CudaError}}
+\index{CudaError@{CudaError}!gko::CudaError@{gko::CudaError}}
+\doxysubsubsection{\texorpdfstring{CudaError()}{CudaError()}}
+{\footnotesize\ttfamily gko\+::\+Cuda\+Error\+::\+Cuda\+Error (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{file,  }\item[{int}]{line,  }\item[{const std\+::string \&}]{func,  }\item[{\mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}}}]{error\+\_\+code }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Initializes a C\+U\+DA error. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em file} & The name of the offending source file \\
+\hline
+{\em line} & The source code line number where the error occurred \\
+\hline
+{\em func} & The name of the C\+U\+DA routine that failed \\
+\hline
+{\em error\+\_\+code} & The resulting C\+U\+DA error code \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/exception.\+hpp (45e379ad)\end{DoxyCompactItemize}

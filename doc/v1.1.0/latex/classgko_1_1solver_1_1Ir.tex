@@ -1,0 +1,142 @@
+\hypertarget{classgko_1_1solver_1_1Ir}{}\doxysection{gko\+::solver\+::Ir$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1solver_1_1Ir}\index{gko::solver::Ir$<$ ValueType $>$@{gko::solver::Ir$<$ ValueType $>$}}
+
+
+Iterative refinement (IR) is an iterative method that uses another coarse method to approximate the error of the current solution via the current residual.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/solver/ir.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::solver\+::Ir$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1solver_1_1Ir__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1solver_1_1Ir_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1solver_1_1Ir_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Ir_a1f746b0af41665271dd337196525f425}\label{classgko_1_1solver_1_1Ir_a1f746b0af41665271dd337196525f425}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Ir_a2095b57bb8d3c31e0cfe395c911dbf84}{get\+\_\+system\+\_\+matrix}} () const
+\begin{DoxyCompactList}\small\item\em Returns the system operator (matrix) of the linear system. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Ir_a3996838d5c38740a9777b522317ce3f1}{get\+\_\+solver}} () const
+\begin{DoxyCompactList}\small\item\em Returns the solver operator used as the inner solver. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1solver_1_1Ir_a1eaca6f9b06ed821c1b4a91ddf796d30}{set\+\_\+solver}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ new\+\_\+solver)
+\begin{DoxyCompactList}\small\item\em Sets the solver operator used as the inner solver. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Ir_a3bfeb9b57cea666c5fef55c10b27d897}\label{classgko_1_1solver_1_1Ir_a3bfeb9b57cea666c5fef55c10b27d897}} 
+const \mbox{\hyperlink{structgko_1_1solver_1_1Ir_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Ir_aa4956697bd7c1de5a03b684554813568}\label{classgko_1_1solver_1_1Ir_aa4956697bd7c1de5a03b684554813568}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1solver_1_1Ir_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Ir_ac093132f180b389cafe5a3694d819dbd}\label{classgko_1_1solver_1_1Ir_ac093132f180b389cafe5a3694d819dbd}} 
+class {\bfseries Enable\+Lin\+Op$<$ Ir $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Ir_a775344ad65e9b035bfe6b4bb2cf99ce3}\label{classgko_1_1solver_1_1Ir_a775344ad65e9b035bfe6b4bb2cf99ce3}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Ir, Lin\+Op $>$}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::solver\+::\+Ir$<$ Value\+Type $>$}
+
+Iterative refinement (IR) is an iterative method that uses another coarse method to approximate the error of the current solution via the current residual. 
+
+For any approximation of the solution {\ttfamily solution} to the system {\ttfamily Ax = b}, the residual is defined as\+: {\ttfamily residual = b -\/ A solution}. The error in {\ttfamily solution}, {\ttfamily e = x -\/ solution} (with {\ttfamily x} being the exact solution) can be obtained as the solution to the residual equation {\ttfamily Ae = residual}, since {\ttfamily A e = Ax -\/ A solution = b -\/ A solution = residual}. Then, the real solution is computed as {\ttfamily x = solution + e}. Instead of accurately solving the residual equation {\ttfamily Ae = residual}, the solution of the system {\ttfamily e} can be approximated to obtain the approximation {\ttfamily error} using a coarse method {\ttfamily solver}, which is used to update {\ttfamily solution}, and the entire process is repeated with the updated {\ttfamily solution}. This yields the iterative refinement method\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{solution = initial\_guess}
+\DoxyCodeLine{\textcolor{keywordflow}{while} not converged:}
+\DoxyCodeLine{    residual = b -\/ A solution}
+\DoxyCodeLine{    error = solver(A, residual)}
+\DoxyCodeLine{    solution = solution + error}
+\end{DoxyCode}
+
+
+Assuming that {\ttfamily solver} has accuracy {\ttfamily c}, i.\+e., {\ttfamily $\vert$ e -\/ error $\vert$ $<$= c $\vert$ e $\vert$}, iterative refinement will converge with a convergence rate of {\ttfamily c}. Indeed, from {\ttfamily e -\/ error = x -\/ solution -\/ error = x -\/ solution$\ast$} (where {\ttfamily solution$\ast$} denotes the value stored in {\ttfamily solution} after the update) and {\ttfamily e = inv(\+A) residual = inv(\+A)b -\/ inv(\+A) A solution = x -\/ solution} it follows that $\vert$ x -\/ solution$\ast$ $\vert$ $<$= c $\vert$ x -\/ solution $\vert$.
+
+Unless otherwise specified via the {\ttfamily solver} factory parameter, this implementation uses the identity operator (i.\+e. the solver that approximates the solution of a system Ax = b by setting x \+:= b) as the default inner solver. Such a setting results in a relaxation method known as the Richardson iteration with parameter 1, which is guaranteed to converge for matrices whose spectrum is strictly contained within the unit disc around 1 (i.\+e., all its eigenvalues {\ttfamily lambda} have to satisfy the equation \`{}$\vert$lambda -\/ 1$\vert$ $<$ 1).
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of matrix elements \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Ir_a3996838d5c38740a9777b522317ce3f1}\label{classgko_1_1solver_1_1Ir_a3996838d5c38740a9777b522317ce3f1}} 
+\index{gko::solver::Ir$<$ ValueType $>$@{gko::solver::Ir$<$ ValueType $>$}!get\_solver@{get\_solver}}
+\index{get\_solver@{get\_solver}!gko::solver::Ir$<$ ValueType $>$@{gko::solver::Ir$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_solver()}{get\_solver()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Ir}{gko\+::solver\+::\+Ir}}$<$ Value\+Type $>$\+::get\+\_\+solver (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Returns the solver operator used as the inner solver. 
+
+\begin{DoxyReturn}{Returns}
+the solver operator used as the inner solver 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Ir_a2095b57bb8d3c31e0cfe395c911dbf84}\label{classgko_1_1solver_1_1Ir_a2095b57bb8d3c31e0cfe395c911dbf84}} 
+\index{gko::solver::Ir$<$ ValueType $>$@{gko::solver::Ir$<$ ValueType $>$}!get\_system\_matrix@{get\_system\_matrix}}
+\index{get\_system\_matrix@{get\_system\_matrix}!gko::solver::Ir$<$ ValueType $>$@{gko::solver::Ir$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_system\_matrix()}{get\_system\_matrix()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Ir}{gko\+::solver\+::\+Ir}}$<$ Value\+Type $>$\+::get\+\_\+system\+\_\+matrix (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Returns the system operator (matrix) of the linear system. 
+
+\begin{DoxyReturn}{Returns}
+the system operator (matrix) 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Ir_a1eaca6f9b06ed821c1b4a91ddf796d30}\label{classgko_1_1solver_1_1Ir_a1eaca6f9b06ed821c1b4a91ddf796d30}} 
+\index{gko::solver::Ir$<$ ValueType $>$@{gko::solver::Ir$<$ ValueType $>$}!set\_solver@{set\_solver}}
+\index{set\_solver@{set\_solver}!gko::solver::Ir$<$ ValueType $>$@{gko::solver::Ir$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{set\_solver()}{set\_solver()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+void \mbox{\hyperlink{classgko_1_1solver_1_1Ir}{gko\+::solver\+::\+Ir}}$<$ Value\+Type $>$\+::set\+\_\+solver (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$}]{new\+\_\+solver }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Sets the solver operator used as the inner solver. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em new\+\_\+solver} & the new inner solver \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/solver/ir.\+hpp (ff3f14fe)\end{DoxyCompactItemize}

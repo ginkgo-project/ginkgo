@@ -1,0 +1,80 @@
+\hypertarget{classgko_1_1executor__deleter}{}\doxysection{gko\+::executor\+\_\+deleter$<$ T $>$ Class Template Reference}
+\label{classgko_1_1executor__deleter}\index{gko::executor\_deleter$<$ T $>$@{gko::executor\_deleter$<$ T $>$}}
+
+
+This is a deleter that uses an executor\textquotesingle{}s {\ttfamily free} method to deallocate the data.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/executor.\+hpp$>$}
+
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1executor__deleter_aeaea90789ef7502ffa1a4caa28561f50}\label{classgko_1_1executor__deleter_aeaea90789ef7502ffa1a4caa28561f50}} 
+using {\bfseries pointer} = T $\ast$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classgko_1_1executor__deleter_a260f79ed87560fefc48d52b072bbb776}{executor\+\_\+deleter}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec)
+\begin{DoxyCompactList}\small\item\em Creates a new deleter. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1executor__deleter_aaefa9d9f1c8ae4f4723668d5f946e5c0}{operator()}} (pointer ptr) const
+\begin{DoxyCompactList}\small\item\em Deletes the object. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename T$>$\newline
+class gko\+::executor\+\_\+deleter$<$ T $>$}
+
+This is a deleter that uses an executor\textquotesingle{}s {\ttfamily free} method to deallocate the data. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & the type of object being deleted \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classgko_1_1executor__deleter_a260f79ed87560fefc48d52b072bbb776}\label{classgko_1_1executor__deleter_a260f79ed87560fefc48d52b072bbb776}} 
+\index{gko::executor\_deleter$<$ T $>$@{gko::executor\_deleter$<$ T $>$}!executor\_deleter@{executor\_deleter}}
+\index{executor\_deleter@{executor\_deleter}!gko::executor\_deleter$<$ T $>$@{gko::executor\_deleter$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{executor\_deleter()}{executor\_deleter()}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+\mbox{\hyperlink{classgko_1_1executor__deleter}{gko\+::executor\+\_\+deleter}}$<$ T $>$\+::\mbox{\hyperlink{classgko_1_1executor__deleter}{executor\+\_\+deleter}} (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{exec }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [explicit]}}
+
+
+
+Creates a new deleter. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor used to free the data \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1executor__deleter_aaefa9d9f1c8ae4f4723668d5f946e5c0}\label{classgko_1_1executor__deleter_aaefa9d9f1c8ae4f4723668d5f946e5c0}} 
+\index{gko::executor\_deleter$<$ T $>$@{gko::executor\_deleter$<$ T $>$}!operator()@{operator()}}
+\index{operator()@{operator()}!gko::executor\_deleter$<$ T $>$@{gko::executor\_deleter$<$ T $>$}}
+\doxysubsubsection{\texorpdfstring{operator()()}{operator()()}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+void \mbox{\hyperlink{classgko_1_1executor__deleter}{gko\+::executor\+\_\+deleter}}$<$ T $>$\+::operator() (\begin{DoxyParamCaption}\item[{pointer}]{ptr }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Deletes the object. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em ptr} & pointer to the object being deleted \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/executor.\+hpp (d025bd85)\end{DoxyCompactItemize}

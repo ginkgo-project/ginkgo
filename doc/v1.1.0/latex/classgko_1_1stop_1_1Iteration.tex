@@ -1,0 +1,59 @@
+\hypertarget{classgko_1_1stop_1_1Iteration}{}\doxysection{gko\+::stop\+::Iteration Class Reference}
+\label{classgko_1_1stop_1_1Iteration}\index{gko::stop::Iteration@{gko::stop::Iteration}}
+
+
+The \mbox{\hyperlink{classgko_1_1stop_1_1Iteration}{Iteration}} class is a stopping criterion which stops the iteration process after a preset number of iterations.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/stop/iteration.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::stop\+::Iteration\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1stop_1_1Iteration__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1Iteration_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1stop_1_1Iteration_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1Iteration_ae8ca977977e5fc228583cd25068b3ee2}\label{classgko_1_1stop_1_1Iteration_ae8ca977977e5fc228583cd25068b3ee2}} 
+const \mbox{\hyperlink{structgko_1_1stop_1_1Iteration_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1Iteration_a8175519c5dad57f41f8bdec83c04585d}\label{classgko_1_1stop_1_1Iteration_a8175519c5dad57f41f8bdec83c04585d}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1stop_1_1Iteration_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1Iteration_a53441469892d9e127b487d868cd90aee}\label{classgko_1_1stop_1_1Iteration_a53441469892d9e127b487d868cd90aee}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Iteration, Criterion $>$}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The \mbox{\hyperlink{classgko_1_1stop_1_1Iteration}{Iteration}} class is a stopping criterion which stops the iteration process after a preset number of iterations. 
+
+\begin{DoxyNote}{Note}
+to use this stopping criterion, it is required to update the iteration count for the \+::check() method. 
+\end{DoxyNote}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/stop/iteration.\+hpp (f1a4eb68)\end{DoxyCompactItemize}

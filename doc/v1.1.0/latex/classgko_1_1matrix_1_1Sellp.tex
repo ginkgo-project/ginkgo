@@ -1,0 +1,490 @@
+\hypertarget{classgko_1_1matrix_1_1Sellp}{}\doxysection{gko\+::matrix\+::Sellp$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1matrix_1_1Sellp}\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+
+
+S\+E\+L\+L-\/P is a matrix format similar to E\+LL format.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/matrix/sellp.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::matrix\+::Sellp$<$ Value\+Type, Index\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1matrix_1_1Sellp__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_ac220b4c6cb098b81164a671e6683e5c0}\label{classgko_1_1matrix_1_1Sellp_ac220b4c6cb098b81164a671e6683e5c0}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_af653158fd8d14e9d9dfee7b2a098fefe}\label{classgko_1_1matrix_1_1Sellp_af653158fd8d14e9d9dfee7b2a098fefe}} 
+using {\bfseries index\+\_\+type} = Index\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_a4a819a93dec5ca81e7e79b805f88d14e}\label{classgko_1_1matrix_1_1Sellp_a4a819a93dec5ca81e7e79b805f88d14e}} 
+using {\bfseries mat\+\_\+data} = \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_ad7540eec38a5f267fc3078ff22ffb4d1}\label{classgko_1_1matrix_1_1Sellp_ad7540eec38a5f267fc3078ff22ffb4d1}} 
+void {\bfseries convert\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ Value\+Type $>$ $\ast$other) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_aba2fc06a17a24b8b0da36151e25357f3}\label{classgko_1_1matrix_1_1Sellp_aba2fc06a17a24b8b0da36151e25357f3}} 
+void {\bfseries move\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ Value\+Type $>$ $\ast$other) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_a8c6a8a35f788ad8b5639b5bfaacfd732}\label{classgko_1_1matrix_1_1Sellp_a8c6a8a35f788ad8b5639b5bfaacfd732}} 
+void {\bfseries convert\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}}$<$ Value\+Type, Index\+Type $>$ $\ast$other) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_a86e1d5bd35f6308577159b5e324cb431}\label{classgko_1_1matrix_1_1Sellp_a86e1d5bd35f6308577159b5e324cb431}} 
+void {\bfseries move\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}}$<$ Value\+Type, Index\+Type $>$ $\ast$other) override
+\item 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_a2c5ff4a3f190daf7d70bbd8451d13edd}{read}} (const \mbox{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data}} \&data) override
+\begin{DoxyCompactList}\small\item\em Reads a matrix from a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_aae2355a2866318b154d017b1c51f30a5}{write}} (\mbox{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data}} \&data) const override
+\begin{DoxyCompactList}\small\item\em Writes a matrix to a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. \end{DoxyCompactList}\item 
+value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_ac9afd5f8000da345844ccb22b599acf7}{get\+\_\+values}} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the values of the matrix. \end{DoxyCompactList}\item 
+const value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_a8a3c4738049b7e6819806bb51e1a5523}{get\+\_\+const\+\_\+values}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the values of the matrix. \end{DoxyCompactList}\item 
+index\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_abb770ef6fed094f707c96219a8b69d11}{get\+\_\+col\+\_\+idxs}} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the column indexes of the matrix. \end{DoxyCompactList}\item 
+const index\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_a6b5417bd6f2c876925ce732c7526b562}{get\+\_\+const\+\_\+col\+\_\+idxs}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the column indexes of the matrix. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_ab22f4de41d95db19e96433dc4583f512}{get\+\_\+slice\+\_\+lengths}} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the lengths(columns) of slices. \end{DoxyCompactList}\item 
+const \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_adf13bb4a4f8660b4ae27fe2ae6a874aa}{get\+\_\+const\+\_\+slice\+\_\+lengths}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the lengths(columns) of slices. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_afecef07cef594f1d23c735e66ee90ec6}{get\+\_\+slice\+\_\+sets}} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the offsets of slices. \end{DoxyCompactList}\item 
+const \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_a1b5bcac41afe4dee75994ad05c1ffc81}{get\+\_\+const\+\_\+slice\+\_\+sets}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the offsets of slices. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_a0554e79b672f35df5dd01cb467850227}{get\+\_\+slice\+\_\+size}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the size of a slice. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_a34c7942cac3db5a9c4c0b609d2a5540b}{get\+\_\+stride\+\_\+factor}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the stride factor(t) of S\+E\+L\+L-\/P. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_a3e5ca0f4968f29f97b5a42aac4d08b3d}{get\+\_\+total\+\_\+cols}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the total column number. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_aab92660b6249e243e3ad35a51c557f3b}{get\+\_\+num\+\_\+stored\+\_\+elements}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the number of elements explicitly stored in the matrix. \end{DoxyCompactList}\item 
+value\+\_\+type \& \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_a0654ed1e0f066c8b9a15aaaeeea34030}{val\+\_\+at}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} row, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} slice\+\_\+set, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} idx) noexcept
+\begin{DoxyCompactList}\small\item\em Returns the {\ttfamily idx}-\/th non-\/zero element of the {\ttfamily row}-\/th row with {\ttfamily slice\+\_\+set} slice set. \end{DoxyCompactList}\item 
+value\+\_\+type \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_ad4bb228252469da6e57eb38edd66fb8e}{val\+\_\+at}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} row, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} slice\+\_\+set, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} idx) const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the {\ttfamily idx}-\/th non-\/zero element of the {\ttfamily row}-\/th row with {\ttfamily slice\+\_\+set} slice set. \end{DoxyCompactList}\item 
+index\+\_\+type \& \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_a994af14832dbc9ff70e431f6c11a1d52}{col\+\_\+at}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} row, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} slice\+\_\+set, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} idx) noexcept
+\begin{DoxyCompactList}\small\item\em Returns the {\ttfamily idx}-\/th column index of the {\ttfamily row}-\/th row with {\ttfamily slice\+\_\+set} slice set. \end{DoxyCompactList}\item 
+index\+\_\+type \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp_a5fb397d1dc15063dc4dc78bb9d9b4f72}{col\+\_\+at}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} row, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} slice\+\_\+set, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} idx) const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the {\ttfamily idx}-\/th column index of the {\ttfamily row}-\/th row with {\ttfamily slice\+\_\+set} slice set. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_a6dcfab4b2f117cf840ccbd963f2f5083}\label{classgko_1_1matrix_1_1Sellp_a6dcfab4b2f117cf840ccbd963f2f5083}} 
+class {\bfseries Enable\+Create\+Method$<$ Sellp $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_a9f42518ddcbd7efd8347113f4184667d}\label{classgko_1_1matrix_1_1Sellp_a9f42518ddcbd7efd8347113f4184667d}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Sellp, Lin\+Op $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_a22a84c8f67f946aa60a2fa8bf5835a32}\label{classgko_1_1matrix_1_1Sellp_a22a84c8f67f946aa60a2fa8bf5835a32}} 
+class {\bfseries Dense$<$ Value\+Type $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_a3962faf971a3df6ff4c9226c61fb24cc}\label{classgko_1_1matrix_1_1Sellp_a3962faf971a3df6ff4c9226c61fb24cc}} 
+class {\bfseries Csr$<$ Value\+Type, Index\+Type $>$}
+\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$}
+
+S\+E\+L\+L-\/P is a matrix format similar to E\+LL format. 
+
+The difference is that S\+E\+L\+L-\/P format divides rows into smaller slices and store each slice with E\+LL format.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of matrix elements \\
+\hline
+{\em Index\+Type} & precision of matrix indexes \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_a5fb397d1dc15063dc4dc78bb9d9b4f72}\label{classgko_1_1matrix_1_1Sellp_a5fb397d1dc15063dc4dc78bb9d9b4f72}} 
+\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}!col\_at@{col\_at}}
+\index{col\_at@{col\_at}!gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{col\_at()}{col\_at()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+index\+\_\+type \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}}$<$ Value\+Type, Index\+Type $>$\+::col\+\_\+at (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{row,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{slice\+\_\+set,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{idx }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the {\ttfamily idx}-\/th column index of the {\ttfamily row}-\/th row with {\ttfamily slice\+\_\+set} slice set. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & the row of the requested element in the slice \\
+\hline
+{\em slice\+\_\+set} & the slice set of the slice \\
+\hline
+{\em idx} & the idx-\/th stored element of the row in the slice\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+the method has to be called on the same \mbox{\hyperlink{classgko_1_1Executor}{Executor}} the matrix is stored at (e.\+g. trying to call this method on a G\+PU matrix from the C\+PU results in a runtime error) 
+\end{DoxyNote}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_a994af14832dbc9ff70e431f6c11a1d52}\label{classgko_1_1matrix_1_1Sellp_a994af14832dbc9ff70e431f6c11a1d52}} 
+\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}!col\_at@{col\_at}}
+\index{col\_at@{col\_at}!gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{col\_at()}{col\_at()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+index\+\_\+type\& \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}}$<$ Value\+Type, Index\+Type $>$\+::col\+\_\+at (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{row,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{slice\+\_\+set,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{idx }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the {\ttfamily idx}-\/th column index of the {\ttfamily row}-\/th row with {\ttfamily slice\+\_\+set} slice set. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & the row of the requested element in the slice \\
+\hline
+{\em slice\+\_\+set} & the slice set of the slice \\
+\hline
+{\em idx} & the idx-\/th stored element of the row in the slice\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+the method has to be called on the same \mbox{\hyperlink{classgko_1_1Executor}{Executor}} the matrix is stored at (e.\+g. trying to call this method on a G\+PU matrix from the C\+PU results in a runtime error) 
+\end{DoxyNote}
+
+
+References gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_abb770ef6fed094f707c96219a8b69d11}\label{classgko_1_1matrix_1_1Sellp_abb770ef6fed094f707c96219a8b69d11}} 
+\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}!get\_col\_idxs@{get\_col\_idxs}}
+\index{get\_col\_idxs@{get\_col\_idxs}!gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_col\_idxs()}{get\_col\_idxs()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+index\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the column indexes of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the column indexes of the matrix. 
+\end{DoxyReturn}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
+
+
+
+Referenced by gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::col\+\_\+at().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_a6b5417bd6f2c876925ce732c7526b562}\label{classgko_1_1matrix_1_1Sellp_a6b5417bd6f2c876925ce732c7526b562}} 
+\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}!get\_const\_col\_idxs@{get\_const\_col\_idxs}}
+\index{get\_const\_col\_idxs@{get\_const\_col\_idxs}!gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_const\_col\_idxs()}{get\_const\_col\_idxs()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+const index\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the column indexes of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the column indexes of the matrix.
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_adf13bb4a4f8660b4ae27fe2ae6a874aa}\label{classgko_1_1matrix_1_1Sellp_adf13bb4a4f8660b4ae27fe2ae6a874aa}} 
+\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}!get\_const\_slice\_lengths@{get\_const\_slice\_lengths}}
+\index{get\_const\_slice\_lengths@{get\_const\_slice\_lengths}!gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_const\_slice\_lengths()}{get\_const\_slice\_lengths()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+const \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+slice\+\_\+lengths (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the lengths(columns) of slices. 
+
+\begin{DoxyReturn}{Returns}
+the lengths(columns) of slices.
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_a1b5bcac41afe4dee75994ad05c1ffc81}\label{classgko_1_1matrix_1_1Sellp_a1b5bcac41afe4dee75994ad05c1ffc81}} 
+\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}!get\_const\_slice\_sets@{get\_const\_slice\_sets}}
+\index{get\_const\_slice\_sets@{get\_const\_slice\_sets}!gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_const\_slice\_sets()}{get\_const\_slice\_sets()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+const \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+slice\+\_\+sets (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the offsets of slices. 
+
+\begin{DoxyReturn}{Returns}
+the offsets of slices.
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_a8a3c4738049b7e6819806bb51e1a5523}\label{classgko_1_1matrix_1_1Sellp_a8a3c4738049b7e6819806bb51e1a5523}} 
+\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}!get\_const\_values@{get\_const\_values}}
+\index{get\_const\_values@{get\_const\_values}!gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_const\_values()}{get\_const\_values()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+const value\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+values (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the values of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the values of the matrix.
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_aab92660b6249e243e3ad35a51c557f3b}\label{classgko_1_1matrix_1_1Sellp_aab92660b6249e243e3ad35a51c557f3b}} 
+\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}!get\_num\_stored\_elements@{get\_num\_stored\_elements}}
+\index{get\_num\_stored\_elements@{get\_num\_stored\_elements}!gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_num\_stored\_elements()}{get\_num\_stored\_elements()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+num\+\_\+stored\+\_\+elements (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the number of elements explicitly stored in the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the number of elements explicitly stored in the matrix 
+\end{DoxyReturn}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+num\+\_\+elems().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_ab22f4de41d95db19e96433dc4583f512}\label{classgko_1_1matrix_1_1Sellp_ab22f4de41d95db19e96433dc4583f512}} 
+\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}!get\_slice\_lengths@{get\_slice\_lengths}}
+\index{get\_slice\_lengths@{get\_slice\_lengths}!gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_slice\_lengths()}{get\_slice\_lengths()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+slice\+\_\+lengths (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the lengths(columns) of slices. 
+
+\begin{DoxyReturn}{Returns}
+the lengths(columns) of slices. 
+\end{DoxyReturn}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_afecef07cef594f1d23c735e66ee90ec6}\label{classgko_1_1matrix_1_1Sellp_afecef07cef594f1d23c735e66ee90ec6}} 
+\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}!get\_slice\_sets@{get\_slice\_sets}}
+\index{get\_slice\_sets@{get\_slice\_sets}!gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_slice\_sets()}{get\_slice\_sets()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+slice\+\_\+sets (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the offsets of slices. 
+
+\begin{DoxyReturn}{Returns}
+the offsets of slices. 
+\end{DoxyReturn}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_a0554e79b672f35df5dd01cb467850227}\label{classgko_1_1matrix_1_1Sellp_a0554e79b672f35df5dd01cb467850227}} 
+\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}!get\_slice\_size@{get\_slice\_size}}
+\index{get\_slice\_size@{get\_slice\_size}!gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_slice\_size()}{get\_slice\_size()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+slice\+\_\+size (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the size of a slice. 
+
+\begin{DoxyReturn}{Returns}
+the size of a slice. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_a34c7942cac3db5a9c4c0b609d2a5540b}\label{classgko_1_1matrix_1_1Sellp_a34c7942cac3db5a9c4c0b609d2a5540b}} 
+\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}!get\_stride\_factor@{get\_stride\_factor}}
+\index{get\_stride\_factor@{get\_stride\_factor}!gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_stride\_factor()}{get\_stride\_factor()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+stride\+\_\+factor (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the stride factor(t) of S\+E\+L\+L-\/P. 
+
+\begin{DoxyReturn}{Returns}
+the stride factor(t) of S\+E\+L\+L-\/P. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_a3e5ca0f4968f29f97b5a42aac4d08b3d}\label{classgko_1_1matrix_1_1Sellp_a3e5ca0f4968f29f97b5a42aac4d08b3d}} 
+\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}!get\_total\_cols@{get\_total\_cols}}
+\index{get\_total\_cols@{get\_total\_cols}!gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_total\_cols()}{get\_total\_cols()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+total\+\_\+cols (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the total column number. 
+
+\begin{DoxyReturn}{Returns}
+the total column number. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_ac9afd5f8000da345844ccb22b599acf7}\label{classgko_1_1matrix_1_1Sellp_ac9afd5f8000da345844ccb22b599acf7}} 
+\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}!get\_values@{get\_values}}
+\index{get\_values@{get\_values}!gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_values()}{get\_values()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+value\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+values (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the values of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the values of the matrix. 
+\end{DoxyReturn}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_a2c5ff4a3f190daf7d70bbd8451d13edd}\label{classgko_1_1matrix_1_1Sellp_a2c5ff4a3f190daf7d70bbd8451d13edd}} 
+\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}!read@{read}}
+\index{read@{read}!gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{read()}{read()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}}$<$ Value\+Type, Index\+Type $>$\+::read (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data}} \&}]{data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Reads a matrix from a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em data} & the \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classgko_1_1ReadableFromMatrixData_add5c12e23b3ac3c8fbd607fa5a9656bb}{gko\+::\+Readable\+From\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$}}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_ad4bb228252469da6e57eb38edd66fb8e}\label{classgko_1_1matrix_1_1Sellp_ad4bb228252469da6e57eb38edd66fb8e}} 
+\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}!val\_at@{val\_at}}
+\index{val\_at@{val\_at}!gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{val\_at()}{val\_at()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+value\+\_\+type \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}}$<$ Value\+Type, Index\+Type $>$\+::val\+\_\+at (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{row,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{slice\+\_\+set,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{idx }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the {\ttfamily idx}-\/th non-\/zero element of the {\ttfamily row}-\/th row with {\ttfamily slice\+\_\+set} slice set. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & the row of the requested element in the slice \\
+\hline
+{\em slice\+\_\+set} & the slice set of the slice \\
+\hline
+{\em idx} & the idx-\/th stored element of the row in the slice\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+the method has to be called on the same \mbox{\hyperlink{classgko_1_1Executor}{Executor}} the matrix is stored at (e.\+g. trying to call this method on a G\+PU matrix from the C\+PU results in a runtime error) 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_a0654ed1e0f066c8b9a15aaaeeea34030}\label{classgko_1_1matrix_1_1Sellp_a0654ed1e0f066c8b9a15aaaeeea34030}} 
+\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}!val\_at@{val\_at}}
+\index{val\_at@{val\_at}!gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{val\_at()}{val\_at()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+value\+\_\+type\& \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}}$<$ Value\+Type, Index\+Type $>$\+::val\+\_\+at (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{row,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{slice\+\_\+set,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{idx }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the {\ttfamily idx}-\/th non-\/zero element of the {\ttfamily row}-\/th row with {\ttfamily slice\+\_\+set} slice set. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & the row of the requested element in the slice \\
+\hline
+{\em slice\+\_\+set} & the slice set of the slice \\
+\hline
+{\em idx} & the idx-\/th stored element of the row in the slice\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+the method has to be called on the same \mbox{\hyperlink{classgko_1_1Executor}{Executor}} the matrix is stored at (e.\+g. trying to call this method on a G\+PU matrix from the C\+PU results in a runtime error) 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Sellp_aae2355a2866318b154d017b1c51f30a5}\label{classgko_1_1matrix_1_1Sellp_aae2355a2866318b154d017b1c51f30a5}} 
+\index{gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}!write@{write}}
+\index{write@{write}!gko::matrix::Sellp$<$ ValueType, IndexType $>$@{gko::matrix::Sellp$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{write()}{write()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}}$<$ Value\+Type, Index\+Type $>$\+::write (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data}} \&}]{data }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Writes a matrix to a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em data} & the \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classgko_1_1WritableToMatrixData_a96036c3a4bf4c67fa93002808b8b14e2}{gko\+::\+Writable\+To\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$}}.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/matrix/csr.\+hpp (2845046b)\item 
+ginkgo/core/matrix/sellp.\+hpp (8045ac75)\end{DoxyCompactItemize}

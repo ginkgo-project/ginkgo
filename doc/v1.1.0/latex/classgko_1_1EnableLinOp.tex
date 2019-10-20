@@ -1,0 +1,67 @@
+\hypertarget{classgko_1_1EnableLinOp}{}\doxysection{gko\+::Enable\+Lin\+Op$<$ Concrete\+Lin\+Op, Polymorphic\+Base $>$ Class Template Reference}
+\label{classgko_1_1EnableLinOp}\index{gko::EnableLinOp$<$ ConcreteLinOp, PolymorphicBase $>$@{gko::EnableLinOp$<$ ConcreteLinOp, PolymorphicBase $>$}}
+
+
+The \mbox{\hyperlink{classgko_1_1EnableLinOp}{Enable\+Lin\+Op}} mixin can be used to provide sensible default implementations of the majority of the \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} and \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} interface.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/lin\+\_\+op.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Enable\+Lin\+Op$<$ Concrete\+Lin\+Op, Polymorphic\+Base $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1EnableLinOp__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableLinOp_a28a3c32ed2934695b46969533db050da}\label{classgko_1_1EnableLinOp_a28a3c32ed2934695b46969533db050da}} 
+const Concrete\+Lin\+Op $\ast$ {\bfseries apply} (const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$b, \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$x) const
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableLinOp_a5ef59aa10996368ac05ed1c10c9f6477}\label{classgko_1_1EnableLinOp_a5ef59aa10996368ac05ed1c10c9f6477}} 
+Concrete\+Lin\+Op $\ast$ {\bfseries apply} (const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$b, \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$x)
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableLinOp_a24ed2f449d96048dd82a6e9539bdabf6}\label{classgko_1_1EnableLinOp_a24ed2f449d96048dd82a6e9539bdabf6}} 
+const Concrete\+Lin\+Op $\ast$ {\bfseries apply} (const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$alpha, const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$b, const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$beta, \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$x) const
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableLinOp_ac34196c794c3b256c0007f1f97109664}\label{classgko_1_1EnableLinOp_ac34196c794c3b256c0007f1f97109664}} 
+Concrete\+Lin\+Op $\ast$ {\bfseries apply} (const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$alpha, const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$b, const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$beta, \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$x)
+\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Concrete\+Lin\+Op, typename Polymorphic\+Base = Lin\+Op$>$\newline
+class gko\+::\+Enable\+Lin\+Op$<$ Concrete\+Lin\+Op, Polymorphic\+Base $>$}
+
+The \mbox{\hyperlink{classgko_1_1EnableLinOp}{Enable\+Lin\+Op}} mixin can be used to provide sensible default implementations of the majority of the \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} and \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} interface. 
+
+The goal of the mixin is to facilitate the development of new \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}, by enabling the implementers to focus on the important parts of their operator, while the library takes care of generating the trivial utility functions. The mixin will provide default implementations for the entire \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} interface, including a default implementation of {\ttfamily copy\+\_\+from} between objects of the new \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} type. It will also hide the default \mbox{\hyperlink{classgko_1_1LinOp_a0449b2fc705d2f970855af23b5e2788e}{Lin\+Op\+::apply()}} methods with versions that preserve the static type of the object.
+
+Implementers of new Lin\+Ops are required to specify only the following aspects\+:
+
+
+\begin{DoxyEnumerate}
+\item Creation of the \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}\+: This can be facilitated via either \mbox{\hyperlink{classgko_1_1EnableCreateMethod}{Enable\+Create\+Method}} mixin (used mostly for matrix formats), or G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+L\+I\+N\+\_\+\+O\+P\+\_\+\+F\+A\+C\+T\+O\+RY macro (used for operators created from other operators, like preconditioners and solvers).
+\item Application of the \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}\+: Implementers have to override the two overloads of the Lin\+Op\+::apply\+\_\+impl() virtual methods.
+\end{DoxyEnumerate}
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Concrete\+Lin\+Op} & the concrete \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} which is being implemented \mbox{[}C\+R\+TP parameter\mbox{]} \\
+\hline
+{\em Polymorphic\+Base} & parent of Concrete\+Lin\+Op in the polymorphic hierarchy, has to be a subclass of \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} \\
+\hline
+\end{DoxyTemplParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/lin\+\_\+op.\+hpp (da788090)\end{DoxyCompactItemize}
