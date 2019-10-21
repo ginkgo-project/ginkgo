@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/89851297 branch based on develop. Ginkgo version 1.0.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/90122630 branch based on develop. Ginkgo version 1.1.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -78,11 +78,11 @@ Building</h2>
 <p>For Microsoft Visual Studio, use <code>cmake --build . --config &lt;build_type&gt;</code> to decide the build type. The possible options are <code>Debug</code>, <code>Release</code>, <code>RelWithDebInfo</code> and <code>MinSizeRel</code>.</p>
 <p>Replace <code>[OPTIONS]</code> with desired cmake options for your build. Ginkgo adds the following additional switches to control what is being built:</p>
 <ul>
-<li><code>-DGINKGO_DEVEL_TOOLS={ON, OFF}</code> sets up the build system for development (requires clang-format, will also download git-cmake-format), default is <code>ON</code></li>
-<li><code>-DGINKGO_BUILD_TESTS={ON, OFF}</code> builds Ginkgo's tests (will download googletest), default is <code>ON</code></li>
-<li><code>-DGINKGO_BUILD_BENCHMARKS={ON, OFF}</code> builds Ginkgo's benchmarks (will download gflags and rapidjson), default is <code>ON</code></li>
+<li><code>-DGINKGO_DEVEL_TOOLS={ON, OFF}</code> sets up the build system for development (requires clang-format, will also download git-cmake-format), default is <code>ON</code>.</li>
+<li><code>-DGINKGO_BUILD_TESTS={ON, OFF}</code> builds Ginkgo's tests (will download googletest), default is <code>ON</code>.</li>
+<li><code>-DGINKGO_BUILD_BENCHMARKS={ON, OFF}</code> builds Ginkgo's benchmarks (will download gflags and rapidjson), default is <code>ON</code>.</li>
 <li><code>-DGINKGO_BUILD_EXAMPLES={ON, OFF}</code> builds Ginkgo's examples, default is <code>ON</code></li>
-<li><code>-DGINKGO_BUILD_EXTLIB_EXAMPLE={ON, OFF}</code> builds the interfacing example with deal.II, default is <code>OFF</code></li>
+<li><code>-DGINKGO_BUILD_EXTLIB_EXAMPLE={ON, OFF}</code> builds the interfacing example with deal.II, default is <code>OFF</code>.</li>
 <li><code>-DGINKGO_BUILD_REFERENCE={ON, OFF}</code> build reference implementations of the kernels, useful for testing, default is <code>ON</code></li>
 <li><code>-DGINKGO_BUILD_OMP={ON, OFF}</code> builds optimized OpenMP versions of the kernels, default is <code>OFF</code></li>
 <li><code>-DGINKGO_BUILD_CUDA={ON, OFF}</code> builds optimized cuda versions of the kernels (requires CUDA), default is <code>OFF</code></li>
@@ -91,16 +91,16 @@ Building</h2>
 <li><code>-DGINKGO_DOC_GENERATE_PDF={ON, OFF}</code> generates a PDF version of Ginkgo's documentation from inline comments in the code. The default is <code>OFF</code>.</li>
 <li><code>-DGINKGO_DOC_GENERATE_DEV={ON, OFF}</code> generates the developer version of Ginkgo's documentation. The default is <code>OFF</code>.</li>
 <li><code>-DGINKGO_EXPORT_BUILD_DIR={ON, OFF}</code> adds the Ginkgo build directory to the CMake package registry. The default is <code>OFF</code>.</li>
-<li><code>-DGINKGO_WITH_CLANG_TIDY={ON, OFF}</code> makes Ginkgo call <code>clang-tidy</code> to find programming issues. The path can be manually controlled with the CMake variable <code>-DGINKGO_CLANG_TIDY_PATH=&lt;path&gt;</code>.</li>
-<li><code>-DGINKGO_WITH_IWYU={ON, OFF}</code> makes Ginkgo call <code>iwyu</code> to find include issues. The path can be manually controlled with the CMake variable <code>-DGINKGO_IWYU_PATH=&lt;path&gt;</code>.</li>
+<li><code>-DGINKGO_WITH_CLANG_TIDY={ON, OFF}</code> makes Ginkgo call <code>clang-tidy</code> to find programming issues. The path can be manually controlled with the CMake variable <code>-DGINKGO_CLANG_TIDY_PATH=&lt;path&gt;</code>. The default is <code>OFF</code>.</li>
+<li><code>-DGINKGO_WITH_IWYU={ON, OFF}</code> makes Ginkgo call <code>iwyu</code> to find include issues. The path can be manually controlled with the CMake variable <code>-DGINKGO_IWYU_PATH=&lt;path&gt;</code>. The default is <code>OFF</code>.</li>
 <li><code>-DGINKGO_VERBOSE_LEVEL=integer</code> sets the verbosity of Ginkgo.<ul>
 <li><code>0</code> disables all output in the main libraries,</li>
 <li><code>1</code> enables a few important messages related to unexpected behavior (default).</li>
 </ul>
 </li>
-<li><code>-DCMAKE_INSTALL_PREFIX=path</code> sets the installation path for <code>make install</code>. The default value is usually something like <code>/usr/local</code></li>
+<li><code>-DCMAKE_INSTALL_PREFIX=path</code> sets the installation path for <code>make install</code>. The default value is usually something like <code>/usr/local</code>.</li>
 <li><code>-DCMAKE_BUILD_TYPE=type</code> specifies which configuration will be used for this build of Ginkgo. The default is <code>RELEASE</code>. Supported values are CMake's standard build types such as <code>DEBUG</code> and <code>RELEASE</code> and the Ginkgo specific <code>COVERAGE</code>, <code>ASAN</code> (AddressSanitizer) and <code>TSAN</code> (ThreadSanitizer) types.</li>
-<li><code>-DBUILD_SHARED_LIBS={ON, OFF}</code> builds ginkgo as shared libraries (<code>OFF</code>) or as dynamic libraries (<code>ON</code>), default is <code>ON</code></li>
+<li><code>-DBUILD_SHARED_LIBS={ON, OFF}</code> builds ginkgo as shared libraries (<code>OFF</code>) or as dynamic libraries (<code>ON</code>), default is <code>ON</code>.</li>
 <li><code>-DGINKGO_JACOBI_FULL_OPTIMIZATIONS={ON, OFF}</code> use all the optimizations for the CUDA Jacobi algorithm. <code>OFF</code> by default. Setting this option to <code>ON</code> may lead to very slow compile time (&gt;20 minutes) for the <code>jacobi_generate_kernels.cu</code> file and high memory usage.</li>
 <li><code>-DCMAKE_CUDA_HOST_COMPILER=path</code> instructs the build system to explicitly set CUDA's host compiler to the path given as argument. By default, CUDA uses its toolchain's host compiler. Setting this option may help if you're experiencing linking errors due to ABI incompatibilities. This option is supported since <a href="https://github.com/Kitware/CMake/commit/489c52ce680df6439f9c1e553cd2925ca8944cb1">CMake 3.8</a> but <a href="https://cmake.org/cmake/help/v3.10/variable/CMAKE_CUDA_HOST_COMPILER.html">documented starting from 3.10</a>.</li>
 <li><p class="startli"><code>-DGINKGO_CUDA_ARCHITECTURES=&lt;list&gt;</code> where <code>&lt;list&gt;</code> is a semicolon (<code>;</code>) separated list of architectures. Supported values are:</p><ul>
@@ -111,7 +111,7 @@ Building</h2>
 <p class="startli"><code>Auto</code> will automatically detect the present CUDA-enabled GPU architectures in the system. <code>Kepler</code>, <code>Maxwell</code>, <code>Pascal</code> and <code>Volta</code> will add flags for all architectures of that particular NVIDIA GPU generation. <code>COMPUTE</code> and <code>CODE</code> are placeholders that should be replaced with compute and code numbers (e.g. for <code>compute_70</code> and <code>sm_70</code> <code>COMPUTE</code> and <code>CODE</code> should be replaced with <code>70</code>. Default is <code>Auto</code>. For a more detailed explanation of this option see the <a href="https://github.com/ginkgo-project/CudaArchitectureSelector/blob/master/CudaArchitectureSelector.cmake#L58"><code>ARCHITECTURES</code> specification list</a> section in the documentation of the CudaArchitectureSelector CMake module.</p>
 </li>
 <li><code>-DGINKGO_WINDOWS_SHARED_LIBRARY_RELPATH=&lt;path&gt;</code> where &lt;path&gt; is a relative path built with <code>PROJECT_BINARY_DIR</code>. Users must add the absolute path (<code>PROJECT_BINARY_DIR</code>/<code>GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH</code>) into the environment variable PATH when building shared libraries and executable program, default is <code>windows_shared_library</code>.</li>
-<li><code>-DGINKGO_CHECK_PATH={ON, OFF}</code> checks if the environment variable PATH is valid. It is checked only when building shared libraries and executable program, default is <code>ON</code></li>
+<li><code>-DGINKGO_CHECK_PATH={ON, OFF}</code> checks if the environment variable PATH is valid. It is checked only when building shared libraries and executable program, default is <code>ON</code>.</li>
 </ul>
 <p>For example, to build everything (in debug mode), use:</p>
 <div class="fragment"><div class="line">cmake  -G &quot;Unix Makefiles&quot; -H. -BDebug -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \</div>
@@ -129,7 +129,7 @@ Third party libraries and packages</h2>
 <li>GINKGO_DEVEL_TOOLS=ON: <a href="https://github.com/gflegar/git-cmake-format">git-cmake-format</a> is our CMake helper for code formatting.</li>
 </ul>
 <p>By default, Ginkgo uses the internal version of each package. For each of the packages <code>GTEST</code>, <code>GFLAGS</code>, <code>RAPIDJSON</code> and <code>CAS</code>, it is possible to force Ginkgo to try to use an external version of a package. For this, Ginkgo provides two ways to find packages. To rely on the CMake <code>find_package</code> command, use the CMake option <code>-DGINKGO_USE_EXTERNAL_&lt;package&gt;=ON</code>. Note that, if the external packages were not installed to the default location, the CMake option <code>-DCMAKE_PREFIX_PATH=&lt;path-list&gt;</code> needs to be set to the semicolon (<code>;</code>) separated list of install paths of these external packages. For more Information, see the <a href="https://cmake.org/cmake/help/v3.9/variable/CMAKE_PREFIX_PATH.html">CMake documentation for CMAKE_PREFIX_PATH</a> for details.</p>
-<p>To manually configure the paths Ginkgo relies on the <a href="https://xsdk.info/policies/">standard xSDK Installation policies</a> for all packages except <code>CAS</code> (as it is neither a library nor a header, it cannot be expressed through the <code>TPL</code> format):</p><ul>
+<p>To manually configure the paths, Ginkgo relies on the <a href="https://xsdk.info/policies/">standard xSDK Installation policies</a> for all packages except <code>CAS</code> (as it is neither a library nor a header, it cannot be expressed through the <code>TPL</code> format):</p><ul>
 <li><code>-DTPL_ENABLE_&lt;package&gt;=ON</code></li>
 <li><code>-DTPL_&lt;package&gt;_LIBRARIES=/path/to/libraries.{so|a}</code></li>
 <li><code>-DTPL_&lt;package&gt;_INCLUDE_DIRS=/path/to/header/directory</code></li>
