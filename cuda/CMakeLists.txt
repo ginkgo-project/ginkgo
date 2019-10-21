@@ -6,16 +6,16 @@ if (NOT BUILD_SHARED_LIBS)
     set(CMAKE_CUDA_DEVICE_LINK_EXECUTABLE ${CMAKE_CUDA_DEVICE_LINK_EXECUTABLE} PARENT_SCOPE)
 endif()
 
-# MSVC can not find CUDA automatically
-# Use CUDA_COMPILER PATH to define the CUDA TOOLKIT ROOT DIR
-if ("${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}" STREQUAL "")
-    string(REPLACE "/bin/nvcc.exe" "" CMAKE_CUDA_ROOT_DIR ${CMAKE_CUDA_COMPILER})
-    set(CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES "${CMAKE_CUDA_ROOT_DIR}/include")
-    set(CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES "${CMAKE_CUDA_ROOT_DIR}/lib/x64")
-endif()
-
-# This is modified from https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
 if(MSVC)
+    # MSVC can not find CUDA automatically
+    # Use CUDA_COMPILER PATH to define the CUDA TOOLKIT ROOT DIR
+    if("${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}" STREQUAL "")
+        string(REPLACE "/bin/nvcc.exe" "" CMAKE_CUDA_ROOT_DIR ${CMAKE_CUDA_COMPILER})
+        set(CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES "${CMAKE_CUDA_ROOT_DIR}/include")
+        set(CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES "${CMAKE_CUDA_ROOT_DIR}/lib/x64")
+    endif()
+
+    # This is modified from https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
     if(BUILD_SHARED_LIBS)
         ginkgo_switch_to_windows_dynamic("CUDA")
     else()

@@ -17,13 +17,14 @@ Ginkgo adds the following additional switches to control what is being built:
 
 *   `-DGINKGO_DEVEL_TOOLS={ON, OFF}` sets up the build system for development
     (requires clang-format, will also download git-cmake-format),
-    default is `ON`
+    default is `ON`.
 *   `-DGINKGO_BUILD_TESTS={ON, OFF}` builds Ginkgo's tests
-    (will download googletest), default is `ON`
+    (will download googletest), default is `ON`.
 *   `-DGINKGO_BUILD_BENCHMARKS={ON, OFF}` builds Ginkgo's benchmarks
-    (will download gflags and rapidjson), default is `ON`
+    (will download gflags and rapidjson), default is `ON`.
 *   `-DGINKGO_BUILD_EXAMPLES={ON, OFF}` builds Ginkgo's examples, default is `ON`
-*   `-DGINKGO_BUILD_EXTLIB_EXAMPLE={ON, OFF}` builds the interfacing example with deal.II, default is `OFF`
+*   `-DGINKGO_BUILD_EXTLIB_EXAMPLE={ON, OFF}` builds the interfacing example
+    with deal.II, default is `OFF`.
 *   `-DGINKGO_BUILD_REFERENCE={ON, OFF}` build reference implementations of the
     kernels, useful for testing, default is `ON`
 *   `-DGINKGO_BUILD_OMP={ON, OFF}` builds optimized OpenMP versions of the kernels,
@@ -42,21 +43,21 @@ Ginkgo adds the following additional switches to control what is being built:
     CMake package registry. The default is `OFF`.
 *   `-DGINKGO_WITH_CLANG_TIDY={ON, OFF}` makes Ginkgo call `clang-tidy` to find
     programming issues. The path can be manually controlled with the CMake
-    variable `-DGINKGO_CLANG_TIDY_PATH=<path>`.
+    variable `-DGINKGO_CLANG_TIDY_PATH=<path>`. The default is `OFF`.
 *   `-DGINKGO_WITH_IWYU={ON, OFF}` makes Ginkgo call `iwyu` to find include
     issues. The path can be manually controlled with the CMake variable
-    `-DGINKGO_IWYU_PATH=<path>`. 
+    `-DGINKGO_IWYU_PATH=<path>`. The default is `OFF`.
 *   `-DGINKGO_VERBOSE_LEVEL=integer` sets the verbosity of Ginkgo.
     * `0` disables all output in the main libraries,
     * `1` enables a few important messages related to unexpected behavior (default).
 *   `-DCMAKE_INSTALL_PREFIX=path` sets the installation path for `make install`.
-    The default value is usually something like `/usr/local`
+    The default value is usually something like `/usr/local`.
 *   `-DCMAKE_BUILD_TYPE=type` specifies which configuration will be used for
     this build of Ginkgo. The default is `RELEASE`. Supported values are CMake's
     standard build types such as `DEBUG` and `RELEASE` and the Ginkgo specific 
 	`COVERAGE`, `ASAN` (AddressSanitizer) and `TSAN` (ThreadSanitizer) types.
 *   `-DBUILD_SHARED_LIBS={ON, OFF}` builds ginkgo as shared libraries (`OFF`)
-    or as dynamic libraries (`ON`), default is `ON`
+    or as dynamic libraries (`ON`), default is `ON`.
 *   `-DGINKGO_JACOBI_FULL_OPTIMIZATIONS={ON, OFF}` use all the optimizations
     for the CUDA Jacobi algorithm. `OFF` by default. Setting this option to `ON`
     may lead to very slow compile time (>20 minutes) for the
@@ -92,7 +93,7 @@ Ginkgo adds the following additional switches to control what is being built:
     program, default is `windows_shared_library`.
 * `-DGINKGO_CHECK_PATH={ON, OFF}` checks if the environment variable PATH is valid.
     It is checked only when building shared libraries and executable program,
-    default is `ON`
+    default is `ON`.
 
 For example, to build everything (in debug mode), use:
 
@@ -135,7 +136,7 @@ Information, see the [CMake documentation for
 CMAKE_PREFIX_PATH](https://cmake.org/cmake/help/v3.9/variable/CMAKE_PREFIX_PATH.html)
 for details.
 
-To manually configure the paths Ginkgo relies on the [standard xSDK Installation
+To manually configure the paths, Ginkgo relies on the [standard xSDK Installation
 policies](https://xsdk.info/policies/) for all packages except `CAS` (as it is
 neither a library nor a header, it cannot be expressed through the `TPL`
 format):

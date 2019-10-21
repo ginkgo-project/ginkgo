@@ -2,11 +2,6 @@
 This is the expected standard output:
 
 @code{.cpp}
-This is Ginkgo 1.0.0 (develop)
-    running with core module 1.0.0 (develop)
-    the reference module is  1.0.0 (develop)
-    the OpenMP    module is  1.0.0 (develop)
-    the CUDA      module is  not compiled
 Solution, maximum first ten entries:
 [
         0
@@ -89,4 +84,4 @@ True Residual Norms:
 ];
 @endcode
 
-<h4> Comments about programming and debugging </h4>
+<h3> Comments about programming and debugging </h3>

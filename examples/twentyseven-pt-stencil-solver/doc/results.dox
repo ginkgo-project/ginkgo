@@ -6,5 +6,4 @@ The expected output of the relative error at K=10 should be
 The average relative error is 1.87318e-15
 @endcode
 
-<h4> Comments about programming and debugging </h4>
-
+<h3> Comments about programming and debugging </h3>
