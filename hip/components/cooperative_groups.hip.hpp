@@ -34,15 +34,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_COMPONENTS_COOPERATIVE_GROUPS_CUH_
 
 
+// #include <hip/hip_cooperative_groups.h>
+
+
 #include <ginkgo/core/base/std_extensions.hpp>
+
+
+#include "hip/base/types.hip.hpp"
 
 
 namespace gko {
 
 
 /**
- * Ginkgo uses cooperative groups introduced in HIP 9.0 to handle communication
- * among the threads.
+ * Ginkgo uses cooperative groups to handle communication among the threads.
  *
  * However, HIP's implementation of cooperative groups is still quite limited
  * in functionality, and some parts are not supported on all hardware
@@ -54,7 +59,7 @@ namespace gko {
  * useful extensions.
  *
  * A cooperative group (both from standard HIP and from Ginkgo) is not a
- * specific type, but a concept. That is, any type  satisfying the interface
+ * specific type, but a concept. That is, any type satisfying the interface
  * imposed by the cooperative groups API is considered a cooperative
  * group (a.k.a. "duck typing"). To maximize the generality of components than
  * need cooperative groups, instead of creating the group manually, consider
@@ -92,10 +97,6 @@ namespace gko {
  *   int all(int predicate);
  *   int any(int predicate);
  *   unsigned ballot(int predicate);
- *
- *   // for compute capability >= 7.0
- *   unsigned match_any(T value);
- *   unsigned match_all(T value);
  * };
  * ```
  *
@@ -114,27 +115,60 @@ namespace gko {
 namespace group {
 
 
-// See <HIP directory>/include/cooperative_groups.h for documentation and
-// implementation of the original HIP cooperative groups API. You can use this
-// file to define new or modify existing groups.
-
-
 // metafunctions
 
-
-// inherits thread_group
-//
-// public API:
-// void sync() const
-// unsigned size() const
-// unsigned thread_rank() const
-// dim3 group_index() const
-// dim3 thread_index() const
-// dim3 group_dim() const
 
 namespace detail {
 
 
+template <typename T>
+struct is_group_impl : std::false_type {};
+
+
+template <typename T>
+struct is_synchronizable_group_impl : std::false_type {};
+
+
+template <typename T>
+struct is_communicator_group_impl : std::true_type {};
+
+}  // namespace detail
+
+
+/**
+ * Check if T is a Group.
+ */
+template <typename T>
+using is_group = detail::is_group_impl<xstd::decay_t<T>>;
+
+
+/**
+ * Check if T is a SynchronizableGroup.
+ */
+template <typename T>
+using is_synchronizable_group =
+    detail::is_synchronizable_group_impl<xstd::decay_t<T>>;
+
+
+/**
+ * Check if T is a CommunicatorGroup.
+ */
+template <typename T>
+using is_communicator_group =
+    detail::is_communicator_group_impl<xstd::decay_t<T>>;
+
+
+// types
+
+
+namespace detail {
+
+
+/**
+ * This is a limited implementation of the HIP thread_block_tile.
+ * `any` and `all` are only supported when the size is hip_config::warp_size
+ *
+ */
 template <size_type Size>
 class thread_block_tile {
 public:
@@ -211,14 +245,18 @@ public:
         return __shfl_xor(var, laneMask, Size);
     }
 
-    __device__ __forceinline__ int any(int predicate) const noexcept
+    __device__ __forceinline__
+        gko::xstd::enable_if_t<Size == kernels::hip::hip_config::warp_size, int>
+        any(int predicate) const noexcept
     {
         return __any(predicate);
     }
 
-    __device__ __forceinline__ int all(int predicate) const noexcept
+    __device__ __forceinline__
+        gko::xstd::enable_if_t<Size == kernels::hip::hip_config::warp_size, int>
+        all(int predicate) const noexcept
     {
-        return __any(predicate);
+        return __all(predicate);
     }
 
 private:
@@ -299,16 +337,58 @@ struct thread_block_tile
 };
 
 
-struct fake_group {};
-__device__ __forceinline__ fake_group this_thread_block()
+namespace detail {
+
+
+template <size_type Size>
+struct is_group_impl<thread_block_tile<Size>> : std::true_type {};
+template <size_type Size>
+struct is_synchronizable_group_impl<thread_block_tile<Size>> : std::true_type {
+};
+template <size_type Size>
+struct is_communicator_group_impl<thread_block_tile<Size>> : std::true_type {};
+
+
+}  // namespace detail
+
+
+class thread_block {
+    friend __device__ __forceinline__ thread_block this_thread_block();
+
+public:
+    __device__ unsigned thread_rank() const noexcept { return data_.rank; }
+
+    __device__ unsigned size() const noexcept { return data_.size; }
+
+    __device__ __forceinline__ void sync() { __syncthreads(); }
+
+private:
+    __device__ thread_block()
+        : data_{static_cast<unsigned>(blockDim.x * blockDim.y * blockDim.z),
+                static_cast<unsigned>(
+                    threadIdx.x +
+                    blockDim.x * (threadIdx.y + blockDim.y * threadIdx.z))}
+    {}
+    struct alignas(8) {
+        unsigned size;
+        unsigned rank;
+    } data_;
+};
+
+
+__device__ __forceinline__ thread_block this_thread_block()
 {
-    return fake_group{};
+    return thread_block();
 }
 
 
+// Only support tile_partition with 1, 2, 4, 8, 16, 32, 64 (hip).
 template <size_type Size, typename Group>
-__device__ __forceinline__ thread_block_tile<Size> tiled_partition(
-    const Group &)
+__device__ __forceinline__ gko::xstd::enable_if_t<
+    (Size <= kernels::hip::hip_config::warp_size) &&
+        (kernels::hip::hip_config::warp_size % Size == 0),
+    thread_block_tile<Size>>
+tiled_partition(const Group &)
 {
     return thread_block_tile<Size>();
 }
