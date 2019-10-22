@@ -41,8 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 
-#include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/device_guard.hip.hpp"
+#include "hip/base/hipsparse_bindings.hip.hpp"
 
 
 namespace detail {
@@ -50,7 +50,7 @@ namespace detail {
 
 class HipspBase : public gko::LinOp {
 public:
-    hipsparseMatDescr * get_descr() const { return this->descr_.get(); }
+    hipsparseMatDescr *get_descr() const { return this->descr_.get(); }
 
     const gko::HipExecutor *get_gpu_exec() const { return gpu_exec_.get(); }
 
@@ -62,7 +62,7 @@ protected:
     }
 
     HipspBase(std::shared_ptr<const gko::Executor> exec,
-             const gko::dim<2> &size = gko::dim<2>{})
+              const gko::dim<2> &size = gko::dim<2>{})
         : gko::LinOp(exec, size)
     {
         gpu_exec_ = std::dynamic_pointer_cast<const gko::HipExecutor>(exec);
@@ -83,11 +83,11 @@ protected:
     void initialize_descr()
     {
         const auto id = this->gpu_exec_->get_device_id();
-        gko::device_guard g{id};
+        gko::hip::device_guard g{id};
         this->descr_ = handle_manager<hipsparseMatDescr>(
             gko::kernels::hip::hipsparse::create_mat_descr(),
             [id](hipsparseMatDescr *descr) {
-                gko::device_guard g{id};
+                gko::hip::device_guard g{id};
                 gko::kernels::hip::hipsparse::destroy(descr);
             });
     }
@@ -133,7 +133,7 @@ protected:
         auto dx = dense_x->get_values();
 
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
+        gko::hip::device_guard g{id};
         gko::kernels::hip::hipsparse::spmv(
             this->get_gpu_exec()->get_hipsparse_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
@@ -144,7 +144,7 @@ protected:
     }
 
     HipspCsr(std::shared_ptr<const gko::Executor> exec,
-            const gko::dim<2> &size = gko::dim<2>{})
+             const gko::dim<2> &size = gko::dim<2>{})
         : gko::EnableLinOp<HipspCsr, HipspBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
@@ -193,7 +193,7 @@ protected:
         auto dx = dense_x->get_values();
 
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
+        gko::hip::device_guard g{id};
         gko::kernels::hip::hipsparse::spmm(
             this->get_gpu_exec()->get_hipsparse_handle(), trans_,
             this->get_size()[0], dense_b->get_size()[1], this->get_size()[1],
@@ -205,7 +205,7 @@ protected:
     }
 
     HipspCsrmm(std::shared_ptr<const gko::Executor> exec,
-              const gko::dim<2> &size = gko::dim<2>{})
+               const gko::dim<2> &size = gko::dim<2>{})
         : gko::EnableLinOp<HipspCsrmm, HipspBase>(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
@@ -246,7 +246,7 @@ public:
         this->set_size(gko::dim<2>{t_csr->get_size()});
 
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
+        gko::hip::device_guard g{id};
         gko::kernels::hip::hipsparse::csr2hyb(
             this->get_gpu_exec()->get_hipsparse_handle(), this->get_size()[0],
             this->get_size()[1], this->get_descr(), t_csr->get_const_values(),
@@ -257,7 +257,7 @@ public:
     ~HipspHybrid() override
     {
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
+        gko::hip::device_guard g{id};
         try {
             GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseDestroyHybMat(hyb_));
         } catch (const std::exception &e) {
@@ -275,7 +275,7 @@ protected:
         auto dx = dense_x->get_values();
 
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
+        gko::hip::device_guard g{id};
         gko::kernels::hip::hipsparse::spmv(
             this->get_gpu_exec()->get_hipsparse_handle(), trans_,
             &scalars.get_const_data()[0], this->get_descr(), hyb_, db,
@@ -283,12 +283,12 @@ protected:
     }
 
     HipspHybrid(std::shared_ptr<const gko::Executor> exec,
-               const gko::dim<2> &size = gko::dim<2>{})
+                const gko::dim<2> &size = gko::dim<2>{})
         : gko::EnableLinOp<HipspHybrid, HipspBase>(exec, size),
           trans_(HIPSPARSE_OPERATION_NON_TRANSPOSE)
     {
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
+        gko::hip::device_guard g{id};
         GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseCreateHybMat(&hyb_));
     }
 
@@ -307,7 +307,6 @@ private:
 // Some shortcuts
 using hipsp_csr = detail::HipspCsr<>;
 using hipsp_csrmm = detail::HipspCsrmm<>;
-
 
 
 using hipsp_coo =
