@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_COMPONENTS_ATOMIC_CUH_
 
 
+#include <ginkgo/core/base/std_extensions.hpp>
+
+
 namespace gko {
 namespace kernels {
 namespace hip {
@@ -114,7 +117,12 @@ GKO_BIND_ATOMIC_ADD(int);
 GKO_BIND_ATOMIC_ADD(unsigned int);
 GKO_BIND_ATOMIC_ADD(unsigned long long int);
 GKO_BIND_ATOMIC_ADD(float);
+#if !((defined(CUDA_VERSION) && (CUDA_VERSION < 8000)) || \
+      (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)))
+// CUDA 8.0 starts suppoting 64-bit double atomicAdd on devices of compute
+// capability 6.x and higher
 GKO_BIND_ATOMIC_ADD(double);
+#endif
 
 #undef GKO_BIND_ATOMIC_ADD
 
