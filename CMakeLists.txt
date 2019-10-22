@@ -147,6 +147,8 @@ if (GINKGO_BUILD_HIP)
     endif()
 endif()
 
+set(GINKGO_HIP_PLATFORM ${GINKGO_HIP_PLATFORM} PARENT_SCOPE)
+
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
     ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
 

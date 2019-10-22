@@ -166,6 +166,7 @@ if(GINKGO_HIP_PLATFORM MATCHES "hcc")
 elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")
     find_package(CUDA 9.0 REQUIRED)
     target_link_libraries(ginkgo_hip PRIVATE ${CUDA_LIBRARIES})
+    set(CUDA_LIBRARIES ${CUDA_LIBRARIES} PARENT_SCOPE)
 endif()
 
 target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse)
@@ -182,9 +183,6 @@ target_include_directories(ginkgo_hip
 ginkgo_compile_features(ginkgo_hip)
 ginkgo_default_includes(ginkgo_hip)
 ginkgo_install_library(ginkgo_hip hip)
-set(TEMP hip::device)
-message("hip::device ${TEMP}")
-message("~~CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH}")
 
 if(GINKGO_BUILD_TESTS)
   # Here, we go through all of Ginkgo's dependencies to build a `-Wl,-rpath` string since for
