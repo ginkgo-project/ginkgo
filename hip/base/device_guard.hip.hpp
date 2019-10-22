@@ -40,15 +40,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-class device_guard {
+class hip_device_guard {
 public:
-    device_guard(int device_id)
+    hip_device_guard(int device_id)
     {
         GKO_ASSERT_NO_HIP_ERRORS(hipGetDevice(&original_device_id));
         GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(device_id));
     }
 
-    ~device_guard() noexcept(false)
+    ~hip_device_guard() noexcept(false)
     {
         /* Ignore the error during stack unwinding for this call */
         if (std::uncaught_exception()) {

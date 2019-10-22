@@ -54,23 +54,23 @@ namespace gko {
  * passed in. After the scope has been exited, the destructor sets the device_id
  * back to the one before entering the scope.
  */
-class device_guard {
+class cuda_device_guard {
 public:
-    device_guard(int device_id)
+    cuda_device_guard(int device_id)
     {
         GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&original_device_id));
         GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(device_id));
     }
 
-    device_guard(device_guard &other) = delete;
+    cuda_device_guard(cuda_device_guard &other) = delete;
 
-    device_guard &operator=(const device_guard &other) = delete;
+    cuda_device_guard &operator=(const cuda_device_guard &other) = delete;
 
-    device_guard(device_guard &&other) = delete;
+    cuda_device_guard(cuda_device_guard &&other) = delete;
 
-    device_guard const &operator=(device_guard &&other) = delete;
+    cuda_device_guard const &operator=(cuda_device_guard &&other) = delete;
 
-    ~device_guard() noexcept(false)
+    ~cuda_device_guard() noexcept(false)
     {
         /* Ignore the error during stack unwinding for this call */
         if (std::uncaught_exception()) {
