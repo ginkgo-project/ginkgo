@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
@@ -52,6 +53,47 @@ namespace hip {
 namespace bicgstab {
 
 
+constexpr int default_block_size = 512;
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void initialize_kernel(
+    size_type num_rows, size_type num_cols, size_type stride,
+    const ValueType *__restrict__ b, ValueType *__restrict__ r,
+    ValueType *__restrict__ rr, ValueType *__restrict__ y,
+    ValueType *__restrict__ s, ValueType *__restrict__ t,
+    ValueType *__restrict__ z, ValueType *__restrict__ v,
+    ValueType *__restrict__ p, ValueType *__restrict__ prev_rho,
+    ValueType *__restrict__ rho, ValueType *__restrict__ alpha,
+    ValueType *__restrict__ beta, ValueType *__restrict__ gamma,
+    ValueType *__restrict__ omega, stopping_status *__restrict__ stop_status)
+{
+    const auto tidx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tidx < num_cols) {
+        prev_rho[tidx] = one<ValueType>();
+        rho[tidx] = one<ValueType>();
+        alpha[tidx] = one<ValueType>();
+        beta[tidx] = one<ValueType>();
+        gamma[tidx] = one<ValueType>();
+        omega[tidx] = one<ValueType>();
+        stop_status[tidx].reset();
+    }
+
+    if (tidx < num_rows * stride) {
+        r[tidx] = b[tidx];
+        rr[tidx] = zero<ValueType>();
+        y[tidx] = zero<ValueType>();
+        s[tidx] = zero<ValueType>();
+        t[tidx] = zero<ValueType>();
+        z[tidx] = zero<ValueType>();
+        v[tidx] = zero<ValueType>();
+        p[tidx] = zero<ValueType>();
+    }
+}
+
+
 template <typename ValueType>
 void initialize(std::shared_ptr<const HipExecutor> exec,
                 const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
@@ -62,9 +104,51 @@ void initialize(std::shared_ptr<const HipExecutor> exec,
                 matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *alpha,
                 matrix::Dense<ValueType> *beta, matrix::Dense<ValueType> *gamma,
                 matrix::Dense<ValueType> *omega,
-                Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
+                Array<stopping_status> *stop_status)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(b->get_size()[0] * b->get_stride(), block_size.x), 1, 1);
+
+    hipLaunchKernelGGL(initialize_kernel, dim3(grid_size), dim3(block_size), 0, 0, 
+        b->get_size()[0], b->get_size()[1], b->get_stride(),
+        as_hip_type(b->get_const_values()), as_hip_type(r->get_values()),
+        as_hip_type(rr->get_values()), as_hip_type(y->get_values()),
+        as_hip_type(s->get_values()), as_hip_type(t->get_values()),
+        as_hip_type(z->get_values()), as_hip_type(v->get_values()),
+        as_hip_type(p->get_values()), as_hip_type(prev_rho->get_values()),
+        as_hip_type(rho->get_values()), as_hip_type(alpha->get_values()),
+        as_hip_type(beta->get_values()), as_hip_type(gamma->get_values()),
+        as_hip_type(omega->get_values()),
+        as_hip_type(stop_status->get_data()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void step_1_kernel(
+    size_type num_rows, size_type num_cols, size_type stride,
+    const ValueType *__restrict__ r, ValueType *__restrict__ p,
+    const ValueType *__restrict__ v, const ValueType *__restrict__ rho,
+    const ValueType *__restrict__ prev_rho, const ValueType *__restrict__ alpha,
+    const ValueType *__restrict__ omega,
+    const stopping_status *__restrict__ stop_status)
+{
+    const auto tidx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto col = tidx % stride;
+    if (col >= num_cols || tidx >= num_rows * stride ||
+        stop_status[col].has_stopped()) {
+        return;
+    }
+    auto res = r[tidx];
+    if (prev_rho[col] * omega[col] != zero<ValueType>()) {
+        const auto tmp = (rho[col] / prev_rho[col]) * (alpha[col] / omega[col]);
+        res += tmp * (p[tidx] - omega[col] * v[tidx]);
+    }
+    p[tidx] = res;
+}
 
 
 template <typename ValueType>
@@ -75,9 +159,50 @@ void step_1(std::shared_ptr<const HipExecutor> exec,
             const matrix::Dense<ValueType> *prev_rho,
             const matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *omega,
-            const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
+            const Array<stopping_status> *stop_status)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(r->get_size()[0] * r->get_stride(), block_size.x), 1, 1);
+
+    hipLaunchKernelGGL(step_1_kernel, dim3(grid_size), dim3(block_size), 0, 0, 
+        r->get_size()[0], r->get_size()[1], r->get_stride(),
+        as_hip_type(r->get_const_values()), as_hip_type(p->get_values()),
+        as_hip_type(v->get_const_values()),
+        as_hip_type(rho->get_const_values()),
+        as_hip_type(prev_rho->get_const_values()),
+        as_hip_type(alpha->get_const_values()),
+        as_hip_type(omega->get_const_values()),
+        as_hip_type(stop_status->get_const_data()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_1_KERNEL);
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void step_2_kernel(
+    size_type num_rows, size_type num_cols, size_type stride,
+    const ValueType *__restrict__ r, ValueType *__restrict__ s,
+    const ValueType *__restrict__ v, const ValueType *__restrict__ rho,
+    ValueType *__restrict__ alpha, const ValueType *__restrict__ beta,
+    const stopping_status *__restrict__ stop_status)
+{
+    const size_type tidx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const size_type col = tidx % stride;
+    if (col >= num_cols || tidx >= num_rows * stride ||
+        stop_status[col].has_stopped()) {
+        return;
+    }
+    auto t_alpha = zero<ValueType>();
+    auto t_s = r[tidx];
+    if (beta[col] != zero<ValueType>()) {
+        t_alpha = rho[col] / beta[col];
+        t_s -= t_alpha * v[tidx];
+    }
+    alpha[col] = t_alpha;
+    s[tidx] = t_s;
+}
 
 
 template <typename ValueType>
@@ -87,9 +212,56 @@ void step_2(std::shared_ptr<const HipExecutor> exec,
             const matrix::Dense<ValueType> *rho,
             matrix::Dense<ValueType> *alpha,
             const matrix::Dense<ValueType> *beta,
-            const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
+            const Array<stopping_status> *stop_status)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(r->get_size()[0] * r->get_stride(), block_size.x), 1, 1);
+
+    hipLaunchKernelGGL(step_2_kernel, dim3(grid_size), dim3(block_size), 0, 0, 
+        r->get_size()[0], r->get_size()[1], r->get_stride(),
+        as_hip_type(r->get_const_values()), as_hip_type(s->get_values()),
+        as_hip_type(v->get_const_values()),
+        as_hip_type(rho->get_const_values()),
+        as_hip_type(alpha->get_values()),
+        as_hip_type(beta->get_const_values()),
+        as_hip_type(stop_status->get_const_data()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void step_3_kernel(
+    size_type num_rows, size_type num_cols, size_type stride,
+    size_type x_stride, ValueType *__restrict__ x, ValueType *__restrict__ r,
+    const ValueType *__restrict__ s, const ValueType *__restrict__ t,
+    const ValueType *__restrict__ y, const ValueType *__restrict__ z,
+    const ValueType *__restrict__ alpha, const ValueType *__restrict__ beta,
+    const ValueType *__restrict__ gamma, ValueType *__restrict__ omega,
+    const stopping_status *__restrict__ stop_status)
+{
+    const auto tidx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto row = tidx / stride;
+    const auto col = tidx % stride;
+    if (col >= num_cols || tidx >= num_rows * stride ||
+        stop_status[col].has_stopped()) {
+        return;
+    }
+    const auto x_pos = row * x_stride + col;
+    auto t_omega = zero<ValueType>();
+    auto t_x = x[x_pos] + alpha[col] * y[tidx];
+    auto t_r = s[tidx];
+    if (beta[col] != zero<ValueType>()) {
+        t_omega = gamma[col] / beta[col];
+        t_x += t_omega * z[tidx];
+        t_r -= t_omega * t[tidx];
+    }
+    omega[col] = t_omega;
+    x[x_pos] = t_x;
+    r[tidx] = t_r;
+}
 
 
 template <typename ValueType>
@@ -99,17 +271,66 @@ void step_3(
     const matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *y,
     const matrix::Dense<ValueType> *z, const matrix::Dense<ValueType> *alpha,
     const matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *gamma,
-    matrix::Dense<ValueType> *omega,
-    const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
+    matrix::Dense<ValueType> *omega, const Array<stopping_status> *stop_status)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(r->get_size()[0] * r->get_stride(), block_size.x), 1, 1);
+
+    hipLaunchKernelGGL(step_3_kernel, dim3(grid_size), dim3(block_size), 0, 0, 
+        r->get_size()[0], r->get_size()[1], r->get_stride(), x->get_stride(),
+        as_hip_type(x->get_values()), as_hip_type(r->get_values()),
+        as_hip_type(s->get_const_values()),
+        as_hip_type(t->get_const_values()),
+        as_hip_type(y->get_const_values()),
+        as_hip_type(z->get_const_values()),
+        as_hip_type(alpha->get_const_values()),
+        as_hip_type(beta->get_const_values()),
+        as_hip_type(gamma->get_const_values()),
+        as_hip_type(omega->get_values()),
+        as_hip_type(stop_status->get_const_data()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void finalize_kernel(
+    size_type num_rows, size_type num_cols, size_type stride,
+    size_type x_stride, ValueType *__restrict__ x,
+    const ValueType *__restrict__ y, const ValueType *__restrict__ alpha,
+    stopping_status *__restrict__ stop_status)
+{
+    const auto tidx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto row = tidx / stride;
+    const auto col = tidx % stride;
+    if (col >= num_cols || tidx >= num_rows * stride ||
+        stop_status[col].is_finalized() || !stop_status[col].has_stopped()) {
+        return;
+    }
+    const auto x_pos = row * x_stride + col;
+    x[x_pos] = x[x_pos] + alpha[col] * y[tidx];
+    stop_status[col].finalize();
+}
 
 
 template <typename ValueType>
 void finalize(std::shared_ptr<const HipExecutor> exec,
               matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *y,
               const matrix::Dense<ValueType> *alpha,
-              Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
+              Array<stopping_status> *stop_status)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(y->get_size()[0] * y->get_stride(), block_size.x), 1, 1);
+
+    hipLaunchKernelGGL(finalize_kernel, dim3(grid_size), dim3(block_size), 0, 0, 
+        y->get_size()[0], y->get_size()[1], y->get_stride(), x->get_stride(),
+        as_hip_type(x->get_values()), as_hip_type(y->get_const_values()),
+        as_hip_type(alpha->get_const_values()),
+        as_hip_type(stop_status->get_data()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL);
 

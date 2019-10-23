@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
@@ -33,9 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/zero_array.hip.hpp"
 
 
-#include <hip/hip_runtime.h>
-
-
 namespace gko {
 namespace kernels {
 namespace hip {
@@ -67,8 +65,7 @@ void zero_array(size_type n, ValueType *array)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
-    hipLaunchKernelGGL(kernel::zero_array, dim3(grid_size), dim3(block_size), 0,
-                       0, n, array);
+    hipLaunchKernelGGL(kernel::zero_array, dim3(grid_size), dim3(block_size), 0, 0, n, array);
 }
 
 

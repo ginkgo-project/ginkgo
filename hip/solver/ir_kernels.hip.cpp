@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
@@ -33,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/ir_kernels.hpp"
 
 
-#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 
 
@@ -48,8 +48,31 @@ namespace hip {
 namespace ir {
 
 
+constexpr int default_block_size = 512;
+
+
+__global__ __launch_bounds__(default_block_size) void initialize_kernel(
+    size_type num_cols, stopping_status *stop_status)
+{
+    const auto tidx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+
+    if (tidx < num_cols) {
+        stop_status[tidx].reset();
+    }
+}
+
+
 void initialize(std::shared_ptr<const HipExecutor> exec,
-                Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
+                Array<stopping_status> *stop_status)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(ceildiv(stop_status->get_num_elems(), block_size.x), 1,
+                         1);
+
+    hipLaunchKernelGGL(initialize_kernel, dim3(grid_size), dim3(block_size), 0, 0, 
+        stop_status->get_num_elems(), stop_status->get_data());
+}
 
 
 }  // namespace ir

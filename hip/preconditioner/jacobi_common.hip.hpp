@@ -30,57 +30,35 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_COMPONENTS_SEGMENT_SCAN_HIP_HPP_
-#define GKO_HIP_COMPONENTS_SEGMENT_SCAN_HIP_HPP_
 
-
-#include <ginkgo/core/base/std_extensions.hpp>
-
-
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
+#include <ginkgo/config.hpp>
+#include <ginkgo/core/synthesizer/containers.hpp>
 
 
 namespace gko {
 namespace kernels {
 namespace hip {
+namespace jacobi {
 
 
 /**
- * @internal
- *
- * Compute a segement scan using add operation (+) of a subwarp. Each segment
- * performs suffix sum. Works on the source array and returns whether the thread
- * is the first element of its segment with same `ind`.
+ * A compile-time list of block sizes for which dedicated generate and apply
+ * kernels should be compiled.
  */
-template <size_type subwarp_size, typename ValueType, typename IndexType>
-__device__ __forceinline__ bool segment_scan(
-    const group::thread_block_tile<subwarp_size> &group, const IndexType ind,
-    ValueType *__restrict__ val)
+#ifdef GINKGO_JACOBI_FULL_OPTIMIZATIONS
+using compiled_kernels = syn::as_list<syn::range<1, 33, 1>>;
+#else
+using compiled_kernels = syn::value_list<int, 1, 2, 4, 8, 13, 16, 32>;
+#endif
+
+
+constexpr int get_larger_power(int value, int guess = 1)
 {
-    bool head = true;
-#pragma unroll
-    for (int i = 1; i < subwarp_size; i <<= 1) {
-        const IndexType add_ind = group.shfl_up(ind, i);
-        ValueType add_val = zero<ValueType>();
-        if (add_ind == ind && threadIdx.x >= i) {
-            add_val = *val;
-            if (i == 1) {
-                head = false;
-            }
-        }
-        add_val = group.shfl_down(add_val, i);
-        if (threadIdx.x < subwarp_size - i) {
-            *val += add_val;
-        }
-    }
-    return head;
+    return guess >= value ? guess : get_larger_power(value, guess << 1);
 }
 
 
+}  // namespace jacobi
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_HIP_COMPONENTS_SEGMENT_SCAN_HIP_HPP_
