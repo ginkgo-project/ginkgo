@@ -34,12 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_COMPONENTS_COOPERATIVE_GROUPS_CUH_
 
 
-// #include <hip/hip_cooperative_groups.h>
-
-
 #include <ginkgo/core/base/std_extensions.hpp>
 
 
+#include "hip/base/config.hip.hpp"
 #include "hip/base/types.hip.hpp"
 
 

@@ -30,49 +30,54 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_COMPONENTS_FORMAT_CONVERSION_HPP_
-#define GKO_HIP_COMPONENTS_FORMAT_CONVERSION_HPP_
+#ifndef GKO_HIP_BASE_CONFIG_HPP_
+#define GKO_HIP_BASE_CONFIG_HPP_
 
 
-#include <ginkgo/core/base/std_extensions.hpp>
-
-
-#include "hip/base/config.hip.hpp"
+#include <hip/device_functions.h>
 
 
 namespace gko {
 namespace kernels {
 namespace hip {
-namespace host_kernel {
 
 
-/**
- * @internal
- *
- * It calculates the number of warps used in Coo Spmv by GPU architecture and
- * the number of stored elements.
- */
-template <size_type subwarp_size = hip_config::warp_size>
-__host__ size_type calculate_nwarps(std::shared_ptr<const HipExecutor> exec,
-                                    const size_type nnz)
-{
-    // One multiprocessor has 4 SIMD
-    size_type nwarps_in_hip = exec->get_num_multiprocessor() * 4;
-    size_type multiple = 8;
-    if (nnz >= 2000000) {
-        multiple = 128;
-    } else if (nnz >= 200000) {
-        multiple = 32;
-    }
-    return std::min(multiple * nwarps_in_hip, static_cast<size_type>(ceildiv(
-                                                  nnz, hip_config::warp_size)));
-}
+struct hip_config {
+    /**
+     * The number of threads within a HIP warp. Here, we use the definition from
+     * `device_functions.h`.
+     */
+#if GINKGO_HIP_PLATFORM_HCC
+    static constexpr uint32 warp_size = warpSize;
+#else  // GINKGO_HIP_PLATFORM_NVCC
+    static constexpr uint32 warp_size = 32;
+#endif
+
+    /**
+     * The bitmask of the entire warp.
+     */
+#if GINKGO_HIP_PLATFORM_HCC
+    static constexpr uint64 full_lane_mask = ~zero<uint64>();
+#else  // GINKGO_HIP_PLATFORM_NVCC
+    static constexpr uint32 full_lane_mask = ~zero<uint32>();
+#endif
+
+    /**
+     * The maximal number of threads allowed in a HIP warp.
+     */
+    static constexpr uint32 max_block_size = 1024;
+
+    /**
+     * The minimal amount of warps that need to be scheduled for each block
+     * to maximize GPU occupancy.
+     */
+    static constexpr uint32 min_warps_per_block = 4;
+};
 
 
-}  // namespace host_kernel
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko
 
 
-#endif  // GKO_CUDA_COMPONENTS_FORMAT_CONVERSION_CUH_
+#endif  // GKO_HIP_BASE_CONFIG_HPP_

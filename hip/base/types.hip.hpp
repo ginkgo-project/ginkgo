@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_BASE_TYPES_HPP_
 
 
-
 #include <hip/hip_complex.h>
 #include <hip/hip_runtime.h>
 #include <hipblas.h>
@@ -244,39 +243,6 @@ inline hiplibs_type<T> as_hiplibs_type(T val)
 {
     return reinterpret_cast<hiplibs_type<T>>(val);
 }
-
-
-struct hip_config {
-    /**
-     * The number of threads within a HIP warp. Here, we use the definition from
-     * `device_functions.h`.
-     */
-#if GINKGO_HIP_PLATFORM_HCC
-    static constexpr uint32 warp_size = 64;
-#else  // GINKGO_HIP_PLATFORM_NVCC
-    static constexpr uint32 warp_size = 32;
-#endif
-
-    /**
-     * The bitmask of the entire warp.
-     */
-#if GINKGO_HIP_PLATFORM_HCC
-    static constexpr uint64 full_lane_mask = ~zero<uint64>();
-#else  // GINKGO_HIP_PLATFORM_NVCC
-    static constexpr uint32 full_lane_mask = ~zero<uint32>();
-#endif
-
-    /**
-     * The maximal number of threads allowed in a HIP warp.
-     */
-    static constexpr uint32 max_block_size = 1024;
-
-    /**
-     * The minimal amount of warps that need to be scheduled for each block
-     * to maximize GPU occupancy.
-     */
-    static constexpr uint32 min_warps_per_block = 4;
-};
 
 
 }  // namespace hip
