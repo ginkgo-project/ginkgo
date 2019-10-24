@@ -405,7 +405,7 @@ void finish_arnoldi(std::shared_ptr<const HipExecutor> exec,
             stride_next_krylov, as_hip_type(krylov_bases->get_const_values()),
             stride_krylov, as_hip_type(hessenberg_iter->get_values()),
             stride_hessenberg, as_hip_type(stop_status));
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(update_next_krylov_kernel<default_block_size>), dim3(ceildiv(dim_size[0] * stride_next_krylov), dim3(default_block_size)), default_block_size, 0, 
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(update_next_krylov_kernel<default_block_size>), ceildiv(dim_size[0] * stride_next_krylov, default_block_size), dim3(default_block_size), 0, 0, 
                 k, dim_size[0], dim_size[1],
                 as_hip_type(next_krylov_basis->get_values()),
                 stride_next_krylov,
@@ -425,7 +425,7 @@ void finish_arnoldi(std::shared_ptr<const HipExecutor> exec,
             stride_next_krylov, as_hip_type(hessenberg_iter->get_values()),
             stride_hessenberg, as_hip_type(stop_status));
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(update_krylov_next_krylov_kernel<default_block_size>), dim3(ceildiv(dim_size[0] * stride_next_krylov), dim3(default_block_size)), default_block_size, 0, 
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(update_krylov_next_krylov_kernel<default_block_size>), dim3(ceildiv(dim_size[0] * stride_next_krylov, default_block_size)), dim3(default_block_size), 0, 0,
             iter, dim_size[0], dim_size[1],
             as_hip_type(next_krylov_basis->get_values()), stride_next_krylov,
             as_hip_type(krylov_bases->get_values()), stride_krylov,

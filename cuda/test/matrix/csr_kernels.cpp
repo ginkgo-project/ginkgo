@@ -173,7 +173,7 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithLoadBalance)
 
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithCusparse)
 {
-    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -184,7 +184,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithCusparse)
 
 TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithCusparse)
 {
-    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -340,7 +340,7 @@ TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
 
 TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto dense_mtx = gko::matrix::Dense<>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<>::create(cuda);
 
@@ -353,7 +353,7 @@ TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
 
 TEST_F(Csr, MoveToDenseIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto dense_mtx = gko::matrix::Dense<>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<>::create(cuda);
 
@@ -366,7 +366,7 @@ TEST_F(Csr, MoveToDenseIsEquivalentToRef)
 
 TEST_F(Csr, ConvertToEllIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto ell_mtx = gko::matrix::Ell<>::create(ref);
     auto dell_mtx = gko::matrix::Ell<>::create(cuda);
 
@@ -379,7 +379,7 @@ TEST_F(Csr, ConvertToEllIsEquivalentToRef)
 
 TEST_F(Csr, MoveToEllIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto ell_mtx = gko::matrix::Ell<>::create(ref);
     auto dell_mtx = gko::matrix::Ell<>::create(cuda);
 
@@ -391,7 +391,7 @@ TEST_F(Csr, MoveToEllIsEquivalentToRef)
 
 TEST_F(Csr, ConvertToSparsityCsrIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(ref);
     auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(cuda);
 
@@ -404,7 +404,7 @@ TEST_F(Csr, ConvertToSparsityCsrIsEquivalentToRef)
 
 TEST_F(Csr, MoveToSparsityCsrIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(ref);
     auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(cuda);
 
@@ -417,7 +417,7 @@ TEST_F(Csr, MoveToSparsityCsrIsEquivalentToRef)
 
 TEST_F(Csr, CalculateMaxNnzPerRowIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     gko::size_type max_nnz_per_row;
     gko::size_type dmax_nnz_per_row;
 
@@ -432,7 +432,7 @@ TEST_F(Csr, CalculateMaxNnzPerRowIsEquivalentToRef)
 
 TEST_F(Csr, ConvertToCooIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto coo_mtx = gko::matrix::Coo<>::create(ref);
     auto dcoo_mtx = gko::matrix::Coo<>::create(cuda);
 
@@ -445,7 +445,7 @@ TEST_F(Csr, ConvertToCooIsEquivalentToRef)
 
 TEST_F(Csr, MoveToCooIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto coo_mtx = gko::matrix::Coo<>::create(ref);
     auto dcoo_mtx = gko::matrix::Coo<>::create(cuda);
 
@@ -458,7 +458,7 @@ TEST_F(Csr, MoveToCooIsEquivalentToRef)
 
 TEST_F(Csr, ConvertToSellpIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
     auto dsellp_mtx = gko::matrix::Sellp<>::create(cuda);
 
@@ -471,7 +471,7 @@ TEST_F(Csr, ConvertToSellpIsEquivalentToRef)
 
 TEST_F(Csr, MoveToSellpIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
     auto dsellp_mtx = gko::matrix::Sellp<>::create(cuda);
 
@@ -484,7 +484,7 @@ TEST_F(Csr, MoveToSellpIsEquivalentToRef)
 
 TEST_F(Csr, CalculateTotalColsIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     gko::size_type total_cols;
     gko::size_type dtotal_cols;
 
@@ -499,7 +499,7 @@ TEST_F(Csr, CalculateTotalColsIsEquivalentToRef)
 
 TEST_F(Csr, CalculatesNonzerosPerRow)
 {
-    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     gko::Array<gko::size_type> row_nnz(ref, mtx->get_size()[0]);
     gko::Array<gko::size_type> drow_nnz(cuda, dmtx->get_size()[0]);
 
@@ -515,7 +515,7 @@ TEST_F(Csr, CalculatesNonzerosPerRow)
 TEST_F(Csr, ConvertToHybridIsEquivalentToRef)
 {
     using Hybrid_type = gko::matrix::Hybrid<>;
-    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto hybrid_mtx = Hybrid_type::create(
         ref, std::make_shared<Hybrid_type::column_limit>(2));
     auto dhybrid_mtx = Hybrid_type::create(
@@ -531,7 +531,7 @@ TEST_F(Csr, ConvertToHybridIsEquivalentToRef)
 TEST_F(Csr, MoveToHybridIsEquivalentToRef)
 {
     using Hybrid_type = gko::matrix::Hybrid<>;
-    set_up_apply_data(std::make_shared<Mtx::cusparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto hybrid_mtx = Hybrid_type::create(
         ref, std::make_shared<Hybrid_type::column_limit>(2));
     auto dhybrid_mtx = Hybrid_type::create(

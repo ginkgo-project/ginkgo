@@ -136,7 +136,7 @@ protected:
     const gko::precision_reduction tp{1, 0};
     const gko::precision_reduction qp{2, 0};
     const gko::precision_reduction up{1, 1};
-    const gko::precision_reduction ap{gko::precision_reduction::autodetect()};
+    const gko::precision_reduction ap = gko::precision_reduction::autodetect();
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::HipExecutor> hip;

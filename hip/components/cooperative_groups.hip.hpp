@@ -171,17 +171,18 @@ template <size_type Size>
 class thread_block_tile {
 public:
     __device__ thread_block_tile()
-        : data_{Size, static_cast<unsigned>(
-                          threadIdx.x +
-                          blockDim.x *
-                              (threadIdx.y + blockDim.y * threadIdx.z) % Size)}
+        : data_{Size,
+                static_cast<unsigned>(
+                    (threadIdx.x +
+                     blockDim.x * (threadIdx.y + blockDim.y * threadIdx.z)) %
+                    Size)}
     {}
 
     __device__ unsigned thread_rank() const noexcept { return data_.rank; }
 
     __device__ unsigned size() const noexcept { return data_.size; }
 
-    __device__ void sync() {}
+    __device__ void sync() const noexcept {}
 
     __device__ __forceinline__ int32 shfl(int32 var, int32 srcLane) const
         noexcept
@@ -190,6 +191,12 @@ public:
     }
 
     __device__ __forceinline__ float shfl(float var, int32 srcLane) const
+        noexcept
+    {
+        return __shfl(var, srcLane, Size);
+    }
+
+    __device__ __forceinline__ uint32 shfl(uint32 var, int32 srcLane) const
         noexcept
     {
         return __shfl(var, srcLane, Size);
@@ -219,7 +226,7 @@ public:
         return __shfl_down(var, delta, Size);
     }
 
-    __device__ __forceinline__ int32 shfl_down(uint32 var, uint32 delta) const
+    __device__ __forceinline__ uint32 shfl_down(uint32 var, uint32 delta) const
         noexcept
     {
         return __shfl_down(var, delta, Size);
@@ -243,17 +250,23 @@ public:
         return __shfl_xor(var, laneMask, Size);
     }
 
-    __device__ __forceinline__
-        gko::xstd::enable_if_t<Size == kernels::hip::hip_config::warp_size, int>
-        any(int predicate) const noexcept
+    __device__ __forceinline__ uint32 shfl_xor(uint32 var, int32 laneMask) const
+        noexcept
     {
+        return __shfl_xor(var, laneMask, Size);
+    }
+
+    __device__ __forceinline__ int any(int predicate) const noexcept
+    {
+        static_assert(Size == kernels::hip::hip_config::warp_size,
+                      "Hip does not have subwarp any.");
         return __any(predicate);
     }
 
-    __device__ __forceinline__
-        gko::xstd::enable_if_t<Size == kernels::hip::hip_config::warp_size, int>
-        all(int predicate) const noexcept
+    __device__ __forceinline__ int all(int predicate) const noexcept
     {
+        static_assert(Size == kernels::hip::hip_config::warp_size,
+                      "Hip does not have subwarp all.");
         return __all(predicate);
     }
 
@@ -358,7 +371,7 @@ public:
 
     __device__ unsigned size() const noexcept { return data_.size; }
 
-    __device__ __forceinline__ void sync() { __syncthreads(); }
+    __device__ __forceinline__ void sync() const noexcept { __syncthreads(); }
 
 private:
     __device__ thread_block()
@@ -380,6 +393,16 @@ __device__ __forceinline__ thread_block this_thread_block()
 }
 
 
+namespace detail {
+
+template <>
+struct is_group_impl<thread_block> : std::true_type {};
+template <>
+struct is_synchronizable_group_impl<thread_block> : std::true_type {};
+
+
+}  // namespace detail
+
 // Only support tile_partition with 1, 2, 4, 8, 16, 32, 64 (hip).
 template <size_type Size, typename Group>
 __device__ __forceinline__ gko::xstd::enable_if_t<
@@ -390,6 +413,52 @@ tiled_partition(const Group &)
 {
     return thread_block_tile<Size>();
 }
+
+
+/**
+ * This is a limited implementation of the CUDA grid_group that works even on
+ * devices that do not support device-wide synchronization and without special
+ * kernel launch syntax.
+ *
+ * Note that this implementation (as well as the one from CUDA's cooperative
+ * groups) does not support large grids, since it uses 32 bits to represent
+ * sizes and ranks, while at least 73 bits (63 bit grid + 10 bit block) would
+ * have to be used to represent the full space of thread ranks.
+ */
+class grid_group {
+    friend __device__ grid_group this_grid();
+
+public:
+    __device__ unsigned size() const noexcept { return data_.size; }
+
+    __device__ unsigned thread_rank() const noexcept { return data_.rank; }
+
+private:
+    __device__ grid_group()
+        : data_{blockDim.x * blockDim.y * blockDim.z * gridDim.x * gridDim.y *
+                    gridDim.z,
+                threadIdx.x +
+                    blockDim.x *
+                        (threadIdx.y +
+                         blockDim.y *
+                             (threadIdx.z +
+                              blockDim.z *
+                                  (blockIdx.x +
+                                   gridDim.x *
+                                       (blockIdx.y + gridDim.y * blockIdx.z))))}
+    {}
+
+    struct alignas(8) {
+        unsigned size;
+        unsigned rank;
+    } data_;
+};
+
+// Not using this, as grid_group is not universally supported.
+// grid_group this_grid()
+// using cooperative_groups::this_grid;
+// Instead, use our limited implementation:
+__device__ inline grid_group this_grid() { return {}; }
 
 
 }  // namespace group

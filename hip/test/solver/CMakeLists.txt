@@ -1,0 +1,6 @@
+ginkgo_create_hip_test(bicgstab_kernels)
+ginkgo_create_hip_test(cg_kernels)
+ginkgo_create_hip_test(cgs_kernels)
+ginkgo_create_hip_test(fcg_kernels)
+ginkgo_create_hip_test(gmres_kernels)
+ginkgo_create_hip_test(ir_kernels)
