@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
-#include <iostream>
+
 namespace gko {
 namespace matrix {
 
@@ -163,10 +163,12 @@ protected:
           permute_row_(permute_row),
           permute_column_(permute_column)
     {
-        if (permute_row_)
+        if (permute_row_) {
             GKO_ENSURE_IN_BOUNDS(size[0] - 1, permutation_.get_num_elems());
-        if (permute_column_)
+        }
+        if (permute_column_) {
             GKO_ENSURE_IN_BOUNDS(size[1] - 1, permutation_.get_num_elems());
+        }
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const
