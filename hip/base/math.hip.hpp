@@ -93,34 +93,14 @@ __device__ GKO_INLINE std::complex<double> one<std::complex<double>>()
 }
 
 
-/**
- * Checks if all components of a complex value are finite, meaning they are
- * neither +/- infinity nor NaN.
- *
- * @internal required for the clang compiler. This function will be used rather
- *           than the `isfinite` function in the public `math.hpp` because
- *           there is no template parameter, so it is prefered during lookup.
- *
- * @tparam T  complex type of the value to check
- *
- * @param value  complex value to check
- *
- * returns `true` if both components of the given value are finite, meaning
- *         they are neither +/- infinity nor NaN.
- */
-// #define GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(_type)              \
-//     GKO_INLINE __device__ bool isfinite(const _type &value)      \
-//     {                                                            \
-//         return isfinite(value.real()) && isfinite(value.imag()); \
-//     }
-
-// GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(thrust::complex<float>)
-// GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(thrust::complex<double>)
-// #undef GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE
+#ifdef __HIP_DEVICE_COMPILE__
 
 
 // If it is compiled with the HIP compiler, use their `isfinite`
 using ::isfinite;
+
+
+#endif  // __HIP_DEVICE_COMPILE__
 
 
 }  // namespace gko
