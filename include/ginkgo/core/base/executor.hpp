@@ -43,10 +43,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/machine_config.hpp>
+#include <ginkgo/core/base/memory_space.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
-
 
 struct cublasContext;
 
@@ -436,7 +436,7 @@ private:                                                                     \
  *
  * @ingroup Executor
  */
-class Executor : public log::EnableLogging<Executor> {
+class Executor {
     template <typename T>
     friend class detail::ExecutorBase;
 
@@ -479,69 +479,6 @@ public:
     }
 
     /**
-     * Allocates memory in this Executor.
-     *
-     * @tparam T  datatype to allocate
-     *
-     * @param num_elems  number of elements of type T to allocate
-     *
-     * @throw AllocationError  if the allocation failed
-     *
-     * @return pointer to allocated memory
-     */
-    template <typename T>
-    T *alloc(size_type num_elems) const
-    {
-        this->template log<log::Logger::allocation_started>(
-            this, num_elems * sizeof(T));
-        T *allocated = static_cast<T *>(this->raw_alloc(num_elems * sizeof(T)));
-        this->template log<log::Logger::allocation_completed>(
-            this, num_elems * sizeof(T), reinterpret_cast<uintptr>(allocated));
-        return allocated;
-    }
-
-    /**
-     * Frees memory previously allocated with Executor::alloc().
-     *
-     * If `ptr` is a `nullptr`, the function has no effect.
-     *
-     * @param ptr  pointer to the allocated memory block
-     */
-    void free(void *ptr) const noexcept
-    {
-        this->template log<log::Logger::free_started>(
-            this, reinterpret_cast<uintptr>(ptr));
-        this->raw_free(ptr);
-        this->template log<log::Logger::free_completed>(
-            this, reinterpret_cast<uintptr>(ptr));
-    }
-
-    /**
-     * Copies data from another Executor.
-     *
-     * @tparam T  datatype to copy
-     *
-     * @param src_exec  Executor from which the memory will be copied
-     * @param num_elems  number of elements of type T to copy
-     * @param src_ptr  pointer to a block of memory containing the data to be
-     *                 copied
-     * @param dest_ptr  pointer to an allocated block of memory
-     *                  where the data will be copied to
-     */
-    template <typename T>
-    void copy_from(const Executor *src_exec, size_type num_elems,
-                   const T *src_ptr, T *dest_ptr) const
-    {
-        this->template log<log::Logger::copy_started>(
-            src_exec, this, reinterpret_cast<uintptr>(src_ptr),
-            reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
-        this->raw_copy_from(src_exec, num_elems * sizeof(T), src_ptr, dest_ptr);
-        this->template log<log::Logger::copy_completed>(
-            src_exec, this, reinterpret_cast<uintptr>(src_ptr),
-            reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
-    }
-
-    /**
      * Returns the master OmpExecutor of this Executor.
      * @return the master OmpExecutor of this Executor.
      */
@@ -556,57 +493,6 @@ public:
      * Synchronize the operations launched on the executor with its master.
      */
     virtual void synchronize() const = 0;
-
-protected:
-    /**
-     * Allocates raw memory in this Executor.
-     *
-     * @param size  number of bytes to allocate
-     *
-     * @throw AllocationError  if the allocation failed
-     *
-     * @return raw pointer to allocated memory
-     */
-    virtual void *raw_alloc(size_type size) const = 0;
-
-    /**
-     * Frees memory previously allocated with Executor::alloc().
-     *
-     * If `ptr` is a `nullptr`, the function has no effect.
-     *
-     * @param ptr  pointer to the allocated memory block
-     */
-    virtual void raw_free(void *ptr) const noexcept = 0;
-
-    /**
-     * Copies raw data from another Executor.
-     *
-     * @param src_exec  Executor from which the memory will be copied
-     * @param n_bytes  number of bytes to copy
-     * @param src_ptr  pointer to a block of memory containing the data to be
-     *                 copied
-     * @param dest_ptr  pointer to an allocated block of memory where the data
-     *                  will be copied to
-     */
-    virtual void raw_copy_from(const Executor *src_exec, size_type n_bytes,
-                               const void *src_ptr, void *dest_ptr) const = 0;
-
-/**
- * @internal
- * Declares a raw_copy_to() overload for a specified Executor subclass.
- *
- * This is the second stage of the double dispatch emulation required to
- * implement raw_copy_from().
- *
- * @param _exec_type  the Executor subclass
- */
-#define GKO_ENABLE_RAW_COPY_TO(_exec_type, ...)                              \
-    virtual void raw_copy_to(const _exec_type *dest_exec, size_type n_bytes, \
-                             const void *src_ptr, void *dest_ptr) const = 0
-
-    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_ENABLE_RAW_COPY_TO);
-
-#undef GKO_ENABLE_RAW_COPY_TO
 
 private:
     /**
@@ -661,66 +547,6 @@ private:
 };
 
 
-/**
- * This is a deleter that uses an executor's `free` method to deallocate the
- * data.
- *
- * @tparam T  the type of object being deleted
- *
- * @ingroup Executor
- */
-template <typename T>
-class executor_deleter {
-public:
-    using pointer = T *;
-
-    /**
-     * Creates a new deleter.
-     *
-     * @param exec  the executor used to free the data
-     */
-    explicit executor_deleter(std::shared_ptr<const Executor> exec)
-        : exec_{exec}
-    {}
-
-    /**
-     * Deletes the object.
-     *
-     * @param ptr  pointer to the object being deleted
-     */
-    void operator()(pointer ptr) const
-    {
-        if (exec_) {
-            exec_->free(ptr);
-        }
-    }
-
-private:
-    std::shared_ptr<const Executor> exec_;
-};
-
-// a specialization for arrays
-template <typename T>
-class executor_deleter<T[]> {
-public:
-    using pointer = T[];
-
-    explicit executor_deleter(std::shared_ptr<const Executor> exec)
-        : exec_{exec}
-    {}
-
-    void operator()(pointer ptr) const
-    {
-        if (exec_) {
-            exec_->free(ptr);
-        }
-    }
-
-private:
-    std::shared_ptr<const Executor> exec_;
-};
-
-
 namespace detail {
 
 
@@ -732,13 +558,6 @@ public:
         this->template log<log::Logger::operation_launched>(this, &op);
         op.run(self()->shared_from_this());
         this->template log<log::Logger::operation_completed>(this, &op);
-    }
-
-protected:
-    void raw_copy_from(const Executor *src_exec, size_type n_bytes,
-                       const void *src_ptr, void *dest_ptr) const override
-    {
-        src_exec->raw_copy_to(self(), n_bytes, src_ptr, dest_ptr);
     }
 
 private:
@@ -757,11 +576,6 @@ private:
 }  // namespace detail
 
 
-#define GKO_OVERRIDE_RAW_COPY_TO(_executor_type, ...)                    \
-    void raw_copy_to(const _executor_type *dest_exec, size_type n_bytes, \
-                     const void *src_ptr, void *dest_ptr) const override
-
-
 /**
  * This is the Executor subclass which represents the OpenMP device
  * (typically CPU).
@@ -769,12 +583,16 @@ private:
  * @ingroup exec_omp
  * @ingroup Executor
  */
-class OmpExecutor : public detail::ExecutorBase<OmpExecutor>,
+class OmpExecutor : public HostMemorySpace,
+                    public detail::ExecutorBase<OmpExecutor>,
                     public std::enable_shared_from_this<OmpExecutor>,
                     public machine_config::topology<OmpExecutor> {
     friend class detail::ExecutorBase<OmpExecutor>;
 
 public:
+    using HostMemorySpace::alloc;
+    using HostMemorySpace::copy_from;
+    using HostMemorySpace::free;
     using omp_exec_info = machine_config::topology<OmpExecutor>;
 
     /**
@@ -801,12 +619,6 @@ public:
 protected:
     OmpExecutor() : exec_info_(omp_exec_info::create()) {}
 
-    void *raw_alloc(size_type size) const override;
-
-    void raw_free(void *ptr) const noexcept override;
-
-    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
-
 private:
     std::unique_ptr<omp_exec_info> exec_info_;
 };
@@ -814,6 +626,7 @@ private:
 
 namespace kernels {
 namespace omp {
+// TODO: FIXME
 using DefaultExecutor = OmpExecutor;
 }  // namespace omp
 }  // namespace kernels
@@ -829,6 +642,9 @@ using DefaultExecutor = OmpExecutor;
 class ReferenceExecutor : public OmpExecutor {
 public:
     using ref_exec_info = machine_config::topology<OmpExecutor>;
+    using HostMemorySpace::alloc;
+    using HostMemorySpace::copy_from;
+    using HostMemorySpace::free;
 
     static std::shared_ptr<ReferenceExecutor> create()
     {
@@ -860,6 +676,7 @@ private:
 
 namespace kernels {
 namespace reference {
+// TODO: FIXME
 using DefaultExecutor = ReferenceExecutor;
 }  // namespace reference
 }  // namespace kernels
@@ -871,12 +688,16 @@ using DefaultExecutor = ReferenceExecutor;
  * @ingroup exec_cuda
  * @ingroup Executor
  */
-class CudaExecutor : public detail::ExecutorBase<CudaExecutor>,
+class CudaExecutor : public CudaMemorySpace,
+                     public detail::ExecutorBase<CudaExecutor>,
                      public std::enable_shared_from_this<CudaExecutor>,
                      public machine_config::topology<CudaExecutor> {
     friend class detail::ExecutorBase<CudaExecutor>;
 
 public:
+    using CudaMemorySpace::alloc;
+    using CudaMemorySpace::copy_from;
+    using CudaMemorySpace::free;
     using cuda_exec_info = machine_config::topology<CudaExecutor>;
 
     /**
@@ -979,6 +800,7 @@ protected:
           major_(0),
           minor_(0),
           warp_size_(0)
+          mem_space_instance_(device_id)
     {
         assert(device_id < max_devices);
         this->set_gpu_property();
@@ -986,12 +808,6 @@ protected:
         increase_num_execs(device_id);
         exec_info_ = cuda_exec_info::create();
     }
-
-    void *raw_alloc(size_type size) const override;
-
-    void raw_free(void *ptr) const noexcept override;
-
-    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
 
     static void increase_num_execs(int device_id)
     {
@@ -1020,6 +836,7 @@ private:
     int minor_;
     int warp_size_;
     std::unique_ptr<cuda_exec_info> exec_info_;
+    std::shared_ptr<CudaMemorySpace> mem_space_instance_;
 
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
@@ -1034,6 +851,7 @@ private:
 
 namespace kernels {
 namespace cuda {
+// TODO: FIXME
 using DefaultExecutor = CudaExecutor;
 }  // namespace cuda
 }  // namespace kernels

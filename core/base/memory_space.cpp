@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory_space.hpp>
 
 
 #include <cstdlib>
@@ -44,22 +44,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-std::shared_ptr<Executor> OmpExecutor::get_master() noexcept
+void HostMemorySpace::raw_free(void *ptr) const noexcept { std::free(ptr); }
+
+
+void *HostMemorySpace::raw_alloc(size_type num_bytes) const
 {
-    return this->shared_from_this();
+    return GKO_ENSURE_ALLOCATED(std::malloc(num_bytes), "Host", num_bytes);
 }
 
 
-std::shared_ptr<const Executor> OmpExecutor::get_master() const noexcept
+void HostMemorySpace::raw_copy_to(const HostMemorySpace *, size_type num_bytes,
+                                  const void *src_ptr, void *dest_ptr) const
 {
-    return this->shared_from_this();
-}
-
-
-void OmpExecutor::synchronize() const
-{
-    // This is a no-op for single-threaded OMP
-    // TODO: change when adding support for multi-threaded OMP execution
+    std::memcpy(dest_ptr, src_ptr, num_bytes);
 }
 
 

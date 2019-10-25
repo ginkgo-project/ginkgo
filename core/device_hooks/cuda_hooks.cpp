@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory_space.hpp>
 #include <ginkgo/core/base/version.hpp>
 
 
@@ -57,14 +58,12 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
 }
 
 
-void OmpExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void HostMemorySpace::raw_copy_to(const CudaMemorySpace *, size_type num_bytes,
+                                  const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(cuda);
 
 
-// void machine_config::topology::load_gpus() {}
-
-void CudaExecutor::raw_free(void *ptr) const noexcept
+void CudaMemorySpace::raw_free(void *ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
     // If the nvidia module was not compiled, the library couldn't have
@@ -72,16 +71,17 @@ void CudaExecutor::raw_free(void *ptr) const noexcept
 }
 
 
-void *CudaExecutor::raw_alloc(size_type num_bytes) const GKO_NOT_COMPILED(cuda);
+void *CudaMemorySpace::raw_alloc(size_type num_bytes) const
+    GKO_NOT_COMPILED(nvidia);
 
 
-void CudaExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
-                               const void *src_ptr, void *dest_ptr) const
+void CudaMemorySpace::raw_copy_to(const HostMemorySpace *, size_type num_bytes,
+                                  const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(cuda);
 
 
-void CudaExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
-                               const void *src_ptr, void *dest_ptr) const
+void CudaMemorySpace::raw_copy_to(const CudaMemorySpace *, size_type num_bytes,
+                                  const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(cuda);
 
 

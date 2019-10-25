@@ -63,6 +63,7 @@ target_sources(ginkgo_cuda
     PRIVATE
         base/exception.cpp
         base/executor.cpp
+        base/memory_space.cpp
         base/version.cpp
         components/zero_array.cu
         factorization/par_ilu_kernels.cu
