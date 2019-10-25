@@ -37,7 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 
 
-#include <hip/hip_runtime.h>
 #include <gtest/gtest.h>
 
 
@@ -125,12 +124,8 @@ protected:
 
 TEST_F(UpperTrs, HipUpperTrsFlagCheckIsCorrect)
 {
-    bool trans_flag = true;
-    bool expected_flag = false;
-
-#if (defined(HIP_VERSION) && (HIP_VERSION < 9020))
-    expected_flag = true;
-#endif
+    bool trans_flag = false;
+    bool expected_flag = true;
     gko::kernels::hip::upper_trs::should_perform_transpose(hip, trans_flag);
 
     ASSERT_EQ(expected_flag, trans_flag);

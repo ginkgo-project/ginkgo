@@ -48,8 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/device_guard.hip.hpp"
+#include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/base/pointer_mode_guard.hip.hpp"
 #include "hip/base/types.hip.hpp"
@@ -64,19 +64,7 @@ namespace {
 void should_perform_transpose_kernel(std::shared_ptr<const HipExecutor> exec,
                                      bool &do_transpose)
 {
-#if (defined(HIP_VERSION) && (HIP_VERSION >= 9020))
-
-
-    do_transpose = false;
-
-
-#elif (defined(HIP_VERSION) && (HIP_VERSION < 9020))
-
-
     do_transpose = true;
-
-
-#endif
 }
 
 
@@ -100,23 +88,14 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
                 solve_struct->factor_descr, HIPSPARSE_FILL_MODE_UPPER));
         }
 
-
-#if (defined(HIP_VERSION) && (HIP_VERSION >= 9020))
-
-
-        ValueType one = 1.0;
-
         {
             hipsparse::pointer_mode_guard pm_guard(handle);
-            hipsparse::buffer_size_ext(
-                handle, solve_struct->algorithm,
-                HIPSPARSE_OPERATION_NON_TRANSPOSE, HIPSPARSE_OPERATION_TRANSPOSE,
-                matrix->get_size()[0], num_rhs,
-                matrix->get_num_stored_elements(), &one,
+            hipsparse::csrsv2_buffer_size(
+                handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
+                matrix->get_size()[0], matrix->get_num_stored_elements(),
                 solve_struct->factor_descr, matrix->get_const_values(),
                 matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-                nullptr, num_rhs, solve_struct->solve_info,
-                solve_struct->policy, &solve_struct->factor_work_size);
+                solve_struct->solve_info, &solve_struct->factor_work_size);
 
             // allocate workspace
             if (solve_struct->factor_work_vec != nullptr) {
@@ -125,33 +104,14 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
             solve_struct->factor_work_vec =
                 exec->alloc<void *>(solve_struct->factor_work_size);
 
-            hipsparse::csrsm2_analysis(
-                handle, solve_struct->algorithm,
-                HIPSPARSE_OPERATION_NON_TRANSPOSE, HIPSPARSE_OPERATION_TRANSPOSE,
-                matrix->get_size()[0], num_rhs,
-                matrix->get_num_stored_elements(), &one,
+            hipsparse::csrsv2_analysis(
+                handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
+                matrix->get_size()[0], matrix->get_num_stored_elements(),
                 solve_struct->factor_descr, matrix->get_const_values(),
                 matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-                nullptr, num_rhs, solve_struct->solve_info,
-                solve_struct->policy, solve_struct->factor_work_vec);
+                solve_struct->solve_info, solve_struct->policy,
+                solve_struct->factor_work_vec);
         }
-
-
-#elif (defined(HIP_VERSION) && (HIP_VERSION < 9020))
-
-
-        {
-            hipsparse::pointer_mode_guard pm_guard(handle);
-            hipsparse::csrsm_analysis(
-                handle, HIPSPARSE_OPERATION_NON_TRANSPOSE, matrix->get_size()[0],
-                matrix->get_num_stored_elements(), solve_struct->factor_descr,
-                matrix->get_const_values(), matrix->get_const_row_ptrs(),
-                matrix->get_const_col_idxs(), solve_struct->solve_info);
-        }
-
-
-#endif
-
 
     } else {
         GKO_NOT_IMPLEMENTED;
@@ -174,55 +134,36 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
         auto handle = exec->get_hipsparse_handle();
 
 
-#if (defined(HIP_VERSION) && (HIP_VERSION >= 9020))
-
-
-        x->copy_from(gko::lend(b));
-        {
-            hipsparse::pointer_mode_guard pm_guard(handle);
-            hipsparse::csrsm2_solve(
-                handle, solve_struct->algorithm,
-                HIPSPARSE_OPERATION_NON_TRANSPOSE, HIPSPARSE_OPERATION_TRANSPOSE,
-                matrix->get_size()[0], b->get_stride(),
-                matrix->get_num_stored_elements(), &one,
-                solve_struct->factor_descr, matrix->get_const_values(),
-                matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-                x->get_values(), b->get_stride(), solve_struct->solve_info,
-                solve_struct->policy, solve_struct->factor_work_vec);
-        }
-
-
-#elif (defined(HIP_VERSION) && (HIP_VERSION < 9020))
-
-
         {
             hipsparse::pointer_mode_guard pm_guard(handle);
             if (b->get_stride() == 1) {
                 auto temp_b = const_cast<ValueType *>(b->get_const_values());
-                hipsparse::csrsm_solve(
+                hipsparse::csrsv2_solve(
                     handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
-                    matrix->get_size()[0], b->get_stride(), &one,
-                    solve_struct->factor_descr, matrix->get_const_values(),
-                    matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-                    solve_struct->solve_info, temp_b, b->get_size()[0],
-                    x->get_values(), x->get_size()[0]);
+                    matrix->get_size()[0], matrix->get_num_stored_elements(),
+                    &one, solve_struct->factor_descr,
+                    matrix->get_const_values(), matrix->get_const_row_ptrs(),
+                    matrix->get_const_col_idxs(), solve_struct->solve_info,
+                    temp_b, x->get_values(), solve_struct->policy,
+                    solve_struct->factor_work_vec);
             } else {
                 dense::transpose(exec, trans_b, b);
                 dense::transpose(exec, trans_x, x);
-                hipsparse::csrsm_solve(
-                    handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
-                    matrix->get_size()[0], trans_b->get_size()[0], &one,
-                    solve_struct->factor_descr, matrix->get_const_values(),
-                    matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-                    solve_struct->solve_info, trans_b->get_values(),
-                    trans_b->get_size()[1], trans_x->get_values(),
-                    trans_x->get_size()[1]);
+                for (IndexType i = 0; i < trans_b->get_size()[0]; i++) {
+                    hipsparse::csrsv2_solve(
+                        handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
+                        matrix->get_size()[0],
+                        matrix->get_num_stored_elements(), &one,
+                        solve_struct->factor_descr, matrix->get_const_values(),
+                        matrix->get_const_row_ptrs(),
+                        matrix->get_const_col_idxs(), solve_struct->solve_info,
+                        trans_b->get_values() + i * trans_b->get_stride(),
+                        trans_x->get_values() + i * trans_x->get_stride(),
+                        solve_struct->policy, solve_struct->factor_work_vec);
+                }
                 dense::transpose(exec, x, trans_x);
             }
         }
-
-
-#endif
 
 
     } else {

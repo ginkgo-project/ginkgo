@@ -36,13 +36,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 
+#include <hip/hip_runtime.h>
+#include <hipsparse.h>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/solver/lower_trs.hpp>
 
 
+#include "core/solver/lower_trs_kernels.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
+#include "hip/solver/common_trs_kernels.hip.hpp"
 
 
 namespace gko {
@@ -57,19 +64,27 @@ namespace lower_trs {
 
 
 void should_perform_transpose(std::shared_ptr<const HipExecutor> exec,
-                              bool &do_transpose) GKO_NOT_IMPLEMENTED;
+                              bool &do_transpose)
+{
+    should_perform_transpose_kernel(exec, do_transpose);
+}
 
 
 void init_struct(std::shared_ptr<const HipExecutor> exec,
                  std::shared_ptr<solver::SolveStruct> &solve_struct)
-    GKO_NOT_IMPLEMENTED;
+{
+    init_struct_kernel(exec, solve_struct);
+}
 
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const HipExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *matrix,
-              solver::SolveStruct *solve_struct,
-              const gko::size_type num_rhs) GKO_NOT_IMPLEMENTED;
+              solver::SolveStruct *solve_struct, const gko::size_type num_rhs)
+{
+    generate_kernel<ValueType, IndexType>(exec, matrix, solve_struct, num_rhs,
+                                          false);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL);
@@ -80,8 +95,11 @@ void solve(std::shared_ptr<const HipExecutor> exec,
            const matrix::Csr<ValueType, IndexType> *matrix,
            const solver::SolveStruct *solve_struct,
            matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,
-           const matrix::Dense<ValueType> *b,
-           matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
+           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x)
+{
+    solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, trans_b,
+                                       trans_x, b, x);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL);
