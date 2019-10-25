@@ -8,6 +8,7 @@ target_sources(ginkgo
     base/combination.cpp
     base/composition.cpp
     base/executor.cpp
+    base/memory_space.cpp
     base/mtx_io.cpp
     base/perturbation.cpp
     base/version.cpp
@@ -55,8 +56,8 @@ ginkgo_compile_features(ginkgo)
 target_compile_options(ginkgo PRIVATE "${GINKGO_COMPILER_FLAGS}")
 
 if (GINKGO_HAVE_HWLOC)
-  target_link_libraries(ginkgo PUBLIC ${HWLOC_hwloc_LIBRARY})
-  target_include_directories(ginkgo PUBLIC ${HWLOC_hwloc.h_DIRS})
+    target_link_libraries(ginkgo PUBLIC ${HWLOC_hwloc_LIBRARY})
+    target_include_directories(ginkgo PUBLIC ${HWLOC_hwloc.h_DIRS})
 endif()
 
 #add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo

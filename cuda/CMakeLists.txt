@@ -40,9 +40,9 @@ set(CUDA_INCLUDE_DIRS ${CUDA_INCLUDE_DIRS} PARENT_SCOPE)
 # add `-cudart shared` or `-cudart=shared` according system into CMAKE_CUDA_FLAGS
 # to force nvcc to use dynamic cudart library in MSVC.
 find_library(CUDA_RUNTIME_LIBS_DYNAMIC cudart
-        HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 find_library(CUDA_RUNTIME_LIBS_STATIC cudart_static
-        HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 if(MSVC)
     if("${CMAKE_CUDA_FLAGS}" MATCHES "-cudart(=| )shared")
         set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_DYNAMIC}" CACHE STRING "Path to a library" FORCE)
@@ -69,6 +69,7 @@ target_sources(ginkgo_cuda
     PRIVATE
     base/exception.cpp
     base/executor.cpp
+    base/memory_space.cpp
     base/version.cpp
     components/absolute_array.cu
     components/fill_array.cu
@@ -112,11 +113,11 @@ target_sources(ginkgo_cuda
 # This creates a compilation bug on nvcc 9.0.102 *with* the new array_deleter
 # merged at commit ed12b3df5d26, and the parameter is not recognized by clang-cuda
 if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA" AND
-   NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")
+        NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")
     # remove false positive CUDA warnings when calling one<T>() and zero<T>()
     target_compile_options(ginkgo_cuda
         PRIVATE
-            $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
+        $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
 endif()
 
 if (NOT CMAKE_CUDA_HOST_COMPILER AND NOT GINKGO_CUDA_DEFAULT_HOST_COMPILER)
