@@ -261,8 +261,8 @@ TEST_F(Cgs, HipCgsStep1IsEquivalentToRef)
                                          q.get(), beta.get(), rho.get(),
                                          rho_prev.get(), stop_status.get());
     gko::kernels::hip::cgs::step_1(hip, d_r.get(), d_u.get(), d_p.get(),
-                                    d_q.get(), d_beta.get(), d_rho.get(),
-                                    d_rho_prev.get(), d_stop_status.get());
+                                   d_q.get(), d_beta.get(), d_rho.get(),
+                                   d_rho_prev.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_u, u, 1e-14);
@@ -278,8 +278,8 @@ TEST_F(Cgs, HipCgsStep2IsEquivalentToRef)
                                          t.get(), alpha.get(), rho.get(),
                                          gamma.get(), stop_status.get());
     gko::kernels::hip::cgs::step_2(hip, d_u.get(), d_v_hat.get(), d_q.get(),
-                                    d_t.get(), d_alpha.get(), d_rho.get(),
-                                    d_gamma.get(), d_stop_status.get());
+                                   d_t.get(), d_alpha.get(), d_rho.get(),
+                                   d_gamma.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_t, t, 1e-14);
@@ -295,8 +295,8 @@ TEST_F(Cgs, HipCgsStep3IsEquivalentToRef)
                                          x.get(), alpha.get(),
                                          stop_status.get());
     gko::kernels::hip::cgs::step_3(hip, d_t.get(), d_u_hat.get(), d_r.get(),
-                                    d_x.get(), d_alpha.get(),
-                                    d_stop_status.get());
+                                   d_x.get(), d_alpha.get(),
+                                   d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_r, r, 1e-14);

@@ -1,4 +1,3 @@
-#include "hip/hip_runtime.h"
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
@@ -32,6 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/preconditioner/jacobi_kernels.hpp"
+
+
+#include <hip/hip_runtime.h>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -159,16 +161,21 @@ void advanced_apply(
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
 
     if (block_precisions) {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::advanced_adaptive_apply<max_block_size, subwarp_size,
-                                        warps_per_block>), dim3(grid_size), dim3(block_size), 0, 0,
-                as_hip_type(blocks), storage_scheme, block_precisions,
-                block_pointers, num_blocks, as_hip_type(alpha),
-                as_hip_type(b), b_stride, as_hip_type(x), x_stride);
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(
+                kernel::advanced_adaptive_apply<max_block_size, subwarp_size,
+                                                warps_per_block>),
+            dim3(grid_size), dim3(block_size), 0, 0, as_hip_type(blocks),
+            storage_scheme, block_precisions, block_pointers, num_blocks,
+            as_hip_type(alpha), as_hip_type(b), b_stride, as_hip_type(x),
+            x_stride);
     } else {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::advanced_apply<max_block_size, subwarp_size, warps_per_block>), dim3(grid_size), dim3(block_size), 0, 0, 
-                as_hip_type(blocks), storage_scheme, block_pointers,
-                num_blocks, as_hip_type(alpha), as_hip_type(b), b_stride,
-                as_hip_type(x), x_stride);
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(kernel::advanced_apply<max_block_size, subwarp_size,
+                                                   warps_per_block>),
+            dim3(grid_size), dim3(block_size), 0, 0, as_hip_type(blocks),
+            storage_scheme, block_pointers, num_blocks, as_hip_type(alpha),
+            as_hip_type(b), b_stride, as_hip_type(x), x_stride);
     }
 }
 

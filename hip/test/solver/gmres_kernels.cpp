@@ -264,9 +264,9 @@ TEST_F(Gmres, HipGmresStep2IsEquivalentToRef)
                                            y.get(), before_preconditioner.get(),
                                            final_iter_nums.get());
     gko::kernels::hip::gmres::step_2(hip, d_residual_norm_collection.get(),
-                                      d_krylov_bases.get(), d_hessenberg.get(),
-                                      d_y.get(), d_before_preconditioner.get(),
-                                      d_final_iter_nums.get());
+                                     d_krylov_bases.get(), d_hessenberg.get(),
+                                     d_y.get(), d_before_preconditioner.get(),
+                                     d_final_iter_nums.get());
 
     GKO_ASSERT_MTX_NEAR(d_y, y, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);

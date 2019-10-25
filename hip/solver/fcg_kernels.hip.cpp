@@ -1,4 +1,3 @@
-#include "hip/hip_runtime.h"
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
@@ -32,6 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/solver/fcg_kernels.hpp"
+
+
+#include <hip/hip_runtime.h>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -97,14 +99,14 @@ void initialize(std::shared_ptr<const HipExecutor> exec,
     const dim3 grid_size(
         ceildiv(b->get_size()[0] * b->get_stride(), block_size.x), 1, 1);
 
-    hipLaunchKernelGGL(initialize_kernel, dim3(grid_size), dim3(block_size), 0, 0, 
+    hipLaunchKernelGGL(
+        initialize_kernel, dim3(grid_size), dim3(block_size), 0, 0,
         b->get_size()[0], b->get_size()[1], b->get_stride(),
         as_hip_type(b->get_const_values()), as_hip_type(r->get_values()),
         as_hip_type(z->get_values()), as_hip_type(p->get_values()),
         as_hip_type(q->get_values()), as_hip_type(t->get_values()),
         as_hip_type(prev_rho->get_values()), as_hip_type(rho->get_values()),
-        as_hip_type(rho_t->get_values()),
-        as_hip_type(stop_status->get_data()));
+        as_hip_type(rho_t->get_values()), as_hip_type(stop_status->get_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);
@@ -141,12 +143,13 @@ void step_1(std::shared_ptr<const HipExecutor> exec,
     const dim3 grid_size(
         ceildiv(p->get_size()[0] * p->get_stride(), block_size.x), 1, 1);
 
-    hipLaunchKernelGGL(step_1_kernel, dim3(grid_size), dim3(block_size), 0, 0, 
-        p->get_size()[0], p->get_size()[1], p->get_stride(),
-        as_hip_type(p->get_values()), as_hip_type(z->get_const_values()),
-        as_hip_type(rho_t->get_const_values()),
-        as_hip_type(prev_rho->get_const_values()),
-        as_hip_type(stop_status->get_const_data()));
+    hipLaunchKernelGGL(step_1_kernel, dim3(grid_size), dim3(block_size), 0, 0,
+                       p->get_size()[0], p->get_size()[1], p->get_stride(),
+                       as_hip_type(p->get_values()),
+                       as_hip_type(z->get_const_values()),
+                       as_hip_type(rho_t->get_const_values()),
+                       as_hip_type(prev_rho->get_const_values()),
+                       as_hip_type(stop_status->get_const_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_1_KERNEL);
@@ -193,7 +196,8 @@ void step_2(std::shared_ptr<const HipExecutor> exec,
     const dim3 grid_size(
         ceildiv(p->get_size()[0] * p->get_stride(), block_size.x), 1, 1);
 
-    hipLaunchKernelGGL(step_2_kernel, dim3(grid_size), dim3(block_size), 0, 0, 
+    hipLaunchKernelGGL(
+        step_2_kernel, dim3(grid_size), dim3(block_size), 0, 0,
         p->get_size()[0], p->get_size()[1], p->get_stride(), x->get_stride(),
         as_hip_type(x->get_values()), as_hip_type(r->get_values()),
         as_hip_type(t->get_values()), as_hip_type(p->get_const_values()),

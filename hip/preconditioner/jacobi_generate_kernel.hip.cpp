@@ -1,4 +1,3 @@
-#include "hip/hip_runtime.h"
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
@@ -32,6 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/preconditioner/jacobi_kernels.hpp"
+
+
+#include <hip/hip_runtime.h>
 
 
 #include <ginkgo/config.hpp>
@@ -126,8 +128,8 @@ __global__ void __launch_bounds__(warps_per_block *hip_config::warp_size)
     __shared__ UninitializedArray<ValueType, max_block_size * warps_per_block>
         workspace;
     csr::extract_transposed_diag_blocks<max_block_size, warps_per_block>(
-        block, hip_config::warp_size / subwarp_size, row_ptrs, col_idxs,
-        values, block_ptrs, num_blocks, row, 1,
+        block, hip_config::warp_size / subwarp_size, row_ptrs, col_idxs, values,
+        block_ptrs, num_blocks, row, 1,
         workspace + threadIdx.z * max_block_size);
     const auto subwarp = group::tiled_partition<subwarp_size>(block);
     if (block_id < num_blocks) {
@@ -165,8 +167,8 @@ __launch_bounds__(warps_per_block *hip_config::warp_size) adaptive_generate(
     __shared__ UninitializedArray<ValueType, max_block_size * warps_per_block>
         workspace;
     csr::extract_transposed_diag_blocks<max_block_size, warps_per_block>(
-        block, hip_config::warp_size / subwarp_size, row_ptrs, col_idxs,
-        values, block_ptrs, num_blocks, row, 1,
+        block, hip_config::warp_size / subwarp_size, row_ptrs, col_idxs, values,
+        block_ptrs, num_blocks, row, 1,
         workspace + threadIdx.z * max_block_size);
 
     // compute inverse and figure out the correct precision
@@ -262,19 +264,23 @@ void generate(syn::value_list<int, max_block_size>,
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
 
     if (block_precisions) {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::adaptive_generate<max_block_size, subwarp_size, warps_per_block>), dim3(grid_size), dim3(block_size), 0, 0, 
-                mtx->get_size()[0], mtx->get_const_row_ptrs(),
-                mtx->get_const_col_idxs(),
-                as_hip_type(mtx->get_const_values()), as_hip_type(accuracy),
-                as_hip_type(block_data), storage_scheme,
-                as_hip_type(conditioning), block_precisions, block_ptrs,
-                num_blocks);
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(
+                kernel::adaptive_generate<max_block_size, subwarp_size,
+                                          warps_per_block>),
+            dim3(grid_size), dim3(block_size), 0, 0, mtx->get_size()[0],
+            mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+            as_hip_type(mtx->get_const_values()), as_hip_type(accuracy),
+            as_hip_type(block_data), storage_scheme, as_hip_type(conditioning),
+            block_precisions, block_ptrs, num_blocks);
     } else {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::generate<max_block_size, subwarp_size, warps_per_block>), dim3(grid_size), dim3(block_size), 0, 0, 
-                mtx->get_size()[0], mtx->get_const_row_ptrs(),
-                mtx->get_const_col_idxs(),
-                as_hip_type(mtx->get_const_values()), as_hip_type(block_data),
-                storage_scheme, block_ptrs, num_blocks);
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(kernel::generate<max_block_size, subwarp_size,
+                                             warps_per_block>),
+            dim3(grid_size), dim3(block_size), 0, 0, mtx->get_size()[0],
+            mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+            as_hip_type(mtx->get_const_values()), as_hip_type(block_data),
+            storage_scheme, block_ptrs, num_blocks);
     }
 }
 

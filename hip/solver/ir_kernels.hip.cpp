@@ -1,4 +1,3 @@
-#include "hip/hip_runtime.h"
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
@@ -32,6 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/solver/ir_kernels.hpp"
+
+
+#include <hip/hip_runtime.h>
 
 
 #include <ginkgo/core/base/math.hpp>
@@ -70,8 +72,9 @@ void initialize(std::shared_ptr<const HipExecutor> exec,
     const dim3 grid_size(ceildiv(stop_status->get_num_elems(), block_size.x), 1,
                          1);
 
-    hipLaunchKernelGGL(initialize_kernel, dim3(grid_size), dim3(block_size), 0, 0, 
-        stop_status->get_num_elems(), stop_status->get_data());
+    hipLaunchKernelGGL(initialize_kernel, dim3(grid_size), dim3(block_size), 0,
+                       0, stop_status->get_num_elems(),
+                       stop_status->get_data());
 }
 
 

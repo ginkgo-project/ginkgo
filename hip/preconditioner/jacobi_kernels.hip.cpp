@@ -1,4 +1,3 @@
-#include "hip/hip_runtime.h"
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
@@ -32,6 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/preconditioner/jacobi_kernels.hpp"
+
+
+#include <hip/hip_runtime.h>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -164,12 +166,14 @@ size_type find_natural_blocks(std::shared_ptr<const HipExecutor> exec,
     const dim3 grid_size(
         ceildiv(mtx->get_size()[0] * hip_config::warp_size, block_size.x), 1,
         1);
-    hipLaunchKernelGGL(compare_adjacent_rows, dim3(grid_size), dim3(block_size), 0, 0, 
-        mtx->get_size()[0], max_block_size, mtx->get_const_row_ptrs(),
-        mtx->get_const_col_idxs(), matching_next_row.get_data());
-    hipLaunchKernelGGL(generate_natural_block_pointer, dim3(1), dim3(1), 0, 0, 
-        mtx->get_size()[0], max_block_size, matching_next_row.get_const_data(),
-        block_ptrs, nums.get_data());
+    hipLaunchKernelGGL(compare_adjacent_rows, dim3(grid_size), dim3(block_size),
+                       0, 0, mtx->get_size()[0], max_block_size,
+                       mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+                       matching_next_row.get_data());
+    hipLaunchKernelGGL(generate_natural_block_pointer, dim3(1), dim3(1), 0, 0,
+                       mtx->get_size()[0], max_block_size,
+                       matching_next_row.get_const_data(), block_ptrs,
+                       nums.get_data());
     nums.set_executor(exec->get_master());
     return nums.get_const_data()[0];
 }
@@ -208,8 +212,9 @@ inline size_type agglomerate_supervariables(
 {
     Array<size_type> nums(exec, 1);
 
-    hipLaunchKernelGGL(agglomerate_supervariables_kernel, dim3(1), dim3(1), 0, 0, 
-        max_block_size, num_natural_blocks, block_ptrs, nums.get_data());
+    hipLaunchKernelGGL(agglomerate_supervariables_kernel, dim3(1), dim3(1), 0,
+                       0, max_block_size, num_natural_blocks, block_ptrs,
+                       nums.get_data());
 
     nums.set_executor(exec->get_master());
     return nums.get_const_data()[0];
@@ -227,9 +232,10 @@ void initialize_precisions(std::shared_ptr<const HipExecutor> exec,
     const auto grid_size = min(
         default_grid_size,
         static_cast<int32>(ceildiv(precisions.get_num_elems(), block_size)));
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(duplicate_array<default_block_size>), dim3(grid_size), dim3(block_size), 0, 0, 
-        source.get_const_data(), source.get_num_elems(), precisions.get_data(),
-        precisions.get_num_elems());
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(duplicate_array<default_block_size>),
+                       dim3(grid_size), dim3(block_size), 0, 0,
+                       source.get_const_data(), source.get_num_elems(),
+                       precisions.get_data(), precisions.get_num_elems());
 }
 
 

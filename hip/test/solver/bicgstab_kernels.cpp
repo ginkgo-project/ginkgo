@@ -286,8 +286,8 @@ TEST_F(Bicgstab, HipBicgstabStep2IsEquivalentToRef)
                                               rho.get(), alpha.get(),
                                               beta.get(), stop_status.get());
     gko::kernels::hip::bicgstab::step_2(hip, d_r.get(), d_s.get(), d_v.get(),
-                                         d_rho.get(), d_alpha.get(),
-                                         d_beta.get(), d_stop_status.get());
+                                        d_rho.get(), d_alpha.get(),
+                                        d_beta.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_s, s, 1e-14);

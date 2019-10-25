@@ -1,4 +1,3 @@
-#include "hip/hip_runtime.h"
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
@@ -40,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <gtest/gtest.h>
+#include <hip/hip_runtime.h>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -106,7 +106,8 @@ protected:
     bool test_real_isfinite_kernel()
     {
         gko::Array<bool> result(hip, 1);
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(test_real_isfinite<T>), dim3(1), dim3(1), 0, 0, result.get_data());
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(test_real_isfinite<T>), dim3(1),
+                           dim3(1), 0, 0, result.get_data());
         result.set_executor(ref);
         return *result.get_data();
     }
@@ -115,7 +116,8 @@ protected:
     bool test_complex_isfinite_kernel()
     {
         gko::Array<bool> result(hip, 1);
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(test_complex_isfinite<T>), dim3(1), dim3(1), 0, 0, result.get_data());
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(test_complex_isfinite<T>), dim3(1),
+                           dim3(1), 0, 0, result.get_data());
         result.set_executor(ref);
         return *result.get_data();
     }

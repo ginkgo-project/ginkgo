@@ -1,4 +1,3 @@
-#include "hip/hip_runtime.h"
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
@@ -32,6 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/solver/cgs_kernels.hpp"
+
+
+#include <hip/hip_runtime.h>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -110,7 +112,8 @@ void initialize(std::shared_ptr<const HipExecutor> exec,
     const dim3 grid_size(
         ceildiv(b->get_size()[0] * b->get_stride(), block_size.x), 1, 1);
 
-    hipLaunchKernelGGL(initialize_kernel, dim3(grid_size), dim3(block_size), 0, 0, 
+    hipLaunchKernelGGL(
+        initialize_kernel, dim3(grid_size), dim3(block_size), 0, 0,
         b->get_size()[0], b->get_size()[1], b->get_stride(),
         as_hip_type(b->get_const_values()), as_hip_type(r->get_values()),
         as_hip_type(r_tld->get_values()), as_hip_type(p->get_values()),
@@ -162,7 +165,8 @@ void step_1(std::shared_ptr<const HipExecutor> exec,
     const dim3 grid_size(
         ceildiv(p->get_size()[0] * p->get_stride(), block_size.x), 1, 1);
 
-    hipLaunchKernelGGL(step_1_kernel, dim3(grid_size), dim3(block_size), 0, 0, 
+    hipLaunchKernelGGL(
+        step_1_kernel, dim3(grid_size), dim3(block_size), 0, 0,
         p->get_size()[0], p->get_size()[1], p->get_stride(),
         as_hip_type(r->get_const_values()), as_hip_type(u->get_values()),
         as_hip_type(p->get_values()), as_hip_type(q->get_const_values()),
@@ -212,7 +216,8 @@ void step_2(std::shared_ptr<const HipExecutor> exec,
     const dim3 grid_size(
         ceildiv(u->get_size()[0] * u->get_stride(), block_size.x), 1, 1);
 
-    hipLaunchKernelGGL(step_2_kernel, dim3(grid_size), dim3(block_size), 0, 0, 
+    hipLaunchKernelGGL(
+        step_2_kernel, dim3(grid_size), dim3(block_size), 0, 0,
         u->get_size()[0], u->get_size()[1], u->get_stride(),
         as_hip_type(u->get_const_values()),
         as_hip_type(v_hat->get_const_values()), as_hip_type(q->get_values()),
@@ -260,7 +265,8 @@ void step_3(std::shared_ptr<const HipExecutor> exec,
     const dim3 grid_size(
         ceildiv(t->get_size()[0] * t->get_stride(), block_size.x), 1, 1);
 
-    hipLaunchKernelGGL(step_3_kernel, dim3(grid_size), dim3(block_size), 0, 0, 
+    hipLaunchKernelGGL(
+        step_3_kernel, dim3(grid_size), dim3(block_size), 0, 0,
         t->get_size()[0], t->get_size()[1], t->get_stride(), x->get_stride(),
         as_hip_type(t->get_const_values()),
         as_hip_type(u_hat->get_const_values()), as_hip_type(r->get_values()),

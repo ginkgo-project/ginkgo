@@ -102,8 +102,7 @@ protected:
     }
 
     void initialize_lu(std::unique_ptr<Csr> *l_ref, std::unique_ptr<Csr> *u_ref,
-                       std::unique_ptr<Csr> *l_hip,
-                       std::unique_ptr<Csr> *u_hip)
+                       std::unique_ptr<Csr> *l_hip, std::unique_ptr<Csr> *u_hip)
     {
         auto num_row_ptrs = csr_ref->get_size()[0] + 1;
         gko::Array<index_type> l_row_ptrs_ref{ref, num_row_ptrs};
@@ -128,10 +127,10 @@ protected:
                        (*l_ref)->get_row_ptrs());
         ref->copy_from(gko::lend(ref), num_row_ptrs, u_row_ptrs_ref.get_data(),
                        (*u_ref)->get_row_ptrs());
-        hip->copy_from(gko::lend(hip), num_row_ptrs,
-                        l_row_ptrs_hip.get_data(), (*l_hip)->get_row_ptrs());
-        hip->copy_from(gko::lend(hip), num_row_ptrs,
-                        u_row_ptrs_hip.get_data(), (*u_hip)->get_row_ptrs());
+        hip->copy_from(gko::lend(hip), num_row_ptrs, l_row_ptrs_hip.get_data(),
+                       (*l_hip)->get_row_ptrs());
+        hip->copy_from(gko::lend(hip), num_row_ptrs, u_row_ptrs_hip.get_data(),
+                       (*u_hip)->get_row_ptrs());
 
         gko::kernels::reference::par_ilu_factorization::initialize_l_u(
             ref, gko::lend(csr_ref), gko::lend(*l_ref), gko::lend(*u_ref));

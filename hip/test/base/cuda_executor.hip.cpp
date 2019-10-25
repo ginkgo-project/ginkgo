@@ -1,4 +1,3 @@
-#include "hip/hip_runtime.h"
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
@@ -38,7 +37,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 
 
+#include <hip/hip_runtime.h>
 #include <gtest/gtest.h>
+
 
 
 #include <ginkgo/core/base/exception.hpp>
@@ -70,16 +71,15 @@ public:
 
 class HipExecutor : public ::testing::Test {
 protected:
-    HipExecutor()
-        : omp(gko::OmpExecutor::create()), hip(nullptr), hip2(nullptr)
+    HipExecutor() : omp(gko::OmpExecutor::create()), hip(nullptr), hip2(nullptr)
     {}
 
     void SetUp()
     {
         ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
         hip = gko::HipExecutor::create(0, omp);
-        hip2 = gko::HipExecutor::create(
-            gko::HipExecutor::get_num_devices() - 1, omp);
+        hip2 = gko::HipExecutor::create(gko::HipExecutor::get_num_devices() - 1,
+                                        omp);
     }
 
     void TearDown()
