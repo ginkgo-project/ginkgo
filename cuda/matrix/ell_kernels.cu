@@ -85,10 +85,11 @@ constexpr double ratio = 1e-2;
 /**
  * A compile-time list of sub-warp sizes for which the spmv kernels should be
  * compiled.
- * 0 is a special case where it uses a sub-warp size of 32 in
+ * 0 is a special case where it uses a sub-warp size of warp_size in
  * combination with atomic_adds.
  */
-using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, 16, 32>;
+using compiled_kernels =
+    syn::value_list<int, 0, 1, 2, 4, 8, 16, 32, cuda_config::warp_size>;
 
 
 namespace kernel {
@@ -210,7 +211,7 @@ void abstract_spmv(syn::value_list<int, info>, int nwarps_per_row,
                    const matrix::Dense<ValueType> *beta = nullptr)
 {
     const auto nrows = a->get_size()[0];
-    constexpr int subwarp_size = (info == 0) ? 32 : info;
+    constexpr int subwarp_size = (info == 0) ? cuda_config::warp_size : info;
     constexpr bool atomic = (info == 0);
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -255,16 +256,17 @@ std::array<int, 3> compute_subwarp_size_and_atomicity(
     // Use multithreads to perform the reduction on each row when the matrix is
     // wide.
     // To make every thread have computation, so pick the value which is the
-    // power of 2 less than 32 and is less than or equal to ell_ncols. If the
-    // subwarp_size is 32 and allow more than one warps to work on the same row,
-    // use atomic add to handle the warps write the value into the same
-    // position. The #warps is decided according to the number of warps allowed
-    // on GPU.
+    // power of 2 less than warp_size and is less than or equal to ell_ncols. If
+    // the subwarp_size is warp_size and allow more than one warps to work on
+    // the same row, use atomic add to handle the warps write the value into the
+    // same position. The #warps is decided according to the number of warps
+    // allowed on GPU.
     if (static_cast<double>(ell_ncols) / nrows > ratio) {
-        while (subwarp_size < 32 && (subwarp_size << 1) <= ell_ncols) {
+        while (subwarp_size < cuda_config::warp_size &&
+               (subwarp_size << 1) <= ell_ncols) {
             subwarp_size <<= 1;
         }
-        if (subwarp_size == 32) {
+        if (subwarp_size == cuda_config::warp_size) {
             nwarps_per_row =
                 std::min(ell_ncols / cuda_config::warp_size, nwarps / nrows);
             nwarps_per_row = std::max(nwarps_per_row, 1);
@@ -292,8 +294,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
 
     /**
      * info is the parameter for selecting the cuda kernel.
-     * for info == 0, it uses the kernel by 32 threads with atomic operation
-     * for other value, it uses the kernel without atomic_add
+     * for info == 0, it uses the kernel by warp_size threads with atomic
+     * operation for other value, it uses the kernel without atomic_add
      */
     const int info = (!atomic) * subwarp_size;
     if (atomic) {
@@ -323,8 +325,8 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
 
     /**
      * info is the parameter for selecting the cuda kernel.
-     * for info == 0, it uses the kernel by 32 threads with atomic operation
-     * for other value, it uses the kernel without atomic_add
+     * for info == 0, it uses the kernel by warp_size threads with atomic
+     * operation for other value, it uses the kernel without atomic_add
      */
     const int info = (!atomic) * subwarp_size;
     if (atomic) {
