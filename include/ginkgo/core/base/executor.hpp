@@ -434,11 +434,15 @@ private:                                                                     \
  *
  * @ingroup Executor
  */
-class Executor {
+class Executor : public MemorySpace {
     template <typename T>
     friend class detail::ExecutorBase;
 
 public:
+    using MemorySpace::alloc;
+    using MemorySpace::copy_from;
+    using MemorySpace::free;
+
     virtual ~Executor() = default;
 
     Executor() = default;
@@ -588,9 +592,10 @@ class ExecutorBase : public Executor {
 public:
     void run(const Operation &op) const override
     {
-        this->template log<log::Logger::operation_launched>(this, &op);
+        // TODO: Move run loggers to another class and derive from there ?.
+        // this->template log<log::Logger::operation_launched>(this, &op);
         op.run(self()->shared_from_this());
-        this->template log<log::Logger::operation_completed>(this, &op);
+        // this->template log<log::Logger::operation_completed>(this, &op);
     }
 
 private:
@@ -653,16 +658,15 @@ private:
  * @ingroup exec_omp
  * @ingroup Executor
  */
-class OmpExecutor : public HostMemorySpace,
-                    public detail::ExecutorBase<OmpExecutor>,
+class OmpExecutor : public detail::ExecutorBase<OmpExecutor>,
                     public std::enable_shared_from_this<OmpExecutor>,
                     public machine_config::topology<OmpExecutor> {
     friend class detail::ExecutorBase<OmpExecutor>;
 
 public:
-    using HostMemorySpace::alloc;
-    using HostMemorySpace::copy_from;
-    using HostMemorySpace::free;
+    // using HostMemorySpace::alloc;
+    // using HostMemorySpace::copy_from;
+    // using HostMemorySpace::free;
     using omp_exec_info = machine_config::topology<OmpExecutor>;
 
     /**
@@ -712,9 +716,9 @@ using DefaultExecutor = OmpExecutor;
 class ReferenceExecutor : public OmpExecutor {
 public:
     using ref_exec_info = machine_config::topology<OmpExecutor>;
-    using HostMemorySpace::alloc;
-    using HostMemorySpace::copy_from;
-    using HostMemorySpace::free;
+    // using HostMemorySpace::alloc;
+    // using HostMemorySpace::copy_from;
+    // using HostMemorySpace::free;
 
     static std::shared_ptr<ReferenceExecutor> create()
     {
@@ -758,17 +762,16 @@ using DefaultExecutor = ReferenceExecutor;
  * @ingroup exec_cuda
  * @ingroup Executor
  */
-class CudaExecutor : public CudaMemorySpace,
-                     public detail::ExecutorBase<CudaExecutor>,
+class CudaExecutor : public detail::ExecutorBase<CudaExecutor>,
                      public std::enable_shared_from_this<CudaExecutor>,
                      public detail::EnableDeviceReset,
                      public machine_config::topology<CudaExecutor> {
     friend class detail::ExecutorBase<CudaExecutor>;
 
 public:
-    using CudaMemorySpace::alloc;
-    using CudaMemorySpace::copy_from;
-    using CudaMemorySpace::free;
+    // using CudaMemorySpace::alloc;
+    // using CudaMemorySpace::copy_from;
+    // using CudaMemorySpace::free;
     using cuda_exec_info = machine_config::topology<CudaExecutor>;
 
     /**
@@ -873,13 +876,14 @@ protected:
           num_multiprocessor_(0),
           major_(0),
           minor_(0),
-          warp_size_(0) mem_space_instance_(device_id)
+          warp_size_(0)
     {
         assert(device_id < max_devices && device_id >= 0);
         this->set_gpu_property();
         this->init_handles();
         increase_num_execs(device_id);
         exec_info_ = cuda_exec_info::create();
+        mem_space_instance_ = CudaMemorySpace::create(device_id);
     }
 
     static void increase_num_execs(unsigned device_id)

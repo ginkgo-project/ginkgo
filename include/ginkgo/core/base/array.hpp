@@ -91,7 +91,7 @@ public:
     /**
      * The default deleter type used by Array.
      */
-    using default_deleter = executor_deleter<value_type[]>;
+    using default_deleter = memory_space_deleter<value_type[]>;
 
     /**
      * The deleter type used for views.
