@@ -43,49 +43,49 @@ namespace gko {
 namespace log {
 
 
-void Record::on_allocation_started(const Executor *exec,
+void Record::on_allocation_started(const MemorySpace *mem_space,
                                    const size_type &num_bytes) const
 {
     append_deque(data_.allocation_started,
-                 (std::unique_ptr<executor_data>(
-                     new executor_data{exec, num_bytes, 0})));
+                 (std::unique_ptr<memory_space_data>(
+                     new memory_space_data{mem_space, num_bytes, 0})));
 }
 
 
-void Record::on_allocation_completed(const Executor *exec,
+void Record::on_allocation_completed(const MemorySpace *mem_space,
                                      const size_type &num_bytes,
                                      const uintptr &location) const
 {
     append_deque(data_.allocation_completed,
-                 (std::unique_ptr<executor_data>(
-                     new executor_data{exec, num_bytes, location})));
+                 (std::unique_ptr<memory_space_data>(
+                     new memory_space_data{mem_space, num_bytes, location})));
 }
 
 
-void Record::on_free_started(const Executor *exec,
+void Record::on_free_started(const MemorySpace *mem_space,
                              const uintptr &location) const
 {
-    append_deque(
-        data_.free_started,
-        (std::unique_ptr<executor_data>(new executor_data{exec, 0, location})));
+    append_deque(data_.free_started,
+                 (std::unique_ptr<memory_space_data>(
+                     new memory_space_data{mem_space, 0, location})));
 }
 
 
-void Record::on_free_completed(const Executor *exec,
+void Record::on_free_completed(const MemorySpace *mem_space,
                                const uintptr &location) const
 {
-    append_deque(
-        data_.free_completed,
-        (std::unique_ptr<executor_data>(new executor_data{exec, 0, location})));
+    append_deque(data_.free_completed,
+                 (std::unique_ptr<memory_space_data>(
+                     new memory_space_data{mem_space, 0, location})));
 }
 
 
-void Record::on_copy_started(const Executor *from, const Executor *to,
+void Record::on_copy_started(const MemorySpace *from, const MemorySpace *to,
                              const uintptr &location_from,
                              const uintptr &location_to,
                              const size_type &num_bytes) const
 {
-    using tuple = std::tuple<executor_data, executor_data>;
+    using tuple = std::tuple<memory_space_data, memory_space_data>;
     append_deque(
         data_.copy_started,
         (std::unique_ptr<tuple>(new tuple{{from, num_bytes, location_from},
@@ -93,12 +93,12 @@ void Record::on_copy_started(const Executor *from, const Executor *to,
 }
 
 
-void Record::on_copy_completed(const Executor *from, const Executor *to,
+void Record::on_copy_completed(const MemorySpace *from, const MemorySpace *to,
                                const uintptr &location_from,
                                const uintptr &location_to,
                                const size_type &num_bytes) const
 {
-    using tuple = std::tuple<executor_data, executor_data>;
+    using tuple = std::tuple<memory_space_data, memory_space_data>;
     append_deque(
         data_.copy_completed,
         (std::unique_ptr<tuple>(new tuple{{from, num_bytes, location_from},

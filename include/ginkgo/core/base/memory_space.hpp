@@ -150,7 +150,7 @@ protected:
      *
      * @return raw pointer to allocated memory
      */
-    virtual void *raw_alloc(size_type size) const = 0;
+    virtual void *raw_alloc(size_type size) const;
 
     /**
      * Frees memory previously allocated with MemorySpace::alloc().
@@ -159,7 +159,7 @@ protected:
      *
      * @param ptr  pointer to the allocated memory block
      */
-    virtual void raw_free(void *ptr) const noexcept = 0;
+    virtual void raw_free(void *ptr) const noexcept;
 
     /**
      * Copies raw data from another MemorySpace.
@@ -171,9 +171,10 @@ protected:
      * @param dest_ptr  pointer to an allocated block of memory where the data
      *                  will be copied to
      */
-    virtual void raw_copy_from(const MemorySpace *src_mem_space,
-                               size_type n_bytes, const void *src_ptr,
-                               void *dest_ptr) const = 0;
+    virtual void raw_copy_from(
+        const MemorySpace *src_mem_space, size_type n_bytes,
+        const void *src_ptr,
+        void *dest_ptr) const;  // Change to Pure virtual ? TODO
 
 /**
  * @internal
@@ -187,7 +188,7 @@ protected:
 #define GKO_ENABLE_RAW_COPY_TO(_mem_space_type, ...)                 \
     virtual void raw_copy_to(const _mem_space_type *dest_mem_space,  \
                              size_type n_bytes, const void *src_ptr, \
-                             void *dest_ptr) const = 0
+                             void *dest_ptr) const
 
     GKO_ENABLE_FOR_ALL_MEMORY_SPACES(GKO_ENABLE_RAW_COPY_TO);
 
@@ -292,6 +293,15 @@ private:
 class HostMemorySpace : public detail::MemorySpaceBase<HostMemorySpace> {
     friend class detail::MemorySpaceBase<HostMemorySpace>;
 
+public:
+    /**
+     * Creates a new HostMemorySpace.
+     */
+    static std::shared_ptr<HostMemorySpace> create()
+    {
+        return std::shared_ptr<HostMemorySpace>(new HostMemorySpace());
+    }
+
 protected:
     HostMemorySpace() = default;
 
@@ -306,12 +316,26 @@ protected:
 class CudaMemorySpace : public detail::MemorySpaceBase<CudaMemorySpace> {
     friend class detail::MemorySpaceBase<CudaMemorySpace>;
 
+public:
+    /**
+     * Creates a new CudaMemorySpace.
+     *
+     * @param device_id  the CUDA device id of this device
+     * @param master  an executor on the host that is used to invoke the device
+     * kernels
+     */
+    static std::shared_ptr<CudaMemorySpace> create(int device_id)
+    {
+        return std::shared_ptr<CudaMemorySpace>(new CudaMemorySpace(device_id));
+    }
     /**
      * Get the CUDA device id of the device associated to this memory_space.
      */
     int get_device_id() const noexcept { return device_id_; }
 
 protected:
+    CudaMemorySpace() = default;
+
     CudaMemorySpace(int device_id) : device_id_(device_id) {}
 
     void *raw_alloc(size_type size) const override;

@@ -92,8 +92,8 @@ struct iteration_complete_data {
 /**
  * Struct representing Executor related data
  */
-struct executor_data {
-    const Executor *exec;
+struct memory_space_data {
+    const MemorySpace *mem_space;
     const size_type num_bytes;
     const uintptr location;
 };
@@ -237,13 +237,15 @@ public:
      * Struct storing the actually logged data
      */
     struct logged_data {
-        std::deque<std::unique_ptr<executor_data>> allocation_started;
-        std::deque<std::unique_ptr<executor_data>> allocation_completed;
-        std::deque<std::unique_ptr<executor_data>> free_started;
-        std::deque<std::unique_ptr<executor_data>> free_completed;
-        std::deque<std::unique_ptr<std::tuple<executor_data, executor_data>>>
+        std::deque<std::unique_ptr<memory_space_data>> allocation_started;
+        std::deque<std::unique_ptr<memory_space_data>> allocation_completed;
+        std::deque<std::unique_ptr<memory_space_data>> free_started;
+        std::deque<std::unique_ptr<memory_space_data>> free_completed;
+        std::deque<
+            std::unique_ptr<std::tuple<memory_space_data, memory_space_data>>>
             copy_started;
-        std::deque<std::unique_ptr<std::tuple<executor_data, executor_data>>>
+        std::deque<
+            std::unique_ptr<std::tuple<memory_space_data, memory_space_data>>>
             copy_completed;
 
         std::deque<std::unique_ptr<operation_data>> operation_launched;
@@ -277,25 +279,25 @@ public:
     };
 
     /* Executor events */
-    void on_allocation_started(const Executor *exec,
+    void on_allocation_started(const MemorySpace *mem_space,
                                const size_type &num_bytes) const override;
 
-    void on_allocation_completed(const Executor *exec,
+    void on_allocation_completed(const MemorySpace *mem_space,
                                  const size_type &num_bytes,
                                  const uintptr &location) const override;
 
-    void on_free_started(const Executor *exec,
+    void on_free_started(const MemorySpace *mem_space,
                          const uintptr &location) const override;
 
-    void on_free_completed(const Executor *exec,
+    void on_free_completed(const MemorySpace *mem_space,
                            const uintptr &location) const override;
 
-    void on_copy_started(const Executor *from, const Executor *to,
+    void on_copy_started(const MemorySpace *from, const MemorySpace *to,
                          const uintptr &location_from,
                          const uintptr &location_to,
                          const size_type &num_bytes) const override;
 
-    void on_copy_completed(const Executor *from, const Executor *to,
+    void on_copy_completed(const MemorySpace *from, const MemorySpace *to,
                            const uintptr &location_from,
                            const uintptr &location_to,
                            const size_type &num_bytes) const override;
@@ -392,11 +394,12 @@ public:
      */
     static std::unique_ptr<Record> create(
         std::shared_ptr<const Executor> exec,
+        std::shared_ptr<const MemorySpace> mem_space,
         const mask_type &enabled_events = Logger::all_events_mask,
         size_type max_storage = 1)
     {
         return std::unique_ptr<Record>(
-            new Record(exec, enabled_events, max_storage));
+            new Record(exec, mem_space, enabled_events, max_storage));
     }
 
     /**
@@ -424,9 +427,10 @@ protected:
      *                     memory overhead of this logger.
      */
     explicit Record(std::shared_ptr<const gko::Executor> exec,
+                    std::shared_ptr<const gko::MemorySpace> mem_space,
                     const mask_type &enabled_events = Logger::all_events_mask,
                     size_type max_storage = 0)
-        : Logger(exec, enabled_events), max_storage_{max_storage}
+        : Logger(exec, mem_space, enabled_events), max_storage_{max_storage}
     {}
 
     /**

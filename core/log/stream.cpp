@@ -119,6 +119,7 @@ GKO_ENABLE_DEMANGLE_NAME(LinOp);
 GKO_ENABLE_DEMANGLE_NAME(LinOpFactory);
 GKO_ENABLE_DEMANGLE_NAME(stop::Criterion);
 GKO_ENABLE_DEMANGLE_NAME(Executor);
+GKO_ENABLE_DEMANGLE_NAME(MemorySpace);
 GKO_ENABLE_DEMANGLE_NAME(Operation);
 
 
@@ -126,46 +127,46 @@ GKO_ENABLE_DEMANGLE_NAME(Operation);
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_allocation_started(const Executor *exec,
+void Stream<ValueType>::on_allocation_started(const MemorySpace *mem_space,
                                               const size_type &num_bytes) const
 {
-    os_ << prefix_ << "allocation started on " << demangle_name(exec)
+    os_ << prefix_ << "allocation started on " << demangle_name(mem_space)
         << " with " << bytes_name(num_bytes) << std::endl;
 }
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_allocation_completed(const Executor *exec,
+void Stream<ValueType>::on_allocation_completed(const MemorySpace *mem_space,
                                                 const size_type &num_bytes,
                                                 const uintptr &location) const
 {
-    os_ << prefix_ << "allocation completed on " << demangle_name(exec)
+    os_ << prefix_ << "allocation completed on " << demangle_name(mem_space)
         << " at " << location_name(location) << " with "
         << bytes_name(num_bytes) << std::endl;
 }
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_free_started(const Executor *exec,
+void Stream<ValueType>::on_free_started(const MemorySpace *mem_space,
                                         const uintptr &location) const
 {
-    os_ << prefix_ << "free started on " << demangle_name(exec) << " at "
+    os_ << prefix_ << "free started on " << demangle_name(mem_space) << " at "
         << location_name(location) << std::endl;
 }
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_free_completed(const Executor *exec,
+void Stream<ValueType>::on_free_completed(const MemorySpace *mem_space,
                                           const uintptr &location) const
 {
-    os_ << prefix_ << "free completed on " << demangle_name(exec) << " at "
+    os_ << prefix_ << "free completed on " << demangle_name(mem_space) << " at "
         << location_name(location) << std::endl;
 }
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_copy_started(const Executor *from,
-                                        const Executor *to,
+void Stream<ValueType>::on_copy_started(const MemorySpace *from,
+                                        const MemorySpace *to,
                                         const uintptr &location_from,
                                         const uintptr &location_to,
                                         const size_type &num_bytes) const
@@ -178,8 +179,8 @@ void Stream<ValueType>::on_copy_started(const Executor *from,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_copy_completed(const Executor *from,
-                                          const Executor *to,
+void Stream<ValueType>::on_copy_completed(const MemorySpace *from,
+                                          const MemorySpace *to,
                                           const uintptr &location_from,
                                           const uintptr &location_to,
                                           const size_type &num_bytes) const

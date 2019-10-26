@@ -59,25 +59,25 @@ template <typename ValueType = default_precision>
 class Stream : public Logger {
 public:
     /* Executor events */
-    void on_allocation_started(const Executor *exec,
+    void on_allocation_started(const MemorySpace *mem_space,
                                const size_type &num_bytes) const override;
 
-    void on_allocation_completed(const Executor *exec,
+    void on_allocation_completed(const MemorySpace *mem_space,
                                  const size_type &num_bytes,
                                  const uintptr &location) const override;
 
-    void on_free_started(const Executor *exec,
+    void on_free_started(const MemorySpace *mem_space,
                          const uintptr &location) const override;
 
-    void on_free_completed(const Executor *exec,
+    void on_free_completed(const MemorySpace *mem_space,
                            const uintptr &location) const override;
 
-    void on_copy_started(const Executor *from, const Executor *to,
+    void on_copy_started(const MemorySpace *from, const MemorySpace *to,
                          const uintptr &location_from,
                          const uintptr &location_to,
                          const size_type &num_bytes) const override;
 
-    void on_copy_completed(const Executor *from, const Executor *to,
+    void on_copy_completed(const MemorySpace *from, const MemorySpace *to,
                            const uintptr &location_from,
                            const uintptr &location_to,
                            const size_type &num_bytes) const override;
@@ -173,11 +173,12 @@ public:
      */
     static std::unique_ptr<Stream> create(
         std::shared_ptr<const Executor> exec,
+        std::shared_ptr<const MemorySpace> mem_space,
         const Logger::mask_type &enabled_events = Logger::all_events_mask,
         std::ostream &os = std::cout, bool verbose = false)
     {
         return std::unique_ptr<Stream>(
-            new Stream(exec, enabled_events, os, verbose));
+            new Stream(exec, mem_space, enabled_events, os, verbose));
     }
 
 protected:
@@ -194,9 +195,10 @@ protected:
      */
     explicit Stream(
         std::shared_ptr<const gko::Executor> exec,
+        std::shared_ptr<const gko::MemorySpace> mem_space,
         const Logger::mask_type &enabled_events = Logger::all_events_mask,
         std::ostream &os = std::cout, bool verbose = false)
-        : Logger(exec, enabled_events), os_(os), verbose_(verbose)
+        : Logger(exec, mem_space, enabled_events), os_(os), verbose_(verbose)
     {}
 
 

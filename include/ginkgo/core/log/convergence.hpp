@@ -90,10 +90,11 @@ public:
      */
     static std::unique_ptr<Convergence> create(
         std::shared_ptr<const Executor> exec,
+        std::shared_ptr<const MemorySpace> mem_space,
         const mask_type &enabled_events = Logger::all_events_mask)
     {
         return std::unique_ptr<Convergence>(
-            new Convergence(exec, enabled_events));
+            new Convergence(exec, mem_space, enabled_events));
     }
 
     /**
@@ -133,8 +134,9 @@ protected:
      */
     explicit Convergence(
         std::shared_ptr<const gko::Executor> exec,
+        std::shared_ptr<const gko::MemorySpace> mem_space,
         const mask_type &enabled_events = Logger::all_events_mask)
-        : Logger(exec, enabled_events)
+        : Logger(exec, mem_space, enabled_events)
     {}
 
 private:

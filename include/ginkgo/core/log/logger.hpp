@@ -52,6 +52,7 @@ namespace gko {
 template <typename ValueType>
 class Array;
 class Executor;
+class MemorySpace;
 class LinOp;
 class LinOpFactory;
 class PolymorphicObject;
@@ -145,7 +146,8 @@ public:                                                              \
      * @param exec  the executor used
      * @param num_bytes  the number of bytes to allocate
      */
-    GKO_LOGGER_REGISTER_EVENT(0, allocation_started, const Executor *exec,
+    GKO_LOGGER_REGISTER_EVENT(0, allocation_started,
+                              const MemorySpace *mem_space,
                               const size_type &num_bytes)
 
     /**
@@ -155,7 +157,8 @@ public:                                                              \
      * @param num_bytes  the number of bytes allocated
      * @param location  the address at which the data was allocated
      */
-    GKO_LOGGER_REGISTER_EVENT(1, allocation_completed, const Executor *exec,
+    GKO_LOGGER_REGISTER_EVENT(1, allocation_completed,
+                              const MemorySpace *mem_space,
                               const size_type &num_bytes,
                               const uintptr &location)
 
@@ -165,7 +168,7 @@ public:                                                              \
      * @param exec  the executor used
      * @param location  the address at which the data will be freed
      */
-    GKO_LOGGER_REGISTER_EVENT(2, free_started, const Executor *exec,
+    GKO_LOGGER_REGISTER_EVENT(2, free_started, const MemorySpace *mem_space,
                               const uintptr &location)
 
     /**
@@ -174,7 +177,7 @@ public:                                                              \
      * @param exec  the executor used
      * @param location  the address at which the data was freed
      */
-    GKO_LOGGER_REGISTER_EVENT(3, free_completed, const Executor *exec,
+    GKO_LOGGER_REGISTER_EVENT(3, free_completed, const MemorySpace *mem_space,
                               const uintptr &location)
 
     /**
@@ -186,9 +189,11 @@ public:                                                              \
      * @param loc_to  the address at which the data will be copied to
      * @param num_bytes  the number of bytes to be copied
      */
-    GKO_LOGGER_REGISTER_EVENT(4, copy_started, const Executor *exec_from,
-                              const Executor *exec_to, const uintptr &loc_from,
-                              const uintptr &loc_to, const size_type &num_bytes)
+    GKO_LOGGER_REGISTER_EVENT(4, copy_started,
+                              const MemorySpace *mem_space_from,
+                              const MemorySpace *mem_space_to,
+                              const uintptr &loc_from, const uintptr &loc_to,
+                              const size_type &num_bytes)
 
     /**
      * Executor's copy completed event.
@@ -199,9 +204,11 @@ public:                                                              \
      * @param loc_to  the address at which the data was copied to
      * @param num_bytes  the number of bytes copied
      */
-    GKO_LOGGER_REGISTER_EVENT(5, copy_completed, const Executor *exec_from,
-                              const Executor *exec_to, const uintptr &loc_from,
-                              const uintptr &loc_to, const size_type &num_bytes)
+    GKO_LOGGER_REGISTER_EVENT(5, copy_completed,
+                              const MemorySpace *mem_space_from,
+                              const MemorySpace *mem_space_to,
+                              const uintptr &loc_from, const uintptr &loc_to,
+                              const size_type &num_bytes)
 
     /**
      * Executor's operation launched event (method run).
@@ -466,12 +473,14 @@ protected:
      *                           event.
      */
     explicit Logger(std::shared_ptr<const gko::Executor> exec,
+                    std::shared_ptr<const gko::MemorySpace> mem_space,
                     const mask_type &enabled_events = all_events_mask)
-        : exec_{exec}, enabled_events_{enabled_events}
+        : exec_{exec}, mem_space_{mem_space}, enabled_events_{enabled_events}
     {}
 
 private:
     std::shared_ptr<const Executor> exec_;
+    std::shared_ptr<const MemorySpace> mem_space_;
     mask_type enabled_events_;
 };
 
