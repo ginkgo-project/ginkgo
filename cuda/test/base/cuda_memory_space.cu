@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory_space.hpp>
 
 
 #include <type_traits>
@@ -52,9 +53,10 @@ protected:
 
     void SetUp()
     {
+        omp = gko::HostMemorySpace::create();
         cuda = gko::CudaMemorySpace::create(0);
         cuda2 = gko::CudaMemorySpace::create(
-            gko::CudaMemorySpace::get_num_devices() - 1, omp);
+            gko::CudaMemorySpace::get_num_devices() - 1);
     }
 
     void TearDown()
@@ -65,6 +67,7 @@ protected:
         }
     }
 
+    std::shared_ptr<gko::HostMemorySpace> omp;
     std::shared_ptr<gko::CudaMemorySpace> cuda;
     std::shared_ptr<gko::CudaMemorySpace> cuda2;
 };
@@ -146,12 +149,9 @@ TEST_F(CudaMemorySpace, CopiesDataFromCudaToCuda)
     cuda2->copy_from(cuda.get(), 2, orig, copy_cuda2);
 
     // Check that the data is really on GPU2 and ensure we did not cheat
-    int value = -1;
     GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(cuda2->get_device_id()));
     check_data<<<1, 1>>>(copy_cuda2);
     GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
-    cuda2->run(ExampleOperation(value));
-    ASSERT_EQ(value, cuda2->get_device_id());
 
     omp->copy_from(cuda2.get(), 2, copy_cuda2, copy);
 
