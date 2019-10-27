@@ -110,8 +110,9 @@ TYPED_TEST(Array, CanBeCreatedFromExistingData)
 
 TYPED_TEST(Array, CanBeCreatedFromDataOnExecutor)
 {
-    gko::Array<TypeParam> a{this->exec, 3,
-                            this->exec->template alloc<TypeParam>(3)};
+    gko::Array<TypeParam> a{
+        this->exec, 3,
+        this->exec->get_mem_space()->template alloc<TypeParam>(3)};
 
     EXPECT_EQ(a.get_num_elems(), 3);
 }

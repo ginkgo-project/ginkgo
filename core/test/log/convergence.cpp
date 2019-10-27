@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory_space.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -54,7 +55,7 @@ TYPED_TEST(Convergence, CanGetData)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Convergence<TypeParam>::create(
-        exec, gko::log::Logger::iteration_complete_mask);
+        exec, exec->get_mem_space(), gko::log::Logger::iteration_complete_mask);
 
     ASSERT_EQ(logger->get_num_iterations(), 0);
     ASSERT_EQ(logger->get_residual(), nullptr);

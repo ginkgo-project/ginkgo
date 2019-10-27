@@ -49,8 +49,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
-class HostMemorySpace;
-class CudaMemorySpace;
+#define GKO_FORWARD_DECLARE(_type, ...) class _type
+
+GKO_ENABLE_FOR_ALL_MEMORY_SPACES(GKO_FORWARD_DECLARE);
+
+#undef GKO_FORWARD_DECLARE
 
 
 namespace detail {
@@ -150,7 +153,7 @@ protected:
      *
      * @return raw pointer to allocated memory
      */
-    virtual void *raw_alloc(size_type size) const;
+    virtual void *raw_alloc(size_type size) const = 0;
 
     /**
      * Frees memory previously allocated with MemorySpace::alloc().
@@ -159,7 +162,7 @@ protected:
      *
      * @param ptr  pointer to the allocated memory block
      */
-    virtual void raw_free(void *ptr) const noexcept;
+    virtual void raw_free(void *ptr) const noexcept = 0;
 
     /**
      * Copies raw data from another MemorySpace.
@@ -171,10 +174,9 @@ protected:
      * @param dest_ptr  pointer to an allocated block of memory where the data
      *                  will be copied to
      */
-    virtual void raw_copy_from(
-        const MemorySpace *src_mem_space, size_type n_bytes,
-        const void *src_ptr,
-        void *dest_ptr) const;  // Change to Pure virtual ? TODO
+    virtual void raw_copy_from(const MemorySpace *src_mem_space,
+                               size_type n_bytes, const void *src_ptr,
+                               void *dest_ptr) const = 0;
 
 /**
  * @internal
@@ -188,7 +190,7 @@ protected:
 #define GKO_ENABLE_RAW_COPY_TO(_mem_space_type, ...)                 \
     virtual void raw_copy_to(const _mem_space_type *dest_mem_space,  \
                              size_type n_bytes, const void *src_ptr, \
-                             void *dest_ptr) const
+                             void *dest_ptr) const = 0
 
     GKO_ENABLE_FOR_ALL_MEMORY_SPACES(GKO_ENABLE_RAW_COPY_TO);
 

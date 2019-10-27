@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory_space.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -77,7 +78,7 @@ protected:
     const std::string init(const gko::log::Logger::mask_type &event,
                            const std::string &event_name, U *ptr)
     {
-        logger = gko::log::Papi<T>::create(exec, event);
+        logger = gko::log::Papi<T>::create(exec, exec->get_mem_space(), event);
         std::ostringstream os;
         os << "sde:::" << logger->get_handle_name() << "::" << event_name
            << "::" << reinterpret_cast<gko::uintptr>(ptr);
@@ -131,7 +132,7 @@ TYPED_TEST(Papi, CatchesAllocationStarted)
 
     this->start();
     this->logger->template on<gko::log::Logger::allocation_started>(
-        this->exec.get(), logged_value);
+        this->exec->get_mem_space().get(), logged_value);
     long long int value = 0;
     this->stop(&value);
 
@@ -148,7 +149,7 @@ TYPED_TEST(Papi, CatchesAllocationCompleted)
 
     this->start();
     this->logger->template on<gko::log::Logger::allocation_completed>(
-        this->exec.get(), logged_value, 0);
+        this->exec->get_mem_space().get(), logged_value, 0);
     long long int value = 0;
     this->stop(&value);
 
@@ -163,8 +164,8 @@ TYPED_TEST(Papi, CatchesFreeStarted)
     this->add_event(str);
 
     this->start();
-    this->logger->template on<gko::log::Logger::free_started>(this->exec.get(),
-                                                              0);
+    this->logger->template on<gko::log::Logger::free_started>(
+        this->exec->get_mem_space().get(), 0);
     long long int value = 0;
     this->stop(&value);
 
@@ -180,7 +181,7 @@ TYPED_TEST(Papi, CatchesFreeCompleted)
 
     this->start();
     this->logger->template on<gko::log::Logger::free_completed>(
-        this->exec.get(), 0);
+        this->exec->get_mem_space().get(), 0);
     long long int value = 0;
     this->stop(&value);
 
@@ -202,7 +203,8 @@ TYPED_TEST(Papi, CatchesCopyStarted)
 
     this->start();
     this->logger->template on<gko::log::Logger::copy_started>(
-        this->exec.get(), this->exec.get(), 0, 0, logged_value);
+        this->exec->get_mem_space().get(), this->exec->get_mem_space().get(), 0,
+        0, logged_value);
     long long int values[2];
     this->stop(values);
 
@@ -225,7 +227,8 @@ TYPED_TEST(Papi, CatchesCopyCompleted)
 
     this->start();
     this->logger->template on<gko::log::Logger::copy_completed>(
-        this->exec.get(), this->exec.get(), 0, 0, logged_value);
+        this->exec->get_mem_space().get(), this->exec->get_mem_space().get(), 0,
+        0, logged_value);
     long long int values[2];
     this->stop(values);
 
