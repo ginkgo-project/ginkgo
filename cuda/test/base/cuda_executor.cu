@@ -115,82 +115,17 @@ TEST_F(CudaExecutor, MasterKnowsNumberOfDevices)
 }
 
 
-TEST_F(CudaExecutor, AllocatesAndFreesMemory)
-{
-    int *ptr = nullptr;
-
-    ASSERT_NO_THROW(ptr = cuda->alloc<int>(2));
-    ASSERT_NO_THROW(cuda->free(ptr));
-}
-
-
-TEST_F(CudaExecutor, FailsWhenOverallocating)
-{
-    const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
-    int *ptr = nullptr;
-
-    ASSERT_THROW(
-        {
-            ptr = cuda->alloc<int>(num_elems);
-            cuda->synchronize();
-        },
-        gko::AllocationError);
-
-    cuda->free(ptr);
-}
-
-
-__global__ void check_data(int *data)
-{
-    if (data[0] != 3 || data[1] != 8) {
-        asm("trap;");
-    }
-}
-
-TEST_F(CudaExecutor, CopiesDataToCuda)
-{
-    int orig[] = {3, 8};
-    auto *copy = cuda->alloc<int>(2);
-
-    cuda->copy_from(omp.get(), 2, orig, copy);
-
-    check_data<<<1, 1>>>(copy);
-    ASSERT_NO_THROW(cuda->synchronize());
-    cuda->free(copy);
-}
-
-
-__global__ void init_data(int *data)
-{
-    data[0] = 3;
-    data[1] = 8;
-}
-
-TEST_F(CudaExecutor, CopiesDataFromCuda)
-{
-    int copy[2];
-    auto orig = cuda->alloc<int>(2);
-    init_data<<<1, 1>>>(orig);
-
-    omp->copy_from(cuda.get(), 2, orig, copy);
-
-    EXPECT_EQ(3, copy[0]);
-    ASSERT_EQ(8, copy[1]);
-    cuda->free(orig);
-}
-
-
 /* Properly checks if it works only when multiple GPUs exist */
 TEST_F(CudaExecutor, PreservesDeviceSettings)
 {
     auto previous_device = gko::CudaExecutor::get_num_devices() - 1;
     GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(previous_device));
-    auto orig = cuda->alloc<int>(2);
+    auto orig = cuda->get_mem_space()->alloc<int>(2);
     int current_device;
     GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&current_device));
     ASSERT_EQ(current_device, previous_device);
 
-    cuda->free(orig);
+    cuda->get_mem_space()->free(orig);
     GKO_ASSERT_NO_CUDA_ERRORS(cudaGetDevice(&current_device));
     ASSERT_EQ(current_device, previous_device);
 }
@@ -206,31 +141,6 @@ TEST_F(CudaExecutor, RunsOnProperDevice)
     ASSERT_EQ(value, cuda2->get_device_id());
 }
 
-
-TEST_F(CudaExecutor, CopiesDataFromCudaToCuda)
-{
-    int copy[2];
-    auto orig = cuda->alloc<int>(2);
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
-    init_data<<<1, 1>>>(orig);
-
-    auto copy_cuda2 = cuda2->alloc<int>(2);
-    cuda2->copy_from(cuda.get(), 2, orig, copy_cuda2);
-
-    // Check that the data is really on GPU2 and ensure we did not cheat
-    int value = -1;
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(cuda2->get_device_id()));
-    check_data<<<1, 1>>>(copy_cuda2);
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
-    cuda2->run(ExampleOperation(value));
-    ASSERT_EQ(value, cuda2->get_device_id());
-    // Put the results on OpenMP and run CPU side assertions
-    omp->copy_from(cuda2.get(), 2, copy_cuda2, copy);
-    EXPECT_EQ(3, copy[0]);
-    ASSERT_EQ(8, copy[1]);
-    cuda->free(copy_cuda2);
-    cuda->free(orig);
-}
 
 
 TEST_F(CudaExecutor, Synchronizes)

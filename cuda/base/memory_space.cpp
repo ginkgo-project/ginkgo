@@ -48,6 +48,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 
 
+void CudaMemorySpace::synchronize() const
+{
+    device_guard g(this->get_device_id());
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceSynchronize());
+}
+
+
+int CudaMemorySpace::get_num_devices()
+{
+    int deviceCount = 0;
+    auto error_code = cudaGetDeviceCount(&deviceCount);
+    if (error_code == cudaErrorNoDevice) {
+        return 0;
+    }
+    GKO_ASSERT_NO_CUDA_ERRORS(error_code);
+    return deviceCount;
+}
+
+
 void HostMemorySpace::raw_copy_to(const CudaMemorySpace *dest,
                                   size_type num_bytes, const void *src_ptr,
                                   void *dest_ptr) const

@@ -335,10 +335,20 @@ public:
      */
     int get_device_id() const noexcept { return device_id_; }
 
+    /**
+     * Get the number of devices present on the system.
+     */
+    static int get_num_devices();
+
+    void synchronize() const;
+
 protected:
     CudaMemorySpace() = default;
 
-    CudaMemorySpace(int device_id) : device_id_(device_id) {}
+    CudaMemorySpace(int device_id) : device_id_(device_id)
+    {
+        assert(device_id < max_devices);
+    }
 
     void *raw_alloc(size_type size) const override;
 
@@ -348,6 +358,7 @@ protected:
 
 private:
     int device_id_;
+    static constexpr int max_devices = 64;
 };
 
 #undef GKO_OVERRIDE_RAW_COPY_TO

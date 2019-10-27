@@ -112,8 +112,8 @@ void residual_norm_reduction(std::shared_ptr<const CudaExecutor> exec,
 
     /* Represents all_converged, one_changed */
     bool tmp[2] = {true, false};
-    exec->get_master()->copy_from(exec.get(), 2,
-                                  device_storage->get_const_data(), tmp);
+    exec->get_master()->get_mem_space()->copy_from(
+        exec->get_mem_space().get(), 2, device_storage->get_const_data(), tmp);
     *all_converged = tmp[0];
     *one_changed = tmp[1];
 }

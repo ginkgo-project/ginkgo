@@ -119,10 +119,11 @@ void generate_kernel(std::shared_ptr<const CudaExecutor> exec,
 
             // allocate workspace
             if (solve_struct->factor_work_vec != nullptr) {
-                exec->free(solve_struct->factor_work_vec);
+                exec->get_mem_space()->free(solve_struct->factor_work_vec);
             }
             solve_struct->factor_work_vec =
-                exec->alloc<void *>(solve_struct->factor_work_size);
+                exec->get_mem_space()->alloc<void *>(
+                    solve_struct->factor_work_size);
 
             cusparse::csrsm2_analysis(
                 handle, solve_struct->algorithm,

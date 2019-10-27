@@ -124,14 +124,18 @@ protected:
         *l_cuda = Csr::create(cuda, csr_cuda->get_size(), l_nnz);
         *u_cuda = Csr::create(cuda, csr_cuda->get_size(), u_nnz);
         // Copy the already initialized `row_ptrs` to the new matrices
-        ref->copy_from(gko::lend(ref), num_row_ptrs, l_row_ptrs_ref.get_data(),
-                       (*l_ref)->get_row_ptrs());
-        ref->copy_from(gko::lend(ref), num_row_ptrs, u_row_ptrs_ref.get_data(),
-                       (*u_ref)->get_row_ptrs());
-        cuda->copy_from(gko::lend(cuda), num_row_ptrs,
-                        l_row_ptrs_cuda.get_data(), (*l_cuda)->get_row_ptrs());
-        cuda->copy_from(gko::lend(cuda), num_row_ptrs,
-                        u_row_ptrs_cuda.get_data(), (*u_cuda)->get_row_ptrs());
+        ref->get_mem_space()->copy_from(gko::lend(ref->get_mem_space()),
+                                        num_row_ptrs, l_row_ptrs_ref.get_data(),
+                                        (*l_ref)->get_row_ptrs());
+        ref->get_mem_space()->copy_from(gko::lend(ref->get_mem_space()),
+                                        num_row_ptrs, u_row_ptrs_ref.get_data(),
+                                        (*u_ref)->get_row_ptrs());
+        cuda->get_mem_space()->copy_from(
+            gko::lend(cuda->get_mem_space()), num_row_ptrs,
+            l_row_ptrs_cuda.get_data(), (*l_cuda)->get_row_ptrs());
+        cuda->get_mem_space()->copy_from(
+            gko::lend(cuda->get_mem_space()), num_row_ptrs,
+            u_row_ptrs_cuda.get_data(), (*u_cuda)->get_row_ptrs());
 
         gko::kernels::reference::par_ilu_factorization::initialize_l_u(
             ref, gko::lend(csr_ref), gko::lend(*l_ref), gko::lend(*u_ref));

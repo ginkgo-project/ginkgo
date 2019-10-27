@@ -467,8 +467,8 @@ void calculate_max_nnz_per_row(std::shared_ptr<const CudaExecutor> exec,
         grid_dim, as_cuda_type(block_results.get_const_data()),
         as_cuda_type(d_result.get_data()));
 
-    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
-                                  result);
+    exec->get_master()->get_mem_space()->copy_from(
+        exec->get_mem_space().get(), 1, d_result.get_const_data(), result);
     d_result.clear();
     block_results.clear();
     nnz_per_row.clear();
@@ -535,8 +535,8 @@ void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
         grid_dim, as_cuda_type(block_results.get_const_data()),
         as_cuda_type(d_result.get_data()));
 
-    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
-                                  result);
+    exec->get_master()->get_mem_space()->copy_from(
+        exec->get_mem_space().get(), 1, d_result.get_const_data(), result);
 
     block_results.clear();
     nnz_per_row.clear();
