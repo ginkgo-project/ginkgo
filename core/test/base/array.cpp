@@ -100,7 +100,7 @@ TEST_F(Array, CanBeCreatedFromExistingData)
 
 TEST_F(Array, CanBeCreatedFromDataOnExecutor)
 {
-    gko::Array<int> a{exec, 3, exec->alloc<int>(3)};
+    gko::Array<int> a{exec, 3, exec->get_mem_space()->alloc<int>(3)};
 
     EXPECT_EQ(a.get_num_elems(), 3);
 }

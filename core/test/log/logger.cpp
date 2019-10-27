@@ -61,8 +61,8 @@ TEST(DummyLogged, CanAddLogger)
     auto exec = gko::ReferenceExecutor::create();
     DummyLoggedClass c;
 
-    c.add_logger(
-        gko::log::Record::create(exec, gko::log::Logger::all_events_mask));
+    c.add_logger(gko::log::Record::create(exec, exec->get_mem_space(),
+                                          gko::log::Logger::all_events_mask));
 
     ASSERT_EQ(c.get_num_loggers(), 1);
 }
@@ -73,10 +73,11 @@ TEST(DummyLogged, CanAddMultipleLoggers)
     auto exec = gko::ReferenceExecutor::create();
     DummyLoggedClass c;
 
-    c.add_logger(
-        gko::log::Record::create(exec, gko::log::Logger::all_events_mask));
-    c.add_logger(gko::log::Stream<>::create(
-        exec, gko::log::Logger::all_events_mask, std::cout));
+    c.add_logger(gko::log::Record::create(exec, exec->get_mem_space(),
+                                          gko::log::Logger::all_events_mask));
+    c.add_logger(gko::log::Stream<>::create(exec, exec->get_mem_space(),
+                                            gko::log::Logger::all_events_mask,
+                                            std::cout));
 
     ASSERT_EQ(c.get_num_loggers(), 2);
 }
@@ -86,11 +87,12 @@ TEST(DummyLogged, CanRemoveLogger)
 {
     auto exec = gko::ReferenceExecutor::create();
     DummyLoggedClass c;
-    auto r = gko::share(
-        gko::log::Record::create(exec, gko::log::Logger::all_events_mask));
+    auto r = gko::share(gko::log::Record::create(
+        exec, exec->get_mem_space(), gko::log::Logger::all_events_mask));
     c.add_logger(r);
-    c.add_logger(gko::log::Stream<>::create(
-        exec, gko::log::Logger::all_events_mask, std::cout));
+    c.add_logger(gko::log::Stream<>::create(exec, exec->get_mem_space(),
+                                            gko::log::Logger::all_events_mask,
+                                            std::cout));
 
     c.remove_logger(gko::lend(r));
 
@@ -103,7 +105,7 @@ struct DummyLogger : gko::log::Logger {
     explicit DummyLogger(
         std::shared_ptr<const gko::Executor> exec,
         const mask_type &enabled_events = Logger::all_events_mask)
-        : Logger(exec, enabled_events)
+        : Logger(exec, exec->get_mem_space(), enabled_events)
     {}
 
     void on_iteration_complete(

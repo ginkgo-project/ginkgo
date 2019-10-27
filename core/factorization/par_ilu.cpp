@@ -112,10 +112,12 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     IndexType l_nnz_it;
     IndexType u_nnz_it;
     // Since nnz is always at row_ptrs[m], it can be extracted easily
-    host_exec->copy_from(exec.get(), 1, l_row_ptrs.get_data() + number_rows,
-                         &l_nnz_it);
-    host_exec->copy_from(exec.get(), 1, u_row_ptrs.get_data() + number_rows,
-                         &u_nnz_it);
+    host_exec->get_mem_space()->copy_from(exec->get_mem_space().get(), 1,
+                                          l_row_ptrs.get_data() + number_rows,
+                                          &l_nnz_it);
+    host_exec->get_mem_space()->copy_from(exec->get_mem_space().get(), 1,
+                                          u_row_ptrs.get_data() + number_rows,
+                                          &u_nnz_it);
     auto l_nnz = static_cast<size_type>(l_nnz_it);
     auto u_nnz = static_cast<size_type>(u_nnz_it);
 

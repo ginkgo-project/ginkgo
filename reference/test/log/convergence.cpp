@@ -49,7 +49,8 @@ TEST(Record, CatchesCriterionCheckCompleted)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Convergence<>::create(
-        exec, gko::log::Logger::criterion_check_completed_mask);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::criterion_check_completed_mask);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);

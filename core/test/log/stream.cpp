@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory_space.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -56,9 +57,11 @@ TEST(Stream, CatchesAllocationStarted)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::allocation_started_mask, out);
+        exec, exec->get_mem_space(), gko::log::Logger::allocation_started_mask,
+        out);
 
-    logger->on<gko::log::Logger::allocation_started>(exec.get(), 42);
+    logger->on<gko::log::Logger::allocation_started>(
+        exec->get_mem_space().get(), 42);
 
     auto os = out.str();
     GKO_ASSERT_STR_CONTAINS(os, "allocation started on");
@@ -71,13 +74,15 @@ TEST(Stream, CatchesAllocationCompleted)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::allocation_completed_mask, out);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::allocation_completed_mask, out);
     int dummy = 1;
     std::stringstream ptrstream;
     ptrstream << std::hex << "0x" << reinterpret_cast<gko::uintptr>(&dummy);
 
     logger->on<gko::log::Logger::allocation_completed>(
-        exec.get(), 42, reinterpret_cast<gko::uintptr>(&dummy));
+        exec->get_mem_space().get(), 42,
+        reinterpret_cast<gko::uintptr>(&dummy));
 
     auto os = out.str();
     GKO_ASSERT_STR_CONTAINS(os, "allocation completed on");
@@ -91,13 +96,13 @@ TEST(Stream, CatchesFreeStarted)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::free_started_mask, out);
+        exec, exec->get_mem_space(), gko::log::Logger::free_started_mask, out);
     int dummy = 1;
     std::stringstream ptrstream;
     ptrstream << std::hex << "0x" << reinterpret_cast<gko::uintptr>(&dummy);
 
     logger->on<gko::log::Logger::free_started>(
-        exec.get(), reinterpret_cast<gko::uintptr>(&dummy));
+        exec->get_mem_space().get(), reinterpret_cast<gko::uintptr>(&dummy));
 
     auto os = out.str();
     GKO_ASSERT_STR_CONTAINS(os, "free started on");
@@ -109,14 +114,15 @@ TEST(Stream, CatchesFreeCompleted)
 {
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
-    auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::free_completed_mask, out);
+    auto logger =
+        gko::log::Stream<>::create(exec, exec->get_mem_space(),
+                                   gko::log::Logger::free_completed_mask, out);
     int dummy = 1;
     std::stringstream ptrstream;
     ptrstream << std::hex << "0x" << reinterpret_cast<gko::uintptr>(&dummy);
 
     logger->on<gko::log::Logger::free_completed>(
-        exec.get(), reinterpret_cast<gko::uintptr>(&dummy));
+        exec->get_mem_space().get(), reinterpret_cast<gko::uintptr>(&dummy));
 
     auto os = out.str();
     GKO_ASSERT_STR_CONTAINS(os, "free completed on");
@@ -129,7 +135,7 @@ TEST(Stream, CatchesCopyStarted)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::copy_started_mask, out);
+        exec, exec->get_mem_space(), gko::log::Logger::copy_started_mask, out);
     int dummy_in = 1;
     int dummy_out = 1;
     std::stringstream ptrstream_in;
@@ -140,7 +146,8 @@ TEST(Stream, CatchesCopyStarted)
                   << reinterpret_cast<gko::uintptr>(&dummy_out);
 
     logger->on<gko::log::Logger::copy_started>(
-        exec.get(), exec.get(), reinterpret_cast<gko::uintptr>(&dummy_in),
+        exec->get_mem_space().get(), exec->get_mem_space().get(),
+        reinterpret_cast<gko::uintptr>(&dummy_in),
         reinterpret_cast<gko::uintptr>(&dummy_out), 42);
 
     auto os = out.str();
@@ -155,8 +162,9 @@ TEST(Stream, CatchesCopyCompleted)
 {
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
-    auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::copy_completed_mask, out);
+    auto logger =
+        gko::log::Stream<>::create(exec, exec->get_mem_space(),
+                                   gko::log::Logger::copy_completed_mask, out);
     int dummy_in = 1;
     int dummy_out = 1;
     std::stringstream ptrstream_in;
@@ -167,7 +175,8 @@ TEST(Stream, CatchesCopyCompleted)
                   << reinterpret_cast<gko::uintptr>(&dummy_out);
 
     logger->on<gko::log::Logger::copy_completed>(
-        exec.get(), exec.get(), reinterpret_cast<gko::uintptr>(&dummy_in),
+        exec->get_mem_space().get(), exec->get_mem_space().get(),
+        reinterpret_cast<gko::uintptr>(&dummy_in),
         reinterpret_cast<gko::uintptr>(&dummy_out), 42);
 
     auto os = out.str();
@@ -183,7 +192,8 @@ TEST(Stream, CatchesOperationLaunched)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::operation_launched_mask, out);
+        exec, exec->get_mem_space(), gko::log::Logger::operation_launched_mask,
+        out);
     gko::Operation op;
     std::stringstream ptrstream;
     ptrstream << &op;
@@ -201,7 +211,8 @@ TEST(Stream, CatchesOperationCompleted)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::operation_completed_mask, out);
+        exec, exec->get_mem_space(), gko::log::Logger::operation_completed_mask,
+        out);
     gko::Operation op;
     std::stringstream ptrstream;
     ptrstream << &op;
@@ -219,7 +230,8 @@ TEST(Stream, CatchesPolymorphicObjectCreateStarted)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::polymorphic_object_create_started_mask, out);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::polymorphic_object_create_started_mask, out);
     auto po = gko::matrix::Dense<>::create(exec);
     std::stringstream ptrstream;
     ptrstream << po.get();
@@ -238,7 +250,8 @@ TEST(Stream, CatchesPolymorphicObjectCreateCompleted)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::polymorphic_object_create_completed_mask, out);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::polymorphic_object_create_completed_mask, out);
     auto po = gko::matrix::Dense<>::create(exec);
     auto output = gko::matrix::Dense<>::create(exec);
     std::stringstream ptrstream_in;
@@ -261,7 +274,8 @@ TEST(Stream, CatchesPolymorphicObjectCopyStarted)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::polymorphic_object_copy_started_mask, out);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::polymorphic_object_copy_started_mask, out);
     auto from = gko::matrix::Dense<>::create(exec);
     auto to = gko::matrix::Dense<>::create(exec);
     std::stringstream ptrstream_from;
@@ -284,7 +298,8 @@ TEST(Stream, CatchesPolymorphicObjectCopyCompleted)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::polymorphic_object_copy_completed_mask, out);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::polymorphic_object_copy_completed_mask, out);
     auto from = gko::matrix::Dense<>::create(exec);
     auto to = gko::matrix::Dense<>::create(exec);
     std::stringstream ptrstream_from;
@@ -307,7 +322,8 @@ TEST(Stream, CatchesPolymorphicObjectDeleted)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::polymorphic_object_deleted_mask, out);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::polymorphic_object_deleted_mask, out);
     auto po = gko::matrix::Dense<>::create(exec);
     std::stringstream ptrstream;
     ptrstream << po.get();
@@ -327,7 +343,8 @@ TEST(Stream, CatchesLinOpApplyStarted)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::linop_apply_started_mask, out);
+        exec, exec->get_mem_space(), gko::log::Logger::linop_apply_started_mask,
+        out);
     auto A = Dense::create(exec);
     auto b = Dense::create(exec);
     auto x = Dense::create(exec);
@@ -355,7 +372,8 @@ TEST(Stream, CatchesLinOpApplyStartedWithVerbose)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::linop_apply_started_mask, out, true);
+        exec, exec->get_mem_space(), gko::log::Logger::linop_apply_started_mask,
+        out, true);
     auto A = gko::initialize<Dense>({1.1}, exec);
     auto b = gko::initialize<Dense>({-2.2}, exec);
     auto x = gko::initialize<Dense>({3.3}, exec);
@@ -376,7 +394,8 @@ TEST(Stream, CatchesLinOpApplyCompleted)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::linop_apply_completed_mask, out);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::linop_apply_completed_mask, out);
     auto A = Dense::create(exec);
     auto b = Dense::create(exec);
     auto x = Dense::create(exec);
@@ -404,7 +423,8 @@ TEST(Stream, CatchesLinOpApplyCompletedWithVerbose)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::linop_apply_completed_mask, out, true);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::linop_apply_completed_mask, out, true);
     auto A = gko::initialize<Dense>({1.1}, exec);
     auto b = gko::initialize<Dense>({-2.2}, exec);
     auto x = gko::initialize<Dense>({3.3}, exec);
@@ -425,7 +445,8 @@ TEST(Stream, CatchesLinOpAdvancedApplyStarted)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::linop_advanced_apply_started_mask, out);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::linop_advanced_apply_started_mask, out);
     auto A = Dense::create(exec);
     auto alpha = Dense::create(exec);
     auto b = Dense::create(exec);
@@ -461,7 +482,8 @@ TEST(Stream, CatchesLinOpAdvancedApplyStartedWithVerbose)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::linop_advanced_apply_started_mask, out, true);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::linop_advanced_apply_started_mask, out, true);
     auto A = gko::initialize<Dense>({1.1}, exec);
     auto alpha = gko::initialize<Dense>({-4.4}, exec);
     auto b = gko::initialize<Dense>({-2.2}, exec);
@@ -486,7 +508,8 @@ TEST(Stream, CatchesLinOpAdvancedApplyCompleted)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::linop_advanced_apply_completed_mask, out);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::linop_advanced_apply_completed_mask, out);
     auto A = Dense::create(exec);
     auto alpha = Dense::create(exec);
     auto b = Dense::create(exec);
@@ -522,7 +545,8 @@ TEST(Stream, CatchesLinOpAdvancedApplyCompletedWithVerbose)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::linop_advanced_apply_completed_mask, out, true);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::linop_advanced_apply_completed_mask, out, true);
     auto A = gko::initialize<Dense>({1.1}, exec);
     auto alpha = gko::initialize<Dense>({-4.4}, exec);
     auto b = gko::initialize<Dense>({-2.2}, exec);
@@ -546,7 +570,8 @@ TEST(Stream, CatchesLinopFactoryGenerateStarted)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::linop_factory_generate_started_mask, out);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::linop_factory_generate_started_mask, out);
     auto factory =
         gko::solver::Bicgstab<>::build()
             .with_criteria(
@@ -573,7 +598,8 @@ TEST(Stream, CatchesLinopFactoryGenerateCompleted)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::linop_factory_generate_completed_mask, out);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::linop_factory_generate_completed_mask, out);
     auto factory =
         gko::solver::Bicgstab<>::build()
             .with_criteria(
@@ -604,7 +630,8 @@ TEST(Stream, CatchesCriterionCheckStarted)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::criterion_check_started_mask, out);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::criterion_check_started_mask, out);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
@@ -631,7 +658,8 @@ TEST(Stream, CatchesCriterionCheckCompleted)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::criterion_check_completed_mask, out);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::criterion_check_completed_mask, out);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
@@ -662,7 +690,8 @@ TEST(Stream, CatchesCriterionCheckCompletedWithVerbose)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::criterion_check_completed_mask, out, true);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::criterion_check_completed_mask, out, true);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
@@ -691,7 +720,8 @@ TEST(Stream, CatchesIterations)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::iteration_complete_mask, out);
+        exec, exec->get_mem_space(), gko::log::Logger::iteration_complete_mask,
+        out);
     auto solver = Dense::create(exec);
     auto residual = Dense::create(exec);
     auto solution = Dense::create(exec);
@@ -716,7 +746,8 @@ TEST(Stream, CatchesIterationsWithVerbose)
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<>::create(
-        exec, gko::log::Logger::iteration_complete_mask, out, true);
+        exec, exec->get_mem_space(), gko::log::Logger::iteration_complete_mask,
+        out, true);
 
     auto factory =
         gko::solver::Bicgstab<>::build()

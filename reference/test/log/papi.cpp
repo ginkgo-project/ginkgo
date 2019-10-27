@@ -71,7 +71,7 @@ protected:
     const std::string init(const gko::log::Logger::mask_type &event,
                            const std::string &event_name, T *ptr)
     {
-        logger = gko::log::Papi<>::create(exec, event);
+        logger = gko::log::Papi<>::create(exec, exec->get_mem_space(), event);
         std::ostringstream os;
         os << "sde:::" << logger->get_handle_name() << "::" << event_name << "_"
            << reinterpret_cast<gko::uintptr>(ptr);

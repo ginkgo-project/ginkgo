@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory_space.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -73,7 +74,7 @@ protected:
     const std::string init(const gko::log::Logger::mask_type &event,
                            const std::string &event_name, T *ptr)
     {
-        logger = gko::log::Papi<>::create(exec, event);
+        logger = gko::log::Papi<>::create(exec, exec->get_mem_space(), event);
         std::ostringstream os;
         os << "sde:::" << logger->get_handle_name() << "::" << event_name
            << "::" << reinterpret_cast<gko::uintptr>(ptr);
@@ -124,7 +125,8 @@ TEST_F(Papi, CatchesAllocationStarted)
     add_event(str);
 
     start();
-    logger->on<gko::log::Logger::allocation_started>(exec.get(), logged_value);
+    logger->on<gko::log::Logger::allocation_started>(
+        exec->get_mem_space().get(), logged_value);
     long long int value = 0;
     stop(&value);
 
@@ -140,8 +142,8 @@ TEST_F(Papi, CatchesAllocationCompleted)
     add_event(str);
 
     start();
-    logger->on<gko::log::Logger::allocation_completed>(exec.get(), logged_value,
-                                                       0);
+    logger->on<gko::log::Logger::allocation_completed>(
+        exec->get_mem_space().get(), logged_value, 0);
     long long int value = 0;
     stop(&value);
 
@@ -156,7 +158,7 @@ TEST_F(Papi, CatchesFreeStarted)
     add_event(str);
 
     start();
-    logger->on<gko::log::Logger::free_started>(exec.get(), 0);
+    logger->on<gko::log::Logger::free_started>(exec->get_mem_space().get(), 0);
     long long int value = 0;
     stop(&value);
 
@@ -171,7 +173,8 @@ TEST_F(Papi, CatchesFreeCompleted)
     add_event(str);
 
     start();
-    logger->on<gko::log::Logger::free_completed>(exec.get(), 0);
+    logger->on<gko::log::Logger::free_completed>(exec->get_mem_space().get(),
+                                                 0);
     long long int value = 0;
     stop(&value);
 
@@ -191,8 +194,9 @@ TEST_F(Papi, CatchesCopyStarted)
     add_event(os_out.str());
 
     start();
-    logger->on<gko::log::Logger::copy_started>(exec.get(), exec.get(), 0, 0,
-                                               logged_value);
+    logger->on<gko::log::Logger::copy_started>(exec->get_mem_space().get(),
+                                               exec->get_mem_space().get(), 0,
+                                               0, logged_value);
     long long int values[2];
     stop(values);
 
@@ -213,8 +217,9 @@ TEST_F(Papi, CatchesCopyCompleted)
     add_event(os_out.str());
 
     start();
-    logger->on<gko::log::Logger::copy_completed>(exec.get(), exec.get(), 0, 0,
-                                                 logged_value);
+    logger->on<gko::log::Logger::copy_completed>(exec->get_mem_space().get(),
+                                                 exec->get_mem_space().get(), 0,
+                                                 0, logged_value);
     long long int values[2];
     stop(values);
 

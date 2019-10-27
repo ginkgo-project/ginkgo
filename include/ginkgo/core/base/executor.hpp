@@ -436,15 +436,11 @@ private:                                                                     \
  *
  * @ingroup Executor
  */
-class Executor : public MemorySpace {
+class Executor : public log::EnableLogging<Executor> {
     template <typename T>
     friend class detail::ExecutorBase;
 
 public:
-    using MemorySpace::alloc;
-    using MemorySpace::copy_from;
-    using MemorySpace::free;
-
     virtual ~Executor() = default;
 
     Executor() = default;
@@ -492,6 +488,18 @@ public:
      * @copydoc get_master
      */
     virtual std::shared_ptr<const Executor> get_master() const noexcept = 0;
+
+    /**
+     * Returns the associated memory space of this Executor.
+     * @return the associated memory space of this Executor.
+     */
+    virtual std::shared_ptr<MemorySpace> get_mem_space() noexcept = 0;
+
+    /**
+     * @copydoc get_mem_space
+     */
+    virtual std::shared_ptr<const MemorySpace> get_mem_space() const
+        noexcept = 0;
 
     /**
      * Synchronize the operations launched on the executor with its master.
@@ -559,10 +567,9 @@ class ExecutorBase : public Executor {
 public:
     void run(const Operation &op) const override
     {
-        // TODO: Move run loggers to another class and derive from there ?.
-        // this->template log<log::Logger::operation_launched>(this, &op);
+        this->template log<log::Logger::operation_launched>(this, &op);
         op.run(self()->shared_from_this());
-        // this->template log<log::Logger::operation_completed>(this, &op);
+        this->template log<log::Logger::operation_completed>(this, &op);
     }
 
 private:
@@ -611,6 +618,10 @@ public:
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
 
+    std::shared_ptr<MemorySpace> get_mem_space() noexcept override;
+
+    std::shared_ptr<const MemorySpace> get_mem_space() const noexcept override;
+
     void synchronize() const override;
 
     /**
@@ -621,16 +632,19 @@ public:
     omp_exec_info *get_exec_info() const { return exec_info_.get(); }
 
 protected:
-    OmpExecutor() : exec_info_(omp_exec_info::create()) {}
+    OmpExecutor() : exec_info_(omp_exec_info::create())
+    {
+        mem_space_instance_ = HostMemorySpace::create();
+    }
 
 private:
     std::unique_ptr<omp_exec_info> exec_info_;
+    std::shared_ptr<MemorySpace> mem_space_instance_;
 };
 
 
 namespace kernels {
 namespace omp {
-// TODO: FIXME
 using DefaultExecutor = OmpExecutor;
 }  // namespace omp
 }  // namespace kernels
@@ -671,10 +685,14 @@ public:
     ref_exec_info *get_exec_info() const { return exec_info_.get(); }
 
 protected:
-    ReferenceExecutor() : exec_info_(ref_exec_info::create()) {}
+    ReferenceExecutor() : exec_info_(ref_exec_info::create())
+    {
+        mem_space_instance_ = HostMemorySpace::create();
+    }
 
 private:
     std::unique_ptr<ref_exec_info> exec_info_;
+    std::shared_ptr<MemorySpace> mem_space_instance_;
 };
 
 
@@ -718,6 +736,10 @@ public:
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
+
+    std::shared_ptr<MemorySpace> get_mem_space() noexcept override;
+
+    std::shared_ptr<const MemorySpace> get_mem_space() const noexcept override;
 
     void synchronize() const override;
 
@@ -839,7 +861,7 @@ private:
     int minor_;
     int warp_size_;
     std::unique_ptr<cuda_exec_info> exec_info_;
-    std::shared_ptr<CudaMemorySpace> mem_space_instance_;
+    std::shared_ptr<MemorySpace> mem_space_instance_;
 
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;

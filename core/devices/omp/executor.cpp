@@ -56,6 +56,18 @@ std::shared_ptr<const Executor> OmpExecutor::get_master() const noexcept
 }
 
 
+std::shared_ptr<MemorySpace> OmpExecutor::get_mem_space() noexcept
+{
+    return mem_space_instance_;
+}
+
+
+std::shared_ptr<const MemorySpace> OmpExecutor::get_mem_space() const noexcept
+{
+    return mem_space_instance_;
+}
+
+
 void OmpExecutor::synchronize() const
 {
     // This is a no-op for single-threaded OMP
