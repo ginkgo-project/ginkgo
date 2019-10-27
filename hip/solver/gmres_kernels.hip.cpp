@@ -66,7 +66,9 @@ namespace gmres {
 
 
 constexpr int default_block_size = 512;
-constexpr int default_dot_dim = hip_config::warp_size;
+// Use fixed size 32 as default_dot_dim because 64 * 64 can not fit in local
+// memory
+constexpr int default_dot_dim = 32;
 constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 
@@ -614,12 +616,14 @@ void step_1(std::shared_ptr<const HipExecutor> exec,
             Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status)
 {
-    increase_final_iteration_numbers_kernel<<<
-        static_cast<unsigned int>(
-            ceildiv(final_iter_nums->get_num_elems(), default_block_size)),
-        default_block_size>>>(as_hip_type(final_iter_nums->get_data()),
-                              as_hip_type(stop_status->get_const_data()),
-                              final_iter_nums->get_num_elems());
+    hipLaunchKernelGGL(
+        HIP_KERNEL_NAME(increase_final_iteration_numbers_kernel),
+        dim3(static_cast<unsigned int>(
+            ceildiv(final_iter_nums->get_num_elems(), default_block_size))),
+        dim3(default_block_size), 0, 0,
+        as_hip_type(final_iter_nums->get_data()),
+        as_hip_type(stop_status->get_const_data()),
+        final_iter_nums->get_num_elems());
     finish_arnoldi(exec, next_krylov_basis, krylov_bases, hessenberg_iter, iter,
                    stop_status->get_const_data());
     givens_rotation(exec, givens_sin, givens_cos, hessenberg_iter,
