@@ -632,7 +632,7 @@ __global__
 
     if (sliceid * slice_size + tid_in_warp < num_rows) {
         size_type thread_result = 0;
-        for (auto i = tid_in_warp; i < slice_size; i += warp_size) {
+        for (int i = tid_in_warp; i < slice_size; i += warp_size) {
             thread_result =
                 (i + slice_size * sliceid < num_rows)
                     ? max(thread_result, nnz_per_row[sliceid * slice_size + i])
@@ -978,11 +978,11 @@ void transpose(std::shared_ptr<const HipExecutor> exec,
             hipblas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
-            hipblas::geam(
-                handle, HIPBLAS_OP_T, HIPBLAS_OP_N, orig->get_size()[0],
-                orig->get_size()[1], &alpha, orig->get_const_values(),
-                orig->get_stride(), &beta, static_cast<ValueType *>(nullptr),
-                trans->get_size()[1], trans->get_values(), trans->get_stride());
+            hipblas::geam(handle, HIPBLAS_OP_T, HIPBLAS_OP_N,
+                          orig->get_size()[0], orig->get_size()[1], &alpha,
+                          orig->get_const_values(), orig->get_stride(), &beta,
+                          orig->get_const_values(), trans->get_size()[1],
+                          trans->get_values(), trans->get_stride());
         }
     } else {
         GKO_NOT_IMPLEMENTED;

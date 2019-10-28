@@ -351,6 +351,114 @@ GKO_INLINE GKO_ATTRIBUTES constexpr int64 ceildiv(int64 num, int64 den)
 }
 
 
+#ifdef __HIPCC__
+/**
+ * Returns the additive identity for T.
+ *
+ * @return additive identity for T
+ */
+template <typename T>
+GKO_INLINE __host__ constexpr T zero()
+{
+    return T(0);
+}
+
+
+/**
+ * Returns the additive identity for T.
+ *
+ * @return additive identity for T
+ *
+ * @note This version takes an unused reference argument to avoid complicated
+ *       calls like `zero<decltype(x)>()`. Instead, it allows `zero(x)`.
+ */
+template <typename T>
+GKO_INLINE __host__ constexpr T zero(const T &)
+{
+    return zero<T>();
+}
+
+
+/**
+ * Returns the multiplicative identity for T.
+ *
+ * @return the multiplicative identity for T
+ */
+template <typename T>
+GKO_INLINE __host__ constexpr T one()
+{
+    return T(1);
+}
+
+
+/**
+ * Returns the multiplicative identity for T.
+ *
+ * @return the multiplicative identity for T
+ *
+ * @note This version takes an unused reference argument to avoid complicated
+ *       calls like `one<decltype(x)>()`. Instead, it allows `one(x)`.
+ */
+template <typename T>
+GKO_INLINE __host__ constexpr T one(const T &)
+{
+    return one<T>();
+}
+
+
+/**
+ * Returns the additive identity for T.
+ *
+ * @return additive identity for T
+ */
+template <typename T>
+GKO_INLINE __device__ constexpr T zero()
+{
+    return T(0);
+}
+
+
+/**
+ * Returns the additive identity for T.
+ *
+ * @return additive identity for T
+ *
+ * @note This version takes an unused reference argument to avoid complicated
+ *       calls like `zero<decltype(x)>()`. Instead, it allows `zero(x)`.
+ */
+template <typename T>
+GKO_INLINE __device__ constexpr T zero(const T &)
+{
+    return zero<T>();
+}
+
+
+/**
+ * Returns the multiplicative identity for T.
+ *
+ * @return the multiplicative identity for T
+ */
+template <typename T>
+GKO_INLINE __device__ constexpr T one()
+{
+    return T(1);
+}
+
+
+/**
+ * Returns the multiplicative identity for T.
+ *
+ * @return the multiplicative identity for T
+ *
+ * @note This version takes an unused reference argument to avoid complicated
+ *       calls like `one<decltype(x)>()`. Instead, it allows `one(x)`.
+ */
+template <typename T>
+GKO_INLINE __device__ constexpr T one(const T &)
+{
+    return one<T>();
+}
+#else
 /**
  * Returns the additive identity for T.
  *
@@ -403,6 +511,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T &)
 {
     return one<T>();
 }
+#endif
 
 
 /**
@@ -561,7 +670,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T get_superior_power(
 }
 
 
-#if !(defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
+#if !(defined(__CUDA_ARCH__))
 
 
 // Since a lot of compiler in combination with CUDA seem to have difficulties
@@ -575,7 +684,7 @@ isfinite(const T &value)
     return std::isfinite(value);
 }
 
-#endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__))
+#endif  // defined(__CUDA_ARCH__)
 
 
 /**
