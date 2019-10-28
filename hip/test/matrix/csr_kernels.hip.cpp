@@ -399,7 +399,7 @@ TEST_F(Csr, CalculateMaxNnzPerRowIsEquivalentToRef)
     gko::kernels::reference::csr::calculate_max_nnz_per_row(ref, mtx.get(),
                                                             &max_nnz_per_row);
     gko::kernels::hip::csr::calculate_max_nnz_per_row(hip, dmtx.get(),
-                                                       &dmax_nnz_per_row);
+                                                      &dmax_nnz_per_row);
 
     ASSERT_EQ(max_nnz_per_row, dmax_nnz_per_row);
 }
@@ -481,7 +481,7 @@ TEST_F(Csr, CalculatesNonzerosPerRow)
     gko::kernels::reference::csr::calculate_nonzeros_per_row(ref, mtx.get(),
                                                              &row_nnz);
     gko::kernels::hip::csr::calculate_nonzeros_per_row(hip, dmtx.get(),
-                                                        &drow_nnz);
+                                                       &drow_nnz);
 
     GKO_ASSERT_ARRAY_EQ(&row_nnz, &drow_nnz);
 }

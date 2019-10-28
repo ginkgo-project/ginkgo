@@ -1,4 +1,3 @@
-#include "hip/hip_runtime.h"
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
@@ -35,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+
+
+#include <hip/hip_runtime.h>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -568,39 +570,45 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
         if (alpha == nullptr && beta == nullptr) {
             const auto b_vals = b->get_const_values() + column_id;
             auto c_vals = c->get_values() + column_id;
-            hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::abstract_merge_path_spmv<items_per_thread>), dim3(grid), dim3(block), 0, 0, 
-                    static_cast<IndexType>(a->get_size()[0]),
-                    as_hip_type(a->get_const_values()),
-                    a->get_const_col_idxs(),
-                    as_hip_type(a->get_const_row_ptrs()),
-                    as_hip_type(a->get_const_srow()), as_hip_type(b_vals),
-                    b->get_stride(), as_hip_type(c_vals), c->get_stride(),
-                    as_hip_type(row_out.get_data()),
-                    as_hip_type(val_out.get_data()));
-            hipLaunchKernelGGL(kernel::abstract_reduce, dim3(1), dim3(spmv_block_size), 0, 0, 
-                grid_num, as_hip_type(val_out.get_data()),
-                as_hip_type(row_out.get_data()), as_hip_type(c_vals),
-                c->get_stride());
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(
+                    kernel::abstract_merge_path_spmv<items_per_thread>),
+                dim3(grid), dim3(block), 0, 0,
+                static_cast<IndexType>(a->get_size()[0]),
+                as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
+                as_hip_type(a->get_const_row_ptrs()),
+                as_hip_type(a->get_const_srow()), as_hip_type(b_vals),
+                b->get_stride(), as_hip_type(c_vals), c->get_stride(),
+                as_hip_type(row_out.get_data()),
+                as_hip_type(val_out.get_data()));
+            hipLaunchKernelGGL(kernel::abstract_reduce, dim3(1),
+                               dim3(spmv_block_size), 0, 0, grid_num,
+                               as_hip_type(val_out.get_data()),
+                               as_hip_type(row_out.get_data()),
+                               as_hip_type(c_vals), c->get_stride());
 
         } else if (alpha != nullptr && beta != nullptr) {
             const auto b_vals = b->get_const_values() + column_id;
             auto c_vals = c->get_values() + column_id;
-            hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::abstract_merge_path_spmv<items_per_thread>), dim3(grid), dim3(block), 0, 0, 
-                    static_cast<IndexType>(a->get_size()[0]),
-                    as_hip_type(alpha->get_const_values()),
-                    as_hip_type(a->get_const_values()),
-                    a->get_const_col_idxs(),
-                    as_hip_type(a->get_const_row_ptrs()),
-                    as_hip_type(a->get_const_srow()), as_hip_type(b_vals),
-                    b->get_stride(), as_hip_type(beta->get_const_values()),
-                    as_hip_type(c_vals), c->get_stride(),
-                    as_hip_type(row_out.get_data()),
-                    as_hip_type(val_out.get_data()));
-            hipLaunchKernelGGL(kernel::abstract_reduce, dim3(1), dim3(spmv_block_size), 0, 0, 
-                grid_num, as_hip_type(val_out.get_data()),
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(
+                    kernel::abstract_merge_path_spmv<items_per_thread>),
+                dim3(grid), dim3(block), 0, 0,
+                static_cast<IndexType>(a->get_size()[0]),
+                as_hip_type(alpha->get_const_values()),
+                as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
+                as_hip_type(a->get_const_row_ptrs()),
+                as_hip_type(a->get_const_srow()), as_hip_type(b_vals),
+                b->get_stride(), as_hip_type(beta->get_const_values()),
+                as_hip_type(c_vals), c->get_stride(),
                 as_hip_type(row_out.get_data()),
-                as_hip_type(alpha->get_const_values()), as_hip_type(c_vals),
-                c->get_stride());
+                as_hip_type(val_out.get_data()));
+            hipLaunchKernelGGL(kernel::abstract_reduce, dim3(1),
+                               dim3(spmv_block_size), 0, 0, grid_num,
+                               as_hip_type(val_out.get_data()),
+                               as_hip_type(row_out.get_data()),
+                               as_hip_type(alpha->get_const_values()),
+                               as_hip_type(c_vals), c->get_stride());
         } else {
             GKO_KERNEL_NOT_FOUND;
         }
@@ -641,7 +649,8 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
             const dim3 csr_block(hip_config::warp_size, warps_in_block, 1);
             const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
                                 b->get_size()[1]);
-            hipLaunchKernelGGL(kernel::abstract_spmv, dim3(csr_grid), dim3(csr_block), 0, 0, 
+            hipLaunchKernelGGL(
+                kernel::abstract_spmv, dim3(csr_grid), dim3(csr_block), 0, 0,
                 nwarps, static_cast<IndexType>(a->get_size()[0]),
                 as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_hip_type(a->get_const_row_ptrs()),
@@ -662,11 +671,13 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
     } else if (a->get_strategy()->get_name() == "classical") {
         const dim3 grid(ceildiv(a->get_size()[0], classical_block_size),
                         b->get_size()[1]);
-        hipLaunchKernelGGL(kernel::abstract_classical_spmv, dim3(grid), dim3(classical_block_size), 0, 0, 
-            a->get_size()[0], as_hip_type(a->get_const_values()),
-            a->get_const_col_idxs(), as_hip_type(a->get_const_row_ptrs()),
-            as_hip_type(b->get_const_values()), b->get_stride(),
-            as_hip_type(c->get_values()), c->get_stride());
+        hipLaunchKernelGGL(kernel::abstract_classical_spmv, dim3(grid),
+                           dim3(classical_block_size), 0, 0, a->get_size()[0],
+                           as_hip_type(a->get_const_values()),
+                           a->get_const_col_idxs(),
+                           as_hip_type(a->get_const_row_ptrs()),
+                           as_hip_type(b->get_const_values()), b->get_stride(),
+                           as_hip_type(c->get_values()), c->get_stride());
     } else if (a->get_strategy()->get_name() == "sparselib") {
         if (hipsparse::is_supported<ValueType, IndexType>::value) {
             // TODO: add implementation for int64 and multiple RHS
@@ -682,10 +693,10 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
                     GKO_NOT_IMPLEMENTED;
                 }
                 hipsparse::spmv(handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
-                               a->get_size()[0], a->get_size()[1],
-                               a->get_num_stored_elements(), &alpha, descr,
-                               a->get_const_values(), row_ptrs, col_idxs,
-                               b->get_const_values(), &beta, c->get_values());
+                                a->get_size()[0], a->get_size()[1],
+                                a->get_num_stored_elements(), &alpha, descr,
+                                a->get_const_values(), row_ptrs, col_idxs,
+                                b->get_const_values(), &beta, c->get_values());
             }
             hipsparse::destroy(descr);
         } else {
@@ -716,7 +727,8 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
             const dim3 csr_block(hip_config::warp_size, warps_in_block, 1);
             const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
                                 b->get_size()[1]);
-            hipLaunchKernelGGL(kernel::abstract_spmv, dim3(csr_grid), dim3(csr_block), 0, 0, 
+            hipLaunchKernelGGL(
+                kernel::abstract_spmv, dim3(csr_grid), dim3(csr_block), 0, 0,
                 nwarps, static_cast<IndexType>(a->get_size()[0]),
                 as_hip_type(alpha->get_const_values()),
                 as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
@@ -738,12 +750,12 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
                 GKO_NOT_IMPLEMENTED;
 
             hipsparse::spmv(exec->get_hipsparse_handle(),
-                           HIPSPARSE_OPERATION_NON_TRANSPOSE, a->get_size()[0],
-                           a->get_size()[1], a->get_num_stored_elements(),
-                           alpha->get_const_values(), descr,
-                           a->get_const_values(), row_ptrs, col_idxs,
-                           b->get_const_values(), beta->get_const_values(),
-                           c->get_values());
+                            HIPSPARSE_OPERATION_NON_TRANSPOSE, a->get_size()[0],
+                            a->get_size()[1], a->get_num_stored_elements(),
+                            alpha->get_const_values(), descr,
+                            a->get_const_values(), row_ptrs, col_idxs,
+                            b->get_const_values(), beta->get_const_values(),
+                            c->get_values());
 
             hipsparse::destroy(descr);
         } else {
@@ -752,13 +764,15 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
     } else if (a->get_strategy()->get_name() == "classical") {
         const dim3 grid(ceildiv(a->get_size()[0], classical_block_size),
                         b->get_size()[1]);
-        hipLaunchKernelGGL(kernel::abstract_classical_spmv, dim3(grid), dim3(classical_block_size), 0, 0, 
-            a->get_size()[0], as_hip_type(alpha->get_const_values()),
-            as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
-            as_hip_type(a->get_const_row_ptrs()),
-            as_hip_type(b->get_const_values()), b->get_stride(),
-            as_hip_type(beta->get_const_values()),
-            as_hip_type(c->get_values()), c->get_stride());
+        hipLaunchKernelGGL(kernel::abstract_classical_spmv, dim3(grid),
+                           dim3(classical_block_size), 0, 0, a->get_size()[0],
+                           as_hip_type(alpha->get_const_values()),
+                           as_hip_type(a->get_const_values()),
+                           a->get_const_col_idxs(),
+                           as_hip_type(a->get_const_row_ptrs()),
+                           as_hip_type(b->get_const_values()), b->get_stride(),
+                           as_hip_type(beta->get_const_values()),
+                           as_hip_type(c->get_values()), c->get_stride());
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
             host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
@@ -805,8 +819,9 @@ void convert_row_ptrs_to_idxs(std::shared_ptr<const HipExecutor> exec,
 {
     const auto grid_dim = ceildiv(num_rows, default_block_size);
 
-    hipLaunchKernelGGL(kernel::convert_row_ptrs_to_idxs, dim3(grid_dim), dim3(default_block_size), 0, 0, 
-        num_rows, as_hip_type(ptrs), as_hip_type(idxs));
+    hipLaunchKernelGGL(kernel::convert_row_ptrs_to_idxs, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, num_rows,
+                       as_hip_type(ptrs), as_hip_type(idxs));
 }
 
 
@@ -880,11 +895,13 @@ void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
                           1);
     const dim3 init_grid_dim(ceildiv(stride, block_size.x),
                              ceildiv(num_rows, block_size.y), 1);
-    hipLaunchKernelGGL(kernel::initialize_zero_dense, dim3(init_grid_dim), dim3(block_size), 0, 0, 
-        num_rows, num_cols, stride, as_hip_type(result->get_values()));
+    hipLaunchKernelGGL(kernel::initialize_zero_dense, dim3(init_grid_dim),
+                       dim3(block_size), 0, 0, num_rows, num_cols, stride,
+                       as_hip_type(result->get_values()));
 
     auto grid_dim = ceildiv(num_rows, default_block_size);
-    hipLaunchKernelGGL(kernel::fill_in_dense, dim3(grid_dim), dim3(default_block_size), 0, 0, 
+    hipLaunchKernelGGL(
+        kernel::fill_in_dense, dim3(grid_dim), dim3(default_block_size), 0, 0,
         num_rows, as_hip_type(row_ptrs), as_hip_type(col_idxs),
         as_hip_type(vals), stride, as_hip_type(result->get_values()));
 }
@@ -1009,35 +1026,39 @@ void convert_to_sellp(std::shared_ptr<const HipExecutor> exec,
     auto nnz_per_row = Array<size_type>(exec, num_rows);
     auto grid_dim = ceildiv(num_rows, default_block_size);
 
-    hipLaunchKernelGGL(kernel::calculate_nnz_per_row, dim3(grid_dim), dim3(default_block_size), 0, 0, 
-        num_rows, as_hip_type(source_row_ptrs),
-        as_hip_type(nnz_per_row.get_data()));
+    hipLaunchKernelGGL(kernel::calculate_nnz_per_row, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, num_rows,
+                       as_hip_type(source_row_ptrs),
+                       as_hip_type(nnz_per_row.get_data()));
 
     grid_dim = slice_num;
 
-    hipLaunchKernelGGL(kernel::calculate_slice_lengths, dim3(grid_dim), dim3(hip_config::warp_size), 0, 0, 
-        num_rows, slice_size, stride_factor,
-        as_hip_type(nnz_per_row.get_const_data()), as_hip_type(slice_lengths),
-        as_hip_type(slice_sets));
+    hipLaunchKernelGGL(kernel::calculate_slice_lengths, dim3(grid_dim),
+                       dim3(hip_config::warp_size), 0, 0, num_rows, slice_size,
+                       stride_factor, as_hip_type(nnz_per_row.get_const_data()),
+                       as_hip_type(slice_lengths), as_hip_type(slice_sets));
 
     auto add_values =
         Array<size_type>(exec, ceildiv(slice_num + 1, default_block_size));
     grid_dim = ceildiv(slice_num + 1, default_block_size);
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(start_prefix_sum<default_block_size>), dim3(grid_dim), dim3(default_block_size), 0, 0, 
-        slice_num + 1, as_hip_type(slice_sets),
-        as_hip_type(add_values.get_data()));
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(start_prefix_sum<default_block_size>),
+                       dim3(grid_dim), dim3(default_block_size), 0, 0,
+                       slice_num + 1, as_hip_type(slice_sets),
+                       as_hip_type(add_values.get_data()));
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(finalize_prefix_sum<default_block_size>), dim3(grid_dim), dim3(default_block_size), 0, 0, 
-        slice_num + 1, as_hip_type(slice_sets),
-        as_hip_type(add_values.get_const_data()));
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(finalize_prefix_sum<default_block_size>),
+                       dim3(grid_dim), dim3(default_block_size), 0, 0,
+                       slice_num + 1, as_hip_type(slice_sets),
+                       as_hip_type(add_values.get_const_data()));
 
     grid_dim = ceildiv(num_rows, default_block_size);
-    hipLaunchKernelGGL(kernel::fill_in_sellp, dim3(grid_dim), dim3(default_block_size), 0, 0, 
-        num_rows, slice_size, as_hip_type(source_values),
-        as_hip_type(source_row_ptrs), as_hip_type(source_col_idxs),
-        as_hip_type(slice_lengths), as_hip_type(slice_sets),
-        as_hip_type(result_col_idxs), as_hip_type(result_values));
+    hipLaunchKernelGGL(kernel::fill_in_sellp, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, num_rows, slice_size,
+                       as_hip_type(source_values), as_hip_type(source_row_ptrs),
+                       as_hip_type(source_col_idxs), as_hip_type(slice_lengths),
+                       as_hip_type(slice_sets), as_hip_type(result_col_idxs),
+                       as_hip_type(result_values));
 
     nnz_per_row.clear();
     add_values.clear();
@@ -1113,17 +1134,19 @@ void convert_to_ell(std::shared_ptr<const HipExecutor> exec,
     const auto init_grid_dim =
         ceildiv(max_nnz_per_row * num_rows, default_block_size);
 
-    hipLaunchKernelGGL(kernel::initialize_zero_ell, dim3(init_grid_dim), dim3(default_block_size), 0, 0, 
-        max_nnz_per_row, stride, as_hip_type(result_values),
-        as_hip_type(result_col_idxs));
+    hipLaunchKernelGGL(kernel::initialize_zero_ell, dim3(init_grid_dim),
+                       dim3(default_block_size), 0, 0, max_nnz_per_row, stride,
+                       as_hip_type(result_values),
+                       as_hip_type(result_col_idxs));
 
     const auto grid_dim =
         ceildiv(num_rows * hip_config::warp_size, default_block_size);
 
-    hipLaunchKernelGGL(kernel::fill_in_ell, dim3(grid_dim), dim3(default_block_size), 0, 0, 
-        num_rows, stride, as_hip_type(source_values),
-        as_hip_type(source_row_ptrs), as_hip_type(source_col_idxs),
-        as_hip_type(result_values), as_hip_type(result_col_idxs));
+    hipLaunchKernelGGL(kernel::fill_in_ell, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, num_rows, stride,
+                       as_hip_type(source_values), as_hip_type(source_row_ptrs),
+                       as_hip_type(source_col_idxs), as_hip_type(result_values),
+                       as_hip_type(result_col_idxs));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1167,7 +1190,7 @@ __global__ __launch_bounds__(default_block_size) void reduce_total_cols(
     size_type num_slices, const size_type *__restrict__ max_nnz_per_slice,
     size_type *__restrict__ result)
 {
-    HIP_DYNAMIC_SHARED( size_type, block_result)
+    HIP_DYNAMIC_SHARED(size_type, block_result)
 
     reduce_array(num_slices, max_nnz_per_slice, block_result,
                  [](const size_type &x, const size_type &y) { return x + y; });
@@ -1194,29 +1217,35 @@ void calculate_total_cols(std::shared_ptr<const HipExecutor> exec,
     auto nnz_per_row = Array<size_type>(exec, num_rows);
     auto grid_dim = ceildiv(num_rows, default_block_size);
 
-    hipLaunchKernelGGL(kernel::calculate_nnz_per_row, dim3(grid_dim), dim3(default_block_size), 0, 0, 
-        num_rows, as_hip_type(row_ptrs), as_hip_type(nnz_per_row.get_data()));
+    hipLaunchKernelGGL(kernel::calculate_nnz_per_row, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, num_rows,
+                       as_hip_type(row_ptrs),
+                       as_hip_type(nnz_per_row.get_data()));
 
     grid_dim = ceildiv(slice_num * hip_config::warp_size, default_block_size);
     auto max_nnz_per_slice = Array<size_type>(exec, slice_num);
 
-    hipLaunchKernelGGL(kernel::reduce_max_nnz_per_slice, dim3(grid_dim), dim3(default_block_size), 0, 0, 
-        num_rows, slice_size, stride_factor,
-        as_hip_type(nnz_per_row.get_const_data()),
-        as_hip_type(max_nnz_per_slice.get_data()));
+    hipLaunchKernelGGL(kernel::reduce_max_nnz_per_slice, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, num_rows, slice_size,
+                       stride_factor, as_hip_type(nnz_per_row.get_const_data()),
+                       as_hip_type(max_nnz_per_slice.get_data()));
 
     grid_dim = ceildiv(slice_num, default_block_size);
     auto block_results = Array<size_type>(exec, grid_dim);
 
-    hipLaunchKernelGGL(kernel::reduce_total_cols, dim3(grid_dim), dim3(default_block_size), default_block_size * sizeof(size_type), 0, 
-        slice_num, as_hip_type(max_nnz_per_slice.get_const_data()),
-        as_hip_type(block_results.get_data()));
+    hipLaunchKernelGGL(kernel::reduce_total_cols, dim3(grid_dim),
+                       dim3(default_block_size),
+                       default_block_size * sizeof(size_type), 0, slice_num,
+                       as_hip_type(max_nnz_per_slice.get_const_data()),
+                       as_hip_type(block_results.get_data()));
 
     auto d_result = Array<size_type>(exec, 1);
 
-    hipLaunchKernelGGL(kernel::reduce_total_cols, dim3(1), dim3(default_block_size), default_block_size * sizeof(size_type), 0, 
-        grid_dim, as_hip_type(block_results.get_const_data()),
-        as_hip_type(d_result.get_data()));
+    hipLaunchKernelGGL(kernel::reduce_total_cols, dim3(1),
+                       dim3(default_block_size),
+                       default_block_size * sizeof(size_type), 0, grid_dim,
+                       as_hip_type(block_results.get_const_data()),
+                       as_hip_type(d_result.get_data()));
 
     exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
                                   result);
@@ -1294,9 +1323,9 @@ void conj_transpose(std::shared_ptr<const HipExecutor> exec,
             orig->get_const_col_idxs(), trans->get_values(),
             trans->get_col_idxs(), trans->get_row_ptrs(), copyValues, idxBase);
 
-        hipLaunchKernelGGL(conjugate_kernel, dim3(grid_size), dim3(block_size), 0, 0, 
-            trans->get_num_stored_elements(),
-            as_hip_type(trans->get_values()));
+        hipLaunchKernelGGL(conjugate_kernel, dim3(grid_size), dim3(block_size),
+                           0, 0, trans->get_num_stored_elements(),
+                           as_hip_type(trans->get_values()));
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -1313,7 +1342,7 @@ __global__ __launch_bounds__(default_block_size) void reduce_max_nnz(
     size_type size, const size_type *__restrict__ nnz_per_row,
     size_type *__restrict__ result)
 {
-    HIP_DYNAMIC_SHARED( size_type, block_max)
+    HIP_DYNAMIC_SHARED(size_type, block_max)
 
     reduce_array(
         size, nnz_per_row, block_max,
@@ -1340,19 +1369,24 @@ void calculate_max_nnz_per_row(std::shared_ptr<const HipExecutor> exec,
     auto d_result = Array<size_type>(exec, 1);
 
     const auto grid_dim = ceildiv(num_rows, default_block_size);
-    hipLaunchKernelGGL(kernel::calculate_nnz_per_row, dim3(grid_dim), dim3(default_block_size), 0, 0, 
-        num_rows, as_hip_type(source->get_const_row_ptrs()),
-        as_hip_type(nnz_per_row.get_data()));
+    hipLaunchKernelGGL(kernel::calculate_nnz_per_row, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, num_rows,
+                       as_hip_type(source->get_const_row_ptrs()),
+                       as_hip_type(nnz_per_row.get_data()));
 
     const auto n = ceildiv(num_rows, default_block_size);
     const auto reduce_dim = n <= default_block_size ? n : default_block_size;
-    hipLaunchKernelGGL(kernel::reduce_max_nnz, dim3(reduce_dim), dim3(default_block_size), default_block_size * sizeof(size_type), 0, 
-        num_rows, as_hip_type(nnz_per_row.get_const_data()),
-        as_hip_type(block_results.get_data()));
+    hipLaunchKernelGGL(kernel::reduce_max_nnz, dim3(reduce_dim),
+                       dim3(default_block_size),
+                       default_block_size * sizeof(size_type), 0, num_rows,
+                       as_hip_type(nnz_per_row.get_const_data()),
+                       as_hip_type(block_results.get_data()));
 
-    hipLaunchKernelGGL(kernel::reduce_max_nnz, dim3(1), dim3(default_block_size), default_block_size * sizeof(size_type), 0, 
-        reduce_dim, as_hip_type(block_results.get_const_data()),
-        as_hip_type(d_result.get_data()));
+    hipLaunchKernelGGL(kernel::reduce_max_nnz, dim3(1),
+                       dim3(default_block_size),
+                       default_block_size * sizeof(size_type), 0, reduce_dim,
+                       as_hip_type(block_results.get_const_data()),
+                       as_hip_type(d_result.get_data()));
 
     exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
                                   result);
@@ -1443,34 +1477,40 @@ void convert_to_hybrid(std::shared_ptr<const HipExecutor> exec,
     const auto coo_num_stored_elements = result->get_coo_num_stored_elements();
     auto grid_dim = ceildiv(max_nnz_per_row * num_rows, default_block_size);
 
-    hipLaunchKernelGGL(kernel::initialize_zero_ell, dim3(grid_dim), dim3(default_block_size), 0, 0, 
-        max_nnz_per_row, stride, as_hip_type(ell_val), as_hip_type(ell_col));
+    hipLaunchKernelGGL(kernel::initialize_zero_ell, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, max_nnz_per_row, stride,
+                       as_hip_type(ell_val), as_hip_type(ell_col));
 
     grid_dim = ceildiv(num_rows, default_block_size);
     auto coo_offset = Array<size_type>(exec, num_rows);
-    hipLaunchKernelGGL(kernel::calculate_hybrid_coo_row_nnz, dim3(grid_dim), dim3(default_block_size), 0, 0, 
-        num_rows, max_nnz_per_row, as_hip_type(source->get_const_row_ptrs()),
-        as_hip_type(coo_offset.get_data()));
+    hipLaunchKernelGGL(kernel::calculate_hybrid_coo_row_nnz, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, num_rows,
+                       max_nnz_per_row,
+                       as_hip_type(source->get_const_row_ptrs()),
+                       as_hip_type(coo_offset.get_data()));
 
     auto add_values =
         Array<size_type>(exec, ceildiv(num_rows, default_block_size));
     grid_dim = ceildiv(num_rows, default_block_size);
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(start_prefix_sum<default_block_size>), dim3(grid_dim), dim3(default_block_size), 0, 0, 
-        num_rows, as_hip_type(coo_offset.get_data()),
-        as_hip_type(add_values.get_data()));
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(finalize_prefix_sum<default_block_size>), dim3(grid_dim), dim3(default_block_size), 0, 0, 
-        num_rows, as_hip_type(coo_offset.get_data()),
-        as_hip_type(add_values.get_const_data()));
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(start_prefix_sum<default_block_size>),
+                       dim3(grid_dim), dim3(default_block_size), 0, 0, num_rows,
+                       as_hip_type(coo_offset.get_data()),
+                       as_hip_type(add_values.get_data()));
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(finalize_prefix_sum<default_block_size>),
+                       dim3(grid_dim), dim3(default_block_size), 0, 0, num_rows,
+                       as_hip_type(coo_offset.get_data()),
+                       as_hip_type(add_values.get_const_data()));
 
     grid_dim = ceildiv(num_rows * hip_config::warp_size, default_block_size);
-    hipLaunchKernelGGL(kernel::fill_in_hybrid, dim3(grid_dim), dim3(default_block_size), 0, 0, 
-        num_rows, stride, max_nnz_per_row,
-        as_hip_type(source->get_const_values()),
-        as_hip_type(source->get_const_row_ptrs()),
-        as_hip_type(source->get_const_col_idxs()),
-        as_hip_type(coo_offset.get_const_data()), as_hip_type(ell_val),
-        as_hip_type(ell_col), as_hip_type(coo_val), as_hip_type(coo_col),
-        as_hip_type(coo_row));
+    hipLaunchKernelGGL(kernel::fill_in_hybrid, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, num_rows, stride,
+                       max_nnz_per_row, as_hip_type(source->get_const_values()),
+                       as_hip_type(source->get_const_row_ptrs()),
+                       as_hip_type(source->get_const_col_idxs()),
+                       as_hip_type(coo_offset.get_const_data()),
+                       as_hip_type(ell_val), as_hip_type(ell_col),
+                       as_hip_type(coo_val), as_hip_type(coo_col),
+                       as_hip_type(coo_row));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1530,8 +1570,9 @@ void calculate_nonzeros_per_row(std::shared_ptr<const HipExecutor> exec,
     auto row_ptrs = source->get_const_row_ptrs();
     auto grid_dim = ceildiv(num_rows, default_block_size);
 
-    hipLaunchKernelGGL(kernel::calculate_nnz_per_row, dim3(grid_dim), dim3(default_block_size), 0, 0, 
-        num_rows, as_hip_type(row_ptrs), as_hip_type(result->get_data()));
+    hipLaunchKernelGGL(kernel::calculate_nnz_per_row, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, num_rows,
+                       as_hip_type(row_ptrs), as_hip_type(result->get_data()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

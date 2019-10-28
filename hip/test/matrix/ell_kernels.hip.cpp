@@ -254,7 +254,7 @@ TEST_F(Ell, CalculateNNZPerRowIsEquivalentToRef)
     gko::kernels::reference::ell::calculate_nonzeros_per_row(ref, mtx.get(),
                                                              &nnz_per_row);
     gko::kernels::hip::ell::calculate_nonzeros_per_row(hip, dmtx.get(),
-                                                        &dnnz_per_row);
+                                                       &dnnz_per_row);
 
     auto tmp = gko::Array<gko::size_type>(ref, dnnz_per_row);
     for (auto i = 0; i < nnz_per_row.get_num_elems(); i++) {
