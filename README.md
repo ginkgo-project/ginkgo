@@ -55,7 +55,7 @@ The Ginkgo HIP module has the following __additional__ requirements:
 
 *    the HIP, hipBLAS and hipSPARSE packages compiled with either:
     * _AMD_ backend
-    * _CUDA 9.0+_ backend. When using CUDA 10+ _cmake 3.12.2+_ is required.
+    * _CUDA 9.0+_ backend. When using CUDA 10+, _cmake 3.12.2+_ is required.
 
 ### Windows
 

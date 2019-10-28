@@ -42,15 +42,19 @@ namespace kernels {
 namespace cuda {
 
 
-template <typename ValueType, size_type size>
 /**
  * Stores an array with uninitialized contents.
+ *
+ * @tparam  ValueType the type of values
+ * @tparam  size the size of the array
  */
+template <typename ValueType, size_type size>
 class UninitializedArray {
 public:
     /**
      * Operator for casting an UninitializedArray into its constexpr value
      * pointer.
+     *
      * @return the constexpr pointer to the first entry of the array.
      */
     constexpr GKO_ATTRIBUTES operator ValueType *() const noexcept
@@ -61,14 +65,17 @@ public:
     /**
      * Operator for casting an UninitializedArray into its non-const value
      * pointer.
+     *
      * @return the non-const pointer to the first entry of the array.
      */
     GKO_ATTRIBUTES operator ValueType *() noexcept { return &(*this)[0]; }
 
     /**
      * constexpr array access operator.
+     *
      * @param pos The array index. Using a value outside [0, size) is undefined
      * behavior.
+     *
      * @return a reference to the array entry at the given index.
      */
     constexpr GKO_ATTRIBUTES ValueType &operator[](size_type pos) const noexcept
@@ -78,8 +85,10 @@ public:
 
     /**
      * Non-const array access operator.
+     *
      * @param pos The array index. Using a value outside [0, size) is undefined
      * behavior.
+     *
      * @return a reference to the array entry at the given index.
      */
     GKO_ATTRIBUTES ValueType &operator[](size_type pos) noexcept

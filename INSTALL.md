@@ -115,7 +115,7 @@ generators. Other CMake generators are untested.
 Ginkgo provides a [HIP](https://github.com/ROCm-Developer-Tools/HIP) backend.
 This allows to compile optimized versions of the kernels for either AMD or
 NVIDIA GPUs. To build Ginkgo with this backend, use the CMake option
-`-DGINKGO_BUILD_HIP=on`.
+`-DGINKGO_BUILD_HIP=ON`.
 
 #### Correctly installing HIP toolkits and dependencies for Ginkgo
 In general, Ginkgo's HIP backend requires the following packages:
@@ -165,7 +165,7 @@ popd && popd
 # hipSPARSE
 git clone https://github.com/tcojean/hipSPARSE.git
 pushd hipSPARSE && mkdir build && pushd build
-cmake -DBUILD_CUDA=on .. && make install
+cmake -DBUILD_CUDA=ON .. && make install
 popd && popd
 ```
 
