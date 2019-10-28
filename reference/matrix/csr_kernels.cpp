@@ -515,6 +515,30 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX);
 
 
+template <typename IndexType>
+void choose_strategy(std::shared_ptr<const ReferenceExecutor> exec,
+                     const Array<IndexType> *mtx_row_ptrs,
+                     const gko::matrix::csr::spmv_strategy source,
+                     gko::matrix::csr::spmv_strategy *result)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_CHOOSE_STRATEGY);
+
+
+void calculate_srow_size(std::shared_ptr<const ReferenceExecutor> exec,
+                         const gko::matrix::csr::spmv_strategy real_strategy,
+                         const size_type nnz,
+                         size_type *srow_size) GKO_NOT_IMPLEMENTED;
+
+
+template <typename IndexType>
+void build_srow(std::shared_ptr<const ReferenceExecutor> exec,
+                Array<IndexType> *row_ptrs,
+                Array<IndexType> *srow) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_BUILD_SROW);
+
+
 }  // namespace csr
 }  // namespace reference
 }  // namespace kernels

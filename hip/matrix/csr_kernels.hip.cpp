@@ -642,7 +642,8 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
           const matrix::Csr<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    if (a->get_strategy()->get_name() == "load_balance") {
+    if (a->get_real_strategy() ==
+        gko::matrix::csr::spmv_strategy::load_balance) {
         zero_array(c->get_num_stored_elements(), c->get_values());
         const IndexType nwarps = a->get_num_srow_elements();
         if (nwarps > 0) {
@@ -659,7 +660,8 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(b->get_stride()), as_hip_type(c->get_values()),
                 as_hip_type(c->get_stride()));
         }
-    } else if (a->get_strategy()->get_name() == "merge_path") {
+    } else if (a->get_real_strategy() ==
+               gko::matrix::csr::spmv_strategy::merge_path) {
         int items_per_thread =
             host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
         host_kernel::select_merge_path_spmv(
@@ -668,7 +670,8 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
                 return items_per_thread == compiled_info;
             },
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
-    } else if (a->get_strategy()->get_name() == "classical") {
+    } else if (a->get_real_strategy() ==
+               gko::matrix::csr::spmv_strategy::classic) {
         const dim3 grid(ceildiv(a->get_size()[0], classical_block_size),
                         b->get_size()[1]);
         hipLaunchKernelGGL(kernel::abstract_classical_spmv, dim3(grid),
@@ -678,7 +681,8 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
                            as_hip_type(a->get_const_row_ptrs()),
                            as_hip_type(b->get_const_values()), b->get_stride(),
                            as_hip_type(c->get_values()), c->get_stride());
-    } else if (a->get_strategy()->get_name() == "sparselib") {
+    } else if (a->get_real_strategy() ==
+               gko::matrix::csr::spmv_strategy::sparselib) {
         if (hipsparse::is_supported<ValueType, IndexType>::value) {
             // TODO: add implementation for int64 and multiple RHS
             auto handle = exec->get_hipsparse_handle();
@@ -718,7 +722,8 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c)
 {
-    if (a->get_strategy()->get_name() == "load_balance") {
+    if (a->get_real_strategy() ==
+        gko::matrix::csr::spmv_strategy::load_balance) {
         dense::scale(exec, beta, c);
 
         const IndexType nwarps = a->get_num_srow_elements();
@@ -738,7 +743,8 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(b->get_stride()), as_hip_type(c->get_values()),
                 as_hip_type(c->get_stride()));
         }
-    } else if (a->get_strategy()->get_name() == "sparselib") {
+    } else if (a->get_real_strategy() ==
+               gko::matrix::csr::spmv_strategy::sparselib) {
         if (hipsparse::is_supported<ValueType, IndexType>::value) {
             // TODO: add implementation for int64 and multiple RHS
             auto descr = hipsparse::create_mat_descr();
@@ -761,7 +767,8 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
         } else {
             GKO_NOT_IMPLEMENTED;
         }
-    } else if (a->get_strategy()->get_name() == "classical") {
+    } else if (a->get_real_strategy() ==
+               gko::matrix::csr::spmv_strategy::classic) {
         const dim3 grid(ceildiv(a->get_size()[0], classical_block_size),
                         b->get_size()[1]);
         hipLaunchKernelGGL(kernel::abstract_classical_spmv, dim3(grid),
@@ -773,7 +780,8 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
                            as_hip_type(b->get_const_values()), b->get_stride(),
                            as_hip_type(beta->get_const_values()),
                            as_hip_type(c->get_values()), c->get_stride());
-    } else if (a->get_strategy()->get_name() == "merge_path") {
+    } else if (a->get_real_strategy() ==
+               gko::matrix::csr::spmv_strategy::merge_path) {
         int items_per_thread =
             host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
         host_kernel::select_merge_path_spmv(
@@ -1552,6 +1560,102 @@ void is_sorted_by_column_index(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX);
+
+
+template <typename IndexType>
+void choose_strategy(std::shared_ptr<const HipExecutor> exec,
+                     const Array<IndexType> *mtx_row_ptrs,
+                     const gko::matrix::csr::spmv_strategy source,
+                     gko::matrix::csr::spmv_strategy *result)
+{
+    if (source == gko::matrix::csr::spmv_strategy::automatic) {
+        // if the number of stored elements is larger than 1e6 or
+        // the maximum number of stored elements per row is larger than
+        // 64, use load_balance otherwise use classical
+        const auto num_rows = mtx_row_ptrs->get_num_elems() - 1;
+        Array<IndexType> host_row_ptrs(exec->get_master());
+        host_row_ptrs = *mtx_row_ptrs;
+        const auto row_val = host_row_ptrs.get_const_data();
+        if (row_val[num_rows] > 1e6) {
+            *result = gko::matrix::csr::spmv_strategy::load_balance;
+        } else {
+            IndexType maxnum = 0;
+            for (IndexType i = 1; i < num_rows + 1; i++) {
+                maxnum = max(maxnum, row_val[i] - row_val[i - 1]);
+            }
+            if (maxnum > 64) {
+                *result = gko::matrix::csr::spmv_strategy::load_balance;
+            } else {
+                *result = gko::matrix::csr::spmv_strategy::classic;
+            }
+        }
+    } else {
+        *result = source;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_CHOOSE_STRATEGY);
+
+
+void calculate_srow_size(std::shared_ptr<const HipExecutor> exec,
+                         const gko::matrix::csr::spmv_strategy real_strategy,
+                         const size_type nnz, size_type *srow_size)
+{
+    assert(static_cast<bool>(real_strategy !=
+                             gko::matrix::csr::spmv_strategy::automatic));
+    if (real_strategy == gko::matrix::csr::spmv_strategy::load_balance) {
+        int multiple = 8;
+        if (nnz >= 2000000) {
+            multiple = 128;
+        } else if (nnz >= 200000) {
+            multiple = 32;
+        }
+        auto nwarps = exec->get_num_warps() * multiple;
+        *srow_size = min(ceildiv(nnz, hip_config::warp_size),
+                         static_cast<int64_t>(nwarps));
+    } else {
+        *srow_size = 0;
+    }
+}
+
+
+template <typename IndexType>
+void build_srow(std::shared_ptr<const HipExecutor> exec,
+                Array<IndexType> *row_ptrs, Array<IndexType> *srow)
+{
+    auto nwarps = srow->get_num_elems();
+
+    if (nwarps > 0) {
+        auto exec = srow->get_executor()->get_master();
+        Array<IndexType> srow_host(exec);
+        srow_host = *srow;
+        auto srow_host_data = srow_host.get_data();
+        Array<IndexType> row_ptrs_host(exec);
+        row_ptrs_host = *row_ptrs;
+        auto row_ptrs_host_data = row_ptrs_host.get_const_data();
+        for (size_type i = 0; i < nwarps; i++) {
+            srow_host_data[i] = 0;
+        }
+        auto num_rows = row_ptrs->get_num_elems() - 1;
+        auto num_elems = row_ptrs_host_data[num_rows];
+        for (size_type i = 0; i < num_rows; i++) {
+            auto bucket = ceildiv(
+                (ceildiv(row_ptrs_host_data[i + 1], hip_config::warp_size) *
+                 nwarps),
+                ceildiv(num_elems, hip_config::warp_size));
+            if (bucket < nwarps) {
+                srow_host_data[bucket]++;
+            }
+        }
+        // find starting row for thread i
+        for (size_type i = 1; i < nwarps; i++) {
+            srow_host_data[i] += srow_host_data[i - 1];
+        }
+        *srow = srow_host;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_BUILD_SROW);
 
 
 }  // namespace csr

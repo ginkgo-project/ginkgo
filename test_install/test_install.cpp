@@ -211,7 +211,7 @@ int main(int, char **)
     {
         using Mtx = gko::matrix::Csr<>;
         auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2,
-                                std::make_shared<Mtx::load_balance>(2));
+                                gko::matrix::csr::spmv_strategy::load_balance);
     }
 
     // core/matrix/dense.hpp

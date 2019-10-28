@@ -71,13 +71,13 @@ protected:
     Csr()
         : exec(gko::ReferenceExecutor::create()),
           mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4,
-                          std::make_shared<Mtx::load_balance>(2))),
+                          gko::matrix::csr::spmv_strategy::load_balance)),
           mtx2(Mtx::create(exec, gko::dim<2>{2, 3}, 5,
-                           std::make_shared<Mtx::classical>())),
+                           gko::matrix::csr::spmv_strategy::classic)),
           mtx3_sorted(Mtx::create(exec, gko::dim<2>(3, 3), 7,
-                                  std::make_shared<Mtx::classical>())),
+                                  gko::matrix::csr::spmv_strategy::classic)),
           mtx3_unsorted(Mtx::create(exec, gko::dim<2>(3, 3), 7,
-                                    std::make_shared<Mtx::classical>()))
+                                    gko::matrix::csr::spmv_strategy::classic))
     {
         this->create_mtx(mtx.get());
         this->create_mtx2(mtx2.get());
@@ -89,7 +89,6 @@ protected:
         Mtx::value_type *v = m->get_values();
         Mtx::index_type *c = m->get_col_idxs();
         Mtx::index_type *r = m->get_row_ptrs();
-        auto *s = m->get_srow();
         /*
          * 1   3   2
          * 0   5   0
@@ -105,7 +104,6 @@ protected:
         v[1] = 3.0;
         v[2] = 2.0;
         v[3] = 5.0;
-        s[0] = 0;
     }
 
     void create_mtx2(Mtx *m)

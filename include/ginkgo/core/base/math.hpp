@@ -351,7 +351,9 @@ GKO_INLINE GKO_ATTRIBUTES constexpr int64 ceildiv(int64 num, int64 den)
 }
 
 
-#ifdef __HIPCC__
+#if defined(__HIPCC__) && GINKGO_HIP_PLATFORM_HCC
+
+
 /**
  * Returns the additive identity for T.
  *
@@ -458,7 +460,11 @@ GKO_INLINE __device__ constexpr T one(const T &)
 {
     return one<T>();
 }
+
+
 #else
+
+
 /**
  * Returns the additive identity for T.
  *
@@ -511,7 +517,8 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T &)
 {
     return one<T>();
 }
-#endif
+
+#endif  // defined(__HIPCC__) && GINKGO_HIP_PLATFORM_HCC
 
 
 /**

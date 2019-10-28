@@ -1050,6 +1050,11 @@ public:
      * Get the minor verion of compute capability.
      */
     int get_minor_version() const noexcept { return minor_; }
+    
+    /**
+     * Get the number of warps of this executor.
+     */
+    int get_num_warps() const noexcept { return num_warps_; }
 
     /**
      * Get the hipblas handle for this executor

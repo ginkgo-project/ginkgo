@@ -40,6 +40,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace matrix {
+namespace csr {
+
+
+enum class spmv_strategy {
+    automatic,
+    classic,
+    merge_path,
+    sparselib,
+    load_balance
+};
+
+
+}  // namespace csr
 
 
 template <typename ValueType>
@@ -99,190 +112,25 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class SparsityCsr<ValueType, IndexType>;
 
 public:
-    using EnableLinOp<Csr>::convert_to;
-    using EnableLinOp<Csr>::move_to;
-
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
 
-    class automatical;
-
-    class strategy_type {
-        friend class automatical;
-
-    public:
-        strategy_type(std::string name) : name_(name) {}
-
-        std::string get_name() { return name_; }
-
-        virtual void process(const Array<index_type> &mtx_row_ptrs,
-                             Array<index_type> *mtx_srow) = 0;
-
-        virtual int64_t clac_size(const int64_t nnz) = 0;
-
-    protected:
-        void set_name(std::string name) { name_ = name; }
-
-    private:
-        std::string name_;
-    };
-
-    class classical : public strategy_type {
-    public:
-        classical() : strategy_type("classical") {}
-
-        void process(const Array<index_type> &mtx_row_ptrs,
-                     Array<index_type> *mtx_srow)
-        {}
-
-        int64_t clac_size(const int64_t nnz) { return 0; }
-    };
-
-    class merge_path : public strategy_type {
-    public:
-        merge_path() : strategy_type("merge_path") {}
-
-        void process(const Array<index_type> &mtx_row_ptrs,
-                     Array<index_type> *mtx_srow)
-        {}
-
-        int64_t clac_size(const int64_t nnz) { return 0; }
-    };
-
-    class sparselib : public strategy_type {
-    public:
-        sparselib() : strategy_type("sparselib") {}
-
-        void process(const Array<index_type> &mtx_row_ptrs,
-                     Array<index_type> *mtx_srow)
-        {}
-
-        int64_t clac_size(const int64_t nnz) { return 0; }
-    };
-
-    class load_balance : public strategy_type {
-    public:
-        load_balance()
-            : load_balance(std::move(
-                  gko::CudaExecutor::create(0, gko::OmpExecutor::create())))
-        {}
-
-        load_balance(std::shared_ptr<const CudaExecutor> exec)
-            : load_balance(exec->get_num_warps())
-        {}
-
-        load_balance(int64_t nwarps)
-            : strategy_type("load_balance"), nwarps_(nwarps)
-        {}
-
-        void process(const Array<index_type> &mtx_row_ptrs,
-                     Array<index_type> *mtx_srow)
-        {
-            constexpr uint32 warp_size = 32;
-            auto nwarps = mtx_srow->get_num_elems();
-
-            if (nwarps > 0) {
-                auto exec = mtx_srow->get_executor()->get_master();
-                Array<index_type> srow_host(exec);
-                srow_host = *mtx_srow;
-                auto srow = srow_host.get_data();
-                Array<index_type> row_ptrs_host(exec);
-                row_ptrs_host = mtx_row_ptrs;
-                auto row_ptrs = row_ptrs_host.get_const_data();
-                for (size_type i = 0; i < nwarps; i++) {
-                    srow[i] = 0;
-                }
-                auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
-                auto num_elems = row_ptrs[num_rows];
-                for (size_type i = 0; i < num_rows; i++) {
-                    auto bucket =
-                        ceildiv((ceildiv(row_ptrs[i + 1], warp_size) * nwarps),
-                                ceildiv(num_elems, warp_size));
-                    if (bucket < nwarps) {
-                        srow[bucket]++;
-                    }
-                }
-                // find starting row for thread i
-                for (size_type i = 1; i < nwarps; i++) {
-                    srow[i] += srow[i - 1];
-                }
-                *mtx_srow = srow_host;
-            }
+    void convert_to(Csr<ValueType, IndexType> *result) const override
+    {
+        EnableLinOp<Csr>::convert_to(result);
+        if (this->get_executor() != result->get_executor()) {
+            result->make_srow();
         }
+    }
 
-        int64_t clac_size(const int64_t nnz)
-        {
-            constexpr uint32 warp_size = 32;
-            int multiple = 8;
-            if (nnz >= 2000000) {
-                multiple = 128;
-            } else if (nnz >= 200000) {
-                multiple = 32;
-            }
-            auto nwarps = nwarps_ * multiple;
-            return min(ceildiv(nnz, warp_size), static_cast<int64_t>(nwarps));
+    void move_to(Csr<ValueType, IndexType> *result) override
+    {
+        EnableLinOp<Csr>::move_to(result);
+        if (this->get_executor() != result->get_executor()) {
+            result->make_srow();
         }
-
-    private:
-        int64_t nwarps_;
-    };
-
-    class automatical : public strategy_type {
-    public:
-        automatical()
-            : automatical(std::move(
-                  gko::CudaExecutor::create(0, gko::OmpExecutor::create())))
-        {}
-
-        automatical(std::shared_ptr<const CudaExecutor> exec)
-            : automatical(exec->get_num_warps())
-        {}
-
-        automatical(int64_t nwarps)
-            : strategy_type("automatical"), nwarps_(nwarps)
-        {}
-
-        void process(const Array<index_type> &mtx_row_ptrs,
-                     Array<index_type> *mtx_srow)
-        {
-            // if the number of stored elements is larger than 1e6 or
-            // the maximum number of stored elements per row is larger than
-            // 64, use load_balance otherwise use classical
-            const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
-            Array<index_type> host_row_ptrs(
-                mtx_row_ptrs.get_executor()->get_master());
-            host_row_ptrs = mtx_row_ptrs;
-            const auto row_val = host_row_ptrs.get_const_data();
-            if (row_val[num_rows] > static_cast<index_type>(1e6)) {
-                std::make_shared<load_balance>(nwarps_)->process(host_row_ptrs,
-                                                                 mtx_srow);
-                this->set_name("load_balance");
-            } else {
-                index_type maxnum = 0;
-                for (index_type i = 1; i < num_rows + 1; i++) {
-                    maxnum = max(maxnum, row_val[i] - row_val[i - 1]);
-                }
-                if (maxnum > 64) {
-                    std::make_shared<load_balance>(nwarps_)->process(
-                        host_row_ptrs, mtx_srow);
-                    this->set_name("load_balance");
-                } else {
-                    std::make_shared<classical>()->process(host_row_ptrs,
-                                                           mtx_srow);
-                    this->set_name("classical");
-                }
-            }
-        }
-
-        int64_t clac_size(const int64_t nnz)
-        {
-            return std::make_shared<load_balance>(nwarps_)->clac_size(nnz);
-        }
-
-    private:
-        int64_t nwarps_;
-    };
+    }
 
     void convert_to(Dense<ValueType> *other) const override;
 
@@ -429,9 +277,18 @@ public:
      *
      * @return the strategy
      */
-    std::shared_ptr<strategy_type> get_strategy() const noexcept
+    gko::matrix::csr::spmv_strategy get_strategy() const noexcept
     {
         return strategy_;
+    }
+
+    /** Returns the real strategy in device kernel
+     *
+     * @return the real_strategy
+     */
+    gko::matrix::csr::spmv_strategy get_real_strategy() const noexcept
+    {
+        return real_strategy_;
     }
 
 protected:
@@ -442,8 +299,8 @@ protected:
      * @param strategy  the strategy of CSR
      */
     Csr(std::shared_ptr<const Executor> exec,
-        std::shared_ptr<strategy_type> strategy)
-        : Csr(std::move(exec), dim<2>{}, {}, std::move(strategy))
+        gko::matrix::csr::spmv_strategy strategy)
+        : Csr(std::move(exec), dim<2>{}, {}, strategy)
     {}
 
     /**
@@ -456,14 +313,15 @@ protected:
      */
     Csr(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{},
         size_type num_nonzeros = {},
-        std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
+        gko::matrix::csr::spmv_strategy strategy =
+            gko::matrix::csr::spmv_strategy::sparselib)
         : EnableLinOp<Csr>(exec, size),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
           // avoid allocation for empty matrix
           row_ptrs_(exec, size[0] + (size[0] > 0)),
-          srow_(exec, strategy->clac_size(num_nonzeros)),
-          strategy_(std::move(strategy))
+          srow_(exec),
+          strategy_(strategy)
     {}
 
     /**
@@ -490,19 +348,18 @@ protected:
               typename RowPtrsArray>
     Csr(std::shared_ptr<const Executor> exec, const dim<2> &size,
         ValuesArray &&values, ColIdxsArray &&col_idxs, RowPtrsArray &&row_ptrs,
-        std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
+        gko::matrix::csr::spmv_strategy strategy =
+            gko::matrix::csr::spmv_strategy::sparselib)
         : EnableLinOp<Csr>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)},
           srow_(exec),
-          strategy_(std::move(strategy))
+          strategy_(strategy)
     {
         GKO_ENSURE_IN_BOUNDS(values_.get_num_elems() - 1,
                              col_idxs_.get_num_elems());
         GKO_ENSURE_IN_BOUNDS(this->get_size()[0], row_ptrs_.get_num_elems());
-        srow_.resize_and_reset(strategy_->clac_size(values_.get_num_elems()));
-        this->make_srow();
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -513,14 +370,15 @@ protected:
     /**
      * Compute srow, it should be run after setting value.
      */
-    void make_srow() { strategy_->process(row_ptrs_, &srow_); }
+    void make_srow();
 
 private:
     Array<value_type> values_;
     Array<index_type> col_idxs_;
     Array<index_type> row_ptrs_;
     Array<index_type> srow_;
-    std::shared_ptr<strategy_type> strategy_;
+    gko::matrix::csr::spmv_strategy strategy_;
+    gko::matrix::csr::spmv_strategy real_strategy_;
 };
 
 

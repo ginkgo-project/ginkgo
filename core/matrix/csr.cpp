@@ -69,6 +69,9 @@ GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
 GKO_REGISTER_OPERATION(sort_by_column_index, csr::sort_by_column_index);
 GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        csr::is_sorted_by_column_index);
+GKO_REGISTER_OPERATION(build_srow, csr::build_srow);
+GKO_REGISTER_OPERATION(calculate_srow_size, csr::calculate_srow_size);
+GKO_REGISTER_OPERATION(choose_strategy, csr::choose_strategy);
 
 
 }  // namespace csr
@@ -335,6 +338,21 @@ bool Csr<ValueType, IndexType>::is_sorted_by_column_index() const
     bool is_sorted;
     exec->run(csr::make_is_sorted_by_column_index(this, &is_sorted));
     return is_sorted;
+}
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::make_srow()
+{
+    auto exec = this->get_executor();
+    if (exec->get_master() != exec) {
+        exec->run(
+            csr::make_choose_strategy(&row_ptrs_, strategy_, &real_strategy_));
+        size_type srow_size{0};
+        exec->run(csr::make_calculate_srow_size(
+            real_strategy_, this->get_num_stored_elements(), &srow_size));
+        srow_.resize_and_reset(srow_size);
+        exec->run(csr::make_build_srow(&row_ptrs_, &srow_));
+    }
 }
 
 

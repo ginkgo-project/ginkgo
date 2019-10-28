@@ -155,7 +155,7 @@ protected:
               const gko::dim<2> &size = gko::dim<2>{})
         : gko::EnableLinOp<CuspCsrmp, CuspBase>(exec, size),
           csr_(std::move(
-              csr::create(exec, std::make_shared<typename csr::classical>()))),
+              csr::create(exec, gko::matrix::csr::spmv_strategy::classic))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {}
 
@@ -215,7 +215,7 @@ protected:
             const gko::dim<2> &size = gko::dim<2>{})
         : gko::EnableLinOp<CuspCsr, CuspBase>(exec, size),
           csr_(std::move(
-              csr::create(exec, std::make_shared<typename csr::classical>()))),
+              csr::create(exec, gko::matrix::csr::spmv_strategy::classic))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {}
 
@@ -276,7 +276,7 @@ protected:
               const gko::dim<2> &size = gko::dim<2>{})
         : gko::EnableLinOp<CuspCsrmm, CuspBase>(exec, size),
           csr_(std::move(
-              csr::create(exec, std::make_shared<typename csr::classical>()))),
+              csr::create(exec, gko::matrix::csr::spmv_strategy::classic))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {}
 
@@ -373,7 +373,7 @@ protected:
               const gko::dim<2> &size = gko::dim<2>{})
         : gko::EnableLinOp<CuspCsrEx, CuspBase>(exec, size),
           csr_(std::move(
-              csr::create(exec, std::make_shared<typename csr::classical>()))),
+              csr::create(exec, gko::matrix::csr::spmv_strategy::classic))),
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE),
           set_buffer_(false)
     {
@@ -411,7 +411,7 @@ public:
     void read(const mat_data &data) override
     {
         auto t_csr = csr::create(this->get_executor(),
-                                 std::make_shared<typename csr::classical>());
+                                 gko::matrix::csr::spmv_strategy::classic);
         t_csr->read(data);
         this->set_size(gko::dim<2>{t_csr->get_size()});
 

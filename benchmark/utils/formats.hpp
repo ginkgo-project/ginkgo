@@ -167,10 +167,11 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>,
                                 const gko::matrix_data<> &)>>
     matrix_factory{
-        {"csr", READ_MATRIX(csr, std::make_shared<csr::automatical>())},
-        {"csri", READ_MATRIX(csr, std::make_shared<csr::load_balance>())},
-        {"csrm", READ_MATRIX(csr, std::make_shared<csr::merge_path>())},
-        {"csrc", READ_MATRIX(csr, std::make_shared<csr::classical>())},
+        {"csr", READ_MATRIX(csr, gko::matrix::csr::spmv_strategy::automatic)},
+        {"csri",
+         READ_MATRIX(csr, gko::matrix::csr::spmv_strategy::load_balance)},
+        {"csrm", READ_MATRIX(csr, gko::matrix::csr::spmv_strategy::merge_path)},
+        {"csrc", READ_MATRIX(csr, gko::matrix::csr::spmv_strategy::classic)},
         {"coo", read_matrix_from_data<gko::matrix::Coo<>>},
         {"ell", read_matrix_from_data<gko::matrix::Ell<>>},
 #ifdef HAS_CUDA

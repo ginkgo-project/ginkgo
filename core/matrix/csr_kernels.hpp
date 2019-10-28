@@ -122,6 +122,22 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                    \
         const matrix::Csr<ValueType, IndexType> *to_check, bool *is_sorted)
 
+#define GKO_DECLARE_CSR_CHOOSE_STRATEGY(IndexType)                     \
+    void choose_strategy(std::shared_ptr<const DefaultExecutor> exec,  \
+                         const Array<IndexType> *mtx_row_ptrs,         \
+                         const gko::matrix::csr::spmv_strategy source, \
+                         gko::matrix::csr::spmv_strategy *result)
+
+#define GKO_DECLARE_CSR_CALCULATE_SROW_SIZE                  \
+    void calculate_srow_size(                                \
+        std::shared_ptr<const DefaultExecutor> exec,         \
+        const gko::matrix::csr::spmv_strategy real_strategy, \
+        const size_type nnz, size_type *srow_size)
+
+#define GKO_DECLARE_CSR_BUILD_SROW(IndexType)                    \
+    void build_srow(std::shared_ptr<const DefaultExecutor> exec, \
+                    Array<IndexType> *row_ptrs, Array<IndexType> *srow)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType);                       \
@@ -150,7 +166,12 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType);              \
     template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType)
+    GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType);         \
+    template <typename IndexType>                                            \
+    GKO_DECLARE_CSR_CHOOSE_STRATEGY(IndexType);                              \
+    GKO_DECLARE_CSR_CALCULATE_SROW_SIZE;                                     \
+    template <typename IndexType>                                            \
+    GKO_DECLARE_CSR_BUILD_SROW(IndexType)
 
 
 namespace omp {
