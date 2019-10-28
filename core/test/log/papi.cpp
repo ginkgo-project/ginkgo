@@ -121,7 +121,7 @@ TEST_F(Papi, CatchesAllocationStarted)
 {
     int logged_value = 42;
     auto str = init(gko::log::Logger::allocation_started_mask,
-                    "allocation_started", exec.get());
+                    "allocation_started", exec->get_mem_space().get());
     add_event(str);
 
     start();
@@ -138,7 +138,7 @@ TEST_F(Papi, CatchesAllocationCompleted)
 {
     int logged_value = 42;
     auto str = init(gko::log::Logger::allocation_completed_mask,
-                    "allocation_completed", exec.get());
+                    "allocation_completed", exec->get_mem_space().get());
     add_event(str);
 
     start();
@@ -153,8 +153,8 @@ TEST_F(Papi, CatchesAllocationCompleted)
 
 TEST_F(Papi, CatchesFreeStarted)
 {
-    auto str =
-        init(gko::log::Logger::free_started_mask, "free_started", exec.get());
+    auto str = init(gko::log::Logger::free_started_mask, "free_started",
+                    exec->get_mem_space().get());
     add_event(str);
 
     start();
@@ -169,7 +169,7 @@ TEST_F(Papi, CatchesFreeStarted)
 TEST_F(Papi, CatchesFreeCompleted)
 {
     auto str = init(gko::log::Logger::free_completed_mask, "free_completed",
-                    exec.get());
+                    exec->get_mem_space().get());
     add_event(str);
 
     start();
@@ -186,10 +186,10 @@ TEST_F(Papi, CatchesCopyStarted)
 {
     auto logged_value = 42;
     auto str = init(gko::log::Logger::copy_started_mask, "copy_started_from",
-                    exec.get());
+                    exec->get_mem_space().get());
     std::ostringstream os_out;
     os_out << "sde:::" << logger->get_handle_name() << "::copy_started_to::"
-           << reinterpret_cast<gko::uintptr>(exec.get());
+           << reinterpret_cast<gko::uintptr>(exec->get_mem_space().get());
     add_event(str);
     add_event(os_out.str());
 
@@ -209,10 +209,10 @@ TEST_F(Papi, CatchesCopyCompleted)
 {
     auto logged_value = 42;
     auto str = init(gko::log::Logger::copy_completed_mask,
-                    "copy_completed_from", exec.get());
+                    "copy_completed_from", exec->get_mem_space().get());
     std::ostringstream os_out;
     os_out << "sde:::" << logger->get_handle_name() << "::copy_completed_to::"
-           << reinterpret_cast<gko::uintptr>(exec.get());
+           << reinterpret_cast<gko::uintptr>(exec->get_mem_space().get());
     add_event(str);
     add_event(os_out.str());
 

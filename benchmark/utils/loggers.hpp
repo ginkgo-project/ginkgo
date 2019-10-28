@@ -47,41 +47,43 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // A logger that accumulates the time of all operations
 struct OperationLogger : gko::log::Logger {
-    void on_allocation_started(const gko::Executor *exec,
+    void on_allocation_started(const gko::MemorySpace *mem_space,
                                const gko::size_type &) const override
     {
-        this->start_operation(exec, "allocate");
+        this->start_operation(mem_space, "allocate");
     }
 
-    void on_allocation_completed(const gko::Executor *exec,
+    void on_allocation_completed(const gko::MemorySpace *mem_space,
                                  const gko::size_type &,
                                  const gko::uintptr &) const override
     {
-        this->end_operation(exec, "allocate");
+        this->end_operation(mem_space, "allocate");
     }
 
-    void on_free_started(const gko::Executor *exec,
+    void on_free_started(const gko::MemorySpace *mem_space,
                          const gko::uintptr &) const override
     {
-        this->start_operation(exec, "free");
+        this->start_operation(mem_space, "free");
     }
 
-    void on_free_completed(const gko::Executor *exec,
+    void on_free_completed(const gko::MemorySpace *mem_space,
                            const gko::uintptr &) const override
     {
-        this->end_operation(exec, "free");
+        this->end_operation(mem_space, "free");
     }
 
-    void on_copy_started(const gko::Executor *from, const gko::Executor *to,
-                         const gko::uintptr &, const gko::uintptr &,
+    void on_copy_started(const gko::MemorySpace *from,
+                         const gko::MemorySpace *to, const gko::uintptr &,
+                         const gko::uintptr &,
                          const gko::size_type &) const override
     {
         from->synchronize();
         this->start_operation(to, "copy");
     }
 
-    void on_copy_completed(const gko::Executor *from, const gko::Executor *to,
-                           const gko::uintptr &, const gko::uintptr &,
+    void on_copy_completed(const gko::MemorySpace *from,
+                           const gko::MemorySpace *to, const gko::uintptr &,
+                           const gko::uintptr &,
                            const gko::size_type &) const override
     {
         from->synchronize();
@@ -116,21 +118,24 @@ struct OperationLogger : gko::log::Logger {
     }
 
     OperationLogger(std::shared_ptr<const gko::Executor> exec)
-        : gko::log::Logger(exec)
+        : gko::log::Logger(exec, exec->get_mem_space())
     {}
 
 private:
-    void start_operation(const gko::Executor *exec,
-                         const std::string &name) const
+    template <typename Event>
+    void start_operation(const Event *event, const std::string &name) const
     {
         nested.emplace_back(0);
-        exec->synchronize();
+        event->synchronize();
         start[name] = std::chrono::steady_clock::now();
     }
 
-    void end_operation(const gko::Executor *exec, const std::string &name) const
+    // Helper to compute the end time and store the operation's time at its
+    // end. Also time nested operations.
+    template <typename Event>
+    void end_operation(const Event *event, const std::string &name) const
     {
-        exec->synchronize();
+        event->synchronize();
         const auto end = std::chrono::steady_clock::now();
         const auto diff = end - start[name];
         // make sure timings for nested operations are not counted twice
@@ -150,14 +155,14 @@ private:
 
 
 struct StorageLogger : gko::log::Logger {
-    void on_allocation_completed(const gko::Executor *,
+    void on_allocation_completed(const gko::MemorySpace *,
                                  const gko::size_type &num_bytes,
                                  const gko::uintptr &location) const override
     {
         storage[location] = num_bytes;
     }
 
-    void on_free_completed(const gko::Executor *,
+    void on_free_completed(const gko::MemorySpace *,
                            const gko::uintptr &location) const override
     {
         storage[location] = 0;
@@ -174,7 +179,7 @@ struct StorageLogger : gko::log::Logger {
     }
 
     StorageLogger(std::shared_ptr<const gko::Executor> exec)
-        : gko::log::Logger(exec)
+        : gko::log::Logger(exec, exec->get_mem_space())
     {}
 
 private:
@@ -212,7 +217,8 @@ struct ResidualLogger : gko::log::Logger {
                    rapidjson::Value &rec_res_norms,
                    rapidjson::Value &true_res_norms,
                    rapidjson::MemoryPoolAllocator<> &alloc)
-        : gko::log::Logger(exec, gko::log::Logger::iteration_complete_mask),
+        : gko::log::Logger(exec, exec->get_mem_space(),
+                           gko::log::Logger::iteration_complete_mask),
           matrix{matrix},
           b{b},
           rec_res_norms{rec_res_norms},

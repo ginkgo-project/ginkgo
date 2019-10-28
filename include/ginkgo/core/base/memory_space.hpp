@@ -143,6 +143,11 @@ public:
             reinterpret_cast<uintptr>(dest_ptr), num_elems * sizeof(T));
     }
 
+    /**
+     * Synchronize the operations launched on the executor with its master.
+     */
+    virtual void synchronize() const = 0;
+
 protected:
     /**
      * Allocates raw memory in this MemorySpace.
@@ -304,6 +309,8 @@ public:
         return std::shared_ptr<HostMemorySpace>(new HostMemorySpace());
     }
 
+    void synchronize() const override;
+
 protected:
     HostMemorySpace() = default;
 
@@ -340,7 +347,7 @@ public:
      */
     static int get_num_devices();
 
-    void synchronize() const;
+    void synchronize() const override;
 
 protected:
     CudaMemorySpace() = default;

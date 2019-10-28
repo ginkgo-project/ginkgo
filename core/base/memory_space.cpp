@@ -47,6 +47,12 @@ namespace gko {
 void HostMemorySpace::raw_free(void *ptr) const noexcept { std::free(ptr); }
 
 
+void HostMemorySpace::synchronize() const
+{
+    // Currently a no-op
+}
+
+
 void *HostMemorySpace::raw_alloc(size_type num_bytes) const
 {
     return GKO_ENSURE_ALLOCATED(std::malloc(num_bytes), "Host", num_bytes);

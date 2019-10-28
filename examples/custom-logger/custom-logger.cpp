@@ -163,7 +163,8 @@ struct ResidualLogger : gko::log::Logger {
     // Construct the logger and store the system matrix and b vectors
     ResidualLogger(std::shared_ptr<const gko::Executor> exec,
                    const gko::LinOp *matrix, const gko_dense *b)
-        : gko::log::Logger(exec, gko::log::Logger::iteration_complete_mask),
+        : gko::log::Logger(exec, exec->get_mem_space(),
+                           gko::log::Logger::iteration_complete_mask),
           matrix{matrix},
           b{b}
     {}

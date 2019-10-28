@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
     // for convenience.
     std::shared_ptr<gko::log::Stream<>> stream_logger =
         gko::log::Stream<>::create(
-            exec,
+            exec, exec->get_mem_space(),
             gko::log::Logger::all_events_mask ^
                 gko::log::Logger::linop_factory_events_mask ^
                 gko::log::Logger::polymorphic_object_events_mask,
@@ -128,15 +128,17 @@ int main(int argc, char *argv[])
     // Logger class for more information.
     std::ofstream filestream("my_file.txt");
     solver->add_logger(gko::log::Stream<>::create(
-        exec, gko::log::Logger::all_events_mask, filestream));
+        exec, exec->get_mem_space(), gko::log::Logger::all_events_mask,
+        filestream));
     solver->add_logger(stream_logger);
 
     // Add another logger which puts all the data in an object, we can later
     // retrieve this object in our code. Here we only have want Executor
     // and criterion check completed events.
     std::shared_ptr<gko::log::Record> record_logger = gko::log::Record::create(
-        exec, gko::log::Logger::executor_events_mask |
-                  gko::log::Logger::criterion_check_completed_mask);
+        exec, exec->get_mem_space(),
+        gko::log::Logger::executor_events_mask |
+            gko::log::Logger::criterion_check_completed_mask);
     exec->add_logger(record_logger);
     residual_criterion->add_logger(record_logger);
 
@@ -147,10 +149,10 @@ int main(int argc, char *argv[])
     // location copied
     auto &last_copy = record_logger->get().copy_completed.back();
     std::cout << "Last memory copied was of size " << std::hex
-              << std::get<0>(*last_copy).num_bytes << " FROM executor "
-              << std::get<0>(*last_copy).exec << " pointer "
-              << std::get<0>(*last_copy).location << " TO executor "
-              << std::get<1>(*last_copy).exec << " pointer "
+              << std::get<0>(*last_copy).num_bytes << " FROM Memory Space"
+              << std::get<0>(*last_copy).mem_space << " pointer "
+              << std::get<0>(*last_copy).location << " TO Memory Space "
+              << std::get<1>(*last_copy).mem_space << " pointer "
               << std::get<1>(*last_copy).location << std::dec << std::endl;
     // Also print the residual of the last criterion check event (where
     // convergence happened)

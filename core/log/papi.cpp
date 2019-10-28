@@ -47,40 +47,41 @@ size_type Papi<ValueType>::logger_count = 0;
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_allocation_started(const Executor *exec,
+void Papi<ValueType>::on_allocation_started(const MemorySpace *mem_space,
                                             const size_type &num_bytes) const
 {
-    allocation_started.get_counter(exec) += num_bytes;
+    allocation_started.get_counter(mem_space) += num_bytes;
 }
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_allocation_completed(const Executor *exec,
+void Papi<ValueType>::on_allocation_completed(const MemorySpace *mem_space,
                                               const size_type &num_bytes,
                                               const uintptr &location) const
 {
-    allocation_completed.get_counter(exec) += num_bytes;
+    allocation_completed.get_counter(mem_space) += num_bytes;
 }
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_free_started(const Executor *exec,
+void Papi<ValueType>::on_free_started(const MemorySpace *mem_space,
                                       const uintptr &location) const
 {
-    free_started.get_counter(exec) += 1;
+    free_started.get_counter(mem_space) += 1;
 }
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_free_completed(const Executor *exec,
+void Papi<ValueType>::on_free_completed(const MemorySpace *mem_space,
                                         const uintptr &location) const
 {
-    free_completed.get_counter(exec) += 1;
+    free_completed.get_counter(mem_space) += 1;
 }
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_copy_started(const Executor *from, const Executor *to,
+void Papi<ValueType>::on_copy_started(const MemorySpace *from,
+                                      const MemorySpace *to,
                                       const uintptr &location_from,
                                       const uintptr &location_to,
                                       const size_type &num_bytes) const
@@ -91,8 +92,8 @@ void Papi<ValueType>::on_copy_started(const Executor *from, const Executor *to,
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_copy_completed(const Executor *from,
-                                        const Executor *to,
+void Papi<ValueType>::on_copy_completed(const MemorySpace *from,
+                                        const MemorySpace *to,
                                         const uintptr &location_from,
                                         const uintptr &location_to,
                                         const size_type &num_bytes) const
