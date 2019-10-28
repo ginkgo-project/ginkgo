@@ -692,7 +692,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
             a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
             as_cuda_type(b->get_const_values()), b->get_stride(),
             as_cuda_type(c->get_values()), c->get_stride());
-    } else if (a->get_strategy()->get_name() == "cusparse") {
+    } else if (a->get_strategy()->get_name() == "sparselib") {
         if (cusparse::is_supported<ValueType, IndexType>::value) {
             // TODO: add implementation for int64 and multiple RHS
             auto handle = exec->get_cusparse_handle();
@@ -751,7 +751,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(b->get_stride()), as_cuda_type(c->get_values()),
                 as_cuda_type(c->get_stride()));
         }
-    } else if (a->get_strategy()->get_name() == "cusparse") {
+    } else if (a->get_strategy()->get_name() == "sparselib") {
         if (cusparse::is_supported<ValueType, IndexType>::value) {
             // TODO: add implementation for int64 and multiple RHS
             auto descr = cusparse::create_mat_descr();
