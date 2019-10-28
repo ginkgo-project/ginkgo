@@ -44,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/dense_kernels.hpp"
-#include "hip/base/config.hip.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
@@ -301,7 +300,7 @@ void spmv2(std::shared_ptr<const HipExecutor> exec,
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
             int num_lines = ceildiv(nnz, nwarps * hip_config::warp_size);
             hipLaunchKernelGGL(
-                (abstract_spmv), dim3(coo_grid), dim3(coo_block), 0, 0, nnz,
+                abstract_spmv, dim3(coo_grid), dim3(coo_block), 0, 0, nnz,
                 num_lines, as_hip_type(a->get_const_values()),
                 a->get_const_col_idxs(), as_hip_type(a->get_const_row_idxs()),
                 as_hip_type(b->get_const_values()), b->get_stride(),
@@ -312,7 +311,7 @@ void spmv2(std::shared_ptr<const HipExecutor> exec,
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
                                 ceildiv(b_ncols, hip_config::warp_size));
             hipLaunchKernelGGL(
-                (abstract_spmm), dim3(coo_grid), dim3(coo_block), 0, 0, nnz,
+                abstract_spmm, dim3(coo_grid), dim3(coo_block), 0, 0, nnz,
                 num_elems, as_hip_type(a->get_const_values()),
                 a->get_const_col_idxs(), as_hip_type(a->get_const_row_idxs()),
                 b_ncols, as_hip_type(b->get_const_values()), b->get_stride(),
@@ -341,7 +340,7 @@ void advanced_spmv2(std::shared_ptr<const HipExecutor> exec,
             int num_lines = ceildiv(nnz, nwarps * hip_config::warp_size);
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
             hipLaunchKernelGGL(
-                (abstract_spmv), dim3(coo_grid), dim3(coo_block), 0, 0, nnz,
+                abstract_spmv, dim3(coo_grid), dim3(coo_block), 0, 0, nnz,
                 num_lines, as_hip_type(alpha->get_const_values()),
                 as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_hip_type(a->get_const_row_idxs()),
@@ -353,7 +352,7 @@ void advanced_spmv2(std::shared_ptr<const HipExecutor> exec,
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
                                 ceildiv(b_ncols, hip_config::warp_size));
             hipLaunchKernelGGL(
-                (abstract_spmm), dim3(coo_grid), dim3(coo_block), 0, 0, nnz,
+                abstract_spmm, dim3(coo_grid), dim3(coo_block), 0, 0, nnz,
                 num_elems, as_hip_type(alpha->get_const_values()),
                 as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_hip_type(a->get_const_row_idxs()), b_ncols,
@@ -399,7 +398,7 @@ void convert_row_idxs_to_ptrs(std::shared_ptr<const HipExecutor> exec,
 {
     const auto grid_dim = ceildiv(num_nonzeros, default_block_size);
 
-    hipLaunchKernelGGL((kernel::convert_row_idxs_to_ptrs), dim3(grid_dim),
+    hipLaunchKernelGGL(kernel::convert_row_idxs_to_ptrs, dim3(grid_dim),
                        dim3(default_block_size), 0, 0, as_hip_type(idxs),
                        num_nonzeros, as_hip_type(ptrs), length);
 }
@@ -429,9 +428,10 @@ namespace kernel {
 
 
 template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void initialize_zero_dense(
-    size_type num_rows, size_type num_cols, size_type stride,
-    ValueType *__restrict__ result)
+__global__
+    __launch_bounds__(hip_config::max_block_size) void initialize_zero_dense(
+        size_type num_rows, size_type num_cols, size_type stride,
+        ValueType *__restrict__ result)
 {
     const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
     const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
@@ -474,12 +474,12 @@ void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
                           1);
     const dim3 init_grid_dim(ceildiv(stride, block_size.x),
                              ceildiv(num_rows, block_size.y), 1);
-    hipLaunchKernelGGL((kernel::initialize_zero_dense), dim3(init_grid_dim),
+    hipLaunchKernelGGL(kernel::initialize_zero_dense, dim3(init_grid_dim),
                        dim3(block_size), 0, 0, num_rows, num_cols, stride,
                        as_hip_type(result->get_values()));
 
     const auto grid_dim = ceildiv(nnz, default_block_size);
-    hipLaunchKernelGGL((kernel::fill_in_dense), dim3(grid_dim),
+    hipLaunchKernelGGL(kernel::fill_in_dense, dim3(grid_dim),
                        dim3(default_block_size), 0, 0, nnz,
                        as_hip_type(source->get_const_row_idxs()),
                        as_hip_type(source->get_const_col_idxs()),

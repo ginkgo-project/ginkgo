@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_COMPONENTS_FORMAT_CONVERSION_HPP_
-#define GKO_HIP_COMPONENTS_FORMAT_CONVERSION_HPP_
+#ifndef GKO_HIP_COMPONENTS_FORMAT_CONVERSION_HIP_HPP_
+#define GKO_HIP_COMPONENTS_FORMAT_CONVERSION_HIP_HPP_
 
 
 #include <ginkgo/core/base/std_extensions.hpp>
@@ -75,4 +75,4 @@ __host__ size_type calculate_nwarps(std::shared_ptr<const HipExecutor> exec,
 }  // namespace gko
 
 
-#endif  // GKO_CUDA_COMPONENTS_FORMAT_CONVERSION_CUH_
+#endif  // GKO_HIP_COMPONENTS_FORMAT_CONVERSION_HIP_HPP_
