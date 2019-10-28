@@ -153,10 +153,6 @@ GKO_BIND_HIPBLAS_GEAM(ValueType, detail::not_implemented);
 
 GKO_BIND_HIPBLAS_SCAL(float, hipblasSscal);
 GKO_BIND_HIPBLAS_SCAL(double, hipblasDscal);
-/* not implemented
-GKO_BIND_HIPBLAS_SCAL(std::complex<float>, hipblasCscal);
-GKO_BIND_HIPBLAS_SCAL(std::complex<double>, hipblasZscal);
-*/
 template <typename ValueType>
 GKO_BIND_HIPBLAS_SCAL(ValueType, detail::not_implemented);
 
@@ -177,10 +173,6 @@ GKO_BIND_HIPBLAS_SCAL(ValueType, detail::not_implemented);
 
 GKO_BIND_HIPBLAS_AXPY(float, hipblasSaxpy);
 GKO_BIND_HIPBLAS_AXPY(double, hipblasDaxpy);
-/* not implemented
-GKO_BIND_HIPBLAS_AXPY(std::complex<float>, hipblasCaxpy);
-GKO_BIND_HIPBLAS_AXPY(std::complex<double>, hipblasZaxpy);
-*/
 template <typename ValueType>
 GKO_BIND_HIPBLAS_AXPY(ValueType, detail::not_implemented);
 
@@ -201,10 +193,6 @@ GKO_BIND_HIPBLAS_AXPY(ValueType, detail::not_implemented);
 
 GKO_BIND_HIPBLAS_DOT(float, hipblasSdot);
 GKO_BIND_HIPBLAS_DOT(double, hipblasDdot);
-/* not implemented
-GKO_BIND_HIPBLAS_DOT(std::complex<float>, hipblasCdotc);
-GKO_BIND_HIPBLAS_DOT(std::complex<double>, hipblasZdotc);
-*/
 template <typename ValueType>
 GKO_BIND_HIPBLAS_DOT(ValueType, detail::not_implemented);
 

@@ -78,7 +78,7 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     const auto host_exec = exec->get_master();
 
     // If required, it is also possible to make this a Factory parameter
-    auto csr_strategy = std::make_shared<typename CsrMatrix::cusparse>();
+    auto csr_strategy = std::make_shared<typename CsrMatrix::sparselib>();
 
     // Only copies the matrix if it is not on the same executor or was not in
     // the right format. Throws an exception if it is not convertable.
