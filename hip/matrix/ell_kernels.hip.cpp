@@ -1,4 +1,3 @@
-#include "hip/hip_runtime.h"
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
@@ -35,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <array>
+
+
+#include <hip/hip_runtime.h>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
