@@ -938,7 +938,7 @@ __global__
 
     if (sliceid * slice_size + tid_in_warp < num_rows) {
         size_type thread_result = 0;
-        for (auto i = tid_in_warp; i < slice_size; i += warp_size) {
+        for (int i = tid_in_warp; i < slice_size; i += warp_size) {
             thread_result =
                 (i + slice_size * sliceid < num_rows)
                     ? max(thread_result, nnz_per_row[sliceid * slice_size + i])
