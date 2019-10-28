@@ -126,8 +126,9 @@ TYPED_TEST_CASE(Papi, gko::test::ValueTypes);
 TYPED_TEST(Papi, CatchesAllocationStarted)
 {
     int logged_value = 42;
-    auto str = this->init(gko::log::Logger::allocation_started_mask,
-                          "allocation_started", this->exec.get());
+    auto str =
+        this->init(gko::log::Logger::allocation_started_mask,
+                   "allocation_started", this->exec->get_mem_space().get());
     this->add_event(str);
 
     this->start();
@@ -143,8 +144,9 @@ TYPED_TEST(Papi, CatchesAllocationStarted)
 TYPED_TEST(Papi, CatchesAllocationCompleted)
 {
     int logged_value = 42;
-    auto str = this->init(gko::log::Logger::allocation_completed_mask,
-                          "allocation_completed", this->exec.get());
+    auto str =
+        this->init(gko::log::Logger::allocation_completed_mask,
+                   "allocation_completed", this->exec->get_mem_space().get());
     this->add_event(str);
 
     this->start();
@@ -160,7 +162,7 @@ TYPED_TEST(Papi, CatchesAllocationCompleted)
 TYPED_TEST(Papi, CatchesFreeStarted)
 {
     auto str = this->init(gko::log::Logger::free_started_mask, "free_started",
-                          this->exec.get());
+                          this->exec->get_mem_space().get());
     this->add_event(str);
 
     this->start();
@@ -176,7 +178,7 @@ TYPED_TEST(Papi, CatchesFreeStarted)
 TYPED_TEST(Papi, CatchesFreeCompleted)
 {
     auto str = this->init(gko::log::Logger::free_completed_mask,
-                          "free_completed", this->exec.get());
+                          "free_completed", this->exec->get_mem_space().get());
     this->add_event(str);
 
     this->start();
@@ -192,12 +194,13 @@ TYPED_TEST(Papi, CatchesFreeCompleted)
 TYPED_TEST(Papi, CatchesCopyStarted)
 {
     auto logged_value = 42;
-    auto str = this->init(gko::log::Logger::copy_started_mask,
-                          "copy_started_from", this->exec.get());
+    auto str =
+        this->init(gko::log::Logger::copy_started_mask, "copy_started_from",
+                   this->exec->get_mem_space().get());
     std::ostringstream os_out;
     os_out << "sde:::" << this->logger->get_handle_name()
            << "::copy_started_to::"
-           << reinterpret_cast<gko::uintptr>(this->exec.get());
+           << reinterpret_cast<gko::uintptr>(this->exec->get_mem_space().get());
     this->add_event(str);
     this->add_event(os_out.str());
 
@@ -216,12 +219,13 @@ TYPED_TEST(Papi, CatchesCopyStarted)
 TYPED_TEST(Papi, CatchesCopyCompleted)
 {
     auto logged_value = 42;
-    auto str = this->init(gko::log::Logger::copy_completed_mask,
-                          "copy_completed_from", this->exec.get());
+    auto str =
+        this->init(gko::log::Logger::copy_completed_mask, "copy_completed_from",
+                   this->exec->get_mem_space().get());
     std::ostringstream os_out;
     os_out << "sde:::" << this->logger->get_handle_name()
            << "::copy_completed_to::"
-           << reinterpret_cast<gko::uintptr>(this->exec.get());
+           << reinterpret_cast<gko::uintptr>(this->exec->get_mem_space().get());
     this->add_event(str);
     this->add_event(os_out.str());
 
