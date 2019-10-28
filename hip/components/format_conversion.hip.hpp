@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
@@ -37,13 +38,52 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/std_extensions.hpp>
 
 
-#include "hip/base/config.hip.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
 namespace hip {
+namespace ell {
+namespace kernel {
+
+
+/**
+ * @internal
+ *
+ * It counts the number of explicit nonzeros per row of Ell.
+ */
+template <typename ValueType, typename IndexType>
+__global__ void count_nnz_per_row(size_type num_rows, size_type max_nnz_per_row,
+                                  size_type stride,
+                                  const ValueType *__restrict__ values,
+                                  IndexType *__restrict__ result);
+
+
+}  // namespace kernel
+}  // namespace ell
+
+
 namespace coo {
+namespace kernel {
+
+
+/**
+ * @internal
+ *
+ * It converts the row index of Coo to the row pointer of Csr.
+ */
+template <typename IndexType>
+__global__ void convert_row_idxs_to_ptrs(const IndexType *__restrict__ idxs,
+                                         size_type num_nonzeros,
+                                         IndexType *__restrict__ ptrs,
+                                         size_type length);
+
+
+}  // namespace kernel
+
+
 namespace host_kernel {
 
 
