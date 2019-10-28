@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/coo_kernels.hpp"
+#include <ginkgo/core/matrix/sellp.hpp>
 
 
 #include <random>
@@ -39,26 +39,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <core/test/utils.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/test/utils.hpp"
+#include "core/matrix/sellp_kernels.hpp"
 
 
 namespace {
 
 
-class Coo : public ::testing::Test {
+class Sellp : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Coo<>;
+    using Mtx = gko::matrix::Sellp<>;
     using Vec = gko::matrix::Dense<>;
 
-    Coo() : rand_engine(42) {}
+    Sellp() : rand_engine(42) {}
 
     void SetUp()
     {
@@ -81,12 +81,15 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
-    void set_up_apply_data(int num_vectors = 1)
+    void set_up_apply_vector(
+        int slice_size = gko::matrix::default_slice_size,
+        int stride_factor = gko::matrix::default_stride_factor,
+        int total_cols = 0)
     {
         mtx = Mtx::create(ref);
         mtx->copy_from(gen_mtx(532, 231));
-        expected = gen_mtx(532, num_vectors);
-        y = gen_mtx(231, num_vectors);
+        expected = gen_mtx(532, 1);
+        y = gen_mtx(231, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(hip);
@@ -101,6 +104,28 @@ protected:
         dbeta->copy_from(beta.get());
     }
 
+    void set_up_apply_matrix(
+        int slice_size = gko::matrix::default_slice_size,
+        int stride_factor = gko::matrix::default_stride_factor,
+        int total_cols = 0)
+    {
+        mtx = Mtx::create(ref);
+        mtx->copy_from(gen_mtx(532, 231));
+        expected = gen_mtx(532, 64);
+        y = gen_mtx(231, 64);
+        alpha = gko::initialize<Vec>({2.0}, ref);
+        beta = gko::initialize<Vec>({-1.0}, ref);
+        dmtx = Mtx::create(hip);
+        dmtx->copy_from(mtx.get());
+        dresult = Vec::create(hip);
+        dresult->copy_from(expected.get());
+        dy = Vec::create(hip);
+        dy->copy_from(y.get());
+        dalpha = Vec::create(hip);
+        dalpha->copy_from(alpha.get());
+        dbeta = Vec::create(hip);
+        dbeta->copy_from(beta.get());
+    }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::HipExecutor> hip;
@@ -121,119 +146,116 @@ protected:
 };
 
 
-TEST_F(Coo, SimpleApplyIsEquivalentToRef)
+TEST_F(Sellp, SimpleApplyIsEquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_apply_vector();
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
-TEST_F(Coo, AdvancedApplyIsEquivalentToRef)
+TEST_F(Sellp, AdvancedApplyIsEquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_apply_vector();
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
-TEST_F(Coo, SimpleApplyAddIsEquivalentToRef)
+TEST_F(Sellp, SimpleApplyWithSliceSizeAndStrideFactorIsEquivalentToRef)
 {
-    set_up_apply_data();
-
-    mtx->apply2(y.get(), expected.get());
-    dmtx->apply2(dy.get(), dresult.get());
-
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(Coo, AdvancedApplyAddIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    mtx->apply2(alpha.get(), y.get(), expected.get());
-    dmtx->apply2(dalpha.get(), dy.get(), dresult.get());
-
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(Coo, SimpleApplyToDenseMatrixIsEquivalentToRef)
-{
-    set_up_apply_data(3);
+    set_up_apply_vector(32, 2);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
-TEST_F(Coo, AdvancedApplyToDenseMatrixIsEquivalentToRef)
+TEST_F(Sellp, AdvancedApplyWithSliceSizeAndStrideFActorIsEquivalentToRef)
 {
-    set_up_apply_data(3);
+    set_up_apply_vector(32, 2);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
-TEST_F(Coo, SimpleApplyAddToDenseMatrixIsEquivalentToRef)
+TEST_F(Sellp, SimpleApplyMultipleRHSIsEquivalentToRef)
 {
-    set_up_apply_data(3);
+    set_up_apply_matrix();
 
-    mtx->apply2(y.get(), expected.get());
-    dmtx->apply2(dy.get(), dresult.get());
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
-TEST_F(Coo, SimpleApplyAddToLargeDenseMatrixIsEquivalentToRef)
+TEST_F(Sellp, AdvancedApplyMultipleRHSIsEquivalentToRef)
 {
-    set_up_apply_data(33);
+    set_up_apply_matrix();
 
-    mtx->apply2(y.get(), expected.get());
-    dmtx->apply2(dy.get(), dresult.get());
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
-TEST_F(Coo, AdvancedApplyAddToDenseMatrixIsEquivalentToRef)
+TEST_F(Sellp,
+       SimpleApplyMultipleRHSWithSliceSizeAndStrideFactorIsEquivalentToRef)
 {
-    set_up_apply_data(3);
+    set_up_apply_matrix(32, 2);
 
-    mtx->apply2(alpha.get(), y.get(), expected.get());
-    dmtx->apply2(dalpha.get(), dy.get(), dresult.get());
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
-TEST_F(Coo, AdvancedApplyAddToLargeDenseMatrixIsEquivalentToRef)
+TEST_F(Sellp,
+       AdvancedApplyMultipleRHSWithSliceSizeAndStrideFActorIsEquivalentToRef)
 {
-    set_up_apply_data(33);
+    set_up_apply_matrix(32, 2);
 
-    mtx->apply2(y.get(), expected.get());
-    dmtx->apply2(dy.get(), dresult.get());
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    auto result = Vec::create(ref);
+    result->copy_from(dresult.get());
+    GKO_ASSERT_MTX_NEAR(result, expected, 1e-14);
 }
 
 
-TEST_F(Coo, ConvertToDenseIsEquivalentToRef)
+TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_apply_matrix();
+
     auto dense_mtx = gko::matrix::Dense<>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<>::create(hip);
 
@@ -244,18 +266,31 @@ TEST_F(Coo, ConvertToDenseIsEquivalentToRef)
 }
 
 
-TEST_F(Coo, ConvertToCsrIsEquivalentToRef)
+TEST_F(Sellp, ConvertToCsrIsEquivalentToRef)
 {
-    set_up_apply_data();
-    auto dense_mtx = gko::matrix::Dense<>::create(ref);
+    set_up_apply_matrix();
+
     auto csr_mtx = gko::matrix::Csr<>::create(ref);
     auto dcsr_mtx = gko::matrix::Csr<>::create(hip);
 
-    mtx->convert_to(dense_mtx.get());
-    dense_mtx->convert_to(csr_mtx.get());
+    mtx->convert_to(csr_mtx.get());
     dmtx->convert_to(dcsr_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Sellp, CountNonzerosIsEquivalentToRef)
+{
+    set_up_apply_matrix();
+
+    gko::size_type nnz;
+    gko::size_type dnnz;
+
+    gko::kernels::reference::sellp::count_nonzeros(ref, mtx.get(), &nnz);
+    gko::kernels::hip::sellp::count_nonzeros(hip, dmtx.get(), &dnnz);
+
+    ASSERT_EQ(nnz, dnnz);
 }
 
 
