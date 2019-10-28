@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_BASE_CONFIG_HPP_
-#define GKO_HIP_BASE_CONFIG_HPP_
+#ifndef GKO_HIP_BASE_CONFIG_HIP_HPP_
+#define GKO_HIP_BASE_CONFIG_HIP_HPP_
 
 
 #include <hip/device_functions.h>
@@ -80,4 +80,4 @@ struct hip_config {
 }  // namespace gko
 
 
-#endif  // GKO_HIP_BASE_CONFIG_HPP_
+#endif  // GKO_HIP_BASE_CONFIG_HIP_HPP_
