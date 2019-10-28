@@ -56,7 +56,6 @@ namespace {
 class Dense : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
-    using ComplexMtx = gko::matrix::Dense<std::complex<double>>;
 
     Dense() : rand_engine(15) {}
 
@@ -106,15 +105,12 @@ protected:
     void set_up_apply_data()
     {
         x = gen_mtx<Mtx>(65, 25);
-        c_x = gen_mtx<ComplexMtx>(65, 25);
         y = gen_mtx<Mtx>(25, 35);
         expected = gen_mtx<Mtx>(65, 35);
         alpha = gko::initialize<Mtx>({2.0}, ref);
         beta = gko::initialize<Mtx>({-1.0}, ref);
         dx = Mtx::create(hip);
         dx->copy_from(x.get());
-        dc_x = ComplexMtx::create(hip);
-        dc_x->copy_from(c_x.get());
         dy = Mtx::create(hip);
         dy->copy_from(y.get());
         dresult = Mtx::create(hip);
@@ -131,14 +127,12 @@ protected:
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> x;
-    std::unique_ptr<ComplexMtx> c_x;
     std::unique_ptr<Mtx> y;
     std::unique_ptr<Mtx> alpha;
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> expected;
     std::unique_ptr<Mtx> dresult;
     std::unique_ptr<Mtx> dx;
-    std::unique_ptr<ComplexMtx> dc_x;
     std::unique_ptr<Mtx> dy;
     std::unique_ptr<Mtx> dalpha;
     std::unique_ptr<Mtx> dbeta;
@@ -277,18 +271,6 @@ TEST_F(Dense, IsTransposable)
 
     GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(dtrans.get()),
                         static_cast<Mtx *>(trans.get()), 0);
-}
-
-
-TEST_F(Dense, IsConjugateTransposable)
-{
-    set_up_apply_data();
-
-    auto trans = c_x->conj_transpose();
-    auto dtrans = dc_x->conj_transpose();
-
-    GKO_ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(dtrans.get()),
-                        static_cast<ComplexMtx *>(trans.get()), 0);
 }
 
 

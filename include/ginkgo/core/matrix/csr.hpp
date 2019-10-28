@@ -151,9 +151,9 @@ public:
         int64_t clac_size(const int64_t nnz) { return 0; }
     };
 
-    class cusparse : public strategy_type {
+    class sparselib : public strategy_type {
     public:
-        cusparse() : strategy_type("cusparse") {}
+        sparselib() : strategy_type("sparselib") {}
 
         void process(const Array<index_type> &mtx_row_ptrs,
                      Array<index_type> *mtx_srow)
@@ -505,7 +505,7 @@ protected:
      */
     Csr(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{},
         size_type num_nonzeros = {},
-        std::shared_ptr<strategy_type> strategy = std::make_shared<cusparse>())
+        std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
         : EnableLinOp<Csr>(exec, size),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
@@ -539,7 +539,7 @@ protected:
               typename RowPtrsArray>
     Csr(std::shared_ptr<const Executor> exec, const dim<2> &size,
         ValuesArray &&values, ColIdxsArray &&col_idxs, RowPtrsArray &&row_ptrs,
-        std::shared_ptr<strategy_type> strategy = std::make_shared<cusparse>())
+        std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
         : EnableLinOp<Csr>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},

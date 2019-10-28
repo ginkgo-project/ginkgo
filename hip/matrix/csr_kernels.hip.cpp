@@ -613,32 +613,9 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_merge_path_spmv, merge_path_spmv);
 template <typename ValueType, typename IndexType>
 int compute_items_per_thread(std::shared_ptr<const HipExecutor> exec)
 {
-    const int version = exec->get_major_version()
-                        << 4 + exec->get_minor_version();
-    // The num_item is decided to make the occupancy 100%
-    // TODO: Extend this list when new GPU is released
-    //       Tune this parameter
-    // 128 threads/block the number of items per threads
-    // 3.0 3.5: 6
-    // 3.7: 14
-    // 5.0, 5.3, 6.0, 6.2: 8
-    // 5.2, 6.1, 7.0: 12
+    // Hip use the minimal value 6 as num_item
+    // TODO: Need to be tuned
     int num_item = 6;
-    switch (version) {
-    case 0x50:
-    case 0x53:
-    case 0x60:
-    case 0x62:
-        num_item = 8;
-        break;
-    case 0x52:
-    case 0x61:
-    case 0x70:
-        num_item = 12;
-        break;
-    case 0x37:
-        num_item = 14;
-    }
     // Ensure that satisfy:
     // sizeof(IndexType) + sizeof(ValueType)
     // <= items_per_thread * sizeof(IndexType)
@@ -690,7 +667,7 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
             a->get_const_col_idxs(), as_hip_type(a->get_const_row_ptrs()),
             as_hip_type(b->get_const_values()), b->get_stride(),
             as_hip_type(c->get_values()), c->get_stride());
-    } else if (a->get_strategy()->get_name() == "hipsparse") {
+    } else if (a->get_strategy()->get_name() == "sparselib") {
         if (hipsparse::is_supported<ValueType, IndexType>::value) {
             // TODO: add implementation for int64 and multiple RHS
             auto handle = exec->get_hipsparse_handle();
@@ -749,7 +726,7 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(b->get_stride()), as_hip_type(c->get_values()),
                 as_hip_type(c->get_stride()));
         }
-    } else if (a->get_strategy()->get_name() == "hipsparse") {
+    } else if (a->get_strategy()->get_name() == "sparselib") {
         if (hipsparse::is_supported<ValueType, IndexType>::value) {
             // TODO: add implementation for int64 and multiple RHS
             auto descr = hipsparse::create_mat_descr();
