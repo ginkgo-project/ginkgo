@@ -54,7 +54,7 @@ function(ginkgo_create_hip_test test_name)
         PRIVATE
             "$<BUILD_INTERFACE:${Ginkgo_BINARY_DIR}>"
 
-            # Only `exception_helpers` requires thess so far, but it's much easier
+            # Only `exception_helpers` requires these so far, but it's much easier
             # to put these this way.
             ${HIPBLAS_INCLUDE_DIRS}
             ${HIPSPARSE_INCLUDE_DIRS}
@@ -74,7 +74,6 @@ function(ginkgo_create_hip_test test_name)
     if(BUILD_SHARED_LIBS)
         if (GINKGO_HIP_PLATFORM MATCHES "hcc")
             target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_RPATH_FOR_HIP}")
-
 
             if (GINKGO_CHECK_CIRCULAR_DEPS)
                 target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")

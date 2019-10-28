@@ -142,8 +142,8 @@ if(GINKGO_HIP_PLATFORM MATCHES "hcc")
     # Ban `-hc` flag as INTERFACE_LINK_LIBRARIES since that is propagated when building
     # a static library, and it's definitely not a known option to any compiler.
     get_target_property(GINKGO_HCCRT_ILL hcc::hccrt INTERFACE_LINK_LIBRARIES)
-    string(REPLACE "-hc " "" GINKGO_HCCRT_NEW_ILL GINKGO_HCCRT_ILL)
-    set_target_properties(hcc::hccrt PROPERTIES INTERFACE_LINK_LIBRARIES "${GINKGO_HCC_NEW_ILL}")
+    string(REPLACE "-hc " "" GINKGO_HCCRT_NEW_ILL "${GINKGO_HCCRT_ILL}")
+    set_target_properties(hcc::hccrt PROPERTIES INTERFACE_LINK_LIBRARIES "${GINKGO_HCCRT_NEW_ILL}")
 
     target_link_libraries(ginkgo_hip PRIVATE hip::device)
 elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")

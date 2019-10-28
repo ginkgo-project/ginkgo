@@ -23,9 +23,9 @@ done
 
 # figure out correct compiler flags
 if ls ${THIS_DIR} | grep -F "libginkgo." >/dev/null; then
-    LINK_FLAGS="-lpthread -lginkgo -lginkgo_omp -lginkgo_cuda -lginkgo_reference"
+    LINK_FLAGS="-lpthread -lginkgo -lginkgo_omp -lginkgo_cuda -lginkgo_reference -lginkgo_hip"
 else
-    LINK_FLAGS="-lpthread -lginkgod -lginkgo_ompd -lginkgo_cudad -lginkgo_referenced"
+    LINK_FLAGS="-lpthread -lginkgod -lginkgo_ompd -lginkgo_cudad -lginkgo_referenced -lginkgo_hipd"
 fi
 if [ -z "${CXX}" ]; then
     CXX="c++"

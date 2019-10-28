@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_BASE_HIPBLAS_BINDINGS_HPP_
-#define GKO_HIP_BASE_HIPBLAS_BINDINGS_HPP_
+#ifndef GKO_HIP_BASE_HIPBLAS_BINDINGS_HIP_HPP_
+#define GKO_HIP_BASE_HIPBLAS_BINDINGS_HIP_HPP_
 
 
 #include <hipblas.h>
@@ -140,47 +140,51 @@ GKO_BIND_HIPBLAS_GEAM(ValueType, detail::not_implemented);
 #undef GKO_BIND_HIPBLAS_GEAM
 
 
-// #define GKO_BIND_HIPBLAS_SCAL(ValueType, HipblasName)                        \
-//     inline void scal(hipblasHandle_t handle, int n, const ValueType *alpha,  \
-//                      ValueType *x, int incx)                                 \
-//     {                                                                        \
-//         GKO_ASSERT_NO_HIPBLAS_ERRORS(HipblasName(                            \
-//             handle, n, as_hiplibs_type(alpha), as_hiplibs_type(x), incx));   \
-//     }                                                                        \
-//     static_assert(true,                                                      \
-//                   "This assert is used to counter the false positive extra " \
-//                   "semi-colon warnings")
+#define GKO_BIND_HIPBLAS_SCAL(ValueType, HipblasName)                        \
+    inline void scal(hipblasHandle_t handle, int n, const ValueType *alpha,  \
+                     ValueType *x, int incx)                                 \
+    {                                                                        \
+        GKO_ASSERT_NO_HIPBLAS_ERRORS(HipblasName(                            \
+            handle, n, as_hiplibs_type(alpha), as_hiplibs_type(x), incx));   \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
-// GKO_BIND_HIPBLAS_SCAL(float, hipblasSscal);
-// GKO_BIND_HIPBLAS_SCAL(double, hipblasDscal);
-// GKO_BIND_HIPBLAS_SCAL(std::complex<float>, hipblasCscal);
-// GKO_BIND_HIPBLAS_SCAL(std::complex<double>, hipblasZscal);
-// template <typename ValueType>
-// GKO_BIND_HIPBLAS_SCAL(ValueType, detail::not_implemented);
+GKO_BIND_HIPBLAS_SCAL(float, hipblasSscal);
+GKO_BIND_HIPBLAS_SCAL(double, hipblasDscal);
+/* not implemented
+GKO_BIND_HIPBLAS_SCAL(std::complex<float>, hipblasCscal);
+GKO_BIND_HIPBLAS_SCAL(std::complex<double>, hipblasZscal);
+*/
+template <typename ValueType>
+GKO_BIND_HIPBLAS_SCAL(ValueType, detail::not_implemented);
 
-// #undef GKO_BIND_HIPBLAS_SCAL
+#undef GKO_BIND_HIPBLAS_SCAL
 
 
-// #define GKO_BIND_HIPBLAS_AXPY(ValueType, HipblasName)                          \
-//     inline void axpy(hipblasHandle_t handle, int n, const ValueType *alpha,    \
-//                      const ValueType *x, int incx, ValueType *y, int incy)     \
-//     {                                                                          \
-//         GKO_ASSERT_NO_HIPBLAS_ERRORS(                                          \
-//             HipblasName(handle, n, as_hiplibs_type(alpha), as_hiplibs_type(x), \
-//                         incx, as_hiplibs_type(y), incy));                      \
-//     }                                                                          \
-//     static_assert(true,                                                        \
-//                   "This assert is used to counter the false positive extra "   \
-//                   "semi-colon warnings")
+#define GKO_BIND_HIPBLAS_AXPY(ValueType, HipblasName)                          \
+    inline void axpy(hipblasHandle_t handle, int n, const ValueType *alpha,    \
+                     const ValueType *x, int incx, ValueType *y, int incy)     \
+    {                                                                          \
+        GKO_ASSERT_NO_HIPBLAS_ERRORS(                                          \
+            HipblasName(handle, n, as_hiplibs_type(alpha), as_hiplibs_type(x), \
+                        incx, as_hiplibs_type(y), incy));                      \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
 
-// GKO_BIND_HIPBLAS_AXPY(float, hipblasSaxpy);
-// GKO_BIND_HIPBLAS_AXPY(double, hipblasDaxpy);
-// GKO_BIND_HIPBLAS_AXPY(std::complex<float>, hipblasCaxpy);
-// GKO_BIND_HIPBLAS_AXPY(std::complex<double>, hipblasZaxpy);
-// template <typename ValueType>
-// GKO_BIND_HIPBLAS_AXPY(ValueType, detail::not_implemented);
+GKO_BIND_HIPBLAS_AXPY(float, hipblasSaxpy);
+GKO_BIND_HIPBLAS_AXPY(double, hipblasDaxpy);
+/* not implemented
+GKO_BIND_HIPBLAS_AXPY(std::complex<float>, hipblasCaxpy);
+GKO_BIND_HIPBLAS_AXPY(std::complex<double>, hipblasZaxpy);
+*/
+template <typename ValueType>
+GKO_BIND_HIPBLAS_AXPY(ValueType, detail::not_implemented);
 
-// #undef GKO_BIND_HIPBLAS_AXPY
+#undef GKO_BIND_HIPBLAS_AXPY
 
 
 #define GKO_BIND_HIPBLAS_DOT(ValueType, HipblasName)                           \
@@ -197,8 +201,10 @@ GKO_BIND_HIPBLAS_GEAM(ValueType, detail::not_implemented);
 
 GKO_BIND_HIPBLAS_DOT(float, hipblasSdot);
 GKO_BIND_HIPBLAS_DOT(double, hipblasDdot);
-// GKO_BIND_HIPBLAS_DOT(std::complex<float>, hipblasCdotc);
-// GKO_BIND_HIPBLAS_DOT(std::complex<double>, hipblasZdotc);
+/* not implemented
+GKO_BIND_HIPBLAS_DOT(std::complex<float>, hipblasCdotc);
+GKO_BIND_HIPBLAS_DOT(std::complex<double>, hipblasZdotc);
+*/
 template <typename ValueType>
 GKO_BIND_HIPBLAS_DOT(ValueType, detail::not_implemented);
 
@@ -248,4 +254,4 @@ inline void destroy_hipblas_handle(hipblasContext *handle)
 }  // namespace gko
 
 
-#endif  // GKO_HIP_BASE_HIPBLAS_BINDINGS_HPP_
+#endif  // GKO_HIP_BASE_HIPBLAS_BINDINGS_HIP_HPP_
