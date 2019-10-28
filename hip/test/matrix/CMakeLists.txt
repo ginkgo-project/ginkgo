@@ -1,1 +1,6 @@
 ginkgo_create_hip_test(coo_kernels)
+ginkgo_create_hip_test(csr_kernels)
+ginkgo_create_hip_test(dense_kernels)
+ginkgo_create_hip_test(ell_kernels)
+ginkgo_create_hip_test(hybrid_kernels)
+ginkgo_create_hip_test(sellp_kernels)

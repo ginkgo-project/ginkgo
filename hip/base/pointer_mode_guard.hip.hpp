@@ -61,11 +61,11 @@ namespace hipblas {
  */
 class pointer_mode_guard {
 public:
-    pointer_mode_guard(hipblasHandle_t &handle)
+    pointer_mode_guard(hipblasContext *handle)
     {
-        l_handle = &handle;
+        l_handle = handle;
         GKO_ASSERT_NO_HIPBLAS_ERRORS(
-            hipblasSetPointerMode(handle, HIPBLAS_POINTER_MODE_HOST));
+            hipblasSetPointerMode(reinterpret_cast<hipblasHandle_t>(handle), HIPBLAS_POINTER_MODE_HOST));
     }
 
     pointer_mode_guard(pointer_mode_guard &other) = delete;
@@ -80,15 +80,15 @@ public:
     {
         /* Ignore the error during stack unwinding for this call */
         if (std::uncaught_exception()) {
-            hipblasSetPointerMode(*l_handle, HIPBLAS_POINTER_MODE_DEVICE);
+            hipblasSetPointerMode(reinterpret_cast<hipblasHandle_t>(l_handle), HIPBLAS_POINTER_MODE_DEVICE);
         } else {
             GKO_ASSERT_NO_HIPBLAS_ERRORS(
-                hipblasSetPointerMode(*l_handle, HIPBLAS_POINTER_MODE_DEVICE));
+                hipblasSetPointerMode(reinterpret_cast<hipblasHandle_t>(l_handle), HIPBLAS_POINTER_MODE_DEVICE));
         }
     }
 
 private:
-    hipblasHandle_t *l_handle;
+    hipblasContext *l_handle;
 };
 
 
@@ -108,11 +108,11 @@ namespace hipsparse {
  */
 class pointer_mode_guard {
 public:
-    pointer_mode_guard(hipsparseHandle_t &handle)
+    pointer_mode_guard(hipsparseContext *handle)
     {
-        l_handle = &handle;
+        l_handle = handle;
         GKO_ASSERT_NO_HIPSPARSE_ERRORS(
-            hipsparseSetPointerMode(handle, HIPSPARSE_POINTER_MODE_HOST));
+            hipsparseSetPointerMode(reinterpret_cast<hipsparseHandle_t>(handle), HIPSPARSE_POINTER_MODE_HOST));
     }
 
     pointer_mode_guard(pointer_mode_guard &other) = delete;
@@ -127,15 +127,15 @@ public:
     {
         /* Ignore the error during stack unwinding for this call */
         if (std::uncaught_exception()) {
-            hipsparseSetPointerMode(*l_handle, HIPSPARSE_POINTER_MODE_DEVICE);
+            hipsparseSetPointerMode(reinterpret_cast<hipsparseHandle_t>(l_handle), HIPSPARSE_POINTER_MODE_DEVICE);
         } else {
             GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseSetPointerMode(
-                *l_handle, HIPSPARSE_POINTER_MODE_DEVICE));
+                reinterpret_cast<hipsparseHandle_t>(l_handle), HIPSPARSE_POINTER_MODE_DEVICE));
         }
     }
 
 private:
-    hipsparseHandle_t *l_handle;
+    hipsparseContext *l_handle;
 };
 
 

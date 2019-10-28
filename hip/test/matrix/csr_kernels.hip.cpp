@@ -60,8 +60,6 @@ class Csr : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Csr<>;
     using Vec = gko::matrix::Dense<>;
-    using ComplexVec = gko::matrix::Dense<std::complex<double>>;
-    using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
 
     Csr() : rand_engine(42) {}
 
@@ -110,29 +108,18 @@ protected:
         dbeta->copy_from(beta.get());
     }
 
-    void set_up_apply_complex_data(
-        std::shared_ptr<ComplexMtx::strategy_type> strategy)
-    {
-        complex_mtx = ComplexMtx::create(ref, strategy);
-        complex_mtx->copy_from(gen_mtx<ComplexVec>(532, 231, 1));
-        complex_dmtx = ComplexMtx::create(hip, strategy);
-        complex_dmtx->copy_from(complex_mtx.get());
-    }
-
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::HipExecutor> hip;
 
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> mtx;
-    std::unique_ptr<ComplexMtx> complex_mtx;
     std::unique_ptr<Vec> expected;
     std::unique_ptr<Vec> y;
     std::unique_ptr<Vec> alpha;
     std::unique_ptr<Vec> beta;
 
     std::unique_ptr<Mtx> dmtx;
-    std::unique_ptr<ComplexMtx> complex_dmtx;
     std::unique_ptr<Vec> dresult;
     std::unique_ptr<Vec> dy;
     std::unique_ptr<Vec> dalpha;
@@ -173,7 +160,7 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithLoadBalance)
 
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithHipsparse)
 {
-    set_up_apply_data(std::make_shared<Mtx::hipsparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -184,7 +171,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithHipsparse)
 
 TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithHipsparse)
 {
-    set_up_apply_data(std::make_shared<Mtx::hipsparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -326,21 +313,9 @@ TEST_F(Csr, TransposeIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
-{
-    set_up_apply_complex_data(std::make_shared<ComplexMtx::automatical>(32));
-
-    auto trans = complex_mtx->conj_transpose();
-    auto d_trans = complex_dmtx->conj_transpose();
-
-    GKO_ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(d_trans.get()),
-                        static_cast<ComplexMtx *>(trans.get()), 0.0);
-}
-
-
 TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::hipsparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto dense_mtx = gko::matrix::Dense<>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<>::create(hip);
 
@@ -353,7 +328,7 @@ TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
 
 TEST_F(Csr, MoveToDenseIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::hipsparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto dense_mtx = gko::matrix::Dense<>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<>::create(hip);
 
@@ -366,7 +341,7 @@ TEST_F(Csr, MoveToDenseIsEquivalentToRef)
 
 TEST_F(Csr, ConvertToEllIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::hipsparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto ell_mtx = gko::matrix::Ell<>::create(ref);
     auto dell_mtx = gko::matrix::Ell<>::create(hip);
 
@@ -379,7 +354,7 @@ TEST_F(Csr, ConvertToEllIsEquivalentToRef)
 
 TEST_F(Csr, MoveToEllIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::hipsparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto ell_mtx = gko::matrix::Ell<>::create(ref);
     auto dell_mtx = gko::matrix::Ell<>::create(hip);
 
@@ -391,7 +366,7 @@ TEST_F(Csr, MoveToEllIsEquivalentToRef)
 
 TEST_F(Csr, ConvertToSparsityCsrIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::hipsparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(ref);
     auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(hip);
 
@@ -404,7 +379,7 @@ TEST_F(Csr, ConvertToSparsityCsrIsEquivalentToRef)
 
 TEST_F(Csr, MoveToSparsityCsrIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::hipsparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(ref);
     auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(hip);
 
@@ -417,7 +392,7 @@ TEST_F(Csr, MoveToSparsityCsrIsEquivalentToRef)
 
 TEST_F(Csr, CalculateMaxNnzPerRowIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::hipsparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     gko::size_type max_nnz_per_row;
     gko::size_type dmax_nnz_per_row;
 
@@ -432,7 +407,7 @@ TEST_F(Csr, CalculateMaxNnzPerRowIsEquivalentToRef)
 
 TEST_F(Csr, ConvertToCooIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::hipsparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto coo_mtx = gko::matrix::Coo<>::create(ref);
     auto dcoo_mtx = gko::matrix::Coo<>::create(hip);
 
@@ -445,7 +420,7 @@ TEST_F(Csr, ConvertToCooIsEquivalentToRef)
 
 TEST_F(Csr, MoveToCooIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::hipsparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto coo_mtx = gko::matrix::Coo<>::create(ref);
     auto dcoo_mtx = gko::matrix::Coo<>::create(hip);
 
@@ -458,7 +433,7 @@ TEST_F(Csr, MoveToCooIsEquivalentToRef)
 
 TEST_F(Csr, ConvertToSellpIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::hipsparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
     auto dsellp_mtx = gko::matrix::Sellp<>::create(hip);
 
@@ -471,7 +446,7 @@ TEST_F(Csr, ConvertToSellpIsEquivalentToRef)
 
 TEST_F(Csr, MoveToSellpIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::hipsparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
     auto dsellp_mtx = gko::matrix::Sellp<>::create(hip);
 
@@ -484,7 +459,7 @@ TEST_F(Csr, MoveToSellpIsEquivalentToRef)
 
 TEST_F(Csr, CalculateTotalColsIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::hipsparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     gko::size_type total_cols;
     gko::size_type dtotal_cols;
 
@@ -499,7 +474,7 @@ TEST_F(Csr, CalculateTotalColsIsEquivalentToRef)
 
 TEST_F(Csr, CalculatesNonzerosPerRow)
 {
-    set_up_apply_data(std::make_shared<Mtx::hipsparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     gko::Array<gko::size_type> row_nnz(ref, mtx->get_size()[0]);
     gko::Array<gko::size_type> drow_nnz(hip, dmtx->get_size()[0]);
 
@@ -515,7 +490,7 @@ TEST_F(Csr, CalculatesNonzerosPerRow)
 TEST_F(Csr, ConvertToHybridIsEquivalentToRef)
 {
     using Hybrid_type = gko::matrix::Hybrid<>;
-    set_up_apply_data(std::make_shared<Mtx::hipsparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto hybrid_mtx = Hybrid_type::create(
         ref, std::make_shared<Hybrid_type::column_limit>(2));
     auto dhybrid_mtx = Hybrid_type::create(
@@ -531,7 +506,7 @@ TEST_F(Csr, ConvertToHybridIsEquivalentToRef)
 TEST_F(Csr, MoveToHybridIsEquivalentToRef)
 {
     using Hybrid_type = gko::matrix::Hybrid<>;
-    set_up_apply_data(std::make_shared<Mtx::hipsparse>());
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto hybrid_mtx = Hybrid_type::create(
         ref, std::make_shared<Hybrid_type::column_limit>(2));
     auto dhybrid_mtx = Hybrid_type::create(
