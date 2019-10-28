@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_COMPONENTS_SEGMENT_SCAN_CUH_
-#define GKO_HIP_COMPONENTS_SEGMENT_SCAN_CUH_
+#ifndef GKO_HIP_COMPONENTS_SEGMENT_SCAN_HIP_HPP_
+#define GKO_HIP_COMPONENTS_SEGMENT_SCAN_HIP_HPP_
 
 
 #include <ginkgo/core/base/std_extensions.hpp>
@@ -82,4 +82,4 @@ __device__ __forceinline__ bool segment_scan(
 }  // namespace gko
 
 
-#endif  // GKO_HIP_COMPONENTS_SEGMENT_SCAN_CUH_
+#endif  // GKO_HIP_COMPONENTS_SEGMENT_SCAN_HIP_HPP_

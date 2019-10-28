@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_BENCHMARK_SPMV_HIP_LINOPS_HPP_
-#define GKO_BENCHMARK_SPMV_HIP_LINOPS_HPP_
+#ifndef GKO_BENCHMARK_SPMV_HIP_LINOPS_HIP_HPP_
+#define GKO_BENCHMARK_SPMV_HIP_LINOPS_HIP_HPP_
 
 
 #include <ginkgo/ginkgo.hpp>
@@ -315,4 +315,4 @@ using hipsp_ell =
     detail::HipspHybrid<double, gko::int32, HIPSPARSE_HYB_PARTITION_MAX, 0>;
 using hipsp_hybrid = detail::HipspHybrid<>;
 
-#endif  // GKO_BENCHMARK_SPMV_HIP_LINOPS_HPP_
+#endif  // GKO_BENCHMARK_SPMV_HIP_LINOPS_HIP_HPP_
