@@ -406,7 +406,7 @@ TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
     gko::kernels::reference::dense::calculate_nonzeros_per_row(ref, x.get(),
                                                                &nnz_per_row);
     gko::kernels::hip::dense::calculate_nonzeros_per_row(hip, dx.get(),
-                                                          &dnnz_per_row);
+                                                         &dnnz_per_row);
 
     auto tmp = gko::Array<gko::size_type>(ref, dnnz_per_row);
     for (auto i = 0; i < nnz_per_row.get_num_elems(); i++) {
@@ -424,7 +424,7 @@ TEST_F(Dense, CalculateMaxNNZPerRowIsEquivalentToRef)
     gko::kernels::reference::dense::calculate_max_nnz_per_row(ref, x.get(),
                                                               &max_nnz);
     gko::kernels::hip::dense::calculate_max_nnz_per_row(hip, dx.get(),
-                                                         &dmax_nnz);
+                                                        &dmax_nnz);
 
     ASSERT_EQ(max_nnz, dmax_nnz);
 }

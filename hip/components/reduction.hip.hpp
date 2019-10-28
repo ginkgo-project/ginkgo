@@ -1,4 +1,3 @@
-#include "hip/hip_runtime.h"
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
@@ -33,6 +32,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef GKO_HIP_COMPONENTS_REDUCTION_HIP_HPP_
 #define GKO_HIP_COMPONENTS_REDUCTION_HIP_HPP_
+
+
+#include <hip/hip_runtime.h>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -223,7 +225,8 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const HipExecutor> exec,
 
         auto block_results = Array<ValueType>(exec, grid_dim);
 
-        hipLaunchKernelGGL(reduce_add_array, dim3(grid_dim), dim3(default_block_size), 0, 0, 
+        hipLaunchKernelGGL(
+            reduce_add_array, dim3(grid_dim), dim3(default_block_size), 0, 0,
             size, as_hip_type(source), as_hip_type(block_results.get_data()));
 
         block_results_val = block_results.get_const_data();
@@ -231,9 +234,9 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const HipExecutor> exec,
 
     auto d_result = Array<ValueType>(exec, 1);
 
-    hipLaunchKernelGGL(reduce_add_array, dim3(1), dim3(default_block_size), 0, 0, 
-        grid_dim, as_hip_type(block_results_val),
-        as_hip_type(d_result.get_data()));
+    hipLaunchKernelGGL(reduce_add_array, dim3(1), dim3(default_block_size), 0,
+                       0, grid_dim, as_hip_type(block_results_val),
+                       as_hip_type(d_result.get_data()));
     ValueType answer = zero<ValueType>();
     exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
                                   &answer);
