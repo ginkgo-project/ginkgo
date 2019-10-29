@@ -58,6 +58,15 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
 }
 
 
+std::shared_ptr<CudaExecutor> CudaExecutor::create(
+    int device_id, std::shared_ptr<MemorySpace> mem_space,
+    std::shared_ptr<Executor> master)
+{
+    return std::shared_ptr<CudaExecutor>(
+        new CudaExecutor(device_id, mem_space, std::move(master)));
+}
+
+
 void HostMemorySpace::raw_copy_to(const CudaMemorySpace *, size_type num_bytes,
                                   const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(cuda);

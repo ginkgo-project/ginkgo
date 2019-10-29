@@ -119,6 +119,22 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
 }
 
 
+std::shared_ptr<CudaExecutor> CudaExecutor::create(
+    int device_id, std::shared_ptr<MemorySpace> mem_space,
+    std::shared_ptr<Executor> master)
+{
+    return std::shared_ptr<CudaExecutor>(
+        new CudaExecutor(device_id, mem_space, std::move(master)),
+        [device_id](CudaExecutor *exec) {
+            delete exec;
+            if (!CudaExecutor::get_num_execs(device_id)) {
+                device_guard g(device_id);
+                cudaDeviceReset();
+            }
+        });
+}
+
+
 void CudaExecutor::synchronize() const
 {
     cuda::device_guard g(this->get_device_id());

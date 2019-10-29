@@ -104,6 +104,18 @@ TEST_F(CudaExecutor, CanInstantiateTwoExecutorsOnOneDevice)
 }
 
 
+TEST_F(CudaExecutor, CanBeCreatedWithAssociatedMemorySpace)
+{
+    auto mem_space = gko::CudaMemorySpace::create(0);
+    auto cuda =
+        gko::CudaExecutor::create(0, mem_space, gko::OmpExecutor::create());
+    auto cuda2 = gko::CudaExecutor::create(0, omp);
+
+    ASSERT_NE(cuda->get_mem_space(), cuda2->get_mem_space());
+    ASSERT_EQ(cuda->get_mem_space(), mem_space);
+}
+
+
 TEST_F(CudaExecutor, MasterKnowsNumberOfDevices)
 {
     int count = 0;

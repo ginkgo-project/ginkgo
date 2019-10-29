@@ -72,6 +72,15 @@ public:
 };
 
 
+TEST(OmpExecutor, CanBeCreatedWithAssociatedMemorySpace)
+{
+    auto mem_space = gko::HostMemorySpace::create();
+    exec_ptr omp = gko::OmpExecutor::create(mem_space);
+
+    ASSERT_EQ(omp->get_mem_space(), mem_space);
+}
+
+
 TEST(OmpExecutor, RunsCorrectOperation)
 {
     int value = 0;
@@ -125,6 +134,15 @@ TEST(OmpExecutor, IsItsOwnMaster)
 }
 
 
+TEST(ReferenceExecutor, CanBeCreatedWithAssociatedMemorySpace)
+{
+    auto mem_space = gko::HostMemorySpace::create();
+    exec_ptr ref = gko::ReferenceExecutor::create(mem_space);
+
+    ASSERT_EQ(ref->get_mem_space(), mem_space);
+}
+
+
 TEST(ReferenceExecutor, RunsCorrectOperation)
 {
     int value = 0;
@@ -153,6 +171,16 @@ TEST(ReferenceExecutor, IsItsOwnMaster)
     exec_ptr ref = gko::ReferenceExecutor::create();
 
     ASSERT_EQ(ref, ref->get_master());
+}
+
+
+TEST(CudaExecutor, CanBeCreatedWithAssociatedMemorySpace)
+{
+    auto mem_space = gko::CudaMemorySpace::create(0);
+    exec_ptr cuda =
+        gko::CudaExecutor::create(0, mem_space, gko::OmpExecutor::create());
+
+    ASSERT_EQ(cuda->get_mem_space(), mem_space);
 }
 
 
