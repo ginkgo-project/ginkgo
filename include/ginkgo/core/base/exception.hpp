@@ -249,6 +249,7 @@ class HipError : public Error {
 public:
     /**
      * Initializes a HIP error.
+     *
      * @param file The name of the offending source file
      * @param line The source code line number where the error occurred
      * @param func The name of the HIP routine that failed
@@ -271,6 +272,7 @@ class HipblasError : public Error {
 public:
     /**
      * Initializes a hipBLAS error.
+     *
      * @param file The name of the offending source file
      * @param line The source code line number where the error occurred
      * @param func The name of the hipBLAS routine that failed
@@ -294,6 +296,7 @@ class HipsparseError : public Error {
 public:
     /**
      * Initializes a hipSPARSE error.
+     *
      * @param file The name of the offending source file
      * @param line The source code line number where the error occurred
      * @param func The name of the hipSPARSE routine that failed

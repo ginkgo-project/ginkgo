@@ -762,7 +762,7 @@ public:                                                                      \
                   "semi-colon warnings")
 
 
-#ifndef __CUDACC__
+#if !(defined(__CUDACC__) || defined(__HIPCC__))
 /**
  * Creates a factory parameter in the factory parameters structure.
  *
@@ -787,7 +787,7 @@ public:                                                                      \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
-#else  // __CUDACC__
+#else  // defined(__CUDACC__) || defined(__HIPCC__)
 // A workaround for the NVCC compiler - parameter pack expansion does not work
 // properly. You won't be able to use factories in code compiled with NVCC, but
 // at least this won't trigger a compiler error as soon as a header using it is
@@ -804,7 +804,7 @@ public:                                                                      \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
-#endif  // __CUDACC__
+#endif  // defined(__CUDACC__) || defined(__HIPCC__)
 
 
 }  // namespace gko

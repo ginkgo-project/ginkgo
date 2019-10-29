@@ -70,10 +70,10 @@ TEST_F(MatricesNear, CanPassHipMatrix)
     auto mtx = gko::initialize<gko::matrix::Dense<>>(
         {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, ref);
     // TODO: HIP conversion Dense <-> Csr not yet implemented
-    auto csr_omp = gko::matrix::Csr<>::create(ref);
-    csr_omp->copy_from(mtx.get());
+    auto csr_ref = gko::matrix::Csr<>::create(ref);
+    csr_ref->copy_from(mtx.get());
     auto csr_mtx = gko::matrix::Csr<>::create(hip);
-    csr_mtx->copy_from(std::move(csr_omp));
+    csr_mtx->copy_from(std::move(csr_ref));
 
     GKO_EXPECT_MTX_NEAR(csr_mtx, mtx, 0.0);
     GKO_ASSERT_MTX_NEAR(csr_mtx, mtx, 0.0);

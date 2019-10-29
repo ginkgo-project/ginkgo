@@ -1,4 +1,3 @@
-#include "hip/hip_runtime.h"
 /*******************************<GINKGO LICENSE>******************************
 Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
@@ -34,12 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include <hip/hip_runtime.h>
 #include <memory>
 #include <type_traits>
 
 
 #include <gtest/gtest.h>
+#include <hip/hip_runtime.h>
 
 
 #include <ginkgo/core/base/exception.hpp>
@@ -109,7 +108,10 @@ TEST_F(HipExecutor, MasterKnowsNumberOfDevices)
 {
     int count = 0;
     hipGetDeviceCount(&count);
-    ASSERT_EQ(count, gko::HipExecutor::get_num_devices());
+
+    auto num_devices = gko::HipExecutor::get_num_devices();
+
+    ASSERT_EQ(count, num_devices);
 }
 
 
@@ -181,6 +183,7 @@ TEST_F(HipExecutor, CopiesDataFromHip)
     hip->free(orig);
 }
 
+
 /* Properly checks if it works only when multiple GPUs exist */
 TEST_F(HipExecutor, PreservesDeviceSettings)
 {
@@ -196,13 +199,17 @@ TEST_F(HipExecutor, PreservesDeviceSettings)
     ASSERT_EQ(current_device, previous_device);
 }
 
+
 TEST_F(HipExecutor, RunsOnProperDevice)
 {
     int value = -1;
+
     GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(0));
     hip2->run(ExampleOperation(value));
+
     ASSERT_EQ(value, hip2->get_device_id());
 }
+
 
 TEST_F(HipExecutor, CopiesDataFromHipToHip)
 {
@@ -221,14 +228,14 @@ TEST_F(HipExecutor, CopiesDataFromHipToHip)
     GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(0));
     hip2->run(ExampleOperation(value));
     ASSERT_EQ(value, hip2->get_device_id());
-
+    // Put the results on OpenMP and run CPU side assertions
     omp->copy_from(hip2.get(), 2, copy_hip2, copy);
-
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
     hip->free(copy_hip2);
     hip->free(orig);
 }
+
 
 TEST_F(HipExecutor, Synchronizes)
 {
