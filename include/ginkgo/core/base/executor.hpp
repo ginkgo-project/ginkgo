@@ -671,9 +671,6 @@ class OmpExecutor : public detail::ExecutorBase<OmpExecutor>,
     friend class detail::ExecutorBase<OmpExecutor>;
 
 public:
-    // using HostMemorySpace::alloc;
-    // using HostMemorySpace::copy_from;
-    // using HostMemorySpace::free;
     using omp_exec_info = machine_config::topology<OmpExecutor>;
 
     /**
@@ -682,6 +679,17 @@ public:
     static std::shared_ptr<OmpExecutor> create()
     {
         return std::shared_ptr<OmpExecutor>(new OmpExecutor());
+    }
+
+    /**
+     * Creates a new OmpExecutor with an existing memory space.
+     *
+     * @param memory_space  The memory space to be associated with the executor.
+     */
+    static std::shared_ptr<OmpExecutor> create(
+        std::shared_ptr<MemorySpace> memory_space)
+    {
+        return std::shared_ptr<OmpExecutor>(new OmpExecutor(memory_space));
     }
 
     std::shared_ptr<Executor> get_master() noexcept override;
@@ -707,6 +715,10 @@ protected:
         mem_space_instance_ = HostMemorySpace::create();
     }
 
+    OmpExecutor(std::shared_ptr<MemorySpace> mem_space)
+        : mem_space_instance_(mem_space)
+    {}
+
 private:
     std::unique_ptr<omp_exec_info> exec_info_;
     std::shared_ptr<MemorySpace> mem_space_instance_;
@@ -730,13 +742,26 @@ using DefaultExecutor = OmpExecutor;
 class ReferenceExecutor : public OmpExecutor {
 public:
     using ref_exec_info = machine_config::topology<OmpExecutor>;
-    // using HostMemorySpace::alloc;
-    // using HostMemorySpace::copy_from;
-    // using HostMemorySpace::free;
 
+    /**
+     * Creates a new ReferenceExecutor with an existing memory space.
+     *
+     */
     static std::shared_ptr<ReferenceExecutor> create()
     {
         return std::shared_ptr<ReferenceExecutor>(new ReferenceExecutor());
+    }
+
+    /**
+     * Creates a new ReferenceExecutor with an existing memory space.
+     *
+     * @param memory_space  The memory space to be associated with the executor.
+     */
+    static std::shared_ptr<ReferenceExecutor> create(
+        std::shared_ptr<MemorySpace> memory_space)
+    {
+        return std::shared_ptr<ReferenceExecutor>(
+            new ReferenceExecutor(memory_space));
     }
 
     void run(const Operation &op) const override
@@ -754,11 +779,19 @@ public:
      */
     ref_exec_info *get_exec_info() const { return exec_info_.get(); }
 
+    std::shared_ptr<MemorySpace> get_mem_space() noexcept override;
+
+    std::shared_ptr<const MemorySpace> get_mem_space() const noexcept override;
+
 protected:
     ReferenceExecutor() : exec_info_(ref_exec_info::create())
     {
         mem_space_instance_ = HostMemorySpace::create();
     }
+
+    ReferenceExecutor(std::shared_ptr<MemorySpace> mem_space)
+        : mem_space_instance_(mem_space)
+    {}
 
 private:
     std::unique_ptr<ref_exec_info> exec_info_;
@@ -787,9 +820,6 @@ class CudaExecutor : public detail::ExecutorBase<CudaExecutor>,
     friend class detail::ExecutorBase<CudaExecutor>;
 
 public:
-    // using CudaMemorySpace::alloc;
-    // using CudaMemorySpace::copy_from;
-    // using CudaMemorySpace::free;
     using cuda_exec_info = machine_config::topology<CudaExecutor>;
 
     /**
@@ -802,6 +832,18 @@ public:
     static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         bool device_reset = false);
+
+    /**
+     * Creates a new CudaExecutor.
+     *
+     * @param device_id  the CUDA device id of this device
+     * @param memory_space  the memory space associated to the executor.
+     * @param master  an executor on the host that is used to invoke the device
+     * kernels
+     */
+    static std::shared_ptr<CudaExecutor> create(
+        int device_id, std::shared_ptr<MemorySpace> memory_space,
+        std::shared_ptr<Executor> master);
 
     ~CudaExecutor() { decrease_num_execs(this->device_id_); }
 
@@ -906,6 +948,22 @@ protected:
         increase_num_execs(device_id);
         exec_info_ = cuda_exec_info::create();
         mem_space_instance_ = CudaMemorySpace::create(device_id);
+    }
+
+    CudaExecutor(int device_id, std::shared_ptr<MemorySpace> mem_space,
+                 std::shared_ptr<Executor> master)
+        : device_id_(device_id),
+          master_(master),
+          num_cores_per_sm_(0),
+          num_multiprocessor_(0),
+          major_(0),
+          minor_(0),
+          mem_space_instance_(mem_space)
+    {
+        assert(device_id < max_devices);
+        this->set_gpu_property();
+        this->init_handles();
+        increase_num_execs(device_id);
     }
 
     static void increase_num_execs(unsigned device_id)
