@@ -106,4 +106,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_HIP_BASE_COMPONENTS_ARRAY_HIP_HPP_
+#endif  // GKO_HIP_COMPONENTS_UNINITIALIZED_ARRAY_HIP_HPP_

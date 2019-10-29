@@ -59,7 +59,7 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
         [device_id](HipExecutor *exec) {
             delete exec;
             if (!HipExecutor::get_num_execs(device_id)) {
-                device_guard g(device_id);
+                hip::device_guard g(device_id);
                 hipDeviceReset();
             }
         });
@@ -69,7 +69,7 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
 void OmpExecutor::raw_copy_to(const HipExecutor *dest, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
-    device_guard g(dest->get_device_id());
+    hip::device_guard g(dest->get_device_id());
     GKO_ASSERT_NO_HIP_ERRORS(
         hipMemcpy(dest_ptr, src_ptr, num_bytes, hipMemcpyHostToDevice));
 }
@@ -77,7 +77,7 @@ void OmpExecutor::raw_copy_to(const HipExecutor *dest, size_type num_bytes,
 
 void HipExecutor::raw_free(void *ptr) const noexcept
 {
-    device_guard g(this->get_device_id());
+    hip::device_guard g(this->get_device_id());
     auto error_code = hipFree(ptr);
     if (error_code != hipSuccess) {
 #if GKO_VERBOSE_LEVEL >= 1
@@ -95,7 +95,7 @@ void HipExecutor::raw_free(void *ptr) const noexcept
 void *HipExecutor::raw_alloc(size_type num_bytes) const
 {
     void *dev_ptr = nullptr;
-    device_guard g(this->get_device_id());
+    hip::device_guard g(this->get_device_id());
     auto error_code = hipMalloc(&dev_ptr, num_bytes);
     if (error_code != hipErrorMemoryAllocation) {
         GKO_ASSERT_NO_HIP_ERRORS(error_code);
@@ -108,7 +108,7 @@ void *HipExecutor::raw_alloc(size_type num_bytes) const
 void HipExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
-    device_guard g(this->get_device_id());
+    hip::device_guard g(this->get_device_id());
     GKO_ASSERT_NO_HIP_ERRORS(
         hipMemcpy(dest_ptr, src_ptr, num_bytes, hipMemcpyDeviceToHost));
 }
@@ -118,7 +118,7 @@ void HipExecutor::raw_copy_to(const CudaExecutor *src, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
 #if GINKGO_HIP_PLATFORM_NVCC == 1
-    device_guard g(this->get_device_id());
+    hip::device_guard g(this->get_device_id());
     GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, this->device_id_, src_ptr,
                                            src->get_device_id(), num_bytes));
 #else
@@ -130,7 +130,7 @@ void HipExecutor::raw_copy_to(const CudaExecutor *src, size_type num_bytes,
 void HipExecutor::raw_copy_to(const HipExecutor *src, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
-    device_guard g(this->get_device_id());
+    hip::device_guard g(this->get_device_id());
     GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, this->device_id_, src_ptr,
                                            src->get_device_id(), num_bytes));
 }
@@ -138,7 +138,7 @@ void HipExecutor::raw_copy_to(const HipExecutor *src, size_type num_bytes,
 
 void HipExecutor::synchronize() const
 {
-    device_guard g(this->get_device_id());
+    hip::device_guard g(this->get_device_id());
     GKO_ASSERT_NO_HIP_ERRORS(hipDeviceSynchronize());
 }
 
@@ -146,7 +146,7 @@ void HipExecutor::synchronize() const
 void HipExecutor::run(const Operation &op) const
 {
     this->template log<log::Logger::operation_launched>(this, &op);
-    device_guard g(this->get_device_id());
+    hip::device_guard g(this->get_device_id());
     op.run(
         std::static_pointer_cast<const HipExecutor>(this->shared_from_this()));
     this->template log<log::Logger::operation_completed>(this, &op);
@@ -168,7 +168,7 @@ int HipExecutor::get_num_devices()
 void HipExecutor::set_gpu_property()
 {
     if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
-        device_guard g(this->get_device_id());
+        hip::device_guard g(this->get_device_id());
         GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
             &num_multiprocessor_, hipDeviceAttributeMultiprocessorCount,
             device_id_));
@@ -180,15 +180,15 @@ void HipExecutor::init_handles()
 {
     if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
         const auto id = this->get_device_id();
-        device_guard g(id);
+        hip::device_guard g(id);
         this->hipblas_handle_ = handle_manager<hipblasContext>(
             kernels::hip::hipblas::init(), [id](hipblasContext *handle) {
-                device_guard g(id);
+                hip::device_guard g(id);
                 kernels::hip::hipblas::destroy_hipblas_handle(handle);
             });
         this->hipsparse_handle_ = handle_manager<hipsparseContext>(
             kernels::hip::hipsparse::init(), [id](hipsparseContext *handle) {
-                device_guard g(id);
+                hip::device_guard g(id);
                 kernels::hip::hipsparse::destroy_hipsparse_handle(handle);
             });
     }

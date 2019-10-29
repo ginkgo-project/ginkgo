@@ -69,7 +69,6 @@ void simple_apply(std::shared_ptr<const HipExecutor> exec,
                   const matrix::Dense<ValueType> *b,
                   matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
 
 
@@ -116,6 +115,7 @@ void compute_dot(std::shared_ptr<const HipExecutor> exec,
         }
     } else {
         // TODO: implement this
+        GKO_NOT_IMPLEMENTED;
     }
 }
 

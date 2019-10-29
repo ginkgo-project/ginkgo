@@ -86,9 +86,9 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
             .residual_norm(d_scalar.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     stop_status.set_executor(ref_);
-    ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
+    ASSERT_FALSE(stop_status.get_data()[0].has_converged());
     stop_status.set_executor(cuda_);
-    ASSERT_EQ(one_changed, false);
+    ASSERT_FALSE(one_changed);
 
     scalar->at(0) = reduction_factor * 1.0e-2;
     d_scalar->copy_from(scalar.get());
@@ -97,8 +97,8 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
             .residual_norm(d_scalar.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     stop_status.set_executor(ref_);
-    ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
-    ASSERT_EQ(one_changed, true);
+    ASSERT_TRUE(stop_status.get_data()[0].has_converged());
+    ASSERT_TRUE(one_changed);
 }
 
 
@@ -127,9 +127,9 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
             .residual_norm(d_mtx.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     stop_status.set_executor(ref_);
-    ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
+    ASSERT_TRUE(stop_status.get_data()[0].has_converged());
     stop_status.set_executor(cuda_);
-    ASSERT_EQ(one_changed, true);
+    ASSERT_TRUE(one_changed);
 
     mtx->at(0, 1) = reduction_factor * 1.0e-2;
     d_mtx->copy_from(mtx.get());
@@ -138,8 +138,8 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
             .residual_norm(d_mtx.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     stop_status.set_executor(ref_);
-    ASSERT_EQ(stop_status.get_data()[1].has_converged(), true);
-    ASSERT_EQ(one_changed, true);
+    ASSERT_TRUE(stop_status.get_data()[1].has_converged());
+    ASSERT_TRUE(one_changed);
 }
 
 

@@ -95,7 +95,7 @@ inline bool operator<(const version &first, const version &second)
 {
     if (first.major < second.major) return true;
     if (first.major == second.major && first.minor < second.minor) return true;
-    if (first.major == first.major && first.minor == second.minor &&
+    if (first.major == second.major && first.minor == second.minor &&
         first.patch < second.patch)
         return true;
     return false;

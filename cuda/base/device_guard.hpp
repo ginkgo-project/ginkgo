@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace cuda {
 
 
 /**
@@ -85,6 +86,7 @@ private:
 };
 
 
+}  // namespace cuda
 }  // namespace gko
 
 

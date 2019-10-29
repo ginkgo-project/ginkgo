@@ -50,9 +50,9 @@ struct cublasContext;
 
 struct cusparseContext;
 
-struct hipblasContext {};
+struct hipblasContext;
 
-struct hipsparseContext {};
+struct hipsparseContext;
 
 
 namespace gko {
@@ -1008,7 +1008,7 @@ public:
      *
      * @param device_id  the HIP device id of this device
      * @param master  an executor on the host that is used to invoke the device
-     * kernels
+     *                kernels
      */
     static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<Executor> master);
@@ -1024,7 +1024,7 @@ public:
     void run(const Operation &op) const override;
 
     /**
-     * Get the CUDA device id of the device associated to this executor.
+     * Get the HIP device id of the device associated to this executor.
      */
     int get_device_id() const noexcept { return device_id_; }
 
@@ -1039,16 +1039,16 @@ public:
     int get_num_multiprocessor() const noexcept { return num_multiprocessor_; }
 
     /**
-     * Get the cublas handle for this executor
+     * Get the hipblas handle for this executor
      *
-     * @return  the cublas handle (cublasContext*) for this executor
+     * @return  the hipblas handle (hipblasContext*) for this executor
      */
     hipblasContext *get_hipblas_handle() const { return hipblas_handle_.get(); }
 
     /**
-     * Get the cusparse handle for this executor
+     * Get the hipsparse handle for this executor
      *
-     * @return the cusparse handle (cusparseContext*) for this executor
+     * @return the hipsparse handle (hipsparseContext*) for this executor
      */
     hipsparseContext *get_hipsparse_handle() const
     {
