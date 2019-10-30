@@ -87,6 +87,14 @@ class \mbox{\hyperlink{classgko_1_1executor__deleter}{executor\+\_\+deleter}}
 \begin{DoxyCompactList}\small\item\em This is a deleter that uses an executor\textquotesingle{}s {\ttfamily free} method to deallocate the data. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1executor__deleter_3_01T_0f_0e_4}{executor\+\_\+deleter$<$ T\mbox{[}$\,$\mbox{]}$>$}}
 \item 
+class \mbox{\hyperlink{classgko_1_1HipblasError}{Hipblas\+Error}}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1HipblasError}{Hipblas\+Error}} is thrown when a hip\+B\+L\+AS routine throws a non-\/zero error code. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1HipError}{Hip\+Error}}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1HipError}{Hip\+Error}} is thrown when a H\+IP routine throws a non-\/zero error code. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1HipExecutor}{Hip\+Executor}}
+\begin{DoxyCompactList}\small\item\em This is the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} subclass which represents the H\+IP enhanced device. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1HipsparseError}{Hipsparse\+Error}}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1HipsparseError}{Hipsparse\+Error}} is thrown when a hip\+S\+P\+A\+R\+SE routine throws a non-\/zero error code. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1KernelNotFound}{Kernel\+Not\+Found}}
 \begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1KernelNotFound}{Kernel\+Not\+Found}} is thrown if Ginkgo cannot find a kernel which satisfies the criteria imposed by the input arguments. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}
@@ -604,23 +612,23 @@ constexpr bool \mbox{\hyperlink{namespacegko_a61d408b4cd77aae6cac7a40c8307fddb}{
 \begin{DoxyCompactList}\small\item\em Performs polymorphic type conversion. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\\mbox{\hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}}$<$ T $>$ \mbox{\hyperlink{namespacegko_aa9c0782fb35cc18cb404716d9b6f2c0e}{make\+\_\+temporary\+\_\+clone}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec, T $\ast$ptr)
 \begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}}. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{namespacegko_a70e5d651d3fc23e6ed48980efd2098d3}\label{namespacegko_a70e5d651d3fc23e6ed48980efd2098d3}} 
-bool {\bfseries operator$<$} (const \mbox{\hyperlink{structgko_1_1version}{version}} \&first, const \mbox{\hyperlink{structgko_1_1version}{version}} \&second)
-\item 
-\mbox{\Hypertarget{namespacegko_aa3a749f76b73c3b0e161e2019ad12308}\label{namespacegko_aa3a749f76b73c3b0e161e2019ad12308}} 
-bool {\bfseries operator$<$=} (const \mbox{\hyperlink{structgko_1_1version}{version}} \&first, const \mbox{\hyperlink{structgko_1_1version}{version}} \&second)
-\item 
 \mbox{\Hypertarget{namespacegko_aeeaafa7179e5dbc1f1c02197598664fb}\label{namespacegko_aeeaafa7179e5dbc1f1c02197598664fb}} 
 bool {\bfseries operator==} (const \mbox{\hyperlink{structgko_1_1version}{version}} \&first, const \mbox{\hyperlink{structgko_1_1version}{version}} \&second)
 \item 
 \mbox{\Hypertarget{namespacegko_af2d150bb18c9fbdc62c2a02315bd908b}\label{namespacegko_af2d150bb18c9fbdc62c2a02315bd908b}} 
 bool {\bfseries operator!=} (const \mbox{\hyperlink{structgko_1_1version}{version}} \&first, const \mbox{\hyperlink{structgko_1_1version}{version}} \&second)
 \item 
-\mbox{\Hypertarget{namespacegko_ac033cb13ef2c4d291a894f26d2c64862}\label{namespacegko_ac033cb13ef2c4d291a894f26d2c64862}} 
-bool {\bfseries operator$>$=} (const \mbox{\hyperlink{structgko_1_1version}{version}} \&first, const \mbox{\hyperlink{structgko_1_1version}{version}} \&second)
+\mbox{\Hypertarget{namespacegko_a70e5d651d3fc23e6ed48980efd2098d3}\label{namespacegko_a70e5d651d3fc23e6ed48980efd2098d3}} 
+bool {\bfseries operator$<$} (const \mbox{\hyperlink{structgko_1_1version}{version}} \&first, const \mbox{\hyperlink{structgko_1_1version}{version}} \&second)
+\item 
+\mbox{\Hypertarget{namespacegko_aa3a749f76b73c3b0e161e2019ad12308}\label{namespacegko_aa3a749f76b73c3b0e161e2019ad12308}} 
+bool {\bfseries operator$<$=} (const \mbox{\hyperlink{structgko_1_1version}{version}} \&first, const \mbox{\hyperlink{structgko_1_1version}{version}} \&second)
 \item 
 \mbox{\Hypertarget{namespacegko_aa6724904a78b5293c610d113e3b23682}\label{namespacegko_aa6724904a78b5293c610d113e3b23682}} 
 bool {\bfseries operator$>$} (const \mbox{\hyperlink{structgko_1_1version}{version}} \&first, const \mbox{\hyperlink{structgko_1_1version}{version}} \&second)
+\item 
+\mbox{\Hypertarget{namespacegko_ac033cb13ef2c4d291a894f26d2c64862}\label{namespacegko_ac033cb13ef2c4d291a894f26d2c64862}} 
+bool {\bfseries operator$>$=} (const \mbox{\hyperlink{structgko_1_1version}{version}} \&first, const \mbox{\hyperlink{structgko_1_1version}{version}} \&second)
 \item 
 std\+::ostream \& \mbox{\hyperlink{namespacegko_ae0ef652f487afe43aebcf778038ff780}{operator$<$$<$}} (std\+::ostream \&os, const \mbox{\hyperlink{structgko_1_1version}{version}} \&ver)
 \begin{DoxyCompactList}\small\item\em Prints version information to a stream. \end{DoxyCompactList}\item 

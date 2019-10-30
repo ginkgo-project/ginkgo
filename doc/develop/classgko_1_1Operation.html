@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/92374417 branch based on develop. Ginkgo version 1.1.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/92590835 branch based on develop. Ginkgo version 1.1.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -87,6 +87,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a2b5cd402406c1749b23df06be6d53637"><td class="memItemLeft" align="right" valign="top"><a id="a2b5cd402406c1749b23df06be6d53637"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1OmpExecutor.html">OmpExecutor</a> &gt;) const</td></tr>
 <tr class="separator:a2b5cd402406c1749b23df06be6d53637"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaf3b457bd9522005e230b557882b1615"><td class="memItemLeft" align="right" valign="top"><a id="aaf3b457bd9522005e230b557882b1615"></a>
+virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1HipExecutor.html">HipExecutor</a> &gt;) const</td></tr>
+<tr class="separator:aaf3b457bd9522005e230b557882b1615"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa09b89cdd9526e2654aedb5b83b8b5ef"><td class="memItemLeft" align="right" valign="top"><a id="aa09b89cdd9526e2654aedb5b83b8b5ef"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1CudaExecutor.html">CudaExecutor</a> &gt;) const</td></tr>
 <tr class="separator:aa09b89cdd9526e2654aedb5b83b8b5ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -112,6 +115,9 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (std:
 <div class="line">    <span class="keywordtype">void</span> run(<span class="keyword">const</span> <a class="code" href="classgko_1_1CudaExecutor.html">gko::CudaExecutor</a> *exec)<span class="keyword"> const override</span></div>
 <div class="line"><span class="keyword">    </span>{ os_ &lt;&lt; <span class="stringliteral">&quot;CUDA(&quot;</span> &lt;&lt; exec-&gt;<a class="code" href="classgko_1_1CudaExecutor.html#a7cfa915eadd2329eb897dc1ee2712488">get_device_id</a>() &lt;&lt; <span class="stringliteral">&quot;)&quot;</span>; }</div>
 <div class="line"> </div>
+<div class="line">    <span class="keywordtype">void</span> run(<span class="keyword">const</span> <a class="code" href="classgko_1_1HipExecutor.html">gko::HipExecutor</a> *exec)<span class="keyword"> const override</span></div>
+<div class="line"><span class="keyword">    </span>{ os_ &lt;&lt; <span class="stringliteral">&quot;HIP(&quot;</span> &lt;&lt; exec-&gt;<a class="code" href="classgko_1_1HipExecutor.html#a37a35665c3983e56105c6acea9de73c6">get_device_id</a>() &lt;&lt; <span class="stringliteral">&quot;)&quot;</span>; }</div>
+<div class="line"> </div>
 <div class="line">    <span class="comment">// This is optional, if not overloaded, defaults to OmpExecutor overload</span></div>
 <div class="line">    <span class="keywordtype">void</span> run(<span class="keyword">const</span> <a class="code" href="classgko_1_1ReferenceExecutor.html">gko::ReferenceExecutor</a> *)<span class="keyword"> const override</span></div>
 <div class="line"><span class="keyword">    </span>{ os_ &lt;&lt; <span class="stringliteral">&quot;Reference CPU&quot;</span>; }</div>
@@ -130,18 +136,24 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (std:
 <div class="fragment"><div class="line"><span class="keyword">auto</span> omp = <a class="code" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a>();</div>
 <div class="line">std::cout &lt;&lt; *omp &lt;&lt; std::endl</div>
 <div class="line">          &lt;&lt; *<a class="code" href="classgko_1_1CudaExecutor.html#a2718a92034350650ef406ffdb60db090">gko::CudaExecutor::create</a>(0, omp) &lt;&lt; std::endl</div>
+<div class="line">          &lt;&lt; *<a class="code" href="classgko_1_1HipExecutor.html#a81b123713b336ed6be2099b043cff409">gko::HipExecutor::create</a>(0, omp) &lt;&lt; std::endl</div>
 <div class="line">          &lt;&lt; *gko::ReferenceExecutor::create() &lt;&lt; std::endl;</div>
 </div><!-- fragment --><p>which produces the expected output:</p>
 <div class="fragment"><div class="line">OMP</div>
 <div class="line">CUDA(0)</div>
+<div class="line">HIP(0)</div>
 <div class="line">Reference CPU</div>
-</div><!-- fragment --><p>One might feel that this code is too complicated for such a simple task. Luckily, there is an overload of the <a class="el" href="classgko_1_1Executor.html#a1de8e2668b76e66690acf5eef9e8324d" title="Runs the specified Operation using this Executor.">Executor::run()</a> method, which is designed to facilitate writing simple operations like this one. The method takes two closures as input: one which is run for OMP, and the other one for CUDA executors. Using this method, there is no need to implement an <a class="el" href="classgko_1_1Operation.html" title="Operations can be used to define functionalities whose implementations differ among devices.">Operation</a> subclass:</p>
+</div><!-- fragment --><p>One might feel that this code is too complicated for such a simple task. Luckily, there is an overload of the <a class="el" href="classgko_1_1Executor.html#a1de8e2668b76e66690acf5eef9e8324d" title="Runs the specified Operation using this Executor.">Executor::run()</a> method, which is designed to facilitate writing simple operations like this one. The method takes three closures as input: one which is run for OMP, one for CUDA executors, and the last one for HIP executors. Using this method, there is no need to implement an <a class="el" href="classgko_1_1Operation.html" title="Operations can be used to define functionalities whose implementations differ among devices.">Operation</a> subclass:</p>
 <div class="fragment"><div class="line">std::ostream&amp; operator&lt;&lt;(std::ostream &amp;os, <span class="keyword">const</span> <a class="code" href="classgko_1_1Executor.html">gko::Executor</a> &amp;exec)</div>
 <div class="line">{</div>
 <div class="line">    exec.<a class="code" href="classgko_1_1Executor.html#a1de8e2668b76e66690acf5eef9e8324d">run</a>(</div>
 <div class="line">        [&amp;]() { os &lt;&lt; <span class="stringliteral">&quot;OMP&quot;</span>; },  <span class="comment">// OMP closure</span></div>
 <div class="line">        [&amp;]() { os &lt;&lt; <span class="stringliteral">&quot;CUDA(&quot;</span>    <span class="comment">// CUDA closure</span></div>
 <div class="line">                   &lt;&lt; static_cast&lt;gko::CudaExecutor&amp;&gt;(exec)</div>
+<div class="line">                        .get_device_id()</div>
+<div class="line">                   &lt;&lt; <span class="stringliteral">&quot;)&quot;</span>; },</div>
+<div class="line">        [&amp;]() { os &lt;&lt; <span class="stringliteral">&quot;HIP(&quot;</span>    <span class="comment">// HIP closure</span></div>
+<div class="line">                   &lt;&lt; static_cast&lt;gko::HipExecutor&amp;&gt;(exec)</div>
 <div class="line">                        .get_device_id()</div>
 <div class="line">                   &lt;&lt; <span class="stringliteral">&quot;)&quot;</span>; });</div>
 <div class="line">    <span class="keywordflow">return</span> os;</div>
@@ -177,18 +189,21 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (std:
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/base/<a class="el" href="executor_8hpp_source.html">executor.hpp (6a73fa73)</a></li>
+<li>ginkgo/core/base/<a class="el" href="executor_8hpp_source.html">executor.hpp (e44cb5b7)</a></li>
 </ul>
 </div><!-- contents -->
+<div class="ttc" id="aclassgko_1_1HipExecutor_html_a81b123713b336ed6be2099b043cff409"><div class="ttname"><a href="classgko_1_1HipExecutor.html#a81b123713b336ed6be2099b043cff409">gko::HipExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; HipExecutor &gt; create(int device_id, std::shared_ptr&lt; Executor &gt; master)</div><div class="ttdoc">Creates a new HipExecutor.</div></div>
 <div class="ttc" id="aclassgko_1_1CudaExecutor_html_a2718a92034350650ef406ffdb60db090"><div class="ttname"><a href="classgko_1_1CudaExecutor.html#a2718a92034350650ef406ffdb60db090">gko::CudaExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; CudaExecutor &gt; create(int device_id, std::shared_ptr&lt; Executor &gt; master)</div><div class="ttdoc">Creates a new CudaExecutor.</div></div>
-<div class="ttc" id="aclassgko_1_1OmpExecutor_html_a33ca05fdd0fc928ee262fc9425304874"><div class="ttname"><a href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; OmpExecutor &gt; create()</div><div class="ttdoc">Creates a new OmpExecutor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:736</div></div>
+<div class="ttc" id="aclassgko_1_1OmpExecutor_html_a33ca05fdd0fc928ee262fc9425304874"><div class="ttname"><a href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; OmpExecutor &gt; create()</div><div class="ttdoc">Creates a new OmpExecutor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:775</div></div>
 <div class="ttc" id="aclassgko_1_1Executor_html_a1de8e2668b76e66690acf5eef9e8324d"><div class="ttname"><a href="classgko_1_1Executor.html#a1de8e2668b76e66690acf5eef9e8324d">gko::Executor::run</a></div><div class="ttdeci">virtual void run(const Operation &amp;op) const =0</div><div class="ttdoc">Runs the specified Operation using this Executor.</div></div>
-<div class="ttc" id="aclassgko_1_1ReferenceExecutor_html"><div class="ttname"><a href="classgko_1_1ReferenceExecutor.html">gko::ReferenceExecutor</a></div><div class="ttdoc">This is a specialization of the OmpExecutor, which runs the reference implementations of the kernels ...</div><div class="ttdef"><b>Definition:</b> executor.hpp:772</div></div>
-<div class="ttc" id="aclassgko_1_1CudaExecutor_html"><div class="ttname"><a href="classgko_1_1CudaExecutor.html">gko::CudaExecutor</a></div><div class="ttdoc">This is the Executor subclass which represents the CUDA device.</div><div class="ttdef"><b>Definition:</b> executor.hpp:805</div></div>
-<div class="ttc" id="aclassgko_1_1OmpExecutor_html"><div class="ttname"><a href="classgko_1_1OmpExecutor.html">gko::OmpExecutor</a></div><div class="ttdoc">This is the Executor subclass which represents the OpenMP device (typically CPU).</div><div class="ttdef"><b>Definition:</b> executor.hpp:728</div></div>
-<div class="ttc" id="aclassgko_1_1Executor_html"><div class="ttname"><a href="classgko_1_1Executor.html">gko::Executor</a></div><div class="ttdoc">The first step in using the Ginkgo library consists of creating an executor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:411</div></div>
-<div class="ttc" id="aclassgko_1_1Operation_html"><div class="ttname"><a href="classgko_1_1Operation.html">gko::Operation</a></div><div class="ttdoc">Operations can be used to define functionalities whose implementations differ among devices.</div><div class="ttdef"><b>Definition:</b> executor.hpp:173</div></div>
-<div class="ttc" id="aclassgko_1_1CudaExecutor_html_a7cfa915eadd2329eb897dc1ee2712488"><div class="ttname"><a href="classgko_1_1CudaExecutor.html#a7cfa915eadd2329eb897dc1ee2712488">gko::CudaExecutor::get_device_id</a></div><div class="ttdeci">int get_device_id() const noexcept</div><div class="ttdoc">Get the CUDA device id of the device associated to this executor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:833</div></div>
+<div class="ttc" id="aclassgko_1_1HipExecutor_html"><div class="ttname"><a href="classgko_1_1HipExecutor.html">gko::HipExecutor</a></div><div class="ttdoc">This is the Executor subclass which represents the HIP enhanced device.</div><div class="ttdef"><b>Definition:</b> executor.hpp:1001</div></div>
+<div class="ttc" id="aclassgko_1_1ReferenceExecutor_html"><div class="ttname"><a href="classgko_1_1ReferenceExecutor.html">gko::ReferenceExecutor</a></div><div class="ttdoc">This is a specialization of the OmpExecutor, which runs the reference implementations of the kernels ...</div><div class="ttdef"><b>Definition:</b> executor.hpp:811</div></div>
+<div class="ttc" id="aclassgko_1_1HipExecutor_html_a37a35665c3983e56105c6acea9de73c6"><div class="ttname"><a href="classgko_1_1HipExecutor.html#a37a35665c3983e56105c6acea9de73c6">gko::HipExecutor::get_device_id</a></div><div class="ttdeci">int get_device_id() const noexcept</div><div class="ttdoc">Get the HIP device id of the device associated to this executor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:1029</div></div>
+<div class="ttc" id="aclassgko_1_1CudaExecutor_html"><div class="ttname"><a href="classgko_1_1CudaExecutor.html">gko::CudaExecutor</a></div><div class="ttdoc">This is the Executor subclass which represents the CUDA device.</div><div class="ttdef"><b>Definition:</b> executor.hpp:844</div></div>
+<div class="ttc" id="aclassgko_1_1OmpExecutor_html"><div class="ttname"><a href="classgko_1_1OmpExecutor.html">gko::OmpExecutor</a></div><div class="ttdoc">This is the Executor subclass which represents the OpenMP device (typically CPU).</div><div class="ttdef"><b>Definition:</b> executor.hpp:767</div></div>
+<div class="ttc" id="aclassgko_1_1Executor_html"><div class="ttname"><a href="classgko_1_1Executor.html">gko::Executor</a></div><div class="ttdoc">The first step in using the Ginkgo library consists of creating an executor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:435</div></div>
+<div class="ttc" id="aclassgko_1_1Operation_html"><div class="ttname"><a href="classgko_1_1Operation.html">gko::Operation</a></div><div class="ttdoc">Operations can be used to define functionalities whose implementations differ among devices.</div><div class="ttdef"><b>Definition:</b> executor.hpp:186</div></div>
+<div class="ttc" id="aclassgko_1_1CudaExecutor_html_a7cfa915eadd2329eb897dc1ee2712488"><div class="ttname"><a href="classgko_1_1CudaExecutor.html#a7cfa915eadd2329eb897dc1ee2712488">gko::CudaExecutor::get_device_id</a></div><div class="ttdeci">int get_device_id() const noexcept</div><div class="ttdoc">Get the CUDA device id of the device associated to this executor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:872</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by &#160;<a href="http://www.doxygen.org/index.html">

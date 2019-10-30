@@ -1,0 +1,58 @@
+\hypertarget{classgko_1_1HipsparseError}{}\doxysection{gko\+::Hipsparse\+Error Class Reference}
+\label{classgko_1_1HipsparseError}\index{gko::HipsparseError@{gko::HipsparseError}}
+
+
+\mbox{\hyperlink{classgko_1_1HipsparseError}{Hipsparse\+Error}} is thrown when a hip\+S\+P\+A\+R\+SE routine throws a non-\/zero error code.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/exception.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Hipsparse\+Error\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=193pt]{classgko_1_1HipsparseError__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classgko_1_1HipsparseError_a703714b07299638208a85e5a6d3238e8}{Hipsparse\+Error}} (const std\+::string \&file, int line, const std\+::string \&func, \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}} error\+\_\+code)
+\begin{DoxyCompactList}\small\item\em Initializes a hip\+S\+P\+A\+R\+SE error. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\mbox{\hyperlink{classgko_1_1HipsparseError}{Hipsparse\+Error}} is thrown when a hip\+S\+P\+A\+R\+SE routine throws a non-\/zero error code. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classgko_1_1HipsparseError_a703714b07299638208a85e5a6d3238e8}\label{classgko_1_1HipsparseError_a703714b07299638208a85e5a6d3238e8}} 
+\index{gko::HipsparseError@{gko::HipsparseError}!HipsparseError@{HipsparseError}}
+\index{HipsparseError@{HipsparseError}!gko::HipsparseError@{gko::HipsparseError}}
+\doxysubsubsection{\texorpdfstring{HipsparseError()}{HipsparseError()}}
+{\footnotesize\ttfamily gko\+::\+Hipsparse\+Error\+::\+Hipsparse\+Error (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{file,  }\item[{int}]{line,  }\item[{const std\+::string \&}]{func,  }\item[{\mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}}}]{error\+\_\+code }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Initializes a hip\+S\+P\+A\+R\+SE error. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em file} & The name of the offending source file \\
+\hline
+{\em line} & The source code line number where the error occurred \\
+\hline
+{\em func} & The name of the hip\+S\+P\+A\+R\+SE routine that failed \\
+\hline
+{\em error\+\_\+code} & The resulting hip\+S\+P\+A\+R\+SE error code \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/exception.\+hpp (e44cb5b7)\end{DoxyCompactItemize}

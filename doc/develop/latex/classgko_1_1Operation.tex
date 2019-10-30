@@ -15,6 +15,9 @@ Operations can be used to define functionalities whose implementations differ am
 \mbox{\Hypertarget{classgko_1_1Operation_a2b5cd402406c1749b23df06be6d53637}\label{classgko_1_1Operation_a2b5cd402406c1749b23df06be6d53637}} 
 virtual void {\bfseries run} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} $>$) const
 \item 
+\mbox{\Hypertarget{classgko_1_1Operation_aaf3b457bd9522005e230b557882b1615}\label{classgko_1_1Operation_aaf3b457bd9522005e230b557882b1615}} 
+virtual void {\bfseries run} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1HipExecutor}{Hip\+Executor}} $>$) const
+\item 
 \mbox{\Hypertarget{classgko_1_1Operation_aa09b89cdd9526e2654aedb5b83b8b5ef}\label{classgko_1_1Operation_aa09b89cdd9526e2654aedb5b83b8b5ef}} 
 virtual void {\bfseries run} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}} $>$) const
 \item 
@@ -51,6 +54,9 @@ One possible implementation would be to use R\+T\+TI to find the dynamic type of
 \DoxyCodeLine{    \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1CudaExecutor}{gko::CudaExecutor}} *exec)\textcolor{keyword}{ const override}}
 \DoxyCodeLine{\textcolor{keyword}{    }\{ os\_ << \textcolor{stringliteral}{"CUDA("} << exec-\/>\mbox{\hyperlink{classgko_1_1CudaExecutor_a7cfa915eadd2329eb897dc1ee2712488}{get\_device\_id}}() << \textcolor{stringliteral}{")"}; \}}
 \DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1HipExecutor}{gko::HipExecutor}} *exec)\textcolor{keyword}{ const override}}
+\DoxyCodeLine{\textcolor{keyword}{    }\{ os\_ << \textcolor{stringliteral}{"HIP("} << exec-\/>\mbox{\hyperlink{classgko_1_1HipExecutor_a37a35665c3983e56105c6acea9de73c6}{get\_device\_id}}() << \textcolor{stringliteral}{")"}; \}}
+\DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{comment}{// This is optional, if not overloaded, defaults to OmpExecutor overload}}
 \DoxyCodeLine{    \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}} *)\textcolor{keyword}{ const override}}
 \DoxyCodeLine{\textcolor{keyword}{    }\{ os\_ << \textcolor{stringliteral}{"Reference CPU"}; \}}
@@ -81,6 +87,7 @@ Now it is possible to write the following code\+:
 \DoxyCodeLine{\textcolor{keyword}{auto} omp = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
 \DoxyCodeLine{std::cout << *omp << std::endl}
 \DoxyCodeLine{          << *\mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, omp) << std::endl}
+\DoxyCodeLine{          << *\mbox{\hyperlink{classgko_1_1HipExecutor_a81b123713b336ed6be2099b043cff409}{gko::HipExecutor::create}}(0, omp) << std::endl}
 \DoxyCodeLine{          << *gko::ReferenceExecutor::create() << std::endl;}
 \end{DoxyCode}
 
@@ -91,11 +98,12 @@ which produces the expected output\+:
 \begin{DoxyCode}{0}
 \DoxyCodeLine{OMP}
 \DoxyCodeLine{CUDA(0)}
+\DoxyCodeLine{HIP(0)}
 \DoxyCodeLine{Reference CPU}
 \end{DoxyCode}
 
 
-One might feel that this code is too complicated for such a simple task. Luckily, there is an overload of the \mbox{\hyperlink{classgko_1_1Executor_a1de8e2668b76e66690acf5eef9e8324d}{Executor\+::run()}} method, which is designed to facilitate writing simple operations like this one. The method takes two closures as input\+: one which is run for O\+MP, and the other one for C\+U\+DA executors. Using this method, there is no need to implement an \mbox{\hyperlink{classgko_1_1Operation}{Operation}} subclass\+:
+One might feel that this code is too complicated for such a simple task. Luckily, there is an overload of the \mbox{\hyperlink{classgko_1_1Executor_a1de8e2668b76e66690acf5eef9e8324d}{Executor\+::run()}} method, which is designed to facilitate writing simple operations like this one. The method takes three closures as input\+: one which is run for O\+MP, one for C\+U\+DA executors, and the last one for H\+IP executors. Using this method, there is no need to implement an \mbox{\hyperlink{classgko_1_1Operation}{Operation}} subclass\+:
 
 
 \begin{DoxyCode}{0}
@@ -105,6 +113,10 @@ One might feel that this code is too complicated for such a simple task. Luckily
 \DoxyCodeLine{        [\&]() \{ os << \textcolor{stringliteral}{"OMP"}; \},  \textcolor{comment}{// OMP closure}}
 \DoxyCodeLine{        [\&]() \{ os << \textcolor{stringliteral}{"CUDA("}    \textcolor{comment}{// CUDA closure}}
 \DoxyCodeLine{                   << static\_cast<gko::CudaExecutor\&>(exec)}
+\DoxyCodeLine{                        .get\_device\_id()}
+\DoxyCodeLine{                   << \textcolor{stringliteral}{")"}; \},}
+\DoxyCodeLine{        [\&]() \{ os << \textcolor{stringliteral}{"HIP("}    \textcolor{comment}{// HIP closure}}
+\DoxyCodeLine{                   << static\_cast<gko::HipExecutor\&>(exec)}
 \DoxyCodeLine{                        .get\_device\_id()}
 \DoxyCodeLine{                   << \textcolor{stringliteral}{")"}; \});}
 \DoxyCodeLine{    \textcolor{keywordflow}{return} os;}
@@ -132,4 +144,4 @@ the operation\textquotesingle{}s name
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/executor.\+hpp (6a73fa73)\end{DoxyCompactItemize}
+ginkgo/core/base/executor.\+hpp (e44cb5b7)\end{DoxyCompactItemize}

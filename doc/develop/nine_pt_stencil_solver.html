@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/92374417 branch based on develop. Ginkgo version 1.1.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/92590835 branch based on develop. Ginkgo version 1.1.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -280,6 +280,7 @@ $(function() {
 <div class="line">std::map&lt;std::string, std::shared_ptr&lt;gko::Executor&gt;&gt; exec_map{</div>
 <div class="line">    {<span class="stringliteral">&quot;omp&quot;</span>, omp},</div>
 <div class="line">    {<span class="stringliteral">&quot;cuda&quot;</span>, <a class="code" href="classgko_1_1CudaExecutor.html#a2718a92034350650ef406ffdb60db090">gko::CudaExecutor::create</a>(0, omp)},</div>
+<div class="line">    {<span class="stringliteral">&quot;hip&quot;</span>, <a class="code" href="classgko_1_1HipExecutor.html#a81b123713b336ed6be2099b043cff409">gko::HipExecutor::create</a>(0, omp)},</div>
 <div class="line">    {<span class="stringliteral">&quot;reference&quot;</span>, gko::ReferenceExecutor::create()}};</div>
 </div><!-- fragment --><p>executor where Ginkgo will perform the computation</p>
 <div class="fragment"><div class="line"><span class="keyword">const</span> <span class="keyword">auto</span> exec = exec_map.at(executor_string);  <span class="comment">// throws if not valid</span></div>
@@ -590,6 +591,7 @@ $(function() {
 <div class="line">    std::map&lt;std::string, std::shared_ptr&lt;gko::Executor&gt;&gt; exec_map{</div>
 <div class="line">        {<span class="stringliteral">&quot;omp&quot;</span>, omp},</div>
 <div class="line">        {<span class="stringliteral">&quot;cuda&quot;</span>, <a class="code" href="classgko_1_1CudaExecutor.html#a2718a92034350650ef406ffdb60db090">gko::CudaExecutor::create</a>(0, omp)},</div>
+<div class="line">        {<span class="stringliteral">&quot;hip&quot;</span>, <a class="code" href="classgko_1_1HipExecutor.html#a81b123713b336ed6be2099b043cff409">gko::HipExecutor::create</a>(0, omp)},</div>
 <div class="line">        {<span class="stringliteral">&quot;reference&quot;</span>, gko::ReferenceExecutor::create()}};</div>
 <div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> exec = exec_map.at(executor_string);  <span class="comment">// throws if not valid</span></div>
 <div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> app_exec = exec_map[<span class="stringliteral">&quot;omp&quot;</span>];</div>
@@ -678,12 +680,13 @@ $(function() {
 <div class="line">}</div>
 </div><!-- fragment --> </div></div><!-- contents -->
 </div><!-- PageDoc -->
-<div class="ttc" id="anamespacegko_html_a57797fc0a00fd4b7ff34ca4bfc84bc51"><div class="ttname"><a href="namespacegko.html#a57797fc0a00fd4b7ff34ca4bfc84bc51">gko::abs</a></div><div class="ttdeci">constexpr T abs(const T &amp;x)</div><div class="ttdoc">Returns the absolute value of the object.</div><div class="ttdef"><b>Definition:</b> math.hpp:362</div></div>
+<div class="ttc" id="anamespacegko_html_a57797fc0a00fd4b7ff34ca4bfc84bc51"><div class="ttname"><a href="namespacegko.html#a57797fc0a00fd4b7ff34ca4bfc84bc51">gko::abs</a></div><div class="ttdeci">constexpr T abs(const T &amp;x)</div><div class="ttdoc">Returns the absolute value of the object.</div><div class="ttdef"><b>Definition:</b> math.hpp:418</div></div>
 <div class="ttc" id="aclassgko_1_1matrix_1_1Csr_html"><div class="ttname"><a href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a></div><div class="ttdoc">CSR is a matrix format which stores only the nonzero coefficients by compressing each row of the matr...</div><div class="ttdef"><b>Definition:</b> coo.hpp:51</div></div>
+<div class="ttc" id="aclassgko_1_1HipExecutor_html_a81b123713b336ed6be2099b043cff409"><div class="ttname"><a href="classgko_1_1HipExecutor.html#a81b123713b336ed6be2099b043cff409">gko::HipExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; HipExecutor &gt; create(int device_id, std::shared_ptr&lt; Executor &gt; master)</div><div class="ttdoc">Creates a new HipExecutor.</div></div>
 <div class="ttc" id="anamespacegko_html_acbd3fd6d07e498892881e8e2ab0b4167"><div class="ttname"><a href="namespacegko.html#acbd3fd6d07e498892881e8e2ab0b4167">gko::give</a></div><div class="ttdeci">std::remove_reference&lt; OwningPointer &gt;::type &amp;&amp; give(OwningPointer &amp;&amp;p)</div><div class="ttdoc">Marks that the object pointed to by p can be given to the callee.</div><div class="ttdef"><b>Definition:</b> utils.hpp:230</div></div>
 <div class="ttc" id="aclassgko_1_1matrix_1_1Dense_html"><div class="ttname"><a href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense</a></div><div class="ttdoc">Dense is a matrix format which explicitly stores all values of the matrix.</div><div class="ttdef"><b>Definition:</b> coo.hpp:55</div></div>
 <div class="ttc" id="aclassgko_1_1CudaExecutor_html_a2718a92034350650ef406ffdb60db090"><div class="ttname"><a href="classgko_1_1CudaExecutor.html#a2718a92034350650ef406ffdb60db090">gko::CudaExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; CudaExecutor &gt; create(int device_id, std::shared_ptr&lt; Executor &gt; master)</div><div class="ttdoc">Creates a new CudaExecutor.</div></div>
-<div class="ttc" id="aclassgko_1_1OmpExecutor_html_a33ca05fdd0fc928ee262fc9425304874"><div class="ttname"><a href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; OmpExecutor &gt; create()</div><div class="ttdoc">Creates a new OmpExecutor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:736</div></div>
+<div class="ttc" id="aclassgko_1_1OmpExecutor_html_a33ca05fdd0fc928ee262fc9425304874"><div class="ttname"><a href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; OmpExecutor &gt; create()</div><div class="ttdoc">Creates a new OmpExecutor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:775</div></div>
 <div class="ttc" id="aclassgko_1_1stop_1_1ResidualNormReduction_html"><div class="ttname"><a href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction</a></div><div class="ttdoc">The ResidualNormReduction class is a stopping criterion which stops the iteration process when the re...</div><div class="ttdef"><b>Definition:</b> residual_norm_reduction.hpp:64</div></div>
 <div class="ttc" id="aclassgko_1_1preconditioner_1_1Jacobi_html"><div class="ttname"><a href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi</a></div><div class="ttdoc">A block-Jacobi preconditioner is a block-diagonal linear operator, obtained by inverting the diagonal...</div><div class="ttdef"><b>Definition:</b> jacobi.hpp:209</div></div>
 <div class="ttc" id="anamespacegko_html_a4edc2273b5627ec552ea423b60493be3"><div class="ttname"><a href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">gko::lend</a></div><div class="ttdeci">std::enable_if&lt; detail::have_ownership_s&lt; Pointer &gt;::value, detail::pointee&lt; Pointer &gt; * &gt;::type lend(const Pointer &amp;p)</div><div class="ttdoc">Returns a non-owning (plain) pointer to the object pointed to by p.</div><div class="ttdef"><b>Definition:</b> utils.hpp:252</div></div>

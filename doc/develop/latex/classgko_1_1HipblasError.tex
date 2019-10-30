@@ -1,0 +1,58 @@
+\hypertarget{classgko_1_1HipblasError}{}\doxysection{gko\+::Hipblas\+Error Class Reference}
+\label{classgko_1_1HipblasError}\index{gko::HipblasError@{gko::HipblasError}}
+
+
+\mbox{\hyperlink{classgko_1_1HipblasError}{Hipblas\+Error}} is thrown when a hip\+B\+L\+AS routine throws a non-\/zero error code.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/exception.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Hipblas\+Error\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=181pt]{classgko_1_1HipblasError__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classgko_1_1HipblasError_a36e990d2fbc18109ede0991eada7833b}{Hipblas\+Error}} (const std\+::string \&file, int line, const std\+::string \&func, \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}} error\+\_\+code)
+\begin{DoxyCompactList}\small\item\em Initializes a hip\+B\+L\+AS error. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\mbox{\hyperlink{classgko_1_1HipblasError}{Hipblas\+Error}} is thrown when a hip\+B\+L\+AS routine throws a non-\/zero error code. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classgko_1_1HipblasError_a36e990d2fbc18109ede0991eada7833b}\label{classgko_1_1HipblasError_a36e990d2fbc18109ede0991eada7833b}} 
+\index{gko::HipblasError@{gko::HipblasError}!HipblasError@{HipblasError}}
+\index{HipblasError@{HipblasError}!gko::HipblasError@{gko::HipblasError}}
+\doxysubsubsection{\texorpdfstring{HipblasError()}{HipblasError()}}
+{\footnotesize\ttfamily gko\+::\+Hipblas\+Error\+::\+Hipblas\+Error (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{file,  }\item[{int}]{line,  }\item[{const std\+::string \&}]{func,  }\item[{\mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}}}]{error\+\_\+code }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Initializes a hip\+B\+L\+AS error. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em file} & The name of the offending source file \\
+\hline
+{\em line} & The source code line number where the error occurred \\
+\hline
+{\em func} & The name of the hip\+B\+L\+AS routine that failed \\
+\hline
+{\em error\+\_\+code} & The resulting hip\+B\+L\+AS error code \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/exception.\+hpp (e44cb5b7)\end{DoxyCompactItemize}

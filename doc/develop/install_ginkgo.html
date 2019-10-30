@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/92374417 branch based on develop. Ginkgo version 1.1.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/92590835 branch based on develop. Ginkgo version 1.1.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -86,6 +86,8 @@ Building</h2>
 <li><code>-DGINKGO_BUILD_REFERENCE={ON, OFF}</code> build reference implementations of the kernels, useful for testing, default is <code>ON</code></li>
 <li><code>-DGINKGO_BUILD_OMP={ON, OFF}</code> builds optimized OpenMP versions of the kernels, default is <code>OFF</code></li>
 <li><code>-DGINKGO_BUILD_CUDA={ON, OFF}</code> builds optimized cuda versions of the kernels (requires CUDA), default is <code>OFF</code></li>
+<li><code>-DGINKGO_BUILD_HIP={ON, OFF}</code> builds optimized HIP versions of the kernels (requires HIP), default is <code>OFF</code></li>
+<li><code>-DGINKGO_HIP_AMDGPU="gpuarch1;gpuarch2"</code> the amdgpu_target(s) variable passed to hipcc for the <code>hcc</code> HIP backend. The default is none (auto).</li>
 <li><code>-DGINKGO_BUILD_DOC={ON, OFF}</code> creates an HTML version of Ginkgo's documentation from inline comments in the code. The default is <code>OFF</code>.</li>
 <li><code>-DGINKGO_DOC_GENERATE_EXAMPLES={ON, OFF}</code> generates the documentation of examples in Ginkgo. The default is <code>ON</code>.</li>
 <li><code>-DGINKGO_DOC_GENERATE_PDF={ON, OFF}</code> generates a PDF version of Ginkgo's documentation from inline comments in the code. The default is <code>OFF</code>.</li>
@@ -120,6 +122,56 @@ Building</h2>
 <div class="line">cmake --build Debug</div>
 </div><!-- fragment --><p>NOTE: Ginkgo is known to work with the <code>Unix Makefiles</code> and <code>Ninja</code> based generators. Other CMake generators are untested.</p>
 <h2><a class="anchor" id="autotoc_md1"></a>
+Building Ginkgo with HIP support</h2>
+<p>Ginkgo provides a <a href="https://github.com/ROCm-Developer-Tools/HIP">HIP</a> backend. This allows to compile optimized versions of the kernels for either AMD or NVIDIA GPUs. To build Ginkgo with this backend, use the CMake option <code>-DGINKGO_BUILD_HIP=ON</code>.</p>
+<h3><a class="anchor" id="autotoc_md2"></a>
+Correctly installing HIP toolkits and dependencies for Ginkgo</h3>
+<p>In general, Ginkgo's HIP backend requires the following packages:</p><ul>
+<li>HIP,</li>
+<li>hipBLAS,</li>
+<li>hipSPARSE,</li>
+<li>Thrust.</li>
+</ul>
+<p>It is necessary to provide some details about the different ways to procure and install these packages, in particular for NVIDIA systems since getting a correct, non bloated setup is not straightforward.</p>
+<p>For AMD systems, the simplest way is to follow the <a href="https://github.com/ROCm-Developer-Tools/HIP/blob/master/INSTALL.md">instructions provided here</a> which provide package installers for most Linux distributions. Ginkgo also needs the installation of the <a href="https://github.com/ROCmSoftwarePlatform/hipBLAS">hipBLAS</a> and <a href="https://github.com/ROCmSoftwarePlatform/hipSPARSE">hipSPARSE</a> interfaces. Optionally if you do not already have a thrust installation, [the ROCm provided rocThrust package can be used](<a href="https://github.com/ROCmSoftwarePlatform/rocThrust">https://github.com/ROCmSoftwarePlatform/rocThrust</a>).</p>
+<p>For NVIDIA systems, the traditional installation (package <code>hip_nvcc</code>), albeit working properly is currently odd: it depends on all the <code>hcc</code> related packages, although the <code>nvcc</code> backend seems to entirely rely on the CUDA suite. [See this issue for more details](<a href="https://github.com/ROCmSoftwarePlatform/hipBLAS/issues/53">https://github.com/ROCmSoftwarePlatform/hipBLAS/issues/53</a>). It is advised in this case to compile everything manually, including using forks of <code>hipBLAS</code> and <code>hipSPARSE</code> specifically made to not depend on the <code>hcc</code> specific packages. <code>Thrust</code> is often provided by CUDA and this Thrust version should work with <code>HIP</code>. Here is a sample procedure for installing <code>HIP</code>, <code>hipBLAS</code> and <code>hipSPARSE</code>.</p>
+<div class="fragment"><div class="line"># HIP</div>
+<div class="line">git clone https://github.com/ROCm-Developer-Tools/HIP.git</div>
+<div class="line">pushd HIP &amp;&amp; mkdir build &amp;&amp; pushd build</div>
+<div class="line">cmake .. &amp;&amp; make install</div>
+<div class="line">popd &amp;&amp; popd</div>
+<div class="line"> </div>
+<div class="line"># hipBLAS</div>
+<div class="line">git clone https://github.com/tcojean/hipBLAS.git</div>
+<div class="line">pushd hipBLAS &amp;&amp; mkdir build &amp;&amp; pushd build</div>
+<div class="line">cmake .. &amp;&amp; make install</div>
+<div class="line">popd &amp;&amp; popd</div>
+<div class="line"> </div>
+<div class="line"># hipSPARSE</div>
+<div class="line">git clone https://github.com/tcojean/hipSPARSE.git</div>
+<div class="line">pushd hipSPARSE &amp;&amp; mkdir build &amp;&amp; pushd build</div>
+<div class="line">cmake -DBUILD_CUDA=ON .. &amp;&amp; make install</div>
+<div class="line">popd &amp;&amp; popd</div>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md3"></a>
+Changing the paths to search for HIP and other packages</h3>
+<p>All HIP installation paths can be configured through the use of environment variables or CMake variables. This way of configuring the paths is currently imposed by the <code>HIP</code> tool suite. The variables are the following:</p><ul>
+<li>CMake <code>-DHIP_PATH=</code> or environment <code>export HIP_PATH=</code>: sets the <code>HIP</code> installation path. The default value is <code>/opt/rocm/hip</code>.</li>
+<li>CMake <code>-DHIPBLAS_PATH=</code> or environment <code>export HIPBLAS_PATH=</code>: sets the <code>hipBLAS</code> installation path. The default value is <code>/opt/rocm/hipblas</code>.</li>
+<li>CMake <code>-DHIPSPARSE_PATH=</code> or environment <code>export HIPSPARSE_PATH=</code>: sets the <code>hipSPARSE</code> installation path. The default value is <code>/opt/rocm/hipsparse</code>.</li>
+<li>CMake <code>-DHCC_PATH=</code> or environment <code>export HCC_PATH=</code>: sets the <code>HCC</code> installation path, for AMD backends. The default value is <code>/opt/rocm/hcc</code>.</li>
+<li>environment <code>export CUDA_PATH=</code>: where <code>hipcc</code> can find <code>CUDA</code> if it is not in the default <code>/usr/local/cuda</code> path.</li>
+</ul>
+<h3><a class="anchor" id="autotoc_md4"></a>
+HIP platform detection of AMD and NVIDIA</h3>
+<p>By default, Ginkgo uses the output of <code>/opt/rocm/hip/bin/hipconfig --platform</code> to select the backend. The accepted values are either <code>hcc</code> (AMD) or <code>nvcc</code> (NVIDIA). When on an AMD or NVIDIA system, this should output the correct platform by default. When on a system without GPUs, this should output <code>hcc</code> by default. To change this value, export the environment variable <code>HIP_PLATFORM</code> like so: </p><div class="fragment"><div class="line">export HIP_PLATFORM=nvcc</div>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md5"></a>
+Setting platform specific compilation flags</h3>
+<p>Platform specific compilation flags can be given through the following CMake variables:</p><ul>
+<li><code>-DGINKGO_HIP_COMPILER_FLAGS=</code>: compilation flags given to all platforms.</li>
+<li><code>-DGINKGO_HIP_HCC_COMPILER_FLAGS=</code>: compilation flags given to AMD platforms.</li>
+<li><code>-DGINKGO_HIP_NVCC_COMPILER_FLAGS=</code>: compilation flags given to NVIDIA platforms.</li>
+</ul>
+<h2><a class="anchor" id="autotoc_md6"></a>
 Third party libraries and packages</h2>
 <p>Ginkgo relies on third party packages in different cases. These third party packages can be turned off by disabling the relevant options.</p>
 <ul>
@@ -135,7 +187,7 @@ Third party libraries and packages</h2>
 <li><code>-DTPL_&lt;package&gt;_INCLUDE_DIRS=/path/to/header/directory</code></li>
 </ul>
 <p>When applicable (e.g. for <code>GTest</code> libraries), a <code>;</code> separated list can be given to the <code>TPL_&lt;package&gt;_{LIBRARIES|INCLUDE_DIRS}</code> variables.</p>
-<h2><a class="anchor" id="autotoc_md2"></a>
+<h2><a class="anchor" id="autotoc_md7"></a>
 Installing Ginkgo</h2>
 <p>To install Ginkgo into the specified folder, execute the following command in the build folder</p>
 <div class="fragment"><div class="line">make install</div>

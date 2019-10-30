@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/92374417 branch based on develop. Ginkgo version 1.1.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/92590835 branch based on develop. Ginkgo version 1.1.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -195,6 +195,18 @@ Classes</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">This is a deleter that uses an executor's <code>free</code> method to deallocate the data.  <a href="classgko_1_1executor__deleter.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1executor__deleter_3_01T_0f_0e_4.html">executor_deleter&lt; T[]&gt;</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1HipblasError.html">HipblasError</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1HipblasError.html" title="HipblasError is thrown when a hipBLAS routine throws a non-zero error code.">HipblasError</a> is thrown when a hipBLAS routine throws a non-zero error code.  <a href="classgko_1_1HipblasError.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1HipError.html">HipError</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1HipError.html" title="HipError is thrown when a HIP routine throws a non-zero error code.">HipError</a> is thrown when a HIP routine throws a non-zero error code.  <a href="classgko_1_1HipError.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1HipExecutor.html">HipExecutor</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">This is the <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor.">Executor</a> subclass which represents the HIP enhanced device.  <a href="classgko_1_1HipExecutor.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1HipsparseError.html">HipsparseError</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1HipsparseError.html" title="HipsparseError is thrown when a hipSPARSE routine throws a non-zero error code.">HipsparseError</a> is thrown when a hipSPARSE routine throws a non-zero error code.  <a href="classgko_1_1HipsparseError.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1KernelNotFound.html">KernelNotFound</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1KernelNotFound.html" title="KernelNotFound is thrown if Ginkgo cannot find a kernel which satisfies the criteria imposed by the i...">KernelNotFound</a> is thrown if Ginkgo cannot find a kernel which satisfies the criteria imposed by the input arguments.  <a href="classgko_1_1KernelNotFound.html#details">More...</a><br /></td></tr>
@@ -936,24 +948,24 @@ template&lt;typename FirstOperand , typename SecondAccessor &gt; </td></tr>
 <tr class="memitem:aa9c0782fb35cc18cb404716d9b6f2c0e"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classgko_1_1temporary__clone.html">temporary_clone</a>&lt; T &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec, T *ptr)</td></tr>
 <tr class="memdesc:aa9c0782fb35cc18cb404716d9b6f2c0e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a <a class="el" href="classgko_1_1temporary__clone.html" title="A temporary_clone is a special smart pointer-like object that is designed to hold an object temporari...">temporary_clone</a>.  <a href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">More...</a><br /></td></tr>
 <tr class="separator:aa9c0782fb35cc18cb404716d9b6f2c0e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a70e5d651d3fc23e6ed48980efd2098d3"><td class="memItemLeft" align="right" valign="top"><a id="a70e5d651d3fc23e6ed48980efd2098d3"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator&lt;</b> (const <a class="el" href="structgko_1_1version.html">version</a> &amp;first, const <a class="el" href="structgko_1_1version.html">version</a> &amp;second)</td></tr>
-<tr class="separator:a70e5d651d3fc23e6ed48980efd2098d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa3a749f76b73c3b0e161e2019ad12308"><td class="memItemLeft" align="right" valign="top"><a id="aa3a749f76b73c3b0e161e2019ad12308"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator&lt;=</b> (const <a class="el" href="structgko_1_1version.html">version</a> &amp;first, const <a class="el" href="structgko_1_1version.html">version</a> &amp;second)</td></tr>
-<tr class="separator:aa3a749f76b73c3b0e161e2019ad12308"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aeeaafa7179e5dbc1f1c02197598664fb"><td class="memItemLeft" align="right" valign="top"><a id="aeeaafa7179e5dbc1f1c02197598664fb"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator==</b> (const <a class="el" href="structgko_1_1version.html">version</a> &amp;first, const <a class="el" href="structgko_1_1version.html">version</a> &amp;second)</td></tr>
 <tr class="separator:aeeaafa7179e5dbc1f1c02197598664fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af2d150bb18c9fbdc62c2a02315bd908b"><td class="memItemLeft" align="right" valign="top"><a id="af2d150bb18c9fbdc62c2a02315bd908b"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator!=</b> (const <a class="el" href="structgko_1_1version.html">version</a> &amp;first, const <a class="el" href="structgko_1_1version.html">version</a> &amp;second)</td></tr>
 <tr class="separator:af2d150bb18c9fbdc62c2a02315bd908b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac033cb13ef2c4d291a894f26d2c64862"><td class="memItemLeft" align="right" valign="top"><a id="ac033cb13ef2c4d291a894f26d2c64862"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator&gt;=</b> (const <a class="el" href="structgko_1_1version.html">version</a> &amp;first, const <a class="el" href="structgko_1_1version.html">version</a> &amp;second)</td></tr>
-<tr class="separator:ac033cb13ef2c4d291a894f26d2c64862"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a70e5d651d3fc23e6ed48980efd2098d3"><td class="memItemLeft" align="right" valign="top"><a id="a70e5d651d3fc23e6ed48980efd2098d3"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator&lt;</b> (const <a class="el" href="structgko_1_1version.html">version</a> &amp;first, const <a class="el" href="structgko_1_1version.html">version</a> &amp;second)</td></tr>
+<tr class="separator:a70e5d651d3fc23e6ed48980efd2098d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa3a749f76b73c3b0e161e2019ad12308"><td class="memItemLeft" align="right" valign="top"><a id="aa3a749f76b73c3b0e161e2019ad12308"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator&lt;=</b> (const <a class="el" href="structgko_1_1version.html">version</a> &amp;first, const <a class="el" href="structgko_1_1version.html">version</a> &amp;second)</td></tr>
+<tr class="separator:aa3a749f76b73c3b0e161e2019ad12308"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa6724904a78b5293c610d113e3b23682"><td class="memItemLeft" align="right" valign="top"><a id="aa6724904a78b5293c610d113e3b23682"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator&gt;</b> (const <a class="el" href="structgko_1_1version.html">version</a> &amp;first, const <a class="el" href="structgko_1_1version.html">version</a> &amp;second)</td></tr>
 <tr class="separator:aa6724904a78b5293c610d113e3b23682"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac033cb13ef2c4d291a894f26d2c64862"><td class="memItemLeft" align="right" valign="top"><a id="ac033cb13ef2c4d291a894f26d2c64862"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator&gt;=</b> (const <a class="el" href="structgko_1_1version.html">version</a> &amp;first, const <a class="el" href="structgko_1_1version.html">version</a> &amp;second)</td></tr>
+<tr class="separator:ac033cb13ef2c4d291a894f26d2c64862"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae0ef652f487afe43aebcf778038ff780"><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegko.html#ae0ef652f487afe43aebcf778038ff780">operator&lt;&lt;</a> (std::ostream &amp;os, const <a class="el" href="structgko_1_1version.html">version</a> &amp;ver)</td></tr>
 <tr class="memdesc:ae0ef652f487afe43aebcf778038ff780"><td class="mdescLeft">&#160;</td><td class="mdescRight">Prints version information to a stream.  <a href="namespacegko.html#ae0ef652f487afe43aebcf778038ff780">More...</a><br /></td></tr>
 <tr class="separator:ae0ef652f487afe43aebcf778038ff780"><td class="memSeparator" colspan="2">&#160;</td></tr>

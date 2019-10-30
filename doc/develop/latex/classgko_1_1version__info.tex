@@ -37,7 +37,9 @@ static const \mbox{\hyperlink{classgko_1_1version__info}{version\+\_\+info}} \& 
 \mbox{\hyperlink{structgko_1_1version}{version}} \mbox{\hyperlink{classgko_1_1version__info_a795e1a6f8bdb0a4157b2d52b92e7b44e}{omp\+\_\+version}}
 \begin{DoxyCompactList}\small\item\em Contains version information of the O\+MP module. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{structgko_1_1version}{version}} \mbox{\hyperlink{classgko_1_1version__info_a75d283ac87b2f80abdc48fa48b3a5d51}{cuda\+\_\+version}}
-\begin{DoxyCompactList}\small\item\em Contains version information of the C\+U\+DA module. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Contains version information of the C\+U\+DA module. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{structgko_1_1version}{version}} \mbox{\hyperlink{classgko_1_1version__info_a8934c0aa9c7d62f8168eaa3e91281182}{hip\+\_\+version}}
+\begin{DoxyCompactList}\small\item\em Contains version information of the H\+IP module. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -50,7 +52,7 @@ Ginkgo uses version numbers to label new features and to communicate backward co
 \item Versions with the same major an minor version numbers, but different patch numbers have exactly the same interface, but the functionality may be different (something that is not implemented or has a bug in an earlier version may have this implemented or fixed in a later version).
 \end{DoxyEnumerate}
 
-This structure provides versions of different parts of Ginkgo\+: the headers, the core and the kernel modules (reference, Open\+MP, C\+U\+DA). To obtain an instance of \mbox{\hyperlink{classgko_1_1version__info}{version\+\_\+info}} filled with information about the current version of Ginkgo, call the \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{version\+\_\+info\+::get()}} static method. 
+This structure provides versions of different parts of Ginkgo\+: the headers, the core and the kernel modules (reference, Open\+MP, C\+U\+DA, H\+IP). To obtain an instance of \mbox{\hyperlink{classgko_1_1version__info}{version\+\_\+info}} filled with information about the current version of Ginkgo, call the \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{version\+\_\+info\+::get()}} static method. 
 
 \doxysubsection{Member Function Documentation}
 \mbox{\Hypertarget{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}\label{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}} 
@@ -89,7 +91,17 @@ This is the version of the static/shared library called \char`\"{}ginkgo\char`\"
 
 Contains version information of the C\+U\+DA module. 
 
-This is the version of the static/shared library called \char`\"{}ginkgo\+\_\+cuda\char`\"{}. \mbox{\Hypertarget{classgko_1_1version__info_a795e1a6f8bdb0a4157b2d52b92e7b44e}\label{classgko_1_1version__info_a795e1a6f8bdb0a4157b2d52b92e7b44e}} 
+This is the version of the static/shared library called \char`\"{}ginkgo\+\_\+cuda\char`\"{}. \mbox{\Hypertarget{classgko_1_1version__info_a8934c0aa9c7d62f8168eaa3e91281182}\label{classgko_1_1version__info_a8934c0aa9c7d62f8168eaa3e91281182}} 
+\index{gko::version\_info@{gko::version\_info}!hip\_version@{hip\_version}}
+\index{hip\_version@{hip\_version}!gko::version\_info@{gko::version\_info}}
+\doxysubsubsection{\texorpdfstring{hip\_version}{hip\_version}}
+{\footnotesize\ttfamily \mbox{\hyperlink{structgko_1_1version}{version}} gko\+::version\+\_\+info\+::hip\+\_\+version}
+
+
+
+Contains version information of the H\+IP module. 
+
+This is the version of the static/shared library called \char`\"{}ginkgo\+\_\+hip\char`\"{}. \mbox{\Hypertarget{classgko_1_1version__info_a795e1a6f8bdb0a4157b2d52b92e7b44e}\label{classgko_1_1version__info_a795e1a6f8bdb0a4157b2d52b92e7b44e}} 
 \index{gko::version\_info@{gko::version\_info}!omp\_version@{omp\_version}}
 \index{omp\_version@{omp\_version}!gko::version\_info@{gko::version\_info}}
 \doxysubsubsection{\texorpdfstring{omp\_version}{omp\_version}}
@@ -113,4 +125,4 @@ This is the version of the static/shared library called \char`\"{}ginkgo\+\_\+re
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/version.\+hpp (9c2e5ae6)\end{DoxyCompactItemize}
+ginkgo/core/base/version.\+hpp (e44cb5b7)\end{DoxyCompactItemize}

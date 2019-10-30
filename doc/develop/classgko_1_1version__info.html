@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/92374417 branch based on develop. Ginkgo version 1.1.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/92590835 branch based on develop. Ginkgo version 1.1.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -85,7 +85,7 @@ $(function() {
 <div class="dynheader">
 Collaboration diagram for gko::version_info:</div>
 <div class="dyncontent">
-<div class="center"><iframe scrolling="no" frameborder="0" src="classgko_1_1version__info__coll__graph.svg" width="196" height="186"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe>
+<div class="center"><iframe scrolling="no" frameborder="0" src="classgko_1_1version__info__coll__graph.svg" width="196" height="200"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe>
 </div>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
@@ -113,6 +113,9 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a75d283ac87b2f80abdc48fa48b3a5d51"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structgko_1_1version.html">version</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1version__info.html#a75d283ac87b2f80abdc48fa48b3a5d51">cuda_version</a></td></tr>
 <tr class="memdesc:a75d283ac87b2f80abdc48fa48b3a5d51"><td class="mdescLeft">&#160;</td><td class="mdescRight">Contains version information of the CUDA module.  <a href="classgko_1_1version__info.html#a75d283ac87b2f80abdc48fa48b3a5d51">More...</a><br /></td></tr>
 <tr class="separator:a75d283ac87b2f80abdc48fa48b3a5d51"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8934c0aa9c7d62f8168eaa3e91281182"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structgko_1_1version.html">version</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1version__info.html#a8934c0aa9c7d62f8168eaa3e91281182">hip_version</a></td></tr>
+<tr class="memdesc:a8934c0aa9c7d62f8168eaa3e91281182"><td class="mdescLeft">&#160;</td><td class="mdescRight">Contains version information of the HIP module.  <a href="classgko_1_1version__info.html#a8934c0aa9c7d62f8168eaa3e91281182">More...</a><br /></td></tr>
+<tr class="separator:a8934c0aa9c7d62f8168eaa3e91281182"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Ginkgo uses version numbers to label new features and to communicate backward compatibility guarantees: </p>
@@ -121,7 +124,7 @@ Public Attributes</h2></td></tr>
 <li>Versions with the same major number X, but different minor numbers Y1 and Y2 numbers keep the same interface as version X.0.0, but additions to the interface in X.0.0 present in X.Y1.0 may not be present in X.Y2.0 and vice versa.</li>
 <li>Versions with the same major an minor version numbers, but different patch numbers have exactly the same interface, but the functionality may be different (something that is not implemented or has a bug in an earlier version may have this implemented or fixed in a later version).</li>
 </ol>
-<p>This structure provides versions of different parts of Ginkgo: the headers, the core and the kernel modules (reference, OpenMP, CUDA). To obtain an instance of <a class="el" href="classgko_1_1version__info.html" title="Ginkgo uses version numbers to label new features and to communicate backward compatibility guarantee...">version_info</a> filled with information about the current version of Ginkgo, call the <a class="el" href="classgko_1_1version__info.html#a6daeb8a087cfb57fa055526fc133d8eb" title="Returns an instance of version_info.">version_info::get()</a> static method. </p>
+<p>This structure provides versions of different parts of Ginkgo: the headers, the core and the kernel modules (reference, OpenMP, CUDA, HIP). To obtain an instance of <a class="el" href="classgko_1_1version__info.html" title="Ginkgo uses version numbers to label new features and to communicate backward compatibility guarantee...">version_info</a> filled with information about the current version of Ginkgo, call the <a class="el" href="classgko_1_1version__info.html#a6daeb8a087cfb57fa055526fc133d8eb" title="Returns an instance of version_info.">version_info::get()</a> static method. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a6daeb8a087cfb57fa055526fc133d8eb"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a6daeb8a087cfb57fa055526fc133d8eb">&#9670;&nbsp;</a></span>get()</h2>
@@ -186,6 +189,23 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="a8934c0aa9c7d62f8168eaa3e91281182"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8934c0aa9c7d62f8168eaa3e91281182">&#9670;&nbsp;</a></span>hip_version</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structgko_1_1version.html">version</a> gko::version_info::hip_version</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Contains version information of the HIP module. </p>
+<p>This is the version of the static/shared library called "ginkgo_hip". </p>
+
+</div>
+</div>
 <a id="a795e1a6f8bdb0a4157b2d52b92e7b44e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a795e1a6f8bdb0a4157b2d52b92e7b44e">&#9670;&nbsp;</a></span>omp_version</h2>
 
@@ -221,7 +241,7 @@ Public Attributes</h2></td></tr>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/base/<a class="el" href="version_8hpp_source.html">version.hpp (9c2e5ae6)</a></li>
+<li>ginkgo/core/base/<a class="el" href="version_8hpp_source.html">version.hpp (e44cb5b7)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

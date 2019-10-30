@@ -22,6 +22,8 @@ Replace {\ttfamily \mbox{[}O\+P\+T\+I\+O\+NS\mbox{]}} with desired cmake options
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+R\+E\+F\+E\+R\+E\+N\+CE=\{ON, O\+FF\}} build reference implementations of the kernels, useful for testing, default is {\ttfamily ON}
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+O\+MP=\{ON, O\+FF\}} builds optimized Open\+MP versions of the kernels, default is {\ttfamily O\+FF}
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+C\+U\+DA=\{ON, O\+FF\}} builds optimized cuda versions of the kernels (requires C\+U\+DA), default is {\ttfamily O\+FF}
+\item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+H\+IP=\{ON, O\+FF\}} builds optimized H\+IP versions of the kernels (requires H\+IP), default is {\ttfamily O\+FF}
+\item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+H\+I\+P\+\_\+\+A\+M\+D\+G\+PU=\char`\"{}gpuarch1;gpuarch2\char`\"{}} the amdgpu\+\_\+target(s) variable passed to hipcc for the {\ttfamily hcc} H\+IP backend. The default is none (auto).
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+D\+OC=\{ON, O\+FF\}} creates an H\+T\+ML version of Ginkgo\textquotesingle{}s documentation from inline comments in the code. The default is {\ttfamily O\+FF}.
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+D\+O\+C\+\_\+\+G\+E\+N\+E\+R\+A\+T\+E\+\_\+\+E\+X\+A\+M\+P\+L\+ES=\{ON, O\+FF\}} generates the documentation of examples in Ginkgo. The default is {\ttfamily ON}.
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+D\+O\+C\+\_\+\+G\+E\+N\+E\+R\+A\+T\+E\+\_\+\+P\+DF=\{ON, O\+FF\}} generates a P\+DF version of Ginkgo\textquotesingle{}s documentation from inline comments in the code. The default is {\ttfamily O\+FF}.
@@ -62,7 +64,62 @@ For example, to build everything (in debug mode), use\+:
 \end{DoxyCode}
 
 
-N\+O\+TE\+: Ginkgo is known to work with the {\ttfamily Unix Makefiles} and {\ttfamily Ninja} based generators. Other C\+Make generators are untested.\hypertarget{install_ginkgo_autotoc_md1}{}\doxysubsection{Third party libraries and packages}\label{install_ginkgo_autotoc_md1}
+N\+O\+TE\+: Ginkgo is known to work with the {\ttfamily Unix Makefiles} and {\ttfamily Ninja} based generators. Other C\+Make generators are untested.\hypertarget{install_ginkgo_autotoc_md1}{}\doxysubsection{Building Ginkgo with H\+I\+P support}\label{install_ginkgo_autotoc_md1}
+Ginkgo provides a \href{https://github.com/ROCm-Developer-Tools/HIP}{\texttt{ H\+IP}} backend. This allows to compile optimized versions of the kernels for either A\+MD or N\+V\+I\+D\+IA G\+P\+Us. To build Ginkgo with this backend, use the C\+Make option {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+H\+IP=ON}.\hypertarget{install_ginkgo_autotoc_md2}{}\doxysubsubsection{Correctly installing H\+I\+P toolkits and dependencies for Ginkgo}\label{install_ginkgo_autotoc_md2}
+In general, Ginkgo\textquotesingle{}s H\+IP backend requires the following packages\+:
+\begin{DoxyItemize}
+\item H\+IP,
+\item hip\+B\+L\+AS,
+\item hip\+S\+P\+A\+R\+SE,
+\item Thrust.
+\end{DoxyItemize}
+
+It is necessary to provide some details about the different ways to procure and install these packages, in particular for N\+V\+I\+D\+IA systems since getting a correct, non bloated setup is not straightforward.
+
+For A\+MD systems, the simplest way is to follow the \href{https://github.com/ROCm-Developer-Tools/HIP/blob/master/INSTALL.md}{\texttt{ instructions provided here}} which provide package installers for most Linux distributions. Ginkgo also needs the installation of the \href{https://github.com/ROCmSoftwarePlatform/hipBLAS}{\texttt{ hip\+B\+L\+AS}} and \href{https://github.com/ROCmSoftwarePlatform/hipSPARSE}{\texttt{ hip\+S\+P\+A\+R\+SE}} interfaces. Optionally if you do not already have a thrust installation, \mbox{[}the R\+O\+Cm provided roc\+Thrust package can be used\mbox{]}(\href{https://github.com/ROCmSoftwarePlatform/rocThrust}{\texttt{ https\+://github.\+com/\+R\+O\+Cm\+Software\+Platform/roc\+Thrust}}).
+
+For N\+V\+I\+D\+IA systems, the traditional installation (package {\ttfamily hip\+\_\+nvcc}), albeit working properly is currently odd\+: it depends on all the {\ttfamily hcc} related packages, although the {\ttfamily nvcc} backend seems to entirely rely on the C\+U\+DA suite. \mbox{[}See this issue for more details\mbox{]}(\href{https://github.com/ROCmSoftwarePlatform/hipBLAS/issues/53}{\texttt{ https\+://github.\+com/\+R\+O\+Cm\+Software\+Platform/hip\+B\+L\+A\+S/issues/53}}). It is advised in this case to compile everything manually, including using forks of {\ttfamily hip\+B\+L\+AS} and {\ttfamily hip\+S\+P\+A\+R\+SE} specifically made to not depend on the {\ttfamily hcc} specific packages. {\ttfamily Thrust} is often provided by C\+U\+DA and this Thrust version should work with {\ttfamily H\+IP}. Here is a sample procedure for installing {\ttfamily H\+IP}, {\ttfamily hip\+B\+L\+AS} and {\ttfamily hip\+S\+P\+A\+R\+SE}.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\# HIP}
+\DoxyCodeLine{git clone https://github.com/ROCm-\/Developer-\/Tools/HIP.git}
+\DoxyCodeLine{pushd HIP \&\& mkdir build \&\& pushd build}
+\DoxyCodeLine{cmake .. \&\& make install}
+\DoxyCodeLine{popd \&\& popd}
+\DoxyCodeLine{}
+\DoxyCodeLine{\# hipBLAS}
+\DoxyCodeLine{git clone https://github.com/tcojean/hipBLAS.git}
+\DoxyCodeLine{pushd hipBLAS \&\& mkdir build \&\& pushd build}
+\DoxyCodeLine{cmake .. \&\& make install}
+\DoxyCodeLine{popd \&\& popd}
+\DoxyCodeLine{}
+\DoxyCodeLine{\# hipSPARSE}
+\DoxyCodeLine{git clone https://github.com/tcojean/hipSPARSE.git}
+\DoxyCodeLine{pushd hipSPARSE \&\& mkdir build \&\& pushd build}
+\DoxyCodeLine{cmake -\/DBUILD\_CUDA=ON .. \&\& make install}
+\DoxyCodeLine{popd \&\& popd}
+\end{DoxyCode}
+\hypertarget{install_ginkgo_autotoc_md3}{}\doxysubsubsection{Changing the paths to search for H\+I\+P and other packages}\label{install_ginkgo_autotoc_md3}
+All H\+IP installation paths can be configured through the use of environment variables or C\+Make variables. This way of configuring the paths is currently imposed by the {\ttfamily H\+IP} tool suite. The variables are the following\+:
+\begin{DoxyItemize}
+\item C\+Make {\ttfamily -\/D\+H\+I\+P\+\_\+\+P\+A\+TH=} or environment {\ttfamily export H\+I\+P\+\_\+\+P\+A\+TH=}\+: sets the {\ttfamily H\+IP} installation path. The default value is {\ttfamily /opt/rocm/hip}.
+\item C\+Make {\ttfamily -\/D\+H\+I\+P\+B\+L\+A\+S\+\_\+\+P\+A\+TH=} or environment {\ttfamily export H\+I\+P\+B\+L\+A\+S\+\_\+\+P\+A\+TH=}\+: sets the {\ttfamily hip\+B\+L\+AS} installation path. The default value is {\ttfamily /opt/rocm/hipblas}.
+\item C\+Make {\ttfamily -\/D\+H\+I\+P\+S\+P\+A\+R\+S\+E\+\_\+\+P\+A\+TH=} or environment {\ttfamily export H\+I\+P\+S\+P\+A\+R\+S\+E\+\_\+\+P\+A\+TH=}\+: sets the {\ttfamily hip\+S\+P\+A\+R\+SE} installation path. The default value is {\ttfamily /opt/rocm/hipsparse}.
+\item C\+Make {\ttfamily -\/D\+H\+C\+C\+\_\+\+P\+A\+TH=} or environment {\ttfamily export H\+C\+C\+\_\+\+P\+A\+TH=}\+: sets the {\ttfamily H\+CC} installation path, for A\+MD backends. The default value is {\ttfamily /opt/rocm/hcc}.
+\item environment {\ttfamily export C\+U\+D\+A\+\_\+\+P\+A\+TH=}\+: where {\ttfamily hipcc} can find {\ttfamily C\+U\+DA} if it is not in the default {\ttfamily /usr/local/cuda} path.
+\end{DoxyItemize}\hypertarget{install_ginkgo_autotoc_md4}{}\doxysubsubsection{H\+I\+P platform detection of A\+M\+D and N\+V\+I\+D\+IA}\label{install_ginkgo_autotoc_md4}
+By default, Ginkgo uses the output of {\ttfamily /opt/rocm/hip/bin/hipconfig -\/-\/platform} to select the backend. The accepted values are either {\ttfamily hcc} (A\+MD) or {\ttfamily nvcc} (N\+V\+I\+D\+IA). When on an A\+MD or N\+V\+I\+D\+IA system, this should output the correct platform by default. When on a system without G\+P\+Us, this should output {\ttfamily hcc} by default. To change this value, export the environment variable {\ttfamily H\+I\+P\+\_\+\+P\+L\+A\+T\+F\+O\+RM} like so\+: 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{export HIP\_PLATFORM=nvcc}
+\end{DoxyCode}
+\hypertarget{install_ginkgo_autotoc_md5}{}\doxysubsubsection{Setting platform specific compilation flags}\label{install_ginkgo_autotoc_md5}
+Platform specific compilation flags can be given through the following C\+Make variables\+:
+\begin{DoxyItemize}
+\item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+H\+I\+P\+\_\+\+C\+O\+M\+P\+I\+L\+E\+R\+\_\+\+F\+L\+A\+GS=}\+: compilation flags given to all platforms.
+\item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+H\+I\+P\+\_\+\+H\+C\+C\+\_\+\+C\+O\+M\+P\+I\+L\+E\+R\+\_\+\+F\+L\+A\+GS=}\+: compilation flags given to A\+MD platforms.
+\item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+H\+I\+P\+\_\+\+N\+V\+C\+C\+\_\+\+C\+O\+M\+P\+I\+L\+E\+R\+\_\+\+F\+L\+A\+GS=}\+: compilation flags given to N\+V\+I\+D\+IA platforms.
+\end{DoxyItemize}\hypertarget{install_ginkgo_autotoc_md6}{}\doxysubsection{Third party libraries and packages}\label{install_ginkgo_autotoc_md6}
 Ginkgo relies on third party packages in different cases. These third party packages can be turned off by disabling the relevant options.
 
 
@@ -82,7 +139,7 @@ To manually configure the paths, Ginkgo relies on the \href{https://xsdk.info/po
 \item {\ttfamily -\/D\+T\+P\+L\+\_\+$<$package$>$\+\_\+\+I\+N\+C\+L\+U\+D\+E\+\_\+\+D\+I\+RS=/path/to/header/directory}
 \end{DoxyItemize}
 
-When applicable (e.\+g. for {\ttfamily G\+Test} libraries), a {\ttfamily ;} separated list can be given to the {\ttfamily T\+P\+L\+\_\+$<$package$>$\+\_\+\{L\+I\+B\+R\+A\+R\+I\+E\+S$\vert$\+I\+N\+C\+L\+U\+D\+E\+\_\+\+D\+I\+RS\}} variables.\hypertarget{install_ginkgo_autotoc_md2}{}\doxysubsection{Installing Ginkgo}\label{install_ginkgo_autotoc_md2}
+When applicable (e.\+g. for {\ttfamily G\+Test} libraries), a {\ttfamily ;} separated list can be given to the {\ttfamily T\+P\+L\+\_\+$<$package$>$\+\_\+\{L\+I\+B\+R\+A\+R\+I\+E\+S$\vert$\+I\+N\+C\+L\+U\+D\+E\+\_\+\+D\+I\+RS\}} variables.\hypertarget{install_ginkgo_autotoc_md7}{}\doxysubsection{Installing Ginkgo}\label{install_ginkgo_autotoc_md7}
 To install Ginkgo into the specified folder, execute the following command in the build folder
 
 
