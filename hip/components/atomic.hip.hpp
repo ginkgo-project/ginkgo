@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_COMPONENTS_ATOMIC_CUH_
-#define GKO_HIP_COMPONENTS_ATOMIC_CUH_
+#ifndef GKO_HIP_COMPONENTS_ATOMIC_HIP_HPP_
+#define GKO_HIP_COMPONENTS_ATOMIC_HIP_HPP_
 
 
 #include <ginkgo/core/base/std_extensions.hpp>
@@ -117,12 +117,15 @@ GKO_BIND_ATOMIC_ADD(int);
 GKO_BIND_ATOMIC_ADD(unsigned int);
 GKO_BIND_ATOMIC_ADD(unsigned long long int);
 GKO_BIND_ATOMIC_ADD(float);
+
+
 #if !((defined(CUDA_VERSION) && (CUDA_VERSION < 8000)) || \
       (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 600)))
 // CUDA 8.0 starts suppoting 64-bit double atomicAdd on devices of compute
 // capability 6.x and higher
 GKO_BIND_ATOMIC_ADD(double);
 #endif
+
 
 #undef GKO_BIND_ATOMIC_ADD
 
@@ -140,6 +143,7 @@ __forceinline__ __device__ void atomic_add(
     atomic_add(&(cuaddr->x), val.real());
     atomic_add(&(cuaddr->y), val.imag());
 }
+
 
 /**
  * @internal
@@ -161,4 +165,4 @@ __forceinline__ __device__ void atomic_add(
 }  // namespace gko
 
 
-#endif  // GKO_HIP_COMPONENTS_ATOMIC_CUH_
+#endif  // GKO_HIP_COMPONENTS_ATOMIC_HIP_HPP_

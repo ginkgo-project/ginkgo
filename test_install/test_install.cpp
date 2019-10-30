@@ -248,6 +248,7 @@ int main(int, char **)
     {
         using Mtx = gko::matrix::SparsityCsr<>;
         auto test = Mtx::create(refExec, gko::dim<2>{2, 2});
+    }
 
     // core/preconditioner/ilu.hpp
     {
