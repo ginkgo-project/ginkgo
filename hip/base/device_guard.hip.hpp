@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace hip {
 
+
 /**
  * This class defines a device guard for the hip functions and the hip module.
  * The guard is used to make sure that the device code is run on the correct
