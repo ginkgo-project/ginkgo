@@ -39,7 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ostream>
-#include <tuple>
 
 
 namespace gko {
@@ -81,24 +80,41 @@ struct version {
     const char *const tag;
 };
 
+inline bool operator==(const version &first, const version &second)
+{
+    return first.major == second.major && first.minor == second.minor &&
+           first.patch == second.patch;
+}
 
-#define GKO_ENABLE_VERSION_COMPARISON(_operator)                             \
-    inline bool operator _operator(const version &first,                     \
-                                   const version &second)                    \
-    {                                                                        \
-        return std::tie(first.major, first.minor, first.patch)               \
-            _operator std::tie(second.major, second.minor, second.patch);    \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
+inline bool operator!=(const version &first, const version &second)
+{
+    return !(first == second);
+}
 
-GKO_ENABLE_VERSION_COMPARISON(<);
-GKO_ENABLE_VERSION_COMPARISON(<=);
-GKO_ENABLE_VERSION_COMPARISON(==);
-GKO_ENABLE_VERSION_COMPARISON(!=);
-GKO_ENABLE_VERSION_COMPARISON(>=);
-GKO_ENABLE_VERSION_COMPARISON(>);
+inline bool operator<(const version &first, const version &second)
+{
+    if (first.major < second.major) return true;
+    if (first.major == second.major && first.minor < second.minor) return true;
+    if (first.major == second.major && first.minor == second.minor &&
+        first.patch < second.patch)
+        return true;
+    return false;
+}
+
+inline bool operator<=(const version &first, const version &second)
+{
+    return !(second < first);
+}
+
+inline bool operator>(const version &first, const version &second)
+{
+    return second < first;
+}
+
+inline bool operator>=(const version &first, const version &second)
+{
+    return !(first < second);
+}
 
 #undef GKO_ENABLE_VERSION_COMPARISON
 
@@ -138,7 +154,7 @@ inline std::ostream &operator<<(std::ostream &os, const version &ver)
  *     earlier version may have this implemented or fixed in a later version).
  *
  * This structure provides versions of different parts of Ginkgo: the headers,
- * the core and the kernel modules (reference, OpenMP, CUDA).
+ * the core and the kernel modules (reference, OpenMP, CUDA, HIP).
  * To obtain an instance of version_info filled with information about the
  * current version of Ginkgo, call the version_info::get() static method.
  */
@@ -189,6 +205,13 @@ public:
      */
     version cuda_version;
 
+    /**
+     * Contains version information of the HIP module.
+     *
+     * This is the version of the static/shared library called "ginkgo_hip".
+     */
+    version hip_version;
+
 private:
     static constexpr version get_header_version() noexcept
     {
@@ -204,12 +227,15 @@ private:
 
     static version get_cuda_version() noexcept;
 
+    static version get_hip_version() noexcept;
+
     version_info()
         : header_version{get_header_version()},
           core_version{get_core_version()},
           reference_version{get_reference_version()},
           omp_version{get_omp_version()},
-          cuda_version{get_cuda_version()}
+          cuda_version{get_cuda_version()},
+          hip_version{get_hip_version()}
     {}
 };
 

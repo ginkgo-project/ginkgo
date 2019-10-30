@@ -36,26 +36,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cassert>
 #include <climits>
+#include <complex>
 #include <cstddef>
 #include <cstdint>
-
-
-#include <complex>
 #include <type_traits>
 
 
-// Macros for handling different compilers / architectures uniformly
+#ifdef __HIPCC__
+#include <hip/hip_runtime.h>
+#endif
 
-#ifdef __CUDACC__
+
+// Macros for handling different compilers / architectures uniformly
+#if defined(__CUDACC__) || defined(__HIPCC__)
 #define GKO_ATTRIBUTES __host__ __device__
 #define GKO_INLINE __forceinline__
 #else
 #define GKO_ATTRIBUTES
 #define GKO_INLINE inline
-#endif  // __CUDACC__
+#endif  // defined(__CUDACC__) || defined(__HIPCC__)
 
 
-#if defined(__CUDA_ARCH__) && defined(__APPLE__)
+#if (defined(__CUDA_ARCH__) && defined(__APPLE__)) || \
+    defined(__HIP_DEVICE_COMPILE__)
 
 #ifdef NDEBUG
 #define GKO_ASSERT(condition) ((void)0)
@@ -69,12 +72,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                          __FILE__, __LINE__, __func__)))
 #endif  // NDEBUG
 
-#else  // defined(__CUDA_ARCH__) && defined(__APPLE__)
+#else  // (defined(__CUDA_ARCH__) && defined(__APPLE__)) ||
+       // defined(__HIP_DEVICE_COMPILE__)
 
 // Handle assertions normally on other systems
 #define GKO_ASSERT(condition) assert(condition)
 
-#endif  // defined(__CUDA_ARCH__) && defined(__APPLE__)
+#endif  // (defined(__CUDA_ARCH__) && defined(__APPLE__)) ||
+        // defined(__HIP_DEVICE_COMPILE__)
 
 
 // Handle deprecated notices correctly on different systems
@@ -385,6 +390,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  */
 #define GKO_ENABLE_FOR_ALL_EXECUTORS(_enable_macro) \
     _enable_macro(OmpExecutor, omp);                \
+    _enable_macro(HipExecutor, hip);                \
     _enable_macro(CudaExecutor, cuda)
 
 

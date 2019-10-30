@@ -12,6 +12,7 @@ option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
 option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" ON)
 option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" OFF)
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" OFF)
+option(GINKGO_BUILD_HIP "Compile kernels for AMD or NVIDIA GPUs" OFF)
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
 option(GINKGO_SKIP_DEPENDENCY_UPDATE
     "Do not update dependencies each time the project is rebuilt" ON)
@@ -34,8 +35,18 @@ set(GINKGO_CUDA_COMPILER_FLAGS "" CACHE STRING
 set(GINKGO_CUDA_ARCHITECTURES "Auto" CACHE STRING
     "A list of target NVIDIA GPU achitectures. See README.md for more detail.")
 option(GINKGO_CUDA_DEFAULT_HOST_COMPILER "Tell Ginkgo to not automatically set the CUDA host compiler" OFF)
+set(GINKGO_HIP_COMPILER_FLAGS "" CACHE STRING
+    "Set the required HIP compiler flags. Current default is an empty string.")
+set(GINKGO_HIP_NVCC_COMPILER_FLAGS "" CACHE STRING
+    "Set the required HIP nvcc compiler flags. Current default is an empty string.")
+set(GINKGO_HIP_HCC_COMPILER_FLAGS "" CACHE STRING
+    "Set the required HIPC HCC compiler flags. Current default is an empty string.")
+set(GINKGO_HIP_AMDGPU "" CACHE STRING
+    "The amdgpu_target(s) variable passed to hipcc. The default is none (auto).")
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
+
+set(GINKGO_CIRCULAR_DEPS_FLAGS "-Wl,--no-undefined")
 
 if(BUILD_SHARED_LIBS AND (WIN32 OR CYGWIN) AND (GINKGO_BUILD_TESTS OR GINKGO_BUILD_EXAMPLES OR GINKGO_BUILD_BENCHMARKS))
     # Change shared libraries output only if this build has executable program with shared libraries.
@@ -49,7 +60,7 @@ else()
     set(GINKGO_CHANGED_SHARED_LIBRARY FALSE)
 endif()
 
-if(GINKGO_BUILD_TESTS AND (GINKGO_BUILD_CUDA OR GINKGO_BUILD_OMP))
+if(GINKGO_BUILD_TESTS AND (GINKGO_BUILD_CUDA OR GINKGO_BUILD_OMP OR GINKGO_BUILD_HIP))
     message(STATUS "GINKGO_BUILD_TESTS is ON, enabling GINKGO_BUILD_REFERENCE")
     set(GINKGO_BUILD_REFERENCE ON CACHE BOOL "Compile reference CPU kernels" FORCE)
 endif()
@@ -57,6 +68,12 @@ endif()
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   message(STATUS "Setting build type to 'Release' as none was specified.")
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+endif()
+
+if (BUILD_SHARED_LIBS)
+    set(GINKGO_STATIC_OR_SHARED SHARED)
+else()
+    set(GINKGO_STATIC_OR_SHARED STATIC)
 endif()
 
 # Ensure we have a debug postfix
@@ -85,14 +102,7 @@ if (GINKGO_WITH_IWYU)
   find_program(GINKGO_IWYU_PATH iwyu)
 endif()
 
-
-# Load CMake helpers and modules
-include(cmake/build_helpers.cmake)
-include(cmake/build_type_helpers.cmake)
-include(cmake/create_test.cmake)
-include(cmake/install_helpers.cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-
 
 # Find important header files, store the definitions in include/ginkgo/config.h.in
 # For details, see https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/How-To-Write-Platform-Checks
@@ -104,6 +114,37 @@ set(GINKGO_HAVE_PAPI_SDE 0)
 find_package(PAPI OPTIONAL_COMPONENTS sde)
 if (PAPI_sde_FOUND)
     set(GINKGO_HAVE_PAPI_SDE 1)
+endif()
+
+set(GINKGO_HIP_PLATFORM_NVCC 0)
+set(GINKGO_HIP_PLATFORM_HCC 0)
+
+if (GINKGO_BUILD_HIP)
+    if(NOT DEFINED HIP_PATH)
+        if(NOT DEFINED ENV{HIP_PATH})
+            set(HIP_PATH "/opt/rocm/hip" CACHE PATH "Path to which HIP has been installed")
+            set(ENV{HIP_PATH} ${HIP_PATH})
+        else()
+            set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
+        endif()
+    endif()
+
+    find_program(GINKGO_HIPCONFIG_PATH hipconfig HINTS "${HIP_PATH}/bin")
+    if(GINKGO_HIPCONFIG_PATH)
+        execute_process(COMMAND ${GINKGO_HIPCONFIG_PATH} --platform OUTPUT_VARIABLE GINKGO_HIP_PLATFORM)
+    elseif(DEFINED ENV{HIP_PLATFORM})
+        set(GINKGO_HIP_PLATFORM "$ENV{HIP_PLATFORM}")
+    else()
+        message(FATAL_ERROR "No platform could be found for HIP. "
+            "Set and export the environment variable HIP_PLATFORM.")
+    endif()
+    message(STATUS "HIP platform set to ${GINKGO_HIP_PLATFORM}")
+
+    if (GINKGO_HIP_PLATFORM STREQUAL "hcc")
+        set(GINKGO_HIP_PLATFORM_HCC 1)
+    elseif (GINKGO_HIP_PLATFORM STREQUAL "nvcc")
+        set(GINKGO_HIP_PLATFORM_NVCC 1)
+    endif()
 endif()
 
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
@@ -122,6 +163,11 @@ if(MSVC)
     endif()
 endif()
 
+# Load CMake helpers
+include(cmake/build_helpers.cmake)
+include(cmake/build_type_helpers.cmake)
+include(cmake/install_helpers.cmake)
+
 # Try to find the third party packages before using our subdirectories
 include(cmake/package_helpers.cmake)
 ginkgo_find_package(GTest "GTest::GTest;GTest::Main" FALSE 1.8.1)
@@ -129,18 +175,23 @@ ginkgo_find_package(gflags gflags FALSE 2.2.2)
 ginkgo_find_package(RapidJSON rapidjson TRUE 1.1.0)
 add_subdirectory(third_party)    # Third-party tools and libraries
 
+# Ginkgo core libraries
 # Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be
 # propagated to the other parts of Ginkgo in case of building as static libraries
 if(GINKGO_BUILD_CUDA)
     add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
 endif()
-# Ginkgo core libraries
 add_subdirectory(core)           # Core Ginkgo types and top-level functions
 if (GINKGO_BUILD_REFERENCE)
     add_subdirectory(reference)  # Reference kernel implementations
 endif()
 if (GINKGO_BUILD_OMP)
     add_subdirectory(omp)        # High-performance omp kernels
+endif()
+# HIP needs to be last because it builds the GINKGO_RPATH_FOR_HIP variable
+# which needs to know the `ginkgo` target.
+if(GINKGO_BUILD_HIP)
+    add_subdirectory(hip)        # High-performance kernels for AMD or NVIDIA GPUs
 endif()
 
 # Non core directories and targets

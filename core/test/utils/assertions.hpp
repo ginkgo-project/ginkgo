@@ -383,7 +383,6 @@ T &&l(T &&matrix)
     return std::forward<T>(matrix);
 }
 
-
 template <typename T>
 T *plain_ptr(const std::shared_ptr<T> &ptr)
 {

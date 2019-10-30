@@ -128,8 +128,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *   <tr valign="top">
  *       <td>@ref twentyseven_pt_stencil_solver</td>
- *       <td> Using a twentyseven point 3D stencil to solve the poisson equation with
- *            array views.
+ *       <td> Using a twentyseven point 3D stencil to solve the poisson equation
+ *            with array views.
  *       </td></tr>
  *
  *   <tr valign="top">

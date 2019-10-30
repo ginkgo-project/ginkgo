@@ -105,6 +105,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace reference
 
 
+namespace hip {
+namespace par_ilu_factorization {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace par_ilu_factorization
+}  // namespace hip
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 

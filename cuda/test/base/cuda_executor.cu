@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include <memory>
 #include <type_traits>
 
 
@@ -53,7 +54,7 @@ public:
     {
         value = -1;
     }
-    void run(std::shared_ptr<const gko::CudaExecutor> cuda) const override
+    void run(std::shared_ptr<const gko::CudaExecutor>) const override
     {
         cudaGetDevice(&value);
     }
@@ -107,7 +108,10 @@ TEST_F(CudaExecutor, MasterKnowsNumberOfDevices)
 {
     int count = 0;
     cudaGetDeviceCount(&count);
-    ASSERT_EQ(count, gko::CudaExecutor::get_num_devices());
+
+    auto num_devices = gko::CudaExecutor::get_num_devices();
+
+    ASSERT_EQ(count, num_devices);
 }
 
 
@@ -175,6 +179,7 @@ TEST_F(CudaExecutor, CopiesDataFromCuda)
     cuda->free(orig);
 }
 
+
 /* Properly checks if it works only when multiple GPUs exist */
 TEST_F(CudaExecutor, PreservesDeviceSettings)
 {
@@ -190,13 +195,17 @@ TEST_F(CudaExecutor, PreservesDeviceSettings)
     ASSERT_EQ(current_device, previous_device);
 }
 
+
 TEST_F(CudaExecutor, RunsOnProperDevice)
 {
     int value = -1;
+
     GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
     cuda2->run(ExampleOperation(value));
+
     ASSERT_EQ(value, cuda2->get_device_id());
 }
+
 
 TEST_F(CudaExecutor, CopiesDataFromCudaToCuda)
 {
@@ -215,14 +224,14 @@ TEST_F(CudaExecutor, CopiesDataFromCudaToCuda)
     GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
     cuda2->run(ExampleOperation(value));
     ASSERT_EQ(value, cuda2->get_device_id());
-
+    // Put the results on OpenMP and run CPU side assertions
     omp->copy_from(cuda2.get(), 2, copy_cuda2, copy);
-
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
     cuda->free(copy_cuda2);
     cuda->free(orig);
 }
+
 
 TEST_F(CudaExecutor, Synchronizes)
 {

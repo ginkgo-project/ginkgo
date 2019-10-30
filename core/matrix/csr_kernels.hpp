@@ -180,6 +180,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace reference
 
 
+namespace hip {
+namespace csr {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace csr
+}  // namespace hip
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 

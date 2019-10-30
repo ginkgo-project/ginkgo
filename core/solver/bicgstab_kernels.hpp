@@ -139,6 +139,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace reference
 
 
+namespace hip {
+namespace bicgstab {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace bicgstab
+}  // namespace hip
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 

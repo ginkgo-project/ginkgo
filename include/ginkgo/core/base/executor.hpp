@@ -50,6 +50,10 @@ struct cublasContext;
 
 struct cusparseContext;
 
+struct hipblasContext;
+
+struct hipsparseContext;
+
 
 namespace gko {
 
@@ -107,6 +111,9 @@ class ExecutorBase;
  *     void run(const gko::CudaExecutor *exec) const override
  *     { os_ << "CUDA(" << exec->get_device_id() << ")"; }
  *
+ *     void run(const gko::HipExecutor *exec) const override
+ *     { os_ << "HIP(" << exec->get_device_id() << ")"; }
+ *
  *     // This is optional, if not overloaded, defaults to OmpExecutor overload
  *     void run(const gko::ReferenceExecutor *) const override
  *     { os_ << "Reference CPU"; }
@@ -134,6 +141,7 @@ class ExecutorBase;
  * auto omp = gko::OmpExecutor::create();
  * std::cout << *omp << std::endl
  *           << *gko::CudaExecutor::create(0, omp) << std::endl
+ *           << *gko::HipExecutor::create(0, omp) << std::endl
  *           << *gko::ReferenceExecutor::create() << std::endl;
  * ```
  *
@@ -142,15 +150,16 @@ class ExecutorBase;
  * ```
  * OMP
  * CUDA(0)
+ * HIP(0)
  * Reference CPU
  * ```
  *
  * One might feel that this code is too complicated for such a simple task.
  * Luckily, there is an overload of the Executor::run() method, which is
  * designed to facilitate writing simple operations like this one. The method
- * takes two closures as input: one which is run for OMP, and the other one for
- * CUDA executors. Using this method, there is no need to implement an Operation
- * subclass:
+ * takes three closures as input: one which is run for OMP, one for
+ * CUDA executors, and the last one for HIP executors. Using this method, there
+ * is no need to implement an Operation subclass:
  *
  * ```
  * std::ostream& operator<<(std::ostream &os, const gko::Executor &exec)
@@ -159,6 +168,10 @@ class ExecutorBase;
  *         [&]() { os << "OMP"; },  // OMP closure
  *         [&]() { os << "CUDA("    // CUDA closure
  *                    << static_cast<gko::CudaExecutor&>(exec)
+ *                         .get_device_id()
+ *                    << ")"; },
+ *         [&]() { os << "HIP("    // HIP closure
+ *                    << static_cast<gko::HipExecutor&>(exec)
  *                         .get_device_id()
  *                    << ")"; });
  *     return os;
@@ -237,7 +250,8 @@ private:                                                                     \
  * kernel when the operation is executed.
  *
  * The kernels used to bind the operation are searched in `kernels::DEV_TYPE`
- * namespace, where `DEV_TYPE` is replaced by `omp`, `cuda` and `reference`.
+ * namespace, where `DEV_TYPE` is replaced by `omp`, `cuda`, `hip` and
+ * `reference`.
  *
  * @param _name  operation name
  * @param _kernel  kernel which will be bound to the operation
@@ -259,6 +273,11 @@ private:                                                                     \
  *      // cuda code
  * }
  * }
+ * namespace hip {
+ * void my_kernel(int x) {
+ *      // hip code
+ * }
+ * }
  * namespace reference {
  * void my_kernel(int x) {
  *     // reference code
@@ -272,6 +291,7 @@ private:                                                                     \
  *     // create executors
  *     auto omp = OmpExecutor::create();
  *     auto cuda = CudaExecutor::create(omp, 0);
+ *     auto hip = HipExecutor::create(omp, 0);
  *     auto ref = ReferenceExecutor::create();
  *
  *     // create the operation
@@ -279,6 +299,7 @@ private:                                                                     \
  *
  *     omp->run(op);  // run omp kernel
  *     cuda->run(op);  // run cuda kernel
+ *     hip->run(op);  // run hip kernel
  *     ref->run(op);  // run reference kernel
  * }
  * ```
@@ -308,6 +329,7 @@ private:                                                                     \
                                                                              \
         GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(OmpExecutor, omp, _kernel);    \
         GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(CudaExecutor, cuda, _kernel);  \
+        GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(HipExecutor, hip, _kernel);    \
         GKO_KERNEL_DETAIL_DEFINE_RUN_OVERLOAD(ReferenceExecutor, reference,  \
                                               _kernel);                      \
                                                                              \
@@ -335,6 +357,8 @@ private:                                                                     \
  *      operations executed on an OpenMP-supporting device (e.g. host CPU);
  * +    CudaExecutor specifies that the data should be stored and the
  *      operations executed on the NVIDIA GPU accelerator;
+ * +    HipExecutor specifies that the data should be stored and the
+ *      operations executed on either an NVIDIA or AMD GPU accelerator;
  * +    ReferenceExecutor executes a non-optimized reference implementation,
  *      which can be used to debug the library.
  *
@@ -433,15 +457,19 @@ public:
      *
      * @tparam ClosureOmp  type of op_omp
      * @tparam ClosureCuda  type of op_cuda
+     * @tparam ClosureHip  type of op_hip
      *
      * @param op_omp  functor to run in case of a OmpExecutor or
      *                ReferenceExecutor
      * @param op_cuda  functor to run in case of a CudaExecutor
+     * @param op_hip  functor to run in case of a HipExecutor
      */
-    template <typename ClosureOmp, typename ClosureCuda>
-    void run(const ClosureOmp &op_omp, const ClosureCuda &op_cuda) const
+    template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip>
+    void run(const ClosureOmp &op_omp, const ClosureCuda &op_cuda,
+             const ClosureHip &op_hip) const
     {
-        LambdaOperation<ClosureOmp, ClosureCuda> op(op_omp, op_cuda);
+        LambdaOperation<ClosureOmp, ClosureCuda, ClosureHip> op(op_omp, op_cuda,
+                                                                op_hip);
         this->run(op);
     }
 
@@ -577,16 +605,19 @@ protected:
 
 private:
     /**
-     * The LambdaOperation class wraps two functor objects into an Operation.
+     * The LambdaOperation class wraps three functor objects into an
+     * Operation.
      *
-     * The first object is called by the OmpExecutor, while the other one by the
-     * CudaExecutor. When run on the ReferenceExecutor, the implementation will
-     * launch the CPU reference version.
+     * The first object is called by the OmpExecutor, the second one by the
+     * CudaExecutor and the last one by the HipExecutor. When run on the
+     * ReferenceExecutor, the implementation will launch the CPU reference
+     * version.
      *
      * @tparam ClosureOmp  the type of the first functor
      * @tparam ClosureCuda  the type of the second functor
+     * @tparam ClosureHip  the type of the third functor
      */
-    template <typename ClosureOmp, typename ClosureCuda>
+    template <typename ClosureOmp, typename ClosureCuda, typename ClosureHip>
     class LambdaOperation : public Operation {
     public:
         /**
@@ -595,9 +626,11 @@ private:
          * @param op_omp  a functor object which will be called by OmpExecutor
          *                and ReferenceExecutor
          * @param op_cuda  a functor object which will be called by CudaExecutor
+         * @param op_hip  a functor object which will be called by HipExecutor
          */
-        LambdaOperation(const ClosureOmp &op_omp, const ClosureCuda &op_cuda)
-            : op_omp_(op_omp), op_cuda_(op_cuda)
+        LambdaOperation(const ClosureOmp &op_omp, const ClosureCuda &op_cuda,
+                        const ClosureHip &op_hip)
+            : op_omp_(op_omp), op_cuda_(op_cuda), op_hip_(op_hip)
         {}
 
         void run(std::shared_ptr<const OmpExecutor>) const override
@@ -610,9 +643,15 @@ private:
             op_cuda_();
         }
 
+        void run(std::shared_ptr<const HipExecutor>) const override
+        {
+            op_hip_();
+        }
+
     private:
         ClosureOmp op_omp_;
         ClosureCuda op_cuda_;
+        ClosureHip op_hip_;
     };
 };
 
@@ -950,6 +989,130 @@ namespace kernels {
 namespace cuda {
 using DefaultExecutor = CudaExecutor;
 }  // namespace cuda
+}  // namespace kernels
+
+
+/**
+ * This is the Executor subclass which represents the HIP enhanced device.
+ *
+ * @ingroup exec_hip
+ * @ingroup Executor
+ */
+class HipExecutor : public detail::ExecutorBase<HipExecutor>,
+                    public std::enable_shared_from_this<HipExecutor> {
+    friend class ExecutorBase<HipExecutor>;
+
+public:
+    /**
+     * Creates a new HipExecutor.
+     *
+     * @param device_id  the HIP device id of this device
+     * @param master  an executor on the host that is used to invoke the device
+     *                kernels
+     */
+    static std::shared_ptr<HipExecutor> create(
+        int device_id, std::shared_ptr<Executor> master);
+
+    ~HipExecutor() { decrease_num_execs(this->device_id_); }
+
+    std::shared_ptr<Executor> get_master() noexcept override;
+
+    std::shared_ptr<const Executor> get_master() const noexcept override;
+
+    void synchronize() const override;
+
+    void run(const Operation &op) const override;
+
+    /**
+     * Get the HIP device id of the device associated to this executor.
+     */
+    int get_device_id() const noexcept { return device_id_; }
+
+    /**
+     * Get the number of devices present on the system.
+     */
+    static int get_num_devices();
+
+    /**
+     * Get the number of multiprocessor of this executor.
+     */
+    int get_num_multiprocessor() const noexcept { return num_multiprocessor_; }
+
+    /**
+     * Get the hipblas handle for this executor
+     *
+     * @return  the hipblas handle (hipblasContext*) for this executor
+     */
+    hipblasContext *get_hipblas_handle() const { return hipblas_handle_.get(); }
+
+    /**
+     * Get the hipsparse handle for this executor
+     *
+     * @return the hipsparse handle (hipsparseContext*) for this executor
+     */
+    hipsparseContext *get_hipsparse_handle() const
+    {
+        return hipsparse_handle_.get();
+    }
+
+protected:
+    void set_gpu_property();
+
+    void init_handles();
+
+    HipExecutor(int device_id, std::shared_ptr<Executor> master)
+        : device_id_(device_id), master_(master), num_multiprocessor_(0)
+    {
+        assert(device_id < max_devices);
+        this->set_gpu_property();
+        this->init_handles();
+        increase_num_execs(device_id);
+    }
+
+    void *raw_alloc(size_type size) const override;
+
+    void raw_free(void *ptr) const noexcept override;
+
+    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+
+    static void increase_num_execs(int device_id)
+    {
+        std::lock_guard<std::mutex> guard(mutex[device_id]);
+        num_execs[device_id]++;
+    }
+
+    static void decrease_num_execs(int device_id)
+    {
+        std::lock_guard<std::mutex> guard(mutex[device_id]);
+        num_execs[device_id]--;
+    }
+
+    static int get_num_execs(int device_id)
+    {
+        std::lock_guard<std::mutex> guard(mutex[device_id]);
+        return num_execs[device_id];
+    }
+
+private:
+    int device_id_;
+    std::shared_ptr<Executor> master_;
+    int num_multiprocessor_;
+
+    template <typename T>
+    using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
+    handle_manager<hipblasContext> hipblas_handle_;
+    handle_manager<hipsparseContext> hipsparse_handle_;
+
+    static constexpr int max_devices = 64;
+    static int num_execs[max_devices];
+    static std::mutex mutex[max_devices];
+};
+
+
+namespace kernels {
+namespace hip {
+using DefaultExecutor = HipExecutor;
+}  // namespace hip
 }  // namespace kernels
 
 

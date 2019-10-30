@@ -31,6 +31,10 @@ Ginkgo adds the following additional switches to control what is being built:
     default is `OFF`
 *   `-DGINKGO_BUILD_CUDA={ON, OFF}` builds optimized cuda versions of the kernels
     (requires CUDA), default is `OFF`
+*   `-DGINKGO_BUILD_HIP={ON, OFF}` builds optimized HIP versions of the kernels
+    (requires HIP), default is `OFF`
+*   `-DGINKGO_HIP_AMDGPU="gpuarch1;gpuarch2"` the amdgpu_target(s) variable
+    passed to hipcc for the `hcc` HIP backend. The default is none (auto).
 *   `-DGINKGO_BUILD_DOC={ON, OFF}` creates an HTML version of Ginkgo's documentation
     from inline comments in the code. The default is `OFF`.
 *   `-DGINKGO_DOC_GENERATE_EXAMPLES={ON, OFF}` generates the documentation of examples
@@ -106,6 +110,100 @@ cmake --build Debug
 
 NOTE: Ginkgo is known to work with the `Unix Makefiles` and `Ninja` based
 generators. Other CMake generators are untested.
+
+### Building Ginkgo with HIP support
+Ginkgo provides a [HIP](https://github.com/ROCm-Developer-Tools/HIP) backend.
+This allows to compile optimized versions of the kernels for either AMD or
+NVIDIA GPUs. To build Ginkgo with this backend, use the CMake option
+`-DGINKGO_BUILD_HIP=ON`.
+
+#### Correctly installing HIP toolkits and dependencies for Ginkgo
+In general, Ginkgo's HIP backend requires the following packages:
++ HIP,
++ hipBLAS,
++ hipSPARSE,
++ Thrust.
+
+It is necessary to provide some details about the different ways to
+procure and install these packages, in particular for NVIDIA systems since
+getting a correct, non bloated setup is not straightforward.
+
+For AMD systems, the simplest way is to follow the [instructions provided
+here](https://github.com/ROCm-Developer-Tools/HIP/blob/master/INSTALL.md) which
+provide package installers for most Linux distributions. Ginkgo also needs the
+installation of the [hipBLAS](https://github.com/ROCmSoftwarePlatform/hipBLAS)
+and [hipSPARSE](https://github.com/ROCmSoftwarePlatform/hipSPARSE) interfaces.
+Optionally if you do not already have a thrust installation, [the ROCm provided
+rocThrust package can be
+used](https://github.com/ROCmSoftwarePlatform/rocThrust).
+
+For NVIDIA systems, the traditional installation (package `hip_nvcc`), albeit
+working properly is currently odd: it depends on all the `hcc` related packages,
+although the `nvcc` backend seems to entirely rely on the CUDA suite. [See this
+issue for more
+details](https://github.com/ROCmSoftwarePlatform/hipBLAS/issues/53). It is
+advised in this case to compile everything manually, including using forks of
+`hipBLAS` and `hipSPARSE` specifically made to not depend on the `hcc` specific
+packages. `Thrust` is often provided by CUDA and this Thrust version should work
+with `HIP`. Here is a sample procedure for installing `HIP`, `hipBLAS` and
+`hipSPARSE`.
+
+
+```bash
+# HIP
+git clone https://github.com/ROCm-Developer-Tools/HIP.git
+pushd HIP && mkdir build && pushd build
+cmake .. && make install
+popd && popd
+
+# hipBLAS
+git clone https://github.com/tcojean/hipBLAS.git
+pushd hipBLAS && mkdir build && pushd build
+cmake .. && make install
+popd && popd
+
+# hipSPARSE
+git clone https://github.com/tcojean/hipSPARSE.git
+pushd hipSPARSE && mkdir build && pushd build
+cmake -DBUILD_CUDA=ON .. && make install
+popd && popd
+```
+
+
+#### Changing the paths to search for HIP and other packages
+All HIP installation paths can be configured through the use of environment
+variables or CMake variables. This way of configuring the paths is currently
+imposed by the `HIP` tool suite. The variables are the following:
++ CMake `-DHIP_PATH=` or  environment `export HIP_PATH=`: sets the `HIP`
+  installation path. The default value is `/opt/rocm/hip`.
++ CMake `-DHIPBLAS_PATH=` or  environment `export HIPBLAS_PATH=`: sets the
+  `hipBLAS` installation path. The default value is `/opt/rocm/hipblas`.
++ CMake `-DHIPSPARSE_PATH=` or  environment `export HIPSPARSE_PATH=`: sets the
+  `hipSPARSE` installation path. The default value is `/opt/rocm/hipsparse`.
++ CMake `-DHCC_PATH=` or  environment `export HCC_PATH=`: sets the `HCC`
+  installation path, for AMD backends. The default value is `/opt/rocm/hcc`.
++ environment `export CUDA_PATH=`: where `hipcc` can find `CUDA` if it is not in
+  the default `/usr/local/cuda` path.
+
+
+#### HIP platform detection of AMD and NVIDIA
+By default, Ginkgo uses the output of `/opt/rocm/hip/bin/hipconfig --platform`
+to select the backend. The accepted values are either `hcc` (AMD) or `nvcc`
+(NVIDIA). When on an AMD or NVIDIA system, this should output the correct
+platform by default. When on a system without GPUs, this should output `hcc` by
+default. To change this value, export the environment variable `HIP_PLATFORM`
+like so:
+```bash
+export HIP_PLATFORM=nvcc
+```
+
+#### Setting platform specific compilation flags
+Platform specific compilation flags can be given through the following
+CMake variables:
++ `-DGINKGO_HIP_COMPILER_FLAGS=`: compilation flags given to all platforms.
++ `-DGINKGO_HIP_HCC_COMPILER_FLAGS=`: compilation flags given to AMD platforms.
++ `-DGINKGO_HIP_NVCC_COMPILER_FLAGS=`: compilation flags given to NVIDIA platforms.
+
 
 ### Third party libraries and packages
 

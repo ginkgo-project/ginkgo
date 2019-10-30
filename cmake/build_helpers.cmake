@@ -37,6 +37,12 @@ function(ginkgo_compile_features name)
             ginkgo_check_shared_library("${CMAKE_SHARED_LIBRARY_PREFIX}${name}${CMAKE_SHARED_LIBRARY_SUFFIX}")
         endif()
     endif()
+
+    if (GINKGO_CHECK_CIRCULAR_DEPS)
+        target_link_libraries("${name}" PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
+    endif()
+
+    set_target_properties("${name}" PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endfunction()
 
 function(ginkgo_check_shared_library name)

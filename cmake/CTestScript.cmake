@@ -12,8 +12,9 @@
 # + With or without valgrind, requires the valgrind tool.
 #
 # Note that only one of these can be ran at once, as the build types
-# conflict. Ginkgo is always configured with CUDA, OpenMP and Reference
-# support. The results are always sent to the dashboard:
+# conflict. Ginkgo is always configured with CUDA, HIP, OpenMP and Reference
+# support, except for ThreadSanitizer and AddressSanitizer builds. The
+# results are always sent to the dashboard:
 # https://my.cdash.org/index.php?project=Ginkgo+Project
 #
 # Running the script
@@ -126,13 +127,14 @@ if(NOT PROC_COUNT EQUAL 0)
     endif(NOT WIN32)
 endif()
 
+
 ctest_start("${CTEST_TEST_MODEL}")
 ctest_submit(PARTS Start)
 
 if(CTEST_MEMORYCHECK_TYPE STREQUAL "AddressSanitizer" OR CTEST_MEMORYCHECK_TYPE STREQUAL "ThreadSanitizer")
     set(GINKGO_CONFIGURE_OPTIONS "-DGINKGO_BUILD_REFERENCE=ON;-DGINKGO_BUILD_OMP=ON;-DCMAKE_BUILD_TYPE=${CTEST_BUILD_CONFIGURATION}")
 else()
-    set(GINKGO_CONFIGURE_OPTIONS "-DGINKGO_BUILD_REFERENCE=ON;-DGINKGO_BUILD_OMP=ON;-DGINKGO_BUILD_CUDA=ON;-DCMAKE_BUILD_TYPE=${CTEST_BUILD_CONFIGURATION}")
+    set(GINKGO_CONFIGURE_OPTIONS "-DGINKGO_BUILD_REFERENCE=ON;-DGINKGO_BUILD_OMP=ON;-DGINKGO_BUILD_CUDA=ON;-DGINKGO_BUILD_HIP=ON;-DCMAKE_BUILD_TYPE=${CTEST_BUILD_CONFIGURATION}")
 endif()
 ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" OPTIONS "${GINKGO_CONFIGURE_OPTIONS}" APPEND)
 ctest_submit(PARTS Configure)

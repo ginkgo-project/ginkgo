@@ -57,9 +57,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 // Global command-line arguments
-DEFINE_string(
-    executor, "reference",
-    "The executor used to run the benchmarks, one of: reference, omp, cuda");
+DEFINE_string(executor, "reference",
+              "The executor used to run the benchmarks, one of: reference, "
+              "omp, cuda, hip");
 
 DEFINE_uint32(device_id, 0, "ID of the device where to run the code");
 
@@ -251,9 +251,14 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
     executor_factory{
         {"reference", [] { return gko::ReferenceExecutor::create(); }},
         {"omp", [] { return gko::OmpExecutor::create(); }},
-        {"cuda", [] {
+        {"cuda",
+         [] {
              return gko::CudaExecutor::create(FLAGS_device_id,
                                               gko::OmpExecutor::create());
+         }},
+        {"hip", [] {
+             return gko::HipExecutor::create(FLAGS_device_id,
+                                             gko::OmpExecutor::create());
          }}};
 
 

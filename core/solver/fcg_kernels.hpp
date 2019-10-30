@@ -111,6 +111,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace reference
 
 
+namespace hip {
+namespace fcg {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace fcg
+}  // namespace hip
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 

@@ -49,7 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
-#include "cuda/base/device_guard.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
 #include "cuda/base/types.hpp"

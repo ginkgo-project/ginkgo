@@ -44,6 +44,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cuda_fp16.h>
 
 
+#elif defined(__HIP_DEVICE_COMPILE__)
+
+
+#include <hip/hip_fp16.h>
+
+
 #endif  // __CUDA_ARCH__
 
 
@@ -305,12 +311,12 @@ public:
 
     GKO_ATTRIBUTES half(float32 val) noexcept
     {
-#ifdef __CUDA_ARCH__
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         const auto tmp = __float2half_rn(val);
         data_ = reinterpret_cast<const uint16 &>(tmp);
-#else   // __CUDA_ARCH__
+#else   // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         data_ = float2half(reinterpret_cast<const uint32 &>(val));
-#endif  // __CUDA_ARCH__
+#endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     }
 
     GKO_ATTRIBUTES half(float64 val) noexcept : half(static_cast<float32>(val))
@@ -318,12 +324,12 @@ public:
 
     GKO_ATTRIBUTES operator float32() const noexcept
     {
-#ifdef __CUDA_ARCH__
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return __half2float(reinterpret_cast<const __half &>(data_));
-#else   // __CUDA_ARCH__
+#else   // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         const auto bits = half2float(data_);
         return reinterpret_cast<const float32 &>(bits);
-#endif  // __CUDA_ARCH__
+#endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     }
 
     GKO_ATTRIBUTES operator float64() const noexcept

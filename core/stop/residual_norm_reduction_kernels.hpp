@@ -90,6 +90,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace reference
 
 
+namespace hip {
+namespace residual_norm_reduction {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace residual_norm_reduction
+}  // namespace hip
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 }  // namespace kernels

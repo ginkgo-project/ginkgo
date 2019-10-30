@@ -91,11 +91,11 @@ protected:
     void initialize_descr()
     {
         const auto id = this->gpu_exec_->get_device_id();
-        gko::device_guard g{id};
+        gko::cuda::device_guard g{id};
         this->descr_ = handle_manager<cusparseMatDescr>(
             gko::kernels::cuda::cusparse::create_mat_descr(),
             [id](cusparseMatDescr_t descr) {
-                gko::device_guard g{id};
+                gko::cuda::device_guard g{id};
                 gko::kernels::cuda::cusparse::destroy(descr);
             });
     }
@@ -141,7 +141,7 @@ protected:
         auto dx = dense_x->get_values();
 
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
+        gko::cuda::device_guard g{id};
         gko::kernels::cuda::cusparse::spmv_mp(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
@@ -201,7 +201,7 @@ protected:
         auto dx = dense_x->get_values();
 
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
+        gko::cuda::device_guard g{id};
         gko::kernels::cuda::cusparse::spmv(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], this->get_size()[1],
@@ -261,7 +261,7 @@ protected:
         auto dx = dense_x->get_values();
 
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
+        gko::cuda::device_guard g{id};
         gko::kernels::cuda::cusparse::spmm(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             this->get_size()[0], dense_b->get_size()[1], this->get_size()[1],
@@ -318,7 +318,7 @@ public:
         const auto id = this->get_gpu_exec()->get_device_id();
         if (set_buffer_) {
             try {
-                gko::device_guard g{id};
+                gko::cuda::device_guard g{id};
                 GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(buffer_));
             } catch (const std::exception &e) {
                 std::cerr
@@ -344,7 +344,7 @@ protected:
         gko::size_type buffer_size = 0;
 
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
+        gko::cuda::device_guard g{id};
         auto handle = this->get_gpu_exec()->get_cusparse_handle();
         // This function seems to require the pointer mode to be set to HOST.
         // Ginkgo use pointer mode DEVICE by default, so we change this
@@ -416,7 +416,7 @@ public:
         this->set_size(gko::dim<2>{t_csr->get_size()});
 
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
+        gko::cuda::device_guard g{id};
         gko::kernels::cuda::cusparse::csr2hyb(
             this->get_gpu_exec()->get_cusparse_handle(), this->get_size()[0],
             this->get_size()[1], this->get_descr(), t_csr->get_const_values(),
@@ -428,7 +428,7 @@ public:
     {
         const auto id = this->get_gpu_exec()->get_device_id();
         try {
-            gko::device_guard g{id};
+            gko::cuda::device_guard g{id};
             GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyHybMat(hyb_));
         } catch (const std::exception &e) {
             std::cerr << "Error when unallocating CuspHybrid hyb_ matrix: "
@@ -449,7 +449,7 @@ protected:
         auto dx = dense_x->get_values();
 
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
+        gko::cuda::device_guard g{id};
         gko::kernels::cuda::cusparse::spmv(
             this->get_gpu_exec()->get_cusparse_handle(), trans_,
             &scalars.get_const_data()[0], this->get_descr(), hyb_, db,
@@ -462,7 +462,7 @@ protected:
           trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
     {
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::device_guard g{id};
+        gko::cuda::device_guard g{id};
         GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateHybMat(&hyb_));
     }
 
