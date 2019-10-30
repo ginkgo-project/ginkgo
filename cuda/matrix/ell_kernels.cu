@@ -85,10 +85,11 @@ constexpr double ratio = 1e-2;
 /**
  * A compile-time list of sub-warp sizes for which the spmv kernels should be
  * compiled.
- * 0 is a special case where it uses a sub-warp size of 32 in
+ * 0 is a special case where it uses a sub-warp size of warp_size in
  * combination with atomic_adds.
  */
-using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, 16, 32>;
+using compiled_kernels =
+    syn::value_list<int, 0, 1, 2, 4, 8, 16, 32, cuda_config::warp_size>;
 
 
 namespace kernel {
@@ -97,7 +98,7 @@ namespace {
 
 template <int subwarp_size, bool atomic, typename ValueType, typename IndexType,
           typename Closure>
-__device__ void spmv_kernel(const size_type num_rows,
+__device__ void spmv_kernel(const size_type num_rows, const int nwarps_per_row,
                             const ValueType *__restrict__ val,
                             const IndexType *__restrict__ col,
                             const size_type stride,
@@ -108,9 +109,7 @@ __device__ void spmv_kernel(const size_type num_rows,
 {
     const auto tidx =
         static_cast<IndexType>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const auto nwarps_per_row =
-        gridDim.x * blockDim.x / num_rows / subwarp_size;
-    const auto x = tidx / subwarp_size / nwarps_per_row;
+    const IndexType x = tidx / subwarp_size / nwarps_per_row;
     const auto warp_id = tidx / subwarp_size % nwarps_per_row;
     const auto y_start = tidx % subwarp_size +
                          num_stored_elements_per_row * warp_id / nwarps_per_row;
@@ -148,24 +147,26 @@ __device__ void spmv_kernel(const size_type num_rows,
 template <int subwarp_size, bool atomic = false, typename ValueType,
           typename IndexType>
 __global__ __launch_bounds__(default_block_size) void spmv(
-    const size_type num_rows, const ValueType *__restrict__ val,
-    const IndexType *__restrict__ col, const size_type stride,
-    const size_type num_stored_elements_per_row,
+    const size_type num_rows, const int nwarps_per_row,
+    const ValueType *__restrict__ val, const IndexType *__restrict__ col,
+    const size_type stride, const size_type num_stored_elements_per_row,
     const ValueType *__restrict__ b, const size_type b_stride,
     ValueType *__restrict__ c, const size_type c_stride)
 {
     spmv_kernel<subwarp_size, atomic>(
-        num_rows, val, col, stride, num_stored_elements_per_row, b, b_stride, c,
-        c_stride, [](const ValueType &x, const ValueType &y) { return x; });
+        num_rows, nwarps_per_row, val, col, stride, num_stored_elements_per_row,
+        b, b_stride, c, c_stride,
+        [](const ValueType &x, const ValueType &y) { return x; });
 }
 
 
 template <int subwarp_size, bool atomic = false, typename ValueType,
           typename IndexType>
 __global__ __launch_bounds__(default_block_size) void spmv(
-    const size_type num_rows, const ValueType *__restrict__ alpha,
-    const ValueType *__restrict__ val, const IndexType *__restrict__ col,
-    const size_type stride, const size_type num_stored_elements_per_row,
+    const size_type num_rows, const int nwarps_per_row,
+    const ValueType *__restrict__ alpha, const ValueType *__restrict__ val,
+    const IndexType *__restrict__ col, const size_type stride,
+    const size_type num_stored_elements_per_row,
     const ValueType *__restrict__ b, const size_type b_stride,
     const ValueType *__restrict__ beta, ValueType *__restrict__ c,
     const size_type c_stride)
@@ -178,15 +179,15 @@ __global__ __launch_bounds__(default_block_size) void spmv(
     // operation.
     if (atomic) {
         spmv_kernel<subwarp_size, atomic>(
-            num_rows, val, col, stride, num_stored_elements_per_row, b,
-            b_stride, c, c_stride,
+            num_rows, nwarps_per_row, val, col, stride,
+            num_stored_elements_per_row, b, b_stride, c, c_stride,
             [&alpha_val](const ValueType &x, const ValueType &y) {
                 return alpha_val * x;
             });
     } else {
         spmv_kernel<subwarp_size, atomic>(
-            num_rows, val, col, stride, num_stored_elements_per_row, b,
-            b_stride, c, c_stride,
+            num_rows, nwarps_per_row, val, col, stride,
+            num_stored_elements_per_row, b, b_stride, c, c_stride,
             [&alpha_val, &beta_val](const ValueType &x, const ValueType &y) {
                 return alpha_val * x + beta_val * y;
             });
@@ -210,7 +211,7 @@ void abstract_spmv(syn::value_list<int, info>, int nwarps_per_row,
                    const matrix::Dense<ValueType> *beta = nullptr)
 {
     const auto nrows = a->get_size()[0];
-    constexpr int subwarp_size = (info == 0) ? 32 : info;
+    constexpr int subwarp_size = (info == 0) ? cuda_config::warp_size : info;
     constexpr bool atomic = (info == 0);
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -218,13 +219,14 @@ void abstract_spmv(syn::value_list<int, info>, int nwarps_per_row,
         b->get_size()[1], 1);
     if (alpha == nullptr && beta == nullptr) {
         kernel::spmv<subwarp_size, atomic><<<grid_size, block_size, 0, 0>>>(
-            nrows, as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-            a->get_stride(), a->get_num_stored_elements_per_row(),
+            nrows, nwarps_per_row, as_cuda_type(a->get_const_values()),
+            a->get_const_col_idxs(), a->get_stride(),
+            a->get_num_stored_elements_per_row(),
             as_cuda_type(b->get_const_values()), b->get_stride(),
             as_cuda_type(c->get_values()), c->get_stride());
     } else if (alpha != nullptr && beta != nullptr) {
         kernel::spmv<subwarp_size, atomic><<<grid_size, block_size, 0, 0>>>(
-            nrows, as_cuda_type(alpha->get_const_values()),
+            nrows, nwarps_per_row, as_cuda_type(alpha->get_const_values()),
             as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
             a->get_stride(), a->get_num_stored_elements_per_row(),
             as_cuda_type(b->get_const_values()), b->get_stride(),
@@ -255,16 +257,17 @@ std::array<int, 3> compute_subwarp_size_and_atomicity(
     // Use multithreads to perform the reduction on each row when the matrix is
     // wide.
     // To make every thread have computation, so pick the value which is the
-    // power of 2 less than 32 and is less than or equal to ell_ncols. If the
-    // subwarp_size is 32 and allow more than one warps to work on the same row,
-    // use atomic add to handle the warps write the value into the same
-    // position. The #warps is decided according to the number of warps allowed
-    // on GPU.
+    // power of 2 less than warp_size and is less than or equal to ell_ncols. If
+    // the subwarp_size is warp_size and allow more than one warps to work on
+    // the same row, use atomic add to handle the warps write the value into the
+    // same position. The #warps is decided according to the number of warps
+    // allowed on GPU.
     if (static_cast<double>(ell_ncols) / nrows > ratio) {
-        while (subwarp_size < 32 && (subwarp_size << 1) <= ell_ncols) {
+        while (subwarp_size < cuda_config::warp_size &&
+               (subwarp_size << 1) <= ell_ncols) {
             subwarp_size <<= 1;
         }
-        if (subwarp_size == 32) {
+        if (subwarp_size == cuda_config::warp_size) {
             nwarps_per_row =
                 std::min(ell_ncols / cuda_config::warp_size, nwarps / nrows);
             nwarps_per_row = std::max(nwarps_per_row, 1);
@@ -292,8 +295,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
 
     /**
      * info is the parameter for selecting the cuda kernel.
-     * for info == 0, it uses the kernel by 32 threads with atomic operation
-     * for other value, it uses the kernel without atomic_add
+     * for info == 0, it uses the kernel by warp_size threads with atomic
+     * operation for other value, it uses the kernel without atomic_add
      */
     const int info = (!atomic) * subwarp_size;
     if (atomic) {
@@ -323,8 +326,8 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
 
     /**
      * info is the parameter for selecting the cuda kernel.
-     * for info == 0, it uses the kernel by 32 threads with atomic operation
-     * for other value, it uses the kernel without atomic_add
+     * for info == 0, it uses the kernel by warp_size threads with atomic
+     * operation for other value, it uses the kernel without atomic_add
      */
     const int info = (!atomic) * subwarp_size;
     if (atomic) {
