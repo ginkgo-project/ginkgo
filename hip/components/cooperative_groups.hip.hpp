@@ -178,83 +178,43 @@ public:
                     Size)}
     {}
 
-    __device__ unsigned thread_rank() const noexcept { return data_.rank; }
-
-    __device__ unsigned size() const noexcept { return data_.size; }
-
-    __device__ void sync() const noexcept {}
-
-    __device__ __forceinline__ int32 shfl(int32 var, int32 srcLane) const
-        noexcept
+    __device__ __forceinline__ unsigned thread_rank() const noexcept
     {
-        return __shfl(var, srcLane, Size);
+        return data_.rank;
     }
 
-    __device__ __forceinline__ float shfl(float var, int32 srcLane) const
-        noexcept
+    __device__ __forceinline__ unsigned size() const noexcept
     {
-        return __shfl(var, srcLane, Size);
+        return data_.size;
     }
 
-    __device__ __forceinline__ uint32 shfl(uint32 var, int32 srcLane) const
-        noexcept
-    {
-        return __shfl(var, srcLane, Size);
-    }
+    __device__ __forceinline__ void sync() const noexcept {}
 
-    __device__ __forceinline__ int32 shfl_up(int32 var, uint32 delta) const
-        noexcept
-    {
-        return __shfl_up(var, delta, Size);
-    }
+#define GKO_BIND_SHFL(ShflOp, ValueType, SelectorType)                       \
+    __device__ __forceinline__ ValueType ShflOp(                             \
+        ValueType var, SelectorType selector) const noexcept                 \
+    {                                                                        \
+        return __##ShflOp(var, selector, Size);                              \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
-    __device__ __forceinline__ uint32 shfl_up(uint32 var, uint32 delta) const
-        noexcept
-    {
-        return __shfl_up(var, delta, Size);
-    }
+    GKO_BIND_SHFL(shfl, int32, int32);
+    GKO_BIND_SHFL(shfl, float, int32);
+    GKO_BIND_SHFL(shfl, uint32, int32);
 
-    __device__ __forceinline__ float shfl_up(float var, uint32 delta) const
-        noexcept
-    {
-        return __shfl_up(var, delta, Size);
-    }
+    GKO_BIND_SHFL(shfl_up, int32, uint32);
+    GKO_BIND_SHFL(shfl_up, uint32, uint32);
+    GKO_BIND_SHFL(shfl_up, float, uint32);
 
-    __device__ __forceinline__ int32 shfl_down(int32 var, uint32 delta) const
-        noexcept
-    {
-        return __shfl_down(var, delta, Size);
-    }
+    GKO_BIND_SHFL(shfl_down, int32, uint32);
+    GKO_BIND_SHFL(shfl_down, uint32, uint32);
+    GKO_BIND_SHFL(shfl_down, float, uint32);
 
-    __device__ __forceinline__ uint32 shfl_down(uint32 var, uint32 delta) const
-        noexcept
-    {
-        return __shfl_down(var, delta, Size);
-    }
-
-    __device__ __forceinline__ float shfl_down(float var, uint32 delta) const
-        noexcept
-    {
-        return __shfl_down(var, delta, Size);
-    }
-
-    __device__ __forceinline__ int32 shfl_xor(int32 var, int32 laneMask) const
-        noexcept
-    {
-        return __shfl_xor(var, laneMask, Size);
-    }
-
-    __device__ __forceinline__ float shfl_xor(float var, int32 laneMask) const
-        noexcept
-    {
-        return __shfl_xor(var, laneMask, Size);
-    }
-
-    __device__ __forceinline__ uint32 shfl_xor(uint32 var, int32 laneMask) const
-        noexcept
-    {
-        return __shfl_xor(var, laneMask, Size);
-    }
+    GKO_BIND_SHFL(shfl_xor, int32, int32);
+    GKO_BIND_SHFL(shfl_xor, float, int32);
+    GKO_BIND_SHFL(shfl_xor, uint32, int32);
 
     __device__ __forceinline__ int any(int predicate) const noexcept
     {
@@ -268,6 +228,13 @@ public:
         static_assert(Size == kernels::hip::hip_config::warp_size,
                       "Hip does not have subwarp all.");
         return __all(predicate);
+    }
+
+    __device__ __forceinline__ uint64_t ballot(int predicate) const noexcept
+    {
+        static_assert(Size == kernels::hip::hip_config::warp_size,
+                      "Hip does not have subwarp ballot.");
+        return __ballot(predicate);
     }
 
 private:
@@ -348,6 +315,18 @@ struct thread_block_tile
 };
 
 
+// Only support tile_partition with 1, 2, 4, 8, 16, 32, 64 (hip).
+template <size_type Size, typename Group>
+__device__ __forceinline__ gko::xstd::enable_if_t<
+    (Size <= kernels::hip::hip_config::warp_size) &&
+        (kernels::hip::hip_config::warp_size % Size == 0),
+    thread_block_tile<Size>>
+tiled_partition(const Group &)
+{
+    return thread_block_tile<Size>();
+}
+
+
 namespace detail {
 
 
@@ -367,9 +346,15 @@ class thread_block {
     friend __device__ __forceinline__ thread_block this_thread_block();
 
 public:
-    __device__ unsigned thread_rank() const noexcept { return data_.rank; }
+    __device__ __forceinline__ unsigned thread_rank() const noexcept
+    {
+        return data_.rank;
+    }
 
-    __device__ unsigned size() const noexcept { return data_.size; }
+    __device__ __forceinline__ unsigned size() const noexcept
+    {
+        return data_.size;
+    }
 
     __device__ __forceinline__ void sync() const noexcept { __syncthreads(); }
 
@@ -402,17 +387,6 @@ struct is_synchronizable_group_impl<thread_block> : std::true_type {};
 
 
 }  // namespace detail
-
-// Only support tile_partition with 1, 2, 4, 8, 16, 32, 64 (hip).
-template <size_type Size, typename Group>
-__device__ __forceinline__ gko::xstd::enable_if_t<
-    (Size <= kernels::hip::hip_config::warp_size) &&
-        (kernels::hip::hip_config::warp_size % Size == 0),
-    thread_block_tile<Size>>
-tiled_partition(const Group &)
-{
-    return thread_block_tile<Size>();
-}
 
 
 /**

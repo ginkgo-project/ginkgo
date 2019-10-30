@@ -150,8 +150,6 @@ if(GINKGO_WITH_IWYU AND GINKGO_IWYU_PATH)
     set_property(TARGET ginkgo_hip PROPERTY CXX_INCLUDE_WHAT_YOU_USE ${GINKGO_IWYU_PATH})
 endif()
 
-
-
 if(GINKGO_HIP_PLATFORM MATCHES "hcc")
     # Fix the exception thrown bug with `hcc` backend and shared libraries
     set_target_properties(ginkgo_hip PROPERTIES LINKER_LANGUAGE HIP)
