@@ -49,14 +49,15 @@ namespace host_kernel {
 /**
  * @internal
  *
- * It calculates the number of warps used in Coo Spmv by GPU architecture and
- * the number of stored elements.
+ * It calculates the number of warps used in Coo Spmv depending on the GPU
+ * architecture and the number of stored elements.
  */
 template <size_type subwarp_size = hip_config::warp_size>
 __host__ size_type calculate_nwarps(std::shared_ptr<const HipExecutor> exec,
                                     const size_type nnz)
 {
-    // One multiprocessor has 4 SIMD
+    // In GCN (Graphics Core Next), each multiprocessor has 4 SIMD
+    // Refernce: https://en.wikipedia.org/wiki/Graphics_Core_Next
     size_type nwarps_in_hip = exec->get_num_multiprocessor() * 4;
     size_type multiple = 8;
     if (nnz >= 2000000) {

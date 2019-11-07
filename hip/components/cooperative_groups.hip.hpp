@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
+namespace kernels {
+namespace hip {
 
 
 /**
@@ -59,7 +61,7 @@ namespace gko {
  * A cooperative group (both from standard HIP and from Ginkgo) is not a
  * specific type, but a concept. That is, any type satisfying the interface
  * imposed by the cooperative groups API is considered a cooperative
- * group (a.k.a. "duck typing"). To maximize the generality of components than
+ * group (a.k.a. "duck typing"). To maximize the generality of components that
  * need cooperative groups, instead of creating the group manually, consider
  * requesting one as an input parameter. Make sure its type is a template
  * parameter to maximize the set of groups for which your algorithm can be
@@ -408,19 +410,18 @@ public:
     __device__ unsigned thread_rank() const noexcept { return data_.rank; }
 
 private:
+    // clang-format off
     __device__ grid_group()
-        : data_{blockDim.x * blockDim.y * blockDim.z * gridDim.x * gridDim.y *
-                    gridDim.z,
-                threadIdx.x +
-                    blockDim.x *
-                        (threadIdx.y +
-                         blockDim.y *
-                             (threadIdx.z +
-                              blockDim.z *
-                                  (blockIdx.x +
-                                   gridDim.x *
-                                       (blockIdx.y + gridDim.y * blockIdx.z))))}
+        : data_{
+                blockDim.x * blockDim.y * blockDim.z *
+                    gridDim.x * gridDim.y * gridDim.z,
+                threadIdx.x + blockDim.x *
+                    (threadIdx.y + blockDim.y *
+                        (threadIdx.z + blockDim.z *
+                            (blockIdx.x + gridDim.x *
+                                (blockIdx.y + gridDim.y * blockIdx.z))))}                      
     {}
+    // clang-format on
 
     struct alignas(8) {
         unsigned size;
@@ -436,6 +437,8 @@ __device__ inline grid_group this_grid() { return {}; }
 
 
 }  // namespace group
+}  // namespace hip
+}  // namespace kernels
 }  // namespace gko
 
 
