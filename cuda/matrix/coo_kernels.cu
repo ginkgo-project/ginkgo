@@ -88,6 +88,10 @@ namespace {
  * @param c  the output dense vector
  * @param c_stride  the stride of the output dense vector
  * @param scale  the function on the added value
+ * 
+ * @tparam ValueType  type of values stored in the matrix
+ * @tparam IndexType  type of matrix indexes stored in the structure
+ * @tparam Closure  type of the function used to write the result
  */
 template <int subwarp_size = cuda_config::warp_size, typename ValueType,
           typename IndexType, typename Closure>
@@ -185,6 +189,10 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
  * @param c  the output dense vector
  * @param c_stride  the stride of the output dense vector
  * @param scale  the function on the added value
+ * 
+ * @tparam ValueType  type of values stored in the matrix
+ * @tparam IndexType  type of matrix indexes stored in the structure
+ * @tparam Closure  type of the function used to write the result
  */
 template <typename ValueType, typename IndexType, typename Closure>
 __device__ void spmm_kernel(const size_type nnz, const size_type num_elems,
@@ -360,6 +368,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 namespace kernel {
 
+
 template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void convert_row_idxs_to_ptrs(
     const IndexType *__restrict__ idxs, size_type num_nonzeros,
@@ -380,6 +389,7 @@ __global__ __launch_bounds__(default_block_size) void convert_row_idxs_to_ptrs(
         }
     }
 }
+
 
 }  // namespace kernel
 

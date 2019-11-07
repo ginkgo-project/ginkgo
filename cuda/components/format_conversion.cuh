@@ -89,8 +89,8 @@ namespace host_kernel {
 /**
  * @internal
  *
- * It calculates the number of warps used in Coo Spmv by GPU architecture and
- * the number of stored elements.
+ * It calculates the number of warps used in Coo Spmv depending on the GPU
+ * architecture and the number of stored elements.
  */
 template <size_type subwarp_size = cuda_config::warp_size>
 __host__ size_type calculate_nwarps(std::shared_ptr<const CudaExecutor> exec,
