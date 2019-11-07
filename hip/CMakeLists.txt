@@ -77,6 +77,8 @@ list(APPEND CMAKE_PREFIX_PATH
     "${HIPBLAS_PATH}/lib/cmake"
     "${HIPSPARSE_PATH}/lib/cmake"
 )
+# Set CMAKE_MODULE_PATH in PARENT_SCOPE for benchmark
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)
 
 find_package(HIP REQUIRED)
 find_package(hipblas REQUIRED)
@@ -87,11 +89,6 @@ if (NOT GINKGO_HIP_THRUST_PATH)
     message(FATAL_ERROR "Could not find the ROCm header thrust/complex.h which is required by Ginkgo HIP.")
 endif()
 
-
-set(HIP_INCLUDE_DIRS ${HIP_INCLUDE_DIRS} PARENT_SCOPE)
-set(HIPSPARSE_INCLUDE_DIRS ${HIPSPARSE_INCLUDE_DIRS} PARENT_SCOPE)
-set(HIPBLAS_INCLUDE_DIRS ${HIPBLAS_INCLUDE_DIRS} PARENT_SCOPE)
-set(GINKGO_HIP_THRUST_PATH ${GINKGO_HIP_THRUST_PATH} PARENT_SCOPE)
 set(GINKGO_HIP_SOURCES
     base/exception.hip.cpp
     base/executor.hip.cpp
@@ -156,15 +153,13 @@ if(GINKGO_HIP_PLATFORM MATCHES "hcc")
 
     # Ban `-hc` flag as INTERFACE_LINK_LIBRARIES since that is propagated when building
     # a static library, and it's definitely not a known option to any compiler.
-    get_target_property(GINKGO_HCCRT_ILL hcc::hccrt INTERFACE_LINK_LIBRARIES)
-    string(REPLACE "-hc " "" GINKGO_HCCRT_NEW_ILL "${GINKGO_HCCRT_ILL}")
-    set_target_properties(hcc::hccrt PROPERTIES INTERFACE_LINK_LIBRARIES "${GINKGO_HCCRT_NEW_ILL}")
+    ginkgo_hip_ban_link_hcflag(hcc::hccrt)
 
     target_link_libraries(ginkgo_hip PRIVATE hip::device)
 elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")
     find_package(CUDA 9.0 REQUIRED)
     target_link_libraries(ginkgo_hip PRIVATE ${CUDA_LIBRARIES})
-    set(CUDA_LIBRARIES ${CUDA_LIBRARIES} PARENT_SCOPE)
+    set(HIP_CUDA_LIBRARIES ${CUDA_LIBRARIES} PARENT_SCOPE)
 endif()
 
 target_link_libraries(ginkgo_hip PRIVATE roc::hipblas roc::hipsparse)
