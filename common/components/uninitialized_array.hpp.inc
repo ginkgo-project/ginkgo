@@ -30,50 +30,61 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_COMPONENTS_ATOMIC_CUH_
-#define GKO_CUDA_COMPONENTS_ATOMIC_CUH_
-
-
-namespace gko {
-namespace kernels {
-namespace cuda {
-
-
-#include "common/components/atomic.hpp.inc"
-
 
 /**
- * @internal
+ * Stores an array with uninitialized contents.
  *
- * @note It is not 'real' complex<float> atomic add opeartion
+ * @tparam ValueType the type of values
+ * @tparam size the size of the array
  */
-__forceinline__ __device__ void atomic_add(
-    thrust::complex<float> *__restrict__ address, thrust::complex<float> val)
-{
-    cuComplex *cuaddr = reinterpret_cast<cuComplex *>(address);
-    // Separate to real part and imag part
-    atomic_add(&(cuaddr->x), val.real());
-    atomic_add(&(cuaddr->y), val.imag());
-}
+template <typename ValueType, size_type size>
+class UninitializedArray {
+public:
+    /**
+     * Operator for casting an UninitializedArray into its constexpr value
+     * pointer.
+     *
+     * @return the constexpr pointer to the first entry of the array.
+     */
+    constexpr GKO_ATTRIBUTES operator ValueType *() const noexcept
+    {
+        return &(*this)[0];
+    }
 
-/**
- * @internal
- *
- * @note It is not 'real' complex<double> atomic add opeartion
- */
-__forceinline__ __device__ void atomic_add(
-    thrust::complex<double> *__restrict__ address, thrust::complex<double> val)
-{
-    cuDoubleComplex *cuaddr = reinterpret_cast<cuDoubleComplex *>(address);
-    // Separate to real part and imag part
-    atomic_add(&(cuaddr->x), val.real());
-    atomic_add(&(cuaddr->y), val.imag());
-}
+    /**
+     * Operator for casting an UninitializedArray into its non-const value
+     * pointer.
+     *
+     * @return the non-const pointer to the first entry of the array.
+     */
+    GKO_ATTRIBUTES operator ValueType *() noexcept { return &(*this)[0]; }
 
+    /**
+     * constexpr array access operator.
+     *
+     * @param pos The array index. Using a value outside [0, size) is undefined
+     * behavior.
+     *
+     * @return a reference to the array entry at the given index.
+     */
+    constexpr GKO_ATTRIBUTES ValueType &operator[](size_type pos) const noexcept
+    {
+        return reinterpret_cast<const ValueType *>(data_)[pos];
+    }
 
-}  // namespace cuda
-}  // namespace kernels
-}  // namespace gko
+    /**
+     * Non-const array access operator.
+     *
+     * @param pos The array index. Using a value outside [0, size) is undefined
+     * behavior.
+     *
+     * @return a reference to the array entry at the given index.
+     */
+    GKO_ATTRIBUTES ValueType &operator[](size_type pos) noexcept
+    {
+        return reinterpret_cast<ValueType *>(data_)[pos];
+    }
 
-
-#endif  // GKO_CUDA_COMPONENTS_ATOMIC_CUH_
+private:
+    unsigned char data_[sizeof(ValueType) / sizeof(unsigned char) * size];
+};

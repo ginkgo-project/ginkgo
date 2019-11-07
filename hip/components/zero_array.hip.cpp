@@ -44,22 +44,7 @@ namespace hip {
 constexpr int default_block_size = 512;
 
 
-namespace kernel {
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void zero_array(
-    size_type n, ValueType *__restrict__ array)
-{
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    if (tidx < n) {
-        array[tidx] = zero<ValueType>();
-    }
-}
-
-
-}  // namespace kernel
+#include "common/components/zero_array.hip.inc"
 
 
 template <typename ValueType>

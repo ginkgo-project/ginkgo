@@ -30,50 +30,20 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_COMPONENTS_ATOMIC_CUH_
-#define GKO_CUDA_COMPONENTS_ATOMIC_CUH_
+
+namespace kernel {
 
 
-namespace gko {
-namespace kernels {
-namespace cuda {
-
-
-#include "common/components/atomic.hpp.inc"
-
-
-/**
- * @internal
- *
- * @note It is not 'real' complex<float> atomic add opeartion
- */
-__forceinline__ __device__ void atomic_add(
-    thrust::complex<float> *__restrict__ address, thrust::complex<float> val)
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void zero_array(
+    size_type n, ValueType *__restrict__ array)
 {
-    cuComplex *cuaddr = reinterpret_cast<cuComplex *>(address);
-    // Separate to real part and imag part
-    atomic_add(&(cuaddr->x), val.real());
-    atomic_add(&(cuaddr->y), val.imag());
-}
-
-/**
- * @internal
- *
- * @note It is not 'real' complex<double> atomic add opeartion
- */
-__forceinline__ __device__ void atomic_add(
-    thrust::complex<double> *__restrict__ address, thrust::complex<double> val)
-{
-    cuDoubleComplex *cuaddr = reinterpret_cast<cuDoubleComplex *>(address);
-    // Separate to real part and imag part
-    atomic_add(&(cuaddr->x), val.real());
-    atomic_add(&(cuaddr->y), val.imag());
+    const auto tidx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    if (tidx < n) {
+        array[tidx] = zero<ValueType>();
+    }
 }
 
 
-}  // namespace cuda
-}  // namespace kernels
-}  // namespace gko
-
-
-#endif  // GKO_CUDA_COMPONENTS_ATOMIC_CUH_
+}  // namespace kernel
