@@ -43,6 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/machine_config.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/memory_space.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
@@ -647,7 +649,22 @@ protected:
 
     OmpExecutor(std::shared_ptr<MemorySpace> mem_space)
         : mem_space_instance_(mem_space)
-    {}
+    {
+        if (!check_mem_space_validity(mem_space_instance_)) {
+            throw(GKO_MEMSPACE_MISMATCH(NOT_HOST));
+        }
+    }
+
+    bool check_mem_space_validity(std::shared_ptr<MemorySpace> mem_space)
+    {
+        auto check_host_mem_space =
+            dynamic_cast<HostMemorySpace *>(mem_space.get());
+        if (check_host_mem_space == nullptr) {
+            return false;
+        } else {
+            return true;
+        }
+    }
 
 private:
     std::unique_ptr<omp_exec_info> exec_info_;
@@ -721,7 +738,21 @@ protected:
 
     ReferenceExecutor(std::shared_ptr<MemorySpace> mem_space)
         : mem_space_instance_(mem_space)
-    {}
+    {
+        if (!check_mem_space_validity(mem_space_instance_)) {
+            throw(GKO_MEMSPACE_MISMATCH(NOT_HOST));
+        }
+    }
+
+    bool check_mem_space_validity(std::shared_ptr<MemorySpace> mem_space)
+    {
+        auto check_host_mem_space =
+            dynamic_cast<HostMemorySpace *>(mem_space.get());
+        if (check_host_mem_space == nullptr) {
+            return false;
+        }
+        return true;
+    }
 
 private:
     std::unique_ptr<ref_exec_info> exec_info_;
@@ -731,7 +762,6 @@ private:
 
 namespace kernels {
 namespace reference {
-// TODO: FIXME
 using DefaultExecutor = ReferenceExecutor;
 }  // namespace reference
 }  // namespace kernels
@@ -890,6 +920,19 @@ protected:
         this->set_gpu_property();
         this->init_handles();
         increase_num_execs(device_id);
+        if (!check_mem_space_validity(mem_space_instance_)) {
+            throw(GKO_MEMSPACE_MISMATCH(NOT_CUDA));
+        }
+    }
+
+    bool check_mem_space_validity(std::shared_ptr<MemorySpace> mem_space)
+    {
+        auto check_cuda_mem_space =
+            dynamic_cast<CudaMemorySpace *>(mem_space.get());
+        if (check_cuda_mem_space == nullptr) {
+            return false;
+        }
+        return true;
     }
 
     static void increase_num_execs(int device_id)
@@ -934,7 +977,6 @@ private:
 
 namespace kernels {
 namespace cuda {
-// TODO: FIXME
 using DefaultExecutor = CudaExecutor;
 }  // namespace cuda
 }  // namespace kernels

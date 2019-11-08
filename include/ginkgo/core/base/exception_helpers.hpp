@@ -106,6 +106,19 @@ namespace gko {
                   "semi-colon warnings")
 
 
+/**
+ * Creates a MemSpaceMismatch exception.
+ * This macro sets the correct information about the location of the error
+ * and fills the exception with data about _obj.
+ *
+ * @param _obj  the object referenced by MemSpaceMismatch exception
+ *
+ * @return MemSpaceMismatch
+ */
+#define GKO_MEMSPACE_MISMATCH(_obj) \
+    ::gko::MemSpaceMismatch(__FILE__, __LINE__, __func__, GKO_QUOTE(_obj))
+
+
 namespace detail {
 
 

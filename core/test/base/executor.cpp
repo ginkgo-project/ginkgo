@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory_space.hpp>
 
 
 #include <type_traits>
@@ -78,6 +79,14 @@ TEST(OmpExecutor, CanBeCreatedWithAssociatedMemorySpace)
     exec_ptr omp = gko::OmpExecutor::create(mem_space);
 
     ASSERT_EQ(omp->get_mem_space(), mem_space);
+}
+
+
+TEST(OmpExecutor, FailsWithInvalidMemorySpace)
+{
+    auto mem_space = gko::CudaMemorySpace::create(0);
+
+    ASSERT_THROW(gko::OmpExecutor::create(mem_space), gko::MemSpaceMismatch);
 }
 
 
@@ -143,6 +152,15 @@ TEST(ReferenceExecutor, CanBeCreatedWithAssociatedMemorySpace)
 }
 
 
+TEST(ReferenceExecutor, FailsWithInvalidMemorySpace)
+{
+    auto mem_space = gko::CudaMemorySpace::create(0);
+
+    ASSERT_THROW(gko::ReferenceExecutor::create(mem_space),
+                 gko::MemSpaceMismatch);
+}
+
+
 TEST(ReferenceExecutor, RunsCorrectOperation)
 {
     int value = 0;
@@ -181,6 +199,16 @@ TEST(CudaExecutor, CanBeCreatedWithAssociatedMemorySpace)
         gko::CudaExecutor::create(0, mem_space, gko::OmpExecutor::create());
 
     ASSERT_EQ(cuda->get_mem_space(), mem_space);
+}
+
+
+TEST(CudaExecutor, FailsWithInvalidMemorySpace)
+{
+    auto mem_space = gko::HostMemorySpace::create();
+
+    ASSERT_THROW(
+        gko::CudaExecutor::create(0, mem_space, gko::OmpExecutor::create()),
+        gko::MemSpaceMismatch);
 }
 
 

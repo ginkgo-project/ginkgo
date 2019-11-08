@@ -101,6 +101,7 @@ void CudaExecutor::raw_copy_to(const HipExecutor *, size_type num_bytes,
 
 void CudaExecutor::synchronize() const GKO_NOT_COMPILED(cuda);
 
+
 void CudaMemorySpace::synchronize() const GKO_NOT_COMPILED(cuda);
 
 
@@ -130,6 +131,7 @@ std::string CusparseError::get_error(int64)
 
 
 int CudaExecutor::get_num_devices() { return 0; }
+
 
 int CudaMemorySpace::get_num_devices() { return 0; }
 

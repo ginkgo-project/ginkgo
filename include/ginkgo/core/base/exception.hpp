@@ -174,6 +174,30 @@ public:
 
 
 /**
+ * MemSpaceMismatch is thrown in case it is not possible to
+ * perform the requested operation on the given object type.
+ */
+class MemSpaceMismatch : public Error {
+public:
+    /**
+     * Initializes a MemSpaceMismatch error.
+     *
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param func The name of the function where the error occured
+     * @param obj_type The object type on which the requested operation
+     cannot be performed.
+    */
+    MemSpaceMismatch(const std::string &file, int line, const std::string &func,
+                     const std::string &obj_type)
+        : Error(file, line,
+                "This executor" + func +
+                    " does not support Memory space of type " + obj_type)
+    {}
+};
+
+
+/**
  * CudaError is thrown when a CUDA routine throws a non-zero error code.
  */
 class CudaError : public Error {
