@@ -54,8 +54,6 @@ struct hipblasContext;
 
 struct hipsparseContext;
 
-struct hipsparseMatDescr;
-
 
 namespace gko {
 
