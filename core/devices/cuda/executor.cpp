@@ -48,6 +48,7 @@ std::shared_ptr<const Executor> CudaExecutor::get_master() const noexcept
     return master_;
 }
 
+
 std::shared_ptr<MemorySpace> CudaExecutor::get_mem_space() noexcept
 {
     return mem_space_instance_;

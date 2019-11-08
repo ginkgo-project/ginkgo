@@ -105,6 +105,7 @@ __global__ void check_data(int *data)
     }
 }
 
+
 TEST_F(CudaMemorySpace, CopiesDataToCuda)
 {
     int orig[] = {3, 8};

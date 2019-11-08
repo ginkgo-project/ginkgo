@@ -330,13 +330,12 @@ public:
      * Creates a new CudaMemorySpace.
      *
      * @param device_id  the CUDA device id of this device
-     * @param master  an executor on the host that is used to invoke the device
-     * kernels
      */
     static std::shared_ptr<CudaMemorySpace> create(int device_id)
     {
         return std::shared_ptr<CudaMemorySpace>(new CudaMemorySpace(device_id));
     }
+
     /**
      * Get the CUDA device id of the device associated to this memory_space.
      */
