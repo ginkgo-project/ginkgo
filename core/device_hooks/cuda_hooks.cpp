@@ -94,8 +94,8 @@ void CudaMemorySpace::raw_copy_to(const CudaMemorySpace *, size_type num_bytes,
     GKO_NOT_COMPILED(cuda);
 
 
-void CudaExecutor::raw_copy_to(const HipExecutor *, size_type num_bytes,
-                               const void *src_ptr, void *dest_ptr) const
+void CudaMemorySpace::raw_copy_to(const HipMemorySpace *, size_type num_bytes,
+                                  const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(cuda);
 
 

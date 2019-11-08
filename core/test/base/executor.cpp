@@ -276,6 +276,26 @@ TEST(HipExecutor, RunsCorrectLambdaOperation)
 }
 
 
+TEST(HipExecutor, CanBeCreatedWithAssociatedMemorySpace)
+{
+    auto mem_space = gko::HipMemorySpace::create(0);
+    exec_ptr hip =
+        gko::HipExecutor::create(0, mem_space, gko::OmpExecutor::create());
+
+    ASSERT_EQ(hip->get_mem_space(), mem_space);
+}
+
+
+TEST(HipExecutor, FailsWithInvalidMemorySpace)
+{
+    auto mem_space = gko::HostMemorySpace::create();
+
+    ASSERT_THROW(
+        gko::HipExecutor::create(0, mem_space, gko::OmpExecutor::create()),
+        gko::MemSpaceMismatch);
+}
+
+
 TEST(HipExecutor, KnowsItsMaster)
 {
     auto omp = gko::OmpExecutor::create();

@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory_space.hpp>
 
 
 namespace gko {
@@ -42,6 +43,18 @@ std::shared_ptr<Executor> HipExecutor::get_master() noexcept { return master_; }
 std::shared_ptr<const Executor> HipExecutor::get_master() const noexcept
 {
     return master_;
+}
+
+
+std::shared_ptr<MemorySpace> HipExecutor::get_mem_space() noexcept
+{
+    return mem_space_instance_;
+}
+
+
+std::shared_ptr<const MemorySpace> HipExecutor::get_mem_space() const noexcept
+{
+    return mem_space_instance_;
 }
 
 

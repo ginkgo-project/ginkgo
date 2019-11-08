@@ -128,7 +128,7 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
         [device_id](CudaExecutor *exec) {
             delete exec;
             if (!CudaExecutor::get_num_execs(device_id)) {
-                device_guard g(device_id);
+                cuda::device_guard g(device_id);
                 cudaDeviceReset();
             }
         });

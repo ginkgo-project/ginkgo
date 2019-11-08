@@ -70,73 +70,19 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
 }
 
 
-void OmpExecutor::raw_copy_to(const HipExecutor *dest, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+std::shared_ptr<HipExecutor> HipExecutor::create(
+    int device_id, std::shared_ptr<MemorySpace> mem_space,
+    std::shared_ptr<Executor> master)
 {
-    hip::device_guard g(dest->get_device_id());
-    GKO_ASSERT_NO_HIP_ERRORS(
-        hipMemcpy(dest_ptr, src_ptr, num_bytes, hipMemcpyHostToDevice));
-}
-
-
-void HipExecutor::raw_free(void *ptr) const noexcept
-{
-    hip::device_guard g(this->get_device_id());
-    auto error_code = hipFree(ptr);
-    if (error_code != hipSuccess) {
-#if GKO_VERBOSE_LEVEL >= 1
-        // Unfortunately, if memory free fails, there's not much we can do
-        std::cerr << "Unrecoverable HIP error on device " << this->device_id_
-                  << " in " << __func__ << ": " << hipGetErrorName(error_code)
-                  << ": " << hipGetErrorString(error_code) << std::endl
-                  << "Exiting program" << std::endl;
-#endif
-        std::exit(error_code);
-    }
-}
-
-
-void *HipExecutor::raw_alloc(size_type num_bytes) const
-{
-    void *dev_ptr = nullptr;
-    hip::device_guard g(this->get_device_id());
-    auto error_code = hipMalloc(&dev_ptr, num_bytes);
-    if (error_code != hipErrorMemoryAllocation) {
-        GKO_ASSERT_NO_HIP_ERRORS(error_code);
-    }
-    GKO_ENSURE_ALLOCATED(dev_ptr, "hip", num_bytes);
-    return dev_ptr;
-}
-
-
-void HipExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
-{
-    hip::device_guard g(this->get_device_id());
-    GKO_ASSERT_NO_HIP_ERRORS(
-        hipMemcpy(dest_ptr, src_ptr, num_bytes, hipMemcpyDeviceToHost));
-}
-
-
-void HipExecutor::raw_copy_to(const CudaExecutor *src, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
-{
-#if GINKGO_HIP_PLATFORM_NVCC == 1
-    hip::device_guard g(this->get_device_id());
-    GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, this->device_id_, src_ptr,
-                                           src->get_device_id(), num_bytes));
-#else
-    GKO_NOT_SUPPORTED(HipExecutor);
-#endif
-}
-
-
-void HipExecutor::raw_copy_to(const HipExecutor *src, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
-{
-    hip::device_guard g(this->get_device_id());
-    GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, this->device_id_, src_ptr,
-                                           src->get_device_id(), num_bytes));
+    return std::shared_ptr<HipExecutor>(
+        new HipExecutor(device_id, mem_space, std::move(master)),
+        [device_id](HipExecutor *exec) {
+            delete exec;
+            if (!HipExecutor::get_num_execs(device_id)) {
+                hip::device_guard g(device_id);
+                hipDeviceReset();
+            }
+        });
 }
 
 

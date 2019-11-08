@@ -1006,11 +1006,27 @@ public:
     static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<Executor> master);
 
+    /**
+     * Creates a new HipExecutor.
+     *
+     * @param device_id  the HIP device id of this device
+     * @param memory_space  the memory space associated to the executor.
+     * @param master  an executor on the host that is used to invoke the device
+     * kernels
+     */
+    static std::shared_ptr<HipExecutor> create(
+        int device_id, std::shared_ptr<MemorySpace> memory_space,
+        std::shared_ptr<Executor> master);
+
     ~HipExecutor() { decrease_num_execs(this->device_id_); }
 
     std::shared_ptr<Executor> get_master() noexcept override;
 
     std::shared_ptr<const Executor> get_master() const noexcept override;
+
+    std::shared_ptr<MemorySpace> get_mem_space() noexcept override;
+
+    std::shared_ptr<const MemorySpace> get_mem_space() const noexcept override;
 
     void synchronize() const override;
 
@@ -1102,13 +1118,34 @@ protected:
         this->init_handles();
         increase_num_execs(device_id);
         exec_info_ = hip_exec_info::create();
+        mem_space_instance_ = HipMemorySpace::create(device_id);
     }
 
-    void *raw_alloc(size_type size) const override;
+    HipExecutor(int device_id, std::shared_ptr<MemorySpace> mem_space,
+                std::shared_ptr<Executor> master)
+        : device_id_(device_id),
+          master_(master),
+          num_multiprocessor_(0),
+          mem_space_instance_(mem_space)
+    {
+        assert(device_id < max_devices);
+        this->set_gpu_property();
+        this->init_handles();
+        increase_num_execs(device_id);
+        if (!check_mem_space_validity(mem_space_instance_)) {
+            throw(GKO_MEMSPACE_MISMATCH(NOT_HIP));
+        }
+    }
 
-    void raw_free(void *ptr) const noexcept override;
-
-    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+    bool check_mem_space_validity(std::shared_ptr<MemorySpace> mem_space)
+    {
+        auto check_hip_mem_space =
+            dynamic_cast<HipMemorySpace *>(mem_space.get());
+        if (check_hip_mem_space == nullptr) {
+            return false;
+        }
+        return true;
+    }
 
     static void increase_num_execs(int device_id)
     {
@@ -1137,6 +1174,7 @@ private:
     int minor_;
     int warp_size_;
     std::unique_ptr<hip_exec_info> exec_info_;
+    std::shared_ptr<MemorySpace> mem_space_instance_;
 
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;

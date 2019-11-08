@@ -406,6 +406,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  */
 #define GKO_ENABLE_FOR_ALL_MEMORY_SPACES(_enable_macro) \
     _enable_macro(HostMemorySpace, host);               \
+    _enable_macro(HipMemorySpace, hip);                 \
     _enable_macro(CudaMemorySpace, cuda)
 
 

@@ -102,6 +102,14 @@ TEST(CudaMemorySpace, KnowsItsDeviceId)
 }
 
 
+TEST(HipMemorySpace, KnowsItsDeviceId)
+{
+    auto hip = gko::HipMemorySpace::create(0);
+
+    ASSERT_EQ(0, hip->get_device_id());
+}
+
+
 template <typename T>
 struct mock_free : T {
     /**

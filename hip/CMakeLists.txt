@@ -92,6 +92,7 @@ endif()
 set(GINKGO_HIP_SOURCES
     base/exception.hip.cpp
     base/executor.hip.cpp
+    base/memory_space.hip.cpp
     base/version.hip.cpp
     components/zero_array.hip.cpp
     factorization/par_ilu_kernels.hip.cpp

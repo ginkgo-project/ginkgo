@@ -32,6 +32,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/memory_space.hpp>
 #include <ginkgo/core/base/version.hpp>
 
 
@@ -54,12 +55,20 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
 }
 
 
-void OmpExecutor::raw_copy_to(const HipExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+std::shared_ptr<HipExecutor> HipExecutor::create(
+    int device_id, std::shared_ptr<MemorySpace> memory_space,
+    std::shared_ptr<Executor> master)
+{
+    return std::shared_ptr<HipExecutor>(
+        new HipExecutor(device_id, memory_space, std::move(master)));
+}
+
+void HostMemorySpace::raw_copy_to(const HipMemorySpace *, size_type num_bytes,
+                                  const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
 
-void HipExecutor::raw_free(void *ptr) const noexcept
+void HipMemorySpace::raw_free(void *ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
     // If the nvidia module was not compiled, the library couldn't have
@@ -67,25 +76,29 @@ void HipExecutor::raw_free(void *ptr) const noexcept
 }
 
 
-void *HipExecutor::raw_alloc(size_type num_bytes) const GKO_NOT_COMPILED(hip);
-
-
-void HipExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void *HipMemorySpace::raw_alloc(size_type num_bytes) const
     GKO_NOT_COMPILED(hip);
 
 
-void HipExecutor::raw_copy_to(const CudaExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void HipMemorySpace::raw_copy_to(const HostMemorySpace *, size_type num_bytes,
+                                 const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
 
-void HipExecutor::raw_copy_to(const HipExecutor *, size_type num_bytes,
-                              const void *src_ptr, void *dest_ptr) const
+void HipMemorySpace::raw_copy_to(const CudaMemorySpace *, size_type num_bytes,
+                                 const void *src_ptr, void *dest_ptr) const
+    GKO_NOT_COMPILED(hip);
+
+
+void HipMemorySpace::raw_copy_to(const HipMemorySpace *, size_type num_bytes,
+                                 const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
 
 void HipExecutor::synchronize() const GKO_NOT_COMPILED(hip);
+
+
+void HipMemorySpace::synchronize() const GKO_NOT_COMPILED(hip);
 
 
 void HipExecutor::run(const Operation &op) const
@@ -114,6 +127,9 @@ std::string HipsparseError::get_error(int64)
 
 
 int HipExecutor::get_num_devices() { return 0; }
+
+
+int HipMemorySpace::get_num_devices() { return 0; }
 
 
 void HipExecutor::set_gpu_property() {}
