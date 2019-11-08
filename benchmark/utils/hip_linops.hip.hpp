@@ -48,9 +48,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace detail {
 
 
+struct hipsparseMatDescr;
+
+
 class HipspBase : public gko::LinOp {
 public:
-    hipsparseMatDescr *get_descr() const { return this->descr_.get(); }
+    hipsparseMatDescr_t get_descr() const { return this->descr_.get(); }
 
     const gko::HipExecutor *get_gpu_exec() const { return gpu_exec_.get(); }
 
@@ -72,11 +75,17 @@ protected:
         this->initialize_descr();
     }
 
+    ~HipspBase() = default;
+
+    HipspBase(const HipspBase &other) = delete;
+
     HipspBase &operator=(const HipspBase &other)
     {
-        gko::LinOp::operator=(other);
-        this->gpu_exec_ = other.gpu_exec_;
-        this->initialize_descr();
+        if (this != &other) {
+            gko::LinOp::operator=(other);
+            this->gpu_exec_ = other.gpu_exec_;
+            this->initialize_descr();
+        }
         return *this;
     }
 
@@ -85,7 +94,8 @@ protected:
         const auto id = this->gpu_exec_->get_device_id();
         gko::hip::device_guard g{id};
         this->descr_ = handle_manager<hipsparseMatDescr>(
-            gko::kernels::hip::hipsparse::create_mat_descr(),
+            reinterpret_cast<hipsparseMatDescr *>(
+                gko::kernels::hip::hipsparse::create_mat_descr()),
             [id](hipsparseMatDescr *descr) {
                 gko::hip::device_guard g{id};
                 gko::kernels::hip::hipsparse::destroy(descr);
@@ -257,14 +267,18 @@ public:
     ~HipspHybrid() override
     {
         const auto id = this->get_gpu_exec()->get_device_id();
-        gko::hip::device_guard g{id};
         try {
+            gko::hip::device_guard g{id};
             GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseDestroyHybMat(hyb_));
         } catch (const std::exception &e) {
             std::cerr << "Error when unallocating HipspHybrid hyb_ matrix: "
                       << e.what() << std::endl;
         }
     }
+
+    HipspHybrid(const HipspHybrid &other) = delete;
+
+    HipspHybrid &operator=(const HipspHybrid &other) = default;
 
 protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
