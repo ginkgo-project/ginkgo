@@ -48,13 +48,13 @@ std::shared_ptr<const Executor> HipExecutor::get_master() const noexcept
 
 std::shared_ptr<MemorySpace> HipExecutor::get_mem_space() noexcept
 {
-    return mem_space_instance_;
+    return this->mem_space_instance_;
 }
 
 
 std::shared_ptr<const MemorySpace> HipExecutor::get_mem_space() const noexcept
 {
-    return mem_space_instance_;
+    return this->mem_space_instance_;
 }
 
 

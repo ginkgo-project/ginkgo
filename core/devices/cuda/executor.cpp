@@ -51,13 +51,13 @@ std::shared_ptr<const Executor> CudaExecutor::get_master() const noexcept
 
 std::shared_ptr<MemorySpace> CudaExecutor::get_mem_space() noexcept
 {
-    return mem_space_instance_;
+    return this->mem_space_instance_;
 }
 
 
 std::shared_ptr<const MemorySpace> CudaExecutor::get_mem_space() const noexcept
 {
-    return mem_space_instance_;
+    return this->mem_space_instance_;
 }
 
 
