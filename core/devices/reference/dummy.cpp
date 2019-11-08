@@ -30,31 +30,5 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/executor.hpp>
-
-
-#include <cstdlib>
-#include <cstring>
-
-
-#include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
-
-
-namespace gko {
-
-
-std::shared_ptr<MemorySpace> ReferenceExecutor::get_mem_space() noexcept
-{
-    return mem_space_instance_;
-}
-
-
-std::shared_ptr<const MemorySpace> ReferenceExecutor::get_mem_space() const
-    noexcept
-{
-    return mem_space_instance_;
-}
-
-
-}  // namespace gko
+// Remove this file once there is at least one source file in
+// ginkgo_referece_device

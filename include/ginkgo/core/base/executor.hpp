@@ -726,9 +726,15 @@ public:
      */
     ref_exec_info *get_exec_info() const { return exec_info_.get(); }
 
-    std::shared_ptr<MemorySpace> get_mem_space() noexcept override;
+    std::shared_ptr<MemorySpace> get_mem_space() noexcept override
+    {
+        return this->mem_space_instance_;
+    }
 
-    std::shared_ptr<const MemorySpace> get_mem_space() const noexcept override;
+    std::shared_ptr<const MemorySpace> get_mem_space() const noexcept override
+    {
+        return this->mem_space_instance_;
+    }
 
 protected:
     ReferenceExecutor() : exec_info_(ref_exec_info::create())
