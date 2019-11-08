@@ -51,7 +51,7 @@ namespace gko {
 
 void CudaMemorySpace::synchronize() const
 {
-    device_guard g(this->get_device_id());
+    cuda::device_guard g(this->get_device_id());
     GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceSynchronize());
 }
 
@@ -82,7 +82,7 @@ void HostMemorySpace::raw_copy_to(const CudaMemorySpace *dest,
 
 void CudaMemorySpace::raw_free(void *ptr) const noexcept
 {
-    device_guard g(this->get_device_id());
+    cuda::device_guard g(this->get_device_id());
     auto error_code = cudaFree(ptr);
     if (error_code != cudaSuccess) {
 #if GKO_VERBOSE_LEVEL >= 1
@@ -100,7 +100,7 @@ void CudaMemorySpace::raw_free(void *ptr) const noexcept
 void *CudaMemorySpace::raw_alloc(size_type num_bytes) const
 {
     void *dev_ptr = nullptr;
-    device_guard g(this->get_device_id());
+    cuda::device_guard g(this->get_device_id());
     auto error_code = cudaMalloc(&dev_ptr, num_bytes);
     if (error_code != cudaErrorMemoryAllocation) {
         GKO_ASSERT_NO_CUDA_ERRORS(error_code);
@@ -131,6 +131,23 @@ void CudaMemorySpace::raw_copy_to(const CudaMemorySpace *dest,
                                                  src_ptr, this->get_device_id(),
                                                  num_bytes));
     }
+}
+
+
+void CudaMemorySpace::raw_copy_to(const HipMemorySpace *dest,
+                                  size_type num_bytes, const void *src_ptr,
+                                  void *dest_ptr) const
+{
+#if GINKGO_HIP_PLATFORM_NVCC == 1
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, dest->device_id_,
+                                                 src_ptr, this->get_device_id(),
+                                                 num_bytes));
+    }
+#else
+    GKO_NOT_SUPPORTED(CudaMemorySpace);
+#endif
 }
 
 

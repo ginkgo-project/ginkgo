@@ -367,6 +367,52 @@ private:
     static constexpr int max_devices = 64;
 };
 
+
+class HipMemorySpace : public detail::MemorySpaceBase<HipMemorySpace> {
+    friend class detail::MemorySpaceBase<HipMemorySpace>;
+
+public:
+    /**
+     * Creates a new HipMemorySpace.
+     *
+     * @param device_id  the HIP device id of this device
+     */
+    static std::shared_ptr<HipMemorySpace> create(int device_id)
+    {
+        return std::shared_ptr<HipMemorySpace>(new HipMemorySpace(device_id));
+    }
+
+    /**
+     * Get the HIP device id of the device associated to this memory_space.
+     */
+    int get_device_id() const noexcept { return device_id_; }
+
+    /**
+     * Get the number of devices present on the system.
+     */
+    static int get_num_devices();
+
+    void synchronize() const override;
+
+protected:
+    HipMemorySpace() = default;
+
+    HipMemorySpace(int device_id) : device_id_(device_id)
+    {
+        assert(device_id < max_devices);
+    }
+
+    void *raw_alloc(size_type size) const override;
+
+    void raw_free(void *ptr) const noexcept override;
+
+    GKO_ENABLE_FOR_ALL_MEMORY_SPACES(GKO_OVERRIDE_RAW_COPY_TO);
+
+private:
+    int device_id_;
+    static constexpr int max_devices = 64;
+};
+
 #undef GKO_OVERRIDE_RAW_COPY_TO
 
 
