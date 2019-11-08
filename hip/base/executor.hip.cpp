@@ -43,12 +43,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "hip/base/config.hip.hpp"
 #include "hip/base/device_guard.hip.hpp"
 #include "hip/base/hipblas_bindings.hip.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
 
 
 namespace gko {
+
+
+#include "common/base/executor.hpp.inc"
 
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
@@ -172,6 +176,18 @@ void HipExecutor::set_gpu_property()
         GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
             &num_multiprocessor_, hipDeviceAttributeMultiprocessorCount,
             device_id_));
+        GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
+            &major_, hipDeviceAttributeComputeCapabilityMajor, device_id_));
+        GKO_ASSERT_NO_HIP_ERRORS(hipDeviceGetAttribute(
+            &minor_, hipDeviceAttributeComputeCapabilityMinor, device_id_));
+#if GINKGO_HIP_PLATFORM_NVCC
+        num_warps_per_sm_ = convert_sm_ver_to_cores(major_, minor_) /
+                            kernels::hip::hip_config::warp_size;
+#else
+        // In GCN (Graphics Core Next), each multiprocessor has 4 SIMD
+        // Refernce: https://en.wikipedia.org/wiki/Graphics_Core_Next
+        num_warps_per_sm_ = 4;
+#endif  // GINKGO_HIP_PLATFORM_NVCC
     }
 }
 

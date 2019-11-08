@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
+#include "cuda/base/config.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
@@ -251,7 +252,7 @@ std::array<int, 3> compute_subwarp_size_and_atomicity(
 
     const auto nrows = a->get_size()[0];
     const auto ell_ncols = a->get_num_stored_elements_per_row();
-    const auto nwarps = exec->get_num_cores_per_sm() / cuda_config::warp_size *
+    const auto nwarps = exec->get_num_warps_per_sm() *
                         exec->get_num_multiprocessor() * num_threads_per_core;
 
     // Use multithreads to perform the reduction on each row when the matrix is

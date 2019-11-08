@@ -877,9 +877,9 @@ public:
     static int get_num_devices();
 
     /**
-     * Get the number of cores per SM of this executor.
+     * Get the number of warps per SM of this executor.
      */
-    int get_num_cores_per_sm() const noexcept { return num_cores_per_sm_; }
+    int get_num_warps_per_sm() const noexcept { return num_warps_per_sm_; }
 
     /**
      * Get the number of multiprocessor of this executor.
@@ -891,9 +891,7 @@ public:
      */
     int get_num_warps() const noexcept
     {
-        constexpr uint32 warp_size = 32;
-        auto warps_per_sm = num_cores_per_sm_ / warp_size;
-        return num_multiprocessor_ * warps_per_sm;
+        return num_multiprocessor_ * num_warps_per_sm_;
     }
 
     /**
@@ -931,7 +929,7 @@ protected:
     CudaExecutor(int device_id, std::shared_ptr<Executor> master)
         : device_id_(device_id),
           master_(master),
-          num_cores_per_sm_(0),
+          num_warps_per_sm_(0),
           num_multiprocessor_(0),
           major_(0),
           minor_(0)
@@ -969,7 +967,7 @@ protected:
 private:
     int device_id_;
     std::shared_ptr<Executor> master_;
-    int num_cores_per_sm_;
+    int num_warps_per_sm_;
     int num_multiprocessor_;
     int major_;
     int minor_;
@@ -1034,9 +1032,24 @@ public:
     static int get_num_devices();
 
     /**
+     * Get the number of warps per SM of this executor.
+     */
+    int get_num_warps_per_sm() const noexcept { return num_warps_per_sm_; }
+
+    /**
      * Get the number of multiprocessor of this executor.
      */
     int get_num_multiprocessor() const noexcept { return num_multiprocessor_; }
+
+    /**
+     * Get the major verion of compute capability.
+     */
+    int get_major_version() const noexcept { return major_; }
+
+    /**
+     * Get the minor verion of compute capability.
+     */
+    int get_minor_version() const noexcept { return minor_; }
 
     /**
      * Get the hipblas handle for this executor
@@ -1061,7 +1074,12 @@ protected:
     void init_handles();
 
     HipExecutor(int device_id, std::shared_ptr<Executor> master)
-        : device_id_(device_id), master_(master), num_multiprocessor_(0)
+        : device_id_(device_id),
+          master_(master),
+          num_multiprocessor_(0),
+          num_warps_per_sm_(0),
+          major_(0),
+          minor_(0)
     {
         assert(device_id < max_devices);
         this->set_gpu_property();
@@ -1097,6 +1115,9 @@ private:
     int device_id_;
     std::shared_ptr<Executor> master_;
     int num_multiprocessor_;
+    int num_warps_per_sm_;
+    int major_;
+    int minor_;
 
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;

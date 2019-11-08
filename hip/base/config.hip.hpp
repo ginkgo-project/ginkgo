@@ -37,6 +37,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hip/device_functions.h>
 
 
+#include "hip/base/math.hip.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace hip {
