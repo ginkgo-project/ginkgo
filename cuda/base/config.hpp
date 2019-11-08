@@ -30,59 +30,42 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_COMPONENTS_FORMAT_CONVERSION_HIP_HPP_
-#define GKO_HIP_COMPONENTS_FORMAT_CONVERSION_HIP_HPP_
-
-
-#include <ginkgo/core/base/std_extensions.hpp>
-
-
-#include "hip/base/config.hip.hpp"
+#ifndef GKO_CUDA_BASE_CONFIG_HPP_
+#define GKO_CUDA_BASE_CONFIG_HPP_
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
-namespace host_kernel {
+namespace cuda {
 
 
-/**
- * @internal
- *
- * It calculates the number of warps used in Coo Spmv depending on the GPU
- * architecture and the number of stored elements.
- */
-template <size_type subwarp_size = hip_config::warp_size>
-__host__ size_type calculate_nwarps(std::shared_ptr<const HipExecutor> exec,
-                                    const size_type nnz)
-{
-    size_type nwarps_in_hip = exec->get_num_multiprocessor() *
-                              exec->get_num_warps_per_sm() *
-                              hip_config::warp_size / subwarp_size;
-#if GINKGO_HIP_PLATFORM_NVCC
-    size_type multiple = 8;
-    if (nnz >= 2000000) {
-        multiple = 128;
-    } else if (nnz >= 200000) {
-        multiple = 32;
-    }
-#else
-    size_type multiple = 2;
-    if (nnz >= 10000000) {
-        multiple = 32;
-    } else if (nnz >= 100000) {
-        multiple = 8;
-    }
-#endif  // GINKGO_HIP_PLATFORM_NVCC
-    return std::min(multiple * nwarps_in_hip, static_cast<size_type>(ceildiv(
-                                                  nnz, hip_config::warp_size)));
-}
+struct cuda_config {
+    /**
+     * The number of threads within a CUDA warp.
+     */
+    static constexpr uint32 warp_size = 32;
+
+    /**
+     * The bitmask of the entire warp.
+     */
+    static constexpr uint32 full_lane_mask = (1ll << warp_size) - 1;
+
+    /**
+     * The maximal number of threads allowed in a CUDA warp.
+     */
+    static constexpr uint32 max_block_size = 1024;
+
+    /**
+     * The minimal amount of warps that need to be scheduled for each block
+     * to maximize GPU occupancy.
+     */
+    static constexpr uint32 min_warps_per_block = 4;
+};
 
 
-}  // namespace host_kernel
-}  // namespace hip
+}  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
 
 
-#endif  // GKO_HIP_COMPONENTS_FORMAT_CONVERSION_HIP_HPP_
+#endif  // GKO_CUDA_BASE_CONFIG_CUDA_HPP_
