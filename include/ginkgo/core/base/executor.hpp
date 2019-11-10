@@ -1048,10 +1048,13 @@ using DefaultExecutor = CudaExecutor;
  * @ingroup Executor
  */
 class HipExecutor : public detail::ExecutorBase<HipExecutor>,
-                    public std::enable_shared_from_this<HipExecutor> {
-    friend class ExecutorBase<HipExecutor>;
+                    public std::enable_shared_from_this<HipExecutor>,
+                    public machine_config::topology<HipExecutor> {
+    friend class detail::ExecutorBase<HipExecutor>;
 
 public:
+    using hip_exec_info = machine_config::topology<HipExecutor>;
+
     /**
      * Creates a new HipExecutor.
      *
@@ -1132,6 +1135,13 @@ public:
         return hipsparse_handle_.get();
     }
 
+    /**
+     * Get the Executor information for this executor
+     *
+     * @return the executor info (cuda_exec_info*) for this executor
+     */
+    hip_exec_info *get_exec_info() const { return exec_info_.get(); }
+
 protected:
     void set_gpu_property();
 
@@ -1150,6 +1160,7 @@ protected:
         this->set_gpu_property();
         this->init_handles();
         increase_num_execs(device_id);
+        exec_info_ = hip_exec_info::create();
     }
 
     void *raw_alloc(size_type size) const override;
@@ -1184,6 +1195,7 @@ private:
     int major_;
     int minor_;
     int warp_size_;
+    std::unique_ptr<hip_exec_info> exec_info_;
 
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
