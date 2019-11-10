@@ -13,13 +13,13 @@ option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" ON)
 option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" OFF)
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" OFF)
 option(GINKGO_BUILD_HIP "Compile kernels for AMD or NVIDIA GPUs" OFF)
-option(GINKGO_WITH_HWLOC "Add support for the Hardware Locality module from Open-MPI" OFF)
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
 option(GINKGO_SKIP_DEPENDENCY_UPDATE
     "Do not update dependencies each time the project is rebuilt" ON)
 option(GINKGO_EXPORT_BUILD_DIR
     "Make Ginkgo export its build directory to the CMake package registry."
     OFF)
+  option(GINKGO_WITH_HWLOC "Add support for the Hardware Locality module from Open-MPI" OFF)
 option(GINKGO_WITH_CLANG_TIDY "Make Ginkgo call `clang-tidy` to find programming issues." OFF)
 option(GINKGO_WITH_IWYU "Make Ginkgo call `iwyu` (Include What You Use) to find include issues." OFF)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
@@ -143,17 +143,18 @@ if (GINKGO_BUILD_HIP)
     message(STATUS "HIP platform set to ${GINKGO_HIP_PLATFORM}")
 
     if (GINKGO_HIP_PLATFORM STREQUAL "hcc")
-        set(GINKGO_HIP_PLATFORM_HCC 1)
+      set(GINKGO_HIP_PLATFORM_HCC 1)
     elseif (GINKGO_HIP_PLATFORM STREQUAL "nvcc")
-        set(GINKGO_HIP_PLATFORM_NVCC 1)
+      set(GINKGO_HIP_PLATFORM_NVCC 1)
     endif()
+endif()
 
 # Automatically find HWLOC
-set(HWLOC_XMLFILE "${CMAKE_SOURCE_DIR}/topo.xml")
+# set(HWLOC_XMLFILE "${CMAKE_SOURCE_DIR}/topo.xml")
 set(GINKGO_HAVE_HWLOC 0)
 if(GINKGO_WITH_HWLOC)
   find_package(HWLOC)
-  set(GKO_HWLOC_TOPO_XMLFILE "${HWLOC_XMLFILE}")
+  set(GKO_HWLOC_XMLFILE "${HWLOC_XMLFILE}")
   if(HWLOC_FOUND)
     set(GINKGO_HAVE_HWLOC 1)
   endif()
