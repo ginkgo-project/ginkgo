@@ -104,16 +104,6 @@ TEST_F(CudaExecutor, CanInstantiateTwoExecutorsOnOneDevice)
 }
 
 
-TEST_F(CudaExecutor, CanGetNumGpusFromExecInfo)
-{
-    int num_gpus = 0;
-    auto cuda = gko::CudaExecutor::create(0, omp);
-    auto cuda_info = cuda->get_exec_info();
-    num_gpus = cuda_info->get_num_gpus();
-    ASSERT_EQ(num_gpus, gko::CudaExecutor::get_num_devices());
-}
-
-
 TEST_F(CudaExecutor, MasterKnowsNumberOfDevices)
 {
     int count = 0;

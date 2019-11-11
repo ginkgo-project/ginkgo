@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception.hpp>
-#include <iostream>
+
 
 namespace {
 
@@ -82,6 +82,9 @@ TEST(OmpExecutor, RunsCorrectOperation)
 }
 
 
+#if GKO_HAVE_HWLOC
+
+
 TEST(OmpExecutor, GetsExecInfo)
 {
     int num_pus = 0;
@@ -92,9 +95,13 @@ TEST(OmpExecutor, GetsExecInfo)
     num_pus = omp_info->get_num_pus();
     num_cores = omp_info->get_num_cores();
     num_numas = omp_info->get_num_numas();
-    std::cout << " num cores omp " << num_cores << " num pus " << num_pus
-              << " num numas " << num_numas << std::endl;
+    ASSERT_NE(0, num_numas);
+    ASSERT_NE(0, num_pus);
+    ASSERT_NE(0, num_cores);
 }
+
+
+#endif
 
 
 TEST(OmpExecutor, RunsCorrectLambdaOperation)
