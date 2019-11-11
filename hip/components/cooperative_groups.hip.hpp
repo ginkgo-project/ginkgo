@@ -320,7 +320,7 @@ struct thread_block_tile
 // Only support tile_partition with 1, 2, 4, 8, 16, 32, 64 (hip).
 template <size_type Size, typename Group>
 __device__ __forceinline__ gko::xstd::enable_if_t<
-    (Size <= kernels::hip::hip_config::warp_size) &&
+    (Size <= kernels::hip::hip_config::warp_size) && (Size > 0) &&
         (kernels::hip::hip_config::warp_size % Size == 0),
     thread_block_tile<Size>>
 tiled_partition(const Group &)

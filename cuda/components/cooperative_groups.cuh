@@ -40,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/std_extensions.hpp>
 
 
+#include "cuda/base/config.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {
@@ -451,9 +454,15 @@ __device__ __forceinline__ auto tiled_partition(const Group &g)
 }
 
 
+// Only support tile_partition with 1, 2, 4, 8, 16, 32.
+// Reference:
+// https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#warp-notes
 template <size_type Size, typename Group>
-__device__ __forceinline__ thread_block_tile<Size> tiled_partition(
-    const Group &)
+__device__ __forceinline__ gko::xstd::enable_if_t<
+    (Size <= kernels::cuda::cuda_config::warp_size) && (Size > 0) &&
+        (kernels::cuda::cuda_config::warp_size % Size == 0),
+    thread_block_tile<Size>>
+tiled_partition(const Group &)
 {
     return thread_block_tile<Size>();
 }
