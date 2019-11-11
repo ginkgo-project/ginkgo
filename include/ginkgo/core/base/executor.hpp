@@ -798,8 +798,6 @@ public:
      */
     omp_exec_info *get_exec_info() const { return exec_info_.get(); }
 
-    void load_gpus() override {}
-
 protected:
     OmpExecutor() : exec_info_(omp_exec_info::create()) {}
 

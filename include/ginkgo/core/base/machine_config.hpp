@@ -64,7 +64,8 @@ struct hwloc_topology;
 namespace gko {
 namespace machine_config {
 
-struct hwloc_obj_info {
+
+struct topology_obj_info {
     hwloc_obj_t obj;
     int numa;
     std::size_t logical_id;
@@ -73,9 +74,9 @@ struct hwloc_obj_info {
 
 
 struct machine_information {
-    virtual const hwloc_obj_info &get_pu(std::size_t id) = 0;
-    virtual const hwloc_obj_info &get_core(std::size_t id) = 0;
-    virtual const hwloc_obj_info &get_gpu(std::size_t id) = 0;
+    virtual const topology_obj_info &get_pu(std::size_t id) = 0;
+    virtual const topology_obj_info &get_core(std::size_t id) = 0;
+    virtual const topology_obj_info &get_gpu(std::size_t id) = 0;
     virtual std::size_t get_num_pus() = 0;
     virtual std::size_t get_num_cores() = 0;
     virtual std::size_t get_num_gpus() = 0;
@@ -87,6 +88,7 @@ struct binder {
     virtual void bind_to_core(std::size_t id) = 0;
     virtual void bind_to_pu(std::size_t id) = 0;
 };
+
 
 template <class Executor>
 class topology : public machine_information, public binder {
@@ -110,19 +112,19 @@ public:
         hwloc_binding_helper(this->pus_, id);
     }
 
-    const hwloc_obj_info &get_pu(std::size_t id) override
+    const topology_obj_info &get_pu(std::size_t id) override
     {
         GKO_ENSURE_IN_BOUNDS(id, pus_.size());
         return pus_[id];
     }
 
-    const hwloc_obj_info &get_core(std::size_t id) override
+    const topology_obj_info &get_core(std::size_t id) override
     {
         GKO_ENSURE_IN_BOUNDS(id, cores_.size());
         return cores_[id];
     }
 
-    const hwloc_obj_info &get_gpu(std::size_t id) override
+    const topology_obj_info &get_gpu(std::size_t id) override
     {
         GKO_ENSURE_IN_BOUNDS(id, gpus_.size());
         return gpus_[id];
@@ -136,22 +138,80 @@ public:
 
     virtual void load_gpus() {}
 
-    void hwloc_binding_helper(std::vector<hwloc_obj_info> &obj, std::size_t id)
+    void hwloc_binding_helper(std::vector<topology_obj_info> &obj,
+                              std::size_t id)
     {
 #if GKO_HAVE_HWLOC
-        // auto bitmap = hwloc_bitmap_alloc();
-        // hwloc_bitmap_set(bitmap, obj[id].physical_id);
-        // hwloc_bitmap_singlify(bitmap);
-        hwloc_set_cpubind(topo_.get(), obj[id].obj->cpuset, 0);
-        // hwloc_bitmap_free(bitmap);
+        auto bitmap = hwloc_bitmap_alloc();
+        hwloc_bitmap_set(bitmap, obj[id].physical_id);
+        hwloc_bitmap_singlify(bitmap);
+        hwloc_set_cpubind(topo_.get(), bitmap, 0);
+        hwloc_bitmap_free(bitmap);
 #endif
+    }
+
+
+protected:
+    topology()
+    {
+#if GKO_HAVE_HWLOC
+
+
+        this->topo_ = topo_manager<hwloc_topology>(init_topology(),
+                                                   hwloc_topology_destroy);
+
+        load_objects(HWLOC_OBJ_CORE, this->cores_);
+        load_objects(HWLOC_OBJ_PU, this->pus_);
+        this->load_gpus();
+
+        num_numas_ = hwloc_get_nbobjs_by_type(topo_.get(), HWLOC_OBJ_PACKAGE);
+#else
+
+        this->topo_ = topo_manager<hwloc_topology>();
+
+#endif
+    }
+
+
+#if GKO_HAVE_HWLOC
+
+
+    // The objects should be sorted by logical index since hwloc uses logical
+    // index with these functions
+    void load_objects(hwloc_obj_type_t type,
+                      std::vector<topology_obj_info> &vector)
+    {
+        unsigned nbcores = hwloc_get_nbobjs_by_type(topo_.get(), type);
+        for (unsigned i = 0; i < nbcores; i++) {
+            hwloc_obj_t obj = hwloc_get_obj_by_type(topo_.get(), type, i);
+            vector.push_back(
+                topology_obj_info{obj, hwloc_bitmap_first(obj->nodeset),
+                                  obj->logical_index, obj->os_index});
+        }
+    }
+
+
+    hwloc_topology *init_topology()
+    {
+        hwloc_topology_t tmp;
+        hwloc_topology_init(&tmp);
+
+#if HWLOC_API_VERSION >= 0x00020000
+        hwloc_topology_set_io_types_filter(tmp,
+                                           HWLOC_TYPE_FILTER_KEEP_IMPORTANT);
+#else
+        hwloc_topology_set_flags(tmp, HWLOC_TOPOLOGY_FLAG_IO_DEVICES);
+#endif
+        hwloc_topology_set_xml(tmp, GKO_HWLOC_XMLFILE);
+        hwloc_topology_load(tmp);
+
+        return tmp;
     }
 
 
     static void hwloc_print_children(hwloc_topology *topology, hwloc_obj_t obj,
                                      int depth)
     {
-#if GKO_HAVE_HWLOC
         char type[32], attr[1024];
         unsigned i;
         hwloc_obj_type_snprintf(type, sizeof(type), obj, 0);
@@ -167,70 +227,23 @@ public:
         for (i = 0; i < obj->arity; i++) {
             hwloc_print_children(topology, obj->children[i], depth + 1);
         }
-#endif
     }
 
 
-    topology()
-    {
-#if GKO_HAVE_HWLOC
-        this->topo_ = topo_manager<hwloc_topology>(init_topology(),
-                                                   hwloc_topology_destroy);
-
-        load_objects(HWLOC_OBJ_CORE, this->cores_);
-        load_objects(HWLOC_OBJ_PU, this->pus_);
-        this->load_gpus();
-
-        num_numas_ = hwloc_get_nbobjs_by_type(topo_.get(), HWLOC_OBJ_PACKAGE);
 #endif
-    }
 
-
-    // The objects should be sorted by logical index since hwloc uses logical
-    // index with these functions
-    void load_objects(hwloc_obj_type_t type,
-                      std::vector<hwloc_obj_info> &vector)
-    {
-#if GKO_HAVE_HWLOC
-        unsigned nbcores = hwloc_get_nbobjs_by_type(topo_.get(), type);
-        for (unsigned i = 0; i < nbcores; i++) {
-            hwloc_obj_t obj = hwloc_get_obj_by_type(topo_.get(), type, i);
-            vector.push_back(hwloc_obj_info{obj,
-                                            hwloc_bitmap_first(obj->nodeset),
-                                            obj->logical_index, obj->os_index});
-        }
-#endif
-    }
-
-
-    hwloc_topology *init_topology()
-    {
-#if GKO_HAVE_HWLOC
-        hwloc_topology_t tmp;
-        hwloc_topology_init(&tmp);
-
-#if HWLOC_API_VERSION >= 0x00020000
-        hwloc_topology_set_io_types_filter(tmp,
-                                           HWLOC_TYPE_FILTER_KEEP_IMPORTANT);
-#else
-        hwloc_topology_set_flags(tmp, HWLOC_TOPOLOGY_FLAG_IO_DEVICES);
-#endif
-        hwloc_topology_set_xml(tmp, GKO_HWLOC_XMLFILE);
-        hwloc_topology_load(tmp);
-
-        return tmp;
-#endif
-    }
-
-    std::vector<hwloc_obj_info> gpus_;
-    std::vector<hwloc_obj_info> pus_;
-    std::vector<hwloc_obj_info> cores_;
+private:
+    std::vector<topology_obj_info> gpus_;
+    std::vector<topology_obj_info> pus_;
+    std::vector<topology_obj_info> cores_;
     std::size_t num_numas_;
 
     template <typename T>
     using topo_manager = std::unique_ptr<T, std::function<void(T *)>>;
     topo_manager<hwloc_topology> topo_;
 };
+
+
 }  // namespace machine_config
 }  // namespace gko
 
