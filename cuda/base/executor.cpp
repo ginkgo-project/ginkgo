@@ -90,22 +90,7 @@ void topology<CudaExecutor>::load_gpus()
                         num_in_numa = 0;
                     }
                     this->gpus_.push_back(
-                        hwloc_obj_info{obj, this_numa, i, num_in_numa});
-                    last_numa = this_numa;
-                }
-            } else if (HWLOC_OBJ_OSDEV_GPU == obj->attr->osdev.type &&
-                       obj->name && !strncmp("card", obj->name, 4) &&
-                       atoi(obj->name + 4) == (int)i) {
-                while (obj &&
-                       (!obj->nodeset || hwloc_bitmap_iszero(obj->nodeset)))
-                    obj = obj->parent;
-                if (obj && obj->nodeset) {
-                    auto this_numa = hwloc_bitmap_first(obj->nodeset);
-                    if (this_numa != last_numa) {
-                        num_in_numa = 0;
-                    }
-                    this->gpus_.push_back(
-                        hwloc_obj_info{obj, this_numa, i, num_in_numa});
+                        topology_obj_info{obj, this_numa, i, num_in_numa});
                     last_numa = this_numa;
                 }
             }

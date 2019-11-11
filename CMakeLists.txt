@@ -36,7 +36,7 @@ option(GINKGO_SKIP_DEPENDENCY_UPDATE
 option(GINKGO_EXPORT_BUILD_DIR
     "Make Ginkgo export its build directory to the CMake package registry."
     OFF)
-  option(GINKGO_WITH_HWLOC "Add support for the Hardware Locality module from Open-MPI" OFF)
+option(GINKGO_WITH_HWLOC "Add support for the Hardware Locality module from Open-MPI" OFF)
 option(GINKGO_WITH_CLANG_TIDY "Make Ginkgo call `clang-tidy` to find programming issues." OFF)
 option(GINKGO_WITH_IWYU "Make Ginkgo call `iwyu` (Include What You Use) to find include issues." OFF)
 option(GINKGO_CHECK_CIRCULAR_DEPS
