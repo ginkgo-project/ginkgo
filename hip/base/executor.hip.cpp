@@ -185,7 +185,7 @@ void HipExecutor::set_gpu_property()
                             kernels::hip::hip_config::warp_size;
 #else
         // In GCN (Graphics Core Next), each multiprocessor has 4 SIMD
-        // Refernce: https://en.wikipedia.org/wiki/Graphics_Core_Next
+        // Reference: https://en.wikipedia.org/wiki/Graphics_Core_Next
         num_warps_per_sm_ = 4;
 #endif  // GINKGO_HIP_PLATFORM_NVCC
     }
