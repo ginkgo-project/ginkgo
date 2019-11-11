@@ -195,7 +195,7 @@ struct ResidualLogger : gko::log::Logger {
                 get_norm(gko::as<vec<ValueType>>(residual_norm)), alloc);
         } else {
             rec_res_norms.PushBack(
-                compute_norm(gko::as<vec<ValueType>>(residual)), alloc);
+                compute_norm2(gko::as<vec<ValueType>>(residual)), alloc);
         }
         if (solution) {
             true_res_norms.PushBack(
