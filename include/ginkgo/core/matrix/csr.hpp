@@ -185,10 +185,10 @@ public:
             if (nwarps > 0) {
                 auto host_srow_exec = mtx_srow->get_executor()->get_master();
                 auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
-                bool is_srow_on_host{host_srow_exec ==
-                                     mtx_srow->get_executor()};
-                bool is_mtx_on_host{host_mtx_exec ==
-                                    mtx_row_ptrs.get_executor()};
+                const bool is_srow_on_host{host_srow_exec ==
+                                           mtx_srow->get_executor()};
+                const bool is_mtx_on_host{host_mtx_exec ==
+                                          mtx_row_ptrs.get_executor()};
                 Array<index_type> row_ptrs_host(host_mtx_exec);
                 Array<index_type> srow_host(host_srow_exec);
                 const index_type *row_ptrs{};
@@ -208,8 +208,8 @@ public:
                 for (size_type i = 0; i < nwarps; i++) {
                     srow[i] = 0;
                 }
-                auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
-                auto num_elems = row_ptrs[num_rows];
+                const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
+                const auto num_elems = row_ptrs[num_rows];
                 for (size_type i = 0; i < num_rows; i++) {
                     auto bucket =
                         ceildiv((ceildiv(row_ptrs[i + 1], warp_size) * nwarps),
@@ -269,7 +269,8 @@ public:
             // the maximum number of stored elements per row is larger than
             // 64, use load_balance otherwise use classical
             auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
-            bool is_mtx_on_host{host_mtx_exec == mtx_row_ptrs.get_executor()};
+            const bool is_mtx_on_host{host_mtx_exec ==
+                                      mtx_row_ptrs.get_executor()};
             Array<index_type> row_ptrs_host(host_mtx_exec);
             const index_type *row_ptrs{};
             if (is_mtx_on_host) {

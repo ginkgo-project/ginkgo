@@ -162,8 +162,9 @@ void Hybrid<ValueType, IndexType>::read(const mat_data &data)
     get_each_row_nnz(data, row_nnz);
     strategy_->compute_hybrid_config(row_nnz, &ell_lim, &coo_lim);
 
-    auto tmp = Hybrid::create(this->get_executor()->get_master(), data.size,
-                              ell_lim, data.size[0], coo_lim);
+    auto tmp =
+        Hybrid::create(this->get_executor()->get_master(), data.size, ell_lim,
+                       data.size[0], coo_lim, this->get_strategy());
 
     // Get values and column indexes.
     size_type ind = 0;
