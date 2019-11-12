@@ -52,7 +52,7 @@ namespace {
  * @tparam IndexType  type of matrix indexes stored in the structure
  * @tparam Closure  type of the function used to write the result
  */
-template <int subwarp_size = device_config::warp_size, typename ValueType,
+template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType, typename Closure>
 __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
                             const ValueType *__restrict__ val,
@@ -246,10 +246,9 @@ __global__ __launch_bounds__(default_block_size) void convert_row_idxs_to_ptrs(
 
 
 template <typename ValueType>
-__global__
-    __launch_bounds__(device_config::max_block_size) void initialize_zero_dense(
-        size_type num_rows, size_type num_cols, size_type stride,
-        ValueType *__restrict__ result)
+__global__ __launch_bounds__(config::max_block_size) void initialize_zero_dense(
+    size_type num_rows, size_type num_cols, size_type stride,
+    ValueType *__restrict__ result)
 {
     const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
     const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;

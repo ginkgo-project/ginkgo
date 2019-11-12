@@ -166,7 +166,7 @@ namespace detail {
 
 /**
  * This is a limited implementation of the HIP thread_block_tile.
- * `any` and `all` are only supported when the size is hip_config::warp_size
+ * `any` and `all` are only supported when the size is config::warp_size
  *
  */
 template <size_type Size>
@@ -220,21 +220,21 @@ public:
 
     __device__ __forceinline__ int any(int predicate) const noexcept
     {
-        static_assert(Size == kernels::hip::hip_config::warp_size,
+        static_assert(Size == kernels::hip::config::warp_size,
                       "Hip does not have subwarp any.");
         return __any(predicate);
     }
 
     __device__ __forceinline__ int all(int predicate) const noexcept
     {
-        static_assert(Size == kernels::hip::hip_config::warp_size,
+        static_assert(Size == kernels::hip::config::warp_size,
                       "Hip does not have subwarp all.");
         return __all(predicate);
     }
 
     __device__ __forceinline__ uint64_t ballot(int predicate) const noexcept
     {
-        static_assert(Size == kernels::hip::hip_config::warp_size,
+        static_assert(Size == kernels::hip::config::warp_size,
                       "Hip does not have subwarp ballot.");
         return __ballot(predicate);
     }
@@ -320,8 +320,8 @@ struct thread_block_tile
 // Only support tile_partition with 1, 2, 4, 8, 16, 32, 64 (hip).
 template <size_type Size, typename Group>
 __device__ __forceinline__ gko::xstd::enable_if_t<
-    (Size <= kernels::hip::hip_config::warp_size) && (Size > 0) &&
-        (kernels::hip::hip_config::warp_size % Size == 0),
+    (Size <= kernels::hip::config::warp_size) && (Size > 0) &&
+        (kernels::hip::config::warp_size % Size == 0),
     thread_block_tile<Size>>
 tiled_partition(const Group &)
 {
