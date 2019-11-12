@@ -129,7 +129,7 @@ protected:
 
 TEST_F(Csr, StrategyAfterCopyIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::load_balance>(32));
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(hip));
 
     ASSERT_EQ(mtx->get_strategy()->get_name(),
               dmtx->get_strategy()->get_name());
@@ -138,7 +138,7 @@ TEST_F(Csr, StrategyAfterCopyIsEquivalentToRef)
 
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data(std::make_shared<Mtx::load_balance>(32));
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(hip));
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -149,7 +149,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalance)
 
 TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data(std::make_shared<Mtx::load_balance>(32));
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(hip));
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -237,7 +237,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomatical)
 
 TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data(std::make_shared<Mtx::load_balance>(32), 3);
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(hip), 3);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -248,7 +248,7 @@ TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 
 TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data(std::make_shared<Mtx::load_balance>(32), 3);
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(hip), 3);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -303,7 +303,7 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithMergePath)
 
 TEST_F(Csr, TransposeIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::automatical>(32));
+    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
 
     auto trans = mtx->transpose();
     auto d_trans = dmtx->transpose();

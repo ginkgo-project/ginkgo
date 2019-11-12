@@ -181,6 +181,7 @@ void CudaExecutor::set_gpu_property()
             &num_multiprocessor_, cudaDevAttrMultiProcessorCount, device_id_));
         num_warps_per_sm_ = convert_sm_ver_to_cores(major_, minor_) /
                             kernels::cuda::config::warp_size;
+        warp_size_ = kernels::cuda::config::warp_size;
     }
 }
 

@@ -142,7 +142,7 @@ protected:
 
 TEST_F(Csr, StrategyAfterCopyIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::load_balance>(32));
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(cuda));
 
     ASSERT_EQ(mtx->get_strategy()->get_name(),
               dmtx->get_strategy()->get_name());
@@ -151,7 +151,7 @@ TEST_F(Csr, StrategyAfterCopyIsEquivalentToRef)
 
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data(std::make_shared<Mtx::load_balance>(32));
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(cuda));
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -162,7 +162,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalance)
 
 TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data(std::make_shared<Mtx::load_balance>(32));
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(cuda));
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -239,7 +239,7 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithClassical)
 
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomatical)
 {
-    set_up_apply_data(std::make_shared<Mtx::automatical>(32));
+    set_up_apply_data(std::make_shared<Mtx::automatical>(cuda));
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -250,7 +250,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomatical)
 
 TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data(std::make_shared<Mtx::load_balance>(32), 3);
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(cuda), 3);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -261,7 +261,7 @@ TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 
 TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data(std::make_shared<Mtx::load_balance>(32), 3);
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(cuda), 3);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -316,7 +316,7 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithMergePath)
 
 TEST_F(Csr, TransposeIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::automatical>(32));
+    set_up_apply_data(std::make_shared<Mtx::automatical>(cuda));
 
     auto trans = mtx->transpose();
     auto d_trans = dmtx->transpose();
@@ -328,7 +328,7 @@ TEST_F(Csr, TransposeIsEquivalentToRef)
 
 TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
 {
-    set_up_apply_complex_data(std::make_shared<ComplexMtx::automatical>(32));
+    set_up_apply_complex_data(std::make_shared<ComplexMtx::automatical>(cuda));
 
     auto trans = complex_mtx->conj_transpose();
     auto d_trans = complex_dmtx->conj_transpose();

@@ -100,9 +100,6 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class SparsityCsr<ValueType, IndexType>;
 
 public:
-    using EnableLinOp<Csr>::convert_to;
-    using EnableLinOp<Csr>::move_to;
-
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
@@ -151,6 +148,17 @@ public:
         int64_t clac_size(const int64_t nnz) { return 0; }
     };
 
+    class cusparse : public strategy_type {
+    public:
+        cusparse() : strategy_type("cusparse") {}
+
+        void process(const Array<index_type> &mtx_row_ptrs,
+                     Array<index_type> *mtx_srow)
+        {}
+
+        int64_t clac_size(const int64_t nnz) { return 0; }
+    };
+
     class sparselib : public strategy_type {
     public:
         sparselib() : strategy_type("sparselib") {}
@@ -170,17 +178,24 @@ public:
         {}
 
         load_balance(std::shared_ptr<const CudaExecutor> exec)
-            : load_balance(exec->get_num_warps())
+            : load_balance(exec->get_num_warps(), exec->get_warp_size())
         {}
 
-        load_balance(int64_t nwarps)
-            : strategy_type("load_balance"), nwarps_(nwarps)
+        load_balance(std::shared_ptr<const HipExecutor> exec)
+            : load_balance(exec->get_num_warps(), exec->get_warp_size(), false)
+        {}
+
+        load_balance(int64_t nwarps, int warp_size = 32,
+                     bool cuda_strategy = true)
+            : strategy_type("load_balance"),
+              nwarps_(nwarps),
+              warp_size_(warp_size),
+              cuda_strategy_(cuda_strategy)
         {}
 
         void process(const Array<index_type> &mtx_row_ptrs,
                      Array<index_type> *mtx_srow)
         {
-            constexpr uint32 warp_size = 32;
             auto nwarps = mtx_srow->get_num_elems();
 
             if (nwarps > 0) {
@@ -213,8 +228,8 @@ public:
                 const auto num_elems = row_ptrs[num_rows];
                 for (size_type i = 0; i < num_rows; i++) {
                     auto bucket =
-                        ceildiv((ceildiv(row_ptrs[i + 1], warp_size) * nwarps),
-                                ceildiv(num_elems, warp_size));
+                        ceildiv((ceildiv(row_ptrs[i + 1], warp_size_) * nwarps),
+                                ceildiv(num_elems, warp_size_));
                     if (bucket < nwarps) {
                         srow[bucket]++;
                     }
@@ -231,19 +246,37 @@ public:
 
         int64_t clac_size(const int64_t nnz)
         {
-            constexpr uint32 warp_size = 32;
-            int multiple = 8;
-            if (nnz >= 2000000) {
-                multiple = 128;
-            } else if (nnz >= 200000) {
-                multiple = 32;
+            if (warp_size_ > 0) {
+                int multiple = 8;
+                if (nnz >= 2000000) {
+                    multiple = 128;
+                } else if (nnz >= 200000) {
+                    multiple = 32;
+                }
+
+#if GINKGO_HIP_PLATFORM_HCC
+                if (!cuda_strategy_) {
+                    multiple = 8;
+                    if (nnz >= 10000000) {
+                        multiple = 64;
+                    } else if (nnz >= 1000000) {
+                        multiple = 16;
+                    }
+                }
+#endif  // GINKGO_HIP_PLATFORM_HCC
+
+                auto nwarps = nwarps_ * multiple;
+                return min(ceildiv(nnz, warp_size_),
+                           static_cast<int64_t>(nwarps));
+            } else {
+                return 0;
             }
-            auto nwarps = nwarps_ * multiple;
-            return min(ceildiv(nnz, warp_size), static_cast<int64_t>(nwarps));
         }
 
     private:
         int64_t nwarps_;
+        int warp_size_;
+        bool cuda_strategy_;
     };
 
     class automatical : public strategy_type {
@@ -254,11 +287,19 @@ public:
         {}
 
         automatical(std::shared_ptr<const CudaExecutor> exec)
-            : automatical(exec->get_num_warps())
+            : automatical(exec->get_num_warps(), exec->get_warp_size())
         {}
 
-        automatical(int64_t nwarps)
-            : strategy_type("automatical"), nwarps_(nwarps)
+        automatical(std::shared_ptr<const HipExecutor> exec)
+            : automatical(exec->get_num_warps(), exec->get_warp_size(), false)
+        {}
+
+        automatical(int64_t nwarps, int warp_size = 32,
+                    bool cuda_strategy = true)
+            : strategy_type("automatical"),
+              nwarps_(nwarps),
+              warp_size_(warp_size),
+              cuda_strategy_(cuda_strategy)
         {}
 
         void process(const Array<index_type> &mtx_row_ptrs,
@@ -314,12 +355,78 @@ public:
 
         int64_t clac_size(const int64_t nnz)
         {
-            return std::make_shared<load_balance>(nwarps_)->clac_size(nnz);
+            return std::make_shared<load_balance>(nwarps_, warp_size_,
+                                                  cuda_strategy_)
+                ->clac_size(nnz);
         }
 
     private:
         int64_t nwarps_;
+        int warp_size_;
+        bool cuda_strategy_;
     };
+
+    void convert_to(Csr<ValueType, IndexType> *result) const override
+    {
+        auto executor = result->get_executor();
+        bool same_executor = this->get_executor() == executor;
+        auto strategy = this->get_strategy();
+        EnableLinOp<Csr>::convert_to(result);
+        if (!same_executor) {
+            // When strategy is load_balance or automatical, rebuild the
+            // strategy according to executor's property.
+            if (std::dynamic_pointer_cast<load_balance>(strategy)) {
+                if (auto exec = std::dynamic_pointer_cast<const HipExecutor>(
+                        executor)) {
+                    result->set_strategy(std::make_shared<load_balance>(exec));
+                } else if (auto exec =
+                               std::dynamic_pointer_cast<const CudaExecutor>(
+                                   executor)) {
+                    result->set_strategy(std::make_shared<load_balance>(exec));
+                }
+            } else if (std::dynamic_pointer_cast<automatical>(strategy)) {
+                if (auto exec = std::dynamic_pointer_cast<const HipExecutor>(
+                        executor)) {
+                    result->set_strategy(std::make_shared<automatical>(exec));
+                } else if (auto exec =
+                               std::dynamic_pointer_cast<const CudaExecutor>(
+                                   executor)) {
+                    result->set_strategy(std::make_shared<automatical>(exec));
+                }
+            }
+        }
+    }
+
+    void move_to(Csr<ValueType, IndexType> *result) override
+    {
+        auto executor = result->get_executor();
+        bool same_executor = this->get_executor() == executor;
+        auto strategy = this->get_strategy();
+        EnableLinOp<Csr>::move_to(result);
+        if (!same_executor) {
+            // When strategy is load_balance or automatical, rebuild the
+            // strategy according to executor's property.
+            if (std::dynamic_pointer_cast<load_balance>(strategy)) {
+                if (auto exec = std::dynamic_pointer_cast<const HipExecutor>(
+                        executor)) {
+                    result->set_strategy(std::make_shared<load_balance>(exec));
+                } else if (auto exec =
+                               std::dynamic_pointer_cast<const CudaExecutor>(
+                                   executor)) {
+                    result->set_strategy(std::make_shared<load_balance>(exec));
+                }
+            } else if (std::dynamic_pointer_cast<automatical>(strategy)) {
+                if (auto exec = std::dynamic_pointer_cast<const HipExecutor>(
+                        executor)) {
+                    result->set_strategy(std::make_shared<automatical>(exec));
+                } else if (auto exec =
+                               std::dynamic_pointer_cast<const CudaExecutor>(
+                                   executor)) {
+                    result->set_strategy(std::make_shared<automatical>(exec));
+                }
+            }
+        }
+    }
 
     void convert_to(Dense<ValueType> *other) const override;
 
@@ -481,6 +588,16 @@ public:
     std::shared_ptr<strategy_type> get_strategy() const noexcept
     {
         return strategy_;
+    }
+
+    /** Set the strategy
+     *
+     * @return the strategy
+     */
+    void set_strategy(std::shared_ptr<strategy_type> strategy)
+    {
+        strategy_ = std::move(strategy);
+        this->make_srow();
     }
 
 protected:

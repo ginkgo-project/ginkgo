@@ -188,6 +188,7 @@ void HipExecutor::set_gpu_property()
         // Reference: https://en.wikipedia.org/wiki/Graphics_Core_Next
         num_warps_per_sm_ = 4;
 #endif  // GINKGO_HIP_PLATFORM_NVCC
+        warp_size_ = kernels::hip::config::warp_size;
     }
 }
 
