@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 
 
+#include <memory>
+
+
 #include <gtest/gtest.h>
 
 
@@ -347,21 +350,40 @@ TEST_F(Ell, MovesWithStrideToDense)
 
 TEST_F(Ell, ConvertsToCsr)
 {
-    auto csr_mtx = gko::matrix::Csr<>::create(mtx1->get_executor());
+    auto csr_s_classical = std::make_shared<gko::matrix::Csr<>::classical>();
+    auto csr_s_merge = std::make_shared<gko::matrix::Csr<>::merge_path>();
+    auto csr_mtx_c =
+        gko::matrix::Csr<>::create(mtx1->get_executor(), csr_s_classical);
+    auto csr_mtx_m =
+        gko::matrix::Csr<>::create(mtx1->get_executor(), csr_s_merge);
 
-    mtx1->convert_to(csr_mtx.get());
+    mtx1->convert_to(csr_mtx_c.get());
+    mtx1->convert_to(csr_mtx_m.get());
 
-    assert_equal_to_mtx(csr_mtx.get());
+    assert_equal_to_mtx(csr_mtx_c.get());
+    assert_equal_to_mtx(csr_mtx_m.get());
+    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
+    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
 }
 
 
 TEST_F(Ell, ConvertsWithStrideToCsr)
 {
-    auto csr_mtx = gko::matrix::Csr<>::create(mtx2->get_executor());
+    auto csr_s_classical = std::make_shared<gko::matrix::Csr<>::classical>();
+    auto csr_s_merge = std::make_shared<gko::matrix::Csr<>::merge_path>();
+    auto csr_mtx_c =
+        gko::matrix::Csr<>::create(mtx2->get_executor(), csr_s_classical);
+    auto csr_mtx_m =
+        gko::matrix::Csr<>::create(mtx2->get_executor(), csr_s_merge);
+    auto mtx_clone = mtx2->clone();
 
-    mtx2->convert_to(csr_mtx.get());
+    mtx2->move_to(csr_mtx_c.get());
+    mtx_clone->move_to(csr_mtx_m.get());
 
-    assert_equal_to_mtx(csr_mtx.get());
+    assert_equal_to_mtx(csr_mtx_c.get());
+    assert_equal_to_mtx(csr_mtx_m.get());
+    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
+    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
 }
 
 

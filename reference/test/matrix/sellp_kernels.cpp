@@ -200,29 +200,48 @@ TEST_F(Sellp, MovesToDense)
 
 TEST_F(Sellp, ConvertsToCsr)
 {
-    auto csr_mtx = gko::matrix::Csr<>::create(mtx1->get_executor());
+    auto csr_s_classical = std::make_shared<gko::matrix::Csr<>::classical>();
+    auto csr_s_merge = std::make_shared<gko::matrix::Csr<>::merge_path>();
+    auto csr_mtx_c =
+        gko::matrix::Csr<>::create(mtx1->get_executor(), csr_s_classical);
+    auto csr_mtx_m =
+        gko::matrix::Csr<>::create(mtx1->get_executor(), csr_s_merge);
 
-    mtx1->convert_to(csr_mtx.get());
+    mtx1->convert_to(csr_mtx_c.get());
+    mtx1->convert_to(csr_mtx_m.get());
 
     // clang-format off
-	GKO_ASSERT_MTX_NEAR(csr_mtx,
-	                    l({{1.0, 3.0, 2.0},
-	                       {0.0, 5.0, 0.0}}), 0.0);
+    GKO_ASSERT_MTX_NEAR(csr_mtx_c,
+                        l({{1.0, 3.0, 2.0},
+                           {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
+    GKO_ASSERT_MTX_NEAR(csr_mtx_c.get(), csr_mtx_m.get(), 0.0);
+    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
+    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
 }
 
 
 TEST_F(Sellp, MovesToCsr)
 {
-    auto csr_mtx = gko::matrix::Csr<>::create(mtx1->get_executor());
+    auto csr_s_classical = std::make_shared<gko::matrix::Csr<>::classical>();
+    auto csr_s_merge = std::make_shared<gko::matrix::Csr<>::merge_path>();
+    auto csr_mtx_c =
+        gko::matrix::Csr<>::create(mtx1->get_executor(), csr_s_classical);
+    auto csr_mtx_m =
+        gko::matrix::Csr<>::create(mtx1->get_executor(), csr_s_merge);
+    auto mtx_clone = mtx1->clone();
 
-    mtx1->move_to(csr_mtx.get());
+    mtx1->move_to(csr_mtx_c.get());
+    mtx_clone->move_to(csr_mtx_m.get());
 
     // clang-format off
-	GKO_ASSERT_MTX_NEAR(csr_mtx,
-	                    l({{1.0, 3.0, 2.0},
-	                       {0.0, 5.0, 0.0}}), 0.0);
+    GKO_ASSERT_MTX_NEAR(csr_mtx_c,
+                        l({{1.0, 3.0, 2.0},
+                           {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
+    GKO_ASSERT_MTX_NEAR(csr_mtx_c.get(), csr_mtx_m.get(), 0.0);
+    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
+    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
 }
 
 
