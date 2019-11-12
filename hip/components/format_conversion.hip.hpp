@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace hip {
+namespace coo {
 namespace host_kernel {
 
 
@@ -52,13 +53,13 @@ namespace host_kernel {
  * It calculates the number of warps used in Coo Spmv depending on the GPU
  * architecture and the number of stored elements.
  */
-template <size_type subwarp_size = hip_config::warp_size>
+template <size_type subwarp_size = config::warp_size>
 __host__ size_type calculate_nwarps(std::shared_ptr<const HipExecutor> exec,
                                     const size_type nnz)
 {
     size_type nwarps_in_hip = exec->get_num_multiprocessor() *
-                              exec->get_num_warps_per_sm() *
-                              hip_config::warp_size / subwarp_size;
+                              exec->get_num_warps_per_sm() * config::warp_size /
+                              subwarp_size;
 #if GINKGO_HIP_PLATFORM_NVCC
     size_type multiple = 8;
     if (nnz >= 2000000) {
@@ -74,12 +75,13 @@ __host__ size_type calculate_nwarps(std::shared_ptr<const HipExecutor> exec,
         multiple = 8;
     }
 #endif  // GINKGO_HIP_PLATFORM_NVCC
-    return std::min(multiple * nwarps_in_hip, static_cast<size_type>(ceildiv(
-                                                  nnz, hip_config::warp_size)));
+    return std::min(multiple * nwarps_in_hip,
+                    static_cast<size_type>(ceildiv(nnz, config::warp_size)));
 }
 
 
 }  // namespace host_kernel
+}  // namespace coo
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko

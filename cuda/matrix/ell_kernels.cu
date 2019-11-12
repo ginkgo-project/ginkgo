@@ -90,7 +90,7 @@ constexpr double ratio = 1e-2;
  * combination with atomic_adds.
  */
 using compiled_kernels =
-    syn::value_list<int, 0, 1, 2, 4, 8, 16, 32, cuda_config::warp_size>;
+    syn::value_list<int, 0, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
 
 namespace kernel {
@@ -212,7 +212,7 @@ void abstract_spmv(syn::value_list<int, info>, int nwarps_per_row,
                    const matrix::Dense<ValueType> *beta = nullptr)
 {
     const auto nrows = a->get_size()[0];
-    constexpr int subwarp_size = (info == 0) ? cuda_config::warp_size : info;
+    constexpr int subwarp_size = (info == 0) ? config::warp_size : info;
     constexpr bool atomic = (info == 0);
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
@@ -264,13 +264,13 @@ std::array<int, 3> compute_subwarp_size_and_atomicity(
     // same position. The #warps is decided according to the number of warps
     // allowed on GPU.
     if (static_cast<double>(ell_ncols) / nrows > ratio) {
-        while (subwarp_size < cuda_config::warp_size &&
+        while (subwarp_size < config::warp_size &&
                (subwarp_size << 1) <= ell_ncols) {
             subwarp_size <<= 1;
         }
-        if (subwarp_size == cuda_config::warp_size) {
+        if (subwarp_size == config::warp_size) {
             nwarps_per_row =
-                std::min(ell_ncols / cuda_config::warp_size, nwarps / nrows);
+                std::min(ell_ncols / config::warp_size, nwarps / nrows);
             nwarps_per_row = std::max(nwarps_per_row, 1);
         }
         if (nwarps_per_row > 1) {
@@ -349,10 +349,9 @@ namespace kernel {
 
 
 template <typename ValueType>
-__global__
-    __launch_bounds__(cuda_config::max_block_size) void initialize_zero_dense(
-        size_type num_rows, size_type num_cols, size_type stride,
-        ValueType *__restrict__ result)
+__global__ __launch_bounds__(config::max_block_size) void initialize_zero_dense(
+    size_type num_rows, size_type num_cols, size_type stride,
+    ValueType *__restrict__ result)
 {
     const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
     const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
@@ -395,9 +394,8 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
     const auto vals = source->get_const_values();
     const auto source_stride = source->get_stride();
 
-    const dim3 block_size(cuda_config::warp_size,
-                          cuda_config::max_block_size / cuda_config::warp_size,
-                          1);
+    const dim3 block_size(config::warp_size,
+                          config::max_block_size / config::warp_size, 1);
     const dim3 init_grid_dim(ceildiv(result_stride, block_size.x),
                              ceildiv(num_rows, block_size.y), 1);
     kernel::initialize_zero_dense<<<init_grid_dim, block_size>>>(
@@ -422,7 +420,7 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
     size_type num_rows, size_type max_nnz_per_row, size_type stride,
     const ValueType *__restrict__ values, IndexType *__restrict__ result)
 {
-    constexpr auto warp_size = cuda_config::warp_size;
+    constexpr auto warp_size = config::warp_size;
     const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
     const auto row_idx = tidx / warp_size;
 
@@ -487,7 +485,7 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
     const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
 
     constexpr auto rows_per_block =
-        ceildiv(default_block_size, cuda_config::warp_size);
+        ceildiv(default_block_size, config::warp_size);
     const auto grid_dim_nnz = ceildiv(source->get_size()[0], rows_per_block);
 
     kernel::count_nnz_per_row<<<grid_dim_nnz, default_block_size>>>(
@@ -546,7 +544,7 @@ void calculate_nonzeros_per_row(std::shared_ptr<const CudaExecutor> exec,
     const auto stride = source->get_stride();
     const auto values = source->get_const_values();
 
-    const auto warp_size = cuda_config::warp_size;
+    const auto warp_size = config::warp_size;
     const auto grid_dim = ceildiv(num_rows * warp_size, default_block_size);
 
     kernel::count_nnz_per_row<<<grid_dim, default_block_size>>>(

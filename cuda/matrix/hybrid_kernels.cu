@@ -88,7 +88,7 @@ namespace kernel {
  * @param row  the row index array of the matrix
  * @param nnz_per_row  the output nonzeros per row
  */
-template <int subwarp_size = cuda_config::warp_size, typename ValueType,
+template <int subwarp_size = config::warp_size, typename ValueType,
           typename IndexType>
 __global__ __launch_bounds__(default_block_size) void count_coo_row_nnz(
     const size_type nnz, const size_type num_lines,
@@ -224,8 +224,8 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
         coo::host_kernel::calculate_nwarps(exec, coo_num_stored_elements);
     if (nwarps > 0) {
         int num_lines =
-            ceildiv(coo_num_stored_elements, nwarps * cuda_config::warp_size);
-        const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
+            ceildiv(coo_num_stored_elements, nwarps * config::warp_size);
+        const dim3 coo_block(config::warp_size, warps_in_block, 1);
         const dim3 coo_grid(ceildiv(nwarps, warps_in_block), 1);
 
         kernel::count_coo_row_nnz<<<coo_grid, coo_block>>>(
@@ -274,8 +274,8 @@ void count_nonzeros(std::shared_ptr<const CudaExecutor> exec,
     auto nnz = source->get_coo_num_stored_elements();
     auto nwarps = coo::host_kernel::calculate_nwarps(exec, nnz);
     if (nwarps > 0) {
-        int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
-        const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
+        int num_lines = ceildiv(nnz, nwarps * config::warp_size);
+        const dim3 coo_block(config::warp_size, warps_in_block, 1);
         const dim3 coo_grid(ceildiv(nwarps, warps_in_block), 1);
         const auto num_rows = source->get_size()[0];
         auto nnz_per_row = Array<IndexType>(exec, num_rows);

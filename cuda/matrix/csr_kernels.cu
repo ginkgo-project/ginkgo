@@ -74,9 +74,9 @@ namespace csr {
 
 constexpr int default_block_size = 512;
 constexpr int warps_in_block = 4;
-constexpr int spmv_block_size = warps_in_block * cuda_config::warp_size;
+constexpr int spmv_block_size = warps_in_block * config::warp_size;
 constexpr int classical_block_size = 64;
-constexpr int wsize = cuda_config::warp_size;
+constexpr int wsize = config::warp_size;
 
 
 /**
@@ -663,7 +663,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
         zero_array(c->get_num_stored_elements(), c->get_values());
         const IndexType nwarps = a->get_num_srow_elements();
         if (nwarps > 0) {
-            const dim3 csr_block(cuda_config::warp_size, warps_in_block, 1);
+            const dim3 csr_block(config::warp_size, warps_in_block, 1);
             const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
                                 b->get_size()[1]);
             kernel::abstract_spmv<<<csr_grid, csr_block>>>(
@@ -738,7 +738,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         const IndexType nwarps = a->get_num_srow_elements();
 
         if (nwarps > 0) {
-            const dim3 csr_block(cuda_config::warp_size, warps_in_block, 1);
+            const dim3 csr_block(config::warp_size, warps_in_block, 1);
             const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
                                 b->get_size()[1]);
             kernel::abstract_spmv<<<csr_grid, csr_block>>>(
@@ -856,10 +856,9 @@ namespace kernel {
 
 
 template <typename ValueType>
-__global__
-    __launch_bounds__(cuda_config::max_block_size) void initialize_zero_dense(
-        size_type num_rows, size_type num_cols, size_type stride,
-        ValueType *__restrict__ result)
+__global__ __launch_bounds__(config::max_block_size) void initialize_zero_dense(
+    size_type num_rows, size_type num_cols, size_type stride,
+    ValueType *__restrict__ result)
 {
     const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
     const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
@@ -900,9 +899,8 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
     const auto col_idxs = source->get_const_col_idxs();
     const auto vals = source->get_const_values();
 
-    const dim3 block_size(cuda_config::warp_size,
-                          cuda_config::max_block_size / cuda_config::warp_size,
-                          1);
+    const dim3 block_size(config::warp_size,
+                          config::max_block_size / config::warp_size, 1);
     const dim3 init_grid_dim(ceildiv(stride, block_size.x),
                              ceildiv(num_rows, block_size.y), 1);
     kernel::initialize_zero_dense<<<init_grid_dim, block_size>>>(
@@ -933,14 +931,12 @@ __global__ __launch_bounds__(default_block_size) void calculate_nnz_per_row(
 }
 
 
-__global__
-    __launch_bounds__(cuda_config::warp_size) void calculate_slice_lengths(
-        size_type num_rows, size_type slice_size, size_type stride_factor,
-        const size_type *__restrict__ nnz_per_row,
-        size_type *__restrict__ slice_lengths,
-        size_type *__restrict__ slice_sets)
+__global__ __launch_bounds__(config::warp_size) void calculate_slice_lengths(
+    size_type num_rows, size_type slice_size, size_type stride_factor,
+    const size_type *__restrict__ nnz_per_row,
+    size_type *__restrict__ slice_lengths, size_type *__restrict__ slice_sets)
 {
-    constexpr auto warp_size = cuda_config::warp_size;
+    constexpr auto warp_size = config::warp_size;
     const auto sliceid = blockIdx.x;
     const auto tid_in_warp = threadIdx.x;
 
@@ -1040,7 +1036,7 @@ void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
 
     grid_dim = slice_num;
 
-    kernel::calculate_slice_lengths<<<grid_dim, cuda_config::warp_size>>>(
+    kernel::calculate_slice_lengths<<<grid_dim, config::warp_size>>>(
         num_rows, slice_size, stride_factor,
         as_cuda_type(nnz_per_row.get_const_data()), as_cuda_type(slice_lengths),
         as_cuda_type(slice_sets));
@@ -1099,7 +1095,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_ell(
     IndexType *__restrict__ result_col_idxs)
 {
     const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    constexpr auto warp_size = cuda_config::warp_size;
+    constexpr auto warp_size = config::warp_size;
     const auto row = tidx / warp_size;
     const auto local_tidx = tidx % warp_size;
 
@@ -1143,7 +1139,7 @@ void convert_to_ell(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(result_col_idxs));
 
     const auto grid_dim =
-        ceildiv(num_rows * cuda_config::warp_size, default_block_size);
+        ceildiv(num_rows * config::warp_size, default_block_size);
 
     kernel::fill_in_ell<<<grid_dim, default_block_size>>>(
         num_rows, stride, as_cuda_type(source_values),
@@ -1163,7 +1159,7 @@ __global__ __launch_bounds__(default_block_size) void reduce_max_nnz_per_slice(
     const size_type *__restrict__ nnz_per_row, size_type *__restrict__ result)
 {
     const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    constexpr auto warp_size = cuda_config::warp_size;
+    constexpr auto warp_size = config::warp_size;
     const auto warpid = tidx / warp_size;
     const auto tid_in_warp = tidx % warp_size;
     const auto slice_num = ceildiv(num_rows, slice_size);
@@ -1222,7 +1218,7 @@ void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
     kernel::calculate_nnz_per_row<<<grid_dim, default_block_size>>>(
         num_rows, as_cuda_type(row_ptrs), as_cuda_type(nnz_per_row.get_data()));
 
-    grid_dim = ceildiv(slice_num * cuda_config::warp_size, default_block_size);
+    grid_dim = ceildiv(slice_num * config::warp_size, default_block_size);
     auto max_nnz_per_slice = Array<size_type>(exec, slice_num);
 
     kernel::reduce_max_nnz_per_slice<<<grid_dim, default_block_size>>>(
@@ -1428,7 +1424,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_hybrid(
     IndexType *__restrict__ result_coo_row)
 {
     const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    constexpr auto warp_size = cuda_config::warp_size;
+    constexpr auto warp_size = config::warp_size;
     const auto row = tidx / warp_size;
     const auto local_tidx = tidx % warp_size;
 
@@ -1491,7 +1487,7 @@ void convert_to_hybrid(std::shared_ptr<const CudaExecutor> exec,
         num_rows, as_cuda_type(coo_offset.get_data()),
         as_cuda_type(add_values.get_const_data()));
 
-    grid_dim = ceildiv(num_rows * cuda_config::warp_size, default_block_size);
+    grid_dim = ceildiv(num_rows * config::warp_size, default_block_size);
     kernel::fill_in_hybrid<<<grid_dim, default_block_size>>>(
         num_rows, stride, max_nnz_per_row,
         as_cuda_type(source->get_const_values()),

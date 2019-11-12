@@ -70,8 +70,7 @@ namespace coo {
 
 constexpr int default_block_size = 512;
 constexpr int warps_in_block = 4;
-constexpr int spmv_block_size = warps_in_block * cuda_config::warp_size;
-using device_config = cuda_config;
+constexpr int spmv_block_size = warps_in_block * config::warp_size;
 
 
 #include "common/matrix/coo_kernels.hpp.inc"
@@ -113,23 +112,23 @@ void spmv2(std::shared_ptr<const CudaExecutor> exec,
 {
     const auto nnz = a->get_num_stored_elements();
     const auto b_ncols = b->get_size()[1];
-    const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
+    const dim3 coo_block(config::warp_size, warps_in_block, 1);
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0) {
         if (b_ncols < 4) {
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
-            int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
+            int num_lines = ceildiv(nnz, nwarps * config::warp_size);
             abstract_spmv<<<coo_grid, coo_block>>>(
                 nnz, num_lines, as_cuda_type(a->get_const_values()),
                 a->get_const_col_idxs(), as_cuda_type(a->get_const_row_idxs()),
                 as_cuda_type(b->get_const_values()), b->get_stride(),
                 as_cuda_type(c->get_values()), c->get_stride());
         } else {
-            int num_elems = ceildiv(nnz, nwarps * cuda_config::warp_size) *
-                            cuda_config::warp_size;
+            int num_elems =
+                ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
-                                ceildiv(b_ncols, cuda_config::warp_size));
+                                ceildiv(b_ncols, config::warp_size));
             abstract_spmm<<<coo_grid, coo_block>>>(
                 nnz, num_elems, as_cuda_type(a->get_const_values()),
                 a->get_const_col_idxs(), as_cuda_type(a->get_const_row_idxs()),
@@ -151,12 +150,12 @@ void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
 {
     const auto nnz = a->get_num_stored_elements();
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
-    const dim3 coo_block(cuda_config::warp_size, warps_in_block, 1);
+    const dim3 coo_block(config::warp_size, warps_in_block, 1);
     const auto b_ncols = b->get_size()[1];
 
     if (nwarps > 0) {
         if (b_ncols < 4) {
-            int num_lines = ceildiv(nnz, nwarps * cuda_config::warp_size);
+            int num_lines = ceildiv(nnz, nwarps * config::warp_size);
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
             abstract_spmv<<<coo_grid, coo_block>>>(
                 nnz, num_lines, as_cuda_type(alpha->get_const_values()),
@@ -165,10 +164,10 @@ void advanced_spmv2(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(b->get_const_values()), b->get_stride(),
                 as_cuda_type(c->get_values()), c->get_stride());
         } else {
-            int num_elems = ceildiv(nnz, nwarps * cuda_config::warp_size) *
-                            cuda_config::warp_size;
+            int num_elems =
+                ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
-                                ceildiv(b_ncols, cuda_config::warp_size));
+                                ceildiv(b_ncols, config::warp_size));
             abstract_spmm<<<coo_grid, coo_block>>>(
                 nnz, num_elems, as_cuda_type(alpha->get_const_values()),
                 as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
@@ -226,9 +225,8 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
 
     const auto nnz = source->get_num_stored_elements();
 
-    const dim3 block_size(cuda_config::warp_size,
-                          cuda_config::max_block_size / cuda_config::warp_size,
-                          1);
+    const dim3 block_size(config::warp_size,
+                          config::max_block_size / config::warp_size, 1);
     const dim3 init_grid_dim(ceildiv(stride, block_size.x),
                              ceildiv(num_rows, block_size.y), 1);
     kernel::initialize_zero_dense<<<init_grid_dim, block_size>>>(

@@ -182,7 +182,7 @@ void HipExecutor::set_gpu_property()
             &minor_, hipDeviceAttributeComputeCapabilityMinor, device_id_));
 #if GINKGO_HIP_PLATFORM_NVCC
         num_warps_per_sm_ = convert_sm_ver_to_cores(major_, minor_) /
-                            kernels::hip::hip_config::warp_size;
+                            kernels::hip::config::warp_size;
 #else
         // In GCN (Graphics Core Next), each multiprocessor has 4 SIMD
         // Reference: https://en.wikipedia.org/wiki/Graphics_Core_Next
