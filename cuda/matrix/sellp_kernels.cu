@@ -234,9 +234,8 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
 
     const auto slice_num = ceildiv(num_rows, slice_size);
 
-    const dim3 block_size(cuda_config::warp_size,
-                          cuda_config::max_block_size / cuda_config::warp_size,
-                          1);
+    const dim3 block_size(config::warp_size,
+                          config::max_block_size / config::warp_size, 1);
     const dim3 init_grid_dim(ceildiv(result->get_stride(), block_size.x),
                              ceildiv(num_rows, block_size.y), 1);
 
@@ -244,7 +243,7 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
         num_rows, num_cols, result->get_stride(),
         as_cuda_type(result->get_values()));
 
-    constexpr auto threads_per_row = cuda_config::warp_size;
+    constexpr auto threads_per_row = config::warp_size;
     const auto grid_dim =
         ceildiv(slice_size * slice_num * threads_per_row, default_block_size);
 
@@ -269,7 +268,7 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
     const size_type *__restrict__ slice_sets,
     const ValueType *__restrict__ values, IndexType *__restrict__ result)
 {
-    constexpr auto warp_size = cuda_config::warp_size;
+    constexpr auto warp_size = config::warp_size;
     const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
     const auto row_idx = tidx / warp_size;
     const auto slice_id = row_idx / slice_size;
@@ -348,8 +347,7 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
     auto result_col_idxs = result->get_col_idxs();
     auto result_row_ptrs = result->get_row_ptrs();
 
-    auto grid_dim =
-        ceildiv(num_rows * cuda_config::warp_size, default_block_size);
+    auto grid_dim = ceildiv(num_rows * config::warp_size, default_block_size);
 
     kernel::count_nnz_per_row<<<grid_dim, default_block_size>>>(
         num_rows, slice_size, as_cuda_type(source_slice_sets),
@@ -393,8 +391,7 @@ void count_nonzeros(std::shared_ptr<const CudaExecutor> exec,
 
     auto nnz_per_row = Array<size_type>(exec, num_rows);
 
-    auto grid_dim =
-        ceildiv(num_rows * cuda_config::warp_size, default_block_size);
+    auto grid_dim = ceildiv(num_rows * config::warp_size, default_block_size);
 
     kernel::count_nnz_per_row<<<grid_dim, default_block_size>>>(
         num_rows, slice_size, as_cuda_type(slice_sets), as_cuda_type(values),

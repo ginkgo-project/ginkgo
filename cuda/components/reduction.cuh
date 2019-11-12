@@ -134,14 +134,14 @@ __device__ void reduce(const Group &__restrict__ group,
     const auto local_id = group.thread_rank();
 
 #pragma unroll
-    for (int k = group.size() / 2; k >= cuda_config::warp_size; k /= 2) {
+    for (int k = group.size() / 2; k >= config::warp_size; k /= 2) {
         group.sync();
         if (local_id < k) {
             data[local_id] = reduce_op(data[local_id], data[local_id + k]);
         }
     }
 
-    const auto warp = group::tiled_partition<cuda_config::warp_size>(group);
+    const auto warp = group::tiled_partition<config::warp_size>(group);
     const auto warp_id = group.thread_rank() / warp.size();
     if (warp_id > 0) {
         return;

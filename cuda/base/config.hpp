@@ -39,7 +39,7 @@ namespace kernels {
 namespace cuda {
 
 
-struct cuda_config {
+struct config {
     /**
      * The number of threads within a CUDA warp.
      */

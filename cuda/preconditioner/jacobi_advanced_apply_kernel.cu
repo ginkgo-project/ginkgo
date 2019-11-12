@@ -63,7 +63,7 @@ namespace kernel {
 
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
-__global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
+__global__ void __launch_bounds__(warps_per_block *config::warp_size)
     advanced_apply(const ValueType *__restrict__ blocks,
                    preconditioner::block_interleaved_storage_scheme<IndexType>
                        storage_scheme,
@@ -97,15 +97,14 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
 
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
-__global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
-    advanced_adaptive_apply(
-        const ValueType *__restrict__ blocks,
-        preconditioner::block_interleaved_storage_scheme<IndexType>
-            storage_scheme,
-        const precision_reduction *__restrict__ block_precisions,
-        const IndexType *__restrict__ block_ptrs, size_type num_blocks,
-        const ValueType *__restrict__ alpha, const ValueType *__restrict__ b,
-        int32 b_stride, ValueType *__restrict__ x, int32 x_stride)
+__global__ void
+__launch_bounds__(warps_per_block *config::warp_size) advanced_adaptive_apply(
+    const ValueType *__restrict__ blocks,
+    preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
+    const precision_reduction *__restrict__ block_precisions,
+    const IndexType *__restrict__ block_ptrs, size_type num_blocks,
+    const ValueType *__restrict__ alpha, const ValueType *__restrict__ b,
+    int32 b_stride, ValueType *__restrict__ x, int32 x_stride)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>();
@@ -153,7 +152,7 @@ void advanced_apply(
     ValueType *x, size_type x_stride)
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
-    constexpr int blocks_per_warp = cuda_config::warp_size / subwarp_size;
+    constexpr int blocks_per_warp = config::warp_size / subwarp_size;
     const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
                          1, 1);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
@@ -200,7 +199,7 @@ void apply(std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
             [&](int compiled_block_size) {
                 return max_block_size <= compiled_block_size;
             },
-            syn::value_list<int, cuda_config::min_warps_per_block>(),
+            syn::value_list<int, config::min_warps_per_block>(),
             syn::type_list<>(), num_blocks, block_precisions.get_const_data(),
             block_pointers.get_const_data(), blocks.get_const_data(),
             storage_scheme, alpha->get_const_values(),

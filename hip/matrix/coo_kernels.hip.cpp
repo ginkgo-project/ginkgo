@@ -72,8 +72,7 @@ namespace coo {
 
 constexpr int default_block_size = 512;
 constexpr int warps_in_block = 4;
-constexpr int spmv_block_size = warps_in_block * hip_config::warp_size;
-using device_config = hip_config;
+constexpr int spmv_block_size = warps_in_block * config::warp_size;
 
 
 #include "common/matrix/coo_kernels.hpp.inc"
@@ -115,14 +114,14 @@ void spmv2(std::shared_ptr<const HipExecutor> exec,
 {
     const auto nnz = a->get_num_stored_elements();
     const auto b_ncols = b->get_size()[1];
-    const dim3 coo_block(hip_config::warp_size, warps_in_block, 1);
+    const dim3 coo_block(config::warp_size, warps_in_block, 1);
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
 
     if (nwarps > 0) {
         // TODO: b_ncols needs to be tuned.
         if (b_ncols < 4) {
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
-            int num_lines = ceildiv(nnz, nwarps * hip_config::warp_size);
+            int num_lines = ceildiv(nnz, nwarps * config::warp_size);
             hipLaunchKernelGGL(
                 abstract_spmv, dim3(coo_grid), dim3(coo_block), 0, 0, nnz,
                 num_lines, as_hip_type(a->get_const_values()),
@@ -130,10 +129,10 @@ void spmv2(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(b->get_const_values()), b->get_stride(),
                 as_hip_type(c->get_values()), c->get_stride());
         } else {
-            int num_elems = ceildiv(nnz, nwarps * hip_config::warp_size) *
-                            hip_config::warp_size;
+            int num_elems =
+                ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
-                                ceildiv(b_ncols, hip_config::warp_size));
+                                ceildiv(b_ncols, config::warp_size));
             hipLaunchKernelGGL(
                 abstract_spmm, dim3(coo_grid), dim3(coo_block), 0, 0, nnz,
                 num_elems, as_hip_type(a->get_const_values()),
@@ -156,13 +155,13 @@ void advanced_spmv2(std::shared_ptr<const HipExecutor> exec,
 {
     const auto nnz = a->get_num_stored_elements();
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
-    const dim3 coo_block(hip_config::warp_size, warps_in_block, 1);
+    const dim3 coo_block(config::warp_size, warps_in_block, 1);
     const auto b_ncols = b->get_size()[1];
 
     if (nwarps > 0) {
         // TODO: b_ncols needs to be tuned.
         if (b_ncols < 4) {
-            int num_lines = ceildiv(nnz, nwarps * hip_config::warp_size);
+            int num_lines = ceildiv(nnz, nwarps * config::warp_size);
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
             hipLaunchKernelGGL(
                 abstract_spmv, dim3(coo_grid), dim3(coo_block), 0, 0, nnz,
@@ -172,10 +171,10 @@ void advanced_spmv2(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(b->get_const_values()), b->get_stride(),
                 as_hip_type(c->get_values()), c->get_stride());
         } else {
-            int num_elems = ceildiv(nnz, nwarps * hip_config::warp_size) *
-                            hip_config::warp_size;
+            int num_elems =
+                ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
-                                ceildiv(b_ncols, hip_config::warp_size));
+                                ceildiv(b_ncols, config::warp_size));
             hipLaunchKernelGGL(
                 abstract_spmm, dim3(coo_grid), dim3(coo_block), 0, 0, nnz,
                 num_elems, as_hip_type(alpha->get_const_values()),
@@ -235,9 +234,8 @@ void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
 
     const auto nnz = source->get_num_stored_elements();
 
-    const dim3 block_size(hip_config::warp_size,
-                          hip_config::max_block_size / hip_config::warp_size,
-                          1);
+    const dim3 block_size(config::warp_size,
+                          config::max_block_size / config::warp_size, 1);
     const dim3 init_grid_dim(ceildiv(stride, block_size.x),
                              ceildiv(num_rows, block_size.y), 1);
     hipLaunchKernelGGL(kernel::initialize_zero_dense, dim3(init_grid_dim),

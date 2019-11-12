@@ -64,7 +64,7 @@ namespace gmres {
 
 
 constexpr int default_block_size = 512;
-constexpr int default_dot_dim = cuda_config::warp_size;
+constexpr int default_dot_dim = config::warp_size;
 constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 

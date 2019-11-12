@@ -45,7 +45,7 @@ namespace kernels {
 namespace hip {
 
 
-struct hip_config {
+struct config {
     /**
      * The number of threads within a HIP warp. Here, we use the definition from
      * `device_functions.h`.

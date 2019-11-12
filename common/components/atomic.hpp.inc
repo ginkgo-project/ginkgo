@@ -114,7 +114,8 @@ GKO_BIND_ATOMIC_ADD(unsigned long long int);
 GKO_BIND_ATOMIC_ADD(float);
 
 
-#if !defined(__HIPCC__) || (defined(__HIP_DEVICE_COMPILE__) && GINKGO_HIP_PLATFORM_NVCC)
+#if !defined(__HIPCC__) || \
+    (defined(__HIP_DEVICE_COMPILE__) && GINKGO_HIP_PLATFORM_NVCC)
 
 
 #if !((defined(CUDA_VERSION) && (CUDA_VERSION < 8000)) || \
@@ -142,7 +143,8 @@ GKO_BIND_ATOMIC_ADD(__half2);
 #endif
 
 
-#endif  // !defined(__HIPCC__) || (defined(__HIP_DEVICE_COMPILE__) && GINKGO_HIP_PLATFORM_HCC)
+#endif  // !defined(__HIPCC__) || (defined(__HIP_DEVICE_COMPILE__) &&
+        // GINKGO_HIP_PLATFORM_HCC)
 
 
 #undef GKO_BIND_ATOMIC_ADD

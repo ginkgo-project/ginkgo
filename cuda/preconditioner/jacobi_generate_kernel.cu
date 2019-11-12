@@ -111,14 +111,12 @@ __device__ __forceinline__ bool validate_precision_reduction_feasibility(
 
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
-__global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
-    generate(size_type num_rows, const IndexType *__restrict__ row_ptrs,
-             const IndexType *__restrict__ col_idxs,
-             const ValueType *__restrict__ values,
-             ValueType *__restrict__ block_data,
-             preconditioner::block_interleaved_storage_scheme<IndexType>
-                 storage_scheme,
-             const IndexType *__restrict__ block_ptrs, size_type num_blocks)
+__global__ void __launch_bounds__(warps_per_block *config::warp_size) generate(
+    size_type num_rows, const IndexType *__restrict__ row_ptrs,
+    const IndexType *__restrict__ col_idxs,
+    const ValueType *__restrict__ values, ValueType *__restrict__ block_data,
+    preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
+    const IndexType *__restrict__ block_ptrs, size_type num_blocks)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>();
@@ -127,8 +125,8 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
     __shared__ UninitializedArray<ValueType, max_block_size * warps_per_block>
         workspace;
     csr::extract_transposed_diag_blocks<max_block_size, warps_per_block>(
-        block, cuda_config::warp_size / subwarp_size, row_ptrs, col_idxs,
-        values, block_ptrs, num_blocks, row, 1,
+        block, config::warp_size / subwarp_size, row_ptrs, col_idxs, values,
+        block_ptrs, num_blocks, row, 1,
         workspace + threadIdx.z * max_block_size);
     const auto subwarp = group::tiled_partition<subwarp_size>(block);
     if (block_id < num_blocks) {
@@ -148,7 +146,7 @@ __global__ void __launch_bounds__(warps_per_block *cuda_config::warp_size)
 template <int max_block_size, int subwarp_size, int warps_per_block,
           typename ValueType, typename IndexType>
 __global__ void
-__launch_bounds__(warps_per_block *cuda_config::warp_size) adaptive_generate(
+__launch_bounds__(warps_per_block *config::warp_size) adaptive_generate(
     size_type num_rows, const IndexType *__restrict__ row_ptrs,
     const IndexType *__restrict__ col_idxs,
     const ValueType *__restrict__ values, remove_complex<ValueType> accuracy,
@@ -166,8 +164,8 @@ __launch_bounds__(warps_per_block *cuda_config::warp_size) adaptive_generate(
     __shared__ UninitializedArray<ValueType, max_block_size * warps_per_block>
         workspace;
     csr::extract_transposed_diag_blocks<max_block_size, warps_per_block>(
-        block, cuda_config::warp_size / subwarp_size, row_ptrs, col_idxs,
-        values, block_ptrs, num_blocks, row, 1,
+        block, config::warp_size / subwarp_size, row_ptrs, col_idxs, values,
+        block_ptrs, num_blocks, row, 1,
         workspace + threadIdx.z * max_block_size);
 
     // compute inverse and figure out the correct precision
@@ -219,7 +217,7 @@ __launch_bounds__(warps_per_block *cuda_config::warp_size) adaptive_generate(
     }
 
     // make sure all blocks in the group have the same precision
-    const auto warp = group::tiled_partition<cuda_config::warp_size>(block);
+    const auto warp = group::tiled_partition<config::warp_size>(block);
     const auto prec =
         preconditioner::detail::get_optimal_storage_reduction(reduce(
             warp, prec_descriptor, [](uint32 x, uint32 y) { return x & y; }));
@@ -257,7 +255,7 @@ void generate(syn::value_list<int, max_block_size>,
               const IndexType *block_ptrs, size_type num_blocks)
 {
     constexpr int subwarp_size = get_larger_power(max_block_size);
-    constexpr int blocks_per_warp = cuda_config::warp_size / subwarp_size;
+    constexpr int blocks_per_warp = config::warp_size / subwarp_size;
     const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
                          1, 1);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
@@ -303,7 +301,7 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
                     [&](int compiled_block_size) {
                         return max_block_size <= compiled_block_size;
                     },
-                    syn::value_list<int, cuda_config::min_warps_per_block>(),
+                    syn::value_list<int, config::min_warps_per_block>(),
                     syn::type_list<>(), system_matrix, accuracy,
                     blocks.get_data(), storage_scheme, conditioning.get_data(),
                     block_precisions.get_data(),
