@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/hybrid_kernels.hpp"
 
 
+#include <memory>
+
+
 #include <gtest/gtest.h>
 
 
@@ -244,21 +247,40 @@ TEST_F(Hybrid, MovesToDense)
 
 TEST_F(Hybrid, ConvertsToCsr)
 {
-    auto csr_mtx = Csr::create(mtx1->get_executor());
+    auto csr_s_classical = std::make_shared<gko::matrix::Csr<>::classical>();
+    auto csr_s_merge = std::make_shared<gko::matrix::Csr<>::merge_path>();
+    auto csr_mtx_c =
+        gko::matrix::Csr<>::create(mtx1->get_executor(), csr_s_classical);
+    auto csr_mtx_m =
+        gko::matrix::Csr<>::create(mtx1->get_executor(), csr_s_merge);
 
-    mtx1->convert_to(csr_mtx.get());
+    mtx1->convert_to(csr_mtx_c.get());
+    mtx1->convert_to(csr_mtx_m.get());
 
-    assert_equal_to_mtx(csr_mtx.get());
+    assert_equal_to_mtx(csr_mtx_c.get());
+    assert_equal_to_mtx(csr_mtx_m.get());
+    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
+    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
 }
 
 
 TEST_F(Hybrid, MovesToCsr)
 {
-    auto csr_mtx = Csr::create(mtx1->get_executor());
+    auto csr_s_classical = std::make_shared<gko::matrix::Csr<>::classical>();
+    auto csr_s_merge = std::make_shared<gko::matrix::Csr<>::merge_path>();
+    auto csr_mtx_c =
+        gko::matrix::Csr<>::create(mtx1->get_executor(), csr_s_classical);
+    auto csr_mtx_m =
+        gko::matrix::Csr<>::create(mtx1->get_executor(), csr_s_merge);
+    auto mtx_clone = mtx1->clone();
 
-    mtx1->move_to(csr_mtx.get());
+    mtx1->move_to(csr_mtx_c.get());
+    mtx_clone->move_to(csr_mtx_m.get());
 
-    assert_equal_to_mtx(csr_mtx.get());
+    assert_equal_to_mtx(csr_mtx_c.get());
+    assert_equal_to_mtx(csr_mtx_m.get());
+    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
+    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
 }
 
 

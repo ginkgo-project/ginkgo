@@ -134,10 +134,11 @@ void Ell<ValueType, IndexType>::convert_to(
     size_type num_stored_elements = 0;
     exec->run(ell::make_count_nonzeros(this, &num_stored_elements));
 
-    auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size(),
-                                                 num_stored_elements);
+    auto tmp = Csr<ValueType, IndexType>::create(
+        exec, this->get_size(), num_stored_elements, result->get_strategy());
     exec->run(ell::make_convert_to_csr(tmp.get(), this));
 
+    tmp->make_srow();
     tmp->move_to(result);
 }
 
