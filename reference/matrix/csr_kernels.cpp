@@ -517,17 +517,15 @@ void column_permute(std::shared_ptr<const ReferenceExecutor> exec,
     size_type num_cols = orig->get_size()[1];
 
     std::vector<IndexType> pindx(&perm[0], &perm[0] + num_cols);
-    std::vector<size_type> ind(num_nnz);
-    for (size_type k = 0; k < num_nnz; ++k) {
-        typename std::vector<IndexType>::iterator itr =
-            std::find(pindx.begin(), pindx.end(), orig_col_idxs[k]);
-        ind[k] = static_cast<size_type>(std::distance(pindx.begin(), itr));
+    std::vector<IndexType> inv_pindx(pindx);
+    for (size_type k = 0; k < pindx.size(); ++k) {
+        inv_pindx[pindx[k]] = k;
     }
     for (size_type row = 0; row < num_rows; ++row) {
         cp_row_ptrs[row] = orig_row_ptrs[row];
-        for (size_type k = orig_row_ptrs[row];
-             k < size_type(orig_row_ptrs[row + 1]); ++k) {
-            cp_col_idxs[k] = ind[k];
+        for (size_type k = static_cast<size_type>(orig_row_ptrs[row]);
+             k < static_cast<size_type>(orig_row_ptrs[row + 1]); ++k) {
+            cp_col_idxs[k] = inv_pindx[orig_col_idxs[k]];
             cp_vals[k] = orig_vals[k];
         }
     }
@@ -558,24 +556,22 @@ void inverse_row_permute(std::shared_ptr<const ReferenceExecutor> exec,
     rp_row_ptrs[0] = cur_ptr;
     std::vector<size_type> orig_num_nnz_per_row(num_rows, 0);
     std::vector<IndexType> pindx(&perm[0], &perm[0] + num_rows);
-    std::vector<size_type> ind(num_rows);
-
-    for (size_type row = 0; row < num_rows; ++row) {
-        typename std::vector<IndexType>::iterator itr =
-            std::find(pindx.begin(), pindx.end(), static_cast<IndexType>(row));
-        ind[row] = static_cast<size_type>(std::distance(pindx.begin(), itr));
+    std::vector<IndexType> inv_pindx(pindx);
+    for (size_type k = 0; k < pindx.size(); ++k) {
+        inv_pindx[pindx[k]] = k;
     }
+
     for (size_type row = 0; row < num_rows; ++row) {
         orig_num_nnz_per_row[row] = orig_row_ptrs[row + 1] - orig_row_ptrs[row];
     }
     for (size_type row = 0; row < num_rows; ++row) {
         rp_row_ptrs[row + 1] =
-            rp_row_ptrs[row] + orig_num_nnz_per_row[ind[row]];
+            rp_row_ptrs[row] + orig_num_nnz_per_row[inv_pindx[row]];
     }
     rp_row_ptrs[num_rows] = orig_row_ptrs[num_rows];
     for (size_type row = 0; row < num_rows; ++row) {
         auto new_row = perm[row];
-        auto new_k = orig_row_ptrs[ind[row]];
+        auto new_k = orig_row_ptrs[inv_pindx[row]];
         for (size_type k = rp_row_ptrs[row];
              k < static_cast<size_type>(rp_row_ptrs[row + 1]); ++k) {
             rp_col_idxs[k] = orig_col_idxs[new_k];
