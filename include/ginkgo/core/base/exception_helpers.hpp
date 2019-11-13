@@ -89,7 +89,7 @@ namespace gko {
 
 
 /**
- * Throws Creates a NotSupported exception.
+ * Throws a NotSupported exception.
  * This macro sets the correct information about the location of the error
  * and fills the exception with data about _obj, followed by throwing it.
  *
