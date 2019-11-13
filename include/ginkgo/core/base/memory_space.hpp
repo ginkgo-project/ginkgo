@@ -339,7 +339,7 @@ public:
     /**
      * Get the CUDA device id of the device associated to this memory_space.
      */
-    int get_device_id() const noexcept { return device_id_; }
+    int get_device_id() const noexcept { return this->device_id_; }
 
     /**
      * Get the number of devices present on the system.
@@ -368,6 +368,43 @@ private:
 };
 
 
+class CudaUVMSpace : public CudaMemorySpace {
+    friend class CudaMemorySpace;
+
+public:
+    /**
+     * Creates a new CudaUVMSpace.
+     *
+     * @param device_id  the CUDA device id of this device
+     */
+    static std::shared_ptr<CudaUVMSpace> create(int device_id)
+    {
+        return std::shared_ptr<CudaUVMSpace>(new CudaUVMSpace(device_id));
+    }
+
+    /**
+     * Get the HIP device id of the device associated to this memory_space.
+     */
+    int get_device_id() const noexcept { return this->device_id_; }
+
+protected:
+    CudaUVMSpace() = default;
+
+    CudaUVMSpace(int device_id) : device_id_(device_id)
+    {
+        assert(device_id < max_devices);
+    }
+
+    void *raw_alloc(size_type size) const override;
+
+    GKO_ENABLE_FOR_ALL_MEMORY_SPACES(GKO_OVERRIDE_RAW_COPY_TO);
+
+private:
+    int device_id_;
+    static constexpr int max_devices = 64;
+};
+
+
 class HipMemorySpace : public detail::MemorySpaceBase<HipMemorySpace> {
     friend class detail::MemorySpaceBase<HipMemorySpace>;
 
@@ -385,7 +422,7 @@ public:
     /**
      * Get the HIP device id of the device associated to this memory_space.
      */
-    int get_device_id() const noexcept { return device_id_; }
+    int get_device_id() const noexcept { return this->device_id_; }
 
     /**
      * Get the number of devices present on the system.

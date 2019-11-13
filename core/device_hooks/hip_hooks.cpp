@@ -90,6 +90,11 @@ void HipMemorySpace::raw_copy_to(const CudaMemorySpace *, size_type num_bytes,
     GKO_NOT_COMPILED(hip);
 
 
+void HipMemorySpace::raw_copy_to(const CudaUVMSpace *, size_type num_bytes,
+                                 const void *src_ptr, void *dest_ptr) const
+    GKO_NOT_COMPILED(hip);
+
+
 void HipMemorySpace::raw_copy_to(const HipMemorySpace *, size_type num_bytes,
                                  const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(hip);

@@ -49,12 +49,13 @@ namespace {
 
 class CudaMemorySpace : public ::testing::Test {
 protected:
-    CudaMemorySpace() : cuda(nullptr), cuda2(nullptr) {}
+    CudaMemorySpace() : cuda(nullptr), cuda_uvm(nullptr), cuda2(nullptr) {}
 
     void SetUp()
     {
         omp = gko::HostMemorySpace::create();
         cuda = gko::CudaMemorySpace::create(0);
+        cuda_uvm = gko::CudaMemorySpace::create(0);
         cuda2 = gko::CudaMemorySpace::create(
             gko::CudaMemorySpace::get_num_devices() - 1);
     }
@@ -69,6 +70,7 @@ protected:
 
     std::shared_ptr<gko::HostMemorySpace> omp;
     std::shared_ptr<gko::CudaMemorySpace> cuda;
+    std::shared_ptr<gko::CudaMemorySpace> cuda_uvm;
     std::shared_ptr<gko::CudaMemorySpace> cuda2;
 };
 
@@ -158,8 +160,160 @@ TEST_F(CudaMemorySpace, CopiesDataFromCudaToCuda)
 
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
-    cuda->free(copy_cuda2);
+    cuda2->free(copy_cuda2);
     cuda->free(orig);
+}
+
+
+TEST_F(CudaMemorySpace, CopiesDataFromCudaToCudaUVM)
+{
+    int copy[2];
+    auto orig = cuda->alloc<int>(2);
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
+    init_data<<<1, 1>>>(orig);
+
+    auto copy_cuda_uvm = cuda_uvm->alloc<int>(2);
+    cuda_uvm->copy_from(cuda.get(), 2, orig, copy_cuda_uvm);
+
+    // Check that the data is really on GPU2 and ensure we did not cheat
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(cuda_uvm->get_device_id()));
+    check_data<<<1, 1>>>(copy_cuda_uvm);
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
+
+    omp->copy_from(cuda_uvm.get(), 2, copy_cuda_uvm, copy);
+
+    EXPECT_EQ(3, copy[0]);
+    ASSERT_EQ(8, copy[1]);
+    cuda_uvm->free(copy_cuda_uvm);
+    cuda->free(orig);
+}
+
+
+class CudaUVMSpace : public ::testing::Test {
+protected:
+    CudaUVMSpace() : cuda(nullptr), cuda_uvm(nullptr), cuda_uvm2(nullptr) {}
+
+    void SetUp()
+    {
+        omp = gko::HostMemorySpace::create();
+        cuda = gko::CudaUVMSpace::create(0);
+        cuda_uvm = gko::CudaUVMSpace::create(0);
+        cuda_uvm2 =
+            gko::CudaUVMSpace::create(gko::CudaUVMSpace::get_num_devices() - 1);
+    }
+
+    void TearDown()
+    {
+        if (cuda != nullptr) {
+            // ensure that previous calls finished and didn't throw an error
+            ASSERT_NO_THROW(cuda->synchronize());
+        }
+    }
+
+    std::shared_ptr<gko::HostMemorySpace> omp;
+    std::shared_ptr<gko::CudaMemorySpace> cuda;
+    std::shared_ptr<gko::CudaUVMSpace> cuda_uvm;
+    std::shared_ptr<gko::CudaUVMSpace> cuda_uvm2;
+};
+
+
+TEST_F(CudaUVMSpace, UVMAllocatesAndFreesMemory)
+{
+    int *ptr = nullptr;
+
+    ASSERT_NO_THROW(ptr = cuda_uvm->alloc<int>(2));
+    ASSERT_NO_THROW(cuda_uvm->free(ptr));
+}
+
+
+TEST_F(CudaUVMSpace, UVMFailsWhenOverallocating)
+{
+    const gko::size_type num_elems = 1ll << 50;  // 4PB of integers
+    int *ptr = nullptr;
+
+    ASSERT_THROW(
+        {
+            ptr = cuda_uvm->alloc<int>(num_elems);
+            cuda_uvm->synchronize();
+        },
+        gko::AllocationError);
+
+    cuda_uvm->free(ptr);
+}
+
+
+TEST_F(CudaUVMSpace, CopiesDataToCudaUVM)
+{
+    int orig[] = {3, 8};
+    auto *copy = cuda_uvm->alloc<int>(2);
+
+    cuda_uvm->copy_from(omp.get(), 2, orig, copy);
+
+    check_data<<<1, 1>>>(copy);
+    ASSERT_NO_THROW(cuda_uvm->synchronize());
+    cuda_uvm->free(copy);
+}
+
+
+TEST_F(CudaUVMSpace, CopiesDataFromCudaUVM)
+{
+    int copy[2];
+    auto orig = cuda_uvm->alloc<int>(2);
+    init_data<<<1, 1>>>(orig);
+
+    omp->copy_from(cuda_uvm.get(), 2, orig, copy);
+
+    EXPECT_EQ(3, copy[0]);
+    ASSERT_EQ(8, copy[1]);
+    cuda_uvm->free(orig);
+}
+
+
+TEST_F(CudaUVMSpace, CopiesDataFromCudaUVMToCudaUVM)
+{
+    int copy[2];
+    auto orig = cuda_uvm->alloc<int>(2);
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
+    init_data<<<1, 1>>>(orig);
+
+    auto copy_cuda_uvm2 = cuda_uvm2->alloc<int>(2);
+    cuda_uvm2->copy_from(cuda_uvm.get(), 2, orig, copy_cuda_uvm2);
+
+    // Check that the data is really on GPU2 and ensure we did not cheat
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(cuda_uvm2->get_device_id()));
+    check_data<<<1, 1>>>(copy_cuda_uvm2);
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
+
+    omp->copy_from(cuda_uvm2.get(), 2, copy_cuda_uvm2, copy);
+
+    EXPECT_EQ(3, copy[0]);
+    ASSERT_EQ(8, copy[1]);
+    cuda_uvm2->free(copy_cuda_uvm2);
+    cuda_uvm->free(orig);
+}
+
+
+TEST_F(CudaUVMSpace, CopiesDataFromCudaUVMToCuda)
+{
+    int copy[2];
+    auto orig = cuda_uvm->alloc<int>(2);
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
+    init_data<<<1, 1>>>(orig);
+
+    auto copy_cuda = cuda->alloc<int>(2);
+    cuda->copy_from(cuda_uvm.get(), 2, orig, copy_cuda);
+
+    // Check that the data is really on GPU2 and ensure we did not cheat
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(cuda->get_device_id()));
+    check_data<<<1, 1>>>(copy_cuda);
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
+
+    omp->copy_from(cuda.get(), 2, copy_cuda, copy);
+
+    EXPECT_EQ(3, copy[0]);
+    ASSERT_EQ(8, copy[1]);
+    cuda->free(copy_cuda);
+    cuda_uvm->free(orig);
 }
 
 

@@ -116,7 +116,7 @@ namespace gko {
  * @return MemSpaceMismatch
  */
 #define GKO_MEMSPACE_MISMATCH(_obj) \
-    ::gko::MemSpaceMismatch(__FILE__, __LINE__, __func__, GKO_QUOTE(_obj))
+    throw ::gko::MemSpaceMismatch(__FILE__, __LINE__, __func__, GKO_QUOTE(_obj))
 
 
 namespace detail {

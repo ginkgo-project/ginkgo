@@ -42,9 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/config.hpp>
-#include <ginkgo/core/base/machine_config.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/machine_config.hpp>
 #include <ginkgo/core/base/memory_space.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
@@ -651,7 +651,7 @@ protected:
         : mem_space_instance_(mem_space)
     {
         if (!check_mem_space_validity(mem_space_instance_)) {
-            throw(GKO_MEMSPACE_MISMATCH(NOT_HOST));
+            GKO_MEMSPACE_MISMATCH(NOT_HOST);
         }
     }
 
@@ -746,7 +746,7 @@ protected:
         : mem_space_instance_(mem_space)
     {
         if (!check_mem_space_validity(mem_space_instance_)) {
-            throw(GKO_MEMSPACE_MISMATCH(NOT_HOST));
+            GKO_MEMSPACE_MISMATCH(NOT_HOST);
         }
     }
 
@@ -927,7 +927,7 @@ protected:
         this->init_handles();
         increase_num_execs(device_id);
         if (!check_mem_space_validity(mem_space_instance_)) {
-            throw(GKO_MEMSPACE_MISMATCH(NOT_CUDA));
+            GKO_MEMSPACE_MISMATCH(NOT_CUDA);
         }
     }
 
@@ -935,7 +935,10 @@ protected:
     {
         auto check_cuda_mem_space =
             dynamic_cast<CudaMemorySpace *>(mem_space.get());
-        if (check_cuda_mem_space == nullptr) {
+        auto check_cuda_uvm_mem_space =
+            dynamic_cast<CudaUVMSpace *>(mem_space.get());
+        if (check_cuda_mem_space == nullptr &&
+            check_cuda_uvm_mem_space == nullptr) {
             return false;
         }
         return true;
@@ -1139,7 +1142,7 @@ protected:
         this->init_handles();
         increase_num_execs(device_id);
         if (!check_mem_space_validity(mem_space_instance_)) {
-            throw(GKO_MEMSPACE_MISMATCH(NOT_HIP));
+            GKO_MEMSPACE_MISMATCH(NOT_HIP);
         }
     }
 

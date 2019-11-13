@@ -195,10 +195,14 @@ TEST(ReferenceExecutor, IsItsOwnMaster)
 TEST(CudaExecutor, CanBeCreatedWithAssociatedMemorySpace)
 {
     auto mem_space = gko::CudaMemorySpace::create(0);
+    auto uvm_space = gko::CudaUVMSpace::create(0);
     exec_ptr cuda =
         gko::CudaExecutor::create(0, mem_space, gko::OmpExecutor::create());
+    exec_ptr cuda2 =
+        gko::CudaExecutor::create(0, uvm_space, gko::OmpExecutor::create());
 
     ASSERT_EQ(cuda->get_mem_space(), mem_space);
+    ASSERT_EQ(cuda2->get_mem_space(), uvm_space);
 }
 
 

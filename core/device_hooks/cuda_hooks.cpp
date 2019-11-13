@@ -72,6 +72,11 @@ void HostMemorySpace::raw_copy_to(const CudaMemorySpace *, size_type num_bytes,
     GKO_NOT_COMPILED(cuda);
 
 
+void HostMemorySpace::raw_copy_to(const CudaUVMSpace *, size_type num_bytes,
+                                  const void *src_ptr, void *dest_ptr) const
+    GKO_NOT_COMPILED(cuda);
+
+
 void CudaMemorySpace::raw_free(void *ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
@@ -81,6 +86,10 @@ void CudaMemorySpace::raw_free(void *ptr) const noexcept
 
 
 void *CudaMemorySpace::raw_alloc(size_type num_bytes) const
+    GKO_NOT_COMPILED(nvidia);
+
+
+void *CudaUVMSpace::raw_alloc(size_type num_bytes) const
     GKO_NOT_COMPILED(nvidia);
 
 
@@ -96,6 +105,31 @@ void CudaMemorySpace::raw_copy_to(const CudaMemorySpace *, size_type num_bytes,
 
 void CudaMemorySpace::raw_copy_to(const HipMemorySpace *, size_type num_bytes,
                                   const void *src_ptr, void *dest_ptr) const
+    GKO_NOT_COMPILED(cuda);
+
+
+void CudaUVMSpace::raw_copy_to(const HostMemorySpace *, size_type num_bytes,
+                               const void *src_ptr, void *dest_ptr) const
+    GKO_NOT_COMPILED(cuda);
+
+
+void CudaUVMSpace::raw_copy_to(const CudaUVMSpace *, size_type num_bytes,
+                               const void *src_ptr, void *dest_ptr) const
+    GKO_NOT_COMPILED(cuda);
+
+
+void CudaMemorySpace::raw_copy_to(const CudaUVMSpace *, size_type num_bytes,
+                                  const void *src_ptr, void *dest_ptr) const
+    GKO_NOT_COMPILED(cuda);
+
+
+void CudaUVMSpace::raw_copy_to(const CudaMemorySpace *, size_type num_bytes,
+                               const void *src_ptr, void *dest_ptr) const
+    GKO_NOT_COMPILED(cuda);
+
+
+void CudaUVMSpace::raw_copy_to(const HipMemorySpace *, size_type num_bytes,
+                               const void *src_ptr, void *dest_ptr) const
     GKO_NOT_COMPILED(cuda);
 
 
