@@ -278,7 +278,7 @@ public:
                 row_ptrs = row_ptrs_host.get_const_data();
             }
             const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
-            if (row_ptrs[num_rows] > static_cast<index_type>(1e6)) {
+            if (row_ptrs[num_rows] > index_type(1e6)) {
                 load_balance actual_strategy(nwarps_);
                 if (is_mtx_on_host) {
                     actual_strategy.process(mtx_row_ptrs, mtx_srow);

@@ -332,6 +332,32 @@ TEST_F(Dense, MovesToCoo)
 }
 
 
+TEST_F(Dense, ConvertsEmptyMatrixToCsr)
+{
+    auto strategy = std::make_shared<gko::matrix::Csr<>::load_balance>(0);
+    auto from_mtx = gko::matrix::Dense<>::create(exec, gko::dim<2>{0, 0});
+    auto to_mtx =
+        gko::matrix::Csr<>::create(exec, gko::dim<2>{0, 0}, 0, strategy);
+
+    from_mtx->convert_to(to_mtx.get());
+
+    ASSERT_FALSE(to_mtx->get_size());
+}
+
+
+TEST_F(Dense, MovesEmptyMatrixToCsr)
+{
+    auto strategy = std::make_shared<gko::matrix::Csr<>::load_balance>(0);
+    auto from_mtx = gko::matrix::Dense<>::create(exec, gko::dim<2>{0, 0});
+    auto to_mtx =
+        gko::matrix::Csr<>::create(exec, gko::dim<2>{0, 0}, 0, strategy);
+
+    from_mtx->move_to(to_mtx.get());
+
+    ASSERT_FALSE(to_mtx->get_size());
+}
+
+
 TEST_F(Dense, ConvertsToCsr)
 {
     auto csr_s_classical = std::make_shared<gko::matrix::Csr<>::classical>();
