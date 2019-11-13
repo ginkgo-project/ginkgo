@@ -453,6 +453,9 @@ public:
      * Returns a LinOp representing the row permutation of the Permutable
      * object.
      *
+     * @param permutation_indices  the array of indices contaning the
+     * permutation order.
+     *
      * @return a pointer to the new permuted object
      */
     virtual std::unique_ptr<LinOp> row_permute(
@@ -461,6 +464,9 @@ public:
     /**
      * Returns a LinOp representing the column permutation of the Permutable
      * object.
+     *
+     * @param permutation_indices  the array of indices contaning the
+     * permutation order.
      *
      * @return a pointer to the new column permuted object
      */
@@ -471,6 +477,9 @@ public:
      * Returns a LinOp representing the row permutation of the inverse permuted
      * object.
      *
+     * @param inverse_permutation_indices  the array of indices contaning the
+     * inverse permutation order.
+     *
      * @return a pointer to the new inverse permuted object
      */
     virtual std::unique_ptr<LinOp> inverse_row_permute(
@@ -479,6 +488,9 @@ public:
     /**
      * Returns a LinOp representing the row permutation of the inverse permuted
      * object.
+     *
+     * @param inverse_permutation_indices  the array of indices contaning the
+     * inverse permutation order.
      *
      * @return a pointer to the new inverse permuted object
      */

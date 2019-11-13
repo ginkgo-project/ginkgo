@@ -109,7 +109,7 @@ TEST_F(Permutation, CanBeConstructedWithSize)
 }
 
 
-TEST_F(Permutation, RowPermutationCanBeConstructedFromExistingData)
+TEST_F(Permutation, PermutationCanBeConstructedFromExistingData)
 {
     i_type data[] = {1, 0, 2};
 
@@ -119,15 +119,29 @@ TEST_F(Permutation, RowPermutationCanBeConstructedFromExistingData)
     ASSERT_EQ(m->get_const_permutation(), data);
 }
 
-TEST_F(Permutation, RowAndColPermutationCanBeConstructedFromExistingData)
+
+TEST_F(Permutation, PermutationThrowsforWrongRowPermDimensions)
 {
-    i_type rdata[] = {0, 2, 1};
+    i_type data[] = {0, 2, 1};
 
-    auto m = gko::matrix::Permutation<>::create(
-        exec, gko::dim<2>{3, 2}, gko::Array<i_type>::view(exec, 3, rdata));
-
-    ASSERT_EQ(m->get_const_permutation(), rdata);
+    ASSERT_THROW(
+        gko::matrix::Permutation<>::create(
+            exec, gko::dim<2>{4, 2}, gko::Array<i_type>::view(exec, 3, data)),
+        gko::OutOfBoundsError);
 }
+
+
+TEST_F(Permutation, PermutationThrowsforWrongColPermDimensions)
+{
+    i_type data[] = {0, 2, 1};
+
+    ASSERT_THROW(
+        gko::matrix::Permutation<>::create(
+            exec, gko::dim<2>{3, 4}, gko::Array<i_type>::view(exec, 3, data),
+            gko::matrix::column_permute),
+        gko::OutOfBoundsError);
+}
+
 
 TEST_F(Permutation, KnowsItsSizeAndValues)
 {

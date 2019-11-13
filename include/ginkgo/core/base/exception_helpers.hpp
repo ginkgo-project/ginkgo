@@ -124,7 +124,7 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 /**
  *Asserts that _val1 and _val2 are equal.
  *
- *@throw BadDimension if _val1 is different from _val2.
+ *@throw ValueMisatch if _val1 is different from _val2.
  */
 #define GKO_ASSERT_EQ(_val1, _val2)                                            \
     if (_val1 != _val2) {                                                      \
