@@ -397,7 +397,7 @@ void row_permute(std::shared_ptr<const OmpExecutor> exec,
         auto new_row = perm[row];
         auto new_k = orig_row_ptrs[new_row];
         for (size_type k = rp_row_ptrs[row];
-             k < static_cast<size_type>(rp_row_ptrs[row + 1]); ++k) {
+             k < size_type(rp_row_ptrs[row + 1]); ++k) {
             rp_col_idxs[k] = orig_col_idxs[new_k];
             rp_vals[k] = orig_vals[new_k];
             new_k++;
@@ -437,8 +437,8 @@ void column_permute(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
         cp_row_ptrs[row] = orig_row_ptrs[row];
-        for (size_type k = static_cast<size_type>(orig_row_ptrs[row]);
-             k < static_cast<size_type>(orig_row_ptrs[row + 1]); ++k) {
+        for (size_type k = orig_row_ptrs[row];
+             k < size_type(orig_row_ptrs[row + 1]); ++k) {
             cp_col_idxs[k] = ind[k];
             cp_vals[k] = orig_vals[k];
         }
@@ -492,7 +492,7 @@ void inverse_row_permute(std::shared_ptr<const OmpExecutor> exec,
         auto new_row = perm[row];
         auto new_k = orig_row_ptrs[ind[row]];
         for (size_type k = rp_row_ptrs[row];
-             k < static_cast<size_type>(rp_row_ptrs[row + 1]); ++k) {
+             k < size_type(rp_row_ptrs[row + 1]); ++k) {
             rp_col_idxs[k] = orig_col_idxs[new_k];
             rp_vals[k] = orig_vals[new_k];
             new_k++;
@@ -525,7 +525,7 @@ void inverse_column_permute(std::shared_ptr<const OmpExecutor> exec,
     for (size_type row = 0; row < num_rows; ++row) {
         cp_row_ptrs[row] = orig_row_ptrs[row];
         for (size_type k = orig_row_ptrs[row];
-             k < static_cast<size_type>(orig_row_ptrs[row + 1]); ++k) {
+             k < size_type(orig_row_ptrs[row + 1]); ++k) {
             cp_col_idxs[k] = perm[orig_col_idxs[k]];
             cp_vals[k] = orig_vals[k];
         }
