@@ -200,12 +200,34 @@ TEST_F(Coo, SimpleApplyAddToDenseMatrixIsEquivalentToRef)
 }
 
 
+TEST_F(Coo, SimpleApplyAddToLargeDenseMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(33);
+
+    mtx->apply2(y.get(), expected.get());
+    dmtx->apply2(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
 TEST_F(Coo, AdvancedApplyAddToDenseMatrixIsEquivalentToRef)
 {
     set_up_apply_data(3);
 
     mtx->apply2(alpha.get(), y.get(), expected.get());
     dmtx->apply2(dalpha.get(), dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Coo, AdvancedApplyAddToLargeDenseMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(33);
+
+    mtx->apply2(y.get(), expected.get());
+    dmtx->apply2(dy.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }

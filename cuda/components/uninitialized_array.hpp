@@ -50,4 +50,4 @@ namespace cuda {
 }  // namespace gko
 
 
-#endif  // GKO_CUDA_BASE_COMPONENTS_ARRAY_HPP_
+#endif  // GKO_CUDA_COMPONENTS_UNINITIALIZED_ARRAY_HPP_

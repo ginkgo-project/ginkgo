@@ -76,7 +76,7 @@ __host__ size_type calculate_nwarps(std::shared_ptr<const HipExecutor> exec,
     }
 #endif  // GINKGO_HIP_PLATFORM_NVCC
     return std::min(multiple * nwarps_in_hip,
-                    static_cast<size_type>(ceildiv(nnz, config::warp_size)));
+                    size_type(ceildiv(nnz, config::warp_size)));
 }
 
 
