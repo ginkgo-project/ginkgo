@@ -226,8 +226,6 @@ public:
                 if (!is_srow_on_host) {
                     *mtx_srow = srow_host;
                 }
-            } else {
-                GKO_NOT_SUPPORTED(nwarps);
             }
         }
 
