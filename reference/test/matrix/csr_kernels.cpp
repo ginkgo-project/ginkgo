@@ -343,6 +343,19 @@ protected:
 };
 
 
+TEST_F(Csr, CopyEmptyMatrix)
+{
+    auto strategy = std::make_shared<Mtx::load_balance>(0);
+    auto from_mtx = gko::matrix::Dense<>::create(exec, gko::dim<2>(0, 0));
+    auto to_mtx =
+        gko::matrix::Csr<>::create(exec, gko::dim<2>{0, 0}, 0, strategy);
+
+    from_mtx->convert_to(to_mtx.get());
+
+    ASSERT_FALSE(to_mtx->get_size());
+}
+
+
 TEST_F(Csr, AppliesToDenseVector)
 {
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
