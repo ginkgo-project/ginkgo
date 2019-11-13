@@ -490,7 +490,7 @@ protected:
           conditioning_(factory->get_executor())
     {
         if (parameters_.max_block_size > 32 || parameters_.max_block_size < 1) {
-            throw GKO_NOT_SUPPORTED(this);
+            GKO_NOT_SUPPORTED(this);
         }
         parameters_.block_pointers.set_executor(this->get_executor());
         parameters_.storage_optimization.block_wise.set_executor(
