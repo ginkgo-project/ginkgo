@@ -149,9 +149,9 @@ protected:
      * @param size  size of the permutation array.
      * @param permutation_indices array of permutation array
      *
-     * @note If `indices` is not an rvalue, not an array of IndexType, or is on
-     *       the wrong executor, an internal copy will be created, and the
-     *       original array data will not be used in the matrix.
+     * @note If `permutation_indices` is not an rvalue, not an array of
+     * IndexType, or is on the wrong executor, an internal copy will be created,
+     * and the original array data will not be used in the matrix.
      */
     template <typename IndicesArray>
     Permutation(std::shared_ptr<const Executor> exec, const dim<2> &size,

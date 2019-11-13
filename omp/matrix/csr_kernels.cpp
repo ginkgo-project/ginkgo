@@ -422,20 +422,24 @@ void column_permute(std::shared_ptr<const OmpExecutor> exec,
     auto cp_row_ptrs = column_permuted->get_row_ptrs();
     auto cp_col_idxs = column_permuted->get_col_idxs();
     auto cp_vals = column_permuted->get_values();
+    auto num_nnz = orig->get_num_stored_elements();
     size_type num_rows = orig->get_size()[0];
     size_type num_cols = orig->get_size()[1];
 
     std::vector<IndexType> pindx(&perm[0], &perm[0] + num_cols);
+    std::vector<size_type> ind(num_nnz);
+#pragma omp parallel for
+    for (size_type k = 0; k < num_nnz; ++k) {
+        typename std::vector<IndexType>::iterator itr =
+            std::find(pindx.begin(), pindx.end(), orig_col_idxs[k]);
+        ind[k] = static_cast<size_type>(std::distance(pindx.begin(), itr));
+    }
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
         cp_row_ptrs[row] = orig_row_ptrs[row];
         for (size_type k = static_cast<size_type>(orig_row_ptrs[row]);
              k < static_cast<size_type>(orig_row_ptrs[row + 1]); ++k) {
-            typename std::vector<IndexType>::iterator itr =
-                std::find(pindx.begin(), pindx.end(), orig_col_idxs[k]);
-            size_type ind =
-                static_cast<size_type>(std::distance(pindx.begin(), itr));
-            cp_col_idxs[k] = ind;
+            cp_col_idxs[k] = ind[k];
             cp_vals[k] = orig_vals[k];
         }
     }
@@ -466,26 +470,27 @@ void inverse_row_permute(std::shared_ptr<const OmpExecutor> exec,
     rp_row_ptrs[0] = cur_ptr;
     std::vector<size_type> orig_num_nnz_per_row(num_rows, 0);
     std::vector<IndexType> pindx(&perm[0], &perm[0] + num_rows);
+    std::vector<size_type> ind(num_rows);
+
+#pragma omp parallel for
+    for (size_type row = 0; row < num_rows; ++row) {
+        typename std::vector<IndexType>::iterator itr =
+            std::find(pindx.begin(), pindx.end(), static_cast<IndexType>(row));
+        ind[row] = static_cast<size_type>(std::distance(pindx.begin(), itr));
+    }
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
         orig_num_nnz_per_row[row] = orig_row_ptrs[row + 1] - orig_row_ptrs[row];
     }
     for (size_type row = 0; row < num_rows; ++row) {
-        typename std::vector<IndexType>::iterator itr =
-            std::find(pindx.begin(), pindx.end(), static_cast<IndexType>(row));
-        size_type ind =
-            static_cast<size_type>(std::distance(pindx.begin(), itr));
-        rp_row_ptrs[row + 1] = rp_row_ptrs[row] + orig_num_nnz_per_row[ind];
+        rp_row_ptrs[row + 1] =
+            rp_row_ptrs[row] + orig_num_nnz_per_row[ind[row]];
     }
     rp_row_ptrs[num_rows] = orig_row_ptrs[num_rows];
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
         auto new_row = perm[row];
-        typename std::vector<IndexType>::iterator itr =
-            std::find(pindx.begin(), pindx.end(), static_cast<IndexType>(row));
-        size_type ind =
-            static_cast<size_type>(std::distance(pindx.begin(), itr));
-        auto new_k = orig_row_ptrs[ind];
+        auto new_k = orig_row_ptrs[ind[row]];
         for (size_type k = rp_row_ptrs[row];
              k < static_cast<size_type>(rp_row_ptrs[row + 1]); ++k) {
             rp_col_idxs[k] = orig_col_idxs[new_k];
