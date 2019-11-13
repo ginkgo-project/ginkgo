@@ -1,0 +1,127 @@
+\hypertarget{classgko_1_1matrix_1_1Permutation}{}\doxysection{gko\+::matrix\+::Permutation$<$ Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1matrix_1_1Permutation}\index{gko::matrix::Permutation$<$ IndexType $>$@{gko::matrix::Permutation$<$ IndexType $>$}}
+
+
+\mbox{\hyperlink{classgko_1_1matrix_1_1Permutation}{Permutation}} is a matrix format which stores the row and column permutation arrays which can be used for re-\/ordering the rows and columns a matrix.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/matrix/permutation.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::matrix\+::Permutation$<$ Index\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1matrix_1_1Permutation__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Permutation_a1669102564251eb6df5465d1d1ba4f99}\label{classgko_1_1matrix_1_1Permutation_a1669102564251eb6df5465d1d1ba4f99}} 
+using {\bfseries index\+\_\+type} = Index\+Type
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+index\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Permutation_ad632f0f6b6305ef7a74d7abf260556cf}{get\+\_\+permutation}} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns a pointer to the array of permutation. \end{DoxyCompactList}\item 
+const index\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Permutation_afade97c61c352cd4fbe25ed8a4b77a90}{get\+\_\+const\+\_\+permutation}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns a pointer to the array of permutation. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Permutation_a576d006fe37902ff0b47050ecb87b416}{get\+\_\+permutation\+\_\+size}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the number of elements explicitly stored in the permutation array. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Permutation_a49fb50c0b9987f7da8e8ad65242ddedf}\label{classgko_1_1matrix_1_1Permutation_a49fb50c0b9987f7da8e8ad65242ddedf}} 
+class {\bfseries Enable\+Create\+Method$<$ Permutation $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Permutation_a0fa83943059f819c219107718fa634ca}\label{classgko_1_1matrix_1_1Permutation_a0fa83943059f819c219107718fa634ca}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Permutation, Lin\+Op $>$}
+\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Index\+Type = int32$>$\newline
+class gko\+::matrix\+::\+Permutation$<$ Index\+Type $>$}
+
+\mbox{\hyperlink{classgko_1_1matrix_1_1Permutation}{Permutation}} is a matrix format which stores the row and column permutation arrays which can be used for re-\/ordering the rows and columns a matrix. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Index\+Type} & precision of permutation array indices.\\
+\hline
+\end{DoxyTemplParams}
+\begin{DoxyNote}{Note}
+This format is used mainly to allow for an abstraction of the permutation/re-\/ordering and provides the user with an apply method which calls the respective \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}\textquotesingle{}s permute operation if the respective \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} implements the \mbox{\hyperlink{classgko_1_1Permutable}{Permutable}} interface. 
+\end{DoxyNote}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Permutation_afade97c61c352cd4fbe25ed8a4b77a90}\label{classgko_1_1matrix_1_1Permutation_afade97c61c352cd4fbe25ed8a4b77a90}} 
+\index{gko::matrix::Permutation$<$ IndexType $>$@{gko::matrix::Permutation$<$ IndexType $>$}!get\_const\_permutation@{get\_const\_permutation}}
+\index{get\_const\_permutation@{get\_const\_permutation}!gko::matrix::Permutation$<$ IndexType $>$@{gko::matrix::Permutation$<$ IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_const\_permutation()}{get\_const\_permutation()}}
+{\footnotesize\ttfamily template$<$typename Index\+Type  = int32$>$ \\
+const index\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Permutation}{gko\+::matrix\+::\+Permutation}}$<$ Index\+Type $>$\+::get\+\_\+const\+\_\+permutation (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns a pointer to the array of permutation. 
+
+\begin{DoxyReturn}{Returns}
+the pointer to the row permutation array.
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Permutation_ad632f0f6b6305ef7a74d7abf260556cf}\label{classgko_1_1matrix_1_1Permutation_ad632f0f6b6305ef7a74d7abf260556cf}} 
+\index{gko::matrix::Permutation$<$ IndexType $>$@{gko::matrix::Permutation$<$ IndexType $>$}!get\_permutation@{get\_permutation}}
+\index{get\_permutation@{get\_permutation}!gko::matrix::Permutation$<$ IndexType $>$@{gko::matrix::Permutation$<$ IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_permutation()}{get\_permutation()}}
+{\footnotesize\ttfamily template$<$typename Index\+Type  = int32$>$ \\
+index\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Permutation}{gko\+::matrix\+::\+Permutation}}$<$ Index\+Type $>$\+::get\+\_\+permutation (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns a pointer to the array of permutation. 
+
+\begin{DoxyReturn}{Returns}
+the pointer to the row permutation array. 
+\end{DoxyReturn}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Permutation_a576d006fe37902ff0b47050ecb87b416}\label{classgko_1_1matrix_1_1Permutation_a576d006fe37902ff0b47050ecb87b416}} 
+\index{gko::matrix::Permutation$<$ IndexType $>$@{gko::matrix::Permutation$<$ IndexType $>$}!get\_permutation\_size@{get\_permutation\_size}}
+\index{get\_permutation\_size@{get\_permutation\_size}!gko::matrix::Permutation$<$ IndexType $>$@{gko::matrix::Permutation$<$ IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_permutation\_size()}{get\_permutation\_size()}}
+{\footnotesize\ttfamily template$<$typename Index\+Type  = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Permutation}{gko\+::matrix\+::\+Permutation}}$<$ Index\+Type $>$\+::get\+\_\+permutation\+\_\+size (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the number of elements explicitly stored in the permutation array. 
+
+\begin{DoxyReturn}{Returns}
+the number of elements explicitly stored in the permutation array. 
+\end{DoxyReturn}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+num\+\_\+elems().
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/matrix/permutation.\+hpp (5f291e20d)\end{DoxyCompactItemize}

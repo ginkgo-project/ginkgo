@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/base/lin_op.hpp (e44cb5b75) Source File</title>
+<title>Ginkgo: ginkgo/core/base/lin_op.hpp (5f291e20d) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/95636707 branch based on develop. Ginkgo version 1.1.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/95721987 branch based on develop. Ginkgo version 1.1.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -245,218 +245,237 @@ $(function() {
 <div class="line"><a name="l00416"></a><span class="lineno">  416</span>&#160;};</div>
 <div class="line"><a name="l00417"></a><span class="lineno">  417</span>&#160; </div>
 <div class="line"><a name="l00418"></a><span class="lineno">  418</span>&#160; </div>
-<div class="line"><a name="l00425"></a><span class="lineno">  425</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType, <span class="keyword">typename</span> IndexType&gt;</div>
-<div class="line"><a name="l00426"></a><span class="lineno"><a class="line" href="classgko_1_1ReadableFromMatrixData.html">  426</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1ReadableFromMatrixData.html">ReadableFromMatrixData</a> {</div>
-<div class="line"><a name="l00427"></a><span class="lineno">  427</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00428"></a><span class="lineno">  428</span>&#160;    <span class="keyword">virtual</span> ~<a class="code" href="classgko_1_1ReadableFromMatrixData.html">ReadableFromMatrixData</a>() = <span class="keywordflow">default</span>;</div>
-<div class="line"><a name="l00429"></a><span class="lineno">  429</span>&#160; </div>
-<div class="line"><a name="l00435"></a><span class="lineno">  435</span>&#160;    <span class="keyword">virtual</span> <span class="keywordtype">void</span> <a class="code" href="namespacegko.html#a92cf0178c1c55419d32d2bb527e57e5b">read</a>(<span class="keyword">const</span> <a class="code" href="structgko_1_1matrix__data.html">matrix_data&lt;ValueType, IndexType&gt;</a> &amp;data) = 0;</div>
-<div class="line"><a name="l00436"></a><span class="lineno">  436</span>&#160;};</div>
-<div class="line"><a name="l00437"></a><span class="lineno">  437</span>&#160; </div>
-<div class="line"><a name="l00438"></a><span class="lineno">  438</span>&#160; </div>
-<div class="line"><a name="l00445"></a><span class="lineno">  445</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType, <span class="keyword">typename</span> IndexType&gt;</div>
-<div class="line"><a name="l00446"></a><span class="lineno"><a class="line" href="classgko_1_1WritableToMatrixData.html">  446</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1WritableToMatrixData.html">WritableToMatrixData</a> {</div>
-<div class="line"><a name="l00447"></a><span class="lineno">  447</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00448"></a><span class="lineno">  448</span>&#160;    <span class="keyword">virtual</span> ~<a class="code" href="classgko_1_1WritableToMatrixData.html">WritableToMatrixData</a>() = <span class="keywordflow">default</span>;</div>
-<div class="line"><a name="l00449"></a><span class="lineno">  449</span>&#160; </div>
-<div class="line"><a name="l00455"></a><span class="lineno">  455</span>&#160;    <span class="keyword">virtual</span> <span class="keywordtype">void</span> <a class="code" href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148">write</a>(<a class="code" href="structgko_1_1matrix__data.html">matrix_data&lt;ValueType, IndexType&gt;</a> &amp;data) <span class="keyword">const</span> = 0;</div>
-<div class="line"><a name="l00456"></a><span class="lineno">  456</span>&#160;};</div>
-<div class="line"><a name="l00457"></a><span class="lineno">  457</span>&#160; </div>
-<div class="line"><a name="l00458"></a><span class="lineno">  458</span>&#160; </div>
-<div class="line"><a name="l00465"></a><span class="lineno"><a class="line" href="classgko_1_1Preconditionable.html">  465</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1Preconditionable.html">Preconditionable</a> {</div>
-<div class="line"><a name="l00466"></a><span class="lineno">  466</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00467"></a><span class="lineno">  467</span>&#160;    <span class="keyword">virtual</span> ~<a class="code" href="classgko_1_1Preconditionable.html">Preconditionable</a>() = <span class="keywordflow">default</span>;</div>
-<div class="line"><a name="l00468"></a><span class="lineno">  468</span>&#160; </div>
-<div class="line"><a name="l00474"></a><span class="lineno"><a class="line" href="classgko_1_1Preconditionable.html#a0e664ac0bd76c286e4bdc630e33f2cd3">  474</a></span>&#160;    <span class="keyword">virtual</span> std::shared_ptr&lt;const LinOp&gt; <a class="code" href="classgko_1_1Preconditionable.html#a0e664ac0bd76c286e4bdc630e33f2cd3">get_preconditioner</a>()<span class="keyword"> const</span></div>
-<div class="line"><a name="l00475"></a><span class="lineno">  475</span>&#160;<span class="keyword">    </span>{</div>
-<div class="line"><a name="l00476"></a><span class="lineno">  476</span>&#160;        <span class="keywordflow">return</span> preconditioner_;</div>
-<div class="line"><a name="l00477"></a><span class="lineno">  477</span>&#160;    }</div>
-<div class="line"><a name="l00478"></a><span class="lineno">  478</span>&#160; </div>
-<div class="line"><a name="l00485"></a><span class="lineno"><a class="line" href="classgko_1_1Preconditionable.html#a95db3e56eb17efbcde951c5ed144582d">  485</a></span>&#160;    <span class="keyword">virtual</span> <span class="keywordtype">void</span> <a class="code" href="classgko_1_1Preconditionable.html#a95db3e56eb17efbcde951c5ed144582d">set_preconditioner</a>(std::shared_ptr&lt;const LinOp&gt; new_precond)</div>
-<div class="line"><a name="l00486"></a><span class="lineno">  486</span>&#160;    {</div>
-<div class="line"><a name="l00487"></a><span class="lineno">  487</span>&#160;        preconditioner_ = new_precond;</div>
-<div class="line"><a name="l00488"></a><span class="lineno">  488</span>&#160;    }</div>
-<div class="line"><a name="l00489"></a><span class="lineno">  489</span>&#160; </div>
-<div class="line"><a name="l00490"></a><span class="lineno">  490</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00491"></a><span class="lineno">  491</span>&#160;    std::shared_ptr&lt;const LinOp&gt; preconditioner_{};</div>
-<div class="line"><a name="l00492"></a><span class="lineno">  492</span>&#160;};</div>
-<div class="line"><a name="l00493"></a><span class="lineno">  493</span>&#160; </div>
-<div class="line"><a name="l00494"></a><span class="lineno">  494</span>&#160; </div>
-<div class="line"><a name="l00525"></a><span class="lineno">  525</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ConcreteLinOp, <span class="keyword">typename</span> PolymorphicBase = LinOp&gt;</div>
-<div class="line"><a name="l00526"></a><span class="lineno"><a class="line" href="classgko_1_1EnableLinOp.html">  526</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1EnableLinOp.html">EnableLinOp</a></div>
-<div class="line"><a name="l00527"></a><span class="lineno">  527</span>&#160;    : <span class="keyword">public</span> <a class="code" href="classgko_1_1EnablePolymorphicObject.html">EnablePolymorphicObject&lt;ConcreteLinOp, PolymorphicBase&gt;</a>,</div>
-<div class="line"><a name="l00528"></a><span class="lineno">  528</span>&#160;      <span class="keyword">public</span> <a class="code" href="classgko_1_1EnablePolymorphicAssignment.html">EnablePolymorphicAssignment&lt;ConcreteLinOp&gt;</a> {</div>
-<div class="line"><a name="l00529"></a><span class="lineno">  529</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00530"></a><span class="lineno">  530</span>&#160;    <span class="keyword">using</span> <a class="code" href="classgko_1_1EnablePolymorphicObject.html">EnablePolymorphicObject</a>&lt;ConcreteLinOp,</div>
-<div class="line"><a name="l00531"></a><span class="lineno">  531</span>&#160;                                  PolymorphicBase&gt;<a class="code" href="classgko_1_1EnablePolymorphicObject.html">::EnablePolymorphicObject</a>;</div>
+<div class="line"><a name="l00447"></a><span class="lineno">  447</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> IndexType&gt;</div>
+<div class="line"><a name="l00448"></a><span class="lineno"><a class="line" href="classgko_1_1Permutable.html">  448</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1Permutable.html">Permutable</a> {</div>
+<div class="line"><a name="l00449"></a><span class="lineno">  449</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00450"></a><span class="lineno">  450</span>&#160;    <span class="keyword">virtual</span> ~<a class="code" href="classgko_1_1Permutable.html">Permutable</a>() = <span class="keywordflow">default</span>;</div>
+<div class="line"><a name="l00451"></a><span class="lineno">  451</span>&#160; </div>
+<div class="line"><a name="l00461"></a><span class="lineno">  461</span>&#160;    <span class="keyword">virtual</span> std::unique_ptr&lt;LinOp&gt; row_permute(</div>
+<div class="line"><a name="l00462"></a><span class="lineno">  462</span>&#160;        <span class="keyword">const</span> <a class="code" href="classgko_1_1Array.html">Array&lt;IndexType&gt;</a> *permutation_indices) <span class="keyword">const</span> = 0;</div>
+<div class="line"><a name="l00463"></a><span class="lineno">  463</span>&#160; </div>
+<div class="line"><a name="l00473"></a><span class="lineno">  473</span>&#160;    <span class="keyword">virtual</span> std::unique_ptr&lt;LinOp&gt; column_permute(</div>
+<div class="line"><a name="l00474"></a><span class="lineno">  474</span>&#160;        <span class="keyword">const</span> <a class="code" href="classgko_1_1Array.html">Array&lt;IndexType&gt;</a> *permutation_indices) <span class="keyword">const</span> = 0;</div>
+<div class="line"><a name="l00475"></a><span class="lineno">  475</span>&#160; </div>
+<div class="line"><a name="l00485"></a><span class="lineno">  485</span>&#160;    <span class="keyword">virtual</span> std::unique_ptr&lt;LinOp&gt; inverse_row_permute(</div>
+<div class="line"><a name="l00486"></a><span class="lineno">  486</span>&#160;        <span class="keyword">const</span> <a class="code" href="classgko_1_1Array.html">Array&lt;IndexType&gt;</a> *inverse_permutation_indices) <span class="keyword">const</span> = 0;</div>
+<div class="line"><a name="l00487"></a><span class="lineno">  487</span>&#160; </div>
+<div class="line"><a name="l00497"></a><span class="lineno">  497</span>&#160;    <span class="keyword">virtual</span> std::unique_ptr&lt;LinOp&gt; inverse_column_permute(</div>
+<div class="line"><a name="l00498"></a><span class="lineno">  498</span>&#160;        <span class="keyword">const</span> <a class="code" href="classgko_1_1Array.html">Array&lt;IndexType&gt;</a> *inverse_permutation_indices) <span class="keyword">const</span> = 0;</div>
+<div class="line"><a name="l00499"></a><span class="lineno">  499</span>&#160;};</div>
+<div class="line"><a name="l00500"></a><span class="lineno">  500</span>&#160; </div>
+<div class="line"><a name="l00501"></a><span class="lineno">  501</span>&#160; </div>
+<div class="line"><a name="l00508"></a><span class="lineno">  508</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType, <span class="keyword">typename</span> IndexType&gt;</div>
+<div class="line"><a name="l00509"></a><span class="lineno"><a class="line" href="classgko_1_1ReadableFromMatrixData.html">  509</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1ReadableFromMatrixData.html">ReadableFromMatrixData</a> {</div>
+<div class="line"><a name="l00510"></a><span class="lineno">  510</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00511"></a><span class="lineno">  511</span>&#160;    <span class="keyword">virtual</span> ~<a class="code" href="classgko_1_1ReadableFromMatrixData.html">ReadableFromMatrixData</a>() = <span class="keywordflow">default</span>;</div>
+<div class="line"><a name="l00512"></a><span class="lineno">  512</span>&#160; </div>
+<div class="line"><a name="l00518"></a><span class="lineno">  518</span>&#160;    <span class="keyword">virtual</span> <span class="keywordtype">void</span> <a class="code" href="namespacegko.html#a92cf0178c1c55419d32d2bb527e57e5b">read</a>(<span class="keyword">const</span> <a class="code" href="structgko_1_1matrix__data.html">matrix_data&lt;ValueType, IndexType&gt;</a> &amp;data) = 0;</div>
+<div class="line"><a name="l00519"></a><span class="lineno">  519</span>&#160;};</div>
+<div class="line"><a name="l00520"></a><span class="lineno">  520</span>&#160; </div>
+<div class="line"><a name="l00521"></a><span class="lineno">  521</span>&#160; </div>
+<div class="line"><a name="l00528"></a><span class="lineno">  528</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType, <span class="keyword">typename</span> IndexType&gt;</div>
+<div class="line"><a name="l00529"></a><span class="lineno"><a class="line" href="classgko_1_1WritableToMatrixData.html">  529</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1WritableToMatrixData.html">WritableToMatrixData</a> {</div>
+<div class="line"><a name="l00530"></a><span class="lineno">  530</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00531"></a><span class="lineno">  531</span>&#160;    <span class="keyword">virtual</span> ~<a class="code" href="classgko_1_1WritableToMatrixData.html">WritableToMatrixData</a>() = <span class="keywordflow">default</span>;</div>
 <div class="line"><a name="l00532"></a><span class="lineno">  532</span>&#160; </div>
-<div class="line"><a name="l00533"></a><span class="lineno">  533</span>&#160;    <span class="keyword">const</span> ConcreteLinOp *apply(<span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *b, <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *x)<span class="keyword"> const</span></div>
-<div class="line"><a name="l00534"></a><span class="lineno">  534</span>&#160;<span class="keyword">    </span>{</div>
-<div class="line"><a name="l00535"></a><span class="lineno">  535</span>&#160;        this-&gt;<span class="keyword">template</span> log&lt;log::Logger::linop_apply_started&gt;(<span class="keyword">this</span>, b, x);</div>
-<div class="line"><a name="l00536"></a><span class="lineno">  536</span>&#160;        this-&gt;validate_application_parameters(b, x);</div>
-<div class="line"><a name="l00537"></a><span class="lineno">  537</span>&#160;        <span class="keyword">auto</span> exec = this-&gt;get_executor();</div>
-<div class="line"><a name="l00538"></a><span class="lineno">  538</span>&#160;        this-&gt;apply_impl(<a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, b).get(),</div>
-<div class="line"><a name="l00539"></a><span class="lineno">  539</span>&#160;                         <a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, x).get());</div>
-<div class="line"><a name="l00540"></a><span class="lineno">  540</span>&#160;        this-&gt;<span class="keyword">template</span> log&lt;log::Logger::linop_apply_completed&gt;(<span class="keyword">this</span>, b, x);</div>
-<div class="line"><a name="l00541"></a><span class="lineno">  541</span>&#160;        <span class="keywordflow">return</span> <span class="keyword">self</span>();</div>
-<div class="line"><a name="l00542"></a><span class="lineno">  542</span>&#160;    }</div>
-<div class="line"><a name="l00543"></a><span class="lineno">  543</span>&#160; </div>
-<div class="line"><a name="l00544"></a><span class="lineno">  544</span>&#160;    ConcreteLinOp *apply(<span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *b, <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *x)</div>
-<div class="line"><a name="l00545"></a><span class="lineno">  545</span>&#160;    {</div>
-<div class="line"><a name="l00546"></a><span class="lineno">  546</span>&#160;        this-&gt;<span class="keyword">template</span> log&lt;log::Logger::linop_apply_started&gt;(<span class="keyword">this</span>, b, x);</div>
-<div class="line"><a name="l00547"></a><span class="lineno">  547</span>&#160;        this-&gt;validate_application_parameters(b, x);</div>
-<div class="line"><a name="l00548"></a><span class="lineno">  548</span>&#160;        <span class="keyword">auto</span> exec = this-&gt;get_executor();</div>
-<div class="line"><a name="l00549"></a><span class="lineno">  549</span>&#160;        this-&gt;apply_impl(<a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, b).get(),</div>
-<div class="line"><a name="l00550"></a><span class="lineno">  550</span>&#160;                         <a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, x).get());</div>
-<div class="line"><a name="l00551"></a><span class="lineno">  551</span>&#160;        this-&gt;<span class="keyword">template</span> log&lt;log::Logger::linop_apply_completed&gt;(<span class="keyword">this</span>, b, x);</div>
-<div class="line"><a name="l00552"></a><span class="lineno">  552</span>&#160;        <span class="keywordflow">return</span> <span class="keyword">self</span>();</div>
-<div class="line"><a name="l00553"></a><span class="lineno">  553</span>&#160;    }</div>
-<div class="line"><a name="l00554"></a><span class="lineno">  554</span>&#160; </div>
-<div class="line"><a name="l00555"></a><span class="lineno">  555</span>&#160;    <span class="keyword">const</span> ConcreteLinOp *apply(<span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *alpha, <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *b,</div>
-<div class="line"><a name="l00556"></a><span class="lineno">  556</span>&#160;                               <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *beta, <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *x)<span class="keyword"> const</span></div>
-<div class="line"><a name="l00557"></a><span class="lineno">  557</span>&#160;<span class="keyword">    </span>{</div>
-<div class="line"><a name="l00558"></a><span class="lineno">  558</span>&#160;        this-&gt;<span class="keyword">template</span> log&lt;log::Logger::linop_advanced_apply_started&gt;(</div>
-<div class="line"><a name="l00559"></a><span class="lineno">  559</span>&#160;            <span class="keyword">this</span>, alpha, b, beta, x);</div>
-<div class="line"><a name="l00560"></a><span class="lineno">  560</span>&#160;        this-&gt;validate_application_parameters(alpha, b, beta, x);</div>
-<div class="line"><a name="l00561"></a><span class="lineno">  561</span>&#160;        <span class="keyword">auto</span> exec = this-&gt;get_executor();</div>
-<div class="line"><a name="l00562"></a><span class="lineno">  562</span>&#160;        this-&gt;apply_impl(<a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, alpha).get(),</div>
-<div class="line"><a name="l00563"></a><span class="lineno">  563</span>&#160;                         <a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, b).get(),</div>
-<div class="line"><a name="l00564"></a><span class="lineno">  564</span>&#160;                         <a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, beta).get(),</div>
-<div class="line"><a name="l00565"></a><span class="lineno">  565</span>&#160;                         <a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, x).get());</div>
-<div class="line"><a name="l00566"></a><span class="lineno">  566</span>&#160;        this-&gt;<span class="keyword">template</span> log&lt;log::Logger::linop_advanced_apply_completed&gt;(</div>
-<div class="line"><a name="l00567"></a><span class="lineno">  567</span>&#160;            <span class="keyword">this</span>, alpha, b, beta, x);</div>
-<div class="line"><a name="l00568"></a><span class="lineno">  568</span>&#160;        <span class="keywordflow">return</span> <span class="keyword">self</span>();</div>
-<div class="line"><a name="l00569"></a><span class="lineno">  569</span>&#160;    }</div>
-<div class="line"><a name="l00570"></a><span class="lineno">  570</span>&#160; </div>
-<div class="line"><a name="l00571"></a><span class="lineno">  571</span>&#160;    ConcreteLinOp *apply(<span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *alpha, <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *b, <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *beta,</div>
-<div class="line"><a name="l00572"></a><span class="lineno">  572</span>&#160;                         <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *x)</div>
-<div class="line"><a name="l00573"></a><span class="lineno">  573</span>&#160;    {</div>
-<div class="line"><a name="l00574"></a><span class="lineno">  574</span>&#160;        this-&gt;<span class="keyword">template</span> log&lt;log::Logger::linop_advanced_apply_started&gt;(</div>
-<div class="line"><a name="l00575"></a><span class="lineno">  575</span>&#160;            <span class="keyword">this</span>, alpha, b, beta, x);</div>
-<div class="line"><a name="l00576"></a><span class="lineno">  576</span>&#160;        this-&gt;validate_application_parameters(alpha, b, beta, x);</div>
-<div class="line"><a name="l00577"></a><span class="lineno">  577</span>&#160;        <span class="keyword">auto</span> exec = this-&gt;get_executor();</div>
-<div class="line"><a name="l00578"></a><span class="lineno">  578</span>&#160;        this-&gt;apply_impl(<a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, alpha).get(),</div>
-<div class="line"><a name="l00579"></a><span class="lineno">  579</span>&#160;                         <a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, b).get(),</div>
-<div class="line"><a name="l00580"></a><span class="lineno">  580</span>&#160;                         <a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, beta).get(),</div>
-<div class="line"><a name="l00581"></a><span class="lineno">  581</span>&#160;                         <a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, x).get());</div>
-<div class="line"><a name="l00582"></a><span class="lineno">  582</span>&#160;        this-&gt;<span class="keyword">template</span> log&lt;log::Logger::linop_advanced_apply_completed&gt;(</div>
-<div class="line"><a name="l00583"></a><span class="lineno">  583</span>&#160;            <span class="keyword">this</span>, alpha, b, beta, x);</div>
-<div class="line"><a name="l00584"></a><span class="lineno">  584</span>&#160;        <span class="keywordflow">return</span> <span class="keyword">self</span>();</div>
-<div class="line"><a name="l00585"></a><span class="lineno">  585</span>&#160;    }</div>
-<div class="line"><a name="l00586"></a><span class="lineno">  586</span>&#160; </div>
-<div class="line"><a name="l00587"></a><span class="lineno">  587</span>&#160;<span class="keyword">protected</span>:</div>
-<div class="line"><a name="l00588"></a><span class="lineno">  588</span>&#160;    GKO_ENABLE_SELF(ConcreteLinOp);</div>
-<div class="line"><a name="l00589"></a><span class="lineno">  589</span>&#160;};</div>
-<div class="line"><a name="l00590"></a><span class="lineno">  590</span>&#160; </div>
-<div class="line"><a name="l00591"></a><span class="lineno">  591</span>&#160; </div>
-<div class="line"><a name="l00609"></a><span class="lineno">  609</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ConcreteFactory, <span class="keyword">typename</span> ConcreteLinOp,</div>
-<div class="line"><a name="l00610"></a><span class="lineno">  610</span>&#160;          <span class="keyword">typename</span> ParametersType, <span class="keyword">typename</span> PolymorphicBase = <a class="code" href="classgko_1_1LinOpFactory.html">LinOpFactory</a>&gt;</div>
-<div class="line"><a name="l00611"></a><span class="lineno">  611</span>&#160;<span class="keyword">using</span> <a class="code" href="classgko_1_1EnableDefaultFactory.html">EnableDefaultLinOpFactory</a> =</div>
-<div class="line"><a name="l00612"></a><span class="lineno">  612</span>&#160;    <a class="code" href="classgko_1_1EnableDefaultFactory.html">EnableDefaultFactory</a>&lt;ConcreteFactory, ConcreteLinOp, ParametersType,</div>
-<div class="line"><a name="l00613"></a><span class="lineno"><a class="line" href="group__LinOp.html#ga24628d477cba68b31cea690572c51912">  613</a></span>&#160;                         PolymorphicBase&gt;;</div>
-<div class="line"><a name="l00614"></a><span class="lineno">  614</span>&#160; </div>
-<div class="line"><a name="l00628"></a><span class="lineno"><a class="line" href="group__LinOp.html#ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358">  628</a></span>&#160;<span class="preprocessor">#define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name) \</span></div>
-<div class="line"><a name="l00629"></a><span class="lineno">  629</span>&#160;<span class="preprocessor">public:                                                                \</span></div>
-<div class="line"><a name="l00630"></a><span class="lineno">  630</span>&#160;<span class="preprocessor">    class _factory_name;                                               \</span></div>
-<div class="line"><a name="l00631"></a><span class="lineno">  631</span>&#160;<span class="preprocessor">    struct _parameters_name##_type                                     \</span></div>
-<div class="line"><a name="l00632"></a><span class="lineno">  632</span>&#160;<span class="preprocessor">        : ::gko::enable_parameters_type&lt;_parameters_name##_type,       \</span></div>
-<div class="line"><a name="l00633"></a><span class="lineno">  633</span>&#160;<span class="preprocessor">                                        _factory_name&gt;</span></div>
-<div class="line"><a name="l00634"></a><span class="lineno">  634</span>&#160; </div>
-<div class="line"><a name="l00635"></a><span class="lineno">  635</span>&#160; </div>
-<div class="line"><a name="l00708"></a><span class="lineno"><a class="line" href="group__LinOp.html#ga8e0af90ec2414b768266f77cedffc309">  708</a></span>&#160;<span class="preprocessor">#define GKO_ENABLE_LIN_OP_FACTORY(_lin_op, _parameters_name, _factory_name)  \</span></div>
-<div class="line"><a name="l00709"></a><span class="lineno">  709</span>&#160;<span class="preprocessor">public:                                                                      \</span></div>
-<div class="line"><a name="l00710"></a><span class="lineno">  710</span>&#160;<span class="preprocessor">    const _parameters_name##_type &amp;get_##_parameters_name() const            \</span></div>
-<div class="line"><a name="l00711"></a><span class="lineno">  711</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
-<div class="line"><a name="l00712"></a><span class="lineno">  712</span>&#160;<span class="preprocessor">        return _parameters_name##_;                                          \</span></div>
-<div class="line"><a name="l00713"></a><span class="lineno">  713</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
-<div class="line"><a name="l00714"></a><span class="lineno">  714</span>&#160;<span class="preprocessor">                                                                             \</span></div>
-<div class="line"><a name="l00715"></a><span class="lineno">  715</span>&#160;<span class="preprocessor">    class _factory_name                                                      \</span></div>
-<div class="line"><a name="l00716"></a><span class="lineno">  716</span>&#160;<span class="preprocessor">        : public ::gko::EnableDefaultLinOpFactory&lt;_factory_name, _lin_op,    \</span></div>
-<div class="line"><a name="l00717"></a><span class="lineno">  717</span>&#160;<span class="preprocessor">                                                  _parameters_name##_type&gt; { \</span></div>
-<div class="line"><a name="l00718"></a><span class="lineno">  718</span>&#160;<span class="preprocessor">        friend class ::gko::EnablePolymorphicObject&lt;_factory_name,           \</span></div>
-<div class="line"><a name="l00719"></a><span class="lineno">  719</span>&#160;<span class="preprocessor">                                                    ::gko::LinOpFactory&gt;;    \</span></div>
-<div class="line"><a name="l00720"></a><span class="lineno">  720</span>&#160;<span class="preprocessor">        friend class ::gko::enable_parameters_type&lt;_parameters_name##_type,  \</span></div>
-<div class="line"><a name="l00721"></a><span class="lineno">  721</span>&#160;<span class="preprocessor">                                                   _factory_name&gt;;           \</span></div>
-<div class="line"><a name="l00722"></a><span class="lineno">  722</span>&#160;<span class="preprocessor">        explicit _factory_name(std::shared_ptr&lt;const ::gko::Executor&gt; exec)  \</span></div>
-<div class="line"><a name="l00723"></a><span class="lineno">  723</span>&#160;<span class="preprocessor">            : ::gko::EnableDefaultLinOpFactory&lt;_factory_name, _lin_op,       \</span></div>
-<div class="line"><a name="l00724"></a><span class="lineno">  724</span>&#160;<span class="preprocessor">                                               _parameters_name##_type&gt;(     \</span></div>
-<div class="line"><a name="l00725"></a><span class="lineno">  725</span>&#160;<span class="preprocessor">                  std::move(exec))                                           \</span></div>
-<div class="line"><a name="l00726"></a><span class="lineno">  726</span>&#160;<span class="preprocessor">        {}                                                                   \</span></div>
-<div class="line"><a name="l00727"></a><span class="lineno">  727</span>&#160;<span class="preprocessor">        explicit _factory_name(std::shared_ptr&lt;const ::gko::Executor&gt; exec,  \</span></div>
-<div class="line"><a name="l00728"></a><span class="lineno">  728</span>&#160;<span class="preprocessor">                               const _parameters_name##_type &amp;parameters)    \</span></div>
-<div class="line"><a name="l00729"></a><span class="lineno">  729</span>&#160;<span class="preprocessor">            : ::gko::EnableDefaultLinOpFactory&lt;_factory_name, _lin_op,       \</span></div>
-<div class="line"><a name="l00730"></a><span class="lineno">  730</span>&#160;<span class="preprocessor">                                               _parameters_name##_type&gt;(     \</span></div>
-<div class="line"><a name="l00731"></a><span class="lineno">  731</span>&#160;<span class="preprocessor">                  std::move(exec), parameters)                               \</span></div>
-<div class="line"><a name="l00732"></a><span class="lineno">  732</span>&#160;<span class="preprocessor">        {}                                                                   \</span></div>
-<div class="line"><a name="l00733"></a><span class="lineno">  733</span>&#160;<span class="preprocessor">    };                                                                       \</span></div>
-<div class="line"><a name="l00734"></a><span class="lineno">  734</span>&#160;<span class="preprocessor">    friend ::gko::EnableDefaultLinOpFactory&lt;_factory_name, _lin_op,          \</span></div>
-<div class="line"><a name="l00735"></a><span class="lineno">  735</span>&#160;<span class="preprocessor">                                            _parameters_name##_type&gt;;        \</span></div>
-<div class="line"><a name="l00736"></a><span class="lineno">  736</span>&#160;<span class="preprocessor">                                                                             \</span></div>
-<div class="line"><a name="l00737"></a><span class="lineno">  737</span>&#160;<span class="preprocessor">                                                                             \</span></div>
-<div class="line"><a name="l00738"></a><span class="lineno">  738</span>&#160;<span class="preprocessor">private:                                                                     \</span></div>
-<div class="line"><a name="l00739"></a><span class="lineno">  739</span>&#160;<span class="preprocessor">    _parameters_name##_type _parameters_name##_;                             \</span></div>
-<div class="line"><a name="l00740"></a><span class="lineno">  740</span>&#160;<span class="preprocessor">                                                                             \</span></div>
-<div class="line"><a name="l00741"></a><span class="lineno">  741</span>&#160;<span class="preprocessor">public:                                                                      \</span></div>
-<div class="line"><a name="l00742"></a><span class="lineno">  742</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
-<div class="line"><a name="l00743"></a><span class="lineno">  743</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
-<div class="line"><a name="l00744"></a><span class="lineno">  744</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
-<div class="line"><a name="l00745"></a><span class="lineno">  745</span>&#160; </div>
-<div class="line"><a name="l00746"></a><span class="lineno">  746</span>&#160; </div>
-<div class="line"><a name="l00755"></a><span class="lineno"><a class="line" href="group__LinOp.html#ga521f65604cc4cf427dcb2ecfa49b757c">  755</a></span>&#160;<span class="preprocessor">#define GKO_ENABLE_BUILD_METHOD(_factory_name)                               \</span></div>
-<div class="line"><a name="l00756"></a><span class="lineno">  756</span>&#160;<span class="preprocessor">    static auto build()-&gt;decltype(_factory_name::create())                   \</span></div>
-<div class="line"><a name="l00757"></a><span class="lineno">  757</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
-<div class="line"><a name="l00758"></a><span class="lineno">  758</span>&#160;<span class="preprocessor">        return _factory_name::create();                                      \</span></div>
-<div class="line"><a name="l00759"></a><span class="lineno">  759</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
-<div class="line"><a name="l00760"></a><span class="lineno">  760</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
-<div class="line"><a name="l00761"></a><span class="lineno">  761</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
-<div class="line"><a name="l00762"></a><span class="lineno">  762</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
-<div class="line"><a name="l00763"></a><span class="lineno">  763</span>&#160; </div>
-<div class="line"><a name="l00764"></a><span class="lineno">  764</span>&#160; </div>
-<div class="line"><a name="l00765"></a><span class="lineno">  765</span>&#160;<span class="preprocessor">#if !(defined(__CUDACC__) || defined(__HIPCC__))</span></div>
-<div class="line"><a name="l00766"></a><span class="lineno">  766</span>&#160; </div>
-<div class="line"><a name="l00776"></a><span class="lineno"><a class="line" href="group__LinOp.html#gaa037309884bbd0562b897cee95dd91c8">  776</a></span>&#160;<span class="preprocessor">#define GKO_FACTORY_PARAMETER(_name, ...)                                    \</span></div>
-<div class="line"><a name="l00777"></a><span class="lineno">  777</span>&#160;<span class="preprocessor">    mutable _name{__VA_ARGS__};                                              \</span></div>
-<div class="line"><a name="l00778"></a><span class="lineno">  778</span>&#160;<span class="preprocessor">                                                                             \</span></div>
-<div class="line"><a name="l00779"></a><span class="lineno">  779</span>&#160;<span class="preprocessor">    template &lt;typename... Args&gt;                                              \</span></div>
-<div class="line"><a name="l00780"></a><span class="lineno">  780</span>&#160;<span class="preprocessor">    auto with_##_name(Args &amp;&amp;... _value)                                     \</span></div>
-<div class="line"><a name="l00781"></a><span class="lineno">  781</span>&#160;<span class="preprocessor">        const-&gt;const ::gko::xstd::decay_t&lt;decltype(*this)&gt; &amp;                 \</span></div>
-<div class="line"><a name="l00782"></a><span class="lineno">  782</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
-<div class="line"><a name="l00783"></a><span class="lineno">  783</span>&#160;<span class="preprocessor">        using type = decltype(this-&gt;_name);                                  \</span></div>
-<div class="line"><a name="l00784"></a><span class="lineno">  784</span>&#160;<span class="preprocessor">        this-&gt;_name = type{std::forward&lt;Args&gt;(_value)...};                   \</span></div>
-<div class="line"><a name="l00785"></a><span class="lineno">  785</span>&#160;<span class="preprocessor">        return *this;                                                        \</span></div>
-<div class="line"><a name="l00786"></a><span class="lineno">  786</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
-<div class="line"><a name="l00787"></a><span class="lineno">  787</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
-<div class="line"><a name="l00788"></a><span class="lineno">  788</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
-<div class="line"><a name="l00789"></a><span class="lineno">  789</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
-<div class="line"><a name="l00790"></a><span class="lineno">  790</span>&#160;<span class="preprocessor">#else  // defined(__CUDACC__) || defined(__HIPCC__)</span></div>
-<div class="line"><a name="l00791"></a><span class="lineno">  791</span>&#160;<span class="comment">// A workaround for the NVCC compiler - parameter pack expansion does not work</span></div>
-<div class="line"><a name="l00792"></a><span class="lineno">  792</span>&#160;<span class="comment">// properly. You won&#39;t be able to use factories in code compiled with NVCC, but</span></div>
-<div class="line"><a name="l00793"></a><span class="lineno">  793</span>&#160;<span class="comment">// at least this won&#39;t trigger a compiler error as soon as a header using it is</span></div>
-<div class="line"><a name="l00794"></a><span class="lineno">  794</span>&#160;<span class="comment">// included. To not get a linker error, we provide a dummy body.</span></div>
-<div class="line"><a name="l00795"></a><span class="lineno">  795</span>&#160;<span class="preprocessor">#define GKO_FACTORY_PARAMETER(_name, ...)                                    \</span></div>
-<div class="line"><a name="l00796"></a><span class="lineno">  796</span>&#160;<span class="preprocessor">    mutable _name{__VA_ARGS__};                                              \</span></div>
+<div class="line"><a name="l00538"></a><span class="lineno">  538</span>&#160;    <span class="keyword">virtual</span> <span class="keywordtype">void</span> <a class="code" href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148">write</a>(<a class="code" href="structgko_1_1matrix__data.html">matrix_data&lt;ValueType, IndexType&gt;</a> &amp;data) <span class="keyword">const</span> = 0;</div>
+<div class="line"><a name="l00539"></a><span class="lineno">  539</span>&#160;};</div>
+<div class="line"><a name="l00540"></a><span class="lineno">  540</span>&#160; </div>
+<div class="line"><a name="l00541"></a><span class="lineno">  541</span>&#160; </div>
+<div class="line"><a name="l00548"></a><span class="lineno"><a class="line" href="classgko_1_1Preconditionable.html">  548</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1Preconditionable.html">Preconditionable</a> {</div>
+<div class="line"><a name="l00549"></a><span class="lineno">  549</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00550"></a><span class="lineno">  550</span>&#160;    <span class="keyword">virtual</span> ~<a class="code" href="classgko_1_1Preconditionable.html">Preconditionable</a>() = <span class="keywordflow">default</span>;</div>
+<div class="line"><a name="l00551"></a><span class="lineno">  551</span>&#160; </div>
+<div class="line"><a name="l00557"></a><span class="lineno"><a class="line" href="classgko_1_1Preconditionable.html#a0e664ac0bd76c286e4bdc630e33f2cd3">  557</a></span>&#160;    <span class="keyword">virtual</span> std::shared_ptr&lt;const LinOp&gt; <a class="code" href="classgko_1_1Preconditionable.html#a0e664ac0bd76c286e4bdc630e33f2cd3">get_preconditioner</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00558"></a><span class="lineno">  558</span>&#160;<span class="keyword">    </span>{</div>
+<div class="line"><a name="l00559"></a><span class="lineno">  559</span>&#160;        <span class="keywordflow">return</span> preconditioner_;</div>
+<div class="line"><a name="l00560"></a><span class="lineno">  560</span>&#160;    }</div>
+<div class="line"><a name="l00561"></a><span class="lineno">  561</span>&#160; </div>
+<div class="line"><a name="l00568"></a><span class="lineno"><a class="line" href="classgko_1_1Preconditionable.html#a95db3e56eb17efbcde951c5ed144582d">  568</a></span>&#160;    <span class="keyword">virtual</span> <span class="keywordtype">void</span> <a class="code" href="classgko_1_1Preconditionable.html#a95db3e56eb17efbcde951c5ed144582d">set_preconditioner</a>(std::shared_ptr&lt;const LinOp&gt; new_precond)</div>
+<div class="line"><a name="l00569"></a><span class="lineno">  569</span>&#160;    {</div>
+<div class="line"><a name="l00570"></a><span class="lineno">  570</span>&#160;        preconditioner_ = new_precond;</div>
+<div class="line"><a name="l00571"></a><span class="lineno">  571</span>&#160;    }</div>
+<div class="line"><a name="l00572"></a><span class="lineno">  572</span>&#160; </div>
+<div class="line"><a name="l00573"></a><span class="lineno">  573</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00574"></a><span class="lineno">  574</span>&#160;    std::shared_ptr&lt;const LinOp&gt; preconditioner_{};</div>
+<div class="line"><a name="l00575"></a><span class="lineno">  575</span>&#160;};</div>
+<div class="line"><a name="l00576"></a><span class="lineno">  576</span>&#160; </div>
+<div class="line"><a name="l00577"></a><span class="lineno">  577</span>&#160; </div>
+<div class="line"><a name="l00608"></a><span class="lineno">  608</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ConcreteLinOp, <span class="keyword">typename</span> PolymorphicBase = LinOp&gt;</div>
+<div class="line"><a name="l00609"></a><span class="lineno"><a class="line" href="classgko_1_1EnableLinOp.html">  609</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1EnableLinOp.html">EnableLinOp</a></div>
+<div class="line"><a name="l00610"></a><span class="lineno">  610</span>&#160;    : <span class="keyword">public</span> <a class="code" href="classgko_1_1EnablePolymorphicObject.html">EnablePolymorphicObject&lt;ConcreteLinOp, PolymorphicBase&gt;</a>,</div>
+<div class="line"><a name="l00611"></a><span class="lineno">  611</span>&#160;      <span class="keyword">public</span> <a class="code" href="classgko_1_1EnablePolymorphicAssignment.html">EnablePolymorphicAssignment&lt;ConcreteLinOp&gt;</a> {</div>
+<div class="line"><a name="l00612"></a><span class="lineno">  612</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00613"></a><span class="lineno">  613</span>&#160;    <span class="keyword">using</span> <a class="code" href="classgko_1_1EnablePolymorphicObject.html">EnablePolymorphicObject</a>&lt;ConcreteLinOp,</div>
+<div class="line"><a name="l00614"></a><span class="lineno">  614</span>&#160;                                  PolymorphicBase&gt;<a class="code" href="classgko_1_1EnablePolymorphicObject.html">::EnablePolymorphicObject</a>;</div>
+<div class="line"><a name="l00615"></a><span class="lineno">  615</span>&#160; </div>
+<div class="line"><a name="l00616"></a><span class="lineno">  616</span>&#160;    <span class="keyword">const</span> ConcreteLinOp *apply(<span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *b, <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *x)<span class="keyword"> const</span></div>
+<div class="line"><a name="l00617"></a><span class="lineno">  617</span>&#160;<span class="keyword">    </span>{</div>
+<div class="line"><a name="l00618"></a><span class="lineno">  618</span>&#160;        this-&gt;<span class="keyword">template</span> log&lt;log::Logger::linop_apply_started&gt;(<span class="keyword">this</span>, b, x);</div>
+<div class="line"><a name="l00619"></a><span class="lineno">  619</span>&#160;        this-&gt;validate_application_parameters(b, x);</div>
+<div class="line"><a name="l00620"></a><span class="lineno">  620</span>&#160;        <span class="keyword">auto</span> exec = this-&gt;get_executor();</div>
+<div class="line"><a name="l00621"></a><span class="lineno">  621</span>&#160;        this-&gt;apply_impl(<a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, b).get(),</div>
+<div class="line"><a name="l00622"></a><span class="lineno">  622</span>&#160;                         <a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, x).get());</div>
+<div class="line"><a name="l00623"></a><span class="lineno">  623</span>&#160;        this-&gt;<span class="keyword">template</span> log&lt;log::Logger::linop_apply_completed&gt;(<span class="keyword">this</span>, b, x);</div>
+<div class="line"><a name="l00624"></a><span class="lineno">  624</span>&#160;        <span class="keywordflow">return</span> <span class="keyword">self</span>();</div>
+<div class="line"><a name="l00625"></a><span class="lineno">  625</span>&#160;    }</div>
+<div class="line"><a name="l00626"></a><span class="lineno">  626</span>&#160; </div>
+<div class="line"><a name="l00627"></a><span class="lineno">  627</span>&#160;    ConcreteLinOp *apply(<span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *b, <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *x)</div>
+<div class="line"><a name="l00628"></a><span class="lineno">  628</span>&#160;    {</div>
+<div class="line"><a name="l00629"></a><span class="lineno">  629</span>&#160;        this-&gt;<span class="keyword">template</span> log&lt;log::Logger::linop_apply_started&gt;(<span class="keyword">this</span>, b, x);</div>
+<div class="line"><a name="l00630"></a><span class="lineno">  630</span>&#160;        this-&gt;validate_application_parameters(b, x);</div>
+<div class="line"><a name="l00631"></a><span class="lineno">  631</span>&#160;        <span class="keyword">auto</span> exec = this-&gt;get_executor();</div>
+<div class="line"><a name="l00632"></a><span class="lineno">  632</span>&#160;        this-&gt;apply_impl(<a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, b).get(),</div>
+<div class="line"><a name="l00633"></a><span class="lineno">  633</span>&#160;                         <a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, x).get());</div>
+<div class="line"><a name="l00634"></a><span class="lineno">  634</span>&#160;        this-&gt;<span class="keyword">template</span> log&lt;log::Logger::linop_apply_completed&gt;(<span class="keyword">this</span>, b, x);</div>
+<div class="line"><a name="l00635"></a><span class="lineno">  635</span>&#160;        <span class="keywordflow">return</span> <span class="keyword">self</span>();</div>
+<div class="line"><a name="l00636"></a><span class="lineno">  636</span>&#160;    }</div>
+<div class="line"><a name="l00637"></a><span class="lineno">  637</span>&#160; </div>
+<div class="line"><a name="l00638"></a><span class="lineno">  638</span>&#160;    <span class="keyword">const</span> ConcreteLinOp *apply(<span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *alpha, <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *b,</div>
+<div class="line"><a name="l00639"></a><span class="lineno">  639</span>&#160;                               <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *beta, <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *x)<span class="keyword"> const</span></div>
+<div class="line"><a name="l00640"></a><span class="lineno">  640</span>&#160;<span class="keyword">    </span>{</div>
+<div class="line"><a name="l00641"></a><span class="lineno">  641</span>&#160;        this-&gt;<span class="keyword">template</span> log&lt;log::Logger::linop_advanced_apply_started&gt;(</div>
+<div class="line"><a name="l00642"></a><span class="lineno">  642</span>&#160;            <span class="keyword">this</span>, alpha, b, beta, x);</div>
+<div class="line"><a name="l00643"></a><span class="lineno">  643</span>&#160;        this-&gt;validate_application_parameters(alpha, b, beta, x);</div>
+<div class="line"><a name="l00644"></a><span class="lineno">  644</span>&#160;        <span class="keyword">auto</span> exec = this-&gt;get_executor();</div>
+<div class="line"><a name="l00645"></a><span class="lineno">  645</span>&#160;        this-&gt;apply_impl(<a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, alpha).get(),</div>
+<div class="line"><a name="l00646"></a><span class="lineno">  646</span>&#160;                         <a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, b).get(),</div>
+<div class="line"><a name="l00647"></a><span class="lineno">  647</span>&#160;                         <a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, beta).get(),</div>
+<div class="line"><a name="l00648"></a><span class="lineno">  648</span>&#160;                         <a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, x).get());</div>
+<div class="line"><a name="l00649"></a><span class="lineno">  649</span>&#160;        this-&gt;<span class="keyword">template</span> log&lt;log::Logger::linop_advanced_apply_completed&gt;(</div>
+<div class="line"><a name="l00650"></a><span class="lineno">  650</span>&#160;            <span class="keyword">this</span>, alpha, b, beta, x);</div>
+<div class="line"><a name="l00651"></a><span class="lineno">  651</span>&#160;        <span class="keywordflow">return</span> <span class="keyword">self</span>();</div>
+<div class="line"><a name="l00652"></a><span class="lineno">  652</span>&#160;    }</div>
+<div class="line"><a name="l00653"></a><span class="lineno">  653</span>&#160; </div>
+<div class="line"><a name="l00654"></a><span class="lineno">  654</span>&#160;    ConcreteLinOp *apply(<span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *alpha, <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *b, <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *beta,</div>
+<div class="line"><a name="l00655"></a><span class="lineno">  655</span>&#160;                         <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *x)</div>
+<div class="line"><a name="l00656"></a><span class="lineno">  656</span>&#160;    {</div>
+<div class="line"><a name="l00657"></a><span class="lineno">  657</span>&#160;        this-&gt;<span class="keyword">template</span> log&lt;log::Logger::linop_advanced_apply_started&gt;(</div>
+<div class="line"><a name="l00658"></a><span class="lineno">  658</span>&#160;            <span class="keyword">this</span>, alpha, b, beta, x);</div>
+<div class="line"><a name="l00659"></a><span class="lineno">  659</span>&#160;        this-&gt;validate_application_parameters(alpha, b, beta, x);</div>
+<div class="line"><a name="l00660"></a><span class="lineno">  660</span>&#160;        <span class="keyword">auto</span> exec = this-&gt;get_executor();</div>
+<div class="line"><a name="l00661"></a><span class="lineno">  661</span>&#160;        this-&gt;apply_impl(<a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, alpha).get(),</div>
+<div class="line"><a name="l00662"></a><span class="lineno">  662</span>&#160;                         <a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, b).get(),</div>
+<div class="line"><a name="l00663"></a><span class="lineno">  663</span>&#160;                         <a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, beta).get(),</div>
+<div class="line"><a name="l00664"></a><span class="lineno">  664</span>&#160;                         <a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(exec, x).get());</div>
+<div class="line"><a name="l00665"></a><span class="lineno">  665</span>&#160;        this-&gt;<span class="keyword">template</span> log&lt;log::Logger::linop_advanced_apply_completed&gt;(</div>
+<div class="line"><a name="l00666"></a><span class="lineno">  666</span>&#160;            <span class="keyword">this</span>, alpha, b, beta, x);</div>
+<div class="line"><a name="l00667"></a><span class="lineno">  667</span>&#160;        <span class="keywordflow">return</span> <span class="keyword">self</span>();</div>
+<div class="line"><a name="l00668"></a><span class="lineno">  668</span>&#160;    }</div>
+<div class="line"><a name="l00669"></a><span class="lineno">  669</span>&#160; </div>
+<div class="line"><a name="l00670"></a><span class="lineno">  670</span>&#160;<span class="keyword">protected</span>:</div>
+<div class="line"><a name="l00671"></a><span class="lineno">  671</span>&#160;    GKO_ENABLE_SELF(ConcreteLinOp);</div>
+<div class="line"><a name="l00672"></a><span class="lineno">  672</span>&#160;};</div>
+<div class="line"><a name="l00673"></a><span class="lineno">  673</span>&#160; </div>
+<div class="line"><a name="l00674"></a><span class="lineno">  674</span>&#160; </div>
+<div class="line"><a name="l00692"></a><span class="lineno">  692</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ConcreteFactory, <span class="keyword">typename</span> ConcreteLinOp,</div>
+<div class="line"><a name="l00693"></a><span class="lineno">  693</span>&#160;          <span class="keyword">typename</span> ParametersType, <span class="keyword">typename</span> PolymorphicBase = <a class="code" href="classgko_1_1LinOpFactory.html">LinOpFactory</a>&gt;</div>
+<div class="line"><a name="l00694"></a><span class="lineno">  694</span>&#160;<span class="keyword">using</span> <a class="code" href="classgko_1_1EnableDefaultFactory.html">EnableDefaultLinOpFactory</a> =</div>
+<div class="line"><a name="l00695"></a><span class="lineno">  695</span>&#160;    <a class="code" href="classgko_1_1EnableDefaultFactory.html">EnableDefaultFactory</a>&lt;ConcreteFactory, ConcreteLinOp, ParametersType,</div>
+<div class="line"><a name="l00696"></a><span class="lineno"><a class="line" href="group__LinOp.html#ga24628d477cba68b31cea690572c51912">  696</a></span>&#160;                         PolymorphicBase&gt;;</div>
+<div class="line"><a name="l00697"></a><span class="lineno">  697</span>&#160; </div>
+<div class="line"><a name="l00711"></a><span class="lineno"><a class="line" href="group__LinOp.html#ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358">  711</a></span>&#160;<span class="preprocessor">#define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name) \</span></div>
+<div class="line"><a name="l00712"></a><span class="lineno">  712</span>&#160;<span class="preprocessor">public:                                                                \</span></div>
+<div class="line"><a name="l00713"></a><span class="lineno">  713</span>&#160;<span class="preprocessor">    class _factory_name;                                               \</span></div>
+<div class="line"><a name="l00714"></a><span class="lineno">  714</span>&#160;<span class="preprocessor">    struct _parameters_name##_type                                     \</span></div>
+<div class="line"><a name="l00715"></a><span class="lineno">  715</span>&#160;<span class="preprocessor">        : ::gko::enable_parameters_type&lt;_parameters_name##_type,       \</span></div>
+<div class="line"><a name="l00716"></a><span class="lineno">  716</span>&#160;<span class="preprocessor">                                        _factory_name&gt;</span></div>
+<div class="line"><a name="l00717"></a><span class="lineno">  717</span>&#160; </div>
+<div class="line"><a name="l00718"></a><span class="lineno">  718</span>&#160; </div>
+<div class="line"><a name="l00791"></a><span class="lineno"><a class="line" href="group__LinOp.html#ga8e0af90ec2414b768266f77cedffc309">  791</a></span>&#160;<span class="preprocessor">#define GKO_ENABLE_LIN_OP_FACTORY(_lin_op, _parameters_name, _factory_name)  \</span></div>
+<div class="line"><a name="l00792"></a><span class="lineno">  792</span>&#160;<span class="preprocessor">public:                                                                      \</span></div>
+<div class="line"><a name="l00793"></a><span class="lineno">  793</span>&#160;<span class="preprocessor">    const _parameters_name##_type &amp;get_##_parameters_name() const            \</span></div>
+<div class="line"><a name="l00794"></a><span class="lineno">  794</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
+<div class="line"><a name="l00795"></a><span class="lineno">  795</span>&#160;<span class="preprocessor">        return _parameters_name##_;                                          \</span></div>
+<div class="line"><a name="l00796"></a><span class="lineno">  796</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
 <div class="line"><a name="l00797"></a><span class="lineno">  797</span>&#160;<span class="preprocessor">                                                                             \</span></div>
-<div class="line"><a name="l00798"></a><span class="lineno">  798</span>&#160;<span class="preprocessor">    template &lt;typename... Args&gt;                                              \</span></div>
-<div class="line"><a name="l00799"></a><span class="lineno">  799</span>&#160;<span class="preprocessor">    auto with_##_name(Args &amp;&amp;... _value)                                     \</span></div>
-<div class="line"><a name="l00800"></a><span class="lineno">  800</span>&#160;<span class="preprocessor">        const-&gt;const ::gko::xstd::decay_t&lt;decltype(*this)&gt; &amp;                 \</span></div>
-<div class="line"><a name="l00801"></a><span class="lineno">  801</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
-<div class="line"><a name="l00802"></a><span class="lineno">  802</span>&#160;<span class="preprocessor">        return *this;                                                        \</span></div>
-<div class="line"><a name="l00803"></a><span class="lineno">  803</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
-<div class="line"><a name="l00804"></a><span class="lineno">  804</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
-<div class="line"><a name="l00805"></a><span class="lineno">  805</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
-<div class="line"><a name="l00806"></a><span class="lineno">  806</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
-<div class="line"><a name="l00807"></a><span class="lineno">  807</span>&#160;<span class="preprocessor">#endif  // defined(__CUDACC__) || defined(__HIPCC__)</span></div>
-<div class="line"><a name="l00808"></a><span class="lineno">  808</span>&#160; </div>
-<div class="line"><a name="l00809"></a><span class="lineno">  809</span>&#160; </div>
-<div class="line"><a name="l00810"></a><span class="lineno">  810</span>&#160;}  <span class="comment">// namespace gko</span></div>
-<div class="line"><a name="l00811"></a><span class="lineno">  811</span>&#160; </div>
-<div class="line"><a name="l00812"></a><span class="lineno">  812</span>&#160; </div>
-<div class="line"><a name="l00813"></a><span class="lineno">  813</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_BASE_LIN_OP_HPP_</span></div>
+<div class="line"><a name="l00798"></a><span class="lineno">  798</span>&#160;<span class="preprocessor">    class _factory_name                                                      \</span></div>
+<div class="line"><a name="l00799"></a><span class="lineno">  799</span>&#160;<span class="preprocessor">        : public ::gko::EnableDefaultLinOpFactory&lt;_factory_name, _lin_op,    \</span></div>
+<div class="line"><a name="l00800"></a><span class="lineno">  800</span>&#160;<span class="preprocessor">                                                  _parameters_name##_type&gt; { \</span></div>
+<div class="line"><a name="l00801"></a><span class="lineno">  801</span>&#160;<span class="preprocessor">        friend class ::gko::EnablePolymorphicObject&lt;_factory_name,           \</span></div>
+<div class="line"><a name="l00802"></a><span class="lineno">  802</span>&#160;<span class="preprocessor">                                                    ::gko::LinOpFactory&gt;;    \</span></div>
+<div class="line"><a name="l00803"></a><span class="lineno">  803</span>&#160;<span class="preprocessor">        friend class ::gko::enable_parameters_type&lt;_parameters_name##_type,  \</span></div>
+<div class="line"><a name="l00804"></a><span class="lineno">  804</span>&#160;<span class="preprocessor">                                                   _factory_name&gt;;           \</span></div>
+<div class="line"><a name="l00805"></a><span class="lineno">  805</span>&#160;<span class="preprocessor">        explicit _factory_name(std::shared_ptr&lt;const ::gko::Executor&gt; exec)  \</span></div>
+<div class="line"><a name="l00806"></a><span class="lineno">  806</span>&#160;<span class="preprocessor">            : ::gko::EnableDefaultLinOpFactory&lt;_factory_name, _lin_op,       \</span></div>
+<div class="line"><a name="l00807"></a><span class="lineno">  807</span>&#160;<span class="preprocessor">                                               _parameters_name##_type&gt;(     \</span></div>
+<div class="line"><a name="l00808"></a><span class="lineno">  808</span>&#160;<span class="preprocessor">                  std::move(exec))                                           \</span></div>
+<div class="line"><a name="l00809"></a><span class="lineno">  809</span>&#160;<span class="preprocessor">        {}                                                                   \</span></div>
+<div class="line"><a name="l00810"></a><span class="lineno">  810</span>&#160;<span class="preprocessor">        explicit _factory_name(std::shared_ptr&lt;const ::gko::Executor&gt; exec,  \</span></div>
+<div class="line"><a name="l00811"></a><span class="lineno">  811</span>&#160;<span class="preprocessor">                               const _parameters_name##_type &amp;parameters)    \</span></div>
+<div class="line"><a name="l00812"></a><span class="lineno">  812</span>&#160;<span class="preprocessor">            : ::gko::EnableDefaultLinOpFactory&lt;_factory_name, _lin_op,       \</span></div>
+<div class="line"><a name="l00813"></a><span class="lineno">  813</span>&#160;<span class="preprocessor">                                               _parameters_name##_type&gt;(     \</span></div>
+<div class="line"><a name="l00814"></a><span class="lineno">  814</span>&#160;<span class="preprocessor">                  std::move(exec), parameters)                               \</span></div>
+<div class="line"><a name="l00815"></a><span class="lineno">  815</span>&#160;<span class="preprocessor">        {}                                                                   \</span></div>
+<div class="line"><a name="l00816"></a><span class="lineno">  816</span>&#160;<span class="preprocessor">    };                                                                       \</span></div>
+<div class="line"><a name="l00817"></a><span class="lineno">  817</span>&#160;<span class="preprocessor">    friend ::gko::EnableDefaultLinOpFactory&lt;_factory_name, _lin_op,          \</span></div>
+<div class="line"><a name="l00818"></a><span class="lineno">  818</span>&#160;<span class="preprocessor">                                            _parameters_name##_type&gt;;        \</span></div>
+<div class="line"><a name="l00819"></a><span class="lineno">  819</span>&#160;<span class="preprocessor">                                                                             \</span></div>
+<div class="line"><a name="l00820"></a><span class="lineno">  820</span>&#160;<span class="preprocessor">                                                                             \</span></div>
+<div class="line"><a name="l00821"></a><span class="lineno">  821</span>&#160;<span class="preprocessor">private:                                                                     \</span></div>
+<div class="line"><a name="l00822"></a><span class="lineno">  822</span>&#160;<span class="preprocessor">    _parameters_name##_type _parameters_name##_;                             \</span></div>
+<div class="line"><a name="l00823"></a><span class="lineno">  823</span>&#160;<span class="preprocessor">                                                                             \</span></div>
+<div class="line"><a name="l00824"></a><span class="lineno">  824</span>&#160;<span class="preprocessor">public:                                                                      \</span></div>
+<div class="line"><a name="l00825"></a><span class="lineno">  825</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
+<div class="line"><a name="l00826"></a><span class="lineno">  826</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
+<div class="line"><a name="l00827"></a><span class="lineno">  827</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
+<div class="line"><a name="l00828"></a><span class="lineno">  828</span>&#160; </div>
+<div class="line"><a name="l00829"></a><span class="lineno">  829</span>&#160; </div>
+<div class="line"><a name="l00838"></a><span class="lineno"><a class="line" href="group__LinOp.html#ga521f65604cc4cf427dcb2ecfa49b757c">  838</a></span>&#160;<span class="preprocessor">#define GKO_ENABLE_BUILD_METHOD(_factory_name)                               \</span></div>
+<div class="line"><a name="l00839"></a><span class="lineno">  839</span>&#160;<span class="preprocessor">    static auto build()-&gt;decltype(_factory_name::create())                   \</span></div>
+<div class="line"><a name="l00840"></a><span class="lineno">  840</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
+<div class="line"><a name="l00841"></a><span class="lineno">  841</span>&#160;<span class="preprocessor">        return _factory_name::create();                                      \</span></div>
+<div class="line"><a name="l00842"></a><span class="lineno">  842</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
+<div class="line"><a name="l00843"></a><span class="lineno">  843</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
+<div class="line"><a name="l00844"></a><span class="lineno">  844</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
+<div class="line"><a name="l00845"></a><span class="lineno">  845</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
+<div class="line"><a name="l00846"></a><span class="lineno">  846</span>&#160; </div>
+<div class="line"><a name="l00847"></a><span class="lineno">  847</span>&#160; </div>
+<div class="line"><a name="l00848"></a><span class="lineno">  848</span>&#160;<span class="preprocessor">#if !(defined(__CUDACC__) || defined(__HIPCC__))</span></div>
+<div class="line"><a name="l00849"></a><span class="lineno">  849</span>&#160; </div>
+<div class="line"><a name="l00859"></a><span class="lineno"><a class="line" href="group__LinOp.html#gaa037309884bbd0562b897cee95dd91c8">  859</a></span>&#160;<span class="preprocessor">#define GKO_FACTORY_PARAMETER(_name, ...)                                    \</span></div>
+<div class="line"><a name="l00860"></a><span class="lineno">  860</span>&#160;<span class="preprocessor">    mutable _name{__VA_ARGS__};                                              \</span></div>
+<div class="line"><a name="l00861"></a><span class="lineno">  861</span>&#160;<span class="preprocessor">                                                                             \</span></div>
+<div class="line"><a name="l00862"></a><span class="lineno">  862</span>&#160;<span class="preprocessor">    template &lt;typename... Args&gt;                                              \</span></div>
+<div class="line"><a name="l00863"></a><span class="lineno">  863</span>&#160;<span class="preprocessor">    auto with_##_name(Args &amp;&amp;... _value)                                     \</span></div>
+<div class="line"><a name="l00864"></a><span class="lineno">  864</span>&#160;<span class="preprocessor">        const-&gt;const ::gko::xstd::decay_t&lt;decltype(*this)&gt; &amp;                 \</span></div>
+<div class="line"><a name="l00865"></a><span class="lineno">  865</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
+<div class="line"><a name="l00866"></a><span class="lineno">  866</span>&#160;<span class="preprocessor">        using type = decltype(this-&gt;_name);                                  \</span></div>
+<div class="line"><a name="l00867"></a><span class="lineno">  867</span>&#160;<span class="preprocessor">        this-&gt;_name = type{std::forward&lt;Args&gt;(_value)...};                   \</span></div>
+<div class="line"><a name="l00868"></a><span class="lineno">  868</span>&#160;<span class="preprocessor">        return *this;                                                        \</span></div>
+<div class="line"><a name="l00869"></a><span class="lineno">  869</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
+<div class="line"><a name="l00870"></a><span class="lineno">  870</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
+<div class="line"><a name="l00871"></a><span class="lineno">  871</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
+<div class="line"><a name="l00872"></a><span class="lineno">  872</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
+<div class="line"><a name="l00873"></a><span class="lineno">  873</span>&#160;<span class="preprocessor">#else  // defined(__CUDACC__) || defined(__HIPCC__)</span></div>
+<div class="line"><a name="l00874"></a><span class="lineno">  874</span>&#160;<span class="comment">// A workaround for the NVCC compiler - parameter pack expansion does not work</span></div>
+<div class="line"><a name="l00875"></a><span class="lineno">  875</span>&#160;<span class="comment">// properly. You won&#39;t be able to use factories in code compiled with NVCC, but</span></div>
+<div class="line"><a name="l00876"></a><span class="lineno">  876</span>&#160;<span class="comment">// at least this won&#39;t trigger a compiler error as soon as a header using it is</span></div>
+<div class="line"><a name="l00877"></a><span class="lineno">  877</span>&#160;<span class="comment">// included. To not get a linker error, we provide a dummy body.</span></div>
+<div class="line"><a name="l00878"></a><span class="lineno">  878</span>&#160;<span class="preprocessor">#define GKO_FACTORY_PARAMETER(_name, ...)                                    \</span></div>
+<div class="line"><a name="l00879"></a><span class="lineno">  879</span>&#160;<span class="preprocessor">    mutable _name{__VA_ARGS__};                                              \</span></div>
+<div class="line"><a name="l00880"></a><span class="lineno">  880</span>&#160;<span class="preprocessor">                                                                             \</span></div>
+<div class="line"><a name="l00881"></a><span class="lineno">  881</span>&#160;<span class="preprocessor">    template &lt;typename... Args&gt;                                              \</span></div>
+<div class="line"><a name="l00882"></a><span class="lineno">  882</span>&#160;<span class="preprocessor">    auto with_##_name(Args &amp;&amp;... _value)                                     \</span></div>
+<div class="line"><a name="l00883"></a><span class="lineno">  883</span>&#160;<span class="preprocessor">        const-&gt;const ::gko::xstd::decay_t&lt;decltype(*this)&gt; &amp;                 \</span></div>
+<div class="line"><a name="l00884"></a><span class="lineno">  884</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
+<div class="line"><a name="l00885"></a><span class="lineno">  885</span>&#160;<span class="preprocessor">        return *this;                                                        \</span></div>
+<div class="line"><a name="l00886"></a><span class="lineno">  886</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
+<div class="line"><a name="l00887"></a><span class="lineno">  887</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
+<div class="line"><a name="l00888"></a><span class="lineno">  888</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
+<div class="line"><a name="l00889"></a><span class="lineno">  889</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
+<div class="line"><a name="l00890"></a><span class="lineno">  890</span>&#160;<span class="preprocessor">#endif  // defined(__CUDACC__) || defined(__HIPCC__)</span></div>
+<div class="line"><a name="l00891"></a><span class="lineno">  891</span>&#160; </div>
+<div class="line"><a name="l00892"></a><span class="lineno">  892</span>&#160; </div>
+<div class="line"><a name="l00893"></a><span class="lineno">  893</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00894"></a><span class="lineno">  894</span>&#160; </div>
+<div class="line"><a name="l00895"></a><span class="lineno">  895</span>&#160; </div>
+<div class="line"><a name="l00896"></a><span class="lineno">  896</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_BASE_LIN_OP_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="anamespacegko_html_a92cf0178c1c55419d32d2bb527e57e5b"><div class="ttname"><a href="namespacegko.html#a92cf0178c1c55419d32d2bb527e57e5b">gko::read</a></div><div class="ttdeci">std::unique_ptr&lt; MatrixType &gt; read(StreamType &amp;&amp;is, MatrixArgs &amp;&amp;... args)</div><div class="ttdoc">Reads a matrix stored in matrix market format from an input stream.</div><div class="ttdef"><b>Definition:</b> mtx_io.hpp:113</div></div>
 <div class="ttc" id="aclassgko_1_1LinOp_html_a7203185d7c8d1d9dfe63a39903f0149e"><div class="ttname"><a href="classgko_1_1LinOp.html#a7203185d7c8d1d9dfe63a39903f0149e">gko::LinOp::apply</a></div><div class="ttdeci">LinOp * apply(const LinOp *alpha, const LinOp *b, const LinOp *beta, LinOp *x)</div><div class="ttdoc">Performs the operation x = alpha * op(b) + beta * x.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:181</div></div>
 <div class="ttc" id="aclassgko_1_1LinOp_html"><div class="ttname"><a href="classgko_1_1LinOp.html">gko::LinOp</a></div><div class="ttdef"><b>Definition:</b> lin_op.hpp:134</div></div>
-<div class="ttc" id="aclassgko_1_1Preconditionable_html"><div class="ttname"><a href="classgko_1_1Preconditionable.html">gko::Preconditionable</a></div><div class="ttdoc">A LinOp implementing this interface can be preconditioned.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:465</div></div>
+<div class="ttc" id="aclassgko_1_1Preconditionable_html"><div class="ttname"><a href="classgko_1_1Preconditionable.html">gko::Preconditionable</a></div><div class="ttdoc">A LinOp implementing this interface can be preconditioned.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:548</div></div>
 <div class="ttc" id="anamespacegko_html_a9b6a9d7018703d6d1f2140054e2afe4a"><div class="ttname"><a href="namespacegko.html#a9b6a9d7018703d6d1f2140054e2afe4a">gko::transpose</a></div><div class="ttdeci">constexpr dim&lt; 2, DimensionType &gt; transpose(const dim&lt; 2, DimensionType &gt; &amp;dimensions) noexcept</div><div class="ttdoc">Returns a dim&lt;2&gt; object with its dimensions swapped.</div><div class="ttdef"><b>Definition:</b> dim.hpp:234</div></div>
 <div class="ttc" id="aclassgko_1_1AbstractFactory_html"><div class="ttname"><a href="classgko_1_1AbstractFactory.html">gko::AbstractFactory</a></div><div class="ttdoc">The AbstractFactory is a generic interface template that enables easy implementation of the abstract ...</div><div class="ttdef"><b>Definition:</b> abstract_factory.hpp:70</div></div>
 <div class="ttc" id="aclassgko_1_1EnableAbstractPolymorphicObject_html"><div class="ttname"><a href="classgko_1_1EnableAbstractPolymorphicObject.html">gko::EnableAbstractPolymorphicObject</a></div><div class="ttdoc">This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne...</div><div class="ttdef"><b>Definition:</b> polymorphic_object.hpp:288</div></div>
@@ -465,19 +484,21 @@ $(function() {
 <div class="ttc" id="aclassgko_1_1EnableDefaultFactory_html"><div class="ttname"><a href="classgko_1_1EnableDefaultFactory.html">gko::EnableDefaultFactory</a></div><div class="ttdoc">This mixin provides a default implementation of a concrete factory.</div><div class="ttdef"><b>Definition:</b> abstract_factory.hpp:148</div></div>
 <div class="ttc" id="aclassgko_1_1EnablePolymorphicAssignment_html"><div class="ttname"><a href="classgko_1_1EnablePolymorphicAssignment.html">gko::EnablePolymorphicAssignment&lt; ConcreteLinOp &gt;</a></div></div>
 <div class="ttc" id="anamespacegko_html_a859dc47a462721d83728d91ab7fa2148"><div class="ttname"><a href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148">gko::write</a></div><div class="ttdeci">void write(StreamType &amp;&amp;os, MatrixType *matrix, layout_type layout=layout_type::array)</div><div class="ttdoc">Reads a matrix stored in matrix market format from an input stream.</div><div class="ttdef"><b>Definition:</b> mtx_io.hpp:134</div></div>
-<div class="ttc" id="aclassgko_1_1Preconditionable_html_a0e664ac0bd76c286e4bdc630e33f2cd3"><div class="ttname"><a href="classgko_1_1Preconditionable.html#a0e664ac0bd76c286e4bdc630e33f2cd3">gko::Preconditionable::get_preconditioner</a></div><div class="ttdeci">virtual std::shared_ptr&lt; const LinOp &gt; get_preconditioner() const</div><div class="ttdoc">Returns the preconditioner operator used by the Preconditionable.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:474</div></div>
+<div class="ttc" id="aclassgko_1_1Permutable_html"><div class="ttname"><a href="classgko_1_1Permutable.html">gko::Permutable</a></div><div class="ttdoc">Linear operators which support permutation should implement the Permutable interface.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:448</div></div>
+<div class="ttc" id="aclassgko_1_1Preconditionable_html_a0e664ac0bd76c286e4bdc630e33f2cd3"><div class="ttname"><a href="classgko_1_1Preconditionable.html#a0e664ac0bd76c286e4bdc630e33f2cd3">gko::Preconditionable::get_preconditioner</a></div><div class="ttdeci">virtual std::shared_ptr&lt; const LinOp &gt; get_preconditioner() const</div><div class="ttdoc">Returns the preconditioner operator used by the Preconditionable.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:557</div></div>
 <div class="ttc" id="anamespacegko_html"><div class="ttname"><a href="namespacegko.html">gko</a></div><div class="ttdoc">The Ginkgo namespace.</div><div class="ttdef"><b>Definition:</b> abstract_factory.hpp:45</div></div>
 <div class="ttc" id="astructgko_1_1dim_html"><div class="ttname"><a href="structgko_1_1dim.html">gko::dim&lt; 2 &gt;</a></div></div>
 <div class="ttc" id="astructgko_1_1matrix__data_html"><div class="ttname"><a href="structgko_1_1matrix__data.html">gko::matrix_data</a></div><div class="ttdoc">This structure is used as an intermediate data type to store a sparse matrix.</div><div class="ttdef"><b>Definition:</b> matrix_data.hpp:103</div></div>
+<div class="ttc" id="aclassgko_1_1Array_html"><div class="ttname"><a href="classgko_1_1Array.html">gko::Array</a></div><div class="ttdoc">An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...</div><div class="ttdef"><b>Definition:</b> array.hpp:63</div></div>
 <div class="ttc" id="aclassgko_1_1LinOp_html_a9bf4bf5dc6118e18f4c9ef1bc782b337"><div class="ttname"><a href="classgko_1_1LinOp.html#a9bf4bf5dc6118e18f4c9ef1bc782b337">gko::LinOp::apply</a></div><div class="ttdeci">const LinOp * apply(const LinOp *alpha, const LinOp *b, const LinOp *beta, LinOp *x) const</div><div class="ttdoc">Performs the operation x = alpha * op(b) + beta * x.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:200</div></div>
-<div class="ttc" id="aclassgko_1_1Preconditionable_html_a95db3e56eb17efbcde951c5ed144582d"><div class="ttname"><a href="classgko_1_1Preconditionable.html#a95db3e56eb17efbcde951c5ed144582d">gko::Preconditionable::set_preconditioner</a></div><div class="ttdeci">virtual void set_preconditioner(std::shared_ptr&lt; const LinOp &gt; new_precond)</div><div class="ttdoc">Sets the preconditioner operator used by the Preconditionable.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:485</div></div>
-<div class="ttc" id="aclassgko_1_1ReadableFromMatrixData_html"><div class="ttname"><a href="classgko_1_1ReadableFromMatrixData.html">gko::ReadableFromMatrixData</a></div><div class="ttdoc">A LinOp implementing this interface can read its data from a matrix_data structure.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:426</div></div>
-<div class="ttc" id="aclassgko_1_1WritableToMatrixData_html"><div class="ttname"><a href="classgko_1_1WritableToMatrixData.html">gko::WritableToMatrixData</a></div><div class="ttdoc">A LinOp implementing this interface can write its data to a matrix_data structure.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:446</div></div>
+<div class="ttc" id="aclassgko_1_1Preconditionable_html_a95db3e56eb17efbcde951c5ed144582d"><div class="ttname"><a href="classgko_1_1Preconditionable.html#a95db3e56eb17efbcde951c5ed144582d">gko::Preconditionable::set_preconditioner</a></div><div class="ttdeci">virtual void set_preconditioner(std::shared_ptr&lt; const LinOp &gt; new_precond)</div><div class="ttdoc">Sets the preconditioner operator used by the Preconditionable.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:568</div></div>
+<div class="ttc" id="aclassgko_1_1ReadableFromMatrixData_html"><div class="ttname"><a href="classgko_1_1ReadableFromMatrixData.html">gko::ReadableFromMatrixData</a></div><div class="ttdoc">A LinOp implementing this interface can read its data from a matrix_data structure.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:509</div></div>
+<div class="ttc" id="aclassgko_1_1WritableToMatrixData_html"><div class="ttname"><a href="classgko_1_1WritableToMatrixData.html">gko::WritableToMatrixData</a></div><div class="ttdoc">A LinOp implementing this interface can write its data to a matrix_data structure.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:529</div></div>
 <div class="ttc" id="aclassgko_1_1LinOpFactory_html"><div class="ttname"><a href="classgko_1_1LinOpFactory.html">gko::LinOpFactory</a></div><div class="ttdoc">A LinOpFactory represents a higher order mapping which transforms one linear operator into another.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:356</div></div>
 <div class="ttc" id="aclassgko_1_1PolymorphicObject_html_ab40586bff071b7f11c2cf6b5cbf598eb"><div class="ttname"><a href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">gko::PolymorphicObject::get_executor</a></div><div class="ttdeci">std::shared_ptr&lt; const Executor &gt; get_executor() const noexcept</div><div class="ttdoc">Returns the Executor of the object.</div><div class="ttdef"><b>Definition:</b> polymorphic_object.hpp:204</div></div>
 <div class="ttc" id="aclassgko_1_1LinOp_html_a31b3c003388eb0b95393154f68c2b98d"><div class="ttname"><a href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">gko::LinOp::get_size</a></div><div class="ttdeci">const dim&lt; 2 &gt; &amp; get_size() const noexcept</div><div class="ttdoc">Returns the size of the operator.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:221</div></div>
 <div class="ttc" id="aclassgko_1_1LinOp_html_a74afc0e94716dbf4f3e1d7182e37456f"><div class="ttname"><a href="classgko_1_1LinOp.html#a74afc0e94716dbf4f3e1d7182e37456f">gko::LinOp::apply</a></div><div class="ttdeci">const LinOp * apply(const LinOp *b, LinOp *x) const</div><div class="ttdoc">Applies a linear operator to a vector (or a sequence of vectors).</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:160</div></div>
-<div class="ttc" id="aclassgko_1_1EnableLinOp_html"><div class="ttname"><a href="classgko_1_1EnableLinOp.html">gko::EnableLinOp</a></div><div class="ttdoc">The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ...</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:526</div></div>
+<div class="ttc" id="aclassgko_1_1EnableLinOp_html"><div class="ttname"><a href="classgko_1_1EnableLinOp.html">gko::EnableLinOp</a></div><div class="ttdoc">The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ...</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:609</div></div>
 <div class="ttc" id="aclassgko_1_1LinOp_html_a0449b2fc705d2f970855af23b5e2788e"><div class="ttname"><a href="classgko_1_1LinOp.html#a0449b2fc705d2f970855af23b5e2788e">gko::LinOp::apply</a></div><div class="ttdeci">LinOp * apply(const LinOp *b, LinOp *x)</div><div class="ttdoc">Applies a linear operator to a vector (or a sequence of vectors).</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:146</div></div>
 <div class="ttc" id="aclassgko_1_1EnablePolymorphicObject_html"><div class="ttname"><a href="classgko_1_1EnablePolymorphicObject.html">gko::EnablePolymorphicObject&lt; ConcreteLinOp, PolymorphicBase &gt;</a></div></div>
 <div class="ttc" id="anamespacegko_html_aa9c0782fb35cc18cb404716d9b6f2c0e"><div class="ttname"><a href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">gko::make_temporary_clone</a></div><div class="ttdeci">temporary_clone&lt; T &gt; make_temporary_clone(std::shared_ptr&lt; const Executor &gt; exec, T *ptr)</div><div class="ttdoc">Creates a temporary_clone.</div><div class="ttdef"><b>Definition:</b> utils.hpp:477</div></div>

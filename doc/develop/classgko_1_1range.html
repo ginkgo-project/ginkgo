@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/95636707 branch based on develop. Ginkgo version 1.1.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/95721987 branch based on develop. Ginkgo version 1.1.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -137,7 +137,7 @@ class gko::range&lt; Accessor &gt;</h3>
 <li>Ranges enable generalized code, as algorithms can be written independent of the memory layout. This does not impede various optimizations based on memory layout, as it is always possible to specialize algorithms for ranges with specific memory layouts.</li>
 <li>Ranges have various pointwise operations predefined, which reduces the amount of loops that need to be written.</li>
 </ol>
-<h2><a class="anchor" id="autotoc_md14"></a>
+<h2><a class="anchor" id="autotoc_md15"></a>
 Range operations</h2>
 <p>Ranges define a complete set of pointwise unary and binary operators which extend the basic arithmetic operators in C++, as well as a few pointwise operations and mathematical functions useful in ginkgo, and a couple of non-pointwise operations. Compound assignment (<code>+=</code>, <code>*=</code>, etc.) is not yet supported at this moment. Here is a complete list of operations:</p>
 <ul>
@@ -148,7 +148,7 @@ Range operations</h2>
 </ul>
 <p>All binary pointwise operations also work as expected if one of the operands is a scalar and the other is a range. The scalar operand will have the effect as if it was a range of the same size as the other operand, filled with the specified scalar.</p>
 <p>Two "global" functions <code>transpose</code> and <code>mmul</code> are also supported. <code>transpose</code> transposes the first two dimensions of the range (i.e. <code>transpose(r)(i, j, ...) == r(j, i, ...)</code>). <code>mmul</code> performs a (batched) matrix multiply of the ranges - the first two dimensions represent the matrices, while the rest represent the batch. For example, given the ranges <code>r1</code> and <code>r2</code> of dimensions <code>(3, 2, 3)</code> and <code>(2, 4, 3)</code>, respectively, <code>mmul(r1, r2)</code> will return a range of dimensions <code>(3, 4, 3)</code>, obtained by multiplying the 3 frontal slices of the range, and stacking the result back vertically.</p>
-<h2><a class="anchor" id="autotoc_md15"></a>
+<h2><a class="anchor" id="autotoc_md16"></a>
 Compound operations</h2>
 <p>Multiple range operations can be combined into a single expression. For example, an "axpy" operation can be obtained using <code>y = alpha * x + y</code>, where <code>x</code> an <code>y</code> are ranges, and <code>alpha</code> is a scalar. Range operations are optimized for memory access, and the above code does not allocate additional storage for intermediate ranges <code>alpha * x</code> or <code>aplha * x + y</code>. In fact, the entire computation is done during the assignment, and the results of operations <code>+</code> and <code>*</code> only register the data, and the types of operations that will be computed once the results are needed.</p>
 <p>It is possible to store and reuse these intermediate expressions. The following example will overwrite the range <code>x</code> with it's 4th power:</p>
@@ -156,11 +156,11 @@ Compound operations</h2>
 <div class="line"><span class="keyword">auto</span> square = x * x;  <span class="comment">// this is range constructor, not range assignment!</span></div>
 <div class="line">x = square;  <span class="comment">// overwrites x with x*x (this is range assignment)</span></div>
 <div class="line">x = square;  <span class="comment">// overwrites new x (x*x) with (x*x)*(x*x) (as is this)</span></div>
-</div><!-- fragment --><h2><a class="anchor" id="autotoc_md16"></a>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md17"></a>
 Caveats</h2>
 <p>__<code>mmul</code> is not a highly-optimized BLAS-3 version of the matrix multiplication.__ The current design of ranges and accessors prevents that, so if you need a high-perfromance matrix multiplication, you should use one of the libraries that provide that, or implement your own (you can use pointwise range operations to help simplify that). However, range design might get improved in the future to allow efficient implementations of BLAS-3 kernels.</p>
 <p>Aliasing the result range in <code>mmul</code> and <code>transpose</code> is not allowed. Constructs like <code>A = transpose(A)</code>, <code>A = mmul(A, A)</code>, or <code>A = mmul(A, A) + C</code> lead to undefined behavior. However, aliasing input arguments is allowed: <code>C = mmul(A, A)</code>, and even <code>C = mmul(A, A) + C</code> is valid code (in the last example, only pointwise operations are aliased). <code>C = mmul(A, A + C)</code> is not valid though.</p>
-<h2><a class="anchor" id="autotoc_md17"></a>
+<h2><a class="anchor" id="autotoc_md18"></a>
 Examples</h2>
 <p>The range unit tests in core/test/base/range.cpp contain lots of simple 1-line examples of range operations. The accessor unit tests in core/test/base/range.cpp show how to use ranges with concrete accessors, and how to use range slices using <code>span</code>s as arguments to range function call operator. Finally, examples/range contains a complete example where ranges are used to implement a simple version of the right-looking LU factorization.</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>

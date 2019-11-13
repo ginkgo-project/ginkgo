@@ -1,0 +1,62 @@
+\hypertarget{classgko_1_1ValueMismatch}{}\doxysection{gko\+::Value\+Mismatch Class Reference}
+\label{classgko_1_1ValueMismatch}\index{gko::ValueMismatch@{gko::ValueMismatch}}
+
+
+\mbox{\hyperlink{classgko_1_1ValueMismatch}{Value\+Mismatch}} is thrown if two values are not equal.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/exception.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Value\+Mismatch\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=195pt]{classgko_1_1ValueMismatch__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classgko_1_1ValueMismatch_a505714cad59257a24aa712a8d3449e4a}{Value\+Mismatch}} (const std\+::string \&file, int line, const std\+::string \&func, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} val1, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} val2, const std\+::string \&clarification)
+\begin{DoxyCompactList}\small\item\em Initializes a value mismatch error. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\mbox{\hyperlink{classgko_1_1ValueMismatch}{Value\+Mismatch}} is thrown if two values are not equal. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classgko_1_1ValueMismatch_a505714cad59257a24aa712a8d3449e4a}\label{classgko_1_1ValueMismatch_a505714cad59257a24aa712a8d3449e4a}} 
+\index{gko::ValueMismatch@{gko::ValueMismatch}!ValueMismatch@{ValueMismatch}}
+\index{ValueMismatch@{ValueMismatch}!gko::ValueMismatch@{gko::ValueMismatch}}
+\doxysubsubsection{\texorpdfstring{ValueMismatch()}{ValueMismatch()}}
+{\footnotesize\ttfamily gko\+::\+Value\+Mismatch\+::\+Value\+Mismatch (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{file,  }\item[{int}]{line,  }\item[{const std\+::string \&}]{func,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{val1,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{val2,  }\item[{const std\+::string \&}]{clarification }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Initializes a value mismatch error. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em file} & The name of the offending source file \\
+\hline
+{\em line} & The source code line number where the error occurred \\
+\hline
+{\em func} & The function name where the error occurred \\
+\hline
+{\em val1} & The first value to be compared. \\
+\hline
+{\em val2} & The second value to be compared. \\
+\hline
+{\em clarification} & An additional message further describing the error \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/exception.\+hpp (24c9b8f42)\end{DoxyCompactItemize}
