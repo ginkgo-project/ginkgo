@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-/*****************************<DECSRIPTION>***********************************
+/*****************************<DESCRIPTION>***********************************
 This example solves a 1D Poisson equation:
 
     u : [0, 1] -> R
@@ -67,7 +67,7 @@ existing software - the `generate_stencil_matrix`, `generate_rhs`,
 all (i.e. they could have been there before the application developer decided to
 use Ginkgo, and the only part where Ginkgo is introduced is inside the
 `solve_system` function.
-*****************************<DECSRIPTION>**********************************/
+*****************************<DESCRIPTION>**********************************/
 
 #include <ginkgo/ginkgo.hpp>
 #include <iostream>

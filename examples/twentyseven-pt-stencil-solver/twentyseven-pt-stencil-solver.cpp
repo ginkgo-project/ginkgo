@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-/*****************************<DECSRIPTION>***********************************
+/*****************************<DESCRIPTION>***********************************
 This example solves a 3D Poisson equation:
 
     \Omega = (0,1)^3
@@ -68,7 +68,7 @@ changed when passing additional parameters.
 
 The intention of this is to show how generation of stencil values and the right
 hand side vector changes when increasing the dimension.
-*****************************<DECSRIPTION>**********************************/
+*****************************<DESCRIPTION>**********************************/
 
 #include <array>
 #include <chrono>
