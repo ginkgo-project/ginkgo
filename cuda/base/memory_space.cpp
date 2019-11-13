@@ -134,6 +134,22 @@ void CudaMemorySpace::raw_copy_to(const CudaMemorySpace *dest,
 }
 
 
+void CudaUVMSpace::raw_copy_to(const HipMemorySpace *dest, size_type num_bytes,
+                               const void *src_ptr, void *dest_ptr) const
+{
+#if GINKGO_HIP_PLATFORM_NVCC == 1
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, dest->device_id_,
+                                                 src_ptr, this->get_device_id(),
+                                                 num_bytes));
+    }
+#else
+    GKO_NOT_SUPPORTED(CudaUVMSpace);
+#endif
+}
+
+
 void CudaMemorySpace::raw_copy_to(const HipMemorySpace *dest,
                                   size_type num_bytes, const void *src_ptr,
                                   void *dest_ptr) const
@@ -148,6 +164,77 @@ void CudaMemorySpace::raw_copy_to(const HipMemorySpace *dest,
 #else
     GKO_NOT_SUPPORTED(CudaMemorySpace);
 #endif
+}
+
+
+void CudaMemorySpace::raw_copy_to(const CudaUVMSpace *dest, size_type num_bytes,
+                                  const void *src_ptr, void *dest_ptr) const
+{
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, dest->device_id_,
+                                                 src_ptr, this->get_device_id(),
+                                                 num_bytes));
+    }
+}
+
+
+void CudaUVMSpace::raw_copy_to(const CudaMemorySpace *dest, size_type num_bytes,
+                               const void *src_ptr, void *dest_ptr) const
+{
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, dest->device_id_,
+                                                 src_ptr, this->get_device_id(),
+                                                 num_bytes));
+    }
+}
+
+
+void CudaUVMSpace::raw_copy_to(const CudaUVMSpace *dest, size_type num_bytes,
+                               const void *src_ptr, void *dest_ptr) const
+{
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, dest->device_id_,
+                                                 src_ptr, this->get_device_id(),
+                                                 num_bytes));
+    }
+}
+
+
+void HostMemorySpace::raw_copy_to(const CudaUVMSpace *dest, size_type num_bytes,
+                                  const void *src_ptr, void *dest_ptr) const
+{
+    if (num_bytes > 0) {
+        cuda::device_guard g(dest->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice));
+    }
+}
+
+
+void *CudaUVMSpace::raw_alloc(size_type num_bytes) const
+{
+    void *dev_ptr = nullptr;
+    cuda::device_guard g(this->get_device_id());
+    auto error_code = cudaMallocManaged(&dev_ptr, num_bytes);
+    if (error_code != cudaErrorMemoryAllocation) {
+        GKO_ASSERT_NO_CUDA_ERRORS(error_code);
+    }
+    GKO_ENSURE_ALLOCATED(dev_ptr, "cuda", num_bytes);
+    return dev_ptr;
+}
+
+
+void CudaUVMSpace::raw_copy_to(const HostMemorySpace *, size_type num_bytes,
+                               const void *src_ptr, void *dest_ptr) const
+{
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost));
+    }
 }
 
 

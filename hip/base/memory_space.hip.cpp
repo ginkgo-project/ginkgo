@@ -119,6 +119,22 @@ void HipMemorySpace::raw_copy_to(const CudaMemorySpace *dest,
 }
 
 
+void HipMemorySpace::raw_copy_to(const CudaUVMSpace *dest, size_type num_bytes,
+                                 const void *src_ptr, void *dest_ptr) const
+{
+#if GINKGO_HIP_PLATFORM_NVCC == 1
+    if (num_bytes > 0) {
+        hip::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, dest->device_id_,
+                                               src_ptr, this->get_device_id(),
+                                               num_bytes));
+    }
+#else
+    GKO_NOT_SUPPORTED(HipMemorySpace);
+#endif
+}
+
+
 void HipMemorySpace::raw_copy_to(const HipMemorySpace *dest,
                                  size_type num_bytes, const void *src_ptr,
                                  void *dest_ptr) const
