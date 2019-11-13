@@ -674,7 +674,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(b->get_stride()), as_cuda_type(c->get_values()),
                 as_cuda_type(c->get_stride()));
         } else {
-            throw GKO_NOT_SUPPORTED(nwarps);
+            GKO_NOT_SUPPORTED(nwarps);
         }
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
