@@ -440,8 +440,8 @@ public:
  * //Permuting an object of LinOp type.
  * //The object you want to permute.
  * auto op = matrix::Csr::create(exec);
- * //Permute the object by first converting it to a transposable type.
- * auto perm = op->row_permute();
+ * //Permute the object by first converting it to a Permutable type.
+ * auto perm = op->row_permute(permutation_indices);
  * ```
  */
 template <typename IndexType>
