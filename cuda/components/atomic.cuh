@@ -45,7 +45,7 @@ namespace cuda {
 /**
  * @internal
  *
- * @note It is not 'real' complex<float> atomic add opeartion
+ * @note It is not 'real' complex<float> atomic add operation
  */
 __forceinline__ __device__ void atomic_add(
     thrust::complex<float> *__restrict__ address, thrust::complex<float> val)
@@ -56,10 +56,11 @@ __forceinline__ __device__ void atomic_add(
     atomic_add(&(cuaddr->y), val.imag());
 }
 
+
 /**
  * @internal
  *
- * @note It is not 'real' complex<double> atomic add opeartion
+ * @note It is not 'real' complex<double> atomic add operation
  */
 __forceinline__ __device__ void atomic_add(
     thrust::complex<double> *__restrict__ address, thrust::complex<double> val)
