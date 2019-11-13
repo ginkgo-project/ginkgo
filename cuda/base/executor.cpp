@@ -184,7 +184,7 @@ void CudaExecutor::raw_copy_to(const HipExecutor *src, size_type num_bytes,
     GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(
         dest_ptr, this->device_id_, src_ptr, src->get_device_id(), num_bytes));
 #else
-    throw GKO_NOT_SUPPORTED(CudaExecutor);
+    GKO_NOT_SUPPORTED(CudaExecutor);
 #endif
 }
 

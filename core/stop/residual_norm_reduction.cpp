@@ -63,7 +63,7 @@ bool ResidualNormReduction<ValueType>::check_impl(
         dense_r->compute_norm2(u_dense_tau_.get());
         dense_tau = u_dense_tau_.get();
     } else {
-        throw GKO_NOT_SUPPORTED(nullptr);
+        GKO_NOT_SUPPORTED(nullptr);
     }
     bool all_converged = true;
 
