@@ -103,7 +103,9 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
               public ReadableFromMatrixData<ValueType, int64>,
               public WritableToMatrixData<ValueType, int32>,
               public WritableToMatrixData<ValueType, int64>,
-              public Transposable {
+              public Transposable,
+              public Permutable<int32>,
+              public Permutable<int64> {
     friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, LinOp>;
     friend class Coo<ValueType, int32>;
@@ -205,6 +207,31 @@ public:
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    std::unique_ptr<LinOp> row_permute(
+        const Array<int32> *permutation_indices) const override;
+
+    std::unique_ptr<LinOp> row_permute(
+        const Array<int64> *permutation_indices) const override;
+
+    std::unique_ptr<LinOp> column_permute(
+        const Array<int32> *permutation_indices) const override;
+
+    std::unique_ptr<LinOp> column_permute(
+        const Array<int64> *permutation_indices) const override;
+
+    std::unique_ptr<LinOp> inverse_row_permute(
+        const Array<int32> *inverse_permutation_indices) const override;
+
+    std::unique_ptr<LinOp> inverse_row_permute(
+        const Array<int64> *inverse_permutation_indices) const override;
+
+    std::unique_ptr<LinOp> inverse_column_permute(
+        const Array<int32> *inverse_permutation_indices) const override;
+
+    std::unique_ptr<LinOp> inverse_column_permute(
+        const Array<int64> *inverse_permutation_indices) const override;
+
 
     /**
      * Returns a pointer to the array of values of the matrix.

@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/dense_kernels.hpp"
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -572,6 +573,77 @@ void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONJ_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void row_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                 const Array<IndexType> *permutation_indices,
+                 matrix::Dense<ValueType> *row_permuted,
+                 const matrix::Dense<ValueType> *orig)
+{
+    auto perm = permutation_indices->get_const_data();
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            row_permuted->at(i, j) = orig->at(perm[i], j);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ROW_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void column_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                    const Array<IndexType> *permutation_indices,
+                    matrix::Dense<ValueType> *column_permuted,
+                    const matrix::Dense<ValueType> *orig)
+{
+    auto perm = permutation_indices->get_const_data();
+    for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+        for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+            column_permuted->at(i, j) = orig->at(i, perm[j]);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COLUMN_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inverse_row_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                         const Array<IndexType> *permutation_indices,
+                         matrix::Dense<ValueType> *row_permuted,
+                         const matrix::Dense<ValueType> *orig)
+{
+    auto perm = permutation_indices->get_const_data();
+    for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+        for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+            row_permuted->at(perm[i], j) = orig->at(i, j);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_INVERSE_ROW_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inverse_column_permute(std::shared_ptr<const ReferenceExecutor> exec,
+                            const Array<IndexType> *permutation_indices,
+                            matrix::Dense<ValueType> *column_permuted,
+                            const matrix::Dense<ValueType> *orig)
+{
+    auto perm = permutation_indices->get_const_data();
+    for (size_type j = 0; j < orig->get_size()[1]; ++j) {
+        for (size_type i = 0; i < orig->get_size()[0]; ++i) {
+            column_permuted->at(i, perm[j]) = orig->at(i, j);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL);
 
 
 }  // namespace dense

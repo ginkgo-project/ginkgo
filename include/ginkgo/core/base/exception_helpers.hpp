@@ -118,6 +118,18 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 
 
 /**
+ *Asserts that _val1 and _val2 are equal.
+ *
+ *@throw ValueMisatch if _val1 is different from _val2.
+ */
+#define GKO_ASSERT_EQ(_val1, _val2)                                            \
+    if (_val1 != _val2) {                                                      \
+        throw ::gko::ValueMismatch(__FILE__, __LINE__, __func__, _val1, _val2, \
+                                   "expected equal values");                   \
+    }
+
+
+/**
  *Asserts that _op1 is a square matrix.
  *
  *@throw DimensionMismatch  if the number of rows of _op1 is different from the

@@ -986,6 +986,175 @@ TEST_F(Dense, NonSquareMatrixIsConjugateTransposable)
                         0.0);
 }
 
+
+TEST_F(Dense, SquareMatrixIsRowPermutable)
+{
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+    auto exec = mtx5->get_executor();
+    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    auto row_permute = mtx5->row_permute(&permute_idxs);
+
+    auto row_permute_dense =
+        static_cast<gko::matrix::Dense<> *>(row_permute.get());
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(row_permute_dense,
+                        l({{-2.0, 2.0, 4.5},
+                           {2.1, 3.4, 1.2},
+                           {1.0, -1.0, -0.5}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Dense, NonSquareMatrixIsRowPermutable)
+{
+    // clang-format off
+    // {1.0, 3.0, 2.0},
+    // {0.0, 5.0, 0.0}
+    // clang-format on
+    auto exec = mtx4->get_executor();
+    gko::Array<gko::int32> permute_idxs{exec, {1, 0}};
+    auto row_permute = mtx4->row_permute(&permute_idxs);
+
+    auto row_permute_dense =
+        static_cast<gko::matrix::Dense<> *>(row_permute.get());
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(row_permute_dense,
+                        l({{0.0, 5.0, 0.0},
+                           {1.0, 3.0, 2.0}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Dense, SquareMatrixIsColPermutable)
+{
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+    auto exec = mtx5->get_executor();
+    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    auto c_permute = mtx5->column_permute(&permute_idxs);
+
+    auto c_permute_dense = static_cast<gko::matrix::Dense<> *>(c_permute.get());
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(c_permute_dense,
+        l({{-1.0, -0.5, 1.0}, {2.0, 4.5, -2.0}, {3.4, 1.2, 2.1}}), 0.0);
+}
+
+
+TEST_F(Dense, NonSquareMatrixIsColPermutable)
+{
+    // clang-format off
+    // {1.0, 3.0, 2.0},
+    // {0.0, 5.0, 0.0}
+    // clang-format on
+    auto exec = mtx4->get_executor();
+    gko::Array<gko::int32> permute_idxs{exec, {1, 2, 0}};
+    auto c_permute = mtx4->column_permute(&permute_idxs);
+
+    auto c_permute_dense = static_cast<gko::matrix::Dense<> *>(c_permute.get());
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(c_permute_dense,
+                        l({{3.0, 2.0, 1.0},
+                           {5.0, 0.0, 0.0}}),
+                        0.0);
+    // clang-format on
+}
+
+
+TEST_F(Dense, SquareMatrixIsInverseRowPermutable)
+{
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+    auto exec = mtx5->get_executor();
+    gko::Array<gko::int32> inverse_permute_idxs{exec, {1, 2, 0}};
+    auto inverse_row_permute = mtx5->inverse_row_permute(&inverse_permute_idxs);
+
+    auto inverse_row_permute_dense =
+        static_cast<gko::matrix::Dense<> *>(inverse_row_permute.get());
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(inverse_row_permute_dense,
+                        l({{2.1, 3.4, 1.2},
+                           {1.0, -1.0, -0.5},
+                           {-2.0, 2.0, 4.5}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Dense, NonSquareMatrixIsInverseRowPermutable)
+{
+    // clang-format off
+    // {1.0, 3.0, 2.0},
+    // {0.0, 5.0, 0.0}
+    // clang-format on
+    auto exec = mtx4->get_executor();
+    gko::Array<gko::int32> inverse_permute_idxs{exec, {1, 0}};
+    auto inverse_row_permute = mtx4->inverse_row_permute(&inverse_permute_idxs);
+
+    auto inverse_row_permute_dense =
+        static_cast<gko::matrix::Dense<> *>(inverse_row_permute.get());
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(inverse_row_permute_dense,
+                        l({{0.0, 5.0, 0.0},
+                           {1.0, 3.0, 2.0}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Dense, SquareMatrixIsInverseColPermutable)
+{
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+    auto exec = mtx5->get_executor();
+    gko::Array<gko::int32> inverse_permute_idxs{exec, {1, 2, 0}};
+    auto inverse_c_permute =
+        mtx5->inverse_column_permute(&inverse_permute_idxs);
+
+    auto inverse_c_permute_dense =
+        static_cast<gko::matrix::Dense<> *>(inverse_c_permute.get());
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(inverse_c_permute_dense,
+                        l({{-0.5, 1.0, -1.0},
+                           {4.5, -2.0, 2.0},
+                           {1.2, 2.1, 3.4}}), 0.0);
+    // clang-format on
+}
+
+
+TEST_F(Dense, NonSquareMatrixIsInverseColPermutable)
+{
+    // clang-format off
+    // {1.0, 3.0, 2.0},
+    // {0.0, 5.0, 0.0}
+    // clang-format on
+
+    auto exec = mtx4->get_executor();
+    gko::Array<gko::int32> inverse_permute_idxs{exec, {1, 2, 0}};
+    auto inverse_c_permute =
+        mtx4->inverse_column_permute(&inverse_permute_idxs);
+
+    auto inverse_c_permute_dense =
+        static_cast<gko::matrix::Dense<> *>(inverse_c_permute.get());
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(inverse_c_permute_dense,
+                        l({{2.0, 1.0, 3.0},
+                           {0.0, 0.0, 5.0}}),
+                           0.0);
+    // clang-format on
+}
+
+
 TEST_F(Dense, ConvertsToAndFromSellpWithMoreThanOneSlice)
 {
     auto x = gen_mtx<Mtx>(65, 25);

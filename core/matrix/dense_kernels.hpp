@@ -133,6 +133,30 @@ namespace kernels {
                         matrix::Dense<_type> *trans,                 \
                         const matrix::Dense<_type> *orig)
 
+#define GKO_DECLARE_ROW_PERMUTE_KERNEL(_vtype, _itype)            \
+    void row_permute(std::shared_ptr<const DefaultExecutor> exec, \
+                     const Array<_itype> *permutation_indices,    \
+                     matrix::Dense<_vtype> *row_permuted,         \
+                     const matrix::Dense<_vtype> *orig)
+
+#define GKO_DECLARE_COLUMN_PERMUTE_KERNEL(_vtype, _itype)            \
+    void column_permute(std::shared_ptr<const DefaultExecutor> exec, \
+                        const Array<_itype> *permutation_indices,    \
+                        matrix::Dense<_vtype> *column_permuted,      \
+                        const matrix::Dense<_vtype> *orig)
+
+#define GKO_DECLARE_INVERSE_ROW_PERMUTE_KERNEL(_vtype, _itype)            \
+    void inverse_row_permute(std::shared_ptr<const DefaultExecutor> exec, \
+                             const Array<_itype> *permutation_indices,    \
+                             matrix::Dense<_vtype> *row_permuted,         \
+                             const matrix::Dense<_vtype> *orig)
+
+#define GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL(_vtype, _itype)            \
+    void inverse_column_permute(std::shared_ptr<const DefaultExecutor> exec, \
+                                const Array<_itype> *permutation_indices,    \
+                                matrix::Dense<_vtype> *column_permuted,      \
+                                const matrix::Dense<_vtype> *orig)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(ValueType);                       \
@@ -169,7 +193,15 @@ namespace kernels {
     template <typename ValueType>                                           \
     GKO_DECLARE_TRANSPOSE_KERNEL(ValueType);                                \
     template <typename ValueType>                                           \
-    GKO_DECLARE_CONJ_TRANSPOSE_KERNEL(ValueType)
+    GKO_DECLARE_CONJ_TRANSPOSE_KERNEL(ValueType);                           \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_ROW_PERMUTE_KERNEL(ValueType, IndexType);                   \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType);                \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_INVERSE_ROW_PERMUTE_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType)
 
 
 namespace omp {
