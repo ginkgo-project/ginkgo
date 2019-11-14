@@ -249,8 +249,9 @@ GKO_BIND_CUBLAS_COMPLEX_NORM2(std::complex<double>, cublasDznrm2);
 template <typename ValueType>
 GKO_BIND_CUBLAS_NORM2(ValueType, detail::not_implemented);
 
-#undef GKO_BIND_CUBLAS_NORM2
 #undef GKO_BIND_CUBLAS_COMPLEX_NORM2
+#undef GKO_BIND_CUBLAS_NORM2
+
 
 
 inline cublasHandle_t init()

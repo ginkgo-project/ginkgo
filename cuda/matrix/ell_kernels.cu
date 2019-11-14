@@ -76,6 +76,8 @@ constexpr int default_block_size = 512;
  * `num_threads_per_core` threads assigned to each physical core.
  */
 constexpr int num_threads_per_core = 4;
+
+
 /**
  * ratio is the parameter to decide when to use threads to do reduction on each
  * row. (#cols/#rows > ratio)

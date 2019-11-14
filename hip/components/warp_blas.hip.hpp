@@ -33,15 +33,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_HIP_COMPONENTS_WARP_BLAS_HIP_HPP_
 #define GKO_HIP_COMPONENTS_WARP_BLAS_HIP_HPP_
 
+#include <cassert>
+
 
 #include <ginkgo/config.hpp>
 
 
 #include "hip/base/math.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
-
-
-#include <cassert>
 
 
 namespace gko {

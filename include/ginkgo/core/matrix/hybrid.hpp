@@ -253,7 +253,7 @@ public:
     };
 
     /**
-     * imbalance_bounded_limit is a stratgy_type which decides the number of
+     * imbalance_bounded_limit is a strategy_type which decides the number of
      * stored elements per row of the ell part. It uses the imbalance_limit and
      * adds the upper bound of the number of ell's cols by the number of rows.
      */
@@ -283,7 +283,7 @@ public:
 
 
     /**
-     * minimal_storage_limit is a stratgy_type which decides the number of
+     * minimal_storage_limit is a strategy_type which decides the number of
      * stored elements per row of the ell part. It is determined by the size of
      * ValueType and IndexType, the storage is the minimum among all partition.
      */
@@ -310,7 +310,7 @@ public:
 
 
     /**
-     * automatic is a stratgy_type which decides the number of stored elements
+     * automatic is a strategy_type which decides the number of stored elements
      * per row of the ell part automatically.
      */
     class automatic : public strategy_type {
