@@ -1,6 +1,7 @@
 #!/bin/bash
 
 HIPIFY=/opt/rocm/hip/bin/hipify-perl
+# For some reasons, hipify from apt does not add HIP_KERNEL_NAME.
 
 if [ "$0" != "dev_tools/scripts/cuda2hip.sh" ]; then
     echo "You are only allowed to run dev_tools/scripts/cuda2hip.sh in the ginkgo source folder."
@@ -33,3 +34,9 @@ REG="${REG};s/culibs/hiplibs/g"
 REG="${REG};s/(CUH_|HPP_)$/HIP_HPP_/g"
 
 sed -i -E "${REG}" "${NEW_FILE}"
+
+# Move the namespace into correct place.
+# {namespace}::hipLaunchKernelGGL( to hipLaunchKernelGGL({namespace}::
+sed -i -E "s/(.*)::hipLaunchKernelGGL\(/hipLaunchKernelGGL\(\1::/g" "${NEW_FILE}"
+# {namespace}::HIP_KERNEL_NAME( to HIP_KERNEL_NAME({namespace}::
+sed -i -E "s/(.*)::HIP_KERNEL_NAME\(/HIP_KERNEL_NAME\(\1::/g" "${NEW_FILE}"
