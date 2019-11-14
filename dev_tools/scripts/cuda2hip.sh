@@ -3,7 +3,7 @@
 HIPIFY=/opt/rocm/hip/bin/hipify-perl
 
 if [ "$0" != "dev_tools/scripts/cuda2hip.sh" ]; then
-    echo "Only allow to run dev_tools/scripts/cuda2hip.sh at ginkgo source folder."
+    echo "You are only allowed to run dev_tools/scripts/cuda2hip.sh in the ginkgo source folder."
     exit 1
 fi
 
