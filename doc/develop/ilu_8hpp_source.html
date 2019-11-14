@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/preconditioner/ilu.hpp (79242bbf2) Source File</title>
+<title>Ginkgo: ginkgo/core/preconditioner/ilu.hpp (55c88ebc9) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/95805831 branch based on develop. Ginkgo version 1.1.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/95878901 branch based on develop. Ginkgo version 1.1.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -263,68 +263,66 @@ $(function() {
 <div class="line"><a name="l00265"></a><span class="lineno">  265</span>&#160;        std::shared_ptr&lt;const stop::CriterionFactory&gt;;</div>
 <div class="line"><a name="l00266"></a><span class="lineno">  266</span>&#160; </div>
 <div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> SolverType, <span class="keyword">typename</span> = <span class="keywordtype">void</span>&gt;</div>
-<div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160;    <span class="keyword">struct </span>has_with_criteria : std::false_type {</div>
-<div class="line"><a name="l00280"></a><span class="lineno">  280</span>&#160;    };</div>
-<div class="line"><a name="l00281"></a><span class="lineno">  281</span>&#160; </div>
-<div class="line"><a name="l00289"></a><span class="lineno">  289</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> SolverType&gt;</div>
-<div class="line"><a name="l00290"></a><span class="lineno">  290</span>&#160;    <span class="keyword">struct </span>has_with_criteria&lt;</div>
-<div class="line"><a name="l00291"></a><span class="lineno">  291</span>&#160;        SolverType,</div>
-<div class="line"><a name="l00292"></a><span class="lineno">  292</span>&#160;        xstd::void_t&lt;decltype(std::declval&lt;factory_type_t&lt;SolverType&gt;&gt;()</div>
-<div class="line"><a name="l00293"></a><span class="lineno">  293</span>&#160;                                  .with_criteria(with_criteria_param_type()))&gt;&gt;</div>
-<div class="line"><a name="l00294"></a><span class="lineno">  294</span>&#160;        : std::true_type {</div>
-<div class="line"><a name="l00295"></a><span class="lineno">  295</span>&#160;    };</div>
-<div class="line"><a name="l00296"></a><span class="lineno">  296</span>&#160; </div>
-<div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160; </div>
-<div class="line"><a name="l00305"></a><span class="lineno">  305</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> SolverType&gt;</div>
-<div class="line"><a name="l00306"></a><span class="lineno">  306</span>&#160;    <span class="keyword">static</span> xstd::enable_if_t&lt;has_with_criteria&lt;SolverType&gt;::value,</div>
-<div class="line"><a name="l00307"></a><span class="lineno">  307</span>&#160;                             std::unique_ptr&lt;SolverType&gt;&gt;</div>
-<div class="line"><a name="l00308"></a><span class="lineno">  308</span>&#160;    generate_default_solver(<span class="keyword">const</span> std::shared_ptr&lt;const Executor&gt; &amp;exec,</div>
-<div class="line"><a name="l00309"></a><span class="lineno">  309</span>&#160;                            <span class="keyword">const</span> std::shared_ptr&lt;const LinOp&gt; &amp;mtx)</div>
-<div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160;    {</div>
-<div class="line"><a name="l00311"></a><span class="lineno">  311</span>&#160;        constexpr value_type default_reduce_residual{1e-4};</div>
-<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> default_max_iters{</div>
-<div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160;            static_cast&lt;unsigned int&gt;(mtx-&gt;get_size()[0])};</div>
-<div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160; </div>
-<div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160;        <span class="keywordflow">return</span> SolverType::build()</div>
-<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160;            .with_criteria(gko::stop::Iteration::build()</div>
-<div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160;                               .with_max_iters(default_max_iters)</div>
-<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160;                               .on(exec),</div>
-<div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;                           <a class="code" href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction&lt;&gt;::build</a>()</div>
-<div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160;                               .with_reduction_factor(default_reduce_residual)</div>
-<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160;                               .on(exec))</div>
-<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160;            .on(exec)</div>
-<div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160;            -&gt;generate(mtx);</div>
-<div class="line"><a name="l00324"></a><span class="lineno">  324</span>&#160;    }</div>
-<div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160; </div>
-<div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> SolverType&gt;</div>
-<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;    <span class="keyword">static</span> xstd::enable_if_t&lt;!has_with_criteria&lt;SolverType&gt;::value,</div>
-<div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160;                             std::unique_ptr&lt;SolverType&gt;&gt;</div>
-<div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160;    generate_default_solver(<span class="keyword">const</span> std::shared_ptr&lt;const Executor&gt; &amp;exec,</div>
-<div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160;                            <span class="keyword">const</span> std::shared_ptr&lt;const LinOp&gt; &amp;mtx)</div>
-<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;    {</div>
-<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160;        <span class="keywordflow">return</span> SolverType::build().on(exec)-&gt;generate(mtx);</div>
-<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;    }</div>
-<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160; </div>
-<div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00339"></a><span class="lineno">  339</span>&#160;    std::shared_ptr&lt;const l_solver_type&gt; l_solver_{};</div>
-<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160;    std::shared_ptr&lt;const u_solver_type&gt; u_solver_{};</div>
-<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160;    <span class="keyword">mutable</span> <span class="keyword">struct </span>cache_struct {</div>
-<div class="line"><a name="l00352"></a><span class="lineno">  352</span>&#160;        cache_struct() = <span class="keywordflow">default</span>;</div>
-<div class="line"><a name="l00353"></a><span class="lineno">  353</span>&#160;        ~cache_struct() = <span class="keywordflow">default</span>;</div>
-<div class="line"><a name="l00354"></a><span class="lineno">  354</span>&#160;        cache_struct(<span class="keyword">const</span> cache_struct &amp;) {}</div>
-<div class="line"><a name="l00355"></a><span class="lineno">  355</span>&#160;        cache_struct(cache_struct &amp;&amp;) {}</div>
-<div class="line"><a name="l00356"></a><span class="lineno">  356</span>&#160;        cache_struct &amp;operator=(<span class="keyword">const</span> cache_struct &amp;) { <span class="keywordflow">return</span> *<span class="keyword">this</span>; }</div>
-<div class="line"><a name="l00357"></a><span class="lineno">  357</span>&#160;        cache_struct &amp;operator=(cache_struct &amp;&amp;) { <span class="keywordflow">return</span> *<span class="keyword">this</span>; }</div>
-<div class="line"><a name="l00358"></a><span class="lineno">  358</span>&#160;        std::unique_ptr&lt;LinOp&gt; intermediate{};</div>
-<div class="line"><a name="l00359"></a><span class="lineno">  359</span>&#160;    } cache_;</div>
-<div class="line"><a name="l00360"></a><span class="lineno">  360</span>&#160;};</div>
-<div class="line"><a name="l00361"></a><span class="lineno">  361</span>&#160; </div>
-<div class="line"><a name="l00362"></a><span class="lineno">  362</span>&#160; </div>
-<div class="line"><a name="l00363"></a><span class="lineno">  363</span>&#160;}  <span class="comment">// namespace preconditioner</span></div>
-<div class="line"><a name="l00364"></a><span class="lineno">  364</span>&#160;}  <span class="comment">// namespace gko</span></div>
-<div class="line"><a name="l00365"></a><span class="lineno">  365</span>&#160; </div>
-<div class="line"><a name="l00366"></a><span class="lineno">  366</span>&#160; </div>
-<div class="line"><a name="l00367"></a><span class="lineno">  367</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_PRECONDITIONER_ILU_HPP_</span></div>
+<div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160;    <span class="keyword">struct </span>has_with_criteria : std::false_type {};</div>
+<div class="line"><a name="l00280"></a><span class="lineno">  280</span>&#160; </div>
+<div class="line"><a name="l00288"></a><span class="lineno">  288</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> SolverType&gt;</div>
+<div class="line"><a name="l00289"></a><span class="lineno">  289</span>&#160;    <span class="keyword">struct </span>has_with_criteria&lt;</div>
+<div class="line"><a name="l00290"></a><span class="lineno">  290</span>&#160;        SolverType,</div>
+<div class="line"><a name="l00291"></a><span class="lineno">  291</span>&#160;        xstd::void_t&lt;decltype(std::declval&lt;factory_type_t&lt;SolverType&gt;&gt;()</div>
+<div class="line"><a name="l00292"></a><span class="lineno">  292</span>&#160;                                  .with_criteria(with_criteria_param_type()))&gt;&gt;</div>
+<div class="line"><a name="l00293"></a><span class="lineno">  293</span>&#160;        : std::true_type {};</div>
+<div class="line"><a name="l00294"></a><span class="lineno">  294</span>&#160; </div>
+<div class="line"><a name="l00295"></a><span class="lineno">  295</span>&#160; </div>
+<div class="line"><a name="l00303"></a><span class="lineno">  303</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> SolverType&gt;</div>
+<div class="line"><a name="l00304"></a><span class="lineno">  304</span>&#160;    <span class="keyword">static</span> xstd::enable_if_t&lt;has_with_criteria&lt;SolverType&gt;::value,</div>
+<div class="line"><a name="l00305"></a><span class="lineno">  305</span>&#160;                             std::unique_ptr&lt;SolverType&gt;&gt;</div>
+<div class="line"><a name="l00306"></a><span class="lineno">  306</span>&#160;    generate_default_solver(<span class="keyword">const</span> std::shared_ptr&lt;const Executor&gt; &amp;exec,</div>
+<div class="line"><a name="l00307"></a><span class="lineno">  307</span>&#160;                            <span class="keyword">const</span> std::shared_ptr&lt;const LinOp&gt; &amp;mtx)</div>
+<div class="line"><a name="l00308"></a><span class="lineno">  308</span>&#160;    {</div>
+<div class="line"><a name="l00309"></a><span class="lineno">  309</span>&#160;        constexpr value_type default_reduce_residual{1e-4};</div>
+<div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160;        <span class="keyword">const</span> <span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> default_max_iters{</div>
+<div class="line"><a name="l00311"></a><span class="lineno">  311</span>&#160;            static_cast&lt;unsigned int&gt;(mtx-&gt;get_size()[0])};</div>
+<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160; </div>
+<div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160;        <span class="keywordflow">return</span> SolverType::build()</div>
+<div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160;            .with_criteria(gko::stop::Iteration::build()</div>
+<div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160;                               .with_max_iters(default_max_iters)</div>
+<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160;                               .on(exec),</div>
+<div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160;                           <a class="code" href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction&lt;&gt;::build</a>()</div>
+<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160;                               .with_reduction_factor(default_reduce_residual)</div>
+<div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;                               .on(exec))</div>
+<div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160;            .on(exec)</div>
+<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160;            -&gt;generate(mtx);</div>
+<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160;    }</div>
+<div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160; </div>
+<div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> SolverType&gt;</div>
+<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160;    <span class="keyword">static</span> xstd::enable_if_t&lt;!has_with_criteria&lt;SolverType&gt;::value,</div>
+<div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160;                             std::unique_ptr&lt;SolverType&gt;&gt;</div>
+<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;    generate_default_solver(<span class="keyword">const</span> std::shared_ptr&lt;const Executor&gt; &amp;exec,</div>
+<div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160;                            <span class="keyword">const</span> std::shared_ptr&lt;const LinOp&gt; &amp;mtx)</div>
+<div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160;    {</div>
+<div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160;        <span class="keywordflow">return</span> SolverType::build().on(exec)-&gt;generate(mtx);</div>
+<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;    }</div>
+<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160; </div>
+<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;    std::shared_ptr&lt;const l_solver_type&gt; l_solver_{};</div>
+<div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160;    std::shared_ptr&lt;const u_solver_type&gt; u_solver_{};</div>
+<div class="line"><a name="l00349"></a><span class="lineno">  349</span>&#160;    <span class="keyword">mutable</span> <span class="keyword">struct </span>cache_struct {</div>
+<div class="line"><a name="l00350"></a><span class="lineno">  350</span>&#160;        cache_struct() = <span class="keywordflow">default</span>;</div>
+<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160;        ~cache_struct() = <span class="keywordflow">default</span>;</div>
+<div class="line"><a name="l00352"></a><span class="lineno">  352</span>&#160;        cache_struct(<span class="keyword">const</span> cache_struct &amp;) {}</div>
+<div class="line"><a name="l00353"></a><span class="lineno">  353</span>&#160;        cache_struct(cache_struct &amp;&amp;) {}</div>
+<div class="line"><a name="l00354"></a><span class="lineno">  354</span>&#160;        cache_struct &amp;operator=(<span class="keyword">const</span> cache_struct &amp;) { <span class="keywordflow">return</span> *<span class="keyword">this</span>; }</div>
+<div class="line"><a name="l00355"></a><span class="lineno">  355</span>&#160;        cache_struct &amp;operator=(cache_struct &amp;&amp;) { <span class="keywordflow">return</span> *<span class="keyword">this</span>; }</div>
+<div class="line"><a name="l00356"></a><span class="lineno">  356</span>&#160;        std::unique_ptr&lt;LinOp&gt; intermediate{};</div>
+<div class="line"><a name="l00357"></a><span class="lineno">  357</span>&#160;    } cache_;</div>
+<div class="line"><a name="l00358"></a><span class="lineno">  358</span>&#160;};</div>
+<div class="line"><a name="l00359"></a><span class="lineno">  359</span>&#160; </div>
+<div class="line"><a name="l00360"></a><span class="lineno">  360</span>&#160; </div>
+<div class="line"><a name="l00361"></a><span class="lineno">  361</span>&#160;}  <span class="comment">// namespace preconditioner</span></div>
+<div class="line"><a name="l00362"></a><span class="lineno">  362</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00363"></a><span class="lineno">  363</span>&#160; </div>
+<div class="line"><a name="l00364"></a><span class="lineno">  364</span>&#160; </div>
+<div class="line"><a name="l00365"></a><span class="lineno">  365</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_PRECONDITIONER_ILU_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="aclassgko_1_1preconditioner_1_1Ilu_1_1Factory_html"><div class="ttname"><a href="classgko_1_1preconditioner_1_1Ilu_1_1Factory.html">gko::preconditioner::Ilu::Factory</a></div><div class="ttdef"><b>Definition:</b> ilu.hpp:143</div></div>
 <div class="ttc" id="aclassgko_1_1LinOp_html"><div class="ttname"><a href="classgko_1_1LinOp.html">gko::LinOp</a></div><div class="ttdef"><b>Definition:</b> lin_op.hpp:134</div></div>
