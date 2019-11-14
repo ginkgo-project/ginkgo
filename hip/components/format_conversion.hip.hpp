@@ -30,64 +30,61 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_BASE_DEVICE_GUARD_HIP_HPP_
-#define GKO_HIP_BASE_DEVICE_GUARD_HIP_HPP_
+#ifndef GKO_HIP_COMPONENTS_FORMAT_CONVERSION_HIP_HPP_
+#define GKO_HIP_COMPONENTS_FORMAT_CONVERSION_HIP_HPP_
 
 
-#include <exception>
+#include <ginkgo/core/base/std_extensions.hpp>
 
 
-#include <hip/hip_runtime.h>
-
-
-#include <ginkgo/core/base/exception_helpers.hpp>
+#include "hip/base/config.hip.hpp"
 
 
 namespace gko {
+namespace kernels {
 namespace hip {
+namespace coo {
+namespace host_kernel {
 
 
 /**
- * This class defines a device guard for the hip functions and the hip module.
- * The guard is used to make sure that the device code is run on the correct
- * hip device, when run with multiple devices. The class records the current
- * device id and uses `hipSetDevice` to set the device id to the one being
- * passed in. After the scope has been exited, the destructor sets the device_id
- * back to the one before entering the scope.
+ * @internal
+ *
+ * It calculates the number of warps used in Coo Spmv depending on the GPU
+ * architecture and the number of stored elements.
  */
-class device_guard {
-public:
-    device_guard(int device_id)
-    {
-        GKO_ASSERT_NO_HIP_ERRORS(hipGetDevice(&original_device_id));
-        GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(device_id));
+template <size_type subwarp_size = config::warp_size>
+__host__ size_type calculate_nwarps(std::shared_ptr<const HipExecutor> exec,
+                                    const size_type nnz)
+{
+    size_type nwarps_in_hip = exec->get_num_multiprocessor() *
+                              exec->get_num_warps_per_sm() * config::warp_size /
+                              subwarp_size;
+#if GINKGO_HIP_PLATFORM_NVCC
+    size_type multiple = 8;
+    if (nnz >= 2e6) {
+        multiple = 128;
+    } else if (nnz >= 2e5) {
+        multiple = 32;
     }
-
-    device_guard(device_guard &other) = delete;
-
-    device_guard &operator=(const device_guard &other) = delete;
-
-    device_guard(device_guard &&other) = delete;
-
-    device_guard const &operator=(device_guard &&other) = delete;
-
-    ~device_guard() noexcept(false)
-    {
-        /* Ignore the error during stack unwinding for this call */
-        if (std::uncaught_exception()) {
-            hipSetDevice(original_device_id);
-        } else {
-            GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(original_device_id));
-        }
+#else
+    size_type multiple = 2;
+    if (nnz >= 1e7) {
+        multiple = 32;
+    } else if (nnz >= 1e5) {
+        multiple = 8;
     }
+#endif  // GINKGO_HIP_PLATFORM_NVCC
+    return std::min(multiple * nwarps_in_hip,
+                    size_type(ceildiv(nnz, config::warp_size)));
+}
 
-private:
-    int original_device_id{};
-};
 
-
+}  // namespace host_kernel
+}  // namespace coo
 }  // namespace hip
+}  // namespace kernels
 }  // namespace gko
 
 
-#endif  // GKO_HIP_BASE_DEVICE_GUARD_HIP_HPP_
+#endif  // GKO_HIP_COMPONENTS_FORMAT_CONVERSION_HIP_HPP_

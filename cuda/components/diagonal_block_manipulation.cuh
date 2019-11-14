@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_COMPONENTS_DIAGONAL_BLOCK_MANIPULATION_CUH_
 
 
+#include "cuda/base/config.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 
@@ -47,7 +48,7 @@ namespace csr {
  * @internal
  *
  * @note assumes that block dimensions are in "standard format":
- *       (subwarp_size, cuda_config::warp_size / subwarp_size, z)
+ *       (subwarp_size, config::warp_size / subwarp_size, z)
  */
 template <
     int max_block_size, int warps_per_block, typename Group, typename ValueType,
@@ -63,7 +64,7 @@ __device__ __forceinline__ void extract_transposed_diag_blocks(
     ValueType *__restrict__ workspace)
 {
     const int tid = threadIdx.y * blockDim.x + threadIdx.x;
-    const auto warp = group::tiled_partition<cuda_config::warp_size>(group);
+    const auto warp = group::tiled_partition<config::warp_size>(group);
     auto bid = static_cast<size_type>(blockIdx.x) * warps_per_block *
                    processed_blocks +
                threadIdx.z * processed_blocks;
@@ -89,7 +90,7 @@ __device__ __forceinline__ void extract_transposed_diag_blocks(
             const auto rstart = row_ptrs[row] + tid;
             const auto rend = row_ptrs[row + 1];
             // use the entire warp to ensure coalesced memory access
-            for (auto j = rstart; j < rend; j += cuda_config::warp_size) {
+            for (auto j = rstart; j < rend; j += config::warp_size) {
                 const auto col = col_idxs[j] - bstart;
                 if (col >= bsize) {
                     break;

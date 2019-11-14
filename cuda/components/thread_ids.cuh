@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_COMPONENTS_THREAD_IDS_CUH_
 
 
+#include "cuda/base/config.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {
@@ -86,8 +89,8 @@ __device__ __forceinline__ size_type get_block_id()
  *         to
  *
  * @note Assumes that block dimensions are in standard format:
- *       `(subwarp_size, cuda_config::warp_size / subwarp_size, block_size /
- *         cuda_config::warp_size)`
+ *       `(subwarp_size, config::warp_size / subwarp_size, block_size /
+ *         config::warp_size)`
  */
 __device__ __forceinline__ size_type get_local_warp_id()
 {
@@ -107,13 +110,13 @@ __device__ __forceinline__ size_type get_local_warp_id()
  *         belongs to
  *
  * @note Assumes that block dimensions are in standard format:
- *       `(subwarp_size, cuda_config::warp_size / subwarp_size, block_size /
- *         cuda_config::warp_size)`
+ *       `(subwarp_size, config::warp_size / subwarp_size, block_size /
+ *         config::warp_size)`
  */
 template <int subwarp_size>
 __device__ __forceinline__ size_type get_local_subwarp_id()
 {
-    constexpr auto subwarps_per_warp = cuda_config::warp_size / subwarp_size;
+    constexpr auto subwarps_per_warp = config::warp_size / subwarp_size;
     return get_local_warp_id() * subwarps_per_warp + threadIdx.y;
 }
 
@@ -129,8 +132,8 @@ __device__ __forceinline__ size_type get_local_subwarp_id()
  * @return the local ID of the thread (relative to the block)
  *
  * @note Assumes that block dimensions are in standard format:
- *       `(subwarp_size, cuda_config::warp_size / subwarp_size, block_size /
- *         cuda_config::warp_size)`
+ *       `(subwarp_size, config::warp_size / subwarp_size, block_size /
+ *         config::warp_size)`
  */
 template <int subwarp_size>
 __device__ __forceinline__ size_type get_local_thread_id()
@@ -150,8 +153,8 @@ __device__ __forceinline__ size_type get_local_thread_id()
  *
  * @note Assumes that block dimensions and grid dimensions are in standard
  *       format:
- *       `(subwarp_size, cuda_config::warp_size / subwarp_size, block_size /
- *         cuda_config::warp_size)` and
+ *       `(subwarp_size, config::warp_size / subwarp_size, block_size /
+ *         config::warp_size)` and
  *       `(block_group_size, first_grid_dimension, second grid_dimension)`,
  *       respectively.
  */
@@ -173,15 +176,15 @@ __device__ __forceinline__ size_type get_warp_id()
  *
  * @note Assumes that block dimensions and grid dimensions are in standard
  *       format:
- *       `(subwarp_size, cuda_config::warp_size / subwarp_size, block_size /
- *         cuda_config::warp_size)` and
+ *       `(subwarp_size, config::warp_size / subwarp_size, block_size /
+ *         config::warp_size)` and
  *       `(block_group_size, first_grid_dimension, second grid_dimension)`,
  *       respectively.
  */
 template <int subwarp_size, int warps_per_block>
 __device__ __forceinline__ size_type get_subwarp_id()
 {
-    constexpr auto subwarps_per_warp = cuda_config::warp_size / subwarp_size;
+    constexpr auto subwarps_per_warp = config::warp_size / subwarp_size;
     return get_warp_id<warps_per_block>() * subwarps_per_warp + threadIdx.y;
 }
 
@@ -197,8 +200,8 @@ __device__ __forceinline__ size_type get_subwarp_id()
  *
  * @note Assumes that block dimensions and grid dimensions are in standard
  *       format:
- *       `(subwarp_size, cuda_config::warp_size / subwarp_size, block_size /
- *         cuda_config::warp_size)` and
+ *       `(subwarp_size, config::warp_size / subwarp_size, block_size /
+ *         config::warp_size)` and
  *       `(block_group_size, first_grid_dimension, second grid_dimension)`,
  *       respectively.
  */

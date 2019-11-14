@@ -47,6 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef HAS_CUDA
 #include "cuda_linops.hpp"
 #endif  // HAS_CUDA
+#ifdef HAS_HIP
+#include "hip_linops.hip.hpp"
+#endif  // HAS_HIP
 
 
 namespace formats {
@@ -60,6 +63,9 @@ std::string available_format =
     ", cusp_csr, cusp_csrex, cusp_csrmp, cusp_csrmm, cusp_coo, cusp_ell, "
     "cusp_hybrid"
 #endif  // HAS_CUDA
+#ifdef HAS_HIP
+    ", hipsp_csr, hipsp_csrmm, hipsp_coo, hipsp_ell, hipsp_hybrid"
+#endif  // HAS_HIP
     ".\n";
 
 std::string format_description =
@@ -92,6 +98,15 @@ std::string format_description =
     "cusp_csrmp: benchmark CuSPARSE with the cusparseXcsrmv_mp function.\n"
     "cusp_csrmm: benchmark CuSPARSE with the cusparseXcsrmv_mm function."
 #endif  // HAS_CUDA
+#ifdef HAS_HIP
+    "hipsp_csr: benchmark HipSPARSE with the hipsparseXcsrmv function.\n"
+    "hipsp_csrmm: benchmark HipSPARSE with the hipsparseXcsrmv_mm function.\n"
+    "hipsp_hybrid: benchmark HipSPARSE spmv with hipsparseXhybmv and an "
+    "automatic partition.\n"
+    "hipsp_coo: use hipsparseXhybmv with a HIPSPARSE_HYB_PARTITION_USER "
+    "partition.\n"
+    "hipsp_ell: use hipsparseXhybmv with HIPSPARSE_HYB_PARTITION_MAX partition."
+#endif  // HAS_HIP
     ;
 
 std::string format_command =
@@ -167,6 +182,13 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"cusp_coo", read_matrix_from_data<cusp_coo>},
         {"cusp_ell", read_matrix_from_data<cusp_ell>},
 #endif  // HAS_CUDA
+#ifdef HAS_HIP
+        {"hipsp_csr", read_matrix_from_data<hipsp_csr>},
+        {"hipsp_csrmm", read_matrix_from_data<hipsp_csrmm>},
+        {"hipsp_hybrid", read_matrix_from_data<hipsp_hybrid>},
+        {"hipsp_coo", read_matrix_from_data<hipsp_coo>},
+        {"hipsp_ell", read_matrix_from_data<hipsp_ell>},
+#endif  // HAS_HIP
         {"hybrid", read_matrix_from_data<hybrid>},
         {"hybrid0",
          READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0))},

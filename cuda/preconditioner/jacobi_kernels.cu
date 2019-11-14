@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/extended_float.hpp"
+#include "cuda/base/config.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
@@ -63,7 +64,7 @@ constexpr int default_grid_size = 32 * 32 * 128;
 
 template <int warps_per_block>
 __global__
-__launch_bounds__(warps_per_block *cuda_config::warp_size) void duplicate_array(
+__launch_bounds__(warps_per_block *config::warp_size) void duplicate_array(
     const precision_reduction *__restrict__ source, size_type source_size,
     precision_reduction *__restrict__ dest, size_type dest_size)
 {
@@ -84,10 +85,10 @@ __global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
                                       bool *__restrict__ matching_next_row)
 {
     const auto global_tid = blockDim.x * blockIdx.x + threadIdx.x;
-    const auto local_tid = threadIdx.x % cuda_config::warp_size;
-    const auto warp_id = global_tid / cuda_config::warp_size;
-    const auto warp = group::tiled_partition<cuda_config::warp_size>(
-        group::this_thread_block());
+    const auto local_tid = threadIdx.x % config::warp_size;
+    const auto warp_id = global_tid / config::warp_size;
+    const auto warp =
+        group::tiled_partition<config::warp_size>(group::this_thread_block());
 
     if (warp_id >= num_rows - 1) {
         return;
@@ -104,9 +105,9 @@ __global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
         matching_next_row[warp_id] = false;
         return;
     }
-    size_type steps = ceildiv(nz_this_row, cuda_config::warp_size);
+    size_type steps = ceildiv(nz_this_row, config::warp_size);
     for (size_type i = 0; i < steps; i++) {
-        auto j = local_tid + i * cuda_config::warp_size;
+        auto j = local_tid + i * config::warp_size;
         auto prev_col = (curr_row_start + j < next_row_start)
                             ? col_idx[curr_row_start + j]
                             : 0;
@@ -161,8 +162,7 @@ size_type find_natural_blocks(std::shared_ptr<const CudaExecutor> exec,
 
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(mtx->get_size()[0] * cuda_config::warp_size, block_size.x), 1,
-        1);
+        ceildiv(mtx->get_size()[0] * config::warp_size, block_size.x), 1, 1);
     compare_adjacent_rows<<<grid_size, block_size, 0, 0>>>(
         mtx->get_size()[0], max_block_size, mtx->get_const_row_ptrs(),
         mtx->get_const_col_idxs(), matching_next_row.get_data());
@@ -222,7 +222,7 @@ void initialize_precisions(std::shared_ptr<const CudaExecutor> exec,
                            const Array<precision_reduction> &source,
                            Array<precision_reduction> &precisions)
 {
-    const auto block_size = default_block_size * cuda_config::warp_size;
+    const auto block_size = default_block_size * config::warp_size;
     const auto grid_size = min(
         default_grid_size,
         static_cast<int32>(ceildiv(precisions.get_num_elems(), block_size)));

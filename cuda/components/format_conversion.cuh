@@ -89,24 +89,24 @@ namespace host_kernel {
 /**
  * @internal
  *
- * It calculates the number of warps used in Coo Spmv by GPU architecture and
- * the number of stored elements.
+ * It calculates the number of warps used in Coo Spmv depending on the GPU
+ * architecture and the number of stored elements.
  */
-template <size_type subwarp_size = cuda_config::warp_size>
+template <size_type subwarp_size = config::warp_size>
 __host__ size_type calculate_nwarps(std::shared_ptr<const CudaExecutor> exec,
                                     const size_type nnz)
 {
-    size_type warps_per_sm = exec->get_num_cores_per_sm() / subwarp_size;
+    size_type warps_per_sm =
+        exec->get_num_warps_per_sm() * config::warp_size / subwarp_size;
     size_type nwarps_in_cuda = exec->get_num_multiprocessor() * warps_per_sm;
     size_type multiple = 8;
-    if (nnz >= 2000000) {
+    if (nnz >= 2e6) {
         multiple = 128;
-    } else if (nnz >= 200000) {
+    } else if (nnz >= 2e5) {
         multiple = 32;
     }
-    return std::min(
-        multiple * nwarps_in_cuda,
-        static_cast<size_type>(ceildiv(nnz, cuda_config::warp_size)));
+    return std::min(multiple * nwarps_in_cuda,
+                    size_type(ceildiv(nnz, config::warp_size)));
 }
 
 

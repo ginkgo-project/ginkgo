@@ -30,64 +30,34 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_BASE_DEVICE_GUARD_HIP_HPP_
-#define GKO_HIP_BASE_DEVICE_GUARD_HIP_HPP_
-
-
-#include <exception>
-
-
-#include <hip/hip_runtime.h>
-
-
-#include <ginkgo/core/base/exception_helpers.hpp>
-
-
-namespace gko {
-namespace hip {
-
 
 /**
- * This class defines a device guard for the hip functions and the hip module.
- * The guard is used to make sure that the device code is run on the correct
- * hip device, when run with multiple devices. The class records the current
- * device id and uses `hipSetDevice` to set the device id to the one being
- * passed in. After the scope has been exited, the destructor sets the device_id
- * back to the one before entering the scope.
+ * @internal
+ *
+ * Compute a segement scan using add operation (+) of a subwarp. Each segment
+ * performs suffix sum. Works on the source array and returns whether the thread
+ * is the first element of its segment with same `ind`.
  */
-class device_guard {
-public:
-    device_guard(int device_id)
-    {
-        GKO_ASSERT_NO_HIP_ERRORS(hipGetDevice(&original_device_id));
-        GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(device_id));
-    }
-
-    device_guard(device_guard &other) = delete;
-
-    device_guard &operator=(const device_guard &other) = delete;
-
-    device_guard(device_guard &&other) = delete;
-
-    device_guard const &operator=(device_guard &&other) = delete;
-
-    ~device_guard() noexcept(false)
-    {
-        /* Ignore the error during stack unwinding for this call */
-        if (std::uncaught_exception()) {
-            hipSetDevice(original_device_id);
-        } else {
-            GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(original_device_id));
+template <size_type subwarp_size, typename ValueType, typename IndexType>
+__device__ __forceinline__ bool segment_scan(
+    const group::thread_block_tile<subwarp_size> &group, const IndexType ind,
+    ValueType *__restrict__ val)
+{
+    bool head = true;
+#pragma unroll
+    for (int i = 1; i < subwarp_size; i <<= 1) {
+        const IndexType add_ind = group.shfl_up(ind, i);
+        ValueType add_val = zero<ValueType>();
+        if (add_ind == ind && threadIdx.x >= i) {
+            add_val = *val;
+            if (i == 1) {
+                head = false;
+            }
+        }
+        add_val = group.shfl_down(add_val, i);
+        if (threadIdx.x < subwarp_size - i) {
+            *val += add_val;
         }
     }
-
-private:
-    int original_device_id{};
-};
-
-
-}  // namespace hip
-}  // namespace gko
-
-
-#endif  // GKO_HIP_BASE_DEVICE_GUARD_HIP_HPP_
+    return head;
+}

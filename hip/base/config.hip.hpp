@@ -30,64 +30,57 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_BASE_DEVICE_GUARD_HIP_HPP_
-#define GKO_HIP_BASE_DEVICE_GUARD_HIP_HPP_
+#ifndef GKO_HIP_BASE_CONFIG_HIP_HPP_
+#define GKO_HIP_BASE_CONFIG_HIP_HPP_
 
 
-#include <exception>
+#include <hip/device_functions.h>
 
 
-#include <hip/hip_runtime.h>
-
-
-#include <ginkgo/core/base/exception_helpers.hpp>
+#include "hip/base/math.hip.hpp"
 
 
 namespace gko {
+namespace kernels {
 namespace hip {
 
 
-/**
- * This class defines a device guard for the hip functions and the hip module.
- * The guard is used to make sure that the device code is run on the correct
- * hip device, when run with multiple devices. The class records the current
- * device id and uses `hipSetDevice` to set the device id to the one being
- * passed in. After the scope has been exited, the destructor sets the device_id
- * back to the one before entering the scope.
- */
-class device_guard {
-public:
-    device_guard(int device_id)
-    {
-        GKO_ASSERT_NO_HIP_ERRORS(hipGetDevice(&original_device_id));
-        GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(device_id));
-    }
+struct config {
+    /**
+     * The number of threads within a HIP warp. Here, we use the definition from
+     * `device_functions.h`.
+     */
+#if GINKGO_HIP_PLATFORM_HCC
+    static constexpr uint32 warp_size = warpSize;
+#else  // GINKGO_HIP_PLATFORM_NVCC
+    static constexpr uint32 warp_size = 32;
+#endif
 
-    device_guard(device_guard &other) = delete;
+    /**
+     * The bitmask of the entire warp.
+     */
+#if GINKGO_HIP_PLATFORM_HCC
+    static constexpr uint64 full_lane_mask = ~zero<uint64>();
+#else  // GINKGO_HIP_PLATFORM_NVCC
+    static constexpr uint32 full_lane_mask = ~zero<uint32>();
+#endif
 
-    device_guard &operator=(const device_guard &other) = delete;
+    /**
+     * The maximal number of threads allowed in a HIP warp.
+     */
+    static constexpr uint32 max_block_size = 1024;
 
-    device_guard(device_guard &&other) = delete;
-
-    device_guard const &operator=(device_guard &&other) = delete;
-
-    ~device_guard() noexcept(false)
-    {
-        /* Ignore the error during stack unwinding for this call */
-        if (std::uncaught_exception()) {
-            hipSetDevice(original_device_id);
-        } else {
-            GKO_ASSERT_NO_HIP_ERRORS(hipSetDevice(original_device_id));
-        }
-    }
-
-private:
-    int original_device_id{};
+    /**
+     * The minimal amount of warps that need to be scheduled for each block
+     * to maximize GPU occupancy.
+     */
+    static constexpr uint32 min_warps_per_block = 4;
 };
 
 
 }  // namespace hip
+}  // namespace kernels
 }  // namespace gko
 
 
-#endif  // GKO_HIP_BASE_DEVICE_GUARD_HIP_HPP_
+#endif  // GKO_HIP_BASE_CONFIG_HIP_HPP_
