@@ -95,6 +95,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace reference
 
 
+namespace hip {
+namespace metis_fill_reduce {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace metis_fill_reduce
+}  // namespace hip
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 

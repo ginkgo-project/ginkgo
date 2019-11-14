@@ -103,6 +103,7 @@ set(GINKGO_HIP_SOURCES
     matrix/sellp_kernels.hip.cpp
     matrix/sparsity_csr_kernels.hip.cpp
     preconditioner/jacobi_kernels.hip.cpp
+    reorder/metis_fill_reduce_kernels.hip.cpp
     solver/bicgstab_kernels.hip.cpp
     solver/cg_kernels.hip.cpp
     solver/cgs_kernels.hip.cpp
@@ -172,6 +173,10 @@ target_include_directories(ginkgo_hip
         ${HIPBLAS_INCLUDE_DIRS}
         ${HIPSPARSE_INCLUDE_DIRS}
         $<BUILD_INTERFACE:${ROCPRIM_INCLUDE_DIRS}>)
+
+if (GINKGO_HAVE_METIS)
+  target_link_libraries(ginkgo_hip PRIVATE METIS::METIS)
+endif()
 
 ginkgo_compile_features(ginkgo_hip)
 ginkgo_default_includes(ginkgo_hip)

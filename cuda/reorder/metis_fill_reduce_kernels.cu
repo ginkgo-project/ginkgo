@@ -42,18 +42,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
-#include "cuda/base/math.hpp"
-#include "cuda/base/types.hpp"
-#include "cuda/components/prefix_sum.cuh"
-
-
 namespace gko {
 namespace kernels {
 namespace cuda {
 /**
- * @brief The parallel ilu factorization namespace.
+ * @brief The Metis fill reduce ordering namespace
  *
- * @ingroup factor
+ * @ingroup reorder
  */
 namespace metis_fill_reduce {
 

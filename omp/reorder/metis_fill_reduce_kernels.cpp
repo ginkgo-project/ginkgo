@@ -87,11 +87,8 @@ void get_permutation(
 }
 #else
 {
-    std::vector<IndexType> tmp(num_vertices, 0);
-    std::iota(tmp.begin(), tmp.end(), 0);
-    for (auto i = 0; i < num_vertices; ++i) {
-        permutation_mat->get_permutation()[i] = tmp[i];
-    }
+    std::iota(permutation_mat->get_permutation(),
+              permutation_mat->get_permutation() + num_vertices, 0);
 }
 #endif
 

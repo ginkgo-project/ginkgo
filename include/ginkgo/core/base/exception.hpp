@@ -200,9 +200,9 @@ private:
     static std::string get_error(int64 error_code)
     {
 #if GKO_HAVE_METIS
-#define GKO_REGISTER_METIS_ERROR(error_name)            \
-    if (error_code == static_cast<int64>(error_name)) { \
-        return #error_name;                             \
+#define GKO_REGISTER_METIS_ERROR(error_name) \
+    if (error_code == int64(error_name)) {   \
+        return #error_name;                  \
     }
         GKO_REGISTER_METIS_ERROR(METIS_ERROR_INPUT);
         GKO_REGISTER_METIS_ERROR(METIS_ERROR_MEMORY);

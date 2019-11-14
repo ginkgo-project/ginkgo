@@ -31,7 +31,6 @@ target_compile_options(ginkgo_reference PRIVATE "${GINKGO_COMPILER_FLAGS}")
 
 if (GINKGO_HAVE_METIS)
   target_link_libraries(ginkgo_reference PRIVATE METIS::METIS)
-  target_include_directories(ginkgo_reference PRIVATE ${METIS_INCLUDE_DIR})
 endif()
 
 if(GINKGO_BUILD_TESTS)
