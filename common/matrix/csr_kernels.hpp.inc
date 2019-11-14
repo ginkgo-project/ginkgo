@@ -239,7 +239,7 @@ __forceinline__ __device__ void merge_path_search(
     auto x_min = max(diagonal - b_len, zero<IndexType>());
     auto x_max = min(diagonal, a_len);
     while (x_min < x_max) {
-        auto pivot = (x_min + x_max) >> 1;
+        auto pivot = x_min + (x_max - x_min) / 2;
         if (a[pivot] <= offset_b + diagonal - pivot - 1) {
             x_min = pivot + 1;
         } else {
