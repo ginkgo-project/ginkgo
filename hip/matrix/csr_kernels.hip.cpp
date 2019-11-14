@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hip/hip_runtime.h>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -243,6 +244,8 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(b->get_const_values()),
                 as_hip_type(b->get_stride()), as_hip_type(c->get_values()),
                 as_hip_type(c->get_stride()));
+        } else {
+            GKO_NOT_SUPPORTED(nwarps);
         }
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
@@ -323,6 +326,8 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
                 as_hip_type(b->get_const_values()),
                 as_hip_type(b->get_stride()), as_hip_type(c->get_values()),
                 as_hip_type(c->get_stride()));
+        } else {
+            GKO_NOT_SUPPORTED(nwarps);
         }
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
@@ -658,6 +663,50 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void row_permute(std::shared_ptr<const HipExecutor> exec,
+                 const Array<IndexType> *permutation_indices,
+                 matrix::Csr<ValueType, IndexType> *row_permuted,
+                 const matrix::Csr<ValueType, IndexType> *orig)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void column_permute(std::shared_ptr<const HipExecutor> exec,
+                    const Array<IndexType> *permutation_indices,
+                    matrix::Csr<ValueType, IndexType> *column_permuted,
+                    const matrix::Csr<ValueType, IndexType> *orig)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_COLUMN_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inverse_row_permute(std::shared_ptr<const HipExecutor> exec,
+                         const Array<IndexType> *permutation_indices,
+                         matrix::Csr<ValueType, IndexType> *row_permuted,
+                         const matrix::Csr<ValueType, IndexType> *orig)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inverse_column_permute(std::shared_ptr<const HipExecutor> exec,
+                            const Array<IndexType> *permutation_indices,
+                            matrix::Csr<ValueType, IndexType> *column_permuted,
+                            const matrix::Csr<ValueType, IndexType> *orig)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void calculate_max_nnz_per_row(std::shared_ptr<const HipExecutor> exec,
                                const matrix::Csr<ValueType, IndexType> *source,
                                size_type *result)
@@ -752,50 +801,6 @@ void convert_to_hybrid(std::shared_ptr<const HipExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void row_permute(std::shared_ptr<const HipExecutor> exec,
-                 const Array<IndexType> *permutation_indices,
-                 matrix::Csr<ValueType, IndexType> *row_permuted,
-                 const matrix::Csr<ValueType, IndexType> *orig)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void column_permute(std::shared_ptr<const HipExecutor> exec,
-                    const Array<IndexType> *permutation_indices,
-                    matrix::Csr<ValueType, IndexType> *column_permuted,
-                    const matrix::Csr<ValueType, IndexType> *orig)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_COLUMN_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inverse_row_permute(std::shared_ptr<const HipExecutor> exec,
-                         const Array<IndexType> *permutation_indices,
-                         matrix::Csr<ValueType, IndexType> *row_permuted,
-                         const matrix::Csr<ValueType, IndexType> *orig)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inverse_column_permute(std::shared_ptr<const HipExecutor> exec,
-                            const Array<IndexType> *permutation_indices,
-                            matrix::Csr<ValueType, IndexType> *column_permuted,
-                            const matrix::Csr<ValueType, IndexType> *orig)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

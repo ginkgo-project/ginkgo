@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_COMPONENTS_THREAD_IDS_HIP_HPP_
 
 
+#include "hip/base/config.hip.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace hip {

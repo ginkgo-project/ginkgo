@@ -503,47 +503,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void row_permute(std::shared_ptr<const HipExecutor> exec,
-                 const Array<IndexType> *permutation_indices,
-                 matrix::Dense<ValueType> *row_permuted,
-                 const matrix::Dense<ValueType> *orig) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ROW_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void column_permute(std::shared_ptr<const HipExecutor> exec,
-                    const Array<IndexType> *permutation_indices,
-                    matrix::Dense<ValueType> *column_permuted,
-                    const matrix::Dense<ValueType> *orig) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_COLUMN_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inverse_row_permute(std::shared_ptr<const HipExecutor> exec,
-                         const Array<IndexType> *permutation_indices,
-                         matrix::Dense<ValueType> *row_permuted,
-                         const matrix::Dense<ValueType> *orig)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_INVERSE_ROW_PERMUTE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void inverse_column_permute(std::shared_ptr<const HipExecutor> exec,
-                            const Array<IndexType> *permutation_indices,
-                            matrix::Dense<ValueType> *column_permuted,
-                            const matrix::Dense<ValueType> *orig)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL);
-
-
 template <typename ValueType>
 void calculate_nonzeros_per_row(std::shared_ptr<const HipExecutor> exec,
                                 const matrix::Dense<ValueType> *source,
@@ -653,11 +612,11 @@ void conj_transpose(std::shared_ptr<const HipExecutor> exec,
             hipblas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
-            hipblas::geam(
-                handle, HIPBLAS_OP_C, HIPBLAS_OP_N, orig->get_size()[0],
-                orig->get_size()[1], &alpha, orig->get_const_values(),
-                orig->get_stride(), &beta, static_cast<ValueType *>(nullptr),
-                trans->get_size()[1], trans->get_values(), trans->get_stride());
+            hipblas::geam(handle, HIPBLAS_OP_C, HIPBLAS_OP_N,
+                          orig->get_size()[0], orig->get_size()[1], &alpha,
+                          orig->get_const_values(), orig->get_stride(), &beta,
+                          orig->get_const_values(), trans->get_size()[1],
+                          trans->get_values(), trans->get_stride());
         }
     } else {
         GKO_NOT_IMPLEMENTED;
@@ -665,6 +624,47 @@ void conj_transpose(std::shared_ptr<const HipExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONJ_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void row_permute(std::shared_ptr<const HipExecutor> exec,
+                 const Array<IndexType> *permutation_indices,
+                 matrix::Dense<ValueType> *row_permuted,
+                 const matrix::Dense<ValueType> *orig) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ROW_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void column_permute(std::shared_ptr<const HipExecutor> exec,
+                    const Array<IndexType> *permutation_indices,
+                    matrix::Dense<ValueType> *column_permuted,
+                    const matrix::Dense<ValueType> *orig) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COLUMN_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inverse_row_permute(std::shared_ptr<const HipExecutor> exec,
+                         const Array<IndexType> *permutation_indices,
+                         matrix::Dense<ValueType> *row_permuted,
+                         const matrix::Dense<ValueType> *orig)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_INVERSE_ROW_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inverse_column_permute(std::shared_ptr<const HipExecutor> exec,
+                            const Array<IndexType> *permutation_indices,
+                            matrix::Dense<ValueType> *column_permuted,
+                            const matrix::Dense<ValueType> *orig)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL);
 
 
 }  // namespace dense
