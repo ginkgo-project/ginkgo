@@ -62,16 +62,16 @@ __host__ size_type calculate_nwarps(std::shared_ptr<const HipExecutor> exec,
                               subwarp_size;
 #if GINKGO_HIP_PLATFORM_NVCC
     size_type multiple = 8;
-    if (nnz >= 2000000) {
+    if (nnz >= 2e6) {
         multiple = 128;
-    } else if (nnz >= 200000) {
+    } else if (nnz >= 2e5) {
         multiple = 32;
     }
 #else
     size_type multiple = 2;
-    if (nnz >= 10000000) {
+    if (nnz >= 1e7) {
         multiple = 32;
-    } else if (nnz >= 100000) {
+    } else if (nnz >= 1e5) {
         multiple = 8;
     }
 #endif  // GINKGO_HIP_PLATFORM_NVCC
