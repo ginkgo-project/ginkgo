@@ -67,6 +67,8 @@ std::string CublasError::get_error(int64 error_code)
     GKO_REGISTER_CUBLAS_ERROR(CUBLAS_STATUS_NOT_SUPPORTED);
     GKO_REGISTER_CUBLAS_ERROR(CUBLAS_STATUS_LICENSE_ERROR);
     return "Unknown error";
+
+#undef GKO_REGISTER_CUBLAS_ERROR
 }
 
 
@@ -86,6 +88,8 @@ std::string CusparseError::get_error(int64 error_code)
     GKO_REGISTER_CUSPARSE_ERROR(CUSPARSE_STATUS_INTERNAL_ERROR);
     GKO_REGISTER_CUSPARSE_ERROR(CUSPARSE_STATUS_MATRIX_TYPE_NOT_SUPPORTED);
     return "Unknown error";
+
+#undef GKO_REGISTER_CUSPARSE_ERROR
 }
 
 

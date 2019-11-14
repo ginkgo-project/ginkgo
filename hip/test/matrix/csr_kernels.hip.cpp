@@ -226,7 +226,7 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithClassical)
 
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomatical)
 {
-    set_up_apply_data(std::make_shared<Mtx::automatical>(32));
+    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());

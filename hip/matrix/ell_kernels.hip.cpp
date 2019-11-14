@@ -154,9 +154,9 @@ std::array<int, 3> compute_subwarp_size_and_atomicity(
 
     const auto nrows = a->get_size()[0];
     const auto ell_ncols = a->get_num_stored_elements_per_row();
-    // TODO: check the warp number
-    const auto nwarps =
-        exec->get_num_multiprocessor() * 4 * num_threads_per_core;
+    // TODO: num_threads_per_core should be tuned for AMD gpu
+    const auto nwarps = exec->get_num_warps_per_sm() *
+                        exec->get_num_multiprocessor() * num_threads_per_core;
 
     // Use multithreads to perform the reduction on each row when the matrix is
     // wide.

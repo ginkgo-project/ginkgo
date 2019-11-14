@@ -299,6 +299,8 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(b->get_const_values()),
                 as_cuda_type(b->get_stride()), as_cuda_type(c->get_values()),
                 as_cuda_type(c->get_stride()));
+        } else {
+            GKO_NOT_SUPPORTED(nwarps);
         }
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
@@ -540,15 +542,13 @@ void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
     grid_dim = ceildiv(slice_num, default_block_size);
     auto block_results = Array<size_type>(exec, grid_dim);
 
-    kernel::reduce_total_cols<<<grid_dim, default_block_size,
-                                default_block_size * sizeof(size_type)>>>(
+    kernel::reduce_total_cols<<<grid_dim, default_block_size>>>(
         slice_num, as_cuda_type(max_nnz_per_slice.get_const_data()),
         as_cuda_type(block_results.get_data()));
 
     auto d_result = Array<size_type>(exec, 1);
 
-    kernel::reduce_total_cols<<<1, default_block_size,
-                                default_block_size * sizeof(size_type)>>>(
+    kernel::reduce_total_cols<<<1, default_block_size>>>(
         grid_dim, as_cuda_type(block_results.get_const_data()),
         as_cuda_type(d_result.get_data()));
 
@@ -584,7 +584,6 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
         GKO_NOT_IMPLEMENTED;
     }
 }
-
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 

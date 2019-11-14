@@ -27,6 +27,8 @@ REG="${REG};s/cuda/hip/g;s/Cuda/Hip/g;s/CUDA/HIP/g"
 REG="${REG};s/cublas/hipblas/g;s/Cublas/Hipblas/g;s/CUBLAS/HIPBLAS/g"
 # cusparse -> hipsparse
 REG="${REG};s/cusparse/hipsparse/g;s/Cusparse/Hipsparse/g;s/CUSPARSE/HIPSPARSE/g"
+# culibs -> hiplibs
+REG="${REG};s/culibs/hiplibs/g"
 # header definition
 REG="${REG};s/(CUH_|HPP_)$/HIP_HPP_/g"
 

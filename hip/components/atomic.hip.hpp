@@ -34,9 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_COMPONENTS_ATOMIC_HIP_HPP_
 
 
-#include <ginkgo/core/base/std_extensions.hpp>
-
-
 namespace gko {
 namespace kernels {
 namespace hip {

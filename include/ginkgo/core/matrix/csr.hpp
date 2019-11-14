@@ -248,18 +248,18 @@ public:
         {
             if (warp_size_ > 0) {
                 int multiple = 8;
-                if (nnz >= 2000000) {
+                if (nnz >= 2e6) {
                     multiple = 128;
-                } else if (nnz >= 200000) {
+                } else if (nnz >= 2e5) {
                     multiple = 32;
                 }
 
 #if GINKGO_HIP_PLATFORM_HCC
                 if (!cuda_strategy_) {
                     multiple = 8;
-                    if (nnz >= 10000000) {
+                    if (nnz >= 1e7) {
                         multiple = 64;
-                    } else if (nnz >= 1000000) {
+                    } else if (nnz >= 1e6) {
                         multiple = 16;
                     }
                 }
@@ -308,6 +308,7 @@ public:
             // if the number of stored elements is larger than 1e6 or
             // the maximum number of stored elements per row is larger than
             // 64, use load_balance otherwise use classical
+            // TODO: need to be tuned for AMD gpu.
             auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
             const bool is_mtx_on_host{host_mtx_exec ==
                                       mtx_row_ptrs.get_executor()};
