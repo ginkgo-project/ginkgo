@@ -214,7 +214,7 @@ protected:
             l_factor = comp_cast->get_operators()[0];
             u_factor = comp_cast->get_operators()[1];
         } else {
-            throw GKO_NOT_SUPPORTED(comp_cast);
+            GKO_NOT_SUPPORTED(comp_cast);
         }
         GKO_ASSERT_EQUAL_DIMENSIONS(l_factor, u_factor);
 
@@ -276,7 +276,8 @@ protected:
      *
      */
     template <typename SolverType, typename = void>
-    struct has_with_criteria : std::false_type {};
+    struct has_with_criteria : std::false_type {
+    };
 
     /**
      * @copydoc has_with_criteria
@@ -290,7 +291,8 @@ protected:
         SolverType,
         xstd::void_t<decltype(std::declval<factory_type_t<SolverType>>()
                                   .with_criteria(with_criteria_param_type()))>>
-        : std::true_type {};
+        : std::true_type {
+    };
 
 
     /**

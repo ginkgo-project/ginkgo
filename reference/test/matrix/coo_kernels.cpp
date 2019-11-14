@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/coo_kernels.hpp"
 
 
+#include <memory>
+
+
 #include <gtest/gtest.h>
 
 
@@ -90,21 +93,40 @@ protected:
 
 TEST_F(Coo, ConvertsToCsr)
 {
-    auto csr_mtx = gko::matrix::Csr<>::create(mtx->get_executor());
+    auto csr_s_classical = std::make_shared<gko::matrix::Csr<>::classical>();
+    auto csr_s_merge = std::make_shared<gko::matrix::Csr<>::merge_path>();
+    auto csr_mtx_c =
+        gko::matrix::Csr<>::create(mtx->get_executor(), csr_s_classical);
+    auto csr_mtx_m =
+        gko::matrix::Csr<>::create(mtx->get_executor(), csr_s_merge);
 
-    mtx->convert_to(csr_mtx.get());
+    mtx->convert_to(csr_mtx_c.get());
+    mtx->convert_to(csr_mtx_m.get());
 
-    assert_equal_to_mtx_in_csr_format(csr_mtx.get());
+    assert_equal_to_mtx_in_csr_format(csr_mtx_c.get());
+    assert_equal_to_mtx_in_csr_format(csr_mtx_m.get());
+    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
+    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
 }
 
 
 TEST_F(Coo, MovesToCsr)
 {
-    auto csr_mtx = gko::matrix::Csr<>::create(mtx->get_executor());
+    auto csr_s_classical = std::make_shared<gko::matrix::Csr<>::classical>();
+    auto csr_s_merge = std::make_shared<gko::matrix::Csr<>::merge_path>();
+    auto csr_mtx_c =
+        gko::matrix::Csr<>::create(mtx->get_executor(), csr_s_classical);
+    auto csr_mtx_m =
+        gko::matrix::Csr<>::create(mtx->get_executor(), csr_s_merge);
+    auto mtx_clone = mtx->clone();
 
-    mtx->move_to(csr_mtx.get());
+    mtx->move_to(csr_mtx_c.get());
+    mtx_clone->move_to(csr_mtx_m.get());
 
-    assert_equal_to_mtx_in_csr_format(csr_mtx.get());
+    assert_equal_to_mtx_in_csr_format(csr_mtx_c.get());
+    assert_equal_to_mtx_in_csr_format(csr_mtx_m.get());
+    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
+    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
 }
 
 

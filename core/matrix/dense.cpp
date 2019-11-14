@@ -113,12 +113,21 @@ inline void conversion_helper(Csr<ValueType, IndexType> *result,
 {
     auto exec = source->get_executor();
 
-    size_type num_stored_nonzeros = 0;
-    exec->run(dense::make_count_nonzeros(source, &num_stored_nonzeros));
-    auto tmp = Csr<ValueType, IndexType>::create(
-        exec, source->get_size(), num_stored_nonzeros, result->get_strategy());
-    exec->run(op(tmp.get(), source));
-    tmp->move_to(result);
+    if (source->get_size()) {
+        size_type num_stored_nonzeros = 0;
+        exec->run(dense::make_count_nonzeros(source, &num_stored_nonzeros));
+        auto tmp = Csr<ValueType, IndexType>::create(exec, source->get_size(),
+                                                     num_stored_nonzeros,
+                                                     result->get_strategy());
+        exec->run(op(tmp.get(), source));
+        tmp->move_to(result);
+    }
+    // If source is empty, there is no need to copy data or to call kernels
+    else {
+        auto tmp =
+            Csr<ValueType, IndexType>::create(exec, result->get_strategy());
+        tmp->move_to(result);
+    }
 }
 
 

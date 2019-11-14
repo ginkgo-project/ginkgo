@@ -135,10 +135,11 @@ void Hybrid<ValueType, IndexType>::convert_to(
     size_type num_stored_elements = 0;
     exec->run(hybrid::make_count_nonzeros(this, &num_stored_elements));
 
-    auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size(),
-                                                 num_stored_elements);
+    auto tmp = Csr<ValueType, IndexType>::create(
+        exec, this->get_size(), num_stored_elements, result->get_strategy());
     exec->run(hybrid::make_convert_to_csr(tmp.get(), this));
 
+    tmp->make_srow();
     tmp->move_to(result);
 }
 
@@ -161,8 +162,9 @@ void Hybrid<ValueType, IndexType>::read(const mat_data &data)
     get_each_row_nnz(data, row_nnz);
     strategy_->compute_hybrid_config(row_nnz, &ell_lim, &coo_lim);
 
-    auto tmp = Hybrid::create(this->get_executor()->get_master(), data.size,
-                              ell_lim, data.size[0], coo_lim);
+    auto tmp =
+        Hybrid::create(this->get_executor()->get_master(), data.size, ell_lim,
+                       data.size[0], coo_lim, this->get_strategy());
 
     // Get values and column indexes.
     size_type ind = 0;
