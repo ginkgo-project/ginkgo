@@ -73,7 +73,7 @@ namespace ell {
 constexpr int default_block_size = 512;
 
 
-// TODO: num_threads_per_core and ratio are parameters should be tuned
+// TODO: num_threads_per_core and ratio parameter should be tuned
 /**
  * num_threads_per_core is the oversubscribing parameter. There are
  * `num_threads_per_core` threads assigned to each physical core.

@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * thread element is always passed as the first parameter to the `reduce_op`.
  * The function returns the result of the reduction on all threads.
  *
- * @note The function is guarantied to return the correct value on all threads
+ * @note The function is guaranteed to return the correct value on all threads
  *       only if `reduce_op` is commutative (in addition to being associative).
  *       Otherwise, the correct value is returned only to the thread with
  *       subwarp index 0.
