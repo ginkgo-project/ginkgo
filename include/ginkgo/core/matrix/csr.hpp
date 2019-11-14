@@ -106,17 +106,45 @@ public:
 
     class automatical;
 
+    /**
+     * strategy_type is to decide how to set the csr algorithm.
+     *
+     * The practical strategy method should inherit strategy_type and implement
+     * its `process`, `calc_size` function and the corresponding device kernel.
+     */
     class strategy_type {
         friend class automatical;
 
     public:
+        /**
+         * Creates a strategy_type.
+         *
+         * @param name  the name of strategy
+         */
         strategy_type(std::string name) : name_(name) {}
 
+        /**
+         * Returns the name of strategy
+         *
+         * @return the name of strategy
+         */
         std::string get_name() { return name_; }
 
+        /**
+         * Computes srow according to row pointers.
+         *
+         * @param mtx_row_ptrs  the row pointers of the matrix
+         * @param mtx_srow  the srow of the matrix
+         */
         virtual void process(const Array<index_type> &mtx_row_ptrs,
                              Array<index_type> *mtx_srow) = 0;
-
+        /**
+         * Computes the srow size according to the number of nonzeros.
+         *
+         * @param nnz  the number of nonzeros
+         *
+         * @return the size of srow
+         */
         virtual int64_t clac_size(const int64_t nnz) = 0;
 
     protected:
@@ -126,6 +154,10 @@ public:
         std::string name_;
     };
 
+    /**
+     * classical is a strategy_type which uses the same number of threads on
+     * each row.
+     */
     class classical : public strategy_type {
     public:
         classical() : strategy_type("classical") {}
@@ -137,6 +169,9 @@ public:
         int64_t clac_size(const int64_t nnz) { return 0; }
     };
 
+    /**
+     * merge_path is a strategy_type which uses the merge_path algorithm.
+     */
     class merge_path : public strategy_type {
     public:
         merge_path() : strategy_type("merge_path") {}
@@ -148,6 +183,12 @@ public:
         int64_t clac_size(const int64_t nnz) { return 0; }
     };
 
+    /**
+     * cusparse is a strategy_type which uses the sparselib csr.
+     *
+     * @note cusparse is also can be known by hip executor to make the
+     * conversion between cuda and hip without any problem.
+     */
     class cusparse : public strategy_type {
     public:
         cusparse() : strategy_type("cusparse") {}
@@ -159,6 +200,9 @@ public:
         int64_t clac_size(const int64_t nnz) { return 0; }
     };
 
+    /**
+     * sparselib is a strategy_type which uses the sparselib csr.
+     */
     class sparselib : public strategy_type {
     public:
         sparselib() : strategy_type("sparselib") {}
@@ -170,6 +214,9 @@ public:
         int64_t clac_size(const int64_t nnz) { return 0; }
     };
 
+    /**
+     * load_balance is a strategy_type which uses the load balance algorithm.
+     */
     class load_balance : public strategy_type {
     public:
         load_balance()
@@ -177,14 +224,36 @@ public:
                   gko::CudaExecutor::create(0, gko::OmpExecutor::create())))
         {}
 
+        /**
+         * Creates a load_balance strategy with CUDA executor.
+         *
+         * @param exec the CUDA executor
+         */
         load_balance(std::shared_ptr<const CudaExecutor> exec)
             : load_balance(exec->get_num_warps(), exec->get_warp_size())
         {}
 
+        /**
+         * Creates a load_balance strategy with HIP executor.
+         *
+         * @param exec the HIP executor
+         */
         load_balance(std::shared_ptr<const HipExecutor> exec)
             : load_balance(exec->get_num_warps(), exec->get_warp_size(), false)
         {}
 
+        /**
+         * Creates a load_balance strategy with specified parameters
+         *
+         * @param nwarps the number of warps in the executor
+         * @param warp_size the warp size of the executor
+         * @param cuda_strategy whether uses the cuda_strategy.
+         *
+         * @note The apply results are not unspecified when the warp_size is not
+         * correct. This information may be lost in conversion. To avoid it,
+         * needs to use `set_strategy` to set the strategy with correct
+         * parameters.
+         */
         load_balance(int64_t nwarps, int warp_size = 32,
                      bool cuda_strategy = true)
             : strategy_type("load_balance"),
@@ -266,8 +335,7 @@ public:
 #endif  // GINKGO_HIP_PLATFORM_HCC
 
                 auto nwarps = nwarps_ * multiple;
-                return min(ceildiv(nnz, warp_size_),
-                           static_cast<int64_t>(nwarps));
+                return min(ceildiv(nnz, warp_size_), int64_t(nwarps));
             } else {
                 return 0;
             }
@@ -286,14 +354,36 @@ public:
                   gko::CudaExecutor::create(0, gko::OmpExecutor::create())))
         {}
 
+        /**
+         * Creates a automatical strategy with CUDA executor.
+         *
+         * @param exec the CUDA executor
+         */
         automatical(std::shared_ptr<const CudaExecutor> exec)
             : automatical(exec->get_num_warps(), exec->get_warp_size())
         {}
 
+        /**
+         * Creates a automatical strategy with HIP executor.
+         *
+         * @param exec the HIP executor
+         */
         automatical(std::shared_ptr<const HipExecutor> exec)
             : automatical(exec->get_num_warps(), exec->get_warp_size(), false)
         {}
 
+        /**
+         * Creates a automatical strategy with specified parameters
+         *
+         * @param nwarps the number of warps in the executor
+         * @param warp_size the warp size of the executor
+         * @param cuda_strategy whether uses the cuda_strategy.
+         *
+         * @note The apply results are not unspecified when the warp_size is not
+         * correct. This information may be lost in conversion. To avoid it,
+         * needs to use `set_strategy` to set the strategy with correct
+         * parameters.
+         */
         automatical(int64_t nwarps, int warp_size = 32,
                     bool cuda_strategy = true)
             : strategy_type("automatical"),
@@ -593,7 +683,7 @@ public:
 
     /** Set the strategy
      *
-     * @return the strategy
+     * @param strategy the csr strategy
      */
     void set_strategy(std::shared_ptr<strategy_type> strategy)
     {
