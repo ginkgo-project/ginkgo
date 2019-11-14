@@ -202,7 +202,7 @@ int compute_items_per_thread(std::shared_ptr<const HipExecutor> exec)
 #else
 
 
-    // HIP use the minimal num_item to make the code works correctly.
+    // HIP uses the minimal num_item to make the code work correctly.
     // TODO: this parameter should be tuned.
     int num_item = 6;
 
@@ -210,7 +210,7 @@ int compute_items_per_thread(std::shared_ptr<const HipExecutor> exec)
 #endif  // GINKGO_HIP_PLATFORM_NVCC
 
 
-    // Ensure that satisfy:
+    // Ensure that the following is satisfied:
     // sizeof(IndexType) + sizeof(ValueType)
     // <= items_per_thread * sizeof(IndexType)
     constexpr int minimal_num =

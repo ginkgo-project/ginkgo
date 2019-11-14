@@ -46,11 +46,11 @@ enum postprocess_transformation { and_return, and_transpose };
  * @internal
  *
  * Applies a Gauss-Jordan transformation (single step of Gauss-Jordan
- * elimination) to a `max_problem_size`-by-`max_problem_size` matrix using
- * using the thread group `group.  Each thread contributes one `row` of the
- * matrix, and the routine uses warp shuffles to exchange data between rows. The
- * transform is performed by using the `key_row`-th row and `key_col`-th column
- * of the matrix.
+ * elimination) to a `max_problem_size`-by-`max_problem_size` matrix using the
+ * thread group `group. Each thread contributes one `row` of the matrix, and the
+ * routine uses warp shuffles to exchange data between rows. The transform is
+ * performed by using the `key_row`-th row and `key_col`-th column of the
+ * matrix.
  */
 template <
     int max_problem_size, typename Group, typename ValueType,
@@ -91,11 +91,10 @@ __device__ __forceinline__ void apply_gauss_jordan_transform(
  * The inversion routine uses implicit pivoting, so the returned matrix will be
  * a permuted inverse (from both sides). To obtain the correct inverse, the
  * rows of the result should be permuted with $P$, and the columns with
- * $ P^T $ (i.e.
- * $ A^{-1} = P X P $, where $ X $ is the returned matrix). These
- * permutation matrices are returned compressed as vectors `perm` and
- * `trans_perm`, respectively. `i`-th value of each of the vectors is returned
- * to thread of the group with rank `i`.
+ * $ P^T $ (i.e. $ A^{-1} = P X P $, where $ X $ is the returned matrix). These
+ * permutation matrices are returned compressed as vectors `perm`
+ * and`trans_perm`, respectively. `i`-th value of each of the vectors is
+ * returned to thread of the group with rank `i`.
  *
  * @tparam max_problem_size  the maximum problem size that will be passed to the
  *                           inversion routine (a tighter bound results in
@@ -110,8 +109,7 @@ __device__ __forceinline__ void apply_gauss_jordan_transform(
  *             pass the pointer to the i-th row), has to have at least
  *             max_problem_size elements
  * @param perm  a value to hold an element of permutation matrix $ P $
- * @param trans_perm  a value to hold an element of permutation matrix $ P^T
- * $
+ * @param trans_perm  a value to hold an element of permutation matrix $ P^T $
  *
  * @return true if the inversion succeeded, false otherwise
  */
@@ -358,7 +356,7 @@ __device__ __forceinline__ void multiply_vec(
  *
  * @param group  group of threads participating in the operation
  * @param num_rows  number of rows of the matrix
- *                      (`num_rows <= max_problem_size`)
+ *                  (`num_rows <= max_problem_size`)
  * @param num_cols  number of columns of the matrix
  * @param row  pointer to memory used to store a row of the input matrix,
  *             `i`-th thread of the group should pass in the `i`-th row of the

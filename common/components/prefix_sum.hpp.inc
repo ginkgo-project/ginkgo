@@ -36,14 +36,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * in-place on parts of the array `elements`.
  *
  * @param block_size  thread block size for this kernel, also size of blocks on
- * which this kernel calculates the prefix sum in-place
+ *                    which this kernel calculates the prefix sum in-place
  * @param elements  array on which the prefix sum is to be calculated
  * @param block_sum  array which stores the total sum of each block, requires at
- * least `ceildiv(num_elements, block_size)` elements
+ *                   least `ceildiv(num_elements, block_size)` elements
  * @param num_elements  total number of entries in `elements`
  *
  * @note To calculate the prefix sum over an array of size bigger than
- * `block_size`, `finalize_prefix_sum` has to be used as well.
+ *       `block_size`, `finalize_prefix_sum` has to be used as well.
  */
 template <int block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void start_prefix_sum(
@@ -101,7 +101,7 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
  * entry of `elements` by the total sum of all preceding blocks.
  *
  * @param block_size  thread block size for this kernel, has to be the same as
- * for `start_prefix_sum`
+ *                    for `start_prefix_sum`
  * @param elements  array on which the prefix sum is to be calculated
  * @param block_sum  array storing the total sum of each block
  * @param num_elements  total number of entries in `elements`

@@ -372,8 +372,8 @@ GKO_INLINE __host__ constexpr T zero()
  * @return additive identity for T
  *
  * @note This version takes an unused reference argument to avoid
- * complicated calls like `zero<decltype(x)>()`. Instead, it allows
- * `zero(x)`.
+ *       complicated calls like `zero<decltype(x)>()`. Instead, it allows
+ *       `zero(x)`.
  */
 template <typename T>
 GKO_INLINE __host__ constexpr T zero(const T &)
@@ -400,8 +400,8 @@ GKO_INLINE __host__ constexpr T one()
  * @return the multiplicative identity for T
  *
  * @note This version takes an unused reference argument to avoid
- * complicated calls like `one<decltype(x)>()`. Instead, it allows
- * `one(x)`.
+ *       complicated calls like `one<decltype(x)>()`. Instead, it allows
+ *       `one(x)`.
  */
 template <typename T>
 GKO_INLINE __host__ constexpr T one(const T &)
@@ -428,8 +428,8 @@ GKO_INLINE __device__ constexpr T zero()
  * @return additive identity for T
  *
  * @note This version takes an unused reference argument to avoid
- * complicated calls like `zero<decltype(x)>()`. Instead, it allows
- * `zero(x)`.
+ *       complicated calls like `zero<decltype(x)>()`. Instead, it allows
+ *       `zero(x)`.
  */
 template <typename T>
 GKO_INLINE __device__ constexpr T zero(const T &)
@@ -456,8 +456,8 @@ GKO_INLINE __device__ constexpr T one()
  * @return the multiplicative identity for T
  *
  * @note This version takes an unused reference argument to avoid
- * complicated calls like `one<decltype(x)>()`. Instead, it allows
- * `one(x)`.
+ *       complicated calls like `one<decltype(x)>()`. Instead, it allows
+ *       `one(x)`.
  */
 template <typename T>
 GKO_INLINE __device__ constexpr T one(const T &)
@@ -487,8 +487,8 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T zero()
  * @return additive identity for T
  *
  * @note This version takes an unused reference argument to avoid
- * complicated calls like `zero<decltype(x)>()`. Instead, it allows
- * `zero(x)`.
+ *       complicated calls like `zero<decltype(x)>()`. Instead, it allows
+ *       `zero(x)`.
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES constexpr T zero(const T &)
@@ -515,8 +515,8 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one()
  * @return the multiplicative identity for T
  *
  * @note This version takes an unused reference argument to avoid
- * complicated calls like `one<decltype(x)>()`. Instead, it allows
- * `one(x)`.
+ *       complicated calls like `one<decltype(x)>()`. Instead, it allows
+ *       `one(x)`.
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T &)

@@ -187,7 +187,7 @@ int compute_items_per_thread(std::shared_ptr<const CudaExecutor> exec)
     case 0x37:
         num_item = 14;
     }
-    // Ensure that satisfy:
+    // Ensure that the following is satisfied:
     // sizeof(IndexType) + sizeof(ValueType)
     // <= items_per_thread * sizeof(IndexType)
     constexpr int minimal_num =
