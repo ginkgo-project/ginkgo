@@ -1,6 +1,17 @@
 #!/bin/bash
 
 HIPIFY=/opt/rocm/hip/bin/hipify-perl
+
+if [ "$0" != "dev_tools/scripts/cuda2hip.sh" ]; then
+    echo "Only allow to run dev_tools/scripts/cuda2hip.sh at ginkgo source folder."
+    exit 1
+fi
+
+if [ -z "$1" ]; then
+    echo "Usage: $0 path/to/cuda/file"
+    exit 2
+fi
+
 ORIGIN_FILE=$1
 echo "CUDA: ${ORIGIN_FILE}"
 NEW_FILE=$(echo ${ORIGIN_FILE} | sed -E "s/^cuda/hip/g;s/(cuh|hpp)$/hip\.hpp/g;s/(cpp|cu)$/hip\.cpp/g")
