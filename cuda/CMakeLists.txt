@@ -9,7 +9,9 @@ set(SOURCES
     matrix/ell_kernels.cu
     matrix/hybrid_kernels.cpp
     matrix/sellp_kernels.cu
+    preconditioner/jacobi_generate_kernel.cu
     preconditioner/jacobi_kernels.cu
+    preconditioner/jacobi_apply_kernels.cu
     solver/bicgstab_kernels.cu
     solver/cg_kernels.cu
     solver/cgs_kernels.cu
