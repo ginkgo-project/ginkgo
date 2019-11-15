@@ -253,7 +253,6 @@ GKO_BIND_CUBLAS_NORM2(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUBLAS_NORM2
 
 
-
 inline cublasHandle_t init()
 {
     cublasHandle_t handle;
