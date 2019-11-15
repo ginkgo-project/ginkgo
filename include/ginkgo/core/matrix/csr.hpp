@@ -64,14 +64,14 @@ template <typename ValueType, typename IndexType>
 class Csr;
 
 
-namespace {
+namespace detail {
 
 
 template <typename ValueType = default_precision, typename IndexType = int32>
 void strategy_rebuild_helper(Csr<ValueType, IndexType> *result);
 
 
-}  // namespace
+}  // namespace detail
 
 
 /**
@@ -496,7 +496,7 @@ public:
         bool same_executor = this->get_executor() == result->get_executor();
         EnableLinOp<Csr>::convert_to(result);
         if (!same_executor) {
-            strategy_rebuild_helper(result);
+            detail::strategy_rebuild_helper(result);
         }
     }
 
@@ -505,7 +505,7 @@ public:
         bool same_executor = this->get_executor() == result->get_executor();
         EnableLinOp<Csr>::move_to(result);
         if (!same_executor) {
-            strategy_rebuild_helper(result);
+            detail::strategy_rebuild_helper(result);
         }
     }
 
@@ -775,7 +775,7 @@ private:
 };
 
 
-namespace {
+namespace detail {
 
 
 /**
@@ -811,7 +811,7 @@ void strategy_rebuild_helper(Csr<ValueType, IndexType> *result)
 }
 
 
-}  // namespace
+}  // namespace detail
 }  // namespace matrix
 }  // namespace gko
 
