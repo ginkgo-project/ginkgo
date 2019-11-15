@@ -160,8 +160,9 @@ if(GINKGO_DEVEL_TOOLS)
 endif()
 
 # Generate the global `ginkgo/ginkgo.hpp` header with every call of make
+# when bash is present and the developer tools are enabled
 find_program(BASH bash)
-if(NOT "${BASH}" STREQUAL "BASH-NOTFOUND")
+if(NOT "${BASH}" STREQUAL "BASH-NOTFOUND" AND GINKGO_DEVEL_TOOLS)
     add_custom_target(generate_ginkgo_header ALL
         COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/update_ginkgo_header.sh
         WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})

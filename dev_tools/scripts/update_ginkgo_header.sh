@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 
+# Note: every exit code is 0 because any other exit code would terminate the
+#       whole `make` procedure, which is a too extreme reaction.
+#       This script is supposed to support the developer and not to hinder
+#       the development process by setting more restrictions.
+
 PLACE_HOLDER="#PUBLIC_HEADER_PLACE_HOLDER"
+
+WARNING_PREFIX="[WARNING] update_header failed because: "
+
 
 THIS_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )
 INCLUDE_DIR="${THIS_DIR}/../../include"
@@ -17,28 +25,29 @@ HEADER_LIST="global_includes.hpp.tmp"
 # Test if required commands are present on the system:
 command -v find &> /dev/null
 if [ ${?} -ne 0 ]; then
-    echo 'The command `find` is required for this script to work, but not supported by your system.' 1>&2
-    exit 1
+    echo "${WARNING_PREFIX}"'The command `find` is required for this script to work, but not supported by your system.' 1>&2
+    exit 0
 fi
 command -v sort &> /dev/null
 if [ ${?} -ne 0 ]; then
-    echo 'The command `sort` is required for this script to work, but not supported by your system.' 1>&2
-    exit 1
+    echo "${WARNING_PREFIX}"'The command `sort` is required for this script to work, but not supported by your system.' 1>&2
+    exit 0
 fi
 command -v cmp &> /dev/null
 if [ ${?} -ne 0 ]; then
-    echo 'The command `cmp` is required for this script to work, but not supported by your system.' 1>&2
-    exit 1
+    echo "${WARNING_PREFIX}"'The command `cmp` is required for this script to work, but not supported by your system.' 1>&2
+    exit 0
 fi
+
 
 # Put all header files as a list (separated by newlines) in the file ${HEADER_LIST}
 # Requires detected files (including the path) to not contain newlines
 find "${TOP_HEADER_FOLDER}" -name '*.hpp' -type f -print > "${HEADER_LIST}"
 
 if [ ${?} -ne 0 ]; then
-    echo 'Exiting due to an error being returned by `find`!' 1>&2
+    echo "${WARNING_PREFIX}"'The `find` command returned with an error!' 1>&2
     rm "${HEADER_LIST}"
-    exit 1
+    exit 0
 fi
 
 # It must be a POSIX locale in order to sort according to ASCII
@@ -47,9 +56,9 @@ export LC_ALL=C
 sort -o "${HEADER_LIST}" "${HEADER_LIST}"
 
 if [ ${?} -ne 0 ]; then
-    echo 'Exiting due to an error being returned by `sort`!' 1>&2
+    echo "${WARNING_PREFIX}"'The `sort` command returned with an error!' 1>&2
     rm "${HEADER_LIST}"
-    exit 1
+    exit 0
 fi
 
 # Detect the end of line type (CRLF/LF) by ${GINKGO_HEADER_TEMPLATE_FILE}
@@ -63,6 +72,18 @@ fi
 # the rebuilding of targets which depend on the global header
 # (e.g. benchmarks and examples)
 GINKGO_HEADER_TMP="${GINKGO_HEADER_FILE}.tmp"
+
+# See if we have write permissions to ${GINKGO_HEADER_TEMP}
+echo "Test for write permissions" > "${GINKGO_HEADER_TEMP}"
+if [ ${?} -ne 0 ]; then
+    echo "${WARNING_PREFIX}No write permissions in path '$(pwd)/ginkgo'" 1>&2
+    rm "${HEADER_LIST}"
+    exit 0
+fi
+# Remove file again, so the test does not corrupt the result
+rm "${GINKGO_HEADER_TEMP}"
+
+
 
 PREVIOUS_FOLDER=""
 # "IFS=''" sets the word delimiters for read.
@@ -101,6 +122,8 @@ while IFS='' read -r line; do
     fi
 done < "${GINKGO_HEADER_TEMPLATE_FILE}"
 
+rm "${HEADER_LIST}"
+
 # Use the generated file ONLY when the public header does not exist yet
 # or the generated one is different to the existing one
 if [ ! -f "${GINKGO_HEADER_FILE}" ] || \
@@ -110,5 +133,3 @@ then
 else
     rm "${GINKGO_HEADER_TMP}"
 fi
-
-rm "${HEADER_LIST}"
