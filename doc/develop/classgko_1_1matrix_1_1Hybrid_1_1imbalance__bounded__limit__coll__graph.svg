@@ -12,7 +12,7 @@
 <!-- Node1 -->
 <g id="node1" class="node">
 <title>Node1</title>
-<g id="a_node1"><a xlink:title="imbalance_bounded_limit is a stratgy_type which decides the number of stored elements per row of the ...">
+<g id="a_node1"><a xlink:title="imbalance_bounded_limit is a strategy_type which decides the number of stored elements per row of the...">
 <polygon fill="#bfbfbf" stroke="#000000" points="0,-.5 0,-41.5 160,-41.5 160,-.5 0,-.5"/>
 <text text-anchor="start" x="8" y="-29.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Hybrid</text>
 <text text-anchor="start" x="8" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; ValueType, IndexType</text>

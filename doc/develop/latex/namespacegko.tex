@@ -806,7 +806,7 @@ returns the ceiled quotient.
 \end{DoxyReturn}
 
 
-Referenced by gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ index\+\_\+type $>$\+::compute\+\_\+storage\+\_\+space().
+Referenced by gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+::clac\+\_\+size(), gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ index\+\_\+type $>$\+::compute\+\_\+storage\+\_\+space(), and gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+::process().
 
 \mbox{\Hypertarget{namespacegko_a1beb80750459e4201aa9d882d2d074c3}\label{namespacegko_a1beb80750459e4201aa9d882d2d074c3}} 
 \index{gko@{gko}!clone@{clone}}
@@ -1270,6 +1270,10 @@ x $>$= y ? x \+: y
 \begin{DoxyNote}{Note}
 C++11 version of this function is not constexpr, thus we provide our own implementation. 
 \end{DoxyNote}
+
+
+Referenced by gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::automatical\+::process().
+
 \mbox{\Hypertarget{namespacegko_aaaf8487194bcb40b528969c187a413a0}\label{namespacegko_aaaf8487194bcb40b528969c187a413a0}} 
 \index{gko@{gko}!min@{min}}
 \index{min@{min}!gko@{gko}}
@@ -1299,6 +1303,10 @@ x $<$= y ? x \+: y
 \begin{DoxyNote}{Note}
 C++11 version of this function is not {\ttfamily constexpr}, thus we provide our own implementation. 
 \end{DoxyNote}
+
+
+Referenced by gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+::clac\+\_\+size().
+
 \mbox{\Hypertarget{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}\label{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}} 
 \index{gko@{gko}!one@{one}}
 \index{one@{one}!gko@{gko}}

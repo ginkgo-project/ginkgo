@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/96328050 branch based on develop. Ginkgo version 1.1.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/96424882 branch based on develop. Ginkgo version 1.1.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -248,7 +248,8 @@ $(function() {
 , <a class="el" href="classgko_1_1HipExecutor.html#a78f3bfa05f6d38c286309436781a6f7a">gko::HipExecutor</a>
 </li>
 <li>get_name()
-: <a class="el" href="classgko_1_1Operation.html#ab3b940849d1daf02830f3387c52888d0">gko::Operation</a>
+: <a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html#a0c22b251b0c1dfd087a5c097488febe0">gko::matrix::Csr&lt; ValueType, IndexType &gt;::strategy_type</a>
+, <a class="el" href="classgko_1_1Operation.html#ab3b940849d1daf02830f3387c52888d0">gko::Operation</a>
 </li>
 <li>get_nonpreserving()
 : <a class="el" href="classgko_1_1precision__reduction.html#a909a01025fd490d4658abd7c5791685d">gko::precision_reduction</a>
@@ -290,6 +291,7 @@ $(function() {
 </li>
 <li>get_num_warps()
 : <a class="el" href="classgko_1_1CudaExecutor.html#aa9d77db0b87322a8bef12380029b5310">gko::CudaExecutor</a>
+, <a class="el" href="classgko_1_1HipExecutor.html#add2eb69abc3225f1ab7e5b01d9ebb307">gko::HipExecutor</a>
 </li>
 <li>get_num_warps_per_sm()
 : <a class="el" href="classgko_1_1CudaExecutor.html#a245c1c35a18e6534d87ef6e9cad24f7c">gko::CudaExecutor</a>
@@ -391,6 +393,10 @@ $(function() {
 , <a class="el" href="classgko_1_1matrix_1_1Dense.html#a3bc458e02fab8e4c9f60f70bd4d5a4f9">gko::matrix::Dense&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1matrix_1_1Ell.html#a4028e9629a7d96a7a483e6ea4a686a1d">gko::matrix::Ell&lt; ValueType, IndexType &gt;</a>
 , <a class="el" href="classgko_1_1matrix_1_1Sellp.html#ac9afd5f8000da345844ccb22b599acf7">gko::matrix::Sellp&lt; ValueType, IndexType &gt;</a>
+</li>
+<li>get_warp_size()
+: <a class="el" href="classgko_1_1CudaExecutor.html#a6a3894e9f4d98b5f7523e067c88ef521">gko::CudaExecutor</a>
+, <a class="el" href="classgko_1_1HipExecutor.html#ae470cdfd4273b02b2563101d6146db26">gko::HipExecutor</a>
 </li>
 </ul>
 </div><!-- contents -->

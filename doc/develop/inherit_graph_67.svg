@@ -23,7 +23,7 @@
 <!-- Node1 -->
 <g id="node2" class="node">
 <title>Node1</title>
-<g id="a_node2"><a xlink:href="classgko_1_1matrix_1_1Hybrid_1_1automatic.html" target="_top" xlink:title="automatic is a stratgy_type which decides the number of stored elements per row of the ell part autom...">
+<g id="a_node2"><a xlink:href="classgko_1_1matrix_1_1Hybrid_1_1automatic.html" target="_top" xlink:title="automatic is a strategy_type which decides the number of stored elements per row of the ell part auto...">
 <polygon fill="#ffffff" stroke="#000000" points="182.5,-240.5 182.5,-281.5 315.5,-281.5 315.5,-240.5 182.5,-240.5"/>
 <text text-anchor="start" x="190.5" y="-269.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Hybrid</text>
 <text text-anchor="start" x="190.5" y="-258.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; ValueType, IndexType</text>
@@ -57,7 +57,7 @@
 <!-- Node3 -->
 <g id="node4" class="node">
 <title>Node3</title>
-<g id="a_node4"><a xlink:href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__bounded__limit.html" target="_top" xlink:title="imbalance_bounded_limit is a stratgy_type which decides the number of stored elements per row of the ...">
+<g id="a_node4"><a xlink:href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__bounded__limit.html" target="_top" xlink:title="imbalance_bounded_limit is a strategy_type which decides the number of stored elements per row of the...">
 <polygon fill="#ffffff" stroke="#000000" points="169,-120.5 169,-161.5 329,-161.5 329,-120.5 169,-120.5"/>
 <text text-anchor="start" x="177" y="-149.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Hybrid</text>
 <text text-anchor="start" x="177" y="-138.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; ValueType, IndexType</text>
@@ -91,7 +91,7 @@
 <!-- Node5 -->
 <g id="node6" class="node">
 <title>Node5</title>
-<g id="a_node6"><a xlink:href="classgko_1_1matrix_1_1Hybrid_1_1minimal__storage__limit.html" target="_top" xlink:title="minimal_storage_limit is a stratgy_type which decides the number of stored elements per row of the el...">
+<g id="a_node6"><a xlink:href="classgko_1_1matrix_1_1Hybrid_1_1minimal__storage__limit.html" target="_top" xlink:title="minimal_storage_limit is a strategy_type which decides the number of stored elements per row of the e...">
 <polygon fill="#ffffff" stroke="#000000" points="177,-.5 177,-41.5 321,-41.5 321,-.5 177,-.5"/>
 <text text-anchor="start" x="185" y="-29.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Hybrid</text>
 <text text-anchor="start" x="185" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; ValueType, IndexType</text>

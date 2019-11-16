@@ -1,4 +1,4 @@
 <map id="gko::matrix::Csr&lt; ValueType, IndexType &gt;::automatical" name="gko::matrix::Csr&lt; ValueType, IndexType &gt;::automatical">
 <area shape="rect" id="node1" title=" " alt="" coords="5,95,216,136"/>
-<area shape="rect" id="node2" href="$classgko_1_1matrix_1_1Csr_1_1strategy__type.html" title=" " alt="" coords="5,5,216,47"/>
+<area shape="rect" id="node2" href="$classgko_1_1matrix_1_1Csr_1_1strategy__type.html" title="strategy_type is to decide how to set the csr algorithm." alt="" coords="5,5,216,47"/>
 </map>

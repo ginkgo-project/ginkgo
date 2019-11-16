@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/96328050 branch based on develop. Ginkgo version 1.1.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/96424882 branch based on develop. Ginkgo version 1.1.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -77,20 +77,25 @@ $(function() {
 <div class="title">gko::matrix::Csr&lt; ValueType, IndexType &gt;::strategy_type Class Reference<span class="mlabels"><span class="mlabel">abstract</span></span></div>  </div>
 </div><!--header-->
 <div class="contents">
+
+<p><a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html" title="strategy_type is to decide how to set the csr algorithm.">strategy_type</a> is to decide how to set the csr algorithm.  
+ <a href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html#details">More...</a></p>
+
+<p><code>#include &lt;<a class="el" href="csr_8hpp_source.html">ginkgo/core/matrix/csr.hpp</a>&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:aae6804f7a0b899f03bc0d5e0f139129c"><td class="memItemLeft" align="right" valign="top"><a id="aae6804f7a0b899f03bc0d5e0f139129c"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>strategy_type</b> (std::string name)</td></tr>
+<tr class="memitem:aae6804f7a0b899f03bc0d5e0f139129c"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html#aae6804f7a0b899f03bc0d5e0f139129c">strategy_type</a> (std::string name)</td></tr>
+<tr class="memdesc:aae6804f7a0b899f03bc0d5e0f139129c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a <a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html" title="strategy_type is to decide how to set the csr algorithm.">strategy_type</a>.  <a href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html#aae6804f7a0b899f03bc0d5e0f139129c">More...</a><br /></td></tr>
 <tr class="separator:aae6804f7a0b899f03bc0d5e0f139129c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0c22b251b0c1dfd087a5c097488febe0"><td class="memItemLeft" align="right" valign="top"><a id="a0c22b251b0c1dfd087a5c097488febe0"></a>
-std::string&#160;</td><td class="memItemRight" valign="bottom"><b>get_name</b> ()</td></tr>
+<tr class="memitem:a0c22b251b0c1dfd087a5c097488febe0"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html#a0c22b251b0c1dfd087a5c097488febe0">get_name</a> ()</td></tr>
+<tr class="memdesc:a0c22b251b0c1dfd087a5c097488febe0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the name of strategy.  <a href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html#a0c22b251b0c1dfd087a5c097488febe0">More...</a><br /></td></tr>
 <tr class="separator:a0c22b251b0c1dfd087a5c097488febe0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a58bda9208766e57d861262d4059b65b4"><td class="memItemLeft" align="right" valign="top"><a id="a58bda9208766e57d861262d4059b65b4"></a>
-virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>process</b> (const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; index_type &gt; &amp;mtx_row_ptrs, <a class="el" href="classgko_1_1Array.html">Array</a>&lt; index_type &gt; *mtx_srow)=0</td></tr>
+<tr class="memitem:a58bda9208766e57d861262d4059b65b4"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html#a58bda9208766e57d861262d4059b65b4">process</a> (const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; index_type &gt; &amp;mtx_row_ptrs, <a class="el" href="classgko_1_1Array.html">Array</a>&lt; index_type &gt; *mtx_srow)=0</td></tr>
+<tr class="memdesc:a58bda9208766e57d861262d4059b65b4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Computes srow according to row pointers.  <a href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html#a58bda9208766e57d861262d4059b65b4">More...</a><br /></td></tr>
 <tr class="separator:a58bda9208766e57d861262d4059b65b4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a07a6dda9dd04ed8abd914f3a69f330f2"><td class="memItemLeft" align="right" valign="top"><a id="a07a6dda9dd04ed8abd914f3a69f330f2"></a>
-virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><b>clac_size</b> (const int64_t nnz)=0</td></tr>
+<tr class="memitem:a07a6dda9dd04ed8abd914f3a69f330f2"><td class="memItemLeft" align="right" valign="top">virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html#a07a6dda9dd04ed8abd914f3a69f330f2">clac_size</a> (const int64_t nnz)=0</td></tr>
+<tr class="memdesc:a07a6dda9dd04ed8abd914f3a69f330f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Computes the srow size according to the number of nonzeros.  <a href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html#a07a6dda9dd04ed8abd914f3a69f330f2">More...</a><br /></td></tr>
 <tr class="separator:a07a6dda9dd04ed8abd914f3a69f330f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="friends"></a>
@@ -99,8 +104,172 @@ Friends</h2></td></tr>
 class&#160;</td><td class="memItemRight" valign="bottom"><b>automatical</b></td></tr>
 <tr class="separator:a9e1e07b9f14479534a4043eefd6320cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><h3>template&lt;typename ValueType = default_precision, typename IndexType = int32&gt;<br />
+class gko::matrix::Csr&lt; ValueType, IndexType &gt;::strategy_type</h3>
+
+<p><a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html" title="strategy_type is to decide how to set the csr algorithm.">strategy_type</a> is to decide how to set the csr algorithm. </p>
+<p>The practical strategy method should inherit <a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html" title="strategy_type is to decide how to set the csr algorithm.">strategy_type</a> and implement its <code>process</code>, <code>clac_size</code> function and the corresponding device kernel. </p>
+</div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
+<a id="aae6804f7a0b899f03bc0d5e0f139129c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aae6804f7a0b899f03bc0d5e0f139129c">&#9670;&nbsp;</a></span>strategy_type()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a>&lt; ValueType, IndexType &gt;::strategy_type::strategy_type </td>
+          <td>(</td>
+          <td class="paramtype">std::string&#160;</td>
+          <td class="paramname"><em>name</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Creates a <a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html" title="strategy_type is to decide how to set the csr algorithm.">strategy_type</a>. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">name</td><td>the name of strategy </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<h2 class="groupheader">Member Function Documentation</h2>
+<a id="a07a6dda9dd04ed8abd914f3a69f330f2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a07a6dda9dd04ed8abd914f3a69f330f2">&#9670;&nbsp;</a></span>clac_size()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual int64_t <a class="el" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a>&lt; ValueType, IndexType &gt;::strategy_type::clac_size </td>
+          <td>(</td>
+          <td class="paramtype">const int64_t&#160;</td>
+          <td class="paramname"><em>nnz</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Computes the srow size according to the number of nonzeros. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">nnz</td><td>the number of nonzeros</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>the size of srow </dd></dl>
+
+<p>Implemented in <a class="el" href="classgko_1_1matrix_1_1Csr_1_1automatical.html#a4c3e6ae322c261f0da10641c58e83398">gko::matrix::Csr&lt; ValueType, IndexType &gt;::automatical</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1load__balance.html#ac0413220bebe762defe180d900240fac">gko::matrix::Csr&lt; ValueType, IndexType &gt;::load_balance</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1sparselib.html#a106f7ba1d05091e56d27c3b50f141740">gko::matrix::Csr&lt; ValueType, IndexType &gt;::sparselib</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1cusparse.html#a094614c818d821cb0a71a4266fbef2d0">gko::matrix::Csr&lt; ValueType, IndexType &gt;::cusparse</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1merge__path.html#a2072b7810a1fbc515ca87807ed8adcdb">gko::matrix::Csr&lt; ValueType, IndexType &gt;::merge_path</a>, and <a class="el" href="classgko_1_1matrix_1_1Csr_1_1classical.html#ae99f47abc647f84793d9f84a9605a77d">gko::matrix::Csr&lt; ValueType, IndexType &gt;::classical</a>.</p>
+
+</div>
+</div>
+<a id="a0c22b251b0c1dfd087a5c097488febe0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0c22b251b0c1dfd087a5c097488febe0">&#9670;&nbsp;</a></span>get_name()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::string <a class="el" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a>&lt; ValueType, IndexType &gt;::strategy_type::get_name </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the name of strategy. </p>
+<dl class="section return"><dt>Returns</dt><dd>the name of strategy </dd></dl>
+
+<p class="reference">Referenced by <a class="el" href="classgko_1_1matrix_1_1Csr_1_1automatical.html#aefa241047539f2ee7784a54cf5051720">gko::matrix::Csr&lt; ValueType, IndexType &gt;::automatical::process()</a>.</p>
+
+</div>
+</div>
+<a id="a58bda9208766e57d861262d4059b65b4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a58bda9208766e57d861262d4059b65b4">&#9670;&nbsp;</a></span>process()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual void <a class="el" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a>&lt; ValueType, IndexType &gt;::strategy_type::process </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; index_type &gt; &amp;&#160;</td>
+          <td class="paramname"><em>mtx_row_ptrs</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="classgko_1_1Array.html">Array</a>&lt; index_type &gt; *&#160;</td>
+          <td class="paramname"><em>mtx_srow</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Computes srow according to row pointers. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">mtx_row_ptrs</td><td>the row pointers of the matrix </td></tr>
+    <tr><td class="paramname">mtx_srow</td><td>the srow of the matrix </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p>Implemented in <a class="el" href="classgko_1_1matrix_1_1Csr_1_1automatical.html#aefa241047539f2ee7784a54cf5051720">gko::matrix::Csr&lt; ValueType, IndexType &gt;::automatical</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1load__balance.html#aba6c8c9169c1068c30ac9df19ec862ff">gko::matrix::Csr&lt; ValueType, IndexType &gt;::load_balance</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1sparselib.html#a19f58c2a93c2ee247cc2406514219a94">gko::matrix::Csr&lt; ValueType, IndexType &gt;::sparselib</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1cusparse.html#acf64bdc81eee1fb3f46fd80f5d920939">gko::matrix::Csr&lt; ValueType, IndexType &gt;::cusparse</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1merge__path.html#afe80aaab5ab3a0945488dad118d9ab8d">gko::matrix::Csr&lt; ValueType, IndexType &gt;::merge_path</a>, and <a class="el" href="classgko_1_1matrix_1_1Csr_1_1classical.html#a2844a228c3a3f827c8ad9cab5c0e453f">gko::matrix::Csr&lt; ValueType, IndexType &gt;::classical</a>.</p>
+
+</div>
+</div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/matrix/<a class="el" href="csr_8hpp_source.html">csr.hpp (1974cd547)</a></li>
+<li>ginkgo/core/matrix/<a class="el" href="csr_8hpp_source.html">csr.hpp (28f9fa6f6)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

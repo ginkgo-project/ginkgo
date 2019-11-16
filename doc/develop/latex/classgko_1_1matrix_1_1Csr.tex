@@ -25,15 +25,17 @@ Collaboration diagram for gko\+::matrix\+::Csr$<$ Value\+Type, Index\+Type $>$\+
 class \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1automatical}{automatical}}
 \item 
 class \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1classical}{classical}}
-\item 
+\begin{DoxyCompactList}\small\item\em classical is a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} which uses the same number of threads on each row. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1cusparse}{cusparse}}
-\item 
+\begin{DoxyCompactList}\small\item\em cusparse is a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} which uses the sparselib csr. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance}{load\+\_\+balance}}
-\item 
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance}{load\+\_\+balance}} is a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} which uses the load balance algorithm. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1merge__path}{merge\+\_\+path}}
-\item 
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1merge__path}{merge\+\_\+path}} is a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} which uses the \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1merge__path}{merge\+\_\+path}} algorithm. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1sparselib}{sparselib}}
+\begin{DoxyCompactList}\small\item\em sparselib is a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} which uses the sparselib csr. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}}
-\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} is to decide how to set the csr algorithm. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Public Types}
 \begin{DoxyCompactItemize}
 \item 
@@ -48,6 +50,12 @@ using {\bfseries mat\+\_\+data} = \mbox{\hyperlink{structgko_1_1matrix__data}{ma
 \end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a42877104ae0249626b3cfad26c8b8aa9}\label{classgko_1_1matrix_1_1Csr_a42877104ae0249626b3cfad26c8b8aa9}} 
+void {\bfseries convert\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}}$<$ Value\+Type, Index\+Type $>$ $\ast$result) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a72f5ce50217c2e962800fe5f000a1ed6}\label{classgko_1_1matrix_1_1Csr_a72f5ce50217c2e962800fe5f000a1ed6}} 
+void {\bfseries move\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}}$<$ Value\+Type, Index\+Type $>$ $\ast$result) override
 \item 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a610dfb71907ee0e79ca6470571cb1d10}\label{classgko_1_1matrix_1_1Csr_a610dfb71907ee0e79ca6470571cb1d10}} 
 void {\bfseries convert\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ Value\+Type $>$ $\ast$other) const override
@@ -128,7 +136,9 @@ const index\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_ac046f27
 \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_ab70c085fc3df11a4ed9fe74b40844c5c}{get\+\_\+num\+\_\+stored\+\_\+elements}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Returns the number of elements explicitly stored in the matrix. \end{DoxyCompactList}\item 
 std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_ada0db14e65dfe027f483dc449f704a7e}{get\+\_\+strategy}} () const noexcept
-\begin{DoxyCompactList}\small\item\em Returns the strategy. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Returns the strategy. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_a3e0f6f2a9d773de0551068d514bf9703}{set\+\_\+strategy}} (std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} $>$ strategy)
+\begin{DoxyCompactList}\small\item\em Set the strategy. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Friends}
 \begin{DoxyCompactItemize}
 \item 
@@ -513,6 +523,22 @@ a pointer to the new permuted object
 
 Implements \mbox{\hyperlink{classgko_1_1Permutable_ac3ac436c5621afd4cd1a36902f5c6c9b}{gko\+::\+Permutable$<$ Index\+Type $>$}}.
 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_a3e0f6f2a9d773de0551068d514bf9703}\label{classgko_1_1matrix_1_1Csr_a3e0f6f2a9d773de0551068d514bf9703}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$@{gko::matrix::Csr$<$ ValueType, IndexType $>$}!set\_strategy@{set\_strategy}}
+\index{set\_strategy@{set\_strategy}!gko::matrix::Csr$<$ ValueType, IndexType $>$@{gko::matrix::Csr$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{set\_strategy()}{set\_strategy()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::set\+\_\+strategy (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} $>$}]{strategy }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Set the strategy. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em strategy} & the csr strategy \\
+\hline
+\end{DoxyParams}
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_ab79e609214d6b4834d5961ee0a7d3519}\label{classgko_1_1matrix_1_1Csr_ab79e609214d6b4834d5961ee0a7d3519}} 
 \index{gko::matrix::Csr$<$ ValueType, IndexType $>$@{gko::matrix::Csr$<$ ValueType, IndexType $>$}!transpose@{transpose}}
 \index{transpose@{transpose}!gko::matrix::Csr$<$ ValueType, IndexType $>$@{gko::matrix::Csr$<$ ValueType, IndexType $>$}}
@@ -556,4 +582,4 @@ Implements \mbox{\hyperlink{classgko_1_1WritableToMatrixData_a96036c3a4bf4c67fa9
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
 \item 
 ginkgo/core/matrix/coo.\+hpp (5545d2096)\item 
-ginkgo/core/matrix/csr.\+hpp (1974cd547)\end{DoxyCompactItemize}
+ginkgo/core/matrix/csr.\+hpp (28f9fa6f6)\end{DoxyCompactItemize}
