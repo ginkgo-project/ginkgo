@@ -53,8 +53,10 @@ function(ginkgo_create_hip_test test_name)
     target_include_directories("${TEST_TARGET_NAME}"
         PRIVATE
             "$<BUILD_INTERFACE:${Ginkgo_BINARY_DIR}>"
-
-            # Only `exception_helpers` requires these so far, but it's much easier
+            # Only `math` requires it so far, but it's much easier
+            # to put these this way.
+            ${GINKGO_HIP_THRUST_PATH}
+            # Only `exception_helpers` requires thess so far, but it's much easier
             # to put these this way.
             ${HIPBLAS_INCLUDE_DIRS}
             ${HIPSPARSE_INCLUDE_DIRS}

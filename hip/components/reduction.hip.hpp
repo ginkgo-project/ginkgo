@@ -30,8 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_COMPONENTS_REDUCTION_CUH_
-#define GKO_CUDA_COMPONENTS_REDUCTION_CUH_
+#ifndef GKO_HIP_COMPONENTS_REDUCTION_HIP_HPP_
+#define GKO_HIP_COMPONENTS_REDUCTION_HIP_HPP_
+
+
+#include <hip/hip_runtime.h>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -39,16 +42,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/std_extensions.hpp>
 
 
-#include "cuda/base/config.hpp"
-#include "cuda/base/types.hpp"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/thread_ids.cuh"
-#include "cuda/components/uninitialized_array.hpp"
+#include "hip/base/types.hip.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
+#include "hip/components/uninitialized_array.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace hip {
 
 
 constexpr int default_block_size = 512;
@@ -67,7 +69,7 @@ constexpr int default_block_size = 512;
  * @return the reduction result
  */
 template <typename ValueType>
-__host__ ValueType reduce_add_array(std::shared_ptr<const CudaExecutor> exec,
+__host__ ValueType reduce_add_array(std::shared_ptr<const HipExecutor> exec,
                                     size_type size, const ValueType *source)
 {
     auto block_results_val = source;
@@ -78,17 +80,18 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const CudaExecutor> exec,
 
         auto block_results = Array<ValueType>(exec, grid_dim);
 
-        reduce_add_array<<<grid_dim, default_block_size>>>(
-            size, as_cuda_type(source), as_cuda_type(block_results.get_data()));
+        hipLaunchKernelGGL(
+            reduce_add_array, dim3(grid_dim), dim3(default_block_size), 0, 0,
+            size, as_hip_type(source), as_hip_type(block_results.get_data()));
 
         block_results_val = block_results.get_const_data();
     }
 
     auto d_result = Array<ValueType>(exec, 1);
 
-    reduce_add_array<<<1, default_block_size>>>(
-        grid_dim, as_cuda_type(block_results_val),
-        as_cuda_type(d_result.get_data()));
+    hipLaunchKernelGGL(reduce_add_array, dim3(1), dim3(default_block_size), 0,
+                       0, grid_dim, as_hip_type(block_results_val),
+                       as_hip_type(d_result.get_data()));
     ValueType answer = zero<ValueType>();
     exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
                                   &answer);
@@ -96,9 +99,9 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const CudaExecutor> exec,
 }
 
 
-}  // namespace cuda
+}  // namespace hip
 }  // namespace kernels
 }  // namespace gko
 
 
-#endif  // GKO_CUDA_COMPONENTS_REDUCTION_CUH_
+#endif  // GKO_HIP_COMPONENTS_REDUCTION_HIP_HPP_

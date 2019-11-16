@@ -37,62 +37,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-#include <hip/hip_runtime.h>
-#include <hip/math_functions.h>
 #include <thrust/complex.h>
 
 
 namespace gko {
-namespace detail {
 
 
-template <typename T>
-struct remove_complex_impl<thrust::complex<T>> {
-    using type = T;
-};
-
-
-template <typename T>
-struct is_complex_impl<thrust::complex<T>>
-    : public std::integral_constant<bool, true> {};
-
-
-template <typename T>
-struct truncate_type_impl<thrust::complex<T>> {
-    using type = thrust::complex<typename truncate_type_impl<T>::type>;
-};
-
-
-}  // namespace detail
-
-
-template <>
-__device__ GKO_INLINE std::complex<float> zero<std::complex<float>>()
-{
-    thrust::complex<float> z(0);
-    return reinterpret_cast<std::complex<float> &>(z);
-}
-
-template <>
-__device__ GKO_INLINE std::complex<double> zero<std::complex<double>>()
-{
-    thrust::complex<double> z(0);
-    return reinterpret_cast<std::complex<double> &>(z);
-}
-
-template <>
-__device__ GKO_INLINE std::complex<float> one<std::complex<float>>()
-{
-    thrust::complex<float> z(1);
-    return reinterpret_cast<std::complex<float> &>(z);
-}
-
-template <>
-__device__ GKO_INLINE std::complex<double> one<std::complex<double>>()
-{
-    thrust::complex<double> z(1);
-    return reinterpret_cast<std::complex<double> &>(z);
-}
+#include "common/base/math.hpp.inc"
 
 
 }  // namespace gko

@@ -219,7 +219,7 @@ GKO_BIND_CUBLAS_DOT(ValueType, detail::not_implemented);
     inline void norm2(cublasHandle_t handle, int n, const ValueType *x,      \
                       int incx, ValueType *result)                           \
     {                                                                        \
-        zero_array(n, result);                                               \
+        zero_array(1, result);                                               \
         GKO_ASSERT_NO_CUBLAS_ERRORS(                                         \
             CublasName(handle, n, as_culibs_type(x), incx,                   \
                        reinterpret_cast<remove_complex<ValueType> *>(        \
@@ -249,6 +249,7 @@ GKO_BIND_CUBLAS_COMPLEX_NORM2(std::complex<double>, cublasDznrm2);
 template <typename ValueType>
 GKO_BIND_CUBLAS_NORM2(ValueType, detail::not_implemented);
 
+#undef GKO_BIND_CUBLAS_COMPLEX_NORM2
 #undef GKO_BIND_CUBLAS_NORM2
 
 

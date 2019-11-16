@@ -60,6 +60,19 @@ class Sellp;
 template <typename ValueType, typename IndexType>
 class SparsityCsr;
 
+template <typename ValueType, typename IndexType>
+class Csr;
+
+
+namespace detail {
+
+
+template <typename ValueType = default_precision, typename IndexType = int32>
+void strategy_rebuild_helper(Csr<ValueType, IndexType> *result);
+
+
+}  // namespace detail
+
 
 /**
  * CSR is a matrix format which stores only the nonzero coefficients by
@@ -100,26 +113,52 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     friend class SparsityCsr<ValueType, IndexType>;
 
 public:
-    using EnableLinOp<Csr>::convert_to;
-    using EnableLinOp<Csr>::move_to;
-
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
 
     class automatical;
 
+    /**
+     * strategy_type is to decide how to set the csr algorithm.
+     *
+     * The practical strategy method should inherit strategy_type and implement
+     * its `process`, `clac_size` function and the corresponding device kernel.
+     */
     class strategy_type {
         friend class automatical;
 
     public:
+        /**
+         * Creates a strategy_type.
+         *
+         * @param name  the name of strategy
+         */
         strategy_type(std::string name) : name_(name) {}
 
+        /**
+         * Returns the name of strategy
+         *
+         * @return the name of strategy
+         */
         std::string get_name() { return name_; }
 
+        /**
+         * Computes srow according to row pointers.
+         *
+         * @param mtx_row_ptrs  the row pointers of the matrix
+         * @param mtx_srow  the srow of the matrix
+         */
         virtual void process(const Array<index_type> &mtx_row_ptrs,
                              Array<index_type> *mtx_srow) = 0;
 
+        /**
+         * Computes the srow size according to the number of nonzeros.
+         *
+         * @param nnz  the number of nonzeros
+         *
+         * @return the size of srow
+         */
         virtual int64_t clac_size(const int64_t nnz) = 0;
 
     protected:
@@ -129,58 +168,135 @@ public:
         std::string name_;
     };
 
+    /**
+     * classical is a strategy_type which uses the same number of threads on
+     * each row.
+     */
     class classical : public strategy_type {
     public:
+        /**
+         * Creates a classical strategy.
+         */
         classical() : strategy_type("classical") {}
 
         void process(const Array<index_type> &mtx_row_ptrs,
-                     Array<index_type> *mtx_srow)
+                     Array<index_type> *mtx_srow) override
         {}
 
-        int64_t clac_size(const int64_t nnz) { return 0; }
+        int64_t clac_size(const int64_t nnz) override { return 0; }
     };
 
+    /**
+     * merge_path is a strategy_type which uses the merge_path algorithm.
+     * merge_path is according to Merrill and Garland: Merge-Based Parallel
+     * Sparse Matrix-Vector Multiplication
+     */
     class merge_path : public strategy_type {
     public:
+        /**
+         * Creates a merge_path strategy.
+         */
         merge_path() : strategy_type("merge_path") {}
 
         void process(const Array<index_type> &mtx_row_ptrs,
-                     Array<index_type> *mtx_srow)
+                     Array<index_type> *mtx_srow) override
         {}
 
-        int64_t clac_size(const int64_t nnz) { return 0; }
+        int64_t clac_size(const int64_t nnz) override { return 0; }
     };
 
+    /**
+     * cusparse is a strategy_type which uses the sparselib csr.
+     *
+     * @note cusparse is also known to the hip executor which converts between
+     *       cuda and hip.
+     */
     class cusparse : public strategy_type {
     public:
+        /**
+         * Creates a cusparse strategy.
+         */
         cusparse() : strategy_type("cusparse") {}
 
         void process(const Array<index_type> &mtx_row_ptrs,
-                     Array<index_type> *mtx_srow)
+                     Array<index_type> *mtx_srow) override
         {}
 
-        int64_t clac_size(const int64_t nnz) { return 0; }
+        int64_t clac_size(const int64_t nnz) override { return 0; }
     };
 
+    /**
+     * sparselib is a strategy_type which uses the sparselib csr.
+     *
+     * @note Uses cusparse in cuda and hipsparse in hip.
+     */
+    class sparselib : public strategy_type {
+    public:
+        /**
+         * Creates a sparselib strategy.
+         */
+        sparselib() : strategy_type("sparselib") {}
+
+        void process(const Array<index_type> &mtx_row_ptrs,
+                     Array<index_type> *mtx_srow) override
+        {}
+
+        int64_t clac_size(const int64_t nnz) override { return 0; }
+    };
+
+    /**
+     * load_balance is a strategy_type which uses the load balance algorithm.
+     */
     class load_balance : public strategy_type {
     public:
+        /**
+         * Creates a load_balance strategy.
+         */
         load_balance()
             : load_balance(std::move(
                   gko::CudaExecutor::create(0, gko::OmpExecutor::create())))
         {}
 
+        /**
+         * Creates a load_balance strategy with CUDA executor.
+         *
+         * @param exec the CUDA executor
+         */
         load_balance(std::shared_ptr<const CudaExecutor> exec)
-            : load_balance(exec->get_num_warps())
+            : load_balance(exec->get_num_warps(), exec->get_warp_size())
         {}
 
-        load_balance(int64_t nwarps)
-            : strategy_type("load_balance"), nwarps_(nwarps)
+        /**
+         * Creates a load_balance strategy with HIP executor.
+         *
+         * @param exec the HIP executor
+         */
+        load_balance(std::shared_ptr<const HipExecutor> exec)
+            : load_balance(exec->get_num_warps(), exec->get_warp_size(), false)
+        {}
+
+        /**
+         * Creates a load_balance strategy with specified parameters
+         *
+         * @param nwarps the number of warps in the executor
+         * @param warp_size the warp size of the executor
+         * @param cuda_strategy  whether the `cuda_strategy` needs to be used.
+         *
+         * @note The warp_size must be the size of full warp. When using this
+         *       constructor, set_strategy needs to be called with correct
+         *       parameters which is replaced during the conversion.
+         */
+        load_balance(int64_t nwarps, int warp_size = 32,
+                     bool cuda_strategy = true)
+            : strategy_type("load_balance"),
+              nwarps_(nwarps),
+              warp_size_(warp_size),
+              cuda_strategy_(cuda_strategy)
         {}
 
         void process(const Array<index_type> &mtx_row_ptrs,
-                     Array<index_type> *mtx_srow)
+                     Array<index_type> *mtx_srow) override
         {
-            constexpr uint32 warp_size = 32;
             auto nwarps = mtx_srow->get_num_elems();
 
             if (nwarps > 0) {
@@ -213,8 +329,8 @@ public:
                 const auto num_elems = row_ptrs[num_rows];
                 for (size_type i = 0; i < num_rows; i++) {
                     auto bucket =
-                        ceildiv((ceildiv(row_ptrs[i + 1], warp_size) * nwarps),
-                                ceildiv(num_elems, warp_size));
+                        ceildiv((ceildiv(row_ptrs[i + 1], warp_size_) * nwarps),
+                                ceildiv(num_elems, warp_size_));
                     if (bucket < nwarps) {
                         srow[bucket]++;
                     }
@@ -229,44 +345,94 @@ public:
             }
         }
 
-        int64_t clac_size(const int64_t nnz)
+        int64_t clac_size(const int64_t nnz) override
         {
-            constexpr uint32 warp_size = 32;
-            int multiple = 8;
-            if (nnz >= 2000000) {
-                multiple = 128;
-            } else if (nnz >= 200000) {
-                multiple = 32;
+            if (warp_size_ > 0) {
+                int multiple = 8;
+                if (nnz >= 2e6) {
+                    multiple = 128;
+                } else if (nnz >= 2e5) {
+                    multiple = 32;
+                }
+
+#if GINKGO_HIP_PLATFORM_HCC
+                if (!cuda_strategy_) {
+                    multiple = 8;
+                    if (nnz >= 1e7) {
+                        multiple = 64;
+                    } else if (nnz >= 1e6) {
+                        multiple = 16;
+                    }
+                }
+#endif  // GINKGO_HIP_PLATFORM_HCC
+
+                auto nwarps = nwarps_ * multiple;
+                return min(ceildiv(nnz, warp_size_), int64_t(nwarps));
+            } else {
+                return 0;
             }
-            auto nwarps = nwarps_ * multiple;
-            return min(ceildiv(nnz, warp_size), static_cast<int64_t>(nwarps));
         }
 
     private:
         int64_t nwarps_;
+        int warp_size_;
+        bool cuda_strategy_;
     };
 
     class automatical : public strategy_type {
     public:
+        /**
+         * Creates a automatical strategy.
+         */
         automatical()
             : automatical(std::move(
                   gko::CudaExecutor::create(0, gko::OmpExecutor::create())))
         {}
 
+        /**
+         * Creates a automatical strategy with CUDA executor.
+         *
+         * @param exec the CUDA executor
+         */
         automatical(std::shared_ptr<const CudaExecutor> exec)
-            : automatical(exec->get_num_warps())
+            : automatical(exec->get_num_warps(), exec->get_warp_size())
         {}
 
-        automatical(int64_t nwarps)
-            : strategy_type("automatical"), nwarps_(nwarps)
+        /**
+         * Creates a automatical strategy with HIP executor.
+         *
+         * @param exec the HIP executor
+         */
+        automatical(std::shared_ptr<const HipExecutor> exec)
+            : automatical(exec->get_num_warps(), exec->get_warp_size(), false)
+        {}
+
+        /**
+         * Creates a automatical strategy with specified parameters
+         *
+         * @param nwarps the number of warps in the executor
+         * @param warp_size the warp size of the executor
+         * @param cuda_strategy  whether the `cuda_strategy` needs to be used.
+         *
+         * @note The warp_size must be the size of full warp. When using this
+         *       constructor, set_strategy needs to be called with correct
+         *       parameters which is replaced during the conversion.
+         */
+        automatical(int64_t nwarps, int warp_size = 32,
+                    bool cuda_strategy = true)
+            : strategy_type("automatical"),
+              nwarps_(nwarps),
+              warp_size_(warp_size),
+              cuda_strategy_(cuda_strategy)
         {}
 
         void process(const Array<index_type> &mtx_row_ptrs,
-                     Array<index_type> *mtx_srow)
+                     Array<index_type> *mtx_srow) override
         {
             // if the number of stored elements is larger than 1e6 or
             // the maximum number of stored elements per row is larger than
             // 64, use load_balance otherwise use classical
+            // TODO: need to be tuned for AMD gpu.
             auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
             const bool is_mtx_on_host{host_mtx_exec ==
                                       mtx_row_ptrs.get_executor()};
@@ -280,7 +446,8 @@ public:
             }
             const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
             if (row_ptrs[num_rows] > index_type(1e6)) {
-                load_balance actual_strategy(nwarps_);
+                load_balance actual_strategy(nwarps_, warp_size_,
+                                             cuda_strategy_);
                 if (is_mtx_on_host) {
                     actual_strategy.process(mtx_row_ptrs, mtx_srow);
                 } else {
@@ -293,7 +460,8 @@ public:
                     maxnum = max(maxnum, row_ptrs[i] - row_ptrs[i - 1]);
                 }
                 if (maxnum > 64) {
-                    load_balance actual_strategy(nwarps_);
+                    load_balance actual_strategy(nwarps_, warp_size_,
+                                                 cuda_strategy_);
                     if (is_mtx_on_host) {
                         actual_strategy.process(mtx_row_ptrs, mtx_srow);
                     } else {
@@ -312,14 +480,36 @@ public:
             }
         }
 
-        int64_t clac_size(const int64_t nnz)
+        int64_t clac_size(const int64_t nnz) override
         {
-            return std::make_shared<load_balance>(nwarps_)->clac_size(nnz);
+            return std::make_shared<load_balance>(nwarps_, warp_size_,
+                                                  cuda_strategy_)
+                ->clac_size(nnz);
         }
 
     private:
         int64_t nwarps_;
+        int warp_size_;
+        bool cuda_strategy_;
     };
+
+    void convert_to(Csr<ValueType, IndexType> *result) const override
+    {
+        bool same_executor = this->get_executor() == result->get_executor();
+        EnableLinOp<Csr>::convert_to(result);
+        if (!same_executor) {
+            detail::strategy_rebuild_helper(result);
+        }
+    }
+
+    void move_to(Csr<ValueType, IndexType> *result) override
+    {
+        bool same_executor = this->get_executor() == result->get_executor();
+        EnableLinOp<Csr>::move_to(result);
+        if (!same_executor) {
+            detail::strategy_rebuild_helper(result);
+        }
+    }
 
     void convert_to(Dense<ValueType> *other) const override;
 
@@ -483,6 +673,17 @@ public:
         return strategy_;
     }
 
+    /**
+     * Set the strategy
+     *
+     * @param strategy the csr strategy
+     */
+    void set_strategy(std::shared_ptr<strategy_type> strategy)
+    {
+        strategy_ = std::move(strategy);
+        this->make_srow();
+    }
+
 protected:
     /**
      * Creates an uninitialized CSR matrix of the specified size.
@@ -505,7 +706,7 @@ protected:
      */
     Csr(std::shared_ptr<const Executor> exec, const dim<2> &size = dim<2>{},
         size_type num_nonzeros = {},
-        std::shared_ptr<strategy_type> strategy = std::make_shared<cusparse>())
+        std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
         : EnableLinOp<Csr>(exec, size),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
@@ -539,7 +740,7 @@ protected:
               typename RowPtrsArray>
     Csr(std::shared_ptr<const Executor> exec, const dim<2> &size,
         ValuesArray &&values, ColIdxsArray &&col_idxs, RowPtrsArray &&row_ptrs,
-        std::shared_ptr<strategy_type> strategy = std::make_shared<cusparse>())
+        std::shared_ptr<strategy_type> strategy = std::make_shared<sparselib>())
         : EnableLinOp<Csr>(exec, size),
           values_{exec, std::forward<ValuesArray>(values)},
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
@@ -576,6 +777,43 @@ private:
 };
 
 
+namespace detail {
+
+
+/**
+ * When strategy is load_balance or automatical, rebuild the strategy according
+ * to executor's property.
+ *
+ * @param result  the csr matrix.
+ */
+template <typename ValueType, typename IndexType>
+void strategy_rebuild_helper(Csr<ValueType, IndexType> *result)
+{
+    using load_balance = typename Csr<ValueType, IndexType>::load_balance;
+    using automatical = typename Csr<ValueType, IndexType>::automatical;
+    auto strategy = result->get_strategy();
+    auto executor = result->get_executor();
+    if (std::dynamic_pointer_cast<load_balance>(strategy)) {
+        if (auto exec =
+                std::dynamic_pointer_cast<const HipExecutor>(executor)) {
+            result->set_strategy(std::make_shared<load_balance>(exec));
+        } else if (auto exec = std::dynamic_pointer_cast<const CudaExecutor>(
+                       executor)) {
+            result->set_strategy(std::make_shared<load_balance>(exec));
+        }
+    } else if (std::dynamic_pointer_cast<automatical>(strategy)) {
+        if (auto exec =
+                std::dynamic_pointer_cast<const HipExecutor>(executor)) {
+            result->set_strategy(std::make_shared<automatical>(exec));
+        } else if (auto exec = std::dynamic_pointer_cast<const CudaExecutor>(
+                       executor)) {
+            result->set_strategy(std::make_shared<automatical>(exec));
+        }
+    }
+}
+
+
+}  // namespace detail
 }  // namespace matrix
 }  // namespace gko
 

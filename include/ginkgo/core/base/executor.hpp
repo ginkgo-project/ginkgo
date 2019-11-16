@@ -895,6 +895,11 @@ public:
     }
 
     /**
+     * Get the warp size of this executor.
+     */
+    int get_warp_size() const noexcept { return warp_size_; }
+
+    /**
      * Get the major verion of compute capability.
      */
     int get_major_version() const noexcept { return major_; }
@@ -932,7 +937,8 @@ protected:
           num_warps_per_sm_(0),
           num_multiprocessor_(0),
           major_(0),
-          minor_(0)
+          minor_(0),
+          warp_size_(0)
     {
         assert(device_id < max_devices);
         this->set_gpu_property();
@@ -971,6 +977,7 @@ private:
     int num_multiprocessor_;
     int major_;
     int minor_;
+    int warp_size_;
 
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;
@@ -1052,6 +1059,19 @@ public:
     int get_minor_version() const noexcept { return minor_; }
 
     /**
+     * Get the number of warps of this executor.
+     */
+    int get_num_warps() const noexcept
+    {
+        return num_multiprocessor_ * num_warps_per_sm_;
+    }
+
+    /**
+     * Get the warp size of this executor.
+     */
+    int get_warp_size() const noexcept { return warp_size_; }
+
+    /**
      * Get the hipblas handle for this executor
      *
      * @return  the hipblas handle (hipblasContext*) for this executor
@@ -1079,7 +1099,8 @@ protected:
           num_multiprocessor_(0),
           num_warps_per_sm_(0),
           major_(0),
-          minor_(0)
+          minor_(0),
+          warp_size_(0)
     {
         assert(device_id < max_devices);
         this->set_gpu_property();
@@ -1118,6 +1139,7 @@ private:
     int num_warps_per_sm_;
     int major_;
     int minor_;
+    int warp_size_;
 
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T *)>>;

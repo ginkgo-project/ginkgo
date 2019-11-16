@@ -60,22 +60,20 @@ class Csr : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Csr<>;
     using Vec = gko::matrix::Dense<>;
-    using ComplexVec = gko::matrix::Dense<std::complex<double>>;
-    using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
 
     Csr() : rand_engine(42) {}
 
     void SetUp()
     {
-        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
+        ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        cuda = gko::CudaExecutor::create(0, ref);
+        hip = gko::HipExecutor::create(0, ref);
     }
 
     void TearDown()
     {
-        if (cuda != nullptr) {
-            ASSERT_NO_THROW(cuda->synchronize());
+        if (hip != nullptr) {
+            ASSERT_NO_THROW(hip->synchronize());
         }
     }
 
@@ -98,41 +96,30 @@ protected:
         y = gen_mtx<Vec>(231, num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
-        dmtx = Mtx::create(cuda, strategy);
+        dmtx = Mtx::create(hip, strategy);
         dmtx->copy_from(mtx.get());
-        dresult = Vec::create(cuda);
+        dresult = Vec::create(hip);
         dresult->copy_from(expected.get());
-        dy = Vec::create(cuda);
+        dy = Vec::create(hip);
         dy->copy_from(y.get());
-        dalpha = Vec::create(cuda);
+        dalpha = Vec::create(hip);
         dalpha->copy_from(alpha.get());
-        dbeta = Vec::create(cuda);
+        dbeta = Vec::create(hip);
         dbeta->copy_from(beta.get());
     }
 
-    void set_up_apply_complex_data(
-        std::shared_ptr<ComplexMtx::strategy_type> strategy)
-    {
-        complex_mtx = ComplexMtx::create(ref, strategy);
-        complex_mtx->copy_from(gen_mtx<ComplexVec>(532, 231, 1));
-        complex_dmtx = ComplexMtx::create(cuda, strategy);
-        complex_dmtx->copy_from(complex_mtx.get());
-    }
-
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> cuda;
+    std::shared_ptr<const gko::HipExecutor> hip;
 
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> mtx;
-    std::unique_ptr<ComplexMtx> complex_mtx;
     std::unique_ptr<Vec> expected;
     std::unique_ptr<Vec> y;
     std::unique_ptr<Vec> alpha;
     std::unique_ptr<Vec> beta;
 
     std::unique_ptr<Mtx> dmtx;
-    std::unique_ptr<ComplexMtx> complex_dmtx;
     std::unique_ptr<Vec> dresult;
     std::unique_ptr<Vec> dy;
     std::unique_ptr<Vec> dalpha;
@@ -142,7 +129,7 @@ protected:
 
 TEST_F(Csr, StrategyAfterCopyIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::load_balance>(cuda));
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(hip));
 
     ASSERT_EQ(mtx->get_strategy()->get_name(),
               dmtx->get_strategy()->get_name());
@@ -151,7 +138,7 @@ TEST_F(Csr, StrategyAfterCopyIsEquivalentToRef)
 
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data(std::make_shared<Mtx::load_balance>(cuda));
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(hip));
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -162,7 +149,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalance)
 
 TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data(std::make_shared<Mtx::load_balance>(cuda));
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(hip));
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -171,7 +158,7 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithLoadBalance)
 }
 
 
-TEST_F(Csr, SimpleApplyIsEquivalentToRefWithCusparse)
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithHipsparse)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
 
@@ -182,7 +169,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithCusparse)
 }
 
 
-TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithCusparse)
+TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithHipsparse)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
 
@@ -239,7 +226,7 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithClassical)
 
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomatical)
 {
-    set_up_apply_data(std::make_shared<Mtx::automatical>(cuda));
+    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -250,7 +237,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomatical)
 
 TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data(std::make_shared<Mtx::load_balance>(cuda), 3);
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(hip), 3);
 
     mtx->apply(y.get(), expected.get());
     dmtx->apply(dy.get(), dresult.get());
@@ -261,7 +248,7 @@ TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 
 TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data(std::make_shared<Mtx::load_balance>(cuda), 3);
+    set_up_apply_data(std::make_shared<Mtx::load_balance>(hip), 3);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
@@ -316,7 +303,7 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithMergePath)
 
 TEST_F(Csr, TransposeIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::automatical>(cuda));
+    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
 
     auto trans = mtx->transpose();
     auto d_trans = dmtx->transpose();
@@ -326,23 +313,11 @@ TEST_F(Csr, TransposeIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
-{
-    set_up_apply_complex_data(std::make_shared<ComplexMtx::automatical>(cuda));
-
-    auto trans = complex_mtx->conj_transpose();
-    auto d_trans = complex_dmtx->conj_transpose();
-
-    GKO_ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(d_trans.get()),
-                        static_cast<ComplexMtx *>(trans.get()), 0.0);
-}
-
-
 TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto dense_mtx = gko::matrix::Dense<>::create(ref);
-    auto ddense_mtx = gko::matrix::Dense<>::create(cuda);
+    auto ddense_mtx = gko::matrix::Dense<>::create(hip);
 
     mtx->convert_to(dense_mtx.get());
     dmtx->convert_to(ddense_mtx.get());
@@ -355,7 +330,7 @@ TEST_F(Csr, MoveToDenseIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto dense_mtx = gko::matrix::Dense<>::create(ref);
-    auto ddense_mtx = gko::matrix::Dense<>::create(cuda);
+    auto ddense_mtx = gko::matrix::Dense<>::create(hip);
 
     mtx->move_to(dense_mtx.get());
     dmtx->move_to(ddense_mtx.get());
@@ -368,7 +343,7 @@ TEST_F(Csr, ConvertToEllIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto ell_mtx = gko::matrix::Ell<>::create(ref);
-    auto dell_mtx = gko::matrix::Ell<>::create(cuda);
+    auto dell_mtx = gko::matrix::Ell<>::create(hip);
 
     mtx->convert_to(ell_mtx.get());
     dmtx->convert_to(dell_mtx.get());
@@ -381,7 +356,7 @@ TEST_F(Csr, MoveToEllIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto ell_mtx = gko::matrix::Ell<>::create(ref);
-    auto dell_mtx = gko::matrix::Ell<>::create(cuda);
+    auto dell_mtx = gko::matrix::Ell<>::create(hip);
 
     mtx->move_to(ell_mtx.get());
     dmtx->move_to(dell_mtx.get());
@@ -393,7 +368,7 @@ TEST_F(Csr, ConvertToSparsityCsrIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(ref);
-    auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(cuda);
+    auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(hip);
 
     mtx->convert_to(sparsity_mtx.get());
     dmtx->convert_to(d_sparsity_mtx.get());
@@ -406,7 +381,7 @@ TEST_F(Csr, MoveToSparsityCsrIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(ref);
-    auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(cuda);
+    auto d_sparsity_mtx = gko::matrix::SparsityCsr<>::create(hip);
 
     mtx->move_to(sparsity_mtx.get());
     dmtx->move_to(d_sparsity_mtx.get());
@@ -423,8 +398,8 @@ TEST_F(Csr, CalculateMaxNnzPerRowIsEquivalentToRef)
 
     gko::kernels::reference::csr::calculate_max_nnz_per_row(ref, mtx.get(),
                                                             &max_nnz_per_row);
-    gko::kernels::cuda::csr::calculate_max_nnz_per_row(cuda, dmtx.get(),
-                                                       &dmax_nnz_per_row);
+    gko::kernels::hip::csr::calculate_max_nnz_per_row(hip, dmtx.get(),
+                                                      &dmax_nnz_per_row);
 
     ASSERT_EQ(max_nnz_per_row, dmax_nnz_per_row);
 }
@@ -434,7 +409,7 @@ TEST_F(Csr, ConvertToCooIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto coo_mtx = gko::matrix::Coo<>::create(ref);
-    auto dcoo_mtx = gko::matrix::Coo<>::create(cuda);
+    auto dcoo_mtx = gko::matrix::Coo<>::create(hip);
 
     mtx->convert_to(coo_mtx.get());
     dmtx->convert_to(dcoo_mtx.get());
@@ -447,7 +422,7 @@ TEST_F(Csr, MoveToCooIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto coo_mtx = gko::matrix::Coo<>::create(ref);
-    auto dcoo_mtx = gko::matrix::Coo<>::create(cuda);
+    auto dcoo_mtx = gko::matrix::Coo<>::create(hip);
 
     mtx->move_to(coo_mtx.get());
     dmtx->move_to(dcoo_mtx.get());
@@ -460,7 +435,7 @@ TEST_F(Csr, ConvertToSellpIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
-    auto dsellp_mtx = gko::matrix::Sellp<>::create(cuda);
+    auto dsellp_mtx = gko::matrix::Sellp<>::create(hip);
 
     mtx->convert_to(sellp_mtx.get());
     dmtx->convert_to(dsellp_mtx.get());
@@ -473,7 +448,7 @@ TEST_F(Csr, MoveToSellpIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
     auto sellp_mtx = gko::matrix::Sellp<>::create(ref);
-    auto dsellp_mtx = gko::matrix::Sellp<>::create(cuda);
+    auto dsellp_mtx = gko::matrix::Sellp<>::create(hip);
 
     mtx->move_to(sellp_mtx.get());
     dmtx->move_to(dsellp_mtx.get());
@@ -490,8 +465,8 @@ TEST_F(Csr, CalculateTotalColsIsEquivalentToRef)
 
     gko::kernels::reference::csr::calculate_total_cols(
         ref, mtx.get(), &total_cols, 2, gko::matrix::default_slice_size);
-    gko::kernels::cuda::csr::calculate_total_cols(
-        cuda, dmtx.get(), &dtotal_cols, 2, gko::matrix::default_slice_size);
+    gko::kernels::hip::csr::calculate_total_cols(
+        hip, dmtx.get(), &dtotal_cols, 2, gko::matrix::default_slice_size);
 
     ASSERT_EQ(total_cols, dtotal_cols);
 }
@@ -501,12 +476,12 @@ TEST_F(Csr, CalculatesNonzerosPerRow)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
     gko::Array<gko::size_type> row_nnz(ref, mtx->get_size()[0]);
-    gko::Array<gko::size_type> drow_nnz(cuda, dmtx->get_size()[0]);
+    gko::Array<gko::size_type> drow_nnz(hip, dmtx->get_size()[0]);
 
     gko::kernels::reference::csr::calculate_nonzeros_per_row(ref, mtx.get(),
                                                              &row_nnz);
-    gko::kernels::cuda::csr::calculate_nonzeros_per_row(cuda, dmtx.get(),
-                                                        &drow_nnz);
+    gko::kernels::hip::csr::calculate_nonzeros_per_row(hip, dmtx.get(),
+                                                       &drow_nnz);
 
     GKO_ASSERT_ARRAY_EQ(&row_nnz, &drow_nnz);
 }
@@ -519,7 +494,7 @@ TEST_F(Csr, ConvertToHybridIsEquivalentToRef)
     auto hybrid_mtx = Hybrid_type::create(
         ref, std::make_shared<Hybrid_type::column_limit>(2));
     auto dhybrid_mtx = Hybrid_type::create(
-        cuda, std::make_shared<Hybrid_type::column_limit>(2));
+        hip, std::make_shared<Hybrid_type::column_limit>(2));
 
     mtx->convert_to(hybrid_mtx.get());
     dmtx->convert_to(dhybrid_mtx.get());
@@ -535,7 +510,7 @@ TEST_F(Csr, MoveToHybridIsEquivalentToRef)
     auto hybrid_mtx = Hybrid_type::create(
         ref, std::make_shared<Hybrid_type::column_limit>(2));
     auto dhybrid_mtx = Hybrid_type::create(
-        cuda, std::make_shared<Hybrid_type::column_limit>(2));
+        hip, std::make_shared<Hybrid_type::column_limit>(2));
 
     mtx->move_to(hybrid_mtx.get());
     dmtx->move_to(dhybrid_mtx.get());

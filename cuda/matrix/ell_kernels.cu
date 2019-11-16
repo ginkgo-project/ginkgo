@@ -76,6 +76,8 @@ constexpr int default_block_size = 512;
  * `num_threads_per_core` threads assigned to each physical core.
  */
 constexpr int num_threads_per_core = 4;
+
+
 /**
  * ratio is the parameter to decide when to use threads to do reduction on each
  * row. (#cols/#rows > ratio)
@@ -93,111 +95,7 @@ using compiled_kernels =
     syn::value_list<int, 0, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
 
-namespace kernel {
-namespace {
-
-
-template <int subwarp_size, bool atomic, typename ValueType, typename IndexType,
-          typename Closure>
-__device__ void spmv_kernel(const size_type num_rows, const int nwarps_per_row,
-                            const ValueType *__restrict__ val,
-                            const IndexType *__restrict__ col,
-                            const size_type stride,
-                            const size_type num_stored_elements_per_row,
-                            const ValueType *__restrict__ b,
-                            const size_type b_stride, ValueType *__restrict__ c,
-                            const size_type c_stride, Closure op)
-{
-    const auto tidx =
-        static_cast<IndexType>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const IndexType x = tidx / subwarp_size / nwarps_per_row;
-    const auto warp_id = tidx / subwarp_size % nwarps_per_row;
-    const auto y_start = tidx % subwarp_size +
-                         num_stored_elements_per_row * warp_id / nwarps_per_row;
-    const auto y_end =
-        num_stored_elements_per_row * (warp_id + 1) / nwarps_per_row;
-    if (x < num_rows) {
-        const auto tile_block =
-            group::tiled_partition<subwarp_size>(group::this_thread_block());
-        ValueType temp = zero<ValueType>();
-        const auto column_id = blockIdx.y;
-        for (IndexType idx = y_start; idx < y_end; idx += subwarp_size) {
-            const auto ind = x + idx * stride;
-            const auto col_idx = col[ind];
-            if (col_idx < idx) {
-                break;
-            } else {
-                temp += val[ind] * b[col_idx * b_stride + column_id];
-            }
-        }
-        const auto answer = reduce(
-            tile_block, temp, [](ValueType x, ValueType y) { return x + y; });
-        if (tile_block.thread_rank() == 0) {
-            if (atomic) {
-                atomic_add(&(c[x * c_stride + column_id]),
-                           op(answer, c[x * c_stride + column_id]));
-            } else {
-                c[x * c_stride + column_id] =
-                    op(answer, c[x * c_stride + column_id]);
-            }
-        }
-    }
-}
-
-
-template <int subwarp_size, bool atomic = false, typename ValueType,
-          typename IndexType>
-__global__ __launch_bounds__(default_block_size) void spmv(
-    const size_type num_rows, const int nwarps_per_row,
-    const ValueType *__restrict__ val, const IndexType *__restrict__ col,
-    const size_type stride, const size_type num_stored_elements_per_row,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    ValueType *__restrict__ c, const size_type c_stride)
-{
-    spmv_kernel<subwarp_size, atomic>(
-        num_rows, nwarps_per_row, val, col, stride, num_stored_elements_per_row,
-        b, b_stride, c, c_stride,
-        [](const ValueType &x, const ValueType &y) { return x; });
-}
-
-
-template <int subwarp_size, bool atomic = false, typename ValueType,
-          typename IndexType>
-__global__ __launch_bounds__(default_block_size) void spmv(
-    const size_type num_rows, const int nwarps_per_row,
-    const ValueType *__restrict__ alpha, const ValueType *__restrict__ val,
-    const IndexType *__restrict__ col, const size_type stride,
-    const size_type num_stored_elements_per_row,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    const ValueType *__restrict__ beta, ValueType *__restrict__ c,
-    const size_type c_stride)
-{
-    const ValueType alpha_val = alpha[0];
-    const ValueType beta_val = beta[0];
-    // Because the atomic operation changes the values of c during computation,
-    // it can not do the right alpha * a * b + beta * c operation.
-    // Thus, the cuda kernel only computes alpha * a * b when it uses atomic
-    // operation.
-    if (atomic) {
-        spmv_kernel<subwarp_size, atomic>(
-            num_rows, nwarps_per_row, val, col, stride,
-            num_stored_elements_per_row, b, b_stride, c, c_stride,
-            [&alpha_val](const ValueType &x, const ValueType &y) {
-                return alpha_val * x;
-            });
-    } else {
-        spmv_kernel<subwarp_size, atomic>(
-            num_rows, nwarps_per_row, val, col, stride,
-            num_stored_elements_per_row, b, b_stride, c, c_stride,
-            [&alpha_val, &beta_val](const ValueType &x, const ValueType &y) {
-                return alpha_val * x + beta_val * y;
-            });
-    }
-}
-
-
-}  // namespace
-}  // namespace kernel
+#include "common/matrix/ell_kernels.hpp.inc"
 
 
 namespace {
@@ -345,43 +243,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
 
 
-namespace kernel {
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(config::max_block_size) void initialize_zero_dense(
-    size_type num_rows, size_type num_cols, size_type stride,
-    ValueType *__restrict__ result)
-{
-    const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
-    const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
-    if (tidx_x < num_cols && tidx_y < num_rows) {
-        result[tidx_y * stride + tidx_x] = zero<ValueType>();
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void fill_in_dense(
-    size_type num_rows, size_type nnz, size_type source_stride,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values, size_type result_stride,
-    ValueType *__restrict__ result)
-{
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    if (tidx < num_rows) {
-        for (auto col = 0; col < nnz; col++) {
-            result[tidx * result_stride +
-                   col_idxs[tidx + col * source_stride]] +=
-                values[tidx + col * source_stride];
-        }
-    }
-}
-
-
-}  // namespace kernel
-
-
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
                       matrix::Dense<ValueType> *result,
@@ -410,64 +271,6 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);
-
-
-namespace kernel {
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
-    size_type num_rows, size_type max_nnz_per_row, size_type stride,
-    const ValueType *__restrict__ values, IndexType *__restrict__ result)
-{
-    constexpr auto warp_size = config::warp_size;
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    const auto row_idx = tidx / warp_size;
-
-    if (row_idx < num_rows) {
-        IndexType part_result{};
-        for (auto i = threadIdx.x % warp_size; i < max_nnz_per_row;
-             i += warp_size) {
-            if (values[stride * i + row_idx] != zero<ValueType>()) {
-                part_result += 1;
-            }
-        }
-
-        auto warp_tile =
-            group::tiled_partition<warp_size>(group::this_thread_block());
-        result[row_idx] = reduce(
-            warp_tile, part_result,
-            [](const size_type &a, const size_type &b) { return a + b; });
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void fill_in_csr(
-    size_type num_rows, size_type max_nnz_per_row, size_type stride,
-    const ValueType *__restrict__ source_values,
-    const IndexType *__restrict__ source_col_idxs,
-    IndexType *__restrict__ result_row_ptrs,
-    IndexType *__restrict__ result_col_idxs,
-    ValueType *__restrict__ result_values)
-{
-    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
-
-    if (tidx < num_rows) {
-        auto write_to = result_row_ptrs[tidx];
-        for (auto i = 0; i < max_nnz_per_row; i++) {
-            const auto source_idx = tidx + stride * i;
-            if (source_values[source_idx] != zero<ValueType>()) {
-                result_values[write_to] = source_values[source_idx];
-                result_col_idxs[write_to] = source_col_idxs[source_idx];
-                write_to++;
-            }
-        }
-    }
-}
-
-
-}  // namespace kernel
 
 
 template <typename ValueType, typename IndexType>

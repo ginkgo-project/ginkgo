@@ -91,6 +91,16 @@ struct is_supported<float> : std::true_type {};
 template <>
 struct is_supported<double> : std::true_type {};
 
+// hipblas supports part of complex function version is >= 0.19, but the version
+// is not set now.
+/* not implemented
+template <>
+struct is_supported<std::complex<float>> : std::true_type {};
+
+template <>
+struct is_supported<std::complex<double>> : std::true_type {};
+*/
+
 
 #define GKO_BIND_HIPBLAS_GEMM(ValueType, HipblasName)                        \
     inline void gemm(hipblasHandle_t handle, hipblasOperation_t transa,      \
@@ -110,6 +120,10 @@ struct is_supported<double> : std::true_type {};
 
 GKO_BIND_HIPBLAS_GEMM(float, hipblasSgemm);
 GKO_BIND_HIPBLAS_GEMM(double, hipblasDgemm);
+/* not implemented
+GKO_BIND_HIPBLAS_GEMM(std::complex<float>, hipblasCgemm);
+GKO_BIND_HIPBLAS_GEMM(std::complex<double>, hipblasZgemm);
+*/
 template <typename ValueType>
 GKO_BIND_HIPBLAS_GEMM(ValueType, detail::not_implemented);
 
@@ -134,6 +148,7 @@ GKO_BIND_HIPBLAS_GEMM(ValueType, detail::not_implemented);
 
 GKO_BIND_HIPBLAS_GEAM(float, hipblasSgeam);
 GKO_BIND_HIPBLAS_GEAM(double, hipblasDgeam);
+// Hipblas does not provide geam complex version yet.
 template <typename ValueType>
 GKO_BIND_HIPBLAS_GEAM(ValueType, detail::not_implemented);
 
@@ -211,6 +226,20 @@ GKO_BIND_HIPBLAS_DOT(ValueType, detail::not_implemented);
 #undef GKO_BIND_HIPBLAS_DOT
 
 
+#define GKO_BIND_HIPBLAS_COMPLEX_NORM2(ValueType, CublasName)                \
+    inline void norm2(hipblasHandle_t handle, int n, const ValueType *x,     \
+                      int incx, ValueType *result)                           \
+    {                                                                        \
+        zero_array(1, result);                                               \
+        GKO_ASSERT_NO_HIPBLAS_ERRORS(                                        \
+            CublasName(handle, n, as_hiplibs_type(x), incx,                  \
+                       reinterpret_cast<remove_complex<ValueType> *>(        \
+                           as_hiplibs_type(result))));                       \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
 #define GKO_BIND_HIPBLAS_NORM2(ValueType, HipblasName)                       \
     inline void norm2(hipblasHandle_t handle, int n, const ValueType *x,     \
                       int incx, ValueType *result)                           \
@@ -225,6 +254,10 @@ GKO_BIND_HIPBLAS_DOT(ValueType, detail::not_implemented);
 
 GKO_BIND_HIPBLAS_NORM2(float, hipblasSnrm2);
 GKO_BIND_HIPBLAS_NORM2(double, hipblasDnrm2);
+/* not implemented
+GKO_BIND_HIPBLAS_COMPLEX_NORM2(std::complex<float>, hipblasScnrm2);
+GKO_BIND_HIPBLAS_COMPLEX_NORM2(std::complex<double>, hipblasDznrm2);
+*/
 template <typename ValueType>
 GKO_BIND_HIPBLAS_NORM2(ValueType, detail::not_implemented);
 

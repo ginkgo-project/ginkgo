@@ -68,4 +68,4 @@ struct config {
 }  // namespace gko
 
 
-#endif  // GKO_CUDA_BASE_CONFIG_CUDA_HPP_
+#endif  // GKO_CUDA_BASE_CONFIG_HPP_

@@ -30,31 +30,30 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_COMPONENTS_WARP_BLAS_CUH_
-#define GKO_CUDA_COMPONENTS_WARP_BLAS_CUH_
+#ifndef GKO_HIP_COMPONENTS_WARP_BLAS_HIP_HPP_
+#define GKO_HIP_COMPONENTS_WARP_BLAS_HIP_HPP_
+
+#include <cassert>
 
 
 #include <ginkgo/config.hpp>
 
 
-#include "cuda/base/math.hpp"
-#include "cuda/components/reduction.cuh"
-
-
-#include <cassert>
+#include "hip/base/math.hip.hpp"
+#include "hip/components/reduction.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace hip {
 
 
 #include "common/components/warp_blas.hpp.inc"
 
 
-}  // namespace cuda
+}  // namespace hip
 }  // namespace kernels
 }  // namespace gko
 
 
-#endif  // GKO_CUDA_COMPONENTS_WARP_BLAS_CUH_
+#endif  // GKO_HIP_COMPONENTS_WARP_BLAS_HIP_HPP_
