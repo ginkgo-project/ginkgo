@@ -123,7 +123,7 @@ public:
      * strategy_type is to decide how to set the csr algorithm.
      *
      * The practical strategy method should inherit strategy_type and implement
-     * its `process`, `calc_size` function and the corresponding device kernel.
+     * its `process`, `clac_size` function and the corresponding device kernel.
      */
     class strategy_type {
         friend class automatical;
@@ -159,7 +159,7 @@ public:
          *
          * @return the size of srow
          */
-        virtual int64_t calc_size(const int64_t nnz) = 0;
+        virtual int64_t clac_size(const int64_t nnz) = 0;
 
     protected:
         void set_name(std::string name) { name_ = name; }
@@ -183,7 +183,7 @@ public:
                      Array<index_type> *mtx_srow) override
         {}
 
-        int64_t calc_size(const int64_t nnz) override { return 0; }
+        int64_t clac_size(const int64_t nnz) override { return 0; }
     };
 
     /**
@@ -202,7 +202,7 @@ public:
                      Array<index_type> *mtx_srow) override
         {}
 
-        int64_t calc_size(const int64_t nnz) override { return 0; }
+        int64_t clac_size(const int64_t nnz) override { return 0; }
     };
 
     /**
@@ -222,7 +222,7 @@ public:
                      Array<index_type> *mtx_srow) override
         {}
 
-        int64_t calc_size(const int64_t nnz) override { return 0; }
+        int64_t clac_size(const int64_t nnz) override { return 0; }
     };
 
     /**
@@ -241,7 +241,7 @@ public:
                      Array<index_type> *mtx_srow) override
         {}
 
-        int64_t calc_size(const int64_t nnz) override { return 0; }
+        int64_t clac_size(const int64_t nnz) override { return 0; }
     };
 
     /**
@@ -345,7 +345,7 @@ public:
             }
         }
 
-        int64_t calc_size(const int64_t nnz) override
+        int64_t clac_size(const int64_t nnz) override
         {
             if (warp_size_ > 0) {
                 int multiple = 8;
@@ -446,7 +446,8 @@ public:
             }
             const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
             if (row_ptrs[num_rows] > index_type(1e6)) {
-                load_balance actual_strategy(nwarps_);
+                load_balance actual_strategy(nwarps_, warp_size_,
+                                             cuda_strategy_);
                 if (is_mtx_on_host) {
                     actual_strategy.process(mtx_row_ptrs, mtx_srow);
                 } else {
@@ -459,7 +460,8 @@ public:
                     maxnum = max(maxnum, row_ptrs[i] - row_ptrs[i - 1]);
                 }
                 if (maxnum > 64) {
-                    load_balance actual_strategy(nwarps_);
+                    load_balance actual_strategy(nwarps_, warp_size_,
+                                                 cuda_strategy_);
                     if (is_mtx_on_host) {
                         actual_strategy.process(mtx_row_ptrs, mtx_srow);
                     } else {
@@ -478,11 +480,11 @@ public:
             }
         }
 
-        int64_t calc_size(const int64_t nnz) override
+        int64_t clac_size(const int64_t nnz) override
         {
             return std::make_shared<load_balance>(nwarps_, warp_size_,
                                                   cuda_strategy_)
-                ->calc_size(nnz);
+                ->clac_size(nnz);
         }
 
     private:
@@ -710,7 +712,7 @@ protected:
           col_idxs_(exec, num_nonzeros),
           // avoid allocation for empty matrix
           row_ptrs_(exec, size[0] + (size[0] > 0)),
-          srow_(exec, strategy->calc_size(num_nonzeros)),
+          srow_(exec, strategy->clac_size(num_nonzeros)),
           strategy_(std::move(strategy))
     {}
 
@@ -761,7 +763,7 @@ protected:
      */
     void make_srow()
     {
-        srow_.resize_and_reset(strategy_->calc_size(values_.get_num_elems()));
+        srow_.resize_and_reset(strategy_->clac_size(values_.get_num_elems()));
         strategy_->process(row_ptrs_, &srow_);
     }
 
