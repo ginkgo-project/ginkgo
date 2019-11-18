@@ -245,7 +245,7 @@ void solve_system(const std::string &solver_name,
         add_or_set_member(solver_json, "true_residuals",
                           rapidjson::Value(rapidjson::kArrayType), allocator);
         if (FLAGS_nrhs == 1) {
-            auto rhs_norm = compute_norm(lend(b));
+            auto rhs_norm = compute_norm2(lend(b));
             add_or_set_member(solver_json, "rhs_norm", rhs_norm, allocator);
         }
         for (auto stage : {"generate", "apply"}) {

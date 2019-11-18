@@ -61,7 +61,8 @@ DEFINE_uint32(nrhs, 1, "The number of right hand sides");
 // calling it
 void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
                 const gko::matrix_data<etype> &data, const vec<etype> *b,
-                const vec<etype> *x, rapidjson::Value &test_case,
+                const vec<etype> *x, const vec<etype> *answer,
+                rapidjson::Value &test_case,
                 rapidjson::MemoryPoolAllocator<> &allocator)
 {
     try {
@@ -73,8 +74,20 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
         exec->add_logger(storage_logger);
         auto system_matrix =
             share(formats::matrix_factory.at(format_name)(exec, data));
+
         exec->remove_logger(gko::lend(storage_logger));
         storage_logger->write_data(spmv_case[format_name], allocator);
+        // check the residual
+        if (FLAGS_detailed) {
+            auto x_clone = clone(x);
+            exec->synchronize();
+            system_matrix->apply(lend(b), lend(x_clone));
+            exec->synchronize();
+            double max_relative_norm2 =
+                compute_max_relative_norm2(lend(x_clone), lend(answer));
+            add_or_set_member(spmv_case[format_name], "max_relative_norm2",
+                              max_relative_norm2, allocator);
+        }
         // warm run
         for (unsigned int i = 0; i < FLAGS_warmup; i++) {
             auto x_clone = clone(x);
@@ -172,9 +185,20 @@ int main(int argc, char *argv[])
                                     rapidjson::Value(rapidjson::kObjectType),
                                     allocator);
             }
+
+            // Compute the result from ginkgo::coo as the correct answer
+            auto answer = vec<etype>::create(exec);
+            if (FLAGS_detailed) {
+                auto system_matrix =
+                    share(formats::matrix_factory.at("coo")(exec, data));
+                answer->copy_from(lend(x));
+                exec->synchronize();
+                system_matrix->apply(lend(b), lend(answer));
+                exec->synchronize();
+            }
             for (const auto &format_name : formats) {
                 apply_spmv(format_name.c_str(), exec, data, lend(b), lend(x),
-                           test_case, allocator);
+                           lend(answer), test_case, allocator);
                 std::clog << "Current state:" << std::endl
                           << test_cases << std::endl;
                 if (spmv_case[format_name.c_str()]["completed"].GetBool()) {
