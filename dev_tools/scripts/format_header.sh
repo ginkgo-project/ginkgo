@@ -75,17 +75,19 @@ FORMAT_COMMAND="clang-format -i -style=${Style}"
 CORE_NAME="$(get_core_name $1)"
 TEST_REGEX="_test(\.hip)?\.(cpp|hpp|cuh|cu)"
 SELF=$(echo $1 | sed -E "s/\.cpp/\.hpp/g;s/\.cu/\.cuh/g")
-if [[ ! $1 =~ ${TEST_REGEX} ]]; then
+SELF=$(echo ${SELF} | sed -E "s/_test//g")
 # core/test/base/extended_float.cpp use core/base/extended_float.hpp
+if [[ ! $1 =~ ${TEST_REGEX} ]]; then
     SELF=$(echo $SELF | sed -E "s/test\///g")
+else
+    SELF=$(echo $SELF | sed -E "s/(cuda|hip|omp|reference)\//core\//g")
 fi
-MAIN_PART_MATCH=$(echo ${MAIN_PART_MATCH} | sed -E "s/_test//g")
 if [[ "$1" =~ executor\. ]]; then
     MAIN_PART_MATCH="<ginkgo/core/base/executor.hpp>"
 else
     MAIN_PART_MATCH="(<|\")((ginkgo/)?core/(test/)?${CORE_NAME}(_kernels)?\.hpp|${SELF})(\"|>)$"
 fi
-SELF_REGEX="^#include  (<|\")${SELF}(\"|>)$"
+SELF_REGEX="^#include (<|\")${SELF}(\"|>)$"
 INCLUDE_REGEX="^#include.*"
 MAIN_PART_MATCH="^#include ${MAIN_PART_MATCH}"
 RECORD_HEADER=0
