@@ -278,10 +278,8 @@ protected:
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_idxs_{exec, std::forward<RowIdxsArray>(row_idxs)}
     {
-        GKO_ENSURE_IN_BOUNDS(values_.get_num_elems() - 1,
-                             col_idxs_.get_num_elems());
-        GKO_ENSURE_IN_BOUNDS(values_.get_num_elems() - 1,
-                             row_idxs_.get_num_elems());
+        GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
+        GKO_ASSERT_EQ(values_.get_num_elems(), row_idxs_.get_num_elems());
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
