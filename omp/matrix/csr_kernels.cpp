@@ -208,18 +208,19 @@ template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Csr<ValueType, IndexType> *a,
             const matrix::Csr<ValueType, IndexType> *b,
-            matrix::Csr<ValueType, IndexType> *c)
+            const matrix::Csr<ValueType, IndexType> *c,
+            Array<IndexType> &c_row_ptrs_array,
+            Array<IndexType> &c_col_idxs_array, Array<ValueType> &c_vals_array)
 {
-    auto c_size = dim<2>{a->get_size()[0], b->get_size()[1]};
-    auto c_rows = c_size[0];
+    auto rows = a->get_size()[0];
 
     // first sweep: count nnz for each row
-    Array<IndexType> c_row_ptrs_array(exec, c_rows + 1);
+    c_row_ptrs_array.resize_and_reset(rows + 1);
     auto c_row_ptrs = c_row_ptrs_array.get_data();
 
     std::unordered_set<IndexType> local_col_idxs;
 #pragma omp parallel for schedule(dynamic, 256) firstprivate(local_col_idxs)
-    for (size_type a_row = 0; a_row < c_rows; ++a_row) {
+    for (size_type a_row = 0; a_row < rows; ++a_row) {
         local_col_idxs.clear();
         spgemm_insert_row2(local_col_idxs, a, b, a_row);
         c_row_ptrs[a_row + 1] = local_col_idxs.size();
@@ -227,18 +228,18 @@ void spgemm(std::shared_ptr<const OmpExecutor> exec,
 
     // build row pointers: exclusive scan (thus the + 1)
     c_row_ptrs[0] = 0;
-    std::partial_sum(c_row_ptrs + 1, c_row_ptrs + c_rows + 1, c_row_ptrs + 1);
+    std::partial_sum(c_row_ptrs + 1, c_row_ptrs + rows + 1, c_row_ptrs + 1);
 
     // second sweep: accumulate non-zeros
-    auto new_nnz = c_row_ptrs[c_rows];
-    Array<IndexType> c_col_idxs_array(exec, new_nnz);
-    Array<ValueType> c_vals_array(exec, new_nnz);
+    auto new_nnz = c_row_ptrs[rows];
+    c_col_idxs_array.resize_and_reset(new_nnz);
+    c_vals_array.resize_and_reset(new_nnz);
     auto c_col_idxs = c_col_idxs_array.get_data();
     auto c_vals = c_vals_array.get_data();
 
     std::unordered_map<IndexType, ValueType> local_row_nzs;
 #pragma omp parallel for schedule(dynamic, 256) firstprivate(local_row_nzs)
-    for (size_type a_row = 0; a_row < c_rows; ++a_row) {
+    for (size_type a_row = 0; a_row < rows; ++a_row) {
         local_row_nzs.clear();
         spgemm_accumulate_row2(local_row_nzs, a, b, one<ValueType>(), a_row);
         // store result
@@ -249,11 +250,6 @@ void spgemm(std::shared_ptr<const OmpExecutor> exec,
             ++c_nz;
         }
     }
-
-    auto new_c = matrix::Csr<ValueType, IndexType>::create(
-        exec, c_size, std::move(c_vals_array), std::move(c_col_idxs_array),
-        std::move(c_row_ptrs_array), c->get_strategy());
-    new_c->move_to(c);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
@@ -265,20 +261,22 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
                      const matrix::Csr<ValueType, IndexType> *a,
                      const matrix::Csr<ValueType, IndexType> *b,
                      const matrix::Dense<ValueType> *beta,
-                     matrix::Csr<ValueType, IndexType> *c)
+                     const matrix::Csr<ValueType, IndexType> *c,
+                     Array<IndexType> &c_row_ptrs_array,
+                     Array<IndexType> &c_col_idxs_array,
+                     Array<ValueType> &c_vals_array)
 {
-    auto c_size = dim<2>{a->get_size()[0], b->get_size()[1]};
-    auto c_rows = c_size[0];
+    auto rows = a->get_size()[0];
     auto valpha = alpha->at(0, 0);
     auto vbeta = beta->at(0, 0);
 
     // first sweep: count nnz for each row
-    Array<IndexType> c_row_ptrs_array(exec, c_rows + 1);
+    c_row_ptrs_array.resize_and_reset(rows + 1);
     auto c_row_ptrs = c_row_ptrs_array.get_data();
 
     std::unordered_set<IndexType> local_col_idxs;
 #pragma omp parallel for schedule(dynamic, 256) firstprivate(local_col_idxs)
-    for (size_type a_row = 0; a_row < c_rows; ++a_row) {
+    for (size_type a_row = 0; a_row < rows; ++a_row) {
         local_col_idxs.clear();
         if (vbeta != zero(vbeta)) {
             spgemm_insert_row(local_col_idxs, c, a_row);
@@ -291,17 +289,18 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
 
     // build row pointers: exclusive scan (thus the + 1)
     c_row_ptrs[0] = 0;
-    std::partial_sum(c_row_ptrs + 1, c_row_ptrs + c_rows + 1, c_row_ptrs + 1);
+    std::partial_sum(c_row_ptrs + 1, c_row_ptrs + rows + 1, c_row_ptrs + 1);
 
     // second sweep: accumulate non-zeros
-    Array<IndexType> c_col_idxs_array(exec, c_row_ptrs[c_rows]);
-    Array<ValueType> c_vals_array(exec, c_row_ptrs[c_rows]);
+    auto new_nnz = c_row_ptrs[rows];
+    c_col_idxs_array.resize_and_reset(new_nnz);
+    c_vals_array.resize_and_reset(new_nnz);
     auto c_col_idxs = c_col_idxs_array.get_data();
     auto c_vals = c_vals_array.get_data();
 
     std::unordered_map<IndexType, ValueType> local_row_nzs;
 #pragma omp parallel for schedule(dynamic, 256) firstprivate(local_row_nzs)
-    for (size_type a_row = 0; a_row < c_rows; ++a_row) {
+    for (size_type a_row = 0; a_row < rows; ++a_row) {
         local_row_nzs.clear();
         if (vbeta != zero(vbeta)) {
             spgemm_accumulate_row(local_row_nzs, c, vbeta, a_row);
@@ -317,11 +316,6 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
             ++c_nz;
         }
     }
-
-    auto new_c = matrix::Csr<ValueType, IndexType>::create(
-        exec, c_size, std::move(c_vals_array), std::move(c_col_idxs_array),
-        std::move(c_row_ptrs_array), c->get_strategy());
-    new_c->move_to(c);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

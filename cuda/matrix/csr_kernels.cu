@@ -359,7 +359,9 @@ template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Csr<ValueType, IndexType> *a,
             const matrix::Csr<ValueType, IndexType> *b,
-            matrix::Csr<ValueType, IndexType> *c) GKO_NOT_IMPLEMENTED;
+            const matrix::Csr<ValueType, IndexType> *c,
+            Array<IndexType> &c_row_ptrs, Array<IndexType> &c_col_idxs,
+            Array<ValueType> &c_vals) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
 
@@ -370,7 +372,9 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
                      const matrix::Csr<ValueType, IndexType> *a,
                      const matrix::Csr<ValueType, IndexType> *b,
                      const matrix::Dense<ValueType> *beta,
-                     matrix::Csr<ValueType, IndexType> *c) GKO_NOT_IMPLEMENTED;
+                     const matrix::Csr<ValueType, IndexType> *c,
+                     Array<IndexType> &c_row_ptrs, Array<IndexType> &c_col_idxs,
+                     Array<ValueType> &c_vals) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL);
