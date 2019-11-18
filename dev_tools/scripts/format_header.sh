@@ -153,10 +153,12 @@ while IFS='' read -r line; do
                 fi
             fi
 
-        else
-            line="$(convert_header ${line})"
+        else 
+            if [[ "${line}" =~ INCLUDE_REGEX ]]; then
+                line="$(convert_header ${line})"
+            fi
             echo "${line}" >> "${HEADER}"
-            RECORD_HEADER=3
+            RECORD_HEADER=3 
         fi
     else
         DURING_CONTENT="true"
