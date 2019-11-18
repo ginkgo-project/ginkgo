@@ -164,10 +164,10 @@ protected:
           enabled_permute_(enabled_permute)
     {
         if (enabled_permute_ & row_permute) {
-            GKO_ENSURE_IN_BOUNDS(size[0] - 1, permutation_.get_num_elems());
+            GKO_ASSERT_EQ(size[0], permutation_.get_num_elems());
         }
         if (enabled_permute_ & column_permute) {
-            GKO_ENSURE_IN_BOUNDS(size[1] - 1, permutation_.get_num_elems());
+            GKO_ASSERT_EQ(size[1], permutation_.get_num_elems());
         }
     }
 
