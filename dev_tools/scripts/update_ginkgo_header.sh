@@ -9,7 +9,7 @@ PLACE_HOLDER="#PUBLIC_HEADER_PLACE_HOLDER"
 
 WARNING_PREFIX="[WARNING] ginkgo.hpp update script failed because:"
 
-RM_PARAMETER="--interactive=never"
+RM_PARAMETER="-f"
 
 
 THIS_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" &>/dev/null && pwd )
