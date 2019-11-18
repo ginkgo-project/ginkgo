@@ -131,6 +131,18 @@ TEST(AssertConformant, ThrowsWhenNotConformant)
 }
 
 
+TEST(AssertEqual, DoesNotThrowWhenEqual)
+{
+    ASSERT_NO_THROW(GKO_ASSERT_EQ(1, 1));
+}
+
+
+TEST(AssertEqual, ThrowsWhenNotEqual)
+{
+    ASSERT_THROW(GKO_ASSERT_EQ(0, 1), gko::ValueMismatch);
+}
+
+
 TEST(AssertEqualRows, DoesNotThrowWhenEqualRowSize)
 {
     ASSERT_NO_THROW(
