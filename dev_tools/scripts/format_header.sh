@@ -24,42 +24,21 @@ get_core_name () {
     LISTS=$(find include/ginkgo/core -type f)
     # special case
     LISTS="$(find core/test/utils -type f -name "*.hpp")"$'\n'"${LISTS}"
-    # echo "+++"
-    # LISTS=$(echo "${LISTS}" | sed -E "s/include\/ginkgo\/core\//g;s/\.hpp//g")
-    # echo "$LISTS"
-    # read core files as the main include clue.
-    # target_sources(ginkgo -> .... #include ...)
-    CORE="false"
-    CORE_REGEX=" ([a-zA-Z\/\_]*)\.cpp\)?"
     MIN_DISTANCE="-1"
     MATCH=""
     while IFS='' read -r line; do
         line=$(echo "${line}" | sed -E "s/include\/ginkgo\///g;s/core\///g;s/\.hpp//g")
-        # echo "${line}"
         if [[ "$@" =~ "${line}" ]]; then 
-            distance=$(( $(expr length $@) - $(expr length $@) ))
-            if [[ -z "${MATCH}" ]] || [[ ${distance} < ${line} ]]; then
+            distance=$(( $(expr length $@) - $(expr length ${line}) ))
+            if [[ -z "${MATCH}" ]] || [[ ${distance} -lt ${MIN_DISTANCE} ]]; then
                 MATCH="${line}"
                 MIN_DISTANCE="${distance}"
             fi
-            # echo "${line}"
         fi
-    #     # if [[ "${line}" =~ "target_sources(ginkgo" ]] || [ ${CORE} = "true" ]; then
-    #     #     CORE="true"
-    #     #     if [[ "${line}" =~ ${CORE_REGEX} ]]; then
-    #     #         CORE_NAME="${BASH_REMATCH[1]}"
-    #     #         if [[ "$@" =~ "${BASH_REMATCH[1]}" ]]; then 
-    #     #             echo "${CORE_NAME}"
-    #     #             return 0
-    #     #         fi
-    #     #     fi
-    #     #     if [[ "${line}" =~ ")" ]]; then
-    #     #         CORE="false"
-    #     #     fi
-    #     # fi
     done <<< "${LISTS}"
     echo "${MATCH}"
 }
+
 
 
 GINKGO_LICENSE_BEACON="******************************<GINKGO LICENSE>******************************"
@@ -71,38 +50,29 @@ HAS_HIP_RUNTIME="false"
 DURING_LICENSE="false"
 DURING_CONTENT="false"
 MAIN_INCLUDE=""
-MAIN_PART_MATCH=$(echo $1 | sed -E "s/^(core|cuda|hip|reference)\///g;s/^test\///g;s/\.(cpp|hpp|hip\.cpp|hip\.hpp|cuh|cu)//g")
-echo ${MAIN_PART_MATCH}
 
 Style="\"{"
 Style="${Style} Language: Cpp,"
-Style="${Style} SortIncludes:    true,"
+Style="${Style} SortIncludes: true,"
 Style="${Style} IncludeBlocks: Regroup,"
 Style="${Style} IncludeCategories: ["
-Style="${Style} {Regex:           '^(<)(omp|cu|hip|rapidjson|gflags|gtest|thrust).*',"
-Style="${Style} Priority:        2},"
-Style="${Style} {Regex:           '^<ginkgo.*', "
-Style="${Style} Priority:        4},"
-Style="${Style} {Regex:           '^\\\".*',"
-Style="${Style} Priority:        5},"
-Style="${Style} {Regex:           '.*',"
-Style="${Style} Priority:        1}"
+Style="${Style} {Regex: '^(<)(omp|cu|hip|rapidjson|gflags|gtest|thrust|papi).*',"
+Style="${Style}  Priority: 2},"
+Style="${Style} {Regex: '^<ginkgo.*', "
+Style="${Style}  Priority: 4},"
+Style="${Style} {Regex: '^\\\".*',"
+Style="${Style}  Priority: 5},"
+Style="${Style} {Regex: '.*',"
+Style="${Style}  Priority: 1}"
 Style="${Style} ],"
 Style="${Style} MaxEmptyLinesToKeep: 2,"
 Style="${Style} SpacesBeforeTrailingComments: 2,"
-Style="${Style} IndentWidth:     4,"
+Style="${Style} IndentWidth: 4,"
 Style="${Style} AlignEscapedNewlines: Left"
 Style="${Style} }\""
-# echo "${Style}"
 FORMAT_COMMAND="clang-format -i -style=${Style}"
-# igonore /test/
-# in core without _kernel/_utils -> #include <ginkgo/path/to/file>
-# in core/devices//executor.cpp -> #include <ginkgo/core/base/executor.hpp>
-# others try to find core/path/the first * with _kernels.hpp
 
-# delete _test for assertions_test and matrix_generator_test
 CORE_NAME="$(get_core_name $1)"
-echo "~~ ${CORE_NAME}"
 TEST_REGEX="_test(\.hip)?\.(cpp|hpp|cuh|cu)"
 SELF=$(echo $1 | sed -E "s/\.cpp/\.hpp/g;s/\.cu/\.cuh/g")
 if [[ ! $1 =~ ${TEST_REGEX} ]]; then
@@ -112,21 +82,32 @@ fi
 MAIN_PART_MATCH=$(echo ${MAIN_PART_MATCH} | sed -E "s/_test//g")
 if [[ "$1" =~ executor\. ]]; then
     MAIN_PART_MATCH="<ginkgo/core/base/executor.hpp>"
-# elif [[ "$1" =~ ^core ]]; then
-#     MAIN_PART_MATCH=$(echo ${MAIN_PART_MATCH} | sed -E "s/_(kernels|utils)//g")
-#     MAIN_PART_MATCH="(<|\")(ginkgo\/)?core/(test/)?${MAIN_PART_MATCH}.hpp(\"|>)"
 else
-    # MAIN_PART_MATCH=$(echo ${MAIN_PART_MATCH} | sed -E "s/^([A-Za-z\/]*).*/\1/g")
     MAIN_PART_MATCH="(<|\")((ginkgo/)?core/(test/)?${CORE_NAME}(_kernels)?\.hpp|${SELF})(\"|>)$"
 fi
+SELF_REGEX="^#include  (<|\")${SELF}(\"|>)$"
 INCLUDE_REGEX="^#include.*"
 MAIN_PART_MATCH="^#include ${MAIN_PART_MATCH}"
-echo "+++ ${MAIN_PART_MATCH}"
-SHAPE="^#"
 RECORD_HEADER=0
 IFNDEF="^#ifndef"
 DEFINE="^#define"
 NAMESPACE="^namespace"
+
+compute_score() {
+    # $1 filename
+    # $2 include
+    if [[ "$2" =~ ${SELF_REGEX} ]]; then
+        return 300
+    elif [[ "$1" =~ core|test ]] && [[ "$2" =~ ginkgo ]]; then
+        return 250
+    elif [[ ! "$1" =~ core ]] && [[ "$2" =~ kernels ]]; then 
+        return 200
+    else
+        return $(expr length "$2")
+    fi
+}
+
+SCORE=0
 while IFS='' read -r line; do
     if [ "${DURING_CONTENT}" = "true" ]; then
         echo "${line}" >> "${CONTENT}"
@@ -147,31 +128,31 @@ while IFS='' read -r line; do
             echo "${line}" >> ${BEFORE}
             RECORD_HEADER=$((RECORD_HEADER+1))
         elif [[ "${line}" =~ ${MAIN_PART_MATCH} ]]; then
-            echo "${line}"
             if [ -f ${BEFORE} ] && [[ -z "${MAIN_INCLUDE}" ]]; then
                 echo "" >> ${BEFORE}
                 echo "" >> ${BEFORE}
             fi
             
             line="$(convert_header ${line})"
+
             if [[ -z "${MAIN_INCLUDE}" ]]; then
                 MAIN_INCLUDE="${line}"
+                compute_score "$1" "${line}"
+                SCORE=$?
                 echo "${line}" >> ${BEFORE}
             elif [[ ! "${MAIN_INCLUDE}" = "${line}" ]]; then
-                if [[ "$1" =~ "core" ]] && [[ "${line}" =~ "ginkgo" ]]; then
+                compute_score "$1" "${line}"
+                score=$?
+                if [[ ${score} -gt ${SCORE} ]]; then
                     sed -i -E "s~${MAIN_INCLUDE}~${line}~g" ${BEFORE}
                     echo "${MAIN_INCLUDE}" >> ${HEADER}
-                    MAIN_INCLUDE="${line}"
-                elif [[ ! "$1" =~ "core" ]] && [[ "${line}" =~ "kernels" ]]; then
-                    sed -i -E "s~${MAIN_INCLUDE}~${line}~g" ${BEFORE}
-                    echo "${MAIN_INCLUDE}" >> ${HEADER}
+                    SCORE=${score}
                     MAIN_INCLUDE="${line}"
                 else
                     echo "${line}" >> ${HEADER}
                 fi
             fi
-            
-            
+
         else
             line="$(convert_header ${line})"
             echo "${line}" >> "${HEADER}"
