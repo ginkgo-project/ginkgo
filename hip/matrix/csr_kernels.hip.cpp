@@ -384,6 +384,27 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void spgemm(std::shared_ptr<const HipExecutor> exec,
+            const matrix::Csr<ValueType, IndexType> *a,
+            const matrix::Csr<ValueType, IndexType> *b,
+            matrix::Csr<ValueType, IndexType> *c) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
+                     const matrix::Dense<ValueType> *alpha,
+                     const matrix::Csr<ValueType, IndexType> *a,
+                     const matrix::Csr<ValueType, IndexType> *b,
+                     const matrix::Dense<ValueType> *beta,
+                     matrix::Csr<ValueType, IndexType> *c) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL);
+
+
 template <typename IndexType>
 void convert_row_ptrs_to_idxs(std::shared_ptr<const HipExecutor> exec,
                               const IndexType *ptrs, size_type num_rows,
