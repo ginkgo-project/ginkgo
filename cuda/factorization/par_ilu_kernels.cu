@@ -57,32 +57,7 @@ namespace par_ilu_factorization {
 constexpr int default_block_size{512};
 
 
-namespace kernel {
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void count_nnz_per_l_u_row(
-    size_type num_rows, const IndexType *__restrict__ row_ptrs,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values, IndexType *__restrict__ l_nnz_row,
-    IndexType *__restrict__ u_nnz_row)
-{
-    const auto row = blockDim.x * blockIdx.x + threadIdx.x;
-    if (row < num_rows) {
-        IndexType l_row_nnz{};
-        IndexType u_row_nnz{};
-        for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
-            auto col = col_idxs[idx];
-            l_row_nnz += (col <= row);
-            u_row_nnz += (row <= col);
-        }
-        l_nnz_row[row] = l_row_nnz;
-        u_nnz_row[row] = u_row_nnz;
-    }
-}
-
-
-}  // namespace kernel
+#include "common/factorization/par_ilu_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>
@@ -123,44 +98,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILU_INITIALIZE_ROW_PTRS_L_U_KERNEL);
 
 
-namespace kernel {
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void initialize_l_u(
-    size_type num_rows, const IndexType *__restrict__ row_ptrs,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values,
-    const IndexType *__restrict__ l_row_ptrs,
-    IndexType *__restrict__ l_col_idxs, ValueType *__restrict__ l_values,
-    const IndexType *__restrict__ u_row_ptrs,
-    IndexType *__restrict__ u_col_idxs, ValueType *__restrict__ u_values)
-{
-    const auto row = blockDim.x * blockIdx.x + threadIdx.x;
-    if (row < num_rows) {
-        auto l_idx = l_row_ptrs[row];
-        auto u_idx = u_row_ptrs[row];
-        for (size_type i = row_ptrs[row]; i < row_ptrs[row + 1]; ++i) {
-            const auto col = col_idxs[i];
-            const auto val = values[i];
-            if (col <= row) {
-                l_col_idxs[l_idx] = col;
-                l_values[l_idx] = (col == row ? one<ValueType>() : val);
-                ++l_idx;
-            }
-            if (row <= col) {
-                u_col_idxs[u_idx] = col;
-                u_values[u_idx] = val;
-                ++u_idx;
-            }
-        }
-    }
-}
-
-
-}  // namespace kernel
-
-
 template <typename ValueType, typename IndexType>
 void initialize_l_u(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Csr<ValueType, IndexType> *system_matrix,
@@ -185,58 +122,6 @@ void initialize_l_u(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL);
-
-
-namespace kernel {
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void compute_l_u_factors(
-    size_type num_elements, const IndexType *__restrict__ row_idxs,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values,
-    const IndexType *__restrict__ l_row_ptrs,
-    const IndexType *__restrict__ l_col_idxs, ValueType *__restrict__ l_values,
-    const IndexType *__restrict__ u_row_ptrs,
-    const IndexType *__restrict__ u_col_idxs, ValueType *__restrict__ u_values)
-{
-    const auto elem_id = blockDim.x * blockIdx.x + threadIdx.x;
-    if (elem_id < num_elements) {
-        const auto row = row_idxs[elem_id];
-        const auto col = col_idxs[elem_id];
-        const auto val = values[elem_id];
-        auto l_idx = l_row_ptrs[row];
-        auto u_idx = u_row_ptrs[col];
-        ValueType sum{val};
-        ValueType last_operation{};
-        while (l_idx < l_row_ptrs[row + 1] && u_idx < u_row_ptrs[col + 1]) {
-            const auto l_col = l_col_idxs[l_idx];
-            const auto u_col = u_col_idxs[u_idx];
-            last_operation = zero<ValueType>();
-            if (l_col == u_col) {
-                last_operation = l_values[l_idx] * u_values[u_idx];
-                sum -= last_operation;
-            }
-            l_idx += (l_col <= u_col);
-            u_idx += (u_col <= l_col);
-        }
-        sum += last_operation;  // undo the last operation
-        if (row > col) {
-            auto to_write = sum / u_values[u_row_ptrs[col + 1] - 1];
-            if (::gko::isfinite(to_write)) {
-                l_values[l_idx - 1] = to_write;
-            }
-        } else {
-            auto to_write = sum;
-            if (::gko::isfinite(to_write)) {
-                u_values[u_idx - 1] = to_write;
-            }
-        }
-    }
-}
-
-
-}  // namespace kernel
 
 
 template <typename ValueType, typename IndexType>
