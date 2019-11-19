@@ -526,7 +526,7 @@ TEST_F(Csr, AppliesLinearCombinationToCsrMatrixWithZeroBeta)
 }
 
 
-TEST_F(Csr, DISABLED_AppliesLinearCombinationToCsrMatrixWithZeroAlphaBeta)
+TEST_F(Csr, AppliesLinearCombinationToCsrMatrixWithZeroAlphaBeta)
 {
     auto alpha = gko::initialize<Vec>({0.0}, exec);
     auto beta = gko::initialize<Vec>({0.0}, exec);
