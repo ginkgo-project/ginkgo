@@ -240,9 +240,7 @@ protected:
         auto tmp = Array<value_type>{exec->get_master(), 1};
         tmp.get_data()[0] = value;
         value_ = Array<value_type>{exec, std::move(tmp)};
-        GKO_ENSURE_IN_BOUNDS(col_idxs_.get_num_elems() - 1,
-                             col_idxs_.get_num_elems());
-        GKO_ENSURE_IN_BOUNDS(this->get_size()[0], row_ptrs_.get_num_elems());
+        GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_num_elems());
     }
 
     /**

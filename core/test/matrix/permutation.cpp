@@ -127,7 +127,7 @@ TEST_F(Permutation, PermutationThrowsforWrongRowPermDimensions)
     ASSERT_THROW(
         gko::matrix::Permutation<>::create(
             exec, gko::dim<2>{4, 2}, gko::Array<i_type>::view(exec, 3, data)),
-        gko::OutOfBoundsError);
+        gko::ValueMismatch);
 }
 
 
@@ -139,7 +139,7 @@ TEST_F(Permutation, PermutationThrowsforWrongColPermDimensions)
         gko::matrix::Permutation<>::create(
             exec, gko::dim<2>{3, 4}, gko::Array<i_type>::view(exec, 3, data),
             gko::matrix::column_permute),
-        gko::OutOfBoundsError);
+        gko::ValueMismatch);
 }
 
 
