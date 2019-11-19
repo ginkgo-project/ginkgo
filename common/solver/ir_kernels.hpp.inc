@@ -30,42 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/ir_kernels.hpp"
-
-
-#include <ginkgo/core/base/math.hpp>
-
-
-namespace gko {
-namespace kernels {
-namespace cuda {
-/**
- * @brief The IR solver namespace.
- *
- * @ingroup ir
- */
-namespace ir {
-
-
-constexpr int default_block_size = 512;
-
-
-#include "common/solver/ir_kernels.hpp.inc"
-
-
-void initialize(std::shared_ptr<const CudaExecutor> exec,
-                Array<stopping_status> *stop_status)
+__global__ __launch_bounds__(default_block_size) void initialize_kernel(
+    size_type num_cols, stopping_status *stop_status)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(stop_status->get_num_elems(), block_size.x), 1,
-                         1);
+    const auto tidx =
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
 
-    initialize_kernel<<<grid_size, block_size, 0, 0>>>(
-        stop_status->get_num_elems(), stop_status->get_data());
+    if (tidx < num_cols) {
+        stop_status[tidx].reset();
+    }
 }
-
-
-}  // namespace ir
-}  // namespace cuda
-}  // namespace kernels
-}  // namespace gko
