@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/matrix/permutation.hpp (5f291e20d) Source File</title>
+<title>Ginkgo: ginkgo/core/matrix/permutation.hpp (8e675e0b5) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/96741380 branch based on develop. Ginkgo version 1.1.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/96952214 branch based on develop. Ginkgo version 1.1.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -179,10 +179,10 @@ $(function() {
 <div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;          enabled_permute_(enabled_permute)</div>
 <div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;    {</div>
 <div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;        <span class="keywordflow">if</span> (enabled_permute_ &amp; row_permute) {</div>
-<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160;            GKO_ENSURE_IN_BOUNDS(size[0] - 1, permutation_.<a class="code" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">get_num_elems</a>());</div>
+<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160;            GKO_ASSERT_EQ(size[0], permutation_.<a class="code" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">get_num_elems</a>());</div>
 <div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;        }</div>
 <div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160;        <span class="keywordflow">if</span> (enabled_permute_ &amp; column_permute) {</div>
-<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160;            GKO_ENSURE_IN_BOUNDS(size[1] - 1, permutation_.<a class="code" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">get_num_elems</a>());</div>
+<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160;            GKO_ASSERT_EQ(size[1], permutation_.<a class="code" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">get_num_elems</a>());</div>
 <div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;        }</div>
 <div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;    }</div>
 <div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160; </div>

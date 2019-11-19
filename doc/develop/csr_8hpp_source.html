@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/matrix/csr.hpp (28f9fa6f6) Source File</title>
+<title>Ginkgo: ginkgo/core/matrix/csr.hpp (8e675e0b5) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/96741380 branch based on develop. Ginkgo version 1.1.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/96952214 branch based on develop. Ginkgo version 1.1.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -591,68 +591,67 @@ $(function() {
 <div class="line"><a name="l00748"></a><span class="lineno">  748</span>&#160;          srow_(exec),</div>
 <div class="line"><a name="l00749"></a><span class="lineno">  749</span>&#160;          strategy_(std::move(strategy))</div>
 <div class="line"><a name="l00750"></a><span class="lineno">  750</span>&#160;    {</div>
-<div class="line"><a name="l00751"></a><span class="lineno">  751</span>&#160;        GKO_ENSURE_IN_BOUNDS(values_.<a class="code" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">get_num_elems</a>() - 1,</div>
-<div class="line"><a name="l00752"></a><span class="lineno">  752</span>&#160;                             col_idxs_.<a class="code" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">get_num_elems</a>());</div>
-<div class="line"><a name="l00753"></a><span class="lineno">  753</span>&#160;        GKO_ENSURE_IN_BOUNDS(this-&gt;<a class="code" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">get_size</a>()[0], row_ptrs_.<a class="code" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">get_num_elems</a>());</div>
-<div class="line"><a name="l00754"></a><span class="lineno">  754</span>&#160;        this-&gt;make_srow();</div>
-<div class="line"><a name="l00755"></a><span class="lineno">  755</span>&#160;    }</div>
-<div class="line"><a name="l00756"></a><span class="lineno">  756</span>&#160; </div>
-<div class="line"><a name="l00757"></a><span class="lineno">  757</span>&#160;    <span class="keywordtype">void</span> apply_impl(<span class="keyword">const</span> LinOp *b, LinOp *x) <span class="keyword">const override</span>;</div>
-<div class="line"><a name="l00758"></a><span class="lineno">  758</span>&#160; </div>
-<div class="line"><a name="l00759"></a><span class="lineno">  759</span>&#160;    <span class="keywordtype">void</span> apply_impl(<span class="keyword">const</span> LinOp *alpha, <span class="keyword">const</span> LinOp *b, <span class="keyword">const</span> LinOp *beta,</div>
-<div class="line"><a name="l00760"></a><span class="lineno">  760</span>&#160;                    LinOp *x) <span class="keyword">const override</span>;</div>
-<div class="line"><a name="l00761"></a><span class="lineno">  761</span>&#160; </div>
-<div class="line"><a name="l00765"></a><span class="lineno">  765</span>&#160;    <span class="keywordtype">void</span> make_srow()</div>
-<div class="line"><a name="l00766"></a><span class="lineno">  766</span>&#160;    {</div>
-<div class="line"><a name="l00767"></a><span class="lineno">  767</span>&#160;        srow_.<a class="code" href="classgko_1_1Array.html#ab42114c635a05ecff66e1ab5e5074d14">resize_and_reset</a>(strategy_-&gt;clac_size(values_.<a class="code" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">get_num_elems</a>()));</div>
-<div class="line"><a name="l00768"></a><span class="lineno">  768</span>&#160;        strategy_-&gt;process(row_ptrs_, &amp;srow_);</div>
-<div class="line"><a name="l00769"></a><span class="lineno">  769</span>&#160;    }</div>
-<div class="line"><a name="l00770"></a><span class="lineno">  770</span>&#160; </div>
-<div class="line"><a name="l00771"></a><span class="lineno">  771</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00772"></a><span class="lineno">  772</span>&#160;    Array&lt;value_type&gt; values_;</div>
-<div class="line"><a name="l00773"></a><span class="lineno">  773</span>&#160;    Array&lt;index_type&gt; col_idxs_;</div>
-<div class="line"><a name="l00774"></a><span class="lineno">  774</span>&#160;    Array&lt;index_type&gt; row_ptrs_;</div>
-<div class="line"><a name="l00775"></a><span class="lineno">  775</span>&#160;    Array&lt;index_type&gt; srow_;</div>
-<div class="line"><a name="l00776"></a><span class="lineno">  776</span>&#160;    std::shared_ptr&lt;strategy_type&gt; strategy_;</div>
-<div class="line"><a name="l00777"></a><span class="lineno">  777</span>&#160;};</div>
+<div class="line"><a name="l00751"></a><span class="lineno">  751</span>&#160;        GKO_ASSERT_EQ(values_.<a class="code" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">get_num_elems</a>(), col_idxs_.<a class="code" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">get_num_elems</a>());</div>
+<div class="line"><a name="l00752"></a><span class="lineno">  752</span>&#160;        GKO_ASSERT_EQ(this-&gt;<a class="code" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">get_size</a>()[0] + 1, row_ptrs_.<a class="code" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">get_num_elems</a>());</div>
+<div class="line"><a name="l00753"></a><span class="lineno">  753</span>&#160;        this-&gt;make_srow();</div>
+<div class="line"><a name="l00754"></a><span class="lineno">  754</span>&#160;    }</div>
+<div class="line"><a name="l00755"></a><span class="lineno">  755</span>&#160; </div>
+<div class="line"><a name="l00756"></a><span class="lineno">  756</span>&#160;    <span class="keywordtype">void</span> apply_impl(<span class="keyword">const</span> LinOp *b, LinOp *x) <span class="keyword">const override</span>;</div>
+<div class="line"><a name="l00757"></a><span class="lineno">  757</span>&#160; </div>
+<div class="line"><a name="l00758"></a><span class="lineno">  758</span>&#160;    <span class="keywordtype">void</span> apply_impl(<span class="keyword">const</span> LinOp *alpha, <span class="keyword">const</span> LinOp *b, <span class="keyword">const</span> LinOp *beta,</div>
+<div class="line"><a name="l00759"></a><span class="lineno">  759</span>&#160;                    LinOp *x) <span class="keyword">const override</span>;</div>
+<div class="line"><a name="l00760"></a><span class="lineno">  760</span>&#160; </div>
+<div class="line"><a name="l00764"></a><span class="lineno">  764</span>&#160;    <span class="keywordtype">void</span> make_srow()</div>
+<div class="line"><a name="l00765"></a><span class="lineno">  765</span>&#160;    {</div>
+<div class="line"><a name="l00766"></a><span class="lineno">  766</span>&#160;        srow_.<a class="code" href="classgko_1_1Array.html#ab42114c635a05ecff66e1ab5e5074d14">resize_and_reset</a>(strategy_-&gt;clac_size(values_.<a class="code" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">get_num_elems</a>()));</div>
+<div class="line"><a name="l00767"></a><span class="lineno">  767</span>&#160;        strategy_-&gt;process(row_ptrs_, &amp;srow_);</div>
+<div class="line"><a name="l00768"></a><span class="lineno">  768</span>&#160;    }</div>
+<div class="line"><a name="l00769"></a><span class="lineno">  769</span>&#160; </div>
+<div class="line"><a name="l00770"></a><span class="lineno">  770</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00771"></a><span class="lineno">  771</span>&#160;    Array&lt;value_type&gt; values_;</div>
+<div class="line"><a name="l00772"></a><span class="lineno">  772</span>&#160;    Array&lt;index_type&gt; col_idxs_;</div>
+<div class="line"><a name="l00773"></a><span class="lineno">  773</span>&#160;    Array&lt;index_type&gt; row_ptrs_;</div>
+<div class="line"><a name="l00774"></a><span class="lineno">  774</span>&#160;    Array&lt;index_type&gt; srow_;</div>
+<div class="line"><a name="l00775"></a><span class="lineno">  775</span>&#160;    std::shared_ptr&lt;strategy_type&gt; strategy_;</div>
+<div class="line"><a name="l00776"></a><span class="lineno">  776</span>&#160;};</div>
+<div class="line"><a name="l00777"></a><span class="lineno">  777</span>&#160; </div>
 <div class="line"><a name="l00778"></a><span class="lineno">  778</span>&#160; </div>
-<div class="line"><a name="l00779"></a><span class="lineno">  779</span>&#160; </div>
-<div class="line"><a name="l00780"></a><span class="lineno">  780</span>&#160;<span class="keyword">namespace </span>detail {</div>
+<div class="line"><a name="l00779"></a><span class="lineno">  779</span>&#160;<span class="keyword">namespace </span>detail {</div>
+<div class="line"><a name="l00780"></a><span class="lineno">  780</span>&#160; </div>
 <div class="line"><a name="l00781"></a><span class="lineno">  781</span>&#160; </div>
-<div class="line"><a name="l00782"></a><span class="lineno">  782</span>&#160; </div>
-<div class="line"><a name="l00789"></a><span class="lineno">  789</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType, <span class="keyword">typename</span> IndexType&gt;</div>
-<div class="line"><a name="l00790"></a><span class="lineno">  790</span>&#160;<span class="keywordtype">void</span> strategy_rebuild_helper(Csr&lt;ValueType, IndexType&gt; *result)</div>
-<div class="line"><a name="l00791"></a><span class="lineno">  791</span>&#160;{</div>
-<div class="line"><a name="l00792"></a><span class="lineno">  792</span>&#160;    <span class="keyword">using</span> load_balance = <span class="keyword">typename</span> Csr&lt;ValueType, IndexType&gt;::load_balance;</div>
-<div class="line"><a name="l00793"></a><span class="lineno">  793</span>&#160;    <span class="keyword">using</span> automatical = <span class="keyword">typename</span> Csr&lt;ValueType, IndexType&gt;::automatical;</div>
-<div class="line"><a name="l00794"></a><span class="lineno">  794</span>&#160;    <span class="keyword">auto</span> strategy = result-&gt;get_strategy();</div>
-<div class="line"><a name="l00795"></a><span class="lineno">  795</span>&#160;    <span class="keyword">auto</span> executor = result-&gt;get_executor();</div>
-<div class="line"><a name="l00796"></a><span class="lineno">  796</span>&#160;    <span class="keywordflow">if</span> (std::dynamic_pointer_cast&lt;load_balance&gt;(strategy)) {</div>
-<div class="line"><a name="l00797"></a><span class="lineno">  797</span>&#160;        <span class="keywordflow">if</span> (<span class="keyword">auto</span> exec =</div>
-<div class="line"><a name="l00798"></a><span class="lineno">  798</span>&#160;                std::dynamic_pointer_cast&lt;const HipExecutor&gt;(executor)) {</div>
-<div class="line"><a name="l00799"></a><span class="lineno">  799</span>&#160;            result-&gt;set_strategy(std::make_shared&lt;load_balance&gt;(exec));</div>
-<div class="line"><a name="l00800"></a><span class="lineno">  800</span>&#160;        } <span class="keywordflow">else</span> <span class="keywordflow">if</span> (<span class="keyword">auto</span> exec = std::dynamic_pointer_cast&lt;const CudaExecutor&gt;(</div>
-<div class="line"><a name="l00801"></a><span class="lineno">  801</span>&#160;                       executor)) {</div>
-<div class="line"><a name="l00802"></a><span class="lineno">  802</span>&#160;            result-&gt;set_strategy(std::make_shared&lt;load_balance&gt;(exec));</div>
-<div class="line"><a name="l00803"></a><span class="lineno">  803</span>&#160;        }</div>
-<div class="line"><a name="l00804"></a><span class="lineno">  804</span>&#160;    } <span class="keywordflow">else</span> <span class="keywordflow">if</span> (std::dynamic_pointer_cast&lt;automatical&gt;(strategy)) {</div>
-<div class="line"><a name="l00805"></a><span class="lineno">  805</span>&#160;        <span class="keywordflow">if</span> (<span class="keyword">auto</span> exec =</div>
-<div class="line"><a name="l00806"></a><span class="lineno">  806</span>&#160;                std::dynamic_pointer_cast&lt;const HipExecutor&gt;(executor)) {</div>
-<div class="line"><a name="l00807"></a><span class="lineno">  807</span>&#160;            result-&gt;set_strategy(std::make_shared&lt;automatical&gt;(exec));</div>
-<div class="line"><a name="l00808"></a><span class="lineno">  808</span>&#160;        } <span class="keywordflow">else</span> <span class="keywordflow">if</span> (<span class="keyword">auto</span> exec = std::dynamic_pointer_cast&lt;const CudaExecutor&gt;(</div>
-<div class="line"><a name="l00809"></a><span class="lineno">  809</span>&#160;                       executor)) {</div>
-<div class="line"><a name="l00810"></a><span class="lineno">  810</span>&#160;            result-&gt;set_strategy(std::make_shared&lt;automatical&gt;(exec));</div>
-<div class="line"><a name="l00811"></a><span class="lineno">  811</span>&#160;        }</div>
-<div class="line"><a name="l00812"></a><span class="lineno">  812</span>&#160;    }</div>
-<div class="line"><a name="l00813"></a><span class="lineno">  813</span>&#160;}</div>
+<div class="line"><a name="l00788"></a><span class="lineno">  788</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType, <span class="keyword">typename</span> IndexType&gt;</div>
+<div class="line"><a name="l00789"></a><span class="lineno">  789</span>&#160;<span class="keywordtype">void</span> strategy_rebuild_helper(Csr&lt;ValueType, IndexType&gt; *result)</div>
+<div class="line"><a name="l00790"></a><span class="lineno">  790</span>&#160;{</div>
+<div class="line"><a name="l00791"></a><span class="lineno">  791</span>&#160;    <span class="keyword">using</span> load_balance = <span class="keyword">typename</span> Csr&lt;ValueType, IndexType&gt;::load_balance;</div>
+<div class="line"><a name="l00792"></a><span class="lineno">  792</span>&#160;    <span class="keyword">using</span> automatical = <span class="keyword">typename</span> Csr&lt;ValueType, IndexType&gt;::automatical;</div>
+<div class="line"><a name="l00793"></a><span class="lineno">  793</span>&#160;    <span class="keyword">auto</span> strategy = result-&gt;get_strategy();</div>
+<div class="line"><a name="l00794"></a><span class="lineno">  794</span>&#160;    <span class="keyword">auto</span> executor = result-&gt;get_executor();</div>
+<div class="line"><a name="l00795"></a><span class="lineno">  795</span>&#160;    <span class="keywordflow">if</span> (std::dynamic_pointer_cast&lt;load_balance&gt;(strategy)) {</div>
+<div class="line"><a name="l00796"></a><span class="lineno">  796</span>&#160;        <span class="keywordflow">if</span> (<span class="keyword">auto</span> exec =</div>
+<div class="line"><a name="l00797"></a><span class="lineno">  797</span>&#160;                std::dynamic_pointer_cast&lt;const HipExecutor&gt;(executor)) {</div>
+<div class="line"><a name="l00798"></a><span class="lineno">  798</span>&#160;            result-&gt;set_strategy(std::make_shared&lt;load_balance&gt;(exec));</div>
+<div class="line"><a name="l00799"></a><span class="lineno">  799</span>&#160;        } <span class="keywordflow">else</span> <span class="keywordflow">if</span> (<span class="keyword">auto</span> exec = std::dynamic_pointer_cast&lt;const CudaExecutor&gt;(</div>
+<div class="line"><a name="l00800"></a><span class="lineno">  800</span>&#160;                       executor)) {</div>
+<div class="line"><a name="l00801"></a><span class="lineno">  801</span>&#160;            result-&gt;set_strategy(std::make_shared&lt;load_balance&gt;(exec));</div>
+<div class="line"><a name="l00802"></a><span class="lineno">  802</span>&#160;        }</div>
+<div class="line"><a name="l00803"></a><span class="lineno">  803</span>&#160;    } <span class="keywordflow">else</span> <span class="keywordflow">if</span> (std::dynamic_pointer_cast&lt;automatical&gt;(strategy)) {</div>
+<div class="line"><a name="l00804"></a><span class="lineno">  804</span>&#160;        <span class="keywordflow">if</span> (<span class="keyword">auto</span> exec =</div>
+<div class="line"><a name="l00805"></a><span class="lineno">  805</span>&#160;                std::dynamic_pointer_cast&lt;const HipExecutor&gt;(executor)) {</div>
+<div class="line"><a name="l00806"></a><span class="lineno">  806</span>&#160;            result-&gt;set_strategy(std::make_shared&lt;automatical&gt;(exec));</div>
+<div class="line"><a name="l00807"></a><span class="lineno">  807</span>&#160;        } <span class="keywordflow">else</span> <span class="keywordflow">if</span> (<span class="keyword">auto</span> exec = std::dynamic_pointer_cast&lt;const CudaExecutor&gt;(</div>
+<div class="line"><a name="l00808"></a><span class="lineno">  808</span>&#160;                       executor)) {</div>
+<div class="line"><a name="l00809"></a><span class="lineno">  809</span>&#160;            result-&gt;set_strategy(std::make_shared&lt;automatical&gt;(exec));</div>
+<div class="line"><a name="l00810"></a><span class="lineno">  810</span>&#160;        }</div>
+<div class="line"><a name="l00811"></a><span class="lineno">  811</span>&#160;    }</div>
+<div class="line"><a name="l00812"></a><span class="lineno">  812</span>&#160;}</div>
+<div class="line"><a name="l00813"></a><span class="lineno">  813</span>&#160; </div>
 <div class="line"><a name="l00814"></a><span class="lineno">  814</span>&#160; </div>
-<div class="line"><a name="l00815"></a><span class="lineno">  815</span>&#160; </div>
-<div class="line"><a name="l00816"></a><span class="lineno">  816</span>&#160;}  <span class="comment">// namespace detail</span></div>
-<div class="line"><a name="l00817"></a><span class="lineno">  817</span>&#160;}  <span class="comment">// namespace matrix</span></div>
-<div class="line"><a name="l00818"></a><span class="lineno">  818</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00815"></a><span class="lineno">  815</span>&#160;}  <span class="comment">// namespace detail</span></div>
+<div class="line"><a name="l00816"></a><span class="lineno">  816</span>&#160;}  <span class="comment">// namespace matrix</span></div>
+<div class="line"><a name="l00817"></a><span class="lineno">  817</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00818"></a><span class="lineno">  818</span>&#160; </div>
 <div class="line"><a name="l00819"></a><span class="lineno">  819</span>&#160; </div>
-<div class="line"><a name="l00820"></a><span class="lineno">  820</span>&#160; </div>
-<div class="line"><a name="l00821"></a><span class="lineno">  821</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_MATRIX_CSR_HPP_</span></div>
+<div class="line"><a name="l00820"></a><span class="lineno">  820</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_MATRIX_CSR_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="aclassgko_1_1matrix_1_1Csr_1_1automatical_html"><div class="ttname"><a href="classgko_1_1matrix_1_1Csr_1_1automatical.html">gko::matrix::Csr::automatical</a></div><div class="ttdef"><b>Definition:</b> csr.hpp:382</div></div>
 <div class="ttc" id="aclassgko_1_1matrix_1_1Csr_html_ac046f27c47848bf31c9234567661ef48"><div class="ttname"><a href="classgko_1_1matrix_1_1Csr.html#ac046f27c47848bf31c9234567661ef48">gko::matrix::Csr::get_const_srow</a></div><div class="ttdeci">const index_type * get_const_srow() const noexcept</div><div class="ttdoc">Returns the starting rows.</div><div class="ttdef"><b>Definition:</b> csr.hpp:642</div></div>
