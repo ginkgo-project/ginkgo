@@ -177,13 +177,39 @@ public:
         /**
          * Creates a classical strategy.
          */
-        classical() : strategy_type("classical") {}
+        classical() : strategy_type("classical"), max_length_per_row_(0) {}
 
         void process(const Array<index_type> &mtx_row_ptrs,
                      Array<index_type> *mtx_srow) override
-        {}
+        {
+            auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
+            Array<index_type> row_ptrs_host(host_mtx_exec);
+            const bool is_mtx_on_host{host_mtx_exec ==
+                                      mtx_row_ptrs.get_executor()};
+            const index_type *row_ptrs{};
+            if (is_mtx_on_host) {
+                row_ptrs = mtx_row_ptrs.get_const_data();
+            } else {
+                row_ptrs_host = mtx_row_ptrs;
+                row_ptrs = row_ptrs_host.get_const_data();
+            }
+            auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
+            max_length_per_row_ = 0;
+            for (index_type i = 1; i < num_rows + 1; i++) {
+                max_length_per_row_ =
+                    std::max(maxnum, row_ptrs[i] - row_ptrs[i - 1]);
+            }
+        }
 
         int64_t clac_size(const int64_t nnz) override { return 0; }
+
+        index_type get_max_length_per_row() const noexcept
+        {
+            return max_length_per_row_;
+        }
+
+    private:
+        index_type max_length_per_row_;
     };
 
     /**
@@ -423,7 +449,8 @@ public:
             : strategy_type("automatical"),
               nwarps_(nwarps),
               warp_size_(warp_size),
-              cuda_strategy_(cuda_strategy)
+              cuda_strategy_(cuda_strategy),
+              max_length_per_row_(0)
         {}
 
         void process(const Array<index_type> &mtx_row_ptrs,
@@ -472,8 +499,12 @@ public:
                     classical actual_strategy;
                     if (is_mtx_on_host) {
                         actual_strategy.process(mtx_row_ptrs, mtx_srow);
+                        max_length_per_row_ =
+                            actual_strategy.get_max_length_per_row();
                     } else {
                         actual_strategy.process(row_ptrs_host, mtx_srow);
+                        max_length_per_row_ =
+                            actual_strategy.get_max_length_per_row();
                     }
                     this->set_name(actual_strategy.get_name());
                 }
@@ -487,10 +518,16 @@ public:
                 ->clac_size(nnz);
         }
 
+        index_type get_max_length_per_row() const noexcept
+        {
+            return max_length_per_row_;
+        }
+
     private:
         int64_t nwarps_;
         int warp_size_;
         bool cuda_strategy_;
+        index_type max_length_per_row_;
     };
 
     void convert_to(Csr<ValueType, IndexType> *result) const override
