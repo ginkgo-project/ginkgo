@@ -87,6 +87,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
     using Dense = Dense<ValueType>;
     using TCsr = Csr<ValueType, IndexType>;
     if (auto b_csr = dynamic_cast<const TCsr *>(b)) {
+        // if b is a CSR matrix, we compute a SpGeMM
         auto exec = this->get_executor();
         Array<IndexType> x_rows(exec);
         Array<IndexType> x_cols(exec);
@@ -94,11 +95,12 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
         auto x_csr = as<TCsr>(x);
         this->get_executor()->run(
             csr::make_spgemm(this, b_csr, x_csr, x_rows, x_cols, x_vals));
-        auto new_x = TCsr::create(exec, x->get_size(), std::move(x_vals),
-                                  std::move(x_cols), std::move(x_rows),
-                                  x_csr->get_strategy());
+        auto new_x = TCsr::create(x_csr->get_executor(), x->get_size(),
+                                  std::move(x_vals), std::move(x_cols),
+                                  std::move(x_rows), x_csr->get_strategy());
         new_x->move_to(x_csr);
     } else {
+        // otherwise we assume that b is dense and compute a SpMV/SpMM
         this->get_executor()->run(
             csr::make_spmv(this, as<Dense>(b), as<Dense>(x)));
     }
@@ -112,6 +114,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
     using Dense = Dense<ValueType>;
     using TCsr = Csr<ValueType, IndexType>;
     if (auto b_csr = dynamic_cast<const TCsr *>(b)) {
+        // if b is a CSR matrix, we compute a SpGeMM
         auto exec = this->get_executor();
         Array<IndexType> x_rows(exec);
         Array<IndexType> x_cols(exec);
@@ -120,11 +123,12 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
         this->get_executor()->run(csr::make_advanced_spgemm(
             as<Dense>(alpha), this, b_csr, as<Dense>(beta), x_csr, x_rows,
             x_cols, x_vals));
-        auto new_x = TCsr::create(exec, x->get_size(), std::move(x_vals),
-                                  std::move(x_cols), std::move(x_rows),
-                                  x_csr->get_strategy());
+        auto new_x = TCsr::create(x_csr->get_executor(), x->get_size(),
+                                  std::move(x_vals), std::move(x_cols),
+                                  std::move(x_rows), x_csr->get_strategy());
         new_x->move_to(x_csr);
     } else {
+        // otherwise we assume that b is dense and compute a SpMV/SpMM
         this->get_executor()->run(
             csr::make_advanced_spmv(as<Dense>(alpha), this, as<Dense>(b),
                                     as<Dense>(beta), as<Dense>(x)));

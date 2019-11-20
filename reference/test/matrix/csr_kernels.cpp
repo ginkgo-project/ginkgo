@@ -415,15 +415,15 @@ TEST_F(Csr, AppliesLinearCombinationToDenseMatrix)
 TEST_F(Csr, AppliesToCsrMatrix)
 {
     mtx->apply(mtx3_unsorted.get(), mtx2.get());
-    mtx2->sort_by_column_index();
 
     ASSERT_EQ(mtx2->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(mtx2->get_num_stored_elements(), 6);
-    // 13  5 31
-    // 15  5 40
+    mtx2->sort_by_column_index();
     auto r = mtx2->get_const_row_ptrs();
     auto c = mtx2->get_const_col_idxs();
     auto v = mtx2->get_const_values();
+    // 13  5 31
+    // 15  5 40
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 3);
     EXPECT_EQ(r[2], 6);
@@ -448,15 +448,15 @@ TEST_F(Csr, AppliesLinearCombinationToCsrMatrix)
     auto beta = gko::initialize<Vec>({2.0}, exec);
 
     mtx->apply(alpha.get(), mtx3_unsorted.get(), beta.get(), mtx2.get());
-    mtx2->sort_by_column_index();
 
     ASSERT_EQ(mtx2->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(mtx2->get_num_stored_elements(), 6);
-    // -11 1 -27
-    // -15 5 -40
+    mtx2->sort_by_column_index();
     auto r = mtx2->get_const_row_ptrs();
     auto c = mtx2->get_const_col_idxs();
     auto v = mtx2->get_const_values();
+    // -11 1 -27
+    // -15 5 -40
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 3);
     EXPECT_EQ(r[2], 6);
@@ -481,15 +481,15 @@ TEST_F(Csr, AppliesZeroLinearCombinationToCsrMatrixWithZeroAlpha)
     auto beta = gko::initialize<Vec>({2.0}, exec);
 
     mtx->apply(alpha.get(), mtx3_unsorted.get(), beta.get(), mtx2.get());
-    mtx2->sort_by_column_index();
 
     ASSERT_EQ(mtx2->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(mtx2->get_num_stored_elements(), 5);
-    //  2  6  4
-    // {0} 10 0
+    mtx2->sort_by_column_index();
     auto r = mtx2->get_const_row_ptrs();
     auto c = mtx2->get_const_col_idxs();
     auto v = mtx2->get_const_values();
+    //  2  6  4
+    // {0} 10 0
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 3);
     EXPECT_EQ(r[2], 5);
@@ -512,15 +512,15 @@ TEST_F(Csr, AppliesLinearCombinationToCsrMatrixWithZeroBeta)
     auto beta = gko::initialize<Vec>({0.0}, exec);
 
     mtx->apply(alpha.get(), mtx3_unsorted.get(), beta.get(), mtx2.get());
-    mtx2->sort_by_column_index();
 
     ASSERT_EQ(mtx2->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(mtx2->get_num_stored_elements(), 6);
-    // -13  -5 -31
-    // -15  -5 -40
+    mtx2->sort_by_column_index();
     auto r = mtx2->get_const_row_ptrs();
     auto c = mtx2->get_const_col_idxs();
     auto v = mtx2->get_const_values();
+    // -13  -5 -31
+    // -15  -5 -40
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 3);
     EXPECT_EQ(r[2], 6);

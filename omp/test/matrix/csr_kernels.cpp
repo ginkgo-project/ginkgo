@@ -230,7 +230,6 @@ TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRef)
 TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
 {
     set_up_apply_data();
-
     auto trans = mtx->transpose();
     auto d_trans = dmtx->transpose();
 
@@ -244,7 +243,6 @@ TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
 TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
 {
     set_up_apply_data();
-
     auto trans = mtx->transpose();
     auto d_trans = dmtx->transpose();
 

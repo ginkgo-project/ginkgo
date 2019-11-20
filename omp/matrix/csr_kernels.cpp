@@ -219,7 +219,7 @@ void spgemm(std::shared_ptr<const OmpExecutor> exec,
     auto c_row_ptrs = c_row_ptrs_array.get_data();
 
     std::unordered_set<IndexType> local_col_idxs;
-#pragma omp parallel for schedule(dynamic, 256) firstprivate(local_col_idxs)
+#pragma omp parallel for firstprivate(local_col_idxs)
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_col_idxs.clear();
         spgemm_insert_row2(local_col_idxs, a, b, a_row);
@@ -238,7 +238,7 @@ void spgemm(std::shared_ptr<const OmpExecutor> exec,
     auto c_vals = c_vals_array.get_data();
 
     std::unordered_map<IndexType, ValueType> local_row_nzs;
-#pragma omp parallel for schedule(dynamic, 256) firstprivate(local_row_nzs)
+#pragma omp parallel for firstprivate(local_row_nzs)
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_row_nzs.clear();
         spgemm_accumulate_row2(local_row_nzs, a, b, one<ValueType>(), a_row);
@@ -275,7 +275,7 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
     auto c_row_ptrs = c_row_ptrs_array.get_data();
 
     std::unordered_set<IndexType> local_col_idxs;
-#pragma omp parallel for schedule(dynamic, 256) firstprivate(local_col_idxs)
+#pragma omp parallel for firstprivate(local_col_idxs)
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_col_idxs.clear();
         if (vbeta != zero(vbeta)) {
@@ -299,7 +299,7 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
     auto c_vals = c_vals_array.get_data();
 
     std::unordered_map<IndexType, ValueType> local_row_nzs;
-#pragma omp parallel for schedule(dynamic, 256) firstprivate(local_row_nzs)
+#pragma omp parallel for firstprivate(local_row_nzs)
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_row_nzs.clear();
         if (vbeta != zero(vbeta)) {
