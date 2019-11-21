@@ -399,6 +399,149 @@ TEST_F(Csr, AppliesLinearCombinationToDenseMatrix)
 }
 
 
+TEST_F(Csr, AppliesToCsrMatrix)
+{
+    mtx->apply(mtx3_unsorted.get(), mtx2.get());
+
+    ASSERT_EQ(mtx2->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(mtx2->get_num_stored_elements(), 6);
+    mtx2->sort_by_column_index();
+    auto r = mtx2->get_const_row_ptrs();
+    auto c = mtx2->get_const_col_idxs();
+    auto v = mtx2->get_const_values();
+    // 13  5 31
+    // 15  5 40
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 3);
+    EXPECT_EQ(r[2], 6);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[4], 1);
+    EXPECT_EQ(c[5], 2);
+    EXPECT_EQ(v[0], 13);
+    EXPECT_EQ(v[1], 5);
+    EXPECT_EQ(v[2], 31);
+    EXPECT_EQ(v[3], 15);
+    EXPECT_EQ(v[4], 5);
+    EXPECT_EQ(v[5], 40);
+}
+
+
+TEST_F(Csr, AppliesLinearCombinationToCsrMatrix)
+{
+    auto alpha = gko::initialize<Vec>({-1.0}, exec);
+    auto beta = gko::initialize<Vec>({2.0}, exec);
+
+    mtx->apply(alpha.get(), mtx3_unsorted.get(), beta.get(), mtx2.get());
+
+    ASSERT_EQ(mtx2->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(mtx2->get_num_stored_elements(), 6);
+    mtx2->sort_by_column_index();
+    auto r = mtx2->get_const_row_ptrs();
+    auto c = mtx2->get_const_col_idxs();
+    auto v = mtx2->get_const_values();
+    // -11 1 -27
+    // -15 5 -40
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 3);
+    EXPECT_EQ(r[2], 6);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[4], 1);
+    EXPECT_EQ(c[5], 2);
+    EXPECT_EQ(v[0], -11);
+    EXPECT_EQ(v[1], 1);
+    EXPECT_EQ(v[2], -27);
+    EXPECT_EQ(v[3], -15);
+    EXPECT_EQ(v[4], 5);
+    EXPECT_EQ(v[5], -40);
+}
+
+
+TEST_F(Csr, AppliesZeroLinearCombinationToCsrMatrixWithZeroAlpha)
+{
+    auto alpha = gko::initialize<Vec>({0.0}, exec);
+    auto beta = gko::initialize<Vec>({2.0}, exec);
+
+    mtx->apply(alpha.get(), mtx3_unsorted.get(), beta.get(), mtx2.get());
+
+    ASSERT_EQ(mtx2->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(mtx2->get_num_stored_elements(), 5);
+    mtx2->sort_by_column_index();
+    auto r = mtx2->get_const_row_ptrs();
+    auto c = mtx2->get_const_col_idxs();
+    auto v = mtx2->get_const_values();
+    //  2  6  4
+    // {0} 10 0
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 3);
+    EXPECT_EQ(r[2], 5);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[4], 1);
+    EXPECT_EQ(v[0], 2);
+    EXPECT_EQ(v[1], 6);
+    EXPECT_EQ(v[2], 4);
+    EXPECT_EQ(v[3], 0);
+    EXPECT_EQ(v[4], 10);
+}
+
+
+TEST_F(Csr, AppliesLinearCombinationToCsrMatrixWithZeroBeta)
+{
+    auto alpha = gko::initialize<Vec>({-1.0}, exec);
+    auto beta = gko::initialize<Vec>({0.0}, exec);
+
+    mtx->apply(alpha.get(), mtx3_unsorted.get(), beta.get(), mtx2.get());
+
+    ASSERT_EQ(mtx2->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(mtx2->get_num_stored_elements(), 6);
+    mtx2->sort_by_column_index();
+    auto r = mtx2->get_const_row_ptrs();
+    auto c = mtx2->get_const_col_idxs();
+    auto v = mtx2->get_const_values();
+    // -13  -5 -31
+    // -15  -5 -40
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 3);
+    EXPECT_EQ(r[2], 6);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[4], 1);
+    EXPECT_EQ(c[5], 2);
+    EXPECT_EQ(v[0], -13);
+    EXPECT_EQ(v[1], -5);
+    EXPECT_EQ(v[2], -31);
+    EXPECT_EQ(v[3], -15);
+    EXPECT_EQ(v[4], -5);
+    EXPECT_EQ(v[5], -40);
+}
+
+
+TEST_F(Csr, AppliesLinearCombinationToCsrMatrixWithZeroAlphaBeta)
+{
+    auto alpha = gko::initialize<Vec>({0.0}, exec);
+    auto beta = gko::initialize<Vec>({0.0}, exec);
+
+    mtx->apply(alpha.get(), mtx3_unsorted.get(), beta.get(), mtx2.get());
+
+    ASSERT_EQ(mtx2->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(mtx2->get_num_stored_elements(), 0);
+    auto r = mtx2->get_const_row_ptrs();
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 0);
+    EXPECT_EQ(r[2], 0);
+}
+
+
 TEST_F(Csr, ApplyFailsOnWrongInnerDimension)
 {
     auto x = Vec::create(exec, gko::dim<2>{2});

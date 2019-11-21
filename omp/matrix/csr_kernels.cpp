@@ -36,6 +36,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <iostream>
 #include <numeric>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 
@@ -125,6 +127,199 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void spgemm_insert_row(std::unordered_set<IndexType> &cols,
+                       const matrix::Csr<ValueType, IndexType> *c,
+                       size_type row)
+{
+    auto row_ptrs = c->get_const_row_ptrs();
+    auto col_idxs = c->get_const_col_idxs();
+    cols.insert(col_idxs + row_ptrs[row], col_idxs + row_ptrs[row + 1]);
+}
+
+
+template <typename ValueType, typename IndexType>
+void spgemm_insert_row2(std::unordered_set<IndexType> &cols,
+                        const matrix::Csr<ValueType, IndexType> *a,
+                        const matrix::Csr<ValueType, IndexType> *b,
+                        size_type row)
+{
+    auto a_row_ptrs = a->get_const_row_ptrs();
+    auto a_col_idxs = a->get_const_col_idxs();
+    auto b_row_ptrs = b->get_const_row_ptrs();
+    auto b_col_idxs = b->get_const_col_idxs();
+    for (size_type a_nz = a_row_ptrs[row];
+         a_nz < size_type(a_row_ptrs[row + 1]); ++a_nz) {
+        auto a_col = a_col_idxs[a_nz];
+        auto b_row = a_col;
+        cols.insert(b_col_idxs + b_row_ptrs[b_row],
+                    b_col_idxs + b_row_ptrs[b_row + 1]);
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void spgemm_accumulate_row(std::unordered_map<IndexType, ValueType> &cols,
+                           const matrix::Csr<ValueType, IndexType> *c,
+                           ValueType scale, size_type row)
+{
+    auto row_ptrs = c->get_const_row_ptrs();
+    auto col_idxs = c->get_const_col_idxs();
+    auto vals = c->get_const_values();
+    for (size_type c_nz = row_ptrs[row]; c_nz < size_type(row_ptrs[row + 1]);
+         ++c_nz) {
+        auto c_col = col_idxs[c_nz];
+        auto c_val = vals[c_nz];
+        cols[c_col] += scale * c_val;
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void spgemm_accumulate_row2(std::unordered_map<IndexType, ValueType> &cols,
+                            const matrix::Csr<ValueType, IndexType> *a,
+                            const matrix::Csr<ValueType, IndexType> *b,
+                            ValueType scale, size_type row)
+{
+    auto a_row_ptrs = a->get_const_row_ptrs();
+    auto a_col_idxs = a->get_const_col_idxs();
+    auto a_vals = a->get_const_values();
+    auto b_row_ptrs = b->get_const_row_ptrs();
+    auto b_col_idxs = b->get_const_col_idxs();
+    auto b_vals = b->get_const_values();
+    for (size_type a_nz = a_row_ptrs[row];
+         a_nz < size_type(a_row_ptrs[row + 1]); ++a_nz) {
+        auto a_col = a_col_idxs[a_nz];
+        auto a_val = a_vals[a_nz];
+        auto b_row = a_col;
+        for (size_type b_nz = b_row_ptrs[b_row];
+             b_nz < size_type(b_row_ptrs[b_row + 1]); ++b_nz) {
+            auto b_col = b_col_idxs[b_nz];
+            auto b_val = b_vals[b_nz];
+            cols[b_col] += scale * a_val * b_val;
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void spgemm(std::shared_ptr<const OmpExecutor> exec,
+            const matrix::Csr<ValueType, IndexType> *a,
+            const matrix::Csr<ValueType, IndexType> *b,
+            const matrix::Csr<ValueType, IndexType> *c,
+            Array<IndexType> &c_row_ptrs_array,
+            Array<IndexType> &c_col_idxs_array, Array<ValueType> &c_vals_array)
+{
+    auto num_rows = a->get_size()[0];
+
+    // first sweep: count nnz for each row
+    c_row_ptrs_array.resize_and_reset(num_rows + 1);
+    auto c_row_ptrs = c_row_ptrs_array.get_data();
+
+    std::unordered_set<IndexType> local_col_idxs;
+#pragma omp parallel for firstprivate(local_col_idxs)
+    for (size_type a_row = 0; a_row < num_rows; ++a_row) {
+        local_col_idxs.clear();
+        spgemm_insert_row2(local_col_idxs, a, b, a_row);
+        c_row_ptrs[a_row + 1] = local_col_idxs.size();
+    }
+
+    // build row pointers: exclusive scan (thus the + 1)
+    c_row_ptrs[0] = 0;
+    std::partial_sum(c_row_ptrs + 1, c_row_ptrs + num_rows + 1, c_row_ptrs + 1);
+
+    // second sweep: accumulate non-zeros
+    auto new_nnz = c_row_ptrs[num_rows];
+    c_col_idxs_array.resize_and_reset(new_nnz);
+    c_vals_array.resize_and_reset(new_nnz);
+    auto c_col_idxs = c_col_idxs_array.get_data();
+    auto c_vals = c_vals_array.get_data();
+
+    std::unordered_map<IndexType, ValueType> local_row_nzs;
+#pragma omp parallel for firstprivate(local_row_nzs)
+    for (size_type a_row = 0; a_row < num_rows; ++a_row) {
+        local_row_nzs.clear();
+        spgemm_accumulate_row2(local_row_nzs, a, b, one<ValueType>(), a_row);
+        // store result
+        auto c_nz = c_row_ptrs[a_row];
+        for (auto pair : local_row_nzs) {
+            c_col_idxs[c_nz] = pair.first;
+            c_vals[c_nz] = pair.second;
+            ++c_nz;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
+                     const matrix::Dense<ValueType> *alpha,
+                     const matrix::Csr<ValueType, IndexType> *a,
+                     const matrix::Csr<ValueType, IndexType> *b,
+                     const matrix::Dense<ValueType> *beta,
+                     const matrix::Csr<ValueType, IndexType> *c,
+                     Array<IndexType> &c_row_ptrs_array,
+                     Array<IndexType> &c_col_idxs_array,
+                     Array<ValueType> &c_vals_array)
+{
+    auto num_rows = a->get_size()[0];
+    auto valpha = alpha->at(0, 0);
+    auto vbeta = beta->at(0, 0);
+
+    // first sweep: count nnz for each row
+    c_row_ptrs_array.resize_and_reset(num_rows + 1);
+    auto c_row_ptrs = c_row_ptrs_array.get_data();
+
+    std::unordered_set<IndexType> local_col_idxs;
+#pragma omp parallel for firstprivate(local_col_idxs)
+    for (size_type a_row = 0; a_row < num_rows; ++a_row) {
+        local_col_idxs.clear();
+        if (vbeta != zero(vbeta)) {
+            spgemm_insert_row(local_col_idxs, c, a_row);
+        }
+        if (valpha != zero(valpha)) {
+            spgemm_insert_row2(local_col_idxs, a, b, a_row);
+        }
+        c_row_ptrs[a_row + 1] = local_col_idxs.size();
+    }
+
+    // build row pointers: exclusive scan (thus the + 1)
+    c_row_ptrs[0] = 0;
+    std::partial_sum(c_row_ptrs + 1, c_row_ptrs + num_rows + 1, c_row_ptrs + 1);
+
+    // second sweep: accumulate non-zeros
+    auto new_nnz = c_row_ptrs[num_rows];
+    c_col_idxs_array.resize_and_reset(new_nnz);
+    c_vals_array.resize_and_reset(new_nnz);
+    auto c_col_idxs = c_col_idxs_array.get_data();
+    auto c_vals = c_vals_array.get_data();
+
+    std::unordered_map<IndexType, ValueType> local_row_nzs;
+#pragma omp parallel for firstprivate(local_row_nzs)
+    for (size_type a_row = 0; a_row < num_rows; ++a_row) {
+        local_row_nzs.clear();
+        if (vbeta != zero(vbeta)) {
+            spgemm_accumulate_row(local_row_nzs, c, vbeta, a_row);
+        }
+        if (valpha != zero(valpha)) {
+            spgemm_accumulate_row2(local_row_nzs, a, b, valpha, a_row);
+        }
+        // store result
+        auto c_nz = c_row_ptrs[a_row];
+        for (auto pair : local_row_nzs) {
+            c_col_idxs[c_nz] = pair.first;
+            c_vals[c_nz] = pair.second;
+            ++c_nz;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL);
 
 
 template <typename IndexType>
