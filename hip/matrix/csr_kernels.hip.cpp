@@ -79,7 +79,6 @@ namespace csr {
 constexpr int default_block_size = 512;
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
-constexpr int classical_block_size = 64;
 constexpr int wsize = config::warp_size;
 
 
@@ -88,6 +87,9 @@ constexpr int wsize = config::warp_size;
  * should be compiled.
  */
 using compiled_kernels = syn::value_list<int, 3, 4, 6, 7, 8, 12, 14>;
+
+using classical_kernels =
+    syn::value_list<int, config::warp_size, 32, 16, 8, 4, 2, 1>;
 
 
 #include "common/matrix/csr_kernels.hpp.inc"
@@ -220,6 +222,45 @@ int compute_items_per_thread(std::shared_ptr<const HipExecutor> exec)
 }
 
 
+template <int subwarp_size, typename ValueType, typename IndexType>
+void classical_spmv(syn::value_list<int, subwarp_size>,
+                    std::shared_ptr<const HipExecutor> exec,
+                    const matrix::Csr<ValueType, IndexType> *a,
+                    const matrix::Dense<ValueType> *b,
+                    matrix::Dense<ValueType> *c,
+                    const matrix::Dense<ValueType> *alpha = nullptr,
+                    const matrix::Dense<ValueType> *beta = nullptr)
+{
+    const dim3 grid(ceildiv(a->get_size()[0], spmv_block_size / subwarp_size),
+                    b->get_size()[1]);
+    const dim3 block(spmv_block_size);
+    if (alpha == nullptr && beta == nullptr) {
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(kernel::abstract_classical_spmv<subwarp_size>),
+            dim3(grid), dim3(block), 0, 0, a->get_size()[0],
+            as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
+            as_hip_type(a->get_const_row_ptrs()),
+            as_hip_type(b->get_const_values()), b->get_stride(),
+            as_hip_type(c->get_values()), c->get_stride());
+
+    } else if (alpha != nullptr && beta != nullptr) {
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(kernel::abstract_classical_spmv<subwarp_size>),
+            dim3(grid), dim3(block), 0, 0, a->get_size()[0],
+            as_hip_type(alpha->get_const_values()),
+            as_hip_type(a->get_const_values()), a->get_const_col_idxs(),
+            as_hip_type(a->get_const_row_ptrs()),
+            as_hip_type(b->get_const_values()), b->get_stride(),
+            as_hip_type(beta->get_const_values()), as_hip_type(c->get_values()),
+            c->get_stride());
+    } else {
+        GKO_KERNEL_NOT_FOUND;
+    }
+}
+
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
+
+
 }  // namespace host_kernel
 
 
@@ -257,15 +298,24 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
             },
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
     } else if (a->get_strategy()->get_name() == "classical") {
-        const dim3 grid(ceildiv(a->get_size()[0], classical_block_size),
-                        b->get_size()[1]);
-        hipLaunchKernelGGL(kernel::abstract_classical_spmv, dim3(grid),
-                           dim3(classical_block_size), 0, 0, a->get_size()[0],
-                           as_hip_type(a->get_const_values()),
-                           a->get_const_col_idxs(),
-                           as_hip_type(a->get_const_row_ptrs()),
-                           as_hip_type(b->get_const_values()), b->get_stride(),
-                           as_hip_type(c->get_values()), c->get_stride());
+        IndexType max_length_per_row = 0;
+        using Tcsr = matrix::Csr<ValueType, IndexType>;
+        if (auto strategy =
+                std::dynamic_pointer_cast<const typename Tcsr::classical>(
+                    a->get_strategy())) {
+            max_length_per_row = strategy->get_max_length_per_row();
+        } else if (auto strategy = std::dynamic_pointer_cast<
+                       const typename Tcsr::automatical>(a->get_strategy())) {
+            max_length_per_row = strategy->get_max_length_per_row();
+        } else {
+            GKO_NOT_SUPPORTED(a->get_strategy());
+        }
+        host_kernel::select_classical_spmv(
+            classical_kernels(),
+            [&max_length_per_row](int compiled_info) {
+                return max_length_per_row >= compiled_info;
+            },
+            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
         if (hipsparse::is_supported<ValueType, IndexType>::value) {
@@ -354,17 +404,25 @@ void advanced_spmv(std::shared_ptr<const HipExecutor> exec,
             GKO_NOT_IMPLEMENTED;
         }
     } else if (a->get_strategy()->get_name() == "classical") {
-        const dim3 grid(ceildiv(a->get_size()[0], classical_block_size),
-                        b->get_size()[1]);
-        hipLaunchKernelGGL(kernel::abstract_classical_spmv, dim3(grid),
-                           dim3(classical_block_size), 0, 0, a->get_size()[0],
-                           as_hip_type(alpha->get_const_values()),
-                           as_hip_type(a->get_const_values()),
-                           a->get_const_col_idxs(),
-                           as_hip_type(a->get_const_row_ptrs()),
-                           as_hip_type(b->get_const_values()), b->get_stride(),
-                           as_hip_type(beta->get_const_values()),
-                           as_hip_type(c->get_values()), c->get_stride());
+        IndexType max_length_per_row = 0;
+        using Tcsr = matrix::Csr<ValueType, IndexType>;
+        if (auto strategy =
+                std::dynamic_pointer_cast<const typename Tcsr::classical>(
+                    a->get_strategy())) {
+            max_length_per_row = strategy->get_max_length_per_row();
+        } else if (auto strategy = std::dynamic_pointer_cast<
+                       const typename Tcsr::automatical>(a->get_strategy())) {
+            max_length_per_row = strategy->get_max_length_per_row();
+        } else {
+            GKO_NOT_SUPPORTED(a->get_strategy());
+        }
+        host_kernel::select_classical_spmv(
+            classical_kernels(),
+            [&max_length_per_row](int compiled_info) {
+                return max_length_per_row >= compiled_info;
+            },
+            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c, alpha,
+            beta);
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
             host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
