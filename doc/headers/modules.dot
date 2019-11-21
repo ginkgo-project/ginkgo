@@ -11,6 +11,7 @@
   omp [label="OpenMP Executor",URL="\ref exec_omp "];
   ref [label="Reference Executor",URL="\ref exec_ref"];
   cuda [label="CUDA Executor",URL="\ref exec_cuda"];
+  hip [label="HIP Executor",URL="\ref exec_hip"];
   linop [label="Linear Operators",URL="\ref LinOp"];
   solvers [label="Solvers",URL="\ref solvers"];
   precond [label="Preconditioners",URL="\ref precond"];
@@ -22,12 +23,15 @@
   // log -> exec [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
   exec -> ref [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
   exec -> cuda[color="black",fontsize=14,style="solid",fontname="Times-Roman"];
+  exec -> hip[color="black",fontsize=14,style="solid",fontname="Times-Roman"];
   exec -> omp [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
   omp -> linop [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
   cuda -> linop [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
+  hip -> linop [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
   ref -> linop [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
   omp -> stop [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
   cuda -> stop [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
+  hip -> linop [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
   ref -> stop [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
   linop -> matformat [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
   linop -> solvers [color="black",fontsize=14,style="solid",fontname="Times-Roman"];
