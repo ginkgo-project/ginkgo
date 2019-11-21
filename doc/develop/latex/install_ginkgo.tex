@@ -58,8 +58,8 @@ For example, to build everything (in debug mode), use\+:
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{cmake  -\/G "Unix Makefiles" -\/H. -\/BDebug -\/DCMAKE\_BUILD\_TYPE=Debug -\/DGINKGO\_DEVEL\_TOOLS=ON \(\backslash\)}
-\DoxyCodeLine{              -\/DGINKGO\_BUILD\_TESTS=ON -\/DGINKGO\_BUILD\_REFERENCE=ON -\/DGINKGO\_BUILD\_OMP=ON \(\backslash\)}
-\DoxyCodeLine{              -\/DGINKGO\_BUILD\_CUDA=ON }
+\DoxyCodeLine{    -\/DGINKGO\_BUILD\_TESTS=ON -\/DGINKGO\_BUILD\_REFERENCE=ON -\/DGINKGO\_BUILD\_OMP=ON \(\backslash\)}
+\DoxyCodeLine{    -\/DGINKGO\_BUILD\_CUDA=ON -\/DGINKGO\_BUILD\_HIP=ON \(\backslash\)}
 \DoxyCodeLine{cmake -\/-\/build Debug}
 \end{DoxyCode}
 

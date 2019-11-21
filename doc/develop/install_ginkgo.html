@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/97493009 branch based on develop. Ginkgo version 1.1.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/97627566 branch based on develop. Ginkgo version 1.1.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -117,8 +117,8 @@ Building</h2>
 </ul>
 <p>For example, to build everything (in debug mode), use:</p>
 <div class="fragment"><div class="line">cmake  -G &quot;Unix Makefiles&quot; -H. -BDebug -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \</div>
-<div class="line">              -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON \</div>
-<div class="line">              -DGINKGO_BUILD_CUDA=ON </div>
+<div class="line">    -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON \</div>
+<div class="line">    -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_HIP=ON \</div>
 <div class="line">cmake --build Debug</div>
 </div><!-- fragment --><p>NOTE: Ginkgo is known to work with the <code>Unix Makefiles</code> and <code>Ninja</code> based generators. Other CMake generators are untested.</p>
 <h2><a class="anchor" id="autotoc_md1"></a>

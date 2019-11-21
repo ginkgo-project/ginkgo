@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/97493009 branch based on develop. Ginkgo version 1.1.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/97627566 branch based on develop. Ginkgo version 1.1.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -79,7 +79,7 @@ $(function() {
 <div class="dynheader">
 Collaboration diagram for Executors:</div>
 <div class="dyncontent">
-<div class="center"><iframe scrolling="no" frameborder="0" src="group__Executor.svg" width="448" height="215"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe>
+<div class="center"><iframe scrolling="no" frameborder="0" src="group__Executor.svg" width="448" height="307"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe>
 </div>
 </div>
 <table class="memberdecls">
@@ -87,6 +87,9 @@ Collaboration diagram for Executors:</div>
 Modules</h2></td></tr>
 <tr class="memitem:group__exec__cuda"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__exec__cuda.html">CUDA Executor</a></td></tr>
 <tr class="memdesc:group__exec__cuda"><td class="mdescLeft">&#160;</td><td class="mdescRight">A module dedicated to the implementation and usage of the CUDA executor in Ginkgo. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:group__exec__hip"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__exec__hip.html">HIP Executor</a></td></tr>
+<tr class="memdesc:group__exec__hip"><td class="mdescLeft">&#160;</td><td class="mdescRight">A module dedicated to the implementation and usage of the HIP executor in Ginkgo. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:group__exec__omp"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__exec__omp.html">OpenMP Executor</a></td></tr>
 <tr class="memdesc:group__exec__omp"><td class="mdescLeft">&#160;</td><td class="mdescRight">A module dedicated to the implementation and usage of the OpenMP executor in Ginkgo. <br /></td></tr>
@@ -134,7 +137,7 @@ Executors in Ginkgo.</h1>
 <ul>
 <li><a class="el" href="group__exec__omp.html">OpenMP Executor</a> specifies that the data should be stored and the associated operations executed on an OpenMP-supporting device (e.g. host CPU);</li>
 <li><a class="el" href="group__exec__cuda.html">CUDA Executor</a> specifies that the data should be stored and the operations executed on the NVIDIA GPU accelerator;</li>
-<li>exec_hip uses the HIP library to compile code for either NVIDIA or AMD GPU accelerator;</li>
+<li><a class="el" href="group__exec__hip.html">HIP Executor</a> uses the HIP library to compile code for either NVIDIA or AMD GPU accelerator;</li>
 <li><a class="el" href="group__exec__ref.html">Reference Executor</a> executes a non-optimized reference implementation, which can be used to debug the library. </li>
 </ul>
 <h2 class="groupheader">Macro Definition Documentation</h2>
@@ -177,7 +180,7 @@ Executors in Ginkgo.</h1>
 <h2><a class="anchor" id="autotoc_md11"></a>
 Example</h2>
 <div class="fragment"><div class="line"> {c++}</div>
-<div class="line"><span class="comment">// define the omp, cuda and reference kernels which will be bound to the</span></div>
+<div class="line"><span class="comment">// define the omp, cuda, hip and reference kernels which will be bound to the</span></div>
 <div class="line"><span class="comment">// operation</span></div>
 <div class="line"><span class="keyword">namespace </span>kernels {</div>
 <div class="line"><span class="keyword">namespace </span>omp {</div>

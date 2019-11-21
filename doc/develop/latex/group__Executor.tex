@@ -18,6 +18,8 @@ Collaboration diagram for Executors\+:
 \item 
 \mbox{\hyperlink{group__exec__cuda}{C\+U\+D\+A Executor}}
 \begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the C\+U\+DA executor in Ginkgo. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{group__exec__hip}{H\+I\+P Executor}}
+\begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the H\+IP executor in Ginkgo. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{group__exec__omp}{Open\+M\+P Executor}}
 \begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the Open\+MP executor in Ginkgo. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{group__exec__ref}{Reference Executor}}
@@ -56,7 +58,7 @@ The first step in using the Ginkgo library consists of creating an executor. Exe
 \begin{DoxyItemize}
 \item \mbox{\hyperlink{group__exec__omp}{Open\+MP Executor}} specifies that the data should be stored and the associated operations executed on an Open\+M\+P-\/supporting device (e.\+g. host C\+PU);
 \item \mbox{\hyperlink{group__exec__cuda}{C\+U\+DA Executor}} specifies that the data should be stored and the operations executed on the N\+V\+I\+D\+IA G\+PU accelerator;
-\item exec\+\_\+hip uses the H\+IP library to compile code for either N\+V\+I\+D\+IA or A\+MD G\+PU accelerator;
+\item \mbox{\hyperlink{group__exec__hip}{H\+IP Executor}} uses the H\+IP library to compile code for either N\+V\+I\+D\+IA or A\+MD G\+PU accelerator;
 \item \mbox{\hyperlink{group__exec__ref}{Reference Executor}} executes a non-\/optimized reference implementation, which can be used to debug the library. 
 \end{DoxyItemize}
 
@@ -86,7 +88,7 @@ The kernels used to bind the operation are searched in {\ttfamily kernels\+::\+D
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{ \{c++\}}
-\DoxyCodeLine{\textcolor{comment}{// define the omp, cuda and reference kernels which will be bound to the}}
+\DoxyCodeLine{\textcolor{comment}{// define the omp, cuda, hip and reference kernels which will be bound to the}}
 \DoxyCodeLine{\textcolor{comment}{// operation}}
 \DoxyCodeLine{\textcolor{keyword}{namespace }kernels \{}
 \DoxyCodeLine{\textcolor{keyword}{namespace }omp \{}
