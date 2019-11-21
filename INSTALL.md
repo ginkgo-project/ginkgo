@@ -103,8 +103,8 @@ For example, to build everything (in debug mode), use:
 
 ```cmake
 cmake  -G "Unix Makefiles" -H. -BDebug -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \
-              -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON \
-	          -DGINKGO_BUILD_CUDA=ON 
+    -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON \
+    -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_HIP=ON \
 cmake --build Debug
 ```
 

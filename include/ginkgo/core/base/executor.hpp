@@ -260,7 +260,7 @@ private:                                                                     \
  * -------
  *
  * ```c++
- * // define the omp, cuda and reference kernels which will be bound to the
+ * // define the omp, cuda, hip and reference kernels which will be bound to the
  * // operation
  * namespace kernels {
  * namespace omp {
