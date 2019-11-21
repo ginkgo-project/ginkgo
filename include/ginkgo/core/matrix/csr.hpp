@@ -196,8 +196,8 @@ public:
             auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
             max_length_per_row_ = 0;
             for (index_type i = 1; i < num_rows + 1; i++) {
-                max_length_per_row_ =
-                    std::max(maxnum, row_ptrs[i] - row_ptrs[i - 1]);
+                max_length_per_row_ = std::max(max_length_per_row_,
+                                               row_ptrs[i] - row_ptrs[i - 1]);
             }
         }
 
