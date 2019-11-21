@@ -68,6 +68,7 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
     list(APPEND doxygen_dev_input
       ${DIR_BASE}/omp
       ${DIR_BASE}/cuda
+      ${DIR_BASE}/hip
       ${DIR_BASE}/reference
       )
     set(doxygen_image_path "${CMAKE_SOURCE_DIR}/doc/images/")
