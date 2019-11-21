@@ -93,8 +93,8 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const HipExecutor> exec,
                        0, grid_dim, as_hip_type(block_results_val),
                        as_hip_type(d_result.get_data()));
     ValueType answer = zero<ValueType>();
-    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
-                                  &answer);
+    exec->get_master()->get_mem_space()->copy_from(
+        exec->get_mem_space().get(), 1, d_result.get_const_data(), &answer);
     return answer;
 }
 

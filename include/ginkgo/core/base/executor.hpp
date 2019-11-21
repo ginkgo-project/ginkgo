@@ -916,10 +916,11 @@ protected:
                  std::shared_ptr<Executor> master)
         : device_id_(device_id),
           master_(master),
-          num_cores_per_sm_(0),
+          num_warps_per_sm_(0),
           num_multiprocessor_(0),
           major_(0),
           minor_(0),
+          warp_size_(0),
           mem_space_instance_(mem_space)
     {
         assert(device_id < max_devices);
@@ -1135,6 +1136,10 @@ protected:
         : device_id_(device_id),
           master_(master),
           num_multiprocessor_(0),
+          num_warps_per_sm_(0),
+          major_(0),
+          minor_(0),
+          warp_size_(0),
           mem_space_instance_(mem_space)
     {
         assert(device_id < max_devices);

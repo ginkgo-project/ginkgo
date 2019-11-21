@@ -123,14 +123,18 @@ protected:
         *l_hip = Csr::create(hip, csr_hip->get_size(), l_nnz);
         *u_hip = Csr::create(hip, csr_hip->get_size(), u_nnz);
         // Copy the already initialized `row_ptrs` to the new matrices
-        ref->copy_from(gko::lend(ref), num_row_ptrs, l_row_ptrs_ref.get_data(),
-                       (*l_ref)->get_row_ptrs());
-        ref->copy_from(gko::lend(ref), num_row_ptrs, u_row_ptrs_ref.get_data(),
-                       (*u_ref)->get_row_ptrs());
-        hip->copy_from(gko::lend(hip), num_row_ptrs, l_row_ptrs_hip.get_data(),
-                       (*l_hip)->get_row_ptrs());
-        hip->copy_from(gko::lend(hip), num_row_ptrs, u_row_ptrs_hip.get_data(),
-                       (*u_hip)->get_row_ptrs());
+        ref->get_mem_space()->copy_from(gko::lend(ref->get_mem_space()),
+                                        num_row_ptrs, l_row_ptrs_ref.get_data(),
+                                        (*l_ref)->get_row_ptrs());
+        ref->get_mem_space()->copy_from(gko::lend(ref->get_mem_space()),
+                                        num_row_ptrs, u_row_ptrs_ref.get_data(),
+                                        (*u_ref)->get_row_ptrs());
+        hip->get_mem_space()->copy_from(gko::lend(hip->get_mem_space()),
+                                        num_row_ptrs, l_row_ptrs_hip.get_data(),
+                                        (*l_hip)->get_row_ptrs());
+        hip->get_mem_space()->copy_from(gko::lend(hip->get_mem_space()),
+                                        num_row_ptrs, u_row_ptrs_hip.get_data(),
+                                        (*u_hip)->get_row_ptrs());
 
         gko::kernels::reference::par_ilu_factorization::initialize_l_u(
             ref, gko::lend(csr_ref), gko::lend(*l_ref), gko::lend(*u_ref));
