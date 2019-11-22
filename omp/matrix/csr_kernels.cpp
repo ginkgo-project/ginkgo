@@ -208,7 +208,6 @@ template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Csr<ValueType, IndexType> *a,
             const matrix::Csr<ValueType, IndexType> *b,
-            const matrix::Csr<ValueType, IndexType> *c,
             Array<IndexType> &c_row_ptrs_array,
             Array<IndexType> &c_col_idxs_array, Array<ValueType> &c_vals_array)
 {
