@@ -388,7 +388,6 @@ template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const HipExecutor> exec,
             const matrix::Csr<ValueType, IndexType> *a,
             const matrix::Csr<ValueType, IndexType> *b,
-            const matrix::Csr<ValueType, IndexType> *c,
             Array<IndexType> &c_row_ptrs, Array<IndexType> &c_col_idxs,
             Array<ValueType> &c_vals) GKO_NOT_IMPLEMENTED;
 
