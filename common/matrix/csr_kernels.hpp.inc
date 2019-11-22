@@ -441,24 +441,27 @@ __device__ void device_classical_spmv(const size_type num_rows,
 {
     const auto tid =
         (static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x);
-    const auto row = tid / subwarp_size;
+    const auto subrow =
+        static_cast<size_type>(gridDim.x) * blockDim.x / subwarp_size;
     const auto subid = tid % subwarp_size;
-    if (row >= num_rows) {
-        return;
-    }
     const auto column_id = blockIdx.y;
-    const auto ind_end = row_ptrs[row + 1];
-    ValueType temp_val = zero<ValueType>();
-    for (auto ind = row_ptrs[row] + subid; ind < ind_end; ind += subwarp_size) {
-        temp_val += val[ind] * b[col_idxs[ind] * b_stride + column_id];
+    for (auto row = tid / subwarp_size; row < num_rows; row += subrow) {
+        const auto ind_end = row_ptrs[row + 1];
+        ValueType temp_val = zero<ValueType>();
+        for (auto ind = row_ptrs[row] + subid; ind < ind_end;
+             ind += subwarp_size) {
+            temp_val += val[ind] * b[col_idxs[ind] * b_stride + column_id];
+        }
+        auto subwarp_tile =
+            group::tiled_partition<subwarp_size>(group::this_thread_block());
+        auto subwarp_result = reduce(
+            subwarp_tile, temp_val,
+            [](const ValueType &a, const ValueType &b) { return a + b; });
+        if (subid == 0) {
+            c[row * c_stride + column_id] =
+                scale(subwarp_result, c[row * c_stride + column_id]);
+        }
     }
-    auto subwarp_tile =
-        group::tiled_partition<subwarp_size>(group::this_thread_block());
-    auto subwarp_result =
-        reduce(subwarp_tile, temp_val,
-               [](const ValueType &a, const ValueType &b) { return a + b; });
-    c[row * c_stride + column_id] =
-        scale(subwarp_result, c[row * c_stride + column_id]);
 }
 
 
