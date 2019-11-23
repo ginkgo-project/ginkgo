@@ -448,7 +448,9 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
         auto c_old_descr = cusparse::create_mat_descr();
         auto info = cusparse::create_spgemm_info();
 
-        auto valpha = clone(exec->get_master(), alpha)->at(0, 0);
+        ValueType valpha{};
+        exec->get_master()->copy_from(exec.get(), 1, alpha->get_const_values(),
+                                      &valpha);
         auto a_nnz = IndexType(a->get_num_stored_elements());
         auto a_vals = a->get_const_values();
         auto a_row_ptrs = a->get_const_row_ptrs();
@@ -457,7 +459,9 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
         auto b_vals = b->get_const_values();
         auto b_row_ptrs = b->get_const_row_ptrs();
         auto b_col_idxs = b->get_const_col_idxs();
-        auto vbeta = clone(exec->get_master(), beta)->at(0, 0);
+        ValueType vbeta{};
+        exec->get_master()->copy_from(exec.get(), 1, beta->get_const_values(),
+                                      &vbeta);
         auto c_old_nnz = IndexType(c->get_num_stored_elements());
         auto c_old_vals = c->get_const_values();
         auto c_old_row_ptrs = c->get_const_row_ptrs();
