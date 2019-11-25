@@ -4,6 +4,13 @@ if (NOT CMAKE_BUILD_TYPE STREQUAL "Release")
         "will be affected")
 endif()
 
+if (GINKGO_BUILD_CUDA AND GINKGO_BUILD_HIP AND GINKGO_HIP_PLATFORM MATCHES "hcc")
+  message(FATAL_ERROR "Building the benchmarks for both HIP AMD and CUDA "
+          "at the same time is currently not supported. "
+	  "Disable the benchmark build using `-DGINKGO_BUILD_BENCHMARKS=OFF` "
+	  "or use `export HIP_PLATFORM=nvcc` in your build environment instead.")
+endif()
+
 function(ginkgo_benchmark_cusp_linops name)
     target_compile_definitions("${name}" PRIVATE HAS_CUDA=1)
     target_link_libraries("${name}" ginkgo ${CUDA_RUNTIME_LIBS}
