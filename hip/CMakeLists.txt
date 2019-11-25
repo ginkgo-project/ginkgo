@@ -150,7 +150,7 @@ endif()
 if(GINKGO_HIP_PLATFORM MATCHES "hcc")
     # Fix the exception thrown bug with `hcc` backend and shared libraries
     set_target_properties(ginkgo_hip PROPERTIES LINKER_LANGUAGE HIP)
-
+    
     # Ban `-hc` flag as INTERFACE_LINK_LIBRARIES since that is propagated when building
     # a static library, and it's definitely not a known option to any compiler.
     ginkgo_hip_ban_link_hcflag(hcc::hccrt)
