@@ -319,6 +319,7 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithMergePath)
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
 }
 
+
 TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::automatical>());
