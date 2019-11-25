@@ -77,7 +77,7 @@ constexpr int default_block_size = 512;
 constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = warps_in_block * config::warp_size;
 constexpr int wsize = config::warp_size;
-constexpr int classical_overweight = 4;
+constexpr int classical_overweight = 32;
 
 
 /**
@@ -216,6 +216,7 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
                  int64(nwarps / warps_in_block));
     const dim3 grid(gridx, b->get_size()[1]);
     const dim3 block(spmv_block_size);
+
     if (alpha == nullptr && beta == nullptr) {
         kernel::abstract_classical_spmv<subwarp_size><<<grid, block, 0, 0>>>(
             a->get_size()[0], as_cuda_type(a->get_const_values()),

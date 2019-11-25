@@ -456,10 +456,21 @@ public:
         void process(const Array<index_type> &mtx_row_ptrs,
                      Array<index_type> *mtx_srow) override
         {
-            // if the number of stored elements is larger than 1e6 or
+            // if the number of stored elements is larger than <nnz_limit> or
             // the maximum number of stored elements per row is larger than
-            // 64, use load_balance otherwise use classical
-            // TODO: need to be tuned for AMD gpu.
+            // <row_len_limit>, use load_balance otherwise use classical
+            // CUDA: nnz_limit = 1e6, row_len_limit = 64
+            // TODO: need to tune CUDA parameters according to new classical
+            //       strategy
+            // AMD: nnz_limit = 1e8, row_len_limit = 768
+            index_type nnz_limit = 1e6;
+            index_type row_len_limit = 64;
+#if GINKGO_HIP_PLATFORM_HCC
+            if (!cuda_strategy_) {
+                nnz_limit = 1e8;
+                row_len_limit = 768;
+            }
+#endif  // GINKGO_HIP_PLATFORM_HCC
             auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
             const bool is_mtx_on_host{host_mtx_exec ==
                                       mtx_row_ptrs.get_executor()};
@@ -472,7 +483,7 @@ public:
                 row_ptrs = row_ptrs_host.get_const_data();
             }
             const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
-            if (row_ptrs[num_rows] > index_type(1e6)) {
+            if (row_ptrs[num_rows] > nnz_limit) {
                 load_balance actual_strategy(nwarps_, warp_size_,
                                              cuda_strategy_);
                 if (is_mtx_on_host) {
@@ -486,7 +497,7 @@ public:
                 for (index_type i = 1; i < num_rows + 1; i++) {
                     maxnum = max(maxnum, row_ptrs[i] - row_ptrs[i - 1]);
                 }
-                if (maxnum > 64) {
+                if (maxnum > row_len_limit) {
                     load_balance actual_strategy(nwarps_, warp_size_,
                                                  cuda_strategy_);
                     if (is_mtx_on_host) {
