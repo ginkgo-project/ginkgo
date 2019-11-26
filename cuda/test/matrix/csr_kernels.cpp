@@ -94,12 +94,16 @@ protected:
     {
         mtx = Mtx::create(ref, strategy);
         mtx->copy_from(gen_mtx<Vec>(532, 231, 1));
+        square_mtx = Mtx::create(ref, strategy);
+        square_mtx->copy_from(gen_mtx<Vec>(532, 532, 1));
         expected = gen_mtx<Vec>(532, num_vectors, 1);
         y = gen_mtx<Vec>(231, num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(cuda, strategy);
         dmtx->copy_from(mtx.get());
+        square_dmtx = Mtx::create(cuda, strategy);
+        square_dmtx->copy_from(square_mtx.get());
         dresult = Vec::create(cuda);
         dresult->copy_from(expected.get());
         dy = Vec::create(cuda);
@@ -126,6 +130,7 @@ protected:
 
     std::unique_ptr<Mtx> mtx;
     std::unique_ptr<ComplexMtx> complex_mtx;
+    std::unique_ptr<Mtx> square_mtx;
     std::unique_ptr<Vec> expected;
     std::unique_ptr<Vec> y;
     std::unique_ptr<Vec> alpha;
@@ -133,6 +138,7 @@ protected:
 
     std::unique_ptr<Mtx> dmtx;
     std::unique_ptr<ComplexMtx> complex_dmtx;
+    std::unique_ptr<Mtx> square_dmtx;
     std::unique_ptr<Vec> dresult;
     std::unique_ptr<Vec> dy;
     std::unique_ptr<Vec> dalpha;
@@ -311,6 +317,32 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithMergePath)
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>());
+    auto trans = mtx->transpose();
+    auto d_trans = dmtx->transpose();
+
+    mtx->apply(alpha.get(), trans.get(), beta.get(), square_mtx.get());
+    dmtx->apply(dalpha.get(), d_trans.get(), dbeta.get(), square_dmtx.get());
+
+    GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
+}
+
+
+TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>());
+    auto trans = mtx->transpose();
+    auto d_trans = dmtx->transpose();
+
+    mtx->apply(trans.get(), square_mtx.get());
+    dmtx->apply(d_trans.get(), square_dmtx.get());
+
+    GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
 }
 
 

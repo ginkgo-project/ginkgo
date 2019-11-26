@@ -417,6 +417,129 @@ GKO_BIND_CUSPARSE32_SPMV(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE32_SPMV
 
 
+template <typename IndexType, typename ValueType>
+void spgemm_buffer_size(
+    cusparseHandle_t handle, IndexType m, IndexType n, IndexType k,
+    const ValueType *alpha, const cusparseMatDescr_t descrA, IndexType nnzA,
+    const IndexType *csrRowPtrA, const IndexType *csrColIndA,
+    const cusparseMatDescr_t descrB, IndexType nnzB,
+    const IndexType *csrRowPtrB, const IndexType *csrColIndB,
+    const ValueType *beta, const cusparseMatDescr_t descrD, IndexType nnzD,
+    const IndexType *csrRowPtrD, const IndexType *csrColIndD,
+    csrgemm2Info_t info, size_type &result) GKO_NOT_IMPLEMENTED;
+
+#define GKO_BIND_CUSPARSE_SPGEMM_BUFFER_SIZE(ValueType, CusparseName)          \
+    template <>                                                                \
+    inline void spgemm_buffer_size<int32, ValueType>(                          \
+        cusparseHandle_t handle, int32 m, int32 n, int32 k,                    \
+        const ValueType *alpha, const cusparseMatDescr_t descrA, int32 nnzA,   \
+        const int32 *csrRowPtrA, const int32 *csrColIndA,                      \
+        const cusparseMatDescr_t descrB, int32 nnzB, const int32 *csrRowPtrB,  \
+        const int32 *csrColIndB, const ValueType *beta,                        \
+        const cusparseMatDescr_t descrD, int32 nnzD, const int32 *csrRowPtrD,  \
+        const int32 *csrColIndD, csrgemm2Info_t info, size_type &result)       \
+    {                                                                          \
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                         \
+            CusparseName(handle, m, n, k, as_culibs_type(alpha), descrA, nnzA, \
+                         csrRowPtrA, csrColIndA, descrB, nnzB, csrRowPtrB,     \
+                         csrColIndB, as_culibs_type(beta), descrD, nnzD,       \
+                         csrRowPtrD, csrColIndD, info, &result));              \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+GKO_BIND_CUSPARSE_SPGEMM_BUFFER_SIZE(float, cusparseScsrgemm2_bufferSizeExt);
+GKO_BIND_CUSPARSE_SPGEMM_BUFFER_SIZE(double, cusparseDcsrgemm2_bufferSizeExt);
+GKO_BIND_CUSPARSE_SPGEMM_BUFFER_SIZE(std::complex<float>,
+                                     cusparseCcsrgemm2_bufferSizeExt);
+GKO_BIND_CUSPARSE_SPGEMM_BUFFER_SIZE(std::complex<double>,
+                                     cusparseZcsrgemm2_bufferSizeExt);
+
+
+#undef GKO_BIND_CUSPARSE_SPGEMM_BUFFER_SIZE
+
+
+template <typename IndexType>
+void spgemm_nnz(cusparseHandle_t handle, IndexType m, IndexType n, IndexType k,
+                const cusparseMatDescr_t descrA, IndexType nnzA,
+                const IndexType *csrRowPtrA, const IndexType *csrColIndA,
+                const cusparseMatDescr_t descrB, IndexType nnzB,
+                const IndexType *csrRowPtrB, const IndexType *csrColIndB,
+                const cusparseMatDescr_t descrD, IndexType nnzD,
+                const IndexType *csrRowPtrD, const IndexType *csrColIndD,
+                const cusparseMatDescr_t descrC, IndexType *csrRowPtrC,
+                IndexType *nnzC, csrgemm2Info_t info,
+                void *buffer) GKO_NOT_IMPLEMENTED;
+
+template <>
+inline void spgemm_nnz<int32>(
+    cusparseHandle_t handle, int32 m, int32 n, int32 k,
+    const cusparseMatDescr_t descrA, int32 nnzA, const int32 *csrRowPtrA,
+    const int32 *csrColIndA, const cusparseMatDescr_t descrB, int32 nnzB,
+    const int32 *csrRowPtrB, const int32 *csrColIndB,
+    const cusparseMatDescr_t descrD, int32 nnzD, const int32 *csrRowPtrD,
+    const int32 *csrColIndD, const cusparseMatDescr_t descrC, int32 *csrRowPtrC,
+    int32 *nnzC, csrgemm2Info_t info, void *buffer)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseXcsrgemm2Nnz(
+        handle, m, n, k, descrA, nnzA, csrRowPtrA, csrColIndA, descrB, nnzB,
+        csrRowPtrB, csrColIndB, descrD, nnzD, csrRowPtrD, csrColIndD, descrC,
+        csrRowPtrC, nnzC, info, buffer));
+}
+
+
+template <typename IndexType, typename ValueType>
+void spgemm(cusparseHandle_t handle, IndexType m, IndexType n, IndexType k,
+            const ValueType *alpha, const cusparseMatDescr_t descrA,
+            IndexType nnzA, const ValueType *csrValA,
+            const IndexType *csrRowPtrA, const IndexType *csrColIndA,
+            const cusparseMatDescr_t descrB, IndexType nnzB,
+            const ValueType *csrValB, const IndexType *csrRowPtrB,
+            const IndexType *csrColIndB, const ValueType *beta,
+            const cusparseMatDescr_t descrD, IndexType nnzD,
+            const ValueType *csrValD, const IndexType *csrRowPtrD,
+            const IndexType *csrColIndD, const cusparseMatDescr_t descrC,
+            ValueType *csrValC, const IndexType *csrRowPtrC,
+            IndexType *csrColIndC, csrgemm2Info_t info,
+            void *buffer) GKO_NOT_IMPLEMENTED;
+
+#define GKO_BIND_CUSPARSE_SPGEMM(ValueType, CusparseName)                      \
+    template <>                                                                \
+    inline void spgemm<int32, ValueType>(                                      \
+        cusparseHandle_t handle, int32 m, int32 n, int32 k,                    \
+        const ValueType *alpha, const cusparseMatDescr_t descrA, int32 nnzA,   \
+        const ValueType *csrValA, const int32 *csrRowPtrA,                     \
+        const int32 *csrColIndA, const cusparseMatDescr_t descrB, int32 nnzB,  \
+        const ValueType *csrValB, const int32 *csrRowPtrB,                     \
+        const int32 *csrColIndB, const ValueType *beta,                        \
+        const cusparseMatDescr_t descrD, int32 nnzD, const ValueType *csrValD, \
+        const int32 *csrRowPtrD, const int32 *csrColIndD,                      \
+        const cusparseMatDescr_t descrC, ValueType *csrValC,                   \
+        const int32 *csrRowPtrC, int32 *csrColIndC, csrgemm2Info_t info,       \
+        void *buffer)                                                          \
+    {                                                                          \
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(CusparseName(                            \
+            handle, m, n, k, as_culibs_type(alpha), descrA, nnzA,              \
+            as_culibs_type(csrValA), csrRowPtrA, csrColIndA, descrB, nnzB,     \
+            as_culibs_type(csrValB), csrRowPtrB, csrColIndB,                   \
+            as_culibs_type(beta), descrD, nnzD, as_culibs_type(csrValD),       \
+            csrRowPtrD, csrColIndD, descrC, as_culibs_type(csrValC),           \
+            csrRowPtrC, csrColIndC, info, buffer));                            \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+GKO_BIND_CUSPARSE_SPGEMM(float, cusparseScsrgemm2);
+GKO_BIND_CUSPARSE_SPGEMM(double, cusparseDcsrgemm2);
+GKO_BIND_CUSPARSE_SPGEMM(std::complex<float>, cusparseCcsrgemm2);
+GKO_BIND_CUSPARSE_SPGEMM(std::complex<double>, cusparseZcsrgemm2);
+
+
+#undef GKO_BIND_CUSPARSE_SPGEMM
+
+
 #define GKO_BIND_CUSPARSE32_CSR2HYB(ValueType, CusparseName)                 \
     inline void csr2hyb(cusparseHandle_t handle, int32 m, int32 n,           \
                         const cusparseMatDescr_t descrA,                     \
@@ -570,6 +693,20 @@ inline cusparseMatDescr_t create_mat_descr()
 inline void destroy(cusparseMatDescr_t descr)
 {
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyMatDescr(descr));
+}
+
+
+inline csrgemm2Info_t create_spgemm_info()
+{
+    csrgemm2Info_t info{};
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateCsrgemm2Info(&info));
+    return info;
+}
+
+
+inline void destroy(csrgemm2Info_t info)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyCsrgemm2Info(info));
 }
 
 

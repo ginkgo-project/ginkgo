@@ -94,7 +94,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
         Array<ValueType> x_vals(exec);
         auto x_csr = as<TCsr>(x);
         this->get_executor()->run(
-            csr::make_spgemm(this, b_csr, x_csr, x_rows, x_cols, x_vals));
+            csr::make_spgemm(this, b_csr, x_rows, x_cols, x_vals));
         auto new_x = TCsr::create(x_csr->get_executor(), x->get_size(),
                                   std::move(x_vals), std::move(x_cols),
                                   std::move(x_rows), x_csr->get_strategy());

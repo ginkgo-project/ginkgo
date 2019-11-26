@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include <vector>
 
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -206,7 +207,6 @@ template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Csr<ValueType, IndexType> *a,
             const matrix::Csr<ValueType, IndexType> *b,
-            const matrix::Csr<ValueType, IndexType> *c,
             Array<IndexType> &c_row_ptrs_array,
             Array<IndexType> &c_col_idxs_array, Array<ValueType> &c_vals_array)
 {

@@ -66,7 +66,6 @@ namespace kernels {
     void spgemm(std::shared_ptr<const DefaultExecutor> exec,                \
                 const matrix::Csr<ValueType, IndexType> *a,                 \
                 const matrix::Csr<ValueType, IndexType> *b,                 \
-                const matrix::Csr<ValueType, IndexType> *c,                 \
                 Array<IndexType> &c_row_ptrs, Array<IndexType> &c_col_idxs, \
                 Array<ValueType> &c_vals)
 
