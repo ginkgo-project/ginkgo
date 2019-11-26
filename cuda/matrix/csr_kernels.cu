@@ -995,7 +995,46 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const CudaExecutor> exec,
                           matrix::Csr<ValueType, IndexType> *to_sort)
-    GKO_NOT_IMPLEMENTED;
+{
+    if (cusparse::is_supported<ValueType, IndexType>::value) {
+        auto handle = exec->get_cusparse_handle();
+        auto descr = cusparse::create_mat_descr();
+        auto m = IndexType(to_sort->get_size()[0]);
+        auto n = IndexType(to_sort->get_size()[1]);
+        auto nnz = IndexType(to_sort->get_num_stored_elements());
+        auto row_ptrs = to_sort->get_const_row_ptrs();
+        auto col_idxs = to_sort->get_col_idxs();
+        auto vals = to_sort->get_values();
+
+        // copy values
+        Array<ValueType> tmp_vals_array(exec, nnz);
+        exec->copy_from(exec.get(), nnz, vals, tmp_vals_array.get_data());
+        auto tmp_vals = tmp_vals_array.get_const_data();
+
+        // init identity permutation
+        Array<IndexType> permutation_array(exec, nnz);
+        auto permutation = permutation_array.get_data();
+        cusparse::create_identity_permutation(handle, nnz, permutation);
+
+        // allocate buffer
+        size_type buffer_size{};
+        cusparse::csrsort_buffer_size(handle, m, n, nnz, row_ptrs, col_idxs,
+                                      buffer_size);
+        Array<char> buffer_array{exec, buffer_size};
+        auto buffer = buffer_array.get_data();
+
+        // sort column indices
+        cusparse::csrsort(handle, m, n, nnz, descr, row_ptrs, col_idxs,
+                          permutation, buffer);
+
+        // sort values
+        cusparse::gather(handle, nnz, tmp_vals, vals, permutation);
+
+        cusparse::destroy(descr);
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX);
