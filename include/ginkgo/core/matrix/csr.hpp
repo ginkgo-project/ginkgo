@@ -170,7 +170,9 @@ public:
 
     /**
      * classical is a strategy_type which uses the same number of threads on
-     * each row.
+     * each row. Classical strategy uses multithreads to calculate on parts of
+     * rows and then do a reduction of these threads results. The number of
+     * threads per row depends on the max number of stored elements per row.
      */
     class classical : public strategy_type {
     public:

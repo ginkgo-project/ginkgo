@@ -222,8 +222,7 @@ template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void set_zero(
     const size_type nnz, ValueType *__restrict__ val)
 {
-    const auto ind =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto ind = size_type(blockDim.x) * blockIdx.x + threadIdx.x;
     if (ind < nnz) {
         val[ind] = zero<ValueType>();
     }
@@ -309,7 +308,7 @@ __device__ void merge_path_spmv(
     const auto block_items = spmv_block_size * items_per_thread;
     __shared__ IndexType shared_row_ptrs[block_items];
     const IndexType diagonal =
-        min(static_cast<IndexType>(block_items * blockIdx.x), num_merge_items);
+        min(IndexType(block_items * blockIdx.x), num_merge_items);
     const IndexType diagonal_end = min(diagonal + block_items, num_merge_items);
     IndexType block_start_x;
     IndexType block_start_y;
@@ -330,9 +329,9 @@ __device__ void merge_path_spmv(
 
     IndexType start_x;
     IndexType start_y;
-    merge_path_search(static_cast<IndexType>(items_per_thread * threadIdx.x),
-                      block_num_rows, block_num_nonzeros, shared_row_ptrs,
-                      block_start_y, &start_x, &start_y);
+    merge_path_search(IndexType(items_per_thread * threadIdx.x), block_num_rows,
+                      block_num_nonzeros, shared_row_ptrs, block_start_y,
+                      &start_x, &start_y);
 
 
     IndexType ind = block_start_y + start_y;
@@ -439,10 +438,8 @@ __device__ void device_classical_spmv(const size_type num_rows,
                                       ValueType *__restrict__ c,
                                       const size_type c_stride, Closure scale)
 {
-    const auto tid =
-        (static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x);
-    const auto subrow =
-        static_cast<size_type>(gridDim.x) * blockDim.x / subwarp_size;
+    const auto tid = size_type(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto subrow = size_type(gridDim.x) * blockDim.x / subwarp_size;
     const auto subid = tid % subwarp_size;
     const auto column_id = blockIdx.y;
     for (auto row = tid / subwarp_size; row < num_rows; row += subrow) {
@@ -787,8 +784,7 @@ template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void conjugate_kernel(
     size_type num_nonzeros, ValueType *__restrict__ val)
 {
-    const auto tidx =
-        static_cast<size_type>(blockIdx.x) * default_block_size + threadIdx.x;
+    const auto tidx = size_type(blockIdx.x) * default_block_size + threadIdx.x;
 
     if (tidx < num_nonzeros) {
         val[tidx] = conj(val[tidx]);
