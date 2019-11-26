@@ -968,6 +968,80 @@ GKO_BIND_CUSPARSE64_CSRSM_SOLVE(ValueType, detail::not_implemented);
 #endif
 
 
+template <typename IndexType>
+void create_identity_permutation(cusparseHandle_t handle, IndexType size,
+                                 IndexType *permutation) GKO_NOT_IMPLEMENTED;
+
+template <>
+inline void create_identity_permutation<int32>(cusparseHandle_t handle,
+                                               int32 size, int32 *permutation)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(
+        cusparseCreateIdentityPermutation(handle, size, permutation));
+}
+
+
+template <typename IndexType>
+void csrsort_buffer_size(cusparseHandle_t handle, IndexType m, IndexType n,
+                         IndexType nnz, const IndexType *row_ptrs,
+                         const IndexType *col_idxs,
+                         size_type &buffer_size) GKO_NOT_IMPLEMENTED;
+
+template <>
+inline void csrsort_buffer_size<int32>(cusparseHandle_t handle, int32 m,
+                                       int32 n, int32 nnz,
+                                       const int32 *row_ptrs,
+                                       const int32 *col_idxs,
+                                       size_type &buffer_size)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseXcsrsort_bufferSizeExt(
+        handle, m, n, nnz, row_ptrs, col_idxs, &buffer_size));
+}
+
+
+template <typename IndexType>
+void csrsort(cusparseHandle_t handle, IndexType m, IndexType n, IndexType nnz,
+             const cusparseMatDescr_t descr, const IndexType *row_ptrs,
+             IndexType *col_idxs, IndexType *permutation,
+             void *buffer) GKO_NOT_IMPLEMENTED;
+
+template <>
+inline void csrsort<int32>(cusparseHandle_t handle, int32 m, int32 n, int32 nnz,
+                           const cusparseMatDescr_t descr,
+                           const int32 *row_ptrs, int32 *col_idxs,
+                           int32 *permutation, void *buffer)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseXcsrsort(
+        handle, m, n, nnz, descr, row_ptrs, col_idxs, permutation, buffer));
+}
+
+
+template <typename IndexType, typename ValueType>
+void gather(cusparseHandle_t handle, IndexType nnz, const ValueType *in,
+            ValueType *out, const IndexType *permutation) GKO_NOT_IMPLEMENTED;
+
+#define GKO_BIND_CUSPARSE_GATHER(ValueType, CusparseName)                      \
+    template <>                                                                \
+    inline void gather<int32, ValueType>(cusparseHandle_t handle, int32 nnz,   \
+                                         const ValueType *in, ValueType *out,  \
+                                         const int32 *permutation)             \
+    {                                                                          \
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                         \
+            CusparseName(handle, nnz, as_culibs_type(in), as_culibs_type(out), \
+                         permutation, CUSPARSE_INDEX_BASE_ZERO));              \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
+                  "semi-colon warnings")
+
+GKO_BIND_CUSPARSE_GATHER(float, cusparseSgthr);
+GKO_BIND_CUSPARSE_GATHER(double, cusparseDgthr);
+GKO_BIND_CUSPARSE_GATHER(std::complex<float>, cusparseCgthr);
+GKO_BIND_CUSPARSE_GATHER(std::complex<double>, cusparseZgthr);
+
+#undef GKO_BIND_CUSPARSE_GATHER
+
+
 }  // namespace cusparse
 }  // namespace cuda
 }  // namespace kernels
