@@ -16,7 +16,8 @@ function(ginkgo_create_test test_name)
     add_test(NAME ${REL_BINARY_DIR}/${test_name} COMMAND ${TEST_TARGET_NAME})
 endfunction(ginkgo_create_test)
 
-function(ginkgo_create_test_link_hip test_name)
+function(ginkgo_create_hip_test_special_linkage test_name)
+    # use gcc to compile but use hip to link
     file(RELATIVE_PATH REL_BINARY_DIR
          ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
@@ -36,7 +37,7 @@ function(ginkgo_create_test_link_hip test_name)
     endif()
     target_link_libraries(${TEST_TARGET_NAME} PRIVATE ginkgo GTest::Main GTest::GTest ${ARGN})
     add_test(NAME ${REL_BINARY_DIR}/${test_name} COMMAND ${TEST_TARGET_NAME})
-endfunction(ginkgo_create_test_link_hip)
+endfunction(ginkgo_create_hip_test_special_linkage)
 
 function(ginkgo_create_cuda_test test_name)
     file(RELATIVE_PATH REL_BINARY_DIR
