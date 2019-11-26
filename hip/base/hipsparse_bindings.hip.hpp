@@ -44,54 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace gko {
-namespace solver {
-
-
-struct SolveStruct {
-    csrsv2Info_t solve_info;
-    hipsparseSolvePolicy_t policy;
-    hipsparseMatDescr_t factor_descr;
-    int factor_work_size;
-    void *factor_work_vec;
-    SolveStruct()
-    {
-        factor_work_vec = nullptr;
-        GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseCreateMatDescr(&factor_descr));
-        GKO_ASSERT_NO_HIPSPARSE_ERRORS(
-            hipsparseSetMatIndexBase(factor_descr, HIPSPARSE_INDEX_BASE_ZERO));
-        GKO_ASSERT_NO_HIPSPARSE_ERRORS(
-            hipsparseSetMatType(factor_descr, HIPSPARSE_MATRIX_TYPE_GENERAL));
-        GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseSetMatDiagType(
-            factor_descr, HIPSPARSE_DIAG_TYPE_NON_UNIT));
-        GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseCreateCsrsv2Info(&solve_info));
-        policy = HIPSPARSE_SOLVE_POLICY_USE_LEVEL;
-    }
-
-    SolveStruct(const SolveStruct &) : SolveStruct() {}
-
-    SolveStruct(SolveStruct &&) : SolveStruct() {}
-
-    SolveStruct &operator=(const SolveStruct &) { return *this; }
-
-    SolveStruct &operator=(SolveStruct &&) { return *this; }
-
-    ~SolveStruct()
-    {
-        hipsparseDestroyMatDescr(factor_descr);
-        if (solve_info) {
-            hipsparseDestroyCsrsv2Info(solve_info);
-        }
-        if (factor_work_vec != nullptr) {
-            hipFree(factor_work_vec);
-            factor_work_vec = nullptr;
-        }
-    }
-};
-
-
-}  // namespace solver
-
-
 namespace kernels {
 namespace hip {
 /**
