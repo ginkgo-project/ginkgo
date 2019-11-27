@@ -222,8 +222,7 @@ template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void set_zero(
     const size_type nnz, ValueType *__restrict__ val)
 {
-    const auto ind =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto ind = size_type(blockDim.x) * blockIdx.x + threadIdx.x;
     if (ind < nnz) {
         val[ind] = zero<ValueType>();
     }
@@ -254,10 +253,10 @@ __forceinline__ __device__ void merge_path_search(
 
 template <typename ValueType, typename IndexType, typename Alpha_op>
 __device__ void merge_path_reduce(const IndexType nwarps,
-                       const ValueType *__restrict__ last_val,
-                       const IndexType *__restrict__ last_row,
-                       ValueType *__restrict__ c, const size_type c_stride,
-                       Alpha_op alpha_op)
+                                  const ValueType *__restrict__ last_val,
+                                  const IndexType *__restrict__ last_row,
+                                  ValueType *__restrict__ c,
+                                  const size_type c_stride, Alpha_op alpha_op)
 {
     const IndexType cache_lines = ceildivT<IndexType>(nwarps, spmv_block_size);
     const IndexType tid = threadIdx.x;
@@ -309,7 +308,7 @@ __device__ void merge_path_spmv(
     const auto block_items = spmv_block_size * items_per_thread;
     __shared__ IndexType shared_row_ptrs[block_items];
     const IndexType diagonal =
-        min(static_cast<IndexType>(block_items * blockIdx.x), num_merge_items);
+        min(IndexType(block_items * blockIdx.x), num_merge_items);
     const IndexType diagonal_end = min(diagonal + block_items, num_merge_items);
     IndexType block_start_x;
     IndexType block_start_y;
@@ -330,9 +329,9 @@ __device__ void merge_path_spmv(
 
     IndexType start_x;
     IndexType start_y;
-    merge_path_search(static_cast<IndexType>(items_per_thread * threadIdx.x),
-                      block_num_rows, block_num_nonzeros, shared_row_ptrs,
-                      block_start_y, &start_x, &start_y);
+    merge_path_search(IndexType(items_per_thread * threadIdx.x), block_num_rows,
+                      block_num_nonzeros, shared_row_ptrs, block_start_y,
+                      &start_x, &start_y);
 
 
     IndexType ind = block_start_y + start_y;
@@ -412,7 +411,7 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_reduce(
     const size_type c_stride)
 {
     merge_path_reduce(nwarps, last_val, last_row, c, c_stride,
-           [](ValueType &x) { return x; });
+                      [](ValueType &x) { return x; });
 }
 
 
@@ -424,51 +423,61 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_reduce(
 {
     const auto alpha_val = alpha[0];
     merge_path_reduce(nwarps, last_val, last_row, c, c_stride,
-           [&alpha_val](ValueType &x) { return alpha_val * x; });
+                      [&alpha_val](ValueType &x) { return alpha_val * x; });
 }
 
 
-template <typename ValueType, typename IndexType, typename Closure>
-__device__ void classical_spmv(const size_type num_rows,
-                               const ValueType *__restrict__ val,
-                               const IndexType *__restrict__ col_idxs,
-                               const IndexType *__restrict__ row_ptrs,
-                               const ValueType *__restrict__ b,
-                               const size_type b_stride,
-                               ValueType *__restrict__ c,
-                               const size_type c_stride, Closure scale)
+template <size_type subwarp_size, typename ValueType, typename IndexType,
+          typename Closure>
+__device__ void device_classical_spmv(const size_type num_rows,
+                                      const ValueType *__restrict__ val,
+                                      const IndexType *__restrict__ col_idxs,
+                                      const IndexType *__restrict__ row_ptrs,
+                                      const ValueType *__restrict__ b,
+                                      const size_type b_stride,
+                                      ValueType *__restrict__ c,
+                                      const size_type c_stride, Closure scale)
 {
-    const auto tid =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    if (tid >= num_rows) {
-        return;
-    }
+    const auto tid = size_type(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto subrow = size_type(gridDim.x) * blockDim.x / subwarp_size;
+    const auto subid = tid % subwarp_size;
     const auto column_id = blockIdx.y;
-    const auto ind_end = row_ptrs[tid + 1];
-    ValueType temp_value = zero<ValueType>();
-    for (auto ind = row_ptrs[tid]; ind < ind_end; ind++) {
-        temp_value += val[ind] * b[col_idxs[ind] * b_stride + column_id];
+    for (auto row = tid / subwarp_size; row < num_rows; row += subrow) {
+        const auto ind_end = row_ptrs[row + 1];
+        ValueType temp_val = zero<ValueType>();
+        for (auto ind = row_ptrs[row] + subid; ind < ind_end;
+             ind += subwarp_size) {
+            temp_val += val[ind] * b[col_idxs[ind] * b_stride + column_id];
+        }
+        auto subwarp_tile =
+            group::tiled_partition<subwarp_size>(group::this_thread_block());
+        auto subwarp_result = reduce(
+            subwarp_tile, temp_val,
+            [](const ValueType &a, const ValueType &b) { return a + b; });
+        if (subid == 0) {
+            c[row * c_stride + column_id] =
+                scale(subwarp_result, c[row * c_stride + column_id]);
+        }
     }
-    c[tid * c_stride + column_id] =
-        scale(temp_value, c[tid * c_stride + column_id]);
 }
 
 
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(classical_block_size) void abstract_classical_spmv(
+template <size_type subwarp_size, typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
     const size_type num_rows, const ValueType *__restrict__ val,
     const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
     const size_type b_stride, ValueType *__restrict__ c,
     const size_type c_stride)
 {
-    classical_spmv(num_rows, val, col_idxs, row_ptrs, b, b_stride, c, c_stride,
-                   [](const ValueType &x, const ValueType &y) { return x; });
+    device_classical_spmv<subwarp_size>(
+        num_rows, val, col_idxs, row_ptrs, b, b_stride, c, c_stride,
+        [](const ValueType &x, const ValueType &y) { return x; });
 }
 
 
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(classical_block_size) void abstract_classical_spmv(
+template <size_type subwarp_size, typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
     const size_type num_rows, const ValueType *__restrict__ alpha,
     const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
     const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
@@ -477,7 +486,7 @@ __global__ __launch_bounds__(classical_block_size) void abstract_classical_spmv(
 {
     const auto alpha_val = alpha[0];
     const auto beta_val = beta[0];
-    classical_spmv(
+    device_classical_spmv<subwarp_size>(
         num_rows, val, col_idxs, row_ptrs, b, b_stride, c, c_stride,
         [&alpha_val, &beta_val](const ValueType &x, const ValueType &y) {
             return alpha_val * x + beta_val * y;
@@ -500,10 +509,9 @@ __global__ __launch_bounds__(default_block_size) void convert_row_ptrs_to_idxs(
 
 
 template <typename ValueType>
-__global__
-    __launch_bounds__(config::max_block_size) void initialize_zero_dense(
-        size_type num_rows, size_type num_cols, size_type stride,
-        ValueType *__restrict__ result)
+__global__ __launch_bounds__(config::max_block_size) void initialize_zero_dense(
+    size_type num_rows, size_type num_cols, size_type stride,
+    ValueType *__restrict__ result)
 {
     const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
     const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
@@ -541,12 +549,10 @@ __global__ __launch_bounds__(default_block_size) void calculate_nnz_per_row(
 }
 
 
-__global__
-    __launch_bounds__(config::warp_size) void calculate_slice_lengths(
-        size_type num_rows, size_type slice_size, size_type stride_factor,
-        const size_type *__restrict__ nnz_per_row,
-        size_type *__restrict__ slice_lengths,
-        size_type *__restrict__ slice_sets)
+__global__ __launch_bounds__(config::warp_size) void calculate_slice_lengths(
+    size_type num_rows, size_type slice_size, size_type stride_factor,
+    const size_type *__restrict__ nnz_per_row,
+    size_type *__restrict__ slice_lengths, size_type *__restrict__ slice_sets)
 {
     constexpr auto warp_size = config::warp_size;
     const auto sliceid = blockIdx.x;
@@ -778,8 +784,7 @@ template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void conjugate_kernel(
     size_type num_nonzeros, ValueType *__restrict__ val)
 {
-    const auto tidx =
-        static_cast<size_type>(blockIdx.x) * default_block_size + threadIdx.x;
+    const auto tidx = size_type(blockIdx.x) * default_block_size + threadIdx.x;
 
     if (tidx < num_nonzeros) {
         val[tidx] = conj(val[tidx]);
@@ -788,6 +793,3 @@ __global__ __launch_bounds__(default_block_size) void conjugate_kernel(
 
 
 }  //  namespace
-
-
-

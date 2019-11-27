@@ -170,20 +170,48 @@ public:
 
     /**
      * classical is a strategy_type which uses the same number of threads on
-     * each row.
+     * each row. Classical strategy uses multithreads to calculate on parts of
+     * rows and then do a reduction of these threads results. The number of
+     * threads per row depends on the max number of stored elements per row.
      */
     class classical : public strategy_type {
     public:
         /**
          * Creates a classical strategy.
          */
-        classical() : strategy_type("classical") {}
+        classical() : strategy_type("classical"), max_length_per_row_(0) {}
 
         void process(const Array<index_type> &mtx_row_ptrs,
                      Array<index_type> *mtx_srow) override
-        {}
+        {
+            auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
+            Array<index_type> row_ptrs_host(host_mtx_exec);
+            const bool is_mtx_on_host{host_mtx_exec ==
+                                      mtx_row_ptrs.get_executor()};
+            const index_type *row_ptrs{};
+            if (is_mtx_on_host) {
+                row_ptrs = mtx_row_ptrs.get_const_data();
+            } else {
+                row_ptrs_host = mtx_row_ptrs;
+                row_ptrs = row_ptrs_host.get_const_data();
+            }
+            auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
+            max_length_per_row_ = 0;
+            for (index_type i = 1; i < num_rows + 1; i++) {
+                max_length_per_row_ = std::max(max_length_per_row_,
+                                               row_ptrs[i] - row_ptrs[i - 1]);
+            }
+        }
 
         int64_t clac_size(const int64_t nnz) override { return 0; }
+
+        index_type get_max_length_per_row() const noexcept
+        {
+            return max_length_per_row_;
+        }
+
+    private:
+        index_type max_length_per_row_;
     };
 
     /**
@@ -423,16 +451,28 @@ public:
             : strategy_type("automatical"),
               nwarps_(nwarps),
               warp_size_(warp_size),
-              cuda_strategy_(cuda_strategy)
+              cuda_strategy_(cuda_strategy),
+              max_length_per_row_(0)
         {}
 
         void process(const Array<index_type> &mtx_row_ptrs,
                      Array<index_type> *mtx_srow) override
         {
-            // if the number of stored elements is larger than 1e6 or
+            // if the number of stored elements is larger than <nnz_limit> or
             // the maximum number of stored elements per row is larger than
-            // 64, use load_balance otherwise use classical
-            // TODO: need to be tuned for AMD gpu.
+            // <row_len_limit>, use load_balance otherwise use classical
+            // CUDA: nnz_limit = 1e6, row_len_limit = 64
+            // TODO: need to tune CUDA parameters according to new classical
+            //       strategy
+            // AMD: nnz_limit = 1e8, row_len_limit = 768
+            index_type nnz_limit = 1e6;
+            index_type row_len_limit = 64;
+#if GINKGO_HIP_PLATFORM_HCC
+            if (!cuda_strategy_) {
+                nnz_limit = 1e8;
+                row_len_limit = 768;
+            }
+#endif  // GINKGO_HIP_PLATFORM_HCC
             auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
             const bool is_mtx_on_host{host_mtx_exec ==
                                       mtx_row_ptrs.get_executor()};
@@ -445,7 +485,7 @@ public:
                 row_ptrs = row_ptrs_host.get_const_data();
             }
             const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
-            if (row_ptrs[num_rows] > index_type(1e6)) {
+            if (row_ptrs[num_rows] > nnz_limit) {
                 load_balance actual_strategy(nwarps_, warp_size_,
                                              cuda_strategy_);
                 if (is_mtx_on_host) {
@@ -459,7 +499,7 @@ public:
                 for (index_type i = 1; i < num_rows + 1; i++) {
                     maxnum = max(maxnum, row_ptrs[i] - row_ptrs[i - 1]);
                 }
-                if (maxnum > 64) {
+                if (maxnum > row_len_limit) {
                     load_balance actual_strategy(nwarps_, warp_size_,
                                                  cuda_strategy_);
                     if (is_mtx_on_host) {
@@ -472,8 +512,12 @@ public:
                     classical actual_strategy;
                     if (is_mtx_on_host) {
                         actual_strategy.process(mtx_row_ptrs, mtx_srow);
+                        max_length_per_row_ =
+                            actual_strategy.get_max_length_per_row();
                     } else {
                         actual_strategy.process(row_ptrs_host, mtx_srow);
+                        max_length_per_row_ =
+                            actual_strategy.get_max_length_per_row();
                     }
                     this->set_name(actual_strategy.get_name());
                 }
@@ -487,10 +531,16 @@ public:
                 ->clac_size(nnz);
         }
 
+        index_type get_max_length_per_row() const noexcept
+        {
+            return max_length_per_row_;
+        }
+
     private:
         int64_t nwarps_;
         int warp_size_;
         bool cuda_strategy_;
+        index_type max_length_per_row_;
     };
 
     void convert_to(Csr<ValueType, IndexType> *result) const override
