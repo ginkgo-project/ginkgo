@@ -63,7 +63,7 @@ __forceinline__ __device__ thrust::complex<float> atomic_add(
  *
  * @note It is not 'real' complex<double> atomic add operation
  */
-__forceinline__ __device__ thrust::complex<float> atomic_add(
+__forceinline__ __device__ thrust::complex<double> atomic_add(
     thrust::complex<double> *__restrict__ address, thrust::complex<double> val)
 {
     cuDoubleComplex *cuaddr = reinterpret_cast<cuDoubleComplex *>(address);
