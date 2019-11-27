@@ -43,9 +43,9 @@ namespace gko {
 
 version version_info::get_cuda_version() noexcept
 {
-    // We just return 1.1.0 with a special "not compiled" tag in placeholder
+    // We just return 1.1.1 with a special "not compiled" tag in placeholder
     // modules.
-    return {1, 1, 0, "not compiled"};
+    return {1, 1, 1, "not compiled"};
 }
 
 
