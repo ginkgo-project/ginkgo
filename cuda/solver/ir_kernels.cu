@@ -50,16 +50,7 @@ namespace ir {
 constexpr int default_block_size = 512;
 
 
-__global__ __launch_bounds__(default_block_size) void initialize_kernel(
-    size_type num_cols, stopping_status *stop_status)
-{
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-
-    if (tidx < num_cols) {
-        stop_status[tidx].reset();
-    }
-}
+#include "common/solver/ir_kernels.hpp.inc"
 
 
 void initialize(std::shared_ptr<const CudaExecutor> exec,

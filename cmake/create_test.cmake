@@ -16,6 +16,29 @@ function(ginkgo_create_test test_name)
     add_test(NAME ${REL_BINARY_DIR}/${test_name} COMMAND ${TEST_TARGET_NAME})
 endfunction(ginkgo_create_test)
 
+function(ginkgo_create_hip_test_special_linkage test_name)
+    # use gcc to compile but use hip to link
+    file(RELATIVE_PATH REL_BINARY_DIR
+         ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+    string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
+    add_executable(${TEST_TARGET_NAME} ${test_name}.cpp)
+    # Fix the missing metadata when building static library.
+    if(GINKGO_HIP_PLATFORM MATCHES "hcc" AND NOT BUILD_SHARED_LIBS)
+        set_target_properties(${TEST_TARGET_NAME} PROPERTIES LINKER_LANGUAGE HIP)
+    endif()
+    target_include_directories("${TEST_TARGET_NAME}"
+        PRIVATE
+            "$<BUILD_INTERFACE:${Ginkgo_BINARY_DIR}>"
+        )
+    set_target_properties(${TEST_TARGET_NAME} PROPERTIES
+        OUTPUT_NAME ${test_name})
+    if (GINKGO_CHECK_CIRCULAR_DEPS)
+        target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
+    endif()
+    target_link_libraries(${TEST_TARGET_NAME} PRIVATE ginkgo GTest::Main GTest::GTest ${ARGN})
+    add_test(NAME ${REL_BINARY_DIR}/${test_name} COMMAND ${TEST_TARGET_NAME})
+endfunction(ginkgo_create_hip_test_special_linkage)
+
 function(ginkgo_create_cuda_test test_name)
     file(RELATIVE_PATH REL_BINARY_DIR
          ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})

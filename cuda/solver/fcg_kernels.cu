@@ -54,33 +54,8 @@ namespace fcg {
 
 constexpr int default_block_size = 512;
 
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void initialize_kernel(
-    size_type num_rows, size_type num_cols, size_type stride,
-    const ValueType *__restrict__ b, ValueType *__restrict__ r,
-    ValueType *__restrict__ z, ValueType *__restrict__ p,
-    ValueType *__restrict__ q, ValueType *__restrict__ t,
-    ValueType *__restrict__ prev_rho, ValueType *__restrict__ rho,
-    ValueType *__restrict__ rho_t, stopping_status *__restrict__ stop_status)
-{
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
 
-    if (tidx < num_cols) {
-        rho[tidx] = zero<ValueType>();
-        prev_rho[tidx] = one<ValueType>();
-        rho_t[tidx] = one<ValueType>();
-        stop_status[tidx].reset();
-    }
-
-    if (tidx < num_rows * stride) {
-        r[tidx] = b[tidx];
-        z[tidx] = zero<ValueType>();
-        p[tidx] = zero<ValueType>();
-        q[tidx] = zero<ValueType>();
-        t[tidx] = b[tidx];
-    }
-}
+#include "common/solver/fcg_kernels.hpp.inc"
 
 
 template <typename ValueType>
@@ -110,26 +85,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void step_1_kernel(
-    size_type num_rows, size_type num_cols, size_type stride,
-    ValueType *__restrict__ p, const ValueType *__restrict__ z,
-    const ValueType *__restrict__ rho, const ValueType *__restrict__ prev_rho,
-    const stopping_status *__restrict__ stop_status)
-{
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const auto col = tidx % stride;
-    if (col >= num_cols || tidx >= num_rows * stride ||
-        stop_status[col].has_stopped()) {
-        return;
-    }
-    const auto tmp = rho[col] / prev_rho[col];
-    p[tidx] =
-        prev_rho[col] == zero<ValueType>() ? z[tidx] : z[tidx] + tmp * p[tidx];
-}
-
-
-template <typename ValueType>
 void step_1(std::shared_ptr<const CudaExecutor> exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
             const matrix::Dense<ValueType> *rho_t,
@@ -149,34 +104,6 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_1_KERNEL);
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void step_2_kernel(
-    size_type num_rows, size_type num_cols, size_type stride,
-    size_type x_stride, ValueType *__restrict__ x, ValueType *__restrict__ r,
-    ValueType *__restrict__ t, const ValueType *__restrict__ p,
-    const ValueType *__restrict__ q, const ValueType *__restrict__ beta,
-    const ValueType *__restrict__ rho,
-    const stopping_status *__restrict__ stop_status)
-{
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const auto row = tidx / stride;
-    const auto col = tidx % stride;
-
-    if (col >= num_cols || tidx >= num_rows * num_cols ||
-        stop_status[col].has_stopped()) {
-        return;
-    }
-    if (beta[col] != zero<ValueType>()) {
-        const auto tmp = rho[col] / beta[col];
-        const auto prev_r = r[tidx];
-        x[row * x_stride + col] += tmp * p[tidx];
-        r[tidx] -= tmp * q[tidx];
-        t[tidx] = r[tidx] - prev_r;
-    }
-}
 
 
 template <typename ValueType>
