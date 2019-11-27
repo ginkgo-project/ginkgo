@@ -47,13 +47,14 @@ namespace hip {
  *
  * @note It is not 'real' complex<float> atomic add operation
  */
-__forceinline__ __device__ void atomic_add(
+__forceinline__ __device__ thrust::complex<float> atomic_add(
     thrust::complex<float> *__restrict__ address, thrust::complex<float> val)
 {
     hipComplex *cuaddr = reinterpret_cast<hipComplex *>(address);
     // Separate to real part and imag part
-    atomic_add(&(cuaddr->x), val.real());
-    atomic_add(&(cuaddr->y), val.imag());
+    auto real = atomic_add(&(cuaddr->x), val.real());
+    auto imag = atomic_add(&(cuaddr->y), val.imag());
+    return {real, imag};
 }
 
 
@@ -62,13 +63,14 @@ __forceinline__ __device__ void atomic_add(
  *
  * @note It is not 'real' complex<double> atomic add operation
  */
-__forceinline__ __device__ void atomic_add(
+__forceinline__ __device__ thrust::complex<float> atomic_add(
     thrust::complex<double> *__restrict__ address, thrust::complex<double> val)
 {
     hipDoubleComplex *cuaddr = reinterpret_cast<hipDoubleComplex *>(address);
     // Separate to real part and imag part
-    atomic_add(&(cuaddr->x), val.real());
-    atomic_add(&(cuaddr->y), val.imag());
+    auto real = atomic_add(&(cuaddr->x), val.real());
+    auto imag = atomic_add(&(cuaddr->y), val.imag());
+    return {real, imag};
 }
 
 
