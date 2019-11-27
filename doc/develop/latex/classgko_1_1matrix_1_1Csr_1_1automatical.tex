@@ -25,7 +25,10 @@ Collaboration diagram for gko\+::matrix\+::Csr$<$ Value\+Type, Index\+Type $>$\+
 void \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1automatical_aefa241047539f2ee7784a54cf5051720}{process}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ \&mtx\+\_\+row\+\_\+ptrs, \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ $\ast$mtx\+\_\+srow) override
 \begin{DoxyCompactList}\small\item\em Computes srow according to row pointers. \end{DoxyCompactList}\item 
 int64\+\_\+t \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1automatical_a4c3e6ae322c261f0da10641c58e83398}{clac\+\_\+size}} (const int64\+\_\+t nnz) override
-\begin{DoxyCompactList}\small\item\em Computes the srow size according to the number of nonzeros. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Computes the srow size according to the number of nonzeros. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1automatical_a593dee0b8e70a753670e1d81a05d2307}\label{classgko_1_1matrix_1_1Csr_1_1automatical_a593dee0b8e70a753670e1d81a05d2307}} 
+index\+\_\+type {\bfseries get\+\_\+max\+\_\+length\+\_\+per\+\_\+row} () const noexcept
+\end{DoxyCompactItemize}
 
 
 \doxysubsection{Constructor \& Destructor Documentation}
@@ -140,4 +143,4 @@ References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data(), gko\
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/matrix/csr.\+hpp (8e675e0b5)\end{DoxyCompactItemize}
+ginkgo/core/matrix/csr.\+hpp (fe9cbe7bd)\end{DoxyCompactItemize}

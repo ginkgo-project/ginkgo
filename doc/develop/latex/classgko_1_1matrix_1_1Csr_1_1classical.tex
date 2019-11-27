@@ -28,7 +28,10 @@ Collaboration diagram for gko\+::matrix\+::Csr$<$ Value\+Type, Index\+Type $>$\+
 void \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1classical_a2844a228c3a3f827c8ad9cab5c0e453f}{process}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ \&mtx\+\_\+row\+\_\+ptrs, \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ $\ast$mtx\+\_\+srow) override
 \begin{DoxyCompactList}\small\item\em Computes srow according to row pointers. \end{DoxyCompactList}\item 
 int64\+\_\+t \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1classical_ae99f47abc647f84793d9f84a9605a77d}{clac\+\_\+size}} (const int64\+\_\+t nnz) override
-\begin{DoxyCompactList}\small\item\em Computes the srow size according to the number of nonzeros. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Computes the srow size according to the number of nonzeros. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1classical_afe21530a9de0bdd806068081cda597b3}\label{classgko_1_1matrix_1_1Csr_1_1classical_afe21530a9de0bdd806068081cda597b3}} 
+index\+\_\+type {\bfseries get\+\_\+max\+\_\+length\+\_\+per\+\_\+row} () const noexcept
+\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -36,6 +39,8 @@ int64\+\_\+t \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1classical_ae99f47abc6
 class gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::classical}
 
 classical is a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} which uses the same number of threads on each row. 
+
+Classical strategy uses multithreads to calculate on parts of rows and then do a reduction of these threads results. The number of threads per row depends on the max number of stored elements per row. 
 
 \doxysubsection{Member Function Documentation}
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1classical_ae99f47abc647f84793d9f84a9605a77d}\label{classgko_1_1matrix_1_1Csr_1_1classical_ae99f47abc647f84793d9f84a9605a77d}} 
@@ -85,10 +90,14 @@ Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type_a58bda92
 
 
 
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data(), gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+executor(), and gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+num\+\_\+elems().
+
+
+
 Referenced by gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::automatical\+::process().
 
 
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/matrix/csr.\+hpp (8e675e0b5)\end{DoxyCompactItemize}
+ginkgo/core/matrix/csr.\+hpp (fe9cbe7bd)\end{DoxyCompactItemize}
