@@ -59,7 +59,9 @@ namespace gko {
 namespace solver {
 
 
-struct SolveStruct {};
+struct SolveStruct {
+    virtual void dummy(){};
+};
 
 
 namespace hip {
@@ -85,13 +87,13 @@ struct SolveStruct : gko::solver::SolveStruct {
         policy = HIPSPARSE_SOLVE_POLICY_USE_LEVEL;
     }
 
-    SolveStruct(const SolveStruct &) : SolveStruct() {}
+    SolveStruct(const SolveStruct &) = delete;
 
-    SolveStruct(SolveStruct &&) : SolveStruct() {}
+    SolveStruct(SolveStruct &&) = delete;
 
-    SolveStruct &operator=(const SolveStruct &) { return *this; }
+    SolveStruct &operator=(const SolveStruct &) = delete;
 
-    SolveStruct &operator=(SolveStruct &&) { return *this; }
+    SolveStruct &operator=(SolveStruct &&) = delete;
 
     ~SolveStruct()
     {
@@ -126,8 +128,7 @@ void should_perform_transpose_kernel(std::shared_ptr<const HipExecutor> exec,
 void init_struct_kernel(std::shared_ptr<const HipExecutor> exec,
                         std::shared_ptr<solver::SolveStruct> &solve_struct)
 {
-    solve_struct = std::dynamic_pointer_cast<solver::SolveStruct>(
-        std::make_shared<solver::hip::SolveStruct>());
+    solve_struct = std::make_shared<solver::hip::SolveStruct>();
 }
 
 
@@ -137,41 +138,43 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
                      solver::SolveStruct *solve_struct,
                      const gko::size_type num_rhs, bool is_upper)
 {
-    auto hip_solve_struct =
-        reinterpret_cast<solver::hip::SolveStruct *>(solve_struct);
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_hipsparse_handle();
-        if (is_upper) {
-            GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseSetMatFillMode(
-                hip_solve_struct->factor_descr, HIPSPARSE_FILL_MODE_UPPER));
-        }
-
-        {
-            hipsparse::pointer_mode_guard pm_guard(handle);
-            hipsparse::csrsv2_buffer_size(
-                handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
-                matrix->get_size()[0], matrix->get_num_stored_elements(),
-                hip_solve_struct->factor_descr, matrix->get_const_values(),
-                matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-                hip_solve_struct->solve_info,
-                &hip_solve_struct->factor_work_size);
-
-            // allocate workspace
-            if (hip_solve_struct->factor_work_vec != nullptr) {
-                exec->free(hip_solve_struct->factor_work_vec);
+        if (auto hip_solve_struct =
+                dynamic_cast<solver::hip::SolveStruct *>(solve_struct)) {
+            auto handle = exec->get_hipsparse_handle();
+            if (is_upper) {
+                GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseSetMatFillMode(
+                    hip_solve_struct->factor_descr, HIPSPARSE_FILL_MODE_UPPER));
             }
-            hip_solve_struct->factor_work_vec =
-                exec->alloc<void *>(hip_solve_struct->factor_work_size);
 
-            hipsparse::csrsv2_analysis(
-                handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
-                matrix->get_size()[0], matrix->get_num_stored_elements(),
-                hip_solve_struct->factor_descr, matrix->get_const_values(),
-                matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-                hip_solve_struct->solve_info, hip_solve_struct->policy,
-                hip_solve_struct->factor_work_vec);
+            {
+                hipsparse::pointer_mode_guard pm_guard(handle);
+                hipsparse::csrsv2_buffer_size(
+                    handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
+                    matrix->get_size()[0], matrix->get_num_stored_elements(),
+                    hip_solve_struct->factor_descr, matrix->get_const_values(),
+                    matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
+                    hip_solve_struct->solve_info,
+                    &hip_solve_struct->factor_work_size);
+
+                // allocate workspace
+                if (hip_solve_struct->factor_work_vec != nullptr) {
+                    exec->free(hip_solve_struct->factor_work_vec);
+                }
+                hip_solve_struct->factor_work_vec =
+                    exec->alloc<void *>(hip_solve_struct->factor_work_size);
+
+                hipsparse::csrsv2_analysis(
+                    handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
+                    matrix->get_size()[0], matrix->get_num_stored_elements(),
+                    hip_solve_struct->factor_descr, matrix->get_const_values(),
+                    matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
+                    hip_solve_struct->solve_info, hip_solve_struct->policy,
+                    hip_solve_struct->factor_work_vec);
+            }
+        } else {
+            GKO_NOT_SUPPORTED(solve_struct);
         }
-
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -188,28 +191,16 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                   matrix::Dense<ValueType> *x)
 {
     using vec = matrix::Dense<ValueType>;
-    auto hip_solve_struct =
-        reinterpret_cast<const solver::hip::SolveStruct *>(solve_struct);
-    if (hipsparse::is_supported<ValueType, IndexType>::value) {
-        ValueType one = 1.0;
-        auto handle = exec->get_hipsparse_handle();
 
-        {
-            hipsparse::pointer_mode_guard pm_guard(handle);
-            if (b->get_stride() == 1) {
-                auto temp_b = const_cast<ValueType *>(b->get_const_values());
-                hipsparse::csrsv2_solve(
-                    handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
-                    matrix->get_size()[0], matrix->get_num_stored_elements(),
-                    &one, hip_solve_struct->factor_descr,
-                    matrix->get_const_values(), matrix->get_const_row_ptrs(),
-                    matrix->get_const_col_idxs(), hip_solve_struct->solve_info,
-                    temp_b, x->get_values(), hip_solve_struct->policy,
-                    hip_solve_struct->factor_work_vec);
-            } else {
-                dense::transpose(exec, trans_b, b);
-                dense::transpose(exec, trans_x, x);
-                for (IndexType i = 0; i < trans_b->get_size()[0]; i++) {
+    if (hipsparse::is_supported<ValueType, IndexType>::value) {
+        if (auto hip_solve_struct =
+                dynamic_cast<const solver::hip::SolveStruct *>(solve_struct)) {
+            ValueType one = 1.0;
+            auto handle = exec->get_hipsparse_handle();
+
+            {
+                hipsparse::pointer_mode_guard pm_guard(handle);
+                if (b->get_stride() == 1) {
                     hipsparse::csrsv2_solve(
                         handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
                         matrix->get_size()[0],
@@ -218,17 +209,33 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                         matrix->get_const_values(),
                         matrix->get_const_row_ptrs(),
                         matrix->get_const_col_idxs(),
-                        hip_solve_struct->solve_info,
-                        trans_b->get_values() + i * trans_b->get_stride(),
-                        trans_x->get_values() + i * trans_x->get_stride(),
-                        hip_solve_struct->policy,
+                        hip_solve_struct->solve_info, b->get_const_values(),
+                        x->get_values(), hip_solve_struct->policy,
                         hip_solve_struct->factor_work_vec);
+                } else {
+                    dense::transpose(exec, trans_b, b);
+                    dense::transpose(exec, trans_x, x);
+                    for (IndexType i = 0; i < trans_b->get_size()[0]; i++) {
+                        hipsparse::csrsv2_solve(
+                            handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
+                            matrix->get_size()[0],
+                            matrix->get_num_stored_elements(), &one,
+                            hip_solve_struct->factor_descr,
+                            matrix->get_const_values(),
+                            matrix->get_const_row_ptrs(),
+                            matrix->get_const_col_idxs(),
+                            hip_solve_struct->solve_info,
+                            trans_b->get_values() + i * trans_b->get_stride(),
+                            trans_x->get_values() + i * trans_x->get_stride(),
+                            hip_solve_struct->policy,
+                            hip_solve_struct->factor_work_vec);
+                    }
+                    dense::transpose(exec, x, trans_x);
                 }
-                dense::transpose(exec, x, trans_x);
             }
+        } else {
+            GKO_NOT_SUPPORTED(solve_struct);
         }
-
-
     } else {
         GKO_NOT_IMPLEMENTED;
     }

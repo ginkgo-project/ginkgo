@@ -388,8 +388,9 @@ GKO_BIND_HIPSPARSE64_CSRSV2_ANALYSIS(ValueType, detail::not_implemented);
         hipsparseHandle_t handle, hipsparseOperation_t trans, size_type m,    \
         size_type nnz, const ValueType *one, const hipsparseMatDescr_t descr, \
         const ValueType *csrVal, const int32 *csrRowPtr,                      \
-        const int32 *csrColInd, csrsv2Info_t factor_info, ValueType *rhs,     \
-        ValueType *sol, hipsparseSolvePolicy_t policy, void *factor_work_vec) \
+        const int32 *csrColInd, csrsv2Info_t factor_info,                     \
+        const ValueType *rhs, ValueType *sol, hipsparseSolvePolicy_t policy,  \
+        void *factor_work_vec)                                                \
     {                                                                         \
         GKO_ASSERT_NO_HIPSPARSE_ERRORS(                                       \
             HipsparseName(handle, trans, m, nnz, as_hiplibs_type(one), descr, \
@@ -406,9 +407,9 @@ GKO_BIND_HIPSPARSE64_CSRSV2_ANALYSIS(ValueType, detail::not_implemented);
         hipsparseHandle_t handle, hipsparseOperation_t trans, size_type m,    \
         size_type nnz, const ValueType *one, const hipsparseMatDescr_t descr, \
         const ValueType *csrVal, const int64 *csrRowPtr,                      \
-        const int64 *csrColInd, csrsv2Info_t factor_info, ValueType *rhs,     \
-        ValueType *sol, hipsparseSolvePolicy_t policy, void *factor_work_vec) \
-        GKO_NOT_IMPLEMENTED;                                                  \
+        const int64 *csrColInd, csrsv2Info_t factor_info,                     \
+        const ValueType *rhs, ValueType *sol, hipsparseSolvePolicy_t policy,  \
+        void *factor_work_vec) GKO_NOT_IMPLEMENTED;                           \
     static_assert(true,                                                       \
                   "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
