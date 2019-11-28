@@ -80,21 +80,31 @@ var viewHeight = 137;
 <title>techniques&#45;&#45;logging</title>
 <path fill="none" stroke="#000000" d="M190.0371,-92C226.4398,-92 262.8424,-92 299.2451,-92"/>
 </g>
-<!-- unfinished -->
+<!-- preconditioners -->
 <g id="node3" class="node">
+<title>preconditioners</title>
+<polygon fill="#dc143c" stroke="#000000" points="549.5,-101 531.5,-101 531.5,-83 549.5,-83 549.5,-101"/>
+</g>
+<!-- fake_preconditioners -->
+<g id="node4" class="node">
+<title>fake_preconditioners</title>
+<polygon fill="#ffffff" stroke="transparent" points="586.5,-19 494.5,-19 494.5,0 586.5,0 586.5,-19"/>
+<text text-anchor="middle" x="540.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Preconditioners</text>
+</g>
+<!-- preconditioners&#45;&#45;fake_preconditioners -->
+<g id="edge2" class="edge">
+<title>preconditioners&#45;&#45;fake_preconditioners</title>
+<path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M540.5,-82.8558C540.5,-67.1655 540.5,-35.2562 540.5,-19.195"/>
+</g>
+<!-- unfinished -->
+<g id="node7" class="node">
 <title>unfinished</title>
 <polygon fill="none" stroke="#000000" stroke-dasharray="5,2" points="624.5,-101 606.5,-101 606.5,-83 624.5,-83 624.5,-101"/>
 </g>
-<!-- fake_unfinished -->
-<g id="node4" class="node">
-<title>fake_unfinished</title>
-<polygon fill="#ffffff" stroke="transparent" points="704.5,-19 604.5,-19 604.5,0 704.5,0 704.5,-19"/>
-<text text-anchor="middle" x="654.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Unfinished codes</text>
-</g>
-<!-- unfinished&#45;&#45;fake_unfinished -->
-<g id="edge2" class="edge">
-<title>unfinished&#45;&#45;fake_unfinished</title>
-<path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M619.8227,-82.8558C627.24,-67.1655 642.3243,-35.2562 649.9169,-19.195"/>
+<!-- preconditioners&#45;&#45;unfinished -->
+<g id="edge11" class="edge">
+<title>preconditioners&#45;&#45;unfinished</title>
+<path fill="none" stroke="#000000" d="M549.582,-92C568.5506,-92 587.5192,-92 606.4878,-92"/>
 </g>
 <!-- basic -->
 <g id="node5" class="node">
@@ -119,26 +129,16 @@ var viewHeight = 137;
 <title>basic&#45;&#45;fake_basic</title>
 <path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M65.9044,-54.6122C61.1294,-41.481 56.163,-27.8232 52.9634,-19.0242"/>
 </g>
-<!-- preconditioners -->
-<g id="node7" class="node">
-<title>preconditioners</title>
-<polygon fill="#dc143c" stroke="#000000" points="549.5,-101 531.5,-101 531.5,-83 549.5,-83 549.5,-101"/>
-</g>
-<!-- preconditioners&#45;&#45;unfinished -->
-<g id="edge11" class="edge">
-<title>preconditioners&#45;&#45;unfinished</title>
-<path fill="none" stroke="#000000" d="M549.582,-92C568.5506,-92 587.5192,-92 606.4878,-92"/>
-</g>
-<!-- fake_preconditioners -->
+<!-- fake_unfinished -->
 <g id="node8" class="node">
-<title>fake_preconditioners</title>
-<polygon fill="#ffffff" stroke="transparent" points="586.5,-19 494.5,-19 494.5,0 586.5,0 586.5,-19"/>
-<text text-anchor="middle" x="540.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Preconditioners</text>
+<title>fake_unfinished</title>
+<polygon fill="#ffffff" stroke="transparent" points="704.5,-19 604.5,-19 604.5,0 704.5,0 704.5,-19"/>
+<text text-anchor="middle" x="654.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Unfinished codes</text>
 </g>
-<!-- preconditioners&#45;&#45;fake_preconditioners -->
+<!-- unfinished&#45;&#45;fake_unfinished -->
 <g id="edge4" class="edge">
-<title>preconditioners&#45;&#45;fake_preconditioners</title>
-<path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M540.5,-82.8558C540.5,-67.1655 540.5,-35.2562 540.5,-19.195"/>
+<title>unfinished&#45;&#45;fake_unfinished</title>
+<path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M619.8227,-82.8558C627.24,-67.1655 642.3243,-35.2562 649.9169,-19.195"/>
 </g>
 <!-- fake_logging -->
 <g id="node10" class="node">
