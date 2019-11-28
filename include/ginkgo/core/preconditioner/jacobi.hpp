@@ -292,9 +292,20 @@ public:
         /**
          * Maximal size of diagonal blocks.
          *
-         * @note This value has to be between 1 and 32.
+         * @note This value has to be between 1 and 32(NVIDIA)/64(AMD).
          */
         uint32 GKO_FACTORY_PARAMETER(max_block_size, 32u);
+
+        /**
+         * Stride between two columns of a block (as number of elements).
+         *
+         * Should be a multiple of cache line size for best performance.
+         *
+         * @note If this value is 0, it uses 64 in hip AMD but 32 in NVIDIA or
+         *       reference executor. The allowed value: 0, 64 for AMD and 0, 32
+         *       for NVIDIA
+         */
+        uint32 GKO_FACTORY_PARAMETER(max_block_stride, 0u);
 
         /**
          * Starting (row / column) indexes of individual blocks.
@@ -480,28 +491,20 @@ protected:
         : EnableLinOp<Jacobi>(factory->get_executor(),
                               transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
-          storage_scheme_{compute_storage_scheme(parameters_.max_block_size)},
+          storage_scheme_{this->compute_storage_scheme(
+              parameters_.max_block_size, parameters_.max_block_stride)},
           num_blocks_{parameters_.block_pointers.get_num_elems() - 1},
           blocks_(factory->get_executor(),
                   storage_scheme_.compute_storage_space(
                       parameters_.block_pointers.get_num_elems() - 1)),
           conditioning_(factory->get_executor())
     {
-        if (parameters_.max_block_size > 32 || parameters_.max_block_size < 1) {
-            GKO_NOT_SUPPORTED(this);
-        }
+        // GKO_NOT_SUPPORTED(this);
         parameters_.block_pointers.set_executor(this->get_executor());
         parameters_.storage_optimization.block_wise.set_executor(
             this->get_executor());
         this->generate(lend(system_matrix));
     }
-
-    /**
-     * Stride between two columns of a block (as number of elements).
-     *
-     * Should be a multiple of cache line size for best performance.
-     */
-    static constexpr size_type max_block_stride_ = 32;
 
     /**
      * Computes the storage scheme suitable for storing blocks of a given
@@ -511,11 +514,30 @@ protected:
      *
      * @return a suitable storage scheme
      */
-    static block_interleaved_storage_scheme<index_type> compute_storage_scheme(
-        uint32 max_block_size) noexcept
+    block_interleaved_storage_scheme<index_type> compute_storage_scheme(
+        uint32 max_block_size, uint32 param_max_block_stride)
     {
+        uint32 default_block_stride = 32;
+        if (auto hip_exec = std::dynamic_pointer_cast<const gko::HipExecutor>(
+                this->get_executor())) {
+            default_block_stride = hip_exec->get_warp_size();
+        }
+        uint32 max_block_stride = default_block_stride;
+        if (param_max_block_stride != 0) {
+            // if max_block_stride is not zero, overwrite the max_block_stride
+            max_block_stride = param_max_block_stride;
+            if (this->get_executor() != this->get_executor()->get_master() &&
+                max_block_stride != default_block_stride) {
+                // only support the default value on the gpu devive
+                GKO_NOT_SUPPORTED(this);
+            }
+        }
+        if (parameters_.max_block_size > max_block_stride ||
+            parameters_.max_block_size < 1) {
+            GKO_NOT_SUPPORTED(this);
+        }
         const auto group_size = static_cast<uint32>(
-            max_block_stride_ / get_superior_power(uint32{2}, max_block_size));
+            max_block_stride / get_superior_power(uint32{2}, max_block_size));
         const auto block_offset = max_block_size;
         const auto block_stride = group_size * block_offset;
         const auto group_offset = max_block_size * block_stride;

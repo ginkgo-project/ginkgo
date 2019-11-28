@@ -96,21 +96,25 @@ protected:
         gko::Array<gko::int32> block_ptrs(ref, block_pointers);
         gko::Array<gko::precision_reduction> block_prec(ref, block_precisions);
         if (block_prec.get_num_elems() == 0) {
-            bj_factory = Bj::build()
-                             .with_max_block_size(max_block_size)
-                             .with_block_pointers(block_ptrs)
-                             .on(ref);
+            bj_factory =
+                Bj::build()
+                    .with_max_block_size(max_block_size)
+                    .with_block_pointers(block_ptrs)
+                    .with_max_block_stride(gko::uint32(hip->get_warp_size()))
+                    .on(ref);
             d_bj_factory = Bj::build()
                                .with_max_block_size(max_block_size)
                                .with_block_pointers(block_ptrs)
                                .on(hip);
         } else {
-            bj_factory = Bj::build()
-                             .with_max_block_size(max_block_size)
-                             .with_block_pointers(block_ptrs)
-                             .with_storage_optimization(block_prec)
-                             .with_accuracy(accuracy)
-                             .on(ref);
+            bj_factory =
+                Bj::build()
+                    .with_max_block_size(max_block_size)
+                    .with_block_pointers(block_ptrs)
+                    .with_max_block_stride(gko::uint32(hip->get_warp_size()))
+                    .with_storage_optimization(block_prec)
+                    .with_accuracy(accuracy)
+                    .on(ref);
             d_bj_factory = Bj::build()
                                .with_max_block_size(max_block_size)
                                .with_block_pointers(block_ptrs)
