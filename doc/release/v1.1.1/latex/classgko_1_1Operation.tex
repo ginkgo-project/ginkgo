@@ -1,0 +1,135 @@
+\hypertarget{classgko_1_1Operation}{}\doxysection{gko\+::Operation Class Reference}
+\label{classgko_1_1Operation}\index{gko::Operation@{gko::Operation}}
+
+
+Operations can be used to define functionalities whose implementations differ among devices.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/executor.\+hpp$>$}
+
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1Operation_a2b5cd402406c1749b23df06be6d53637}\label{classgko_1_1Operation_a2b5cd402406c1749b23df06be6d53637}} 
+virtual void {\bfseries run} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} $>$) const
+\item 
+\mbox{\Hypertarget{classgko_1_1Operation_aa09b89cdd9526e2654aedb5b83b8b5ef}\label{classgko_1_1Operation_aa09b89cdd9526e2654aedb5b83b8b5ef}} 
+virtual void {\bfseries run} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}} $>$) const
+\item 
+\mbox{\Hypertarget{classgko_1_1Operation_ae67f83384d2df18660c2bac839a4bec3}\label{classgko_1_1Operation_ae67f83384d2df18660c2bac839a4bec3}} 
+virtual void {\bfseries run} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1ReferenceExecutor}{Reference\+Executor}} $>$ executor) const
+\item 
+virtual const char $\ast$ \mbox{\hyperlink{classgko_1_1Operation_ab3b940849d1daf02830f3387c52888d0}{get\+\_\+name}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the operation\textquotesingle{}s name. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Operations can be used to define functionalities whose implementations differ among devices. 
+
+This is done by extending the \mbox{\hyperlink{classgko_1_1Operation}{Operation}} class and implementing the overloads of the Operation\+::run() method for all \mbox{\hyperlink{classgko_1_1Executor}{Executor}} types. When invoking the \mbox{\hyperlink{classgko_1_1Executor_a1de8e2668b76e66690acf5eef9e8324d}{Executor\+::run()}} method with the \mbox{\hyperlink{classgko_1_1Operation}{Operation}} as input, the library will select the Operation\+::run() overload corresponding to the dynamic type of the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} instance.
+
+Consider an overload of {\ttfamily operator$<$$<$} for Executors, which prints some basic device information (e.\+g. device type and id) of the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} to a C++ stream\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::ostream\& operator<<(std::ostream \&os, \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1Executor}{gko::Executor}} \&exec);}
+\end{DoxyCode}
+
+
+One possible implementation would be to use R\+T\+TI to find the dynamic type of the \mbox{\hyperlink{classgko_1_1Executor}{Executor}}, However, using the \mbox{\hyperlink{classgko_1_1Operation}{Operation}} feature of Ginkgo, there is a more elegant approach which utilizes polymorphism. The first step is to define an \mbox{\hyperlink{classgko_1_1Operation}{Operation}} that will print the desired information for each \mbox{\hyperlink{classgko_1_1Executor}{Executor}} type.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{class }DeviceInfoPrinter : \textcolor{keyword}{public} \mbox{\hyperlink{classgko_1_1Operation}{gko::Operation}} \{}
+\DoxyCodeLine{\textcolor{keyword}{public}:}
+\DoxyCodeLine{    \textcolor{keyword}{explicit} DeviceInfoPrinter(std::ostream \&os) : os\_(os) \{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1OmpExecutor}{gko::OmpExecutor}} *)\textcolor{keyword}{ const override }\{ os\_ << \textcolor{stringliteral}{"OMP"}; \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1CudaExecutor}{gko::CudaExecutor}} *exec)\textcolor{keyword}{ const override}}
+\DoxyCodeLine{\textcolor{keyword}{    }\{ os\_ << \textcolor{stringliteral}{"CUDA("} << exec-\/>\mbox{\hyperlink{classgko_1_1CudaExecutor_a7cfa915eadd2329eb897dc1ee2712488}{get\_device\_id}}() << \textcolor{stringliteral}{")"}; \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{comment}{// This is optional, if not overloaded, defaults to OmpExecutor overload}}
+\DoxyCodeLine{    \textcolor{keywordtype}{void} run(\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}} *)\textcolor{keyword}{ const override}}
+\DoxyCodeLine{\textcolor{keyword}{    }\{ os\_ << \textcolor{stringliteral}{"Reference CPU"}; \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{private}:}
+\DoxyCodeLine{    std::ostream \&os\_;}
+\DoxyCodeLine{\};}
+\end{DoxyCode}
+
+
+Using Device\+Info\+Printer, the implementation of {\ttfamily operator$<$$<$} is as simple as calling the run() method of the executor.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::ostream\& operator<<(std::ostream \&os, \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1Executor}{gko::Executor}} \&exec)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    DeviceInfoPrinter printer(os);}
+\DoxyCodeLine{    exec.\mbox{\hyperlink{classgko_1_1Executor_a1de8e2668b76e66690acf5eef9e8324d}{run}}(printer);}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} os;}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+Now it is possible to write the following code\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} omp = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\DoxyCodeLine{std::cout << *omp << std::endl}
+\DoxyCodeLine{          << *\mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, omp) << std::endl}
+\DoxyCodeLine{          << *gko::ReferenceExecutor::create() << std::endl;}
+\end{DoxyCode}
+
+
+which produces the expected output\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{OMP}
+\DoxyCodeLine{CUDA(0)}
+\DoxyCodeLine{Reference CPU}
+\end{DoxyCode}
+
+
+One might feel that this code is too complicated for such a simple task. Luckily, there is an overload of the \mbox{\hyperlink{classgko_1_1Executor_a1de8e2668b76e66690acf5eef9e8324d}{Executor\+::run()}} method, which is designed to facilitate writing simple operations like this one. The method takes two closures as input\+: one which is run for O\+MP, and the other one for C\+U\+DA executors. Using this method, there is no need to implement an \mbox{\hyperlink{classgko_1_1Operation}{Operation}} subclass\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::ostream\& operator<<(std::ostream \&os, \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1Executor}{gko::Executor}} \&exec)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    exec.\mbox{\hyperlink{classgko_1_1Executor_a1de8e2668b76e66690acf5eef9e8324d}{run}}(}
+\DoxyCodeLine{        [\&]() \{ os << \textcolor{stringliteral}{"OMP"}; \},  \textcolor{comment}{// OMP closure}}
+\DoxyCodeLine{        [\&]() \{ os << \textcolor{stringliteral}{"CUDA("}    \textcolor{comment}{// CUDA closure}}
+\DoxyCodeLine{                   << static\_cast<gko::CudaExecutor\&>(exec)}
+\DoxyCodeLine{                        .get\_device\_id()}
+\DoxyCodeLine{                   << \textcolor{stringliteral}{")"}; \});}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} os;}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+Using this approach, however, it is impossible to distinguish between a \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} and \mbox{\hyperlink{classgko_1_1ReferenceExecutor}{Reference\+Executor}}, as both of them call the O\+MP closure. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1Operation_ab3b940849d1daf02830f3387c52888d0}\label{classgko_1_1Operation_ab3b940849d1daf02830f3387c52888d0}} 
+\index{gko::Operation@{gko::Operation}!get\_name@{get\_name}}
+\index{get\_name@{get\_name}!gko::Operation@{gko::Operation}}
+\doxysubsubsection{\texorpdfstring{get\_name()}{get\_name()}}
+{\footnotesize\ttfamily virtual const char$\ast$ gko\+::\+Operation\+::get\+\_\+name (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the operation\textquotesingle{}s name. 
+
+\begin{DoxyReturn}{Returns}
+the operation\textquotesingle{}s name 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/executor.\+hpp (8f70a7c81)\end{DoxyCompactItemize}

@@ -1,0 +1,553 @@
+The simple solver with logging example..
+
+This example depends on simple-\/solver, minimal-\/cuda-\/solver.
+
+ \label{_Intro}%
+ \label{_Introduction}%
+\doxysection*{Introduction}
+
+\label{_Abouttheexample}%
+\doxysubsubsection*{About the example }
+
+\label{_CommProg}%
+ \doxysection*{The commented program}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <fstream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iomanip>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{namespace }\{}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} print\_vector(\textcolor{keyword}{const} std::string \&name, \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}} *vec)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    std::cout << name << \textcolor{stringliteral}{" = ["} << std::endl;}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < vec-\/>\mbox{\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}}()[0]; ++i) \{}
+\DoxyCodeLine{        std::cout << \textcolor{stringliteral}{"    "} << vec-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_af0f1af68853537807ca271a296de3cd0}{at}}(i, 0) << std::endl;}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"];"} << std::endl;}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\}  \textcolor{comment}{// namespace}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\end{DoxyCode}
+
+
+Some shortcuts
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>}};}
+\end{DoxyCode}
+
+
+Print version information
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::cout << \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}}() << std::endl;}
+\end{DoxyCode}
+
+
+Figure out where to run the code
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::shared\_ptr<gko::Executor> exec;}
+\DoxyCodeLine{\textcolor{keywordflow}{if} (argc == 1 || std::string(argv[1]) == \textcolor{stringliteral}{"reference"}) \{}
+\DoxyCodeLine{    exec = gko::ReferenceExecutor::create();}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"omp"}) \{}
+\DoxyCodeLine{    exec = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"cuda"} \&\&}
+\DoxyCodeLine{           \mbox{\hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{gko::CudaExecutor::get\_num\_devices}}() > 0) \{}
+\DoxyCodeLine{    exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" [executor]"} << std::endl;}
+\DoxyCodeLine{    std::exit(-\/1);}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+Read data
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} A = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));}
+\DoxyCodeLine{\textcolor{keyword}{auto} b = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/b.mtx"}), exec);}
+\DoxyCodeLine{\textcolor{keyword}{auto} x = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/x0.mtx"}), exec);}
+\end{DoxyCode}
+
+
+Let\textquotesingle{}s declare a logger which prints to std\+::cout instead of printing to a file. We log all events except for all linop factory and polymorphic object events. Events masks are group of events which are provided for convenience.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::shared\_ptr<gko::log::Stream<>> stream\_logger =}
+\DoxyCodeLine{    \mbox{\hyperlink{classgko_1_1log_1_1Stream_a71f96d3f1cd7c03875476cd8db98145b}{gko::log::Stream<>::create}}(}
+\DoxyCodeLine{        exec,}
+\DoxyCodeLine{        \mbox{\hyperlink{classgko_1_1log_1_1Logger_a02534863a2d2f92dfeb2c39038365532}{gko::log::Logger::all\_events\_mask}} \string^}
+\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1log_1_1Logger_ad6fb77d4d5610bc7299087f7149a7f16}{gko::log::Logger::linop\_factory\_events\_mask}} \string^}
+\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1log_1_1Logger_a5fb997f1c06c0602103d8dab616a96bc}{gko::log::Logger::polymorphic\_object\_events\_mask}},}
+\DoxyCodeLine{        std::cout);}
+\end{DoxyCode}
+
+
+Add stream\+\_\+logger to the executor
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{exec-\/>add\_logger(stream\_logger);}
+\end{DoxyCode}
+
+
+Add stream\+\_\+logger only to the Residual\+Norm\+Reduction criterion Factory Note that the logger will get automatically propagated to every criterion generated from this factory.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{using} ResidualCriterionFactory =}
+\DoxyCodeLine{    \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction_1_1Factory}{gko::stop::ResidualNormReduction<>::Factory}};}
+\DoxyCodeLine{std::shared\_ptr<ResidualCriterionFactory> residual\_criterion =}
+\DoxyCodeLine{    ResidualCriterionFactory::create().with\_reduction\_factor(1e-\/20).on(}
+\DoxyCodeLine{        exec);}
+\DoxyCodeLine{residual\_criterion-\/>add\_logger(stream\_logger);}
+\end{DoxyCode}
+
+
+Generate solver
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} solver\_gen =}
+\DoxyCodeLine{    cg::build()}
+\DoxyCodeLine{        .with\_criteria(}
+\DoxyCodeLine{            residual\_criterion,}
+\DoxyCodeLine{            gko::stop::Iteration::build().with\_max\_iters(20u).on(exec))}
+\DoxyCodeLine{        .on(exec);}
+\DoxyCodeLine{\textcolor{keyword}{auto} solver = solver\_gen-\/>generate(A);}
+\end{DoxyCode}
+
+
+First we add facilities to only print to a file. It\textquotesingle{}s possible to select events, using masks, e.\+g. only iterations mask\+: gko\+::log\+::\+Logger\+::iteration\+\_\+complete\+\_\+mask. See the documentation of Logger class for more information.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::ofstream filestream(\textcolor{stringliteral}{"my\_file.txt"});}
+\DoxyCodeLine{solver-\/>add\_logger(\mbox{\hyperlink{classgko_1_1log_1_1Stream}{gko::log::Stream<>::create}}(}
+\DoxyCodeLine{    exec, \mbox{\hyperlink{classgko_1_1log_1_1Logger_a02534863a2d2f92dfeb2c39038365532}{gko::log::Logger::all\_events\_mask}}, filestream));}
+\DoxyCodeLine{solver-\/>add\_logger(stream\_logger);}
+\end{DoxyCode}
+
+
+Add another logger which puts all the data in an object, we can later retrieve this object in our code. Here we only have want Executor and criterion check completed events.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::shared\_ptr<gko::log::Record> record\_logger = \mbox{\hyperlink{classgko_1_1log_1_1Record_ab3863ff409b8ceaefa2f226a4e26debc}{gko::log::Record::create}}(}
+\DoxyCodeLine{    exec, \mbox{\hyperlink{classgko_1_1log_1_1Logger_af263708ebb15007bc0086e7c438c190c}{gko::log::Logger::executor\_events\_mask}} |}
+\DoxyCodeLine{              gko::log::Logger::criterion\_check\_completed\_mask);}
+\DoxyCodeLine{exec-\/>add\_logger(record\_logger);}
+\DoxyCodeLine{residual\_criterion-\/>add\_logger(record\_logger);}
+\end{DoxyCode}
+
+
+Solve system
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\end{DoxyCode}
+
+
+Finally, get some data from {\ttfamily record\+\_\+logger} and print the last memory location copied
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} \&last\_copy = record\_logger-\/>get().copy\_completed.back();}
+\DoxyCodeLine{std::cout << \textcolor{stringliteral}{"Last memory copied was of size "} << std::hex}
+\DoxyCodeLine{          << std::get<0>(*last\_copy).num\_bytes << \textcolor{stringliteral}{" FROM executor "}}
+\DoxyCodeLine{          << std::get<0>(*last\_copy).exec << \textcolor{stringliteral}{" pointer "}}
+\DoxyCodeLine{          << std::get<0>(*last\_copy).location << \textcolor{stringliteral}{" TO executor "}}
+\DoxyCodeLine{          << std::get<1>(*last\_copy).exec << \textcolor{stringliteral}{" pointer "}}
+\DoxyCodeLine{          << std::get<1>(*last\_copy).location << std::dec << std::endl;}
+\end{DoxyCode}
+
+
+Also print the residual of the last criterion check event (where convergence happened)
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} residual =}
+\DoxyCodeLine{    record\_logger-\/>get().criterion\_check\_completed.back()-\/>residual.get();}
+\DoxyCodeLine{\textcolor{keyword}{auto} residual\_d = gko::as<gko::matrix::Dense<>>(residual);}
+\DoxyCodeLine{print\_vector(\textcolor{stringliteral}{"Residual"}, residual\_d);}
+\end{DoxyCode}
+
+
+Print solution
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::cout << \textcolor{stringliteral}{"Solution (x): \(\backslash\)n"};}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\end{DoxyCode}
+
+
+Calculate residual
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    \textcolor{keyword}{auto} \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} = gko::initialize<vec>(\{1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} neg\_one = gko::initialize<vec>(\{-\/1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} res = gko::initialize<vec>(\{0.0\}, exec);}
+\DoxyCodeLine{    A-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(neg\_one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b));}
+\DoxyCodeLine{    b-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(res));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Residual norm sqrt(r\string^T r): \(\backslash\)n"};}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(res));}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+ \label{_Results}%
+\doxysection*{Results}
+
+This is the expected output\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{[LOG] >>> apply started on A LinOp[\mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<double>}},0x55ae09d923f0] with b LinOp[\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}},0x55ae09d928b0] and x LinOp[\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}},0x55ae09d92f10]}
+\DoxyCodeLine{[LOG] >>> allocation started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d91750] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d977e0] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] with Bytes[152]}
+\DoxyCodeLine{[LOG] >>> allocation completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d97b40] with Bytes[152]}
+\DoxyCodeLine{[LOG] >>> allocation started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] with Bytes[152]}
+\DoxyCodeLine{[LOG] >>> allocation completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d97d10] with Bytes[152]}
+\DoxyCodeLine{[LOG] >>> allocation started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] with Bytes[152]}
+\DoxyCodeLine{[LOG] >>> allocation completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d97ee0] with Bytes[152]}
+\DoxyCodeLine{[LOG] >>> allocation started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] with Bytes[152]}
+\DoxyCodeLine{[LOG] >>> allocation completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d980b0] with Bytes[152]}
+\DoxyCodeLine{[LOG] >>> allocation started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d98090] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d98260] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d983b0] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d98500] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] with Bytes[1]}
+\DoxyCodeLine{[LOG] >>> allocation completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d98650] with Bytes[1]}
+\DoxyCodeLine{[LOG] >>> Operation[gko::solver::cg::initialize\_operation<gko::matrix::Dense<double> \textcolor{keyword}{const}*\&, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*, \mbox{\hyperlink{namespacegko}{gko}}:}
+\DoxyCodeLine{:Array<gko::stopping\_status>*>,0x7ffcab765d60] started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0]}
+\DoxyCodeLine{[LOG] >>> Operation[gko::solver::cg::initialize\_operation<gko::matrix::Dense<double> \textcolor{keyword}{const}*\&, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*, \mbox{\hyperlink{namespacegko}{gko}}:}
+\DoxyCodeLine{:Array<gko::stopping\_status>*>,0x7ffcab765d60] completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0]}
+\DoxyCodeLine{[LOG] >>> Operation[gko::matrix::csr::advanced\_spmv\_operation<gko::matrix::Dense<double> \textcolor{keyword}{const}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<double, int>}} \textcolor{keyword}{const}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}} \textcolor{keyword}{const}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}} \textcolor{keyword}{const}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*>,0x7ffcab765980] started on Executor[gk}
+\DoxyCodeLine{o::ReferenceExecutor,0x55ae09d8f2a0]}
+\DoxyCodeLine{[LOG] >>> Operation[gko::matrix::csr::advanced\_spmv\_operation<gko::matrix::Dense<double> \textcolor{keyword}{const}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<double, int>}} \textcolor{keyword}{const}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}} \textcolor{keyword}{const}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}} \textcolor{keyword}{const}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*>,0x7ffcab765980] completed on Executor[}
+\DoxyCodeLine{\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0]}
+\DoxyCodeLine{[LOG] >>> allocation started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] with Bytes[2]}
+\DoxyCodeLine{[LOG] >>> allocation completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d98690] with Bytes[2]}
+\DoxyCodeLine{[LOG] >>> allocation started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d99310] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d99350] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> Operation[gko::matrix::dense::compute\_norm2\_operation<gko::matrix::Dense<double> \textcolor{keyword}{const}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*>,0x7ffcab7657c0] started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0]}
+\DoxyCodeLine{[LOG] >>> Operation[gko::matrix::dense::compute\_norm2\_operation<gko::matrix::Dense<double> \textcolor{keyword}{const}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*>,0x7ffcab7657c0] completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0]}
+\DoxyCodeLine{[LOG] >>> copy started from Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] to Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] from Location[0x55ae09d97b40] to Location[0x55ae09d97d10] with Bytes[152]}
+\DoxyCodeLine{[LOG] >>> copy completed from Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] to Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] from Location[0x55ae09d97b40] to Location[0x55ae09d97d10] with Bytes[152]}
+\DoxyCodeLine{[LOG] >>> Operation[gko::matrix::dense::compute\_dot\_operation<gko::matrix::Dense<double> \textcolor{keyword}{const}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}} \textcolor{keyword}{const}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*>,0x7ffcab7659a0] started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0]}
+\DoxyCodeLine{[LOG] >>> Operation[gko::matrix::dense::compute\_dot\_operation<gko::matrix::Dense<double> \textcolor{keyword}{const}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}} \textcolor{keyword}{const}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*>,0x7ffcab7659a0] completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0]}
+\DoxyCodeLine{[LOG] >>> iteration 0 completed with solver LinOp[\mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<double>}},0x55ae09d923f0] with residual LinOp[\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}},0x55ae09d930c0], solution LinOp[\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}},0x55ae09d92f10] and residual\_norm LinOp[\mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} \textcolor{keyword}{const}*,0]}
+\DoxyCodeLine{[LOG] >>> check started \textcolor{keywordflow}{for} stop::Criterion[\mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<double>}},0x55ae09d99260] at iteration 0 with ID 1 and finalized set to 1}
+\DoxyCodeLine{[LOG] >>> Operation[gko::matrix::dense::compute\_norm2\_operation<gko::matrix::Dense<double> \textcolor{keyword}{const}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*>,0x7ffcab765740] started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0]}
+\DoxyCodeLine{[LOG] >>> Operation[gko::matrix::dense::compute\_norm2\_operation<gko::matrix::Dense<double> \textcolor{keyword}{const}*, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*>,0x7ffcab765740] completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0]}
+\DoxyCodeLine{[LOG] >>> Operation[gko::stop::residual\_norm\_reduction::residual\_norm\_reduction\_operation<gko::matrix::Dense<double> \textcolor{keyword}{const}*\&, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*, \textcolor{keywordtype}{double}\&, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}\&, \textcolor{keywordtype}{bool}\&, \mbox{\hyperlink{classgko_1_1Array}{gko::Array<gko::stopping\_status>}}*\&, \mbox{\hyperlink{classgko_1_1Array}{gko::Array<bool>}}*, \textcolor{keywordtype}{bool}*, \textcolor{keywordtype}{bool}*\&>,0x7ffcab765980]}
+\DoxyCodeLine{ started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0]}
+\DoxyCodeLine{[LOG] >>> Operation[gko::stop::residual\_norm\_reduction::residual\_norm\_reduction\_operation<gko::matrix::Dense<double> \textcolor{keyword}{const}*\&, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}}*, \textcolor{keywordtype}{double}\&, \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{char}\&, \textcolor{keywordtype}{bool}\&, \mbox{\hyperlink{classgko_1_1Array}{gko::Array<gko::stopping\_status>}}*\&, \mbox{\hyperlink{classgko_1_1Array}{gko::Array<bool>}}*, \textcolor{keywordtype}{bool}*, \textcolor{keywordtype}{bool}*\&>,0x7ffcab765980]}
+\DoxyCodeLine{ completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0]}
+\DoxyCodeLine{[LOG] >>> check completed \textcolor{keywordflow}{for} stop::Criterion[\mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<double>}},0x55ae09d99260] at iteration 0 with ID 1 and finalized set to 1. It changed \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} RHS 0, stopped the iteration process 0}
+\DoxyCodeLine{[LOG] >>> allocation started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] with Bytes[152]}
+\DoxyCodeLine{[LOG] >>> allocation completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d99820] with Bytes[152]}
+\DoxyCodeLine{}
+\DoxyCodeLine{.}
+\DoxyCodeLine{.}
+\DoxyCodeLine{.}
+\DoxyCodeLine{.}
+\DoxyCodeLine{.}
+\DoxyCodeLine{.}
+\DoxyCodeLine{}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d98690]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d98690]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d99350]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d99350]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d99310]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d99310]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d98650]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d98650]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d98500]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d98500]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d983b0]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d983b0]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d98260]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d98260]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d98090]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d98090]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d980b0]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d980b0]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d97ee0]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d97ee0]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d97d10]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d97d10]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d97b40]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d97b40]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d977e0]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d977e0]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d91750]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko::ReferenceExecutor}},0x55ae09d8f2a0] at Location[0x55ae09d91750]}
+\DoxyCodeLine{[LOG] >>> apply completed on A LinOp[\mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<double>}},0x55ae09d923f0] with b LinOp[\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}},0x55ae09d928b0] and x LinOp[\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}},0x55ae09d92f10]}
+\DoxyCodeLine{Last memory copied was of size 98 FROM executor 0x55ae09d8f2a0 pointer 55ae09d931d0 TO executor 0x55ae09d8f2a0 pointer 55ae09d998c0}
+\DoxyCodeLine{Residual = [}
+\DoxyCodeLine{    1.3067e-\/18}
+\DoxyCodeLine{    -\/1.34263e-\/18}
+\DoxyCodeLine{    -\/2.7754e-\/19}
+\DoxyCodeLine{    2.35392e-\/20}
+\DoxyCodeLine{    -\/2.25114e-\/19}
+\DoxyCodeLine{    -\/1.35474e-\/20}
+\DoxyCodeLine{    -\/1.82049e-\/19}
+\DoxyCodeLine{    -\/2.48092e-\/19}
+\DoxyCodeLine{    -\/4.57754e-\/19}
+\DoxyCodeLine{    -\/1.28163e-\/18}
+\DoxyCodeLine{    -\/1.04918e-\/18}
+\DoxyCodeLine{    -\/5.88231e-\/19}
+\DoxyCodeLine{    -\/8.463e-\/19}
+\DoxyCodeLine{    -\/2.87785e-\/18}
+\DoxyCodeLine{    -\/4.06072e-\/18}
+\DoxyCodeLine{    -\/9.40979e-\/18}
+\DoxyCodeLine{    -\/1.07071e-\/17}
+\DoxyCodeLine{    -\/4.14666e-\/17}
+\DoxyCodeLine{    -\/2.75923e-\/17}
+\DoxyCodeLine{];}
+\DoxyCodeLine{Solution (x):}
+\DoxyCodeLine{\%\%MatrixMarket matrix \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{array}} \mbox{\hyperlink{namespacegko_ae23cfd886cee6e88d77bcbbbe1928b78}{real}} general}
+\DoxyCodeLine{19 1}
+\DoxyCodeLine{0.252218}
+\DoxyCodeLine{0.108645}
+\DoxyCodeLine{0.0662811}
+\DoxyCodeLine{0.0630433}
+\DoxyCodeLine{0.0384088}
+\DoxyCodeLine{0.0396536}
+\DoxyCodeLine{0.0402648}
+\DoxyCodeLine{0.0338935}
+\DoxyCodeLine{0.0193098}
+\DoxyCodeLine{0.0234653}
+\DoxyCodeLine{0.0211499}
+\DoxyCodeLine{0.0196413}
+\DoxyCodeLine{0.0199151}
+\DoxyCodeLine{0.0181674}
+\DoxyCodeLine{0.0162722}
+\DoxyCodeLine{0.0150714}
+\DoxyCodeLine{0.0107016}
+\DoxyCodeLine{0.0121141}
+\DoxyCodeLine{0.0123025}
+\DoxyCodeLine{[LOG] >>> allocation started on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation completed on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d9a310] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation started on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation completed on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d97ec0] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation started on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> allocation completed on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d99370] with Bytes[8]}
+\DoxyCodeLine{[LOG] >>> Operation[\mbox{\hyperlink{namespacegko}{gko}}::matrix::csr::advanced\_spmv\_operation<\mbox{\hyperlink{namespacegko}{gko}}::matrix::Dense<double> const*, \mbox{\hyperlink{namespacegko}{gko}}::matrix::Csr<double, int> const*, \mbox{\hyperlink{namespacegko}{gko}}::matrix::Dense<double> const*, \mbox{\hyperlink{namespacegko}{gko}}::matrix::Dense<double> const*, \mbox{\hyperlink{namespacegko}{gko}}::matrix::Dense<double>*>,0x7ffcab765d50] started on Executor[gk}
+\DoxyCodeLine{o::ReferenceExecutor,0x55ae09d8f2a0]}
+\DoxyCodeLine{[LOG] >>> Operation[\mbox{\hyperlink{namespacegko}{gko}}::matrix::csr::advanced\_spmv\_operation<\mbox{\hyperlink{namespacegko}{gko}}::matrix::Dense<double> const*, \mbox{\hyperlink{namespacegko}{gko}}::matrix::Csr<double, int> const*, \mbox{\hyperlink{namespacegko}{gko}}::matrix::Dense<double> const*, \mbox{\hyperlink{namespacegko}{gko}}::matrix::Dense<double> const*, \mbox{\hyperlink{namespacegko}{gko}}::matrix::Dense<double>*>,0x7ffcab765d50] completed on Executor[}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0]}
+\DoxyCodeLine{[LOG] >>> Operation[\mbox{\hyperlink{namespacegko}{gko}}::matrix::dense::compute\_norm2\_operation<\mbox{\hyperlink{namespacegko}{gko}}::matrix::Dense<double> const*, \mbox{\hyperlink{namespacegko}{gko}}::matrix::Dense<double>*>,0x7ffcab765dc0] started on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0]}
+\DoxyCodeLine{[LOG] >>> Operation[\mbox{\hyperlink{namespacegko}{gko}}::matrix::dense::compute\_norm2\_operation<\mbox{\hyperlink{namespacegko}{gko}}::matrix::Dense<double> const*, \mbox{\hyperlink{namespacegko}{gko}}::matrix::Dense<double>*>,0x7ffcab765dc0] completed on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0]}
+\DoxyCodeLine{Residual norm sqrt(r\string^T r):}
+\DoxyCodeLine{\%\%MatrixMarket matrix \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{array}} \mbox{\hyperlink{namespacegko_ae23cfd886cee6e88d77bcbbbe1928b78}{real}} general}
+\DoxyCodeLine{1 1}
+\DoxyCodeLine{8.87107e-\/16}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d99370]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d99370]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d97ec0]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d97ec0]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d9a310]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d9a310]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d931d0]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d931d0]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d93020]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d93020]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d92830]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d92830]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d925b0]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d925b0]}
+\DoxyCodeLine{[LOG] >>> free started on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d93360]}
+\DoxyCodeLine{[LOG] >>> free completed on Executor[\mbox{\hyperlink{namespacegko}{gko}}::ReferenceExecutor,0x55ae09d8f2a0] at Location[0x55ae09d93360]}
+\end{DoxyCode}
+
+
+\label{_Commentsaboutprogramminganddebugging}%
+\doxysubsubsection*{Comments about programming and debugging }
+
+\label{_PlainProg}%
+ \doxysection*{The plain program}
+
+
+\begin{DoxyCodeInclude}{0}
+\DoxyCodeLine{\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}}
+\DoxyCodeLine{\textcolor{comment}{Copyright (c) 2017-\/2019, the Ginkgo authors}}
+\DoxyCodeLine{\textcolor{comment}{All rights reserved.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{Redistribution and use in source and binary forms, with or without}}
+\DoxyCodeLine{\textcolor{comment}{modification, are permitted provided that the following conditions}}
+\DoxyCodeLine{\textcolor{comment}{are met:}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{1. Redistributions of source code must retain the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{2. Redistributions in binary form must reproduce the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer in the}}
+\DoxyCodeLine{\textcolor{comment}{documentation and/or other materials provided with the distribution.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{3. Neither the name of the copyright holder nor the names of its}}
+\DoxyCodeLine{\textcolor{comment}{contributors may be used to endorse or promote products derived from}}
+\DoxyCodeLine{\textcolor{comment}{this software without specific prior written permission.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS}}
+\DoxyCodeLine{\textcolor{comment}{IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED}}
+\DoxyCodeLine{\textcolor{comment}{TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A}}
+\DoxyCodeLine{\textcolor{comment}{PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT}}
+\DoxyCodeLine{\textcolor{comment}{HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,}}
+\DoxyCodeLine{\textcolor{comment}{SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT}}
+\DoxyCodeLine{\textcolor{comment}{LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,}}
+\DoxyCodeLine{\textcolor{comment}{DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY}}
+\DoxyCodeLine{\textcolor{comment}{THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}}
+\DoxyCodeLine{\textcolor{comment}{(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}}
+\DoxyCodeLine{\textcolor{comment}{OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}}
+\DoxyCodeLine{\textcolor{comment}{******************************<GINKGO LICENSE>*******************************/}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <fstream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iomanip>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{namespace }\{}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} print\_vector(\textcolor{keyword}{const} std::string \&name, \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}} *vec)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    std::cout << name << \textcolor{stringliteral}{" = ["} << std::endl;}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < vec-\/>\mbox{\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}}()[0]; ++i) \{}
+\DoxyCodeLine{        std::cout << \textcolor{stringliteral}{"    "} << vec-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_af0f1af68853537807ca271a296de3cd0}{at}}(i, 0) << std::endl;}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"];"} << std::endl;}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\}  \textcolor{comment}{// namespace}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>}};}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}}() << std::endl;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::shared\_ptr<gko::Executor> exec;}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc == 1 || std::string(argv[1]) == \textcolor{stringliteral}{"reference"}) \{}
+\DoxyCodeLine{        exec = gko::ReferenceExecutor::create();}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"omp"}) \{}
+\DoxyCodeLine{        exec = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"cuda"} \&\&}
+\DoxyCodeLine{               \mbox{\hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{gko::CudaExecutor::get\_num\_devices}}() > 0) \{}
+\DoxyCodeLine{        exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" [executor]"} << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} A = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));}
+\DoxyCodeLine{    \textcolor{keyword}{auto} b = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/b.mtx"}), exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} x = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/x0.mtx"}), exec);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::shared\_ptr<gko::log::Stream<>> stream\_logger =}
+\DoxyCodeLine{        \mbox{\hyperlink{classgko_1_1log_1_1Stream_a71f96d3f1cd7c03875476cd8db98145b}{gko::log::Stream<>::create}}(}
+\DoxyCodeLine{            exec,}
+\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1log_1_1Logger_a02534863a2d2f92dfeb2c39038365532}{gko::log::Logger::all\_events\_mask}} \string^}
+\DoxyCodeLine{                \mbox{\hyperlink{classgko_1_1log_1_1Logger_ad6fb77d4d5610bc7299087f7149a7f16}{gko::log::Logger::linop\_factory\_events\_mask}} \string^}
+\DoxyCodeLine{                \mbox{\hyperlink{classgko_1_1log_1_1Logger_a5fb997f1c06c0602103d8dab616a96bc}{gko::log::Logger::polymorphic\_object\_events\_mask}},}
+\DoxyCodeLine{            std::cout);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    exec-\/>add\_logger(stream\_logger);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{using} ResidualCriterionFactory =}
+\DoxyCodeLine{        \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction_1_1Factory}{gko::stop::ResidualNormReduction<>::Factory}};}
+\DoxyCodeLine{    std::shared\_ptr<ResidualCriterionFactory> residual\_criterion =}
+\DoxyCodeLine{        ResidualCriterionFactory::create().with\_reduction\_factor(1e-\/20).on(}
+\DoxyCodeLine{            exec);}
+\DoxyCodeLine{    residual\_criterion-\/>add\_logger(stream\_logger);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} solver\_gen =}
+\DoxyCodeLine{        cg::build()}
+\DoxyCodeLine{            .with\_criteria(}
+\DoxyCodeLine{                residual\_criterion,}
+\DoxyCodeLine{                gko::stop::Iteration::build().with\_max\_iters(20u).on(exec))}
+\DoxyCodeLine{            .on(exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} solver = solver\_gen-\/>generate(A);}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::ofstream filestream(\textcolor{stringliteral}{"my\_file.txt"});}
+\DoxyCodeLine{    solver-\/>add\_logger(\mbox{\hyperlink{classgko_1_1log_1_1Stream}{gko::log::Stream<>::create}}(}
+\DoxyCodeLine{        exec, \mbox{\hyperlink{classgko_1_1log_1_1Logger_a02534863a2d2f92dfeb2c39038365532}{gko::log::Logger::all\_events\_mask}}, filestream));}
+\DoxyCodeLine{    solver-\/>add\_logger(stream\_logger);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::shared\_ptr<gko::log::Record> record\_logger = \mbox{\hyperlink{classgko_1_1log_1_1Record_ab3863ff409b8ceaefa2f226a4e26debc}{gko::log::Record::create}}(}
+\DoxyCodeLine{        exec, \mbox{\hyperlink{classgko_1_1log_1_1Logger_af263708ebb15007bc0086e7c438c190c}{gko::log::Logger::executor\_events\_mask}} |}
+\DoxyCodeLine{                  gko::log::Logger::criterion\_check\_completed\_mask);}
+\DoxyCodeLine{    exec-\/>add\_logger(record\_logger);}
+\DoxyCodeLine{    residual\_criterion-\/>add\_logger(record\_logger);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} \&last\_copy = record\_logger-\/>get().copy\_completed.back();}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Last memory copied was of size "} << std::hex}
+\DoxyCodeLine{              << std::get<0>(*last\_copy).num\_bytes << \textcolor{stringliteral}{" FROM executor "}}
+\DoxyCodeLine{              << std::get<0>(*last\_copy).exec << \textcolor{stringliteral}{" pointer "}}
+\DoxyCodeLine{              << std::get<0>(*last\_copy).location << \textcolor{stringliteral}{" TO executor "}}
+\DoxyCodeLine{              << std::get<1>(*last\_copy).exec << \textcolor{stringliteral}{" pointer "}}
+\DoxyCodeLine{              << std::get<1>(*last\_copy).location << std::dec << std::endl;}
+\DoxyCodeLine{    \textcolor{keyword}{auto} residual =}
+\DoxyCodeLine{        record\_logger-\/>get().criterion\_check\_completed.back()-\/>residual.get();}
+\DoxyCodeLine{    \textcolor{keyword}{auto} residual\_d = gko::as<gko::matrix::Dense<>>(residual);}
+\DoxyCodeLine{    print\_vector(\textcolor{stringliteral}{"Residual"}, residual\_d);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Solution (x): \(\backslash\)n"};}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} = gko::initialize<vec>(\{1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} neg\_one = gko::initialize<vec>(\{-\/1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} res = gko::initialize<vec>(\{0.0\}, exec);}
+\DoxyCodeLine{    A-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(neg\_one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b));}
+\DoxyCodeLine{    b-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(res));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Residual norm sqrt(r\string^T r): \(\backslash\)n"};}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(res));}
+\DoxyCodeLine{\}}
+\end{DoxyCodeInclude}
+ 

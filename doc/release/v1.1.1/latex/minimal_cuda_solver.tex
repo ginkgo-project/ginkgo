@@ -1,0 +1,177 @@
+The minimal C\+U\+DA solver example..
+
+This example depends on simple-\/solver.
+
+ \label{_Intro}%
+ \label{_Introduction}%
+\doxysection*{Introduction}
+
+This is a minimal example that solves a system with Ginkgo. The matrix, right hand side and initial guess are read from standard input, and the result is written to standard output. The system matrix is stored in C\+SR format, and the system solved using the CG method, preconditioned with the block-\/\+Jacobi preconditioner. All computations are done on the G\+PU.
+
+The easiest way to use the example data from the data/ folder is to concatenate the matrix, the right hand side and the initial solution (in that exact order), and pipe the result to the minimal\+\_\+solver\+\_\+cuda executable\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{cat data/A.mtx data/b.mtx data/x0.mtx | ./minimal\_solver\_cuda}
+\end{DoxyCode}
+
+
+\label{_Abouttheexample}%
+\doxysubsubsection*{About the example }
+
+\label{_CommProg}%
+ \doxysection*{The commented program}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main()}
+\DoxyCodeLine{\{}
+\end{DoxyCode}
+
+
+Instantiate a C\+U\+DA executor
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} gpu = \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\end{DoxyCode}
+
+
+Read data
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} A = gko::read<gko::matrix::Csr<>>(std::cin, gpu);}
+\DoxyCodeLine{\textcolor{keyword}{auto} b = gko::read<gko::matrix::Dense<>>(std::cin, gpu);}
+\DoxyCodeLine{\textcolor{keyword}{auto} x = gko::read<gko::matrix::Dense<>>(std::cin, gpu);}
+\end{DoxyCode}
+
+
+Create the solver
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} solver =}
+\DoxyCodeLine{    \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>::build}}()}
+\DoxyCodeLine{        .with\_preconditioner(\mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko::preconditioner::Jacobi<>::build}}().on(gpu))}
+\DoxyCodeLine{        .with\_criteria(}
+\DoxyCodeLine{            gko::stop::Iteration::build().with\_max\_iters(20u).on(gpu),}
+\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<>::build}}()}
+\DoxyCodeLine{                .with\_reduction\_factor(1e-\/15)}
+\DoxyCodeLine{                .on(gpu))}
+\DoxyCodeLine{        .on(gpu);}
+\end{DoxyCode}
+
+
+Solve system
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{solver-\/>generate(\mbox{\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{give}}(A))-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\end{DoxyCode}
+
+
+Write result
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+ \label{_Results}%
+\doxysection*{Results}
+
+The following is the expected result when using the data contained in the folder {\ttfamily data} as input\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\%\%MatrixMarket matrix \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{array}} \mbox{\hyperlink{namespacegko_ae23cfd886cee6e88d77bcbbbe1928b78}{real}} general}
+\DoxyCodeLine{19 1}
+\DoxyCodeLine{0.252218}
+\DoxyCodeLine{0.108645}
+\DoxyCodeLine{0.0662811}
+\DoxyCodeLine{0.0630433}
+\DoxyCodeLine{0.0384088}
+\DoxyCodeLine{0.0396536}
+\DoxyCodeLine{0.0402648}
+\DoxyCodeLine{0.0338935}
+\DoxyCodeLine{0.0193098}
+\DoxyCodeLine{0.0234653}
+\DoxyCodeLine{0.0211499}
+\DoxyCodeLine{0.0196413}
+\DoxyCodeLine{0.0199151}
+\DoxyCodeLine{0.0181674}
+\DoxyCodeLine{0.0162722}
+\DoxyCodeLine{0.0150714}
+\DoxyCodeLine{0.0107016}
+\DoxyCodeLine{0.0121141}
+\DoxyCodeLine{0.0123025}
+\end{DoxyCode}
+
+
+\label{_Commentsaboutprogramminganddebugging}%
+\doxysubsubsection*{Comments about programming and debugging }
+
+\label{_PlainProg}%
+ \doxysection*{The plain program}
+
+
+\begin{DoxyCodeInclude}{0}
+\DoxyCodeLine{\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}}
+\DoxyCodeLine{\textcolor{comment}{Copyright (c) 2017-\/2019, the Ginkgo authors}}
+\DoxyCodeLine{\textcolor{comment}{All rights reserved.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{Redistribution and use in source and binary forms, with or without}}
+\DoxyCodeLine{\textcolor{comment}{modification, are permitted provided that the following conditions}}
+\DoxyCodeLine{\textcolor{comment}{are met:}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{1. Redistributions of source code must retain the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{2. Redistributions in binary form must reproduce the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer in the}}
+\DoxyCodeLine{\textcolor{comment}{documentation and/or other materials provided with the distribution.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{3. Neither the name of the copyright holder nor the names of its}}
+\DoxyCodeLine{\textcolor{comment}{contributors may be used to endorse or promote products derived from}}
+\DoxyCodeLine{\textcolor{comment}{this software without specific prior written permission.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS}}
+\DoxyCodeLine{\textcolor{comment}{IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED}}
+\DoxyCodeLine{\textcolor{comment}{TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A}}
+\DoxyCodeLine{\textcolor{comment}{PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT}}
+\DoxyCodeLine{\textcolor{comment}{HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,}}
+\DoxyCodeLine{\textcolor{comment}{SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT}}
+\DoxyCodeLine{\textcolor{comment}{LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,}}
+\DoxyCodeLine{\textcolor{comment}{DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY}}
+\DoxyCodeLine{\textcolor{comment}{THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}}
+\DoxyCodeLine{\textcolor{comment}{(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}}
+\DoxyCodeLine{\textcolor{comment}{OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}}
+\DoxyCodeLine{\textcolor{comment}{******************************<GINKGO LICENSE>*******************************/}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main()}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} gpu = \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{    \textcolor{keyword}{auto} A = gko::read<gko::matrix::Csr<>>(std::cin, gpu);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} b = gko::read<gko::matrix::Dense<>>(std::cin, gpu);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} x = gko::read<gko::matrix::Dense<>>(std::cin, gpu);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} solver =}
+\DoxyCodeLine{        \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>::build}}()}
+\DoxyCodeLine{            .with\_preconditioner(\mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko::preconditioner::Jacobi<>::build}}().on(gpu))}
+\DoxyCodeLine{            .with\_criteria(}
+\DoxyCodeLine{                gko::stop::Iteration::build().with\_max\_iters(20u).on(gpu),}
+\DoxyCodeLine{                \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<>::build}}()}
+\DoxyCodeLine{                    .with\_reduction\_factor(1e-\/15)}
+\DoxyCodeLine{                    .on(gpu))}
+\DoxyCodeLine{            .on(gpu);}
+\DoxyCodeLine{    solver-\/>generate(\mbox{\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{give}}(A))-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\DoxyCodeLine{\}}
+\end{DoxyCodeInclude}
+ 

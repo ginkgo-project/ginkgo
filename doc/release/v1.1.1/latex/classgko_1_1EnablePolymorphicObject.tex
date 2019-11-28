@@ -1,0 +1,60 @@
+\hypertarget{classgko_1_1EnablePolymorphicObject}{}\doxysection{gko\+::Enable\+Polymorphic\+Object$<$ Concrete\+Object, Polymorphic\+Base $>$ Class Template Reference}
+\label{classgko_1_1EnablePolymorphicObject}\index{gko::EnablePolymorphicObject$<$ ConcreteObject, PolymorphicBase $>$@{gko::EnablePolymorphicObject$<$ ConcreteObject, PolymorphicBase $>$}}
+
+
+This mixin inherits from (a subclass of) \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} and provides a base implementation of a new concrete polymorphic object.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/polymorphic\+\_\+object.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Enable\+Polymorphic\+Object$<$ Concrete\+Object, Polymorphic\+Base $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1EnablePolymorphicObject__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Concrete\+Object, typename Polymorphic\+Base = Polymorphic\+Object$>$\newline
+class gko\+::\+Enable\+Polymorphic\+Object$<$ Concrete\+Object, Polymorphic\+Base $>$}
+
+This mixin inherits from (a subclass of) \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} and provides a base implementation of a new concrete polymorphic object. 
+
+The mixin changes parameter and return types of appropriate public methods of \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} in the same way \mbox{\hyperlink{classgko_1_1EnableAbstractPolymorphicObject}{Enable\+Abstract\+Polymorphic\+Object}} does. In addition, it also provides default implementations of \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}}\textquotesingle{}s vritual methods by using the {\itshape executor default constructor} and the assignment operator of Concrete\+Object. Consequently, the following is a minimal example of \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}}\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{c++\}}
+\DoxyCodeLine{\textcolor{keyword}{struct }MyObject : EnablePolymorphicObject<MyObject> \{}
+\DoxyCodeLine{    MyObject(std::shared\_ptr<const Executor> exec)}
+\DoxyCodeLine{        : EnablePolymorphicObject<MyObject>(std::move(exec))}
+\DoxyCodeLine{    \{\}}
+\DoxyCodeLine{\};}
+\end{DoxyCode}
+
+
+In a way, this mixin can be viewed as an extension of default constructor/destructor/assignment operators.
+
+\begin{DoxyNote}{Note}
+This mixin does not enable copying the polymorphic object to the object of the same type (i.\+e. it does not implement the Convertible\+To$<$\+Concrete\+Object$>$ interface). To enable a default implementation of this interface see the \mbox{\hyperlink{classgko_1_1EnablePolymorphicAssignment}{Enable\+Polymorphic\+Assignment}} mixin.
+\end{DoxyNote}
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Concrete\+Object} & the concrete type which is being implemented \mbox{[}C\+R\+TP parameter\mbox{]} \\
+\hline
+{\em Polymorphic\+Base} & parent of Concrete\+Object in the polymorphic hierarchy, has to be a subclass of polymorphic object \\
+\hline
+\end{DoxyTemplParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/polymorphic\+\_\+object.\+hpp (8f70a7c81)\end{DoxyCompactItemize}

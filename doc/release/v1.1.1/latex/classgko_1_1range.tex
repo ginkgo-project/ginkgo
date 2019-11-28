@@ -1,0 +1,265 @@
+\hypertarget{classgko_1_1range}{}\doxysection{gko\+::range$<$ Accessor $>$ Class Template Reference}
+\label{classgko_1_1range}\index{gko::range$<$ Accessor $>$@{gko::range$<$ Accessor $>$}}
+
+
+A range is a multidimensional view of the memory.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/range.\+hpp$>$}
+
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1range_a3332728e51dadcf6517847cef3000a17}\label{classgko_1_1range_a3332728e51dadcf6517847cef3000a17}} 
+using \mbox{\hyperlink{classgko_1_1range_a3332728e51dadcf6517847cef3000a17}{accessor}} = Accessor
+\begin{DoxyCompactList}\small\item\em The type of the underlying accessor. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1range_a8c8f2ca9dcaf25ca52fbf21fc7bb8a94}\label{classgko_1_1range_a8c8f2ca9dcaf25ca52fbf21fc7bb8a94}} 
+\mbox{\hyperlink{classgko_1_1range_a8c8f2ca9dcaf25ca52fbf21fc7bb8a94}{$\sim$range}} ()=default
+\begin{DoxyCompactList}\small\item\em Use the default destructor. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename... Accessor\+Params$>$ }\\constexpr \mbox{\hyperlink{classgko_1_1range_a906b09927f171491b605dd62e8723d98}{range}} (Accessor\+Params \&\&... params)
+\begin{DoxyCompactList}\small\item\em Creates a new range. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename... Dimension\+Types$>$ }\\constexpr auto \mbox{\hyperlink{classgko_1_1range_a3ac230f10fa217dbb46475ea38243573}{operator()}} (Dimension\+Types \&\&... dimensions) const -\/$>$ decltype(std\+::declval$<$ \mbox{\hyperlink{classgko_1_1range_a3332728e51dadcf6517847cef3000a17}{accessor}} $>$()(std\+::forward$<$ Dimension\+Types $>$(dimensions)...))
+\begin{DoxyCompactList}\small\item\em Returns a value (or a sub-\/range) with the specified indexes. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename Other\+Accessor $>$ }\\const \mbox{\hyperlink{classgko_1_1range}{range}} \& \mbox{\hyperlink{classgko_1_1range_ab58e7e142727278bfd837dbc6f7d5b51}{operator=}} (const \mbox{\hyperlink{classgko_1_1range}{range}}$<$ Other\+Accessor $>$ \&other) const
+\item 
+const \mbox{\hyperlink{classgko_1_1range}{range}} \& \mbox{\hyperlink{classgko_1_1range_af3761a7996e353988dea26581f4390aa}{operator=}} (const \mbox{\hyperlink{classgko_1_1range}{range}} \&other) const
+\begin{DoxyCompactList}\small\item\em Assigns another range to this range. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1range_ab555af1ee5acedf9b835566ec24ba02f}\label{classgko_1_1range_ab555af1ee5acedf9b835566ec24ba02f}} 
+{\bfseries range} (const \mbox{\hyperlink{classgko_1_1range}{range}} \&other)=default
+\item 
+constexpr \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1range_a3ac8b238c377da9cc05d7c728efabfc8}{length}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} dimension) const
+\begin{DoxyCompactList}\small\item\em Returns the length of the specified dimension of the range. \end{DoxyCompactList}\item 
+constexpr const \mbox{\hyperlink{classgko_1_1range_a3332728e51dadcf6517847cef3000a17}{accessor}} $\ast$ \mbox{\hyperlink{classgko_1_1range_ad846fcf80cb6cd8881cd7dd8dddc6ca9}{operator-\/$>$}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns a pointer to the accessor. \end{DoxyCompactList}\item 
+constexpr const \mbox{\hyperlink{classgko_1_1range_a3332728e51dadcf6517847cef3000a17}{accessor}} \& \mbox{\hyperlink{classgko_1_1range_ac62f76256fce7442670275827e32d506}{get\+\_\+accessor}} () const noexcept
+\begin{DoxyCompactList}\small\item\em \`{}\+Returns a reference to the accessor. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1range_a6796721a162561502474e3150f179167}\label{classgko_1_1range_a6796721a162561502474e3150f179167}} 
+static constexpr \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1range_a6796721a162561502474e3150f179167}{dimensionality}} = accessor\+::dimensionality
+\begin{DoxyCompactList}\small\item\em The number of dimensions of the range. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Accessor$>$\newline
+class gko\+::range$<$ Accessor $>$}
+
+A range is a multidimensional view of the memory. 
+
+The range does not store any of its values by itself. Instead, it obtains the values through an accessor (e.\+g. \mbox{\hyperlink{classgko_1_1accessor_1_1row__major}{accessor\+::row\+\_\+major}}) which describes how the indexes of the range map to physical locations in memory.
+
+There are several advantages of using ranges instead of plain memory pointers\+:
+
+
+\begin{DoxyEnumerate}
+\item Code using ranges is easier to read and write, as there is no need for index linearizations.
+\item Code using ranges is safer, as it is impossible to accidentally miscalculate an index or step out of bounds, since range accessors perform bounds checking in debug builds. For performance, this can be disabled in release builds by defining the {\ttfamily N\+D\+E\+B\+UG} flag.
+\item Ranges enable generalized code, as algorithms can be written independent of the memory layout. This does not impede various optimizations based on memory layout, as it is always possible to specialize algorithms for ranges with specific memory layouts.
+\item Ranges have various pointwise operations predefined, which reduces the amount of loops that need to be written.
+\end{DoxyEnumerate}\hypertarget{classgko_1_1range_autotoc_md9}{}\doxysubsubsection{Range operations}\label{classgko_1_1range_autotoc_md9}
+Ranges define a complete set of pointwise unary and binary operators which extend the basic arithmetic operators in C++, as well as a few pointwise operations and mathematical functions useful in ginkgo, and a couple of non-\/pointwise operations. Compound assignment ({\ttfamily +=}, {\ttfamily $\ast$=}, etc.) is not yet supported at this moment. Here is a complete list of operations\+:
+
+
+\begin{DoxyItemize}
+\item standard unary operations\+: {\ttfamily +}, {\ttfamily -\/}, {\ttfamily !}, {\ttfamily $\sim$}
+\item standard binary operations\+: {\ttfamily +}, {\ttfamily $\ast$} (this is pointwise, not matrix multiplication), {\ttfamily /}, {\ttfamily \%}, {\ttfamily $<$}, {\ttfamily $>$}, {\ttfamily $<$=}, {\ttfamily $>$=}, {\ttfamily ==}, {\ttfamily !=}, {\ttfamily $\vert$$\vert$}, {\ttfamily \&\&}, {\ttfamily $\vert$}, {\ttfamily \&}, {\ttfamily $^\wedge$}, {\ttfamily $<$$<$}, {\ttfamily $>$$>$}
+\item useful unary functions\+: {\ttfamily zero}, {\ttfamily one}, {\ttfamily abs}, {\ttfamily real}, {\ttfamily imag}, {\ttfamily conj}, {\ttfamily squared\+\_\+norm}
+\item useful binary functions\+: {\ttfamily min}, {\ttfamily max}
+\end{DoxyItemize}
+
+All binary pointwise operations also work as expected if one of the operands is a scalar and the other is a range. The scalar operand will have the effect as if it was a range of the same size as the other operand, filled with the specified scalar.
+
+Two \char`\"{}global\char`\"{} functions {\ttfamily transpose} and {\ttfamily mmul} are also supported. {\ttfamily transpose} transposes the first two dimensions of the range (i.\+e. {\ttfamily transpose(r)(i, j, ...) == r(j, i, ...)}). {\ttfamily mmul} performs a (batched) matrix multiply of the ranges -\/ the first two dimensions represent the matrices, while the rest represent the batch. For example, given the ranges {\ttfamily r1} and {\ttfamily r2} of dimensions {\ttfamily (3, 2, 3)} and {\ttfamily (2, 4, 3)}, respectively, {\ttfamily mmul(r1, r2)} will return a range of dimensions {\ttfamily (3, 4, 3)}, obtained by multiplying the 3 frontal slices of the range, and stacking the result back vertically.\hypertarget{classgko_1_1range_autotoc_md10}{}\doxysubsubsection{Compound operations}\label{classgko_1_1range_autotoc_md10}
+Multiple range operations can be combined into a single expression. For example, an \char`\"{}axpy\char`\"{} operation can be obtained using {\ttfamily y = alpha $\ast$ x + y}, where {\ttfamily x} an {\ttfamily y} are ranges, and {\ttfamily alpha} is a scalar. Range operations are optimized for memory access, and the above code does not allocate additional storage for intermediate ranges {\ttfamily alpha $\ast$ x} or {\ttfamily aplha $\ast$ x + y}. In fact, the entire computation is done during the assignment, and the results of operations {\ttfamily +} and {\ttfamily $\ast$} only register the data, and the types of operations that will be computed once the results are needed.
+
+It is possible to store and reuse these intermediate expressions. The following example will overwrite the range {\ttfamily x} with it\textquotesingle{}s 4th power\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{c++\}}
+\DoxyCodeLine{\textcolor{keyword}{auto} square = x * x;  \textcolor{comment}{// this is range constructor, not range assignment!}}
+\DoxyCodeLine{x = square;  \textcolor{comment}{// overwrites x with x*x (this is range assignment)}}
+\DoxyCodeLine{x = square;  \textcolor{comment}{// overwrites new x (x*x) with (x*x)*(x*x) (as is this)}}
+\end{DoxyCode}
+\hypertarget{classgko_1_1range_autotoc_md11}{}\doxysubsubsection{Caveats}\label{classgko_1_1range_autotoc_md11}
+\+\_\+\+\_\+{\ttfamily mmul} is not a highly-\/optimized B\+L\+A\+S-\/3 version of the matrix multiplication.\+\_\+\+\_\+ The current design of ranges and accessors prevents that, so if you need a high-\/perfromance matrix multiplication, you should use one of the libraries that provide that, or implement your own (you can use pointwise range operations to help simplify that). However, range design might get improved in the future to allow efficient implementations of B\+L\+A\+S-\/3 kernels.
+
+Aliasing the result range in {\ttfamily mmul} and {\ttfamily transpose} is not allowed. Constructs like {\ttfamily A = transpose(\+A)}, {\ttfamily A = mmul(\+A, A)}, or {\ttfamily A = mmul(\+A, A) + C} lead to undefined behavior. However, aliasing input arguments is allowed\+: {\ttfamily C = mmul(\+A, A)}, and even {\ttfamily C = mmul(\+A, A) + C} is valid code (in the last example, only pointwise operations are aliased). {\ttfamily C = mmul(A, A + C)} is not valid though.\hypertarget{classgko_1_1range_autotoc_md12}{}\doxysubsubsection{Examples}\label{classgko_1_1range_autotoc_md12}
+The range unit tests in core/test/base/range.\+cpp contain lots of simple 1-\/line examples of range operations. The accessor unit tests in core/test/base/range.\+cpp show how to use ranges with concrete accessors, and how to use range slices using {\ttfamily span}s as arguments to range function call operator. Finally, examples/range contains a complete example where ranges are used to implement a simple version of the right-\/looking LU factorization.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Accessor} & underlying accessor of the range \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classgko_1_1range_a906b09927f171491b605dd62e8723d98}\label{classgko_1_1range_a906b09927f171491b605dd62e8723d98}} 
+\index{gko::range$<$ Accessor $>$@{gko::range$<$ Accessor $>$}!range@{range}}
+\index{range@{range}!gko::range$<$ Accessor $>$@{gko::range$<$ Accessor $>$}}
+\doxysubsubsection{\texorpdfstring{range()}{range()}}
+{\footnotesize\ttfamily template$<$typename Accessor$>$ \\
+template$<$typename... Accessor\+Params$>$ \\
+constexpr \mbox{\hyperlink{classgko_1_1range}{gko\+::range}}$<$ Accessor $>$\+::\mbox{\hyperlink{classgko_1_1range}{range}} (\begin{DoxyParamCaption}\item[{Accessor\+Params \&\&...}]{params }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [explicit]}, {\ttfamily [constexpr]}}
+
+
+
+Creates a new range. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Accessor\+Param} & types of parameters forwarded to the accessor constructor\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em params} & parameters forwarded to Accessor constructor. \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1range_ac62f76256fce7442670275827e32d506}\label{classgko_1_1range_ac62f76256fce7442670275827e32d506}} 
+\index{gko::range$<$ Accessor $>$@{gko::range$<$ Accessor $>$}!get\_accessor@{get\_accessor}}
+\index{get\_accessor@{get\_accessor}!gko::range$<$ Accessor $>$@{gko::range$<$ Accessor $>$}}
+\doxysubsubsection{\texorpdfstring{get\_accessor()}{get\_accessor()}}
+{\footnotesize\ttfamily template$<$typename Accessor$>$ \\
+constexpr const \mbox{\hyperlink{classgko_1_1range_a3332728e51dadcf6517847cef3000a17}{accessor}}\& \mbox{\hyperlink{classgko_1_1range}{gko\+::range}}$<$ Accessor $>$\+::get\+\_\+accessor (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+
+
+
+\`{}\+Returns a reference to the accessor. 
+
+\begin{DoxyReturn}{Returns}
+reference to the accessor 
+\end{DoxyReturn}
+
+
+Referenced by gko\+::range$<$ Accessor $>$\+::operator=().
+
+\mbox{\Hypertarget{classgko_1_1range_a3ac8b238c377da9cc05d7c728efabfc8}\label{classgko_1_1range_a3ac8b238c377da9cc05d7c728efabfc8}} 
+\index{gko::range$<$ Accessor $>$@{gko::range$<$ Accessor $>$}!length@{length}}
+\index{length@{length}!gko::range$<$ Accessor $>$@{gko::range$<$ Accessor $>$}}
+\doxysubsubsection{\texorpdfstring{length()}{length()}}
+{\footnotesize\ttfamily template$<$typename Accessor$>$ \\
+constexpr \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1range}{gko\+::range}}$<$ Accessor $>$\+::length (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{dimension }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}}
+
+
+
+Returns the length of the specified dimension of the range. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em dimension} & the dimensions whose length is returned\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the length of the {\ttfamily dimension}-\/th dimension of the range 
+\end{DoxyReturn}
+
+
+Referenced by gko\+::matrix\+\_\+data$<$ Value\+Type, Index\+Type $>$\+::matrix\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1range_a3ac230f10fa217dbb46475ea38243573}\label{classgko_1_1range_a3ac230f10fa217dbb46475ea38243573}} 
+\index{gko::range$<$ Accessor $>$@{gko::range$<$ Accessor $>$}!operator()@{operator()}}
+\index{operator()@{operator()}!gko::range$<$ Accessor $>$@{gko::range$<$ Accessor $>$}}
+\doxysubsubsection{\texorpdfstring{operator()()}{operator()()}}
+{\footnotesize\ttfamily template$<$typename Accessor$>$ \\
+template$<$typename... Dimension\+Types$>$ \\
+constexpr auto \mbox{\hyperlink{classgko_1_1range}{gko\+::range}}$<$ Accessor $>$\+::operator() (\begin{DoxyParamCaption}\item[{Dimension\+Types \&\&...}]{dimensions }\end{DoxyParamCaption}) const -\/$>$ decltype(std\+::declval$<$\mbox{\hyperlink{classgko_1_1range_a3332728e51dadcf6517847cef3000a17}{accessor}}$>$()(
+            std\+::forward$<$Dimension\+Types$>$(dimensions)...))
+    \hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}}
+
+
+
+Returns a value (or a sub-\/range) with the specified indexes. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Dimension\+Types} & The types of indexes. Supported types depend on the underlying accessor, but are usually either integer types or spans. If at least one index is a span, the returned value will be a sub-\/range.\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em dimensions} & the indexes of the values.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+a value on position {\ttfamily (dimensions...)}. 
+\end{DoxyReturn}
+
+
+References gko\+::range$<$ Accessor $>$\+::dimensionality.
+
+\mbox{\Hypertarget{classgko_1_1range_ad846fcf80cb6cd8881cd7dd8dddc6ca9}\label{classgko_1_1range_ad846fcf80cb6cd8881cd7dd8dddc6ca9}} 
+\index{gko::range$<$ Accessor $>$@{gko::range$<$ Accessor $>$}!operator-\/$>$@{operator-\/$>$}}
+\index{operator-\/$>$@{operator-\/$>$}!gko::range$<$ Accessor $>$@{gko::range$<$ Accessor $>$}}
+\doxysubsubsection{\texorpdfstring{operator-\/$>$()}{operator->()}}
+{\footnotesize\ttfamily template$<$typename Accessor$>$ \\
+constexpr const \mbox{\hyperlink{classgko_1_1range_a3332728e51dadcf6517847cef3000a17}{accessor}}$\ast$ \mbox{\hyperlink{classgko_1_1range}{gko\+::range}}$<$ Accessor $>$\+::operator-\/$>$ (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+
+
+
+Returns a pointer to the accessor. 
+
+Can be used to access data and functions of a specific accessor.
+
+\begin{DoxyReturn}{Returns}
+pointer to the accessor 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1range_af3761a7996e353988dea26581f4390aa}\label{classgko_1_1range_af3761a7996e353988dea26581f4390aa}} 
+\index{gko::range$<$ Accessor $>$@{gko::range$<$ Accessor $>$}!operator=@{operator=}}
+\index{operator=@{operator=}!gko::range$<$ Accessor $>$@{gko::range$<$ Accessor $>$}}
+\doxysubsubsection{\texorpdfstring{operator=()}{operator=()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename Accessor$>$ \\
+const \mbox{\hyperlink{classgko_1_1range}{range}}\& \mbox{\hyperlink{classgko_1_1range}{gko\+::range}}$<$ Accessor $>$\+::operator= (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1range}{range}}$<$ Accessor $>$ \&}]{other }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Assigns another range to this range. 
+
+The order of assignment is defined by the accessor of this range, thus the memory access will be optimized for the resulting range, and not for the other range. If the sizes of two ranges do not match, the result is undefined. Sizes of the ranges are checked at runtime in debug builds.
+
+\begin{DoxyNote}{Note}
+Temporary accessors are allowed to define the implementation of the assignment as deleted, so do not expect {\ttfamily r1 $\ast$ r2 = r2} to work.
+\end{DoxyNote}
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the range to copy the data from \\
+\hline
+\end{DoxyParams}
+
+
+References gko\+::range$<$ Accessor $>$\+::get\+\_\+accessor().
+
+\mbox{\Hypertarget{classgko_1_1range_ab58e7e142727278bfd837dbc6f7d5b51}\label{classgko_1_1range_ab58e7e142727278bfd837dbc6f7d5b51}} 
+\index{gko::range$<$ Accessor $>$@{gko::range$<$ Accessor $>$}!operator=@{operator=}}
+\index{operator=@{operator=}!gko::range$<$ Accessor $>$@{gko::range$<$ Accessor $>$}}
+\doxysubsubsection{\texorpdfstring{operator=()}{operator=()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$typename Accessor$>$ \\
+template$<$typename Other\+Accessor $>$ \\
+const \mbox{\hyperlink{classgko_1_1range}{range}}\& \mbox{\hyperlink{classgko_1_1range}{gko\+::range}}$<$ Accessor $>$\+::operator= (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1range}{range}}$<$ Other\+Accessor $>$ \&}]{other }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+
+
+This is a version of the function which allows to copy between ranges of different accessors.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Other\+Accessor} & accessor of the other range \\
+\hline
+\end{DoxyTemplParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/range.\+hpp (8f70a7c81)\end{DoxyCompactItemize}

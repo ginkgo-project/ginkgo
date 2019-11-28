@@ -1,0 +1,10 @@
+<map id="gko::stop::Time" name="gko::stop::Time">
+<area shape="rect" id="node1" title="The Time class is a stopping criterion which stops the iteration process after a certain amout of tim..." alt="" coords="1747,65,1869,92"/>
+<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="1476,58,1697,99"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="723,26,956,67"/>
+<area shape="rect" id="node4" title=" " alt="" coords="279,5,358,32"/>
+<area shape="rect" id="node5" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="189,64,448,120"/>
+<area shape="rect" id="node8" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="705,92,973,148"/>
+<area shape="rect" id="node6" title=" " alt="" coords="5,128,140,155"/>
+<area shape="rect" id="node7" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="1023,89,1296,130"/>
+</map>

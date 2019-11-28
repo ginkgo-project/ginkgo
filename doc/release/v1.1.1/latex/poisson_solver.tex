@@ -1,0 +1,436 @@
+The poisson solver example..
+
+This example depends on simple-\/solver.
+
+ \label{_Intro}%
+ \label{_Introduction}%
+\doxysection*{Introduction}
+
+This example solves a 1D Poisson equation\+:
+
+$ u : [0, 1] \rightarrow R\\ u\text{'}\text{'} = f\\ u(0) = u0\\ u(1) = u1 $
+
+using a finite difference method on an equidistant grid with {\ttfamily K} discretization points ({\ttfamily K} can be controlled with a command line parameter). The discretization is done via the second order Taylor polynomial\+:
+
+$ u(x + h) = u(x) - u\text{'}(x)h + 1/2 u\text{'}\text{'}(x)h^2 + O(h^3)\\ u(x - h) = u(x) + u\text{'}(x)h + 1/2 u\text{'}\text{'}(x)h^2 + O(h^3) / +\\ ---------------------- \\ -u(x - h) + 2u(x) + -u(x + h) = -f(x)h^2 + O(h^3) $
+
+For an equidistant grid with K \char`\"{}inner\char`\"{} discretization points $x1, ..., xk, $and step size $ h = 1 / (K + 1)$, the formula produces a system of linear equations
+
+$ 2u_1 - u_2 = -f_1 h^2 + u0\\ -u_(k-1) + 2u_k - u_(k+1) = -f_k h^2, k = 2, ..., K - 1\\ -u_(K-1) + 2u_K = -f_K h^2 + u1\\ $
+
+which is then solved using Ginkgo\textquotesingle{}s implementation of the CG method preconditioned with block-\/\+Jacobi. It is also possible to specify on which executor Ginkgo will solve the system via the command line. The function $`f` $is set to $`f(x) = 6x`$ (making the solution $`u(x) = x^3`$), but that can be changed in the {\ttfamily main} function.
+
+The intention of the example is to show how Ginkgo can be used to build an application solving a real-\/world problem, which includes a solution of a large, sparse linear system as a component.
+
+\label{_Abouttheexample}%
+\doxysubsubsection*{About the example }
+
+\label{_CommProg}%
+ \doxysection*{The commented program}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <map>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <vector>}}
+\end{DoxyCode}
+
+
+Creates a stencil matrix in C\+SR format for the given number of discretization points.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keywordtype}{void} generate\_stencil\_matrix(\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}} *matrix)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} discretization\_points = matrix-\/>\mbox{\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}}()[0];}
+\DoxyCodeLine{    \textcolor{keyword}{auto} row\_ptrs = matrix-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_a068e5158cf282fa977f0a137f8cd7f03}{get\_row\_ptrs}}();}
+\DoxyCodeLine{    \textcolor{keyword}{auto} col\_idxs = matrix-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_a81c6294177a1be4873804c8a85a9fc64}{get\_col\_idxs}}();}
+\DoxyCodeLine{    \textcolor{keyword}{auto} values = matrix-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_a929b0a194e6aeb1252b8e6781d162e83}{get\_values}}();}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} pos = 0;}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keywordtype}{double} coefs[] = \{-\/1, 2, -\/1\};}
+\DoxyCodeLine{    row\_ptrs[0] = pos;}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < discretization\_points; ++i) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} ofs : \{-\/1, 0, 1\}) \{}
+\DoxyCodeLine{            \textcolor{keywordflow}{if} (0 <= i + ofs \&\& i + ofs < discretization\_points) \{}
+\DoxyCodeLine{                values[pos] = coefs[ofs + 1];}
+\DoxyCodeLine{                col\_idxs[pos] = i + ofs;}
+\DoxyCodeLine{                ++pos;}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        row\_ptrs[i + 1] = pos;}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+Generates the R\+HS vector given {\ttfamily f} and the boundary conditions.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure>}
+\DoxyCodeLine{\textcolor{keywordtype}{void} generate\_rhs(Closure f, \textcolor{keywordtype}{double} u0, \textcolor{keywordtype}{double} u1, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}} *rhs)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} discretization\_points = rhs-\/>\mbox{\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}}()[0];}
+\DoxyCodeLine{    \textcolor{keyword}{auto} values = rhs-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\_values}}();}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} h = 1.0 / (discretization\_points + 1);}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < discretization\_points; ++i) \{}
+\DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = (i + 1) * h;}
+\DoxyCodeLine{        values[i] = -\/f(xi) * h * h;}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    values[0] += u0;}
+\DoxyCodeLine{    values[discretization\_points -\/ 1] += u1;}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+Prints the solution {\ttfamily u}.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keywordtype}{void} print\_solution(\textcolor{keywordtype}{double} u0, \textcolor{keywordtype}{double} u1, \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}} *u)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    std::cout << u0 << \textcolor{charliteral}{'\(\backslash\)n'};}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < u-\/>\mbox{\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}}()[0]; ++i) \{}
+\DoxyCodeLine{        std::cout << u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}{get\_const\_values}}()[i] << \textcolor{charliteral}{'\(\backslash\)n'};}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    std::cout << u1 << std::endl;}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+Computes the 1-\/norm of the error given the computed {\ttfamily u} and the correct solution function {\ttfamily correct\+\_\+u}.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure>}
+\DoxyCodeLine{\textcolor{keywordtype}{double} calculate\_error(\textcolor{keywordtype}{int} discretization\_points, \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}} *u,}
+\DoxyCodeLine{                       Closure correct\_u)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} h = 1.0 / (discretization\_points + 1);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} error = 0.0;}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < discretization\_points; ++i) \{}
+\DoxyCodeLine{        \textcolor{keyword}{using} std::abs;}
+\DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = (i + 1) * h;}
+\DoxyCodeLine{        error +=}
+\DoxyCodeLine{            \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}{get\_const\_values}}()[i] -\/ correct\_u(xi)) / \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(correct\_u(xi));}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} error;}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\end{DoxyCode}
+
+
+Some shortcuts
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<double, int>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<double>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} bj = \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko::preconditioner::Jacobi<>}};}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordflow}{if} (argc < 2) \{}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" DISCRETIZATION\_POINTS [executor]"}}
+\DoxyCodeLine{              << std::endl;}
+\DoxyCodeLine{    std::exit(-\/1);}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+Get number of discretization points
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} discretization\_points =}
+\DoxyCodeLine{    argc >= 2 ? std::atoi(argv[1]) : 100;}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} executor\_string = argc >= 3 ? argv[2] : \textcolor{stringliteral}{"reference"};}
+\end{DoxyCode}
+
+
+Figure out where to run the code
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} omp = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\DoxyCodeLine{std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{}
+\DoxyCodeLine{    \{\textcolor{stringliteral}{"omp"}, omp\},}
+\DoxyCodeLine{    \{\textcolor{stringliteral}{"cuda"}, \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, omp)\},}
+\DoxyCodeLine{    \{\textcolor{stringliteral}{"reference"}, gko::ReferenceExecutor::create()\}\};}
+\end{DoxyCode}
+
+
+executor where Ginkgo will perform the computation
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string);  \textcolor{comment}{// throws if not valid}}
+\end{DoxyCode}
+
+
+executor used by the application
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec\_map[\textcolor{stringliteral}{"omp"}];}
+\end{DoxyCode}
+
+
+problem\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} correct\_u = [](\textcolor{keywordtype}{double} x) \{ \textcolor{keywordflow}{return} x * x * x; \};}
+\DoxyCodeLine{\textcolor{keyword}{auto} f = [](\textcolor{keywordtype}{double} x) \{ \textcolor{keywordflow}{return} 6 * x; \};}
+\DoxyCodeLine{\textcolor{keyword}{auto} u0 = correct\_u(0);}
+\DoxyCodeLine{\textcolor{keyword}{auto} u1 = correct\_u(1);}
+\end{DoxyCode}
+
+
+initialize matrix and vectors
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} matrix = mtx::create(app\_exec, \mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}(discretization\_points),}
+\DoxyCodeLine{                          3 * discretization\_points -\/ 2);}
+\DoxyCodeLine{generate\_stencil\_matrix(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(matrix));}
+\DoxyCodeLine{\textcolor{keyword}{auto} rhs = vec::create(app\_exec, \mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}(discretization\_points, 1));}
+\DoxyCodeLine{generate\_rhs(f, u0, u1, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(rhs));}
+\DoxyCodeLine{\textcolor{keyword}{auto} u = vec::create(app\_exec, \mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}(discretization\_points, 1));}
+\DoxyCodeLine{\textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < u-\/>\mbox{\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}}()[0]; ++i) \{}
+\DoxyCodeLine{    u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\_values}}()[i] = 0.0;}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+Generate solver and solve the system
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    cg::build()}
+\DoxyCodeLine{        .with\_criteria(gko::stop::Iteration::build()}
+\DoxyCodeLine{                           .with\_max\_iters(discretization\_points)}
+\DoxyCodeLine{                           .on(exec),}
+\DoxyCodeLine{                       \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<>::build}}()}
+\DoxyCodeLine{                           .with\_reduction\_factor(1e-\/6)}
+\DoxyCodeLine{                           .on(exec))}
+\DoxyCodeLine{        .with\_preconditioner(bj::build().on(exec))}
+\DoxyCodeLine{        .on(exec)}
+\DoxyCodeLine{        -\/>generate(\mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(exec, matrix))  \textcolor{comment}{// copy the matrix to the executor}}
+\DoxyCodeLine{        -\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(rhs), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(u));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    print\_solution(u0, u1, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(u));}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"The average relative error is "}}
+\DoxyCodeLine{              << calculate\_error(discretization\_points, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(u), correct\_u) /}
+\DoxyCodeLine{                     discretization\_points}
+\DoxyCodeLine{              << std::endl;}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+ \label{_Results}%
+\doxysection*{Results}
+
+This is the expected output\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{0}
+\DoxyCodeLine{0.00010798}
+\DoxyCodeLine{0.000863838}
+\DoxyCodeLine{0.00291545}
+\DoxyCodeLine{0.0069107}
+\DoxyCodeLine{0.0134975}
+\DoxyCodeLine{0.0233236}
+\DoxyCodeLine{0.037037}
+\DoxyCodeLine{0.0552856}
+\DoxyCodeLine{0.0787172}
+\DoxyCodeLine{0.10798}
+\DoxyCodeLine{0.143721}
+\DoxyCodeLine{0.186589}
+\DoxyCodeLine{0.237231}
+\DoxyCodeLine{0.296296}
+\DoxyCodeLine{0.364431}
+\DoxyCodeLine{0.442285}
+\DoxyCodeLine{0.530504}
+\DoxyCodeLine{0.629738}
+\DoxyCodeLine{0.740633}
+\DoxyCodeLine{0.863838}
+\DoxyCodeLine{1}
+\DoxyCodeLine{The average relative error is 1.87318e-\/15}
+\end{DoxyCode}
+
+
+\label{_Commentsaboutprogramminganddebugging}%
+\doxysubsubsection*{Comments about programming and debugging }
+
+\label{_PlainProg}%
+ \doxysection*{The plain program}
+
+
+\begin{DoxyCodeInclude}{0}
+\DoxyCodeLine{\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}}
+\DoxyCodeLine{\textcolor{comment}{Copyright (c) 2017-\/2019, the Ginkgo authors}}
+\DoxyCodeLine{\textcolor{comment}{All rights reserved.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{Redistribution and use in source and binary forms, with or without}}
+\DoxyCodeLine{\textcolor{comment}{modification, are permitted provided that the following conditions}}
+\DoxyCodeLine{\textcolor{comment}{are met:}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{1. Redistributions of source code must retain the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{2. Redistributions in binary form must reproduce the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer in the}}
+\DoxyCodeLine{\textcolor{comment}{documentation and/or other materials provided with the distribution.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{3. Neither the name of the copyright holder nor the names of its}}
+\DoxyCodeLine{\textcolor{comment}{contributors may be used to endorse or promote products derived from}}
+\DoxyCodeLine{\textcolor{comment}{this software without specific prior written permission.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS}}
+\DoxyCodeLine{\textcolor{comment}{IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED}}
+\DoxyCodeLine{\textcolor{comment}{TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A}}
+\DoxyCodeLine{\textcolor{comment}{PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT}}
+\DoxyCodeLine{\textcolor{comment}{HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,}}
+\DoxyCodeLine{\textcolor{comment}{SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT}}
+\DoxyCodeLine{\textcolor{comment}{LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,}}
+\DoxyCodeLine{\textcolor{comment}{DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY}}
+\DoxyCodeLine{\textcolor{comment}{THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}}
+\DoxyCodeLine{\textcolor{comment}{(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}}
+\DoxyCodeLine{\textcolor{comment}{OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}}
+\DoxyCodeLine{\textcolor{comment}{******************************<GINKGO LICENSE>*******************************/}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <map>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <vector>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} generate\_stencil\_matrix(\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}} *matrix)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} discretization\_points = matrix-\/>\mbox{\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}}()[0];}
+\DoxyCodeLine{    \textcolor{keyword}{auto} row\_ptrs = matrix-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_a068e5158cf282fa977f0a137f8cd7f03}{get\_row\_ptrs}}();}
+\DoxyCodeLine{    \textcolor{keyword}{auto} col\_idxs = matrix-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_a81c6294177a1be4873804c8a85a9fc64}{get\_col\_idxs}}();}
+\DoxyCodeLine{    \textcolor{keyword}{auto} values = matrix-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_a929b0a194e6aeb1252b8e6781d162e83}{get\_values}}();}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} pos = 0;}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keywordtype}{double} coefs[] = \{-\/1, 2, -\/1\};}
+\DoxyCodeLine{    row\_ptrs[0] = pos;}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < discretization\_points; ++i) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} ofs : \{-\/1, 0, 1\}) \{}
+\DoxyCodeLine{            \textcolor{keywordflow}{if} (0 <= i + ofs \&\& i + ofs < discretization\_points) \{}
+\DoxyCodeLine{                values[pos] = coefs[ofs + 1];}
+\DoxyCodeLine{                col\_idxs[pos] = i + ofs;}
+\DoxyCodeLine{                ++pos;}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        row\_ptrs[i + 1] = pos;}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure>}
+\DoxyCodeLine{\textcolor{keywordtype}{void} generate\_rhs(Closure f, \textcolor{keywordtype}{double} u0, \textcolor{keywordtype}{double} u1, \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}} *rhs)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} discretization\_points = rhs-\/>\mbox{\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}}()[0];}
+\DoxyCodeLine{    \textcolor{keyword}{auto} values = rhs-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\_values}}();}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} h = 1.0 / (discretization\_points + 1);}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < discretization\_points; ++i) \{}
+\DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = (i + 1) * h;}
+\DoxyCodeLine{        values[i] = -\/f(xi) * h * h;}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    values[0] += u0;}
+\DoxyCodeLine{    values[discretization\_points -\/ 1] += u1;}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} print\_solution(\textcolor{keywordtype}{double} u0, \textcolor{keywordtype}{double} u1, \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}} *u)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    std::cout << u0 << \textcolor{charliteral}{'\(\backslash\)n'};}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < u-\/>\mbox{\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}}()[0]; ++i) \{}
+\DoxyCodeLine{        std::cout << u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}{get\_const\_values}}()[i] << \textcolor{charliteral}{'\(\backslash\)n'};}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    std::cout << u1 << std::endl;}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure>}
+\DoxyCodeLine{\textcolor{keywordtype}{double} calculate\_error(\textcolor{keywordtype}{int} discretization\_points, \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}} *u,}
+\DoxyCodeLine{                       Closure correct\_u)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} h = 1.0 / (discretization\_points + 1);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} error = 0.0;}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < discretization\_points; ++i) \{}
+\DoxyCodeLine{        \textcolor{keyword}{using} std::abs;}
+\DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = (i + 1) * h;}
+\DoxyCodeLine{        error +=}
+\DoxyCodeLine{            \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_ab83c739c1b11abaecc3bfd89506f6c9c}{get\_const\_values}}()[i] -\/ correct\_u(xi)) / \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(correct\_u(xi));}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} error;}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<double>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<double, int>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<double>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} bj = \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko::preconditioner::Jacobi<>}};}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc < 2) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" DISCRETIZATION\_POINTS [executor]"}}
+\DoxyCodeLine{                  << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keywordtype}{unsigned} \textcolor{keywordtype}{int} discretization\_points =}
+\DoxyCodeLine{        argc >= 2 ? std::atoi(argv[1]) : 100;}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} executor\_string = argc >= 3 ? argv[2] : \textcolor{stringliteral}{"reference"};}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} omp = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\DoxyCodeLine{    std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"omp"}, omp\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"cuda"}, \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, omp)\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"reference"}, gko::ReferenceExecutor::create()\}\};}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string);  \textcolor{comment}{// throws if not valid}}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec\_map[\textcolor{stringliteral}{"omp"}];}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} correct\_u = [](\textcolor{keywordtype}{double} x) \{ \textcolor{keywordflow}{return} x * x * x; \};}
+\DoxyCodeLine{    \textcolor{keyword}{auto} f = [](\textcolor{keywordtype}{double} x) \{ \textcolor{keywordflow}{return} 6 * x; \};}
+\DoxyCodeLine{    \textcolor{keyword}{auto} u0 = correct\_u(0);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} u1 = correct\_u(1);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} matrix = mtx::create(app\_exec, \mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}(discretization\_points),}
+\DoxyCodeLine{                              3 * discretization\_points -\/ 2);}
+\DoxyCodeLine{    generate\_stencil\_matrix(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(matrix));}
+\DoxyCodeLine{    \textcolor{keyword}{auto} rhs = vec::create(app\_exec, \mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}(discretization\_points, 1));}
+\DoxyCodeLine{    generate\_rhs(f, u0, u1, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(rhs));}
+\DoxyCodeLine{    \textcolor{keyword}{auto} u = vec::create(app\_exec, \mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}(discretization\_points, 1));}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < u-\/>\mbox{\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}}()[0]; ++i) \{}
+\DoxyCodeLine{        u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\_values}}()[i] = 0.0;}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    cg::build()}
+\DoxyCodeLine{        .with\_criteria(gko::stop::Iteration::build()}
+\DoxyCodeLine{                           .with\_max\_iters(discretization\_points)}
+\DoxyCodeLine{                           .on(exec),}
+\DoxyCodeLine{                       \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<>::build}}()}
+\DoxyCodeLine{                           .with\_reduction\_factor(1e-\/6)}
+\DoxyCodeLine{                           .on(exec))}
+\DoxyCodeLine{        .with\_preconditioner(bj::build().on(exec))}
+\DoxyCodeLine{        .on(exec)}
+\DoxyCodeLine{        -\/>generate(\mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(exec, matrix))  \textcolor{comment}{// copy the matrix to the executor}}
+\DoxyCodeLine{        -\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(rhs), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(u));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    print\_solution(u0, u1, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(u));}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"The average relative error is "}}
+\DoxyCodeLine{              << calculate\_error(discretization\_points, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(u), correct\_u) /}
+\DoxyCodeLine{                     discretization\_points}
+\DoxyCodeLine{              << std::endl;}
+\DoxyCodeLine{\}}
+\end{DoxyCodeInclude}
+ 

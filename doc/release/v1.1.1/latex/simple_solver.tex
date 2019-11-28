@@ -1,0 +1,320 @@
+The simple solver example..
+
+ \label{_Intro}%
+ \label{_Introduction}%
+\doxysection*{Introduction}
+
+This simple solver example should help you get started with Ginkgo. This example is meant for you to understand how Ginkgo works and how you can solve a simple linear system with Ginkgo. We encourage you to play with the code, change the parameters and see what is best suited for your purposes.
+
+\label{_Abouttheexample}%
+\doxysubsubsection*{About the example }
+
+Each example has the following sections\+: 
+\begin{DoxyEnumerate}
+\item {\bfseries{Introduction\+:}}This gives an overview of the example and mentions any interesting aspects in the example that might help the reader. 
+\item {\bfseries{The commented program\+:}} This section is intended for you to understand the details of the example so that you can play with it and understand Ginkgo and its features better. 
+\item {\bfseries{Results\+:}} This section shows the results of the code when run. Though the results may not be completely the same, you can expect the behaviour to be similar. 
+\item {\bfseries{The plain program\+:}} This is the complete code without any comments to have an complete overview of the code. 
+\end{DoxyEnumerate}\label{_CommProg}%
+ \doxysection*{The commented program}
+
+\label{_Includefiles}%
+ \doxysubsubsection*{Include files}
+
+This is the main ginkgo header file.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\end{DoxyCode}
+
+
+Add the fstream header to read from data from files.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <fstream>}}
+\end{DoxyCode}
+
+
+Add the C++ iostream header to output information to the console.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\end{DoxyCode}
+
+
+Add the string manipulation header to handle strings.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\end{DoxyCode}
+
+
+Use some shortcuts. In Ginkgo, vectors are seen as a \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense}} with one column/one row. The advantage of this concept is that using multiple vectors is a now a natural extension of adding columns/rows are necessary.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
+\end{DoxyCode}
+
+
+The \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}} class is used here, but any other matrix class such as \mbox{\hyperlink{classgko_1_1matrix_1_1Coo}{gko\+::matrix\+::\+Coo}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}, \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{gko\+::matrix\+::\+Ell}} or \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp}} could also be used.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}};}
+\end{DoxyCode}
+
+
+The \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko\+::solver\+::\+Cg}} is used here, but any other solver class can also be used.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>}};}
+\end{DoxyCode}
+
+
+Print the ginkgo version information.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::cout << \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}}() << std::endl;}
+\end{DoxyCode}
+
+
+\label{_Wheredoyouwanttorunyoursolver}%
+ \doxysubsubsection*{Where do you want to run your solver ?}
+
+The \mbox{\hyperlink{classgko_1_1Executor}{gko\+::\+Executor}} class is one of the cornerstones of Ginkgo. Currently, we have support for an \mbox{\hyperlink{classgko_1_1OmpExecutor}{gko\+::\+Omp\+Executor}}, which uses Open\+MP multi-\/threading in most of its kernels, a \mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko\+::\+Reference\+Executor}}, a single threaded specialization of the Open\+MP executor and a \mbox{\hyperlink{classgko_1_1CudaExecutor}{gko\+::\+Cuda\+Executor}} which runs the code on a N\+V\+I\+D\+IA G\+PU if available. \begin{DoxyNote}{Note}
+With the help of C++, you see that you only ever need to change the executor and all the other functions/ routines within Ginkgo should automatically work and run on the executor with any other changes.
+\end{DoxyNote}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::shared\_ptr<gko::Executor> exec;}
+\DoxyCodeLine{\textcolor{keywordflow}{if} (argc == 1 || std::string(argv[1]) == \textcolor{stringliteral}{"reference"}) \{}
+\DoxyCodeLine{    exec = gko::ReferenceExecutor::create();}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"omp"}) \{}
+\DoxyCodeLine{    exec = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"cuda"} \&\&}
+\DoxyCodeLine{           \mbox{\hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{gko::CudaExecutor::get\_num\_devices}}() > 0) \{}
+\DoxyCodeLine{    exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" [executor]"} << std::endl;}
+\DoxyCodeLine{    std::exit(-\/1);}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+\label{_Readingyourdataandtransfertotheproperdevice}%
+ \doxysubsubsection*{Reading your data and transfer to the proper device.}
+
+Read the matrix, right hand side and the initial solution using the read function. \begin{DoxyNote}{Note}
+Ginkgo uses C++ smart pointers to automatically manage memory. To this end, we use our own object ownership transfer functions that under the hood call the required smart pointer functions to manage object ownership. The \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{gko\+::share}} , \mbox{\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{gko\+::give}} and \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko\+::lend}} are the functions that you would need to use.
+\end{DoxyNote}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} A = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));}
+\DoxyCodeLine{\textcolor{keyword}{auto} b = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/b.mtx"}), exec);}
+\DoxyCodeLine{\textcolor{keyword}{auto} x = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/x0.mtx"}), exec);}
+\end{DoxyCode}
+
+
+\label{_Creatingthesolver}%
+ \doxysubsubsection*{Creating the solver}
+
+Generate the \mbox{\hyperlink{namespacegko_1_1solver}{gko\+::solver}} factory. Ginkgo uses the concept of Factories to build solvers with certain properties. Observe the Fluent interface used here. Here a cg solver is generated with a stopping criteria of maximum iterations of 20 and a residual norm reduction of 1e-\/15. You also observe that the stopping criteria(gko\+::stop) are also generated from factories using their build methods. You need to specify the executors which each of the object needs to be built on.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} solver\_gen =}
+\DoxyCodeLine{    cg::build()}
+\DoxyCodeLine{        .with\_criteria(}
+\DoxyCodeLine{            gko::stop::Iteration::build().with\_max\_iters(20u).on(exec),}
+\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<>::build}}()}
+\DoxyCodeLine{                .with\_reduction\_factor(1e-\/15)}
+\DoxyCodeLine{                .on(exec))}
+\DoxyCodeLine{        .on(exec);}
+\end{DoxyCode}
+
+
+Generate the solver from the matrix. The solver factory built in the previous step takes a \char`\"{}matrix\char`\"{}(a \mbox{\hyperlink{classgko_1_1LinOp}{gko\+::\+Lin\+Op}} to be more general) as an input. In this case we provide it with a full matrix that we previously read, but as the solver only effectively uses the apply() method within the provided \char`\"{}matrix\char`\"{} object, you can effectively create a \mbox{\hyperlink{classgko_1_1LinOp}{gko\+::\+Lin\+Op}} class with your own apply implementation to accomplish more tasks. We will see an example of how this can be done in the custom-\/matrix-\/format example
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} solver = solver\_gen-\/>generate(A);}
+\end{DoxyCode}
+
+
+Finally, solve the system. The solver, being a \mbox{\hyperlink{classgko_1_1LinOp}{gko\+::\+Lin\+Op}}, can be applied to a right hand side, b to obtain the solution, x.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\end{DoxyCode}
+
+
+Print the solution to the command line.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::cout << \textcolor{stringliteral}{"Solution (x): \(\backslash\)n"};}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\end{DoxyCode}
+
+
+To measure if your solution has actually converged, you can measure the error of the solution. one, neg\+\_\+one are objects that represent the numbers which allow for a uniform interface when computing on any device. To compute the residual, all you need to do is call the apply method, which in this case is an spmv and equivalent to the L\+A\+P\+A\+CK z\+\_\+spmv routine. Finally, you compute the euclidean 2-\/norm with the compute\+\_\+norm2 function.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    \textcolor{keyword}{auto} \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} = gko::initialize<vec>(\{1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} neg\_one = gko::initialize<vec>(\{-\/1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} res = gko::initialize<vec>(\{0.0\}, exec);}
+\DoxyCodeLine{    A-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(neg\_one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b));}
+\DoxyCodeLine{    b-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(res));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Residual norm sqrt(r\string^T r): \(\backslash\)n"};}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(res));}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+ \label{_Results}%
+\doxysection*{Results}
+
+The following is the expected result\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{Solution (x):}
+\DoxyCodeLine{\%\%MatrixMarket matrix \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{array}} \mbox{\hyperlink{namespacegko_ae23cfd886cee6e88d77bcbbbe1928b78}{real}} general}
+\DoxyCodeLine{19 1}
+\DoxyCodeLine{0.252218}
+\DoxyCodeLine{0.108645}
+\DoxyCodeLine{0.0662811}
+\DoxyCodeLine{0.0630433}
+\DoxyCodeLine{0.0384088}
+\DoxyCodeLine{0.0396536}
+\DoxyCodeLine{0.0402648}
+\DoxyCodeLine{0.0338935}
+\DoxyCodeLine{0.0193098}
+\DoxyCodeLine{0.0234653}
+\DoxyCodeLine{0.0211499}
+\DoxyCodeLine{0.0196413}
+\DoxyCodeLine{0.0199151}
+\DoxyCodeLine{0.0181674}
+\DoxyCodeLine{0.0162722}
+\DoxyCodeLine{0.0150714}
+\DoxyCodeLine{0.0107016}
+\DoxyCodeLine{0.0121141}
+\DoxyCodeLine{0.0123025}
+\DoxyCodeLine{Residual norm sqrt(r\string^T r):}
+\DoxyCodeLine{\%\%MatrixMarket matrix \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{array}} \mbox{\hyperlink{namespacegko_ae23cfd886cee6e88d77bcbbbe1928b78}{real}} general}
+\DoxyCodeLine{1 1}
+\DoxyCodeLine{2.10788e-\/15}
+\end{DoxyCode}
+
+
+\label{_Commentsaboutprogramminganddebugging}%
+\doxysubsubsection*{Comments about programming and debugging }
+
+\label{_PlainProg}%
+ \doxysection*{The plain program}
+
+
+\begin{DoxyCodeInclude}{0}
+\DoxyCodeLine{\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}}
+\DoxyCodeLine{\textcolor{comment}{Copyright (c) 2017-\/2019, the Ginkgo authors}}
+\DoxyCodeLine{\textcolor{comment}{All rights reserved.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{Redistribution and use in source and binary forms, with or without}}
+\DoxyCodeLine{\textcolor{comment}{modification, are permitted provided that the following conditions}}
+\DoxyCodeLine{\textcolor{comment}{are met:}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{1. Redistributions of source code must retain the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{2. Redistributions in binary form must reproduce the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer in the}}
+\DoxyCodeLine{\textcolor{comment}{documentation and/or other materials provided with the distribution.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{3. Neither the name of the copyright holder nor the names of its}}
+\DoxyCodeLine{\textcolor{comment}{contributors may be used to endorse or promote products derived from}}
+\DoxyCodeLine{\textcolor{comment}{this software without specific prior written permission.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS}}
+\DoxyCodeLine{\textcolor{comment}{IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED}}
+\DoxyCodeLine{\textcolor{comment}{TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A}}
+\DoxyCodeLine{\textcolor{comment}{PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT}}
+\DoxyCodeLine{\textcolor{comment}{HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,}}
+\DoxyCodeLine{\textcolor{comment}{SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT}}
+\DoxyCodeLine{\textcolor{comment}{LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,}}
+\DoxyCodeLine{\textcolor{comment}{DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY}}
+\DoxyCodeLine{\textcolor{comment}{THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}}
+\DoxyCodeLine{\textcolor{comment}{(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}}
+\DoxyCodeLine{\textcolor{comment}{OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}}
+\DoxyCodeLine{\textcolor{comment}{******************************<GINKGO LICENSE>*******************************/}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <fstream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>}};}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}}() << std::endl;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::shared\_ptr<gko::Executor> exec;}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc == 1 || std::string(argv[1]) == \textcolor{stringliteral}{"reference"}) \{}
+\DoxyCodeLine{        exec = gko::ReferenceExecutor::create();}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"omp"}) \{}
+\DoxyCodeLine{        exec = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"cuda"} \&\&}
+\DoxyCodeLine{               \mbox{\hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{gko::CudaExecutor::get\_num\_devices}}() > 0) \{}
+\DoxyCodeLine{        exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" [executor]"} << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} A = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));}
+\DoxyCodeLine{    \textcolor{keyword}{auto} b = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/b.mtx"}), exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} x = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/x0.mtx"}), exec);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} solver\_gen =}
+\DoxyCodeLine{        cg::build()}
+\DoxyCodeLine{            .with\_criteria(}
+\DoxyCodeLine{                gko::stop::Iteration::build().with\_max\_iters(20u).on(exec),}
+\DoxyCodeLine{                \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<>::build}}()}
+\DoxyCodeLine{                    .with\_reduction\_factor(1e-\/15)}
+\DoxyCodeLine{                    .on(exec))}
+\DoxyCodeLine{            .on(exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} solver = solver\_gen-\/>generate(A);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Solution (x): \(\backslash\)n"};}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} = gko::initialize<vec>(\{1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} neg\_one = gko::initialize<vec>(\{-\/1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} res = gko::initialize<vec>(\{0.0\}, exec);}
+\DoxyCodeLine{    A-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(neg\_one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b));}
+\DoxyCodeLine{    b-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(res));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Residual norm sqrt(r\string^T r): \(\backslash\)n"};}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(res));}
+\DoxyCodeLine{\}}
+\end{DoxyCodeInclude}
+ 

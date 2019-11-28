@@ -1,0 +1,25 @@
+\hypertarget{group__log}{}\doxysection{Logging}
+\label{group__log}\index{Logging@{Logging}}
+
+
+A module dedicated to the implementation and usage of the Logging in Ginkgo.  
+
+
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespacegko_1_1log}{gko\+::log}}
+\begin{DoxyCompactList}\small\item\em The logger namespace . \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1log_1_1Convergence}{gko\+::log\+::\+Convergence$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1log_1_1Convergence}{Convergence}} is a \mbox{\hyperlink{classgko_1_1log_1_1Logger}{Logger}} which logs data strictly from the {\ttfamily criterion\+\_\+check\+\_\+completed} event. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1log_1_1Stream}{gko\+::log\+::\+Stream$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1log_1_1Stream}{Stream}} is a \mbox{\hyperlink{classgko_1_1log_1_1Logger}{Logger}} which logs every event to a stream. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+A module dedicated to the implementation and usage of the Logging in Ginkgo. 
+
+The \mbox{\hyperlink{classgko_1_1log_1_1Logger}{Logger}} class represents a simple \mbox{\hyperlink{classgko_1_1log_1_1Logger}{Logger}} object. It comprises all masks and events internally. Every new logging event addition should be done here. The \mbox{\hyperlink{classgko_1_1log_1_1Logger}{Logger}} class also provides a default implementation for most events which do nothing, therefore it is not an obligation to change all classes which derive from \mbox{\hyperlink{classgko_1_1log_1_1Logger}{Logger}}, although it is good practice. The logger class is built using event masks to control which events should be logged, and which should not. 
