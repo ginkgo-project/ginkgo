@@ -6,6 +6,7 @@ set(GINKGO_INSTALL_INCLUDE_DIR "include")
 set(GINKGO_INSTALL_LIBRARY_DIR "lib")
 set(GINKGO_INSTALL_PKGCONFIG_DIR "lib/pkgconfig")
 set(GINKGO_INSTALL_CONFIG_DIR "lib/cmake/Ginkgo")
+set(GINKGO_INSTALL_MODULE_DIR "lib/cmake/Ginkgo/Modules")
 
 function(ginkgo_install_library name subdir)
     # install .so and .a files
@@ -32,6 +33,9 @@ function(ginkgo_install)
     if (GINKGO_HAVE_PAPI_SDE)
         install(FILES "${Ginkgo_SOURCE_DIR}/third_party/papi_sde/papi_sde_interface.h"
             DESTINATION "${GINKGO_INSTALL_INCLUDE_DIR}/third_party/papi_sde"
+            )
+        install(FILES "${Ginkgo_SOURCE_DIR}/cmake/Modules/FindPAPI.cmake"
+            DESTINATION "${GINKGO_INSTALL_MODULE_DIR}/"
             )
     endif()
 
