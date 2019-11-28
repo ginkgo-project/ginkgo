@@ -940,7 +940,7 @@ protected:
           minor_(0),
           warp_size_(0)
     {
-        assert(device_id < max_devices);
+        assert(device_id < max_devices && device_id >= 0);
         this->set_gpu_property();
         this->init_handles();
         increase_num_execs(device_id);
@@ -952,19 +952,19 @@ protected:
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
 
-    static void increase_num_execs(int device_id)
+    static void increase_num_execs(unsigned device_id)
     {
         std::lock_guard<std::mutex> guard(mutex[device_id]);
         num_execs[device_id]++;
     }
 
-    static void decrease_num_execs(int device_id)
+    static void decrease_num_execs(unsigned device_id)
     {
         std::lock_guard<std::mutex> guard(mutex[device_id]);
         num_execs[device_id]--;
     }
 
-    static int get_num_execs(int device_id)
+    static unsigned get_num_execs(unsigned device_id)
     {
         std::lock_guard<std::mutex> guard(mutex[device_id]);
         return num_execs[device_id];
@@ -985,7 +985,7 @@ private:
     handle_manager<cusparseContext> cusparse_handle_;
 
     static constexpr int max_devices = 64;
-    static int num_execs[max_devices];
+    static unsigned num_execs[max_devices];
     static std::mutex mutex[max_devices];
 };
 
