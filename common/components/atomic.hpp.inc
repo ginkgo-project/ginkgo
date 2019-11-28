@@ -65,13 +65,13 @@ __forceinline__ __device__ ResultType reinterpret(ValueType val)
         __forceinline__ __device__ static ValueType atomic_add(              \
             ValueType *__restrict__ addr, ValueType val)                     \
         {                                                                    \
-            CONVERTER_TYPE *address_as_ull =                                 \
+            CONVERTER_TYPE *address_as_converter =                           \
                 reinterpret_cast<CONVERTER_TYPE *>(addr);                    \
-            CONVERTER_TYPE old = *address_as_ull;                            \
+            CONVERTER_TYPE old = *address_as_converter;                      \
             CONVERTER_TYPE assumed;                                          \
             do {                                                             \
                 assumed = old;                                               \
-                old = atomicCAS(address_as_ull, assumed,                     \
+                old = atomicCAS(address_as_converter, assumed,               \
                                 reinterpret<CONVERTER_TYPE>(                 \
                                     val + reinterpret<ValueType>(assumed))); \
             } while (assumed != old);                                        \

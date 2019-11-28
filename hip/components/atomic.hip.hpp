@@ -50,10 +50,10 @@ namespace hip {
 __forceinline__ __device__ thrust::complex<float> atomic_add(
     thrust::complex<float> *__restrict__ address, thrust::complex<float> val)
 {
-    hipComplex *cuaddr = reinterpret_cast<hipComplex *>(address);
+    hipComplex *addr = reinterpret_cast<hipComplex *>(address);
     // Separate to real part and imag part
-    auto real = atomic_add(&(cuaddr->x), val.real());
-    auto imag = atomic_add(&(cuaddr->y), val.imag());
+    auto real = atomic_add(&(addr->x), val.real());
+    auto imag = atomic_add(&(addr->y), val.imag());
     return {real, imag};
 }
 
@@ -66,10 +66,10 @@ __forceinline__ __device__ thrust::complex<float> atomic_add(
 __forceinline__ __device__ thrust::complex<double> atomic_add(
     thrust::complex<double> *__restrict__ address, thrust::complex<double> val)
 {
-    hipDoubleComplex *cuaddr = reinterpret_cast<hipDoubleComplex *>(address);
+    hipDoubleComplex *addr = reinterpret_cast<hipDoubleComplex *>(address);
     // Separate to real part and imag part
-    auto real = atomic_add(&(cuaddr->x), val.real());
-    auto imag = atomic_add(&(cuaddr->y), val.imag());
+    auto real = atomic_add(&(addr->x), val.real());
+    auto imag = atomic_add(&(addr->y), val.imag());
     return {real, imag};
 }
 
