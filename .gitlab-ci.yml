@@ -56,6 +56,8 @@ stages:
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
     - ctest -V
+    - make install
+    - make test_install
   dependencies: []
   except:
       - schedules
