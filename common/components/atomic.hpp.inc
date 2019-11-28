@@ -36,7 +36,8 @@ namespace detail {
 
 template <typename ValueType, typename = void>
 struct atomic_helper {
-    __forceinline__ __device__ static void atomic_add(ValueType *, ValueType)
+    __forceinline__ __device__ static ValueType atomic_add(ValueType *,
+                                                           ValueType)
     {
         static_assert(sizeof(ValueType) == 0,
                       "This default function is not implemented, only the "
@@ -61,19 +62,20 @@ __forceinline__ __device__ ResultType reinterpret(ValueType val)
     struct atomic_helper<ValueType,                                          \
                          gko::xstd::enable_if_t<(sizeof(ValueType) ==        \
                                                  sizeof(CONVERTER_TYPE))>> { \
-        __forceinline__ __device__ static void atomic_add(                   \
+        __forceinline__ __device__ static ValueType atomic_add(              \
             ValueType *__restrict__ addr, ValueType val)                     \
         {                                                                    \
-            CONVERTER_TYPE *address_as_ull =                                 \
+            CONVERTER_TYPE *address_as_converter =                           \
                 reinterpret_cast<CONVERTER_TYPE *>(addr);                    \
-            CONVERTER_TYPE old = *address_as_ull;                            \
+            CONVERTER_TYPE old = *address_as_converter;                      \
             CONVERTER_TYPE assumed;                                          \
             do {                                                             \
                 assumed = old;                                               \
-                old = atomicCAS(address_as_ull, assumed,                     \
+                old = atomicCAS(address_as_converter, assumed,               \
                                 reinterpret<CONVERTER_TYPE>(                 \
                                     val + reinterpret<ValueType>(assumed))); \
             } while (assumed != old);                                        \
+            return reinterpret<ValueType>(old);                              \
         }                                                                    \
     };
 
@@ -95,17 +97,17 @@ GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned short int);
 
 
 template <typename T>
-__forceinline__ __device__ void atomic_add(T *__restrict__ addr, T val)
+__forceinline__ __device__ T atomic_add(T *__restrict__ addr, T val)
 {
-    detail::atomic_helper<T>::atomic_add(addr, val);
+    return detail::atomic_helper<T>::atomic_add(addr, val);
 }
 
 
-#define GKO_BIND_ATOMIC_ADD(ValueType)                                       \
-    __forceinline__ __device__ void atomic_add(ValueType *__restrict__ addr, \
-                                               ValueType val)                \
-    {                                                                        \
-        atomicAdd(addr, val);                                                \
+#define GKO_BIND_ATOMIC_ADD(ValueType)               \
+    __forceinline__ __device__ ValueType atomic_add( \
+        ValueType *__restrict__ addr, ValueType val) \
+    {                                                \
+        return atomicAdd(addr, val);                 \
     }
 
 GKO_BIND_ATOMIC_ADD(int);
