@@ -56,8 +56,6 @@ namespace preconditioner {
  * @tparam IndexType  type used for storing indices of the matrix
  *
  * @ingroup jacobi
- * @ingroup precond
- * @ingroup LinOp
  */
 template <typename IndexType>
 struct block_interleaved_storage_scheme {
