@@ -303,6 +303,129 @@ GKO_BIND_HIPSPARSE_CONJ_TRANSPOSE64(ValueType, detail::not_implemented);
 #undef GKO_BIND_HIPSPARSE_CONJ_TRANSPOSE
 
 
+#define GKO_BIND_HIPSPARSE32_CSRSV2_BUFFERSIZE(ValueType, HipsparseName)     \
+    inline void csrsv2_buffer_size(                                          \
+        hipsparseHandle_t handle, hipsparseOperation_t trans,                \
+        const size_type m, size_type nnz, const hipsparseMatDescr_t descr,   \
+        const ValueType *csrVal, const int32 *csrRowPtr,                     \
+        const int32 *csrColInd, csrsv2Info_t factor_info,                    \
+        int *factor_work_size)                                               \
+    {                                                                        \
+        GKO_ASSERT_NO_HIPSPARSE_ERRORS(HipsparseName(                        \
+            handle, trans, m, nnz, descr,                                    \
+            as_hiplibs_type(const_cast<ValueType *>(csrVal)), csrRowPtr,     \
+            csrColInd, factor_info, factor_work_size));                      \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+#define GKO_BIND_HIPSPARSE64_CSRSV2_BUFFERSIZE(ValueType, HipsparseName)   \
+    inline void csrsv2_buffer_size(                                        \
+        hipsparseHandle_t handle, hipsparseOperation_t trans, size_type m, \
+        size_type nnz, const hipsparseMatDescr_t descr,                    \
+        const ValueType *csrVal, const int64 *csrRowPtr,                   \
+        const int64 *csrColInd, csrsv2Info_t factor_info,                  \
+        int *factor_work_size) GKO_NOT_IMPLEMENTED;                        \
+    static_assert(true,                                                    \
+                  "This assert is used to counter the "                    \
+                  "false positive extra "                                  \
+                  "semi-colon warnings")
+
+GKO_BIND_HIPSPARSE32_CSRSV2_BUFFERSIZE(float, hipsparseScsrsv2_bufferSize);
+GKO_BIND_HIPSPARSE32_CSRSV2_BUFFERSIZE(double, hipsparseDcsrsv2_bufferSize);
+GKO_BIND_HIPSPARSE64_CSRSV2_BUFFERSIZE(float, hipsparseScsrsv2_bufferSize);
+GKO_BIND_HIPSPARSE64_CSRSV2_BUFFERSIZE(double, hipsparseDcsrsv2_bufferSize);
+template <typename ValueType>
+GKO_BIND_HIPSPARSE32_CSRSV2_BUFFERSIZE(ValueType, detail::not_implemented);
+template <typename ValueType>
+GKO_BIND_HIPSPARSE64_CSRSV2_BUFFERSIZE(ValueType, detail::not_implemented);
+#undef GKO_BIND_HIPSPARSE32_CSRSV2_BUFFERSIZE
+#undef GKO_BIND_HIPSPARSE64_CSRSV2_BUFFERSIZE
+
+#define GKO_BIND_HIPSPARSE32_CSRSV2_ANALYSIS(ValueType, HipsparseName)        \
+    inline void csrsv2_analysis(                                              \
+        hipsparseHandle_t handle, hipsparseOperation_t trans, size_type m,    \
+        size_type nnz, const hipsparseMatDescr_t descr,                       \
+        const ValueType *csrVal, const int32 *csrRowPtr,                      \
+        const int32 *csrColInd, csrsv2Info_t factor_info,                     \
+        hipsparseSolvePolicy_t policy, void *factor_work_vec)                 \
+    {                                                                         \
+        GKO_ASSERT_NO_HIPSPARSE_ERRORS(HipsparseName(                         \
+            handle, trans, m, nnz, descr, as_hiplibs_type(csrVal), csrRowPtr, \
+            csrColInd, factor_info, policy, factor_work_vec));                \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
+
+#define GKO_BIND_HIPSPARSE64_CSRSV2_ANALYSIS(ValueType, HipsparseName)     \
+    inline void csrsv2_analysis(                                           \
+        hipsparseHandle_t handle, hipsparseOperation_t trans, size_type m, \
+        size_type nnz, const hipsparseMatDescr_t descr,                    \
+        const ValueType *csrVal, const int64 *csrRowPtr,                   \
+        const int64 *csrColInd, csrsv2Info_t factor_info,                  \
+        hipsparseSolvePolicy_t policy, void *factor_work_vec)              \
+        GKO_NOT_IMPLEMENTED;                                               \
+    static_assert(true,                                                    \
+                  "This assert is used to counter the "                    \
+                  "false positive extra "                                  \
+                  "semi-colon warnings")
+
+GKO_BIND_HIPSPARSE32_CSRSV2_ANALYSIS(float, hipsparseScsrsv2_analysis);
+GKO_BIND_HIPSPARSE32_CSRSV2_ANALYSIS(double, hipsparseDcsrsv2_analysis);
+GKO_BIND_HIPSPARSE64_CSRSV2_ANALYSIS(float, hipsparseScsrsv2_analysis);
+GKO_BIND_HIPSPARSE64_CSRSV2_ANALYSIS(double, hipsparseDcsrsv2_analysis);
+template <typename ValueType>
+GKO_BIND_HIPSPARSE32_CSRSV2_ANALYSIS(ValueType, detail::not_implemented);
+template <typename ValueType>
+GKO_BIND_HIPSPARSE64_CSRSV2_ANALYSIS(ValueType, detail::not_implemented);
+#undef GKO_BIND_HIPSPARSE32_CSRSV2_ANALYSIS
+#undef GKO_BIND_HIPSPARSE64_CSRSV2_ANALYSIS
+
+#define GKO_BIND_HIPSPARSE32_CSRSV2_SOLVE(ValueType, HipsparseName)           \
+    inline void csrsv2_solve(                                                 \
+        hipsparseHandle_t handle, hipsparseOperation_t trans, size_type m,    \
+        size_type nnz, const ValueType *one, const hipsparseMatDescr_t descr, \
+        const ValueType *csrVal, const int32 *csrRowPtr,                      \
+        const int32 *csrColInd, csrsv2Info_t factor_info,                     \
+        const ValueType *rhs, ValueType *sol, hipsparseSolvePolicy_t policy,  \
+        void *factor_work_vec)                                                \
+    {                                                                         \
+        GKO_ASSERT_NO_HIPSPARSE_ERRORS(                                       \
+            HipsparseName(handle, trans, m, nnz, as_hiplibs_type(one), descr, \
+                          as_hiplibs_type(csrVal), csrRowPtr, csrColInd,      \
+                          factor_info, as_hiplibs_type(rhs),                  \
+                          as_hiplibs_type(sol), policy, factor_work_vec));    \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
+
+#define GKO_BIND_HIPSPARSE64_CSRSV2_SOLVE(ValueType, HipsparseName)           \
+    inline void csrsv2_solve(                                                 \
+        hipsparseHandle_t handle, hipsparseOperation_t trans, size_type m,    \
+        size_type nnz, const ValueType *one, const hipsparseMatDescr_t descr, \
+        const ValueType *csrVal, const int64 *csrRowPtr,                      \
+        const int64 *csrColInd, csrsv2Info_t factor_info,                     \
+        const ValueType *rhs, ValueType *sol, hipsparseSolvePolicy_t policy,  \
+        void *factor_work_vec) GKO_NOT_IMPLEMENTED;                           \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
+
+GKO_BIND_HIPSPARSE32_CSRSV2_SOLVE(float, hipsparseScsrsv2_solve);
+GKO_BIND_HIPSPARSE32_CSRSV2_SOLVE(double, hipsparseDcsrsv2_solve);
+GKO_BIND_HIPSPARSE64_CSRSV2_SOLVE(float, hipsparseScsrsv2_solve);
+GKO_BIND_HIPSPARSE64_CSRSV2_SOLVE(double, hipsparseDcsrsv2_solve);
+template <typename ValueType>
+GKO_BIND_HIPSPARSE32_CSRSV2_SOLVE(ValueType, detail::not_implemented);
+template <typename ValueType>
+GKO_BIND_HIPSPARSE64_CSRSV2_SOLVE(ValueType, detail::not_implemented);
+#undef GKO_BIND_HIPSPARSE32_CSRSV2_SOLVE
+#undef GKO_BIND_HIPSPARSE64_CSRSV2_SOLVE
+
+
 inline hipsparseContext *init()
 {
     hipsparseHandle_t handle{};
