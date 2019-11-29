@@ -18,6 +18,8 @@ Collaboration diagram for Linear Operators\+:
 \item 
 \mbox{\hyperlink{group__factor}{Factorizations}}
 \begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the Factorizations in Ginkgo. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{group__jacobi}{Jacobi Preconditioner}}
+\begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the Jacobi Preconditioner in Ginkgo. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{group__mat__formats}{Sp\+M\+V employing different Matrix formats}}
 \begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the various Matrix Formats in Ginkgo. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{group__precond}{Preconditioners}}
@@ -43,6 +45,8 @@ class \mbox{\hyperlink{classgko_1_1EnableLinOp}{gko\+::\+Enable\+Lin\+Op$<$ Conc
 \begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1EnableLinOp}{Enable\+Lin\+Op}} mixin can be used to provide sensible default implementations of the majority of the \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} and \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} interface. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1Perturbation}{gko\+::\+Perturbation$<$ Value\+Type $>$}}
 \begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1Perturbation}{Perturbation}} class can be used to construct a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} to represent the operation {\ttfamily (identity + scalar $\ast$ basis $\ast$ projector)}. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlu}{gko\+::factorization\+::\+Par\+Ilu$<$ Value\+Type, Index\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em Par\+I\+LU is an incomplete LU factorization which is computed in parallel. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1matrix_1_1Coo}{gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$}}
 \begin{DoxyCompactList}\small\item\em C\+OO stores a matrix in the coordinate matrix format. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$}}
@@ -63,8 +67,6 @@ class \mbox{\hyperlink{classgko_1_1matrix_1_1SparsityCsr}{gko\+::matrix\+::\+Spa
 \begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1matrix_1_1SparsityCsr}{Sparsity\+Csr}} is a matrix format which stores only the sparsity pattern of a sparse matrix by compressing each row of the matrix (compressed sparse row format). \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Ilu}{gko\+::preconditioner\+::\+Ilu$<$ L\+Solver\+Type, U\+Solver\+Type, Reverse\+Apply, Index\+Type\+Par\+Ilu $>$}}
 \begin{DoxyCompactList}\small\item\em The Incomplete LU (I\+LU) preconditioner solves the equation $LUx = b$ for a given lower triangular matrix L, an upper triangular matrix U and the right hand side b (can contain multiple right hand sides). \end{DoxyCompactList}\item 
-struct \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__storage__scheme}{gko\+::preconditioner\+::block\+\_\+interleaved\+\_\+storage\+\_\+scheme$<$ Index\+Type $>$}}
-\begin{DoxyCompactList}\small\item\em Defines the parameters of the interleaved block storage scheme used by block-\/\+Jacobi blocks. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko\+::preconditioner\+::\+Jacobi$<$ Value\+Type, Index\+Type $>$}}
 \begin{DoxyCompactList}\small\item\em A block-\/\+Jacobi preconditioner is a block-\/diagonal linear operator, obtained by inverting the diagonal blocks of the source operator. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab}{gko\+::solver\+::\+Bicgstab$<$ Value\+Type $>$}}
@@ -77,6 +79,8 @@ class \mbox{\hyperlink{classgko_1_1solver_1_1Fcg}{gko\+::solver\+::\+Fcg$<$ Valu
 \begin{DoxyCompactList}\small\item\em F\+CG or the flexible conjugate gradient method is an iterative type Krylov subspace method which is suitable for symmetric positive definite methods. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1solver_1_1Gmres}{gko\+::solver\+::\+Gmres$<$ Value\+Type $>$}}
 \begin{DoxyCompactList}\small\item\em G\+M\+R\+ES or the generalized minimal residual method is an iterative type Krylov subspace method which is suitable for nonsymmetric linear systems. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1solver_1_1Ir}{gko\+::solver\+::\+Ir$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em Iterative refinement (IR) is an iterative method that uses another coarse method to approximate the error of the current solution via the current residual. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs}{gko\+::solver\+::\+Lower\+Trs$<$ Value\+Type, Index\+Type $>$}}
 \begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs}{Lower\+Trs}} is the triangular solver which solves the system L x = b, when L is a lower triangular matrix. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1solver_1_1UpperTrs}{gko\+::solver\+::\+Upper\+Trs$<$ Value\+Type, Index\+Type $>$}}
