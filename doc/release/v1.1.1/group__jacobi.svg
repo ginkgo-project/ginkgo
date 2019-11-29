@@ -80,7 +80,7 @@ var sectionId = 'dynsection-0';
 <polygon fill="#000000" stroke="#000000" points="102.3103,-26.8643 92.1189,-29.7598 101.8916,-33.8517 102.3103,-26.8643"/>
 </g>
 <!-- Node1&#45;&gt;Node2 -->
-<g id="edge3" class="edge">
+<g id="edge2" class="edge">
 <title>Node1&#45;&gt;Node2</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M254.5236,-16.2211C239.9482,-11.7635 221.7201,-6.9504 205,-4.7252 163.1468,.8448 151.6928,1.9402 110,-4.7252 96.1432,-6.9405 81.2146,-11.6932 69.2638,-16.1177"/>
 <text text-anchor="start" x="110" y="-18.7252" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::preconditioner</text>
@@ -96,17 +96,11 @@ var sectionId = 'dynsection-0';
 </g>
 </g>
 <!-- Node1&#45;&gt;Node3 -->
-<g id="edge4" class="edge">
+<g id="edge3" class="edge">
 <title>Node1&#45;&gt;Node3</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M342.01,-25.7252C382.3243,-25.7252 434.9551,-25.7252 472.8793,-25.7252"/>
 <text text-anchor="start" x="360" y="-39.7252" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::preconditioner</text>
 <text text-anchor="middle" x="407.5" y="-28.7252" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">::Jacobi</text>
-</g>
-<!-- Node3&#45;&gt;Node1 -->
-<g id="edge2" class="edge">
-<title>Node3&#45;&gt;Node1</title>
-<path fill="none" stroke="#000000" d="M462.7708,-23.8618C460.1449,-23.8093 457.5453,-23.7632 455,-23.7252 412.7825,-23.0952 402.2187,-23.1805 360,-23.7252 354.213,-23.7999 348.1835,-23.9059 342.1562,-24.0306"/>
-<polygon fill="#000000" stroke="#000000" points="462.8941,-27.3654 472.9708,-24.0929 463.0527,-20.3672 462.8941,-27.3654"/>
 </g>
 </g>
 </svg>

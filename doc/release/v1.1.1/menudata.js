@@ -22,7 +22,7 @@ for the JavaScript code in this file
 */
 var menudata={children:[
 {text:"Main Page",url:"index.html"},
-{text:"Tutorial",url:"https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-2D-Poisson-Solver"},
+{text:"Tutorial",url:"https://github.com/ginkgo-project/ginkgo/wiki/Tutorial:-Building-a-Poisson-Solver"},
 {text:"Examples",url:"Examples.html"},
 {text:"Using Ginkgo",url:"install_ginkgo.html",children:[
 {text:"Installing Ginkgo",url:"install_ginkgo.html"},
