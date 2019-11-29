@@ -11,6 +11,9 @@ This version of Ginkgo provides a few fixes in Ginkgo's core routines. The
 supported systems and requirements are unchanged from version 1.1.0.
 
 ### Fixes
++ Improve Ginkgo's installation and fix the `test_install` step ([#406](https://github.com/ginkgo-project/ginkgo/pull/406)),
++ Fix some documentation issues ([#406](https://github.com/ginkgo-project/ginkgo/pull/406)),
++ Fix multiple code issues reported by sonarqube ([#406](https://github.com/ginkgo-project/ginkgo/pull/406)),
 + Update the git-cmake-format repository ([#399](https://github.com/ginkgo-project/ginkgo/pull/399)),
 + Improve the global update header script ([#390](https://github.com/ginkgo-project/ginkgo/pull/390)),
 + Fix broken bounds checks ([#388](https://github.com/ginkgo-project/ginkgo/pull/388)),
