@@ -22,7 +22,7 @@ function print_help {
 }
 
 function list_sources {
-    for type in solver preconditioner matrix
+    for type in solver preconditioner matrix factorization
     do
         for i in $(ls $GINKGO_ROOT_DIR/core/$type/*.cpp)
         do
@@ -74,7 +74,7 @@ name=${name,,}
 Name=${name^}
 NAME=${name^^}
 
-if [[ "$name" == "" ]] || ( [[ "$source_type" != "preconditioner" ]] && [[ "$source_type" != "matrix" ]] && [[ "$source_type" != "solver" ]] ) || [[ "$source_name" == "" ]]; then
+if [[ "$name" == "" ]] || ( [[ "$source_type" != "preconditioner" ]] && [[ "$source_type" != "matrix" ]] && [[ "$source_type" != "solver" ]] && [[ "$source_type" != "factorization" ]] ) || [[ "$source_name" == "" ]]; then
     print_help
     exit 1
 fi

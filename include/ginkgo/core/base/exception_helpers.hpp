@@ -89,17 +89,21 @@ namespace gko {
 
 
 /**
- * Creates a NotSupported exception.
+ * Throws a NotSupported exception.
  * This macro sets the correct information about the location of the error
- * and fills the exception with data about _obj.
+ * and fills the exception with data about _obj, followed by throwing it.
  *
  * @param _obj  the object referenced by NotSupported exception
- *
- * @return NotSupported
  */
-#define GKO_NOT_SUPPORTED(_obj)                       \
-    ::gko::NotSupported(__FILE__, __LINE__, __func__, \
-                        ::gko::name_demangling::get_type_name(typeid(_obj)))
+#define GKO_NOT_SUPPORTED(_obj)                                              \
+    {                                                                        \
+        throw ::gko::NotSupported(                                           \
+            __FILE__, __LINE__, __func__,                                    \
+            ::gko::name_demangling::get_type_name(typeid(_obj)));            \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 namespace detail {
@@ -115,6 +119,18 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 
 
 }  // namespace detail
+
+
+/**
+ *Asserts that _val1 and _val2 are equal.
+ *
+ *@throw ValueMisatch if _val1 is different from _val2.
+ */
+#define GKO_ASSERT_EQ(_val1, _val2)                                            \
+    if (_val1 != _val2) {                                                      \
+        throw ::gko::ValueMismatch(__FILE__, __LINE__, __func__, _val1, _val2, \
+                                   "expected equal values");                   \
+    }
 
 
 /**

@@ -220,6 +220,12 @@ protected:
         : exec_{std::move(exec)}
     {}
 
+    // preserve the executor of the object
+    explicit PolymorphicObject(const PolymorphicObject &other)
+    {
+        *this = other;
+    }
+
     /**
      * Implementers of PolymorphicObject should override this function instead
      * of create_default().

@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <complex>
+#include <memory>
 #include <random>
 
 
@@ -331,17 +332,49 @@ TEST_F(Dense, MovesToCoo)
 }
 
 
+TEST_F(Dense, ConvertsEmptyMatrixToCsr)
+{
+    auto strategy = std::make_shared<gko::matrix::Csr<>::load_balance>(0);
+    auto from_mtx = gko::matrix::Dense<>::create(exec, gko::dim<2>{0, 0});
+    auto to_mtx =
+        gko::matrix::Csr<>::create(exec, gko::dim<2>{0, 0}, 0, strategy);
+
+    from_mtx->convert_to(to_mtx.get());
+
+    ASSERT_FALSE(to_mtx->get_size());
+}
+
+
+TEST_F(Dense, MovesEmptyMatrixToCsr)
+{
+    auto strategy = std::make_shared<gko::matrix::Csr<>::load_balance>(0);
+    auto from_mtx = gko::matrix::Dense<>::create(exec, gko::dim<2>{0, 0});
+    auto to_mtx =
+        gko::matrix::Csr<>::create(exec, gko::dim<2>{0, 0}, 0, strategy);
+
+    from_mtx->move_to(to_mtx.get());
+
+    ASSERT_FALSE(to_mtx->get_size());
+}
+
+
 TEST_F(Dense, ConvertsToCsr)
 {
-    auto csr_mtx = gko::matrix::Csr<>::create(mtx4->get_executor());
+    auto csr_s_classical = std::make_shared<gko::matrix::Csr<>::classical>();
+    auto csr_s_merge = std::make_shared<gko::matrix::Csr<>::merge_path>();
+    auto csr_mtx_c =
+        gko::matrix::Csr<>::create(mtx4->get_executor(), csr_s_classical);
+    auto csr_mtx_m =
+        gko::matrix::Csr<>::create(mtx4->get_executor(), csr_s_merge);
 
-    mtx4->convert_to(csr_mtx.get());
-    auto v = csr_mtx->get_const_values();
-    auto c = csr_mtx->get_const_col_idxs();
-    auto r = csr_mtx->get_const_row_ptrs();
+    mtx4->convert_to(csr_mtx_c.get());
+    mtx4->convert_to(csr_mtx_m.get());
 
-    ASSERT_EQ(csr_mtx->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(csr_mtx->get_num_stored_elements(), 4);
+    auto v = csr_mtx_c->get_const_values();
+    auto c = csr_mtx_c->get_const_col_idxs();
+    auto r = csr_mtx_c->get_const_row_ptrs();
+    ASSERT_EQ(csr_mtx_c->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(csr_mtx_c->get_num_stored_elements(), 4);
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 3);
     EXPECT_EQ(r[2], 4);
@@ -353,20 +386,30 @@ TEST_F(Dense, ConvertsToCsr)
     EXPECT_EQ(v[1], 3.0);
     EXPECT_EQ(v[2], 2.0);
     EXPECT_EQ(v[3], 5.0);
+    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
+    GKO_ASSERT_MTX_NEAR(csr_mtx_c.get(), csr_mtx_m.get(), 0.0);
+    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
 }
 
 
 TEST_F(Dense, MovesToCsr)
 {
-    auto csr_mtx = gko::matrix::Csr<>::create(mtx4->get_executor());
+    auto csr_s_classical = std::make_shared<gko::matrix::Csr<>::classical>();
+    auto csr_s_merge = std::make_shared<gko::matrix::Csr<>::merge_path>();
+    auto csr_mtx_c =
+        gko::matrix::Csr<>::create(mtx4->get_executor(), csr_s_classical);
+    auto csr_mtx_m =
+        gko::matrix::Csr<>::create(mtx4->get_executor(), csr_s_merge);
+    auto mtx_clone = mtx4->clone();
 
-    mtx4->move_to(csr_mtx.get());
-    auto v = csr_mtx->get_const_values();
-    auto c = csr_mtx->get_const_col_idxs();
-    auto r = csr_mtx->get_const_row_ptrs();
+    mtx4->move_to(csr_mtx_c.get());
+    mtx_clone->move_to(csr_mtx_m.get());
 
-    ASSERT_EQ(csr_mtx->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(csr_mtx->get_num_stored_elements(), 4);
+    auto v = csr_mtx_c->get_const_values();
+    auto c = csr_mtx_c->get_const_col_idxs();
+    auto r = csr_mtx_c->get_const_row_ptrs();
+    ASSERT_EQ(csr_mtx_c->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(csr_mtx_c->get_num_stored_elements(), 4);
     EXPECT_EQ(r[0], 0);
     EXPECT_EQ(r[1], 3);
     EXPECT_EQ(r[2], 4);
@@ -378,6 +421,9 @@ TEST_F(Dense, MovesToCsr)
     EXPECT_EQ(v[1], 3.0);
     EXPECT_EQ(v[2], 2.0);
     EXPECT_EQ(v[3], 5.0);
+    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
+    GKO_ASSERT_MTX_NEAR(csr_mtx_c.get(), csr_mtx_m.get(), 0.0);
+    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
 }
 
 

@@ -6,6 +6,23 @@ commits. For a comprehensive list, use the following command:
 git log --first-parent
 ```
 
+## Version 1.1.1
+This version of Ginkgo provides a few fixes in Ginkgo's core routines. The
+supported systems and requirements are unchanged from version 1.1.0.
+
+### Fixes
++ Improve Ginkgo's installation and fix the `test_install` step ([#406](https://github.com/ginkgo-project/ginkgo/pull/406)),
++ Fix some documentation issues ([#406](https://github.com/ginkgo-project/ginkgo/pull/406)),
++ Fix multiple code issues reported by sonarqube ([#406](https://github.com/ginkgo-project/ginkgo/pull/406)),
++ Update the git-cmake-format repository ([#399](https://github.com/ginkgo-project/ginkgo/pull/399)),
++ Improve the global update header script ([#390](https://github.com/ginkgo-project/ginkgo/pull/390)),
++ Fix broken bounds checks ([#388](https://github.com/ginkgo-project/ginkgo/pull/388)),
++ Fix CSR strategies and improve performance ([#379](https://github.com/ginkgo-project/ginkgo/pull/379)),
++ Fix a small typo in the stencil examples ([#381](https://github.com/ginkgo-project/ginkgo/pull/381)),
++ Fix ELL error on small matrices ([#375](https://github.com/ginkgo-project/ginkgo/pull/375)),
++ Fix SellP read function ([#374](https://github.com/ginkgo-project/ginkgo/pull/374)),
++ Add factorization support in `create_new_algorithm.sh`  ([#371](https://github.com/ginkgo-project/ginkgo/pull/371))
+
 ## Version 1.1.0
 
 The Ginkgo team is proud to announce the new minor release of Ginkgo version

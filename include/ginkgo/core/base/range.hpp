@@ -306,6 +306,11 @@ public:
     static constexpr size_type dimensionality = accessor::dimensionality;
 
     /**
+     * Use the default destructor.
+     */
+    ~range() = default;
+
+    /**
      * Creates a new range.
      *
      * @tparam AccessorParam  types of parameters forwarded to the accessor
@@ -376,6 +381,8 @@ public:
         accessor_.copy_from(other.get_accessor());
         return *this;
     }
+
+    GKO_ATTRIBUTES range(const range &other) = default;
 
     /**
      * Returns the length of the specified dimension of the range.

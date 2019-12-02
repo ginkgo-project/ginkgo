@@ -7,6 +7,9 @@ find_package(Ginkgo REQUIRED
             # Alternatively, use `cmake -DCMAKE_PREFIX_PATH=<ginkgo_install_dir>` to specify the install directory
             )
 
+if(GINKGO_HAVE_PAPI_SDE)
+    find_package(PAPI REQUIRED OPTIONAL_COMPONENTS sde)
+endif()
 
 # Needed because of a known issue with CUDA while linking statically.
 # For details, see https://gitlab.kitware.com/cmake/cmake/issues/18614

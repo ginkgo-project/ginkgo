@@ -68,30 +68,31 @@ if(PAPI_INCLUDE_DIR)
 
     if (PAPI_LIBRARY)
         # find the components
-       foreach(component IN LISTS PAPI_FIND_COMPONENTS)
-           file(WRITE "${CMAKE_BINARY_DIR}/papi_${component}_detect.c"
-             "
-             #include <papi.h>
-             int main() {
-              int retval;
-              retval = PAPI_library_init(PAPI_VER_CURRENT);
-                if (retval != PAPI_VER_CURRENT && retval > 0)
-                 return -1;
-                if (PAPI_get_component_index(\"${component}\") < 0)
-                 return 0;
-                return 1;
-             }
-            ")
-        try_run(PAPI_${component}_FOUND
-            gko_result_unused
-            "${CMAKE_BINARY_DIR}"
-            "${CMAKE_BINARY_DIR}/papi_${component}_detect.c"
-            LINK_LIBRARIES ${PAPI_LIBRARY}
-            )
+        enable_language(C)
+        foreach(component IN LISTS PAPI_FIND_COMPONENTS)
+            file(WRITE "${CMAKE_BINARY_DIR}/papi_${component}_detect.c"
+                "
+                #include <papi.h>
+                int main() {
+                 int retval;
+                 retval = PAPI_library_init(PAPI_VER_CURRENT);
+                   if (retval != PAPI_VER_CURRENT && retval > 0)
+                    return -1;
+                   if (PAPI_get_component_index(\"${component}\") < 0)
+                    return 0;
+                   return 1;
+                }"
+                )
+            try_run(PAPI_${component}_FOUND
+                gko_result_unused
+                "${CMAKE_BINARY_DIR}"
+                "${CMAKE_BINARY_DIR}/papi_${component}_detect.c"
+                LINK_LIBRARIES ${PAPI_LIBRARY}
+                )
 
-        if (NOT PAPI_${component}_FOUND EQUAL 1)
-            unset(PAPI_${component}_FOUND)
-        endif()
+            if (NOT PAPI_${component}_FOUND EQUAL 1)
+                unset(PAPI_${component}_FOUND)
+            endif()
         endforeach()
     endif()
 endif()

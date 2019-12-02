@@ -387,7 +387,7 @@ void generate(std::shared_ptr<const OmpExecutor> exec,
                                      block[b].get_const_data(), block_size);
             }
             const auto local_prec = prec ? prec[g + b] : precision_reduction();
-            if (local_prec == precision_reduction::autodetect()) {
+            if (local_prec == precision_reduction::autodetect() && cond) {
                 using preconditioner::detail::get_supported_storage_reductions;
                 pr_descriptors[b] = get_supported_storage_reductions<ValueType>(
                     accuracy, cond[g + b],

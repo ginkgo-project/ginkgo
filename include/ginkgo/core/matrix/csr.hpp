@@ -183,18 +183,33 @@ public:
             auto nwarps = mtx_srow->get_num_elems();
 
             if (nwarps > 0) {
-                auto exec = mtx_srow->get_executor()->get_master();
-                Array<index_type> srow_host(exec);
-                srow_host = *mtx_srow;
-                auto srow = srow_host.get_data();
-                Array<index_type> row_ptrs_host(exec);
-                row_ptrs_host = mtx_row_ptrs;
-                auto row_ptrs = row_ptrs_host.get_const_data();
+                auto host_srow_exec = mtx_srow->get_executor()->get_master();
+                auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
+                const bool is_srow_on_host{host_srow_exec ==
+                                           mtx_srow->get_executor()};
+                const bool is_mtx_on_host{host_mtx_exec ==
+                                          mtx_row_ptrs.get_executor()};
+                Array<index_type> row_ptrs_host(host_mtx_exec);
+                Array<index_type> srow_host(host_srow_exec);
+                const index_type *row_ptrs{};
+                index_type *srow{};
+                if (is_srow_on_host) {
+                    srow = mtx_srow->get_data();
+                } else {
+                    srow_host = *mtx_srow;
+                    srow = srow_host.get_data();
+                }
+                if (is_mtx_on_host) {
+                    row_ptrs = mtx_row_ptrs.get_const_data();
+                } else {
+                    row_ptrs_host = mtx_row_ptrs;
+                    row_ptrs = row_ptrs_host.get_const_data();
+                }
                 for (size_type i = 0; i < nwarps; i++) {
                     srow[i] = 0;
                 }
-                auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
-                auto num_elems = row_ptrs[num_rows];
+                const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
+                const auto num_elems = row_ptrs[num_rows];
                 for (size_type i = 0; i < num_rows; i++) {
                     auto bucket =
                         ceildiv((ceildiv(row_ptrs[i + 1], warp_size) * nwarps),
@@ -207,7 +222,9 @@ public:
                 for (size_type i = 1; i < nwarps; i++) {
                     srow[i] += srow[i - 1];
                 }
-                *mtx_srow = srow_host;
+                if (!is_srow_on_host) {
+                    *mtx_srow = srow_host;
+                }
             }
         }
 
@@ -249,28 +266,47 @@ public:
             // if the number of stored elements is larger than 1e6 or
             // the maximum number of stored elements per row is larger than
             // 64, use load_balance otherwise use classical
+            auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
+            const bool is_mtx_on_host{host_mtx_exec ==
+                                      mtx_row_ptrs.get_executor()};
+            Array<index_type> row_ptrs_host(host_mtx_exec);
+            const index_type *row_ptrs{};
+            if (is_mtx_on_host) {
+                row_ptrs = mtx_row_ptrs.get_const_data();
+            } else {
+                row_ptrs_host = mtx_row_ptrs;
+                row_ptrs = row_ptrs_host.get_const_data();
+            }
             const auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
-            Array<index_type> host_row_ptrs(
-                mtx_row_ptrs.get_executor()->get_master());
-            host_row_ptrs = mtx_row_ptrs;
-            const auto row_val = host_row_ptrs.get_const_data();
-            if (row_val[num_rows] > static_cast<index_type>(1e6)) {
-                std::make_shared<load_balance>(nwarps_)->process(host_row_ptrs,
-                                                                 mtx_srow);
-                this->set_name("load_balance");
+            if (row_ptrs[num_rows] > index_type(1e6)) {
+                load_balance actual_strategy(nwarps_);
+                if (is_mtx_on_host) {
+                    actual_strategy.process(mtx_row_ptrs, mtx_srow);
+                } else {
+                    actual_strategy.process(row_ptrs_host, mtx_srow);
+                }
+                this->set_name(actual_strategy.get_name());
             } else {
                 index_type maxnum = 0;
                 for (index_type i = 1; i < num_rows + 1; i++) {
-                    maxnum = max(maxnum, row_val[i] - row_val[i - 1]);
+                    maxnum = max(maxnum, row_ptrs[i] - row_ptrs[i - 1]);
                 }
                 if (maxnum > 64) {
-                    std::make_shared<load_balance>(nwarps_)->process(
-                        host_row_ptrs, mtx_srow);
-                    this->set_name("load_balance");
+                    load_balance actual_strategy(nwarps_);
+                    if (is_mtx_on_host) {
+                        actual_strategy.process(mtx_row_ptrs, mtx_srow);
+                    } else {
+                        actual_strategy.process(row_ptrs_host, mtx_srow);
+                    }
+                    this->set_name(actual_strategy.get_name());
                 } else {
-                    std::make_shared<classical>()->process(host_row_ptrs,
-                                                           mtx_srow);
-                    this->set_name("classical");
+                    classical actual_strategy;
+                    if (is_mtx_on_host) {
+                        actual_strategy.process(mtx_row_ptrs, mtx_srow);
+                    } else {
+                        actual_strategy.process(row_ptrs_host, mtx_srow);
+                    }
+                    this->set_name(actual_strategy.get_name());
                 }
             }
         }
@@ -498,10 +534,8 @@ protected:
           srow_(exec),
           strategy_(std::move(strategy))
     {
-        GKO_ENSURE_IN_BOUNDS(values_.get_num_elems() - 1,
-                             col_idxs_.get_num_elems());
-        GKO_ENSURE_IN_BOUNDS(this->get_size()[0], row_ptrs_.get_num_elems());
-        srow_.resize_and_reset(strategy_->clac_size(values_.get_num_elems()));
+        GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
+        GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_num_elems());
         this->make_srow();
     }
 
@@ -511,9 +545,13 @@ protected:
                     LinOp *x) const override;
 
     /**
-     * Compute srow, it should be run after setting value.
+     * Computes srow. It should be run after changing any row_ptrs_ value.
      */
-    void make_srow() { strategy_->process(row_ptrs_, &srow_); }
+    void make_srow()
+    {
+        srow_.resize_and_reset(strategy_->clac_size(values_.get_num_elems()));
+        strategy_->process(row_ptrs_, &srow_);
+    }
 
 private:
     Array<value_type> values_;

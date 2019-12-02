@@ -55,7 +55,7 @@ TEST(NotCompiled, ThrowsWhenUsed)
 }
 
 
-void does_not_support_int() { throw GKO_NOT_SUPPORTED(int); }
+void does_not_support_int() { GKO_NOT_SUPPORTED(int); }
 
 TEST(NotSupported, ReturnsNotSupportedException)
 {
@@ -128,6 +128,18 @@ TEST(AssertConformant, ThrowsWhenNotConformant)
 {
     ASSERT_THROW(GKO_ASSERT_CONFORMANT(gko::dim<2>(3, 5), gko::dim<2>(7, 3)),
                  gko::DimensionMismatch);
+}
+
+
+TEST(AssertEqual, DoesNotThrowWhenEqual)
+{
+    ASSERT_NO_THROW(GKO_ASSERT_EQ(1, 1));
+}
+
+
+TEST(AssertEqual, ThrowsWhenNotEqual)
+{
+    ASSERT_THROW(GKO_ASSERT_EQ(0, 1), gko::ValueMismatch);
 }
 
 

@@ -30,23 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/base/version.hpp>
-
-
-namespace gko {
-
-
-version version_info::get_omp_version() noexcept
-{
-    // We just return the version with a special "not compiled" tag in
-    // placeholder modules.
-    return {GKO_VERSION_STR, "not compiled"};
-}
-
-
-}  // namespace gko
-
-
-#define GKO_HOOK_MODULE omp
-#include "core/device_hooks/common_kernels.inc.cpp"
-#undef GKO_HOOK_MODULE
+/**
+ * @defgroup jacobi Jacobi Preconditioner
+ *
+ * @brief A module dedicated to the implementation and usage of the
+ * Jacobi Preconditioner in Ginkgo.
+ *
+ * @ingroup precond
+ */

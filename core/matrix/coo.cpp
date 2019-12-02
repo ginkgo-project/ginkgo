@@ -108,10 +108,13 @@ void Coo<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType> *result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size());
+    auto tmp = Csr<ValueType, IndexType>::create(
+        exec, this->get_size(), this->get_num_stored_elements(),
+        result->get_strategy());
     tmp->values_ = this->values_;
     tmp->col_idxs_ = this->col_idxs_;
     exec->run(coo::make_convert_to_csr(tmp.get(), this));
+    tmp->make_srow();
     tmp->move_to(result);
 }
 
@@ -120,10 +123,13 @@ template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
 {
     auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size());
+    auto tmp = Csr<ValueType, IndexType>::create(
+        exec, this->get_size(), this->get_num_stored_elements(),
+        result->get_strategy());
     tmp->values_ = std::move(this->values_);
     tmp->col_idxs_ = std::move(this->col_idxs_);
     exec->run(coo::make_convert_to_csr(tmp.get(), this));
+    tmp->make_srow();
     tmp->move_to(result);
 }
 

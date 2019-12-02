@@ -306,6 +306,31 @@ public:
 
 
 /**
+ * ValueMismatch is thrown if two values are not equal.
+ */
+class ValueMismatch : public Error {
+public:
+    /**
+     * Initializes a value mismatch error.
+     *
+     * @param file The name of the offending source file
+     * @param line The source code line number where the error occurred
+     * @param func The function name where the error occurred
+     * @param val1 The first value to be compared.
+     * @param val2 The second value to be compared.
+     * @param clarification An additional message further describing the error
+     */
+    ValueMismatch(const std::string &file, int line, const std::string &func,
+                  size_type val1, size_type val2,
+                  const std::string &clarification)
+        : Error(file, line,
+                func + ": Value mismatch : " + std::to_string(val1) + " and " +
+                    std::to_string(val2) + " : " + clarification)
+    {}
+};
+
+
+/**
  * AllocationError is thrown if a memory allocation fails.
  */
 class AllocationError : public Error {

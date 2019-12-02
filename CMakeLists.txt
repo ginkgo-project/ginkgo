@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 
-project(Ginkgo LANGUAGES C CXX VERSION 1.1.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
+project(Ginkgo LANGUAGES C CXX VERSION 1.1.1 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "master")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
@@ -160,8 +160,9 @@ if(GINKGO_DEVEL_TOOLS)
 endif()
 
 # Generate the global `ginkgo/ginkgo.hpp` header with every call of make
+# when bash is present and the developer tools are enabled
 find_program(BASH bash)
-if(NOT "${BASH}" STREQUAL "BASH-NOTFOUND")
+if(NOT "${BASH}" STREQUAL "BASH-NOTFOUND" AND GINKGO_DEVEL_TOOLS)
     add_custom_target(generate_ginkgo_header ALL
         COMMAND ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/update_ginkgo_header.sh
         WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR})
@@ -187,6 +188,7 @@ add_custom_target(test_install
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} -H${Ginkgo_SOURCE_DIR}/test_install
         -B${Ginkgo_BINARY_DIR}/test_install
         -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_CONFIG_DIR}
+        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     COMMAND ${CMAKE_COMMAND} --build ${Ginkgo_BINARY_DIR}/test_install
     COMMAND ${Ginkgo_BINARY_DIR}/test_install/test_install
     COMMENT "Running a test on the installed binaries. This requires running `(sudo) make install` first.")

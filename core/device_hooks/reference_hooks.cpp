@@ -39,9 +39,9 @@ namespace gko {
 
 version version_info::get_reference_version() noexcept
 {
-    // We just return 1.1.0 with a special "not compiled" tag in placeholder
-    // modules.
-    return {1, 1, 0, "not compiled"};
+    // We just return the version with a special "not compiled" tag in
+    // placeholder modules.
+    return {GKO_VERSION_STR, "not compiled"};
 }
 
 
