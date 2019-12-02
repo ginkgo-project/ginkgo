@@ -461,12 +461,10 @@ public:
             // if the number of stored elements is larger than <nnz_limit> or
             // the maximum number of stored elements per row is larger than
             // <row_len_limit>, use load_balance otherwise use classical
-            // CUDA: nnz_limit = 1e6, row_len_limit = 64
-            // TODO: need to tune CUDA parameters according to new classical
-            //       strategy
+            // CUDA: nnz_limit = 1e6, row_len_limit = 1024
             // AMD: nnz_limit = 1e8, row_len_limit = 768
             index_type nnz_limit = 1e6;
-            index_type row_len_limit = 64;
+            index_type row_len_limit = 1024;
 #if GINKGO_HIP_PLATFORM_HCC
             if (!cuda_strategy_) {
                 nnz_limit = 1e8;
