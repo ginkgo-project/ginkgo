@@ -60,6 +60,7 @@ function(ginkgo_install)
         "${Ginkgo_BINARY_DIR}/GinkgoConfig.cmake"
         "${Ginkgo_BINARY_DIR}/GinkgoConfigVersion.cmake"
         "${Ginkgo_BINARY_DIR}/GinkgoTargets.cmake"
+        "${Ginkgo_SOURCE_DIR}/cmake/hip_helpers.cmake"
         DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
         )
 
