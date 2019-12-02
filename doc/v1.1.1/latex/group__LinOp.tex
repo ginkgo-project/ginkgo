@@ -1,0 +1,343 @@
+\hypertarget{group__LinOp}{}\doxysection{Linear Operators}
+\label{group__LinOp}\index{Linear Operators@{Linear Operators}}
+
+
+A module dedicated to the implementation and usage of the Linear operators in Ginkgo.  
+
+
+Collaboration diagram for Linear Operators\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{group__LinOp}
+\end{center}
+\end{figure}
+\doxysubsection*{Modules}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{group__factor}{Factorizations}}
+\begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the Factorizations in Ginkgo. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{group__mat__formats}{Sp\+M\+V employing different Matrix formats}}
+\begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the various Matrix Formats in Ginkgo. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{group__precond}{Preconditioners}}
+\begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the Preconditioners in Ginkgo. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{group__solvers}{Solvers}}
+\begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the Solvers in Ginkgo. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1Combination}{gko\+::\+Combination$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1Combination}{Combination}} class can be used to construct a linear combination of multiple linear operators {\ttfamily c1 $\ast$ op1 + c2 $\ast$ op2 + ... }\end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1Composition}{gko\+::\+Composition$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1Composition}{Composition}} class can be used to compose linear operators {\ttfamily op1, op2, ..., opn} and obtain the operator {\ttfamily op1 $\ast$ op2 $\ast$ ... }\end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1LinOpFactory}{gko\+::\+Lin\+Op\+Factory}}
+\begin{DoxyCompactList}\small\item\em A \mbox{\hyperlink{classgko_1_1LinOpFactory}{Lin\+Op\+Factory}} represents a higher order mapping which transforms one linear operator into another. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1ReadableFromMatrixData}{gko\+::\+Readable\+From\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em A \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} implementing this interface can read its data from a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1WritableToMatrixData}{gko\+::\+Writable\+To\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em A \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} implementing this interface can write its data to a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1Preconditionable}{gko\+::\+Preconditionable}}
+\begin{DoxyCompactList}\small\item\em A \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} implementing this interface can be preconditioned. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1EnableLinOp}{gko\+::\+Enable\+Lin\+Op$<$ Concrete\+Lin\+Op, Polymorphic\+Base $>$}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1EnableLinOp}{Enable\+Lin\+Op}} mixin can be used to provide sensible default implementations of the majority of the \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} and \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} interface. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1Perturbation}{gko\+::\+Perturbation$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1Perturbation}{Perturbation}} class can be used to construct a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} to represent the operation {\ttfamily (identity + scalar $\ast$ basis $\ast$ projector)}. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlu}{gko\+::factorization\+::\+Par\+Ilu$<$ Value\+Type, Index\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em Par\+I\+LU is an incomplete LU factorization which is computed in parallel. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Coo}{gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em C\+OO stores a matrix in the coordinate matrix format. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em C\+SR is a matrix format which stores only the nonzero coefficients by compressing each row of the matrix (compressed sparse row format). \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko\+::matrix\+::\+Dense$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}} is a matrix format which explicitly stores all values of the matrix. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em E\+LL is a matrix format where stride with explicit zeros is used such that all rows have the same number of stored elements. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em H\+Y\+B\+R\+ID is a matrix format which splits the matrix into E\+L\+L\+P\+A\+CK and C\+OO format. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Identity}{gko\+::matrix\+::\+Identity$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em This class is a utility which efficiently implements the identity matrix (a linear operator which maps each vector to itself). \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1IdentityFactory}{gko\+::matrix\+::\+Identity\+Factory$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em This factory is a utility which can be used to generate \mbox{\hyperlink{classgko_1_1matrix_1_1Identity}{Identity}} operators. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Sellp}{gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em S\+E\+L\+L-\/P is a matrix format similar to E\+LL format. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1SparsityCsr}{gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1matrix_1_1SparsityCsr}{Sparsity\+Csr}} is a matrix format which stores only the sparsity pattern of a sparse matrix by compressing each row of the matrix (compressed sparse row format). \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Ilu}{gko\+::preconditioner\+::\+Ilu$<$ L\+Solver\+Type, U\+Solver\+Type, Reverse\+Apply, Index\+Type\+Par\+Ilu $>$}}
+\begin{DoxyCompactList}\small\item\em The Incomplete LU (I\+LU) preconditioner solves the equation $LUx = b$ for a given lower triangular matrix L, an upper triangular matrix U and the right hand side b (can contain multiple right hand sides). \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko\+::preconditioner\+::\+Jacobi$<$ Value\+Type, Index\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em A block-\/\+Jacobi preconditioner is a block-\/diagonal linear operator, obtained by inverting the diagonal blocks of the source operator. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab}{gko\+::solver\+::\+Bicgstab$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em Bi\+C\+G\+S\+T\+AB or the Bi-\/\+Conjugate Gradient-\/\+Stabilized is a Krylov subspace solver. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko\+::solver\+::\+Cg$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em CG or the conjugate gradient method is an iterative type Krylov subspace method which is suitable for symmetric positive definite methods. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1solver_1_1Cgs}{gko\+::solver\+::\+Cgs$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em C\+GS or the conjugate gradient square method is an iterative type Krylov subspace method which is suitable for general systems. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1solver_1_1Fcg}{gko\+::solver\+::\+Fcg$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em F\+CG or the flexible conjugate gradient method is an iterative type Krylov subspace method which is suitable for symmetric positive definite methods. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1solver_1_1Gmres}{gko\+::solver\+::\+Gmres$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em G\+M\+R\+ES or the generalized minimal residual method is an iterative type Krylov subspace method which is suitable for nonsymmetric linear systems. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1solver_1_1Ir}{gko\+::solver\+::\+Ir$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em Iterative refinement (IR) is an iterative method that uses another coarse method to approximate the error of the current solution via the current residual. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs}{gko\+::solver\+::\+Lower\+Trs$<$ Value\+Type, Index\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs}{Lower\+Trs}} is the triangular solver which solves the system L x = b, when L is a lower triangular matrix. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1solver_1_1UpperTrs}{gko\+::solver\+::\+Upper\+Trs$<$ Value\+Type, Index\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1solver_1_1UpperTrs}{Upper\+Trs}} is the triangular solver which solves the system U x = b, when U is an upper triangular matrix. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{group__LinOp_ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358}{G\+K\+O\+\_\+\+C\+R\+E\+A\+T\+E\+\_\+\+F\+A\+C\+T\+O\+R\+Y\+\_\+\+P\+A\+R\+A\+M\+E\+T\+E\+RS}}(\+\_\+parameters\+\_\+name,  \+\_\+factory\+\_\+name)
+\begin{DoxyCompactList}\small\item\em This Macro will generate a new type containing the parameters for the factory {\ttfamily \+\_\+factory\+\_\+name}. \end{DoxyCompactList}\item 
+\#define \mbox{\hyperlink{group__LinOp_ga8e0af90ec2414b768266f77cedffc309}{G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+L\+I\+N\+\_\+\+O\+P\+\_\+\+F\+A\+C\+T\+O\+RY}}(\+\_\+lin\+\_\+op,  \+\_\+parameters\+\_\+name,  \+\_\+factory\+\_\+name)
+\begin{DoxyCompactList}\small\item\em This macro will generate a default implementation of a Lin\+Op\+Factory for the Lin\+Op subclass it is defined in. \end{DoxyCompactList}\item 
+\#define \mbox{\hyperlink{group__LinOp_ga521f65604cc4cf427dcb2ecfa49b757c}{G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+B\+U\+I\+L\+D\+\_\+\+M\+E\+T\+H\+OD}}(\+\_\+factory\+\_\+name)
+\begin{DoxyCompactList}\small\item\em Defines a build method for the factory, simplifying its construction by removing the repetitive typing of factory\textquotesingle{}s name. \end{DoxyCompactList}\item 
+\#define \mbox{\hyperlink{group__LinOp_gaa037309884bbd0562b897cee95dd91c8}{G\+K\+O\+\_\+\+F\+A\+C\+T\+O\+R\+Y\+\_\+\+P\+A\+R\+A\+M\+E\+T\+ER}}(\+\_\+name, ...)
+\begin{DoxyCompactList}\small\item\em Creates a factory parameter in the factory parameters structure. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$typename Concrete\+Factory , typename Concrete\+Lin\+Op , typename Parameters\+Type , typename Polymorphic\+Base  = Lin\+Op\+Factory$>$ }\\using \mbox{\hyperlink{group__LinOp_ga24628d477cba68b31cea690572c51912}{gko\+::\+Enable\+Default\+Lin\+Op\+Factory}} = \mbox{\hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory}}$<$ Concrete\+Factory, Concrete\+Lin\+Op, Parameters\+Type, Polymorphic\+Base $>$
+\begin{DoxyCompactList}\small\item\em This is an alias for the \mbox{\hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory}} mixin, which correctly sets the template parameters to enable a subclass of \mbox{\hyperlink{classgko_1_1LinOpFactory}{Lin\+Op\+Factory}}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+A module dedicated to the implementation and usage of the Linear operators in Ginkgo. 
+
+Below we elaborate on one of the most important concepts of Ginkgo, the linear operator. The linear operator (\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}) is a base class for all linear algebra objects in Ginkgo. The main benefit of having a single base class for the entire collection of linear algebra objects (as opposed to having separate hierarchies for matrices, solvers and preconditioners) is the generality it provides.\hypertarget{group__LinOp_linop_3}{}\doxysubsection{Advantages of this approach and usage}\label{group__LinOp_linop_3}
+A common interface often allows for writing more generic code. If a user\textquotesingle{}s routine requires only operations provided by the \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} interface, the same code can be used for any kind of linear operators, independent of whether these are matrices, solvers or preconditioners. This feature is also extensively used in Ginkgo itself. For example, a preconditioner used inside a Krylov solver is a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}. This allows the user to supply a wide variety of preconditioners\+: either the ones which were designed to be used in this scenario (like I\+LU or block-\/\+Jacobi), a user-\/supplied matrix which is known to be a good preconditioner for the specific problem, or even another solver (e.\+g., if constructing a flexible G\+M\+R\+ES solver).
+
+For example, a matrix free implementation would require the user to provide an apply implementation and instead of passing the generated matrix to the solver, they would have to provide their apply implementation for all the executors needed and no other code needs to be changed. See \mbox{\hyperlink{custom_matrix_format}{The custom-\/matrix-\/format program}} example for more details.\hypertarget{group__LinOp_linop_concept}{}\doxysubsection{Linear operator as a concept}\label{group__LinOp_linop_concept}
+The linear operator (\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}) is a base class for all linear algebra objects in Ginkgo. The main benefit of having a single base class for the entire collection of linear algebra objects (as opposed to having separate hierarchies for matrices, solvers and preconditioners) is the generality it provides.
+
+First, since all subclasses provide a common interface, the library users are exposed to a smaller set of routines. For example, a matrix-\/vector product, a preconditioner application, or even a system solve are just different terms given to the operation of applying a certain linear operator to a vector. As such, Ginkgo uses the same routine name, \mbox{\hyperlink{classgko_1_1LinOp_a0449b2fc705d2f970855af23b5e2788e}{Lin\+Op\+::apply()}} for each of these operations, where the actual operation performed depends on the type of linear operator involved in the operation.
+
+Second, a common interface often allows for writing more generic code. If a user\textquotesingle{}s routine requires only operations provided by the \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} interface, the same code can be used for any kind of linear operators, independent of whether these are matrices, solvers or preconditioners. This feature is also extensively used in Ginkgo itself. For example, a preconditioner used inside a Krylov solver is a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}. This allows the user to supply a wide variety of preconditioners\+: either the ones which were designed to be used in this scenario (like I\+LU or block-\/\+Jacobi), a user-\/supplied matrix which is known to be a good preconditioner for the specific problem, or even another solver (e.\+g., if constructing a flexible G\+M\+R\+ES solver).
+
+A key observation for providing a unified interface for matrices, solvers, and preconditioners is that the most common operation performed on all of them can be expressed as an application of a linear operator to a vector\+:
+
+
+\begin{DoxyItemize}
+\item the sparse matrix-\/vector product with a matrix $A$ is a linear operator application $y = Ax$;
+\item the application of a preconditioner is a linear operator application $y = M^{-1}x$, where $M$ is an approximation of the original system matrix $A$ (thus a preconditioner represents an \char`\"{}approximate
+    inverse\char`\"{} operator $M^{-1}$).
+\item the system solve $Ax = b$ can be viewed as linear operator application $x = A^{-1}b$ (it goes without saying that the implementation of linear system solves does not follow this conceptual idea), so a linear system solver can be viewed as a representation of the operator $A^{-1}$.
+\end{DoxyItemize}
+
+Finally, direct manipulation of \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} objects is rarely required in simple scenarios. As an illustrative example, one could construct a fixed-\/point iteration routine $x_{k+1} = Lx_k + b$ as follows\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::unique\_ptr<matrix::Dense<>> calculate\_fixed\_point(}
+\DoxyCodeLine{        \textcolor{keywordtype}{int} iters, \textcolor{keyword}{const} LinOp *L, \textcolor{keyword}{const} matrix::Dense<> *x0}
+\DoxyCodeLine{        \textcolor{keyword}{const} matrix::Dense<> *b)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} x = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{gko::clone}}(x0);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} tmp = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{gko::clone}}(x0);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} = Dense<>::create(L-\/>get\_executor(), \{1.0,\});}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < iters; ++i) \{}
+\DoxyCodeLine{        L-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(tmp), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(x));}
+\DoxyCodeLine{        x-\/>add\_scaled(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(\mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}}), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(b));}
+\DoxyCodeLine{        tmp-\/>copy\_from(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(x));}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} x;}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+Here, if $L$ is a matrix, \mbox{\hyperlink{classgko_1_1LinOp_a0449b2fc705d2f970855af23b5e2788e}{Lin\+Op\+::apply()}} refers to the matrix vector product, and {\ttfamily L-\/$>$apply(a, b)} computes $b = L \cdot a$. {\ttfamily x-\/$>$add\+\_\+scaled(one.\+get(), b.\+get())} is the {\ttfamily axpy} vector update $x:=x+b$.
+
+The interesting part of this example is the apply() routine at line 4 of the function body. Since this routine is part of the \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} base class, the fixed-\/point iteration routine can calculate a fixed point not only for matrices, but for any type of linear operator.
+
+\mbox{\hyperlink{group__LinOp}{Linear Operators}} 
+
+\doxysubsection{Macro Definition Documentation}
+\mbox{\Hypertarget{group__LinOp_ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358}\label{group__LinOp_ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358}} 
+\index{Linear Operators@{Linear Operators}!GKO\_CREATE\_FACTORY\_PARAMETERS@{GKO\_CREATE\_FACTORY\_PARAMETERS}}
+\index{GKO\_CREATE\_FACTORY\_PARAMETERS@{GKO\_CREATE\_FACTORY\_PARAMETERS}!Linear Operators@{Linear Operators}}
+\doxysubsubsection{\texorpdfstring{GKO\_CREATE\_FACTORY\_PARAMETERS}{GKO\_CREATE\_FACTORY\_PARAMETERS}}
+{\footnotesize\ttfamily \#define G\+K\+O\+\_\+\+C\+R\+E\+A\+T\+E\+\_\+\+F\+A\+C\+T\+O\+R\+Y\+\_\+\+P\+A\+R\+A\+M\+E\+T\+E\+RS(\begin{DoxyParamCaption}\item[{}]{\+\_\+parameters\+\_\+name,  }\item[{}]{\+\_\+factory\+\_\+name }\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{public}:                                                                \(\backslash\)}
+\DoxyCodeLine{    class \_factory\_name;                                               \(\backslash\)}
+\DoxyCodeLine{    struct \_parameters\_name\#\#\_type                                     \(\backslash\)}
+\DoxyCodeLine{        : \mbox{\hyperlink{structgko_1_1enable__parameters__type}{::gko::enable\_parameters\_type}}<\_parameters\_name\#\#\_type,       \(\backslash\)}
+\DoxyCodeLine{                                        \_factory\_name>}
+
+\end{DoxyCode}
+
+
+This Macro will generate a new type containing the parameters for the factory {\ttfamily \+\_\+factory\+\_\+name}. 
+
+For more details, see \mbox{\hyperlink{group__LinOp_ga8e0af90ec2414b768266f77cedffc309}{G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+L\+I\+N\+\_\+\+O\+P\+\_\+\+F\+A\+C\+T\+O\+R\+Y()}}. It is required to use this macro {\bfseries{before}} calling the macro \mbox{\hyperlink{group__LinOp_ga8e0af90ec2414b768266f77cedffc309}{G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+L\+I\+N\+\_\+\+O\+P\+\_\+\+F\+A\+C\+T\+O\+R\+Y()}}. It is also required to use the same names for all parameters between both macros.
+
+
+\begin{DoxyParams}{Parameters}
+{\em \+\_\+parameters\+\_\+name} & name of the parameters member in the class \\
+\hline
+{\em \+\_\+factory\+\_\+name} & name of the generated factory type \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{group__LinOp_ga521f65604cc4cf427dcb2ecfa49b757c}\label{group__LinOp_ga521f65604cc4cf427dcb2ecfa49b757c}} 
+\index{Linear Operators@{Linear Operators}!GKO\_ENABLE\_BUILD\_METHOD@{GKO\_ENABLE\_BUILD\_METHOD}}
+\index{GKO\_ENABLE\_BUILD\_METHOD@{GKO\_ENABLE\_BUILD\_METHOD}!Linear Operators@{Linear Operators}}
+\doxysubsubsection{\texorpdfstring{GKO\_ENABLE\_BUILD\_METHOD}{GKO\_ENABLE\_BUILD\_METHOD}}
+{\footnotesize\ttfamily \#define G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+B\+U\+I\+L\+D\+\_\+\+M\+E\+T\+H\+OD(\begin{DoxyParamCaption}\item[{}]{\+\_\+factory\+\_\+name }\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{static} \textcolor{keyword}{auto} build()-\/>decltype(\_factory\_name::create())                   \(\backslash\)}
+\DoxyCodeLine{    \{                                                                        \(\backslash\)}
+\DoxyCodeLine{        return \_factory\_name::create();                                      \(\backslash\)}
+\DoxyCodeLine{    \}                                                                        \(\backslash\)}
+\DoxyCodeLine{    static\_assert(\textcolor{keyword}{true},                                                      \(\backslash\)}
+\DoxyCodeLine{                  \textcolor{stringliteral}{"This assert is used to counter the false positive extra "} \(\backslash\)}
+\DoxyCodeLine{                  \textcolor{stringliteral}{"semi-\/colon warnings"})}
+
+\end{DoxyCode}
+
+
+Defines a build method for the factory, simplifying its construction by removing the repetitive typing of factory\textquotesingle{}s name. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em \+\_\+factory\+\_\+name} & the factory for which to define the method \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{group__LinOp_ga8e0af90ec2414b768266f77cedffc309}\label{group__LinOp_ga8e0af90ec2414b768266f77cedffc309}} 
+\index{Linear Operators@{Linear Operators}!GKO\_ENABLE\_LIN\_OP\_FACTORY@{GKO\_ENABLE\_LIN\_OP\_FACTORY}}
+\index{GKO\_ENABLE\_LIN\_OP\_FACTORY@{GKO\_ENABLE\_LIN\_OP\_FACTORY}!Linear Operators@{Linear Operators}}
+\doxysubsubsection{\texorpdfstring{GKO\_ENABLE\_LIN\_OP\_FACTORY}{GKO\_ENABLE\_LIN\_OP\_FACTORY}}
+{\footnotesize\ttfamily \#define G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+L\+I\+N\+\_\+\+O\+P\+\_\+\+F\+A\+C\+T\+O\+RY(\begin{DoxyParamCaption}\item[{}]{\+\_\+lin\+\_\+op,  }\item[{}]{\+\_\+parameters\+\_\+name,  }\item[{}]{\+\_\+factory\+\_\+name }\end{DoxyParamCaption})}
+
+
+
+This macro will generate a default implementation of a Lin\+Op\+Factory for the Lin\+Op subclass it is defined in. 
+
+It is required to first call the macro \mbox{\hyperlink{group__LinOp_ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358}{G\+K\+O\+\_\+\+C\+R\+E\+A\+T\+E\+\_\+\+F\+A\+C\+T\+O\+R\+Y\+\_\+\+P\+A\+R\+A\+M\+E\+T\+E\+R\+S()}} before this one in order to instantiate the parameters type first.
+
+The list of parameters for the factory should be defined in a code block after the macro definition, and should contain a list of G\+K\+O\+\_\+\+F\+A\+C\+T\+O\+R\+Y\+\_\+\+P\+A\+R\+A\+M\+E\+T\+ER declarations. The class should provide a constructor with signature \+\_\+lin\+\_\+op(const \+\_\+factory\+\_\+name $\ast$, std\+::shared\+\_\+ptr$<$const Lin\+Op$>$) which the factory will use a callback to construct the object.
+
+A minimal example of a linear operator is the following\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{c++\}}
+\DoxyCodeLine{\textcolor{keyword}{struct }MyLinOp : \textcolor{keyword}{public} EnableLinOp<MyLinOp> \{}
+\DoxyCodeLine{    \mbox{\hyperlink{group__LinOp_ga8e0af90ec2414b768266f77cedffc309}{GKO\_ENABLE\_LIN\_OP\_FACTORY}}(MyLinOp, my\_parameters, Factory) \{}
+\DoxyCodeLine{        \textcolor{comment}{// a factory parameter named "my\_value", of type int and default}}
+\DoxyCodeLine{        \textcolor{comment}{// value of 5}}
+\DoxyCodeLine{        \textcolor{keywordtype}{int} \mbox{\hyperlink{group__LinOp_gaa037309884bbd0562b897cee95dd91c8}{GKO\_FACTORY\_PARAMETER}}(my\_value, 5);}
+\DoxyCodeLine{    \};}
+\DoxyCodeLine{    \textcolor{comment}{// constructor needed by EnableLinOp}}
+\DoxyCodeLine{    \textcolor{keyword}{explicit} MyLinOp(std::shared\_ptr<const Executor> exec) \{}
+\DoxyCodeLine{        : EnableLinOp<MyLinOp>(exec) \{\}}
+\DoxyCodeLine{    \textcolor{comment}{// constructor needed by the factory}}
+\DoxyCodeLine{    \textcolor{keyword}{explicit} MyLinOp(\textcolor{keyword}{const} Factory *factory,}
+\DoxyCodeLine{                     std::shared\_ptr<const LinOp> matrix)}
+\DoxyCodeLine{        : EnableLinOp<MyLinOp>(factory-\/>get\_executor()), matrix-\/>get\_size()),}
+\DoxyCodeLine{          \textcolor{comment}{// store factory's parameters locally}}
+\DoxyCodeLine{          my\_parameters\_\{factory-\/>get\_parameters()\},}
+\DoxyCodeLine{    \{}
+\DoxyCodeLine{         \textcolor{keywordtype}{int} value = my\_parameters\_.my\_value;}
+\DoxyCodeLine{         \textcolor{comment}{// do something with value}}
+\DoxyCodeLine{    \}}
+\end{DoxyCode}
+
+
+My\+Lin\+Op can then be created as follows\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{c++\}}
+\DoxyCodeLine{\textcolor{keyword}{auto} exec = gko::ReferenceExecutor::create();}
+\DoxyCodeLine{\textcolor{comment}{// create a factory with default `my\_value` parameter}}
+\DoxyCodeLine{\textcolor{keyword}{auto} fact = MyLinOp::build().on(exec);}
+\DoxyCodeLine{\textcolor{comment}{// create a operator using the factory:}}
+\DoxyCodeLine{\textcolor{keyword}{auto} my\_op = fact-\/>generate(gko::matrix::Identity::create(exec, 2));}
+\DoxyCodeLine{std::cout << my\_op-\/>get\_my\_parameters().my\_value;  \textcolor{comment}{// prints 5}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{comment}{// create a factory with custom `my\_value` parameter}}
+\DoxyCodeLine{\textcolor{keyword}{auto} fact = MyLinOp::build().with\_my\_value(0).on(exec);}
+\DoxyCodeLine{\textcolor{comment}{// create a operator using the factory:}}
+\DoxyCodeLine{\textcolor{keyword}{auto} my\_op = fact-\/>generate(gko::matrix::Identity::create(exec, 2));}
+\DoxyCodeLine{std::cout << my\_op-\/>get\_my\_parameters().my\_value;  \textcolor{comment}{// prints 0}}
+\end{DoxyCode}
+
+
+\begin{DoxyNote}{Note}
+It is possible to combine both the \#\+G\+K\+O\+\_\+\+C\+R\+E\+A\+T\+E\+\_\+\+F\+A\+C\+T\+O\+R\+Y\+\_\+\+P\+A\+R\+A\+M\+E\+T\+E\+R() macro with this one in a unique macro for class {\bfseries{templates}} (not with regular classes). Splitting this into two distinct macros allows to use them in all contexts. See \href{https://stackoverflow.com/q/50202718/9385966}{\texttt{ https\+://stackoverflow.\+com/q/50202718/9385966}} for more details.
+\end{DoxyNote}
+
+\begin{DoxyParams}{Parameters}
+{\em \+\_\+lin\+\_\+op} & concrete operator for which the factory is to be created \mbox{[}C\+R\+TP parameter\mbox{]} \\
+\hline
+{\em \+\_\+parameters\+\_\+name} & name of the parameters member in the class (its type is {\ttfamily $<$\+\_\+parameters\+\_\+name$>$\+\_\+type}, the protected member\textquotesingle{}s name is {\ttfamily $<$\+\_\+parameters\+\_\+name$>$\+\_\+}, and the public getter\textquotesingle{}s name is {\ttfamily get\+\_\+$<$\+\_\+parameters\+\_\+name$>$()}) \\
+\hline
+{\em \+\_\+factory\+\_\+name} & name of the generated factory type \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{group__LinOp_gaa037309884bbd0562b897cee95dd91c8}\label{group__LinOp_gaa037309884bbd0562b897cee95dd91c8}} 
+\index{Linear Operators@{Linear Operators}!GKO\_FACTORY\_PARAMETER@{GKO\_FACTORY\_PARAMETER}}
+\index{GKO\_FACTORY\_PARAMETER@{GKO\_FACTORY\_PARAMETER}!Linear Operators@{Linear Operators}}
+\doxysubsubsection{\texorpdfstring{GKO\_FACTORY\_PARAMETER}{GKO\_FACTORY\_PARAMETER}}
+{\footnotesize\ttfamily \#define G\+K\+O\+\_\+\+F\+A\+C\+T\+O\+R\+Y\+\_\+\+P\+A\+R\+A\+M\+E\+T\+ER(\begin{DoxyParamCaption}\item[{}]{\+\_\+name,  }\item[{}]{... }\end{DoxyParamCaption})}
+
+{\bfseries Value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{mutable} \_name\{\_\_VA\_ARGS\_\_\};                                              \(\backslash\)}
+\DoxyCodeLine{                                                                             \(\backslash\)}
+\DoxyCodeLine{    template <\textcolor{keyword}{typename}... Args>                                              \(\backslash\)}
+\DoxyCodeLine{    auto with\_\#\#\_name(Args \&\&... \_value)                                     \(\backslash\)}
+\DoxyCodeLine{        const-\/>const ::gko::xstd::decay\_t<decltype(*\textcolor{keyword}{this})> \&                 \(\backslash\)}
+\DoxyCodeLine{    \{                                                                        \(\backslash\)}
+\DoxyCodeLine{        using type = decltype(this-\/>\_name);                                  \(\backslash\)}
+\DoxyCodeLine{        this-\/>\_name = type\{std::forward<Args>(\_value)...\};                   \(\backslash\)}
+\DoxyCodeLine{        return *\textcolor{keyword}{this};                                                        \(\backslash\)}
+\DoxyCodeLine{    \}                                                                        \(\backslash\)}
+\DoxyCodeLine{    static\_assert(\textcolor{keyword}{true},                                                      \(\backslash\)}
+\DoxyCodeLine{                  \textcolor{stringliteral}{"This assert is used to counter the false positive extra "} \(\backslash\)}
+\DoxyCodeLine{                  \textcolor{stringliteral}{"semi-\/colon warnings"})}
+
+\end{DoxyCode}
+
+
+Creates a factory parameter in the factory parameters structure. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em \+\_\+name} & name of the parameter \\
+\hline
+{\em $<$strong$>$\+V\+A\+\_\+\+A\+R\+G\+S$<$/strong$>$} & default value of the parameter\\
+\hline
+\end{DoxyParams}
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{group__LinOp_ga8e0af90ec2414b768266f77cedffc309}{G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+L\+I\+N\+\_\+\+O\+P\+\_\+\+F\+A\+C\+T\+O\+RY}} for more details, and usage example 
+\end{DoxySeeAlso}
+
+
+\doxysubsection{Typedef Documentation}
+\mbox{\Hypertarget{group__LinOp_ga24628d477cba68b31cea690572c51912}\label{group__LinOp_ga24628d477cba68b31cea690572c51912}} 
+\index{Linear Operators@{Linear Operators}!EnableDefaultLinOpFactory@{EnableDefaultLinOpFactory}}
+\index{EnableDefaultLinOpFactory@{EnableDefaultLinOpFactory}!Linear Operators@{Linear Operators}}
+\doxysubsubsection{\texorpdfstring{EnableDefaultLinOpFactory}{EnableDefaultLinOpFactory}}
+{\footnotesize\ttfamily template$<$typename Concrete\+Factory , typename Concrete\+Lin\+Op , typename Parameters\+Type , typename Polymorphic\+Base  = Lin\+Op\+Factory$>$ \\
+using \mbox{\hyperlink{group__LinOp_ga24628d477cba68b31cea690572c51912}{gko\+::\+Enable\+Default\+Lin\+Op\+Factory}} = typedef \mbox{\hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory}}$<$Concrete\+Factory, Concrete\+Lin\+Op, Parameters\+Type, Polymorphic\+Base$>$}
+
+
+
+This is an alias for the \mbox{\hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory}} mixin, which correctly sets the template parameters to enable a subclass of \mbox{\hyperlink{classgko_1_1LinOpFactory}{Lin\+Op\+Factory}}. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Concrete\+Factory} & the concrete factory which is being implemented \mbox{[}C\+R\+TP parmeter\mbox{]} \\
+\hline
+{\em Concrete\+Lin\+Op} & the concrete \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} type which this factory produces, needs to have a constructor which takes a const Concrete\+Factory $\ast$, and an std\+::shared\+\_\+ptr$<$const Lin\+Op$>$ as parameters. \\
+\hline
+{\em Parameters\+Type} & a subclass of \mbox{\hyperlink{structgko_1_1enable__parameters__type}{enable\+\_\+parameters\+\_\+type}} template which defines all of the parameters of the factory \\
+\hline
+{\em Polymorphic\+Base} & parent of Concrete\+Factory in the polymorphic hierarchy, has to be a subclass of \mbox{\hyperlink{classgko_1_1LinOpFactory}{Lin\+Op\+Factory}} \\
+\hline
+\end{DoxyTemplParams}

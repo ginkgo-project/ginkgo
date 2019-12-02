@@ -1,0 +1,5 @@
+<map id="gko::ValueMismatch" name="gko::ValueMismatch">
+<area shape="rect" id="node1" title="ValueMismatch is thrown if two values are not equal." alt="" coords="5,155,159,181"/>
+<area shape="rect" id="node2" href="$classgko_1_1Error.html" title="The Error class is used to report exceptional behaviour in library functions." alt="" coords="39,80,125,107"/>
+<area shape="rect" id="node3" title="STL class." alt="" coords="25,5,139,32"/>
+</map>

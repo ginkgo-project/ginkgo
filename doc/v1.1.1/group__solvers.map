@@ -1,0 +1,4 @@
+<map id="Solvers" name="Solvers">
+<area shape="rect" id="node1" href="$group__LinOp.html" title="A module dedicated to the implementation and usage of the Linear operators in Ginkgo." alt="" coords="5,57,136,83"/>
+<area shape="rect" id="node2" title="A module dedicated to the implementation and usage of the Solvers in Ginkgo." alt="" coords="321,57,392,83"/>
+</map>

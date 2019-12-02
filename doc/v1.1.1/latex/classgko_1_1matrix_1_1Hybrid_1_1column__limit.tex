@@ -1,0 +1,84 @@
+\hypertarget{classgko_1_1matrix_1_1Hybrid_1_1column__limit}{}\doxysection{gko\+::matrix\+::Hybrid$<$ Value\+Type, Index\+Type $>$\+::column\+\_\+limit Class Reference}
+\label{classgko_1_1matrix_1_1Hybrid_1_1column__limit}\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::column\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::column\_limit}}
+
+
+\mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1column__limit}{column\+\_\+limit}} is a \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type}{strategy\+\_\+type}} which decides the number of stored elements per row of the ell part by specifying the number of columns.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/matrix/hybrid.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::matrix\+::Hybrid$<$ Value\+Type, Index\+Type $>$\+::column\+\_\+limit\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=213pt]{classgko_1_1matrix_1_1Hybrid_1_1column__limit__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1column__limit_ac686f3f99034bffd091bd934bd1cf9f9}{column\+\_\+limit}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} num\+\_\+column=0)
+\begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1column__limit}{column\+\_\+limit}} strategy. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1column__limit_afb410def66106b711ac094fd31d48aba}{compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row}} (\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $>$ $\ast$row\+\_\+nnz) const override
+\begin{DoxyCompactList}\small\item\em Computes the number of stored elements per row of the ell part. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::column\+\_\+limit}
+
+\mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1column__limit}{column\+\_\+limit}} is a \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type}{strategy\+\_\+type}} which decides the number of stored elements per row of the ell part by specifying the number of columns. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_1_1column__limit_ac686f3f99034bffd091bd934bd1cf9f9}\label{classgko_1_1matrix_1_1Hybrid_1_1column__limit_ac686f3f99034bffd091bd934bd1cf9f9}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::column\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::column\_limit}!column\_limit@{column\_limit}}
+\index{column\_limit@{column\_limit}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$::column\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::column\_limit}}
+\doxysubsubsection{\texorpdfstring{column\_limit()}{column\_limit()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::column\+\_\+limit\+::column\+\_\+limit (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{num\+\_\+column = {\ttfamily 0} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [explicit]}}
+
+
+
+Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1column__limit}{column\+\_\+limit}} strategy. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em num\+\_\+column} & the specified number of columns of the ell part \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_1_1column__limit_afb410def66106b711ac094fd31d48aba}\label{classgko_1_1matrix_1_1Hybrid_1_1column__limit_afb410def66106b711ac094fd31d48aba}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::column\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::column\_limit}!compute\_ell\_num\_stored\_elements\_per\_row@{compute\_ell\_num\_stored\_elements\_per\_row}}
+\index{compute\_ell\_num\_stored\_elements\_per\_row@{compute\_ell\_num\_stored\_elements\_per\_row}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$::column\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::column\_limit}}
+\doxysubsubsection{\texorpdfstring{compute\_ell\_num\_stored\_elements\_per\_row()}{compute\_ell\_num\_stored\_elements\_per\_row()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::column\+\_\+limit\+::compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $>$ $\ast$}]{row\+\_\+nnz }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Computes the number of stored elements per row of the ell part. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row\+\_\+nnz} & the number of nonzeros of each row\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the number of stored elements per row of the ell part 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_a0a0cd4024f27c7d0f286f35fc0a6de60}{gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/matrix/hybrid.\+hpp (4b82e692f)\end{DoxyCompactItemize}

@@ -1,0 +1,571 @@
+\hypertarget{classgko_1_1matrix_1_1Hybrid}{}\doxysection{gko\+::matrix\+::Hybrid$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1matrix_1_1Hybrid}\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+
+
+H\+Y\+B\+R\+ID is a matrix format which splits the matrix into E\+L\+L\+P\+A\+CK and C\+OO format.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/matrix/hybrid.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::matrix\+::Hybrid$<$ Value\+Type, Index\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1matrix_1_1Hybrid__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1automatic}{automatic}}
+\begin{DoxyCompactList}\small\item\em automatic is a stratgy\+\_\+type which decides the number of stored elements per row of the ell part automatically. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1column__limit}{column\+\_\+limit}}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1column__limit}{column\+\_\+limit}} is a \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type}{strategy\+\_\+type}} which decides the number of stored elements per row of the ell part by specifying the number of columns. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__bounded__limit}{imbalance\+\_\+bounded\+\_\+limit}}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__bounded__limit}{imbalance\+\_\+bounded\+\_\+limit}} is a stratgy\+\_\+type which decides the number of stored elements per row of the ell part. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit}{imbalance\+\_\+limit}}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit}{imbalance\+\_\+limit}} is a \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type}{strategy\+\_\+type}} which decides the number of stored elements per row of the ell part according to the percent. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1minimal__storage__limit}{minimal\+\_\+storage\+\_\+limit}}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1minimal__storage__limit}{minimal\+\_\+storage\+\_\+limit}} is a stratgy\+\_\+type which decides the number of stored elements per row of the ell part. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type}{strategy\+\_\+type}}
+\begin{DoxyCompactList}\small\item\em \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type}{strategy\+\_\+type}} is to decide how to set the hybrid config. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_ab7dc8fc8adf3a4911bea8735b61aedcb}\label{classgko_1_1matrix_1_1Hybrid_ab7dc8fc8adf3a4911bea8735b61aedcb}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_aa3a33fb6537865ef3b8a3783b80df854}\label{classgko_1_1matrix_1_1Hybrid_aa3a33fb6537865ef3b8a3783b80df854}} 
+using {\bfseries index\+\_\+type} = Index\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a834d0a3d25bede233fef6cfa111c4fad}\label{classgko_1_1matrix_1_1Hybrid_a834d0a3d25bede233fef6cfa111c4fad}} 
+using {\bfseries mat\+\_\+data} = \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a8c65b9003a55d0f55aa39cb36f029548}\label{classgko_1_1matrix_1_1Hybrid_a8c65b9003a55d0f55aa39cb36f029548}} 
+using {\bfseries coo\+\_\+type} = \mbox{\hyperlink{classgko_1_1matrix_1_1Coo}{Coo}}$<$ Value\+Type, Index\+Type $>$
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_aa1309bf2e1e389e5dcfadb5cf3dfb77f}\label{classgko_1_1matrix_1_1Hybrid_aa1309bf2e1e389e5dcfadb5cf3dfb77f}} 
+using {\bfseries ell\+\_\+type} = \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{Ell}}$<$ Value\+Type, Index\+Type $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a84640a1655c79facb5b7776bed7b31f2}\label{classgko_1_1matrix_1_1Hybrid_a84640a1655c79facb5b7776bed7b31f2}} 
+void {\bfseries convert\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ Value\+Type $>$ $\ast$other) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a3e09a24869354c749e5e992611964e85}\label{classgko_1_1matrix_1_1Hybrid_a3e09a24869354c749e5e992611964e85}} 
+void {\bfseries move\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ Value\+Type $>$ $\ast$other) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_ac5e0ac17eb2daae3883ee1c93bb7d9ca}\label{classgko_1_1matrix_1_1Hybrid_ac5e0ac17eb2daae3883ee1c93bb7d9ca}} 
+void {\bfseries convert\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}}$<$ Value\+Type, Index\+Type $>$ $\ast$other) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_af8ef6b6956c90665d51f40c68d3a8221}\label{classgko_1_1matrix_1_1Hybrid_af8ef6b6956c90665d51f40c68d3a8221}} 
+void {\bfseries move\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}}$<$ Value\+Type, Index\+Type $>$ $\ast$other) override
+\item 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a7eff2922ae21e9722b343ca1832d8bf5}{read}} (const \mbox{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data}} \&data) override
+\begin{DoxyCompactList}\small\item\em Reads a matrix from a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a626c07541641bcdfd9a7f61322a89cbe}{write}} (\mbox{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data}} \&data) const override
+\begin{DoxyCompactList}\small\item\em Writes a matrix to a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. \end{DoxyCompactList}\item 
+value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a9cd9c8b8dbf8b3c2c014f355faa61474}{get\+\_\+ell\+\_\+values}} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the values of the ell part. \end{DoxyCompactList}\item 
+const value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_af792e702c3650f4e77e8cb256250f21e}{get\+\_\+const\+\_\+ell\+\_\+values}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the values of the ell part. \end{DoxyCompactList}\item 
+index\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_ac46548ef106a6b8fe32219d3e11aab22}{get\+\_\+ell\+\_\+col\+\_\+idxs}} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the column indexes of the ell part. \end{DoxyCompactList}\item 
+const index\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a7cba3bbddd3f2f921b65bcb8cd208df5}{get\+\_\+const\+\_\+ell\+\_\+col\+\_\+idxs}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the column indexes of the ell part. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a9ac6d0efc8627c915c73a0155e64548d}{get\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the number of stored elements per row of ell part. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a2472495b537b47555a04aa6ba11d5817}{get\+\_\+ell\+\_\+stride}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the stride of the ell part. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a99ab36f3aeae944db440a8bbe324aaff}{get\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the number of elements explicitly stored in the ell part. \end{DoxyCompactList}\item 
+value\+\_\+type \& \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a5a0b57a9285424720218ff03dad6846c}{ell\+\_\+val\+\_\+at}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} row, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} idx) noexcept
+\begin{DoxyCompactList}\small\item\em Returns the {\ttfamily idx}-\/th non-\/zero element of the {\ttfamily row}-\/th row in the ell part. \end{DoxyCompactList}\item 
+value\+\_\+type \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a3e0ab990e82db430d0e05fe165a11620}{ell\+\_\+val\+\_\+at}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} row, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} idx) const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the {\ttfamily idx}-\/th non-\/zero element of the {\ttfamily row}-\/th row in the ell part. \end{DoxyCompactList}\item 
+index\+\_\+type \& \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_ad41c68dbda50589378ad481c0ab8feea}{ell\+\_\+col\+\_\+at}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} row, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} idx) noexcept
+\begin{DoxyCompactList}\small\item\em Returns the {\ttfamily idx}-\/th column index of the {\ttfamily row}-\/th row in the ell part. \end{DoxyCompactList}\item 
+index\+\_\+type \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a3a2d9b00dd8b2333b05a97d968dfabff}{ell\+\_\+col\+\_\+at}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} row, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} idx) const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the {\ttfamily idx}-\/th column index of the {\ttfamily row}-\/th row in the ell part. \end{DoxyCompactList}\item 
+const \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{ell\+\_\+type}} $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_afe9a3a9a801271d5ead4774fff7ffbd7}{get\+\_\+ell}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the matrix of the ell part. \end{DoxyCompactList}\item 
+value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a8513b46a3abb728b725fc26af81d09b9}{get\+\_\+coo\+\_\+values}} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the values of the coo part. \end{DoxyCompactList}\item 
+const value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a9b066402b6f3727196c9945a80f08a6e}{get\+\_\+const\+\_\+coo\+\_\+values}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the values of the coo part. \end{DoxyCompactList}\item 
+index\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a327548f42867b201cd469f3a21145c87}{get\+\_\+coo\+\_\+col\+\_\+idxs}} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the column indexes of the coo part. \end{DoxyCompactList}\item 
+const index\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_ab637e1576b6449407ee2b57ac203e0f7}{get\+\_\+const\+\_\+coo\+\_\+col\+\_\+idxs}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the column indexes of the coo part. \end{DoxyCompactList}\item 
+index\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_aa64e1442587df4be9bc55f38d91be26d}{get\+\_\+coo\+\_\+row\+\_\+idxs}} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the row indexes of the coo part. \end{DoxyCompactList}\item 
+const index\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_ae0d4b0c9151011ef879055f504f79f63}{get\+\_\+const\+\_\+coo\+\_\+row\+\_\+idxs}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the row indexes of the coo part. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a2fe06adb3323dcad710329e33a12dff4}{get\+\_\+coo\+\_\+num\+\_\+stored\+\_\+elements}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the number of elements explicitly stored in the coo part. \end{DoxyCompactList}\item 
+const \mbox{\hyperlink{classgko_1_1matrix_1_1Coo}{coo\+\_\+type}} $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a80eb99775093553db1029b9675f34e2c}{get\+\_\+coo}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the matrix of the coo part. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a00e86ba08ecfc46dbc9b74b800d10a8d}{get\+\_\+num\+\_\+stored\+\_\+elements}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the number of elements explicitly stored in the matrix. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type}{strategy\+\_\+type}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a8be764050176291d35e7b4dee1b6e1bc}{get\+\_\+strategy}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the strategy. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{Hybrid}} \& \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_a401af55be629372e3114b67df6fc4d04}{operator=}} (const \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{Hybrid}} \&other)
+\begin{DoxyCompactList}\small\item\em Copies data from another \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{Hybrid}}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a6e007d7f34688b24757931d9b29b553d}\label{classgko_1_1matrix_1_1Hybrid_a6e007d7f34688b24757931d9b29b553d}} 
+class {\bfseries Enable\+Create\+Method$<$ Hybrid $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a5daaa720a8e5d05fd99206759d6e3649}\label{classgko_1_1matrix_1_1Hybrid_a5daaa720a8e5d05fd99206759d6e3649}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Hybrid, Lin\+Op $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a22a84c8f67f946aa60a2fa8bf5835a32}\label{classgko_1_1matrix_1_1Hybrid_a22a84c8f67f946aa60a2fa8bf5835a32}} 
+class {\bfseries Dense$<$ Value\+Type $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a3962faf971a3df6ff4c9226c61fb24cc}\label{classgko_1_1matrix_1_1Hybrid_a3962faf971a3df6ff4c9226c61fb24cc}} 
+class {\bfseries Csr$<$ Value\+Type, Index\+Type $>$}
+\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$}
+
+H\+Y\+B\+R\+ID is a matrix format which splits the matrix into E\+L\+L\+P\+A\+CK and C\+OO format. 
+
+Achieve the excellent performance with a proper partition of E\+L\+L\+P\+A\+CK and C\+OO.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of matrix elements \\
+\hline
+{\em Index\+Type} & precision of matrix indexes \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a3a2d9b00dd8b2333b05a97d968dfabff}\label{classgko_1_1matrix_1_1Hybrid_a3a2d9b00dd8b2333b05a97d968dfabff}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!ell\_col\_at@{ell\_col\_at}}
+\index{ell\_col\_at@{ell\_col\_at}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{ell\_col\_at()}{ell\_col\_at()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+index\+\_\+type \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::ell\+\_\+col\+\_\+at (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{row,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{idx }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the {\ttfamily idx}-\/th column index of the {\ttfamily row}-\/th row in the ell part. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & the row of the requested element \\
+\hline
+{\em idx} & the idx-\/th stored element of the row\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+the method has to be called on the same \mbox{\hyperlink{classgko_1_1Executor}{Executor}} the matrix is stored at (e.\+g. trying to call this method on a G\+PU matrix from the O\+MP results in a runtime error) 
+\end{DoxyNote}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_ad41c68dbda50589378ad481c0ab8feea}\label{classgko_1_1matrix_1_1Hybrid_ad41c68dbda50589378ad481c0ab8feea}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!ell\_col\_at@{ell\_col\_at}}
+\index{ell\_col\_at@{ell\_col\_at}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{ell\_col\_at()}{ell\_col\_at()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+index\+\_\+type\& \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::ell\+\_\+col\+\_\+at (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{row,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{idx }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the {\ttfamily idx}-\/th column index of the {\ttfamily row}-\/th row in the ell part. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & the row of the requested element \\
+\hline
+{\em idx} & the idx-\/th stored element of the row\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+the method has to be called on the same \mbox{\hyperlink{classgko_1_1Executor}{Executor}} the matrix is stored at (e.\+g. trying to call this method on a G\+PU matrix from the O\+MP results in a runtime error) 
+\end{DoxyNote}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a3e0ab990e82db430d0e05fe165a11620}\label{classgko_1_1matrix_1_1Hybrid_a3e0ab990e82db430d0e05fe165a11620}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!ell\_val\_at@{ell\_val\_at}}
+\index{ell\_val\_at@{ell\_val\_at}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{ell\_val\_at()}{ell\_val\_at()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+value\+\_\+type \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::ell\+\_\+val\+\_\+at (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{row,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{idx }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the {\ttfamily idx}-\/th non-\/zero element of the {\ttfamily row}-\/th row in the ell part. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & the row of the requested element \\
+\hline
+{\em idx} & the idx-\/th stored element of the row\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+the method has to be called on the same \mbox{\hyperlink{classgko_1_1Executor}{Executor}} the matrix is stored at (e.\+g. trying to call this method on a G\+PU matrix from the O\+MP results in a runtime error) 
+\end{DoxyNote}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a5a0b57a9285424720218ff03dad6846c}\label{classgko_1_1matrix_1_1Hybrid_a5a0b57a9285424720218ff03dad6846c}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!ell\_val\_at@{ell\_val\_at}}
+\index{ell\_val\_at@{ell\_val\_at}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{ell\_val\_at()}{ell\_val\_at()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+value\+\_\+type\& \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::ell\+\_\+val\+\_\+at (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{row,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{idx }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the {\ttfamily idx}-\/th non-\/zero element of the {\ttfamily row}-\/th row in the ell part. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & the row of the requested element \\
+\hline
+{\em idx} & the idx-\/th stored element of the row\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+the method has to be called on the same \mbox{\hyperlink{classgko_1_1Executor}{Executor}} the matrix is stored at (e.\+g. trying to call this method on a G\+PU matrix from the O\+MP results in a runtime error) 
+\end{DoxyNote}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_ab637e1576b6449407ee2b57ac203e0f7}\label{classgko_1_1matrix_1_1Hybrid_ab637e1576b6449407ee2b57ac203e0f7}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_const\_coo\_col\_idxs@{get\_const\_coo\_col\_idxs}}
+\index{get\_const\_coo\_col\_idxs@{get\_const\_coo\_col\_idxs}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_const\_coo\_col\_idxs()}{get\_const\_coo\_col\_idxs()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+const index\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+coo\+\_\+col\+\_\+idxs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the column indexes of the coo part. 
+
+\begin{DoxyReturn}{Returns}
+the column indexes of the coo part.
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_ae0d4b0c9151011ef879055f504f79f63}\label{classgko_1_1matrix_1_1Hybrid_ae0d4b0c9151011ef879055f504f79f63}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_const\_coo\_row\_idxs@{get\_const\_coo\_row\_idxs}}
+\index{get\_const\_coo\_row\_idxs@{get\_const\_coo\_row\_idxs}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_const\_coo\_row\_idxs()}{get\_const\_coo\_row\_idxs()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+const index\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+coo\+\_\+row\+\_\+idxs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the row indexes of the coo part. 
+
+\begin{DoxyReturn}{Returns}
+the row indexes of the coo part.
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a9b066402b6f3727196c9945a80f08a6e}\label{classgko_1_1matrix_1_1Hybrid_a9b066402b6f3727196c9945a80f08a6e}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_const\_coo\_values@{get\_const\_coo\_values}}
+\index{get\_const\_coo\_values@{get\_const\_coo\_values}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_const\_coo\_values()}{get\_const\_coo\_values()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+const value\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+coo\+\_\+values (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the values of the coo part. 
+
+\begin{DoxyReturn}{Returns}
+the values of the coo part.
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a7cba3bbddd3f2f921b65bcb8cd208df5}\label{classgko_1_1matrix_1_1Hybrid_a7cba3bbddd3f2f921b65bcb8cd208df5}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_const\_ell\_col\_idxs@{get\_const\_ell\_col\_idxs}}
+\index{get\_const\_ell\_col\_idxs@{get\_const\_ell\_col\_idxs}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_const\_ell\_col\_idxs()}{get\_const\_ell\_col\_idxs()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+const index\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+ell\+\_\+col\+\_\+idxs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the column indexes of the ell part. 
+
+\begin{DoxyReturn}{Returns}
+the column indexes of the ell part
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_af792e702c3650f4e77e8cb256250f21e}\label{classgko_1_1matrix_1_1Hybrid_af792e702c3650f4e77e8cb256250f21e}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_const\_ell\_values@{get\_const\_ell\_values}}
+\index{get\_const\_ell\_values@{get\_const\_ell\_values}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_const\_ell\_values()}{get\_const\_ell\_values()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+const value\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+ell\+\_\+values (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the values of the ell part. 
+
+\begin{DoxyReturn}{Returns}
+the values of the ell part
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a80eb99775093553db1029b9675f34e2c}\label{classgko_1_1matrix_1_1Hybrid_a80eb99775093553db1029b9675f34e2c}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_coo@{get\_coo}}
+\index{get\_coo@{get\_coo}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_coo()}{get\_coo()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+const \mbox{\hyperlink{classgko_1_1matrix_1_1Coo}{coo\+\_\+type}}$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+coo (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the matrix of the coo part. 
+
+\begin{DoxyReturn}{Returns}
+the matrix of the coo part 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a327548f42867b201cd469f3a21145c87}\label{classgko_1_1matrix_1_1Hybrid_a327548f42867b201cd469f3a21145c87}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_coo\_col\_idxs@{get\_coo\_col\_idxs}}
+\index{get\_coo\_col\_idxs@{get\_coo\_col\_idxs}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_coo\_col\_idxs()}{get\_coo\_col\_idxs()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+index\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+coo\+\_\+col\+\_\+idxs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the column indexes of the coo part. 
+
+\begin{DoxyReturn}{Returns}
+the column indexes of the coo part. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a2fe06adb3323dcad710329e33a12dff4}\label{classgko_1_1matrix_1_1Hybrid_a2fe06adb3323dcad710329e33a12dff4}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_coo\_num\_stored\_elements@{get\_coo\_num\_stored\_elements}}
+\index{get\_coo\_num\_stored\_elements@{get\_coo\_num\_stored\_elements}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_coo\_num\_stored\_elements()}{get\_coo\_num\_stored\_elements()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+coo\+\_\+num\+\_\+stored\+\_\+elements (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the number of elements explicitly stored in the coo part. 
+
+\begin{DoxyReturn}{Returns}
+the number of elements explicitly stored in the coo part 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_aa64e1442587df4be9bc55f38d91be26d}\label{classgko_1_1matrix_1_1Hybrid_aa64e1442587df4be9bc55f38d91be26d}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_coo\_row\_idxs@{get\_coo\_row\_idxs}}
+\index{get\_coo\_row\_idxs@{get\_coo\_row\_idxs}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_coo\_row\_idxs()}{get\_coo\_row\_idxs()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+index\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+coo\+\_\+row\+\_\+idxs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the row indexes of the coo part. 
+
+\begin{DoxyReturn}{Returns}
+the row indexes of the coo part. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a8513b46a3abb728b725fc26af81d09b9}\label{classgko_1_1matrix_1_1Hybrid_a8513b46a3abb728b725fc26af81d09b9}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_coo\_values@{get\_coo\_values}}
+\index{get\_coo\_values@{get\_coo\_values}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_coo\_values()}{get\_coo\_values()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+value\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+coo\+\_\+values (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the values of the coo part. 
+
+\begin{DoxyReturn}{Returns}
+the values of the coo part. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_afe9a3a9a801271d5ead4774fff7ffbd7}\label{classgko_1_1matrix_1_1Hybrid_afe9a3a9a801271d5ead4774fff7ffbd7}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_ell@{get\_ell}}
+\index{get\_ell@{get\_ell}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_ell()}{get\_ell()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+const \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{ell\+\_\+type}}$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+ell (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the matrix of the ell part. 
+
+\begin{DoxyReturn}{Returns}
+the matrix of the ell part 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_ac46548ef106a6b8fe32219d3e11aab22}\label{classgko_1_1matrix_1_1Hybrid_ac46548ef106a6b8fe32219d3e11aab22}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_ell\_col\_idxs@{get\_ell\_col\_idxs}}
+\index{get\_ell\_col\_idxs@{get\_ell\_col\_idxs}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_ell\_col\_idxs()}{get\_ell\_col\_idxs()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+index\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+ell\+\_\+col\+\_\+idxs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the column indexes of the ell part. 
+
+\begin{DoxyReturn}{Returns}
+the column indexes of the ell part 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a99ab36f3aeae944db440a8bbe324aaff}\label{classgko_1_1matrix_1_1Hybrid_a99ab36f3aeae944db440a8bbe324aaff}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_ell\_num\_stored\_elements@{get\_ell\_num\_stored\_elements}}
+\index{get\_ell\_num\_stored\_elements@{get\_ell\_num\_stored\_elements}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_ell\_num\_stored\_elements()}{get\_ell\_num\_stored\_elements()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the number of elements explicitly stored in the ell part. 
+
+\begin{DoxyReturn}{Returns}
+the number of elements explicitly stored in the ell part 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a9ac6d0efc8627c915c73a0155e64548d}\label{classgko_1_1matrix_1_1Hybrid_a9ac6d0efc8627c915c73a0155e64548d}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_ell\_num\_stored\_elements\_per\_row@{get\_ell\_num\_stored\_elements\_per\_row}}
+\index{get\_ell\_num\_stored\_elements\_per\_row@{get\_ell\_num\_stored\_elements\_per\_row}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_ell\_num\_stored\_elements\_per\_row()}{get\_ell\_num\_stored\_elements\_per\_row()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the number of stored elements per row of ell part. 
+
+\begin{DoxyReturn}{Returns}
+the number of stored elements per row of ell part 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a2472495b537b47555a04aa6ba11d5817}\label{classgko_1_1matrix_1_1Hybrid_a2472495b537b47555a04aa6ba11d5817}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_ell\_stride@{get\_ell\_stride}}
+\index{get\_ell\_stride@{get\_ell\_stride}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_ell\_stride()}{get\_ell\_stride()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+ell\+\_\+stride (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the stride of the ell part. 
+
+\begin{DoxyReturn}{Returns}
+the stride of the ell part 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a9cd9c8b8dbf8b3c2c014f355faa61474}\label{classgko_1_1matrix_1_1Hybrid_a9cd9c8b8dbf8b3c2c014f355faa61474}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_ell\_values@{get\_ell\_values}}
+\index{get\_ell\_values@{get\_ell\_values}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_ell\_values()}{get\_ell\_values()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+value\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+ell\+\_\+values (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the values of the ell part. 
+
+\begin{DoxyReturn}{Returns}
+the values of the ell part 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a00e86ba08ecfc46dbc9b74b800d10a8d}\label{classgko_1_1matrix_1_1Hybrid_a00e86ba08ecfc46dbc9b74b800d10a8d}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_num\_stored\_elements@{get\_num\_stored\_elements}}
+\index{get\_num\_stored\_elements@{get\_num\_stored\_elements}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_num\_stored\_elements()}{get\_num\_stored\_elements()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+num\+\_\+stored\+\_\+elements (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the number of elements explicitly stored in the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the number of elements explicitly stored in the matrix 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a8be764050176291d35e7b4dee1b6e1bc}\label{classgko_1_1matrix_1_1Hybrid_a8be764050176291d35e7b4dee1b6e1bc}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!get\_strategy@{get\_strategy}}
+\index{get\_strategy@{get\_strategy}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_strategy()}{get\_strategy()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type}{strategy\+\_\+type}}$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+strategy (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the strategy. 
+
+\begin{DoxyReturn}{Returns}
+the strategy 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a401af55be629372e3114b67df6fc4d04}\label{classgko_1_1matrix_1_1Hybrid_a401af55be629372e3114b67df6fc4d04}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!operator=@{operator=}}
+\index{operator=@{operator=}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{operator=()}{operator=()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{Hybrid}}\& \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::operator= (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{Hybrid}}$<$ Value\+Type, Index\+Type $>$ \&}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Copies data from another \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{Hybrid}}. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{Hybrid}} to copy from\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+this 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a7eff2922ae21e9722b343ca1832d8bf5}\label{classgko_1_1matrix_1_1Hybrid_a7eff2922ae21e9722b343ca1832d8bf5}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!read@{read}}
+\index{read@{read}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{read()}{read()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::read (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data}} \&}]{data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Reads a matrix from a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em data} & the \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classgko_1_1ReadableFromMatrixData_add5c12e23b3ac3c8fbd607fa5a9656bb}{gko\+::\+Readable\+From\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$}}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_a626c07541641bcdfd9a7f61322a89cbe}\label{classgko_1_1matrix_1_1Hybrid_a626c07541641bcdfd9a7f61322a89cbe}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}!write@{write}}
+\index{write@{write}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{write()}{write()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::write (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data}} \&}]{data }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Writes a matrix to a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em data} & the \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classgko_1_1WritableToMatrixData_a96036c3a4bf4c67fa93002808b8b14e2}{gko\+::\+Writable\+To\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$}}.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/matrix/csr.\+hpp (2f671dafa)\item 
+ginkgo/core/matrix/hybrid.\+hpp (4b82e692f)\end{DoxyCompactItemize}

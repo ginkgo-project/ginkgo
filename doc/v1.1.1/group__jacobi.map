@@ -1,0 +1,5 @@
+<map id="Jacobi Preconditioner" name="Jacobi Preconditioner">
+<area shape="rect" id="node1" href="$group__precond.html" title="A module dedicated to the implementation and usage of the Preconditioners in Ginkgo." alt="" coords="5,22,128,47"/>
+<area shape="rect" id="node2" title="A module dedicated to the implementation and usage of the Jacobi Preconditioner in Ginkgo." alt="" coords="303,22,461,47"/>
+<area shape="rect" id="node3" href="$group__LinOp.html" title="A module dedicated to the implementation and usage of the Linear operators in Ginkgo." alt="" coords="636,22,767,47"/>
+</map>

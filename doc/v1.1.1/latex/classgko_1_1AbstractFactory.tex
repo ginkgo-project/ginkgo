@@ -1,0 +1,89 @@
+\hypertarget{classgko_1_1AbstractFactory}{}\doxysection{gko\+::Abstract\+Factory$<$ Abstract\+Product\+Type, Components\+Type $>$ Class Template Reference}
+\label{classgko_1_1AbstractFactory}\index{gko::AbstractFactory$<$ AbstractProductType, ComponentsType $>$@{gko::AbstractFactory$<$ AbstractProductType, ComponentsType $>$}}
+
+
+The \mbox{\hyperlink{classgko_1_1AbstractFactory}{Abstract\+Factory}} is a generic interface template that enables easy implementation of the abstract factory design pattern.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/abstract\+\_\+factory.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Abstract\+Factory$<$ Abstract\+Product\+Type, Components\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1AbstractFactory__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1AbstractFactory_afc8e23253c0fc2c81d6a74df19758454}\label{classgko_1_1AbstractFactory_afc8e23253c0fc2c81d6a74df19758454}} 
+using {\bfseries abstract\+\_\+product\+\_\+type} = Abstract\+Product\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1AbstractFactory_aca858cfbda0fb1e8df67eca429971c61}\label{classgko_1_1AbstractFactory_aca858cfbda0fb1e8df67eca429971c61}} 
+using {\bfseries components\+\_\+type} = Components\+Type
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$typename... Args$>$ }\\std\+::unique\+\_\+ptr$<$ Abstract\+Product\+Type $>$ \mbox{\hyperlink{classgko_1_1AbstractFactory_a159c45f1db78b6b928d69cb9adf5c9ee}{generate}} (Args \&\&... args) const
+\begin{DoxyCompactList}\small\item\em Creates a new product from the given components. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Abstract\+Product\+Type, typename Components\+Type$>$\newline
+class gko\+::\+Abstract\+Factory$<$ Abstract\+Product\+Type, Components\+Type $>$}
+
+The \mbox{\hyperlink{classgko_1_1AbstractFactory}{Abstract\+Factory}} is a generic interface template that enables easy implementation of the abstract factory design pattern. 
+
+The interface provides the \mbox{\hyperlink{classgko_1_1AbstractFactory_a159c45f1db78b6b928d69cb9adf5c9ee}{Abstract\+Factory\+::generate()}} method that can produce products of type {\ttfamily Abstract\+Product\+Type} using an object of {\ttfamily Components\+Type} (which can be constructed on the fly from parameters to its constructors). The \mbox{\hyperlink{classgko_1_1AbstractFactory_a159c45f1db78b6b928d69cb9adf5c9ee}{generate()}} method is not declared as virtual, as this allows subclasses to hide the method with a variant that preserves the compile-\/time type of the objects. Instead, implementers should override the generate\+\_\+impl() method, which is declared virtual.
+
+Implementers of concrete factories should consider using the \mbox{\hyperlink{classgko_1_1EnableDefaultFactory}{Enable\+Default\+Factory}} mixin to obtain default implementations of utility methods of \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} and \mbox{\hyperlink{classgko_1_1AbstractFactory}{Abstract\+Factory}}.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Abstract\+Product\+Type} & the type of products the factory produces \\
+\hline
+{\em Components\+Type} & the type of components the factory needs to produce the product \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1AbstractFactory_a159c45f1db78b6b928d69cb9adf5c9ee}\label{classgko_1_1AbstractFactory_a159c45f1db78b6b928d69cb9adf5c9ee}} 
+\index{gko::AbstractFactory$<$ AbstractProductType, ComponentsType $>$@{gko::AbstractFactory$<$ AbstractProductType, ComponentsType $>$}!generate@{generate}}
+\index{generate@{generate}!gko::AbstractFactory$<$ AbstractProductType, ComponentsType $>$@{gko::AbstractFactory$<$ AbstractProductType, ComponentsType $>$}}
+\doxysubsubsection{\texorpdfstring{generate()}{generate()}}
+{\footnotesize\ttfamily template$<$typename Abstract\+Product\+Type, typename Components\+Type$>$ \\
+template$<$typename... Args$>$ \\
+std\+::unique\+\_\+ptr$<$Abstract\+Product\+Type$>$ \mbox{\hyperlink{classgko_1_1AbstractFactory}{gko\+::\+Abstract\+Factory}}$<$ Abstract\+Product\+Type, Components\+Type $>$\+::generate (\begin{DoxyParamCaption}\item[{Args \&\&...}]{args }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Creates a new product from the given components. 
+
+The method will create an Components\+Type object from the arguments of this method, and pass it to the generate\+\_\+impl() function which will create a new Abstract\+Product\+Type.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Args} & types of arguments passed to the constructor of Components\+Type\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em args} & arguments passed to the constructor of Components\+Type\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+an instance of Abstract\+Product\+Type 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/abstract\+\_\+factory.\+hpp (97addc067)\end{DoxyCompactItemize}

@@ -1,0 +1,110 @@
+\hypertarget{classgko_1_1solver_1_1Gmres}{}\doxysection{gko\+::solver\+::Gmres$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1solver_1_1Gmres}\index{gko::solver::Gmres$<$ ValueType $>$@{gko::solver::Gmres$<$ ValueType $>$}}
+
+
+G\+M\+R\+ES or the generalized minimal residual method is an iterative type Krylov subspace method which is suitable for nonsymmetric linear systems.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/solver/gmres.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::solver\+::Gmres$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1solver_1_1Gmres__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1solver_1_1Gmres_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1solver_1_1Gmres_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Gmres_a0df4f52a85e853e0e09ab5e6a83cdf66}\label{classgko_1_1solver_1_1Gmres_a0df4f52a85e853e0e09ab5e6a83cdf66}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Gmres_a31d5c0225dbed72e52ea252dd38868f2}{get\+\_\+system\+\_\+matrix}} () const
+\begin{DoxyCompactList}\small\item\em Gets the system operator (matrix) of the linear system. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1solver_1_1Gmres_a3a808fe82cdd1e988667a89d6982e740}{get\+\_\+krylov\+\_\+dim}} () const
+\begin{DoxyCompactList}\small\item\em Returns the krylov dimension. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Gmres_a54a7453e1f9106f5b6d4373ecd1a493f}\label{classgko_1_1solver_1_1Gmres_a54a7453e1f9106f5b6d4373ecd1a493f}} 
+const \mbox{\hyperlink{structgko_1_1solver_1_1Gmres_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Gmres_aedec4e86748b3a46bbd6be9d5a1a8e13}\label{classgko_1_1solver_1_1Gmres_aedec4e86748b3a46bbd6be9d5a1a8e13}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1solver_1_1Gmres_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Gmres_a3be7de14fce761042b534f3ef004d03f}\label{classgko_1_1solver_1_1Gmres_a3be7de14fce761042b534f3ef004d03f}} 
+class {\bfseries Enable\+Lin\+Op$<$ Gmres $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Gmres_a8aceb23723f9e39e385a8192933e7cfc}\label{classgko_1_1solver_1_1Gmres_a8aceb23723f9e39e385a8192933e7cfc}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Gmres, Lin\+Op $>$}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::solver\+::\+Gmres$<$ Value\+Type $>$}
+
+G\+M\+R\+ES or the generalized minimal residual method is an iterative type Krylov subspace method which is suitable for nonsymmetric linear systems. 
+
+The implementation in Ginkgo makes use of the merged kernel to make the best use of data locality. The inner operations in one iteration of G\+M\+R\+ES are merged into 2 separate steps.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of matrix elements \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Gmres_a3a808fe82cdd1e988667a89d6982e740}\label{classgko_1_1solver_1_1Gmres_a3a808fe82cdd1e988667a89d6982e740}} 
+\index{gko::solver::Gmres$<$ ValueType $>$@{gko::solver::Gmres$<$ ValueType $>$}!get\_krylov\_dim@{get\_krylov\_dim}}
+\index{get\_krylov\_dim@{get\_krylov\_dim}!gko::solver::Gmres$<$ ValueType $>$@{gko::solver::Gmres$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_krylov\_dim()}{get\_krylov\_dim()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1solver_1_1Gmres}{gko\+::solver\+::\+Gmres}}$<$ Value\+Type $>$\+::get\+\_\+krylov\+\_\+dim (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Returns the krylov dimension. 
+
+\begin{DoxyReturn}{Returns}
+the krylov dimension 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Gmres_a31d5c0225dbed72e52ea252dd38868f2}\label{classgko_1_1solver_1_1Gmres_a31d5c0225dbed72e52ea252dd38868f2}} 
+\index{gko::solver::Gmres$<$ ValueType $>$@{gko::solver::Gmres$<$ ValueType $>$}!get\_system\_matrix@{get\_system\_matrix}}
+\index{get\_system\_matrix@{get\_system\_matrix}!gko::solver::Gmres$<$ ValueType $>$@{gko::solver::Gmres$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_system\_matrix()}{get\_system\_matrix()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Gmres}{gko\+::solver\+::\+Gmres}}$<$ Value\+Type $>$\+::get\+\_\+system\+\_\+matrix (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the system operator (matrix) of the linear system. 
+
+\begin{DoxyReturn}{Returns}
+the system operator (matrix) 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/solver/gmres.\+hpp (4d55c5d34)\end{DoxyCompactItemize}

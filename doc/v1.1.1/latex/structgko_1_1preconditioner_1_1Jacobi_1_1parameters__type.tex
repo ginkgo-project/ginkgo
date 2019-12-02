@@ -1,0 +1,131 @@
+\hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type}{}\doxysection{gko\+::preconditioner\+::Jacobi$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type Struct Reference}
+\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type}\index{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type}}
+
+
+Collaboration diagram for gko\+::preconditioner\+::Jacobi$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a4514d906e32b8331a0c9c90ff29f4fbd}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a4514d906e32b8331a0c9c90ff29f4fbd}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+max\+\_\+block\+\_\+size} (Args \&\&... \+\_\+value) const -\/$>$ const \+::gko\+::xstd\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
+\mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a9fcbaa7fdaf17490d0b6a5fccfe70e80}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a9fcbaa7fdaf17490d0b6a5fccfe70e80}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+block\+\_\+pointers} (Args \&\&... \+\_\+value) const -\/$>$ const \+::gko\+::xstd\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
+\mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a2c213c5e7a4b749e8def7c627057b2e2}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a2c213c5e7a4b749e8def7c627057b2e2}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+storage\+\_\+optimization} (Args \&\&... \+\_\+value) const -\/$>$ const \+::gko\+::xstd\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
+\mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_ab6c8cbe0cab5d055b509c74eba740aef}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_ab6c8cbe0cab5d055b509c74eba740aef}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+accuracy} (Args \&\&... \+\_\+value) const -\/$>$ const \+::gko\+::xstd\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{namespacegko_a318c831e3fe269ba04c6ed8bf5a71073}{uint32}} \mbox{\hyperlink{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a7d11d10b347b25b64b5b916e6a74364e}{max\+\_\+block\+\_\+size}} \{ 32u \}
+\begin{DoxyCompactList}\small\item\em Maximal size of diagonal blocks. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ index\+\_\+type $>$ \mbox{\hyperlink{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_ab70db5d25c2efd13579170b28218ea66}{block\+\_\+pointers}} \{ nullptr \}
+\begin{DoxyCompactList}\small\item\em Starting (row / column) indexes of individual blocks. \end{DoxyCompactList}\item 
+storage\+\_\+optimization\+\_\+type \mbox{\hyperlink{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a51d0eec65f99d6dd5b0ebe5ba69390dd}{storage\+\_\+optimization}} \{ \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}}(0, 0) \}
+\begin{DoxyCompactList}\small\item\em The precisions to use for the blocks of the matrix. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}}$<$ value\+\_\+type $>$ \mbox{\hyperlink{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_ad4fd0de7ce4d390584e947afb6d0ce73}{accuracy}} \{ 1e-\/1 \}
+\begin{DoxyCompactList}\small\item\em The relative accuracy of the adaptive \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{Jacobi}} variant. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_ad4fd0de7ce4d390584e947afb6d0ce73}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_ad4fd0de7ce4d390584e947afb6d0ce73}} 
+\index{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type}!accuracy@{accuracy}}
+\index{accuracy@{accuracy}!gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{accuracy}{accuracy}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}}$<$value\+\_\+type$>$ \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko\+::preconditioner\+::\+Jacobi}}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::accuracy \{ 1e-\/1 \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+The relative accuracy of the adaptive \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{Jacobi}} variant. 
+
+This parameter is only used if the adaptive version of the algorithm is selected (see storage\+\_\+optimization parameter for more details). The parameter is used when detecting the optimal precisions of blocks whose precision has been set to \mbox{\hyperlink{classgko_1_1precision__reduction_a1fde4dd48fab015698c1616408f3ef81}{precision\+\_\+reduction\+::autodetect()}}.
+
+The parameter represents the number of correct digits in the result of Jacobi\+::apply() operation of the adaptive variant, compared to the non-\/adaptive variant. In other words, the total preconditioning error will be\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{|| inv(A)x -\/ inv(M)x|| / || inv(A)x || <= c * (dropout + \mbox{\hyperlink{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_ad4fd0de7ce4d390584e947afb6d0ce73}{accuracy}})}
+\end{DoxyCode}
+
+
+where {\ttfamily c} is some constant depending on the problem size and roundoff error and {\ttfamily dropout} the error introduced by disregarding off-\/diagonal elements.
+
+Larger values reduce the volume of memory transfer, but increase the error compared to using full precision storage. Thus, tuning the accuracy to a value as close as possible to {\ttfamily dropout} will result in optimal memory savings, while not degrading the quality of solution. \mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_ab70db5d25c2efd13579170b28218ea66}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_ab70db5d25c2efd13579170b28218ea66}} 
+\index{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type}!block\_pointers@{block\_pointers}}
+\index{block\_pointers@{block\_pointers}!gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{block\_pointers}{block\_pointers}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+\mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$index\+\_\+type$>$ \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko\+::preconditioner\+::\+Jacobi}}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::block\+\_\+pointers \{ nullptr \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+Starting (row / column) indexes of individual blocks. 
+
+An index past the last block has to be supplied as the last value. I.\+e. the size of the array has to be the number of blocks plus 1, where the first value is 0, and the last value is the number of rows / columns of the matrix.
+
+\begin{DoxyNote}{Note}
+Even if not set explicitly, this parameter will be set to automatically detected values once the preconditioner is generated. 
+
+If the parameter is set automatically, the size of the array does not correlate to the number of blocks, and is implementation defined. To obtain the number of blocks {\ttfamily n} use \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi_afb44d8e560f00f65c46c6813638ce24c}{Jacobi\+::get\+\_\+num\+\_\+blocks()}}. The starting indexes of the blocks are stored in the first {\ttfamily n+1} values of this array. 
+
+If the block-\/diagonal structure can be determined from the problem characteristics, it may be beneficial to pass this information specifically via this parameter, as the autodetection procedure is only a rough approximation of the true block structure. 
+
+The maximum block size set by the max\+\_\+block\+\_\+size parameter has to be respected when setting this parameter. Failure to do so will lead to undefined behavior. 
+\end{DoxyNote}
+\mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a7d11d10b347b25b64b5b916e6a74364e}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a7d11d10b347b25b64b5b916e6a74364e}} 
+\index{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type}!max\_block\_size@{max\_block\_size}}
+\index{max\_block\_size@{max\_block\_size}!gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{max\_block\_size}{max\_block\_size}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a318c831e3fe269ba04c6ed8bf5a71073}{uint32}} \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko\+::preconditioner\+::\+Jacobi}}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::max\+\_\+block\+\_\+size \{ 32u \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+Maximal size of diagonal blocks. 
+
+\begin{DoxyNote}{Note}
+This value has to be between 1 and 32. 
+\end{DoxyNote}
+\mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a51d0eec65f99d6dd5b0ebe5ba69390dd}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a51d0eec65f99d6dd5b0ebe5ba69390dd}} 
+\index{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type}!storage\_optimization@{storage\_optimization}}
+\index{storage\_optimization@{storage\_optimization}!gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{storage\_optimization}{storage\_optimization}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+storage\+\_\+optimization\+\_\+type \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko\+::preconditioner\+::\+Jacobi}}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::storage\+\_\+optimization \{ \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}}(0, 0) \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+The precisions to use for the blocks of the matrix. 
+
+This parameter can either be a single instance of \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}} or an \mbox{\hyperlink{classgko_1_1Array}{Array}} of \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}} values. If set to {\ttfamily precision\+\_\+reduction(0, 0)} (this is the default), a regular full-\/precision block-\/\+Jacobi will be used. Any other value (or an \mbox{\hyperlink{classgko_1_1Array}{Array}} of values) will map to the adaptive variant.
+
+The best starting point when evaluating the potential of the adaptive version is to set this parameter to {\ttfamily \mbox{\hyperlink{classgko_1_1precision__reduction_a1fde4dd48fab015698c1616408f3ef81}{precision\+\_\+reduction\+::autodetect()}}}. This option will cause the preconditioner to reduce the memory transfer volume as much as possible, while trying to maintain the quality of the preconditioner similar to that of the full precision block-\/\+Jacobi.
+
+For finer control, specific instances of \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}} can be used. Supported values are {\ttfamily precision\+\_\+reduction(0, 0)}, {\ttfamily precision\+\_\+reduction(0, 1)} and {\ttfamily precision\+\_\+reduction(0, 2)}. Any other value will have the same effect as {\ttfamily precision\+\_\+reduction(0, 0)}.
+
+If the Value\+Type template parameter is set to {\ttfamily double} (or the complex variant {\ttfamily std\+::complex$<$double$>$}), {\ttfamily precision\+\_\+reduction(0, 0)} will use I\+E\+EE double precision for preconditioner storage, {\ttfamily precision\+\_\+reduction(0, 1)} will use I\+E\+EE single precision, and {\ttfamily precision\+\_\+reduction(0, 2)} will use I\+E\+EE half precision.
+
+It Value\+Type is set to {\ttfamily float} (or {\ttfamily std\+::complex$<$float$>$}), {\ttfamily precision\+\_\+reduction(0, 0)} will use I\+E\+EE single precision for preconditioner storage, and both {\ttfamily precision\+\_\+reduction(0, 1)} and {\ttfamily precision\+\_\+reduction(0, 2)} will use I\+E\+EE half precision.
+
+Instead of specifying the same precision for all blocks, the precision of the elements can be specified on per-\/block basis by passing an array of \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}} objects. All values discussed above are supported, with the same meaning. It is worth mentioning that a value of {\ttfamily \mbox{\hyperlink{classgko_1_1precision__reduction_a1fde4dd48fab015698c1616408f3ef81}{precision\+\_\+reduction\+::autodetect()}}} will cause autodetection on the per-\/block basis, so blocks whose precisions are autodetected can end up having different precisions once the preconditioner is generated. The detected precision generally depends on the conditioning of the block.
+
+If the number of diagonal blocks is larger than the number of elements in the passed \mbox{\hyperlink{classgko_1_1Array}{Array}}, the entire \mbox{\hyperlink{classgko_1_1Array}{Array}} will be replicated until enough values are available. For example, if the original array contained two precisions {\ttfamily (x, y)} and the preconditioner contains 5 blocks, the array will be transformed into {\ttfamily (x, y, x, y, x)} before generating the preconditioner. As a consequence, specifying a single value for this property is exactly equivalent to specifying an array with a single element set to that value.
+
+Once an instance of the \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{Jacobi}} linear operator is generated, the precisions used for the blocks can be obtained by reading this property. Whether the parameter was set to a single value or to an array of values can be queried by reading the {\ttfamily storage\+\_\+optimization.\+is\+\_\+block\+\_\+wise} boolean sub-\/property. If it is set to {\ttfamily false}, the precision used for all blocks can be obtained using {\ttfamily storage\+\_\+optimization.\+of\+\_\+all\+\_\+blocks} or by casting {\ttfamily storage\+\_\+optimization} to {\ttfamily \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}}}. Independently of the value of {\ttfamily storage\+\_\+optimization.\+is\+\_\+block\+\_\+wise}, the {\ttfamily storage\+\_\+optimization.\+block\+\_\+wise} property will return an array of precisions used for each block. All values set to {\ttfamily \mbox{\hyperlink{classgko_1_1precision__reduction_a1fde4dd48fab015698c1616408f3ef81}{precision\+\_\+reduction\+::autodetect()}}} will be replaced with the value representing the precision used for the corresponding block. If the non-\/adaptive version of \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{Jacobi}} is used, the {\ttfamily storage\+\_\+optimization.\+block\+\_\+wise} \mbox{\hyperlink{classgko_1_1Array}{Array}} will be empty. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/preconditioner/jacobi.\+hpp (1dbcef9a5)\end{DoxyCompactItemize}

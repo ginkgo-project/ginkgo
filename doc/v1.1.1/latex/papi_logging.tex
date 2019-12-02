@@ -1,0 +1,488 @@
+The papi logging example..
+
+This example depends on simple-\/solver-\/logging.
+
+ \label{_Intro}%
+ \label{_Introduction}%
+\doxysection*{Introduction}
+
+\label{_Abouttheexample}%
+\doxysubsubsection*{About the example }
+
+\label{_CommProg}%
+ \doxysection*{The commented program}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <papi.h>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <fstream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <thread>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{namespace }\{}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} papi\_add\_event(\textcolor{keyword}{const} std::string \&event\_name, \textcolor{keywordtype}{int} \&eventset)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} code;}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} ret\_val = PAPI\_event\_name\_to\_code(event\_name.c\_str(), \&code);}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (PAPI\_OK != ret\_val) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Error at PAPI\_name\_to\_code()"} << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    ret\_val = PAPI\_add\_event(eventset, code);}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (PAPI\_OK != ret\_val) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Error at PAPI\_name\_to\_code()"} << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{std::string to\_string(T *ptr)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    std::ostringstream os;}
+\DoxyCodeLine{    os << reinterpret\_cast<gko::uintptr>(ptr);}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} os.str();}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\}  \textcolor{comment}{// namespace}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} init\_papi\_counters(std::string solver\_name, std::string A\_name)}
+\DoxyCodeLine{\{}
+\end{DoxyCode}
+
+
+Initialize P\+A\+PI, add events and start it up
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} eventset = PAPI\_NULL;}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} ret\_val = PAPI\_library\_init(PAPI\_VER\_CURRENT);}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (ret\_val != PAPI\_VER\_CURRENT) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Error at PAPI\_library\_init()"} << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    ret\_val = PAPI\_create\_eventset(\&eventset);}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (PAPI\_OK != ret\_val) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Error at PAPI\_create\_eventset()"} << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::string simple\_apply\_string(\textcolor{stringliteral}{"sde:::ginkgo0::linop\_apply\_completed::"});}
+\DoxyCodeLine{    std::string advanced\_apply\_string(}
+\DoxyCodeLine{        \textcolor{stringliteral}{"sde:::ginkgo0::linop\_advanced\_apply\_completed::"});}
+\DoxyCodeLine{    papi\_add\_event(simple\_apply\_string + solver\_name, eventset);}
+\DoxyCodeLine{    papi\_add\_event(simple\_apply\_string + A\_name, eventset);}
+\DoxyCodeLine{    papi\_add\_event(advanced\_apply\_string + A\_name, eventset);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    ret\_val = PAPI\_start(eventset);}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (PAPI\_OK != ret\_val) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Error at PAPI\_start()"} << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} eventset;}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} print\_papi\_counters(\textcolor{keywordtype}{int} eventset)}
+\DoxyCodeLine{\{}
+\end{DoxyCode}
+
+
+Stop P\+A\+PI and read the linop\+\_\+apply\+\_\+completed event for all of them
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keywordtype}{long} \textcolor{keywordtype}{long} \textcolor{keywordtype}{int} values[3];}
+\DoxyCodeLine{\textcolor{keywordtype}{int} ret\_val = PAPI\_stop(eventset, values);}
+\DoxyCodeLine{\textcolor{keywordflow}{if} (PAPI\_OK != ret\_val) \{}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Error at PAPI\_stop()"} << std::endl;}
+\DoxyCodeLine{    std::exit(-\/1);}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{PAPI\_shutdown();}
+\end{DoxyCode}
+
+
+Print all values returned from P\+A\+PI
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"PAPI SDE counters:"} << std::endl;}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"solver did "} << values[0] << \textcolor{stringliteral}{" applies."} << std::endl;}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"A did "} << values[1] << \textcolor{stringliteral}{" simple applies."} << std::endl;}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"A did "} << values[2] << \textcolor{stringliteral}{" advanced applies."} << std::endl;}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\end{DoxyCode}
+
+
+Some shortcuts
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>}};}
+\end{DoxyCode}
+
+
+Print version information
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::cout << \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}}() << std::endl;}
+\end{DoxyCode}
+
+
+Figure out where to run the code
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::shared\_ptr<gko::Executor> exec;}
+\DoxyCodeLine{\textcolor{keywordflow}{if} (argc == 1 || std::string(argv[1]) == \textcolor{stringliteral}{"reference"}) \{}
+\DoxyCodeLine{    exec = gko::ReferenceExecutor::create();}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"omp"}) \{}
+\DoxyCodeLine{    exec = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"cuda"} \&\&}
+\DoxyCodeLine{           \mbox{\hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{gko::CudaExecutor::get\_num\_devices}}() > 0) \{}
+\DoxyCodeLine{    exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" [executor]"} << std::endl;}
+\DoxyCodeLine{    std::exit(-\/1);}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+Read data
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} A = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));}
+\DoxyCodeLine{\textcolor{keyword}{auto} b = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/b.mtx"}), exec);}
+\DoxyCodeLine{\textcolor{keyword}{auto} x = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/x0.mtx"}), exec);}
+\end{DoxyCode}
+
+
+Generate solver
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} solver\_gen =}
+\DoxyCodeLine{    cg::build()}
+\DoxyCodeLine{        .with\_criteria(}
+\DoxyCodeLine{            gko::stop::Iteration::build().with\_max\_iters(20u).on(exec),}
+\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<>::build}}()}
+\DoxyCodeLine{                .with\_reduction\_factor(1e-\/20)}
+\DoxyCodeLine{                .on(exec))}
+\DoxyCodeLine{        .on(exec);}
+\DoxyCodeLine{\textcolor{keyword}{auto} solver = solver\_gen-\/>generate(A);}
+\end{DoxyCode}
+
+
+In this example, we split as much as possible the Ginkgo solver/logger and the P\+A\+PI interface. Note that the P\+A\+PI ginkgo namespaces are of the form sde\+:\+::ginkgo$<$x$>$ where $<$x$>$ starts from 0 and is incremented with every new P\+A\+PI logger.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keywordtype}{int} eventset =}
+\DoxyCodeLine{    init\_papi\_counters(to\_string(solver.get()), to\_string(A.get()));}
+\end{DoxyCode}
+
+
+Create a P\+A\+PI logger and add it to relevant Lin\+Ops
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} logger = gko::log::Papi<>::create(}
+\DoxyCodeLine{    exec, gko::log::Logger::linop\_apply\_completed\_mask |}
+\DoxyCodeLine{              gko::log::Logger::linop\_advanced\_apply\_completed\_mask);}
+\DoxyCodeLine{solver-\/>add\_logger(logger);}
+\DoxyCodeLine{A-\/>add\_logger(logger);}
+\end{DoxyCode}
+
+
+Solve system
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\end{DoxyCode}
+
+
+Stop P\+A\+PI event gathering and print the counters
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{print\_papi\_counters(eventset);}
+\end{DoxyCode}
+
+
+Print solution
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::cout << \textcolor{stringliteral}{"Solution (x): \(\backslash\)n"};}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\end{DoxyCode}
+
+
+Calculate residual
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    \textcolor{keyword}{auto} \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} = gko::initialize<vec>(\{1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} neg\_one = gko::initialize<vec>(\{-\/1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} res = gko::initialize<vec>(\{0.0\}, exec);}
+\DoxyCodeLine{    A-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(neg\_one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b));}
+\DoxyCodeLine{    b-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(res));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Residual norm sqrt(r\string^T r): \(\backslash\)n"};}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(res));}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+ \label{_Results}%
+\doxysection*{Results}
+
+The following is the expected result\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{PAPI SDE counters:}
+\DoxyCodeLine{solver did 1 applies.}
+\DoxyCodeLine{A did 20 simple applies.}
+\DoxyCodeLine{A did 1 advanced applies.}
+\DoxyCodeLine{Solution (x):}
+\DoxyCodeLine{\%\%MatrixMarket matrix \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{array}} \mbox{\hyperlink{namespacegko_ae23cfd886cee6e88d77bcbbbe1928b78}{real}} general}
+\DoxyCodeLine{19 1}
+\DoxyCodeLine{0.252218}
+\DoxyCodeLine{0.108645}
+\DoxyCodeLine{0.0662811}
+\DoxyCodeLine{0.0630433}
+\DoxyCodeLine{0.0384088}
+\DoxyCodeLine{0.0396536}
+\DoxyCodeLine{0.0402648}
+\DoxyCodeLine{0.0338935}
+\DoxyCodeLine{0.0193098}
+\DoxyCodeLine{0.0234653}
+\DoxyCodeLine{0.0211499}
+\DoxyCodeLine{0.0196413}
+\DoxyCodeLine{0.0199151}
+\DoxyCodeLine{0.0181674}
+\DoxyCodeLine{0.0162722}
+\DoxyCodeLine{0.0150714}
+\DoxyCodeLine{0.0107016}
+\DoxyCodeLine{0.0121141}
+\DoxyCodeLine{0.0123025}
+\DoxyCodeLine{Residual norm sqrt(r\string^T r):}
+\DoxyCodeLine{\%\%MatrixMarket matrix \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{array}} \mbox{\hyperlink{namespacegko_ae23cfd886cee6e88d77bcbbbe1928b78}{real}} general}
+\DoxyCodeLine{1 1}
+\DoxyCodeLine{8.87107e-\/16}
+\end{DoxyCode}
+
+
+\label{_Commentsaboutprogramminganddebugging}%
+\doxysubsubsection*{Comments about programming and debugging }
+
+\label{_PlainProg}%
+ \doxysection*{The plain program}
+
+
+\begin{DoxyCodeInclude}{0}
+\DoxyCodeLine{\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}}
+\DoxyCodeLine{\textcolor{comment}{Copyright (c) 2017-\/2019, the Ginkgo authors}}
+\DoxyCodeLine{\textcolor{comment}{All rights reserved.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{Redistribution and use in source and binary forms, with or without}}
+\DoxyCodeLine{\textcolor{comment}{modification, are permitted provided that the following conditions}}
+\DoxyCodeLine{\textcolor{comment}{are met:}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{1. Redistributions of source code must retain the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{2. Redistributions in binary form must reproduce the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer in the}}
+\DoxyCodeLine{\textcolor{comment}{documentation and/or other materials provided with the distribution.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{3. Neither the name of the copyright holder nor the names of its}}
+\DoxyCodeLine{\textcolor{comment}{contributors may be used to endorse or promote products derived from}}
+\DoxyCodeLine{\textcolor{comment}{this software without specific prior written permission.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS}}
+\DoxyCodeLine{\textcolor{comment}{IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED}}
+\DoxyCodeLine{\textcolor{comment}{TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A}}
+\DoxyCodeLine{\textcolor{comment}{PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT}}
+\DoxyCodeLine{\textcolor{comment}{HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,}}
+\DoxyCodeLine{\textcolor{comment}{SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT}}
+\DoxyCodeLine{\textcolor{comment}{LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,}}
+\DoxyCodeLine{\textcolor{comment}{DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY}}
+\DoxyCodeLine{\textcolor{comment}{THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}}
+\DoxyCodeLine{\textcolor{comment}{(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}}
+\DoxyCodeLine{\textcolor{comment}{OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}}
+\DoxyCodeLine{\textcolor{comment}{******************************<GINKGO LICENSE>*******************************/}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <papi.h>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <fstream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <thread>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{namespace }\{}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} papi\_add\_event(\textcolor{keyword}{const} std::string \&event\_name, \textcolor{keywordtype}{int} \&eventset)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} code;}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} ret\_val = PAPI\_event\_name\_to\_code(event\_name.c\_str(), \&code);}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (PAPI\_OK != ret\_val) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Error at PAPI\_name\_to\_code()"} << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    ret\_val = PAPI\_add\_event(eventset, code);}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (PAPI\_OK != ret\_val) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Error at PAPI\_name\_to\_code()"} << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} T>}
+\DoxyCodeLine{std::string to\_string(T *ptr)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    std::ostringstream os;}
+\DoxyCodeLine{    os << reinterpret\_cast<gko::uintptr>(ptr);}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} os.str();}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\}  \textcolor{comment}{// namespace}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} init\_papi\_counters(std::string solver\_name, std::string A\_name)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} eventset = PAPI\_NULL;}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} ret\_val = PAPI\_library\_init(PAPI\_VER\_CURRENT);}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (ret\_val != PAPI\_VER\_CURRENT) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Error at PAPI\_library\_init()"} << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    ret\_val = PAPI\_create\_eventset(\&eventset);}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (PAPI\_OK != ret\_val) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Error at PAPI\_create\_eventset()"} << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::string simple\_apply\_string(\textcolor{stringliteral}{"sde:::ginkgo0::linop\_apply\_completed::"});}
+\DoxyCodeLine{    std::string advanced\_apply\_string(}
+\DoxyCodeLine{        \textcolor{stringliteral}{"sde:::ginkgo0::linop\_advanced\_apply\_completed::"});}
+\DoxyCodeLine{    papi\_add\_event(simple\_apply\_string + solver\_name, eventset);}
+\DoxyCodeLine{    papi\_add\_event(simple\_apply\_string + A\_name, eventset);}
+\DoxyCodeLine{    papi\_add\_event(advanced\_apply\_string + A\_name, eventset);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    ret\_val = PAPI\_start(eventset);}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (PAPI\_OK != ret\_val) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Error at PAPI\_start()"} << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} eventset;}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} print\_papi\_counters(\textcolor{keywordtype}{int} eventset)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keywordtype}{long} \textcolor{keywordtype}{long} \textcolor{keywordtype}{int} values[3];}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} ret\_val = PAPI\_stop(eventset, values);}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (PAPI\_OK != ret\_val) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Error at PAPI\_stop()"} << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    PAPI\_shutdown();}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"PAPI SDE counters:"} << std::endl;}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"solver did "} << values[0] << \textcolor{stringliteral}{" applies."} << std::endl;}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"A did "} << values[1] << \textcolor{stringliteral}{" simple applies."} << std::endl;}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"A did "} << values[2] << \textcolor{stringliteral}{" advanced applies."} << std::endl;}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>}};}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}}() << std::endl;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::shared\_ptr<gko::Executor> exec;}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc == 1 || std::string(argv[1]) == \textcolor{stringliteral}{"reference"}) \{}
+\DoxyCodeLine{        exec = gko::ReferenceExecutor::create();}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"omp"}) \{}
+\DoxyCodeLine{        exec = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"cuda"} \&\&}
+\DoxyCodeLine{               \mbox{\hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{gko::CudaExecutor::get\_num\_devices}}() > 0) \{}
+\DoxyCodeLine{        exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" [executor]"} << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} A = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));}
+\DoxyCodeLine{    \textcolor{keyword}{auto} b = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/b.mtx"}), exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} x = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/x0.mtx"}), exec);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} solver\_gen =}
+\DoxyCodeLine{        cg::build()}
+\DoxyCodeLine{            .with\_criteria(}
+\DoxyCodeLine{                gko::stop::Iteration::build().with\_max\_iters(20u).on(exec),}
+\DoxyCodeLine{                \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<>::build}}()}
+\DoxyCodeLine{                    .with\_reduction\_factor(1e-\/20)}
+\DoxyCodeLine{                    .on(exec))}
+\DoxyCodeLine{            .on(exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} solver = solver\_gen-\/>generate(A);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} eventset =}
+\DoxyCodeLine{        init\_papi\_counters(to\_string(solver.get()), to\_string(A.get()));}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} logger = gko::log::Papi<>::create(}
+\DoxyCodeLine{        exec, gko::log::Logger::linop\_apply\_completed\_mask |}
+\DoxyCodeLine{                  gko::log::Logger::linop\_advanced\_apply\_completed\_mask);}
+\DoxyCodeLine{    solver-\/>add\_logger(logger);}
+\DoxyCodeLine{    A-\/>add\_logger(logger);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{    print\_papi\_counters(eventset);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Solution (x): \(\backslash\)n"};}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} = gko::initialize<vec>(\{1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} neg\_one = gko::initialize<vec>(\{-\/1.0\}, exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} res = gko::initialize<vec>(\{0.0\}, exec);}
+\DoxyCodeLine{    A-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(neg\_one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b));}
+\DoxyCodeLine{    b-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(res));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Residual norm sqrt(r\string^T r): \(\backslash\)n"};}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(res));}
+\DoxyCodeLine{\}}
+\end{DoxyCodeInclude}
+ 

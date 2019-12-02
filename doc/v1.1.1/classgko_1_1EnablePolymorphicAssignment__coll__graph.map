@@ -1,0 +1,4 @@
+<map id="gko::EnablePolymorphicAssignment&lt; ConcreteType, ResultType &gt;" name="gko::EnablePolymorphicAssignment&lt; ConcreteType, ResultType &gt;">
+<area shape="rect" id="node1" title="This mixin is used to enable a default PolymorphicObject::copy_from() implementation for objects that..." alt="" coords="5,95,261,136"/>
+<area shape="rect" id="node2" href="$classgko_1_1ConvertibleTo.html" title="ConvertibleTo interface is used to mark that the implementer can be converted to the object of Result..." alt="" coords="62,5,205,47"/>
+</map>

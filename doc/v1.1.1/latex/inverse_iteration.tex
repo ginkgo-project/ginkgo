@@ -1,0 +1,410 @@
+The inverse iteration example..
+
+This example depends on simple-\/solver, .
+
+ \label{_Intro}%
+ \label{_Introduction}%
+\doxysection*{Introduction}
+
+This example shows how components available in Ginkgo can be used to implement higher-\/level numerical methods. The method used here will be the shifted inverse iteration method for eigenvalue computation which find the eigenvalue and eigenvector of A closest to z, for some scalar z. The method requires repeatedly solving the shifted linear system (A -\/ zI)x = b, as well as performing matrix-\/vector products with the matrix {\ttfamily A}. Here is the complete pseudocode of the method\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{x\_0 = initial guess}
+\DoxyCodeLine{\textcolor{keywordflow}{for} i = 0 .. max\_iterations:}
+\DoxyCodeLine{    solve (A -\/ zI) y\_i = x\_i \textcolor{keywordflow}{for} y\_i+1}
+\DoxyCodeLine{    x\_(i+1) = y\_i / || y\_i ||      \# compute next eigenvector approximation}
+\DoxyCodeLine{    g\_(i+1) = x\_(i+1)\string^* A x\_(i+1)  \textcolor{preprocessor}{\# approximate eigenvalue (Rayleigh quotient)}}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} ||A x\_(i+1) -\/ g\_(i+1)x\_(i+1)|| < tol * g\_(i+1):  \textcolor{preprocessor}{\# check convergence}}
+\DoxyCodeLine{\textcolor{preprocessor}{        break}}
+\end{DoxyCode}
+
+
+\label{_Abouttheexample}%
+\doxysubsubsection*{About the example }
+
+\label{_CommProg}%
+ \doxysection*{The commented program}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <cmath>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <complex>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <fstream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iomanip>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\end{DoxyCode}
+
+
+Some shortcuts
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{using} precision = std::complex<double>;}
+\DoxyCodeLine{\textcolor{keyword}{using} real\_precision = double;}
+\DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<precision>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<precision>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} solver\_type = \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab}{gko::solver::Bicgstab<precision>}};}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{using} std::abs;}
+\DoxyCodeLine{\textcolor{keyword}{using} std::sqrt;}
+\end{DoxyCode}
+
+
+Print version information
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::cout << \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}}() << std::endl;}
+\DoxyCodeLine{}
+\DoxyCodeLine{std::cout << std::scientific << std::setprecision(8) << std::showpos;}
+\end{DoxyCode}
+
+
+Figure out where to run the code
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::shared\_ptr<gko::Executor> exec;}
+\DoxyCodeLine{\textcolor{keywordflow}{if} (argc == 1 || std::string(argv[1]) == \textcolor{stringliteral}{"reference"}) \{}
+\DoxyCodeLine{    exec = gko::ReferenceExecutor::create();}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"omp"}) \{}
+\DoxyCodeLine{    exec = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"cuda"} \&\&}
+\DoxyCodeLine{           \mbox{\hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{gko::CudaExecutor::get\_num\_devices}}() > 0) \{}
+\DoxyCodeLine{    exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" [executor]"} << std::endl;}
+\DoxyCodeLine{    std::exit(-\/1);}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{auto} this\_exec = exec-\/>get\_master();}
+\end{DoxyCode}
+
+
+linear system solver parameters
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} system\_max\_iterations = 100u;}
+\DoxyCodeLine{\textcolor{keyword}{auto} system\_residual\_goal = real\_precision\{1e-\/16\};}
+\end{DoxyCode}
+
+
+eigensolver parameters
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} max\_iterations = 20u;}
+\DoxyCodeLine{\textcolor{keyword}{auto} residual\_goal = real\_precision\{1e-\/8\};}
+\DoxyCodeLine{\textcolor{keyword}{auto} z = precision\{20.0, 2.0\};}
+\end{DoxyCode}
+
+
+Read data
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} A = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));}
+\end{DoxyCode}
+
+
+Generate shifted matrix A -\/ zI
+\begin{DoxyItemize}
+\item we avoid duplicating memory by not storing both A and A -\/ zI, but compute A -\/ zI on the fly by using Ginkgo\textquotesingle{}s utilities for creating linear combinations of operators
+\end{DoxyItemize}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}}(gko::initialize<vec>(\{precision\{1.0\}\}, exec));}
+\DoxyCodeLine{\textcolor{keyword}{auto} neg\_one = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}}(gko::initialize<vec>(\{-\/precision\{1.0\}\}, exec));}
+\DoxyCodeLine{\textcolor{keyword}{auto} neg\_z = gko::initialize<vec>(\{-\/z\}, exec);}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{auto} system\_matrix = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}}(\mbox{\hyperlink{classgko_1_1Combination}{gko::Combination<precision>::create}}(}
+\DoxyCodeLine{    one, A, gko::initialize<vec>(\{-\/z\}, exec),}
+\DoxyCodeLine{    \mbox{\hyperlink{classgko_1_1matrix_1_1Identity}{gko::matrix::Identity<precision>::create}}(exec, A-\/>get\_size()[0])));}
+\end{DoxyCode}
+
+
+Generate solver operator (A -\/ zI)$^\wedge$-\/1
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} solver =}
+\DoxyCodeLine{    solver\_type::build()}
+\DoxyCodeLine{        .with\_criteria(gko::stop::Iteration::build()}
+\DoxyCodeLine{                           .with\_max\_iters(system\_max\_iterations)}
+\DoxyCodeLine{                           .on(exec),}
+\DoxyCodeLine{                       \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<precision>::build}}()}
+\DoxyCodeLine{                           .with\_reduction\_factor(system\_residual\_goal)}
+\DoxyCodeLine{                           .on(exec))}
+\DoxyCodeLine{        .on(exec)}
+\DoxyCodeLine{        -\/>generate(system\_matrix);}
+\end{DoxyCode}
+
+
+inverse iterations
+
+start with guess \mbox{[}1, 1, ..., 1\mbox{]}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} x = [\&] \{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} work = vec::create(this\_exec, \mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}\{A-\/>get\_size()[0], 1\});}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} n = work-\/>get\_size()[0];}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < n; ++i) \{}
+\DoxyCodeLine{        work-\/>get\_values()[i] = precision\{1.0\} / sqrt(n);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(exec, work);}
+\DoxyCodeLine{\}();}
+\DoxyCodeLine{\textcolor{keyword}{auto} y = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(x);}
+\DoxyCodeLine{\textcolor{keyword}{auto} tmp = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(x);}
+\DoxyCodeLine{\textcolor{keyword}{auto} norm = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(one);}
+\DoxyCodeLine{\textcolor{keyword}{auto} inv\_norm = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(this\_exec, one);}
+\DoxyCodeLine{\textcolor{keyword}{auto} g = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(one);}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordflow}{for} (\textcolor{keyword}{auto} i = 0u; i < max\_iterations; ++i) \{}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"\{ "};}
+\end{DoxyCode}
+
+
+(A -\/ zI)y = x
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(y));}
+\DoxyCodeLine{system\_matrix-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(y), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(neg\_one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\DoxyCodeLine{x-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(norm));}
+\DoxyCodeLine{std::cout << \textcolor{stringliteral}{"\(\backslash\)"system\_residual\(\backslash\)": "}}
+\DoxyCodeLine{          << \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(this\_exec, norm)-\/>get\_values()[0] << \textcolor{stringliteral}{", "};}
+\DoxyCodeLine{x-\/>copy\_from(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(y));}
+\end{DoxyCode}
+
+
+x = y / $\vert$$\vert$ y $\vert$$\vert$
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{x-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(norm));}
+\DoxyCodeLine{inv\_norm-\/>get\_values()[0] =}
+\DoxyCodeLine{    precision\{1.0\} / \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(this\_exec, norm)-\/>get\_values()[0];}
+\DoxyCodeLine{x-\/>scale(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(\mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(exec, inv\_norm)));}
+\end{DoxyCode}
+
+
+g = x$^\wedge$$\ast$ A x
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{A-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(tmp));}
+\DoxyCodeLine{x-\/>compute\_dot(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(tmp), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(g));}
+\DoxyCodeLine{\textcolor{keyword}{auto} g\_val = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(this\_exec, g)-\/>get\_values()[0];}
+\DoxyCodeLine{std::cout << \textcolor{stringliteral}{"\(\backslash\)"eigenvalue\(\backslash\)": "} << g\_val << \textcolor{stringliteral}{", "};}
+\end{DoxyCode}
+
+
+$\vert$$\vert$\+Ax -\/ gx$\vert$$\vert$ $<$ tol $\ast$ g
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{        \textcolor{keyword}{auto} v = gko::initialize<vec>(\{-\/g\_val\}, exec);}
+\DoxyCodeLine{        tmp-\/>add\_scaled(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(v), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\DoxyCodeLine{        tmp-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(norm));}
+\DoxyCodeLine{        \textcolor{keyword}{auto} res\_val = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(exec-\/>get\_master(), norm)-\/>get\_values()[0];}
+\DoxyCodeLine{        std::cout << \textcolor{stringliteral}{"\(\backslash\)"residual\(\backslash\)": "} << res\_val / g\_val << \textcolor{stringliteral}{" \},"} << std::endl;}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (\mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(res\_val) < residual\_goal * \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(g\_val)) \{}
+\DoxyCodeLine{            \textcolor{keywordflow}{break};}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+ \label{_Results}%
+\doxysection*{Results}
+
+This is the expected output\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+1.59066966e-\/14,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+2.03741410e+01,-\/5.42101086e-\/18), \textcolor{stringliteral}{"residual"}: (+2.92231055e-\/01,+7.77548230e-\/20) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+6.38877157e-\/15,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.94878474e+01,-\/4.34534678e-\/16), \textcolor{stringliteral}{"residual"}: (+7.94370276e-\/02,+1.77126506e-\/18) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+6.79215294e-\/15,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.93282121e+01,-\/3.68988781e-\/16), \textcolor{stringliteral}{"residual"}: (+4.11149623e-\/02,+7.84912734e-\/19) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+3.54015578e-\/15,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.92638912e+01,+2.03949917e-\/16), \textcolor{stringliteral}{"residual"}: (+2.34717040e-\/02,-\/2.48498708e-\/19) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+2.12400044e-\/15,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.92409166e+01,-\/7.59991100e-\/16), \textcolor{stringliteral}{"residual"}: (+1.34709547e-\/02,+5.32085134e-\/19) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+3.29202859e-\/15,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.92331106e+01,+2.90110055e-\/15), \textcolor{stringliteral}{"residual"}: (+7.72060707e-\/03,-\/1.16456760e-\/18) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+3.99088304e-\/15,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.92305014e+01,-\/3.21058733e-\/16), \textcolor{stringliteral}{"residual"}: (+4.42106625e-\/03,+7.38109682e-\/20) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+2.02648035e-\/15,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.92296339e+01,+5.11222288e-\/16), \textcolor{stringliteral}{"residual"}: (+2.53081312e-\/03,-\/6.72819919e-\/20) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+1.83840397e-\/15,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.92293461e+01,+3.51208924e-\/16), \textcolor{stringliteral}{"residual"}: (+1.44862114e-\/03,-\/2.64579289e-\/20) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+1.60253167e-\/15,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.92292506e+01,-\/2.02284978e-\/15), \textcolor{stringliteral}{"residual"}: (+8.29183451e-\/04,+8.72271932e-\/20) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+1.96758490e-\/15,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.92292190e+01,+8.90545453e-\/16), \textcolor{stringliteral}{"residual"}: (+4.74636702e-\/04,-\/2.19814209e-\/20) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+1.53327380e-\/14,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.92292085e+01,-\/8.25871947e-\/17), \textcolor{stringliteral}{"residual"}: (+2.71701077e-\/04,+1.16692425e-\/21) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+3.42985865e-\/15,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.92292051e+01,+1.63122796e-\/16), \textcolor{stringliteral}{"residual"}: (+1.55539937e-\/04,-\/1.31945701e-\/21) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+3.30861071e-\/11,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.92292039e+01,-\/5.49102025e-\/16), \textcolor{stringliteral}{"residual"}: (+8.90457139e-\/05,+2.54275643e-\/21) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+7.11155374e-\/14,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.92292035e+01,+1.16689376e-\/15), \textcolor{stringliteral}{"residual"}: (+5.09805252e-\/05,-\/3.09367244e-\/21) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+2.68204494e-\/15,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.92292034e+01,-\/4.07084034e-\/17), \textcolor{stringliteral}{"residual"}: (+2.91887365e-\/05,+6.17928281e-\/23) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+5.78377594e-\/13,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.92292034e+01,-\/3.38561848e-\/17), \textcolor{stringliteral}{"residual"}: (+1.67126561e-\/05,+2.94253882e-\/23) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+6.26422040e-\/12,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.92292034e+01,-\/3.14429218e-\/18), \textcolor{stringliteral}{"residual"}: (+9.56961199e-\/06,+1.56478953e-\/24) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+1.41104829e-\/12,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.92292033e+01,-\/6.54656730e-\/16), \textcolor{stringliteral}{"residual"}: (+5.47975753e-\/06,+1.86557918e-\/22) \},}
+\DoxyCodeLine{\{ \textcolor{stringliteral}{"system\_residual"}: (+1.97926842e-\/10,+0.00000000e+00), \textcolor{stringliteral}{"eigenvalue"}: (+1.92292033e+01,+1.58008702e-\/16), \textcolor{stringliteral}{"residual"}: (+3.13794996e-\/06,-\/2.57849164e-\/23) \},}
+\end{DoxyCode}
+
+
+\label{_Commentsaboutprogramminganddebugging}%
+\doxysubsubsection*{Comments about programming and debugging }
+
+\label{_PlainProg}%
+ \doxysection*{The plain program}
+
+
+\begin{DoxyCodeInclude}{0}
+\DoxyCodeLine{\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}}
+\DoxyCodeLine{\textcolor{comment}{Copyright (c) 2017-\/2019, the Ginkgo authors}}
+\DoxyCodeLine{\textcolor{comment}{All rights reserved.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{Redistribution and use in source and binary forms, with or without}}
+\DoxyCodeLine{\textcolor{comment}{modification, are permitted provided that the following conditions}}
+\DoxyCodeLine{\textcolor{comment}{are met:}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{1. Redistributions of source code must retain the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{2. Redistributions in binary form must reproduce the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer in the}}
+\DoxyCodeLine{\textcolor{comment}{documentation and/or other materials provided with the distribution.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{3. Neither the name of the copyright holder nor the names of its}}
+\DoxyCodeLine{\textcolor{comment}{contributors may be used to endorse or promote products derived from}}
+\DoxyCodeLine{\textcolor{comment}{this software without specific prior written permission.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS}}
+\DoxyCodeLine{\textcolor{comment}{IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED}}
+\DoxyCodeLine{\textcolor{comment}{TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A}}
+\DoxyCodeLine{\textcolor{comment}{PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT}}
+\DoxyCodeLine{\textcolor{comment}{HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,}}
+\DoxyCodeLine{\textcolor{comment}{SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT}}
+\DoxyCodeLine{\textcolor{comment}{LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,}}
+\DoxyCodeLine{\textcolor{comment}{DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY}}
+\DoxyCodeLine{\textcolor{comment}{THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}}
+\DoxyCodeLine{\textcolor{comment}{(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}}
+\DoxyCodeLine{\textcolor{comment}{OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}}
+\DoxyCodeLine{\textcolor{comment}{******************************<GINKGO LICENSE>*******************************/}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <cmath>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <complex>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <fstream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iomanip>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{using} precision = std::complex<double>;}
+\DoxyCodeLine{    \textcolor{keyword}{using} real\_precision = double;}
+\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<precision>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<precision>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} solver\_type = \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab}{gko::solver::Bicgstab<precision>}};}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{using} std::abs;}
+\DoxyCodeLine{    \textcolor{keyword}{using} std::sqrt;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}}() << std::endl;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << std::scientific << std::setprecision(8) << std::showpos;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::shared\_ptr<gko::Executor> exec;}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc == 1 || std::string(argv[1]) == \textcolor{stringliteral}{"reference"}) \{}
+\DoxyCodeLine{        exec = gko::ReferenceExecutor::create();}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"omp"}) \{}
+\DoxyCodeLine{        exec = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc == 2 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"cuda"} \&\&}
+\DoxyCodeLine{               \mbox{\hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{gko::CudaExecutor::get\_num\_devices}}() > 0) \{}
+\DoxyCodeLine{        exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" [executor]"} << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} this\_exec = exec-\/>get\_master();}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} system\_max\_iterations = 100u;}
+\DoxyCodeLine{    \textcolor{keyword}{auto} system\_residual\_goal = real\_precision\{1e-\/16\};}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} max\_iterations = 20u;}
+\DoxyCodeLine{    \textcolor{keyword}{auto} residual\_goal = real\_precision\{1e-\/8\};}
+\DoxyCodeLine{    \textcolor{keyword}{auto} z = precision\{20.0, 2.0\};}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} A = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}}(gko::initialize<vec>(\{precision\{1.0\}\}, exec));}
+\DoxyCodeLine{    \textcolor{keyword}{auto} neg\_one = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}}(gko::initialize<vec>(\{-\/precision\{1.0\}\}, exec));}
+\DoxyCodeLine{    \textcolor{keyword}{auto} neg\_z = gko::initialize<vec>(\{-\/z\}, exec);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} system\_matrix = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}}(\mbox{\hyperlink{classgko_1_1Combination}{gko::Combination<precision>::create}}(}
+\DoxyCodeLine{        one, A, gko::initialize<vec>(\{-\/z\}, exec),}
+\DoxyCodeLine{        \mbox{\hyperlink{classgko_1_1matrix_1_1Identity}{gko::matrix::Identity<precision>::create}}(exec, A-\/>get\_size()[0])));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} solver =}
+\DoxyCodeLine{        solver\_type::build()}
+\DoxyCodeLine{            .with\_criteria(gko::stop::Iteration::build()}
+\DoxyCodeLine{                               .with\_max\_iters(system\_max\_iterations)}
+\DoxyCodeLine{                               .on(exec),}
+\DoxyCodeLine{                           \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<precision>::build}}()}
+\DoxyCodeLine{                               .with\_reduction\_factor(system\_residual\_goal)}
+\DoxyCodeLine{                               .on(exec))}
+\DoxyCodeLine{            .on(exec)}
+\DoxyCodeLine{            -\/>generate(system\_matrix);}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} x = [\&] \{}
+\DoxyCodeLine{        \textcolor{keyword}{auto} work = vec::create(this\_exec, \mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}\{A-\/>get\_size()[0], 1\});}
+\DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} n = work-\/>get\_size()[0];}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < n; ++i) \{}
+\DoxyCodeLine{            work-\/>get\_values()[i] = precision\{1.0\} / sqrt(n);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keywordflow}{return} \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(exec, work);}
+\DoxyCodeLine{    \}();}
+\DoxyCodeLine{    \textcolor{keyword}{auto} y = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(x);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} tmp = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(x);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} norm = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(one);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} inv\_norm = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(this\_exec, one);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} g = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(one);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} i = 0u; i < max\_iterations; ++i) \{}
+\DoxyCodeLine{        std::cout << \textcolor{stringliteral}{"\{ "};}
+\DoxyCodeLine{        solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(y));}
+\DoxyCodeLine{        system\_matrix-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(y), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(neg\_one), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\DoxyCodeLine{        x-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(norm));}
+\DoxyCodeLine{        std::cout << \textcolor{stringliteral}{"\(\backslash\)"system\_residual\(\backslash\)": "}}
+\DoxyCodeLine{                  << \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(this\_exec, norm)-\/>get\_values()[0] << \textcolor{stringliteral}{", "};}
+\DoxyCodeLine{        x-\/>copy\_from(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(y));}
+\DoxyCodeLine{        x-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(norm));}
+\DoxyCodeLine{        inv\_norm-\/>get\_values()[0] =}
+\DoxyCodeLine{            precision\{1.0\} / \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(this\_exec, norm)-\/>get\_values()[0];}
+\DoxyCodeLine{        x-\/>scale(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(\mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(exec, inv\_norm)));}
+\DoxyCodeLine{        A-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(tmp));}
+\DoxyCodeLine{        x-\/>compute\_dot(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(tmp), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(g));}
+\DoxyCodeLine{        \textcolor{keyword}{auto} g\_val = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(this\_exec, g)-\/>get\_values()[0];}
+\DoxyCodeLine{        std::cout << \textcolor{stringliteral}{"\(\backslash\)"eigenvalue\(\backslash\)": "} << g\_val << \textcolor{stringliteral}{", "};}
+\DoxyCodeLine{        \textcolor{keyword}{auto} v = gko::initialize<vec>(\{-\/g\_val\}, exec);}
+\DoxyCodeLine{        tmp-\/>add\_scaled(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(v), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\DoxyCodeLine{        tmp-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(norm));}
+\DoxyCodeLine{        \textcolor{keyword}{auto} res\_val = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(exec-\/>get\_master(), norm)-\/>get\_values()[0];}
+\DoxyCodeLine{        std::cout << \textcolor{stringliteral}{"\(\backslash\)"residual\(\backslash\)": "} << res\_val / g\_val << \textcolor{stringliteral}{" \},"} << std::endl;}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (\mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(res\_val) < residual\_goal * \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(g\_val)) \{}
+\DoxyCodeLine{            \textcolor{keywordflow}{break};}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\end{DoxyCodeInclude}
+ 
