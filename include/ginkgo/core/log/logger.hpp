@@ -141,9 +141,9 @@ public:                                                              \
     static constexpr mask_type _event_name##_mask{mask_type{1} << _id};
 
     /**
-     * Executor's allocation started event.
+     * Memory Space's allocation started event.
      *
-     * @param exec  the executor used
+     * @param mem_space  the memory space used
      * @param num_bytes  the number of bytes to allocate
      */
     GKO_LOGGER_REGISTER_EVENT(0, allocation_started,
@@ -151,9 +151,9 @@ public:                                                              \
                               const size_type &num_bytes)
 
     /**
-     * Executor's allocation completed event.
+     * Memory Space's allocation completed event.
      *
-     * @param exec  the executor used
+     * @param mem_space  the memory space used
      * @param num_bytes  the number of bytes allocated
      * @param location  the address at which the data was allocated
      */
@@ -163,28 +163,28 @@ public:                                                              \
                               const uintptr &location)
 
     /**
-     * Executor's free started event.
+     * Memory Space's free started event.
      *
-     * @param exec  the executor used
+     * @param mem_space  the memory space used
      * @param location  the address at which the data will be freed
      */
     GKO_LOGGER_REGISTER_EVENT(2, free_started, const MemorySpace *mem_space,
                               const uintptr &location)
 
     /**
-     * Executor's free completed event.
+     * Memory Space's free completed event.
      *
-     * @param exec  the executor used
+     * @param mem_space  the memory space used
      * @param location  the address at which the data was freed
      */
     GKO_LOGGER_REGISTER_EVENT(3, free_completed, const MemorySpace *mem_space,
                               const uintptr &location)
 
     /**
-     * Executor's copy started event.
+     * Memory Space's copy started event.
 
-     * @param exec_from  the executor to be copied from
-     * @param exec_to  the executor to be copied to
+     * @param mem_space_from  the memory space to be copied from
+     * @param mem_space_to  the memory space to be copied to
      * @param loc_from  the address at which the data will be copied from
      * @param loc_to  the address at which the data will be copied to
      * @param num_bytes  the number of bytes to be copied
@@ -196,10 +196,10 @@ public:                                                              \
                               const size_type &num_bytes)
 
     /**
-     * Executor's copy completed event.
+     * Memory Space's copy completed event.
      *
-     * @param exec_from  the executor copied from
-     * @param exec_to  the executor copied to
+     * @param mem_space_from  the memory space copied from
+     * @param mem_space_to  the memory space copied to
      * @param loc_from  the address at which the data was copied from
      * @param loc_to  the address at which the data was copied to
      * @param num_bytes  the number of bytes copied
@@ -414,9 +414,9 @@ public:                                                              \
 #undef GKO_LOGGER_REGISTER_EVENT
 
     /**
-     * Bitset Mask which activates all executor events
+     * Bitset Mask which activates all memory space events
      */
-    static constexpr mask_type executor_events_mask =
+    static constexpr mask_type memory_space_events_mask =
         allocation_started_mask | allocation_completed_mask |
         free_started_mask | free_completed_mask | copy_started_mask |
         copy_completed_mask;

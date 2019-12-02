@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
     // and criterion check completed events.
     std::shared_ptr<gko::log::Record> record_logger = gko::log::Record::create(
         exec, exec->get_mem_space(),
-        gko::log::Logger::executor_events_mask |
+        gko::log::Logger::memory_space_events_mask |
             gko::log::Logger::criterion_check_completed_mask);
     exec->add_logger(record_logger);
     residual_criterion->add_logger(record_logger);
