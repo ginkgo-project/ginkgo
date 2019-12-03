@@ -94,7 +94,7 @@ constexpr double ratio = 1e-2;
  * 0 is a special case where it uses a sub-warp size of warp_size in
  * combination with atomic_adds.
  */
-using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8>;
+using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, default_block_size/config::warp_size>;
 
 
 #include "common/matrix/ell_kernels.hpp.inc"
