@@ -657,10 +657,9 @@ GKO_ATTRIBUTES GKO_INLINE constexpr xstd::enable_if_t<!is_complex<T>(), T> imag(
  * @return  conjugate of the object (by default, the object itself)
  */
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE xstd::enable_if_t<is_complex<T>(), T>
-conj(const T &x)
+GKO_ATTRIBUTES GKO_INLINE xstd::enable_if_t<is_complex<T>(), T> conj(const T &x)
 {
-    return x.conj();
+    return T{x.real(), -x.imag()};
 }
 
 template <typename T>
@@ -733,8 +732,8 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T get_superior_power(
 // it is put into the `gko` namespace, only enable `std::isfinite` when
 // compiling host code.
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<!is_complex_s<T>::value, bool>
-isfinite(const T &value)
+GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<!is_complex<T>(), bool> isfinite(
+    const T &value)
 {
     return std::isfinite(value);
 }
@@ -754,8 +753,8 @@ isfinite(const T &value)
  *         they are neither +/- infinity nor NaN.
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<is_complex_s<T>::value, bool>
-isfinite(const T &value)
+GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<is_complex<T>(), bool> isfinite(
+    const T &value)
 {
     return isfinite(value.real()) && isfinite(value.imag());
 }
