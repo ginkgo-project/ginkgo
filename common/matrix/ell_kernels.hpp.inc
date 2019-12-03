@@ -46,19 +46,22 @@ __device__ void spmv_kernel(const size_type num_rows, const int nwarps_per_row,
                             const size_type c_stride, Closure op)
 {
     const auto tidx =
-        static_cast<IndexType>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const IndexType x = tidx / subwarp_size / nwarps_per_row;
-    const auto warp_id = tidx / subwarp_size % nwarps_per_row;
-    const auto y_start = tidx % subwarp_size +
-                         num_stored_elements_per_row * warp_id / nwarps_per_row;
-    const auto y_end =
-        num_stored_elements_per_row * (warp_id + 1) / nwarps_per_row;
-    if (x < num_rows) {
-        const auto tile_block =
-            group::tiled_partition<subwarp_size>(group::this_thread_block());
+        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto width = blockDim.y;
+    const auto column_id = blockIdx.y;
+    if (tidx < nwarps_per_row * num_rows) {
+        const auto idx_in_warp = threadIdx.y;
+        const auto x = tidx % num_rows;
+        const auto warp_id = tidx / num_rows;
+        const auto step_size = nwarps_per_row * width;
+        __shared__ UninitializedArray<ValueType, default_block_size> storage;
+        if (threadIdx.y == 0) {
+            storage[threadIdx.x] = 0;
+        }
+        __syncthreads();
         ValueType temp = zero<ValueType>();
-        const auto column_id = blockIdx.y;
-        for (IndexType idx = y_start; idx < y_end; idx += subwarp_size) {
+        for (auto idx = warp_id * width + idx_in_warp;
+             idx < num_stored_elements_per_row; idx += step_size) {
             const auto ind = x + idx * stride;
             const auto col_idx = col[ind];
             if (col_idx < idx) {
@@ -67,15 +70,16 @@ __device__ void spmv_kernel(const size_type num_rows, const int nwarps_per_row,
                 temp += val[ind] * b[col_idx * b_stride + column_id];
             }
         }
-        const auto answer = reduce(
-            tile_block, temp, [](ValueType x, ValueType y) { return x + y; });
-        if (tile_block.thread_rank() == 0) {
+        atomic_add(&storage[threadIdx.x], temp);
+        __syncthreads();
+        if (threadIdx.y == 0) {
             if (atomic) {
-                atomic_add(&(c[x * c_stride + column_id]),
-                           op(answer, c[x * c_stride + column_id]));
+                atomic_add(
+                    &(c[x * c_stride + column_id]),
+                    op(storage[threadIdx.x], c[x * c_stride + column_id]));
             } else {
                 c[x * c_stride + column_id] =
-                    op(answer, c[x * c_stride + column_id]);
+                    op(storage[threadIdx.x], c[x * c_stride + column_id]);
             }
         }
     }
@@ -137,10 +141,9 @@ __global__ __launch_bounds__(default_block_size) void spmv(
 
 
 template <typename ValueType>
-__global__
-    __launch_bounds__(config::max_block_size) void initialize_zero_dense(
-        size_type num_rows, size_type num_cols, size_type stride,
-        ValueType *__restrict__ result)
+__global__ __launch_bounds__(config::max_block_size) void initialize_zero_dense(
+    size_type num_rows, size_type num_cols, size_type stride,
+    ValueType *__restrict__ result)
 {
     const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
     const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
