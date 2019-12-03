@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 
-project(Ginkgo LANGUAGES C CXX VERSION 1.1.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
+project(Ginkgo LANGUAGES C CXX VERSION 1.1.1 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
@@ -102,7 +102,7 @@ if (GINKGO_WITH_IWYU)
   find_program(GINKGO_IWYU_PATH iwyu)
 endif()
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 # Find important header files, store the definitions in include/ginkgo/config.h.in
 # For details, see https://gitlab.kitware.com/cmake/community/wikis/doc/tutorials/How-To-Write-Platform-Checks
@@ -166,6 +166,7 @@ endif()
 # Load CMake helpers
 include(cmake/build_helpers.cmake)
 include(cmake/build_type_helpers.cmake)
+include(cmake/hip_helpers.cmake)
 include(cmake/install_helpers.cmake)
 
 # Try to find the third party packages before using our subdirectories
@@ -239,6 +240,7 @@ add_custom_target(test_install
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} -H${Ginkgo_SOURCE_DIR}/test_install
         -B${Ginkgo_BINARY_DIR}/test_install
         -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_CONFIG_DIR}
+        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     COMMAND ${CMAKE_COMMAND} --build ${Ginkgo_BINARY_DIR}/test_install
     COMMAND ${Ginkgo_BINARY_DIR}/test_install/test_install
     COMMENT "Running a test on the installed binaries. This requires running `(sudo) make install` first.")

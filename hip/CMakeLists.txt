@@ -72,13 +72,14 @@ endif()
 
 
 ## Setup all CMAKE variables to find HIP and its dependencies
-set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
+list(APPEND CMAKE_MODULE_PATH "${HIP_PATH}/cmake")
 list(APPEND CMAKE_PREFIX_PATH
     "${HIPBLAS_PATH}/lib/cmake"
     "${HIPSPARSE_PATH}/lib/cmake"
 )
-# Set CMAKE_MODULE_PATH in PARENT_SCOPE for benchmark
+# Set CMAKE_MODULE_PATH and CMAKE_PREFIX_PATH as PARENT_SCOPE to easily find HIP again
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)
+set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" PARENT_SCOPE)
 
 find_package(HIP REQUIRED)
 find_package(hipblas REQUIRED)
@@ -150,7 +151,7 @@ endif()
 if(GINKGO_HIP_PLATFORM MATCHES "hcc")
     # Fix the exception thrown bug with `hcc` backend and shared libraries
     set_target_properties(ginkgo_hip PROPERTIES LINKER_LANGUAGE HIP)
-    
+
     # Ban `-hc` flag as INTERFACE_LINK_LIBRARIES since that is propagated when building
     # a static library, and it's definitely not a known option to any compiler.
     ginkgo_hip_ban_link_hcflag(hcc::hccrt)
