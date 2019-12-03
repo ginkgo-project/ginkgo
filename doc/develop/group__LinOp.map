@@ -1,7 +1,8 @@
 <map id="Linear Operators" name="Linear Operators">
-<area shape="rect" id="node1" href="$group__factor.html" title="A module dedicated to the implementation and usage of the Factorizations in Ginkgo." alt="" coords="405,10,517,35"/>
-<area shape="rect" id="node2" href="$group__precond.html" title="A module dedicated to the implementation and usage of the Preconditioners in Ginkgo." alt="" coords="399,112,522,138"/>
-<area shape="rect" id="node3" href="$group__mat__formats.html" title="A module dedicated to the implementation and usage of the various Matrix Formats in Ginkgo." alt="" coords="365,350,556,390"/>
-<area shape="rect" id="node4" title="A module dedicated to the implementation and usage of the Linear operators in Ginkgo." alt="" coords="5,210,136,235"/>
-<area shape="rect" id="node5" href="$group__solvers.html" title="A module dedicated to the implementation and usage of the Solvers in Ginkgo." alt="" coords="425,470,496,495"/>
+<area shape="rect" id="node1" href="$group__factor.html" title="A module dedicated to the implementation and usage of the Factorizations in Ginkgo." alt="" coords="405,30,517,55"/>
+<area shape="rect" id="node2" href="$group__precond.html" title="A module dedicated to the implementation and usage of the Preconditioners in Ginkgo." alt="" coords="399,138,522,163"/>
+<area shape="rect" id="node3" href="$group__mat__formats.html" title="A module dedicated to the implementation and usage of the various Matrix Formats in Ginkgo." alt="" coords="365,304,556,344"/>
+<area shape="rect" id="node4" href="$group__jacobi.html" title="A module dedicated to the implementation and usage of the Jacobi Preconditioner in Ginkgo." alt="" coords="381,462,540,487"/>
+<area shape="rect" id="node5" title="A module dedicated to the implementation and usage of the Linear operators in Ginkgo." alt="" coords="5,221,136,246"/>
+<area shape="rect" id="node6" href="$group__solvers.html" title="A module dedicated to the implementation and usage of the Solvers in Ginkgo." alt="" coords="425,577,496,602"/>
 </map>

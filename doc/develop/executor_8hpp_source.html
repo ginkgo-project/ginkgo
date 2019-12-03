@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/base/executor.hpp (ed3a59b3b) Source File</title>
+<title>Ginkgo: ginkgo/core/base/executor.hpp (efd48502f) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/100036531 branch based on develop. Ginkgo version 1.1.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/100359644 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -561,7 +561,7 @@ $(function() {
 <div class="line"><a name="l00940"></a><span class="lineno">  940</span>&#160;          minor_(0),</div>
 <div class="line"><a name="l00941"></a><span class="lineno">  941</span>&#160;          warp_size_(0)</div>
 <div class="line"><a name="l00942"></a><span class="lineno">  942</span>&#160;    {</div>
-<div class="line"><a name="l00943"></a><span class="lineno">  943</span>&#160;        assert(device_id &lt; max_devices);</div>
+<div class="line"><a name="l00943"></a><span class="lineno">  943</span>&#160;        assert(device_id &lt; max_devices &amp;&amp; device_id &gt;= 0);</div>
 <div class="line"><a name="l00944"></a><span class="lineno">  944</span>&#160;        this-&gt;set_gpu_property();</div>
 <div class="line"><a name="l00945"></a><span class="lineno">  945</span>&#160;        this-&gt;init_handles();</div>
 <div class="line"><a name="l00946"></a><span class="lineno">  946</span>&#160;        increase_num_execs(device_id);</div>
@@ -573,19 +573,19 @@ $(function() {
 <div class="line"><a name="l00952"></a><span class="lineno">  952</span>&#160; </div>
 <div class="line"><a name="l00953"></a><span class="lineno">  953</span>&#160;    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);</div>
 <div class="line"><a name="l00954"></a><span class="lineno">  954</span>&#160; </div>
-<div class="line"><a name="l00955"></a><span class="lineno">  955</span>&#160;    <span class="keyword">static</span> <span class="keywordtype">void</span> increase_num_execs(<span class="keywordtype">int</span> device_id)</div>
+<div class="line"><a name="l00955"></a><span class="lineno">  955</span>&#160;    <span class="keyword">static</span> <span class="keywordtype">void</span> increase_num_execs(<span class="keywordtype">unsigned</span> device_id)</div>
 <div class="line"><a name="l00956"></a><span class="lineno">  956</span>&#160;    {</div>
 <div class="line"><a name="l00957"></a><span class="lineno">  957</span>&#160;        std::lock_guard&lt;std::mutex&gt; guard(mutex[device_id]);</div>
 <div class="line"><a name="l00958"></a><span class="lineno">  958</span>&#160;        num_execs[device_id]++;</div>
 <div class="line"><a name="l00959"></a><span class="lineno">  959</span>&#160;    }</div>
 <div class="line"><a name="l00960"></a><span class="lineno">  960</span>&#160; </div>
-<div class="line"><a name="l00961"></a><span class="lineno">  961</span>&#160;    <span class="keyword">static</span> <span class="keywordtype">void</span> decrease_num_execs(<span class="keywordtype">int</span> device_id)</div>
+<div class="line"><a name="l00961"></a><span class="lineno">  961</span>&#160;    <span class="keyword">static</span> <span class="keywordtype">void</span> decrease_num_execs(<span class="keywordtype">unsigned</span> device_id)</div>
 <div class="line"><a name="l00962"></a><span class="lineno">  962</span>&#160;    {</div>
 <div class="line"><a name="l00963"></a><span class="lineno">  963</span>&#160;        std::lock_guard&lt;std::mutex&gt; guard(mutex[device_id]);</div>
 <div class="line"><a name="l00964"></a><span class="lineno">  964</span>&#160;        num_execs[device_id]--;</div>
 <div class="line"><a name="l00965"></a><span class="lineno">  965</span>&#160;    }</div>
 <div class="line"><a name="l00966"></a><span class="lineno">  966</span>&#160; </div>
-<div class="line"><a name="l00967"></a><span class="lineno">  967</span>&#160;    <span class="keyword">static</span> <span class="keywordtype">int</span> get_num_execs(<span class="keywordtype">int</span> device_id)</div>
+<div class="line"><a name="l00967"></a><span class="lineno">  967</span>&#160;    <span class="keyword">static</span> <span class="keywordtype">unsigned</span> get_num_execs(<span class="keywordtype">unsigned</span> device_id)</div>
 <div class="line"><a name="l00968"></a><span class="lineno">  968</span>&#160;    {</div>
 <div class="line"><a name="l00969"></a><span class="lineno">  969</span>&#160;        std::lock_guard&lt;std::mutex&gt; guard(mutex[device_id]);</div>
 <div class="line"><a name="l00970"></a><span class="lineno">  970</span>&#160;        <span class="keywordflow">return</span> num_execs[device_id];</div>
@@ -606,7 +606,7 @@ $(function() {
 <div class="line"><a name="l00985"></a><span class="lineno">  985</span>&#160;    handle_manager&lt;cusparseContext&gt; cusparse_handle_;</div>
 <div class="line"><a name="l00986"></a><span class="lineno">  986</span>&#160; </div>
 <div class="line"><a name="l00987"></a><span class="lineno">  987</span>&#160;    <span class="keyword">static</span> constexpr <span class="keywordtype">int</span> max_devices = 64;</div>
-<div class="line"><a name="l00988"></a><span class="lineno">  988</span>&#160;    <span class="keyword">static</span> <span class="keywordtype">int</span> num_execs[max_devices];</div>
+<div class="line"><a name="l00988"></a><span class="lineno">  988</span>&#160;    <span class="keyword">static</span> <span class="keywordtype">unsigned</span> num_execs[max_devices];</div>
 <div class="line"><a name="l00989"></a><span class="lineno">  989</span>&#160;    <span class="keyword">static</span> std::mutex mutex[max_devices];</div>
 <div class="line"><a name="l00990"></a><span class="lineno">  990</span>&#160;};</div>
 <div class="line"><a name="l00991"></a><span class="lineno">  991</span>&#160; </div>

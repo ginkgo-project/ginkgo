@@ -1,4 +1,4 @@
 <map id="Factorizations" name="Factorizations">
-<area shape="rect" id="node1" title="A module dedicated to the implementation and usage of the Factorizations in Ginkgo." alt="" coords="184,5,296,31"/>
-<area shape="rect" id="node2" href="$group__LinOp.html" title="A module dedicated to the implementation and usage of the Linear operators in Ginkgo." alt="" coords="5,5,136,31"/>
+<area shape="rect" id="node1" title="A module dedicated to the implementation and usage of the Factorizations in Ginkgo." alt="" coords="5,22,117,47"/>
+<area shape="rect" id="node2" href="$group__LinOp.html" title="A module dedicated to the implementation and usage of the Linear operators in Ginkgo." alt="" coords="280,22,411,47"/>
 </map>

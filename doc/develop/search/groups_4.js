@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['linear_20operators_1362',['Linear Operators',['../group__LinOp.html',1,'']]],
-  ['logging_1363',['Logging',['../group__log.html',1,'']]]
+  ['jacobi_20preconditioner_1364',['Jacobi Preconditioner',['../group__jacobi.html',1,'']]]
 ];

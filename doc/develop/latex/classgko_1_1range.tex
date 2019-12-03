@@ -18,6 +18,9 @@ using \mbox{\hyperlink{classgko_1_1range_a3332728e51dadcf6517847cef3000a17}{acce
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
+\mbox{\Hypertarget{classgko_1_1range_a8c8f2ca9dcaf25ca52fbf21fc7bb8a94}\label{classgko_1_1range_a8c8f2ca9dcaf25ca52fbf21fc7bb8a94}} 
+\mbox{\hyperlink{classgko_1_1range_a8c8f2ca9dcaf25ca52fbf21fc7bb8a94}{$\sim$range}} ()=default
+\begin{DoxyCompactList}\small\item\em Use the default destructor. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename... Accessor\+Params$>$ }\\constexpr \mbox{\hyperlink{classgko_1_1range_a906b09927f171491b605dd62e8723d98}{range}} (Accessor\+Params \&\&... params)
 \begin{DoxyCompactList}\small\item\em Creates a new range. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename... Dimension\+Types$>$ }\\constexpr auto \mbox{\hyperlink{classgko_1_1range_a3ac230f10fa217dbb46475ea38243573}{operator()}} (Dimension\+Types \&\&... dimensions) const -\/$>$ decltype(std\+::declval$<$ \mbox{\hyperlink{classgko_1_1range_a3332728e51dadcf6517847cef3000a17}{accessor}} $>$()(std\+::forward$<$ Dimension\+Types $>$(dimensions)...))
@@ -26,6 +29,9 @@ using \mbox{\hyperlink{classgko_1_1range_a3332728e51dadcf6517847cef3000a17}{acce
 \item 
 const \mbox{\hyperlink{classgko_1_1range}{range}} \& \mbox{\hyperlink{classgko_1_1range_af3761a7996e353988dea26581f4390aa}{operator=}} (const \mbox{\hyperlink{classgko_1_1range}{range}} \&other) const
 \begin{DoxyCompactList}\small\item\em Assigns another range to this range. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1range_ab555af1ee5acedf9b835566ec24ba02f}\label{classgko_1_1range_ab555af1ee5acedf9b835566ec24ba02f}} 
+{\bfseries range} (const \mbox{\hyperlink{classgko_1_1range}{range}} \&other)=default
+\item 
 constexpr \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1range_a3ac8b238c377da9cc05d7c728efabfc8}{length}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} dimension) const
 \begin{DoxyCompactList}\small\item\em Returns the length of the specified dimension of the range. \end{DoxyCompactList}\item 
 constexpr const \mbox{\hyperlink{classgko_1_1range_a3332728e51dadcf6517847cef3000a17}{accessor}} $\ast$ \mbox{\hyperlink{classgko_1_1range_ad846fcf80cb6cd8881cd7dd8dddc6ca9}{operator-\/$>$}} () const noexcept
@@ -256,4 +262,4 @@ This is a version of the function which allows to copy between ranges of differe
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/range.\+hpp (f1a4eb68b)\end{DoxyCompactItemize}
+ginkgo/core/base/range.\+hpp (efd48502f)\end{DoxyCompactItemize}
