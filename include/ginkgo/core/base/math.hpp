@@ -388,15 +388,15 @@ GKO_INLINE __host__ constexpr T zero(const T &)
  * @return the multiplicative identity for T
  */
 template <typename T>
-GKO_INLINE __host__ constexpr xstd::enable_if_t<is_complex<T>(), T> one()
-{
-    return T(one<remove_complex<T>>());
-}
-
-template <typename T>
 GKO_INLINE __host__ constexpr xstd::enable_if_t<!is_complex<T>(), T> one()
 {
     return T(1);
+}
+
+template <typename T>
+GKO_INLINE __host__ constexpr xstd::enable_if_t<is_complex<T>(), T> one()
+{
+    return T(one<remove_complex<T>>());
 }
 
 
@@ -450,15 +450,15 @@ GKO_INLINE __device__ constexpr T zero(const T &)
  * @return the multiplicative identity for T
  */
 template <typename T>
-GKO_INLINE __device__ constexpr xstd::enable_if_t<is_complex<T>(), T> one()
-{
-    return T(one<remove_complex<T>>());
-}
-
-template <typename T>
 GKO_INLINE __device__ constexpr xstd::enable_if_t<!is_complex<T>(), T> one()
 {
     return T(1);
+}
+
+template <typename T>
+GKO_INLINE __device__ constexpr xstd::enable_if_t<is_complex<T>(), T> one()
+{
+    return T(one<remove_complex<T>>());
 }
 
 
@@ -609,18 +609,18 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T min(const T &x, const T &y)
  * @return real part of the object (by default, the object itself)
  */
 template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr xstd::enable_if_t<!is_complex<T>(), T> real(
+    const T &x)
+{
+    return x;
+}
+
+template <typename T>
 GKO_ATTRIBUTES
     GKO_INLINE constexpr xstd::enable_if_t<is_complex<T>(), remove_complex<T>>
     real(const T &x)
 {
     return x.real();
-}
-
-template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr xstd::enable_if_t<!is_complex<T>(), T> real(
-    const T &x)
-{
-    return x;
 }
 
 
@@ -634,18 +634,18 @@ GKO_ATTRIBUTES GKO_INLINE constexpr xstd::enable_if_t<!is_complex<T>(), T> real(
  * @return imaginary part of the object (by default, zero<T>())
  */
 template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr xstd::enable_if_t<!is_complex<T>(), T> imag(
+    const T &)
+{
+    return zero<T>();
+}
+
+template <typename T>
 GKO_ATTRIBUTES
     GKO_INLINE constexpr xstd::enable_if_t<is_complex<T>(), remove_complex<T>>
     imag(const T &x)
 {
     return x.imag();
-}
-
-template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr xstd::enable_if_t<!is_complex<T>(), T> imag(
-    const T &)
-{
-    return zero<T>();
 }
 
 
@@ -657,16 +657,16 @@ GKO_ATTRIBUTES GKO_INLINE constexpr xstd::enable_if_t<!is_complex<T>(), T> imag(
  * @return  conjugate of the object (by default, the object itself)
  */
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE xstd::enable_if_t<is_complex<T>(), T> conj(const T &x)
-{
-    return T{x.real(), -x.imag()};
-}
-
-template <typename T>
 GKO_ATTRIBUTES GKO_INLINE xstd::enable_if_t<!is_complex<T>(), T> conj(
     const T &x)
 {
     return x;
+}
+
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE xstd::enable_if_t<is_complex<T>(), T> conj(const T &x)
+{
+    return T{x.real(), -x.imag()};
 }
 
 
