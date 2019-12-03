@@ -145,4 +145,12 @@ TEST_F(IsFinite, DoubleComplex)
 }
 
 
+// test that zero and one work
+void compilation_test()
+{
+    auto value1 = zero<std::complex<double>>();
+    auto value2 = one<std::complex<double>>();
+}
+
+
 }  // namespace

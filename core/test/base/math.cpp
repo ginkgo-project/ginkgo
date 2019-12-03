@@ -36,12 +36,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cmath>
 #include <complex>
 #include <limits>
+#include <type_traits>
 
 
 #include <gtest/gtest.h>
 
 
 namespace {
+
+
+static_assert(
+    std::is_same<double, decltype(real(std::complex<double>()))>::value,
+    "real must return a real type");
+static_assert(
+    std::is_same<double, decltype(imag(std::complex<double>()))>::value,
+    "imag must return a real type");
 
 
 template <typename T>
@@ -103,6 +112,24 @@ TEST(IsFinite, FloatComplex) { test_complex_isfinite<std::complex<float>>(); }
 
 
 TEST(IsFinite, DoubleComplex) { test_complex_isfinite<std::complex<double>>(); }
+
+
+TEST(Conjugate, FloatComplex)
+{
+    std::complex<float> a(1, 1);
+    std::complex<float> b(1, -1);
+
+    ASSERT_EQ(conj(a), b);
+}
+
+
+TEST(Conjugate, DoubleComplex)
+{
+    std::complex<double> a(1, 1);
+    std::complex<double> b(1, -1);
+
+    ASSERT_EQ(conj(a), b);
+}
 
 
 }  // namespace
