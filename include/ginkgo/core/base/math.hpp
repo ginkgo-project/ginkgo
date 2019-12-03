@@ -362,7 +362,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr int64 ceildiv(int64 num, int64 den)
 template <typename T>
 GKO_INLINE __host__ constexpr T zero()
 {
-    return T{0};
+    return T{};
 }
 
 
@@ -388,13 +388,13 @@ GKO_INLINE __host__ constexpr T zero(const T &)
  * @return the multiplicative identity for T
  */
 template <typename T>
-GKO_INLINE __device__ constexpr xstd::enable_if_t<is_complex<T>(), T> one()
+GKO_INLINE __host__ constexpr xstd::enable_if_t<is_complex<T>(), T> one()
 {
     return T(one<remove_complex<T>>());
 }
 
 template <typename T>
-GKO_INLINE __device__ constexpr xstd::enable_if_t<!is_complex<T>(), T> one()
+GKO_INLINE __host__ constexpr xstd::enable_if_t<!is_complex<T>(), T> one()
 {
     return T(1);
 }
@@ -657,7 +657,7 @@ GKO_ATTRIBUTES GKO_INLINE constexpr xstd::enable_if_t<!is_complex<T>(), T> imag(
  * @return  conjugate of the object (by default, the object itself)
  */
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE xstd::enable_if_t<is_complex<T>(), remove_complex<T>>
+GKO_ATTRIBUTES GKO_INLINE xstd::enable_if_t<is_complex<T>(), T>
 conj(const T &x)
 {
     return x.conj();
