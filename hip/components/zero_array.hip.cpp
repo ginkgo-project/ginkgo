@@ -53,7 +53,7 @@ void zero_array(size_type n, ValueType *array)
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
     hipLaunchKernelGGL(kernel::zero_array, dim3(grid_size), dim3(block_size), 0,
-                       0, n, array);
+                       0, n, as_hip_type(array));
 }
 
 
