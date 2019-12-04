@@ -146,16 +146,16 @@ TEST_F(IsFinite, DoubleComplex)
 
 
 // test that zero and one work
-__host__ void compilation_test()
+void compilation_test()
 {
     auto value1 = gko::zero<std::complex<double>>();
     auto value2 = gko::one<std::complex<double>>();
 }
 
-__device__ void compilation_test2()
+__global__ void compilation_test2()
 {
-    auto value1 = gko::zero<std::complex<double>>();
-    auto value2 = gko::one<std::complex<double>>();
+    auto value1 = gko::zero<thrust::complex<double>>();
+    auto value2 = gko::one<thrust::complex<double>>();
 }
 
 
