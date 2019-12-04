@@ -145,18 +145,4 @@ TEST_F(IsFinite, DoubleComplex)
 }
 
 
-// test that zero and one work
-void compilation_test()
-{
-    auto value1 = gko::zero<std::complex<double>>();
-    auto value2 = gko::one<std::complex<double>>();
-}
-
-__global__ void compilation_test2()
-{
-    auto value1 = gko::zero<thrust::complex<double>>();
-    auto value2 = gko::one<thrust::complex<double>>();
-}
-
-
 }  // namespace
