@@ -49,7 +49,7 @@ void zero_array(size_type n, ValueType *array)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
-    kernel::zero_array<<<grid_size, block_size, 0, 0>>>(n, array);
+    kernel::zero_array<<<grid_size, block_size, 0, 0>>>(n, as_cuda_type(array));
 }
 
 

@@ -389,15 +389,9 @@ GKO_INLINE __host__ constexpr T zero(const T &)
  * @return the multiplicative identity for T
  */
 template <typename T>
-GKO_INLINE __host__ constexpr xstd::enable_if_t<!is_complex<T>(), T> one()
+GKO_INLINE __host__ constexpr T one()
 {
     return T(1);
-}
-
-template <typename T>
-GKO_INLINE __host__ constexpr xstd::enable_if_t<is_complex<T>(), T> one()
-{
-    return T(one<remove_complex<T>>());
 }
 
 
@@ -423,7 +417,9 @@ GKO_INLINE __host__ constexpr T one(const T &)
  * @return additive identity for T
  */
 template <typename T>
-GKO_INLINE __device__ constexpr T zero()
+GKO_INLINE __device__ constexpr xstd::enable_if_t<
+    !std::is_same<T, std::complex<remove_complex<T>>>::value, T>
+zero()
 {
     return T{};
 }
@@ -451,15 +447,11 @@ GKO_INLINE __device__ constexpr T zero(const T &)
  * @return the multiplicative identity for T
  */
 template <typename T>
-GKO_INLINE __device__ constexpr xstd::enable_if_t<!is_complex<T>(), T> one()
+GKO_INLINE __device__ constexpr xstd::enable_if_t<
+    !std::is_same<T, std::complex<remove_complex<T>>>::value, T>
+one()
 {
     return T(1);
-}
-
-template <typename T>
-GKO_INLINE __device__ constexpr xstd::enable_if_t<is_complex<T>(), T> one()
-{
-    return T(one<remove_complex<T>>());
 }
 
 
