@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -45,20 +46,28 @@ namespace {
 class MatricesNear : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
+    using Sparse = gko::matrix::Csr<>;
     MatricesNear()
         : exec(gko::ReferenceExecutor::create()),
-          mtx1(gko::initialize<gko::matrix::Dense<>>(
-              {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, exec)),
-          mtx2(gko::initialize<gko::matrix::Dense<>>(
-              {{1.0, 2.0, 3.0}, {4.0, 0.0, 4.0}}, exec)),
-          mtx3(gko::initialize<gko::matrix::Dense<>>(
-              {{1.0, 2.0, 3.0}, {0.0, 4.1, 0.0}}, exec))
+          mtx1(gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, exec)),
+          mtx2(gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {4.0, 0.0, 4.0}}, exec)),
+          mtx3(gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 4.1, 0.0}}, exec)),
+          mtx1_sp(gko::initialize<Sparse>({{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}},
+                                          exec)),
+          mtx2_sp(gko::initialize<Sparse>({{1.0, 2.0, 3.0}, {4.0, 0.0, 4.0}},
+                                          exec)),
+          mtx3_sp(
+              gko::initialize<Sparse>({{1.0, 2.0, 3.0}, {0.0, 4.1, 0.0}}, exec))
+
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx1;
     std::unique_ptr<Mtx> mtx2;
     std::unique_ptr<Mtx> mtx3;
+    std::unique_ptr<Sparse> mtx1_sp;
+    std::unique_ptr<Sparse> mtx2_sp;
+    std::unique_ptr<Sparse> mtx3_sp;
 };
 
 
@@ -66,6 +75,8 @@ TEST_F(MatricesNear, SuceedsIfSame)
 {
     ASSERT_PRED_FORMAT3(gko::test::assertions::matrices_near, mtx1.get(),
                         mtx1.get(), 0.0);
+    ASSERT_PRED_FORMAT3(gko::test::assertions::matrices_near_sparsity,
+                        mtx1_sp.get(), mtx1_sp.get(), 0.0);
 }
 
 
@@ -73,6 +84,8 @@ TEST_F(MatricesNear, FailsIfDifferent)
 {
     ASSERT_PRED_FORMAT3(!gko::test::assertions::matrices_near, mtx1.get(),
                         mtx2.get(), 0.0);
+    ASSERT_PRED_FORMAT3(!gko::test::assertions::matrices_near_sparsity,
+                        mtx1_sp.get(), mtx2_sp.get(), 0.0);
 }
 
 
@@ -82,6 +95,10 @@ TEST_F(MatricesNear, SucceedsIfClose)
                         mtx3.get(), 0.0);
     ASSERT_PRED_FORMAT3(gko::test::assertions::matrices_near, mtx1.get(),
                         mtx3.get(), 0.1);
+    ASSERT_PRED_FORMAT3(!gko::test::assertions::matrices_near_sparsity,
+                        mtx1_sp.get(), mtx3_sp.get(), 0.0);
+    ASSERT_PRED_FORMAT3(gko::test::assertions::matrices_near_sparsity,
+                        mtx1_sp.get(), mtx3_sp.get(), 0.1);
 }
 
 
@@ -89,6 +106,8 @@ TEST_F(MatricesNear, CanUseShortNotation)
 {
     GKO_EXPECT_MTX_NEAR(mtx1, mtx1, 0.0);
     GKO_ASSERT_MTX_NEAR(mtx1, mtx3, 0.1);
+    GKO_EXPECT_MTX_NEAR_SPARSITY(mtx1_sp, mtx1_sp, 0.0);
+    GKO_ASSERT_MTX_NEAR_SPARSITY(mtx1_sp, mtx2_sp, 0.0);
 }
 
 

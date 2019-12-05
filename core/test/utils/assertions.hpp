@@ -103,6 +103,16 @@ void print_componentwise_error(Ostream &os, const MatrixData1 &first,
     }
 }
 
+template <typename Ostream, typename Iterator>
+void print_columns(Ostream &os, const Iterator &begin, const Iterator &end)
+{
+    os << "\t";
+    for (auto it = begin; it != end; ++it) {
+        os << it->column << "\t";
+    }
+    os << "\n";
+}
+
 
 template <typename MatrixData1, typename MatrixData2>
 double get_relative_error(const MatrixData1 &first, const MatrixData2 &second)
@@ -144,6 +154,78 @@ template <typename MatrixData1, typename MatrixData2>
                << " is of size [" << num_rows << " x " << num_cols << "]\n\t"
                << second_expression << " is of size [" << second.size[0]
                << " x " << second.size[1] << "]";
+    }
+
+    auto err = detail::get_relative_error(first, second);
+    if (err <= tolerance) {
+        return ::testing::AssertionSuccess();
+    } else {
+        auto fail = ::testing::AssertionFailure();
+        fail << "Relative error between " << first_expression << " and "
+             << second_expression << " is " << err << "\n"
+             << "\twhich is larger than " << tolerance_expression
+             << " (which is " << tolerance << ")\n";
+        fail << first_expression << " is:\n";
+        detail::print_matrix(fail, first);
+        fail << second_expression << " is:\n";
+        detail::print_matrix(fail, second);
+        fail << "component-wise relative error is:\n";
+        detail::print_componentwise_error(fail, first, second);
+        return fail;
+    }
+}
+
+
+template <typename MatrixData1, typename MatrixData2>
+::testing::AssertionResult matrices_near_sparsity_impl(
+    const std::string &first_expression, const std::string &second_expression,
+    const std::string &tolerance_expression, const MatrixData1 &first,
+    const MatrixData2 &second, double tolerance)
+{
+    auto num_rows = first.size[0];
+    auto num_cols = first.size[1];
+    if (num_rows != second.size[0] || num_cols != second.size[1]) {
+        return ::testing::AssertionFailure()
+               << "Expected matrices of equal size\n\t" << first_expression
+               << " is of size [" << num_rows << " x " << num_cols << "]\n\t"
+               << second_expression << " is of size [" << second.size[0]
+               << " x " << second.size[1] << "]";
+    }
+
+    auto fst_it = begin(first.nonzeros);
+    auto snd_it = begin(second.nonzeros);
+    auto fst_end = end(first.nonzeros);
+    auto snd_end = end(second.nonzeros);
+    using nz_type_f = typename std::decay<decltype(*fst_it)>::type;
+    using nz_type_s = typename std::decay<decltype(*snd_it)>::type;
+    for (size_type row = 0; row < num_rows; ++row) {
+        auto cmp_l_f = [](nz_type_f nz, size_type row) { return nz.row < row; };
+        auto cmp_u_f = [](size_type row, nz_type_f nz) { return row < nz.row; };
+        auto cmp_l_s = [](nz_type_s nz, size_type row) { return nz.row < row; };
+        auto cmp_u_s = [](size_type row, nz_type_s nz) { return row < nz.row; };
+        auto col_eq = [](nz_type_f a, nz_type_s b) {
+            return a.column == b.column;
+        };
+        auto fst_row_begin = std::lower_bound(fst_it, fst_end, row, cmp_l_f);
+        auto snd_row_begin = std::lower_bound(snd_it, snd_end, row, cmp_l_s);
+        auto fst_row_end =
+            std::upper_bound(fst_row_begin, fst_end, row, cmp_u_f);
+        auto snd_row_end =
+            std::upper_bound(snd_row_begin, snd_end, row, cmp_u_s);
+        if (std::distance(fst_row_begin, fst_row_end) !=
+                std::distance(snd_row_begin, snd_row_end) ||
+            !std::equal(fst_row_begin, fst_row_end, snd_row_begin, col_eq)) {
+            auto fail = ::testing::AssertionFailure();
+            fail << "Sparsity pattern differs between " << first_expression
+                 << " and " << second_expression << "\n\tIn row " << row << " "
+                 << first_expression << " has columns:\n";
+            detail::print_columns(fail, fst_row_begin, fst_row_end);
+            fail << " and " << second_expression << " has columns:\n";
+            detail::print_columns(fail, snd_row_begin, snd_row_end);
+            return fail;
+        }
+        fst_it = fst_row_end;
+        snd_it = snd_row_end;
     }
 
     auto err = detail::get_relative_error(first, second);
@@ -361,6 +443,59 @@ template <typename ValueType>
 }
 
 
+/**
+ * This is a gtest predicate which checks if two matrices are relatively near
+ * and have the same sparsity pattern.
+ *
+ * More formally, it checks whether the following equation holds:
+ *
+ * ```
+ * ||first - second|| <= tolerance * max(||first||, ||second||)
+ * ```
+ *
+ * and that mtx1 and mtx2 have exactly the same non-zero locations
+ * (including zero values!)
+ *
+ * This function should not be called directly, but used in conjunction with
+ * `ASSERT_PRED_FORMAT3` as follows:
+ *
+ * ```
+ * // Check if first and second are near
+ * ASSERT_PRED_FORMAT3(gko::test::assertions::matrices_near,
+ *                     first, second, tolerance);
+ * // Check if first and second are far
+ * ASSERT_PRED_FORMAT3(!gko::test::assertions::matrices_near,
+ *                     first, second, tolerance);
+ * ```
+ *
+ * @see GKO_ASSERT_MTX_NEAR
+ * @see GKO_EXPECT_MTX_NEAR
+ */
+template <typename LinOp1, typename LinOp2>
+::testing::AssertionResult matrices_near_sparsity(
+    const std::string &first_expression, const std::string &second_expression,
+    const std::string &tolerance_expression, const LinOp1 *first,
+    const LinOp2 *second, double tolerance)
+{
+    auto exec = first->get_executor()->get_master();
+    matrix_data<typename LinOp1::value_type, typename LinOp1::index_type>
+        first_data;
+    matrix_data<typename LinOp2::value_type, typename LinOp2::index_type>
+        second_data;
+
+    first->write(first_data);
+    second->write(second_data);
+
+    first_data.ensure_row_major_order();
+    second_data.ensure_row_major_order();
+
+    return detail::matrices_near_sparsity_impl(
+        detail::remove_pointer_wrapper(first_expression),
+        detail::remove_pointer_wrapper(second_expression), tolerance_expression,
+        first_data, second_data, tolerance);
+}
+
+
 namespace detail {
 
 
@@ -442,6 +577,46 @@ T plain_ptr(T ptr)
         using ::gko::test::assertions::detail::plain_ptr;              \
         EXPECT_PRED_FORMAT3(::gko::test::assertions::matrices_near,    \
                             plain_ptr(_mtx1), plain_ptr(_mtx2), _tol); \
+    }
+
+/**
+ * Checks if two matrices are near each other and have the same sparsity
+ * pattern.
+ *
+ * More formally, it checks whether the following equation holds:
+ *
+ * ```
+ * ||_mtx1 - _mtx2|| <= _tol * max(||_mtx1||, ||_mtx2||)
+ * ```
+ *
+ * and that mtx1 and mtx2 have exactly the same non-zero locations
+ * (including zero values!)
+ *
+ * Has to be called from within a google test unit test.
+ * Internally calls gko::test::assertions::matrices_near_sparsity().
+ *
+ * @param _mtx1  first matrix
+ * @param _mtx2  second matrix
+ * @param _tol  tolerance level
+ */
+#define GKO_ASSERT_MTX_NEAR_SPARSITY(_mtx1, _mtx2, _tol)                     \
+    {                                                                        \
+        using ::gko::test::assertions::detail::l;                            \
+        using ::gko::test::assertions::detail::plain_ptr;                    \
+        ASSERT_PRED_FORMAT3(::gko::test::assertions::matrices_near_sparsity, \
+                            plain_ptr(_mtx1), plain_ptr(_mtx2), _tol);       \
+    }
+
+
+/**
+ * @copydoc GKO_ASSERT_MTX_NEAR_SPARSITY
+ */
+#define GKO_EXPECT_MTX_NEAR_SPARSITY(_mtx1, _mtx2, _tol)                     \
+    {                                                                        \
+        using ::gko::test::assertions::detail::l;                            \
+        using ::gko::test::assertions::detail::plain_ptr;                    \
+        EXPECT_PRED_FORMAT3(::gko::test::assertions::matrices_near_sparsity, \
+                            plain_ptr(_mtx1), plain_ptr(_mtx2), _tol);       \
     }
 
 
