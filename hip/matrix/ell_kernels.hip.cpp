@@ -88,13 +88,14 @@ constexpr int num_threads_per_core = 4;
 constexpr double ratio = 1e-2;
 
 
+constexpr int upper_bound = 32;
 /**
  * A compile-time list of sub-warp sizes for which the spmv kernels should be
  * compiled.
  * 0 is a special case where it uses a sub-warp size of warp_size in
  * combination with atomic_adds.
  */
-using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, default_block_size/config::warp_size>;
+using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, 16, 32>;
 
 
 #include "common/matrix/ell_kernels.hpp.inc"
@@ -112,7 +113,7 @@ void abstract_spmv(syn::value_list<int, info>, int nwarps_per_row,
                    const matrix::Dense<ValueType> *beta = nullptr)
 {
     const auto nrows = a->get_size()[0];
-    constexpr int subwarp_size = (info == 0) ? config::warp_size : info;
+    constexpr int subwarp_size = (info == 0) ? upper_bound : info;
     constexpr bool atomic = (info == 0);
     const dim3 block_size(default_block_size / subwarp_size, subwarp_size, 1);
     const dim3 grid_size(ceildiv(nrows * nwarps_per_row, block_size.x),
@@ -158,7 +159,6 @@ std::array<int, 3> compute_subwarp_size_and_atomicity(
     const auto nwarps = exec->get_num_warps_per_sm() *
                         exec->get_num_multiprocessor() * num_threads_per_core;
 
-    const auto limit = default_block_size / config::warp_size;
     // Use multithreads to perform the reduction on each row when the matrix is
     // wide.
     // To make every thread have computation, so pick the value which is the
@@ -168,11 +168,11 @@ std::array<int, 3> compute_subwarp_size_and_atomicity(
     // same position. The #warps is decided according to the number of warps
     // allowed on GPU.
     if (static_cast<double>(ell_ncols) / nrows > ratio) {
-        while (subwarp_size < limit && (subwarp_size << 1) <= ell_ncols) {
+        while (subwarp_size < upper_bound && (subwarp_size << 1) <= ell_ncols) {
             subwarp_size <<= 1;
         }
-        if (subwarp_size == limit) {
-            nwarps_per_row = std::min(ell_ncols / limit, nwarps / nrows);
+        if (subwarp_size == upper_bound) {
+            nwarps_per_row = std::min(ell_ncols / upper_bound, nwarps / nrows);
             nwarps_per_row = std::max(nwarps_per_row, 1);
         }
         if (nwarps_per_row > 1) {

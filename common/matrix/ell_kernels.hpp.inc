@@ -47,39 +47,58 @@ __device__ void spmv_kernel(const size_type num_rows, const int nwarps_per_row,
 {
     const auto tidx =
         static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const auto width = blockDim.y;
     const auto column_id = blockIdx.y;
-    if (tidx < nwarps_per_row * num_rows) {
-        const auto idx_in_warp = threadIdx.y;
-        const auto x = tidx % num_rows;
-        const auto warp_id = tidx / num_rows;
-        const auto step_size = nwarps_per_row * width;
-        __shared__ UninitializedArray<ValueType, default_block_size> storage;
-        if (threadIdx.y == 0) {
-            storage[threadIdx.x] = 0;
-        }
-        __syncthreads();
-        ValueType temp = zero<ValueType>();
-        for (auto idx = warp_id * width + idx_in_warp;
-             idx < num_stored_elements_per_row; idx += step_size) {
-            const auto ind = x + idx * stride;
-            const auto col_idx = col[ind];
-            if (col_idx < idx) {
-                break;
-            } else {
-                temp += val[ind] * b[col_idx * b_stride + column_id];
+    if (subwarp_size == 1) {
+        // Specialize the subwarp_size = 1. It doesn't need the shared memory
+        // __syncthreads, and atomic_add
+        if (tidx < num_rows) {
+            const auto x = tidx % num_rows;
+            const auto limit = x + stride * num_stored_elements_per_row;
+            ValueType temp = zero<ValueType>();
+            for (size_type ind = x; ind < limit; ind += stride) {
+                const auto col_idx = col[ind];
+                if (col_idx < ind) {
+                    break;
+                } else {
+                    temp += val[ind] * b[col_idx * b_stride + column_id];
+                }
             }
+            const auto c_ind = x * c_stride + column_id;
+            c[c_ind] = op(temp, c[c_ind]);
         }
-        atomic_add(&storage[threadIdx.x], temp);
-        __syncthreads();
-        if (threadIdx.y == 0) {
-            if (atomic) {
-                atomic_add(
-                    &(c[x * c_stride + column_id]),
-                    op(storage[threadIdx.x], c[x * c_stride + column_id]));
-            } else {
-                c[x * c_stride + column_id] =
-                    op(storage[threadIdx.x], c[x * c_stride + column_id]);
+    } else {
+        if (tidx < nwarps_per_row * num_rows) {
+            const auto idx_in_warp = threadIdx.y;
+            const auto x = tidx % num_rows;
+            const auto warp_id = tidx / num_rows;
+            const auto step_size = nwarps_per_row * subwarp_size;
+            __shared__
+                UninitializedArray<ValueType, default_block_size / subwarp_size>
+                    storage;
+            if (threadIdx.y == 0) {
+                storage[threadIdx.x] = 0;
+            }
+            __syncthreads();
+            ValueType temp = zero<ValueType>();
+            for (size_type idx = warp_id * subwarp_size + idx_in_warp;
+                 idx < num_stored_elements_per_row; idx += step_size) {
+                const auto ind = x + idx * stride;
+                const auto col_idx = col[ind];
+                if (col_idx < idx) {
+                    break;
+                } else {
+                    temp += val[ind] * b[col_idx * b_stride + column_id];
+                }
+            }
+            atomic_add(&storage[threadIdx.x], temp);
+            __syncthreads();
+            if (threadIdx.y == 0) {
+                const auto c_ind = x * c_stride + column_id;
+                if (atomic) {
+                    atomic_add(&(c[c_ind]), op(storage[threadIdx.x], c[c_ind]));
+                } else {
+                    c[c_ind] = op(storage[threadIdx.x], c[c_ind]);
+                }
             }
         }
     }
