@@ -202,8 +202,8 @@ TEST_F(ParIlu, KernelInitializeParILUIsEquivalentToRef)
 
     initialize_lu(&l_ref, &u_ref, &l_cuda, &u_cuda);
 
-    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, 1e-14);
-    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, 1e-14);
+    GKO_ASSERT_MTX_NEAR_SPARSITY(l_ref, l_cuda, 1e-14);
+    GKO_ASSERT_MTX_NEAR_SPARSITY(u_ref, u_cuda, 1e-14);
 }
 
 
@@ -216,8 +216,8 @@ TEST_F(ParIlu, KernelComputeParILUIsEquivalentToRef)
 
     compute_lu(&l_ref, &u_ref, &l_cuda, &u_cuda);
 
-    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, 5e-2);
-    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, 5e-2);
+    GKO_ASSERT_MTX_NEAR_SPARSITY(l_ref, l_cuda, 5e-2);
+    GKO_ASSERT_MTX_NEAR_SPARSITY(u_ref, u_cuda, 5e-2);
 }
 
 
@@ -231,8 +231,8 @@ TEST_F(ParIlu, KernelComputeParILUWithMoreIterationsIsEquivalentToRef)
 
     compute_lu(&l_ref, &u_ref, &l_cuda, &u_cuda, iterations);
 
-    GKO_ASSERT_MTX_NEAR(l_ref, l_cuda, 1e-14);
-    GKO_ASSERT_MTX_NEAR(u_ref, u_cuda, 1e-14);
+    GKO_ASSERT_MTX_NEAR_SPARSITY(l_ref, l_cuda, 1e-14);
+    GKO_ASSERT_MTX_NEAR_SPARSITY(u_ref, u_cuda, 1e-14);
 }
 
 
