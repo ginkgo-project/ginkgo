@@ -1005,7 +1005,7 @@ using DefaultExecutor = CudaExecutor;
  */
 class HipExecutor : public detail::ExecutorBase<HipExecutor>,
                     public std::enable_shared_from_this<HipExecutor> {
-    friend class ExecutorBase<HipExecutor>;
+    friend class detail::ExecutorBase<HipExecutor>;
 
 public:
     /**
