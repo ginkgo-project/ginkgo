@@ -236,7 +236,7 @@ TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
     mtx->apply(alpha.get(), trans.get(), beta.get(), square_mtx.get());
     dmtx->apply(dalpha.get(), d_trans.get(), dbeta.get(), square_dmtx.get());
 
-    GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR_SPARSITY(square_dmtx, square_mtx, 1e-14);
 }
 
 
@@ -249,7 +249,7 @@ TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
     mtx->apply(trans.get(), square_mtx.get());
     dmtx->apply(d_trans.get(), square_dmtx.get());
 
-    GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
+    GKO_ASSERT_MTX_NEAR_SPARSITY(square_dmtx, square_mtx, 1e-14);
 }
 
 
