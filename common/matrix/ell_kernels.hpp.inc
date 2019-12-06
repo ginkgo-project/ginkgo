@@ -50,35 +50,34 @@ __device__ void spmv_kernel(
         // Specialize the num_thread_per_worker = 1. It doesn't need the shared
         // memory, __syncthreads, and atomic_add
         if (tidx < num_rows) {
-            const auto x = tidx % num_rows;
-            const auto limit = x + stride * num_stored_elements_per_row;
             ValueType temp = zero<ValueType>();
-            for (size_type ind = x; ind < limit; ind += stride) {
+            for (size_type idx = 0; idx < num_stored_elements_per_row; idx++) {
+                const auto ind = tidx + idx * stride;
                 const auto col_idx = col[ind];
-                if (col_idx < ind) {
+                if (col_idx < idx) {
                     break;
                 } else {
                     temp += val[ind] * b[col_idx * b_stride + column_id];
                 }
             }
-            const auto c_ind = x * c_stride + column_id;
+            const auto c_ind = tidx * c_stride + column_id;
             c[c_ind] = op(temp, c[c_ind]);
         }
     } else {
         if (tidx < num_worker_per_row * num_rows) {
-            const auto idx_in_warp = threadIdx.y;
+            const auto idx_in_worker = threadIdx.y;
             const auto x = tidx % num_rows;
-            const auto warp_id = tidx / num_rows;
+            const auto worker_id = tidx / num_rows;
             const auto step_size = num_worker_per_row * num_thread_per_worker;
             __shared__ UninitializedArray<ValueType, default_block_size /
                                                          num_thread_per_worker>
                 storage;
-            if (threadIdx.y == 0) {
+            if (idx_in_worker == 0) {
                 storage[threadIdx.x] = 0;
             }
             __syncthreads();
             ValueType temp = zero<ValueType>();
-            for (size_type idx = warp_id * num_thread_per_worker + idx_in_warp;
+            for (size_type idx = worker_id * num_thread_per_worker + idx_in_worker;
                  idx < num_stored_elements_per_row; idx += step_size) {
                 const auto ind = x + idx * stride;
                 const auto col_idx = col[ind];
@@ -90,7 +89,7 @@ __device__ void spmv_kernel(
             }
             atomic_add(&storage[threadIdx.x], temp);
             __syncthreads();
-            if (threadIdx.y == 0) {
+            if (idx_in_worker == 0) {
                 const auto c_ind = x * c_stride + column_id;
                 if (atomic) {
                     atomic_add(&(c[c_ind]), op(storage[threadIdx.x], c[c_ind]));
