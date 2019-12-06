@@ -53,35 +53,6 @@ struct truncate_type_impl<thrust::complex<T>> {
 }  // namespace detail
 
 
-template <>
-__device__ GKO_INLINE std::complex<float> zero<std::complex<float>>()
-{
-    thrust::complex<float> z(0);
-    return reinterpret_cast<std::complex<float> &>(z);
-}
-
-template <>
-__device__ GKO_INLINE std::complex<double> zero<std::complex<double>>()
-{
-    thrust::complex<double> z(0);
-    return reinterpret_cast<std::complex<double> &>(z);
-}
-
-template <>
-__device__ GKO_INLINE std::complex<float> one<std::complex<float>>()
-{
-    thrust::complex<float> z(1);
-    return reinterpret_cast<std::complex<float> &>(z);
-}
-
-template <>
-__device__ GKO_INLINE std::complex<double> one<std::complex<double>>()
-{
-    thrust::complex<double> z(1);
-    return reinterpret_cast<std::complex<double> &>(z);
-}
-
-
 // This first part is specific for clang and intel in combination with the nvcc
 // compiler from the toolkit older than 9.2.
 // Both want to use their `__builtin_isfinite` function, which is not present
