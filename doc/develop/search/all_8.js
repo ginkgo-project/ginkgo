@@ -3,7 +3,7 @@ var searchData=
   ['identity_431',['Identity',['../classgko_1_1matrix_1_1Identity.html',1,'gko::matrix']]],
   ['identityfactory_432',['IdentityFactory',['../classgko_1_1matrix_1_1IdentityFactory.html',1,'gko::matrix']]],
   ['ilu_433',['Ilu',['../classgko_1_1preconditioner_1_1Ilu.html',1,'gko::preconditioner']]],
-  ['imag_434',['imag',['../namespacegko.html#a7ff1061513b10ccd5122015d2e5f9faa',1,'gko']]],
+  ['imag_434',['imag',['../namespacegko.html#ac90fd8e4e045379f09f510baece91afd',1,'gko']]],
   ['imag_5foperaton_435',['imag_operaton',['../structgko_1_1accessor_1_1imag__operaton.html',1,'gko::accessor']]],
   ['imbalance_5fbounded_5flimit_436',['imbalance_bounded_limit',['../classgko_1_1matrix_1_1Hybrid_1_1imbalance__bounded__limit.html',1,'gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::imbalance_bounded_limit'],['../classgko_1_1matrix_1_1Hybrid_1_1imbalance__bounded__limit.html#ae190bc4cfbf6f570e93d9b885093cbb1',1,'gko::matrix::Hybrid::imbalance_bounded_limit::imbalance_bounded_limit()']]],
   ['imbalance_5flimit_437',['imbalance_limit',['../classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html',1,'gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::imbalance_limit'],['../classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html#ab546af3508d47185d6f5e6fb2f1412bc',1,'gko::matrix::Hybrid::imbalance_limit::imbalance_limit()']]],

@@ -8,7 +8,7 @@ var searchData=
   ['readablefrommatrixdata_570',['ReadableFromMatrixData',['../classgko_1_1ReadableFromMatrixData.html',1,'gko']]],
   ['readablefrommatrixdata_3c_20valuetype_2c_20int32_20_3e_571',['ReadableFromMatrixData&lt; ValueType, int32 &gt;',['../classgko_1_1ReadableFromMatrixData.html',1,'gko']]],
   ['readablefrommatrixdata_3c_20valuetype_2c_20int64_20_3e_572',['ReadableFromMatrixData&lt; ValueType, int64 &gt;',['../classgko_1_1ReadableFromMatrixData.html',1,'gko']]],
-  ['real_573',['real',['../namespacegko.html#ae23cfd886cee6e88d77bcbbbe1928b78',1,'gko']]],
+  ['real_573',['real',['../namespacegko.html#abcf6f4649ad47679a4e7768156b6dd32',1,'gko']]],
   ['real_5foperaton_574',['real_operaton',['../structgko_1_1accessor_1_1real__operaton.html',1,'gko::accessor']]],
   ['record_575',['Record',['../classgko_1_1log_1_1Record.html',1,'gko::log']]],
   ['reduce_5fprecision_576',['reduce_precision',['../namespacegko.html#ab5d71c1f4bd1b654df1e561ea7a811f2',1,'gko']]],
