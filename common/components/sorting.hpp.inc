@@ -44,18 +44,17 @@ __device__ void bitonic_cas(ValueType &a, ValueType &b, bool reverse)
 
 template <typename ValueType, int num_elements>
 struct bitonic_local {
-    // # local elements
     using half = bitonic_local<ValueType, num_elements / 2>;
 
     // merges two bitonic sequences els[0, n / 2), els[n / 2, n)
-    __host__ __device__ static void merge(ValueType *els, bool odd)
+    __host__ __device__ static void merge(ValueType *els, bool reverse)
     {
         auto els_mid = els + (num_elements / 2);
         for (auto i = 0; i < num_elements / 2; ++i) {
-            bitonic_cas(els[i], els_mid[i], odd);
+            bitonic_cas(els[i], els_mid[i], reverse);
         }
-        half::merge(els, odd);
-        half::merge(els_mid, odd);
+        half::merge(els, reverse);
+        half::merge(els_mid, reverse);
     }
 
     // sorts an unsorted sequence els [0, n)
