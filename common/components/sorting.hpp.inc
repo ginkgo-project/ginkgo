@@ -45,6 +45,9 @@ __device__ void bitonic_cas(ValueType &a, ValueType &b, bool reverse)
 template <typename ValueType, int num_elements>
 struct bitonic_local {
     using half = bitonic_local<ValueType, num_elements / 2>;
+    static_assert(num_elements > 0, "number of elements must be positive");
+    static_assert((num_elements & (num_elements - 1)) == 0,
+                  "number of elements must be a power of two");
 
     // merges two bitonic sequences els[0, n / 2), els[n / 2, n)
     __host__ __device__ static void merge(ValueType *els, bool reverse)
@@ -82,6 +85,8 @@ template <typename ValueType, int num_local, int num_threads>
 struct bitonic_warp {
     constexpr static auto num_elements = num_local * num_threads;
     using half = bitonic_warp<ValueType, num_local, num_threads / 2>;
+    static_assert(num_threads > 0, "number of threads must be positive");
+    static_assert(num_local > 0, "number of local elements must be positive");
     static_assert(
         config::warp_size % num_threads == 0 &&
             num_threads <= config::warp_size,
@@ -136,6 +141,11 @@ struct bitonic_global {
     constexpr static auto num_elements = num_local * num_threads * num_groups;
     using half = bitonic_global<ValueType, num_local, num_threads,
                                 num_groups / 2, num_total_threads>;
+    static_assert(num_groups > 0, "number of groups must be positive");
+    static_assert(num_threads > 0,
+                  "number of threads per group must be positive");
+    static_assert(num_local > 0, "number of local elements must be positive");
+    static_assert(num_total_threads > 0, "number of threads must be positive");
     static_assert(32 % num_groups == 0,
                   "num_groups must be a power of two <= 32");
 
