@@ -106,11 +106,10 @@ void print_componentwise_error(Ostream &os, const MatrixData1 &first,
 template <typename Ostream, typename Iterator>
 void print_columns(Ostream &os, const Iterator &begin, const Iterator &end)
 {
-    os << "\t";
     for (auto it = begin; it != end; ++it) {
-        os << it->column << "\t";
+        os << '\t' << it->column;
     }
-    os << "\n";
+    os << '\n';
 }
 
 
