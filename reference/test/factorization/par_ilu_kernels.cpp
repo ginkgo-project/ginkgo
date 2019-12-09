@@ -128,6 +128,27 @@ protected:
                                                  {0., 0., 0., 0., 5., -15.},
                                                  {0., 0., 0., 0., 0., 6.}},
                                                 exec)),
+          mtx_big_nodiag(gko::initialize<Csr>({{1., 1., 1., 0., 1., 3.},
+                                               {1., 2., 2., 0., 2., 0.},
+                                               {0., 2., 0., 3., 3., 5.},
+                                               {1., 0., 3., 4., 4., 4.},
+                                               {1., 2., 0., 4., 1., 6.},
+                                               {0., 2., 3., 4., 5., 8.}},
+                                         exec)),
+          big_nodiag_l_expected(gko::initialize<Dense>({{1., 0., 0., 0., 0., 0.},
+                                                        {1., 1., 0., 0., 0., 0.},
+                                                        {0., 2., 1., 0., 0., 0.},
+                                                        {2., 0., 0., 1., 0., 0.},
+                                                        {1., 1., 0., 1., 1., 0.},
+                                                        {0., 2., 1., 0.25, -0.5, 1.}},
+                                                exec)),
+          big_nodiag_u_expected(gko::initialize<Dense>({{1., 1., 1., 0., 1., 3.},
+                                                        {0., 1., 1., 0., 1., 0.},
+                                                        {0., 0., 1., 3., 1., -2.},
+                                                        {0., 0., 0., 4., 2., 0.},
+                                                        {0., 0., 0., 0., -3., 3.},
+                                                        {0., 0., 0., 0., 0., 11.5}},
+                                                exec)),
           // clang-format on
           ilu_factory_skip(
               gko::factorization::ParIlu<>::build().with_skip_sorting(true).on(
@@ -153,6 +174,9 @@ protected:
     std::shared_ptr<const Dense> mtx_big;
     std::shared_ptr<const Dense> big_l_expected;
     std::shared_ptr<const Dense> big_u_expected;
+    std::shared_ptr<const Csr> mtx_big_nodiag;
+    std::shared_ptr<const Dense> big_nodiag_l_expected;
+    std::shared_ptr<const Dense> big_nodiag_u_expected;
     std::unique_ptr<gko::factorization::ParIlu<>::Factory> ilu_factory_skip;
     std::unique_ptr<gko::factorization::ParIlu<>::Factory> ilu_factory_sort;
 };
@@ -382,6 +406,17 @@ TEST_F(ParIlu, GenerateForCsrSmall)
 
     GKO_ASSERT_MTX_NEAR(l_factor, small_l_expected, 1e-14);
     GKO_ASSERT_MTX_NEAR(u_factor, small_u_expected, 1e-14);
+}
+
+
+TEST_F(ParIlu, GenerateForCsrBigWithDiagonalZeros)
+{
+    auto factors = ilu_factory_skip->generate(mtx_big_nodiag);
+    auto l_factor = factors->get_l_factor();
+    auto u_factor = factors->get_u_factor();
+
+    GKO_ASSERT_MTX_NEAR(l_factor, big_nodiag_l_expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(u_factor, big_nodiag_u_expected, 1e-14);
 }
 
 
