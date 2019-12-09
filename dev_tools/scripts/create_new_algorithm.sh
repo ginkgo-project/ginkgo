@@ -97,11 +97,13 @@ TEMPLATE_FILES=(
     "${name}_kernels.hpp"
     "${name}_kernels.cpp"
     "${name}_kernels.cpp"
-    "${name}_kernels.c*"
+    "${name}*.[ch]*"
+    "${name}_kernels.hip.cpp"
     "${name}.cpp"
     "${name}_kernels.cpp"
     "${name}_kernels.cpp"
     "${name}_kernels.cpp"
+    "${name}_kernels.*"
 )
 CMAKE_FILES=(
     "core/CMakeLists.txt"
@@ -110,10 +112,12 @@ CMAKE_FILES=(
     "reference/CMakeLists.txt"
     "omp/CMakeLists.txt"
     "cuda/CMakeLists.txt"
+    "hip/CMakeLists.txt"
     "core/test/$source_type/CMakeLists.txt"
     "reference/test/$source_type/CMakeLists.txt"
     "omp/test/$source_type/CMakeLists.txt"
     "cuda/test/$source_type/CMakeLists.txt"
+    "hip/test/$source_type/CMakeLists.txt"
 )
 TEMPLATE_FILES_LOCATIONS=(
     "core/$source_type"
@@ -122,22 +126,26 @@ TEMPLATE_FILES_LOCATIONS=(
     "reference/$source_type"
     "omp/$source_type"
     "cuda/$source_type"
+    "hip/$source_type"
     "core/test/$source_type"
     "reference/test/$source_type"
     "omp/test/$source_type"
     "cuda/test/$source_type"
+    "hip/test/$source_type"
 )
 TEMPLATE_FILES_TYPES=(
     "$source_type file"
     "class header"
     "kernel header"
-    "kernel file"
-    "kernel file"
-    "kernel file"
-    "unit tests for ${name} $type"
+    "Reference kernel file"
+    "OpenMP kernel file"
+    "CUDA kernel file"
+    "HIP kernel file"
+    "unit tests for ${name} $source_type"
     "unit tests for ${name} reference kernels"
     "unit tests for ${name} OMP kernels"
     "unit tests for ${name} CUDA kernels"
+    "unit tests for ${name} HIP kernels"
 )
 TEMPLATE_FILES_DESCRIPTIONS=(
     "This is where the ${name} algorithm needs to be implemented."
@@ -146,131 +154,144 @@ TEMPLATE_FILES_DESCRIPTIONS=(
     "Reference kernels for ${name} need to be implemented here."
     "OMP kernels for ${name} need to be implemented here."
     "CUDA kernels for ${name} need to be implemented here."
-    ""
-    ""
-    ""
-    ""
+    "HIP kernels for ${name} need to be implemented here."
+    "This is where core related unit tests should be implemented, i.e. relating to the interface without executor usage."
+    "This is where tests with the Reference executor should be implemented. Usually, this means comparing against previously known values."
+    "This is where tests with the OpenMP executor should be implemented. Usually, this means comparing against a Reference execution."
+    "This is where tests with the CUDA executor should be implemented. Usually, this means comparing against a Reference execution."
+    "This is where tests with the HIP executor should be implemented. Usually, this means comparing against a Reference execution."
 )
 
 mkdir ${TMPDIR}
 
-# create folder for temporary files
-
-# copy files needed into temporary folder
 for (( i=1; i<${#TEMPLATE_FILES[@]}+1; i++ ))
 do
     sourcename=$(echo ${TEMPLATE_FILES[$i-1]} | sed "s/${name}/${source_name}/" )
     sourcepath=${TEMPLATE_FILES_LOCATIONS[$i-1]}/${sourcename}
-    file=$(ls ${GINKGO_ROOT_DIR}/${sourcepath})
-    if [ -f "$file" ]
-    then
-        # We have evaluated the extension and found it
-        # Integrate it in the template list
-        filename=$(basename -- ${file})
-        source_path=${TEMPLATE_FILES_LOCATIONS[$i-1]}/${filename}
-        TEMPLATE_FILES[$i-1]=$(echo "${filename}" | sed "s/${source_name}/${name}/")
-    else
-        echo "Warning: Source file $sourcepath was not found."
-    fi
 
-    destpath=${TEMPLATE_FILES_LOCATIONS[$i-1]}/${TEMPLATE_FILES[$i-1]}
+    # create folder for temporary files
     mkdir -p ${TMPDIR}/${TEMPLATE_FILES_LOCATIONS[$i-1]}
-    cp ${GINKGO_ROOT_DIR}/$sourcepath ${TMPDIR}/$destpath
-done
 
-# search and replace keywords with new solver name
-echo -e "\nCreating temporary files:"
-for (( i=1; i<${#TEMPLATE_FILES[@]}+1; i++ ))
-do
-    destpath=${TEMPLATE_FILES_LOCATIONS[$i-1]}/${TEMPLATE_FILES[$i-1]}
-    perl -pi -e "s/${source_name}/$name/g" ${TMPDIR}/$destpath
-    perl -pi -e "s/${source_name^}/$Name/g" ${TMPDIR}/$destpath
-    perl -pi -e "s/${source_name^^}/$NAME/g" ${TMPDIR}/$destpath
+    # Evaluate the extension and try to find the matching files
+    for j in $(ls ${GINKGO_ROOT_DIR}/${sourcepath})
+    do
+        if [ -f "$j" ]
+        then
+            filename=$(basename -- ${j})
+            source_path=${TEMPLATE_FILES_LOCATIONS[$i-1]}/${filename}
+            destname=$(echo "${filename}" | sed "s/${source_name}/${name}/")
+            destpath=${TEMPLATE_FILES_LOCATIONS[$i-1]}/$destname
 
+            cp ${GINKGO_ROOT_DIR}/$source_path ${TMPDIR}/$destpath
 
-    # Comment all code
-    awk '/^{$/,/^}$/ { if ($0 == "{"){ print "GKO_NOT_IMPLEMENTED;"; print "//" $0; print "// TODO (script): change the code imported from '${source_type}'/'${source_name}' if needed"; next} else { print "//" $0; next }} 1' ${TMPDIR}/$destpath > tmp
-    mv tmp  ${TMPDIR}/$destpath
+            # Replace all instances of source_name by the user's requested name
+            perl -n -i -e "print unless m/.*common.*${source_name}_kernels.hpp.inc.*/" ${TMPDIR}/$destpath
+            perl -pi -e "s/${source_name}/$name/g" ${TMPDIR}/$destpath
+            perl -pi -e "s/${source_name^}/$Name/g" ${TMPDIR}/$destpath
+            perl -pi -e "s/${source_name^^}/$NAME/g" ${TMPDIR}/$destpath
 
-    ls ${TMPDIR}/$destpath
+            # Comment all code
+            awk -v name=${name} '/^{$/,/^}$/ { if ($0 == "{"){ print "GKO_NOT_IMPLEMENTED;"; print "//" $0; print "// TODO (script:" name "): change the code imported from '${source_type}'/'${source_name}' if needed"; next} else { print "//" $0; next }} 1' ${TMPDIR}/$destpath > tmp
+            mv tmp ${TMPDIR}/$destpath
+
+            ls ${TMPDIR}/$destpath
+
+            if [ $execute == 1 ]
+            then
+                if [ ! -f ${GINKGO_ROOT_DIR}/$destpath ]; then
+                    cp ${TMPDIR}/${destpath} ${GINKGO_ROOT_DIR}/${destpath}
+                else
+                    echo -e "Error: file ${GINKGO_ROOT_DIR}/$destpath exists"
+                    echo -e "Remove file first if you want to replace it."
+                    read -p ""
+                fi
+            fi
+        else
+            echo "Warning: Source file $sourcepath was not found."
+        fi
+    done
 done
 
 if [ $execute == 1 ]
 then
-    echo -e "\nRenaming and distributing files"
-    # rename and distribute the files to the right location
-    # for each file, make sure it does not exist yet
-    for (( i=1; i<${#TEMPLATE_FILES[@]}+1; i++ ))
-    do
-        sourcepath=${TEMPLATE_FILES_LOCATIONS[$i-1]}/${TEMPLATE_FILES[$i-1]}
-        destpath=${TEMPLATE_FILES_LOCATIONS[$i-1]}/${TEMPLATE_FILES[$i-1]}
-        if [ ! -f ${GINKGO_ROOT_DIR}/$destpath ]; then
-            cp ${TMPDIR}/${sourcepath} ${GINKGO_ROOT_DIR}/${destpath}
-        else
-            echo -e "Error: file ${GINKGO_ROOT_DIR}/$destpath exists"
-            echo -e "Remove file first if you want to replace it."
-            read -p ""
-        fi
-    done
-
-
-    echo -e "cleaning up temporary files."
-    rm -rf ${TMPDIR}
-
-
     if [ $automatic_additions -eq 1 ]
     then
         ## Try to automatically add the files to CMakeLists
-        echo -e "Modifiying CMakeLists.txt and common_kernels.inc.cpp"
+        echo -e "Modifying CMakeLists.txt and common_kernels.inc.cpp"
         for ((i=1; i<=${#CMAKE_FILES[@]}; i++))
         do
-            destpath=${TEMPLATE_FILES_LOCATIONS[$i-1]}/${TEMPLATE_FILES[$i-1]}
-            if [ ! -f ${GINKGO_ROOT_DIR}/${destpath} ];
-            then
-                continue
-            fi
+            sourcepath=${TEMPLATE_FILES_LOCATIONS[$i-1]}/${TEMPLATE_FILES[$i-1]}
+            for j in $(ls ${GINKGO_ROOT_DIR}/${sourcepath})
+            do
+                filename=$(basename -- $j)
+                shortname=$(echo $filename | cut -d"." -f1)
+                sourcename=$(echo ${shortname} | sed "s/${name}/${source_name}/" )
+                if [[ ! -f ${j} || "${j}" == *".hpp" || "${j}" == *".cuh" ]];
+                then
+                    continue
+                fi
 
-            cmake_file="${GINKGO_ROOT_DIR}/${CMAKE_FILES[$i-1]}"
-            if [[ $cmake_file == *"test/"* ]]
-            then
-                insert=$(grep -E "\(${source_name}[_\)]{1}" $cmake_file | sed "s/$source_name/$name/")
-                echo "$insert" >> $cmake_file
-                cat $cmake_file | sort > tmp
-                mv tmp $cmake_file
-            elif [[ $cmake_file != "${GINKGO_ROOT_DIR}/" ]]
-            then
-                ## Works only if we have something of the form:
-                ##target_sources(
-                ##     PRIVATE
-                ##         <lib1>
-                ##         ...
-                ##         <libn>)
-                list=( $(awk '/^target_sources/,/        .*\)/ {if ( match($0, "target_sources") == 0 && match($0, "PRIVATE") == 0 ) { print $0 }}' $cmake_file) )
-                last_elem=$((${#list[@]}-1))
-                list[$last_elem]=$(echo ${list[$last_elem]} | tr -d ')')
-                list+=( "$source_type/${TEMPLATE_FILES[$i-1]}" )
-                IFS=$'\n' sorted=($(sort <<<"${list[*]}"))
-                unset IFS
-                last_elem=$((${#sorted[@]}-1))
-                sorted[$last_elem]=$(echo ${sorted[$last_elem]}")")
+                cmake_file="${GINKGO_ROOT_DIR}/${CMAKE_FILES[$i-1]}"
+                if [[ $cmake_file == *"test/"* ]]
+                then
+                    insert=$(grep -E "\(${sourcename}[_\)]{1}" $cmake_file | sed "s/$source_name/$name/")
+                    echo "$insert" >> $cmake_file
+                    cat $cmake_file | sort > tmp
+                    mv tmp $cmake_file
+                elif [[ $cmake_file != "${GINKGO_ROOT_DIR}/" ]]
+                then
+                    ## For most directories this works with something of the form:
+                    ##target_sources(
+                    ##     PRIVATE
+                    ##         <lib1>
+                    ##         ...
+                    ##         <libn>)
+                    ## For HIP:
+                    ##set(GINKGO_HIP_SOURCES
+                    ##    <lib1>
+                    ##    ...
+                    ##    <libn>)
+                    if [[ $cmake_file == *"hip/"* ]]
+                    then
+                        list=( $(awk '/^set\(GINKGO_HIP_SOURCES/,/    .*\)/ {if ( match($0, "GINKGO_HIP_SOURCES") == 0 ) { print $0 }}' $cmake_file) )
+                    else
+                        list=( $(awk '/^target_sources/,/        .*\)/ {if ( match($0, "target_sources") == 0 && match($0, "PRIVATE") == 0 ) { print $0 }}' $cmake_file) )
+                    fi
 
-                ## find the correct position
-                insert_to=$(grep -n -m 1 "target_sources" $cmake_file | sed 's/:.*//')
-                insert_to=$((insert_to + 1)) # account for the "PRIVATE"
+                    last_elem=$((${#list[@]}-1))
+                    list[$last_elem]=$(echo ${list[$last_elem]} | tr -d ')')
+                    list+=( "$source_type/${filename}" )
+                    IFS=$'\n' sorted=($(sort <<<"${list[*]}"))
+                    unset IFS
+                    last_elem=$((${#sorted[@]}-1))
+                    sorted[$last_elem]=$(echo ${sorted[$last_elem]}")")
 
-                ## clear up the CMakeList.txt
-                awk '/^target_sources/,/        .*\)/ {if (match($0, "target_sources") != 0 || match($0, "PRIVATE") != 0){ print $0 }; next}1'  $cmake_file > tmp
+                    ## find the correct position and clear up the CMakeList.txt
+                    if [[ $cmake_file == *"hip/"* ]]
+                    then
+                        insert_to=$(grep -n -m 1 "GINKGO_HIP_SOURCES" $cmake_file | sed 's/:.*//')
+                        awk '/^set\(GINKGO_HIP_SOURCES/,/    .*\)/ {if (match($0, "GINKGO_HIP_SOURCES") != 0 ){ print $0 }; next}1'  $cmake_file > tmp
+                    else
+                        insert_to=$(grep -n -m 1 "target_sources" $cmake_file | sed 's/:.*//')
+                        insert_to=$((insert_to + 1)) # account for the "PRIVATE"
+                        awk '/^target_sources/,/        .*\)/ {if (match($0, "target_sources") != 0 || match($0, "PRIVATE") != 0){ print $0 }; next}1'  $cmake_file > tmp
+                    fi
 
-                mytmp=`mktemp`
-                head -n$insert_to tmp > $mytmp
-                for line in "${sorted[@]}"
-                do
-                    echo "        $line" >> $mytmp
-                done
-                tail -n +$((insert_to+1)) tmp >> $mytmp
-                mv $mytmp tmp
-                mv tmp $cmake_file
-            fi
+                    mytmp=`mktemp`
+                    head -n$insert_to tmp > $mytmp
+                    for line in "${sorted[@]}"
+                    do
+                        if [[ $cmake_file == *"hip/"* ]]; then
+                            echo "    $line" >> $mytmp
+                        else
+                            echo "        $line" >> $mytmp
+                        fi
+                    done
+                    tail -n +$((insert_to+1)) tmp >> $mytmp
+                    mv $mytmp tmp
+                    mv tmp $cmake_file
+                fi
+            done
         done
 
 
@@ -305,7 +326,7 @@ then
 
         mytmp=`mktemp`
         head -n$old_code_block_end $common_kernels_file > $mytmp
-        echo -e "\n\n// TODO (script): adapt this block as needed" >> $mytmp
+        echo -e "\n\n// TODO (script:${name}): adapt this block as needed" >> $mytmp
         for line in "${old_code_block[@]}"
         do
             echo -e "$line" | sed "s/${source_name^^}/$NAME/g" | sed "s/${source_name}/$name/g" >> $mytmp
@@ -313,6 +334,9 @@ then
         tail -n +$((old_code_block_end+1)) $common_kernels_file >> $mytmp
         mv $mytmp $common_kernels_file
     fi
+
+    echo -e "cleaning up temporary files."
+    rm -rf ${TMPDIR}
 else
     echo -e "\nNo file was copied because --dry-run was used"
     echo -e "You can inspect the generated solver files in ${TMPDIR}."
@@ -322,7 +346,7 @@ if [ -f todo_${name}.txt ]; then
     rm todo_${name}.txt
 fi
 
-echo -e "\nSummary:"                                                                 | tee -a todo_${name}.txt
+echo -e "\n###Summary:"                                                                 | tee -a todo_${name}.txt
 for (( i=1; i<${#TEMPLATE_FILES[@]}+1; i++ ))
 do
     destpath=${TEMPLATE_FILES_LOCATIONS[$i-1]}/${TEMPLATE_FILES[$i-1]}
@@ -342,38 +366,31 @@ then
     do
         if [[ "${CMAKE_FILES[$i-1]}" != "" ]]
         then
-            echo "Modified ${CMAKE_FILES[$i-1]}"                 | tee -a todo_${name}.txt
+            echo "Modified ${CMAKE_FILES[$i-1]}"              | tee -a todo_${name}.txt
         fi
     done
-    echo "Modified core/device_hooks/common_kernels.inc.cpp"     | tee -a todo_${name}.txt
+    echo "Modified core/device_hooks/common_kernels.inc.cpp"  | tee -a todo_${name}.txt
 fi
-
-echo -e "In all of the previous files ${source_name} was automatically replaced into ${name}. Ensure there is no inconsistency."                               | tee -a todo_${name}.txt
-echo -e ""                                                       | tee -a todo_${name}.txt
-echo -e "All the imported code was commented and TODO items were generated in the new files." | tee -a todo_${name}.txt
-echo -e "Check all the modified files for '// TODO (script):' items"| tee -a todo_${name}.txt
-echo -e "e.g. by using grep -HR '// TODO (script):' ${GINKGO_ROOT_DIR}"| tee -a todo_${name}.txt
-echo ""                                                          | tee -a todo_${name}.txt
 
 if [ $automatic_additions -eq 0 ]
 then
-    echo ""                                                                         | tee -a todo_${name}.txt
-    echo "The following CMakeLists have to be modified manually:"                   | tee -a todo_${name}.txt
-    echo "core/CMakeLists.txt"                                                      | tee -a todo_${name}.txt
-    echo "core/test/${source_type}/CMakeLists.txt"                                          | tee -a todo_${name}.txt
-    echo ""                                                                         | tee -a todo_${name}.txt
-    echo "reference/CMakeLists.txt"                                                 | tee -a todo_${name}.txt
-    echo "reference/test/${source_type}/CMakeLists.txt"                                     | tee -a todo_${name}.txt
-    echo ""                                                                         | tee -a todo_${name}.txt
-    echo "omp/CMakeLists.txt"                                                       | tee -a todo_${name}.txt
-    echo "omp/test/${source_type}/CMakeLists.txt"                                           | tee -a todo_${name}.txt
-    echo ""                                                                         | tee -a todo_${name}.txt
-    echo "cuda/CMakeLists.txt"                                                       | tee -a todo_${name}.txt
-    echo "cuda/test/${source_type}/CMakeLists.txt"                                           | tee -a todo_${name}.txt
-    echo ""                                                                         | tee -a todo_${name}.txt
-    echo ""                                                                         | tee -a todo_${name}.txt
-    echo "The following header file has to modified:"                               | tee -a todo_${name}.txt
-    echo "core/device_hooks/common_kernels.inc.cpp"                                 | tee -a todo_${name}.txt
+    echo ""                                                   | tee -a todo_${name}.txt
+    echo "The following CMakeLists have to be modified manually:"| tee -a todo_${name}.txt
+    echo "core/CMakeLists.txt"                                | tee -a todo_${name}.txt
+    echo "core/test/${source_type}/CMakeLists.txt"            | tee -a todo_${name}.txt
+    echo ""                                                   | tee -a todo_${name}.txt
+    echo "reference/CMakeLists.txt"                           | tee -a todo_${name}.txt
+    echo "reference/test/${source_type}/CMakeLists.txt"       | tee -a todo_${name}.txt
+    echo ""                                                   | tee -a todo_${name}.txt
+    echo "omp/CMakeLists.txt"                                 | tee -a todo_${name}.txt
+    echo "omp/test/${source_type}/CMakeLists.txt"             | tee -a todo_${name}.txt
+    echo ""                                                   | tee -a todo_${name}.txt
+    echo "cuda/CMakeLists.txt"                                | tee -a todo_${name}.txt
+    echo "cuda/test/${source_type}/CMakeLists.txt"            | tee -a todo_${name}.txt
+    echo ""                                                   | tee -a todo_${name}.txt
+    echo ""                                                   | tee -a todo_${name}.txt
+    echo "The following header file has to modified:"         | tee -a todo_${name}.txt
+    echo "core/device_hooks/common_kernels.inc.cpp"           | tee -a todo_${name}.txt
     echo "Equivalent to the other solvers, the following part has to be appended:"  | tee -a todo_${name}.txt
     echo "##################################################" | tee -a todo_${name}.txt
     echo "#include #include \"core/solver/test_kernels.hpp\"" | tee -a todo_${name}.txt
@@ -394,5 +411,17 @@ then
     echo ""                                                   | tee -a todo_${name}.txt
     echo ""                                                   | tee -a todo_${name}.txt
 fi
+
+echo -e "\n\n\n### TODO:"                                         | tee -a todo_${name}.txt
+echo -e "In all of the previous files ${source_name} was automatically replaced into ${name}. Ensure there is no inconsistency."                              | tee -a todo_${name}.txt
+echo -e ""                                                    | tee -a todo_${name}.txt
+echo -e "All the imported code was commented and TODO items were generated in the new files." | tee -a todo_${name}.txt
+echo -e "Check all the modified files for \"// TODO (script:${name}):\" items"| tee -a todo_${name}.txt
+echo -e "e.g. by using  grep -nR \"// TODO (script:${name}):\" ${GINKGO_ROOT_DIR} | grep -v \"create_new_algorithm.sh\" | grep -v \"todo_${name}.txt\"." | tee -a todo_${name}.txt
+echo ""                                                       | tee -a todo_${name}.txt
+echo "A tentative list of relevant TODO items follows:"       | tee -a todo_${name}.txt
+grep -nR "// TODO (script:${name}):" ${GINKGO_ROOT_DIR} | grep -v "create_new_algorithm.sh" | grep -v "todo_${name}.txt" | tee -a todo_${name}.txt
+
+
 echo "A summary of the required next steps has been written to:"
 echo "todo_${name}.txt"
