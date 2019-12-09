@@ -259,7 +259,7 @@ std::unique_ptr<MatrixType> generate_random_triangular_matrix(
             auto val = ones_on_diagonal ? one
                                         : detail::get_rand_value<value_type>(
                                               value_dist, engine);
-            data.nonzeros.emplace_back(row, row, one);
+            data.nonzeros.emplace_back(row, row, val);
         }
     }
 
