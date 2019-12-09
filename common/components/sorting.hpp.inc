@@ -221,6 +221,32 @@ struct bitonic_global<ValueType, num_local, num_threads, 1, num_total_threads> {
 }  // namespace detail
 
 
+/**
+ * @internal
+ *
+ * This function sorts elements within a thread block.
+ *
+ * It takes a local array of elements and the pointer to a shared buffer of size
+ * `num_elements` as input. After the execution, the thread with rank `i` in the
+ * thread block (determined by `group::this_thread_block().thread_rank()`) has
+ * the elements at index `num_local * i` up to `num_local * i + (num_local - 1)`
+ * in the sorted sequence stored in its `local_elements` at index 0 up to
+ * `num_local - 1`.
+ *
+ * @note The shared-memory buffer uses a striped layout to limit bank
+ *       collisions, so it should not directly be used to access elements from
+ *       the sorted sequence. If `num_elements <= num_local * warp_size`, the
+ *       algorithm doesn't use/need the shared-memory buffer, so it can be null.
+ *
+ * @param local_elements  the `num_local` input/output elements from this
+ *                        thread.
+ * @param shared_elements  the shared-memory buffer of size `num_elements`
+ * @tparam num_elements  the number of elements - it must be a power of two!
+ * @tparam num_local  the number of elements stored per thread - it must be a
+ *                    power of two!
+ * @tparam ValueType  the type of the elements to be sorted - it must implement
+ *                    the less-than operator!
+ */
 template <int num_elements, int num_local, typename ValueType>
 __device__ void bitonic_sort(ValueType *local_elements,
                              ValueType *shared_elements)
@@ -230,14 +256,18 @@ __device__ void bitonic_sort(ValueType *local_elements,
     static_assert(num_threads <= config::max_block_size,
                   "bitonic_sort exceeds thread block");
     if (num_warps > 1) {
-        detail::bitonic_global<ValueType, num_local, config::warp_size,
-                               num_warps, num_threads>::sort(local_elements,
-                                                             shared_elements,
-                                                             false);
-    } else {
+        // these checks are necessary since the `if` is not evaluated at
+        // compile-time so even though the branch is never taken, it still gets
+        // instantiated and must thus compile.
+        constexpr auto _num_warps = num_warps <= 1 ? 1 : num_warps;
         constexpr auto _num_threads =
-            num_warps > 1 ? 1 : num_threads;  // sentinel value to make sure we
-                                              // don't break anything
+            num_threads <= config::warp_size ? config::warp_size : num_threads;
+        detail::bitonic_global<ValueType, num_local, config::warp_size,
+                               _num_warps, _num_threads>::sort(local_elements,
+                                                               shared_elements,
+                                                               false);
+    } else {
+        constexpr auto _num_threads = num_warps > 1 ? 1 : num_threads;
         detail::bitonic_warp<ValueType, num_local, _num_threads>::sort(
             local_elements, false);
     }
