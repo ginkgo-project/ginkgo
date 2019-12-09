@@ -150,6 +150,12 @@ endif()
 configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
     ${Ginkgo_BINARY_DIR}/include/ginkgo/config.hpp @ONLY)
 
+# Load CMake helpers
+include(cmake/build_helpers.cmake)
+include(cmake/build_type_helpers.cmake)
+include(cmake/hip_helpers.cmake)
+include(cmake/install_helpers.cmake)
+
 # This is modified from https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
 if(MSVC)
     if(BUILD_SHARED_LIBS)
@@ -162,12 +168,6 @@ if(MSVC)
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
     endif()
 endif()
-
-# Load CMake helpers
-include(cmake/build_helpers.cmake)
-include(cmake/build_type_helpers.cmake)
-include(cmake/hip_helpers.cmake)
-include(cmake/install_helpers.cmake)
 
 # Try to find the third party packages before using our subdirectories
 include(cmake/package_helpers.cmake)
