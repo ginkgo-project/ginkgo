@@ -99,8 +99,8 @@ TEST_F(MatricesNear, SuceedsIfSame)
 {
     ASSERT_PRED_FORMAT3(gko::test::assertions::matrices_near, mtx1.get(),
                         mtx1.get(), 0.0);
-    ASSERT_PRED_FORMAT3(gko::test::assertions::matrices_near_sparsity,
-                        mtx1_sp.get(), mtx1_sp.get(), 0.0);
+    ASSERT_PRED_FORMAT2(gko::test::assertions::matrices_equal_sparsity,
+                        mtx1_sp.get(), mtx1_sp.get());
 }
 
 
@@ -108,8 +108,8 @@ TEST_F(MatricesNear, FailsIfDifferent)
 {
     ASSERT_PRED_FORMAT3(!gko::test::assertions::matrices_near, mtx1.get(),
                         mtx2.get(), 0.0);
-    ASSERT_PRED_FORMAT3(!gko::test::assertions::matrices_near_sparsity,
-                        mtx1_sp.get(), mtx2_sp.get(), 0.0);
+    ASSERT_PRED_FORMAT2(!gko::test::assertions::matrices_equal_sparsity,
+                        mtx1_sp.get(), mtx2_sp.get());
 }
 
 
@@ -119,10 +119,8 @@ TEST_F(MatricesNear, SucceedsIfClose)
                         mtx3.get(), 0.0);
     ASSERT_PRED_FORMAT3(gko::test::assertions::matrices_near, mtx1.get(),
                         mtx3.get(), 0.1);
-    ASSERT_PRED_FORMAT3(!gko::test::assertions::matrices_near_sparsity,
-                        mtx1_sp.get(), mtx3_sp.get(), 0.0);
-    ASSERT_PRED_FORMAT3(gko::test::assertions::matrices_near_sparsity,
-                        mtx1_sp.get(), mtx3_sp.get(), 0.1);
+    ASSERT_PRED_FORMAT2(gko::test::assertions::matrices_equal_sparsity,
+                        mtx1_sp.get(), mtx3_sp.get());
 }
 
 
@@ -130,8 +128,8 @@ TEST_F(MatricesNear, CanUseShortNotation)
 {
     GKO_EXPECT_MTX_NEAR(mtx1, mtx1, 0.0);
     GKO_ASSERT_MTX_NEAR(mtx1, mtx3, 0.1);
-    GKO_EXPECT_MTX_NEAR_SPARSITY(mtx1_sp, mtx1_sp, 0.0);
-    GKO_ASSERT_MTX_NEAR_SPARSITY(mtx1_sp, mtx1_sp, 0.0);
+    GKO_EXPECT_MTX_EQ_SPARSITY(mtx1_sp, mtx3_sp);
+    GKO_ASSERT_MTX_EQ_SPARSITY(mtx1_sp, mtx3_sp);
 }
 
 

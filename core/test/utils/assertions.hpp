@@ -177,10 +177,9 @@ template <typename MatrixData1, typename MatrixData2>
 
 
 template <typename MatrixData1, typename MatrixData2>
-::testing::AssertionResult matrices_near_sparsity_impl(
+::testing::AssertionResult matrices_equal_sparsity_impl(
     const std::string &first_expression, const std::string &second_expression,
-    const std::string &tolerance_expression, const MatrixData1 &first,
-    const MatrixData2 &second, double tolerance)
+    const MatrixData1 &first, const MatrixData2 &second)
 {
     auto num_rows = first.size[0];
     auto num_cols = first.size[1];
@@ -228,23 +227,7 @@ template <typename MatrixData1, typename MatrixData2>
         snd_it = snd_row_end;
     }
 
-    auto err = detail::get_relative_error(first, second);
-    if (err <= tolerance) {
-        return ::testing::AssertionSuccess();
-    } else {
-        auto fail = ::testing::AssertionFailure();
-        fail << "Relative error between " << first_expression << " and "
-             << second_expression << " is " << err << "\n"
-             << "\twhich is larger than " << tolerance_expression
-             << " (which is " << tolerance << ")\n";
-        fail << first_expression << " is:\n";
-        detail::print_matrix(fail, first);
-        fail << second_expression << " is:\n";
-        detail::print_matrix(fail, second);
-        fail << "component-wise relative error is:\n";
-        detail::print_componentwise_error(fail, first, second);
-        return fail;
-    }
+    return ::testing::AssertionSuccess();
 }
 
 
@@ -444,38 +427,31 @@ template <typename ValueType>
 
 
 /**
- * This is a gtest predicate which checks if two matrices are relatively near
- * and have the same sparsity pattern.
+ * This is a gtest predicate which checks if two matrices have the same sparsity
+ * pattern.
  *
- * More formally, it checks whether the following equation holds:
- *
- * ```
- * ||first - second|| <= tolerance * max(||first||, ||second||)
- * ```
- *
- * and that mtx1 and mtx2 have exactly the same non-zero locations
+ * This means that hat mtx1 and mtx2 have exactly the same non-zero locations
  * (including zero values!)
  *
  * This function should not be called directly, but used in conjunction with
- * `ASSERT_PRED_FORMAT3` as follows:
+ * `ASSERT_PRED_FORMAT2` as follows:
  *
  * ```
- * // Check if first and second are near
- * ASSERT_PRED_FORMAT3(gko::test::assertions::matrices_near,
- *                     first, second, tolerance);
- * // Check if first and second are far
- * ASSERT_PRED_FORMAT3(!gko::test::assertions::matrices_near,
- *                     first, second, tolerance);
+ * // Check if first and second are equal
+ * ASSERT_PRED_FORMAT2(gko::test::assertions::matrices_equal_sparsity,
+ *                     first, second);
+ * // Check if first and second are not equal
+ * ASSERT_PRED_FORMAT2(!gko::test::assertions::matrices_equal_sparsity,
+ *                     first, second);
  * ```
  *
  * @see GKO_ASSERT_MTX_NEAR
  * @see GKO_EXPECT_MTX_NEAR
  */
 template <typename LinOp1, typename LinOp2>
-::testing::AssertionResult matrices_near_sparsity(
+::testing::AssertionResult matrices_equal_sparsity(
     const std::string &first_expression, const std::string &second_expression,
-    const std::string &tolerance_expression, const LinOp1 *first,
-    const LinOp2 *second, double tolerance)
+    const LinOp1 *first, const LinOp2 *second)
 {
     auto exec = first->get_executor()->get_master();
     matrix_data<typename LinOp1::value_type, typename LinOp1::index_type>
@@ -489,10 +465,10 @@ template <typename LinOp1, typename LinOp2>
     first_data.ensure_row_major_order();
     second_data.ensure_row_major_order();
 
-    return detail::matrices_near_sparsity_impl(
+    return detail::matrices_equal_sparsity_impl(
         detail::remove_pointer_wrapper(first_expression),
-        detail::remove_pointer_wrapper(second_expression), tolerance_expression,
-        first_data, second_data, tolerance);
+        detail::remove_pointer_wrapper(second_expression), first_data,
+        second_data);
 }
 
 
@@ -580,43 +556,35 @@ T plain_ptr(T ptr)
     }
 
 /**
- * Checks if two matrices are near each other and have the same sparsity
- * pattern.
+ * Checks if two matrices have the same sparsity pattern.
  *
- * More formally, it checks whether the following equation holds:
- *
- * ```
- * ||_mtx1 - _mtx2|| <= _tol * max(||_mtx1||, ||_mtx2||)
- * ```
- *
- * and that mtx1 and mtx2 have exactly the same non-zero locations
+ * This means that mtx1 and mtx2 have exactly the same non-zero locations
  * (including zero values!)
  *
  * Has to be called from within a google test unit test.
- * Internally calls gko::test::assertions::matrices_near_sparsity().
+ * Internally calls gko::test::assertions::matrices_equal_sparsity().
  *
  * @param _mtx1  first matrix
  * @param _mtx2  second matrix
- * @param _tol  tolerance level
  */
-#define GKO_ASSERT_MTX_NEAR_SPARSITY(_mtx1, _mtx2, _tol)                     \
-    {                                                                        \
-        using ::gko::test::assertions::detail::l;                            \
-        using ::gko::test::assertions::detail::plain_ptr;                    \
-        ASSERT_PRED_FORMAT3(::gko::test::assertions::matrices_near_sparsity, \
-                            plain_ptr(_mtx1), plain_ptr(_mtx2), _tol);       \
+#define GKO_ASSERT_MTX_EQ_SPARSITY(_mtx1, _mtx2)                              \
+    {                                                                         \
+        using ::gko::test::assertions::detail::l;                             \
+        using ::gko::test::assertions::detail::plain_ptr;                     \
+        ASSERT_PRED_FORMAT2(::gko::test::assertions::matrices_equal_sparsity, \
+                            plain_ptr(_mtx1), plain_ptr(_mtx2));              \
     }
 
 
 /**
- * @copydoc GKO_ASSERT_MTX_NEAR_SPARSITY
+ * @copydoc GKO_ASSERT_MTX_EQ_SPARSITY
  */
-#define GKO_EXPECT_MTX_NEAR_SPARSITY(_mtx1, _mtx2, _tol)                     \
-    {                                                                        \
-        using ::gko::test::assertions::detail::l;                            \
-        using ::gko::test::assertions::detail::plain_ptr;                    \
-        EXPECT_PRED_FORMAT3(::gko::test::assertions::matrices_near_sparsity, \
-                            plain_ptr(_mtx1), plain_ptr(_mtx2), _tol);       \
+#define GKO_EXPECT_MTX_EQ_SPARSITY(_mtx1, _mtx2)                              \
+    {                                                                         \
+        using ::gko::test::assertions::detail::l;                             \
+        using ::gko::test::assertions::detail::plain_ptr;                     \
+        EXPECT_PRED_FORMAT2(::gko::test::assertions::matrices_equal_sparsity, \
+                            plain_ptr(_mtx1), plain_ptr(_mtx2));              \
     }
 
 
