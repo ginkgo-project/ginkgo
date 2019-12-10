@@ -68,7 +68,7 @@ if os.path.isdir('texlive/'):
                               'fancyvrb multirow hanging adjustbox xkeyval '
                               'collectbox stackengine etoolbox listofitems ulem '
                               'wasysym sectsty tocloft newunicodechar caption etoc '
-                              'pgf ec helvetic courier wasy'])
+                              'pgf ec helvetic courier wasy letltxmacro'])
 
 # Copy PAPI libs
 add_papi = USERARG.get('papi', 'False')
