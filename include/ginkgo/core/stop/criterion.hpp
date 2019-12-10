@@ -279,7 +279,7 @@ using EnableDefaultCriterionFactory =
  * @internal For some abstract reason, nvcc compilation through HIP does not
  *           properly take into account the `using` declaration to inherit
  *           constructors. In addition, the default initialization `{}` for
- *           `_parameters_name##type $parameters` also does not work, which
+ *           `_parameters_name##type parameters` also does not work, which
  *           means the current form is probably the only correct one.
  *
  * @ingroup stop
