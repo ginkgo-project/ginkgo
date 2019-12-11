@@ -27,7 +27,9 @@ stages:
   EXTRA_CMAKE_FLAGS: ""
 
 .before_script_template: &default_before_script
-  - export OMP_NUM_THREADS=4
+  - export NUM_CORES=$(grep "core id" /proc/cpuinfo | sort -u | wc -l)
+  - export NUM_CORES=$((NUM_CORES/10))
+  - export OMP_NUM_THREADS=${NUM_CORES}
   - export CUDA_VISIBLE_DEVICES=0
 
 .before_script_git_template: &git_before_script
@@ -54,7 +56,7 @@ stages:
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
-    - make -j$(grep "core id" /proc/cpuinfo | sort -u | wc -l)
+    - make -j${NUM_CORES}
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
     - ctest -V
