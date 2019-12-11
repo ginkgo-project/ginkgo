@@ -97,7 +97,7 @@ TEMPLATE_FILES=(
     "${name}_kernels.hpp"
     "${name}_kernels.cpp"
     "${name}_kernels.cpp"
-    "${name}*.[ch]*"
+    "${name}_*.[ch]*"
     "${name}_kernels.hip.cpp"
     "${name}.cpp"
     "${name}_kernels.cpp"
@@ -389,7 +389,11 @@ then
     echo "cuda/test/${source_type}/CMakeLists.txt"            | tee -a todo_${name}.txt
     echo ""                                                   | tee -a todo_${name}.txt
     echo ""                                                   | tee -a todo_${name}.txt
-    echo "The following header file has to modified:"         | tee -a todo_${name}.txt
+    echo "hip/CMakeLists.txt"                                 | tee -a todo_${name}.txt
+    echo "hip/test/${source_type}/CMakeLists.txt"             | tee -a todo_${name}.txt
+    echo ""                                                   | tee -a todo_${name}.txt
+    echo ""                                                   | tee -a todo_${name}.txt
+    echo "The following header file has to be modified:"      | tee -a todo_${name}.txt
     echo "core/device_hooks/common_kernels.inc.cpp"           | tee -a todo_${name}.txt
     echo "Equivalent to the other solvers, the following part has to be appended:"  | tee -a todo_${name}.txt
     echo "##################################################" | tee -a todo_${name}.txt
