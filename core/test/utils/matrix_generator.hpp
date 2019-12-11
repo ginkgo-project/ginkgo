@@ -300,7 +300,7 @@ std::unique_ptr<MatrixType> generate_random_lower_triangular_matrix(
     Engine &&engine, std::shared_ptr<const Executor> exec,
     MatrixArgs &&... args)
 {
-    return generate_random_triangular_matrix(
+    return generate_random_triangular_matrix<MatrixType>(
         num_rows, num_cols, ones_on_diagonal, true, nonzero_dist, value_dist,
         engine, std::move(exec), std::forward<MatrixArgs>(args)...);
 }
@@ -334,7 +334,7 @@ std::unique_ptr<MatrixType> generate_random_upper_triangular_matrix(
     Engine &&engine, std::shared_ptr<const Executor> exec,
     MatrixArgs &&... args)
 {
-    return generate_random_triangular_matrix(
+    return generate_random_triangular_matrix<MatrixType>(
         num_rows, num_cols, ones_on_diagonal, false, nonzero_dist, value_dist,
         engine, std::move(exec), std::forward<MatrixArgs>(args)...);
 }
