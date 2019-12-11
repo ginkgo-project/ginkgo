@@ -12,6 +12,7 @@ target_sources(ginkgo_reference
         matrix/sellp_kernels.cpp
         matrix/sparsity_csr_kernels.cpp
         preconditioner/jacobi_kernels.cpp
+        solver/bicg_kernels.cpp
         solver/bicgstab_kernels.cpp
         solver/cg_kernels.cpp
         solver/cgs_kernels.cpp
