@@ -76,6 +76,7 @@ target_sources(ginkgo_cuda
         preconditioner/jacobi_generate_kernel.cu
         preconditioner/jacobi_kernels.cu
         preconditioner/jacobi_simple_apply_kernel.cu
+        solver/bicg_kernels.cu
         solver/bicgstab_kernels.cu
         solver/cg_kernels.cu
         solver/cgs_kernels.cu

@@ -1,0 +1,53 @@
+
+Summary:
+Created solver file
+core/solver/bicg.cpp
+	This is where the bicg algorithm needs to be implemented.
+
+Created class header
+include/ginkgo/core/solver/bicg.hpp
+	This is where the bicg class functions need to be implemented.
+
+Created kernel header
+core/solver/bicg_kernels.hpp
+	This is where the algorithm-specific kernels need to be added.
+
+Created kernel file
+reference/solver/bicg_kernels.cpp
+	Reference kernels for bicg need to be implemented here.
+
+Created kernel file
+omp/solver/bicg_kernels.cpp
+	OMP kernels for bicg need to be implemented here.
+
+Created kernel file
+cuda/solver/bicg_kernels.cu
+	CUDA kernels for bicg need to be implemented here.
+
+Created unit tests for bicg 
+core/test/solver/bicg.cpp
+
+Created unit tests for bicg reference kernels
+reference/test/solver/bicg_kernels.cpp
+
+Created unit tests for bicg OMP kernels
+omp/test/solver/bicg_kernels.cpp
+
+Created unit tests for bicg CUDA kernels
+cuda/test/solver/bicg_kernels.cpp
+
+Modified core/CMakeLists.txt
+Modified reference/CMakeLists.txt
+Modified omp/CMakeLists.txt
+Modified cuda/CMakeLists.txt
+Modified core/test/solver/CMakeLists.txt
+Modified reference/test/solver/CMakeLists.txt
+Modified omp/test/solver/CMakeLists.txt
+Modified cuda/test/solver/CMakeLists.txt
+Modified core/device_hooks/common_kernels.inc.cpp
+In all of the previous files cg was automatically replaced into bicg. Ensure there is no inconsistency.
+
+All the imported code was commented and TODO items were generated in the new files.
+Check all the modified files for '// TODO (script):' items
+e.g. by using grep -HR '// TODO (script):' /home/dennis/ginkgo_bicg/ginkgo/dev_tools/scripts/../..
+
