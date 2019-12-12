@@ -33,6 +33,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace detail {
 
 
+/**
+ * @internal
+ * Bitonic sorting operation for two elements.
+ *
+ * @param reverse  sorts in ascending order if `false` and
+ *                 descending order if `true`.
+ */
 template <typename ValueType>
 __device__ void bitonic_cas(ValueType &a, ValueType &b, bool reverse)
 {
@@ -42,6 +49,14 @@ __device__ void bitonic_cas(ValueType &a, ValueType &b, bool reverse)
     b = cmp ? b : tmp;
 }
 
+
+/**
+ * @internal
+ * This is a recursive implementation of a bitonic sorting network,
+ * executed sequentially on locally stored data.
+ *
+ * Based on Batcher, "Sorting Networks and Their Applications", 1968.
+ */
 template <typename ValueType, int num_elements>
 struct bitonic_local {
     using half = bitonic_local<ValueType, num_elements / 2>;
@@ -81,6 +96,13 @@ struct bitonic_local<ValueType, 1> {
 };
 
 
+/**
+ * @internal
+ * This is a recursive implementation of a bitonic sorting network,
+ * executed in parallel within a warp using lane shuffle instructions.
+ *
+ * Based on Hou et al., "Fast Segmented Sort on GPUs", 2017.
+ */
 template <typename ValueType, int num_local, int num_threads>
 struct bitonic_warp {
     constexpr static auto num_elements = num_local * num_threads;
@@ -135,6 +157,14 @@ struct bitonic_warp<ValueType, NumLocalElements, 1> {
 };
 
 
+/**
+ * @internal
+ * This is a recursive implementation of a bitonic sorting network,
+ * executed in parallel in a thread block using shared memory.
+ *
+ * We use a tiled storage pattern to avoid memory bank collisions on shared
+ * memory accesses, see @ref shared_idx.
+ */
 template <typename ValueType, int num_local, int num_threads, int num_groups,
           int num_total_threads>
 struct bitonic_global {
