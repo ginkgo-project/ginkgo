@@ -81,6 +81,7 @@ target_sources(ginkgo_cuda
         solver/fcg_kernels.cu
         solver/gmres_kernels.cu
         solver/ir_kernels.cu
+        solver/lower_trs_isai_kernels.cu
         solver/lower_trs_kernels.cu
         solver/upper_trs_kernels.cu
         stop/criterion_kernels.cu

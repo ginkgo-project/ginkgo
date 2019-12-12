@@ -32,6 +32,7 @@ target_sources(ginkgo
         solver/gmres.cpp
         solver/ir.cpp
         solver/lower_trs.cpp
+        solver/lower_trs_isai.cpp
         solver/upper_trs.cpp
         stop/combined.cpp
         stop/criterion.cpp

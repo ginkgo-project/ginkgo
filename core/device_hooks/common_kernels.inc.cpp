@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/fcg_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
 #include "core/solver/ir_kernels.hpp"
+#include "core/solver/lower_trs_isai_kernels.hpp"
 #include "core/solver/lower_trs_kernels.hpp"
 #include "core/solver/upper_trs_kernels.hpp"
 #include "core/stop/criterion_kernels.hpp"
@@ -236,6 +237,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace lower_trs
+
+
+namespace lower_trs_isai {
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_LOWER_TRS_ISAI_BUILD_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_LOWER_TRS_ISAI_BUILD_KERNEL);
+
+// template <typename ValueType, typename IndexType>
+// GKO_DECLARE_LOWER_TRS_ISAI_SOLVE_KERNEL(ValueType, IndexType)
+// GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+// GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+//     GKO_DECLARE_LOWER_TRS_ISAI_SOLVE_KERNEL);
+
+
+}  // namespace lower_trs_isai
 
 
 namespace upper_trs {

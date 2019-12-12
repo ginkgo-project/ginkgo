@@ -110,6 +110,7 @@ set(GINKGO_HIP_SOURCES
     solver/fcg_kernels.hip.cpp
     solver/gmres_kernels.hip.cpp
     solver/ir_kernels.hip.cpp
+    solver/lower_trs_isai_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp
     solver/upper_trs_kernels.hip.cpp
     stop/criterion_kernels.hip.cpp
