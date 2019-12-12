@@ -124,3 +124,7 @@ Stage0 += shell(commands=['cd /var/tmp',
 Stage0 += shell(commands=['cd /var/tmp/hipSPARSE', 'mkdir build', 'cd build',
                           'cmake -DBUILD_CUDA=on ..', 'make install'])
 Stage0 += shell(commands=['rm -rf /var/tmp/hipSPARSE'])
+
+# Populate the HIP environment variables
+Stage0 += environment(variables={'PATH': '$PATH:/opt/rocm/bin'})
+Stage0 += shell(commands=['echo "/opt/rocm/lib" > /etc/ld.so.conf.d/hip.conf && ldconfig'])

@@ -59,10 +59,13 @@ function(ginkgo_install)
     install(FILES
         "${Ginkgo_BINARY_DIR}/GinkgoConfig.cmake"
         "${Ginkgo_BINARY_DIR}/GinkgoConfigVersion.cmake"
-        "${Ginkgo_BINARY_DIR}/GinkgoTargets.cmake"
         "${Ginkgo_SOURCE_DIR}/cmake/hip_helpers.cmake"
         DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}"
         )
+      install(EXPORT Ginkgo
+        NAMESPACE Ginkgo::
+        FILE GinkgoTargets.cmake
+        DESTINATION "${GINKGO_INSTALL_CONFIG_DIR}")
 
     # Export package for use from the build tree
     if (GINKGO_EXPORT_BUILD_DIR)

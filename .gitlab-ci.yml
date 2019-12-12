@@ -27,7 +27,9 @@ stages:
   EXTRA_CMAKE_FLAGS: ""
 
 .before_script_template: &default_before_script
-  - export OMP_NUM_THREADS=4
+  - export NUM_CORES=$(grep "core id" /proc/cpuinfo | sort -u | wc -l)
+  - export NUM_CORES=$((NUM_CORES/10))
+  - export OMP_NUM_THREADS=${NUM_CORES}
   - export CUDA_VISIBLE_DEVICES=0
 
 .before_script_git_template: &git_before_script
@@ -54,7 +56,26 @@ stages:
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
-    - make -j$(grep "core id" /proc/cpuinfo | sort -u | wc -l)
+    - make -j${NUM_CORES}
+  dependencies: []
+  except:
+      - schedules
+
+.build_template: &default_build_with_test
+  stage: build
+  variables: *default_variables
+  before_script: *default_before_script
+  script:
+    - mkdir -p ${CI_JOB_NAME} && cd ${CI_JOB_NAME}
+    - cmake ${CI_PROJECT_DIR}
+        -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
+        -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_FLAGS="${CXX_FLAGS}"
+        -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} ${EXTRA_CMAKE_FLAGS}
+        -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
+        -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
+        -DGINKGO_BUILD_HIP=${BUILD_HIP}
+        -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
+    - make -j${NUM_CORES}
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
     - ctest -V
@@ -86,7 +107,7 @@ sync:
 
 # Build jobs
 build/cuda90/gcc/all/debug/shared:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-cuda90-gnu5-llvm39
   variables:
     <<: *default_variables
@@ -101,7 +122,7 @@ build/cuda90/gcc/all/debug/shared:
     - gpu
 
 build/cuda90/clang/all/release/static:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-cuda90-gnu5-llvm39
   variables:
     <<: *default_variables
@@ -119,7 +140,7 @@ build/cuda90/clang/all/release/static:
 
 # cuda 9.1 and friends
 build/cuda91/gcc/all/debug/static:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-cuda91-gnu6-llvm40
   variables:
     <<: *default_variables
@@ -134,7 +155,7 @@ build/cuda91/gcc/all/debug/static:
     - gpu
 
 build/cuda91/clang/all/release/shared:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-cuda91-gnu6-llvm40
   variables:
     <<: *default_variables
@@ -150,7 +171,7 @@ build/cuda91/clang/all/release/shared:
     - gpu
 
 build/cuda91/intel/cuda/debug/shared:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-cuda91-gnu6-llvm40
   variables:
     <<: *default_variables
@@ -166,7 +187,7 @@ build/cuda91/intel/cuda/debug/shared:
 
 # cuda 9.2 and friends
 build/cuda92/gcc/all/release/shared:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-cuda92-gnu7-llvm50
   variables:
     <<: *default_variables
@@ -180,7 +201,7 @@ build/cuda92/gcc/all/release/shared:
     - gpu
 
 build/cuda92/clang/all/debug/static:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-cuda92-gnu7-llvm50
   variables:
     <<: *default_variables
@@ -197,7 +218,7 @@ build/cuda92/clang/all/debug/static:
     - gpu
 
 build/cuda92/intel/cuda/release/static:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-cuda92-gnu7-llvm50
   variables:
     <<: *default_variables
@@ -214,7 +235,7 @@ build/cuda92/intel/cuda/release/static:
 
 # cuda 10.0 and friends
 build/cuda100/gcc/all/debug/shared:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-cuda100-gnu7-llvm60
   variables:
     <<: *default_variables
@@ -228,7 +249,7 @@ build/cuda100/gcc/all/debug/shared:
     - gpu
 
 build/cuda100/clang/all/release/static:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-cuda100-gnu7-llvm60
   variables:
     <<: *default_variables
@@ -245,7 +266,7 @@ build/cuda100/clang/all/release/static:
     - gpu
 
 build/cuda100/intel/cuda/release/shared:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-cuda100-gnu7-llvm60
   variables:
     <<: *default_variables
@@ -261,7 +282,7 @@ build/cuda100/intel/cuda/release/shared:
 
 # cuda 10.1 and friends
 build/cuda101/gcc/all/debug/shared:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-cuda101-gnu8-llvm70
   variables:
     <<: *default_variables
@@ -275,7 +296,7 @@ build/cuda101/gcc/all/debug/shared:
     - gpu
 
 build/cuda101/clang/all/release/static:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-cuda101-gnu8-llvm70
   variables:
     <<: *default_variables
@@ -291,7 +312,7 @@ build/cuda101/clang/all/release/static:
     - gpu
 
 build/cuda101/intel/cuda/debug/static:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-cuda101-gnu8-llvm70
   variables:
     <<: *default_variables
@@ -307,7 +328,7 @@ build/cuda101/intel/cuda/debug/static:
 
 # HIP AMD
 build/amd/gcc/hip/debug/shared:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-amd-gnu7-llvm60
   variables:
     <<: *default_variables
@@ -319,7 +340,7 @@ build/amd/gcc/hip/debug/shared:
     - gpu
 
 build/amd/clang/hip/release/static:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-amd-gnu7-llvm60
   variables:
     <<: *default_variables
@@ -333,7 +354,7 @@ build/amd/clang/hip/release/static:
 
 # no cuda but latest gcc and clang
 build/nocuda/gcc/core/debug/static:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
@@ -344,7 +365,7 @@ build/nocuda/gcc/core/debug/static:
     - cpu
 
 build/nocuda/clang/core/release/shared:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
@@ -356,7 +377,7 @@ build/nocuda/clang/core/release/shared:
     - cpu
 
 build/nocuda/intel/core/debug/shared:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-nocuda-gnu8-llvm70
   variables:
     <<: *default_variables
@@ -368,7 +389,7 @@ build/nocuda/intel/core/debug/shared:
     - cpu
 
 build/nocuda/gcc/omp/release/shared:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
@@ -378,7 +399,7 @@ build/nocuda/gcc/omp/release/shared:
     - cpu
 
 build/nocuda/clang/omp/debug/static:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
@@ -391,7 +412,7 @@ build/nocuda/clang/omp/debug/static:
     - cpu
 
 build/nocuda/intel/omp/release/static:
-  <<: *default_build
+  <<: *default_build_with_test
   image: localhost:5000/gko-nocuda-gnu8-llvm70
   variables:
     <<: *default_variables
