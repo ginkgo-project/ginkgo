@@ -30,17 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_BASE_CONFIG_HIP_HPP_
-#define GKO_HIP_BASE_CONFIG_HIP_HPP_
+#ifndef GKO_HIP_COMPONENTS_SORTING_CUH_
+#define GKO_HIP_COMPONENTS_SORTING_CUH_
 
 
-#include <hip/device_functions.h>
-
-
-#include <ginkgo/core/base/types.hpp>
-
-
-#include "hip/base/math.hip.hpp"
+#include "hip/base/config.hip.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
 
 
 namespace gko {
@@ -48,37 +43,7 @@ namespace kernels {
 namespace hip {
 
 
-struct config {
-    /**
-     * The number of threads within a HIP warp. Here, we use the definition from
-     * `device_functions.h`.
-     */
-#if GINKGO_HIP_PLATFORM_HCC
-    static constexpr uint32 warp_size = warpSize;
-#else  // GINKGO_HIP_PLATFORM_NVCC
-    static constexpr uint32 warp_size = 32;
-#endif
-
-    /**
-     * The bitmask of the entire warp.
-     */
-#if GINKGO_HIP_PLATFORM_HCC
-    static constexpr uint64 full_lane_mask = ~zero<uint64>();
-#else  // GINKGO_HIP_PLATFORM_NVCC
-    static constexpr uint32 full_lane_mask = ~zero<uint32>();
-#endif
-
-    /**
-     * The maximal number of threads allowed in a HIP warp.
-     */
-    static constexpr uint32 max_block_size = 1024;
-
-    /**
-     * The minimal amount of warps that need to be scheduled for each block
-     * to maximize GPU occupancy.
-     */
-    static constexpr uint32 min_warps_per_block = 4;
-};
+#include "common/components/sorting.hpp.inc"
 
 
 }  // namespace hip
@@ -86,4 +51,4 @@ struct config {
 }  // namespace gko
 
 
-#endif  // GKO_HIP_BASE_CONFIG_HIP_HPP_
+#endif  // GKO_HIP_COMPONENTS_SORTING_CUH_
