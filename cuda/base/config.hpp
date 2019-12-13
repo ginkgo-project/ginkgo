@@ -37,12 +37,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#include "cuda/base/math.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {
 
 
 struct config {
+    /**
+     * The type containing a bitmask over all lanes of a warp.
+     */
+    using lane_mask_type = uint32;
+
     /**
      * The number of threads within a CUDA warp.
      */
@@ -51,7 +59,7 @@ struct config {
     /**
      * The bitmask of the entire warp.
      */
-    static constexpr uint32 full_lane_mask = (1ll << warp_size) - 1;
+    static constexpr auto full_lane_mask = ~zero<lane_mask_type>();
 
     /**
      * The maximal number of threads allowed in a CUDA warp.
