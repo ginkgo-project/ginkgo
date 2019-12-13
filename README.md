@@ -19,6 +19,36 @@ focus on sparse solution of linear systems. It is implemented using modern C++
 implemented in CUDA and HIP.
 
 
+DISCLAIMER: for [expt-develop](https://github.com/ginkgo-project/ginkgo/tree/expt-develop) branch.
+-----------
+This branch is only experimental and may not be completely compliant with the Ginkgo standards and is not expected to be. 
+
+Everything should work as expected and all features have been tested, but there will be no explicit support for problems that arise on this branch but not on the main Ginkgo branch. 
+
+This branch should be (theoretically) in sync with the develop branch of Ginkgo and should add only some additional features. Some interface breakage and possible complexities are listed below:
+ 
+
+Features in this branch:
+------------------------
+
+* HWLOC support: HWLOC is a sub-module within the OpenMPI project used to provide the machine info. Some preliminary support for this was added with PR #378 for binding to cores and GPU's to executors and also to get some information about the hardware from the machine, either from an XML file or from the HWLOC interface functions. Most of the credits go to Terry Cojean for writing this binding and HWLOC interface. See the [HWLOC page](https://www.open-mpi.org/projects/hwloc/) for more information.
+
+* Memory space abstraction support: In preparation for some asynchronous functions, the memory space was abstracted from the executors so that the executors would now only perform execution but the memory allocation, freeing and the copies would be done by the Memory space classes. Each executor is now created with a memory space (a default memory space is defined for each executor) or can be created with an associated memory space allowing for multiple executors to have access to the same memory space reducing copies wherever possible. 
+
+
+Additional complexities
+-----------------------
+
+* User must create their own memory space object if they want to not duplicate copies.
+
+
+Interface breakage
+------------------
+
+* Logger interface now needs an additional memory_space object to log the memory operations (alloc, free, copies...). Therefore, using a logger is different than in Ginkgo's current develop/release branches. It has been [documented in the Logger class](https://github.com/ginkgo-project/ginkgo/blob/expt-develop/include/ginkgo/core/log/logger.hpp#L144). The examples have been updated to show the usage as well.
+
+
+
 Performance
 -----------
 
