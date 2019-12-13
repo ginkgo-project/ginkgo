@@ -56,128 +56,141 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-class LowerTrsIsai : public ::testing::Test {
-protected:
-    using Mtx = gko::matrix::Dense<>;
-    LowerTrsIsai()
-        : exec(gko::ReferenceExecutor::create()),
-          ref(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<Mtx>(
-              {{1, 0.0, 0.0}, {3.0, 1, 0.0}, {1.0, 2.0, 1}}, exec)),
-          mtx2(gko::initialize<Mtx>(
-              {{2, 0.0, 0.0}, {3.0, 3, 0.0}, {1.0, 2.0, 4}}, exec)),
-          lower_trs_isai_factory(gko::solver::LowerTrsIsai<>::build().on(exec)),
-          lower_trs_isai_factory_mrhs(
-              gko::solver::LowerTrsIsai<>::build().with_num_rhs(2u).on(exec)),
-          mtx_big(gko::initialize<Mtx>({{124.0, 0.0, 0.0, 0.0, 0.0},
-                                        {43.0, -789.0, 0.0, 0.0, 0.0},
-                                        {134.5, -651.0, 654.0, 0.0, 0.0},
-                                        {-642.0, 684.0, 68.0, 387.0, 0.0},
-                                        {365.0, 97.0, -654.0, 8.0, 91.0}},
-                                       exec)),
-          lower_trs_isai_factory_big(gko::solver::LowerTrsIsai<>::build().on(exec))
-    {}
+   class LowerTrsIsai : public ::testing::Test {
+   protected:
+      using Mtx = gko::matrix::Dense<>;
+      LowerTrsIsai()
+         : exec(gko::ReferenceExecutor::create()),
+           ref(gko::ReferenceExecutor::create()),
+           mtx(gko::initialize<Mtx>(
+                     {{1, 0.0, 0.0}, {3.0, 1, 0.0}, {1.0, 2.0, 1}}, exec)),
+           mtx2(gko::initialize<Mtx>(
+                      {{2, 0.0, 0.0}, {3.0, 3, 0.0}, {1.0, 2.0, 4}}, exec)),
+           lower_trs_isai_factory_norelax(gko::solver::LowerTrsIsai<>::build().with_niter(0u).on(exec)),
+           lower_trs_isai_factory(gko::solver::LowerTrsIsai<>::build().with_niter(5u).on(exec)),
+           lower_trs_isai_factory_mrhs(
+                 gko::solver::LowerTrsIsai<>::build().with_num_rhs(2u).on(exec)),
+           mtx_big(gko::initialize<Mtx>({{124.0, 0.0, 0.0, 0.0, 0.0},
+                                         {43.0, -789.0, 0.0, 0.0, 0.0},
+                                         {134.5, -651.0, 654.0, 0.0, 0.0},
+                                         {-642.0, 684.0, 68.0, 387.0, 0.0},
+                                         {365.0, 97.0, -654.0, 8.0, 91.0}},
+                 exec)),
+           lower_trs_isai_factory_big(gko::solver::LowerTrsIsai<>::build().on(exec))
+      {}
 
-    std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<const gko::ReferenceExecutor> ref;
-    std::shared_ptr<Mtx> mtx;
-    std::shared_ptr<Mtx> mtx2;
-    std::shared_ptr<Mtx> mtx_big;
-    std::unique_ptr<gko::solver::LowerTrsIsai<>::Factory> lower_trs_isai_factory;
-    std::unique_ptr<gko::solver::LowerTrsIsai<>::Factory> lower_trs_isai_factory_mrhs;
-    std::unique_ptr<gko::solver::LowerTrsIsai<>::Factory> lower_trs_isai_factory_big;
-};
+      std::shared_ptr<const gko::Executor> exec;
+      std::shared_ptr<const gko::ReferenceExecutor> ref;
+      std::shared_ptr<Mtx> mtx;
+      std::shared_ptr<Mtx> mtx2;
+      std::shared_ptr<Mtx> mtx_big;
+      std::unique_ptr<gko::solver::LowerTrsIsai<>::Factory> lower_trs_isai_factory_norelax;
+      std::unique_ptr<gko::solver::LowerTrsIsai<>::Factory> lower_trs_isai_factory;
+      std::unique_ptr<gko::solver::LowerTrsIsai<>::Factory> lower_trs_isai_factory_mrhs;
+      std::unique_ptr<gko::solver::LowerTrsIsai<>::Factory> lower_trs_isai_factory_big;
+   };
 
-TEST_F(LowerTrsIsai, SolvesTriangularSystem)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:lower_trs_isai): change the code imported from solver/lower_trs if needed
-//    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, exec);
-//    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
-//    auto solver = lower_trs_isai_factory->generate(mtx);
-//
-//    solver->apply(b.get(), x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 2.0}), 1e-14);
-//}
+   TEST_F(LowerTrsIsai, SolvesTriangularSystemNoRelax)
+   {
 
+      std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, exec);
+      auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
+      auto solver = lower_trs_isai_factory_norelax->generate(mtx);
 
-TEST_F(LowerTrsIsai, SolvesMultipleTriangularSystems)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:lower_trs_isai): change the code imported from solver/lower_trs if needed
-//    std::shared_ptr<Mtx> b =
-//        gko::initialize<Mtx>({{3.0, 4.0}, {1.0, 0.0}, {1.0, -1.0}}, exec);
-//    auto x = gko::initialize<Mtx>({{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}}, exec);
-//    auto solver = lower_trs_isai_factory_mrhs->generate(mtx);
-//
-//    solver->apply(b.get(), x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(x, l({{3.0, 4.0}, {-8.0, -12.0}, {14.0, 19.0}}), 1e-14);
-//}
+      solver->apply(b.get(), x.get());
+   
+      GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 2.0}), 1e-14);
+   }
+
+   TEST_F(LowerTrsIsai, SolvesTriangularSystem)
+   {
+
+      std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, exec);
+      auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
+      auto solver = lower_trs_isai_factory->generate(mtx);
+
+      solver->apply(b.get(), x.get());
+   
+      GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 2.0}), 1e-14);
+   }
 
 
-TEST_F(LowerTrsIsai, SolvesNonUnitTriangularSystem)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:lower_trs_isai): change the code imported from solver/lower_trs if needed
-//    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({2.0, 12.0, 3.0}, exec);
-//    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
-//    auto solver = lower_trs_isai_factory->generate(mtx2);
-//
-//    solver->apply(b.get(), x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, -1.0}), 1e-14);
-//}
-
-TEST_F(LowerTrsIsai, SolvesTriangularSystemUsingAdvancedApply)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:lower_trs_isai): change the code imported from solver/lower_trs if needed
-//    auto alpha = gko::initialize<Mtx>({2.0}, exec);
-//    auto beta = gko::initialize<Mtx>({-1.0}, exec);
-//    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, exec);
-//    auto x = gko::initialize<Mtx>({1.0, -1.0, 1.0}, exec);
-//    auto solver = lower_trs_isai_factory->generate(mtx);
-//
-//    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 3.0}), 1e-14);
-//}
+   TEST_F(LowerTrsIsai, SolvesMultipleTriangularSystems)
+   GKO_NOT_IMPLEMENTED;
+   //{
+   // TODO (script:lower_trs_isai): change the code imported from solver/lower_trs if needed
+   //    std::shared_ptr<Mtx> b =
+   //        gko::initialize<Mtx>({{3.0, 4.0}, {1.0, 0.0}, {1.0, -1.0}}, exec);
+   //    auto x = gko::initialize<Mtx>({{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}}, exec);
+   //    auto solver = lower_trs_isai_factory_mrhs->generate(mtx);
+   //
+   //    solver->apply(b.get(), x.get());
+   //
+   //    GKO_ASSERT_MTX_NEAR(x, l({{3.0, 4.0}, {-8.0, -12.0}, {14.0, 19.0}}), 1e-14);
+   //}
 
 
-TEST_F(LowerTrsIsai, SolvesMultipleTriangularSystemsUsingAdvancedApply)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:lower_trs_isai): change the code imported from solver/lower_trs if needed
-//    auto alpha = gko::initialize<Mtx>({-1.0}, exec);
-//    auto beta = gko::initialize<Mtx>({2.0}, exec);
-//    std::shared_ptr<Mtx> b =
-//        gko::initialize<Mtx>({{3.0, 4.0}, {1.0, 0.0}, {1.0, -1.0}}, exec);
-//    auto x =
-//        gko::initialize<Mtx>({{1.0, 2.0}, {-1.0, -1.0}, {0.0, -2.0}}, exec);
-//    auto solver = lower_trs_isai_factory_mrhs->generate(mtx);
-//
-//    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(x, l({{-1.0, 0.0}, {6.0, 10.0}, {-14.0, -23.0}}),
-//                        1e-14);
-//}
+   TEST_F(LowerTrsIsai, SolvesNonUnitTriangularSystem)
+   GKO_NOT_IMPLEMENTED;
+   //{
+   // TODO (script:lower_trs_isai): change the code imported from solver/lower_trs if needed
+   //    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({2.0, 12.0, 3.0}, exec);
+   //    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
+   //    auto solver = lower_trs_isai_factory->generate(mtx2);
+   //
+   //    solver->apply(b.get(), x.get());
+   //
+   //    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, -1.0}), 1e-14);
+   //}
+
+   TEST_F(LowerTrsIsai, SolvesTriangularSystemUsingAdvancedApply)
+   GKO_NOT_IMPLEMENTED;
+   //{
+   // TODO (script:lower_trs_isai): change the code imported from solver/lower_trs if needed
+   //    auto alpha = gko::initialize<Mtx>({2.0}, exec);
+   //    auto beta = gko::initialize<Mtx>({-1.0}, exec);
+   //    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, exec);
+   //    auto x = gko::initialize<Mtx>({1.0, -1.0, 1.0}, exec);
+   //    auto solver = lower_trs_isai_factory->generate(mtx);
+   //
+   //    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+   //
+   //    GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 3.0}), 1e-14);
+   //}
 
 
-TEST_F(LowerTrsIsai, SolvesBigDenseSystem)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:lower_trs_isai): change the code imported from solver/lower_trs if needed
-//    std::shared_ptr<Mtx> b =
-//        gko::initialize<Mtx>({-124.0, -3199.0, 3147.5, 5151.0, -6021.0}, exec);
-//    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, exec);
-//    auto solver = lower_trs_isai_factory_big->generate(mtx_big);
-//
-//    solver->apply(b.get(), x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(x, l({-1.0, 4.0, 9.0, 3.0, -2.0}), 1e-10);
-//}
+   TEST_F(LowerTrsIsai, SolvesMultipleTriangularSystemsUsingAdvancedApply)
+   GKO_NOT_IMPLEMENTED;
+   //{
+   // TODO (script:lower_trs_isai): change the code imported from solver/lower_trs if needed
+   //    auto alpha = gko::initialize<Mtx>({-1.0}, exec);
+   //    auto beta = gko::initialize<Mtx>({2.0}, exec);
+   //    std::shared_ptr<Mtx> b =
+   //        gko::initialize<Mtx>({{3.0, 4.0}, {1.0, 0.0}, {1.0, -1.0}}, exec);
+   //    auto x =
+   //        gko::initialize<Mtx>({{1.0, 2.0}, {-1.0, -1.0}, {0.0, -2.0}}, exec);
+   //    auto solver = lower_trs_isai_factory_mrhs->generate(mtx);
+   //
+   //    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+   //
+   //    GKO_ASSERT_MTX_NEAR(x, l({{-1.0, 0.0}, {6.0, 10.0}, {-14.0, -23.0}}),
+   //                        1e-14);
+   //}
+
+
+   TEST_F(LowerTrsIsai, SolvesBigDenseSystem)
+   GKO_NOT_IMPLEMENTED;
+   //{
+   // TODO (script:lower_trs_isai): change the code imported from solver/lower_trs if needed
+   //    std::shared_ptr<Mtx> b =
+   //        gko::initialize<Mtx>({-124.0, -3199.0, 3147.5, 5151.0, -6021.0}, exec);
+   //    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, exec);
+   //    auto solver = lower_trs_isai_factory_big->generate(mtx_big);
+   //
+   //    solver->apply(b.get(), x.get());
+   //
+   //    GKO_ASSERT_MTX_NEAR(x, l({-1.0, 4.0, 9.0, 3.0, -2.0}), 1e-10);
+   //}
 
 
 }  // namespace

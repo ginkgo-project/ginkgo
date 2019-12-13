@@ -90,7 +90,7 @@ namespace solver {
       {
          return system_matrix_;
       }
-
+      
       GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
       {
 
@@ -152,6 +152,8 @@ namespace solver {
                copy_and_convert_to<CsrMatrix>(exec, system_matrix);
          }
 
+         isai_ = CsrMatrix::create(exec);
+         
          // Build incomplete sparse aproximate inverse
          this->build_isai();
       }
