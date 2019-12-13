@@ -30,65 +30,37 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_BASE_CONFIG_HIP_HPP_
-#define GKO_HIP_BASE_CONFIG_HIP_HPP_
+/**
+ * @internal
+ * Returns the number of set bits in the given mask.
+ */
+__device__ int popcnt(uint32 mask) { return __popc(mask); }
+
+/** @copydoc popcnt */
+__device__ int popcnt(uint64 mask) { return __popcll(mask); }
 
 
-#include <hip/device_functions.h>
+/**
+ * @internal
+ * Returns the (1-based!) index of the first set bit in the given mask,
+ * starting from the least significant bit.
+ */
+__device__ int ffs(uint32 mask) { return __ffs(mask); }
+
+/** @copydoc ffs */
+__device__ int ffs(uint64 mask)
+{
+    // the cast is necessary, as the overloads defined by HIP are ambiguous
+    return __ffsll(static_cast<unsigned long long int>(mask));
+}
 
 
-#include <ginkgo/core/base/types.hpp>
+/**
+ * @internal
+ * Returns the number of zero bits before the first set bit in the given mask,
+ * starting from the most significant bit.
+ */
+__device__ int clz(uint32 mask) { return __clz(mask); }
 
-
-#include "hip/base/math.hip.hpp"
-
-
-namespace gko {
-namespace kernels {
-namespace hip {
-
-
-struct config {
-    /**
-     * The type containing a bitmask over all lanes of a warp.
-     */
-#if GINKGO_HIP_PLATFORM_HCC
-    using lane_mask_type = uint64;
-#else  // GINKGO_HIP_PLATFORM_NVCC
-    using lane_mask_type = uint32;
-#endif
-
-    /**
-     * The number of threads within a HIP warp. Here, we use the definition from
-     * `device_functions.h`.
-     */
-#if GINKGO_HIP_PLATFORM_HCC
-    static constexpr uint32 warp_size = warpSize;
-#else  // GINKGO_HIP_PLATFORM_NVCC
-    static constexpr uint32 warp_size = 32;
-#endif
-
-    /**
-     * The bitmask of the entire warp.
-     */
-    static constexpr auto full_lane_mask = ~zero<lane_mask_type>();
-
-    /**
-     * The maximal number of threads allowed in a HIP warp.
-     */
-    static constexpr uint32 max_block_size = 1024;
-
-    /**
-     * The minimal amount of warps that need to be scheduled for each block
-     * to maximize GPU occupancy.
-     */
-    static constexpr uint32 min_warps_per_block = 4;
-};
-
-
-}  // namespace hip
-}  // namespace kernels
-}  // namespace gko
-
-
-#endif  // GKO_HIP_BASE_CONFIG_HIP_HPP_
+/** @copydoc clz */
+__device__ int clz(uint64 mask) { return __clzll(mask); }
