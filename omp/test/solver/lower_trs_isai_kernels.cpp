@@ -53,148 +53,119 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-   class LowerTrsIsai : public ::testing::Test {
-   protected:
-      using Mtx = gko::matrix::Dense<>;
-      using CsrMtx = gko::matrix::Csr<double, gko::int32>;
+class LowerTrsIsai : public ::testing::Test {
+protected:
+    using Mtx = gko::matrix::Dense<>;
+    using CsrMtx = gko::matrix::Csr<double, gko::int32>;
 
-      LowerTrsIsai()
-         : rand_engine(30)
-      {}
+    LowerTrsIsai() : rand_engine(30) {}
 
-      void SetUp()
-      {
-         ref = gko::ReferenceExecutor::create();
-         omp = gko::OmpExecutor::create();
-      }
+    void SetUp()
+    {
+        ref = gko::ReferenceExecutor::create();
+        omp = gko::OmpExecutor::create();
+    }
 
-      void TearDown()
-      {
-         if (omp != nullptr) {
+    void TearDown()
+    {
+        if (omp != nullptr) {
             ASSERT_NO_THROW(omp->synchronize());
-         }
-      }
+        }
+    }
 
-      std::shared_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
-      {
-         return gko::test::generate_random_matrix<Mtx>(
-               num_rows, num_cols,
-               std::uniform_int_distribution<>(num_cols, num_cols),
-               std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
-      }
+    std::shared_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
+    {
+        return gko::test::generate_random_matrix<Mtx>(
+            num_rows, num_cols,
+            std::uniform_int_distribution<>(num_cols, num_cols),
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+    }
 
-      std::shared_ptr<Mtx> gen_l_mtx(int num_rows, int num_cols)
-      {
-         return gko::test::generate_random_lower_triangular_matrix<Mtx>(
-               num_rows, num_cols, false,
-               std::uniform_int_distribution<>(num_cols, num_cols),
-               std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
-      }
+    std::shared_ptr<Mtx> gen_l_mtx(int num_rows, int num_cols)
+    {
+        return gko::test::generate_random_lower_triangular_matrix<Mtx>(
+            num_rows, num_cols, false,
+            std::uniform_int_distribution<>(num_cols, num_cols),
+            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+    }
 
-      void initialize_data(int m, int n)
-      {
-         b = gen_mtx(m, n);
-         x = gen_mtx(m, n);
-         t_b = Mtx::create(ref);
-         t_x = Mtx::create(ref);
-         t_b->copy_from(b.get());
-         t_x->copy_from(x.get());
-         d_b = Mtx::create(omp);
-         d_b->copy_from(b.get());
-         d_x = Mtx::create(omp);
-         d_x->copy_from(x.get());
-         dt_b = Mtx::create(omp);
-         dt_b->copy_from(b.get());
-         dt_x = Mtx::create(omp);
-         dt_x->copy_from(x.get());
-         mat = gen_l_mtx(m, m);
-         csr_mat = CsrMtx::create(ref);
-         mat->convert_to(csr_mat.get());
-         d_mat = Mtx::create(omp);
-         d_mat->copy_from(mat.get());
-         d_csr_mat = CsrMtx::create(omp);
-         d_csr_mat->copy_from(csr_mat.get());
-      }
+    void initialize_data(int m, int n)
+    {
+        b = gen_mtx(m, n);
+        x = gen_mtx(m, n);
+        t_b = Mtx::create(ref);
+        t_x = Mtx::create(ref);
+        t_b->copy_from(b.get());
+        t_x->copy_from(x.get());
+        d_b = Mtx::create(omp);
+        d_b->copy_from(b.get());
+        d_x = Mtx::create(omp);
+        d_x->copy_from(x.get());
+        dt_b = Mtx::create(omp);
+        dt_b->copy_from(b.get());
+        dt_x = Mtx::create(omp);
+        dt_x->copy_from(x.get());
+        mat = gen_l_mtx(m, m);
+        csr_mat = CsrMtx::create(ref);
+        mat->convert_to(csr_mat.get());
+        d_mat = Mtx::create(omp);
+        d_mat->copy_from(mat.get());
+        d_csr_mat = CsrMtx::create(omp);
+        d_csr_mat->copy_from(csr_mat.get());
 
-      std::shared_ptr<gko::ReferenceExecutor> ref;
-      std::shared_ptr<const gko::OmpExecutor> omp;
+        isai = CsrMtx::create(ref);
+        d_isai = CsrMtx::create(omp);
+    }
 
-      std::ranlux48 rand_engine;
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<const gko::OmpExecutor> omp;
 
-      std::shared_ptr<Mtx> b;
-      std::shared_ptr<Mtx> x;
-      std::shared_ptr<Mtx> t_b;
-      std::shared_ptr<Mtx> t_x;
-      std::shared_ptr<Mtx> mat;
-      std::shared_ptr<CsrMtx> csr_mat;
-      std::shared_ptr<Mtx> d_b;
-      std::shared_ptr<Mtx> d_x;
-      std::shared_ptr<Mtx> dt_b;
-      std::shared_ptr<Mtx> dt_x;
-      std::shared_ptr<Mtx> d_mat;
-      std::shared_ptr<CsrMtx> d_csr_mat;
-   };
+    std::ranlux48 rand_engine;
 
+    std::shared_ptr<Mtx> b;
+    std::shared_ptr<Mtx> x;
+    std::shared_ptr<Mtx> t_b;
+    std::shared_ptr<Mtx> t_x;
+    std::shared_ptr<Mtx> mat;
+    std::shared_ptr<CsrMtx> csr_mat;
+    std::shared_ptr<Mtx> d_b;
+    std::shared_ptr<Mtx> d_x;
+    std::shared_ptr<Mtx> dt_b;
+    std::shared_ptr<Mtx> dt_x;
+    std::shared_ptr<Mtx> d_mat;
+    std::shared_ptr<CsrMtx> d_csr_mat;
 
-TEST_F(LowerTrsIsai, OmpLowerTrsIsaiFlagCheckIsCorrect)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:lower_trs_isai): change the code imported from solver/lower_trs if needed
-//    bool trans_flag = true;
-//    bool expected_flag = false;
-//
-//    gko::kernels::omp::lower_trs_isai::should_perform_transpose(omp, trans_flag);
-//
-//    ASSERT_EQ(expected_flag, trans_flag);
-//}
-
-
-TEST_F(LowerTrsIsai, OmpLowerTrsIsaiGenerateIsEquivalentToRef)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:lower_trs_isai): change the code imported from solver/lower_trs if needed
-//    gko::size_type num_rhs = 1;
-//    gko::kernels::reference::lower_trs_isai::generate(
-//        ref, csr_mat.get(), solve_struct_ref.get(), num_rhs);
-//    gko::kernels::omp::lower_trs_isai::generate(omp, d_csr_mat.get(),
-//                                           solve_struct_omp.get(), num_rhs);
-//}
-
+    std::shared_ptr<CsrMtx> isai;
+    std::shared_ptr<CsrMtx> d_isai;
+};
 
 TEST_F(LowerTrsIsai, OmpLowerTrsIsaiSolveIsEquivalentToRef)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:lower_trs_isai): change the code imported from solver/lower_trs if needed
-//    initialize_data(59, 43);
-//
-//    gko::kernels::reference::lower_trs_isai::init_struct(ref, solve_struct_ref);
-//    gko::kernels::omp::lower_trs_isai::init_struct(omp, solve_struct_omp);
-//    gko::kernels::reference::lower_trs_isai::solve(ref, csr_mat.get(),
-//                                              solve_struct_ref.get(), t_b.get(),
-//                                              t_x.get(), b.get(), x.get());
-//    gko::kernels::omp::lower_trs_isai::solve(omp, d_csr_mat.get(),
-//                                        solve_struct_omp.get(), dt_b.get(),
-//                                        dt_x.get(), d_b.get(), d_x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
-//}
+{
+    initialize_data(59, 43);
+
+    gko::kernels::reference::lower_trs_isai::build_isai(ref, csr_mat.get(),
+                                                        isai.get());
+    gko::kernels::omp::lower_trs_isai::build_isai(omp, d_csr_mat.get(),
+                                                  d_isai.get());
+
+    GKO_ASSERT_MTX_NEAR(d_isai, isai, 1e-14);
+}
 
 
 TEST_F(LowerTrsIsai, ApplyIsEquivalentToRef)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script:lower_trs_isai): change the code imported from solver/lower_trs if needed
-//    initialize_data(59, 3);
-//    auto lower_trs_isai_factory = gko::solver::LowerTrs<>::build().on(ref);
-//    auto d_lower_trs_isai_factory = gko::solver::LowerTrs<>::build().on(omp);
-//    auto solver = lower_trs_isai_factory->generate(csr_mat);
-//    auto d_solver = d_lower_trs_isai_factory->generate(d_csr_mat);
-//
-//    solver->apply(b.get(), x.get());
-//    d_solver->apply(d_b.get(), d_x.get());
-//
-//    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
-//}
+{
+    initialize_data(59, 3);
+    auto lower_trs_isai_factory =
+        gko::solver::LowerTrsIsai<>::build().with_niter(5u).on(ref);
+    auto d_lower_trs_isai_factory =
+        gko::solver::LowerTrsIsai<>::build().with_niter(5u).on(omp);
+    auto solver = lower_trs_isai_factory->generate(csr_mat);
+    auto d_solver = d_lower_trs_isai_factory->generate(d_csr_mat);
 
+    solver->apply(b.get(), x.get());
+    d_solver->apply(d_b.get(), d_x.get());
+
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+}
 
 }  // namespace
