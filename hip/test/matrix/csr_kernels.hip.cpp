@@ -310,7 +310,7 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithMergePath)
 
 TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::automatical>());
+    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
     auto trans = mtx->transpose();
     auto d_trans = dmtx->transpose();
 
@@ -323,7 +323,7 @@ TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
 
 TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::automatical>());
+    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
     auto trans = mtx->transpose();
     auto d_trans = dmtx->transpose();
 
