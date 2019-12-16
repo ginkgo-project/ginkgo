@@ -232,7 +232,8 @@ public:
         return __all(predicate);
     }
 
-    __device__ __forceinline__ uint64_t ballot(int predicate) const noexcept
+    __device__ __forceinline__ config::lane_mask_type ballot(
+        int predicate) const noexcept
     {
         static_assert(Size == kernels::hip::config::warp_size,
                       "Hip does not have subwarp ballot.");
