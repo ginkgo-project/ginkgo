@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -68,13 +69,15 @@ namespace solver {
  * @ingroup solvers
  * @ingroup LinOp
  */
-template <typename ValueType = default_precision>
-class Bicg : public EnableLinOp<Bicg<ValueType>>, public Preconditionable {
+template <typename ValueType = default_precision, typename IndexType = int32>
+class Bicg : public EnableLinOp<Bicg<ValueType, IndexType>>,
+             public Preconditionable {
     friend class EnableLinOp<Bicg>;
     friend class EnablePolymorphicObject<Bicg, LinOp>;
 
 public:
     using value_type = ValueType;
+    using index_type = IndexType;
 
     /**
      * Gets the system operator (matrix) of the linear system.
@@ -140,6 +143,19 @@ protected:
         }
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
+
+        using CsrMatrix = matrix::Csr<ValueType, IndexType>;
+
+        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
+        // This is needed because it does not make sense to call the copy and
+        // convert if the existing matrix is empty.
+        const auto exec = this->get_executor();
+        if (!system_matrix->get_size()) {
+            system_matrix_ = CsrMatrix::create(exec);
+        } else {
+            system_matrix_ =
+                copy_and_convert_to<CsrMatrix>(exec, system_matrix);
+        }
     }
 
 private:
