@@ -143,9 +143,7 @@ public:
         // using operator `->`) is currently required to be compatible with
         // CUDA 10.1.
         // Otherwise, it results in a compile error.
-        // TODO Check if the compiler error is fixed and revert to `operator->`.
-        return Dense::create((*other).get_executor(), (*other).get_size(),
-                             (*other).get_stride());
+        return (*other).create_with_same_config();
     }
 
     void convert_to(Coo<ValueType, int32> *result) const override;
@@ -473,6 +471,17 @@ protected:
     {
         GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
                              values_.get_num_elems());
+    }
+
+    /**
+     * Creates a Dense matrix with the same configuration as the callers matrix.
+     *
+     * @returns a Dense matrix with the same configuration as the caller.
+     */
+    virtual std::unique_ptr<Dense> create_with_same_config() const
+    {
+        return Dense::create(this->get_executor(), this->get_size(),
+                             this->get_stride());
     }
 
     /**
