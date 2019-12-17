@@ -108,9 +108,11 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
     // im jeweiligen Kernel definiert, aber durch initialize und nicht
     // make_initialize?
     //.get übergibt den smartpointer, damit der solver die pointer hält
+
     exec->run(bicg::make_initialize(
         dense_b, r.get(), z.get(), p.get(), q.get(), prev_rho.get(), rho.get(),
         r2.get(), z2.get(), p2.get(), q2.get(), &stop_status));
+
 
     // auto trans_A = gko::LinOp(exec,system_matrix_->get_size() ));//Linop ->
     // Matrix casting? auto trans_P =
@@ -133,12 +135,12 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
     //  if the cast is not possible, use copy_and_convert to
     if (csr_system_matrix_ == nullptr ||
         csr_system_matrix_->get_executor() != exec) {
+        csr_system_matrix_unique_ptr = copy_and_convert_to<CsrMatrix>(
+            exec, const_cast<LinOp *>(system_matrix_.get()));
+
         // matrix is not of CSR type, so we need to convert it
         csr_system_matrix_unique_ptr->set_strategy(
             std::make_shared<typename CsrMatrix::classical>());
-
-        csr_system_matrix_unique_ptr = copy_and_convert_to<CsrMatrix>(
-            exec, const_cast<LinOp *>(system_matrix_.get()));
 
         csr_system_matrix_ = csr_system_matrix_unique_ptr.get();
         // csr_system_matrix_unique_ptr = CsrMatrix::create(exec);
@@ -148,6 +150,7 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
         // csr_system_matrix = csr_system_matrix_unique_ptr.get();
     }
     auto trans_A = csr_system_matrix_->transpose();
+
 
     // auto trans_A = system_matrix_->transpose();
     // auto trans_P = static_cast<Vector>(get_preconditioner())->transpose();
