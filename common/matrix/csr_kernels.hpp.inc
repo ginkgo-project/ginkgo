@@ -501,7 +501,7 @@ __global__ __launch_bounds__(default_block_size) void spgeam_nnz(
     IndexType num_rows, IndexType *nnz)
 {
     constexpr auto sentinel = device_numeric_limits<IndexType>::max;
-    auto row = threadIdx.x + blockDim.x * blockIdx.x;
+    auto row = threadIdx.x + blockDim.x * static_cast<size_type>(blockIdx.x);
     if (row >= num_rows) {
         return;
     }
@@ -544,7 +544,7 @@ __global__ __launch_bounds__(default_block_size) void spgeam(
     const IndexType *c_row_ptrs, IndexType *c_col_idxs, ValueType *c_vals)
 {
     constexpr auto sentinel = device_numeric_limits<IndexType>::max;
-    auto row = threadIdx.x + blockDim.x * blockIdx.x;
+    auto row = threadIdx.x + blockDim.x * static_cast<size_type>(blockIdx.x);
     if (row >= num_rows) {
         return;
     }
