@@ -223,11 +223,14 @@ void spgemm_buffer_size(
 
 GKO_BIND_HIPSPARSE_SPGEMM_BUFFER_SIZE(float, hipsparseScsrgemm2_bufferSizeExt);
 GKO_BIND_HIPSPARSE_SPGEMM_BUFFER_SIZE(double, hipsparseDcsrgemm2_bufferSizeExt);
-// TODO: uncomment when the shipped hipSparse gets updated
-// GKO_BIND_HIPSPARSE_SPGEMM_BUFFER_SIZE(std::complex<float>,
-//                                       hipsparseCcsrgemm2_bufferSizeExt);
-// GKO_BIND_HIPSPARSE_SPGEMM_BUFFER_SIZE(std::complex<double>,
-//                                       hipsparseZcsrgemm2_bufferSizeExt);*/
+#if defined(hipsparseVersionMajor) && defined(hipsparseVersionMinor) && \
+    ((hipsparseVersionMajor > 1) ||                                     \
+     (hipsparseVersionMajor == 1 && hipsparseVersionMinor >= 4))
+GKO_BIND_HIPSPARSE_SPGEMM_BUFFER_SIZE(std::complex<float>,
+                                      hipsparseCcsrgemm2_bufferSizeExt);
+GKO_BIND_HIPSPARSE_SPGEMM_BUFFER_SIZE(std::complex<double>,
+                                      hipsparseZcsrgemm2_bufferSizeExt);
+#endif  // hipsparse version >= 1.4
 
 
 #undef GKO_BIND_HIPSPARSE_SPGEMM_BUFFER_SIZE
@@ -306,9 +309,12 @@ void spgemm(hipsparseHandle_t handle, IndexType m, IndexType n, IndexType k,
 
 GKO_BIND_HIPSPARSE_SPGEMM(float, hipsparseScsrgemm2);
 GKO_BIND_HIPSPARSE_SPGEMM(double, hipsparseDcsrgemm2);
-// TODO: uncomment when the shipped hipSparse gets updated
-// GKO_BIND_HIPSPARSE_SPGEMM(std::complex<float>, hipsparseCcsrgemm2);
-// GKO_BIND_HIPSPARSE_SPGEMM(std::complex<double>, hipsparseZcsrgemm2);
+#if defined(hipsparseVersionMajor) && defined(hipsparseVersionMinor) && \
+    ((hipsparseVersionMajor > 1) ||                                     \
+     (hipsparseVersionMajor == 1 && hipsparseVersionMinor >= 4))
+GKO_BIND_HIPSPARSE_SPGEMM(std::complex<float>, hipsparseCcsrgemm2);
+GKO_BIND_HIPSPARSE_SPGEMM(std::complex<double>, hipsparseZcsrgemm2);
+#endif  // hipsparse version >= 1.4
 
 
 #undef GKO_BIND_HIPSPARSE_SPGEMM
