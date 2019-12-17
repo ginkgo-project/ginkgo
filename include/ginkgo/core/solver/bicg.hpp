@@ -145,7 +145,7 @@ protected:
             stop::combine(std::move(parameters_.criteria));
 
         using CsrMatrix = matrix::Csr<ValueType, IndexType>;
-
+        /*
         GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
         // This is needed because it does not make sense to call the copy and
         // convert if the existing matrix is empty.
@@ -155,7 +155,7 @@ protected:
         } else {
             system_matrix_ =
                 copy_and_convert_to<CsrMatrix>(exec, system_matrix);
-        }
+        }*/
     }
 
 private:
