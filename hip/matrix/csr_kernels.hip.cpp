@@ -508,7 +508,7 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
             null_value, d_descr, IndexType(0), null_value, null_index,
             null_index, c_descr, c_vals, c_row_ptrs, c_col_idxs, info, buffer);
 
-        hipsparse::destroy(info);
+        hipsparse::destroy_spgemm_info(info);
         hipsparse::destroy(d_descr);
         hipsparse::destroy(c_descr);
         hipsparse::destroy(b_descr);
@@ -592,7 +592,7 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
                           info, buffer);
 
         // destroy hipsparse context
-        hipsparse::destroy(info);
+        hipsparse::destroy_spgemm_info(info);
         hipsparse::destroy(d_descr);
         hipsparse::destroy(c_descr);
         hipsparse::destroy(b_descr);

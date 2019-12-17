@@ -595,14 +595,11 @@ inline csrgemm2Info_t create_spgemm_info()
     return info;
 }
 
-// on HIP, hipsparseMatDescr_t and csrgemm2Info_t are both void*, so this would
-// be a redefinition
-#ifndef __HIP_PLATFORM_HCC__
-inline void destroy(csrgemm2Info_t info)
+
+inline void destroy_spgemm_info(csrgemm2Info_t info)
 {
     GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseDestroyCsrgemm2Info(info));
 }
-#endif
 
 
 }  // namespace hipsparse
