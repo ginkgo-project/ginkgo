@@ -66,21 +66,21 @@ void initialize(std::shared_ptr<const CudaExecutor> exec,
                 matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *r2,
                 matrix::Dense<ValueType> *z2, matrix::Dense<ValueType> *p2,
                 matrix::Dense<ValueType> *q2,
-                Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    const dim3 block_size(default_block_size, 1, 1);
-//    const dim3 grid_size(
-//        ceildiv(b->get_size()[0] * b->get_stride(), block_size.x), 1, 1);
-//
-//    initialize_kernel<<<grid_size, block_size, 0, 0>>>(
-//        b->get_size()[0], b->get_size()[1], b->get_stride(),
-//        as_cuda_type(b->get_const_values()), as_cuda_type(r->get_values()),
-//        as_cuda_type(z->get_values()), as_cuda_type(p->get_values()),
-//        as_cuda_type(q->get_values()), as_cuda_type(prev_rho->get_values()),
-//        as_cuda_type(rho->get_values()),
-//        as_cuda_type(stop_status->get_data()));
-//}
+                Array<stopping_status> *stop_status)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(b->get_size()[0] * b->get_stride(), block_size.x), 1, 1);
+
+    initialize_kernel<<<grid_size, block_size, 0, 0>>>(
+        b->get_size()[0], b->get_size()[1], b->get_stride(),
+        as_cuda_type(b->get_const_values()), as_cuda_type(r->get_values()),
+        as_cuda_type(z->get_values()), as_cuda_type(p->get_values()),
+        as_cuda_type(q->get_values()), as_cuda_type(r2->get_values()),
+        as_cuda_type(z2->get_values()), as_cuda_type(p2->get_values()),
+        as_cuda_type(q2->get_values()), as_cuda_type(prev_rho->get_values()),
+        as_cuda_type(rho->get_values()), as_cuda_type(stop_status->get_data()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_INITIALIZE_KERNEL);
 
@@ -91,20 +91,20 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
             matrix::Dense<ValueType> *p2, const matrix::Dense<ValueType> *z2,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *prev_rho,
-            const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    const dim3 block_size(default_block_size, 1, 1);
-//    const dim3 grid_size(
-//        ceildiv(p->get_size()[0] * p->get_stride(), block_size.x), 1, 1);
-//
-//    step_1_kernel<<<grid_size, block_size, 0, 0>>>(
-//        p->get_size()[0], p->get_size()[1], p->get_stride(),
-//        as_cuda_type(p->get_values()), as_cuda_type(z->get_const_values()),
-//        as_cuda_type(rho->get_const_values()),
-//        as_cuda_type(prev_rho->get_const_values()),
-//        as_cuda_type(stop_status->get_const_data()));
-//}
+            const Array<stopping_status> *stop_status)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(p->get_size()[0] * p->get_stride(), block_size.x), 1, 1);
+
+    step_1_kernel<<<grid_size, block_size, 0, 0>>>(
+        p->get_size()[0], p->get_size()[1], p->get_stride(),
+        as_cuda_type(p->get_values()), as_cuda_type(z->get_const_values()),
+        as_cuda_type(p2->get_values()), as_cuda_type(z2->get_const_values()),
+        as_cuda_type(rho->get_const_values()),
+        as_cuda_type(prev_rho->get_const_values()),
+        as_cuda_type(stop_status->get_const_data()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_STEP_1_KERNEL);
 
@@ -117,22 +117,22 @@ void step_2(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Dense<ValueType> *q2,
             const matrix::Dense<ValueType> *beta,
             const matrix::Dense<ValueType> *rho,
-            const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    const dim3 block_size(default_block_size, 1, 1);
-//    const dim3 grid_size(
-//        ceildiv(p->get_size()[0] * p->get_stride(), block_size.x), 1, 1);
-//
-//    step_2_kernel<<<grid_size, block_size, 0, 0>>>(
-//        p->get_size()[0], p->get_size()[1], p->get_stride(), x->get_stride(),
-//        as_cuda_type(x->get_values()), as_cuda_type(r->get_values()),
-//        as_cuda_type(p->get_const_values()),
-//        as_cuda_type(q->get_const_values()),
-//        as_cuda_type(beta->get_const_values()),
-//        as_cuda_type(rho->get_const_values()),
-//        as_cuda_type(stop_status->get_const_data()));
-//}
+            const Array<stopping_status> *stop_status)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(p->get_size()[0] * p->get_stride(), block_size.x), 1, 1);
+
+    step_2_kernel<<<grid_size, block_size, 0, 0>>>(
+        p->get_size()[0], p->get_size()[1], p->get_stride(), x->get_stride(),
+        as_cuda_type(x->get_values()), as_cuda_type(r->get_values()),
+        as_cuda_type(r2->get_values()), as_cuda_type(p->get_const_values()),
+        as_cuda_type(q->get_const_values()),
+        as_cuda_type(q2->get_const_values()),
+        as_cuda_type(beta->get_const_values()),
+        as_cuda_type(rho->get_const_values()),
+        as_cuda_type(stop_status->get_const_data()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_STEP_2_KERNEL);
 
