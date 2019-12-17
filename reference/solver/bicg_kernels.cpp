@@ -55,7 +55,9 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
                 const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *prev_rho,
-                matrix::Dense<ValueType> *rho,
+                matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *r2,
+                matrix::Dense<ValueType> *z2, matrix::Dense<ValueType> *p2,
+                matrix::Dense<ValueType> *q2,
                 Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
 //{
 // TODO (script): change the code imported from solver/cg if needed
@@ -78,6 +80,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_INITIALIZE_KERNEL);
 template <typename ValueType>
 void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
+            matrix::Dense<ValueType> *p2, const matrix::Dense<ValueType> *z2,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *prev_rho,
             const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
@@ -104,8 +107,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_STEP_1_KERNEL);
 template <typename ValueType>
 void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
-            const matrix::Dense<ValueType> *p,
+            matrix::Dense<ValueType> *r2, const matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *q,
+            const matrix::Dense<ValueType> *q2,
             const matrix::Dense<ValueType> *beta,
             const matrix::Dense<ValueType> *rho,
             const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
