@@ -88,173 +88,161 @@ protected:
 
 
 TEST_F(Bicg, BicgFactoryKnowsItsExecutor)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    ASSERT_EQ(bicg_factory->get_executor(), exec);
-//}
+{
+    ASSERT_EQ(bicg_factory->get_executor(), exec);
+}
 
 
 TEST_F(Bicg, BicgFactoryCreatesCorrectSolver)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    ASSERT_EQ(solver->get_size(), gko::dim<2>(3, 3));
-//    auto bicg_solver = static_cast<Solver *>(solver.get());
-//    ASSERT_NE(bicg_solver->get_system_matrix(), nullptr);
-//    ASSERT_EQ(bicg_solver->get_system_matrix(), mtx);
-//}
+
+{
+    ASSERT_EQ(solver->get_size(), gko::dim<2>(3, 3));
+    auto bicg_solver = static_cast<Solver *>(solver.get());
+    ASSERT_NE(bicg_solver->get_system_matrix(), nullptr);
+    ASSERT_EQ(bicg_solver->get_system_matrix(), mtx);
+}
 
 
 TEST_F(Bicg, CanBeCopied)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    auto copy = bicg_factory->generate(Mtx::create(exec));
-//
-//    copy->copy_from(solver.get());
-//
-//    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-//    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-//    assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
-//}
+
+{
+    auto copy = bicg_factory->generate(Mtx::create(exec));
+
+    copy->copy_from(solver.get());
+
+    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
+    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
+    assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
+}
 
 
 TEST_F(Bicg, CanBeMoved)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    auto copy = bicg_factory->generate(Mtx::create(exec));
-//
-//    copy->copy_from(std::move(solver));
-//
-//    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-//    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-//    assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
-//}
+
+{
+    auto copy = bicg_factory->generate(Mtx::create(exec));
+
+    copy->copy_from(std::move(solver));
+
+    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
+    auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
+    assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
+}
 
 
 TEST_F(Bicg, CanBeCloned)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    auto clone = solver->clone();
-//
-//    ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
-//    auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
-//    assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()),
-//    mtx.get());
-//}
+
+{
+    auto clone = solver->clone();
+
+    ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
+    auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
+    assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()), mtx.get());
+}
 
 
 TEST_F(Bicg, CanBeCleared)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    solver->clear();
-//
-//    ASSERT_EQ(solver->get_size(), gko::dim<2>(0, 0));
-//    auto solver_mtx = static_cast<Solver
-//    *>(solver.get())->get_system_matrix(); ASSERT_EQ(solver_mtx, nullptr);
-//}
+
+{
+    solver->clear();
+
+    ASSERT_EQ(solver->get_size(), gko::dim<2>(0, 0));
+    auto solver_mtx = static_cast<Solver *>(solver.get())->get_system_matrix();
+    ASSERT_EQ(solver_mtx, nullptr);
+}
 
 
 TEST_F(Bicg, CanSetPreconditionerGenerator)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    auto bicg_factory =
-//        Solver::build()
-//            .with_criteria(
-//                gko::stop::Iteration::build().with_max_iters(3u).on(exec),
-//                gko::stop::ResidualNormReduction<>::build()
-//                    .with_reduction_factor(1e-6)
-//                    .on(exec))
-//            .with_preconditioner(Solver::build().on(exec))
-//            .on(exec);
-//    auto solver = bicg_factory->generate(mtx);
-//    auto precond = dynamic_cast<const gko::solver::Bicg<> *>(
-//        static_cast<gko::solver::Bicg<> *>(solver.get())
-//            ->get_preconditioner()
-//            .get());
-//
-//    ASSERT_NE(precond, nullptr);
-//    ASSERT_EQ(precond->get_size(), gko::dim<2>(3, 3));
-//    ASSERT_EQ(precond->get_system_matrix(), mtx);
-//}
+
+{
+    auto bicg_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-6)
+                    .on(exec))
+            .with_preconditioner(Solver::build().on(exec))
+            .on(exec);
+    auto solver = bicg_factory->generate(mtx);
+    auto precond = dynamic_cast<const gko::solver::Bicg<> *>(
+        static_cast<gko::solver::Bicg<> *>(solver.get())
+            ->get_preconditioner()
+            .get());
+
+    ASSERT_NE(precond, nullptr);
+    ASSERT_EQ(precond->get_size(), gko::dim<2>(3, 3));
+    ASSERT_EQ(precond->get_system_matrix(), mtx);
+}
 
 
 TEST_F(Bicg, CanSetPreconditionerInFactory)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    std::shared_ptr<Solver> bicg_precond =
-//        Solver::build()
-//            .with_criteria(
-//                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-//            .on(exec)
-//            ->generate(mtx);
-//
-//    auto bicg_factory =
-//        Solver::build()
-//            .with_criteria(
-//                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-//            .with_generated_preconditioner(bicg_precond)
-//            .on(exec);
-//    auto solver = bicg_factory->generate(mtx);
-//    auto precond = solver->get_preconditioner();
-//
-//    ASSERT_NE(precond.get(), nullptr);
-//    ASSERT_EQ(precond.get(), bicg_precond.get());
-//}
+
+{
+    std::shared_ptr<Solver> bicg_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(mtx);
+
+    auto bicg_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_generated_preconditioner(bicg_precond)
+            .on(exec);
+    auto solver = bicg_factory->generate(mtx);
+    auto precond = solver->get_preconditioner();
+
+    ASSERT_NE(precond.get(), nullptr);
+    ASSERT_EQ(precond.get(), bicg_precond.get());
+}
 
 
 TEST_F(Bicg, ThrowsOnWrongPreconditionerInFactory)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1,
-//    3}); std::shared_ptr<Solver> bicg_precond =
-//        Solver::build()
-//            .with_criteria(
-//                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-//            .on(exec)
-//            ->generate(wrong_sized_mtx);
-//
-//    auto bicg_factory =
-//        Solver::build()
-//            .with_criteria(
-//                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-//            .with_generated_preconditioner(bicg_precond)
-//            .on(exec);
-//
-//    ASSERT_THROW(bicg_factory->generate(mtx), gko::DimensionMismatch);
-//}
+
+{
+    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1, 3});
+    std::shared_ptr<Solver> bicg_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(wrong_sized_mtx);
+
+    auto bicg_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .with_generated_preconditioner(bicg_precond)
+            .on(exec);
+
+    ASSERT_THROW(bicg_factory->generate(mtx), gko::DimensionMismatch);
+}
 
 
 TEST_F(Bicg, CanSetPreconditioner)
-GKO_NOT_IMPLEMENTED;
-//{
-// TODO (script): change the code imported from solver/cg if needed
-//    std::shared_ptr<Solver> bicg_precond =
-//        Solver::build()
-//            .with_criteria(
-//                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-//            .on(exec)
-//            ->generate(mtx);
-//
-//    auto bicg_factory =
-//        Solver::build()
-//            .with_criteria(
-//                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-//            .on(exec);
-//    auto solver = bicg_factory->generate(mtx);
-//    solver->set_preconditioner(bicg_precond);
-//    auto precond = solver->get_preconditioner();
-//
-//    ASSERT_NE(precond.get(), nullptr);
-//    ASSERT_EQ(precond.get(), bicg_precond.get());
-//}
+
+{
+    std::shared_ptr<Solver> bicg_precond =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(mtx);
+
+    auto bicg_factory =
+        Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
+    auto solver = bicg_factory->generate(mtx);
+    solver->set_preconditioner(bicg_precond);
+    auto precond = solver->get_preconditioner();
+
+    ASSERT_NE(precond.get(), nullptr);
+    ASSERT_EQ(precond.get(), bicg_precond.get());
+}
 
 
 }  // namespace
