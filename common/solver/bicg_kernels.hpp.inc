@@ -54,6 +54,10 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
         z[tidx] = zero<ValueType>();
         p[tidx] = zero<ValueType>();
         q[tidx] = zero<ValueType>();
+        r2[tidx] = b[tidx];
+        z2[tidx] = zero<ValueType>();
+        p2[tidx] = zero<ValueType>();
+        q2[tidx] = zero<ValueType>();
     }
 }
 
@@ -74,8 +78,12 @@ __global__ __launch_bounds__(default_block_size) void step_1_kernel(
         return;
     }
     const auto tmp = rho[col] / prev_rho[col];
+
     p[tidx] =
         prev_rho[col] == zero<ValueType>() ? z[tidx] : z[tidx] + tmp * p[tidx];
+
+    p2[tidx] = prev_rho[col] == zero<ValueType>() ? z2[tidx]
+                                                  : z2[tidx] + tmp * p2[tidx];
 }
 
 
@@ -101,5 +109,6 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
         const auto tmp = rho[col] / beta[col];
         x[row * x_stride + col] += tmp * p[tidx];
         r[tidx] -= tmp * q[tidx];
+        r2[tidx] -= tmp * q2[tidx];
     }
 }
