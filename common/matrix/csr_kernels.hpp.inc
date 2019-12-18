@@ -495,6 +495,98 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
 
 
 template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void spgeam_nnz(
+    const IndexType *a_row_ptrs, const IndexType *a_col_idxs,
+    const IndexType *b_row_ptrs, const IndexType *b_col_idxs,
+    IndexType num_rows, IndexType *nnz)
+{
+    constexpr auto sentinel = device_numeric_limits<IndexType>::max;
+    auto row = threadIdx.x + blockDim.x * static_cast<size_type>(blockIdx.x);
+    if (row >= num_rows) {
+        return;
+    }
+
+    auto a_begin = a_row_ptrs[row];
+    auto b_begin = b_row_ptrs[row];
+    auto a_end = a_row_ptrs[row + 1];
+    auto b_end = b_row_ptrs[row + 1];
+    auto a_size = a_end - a_begin;
+    auto b_size = b_end - b_begin;
+    auto a_ptr = a_begin;
+    auto b_ptr = b_begin;
+    auto a_col = a_ptr < a_end ? a_col_idxs[a_ptr] : sentinel;
+    auto b_col = b_ptr < b_end ? b_col_idxs[b_ptr] : sentinel;
+    IndexType count{};
+    IndexType i{};
+    while (i < a_size + b_size) {
+        auto advance_a = (a_col <= b_col);
+        auto advance_b = (b_col <= a_col);
+        i += advance_a + advance_b;
+        a_ptr += advance_a;
+        b_ptr += advance_b;
+        if (advance_a) {
+            a_col = a_ptr < a_end ? a_col_idxs[a_ptr] : sentinel;
+        }
+        if (advance_b) {
+            b_col = b_ptr < b_end ? b_col_idxs[b_ptr] : sentinel;
+        }
+        ++count;
+    }
+    nnz[row] = count;
+}
+
+
+template <typename IndexType, typename ValueType>
+__global__ __launch_bounds__(default_block_size) void spgeam(
+    ValueType alpha, const IndexType *a_row_ptrs, const IndexType *a_col_idxs,
+    const ValueType *a_vals, ValueType beta, const IndexType *b_row_ptrs,
+    const IndexType *b_col_idxs, const ValueType *b_vals, IndexType num_rows,
+    const IndexType *c_row_ptrs, IndexType *c_col_idxs, ValueType *c_vals)
+{
+    constexpr auto sentinel = device_numeric_limits<IndexType>::max;
+    auto row = threadIdx.x + blockDim.x * static_cast<size_type>(blockIdx.x);
+    if (row >= num_rows) {
+        return;
+    }
+
+    auto a_begin = a_row_ptrs[row];
+    auto b_begin = b_row_ptrs[row];
+    auto c_begin = c_row_ptrs[row];
+    auto a_end = a_row_ptrs[row + 1];
+    auto b_end = b_row_ptrs[row + 1];
+    auto a_size = a_end - a_begin;
+    auto b_size = b_end - b_begin;
+    auto a_ptr = a_begin;
+    auto b_ptr = b_begin;
+    auto a_col = a_ptr < a_end ? a_col_idxs[a_ptr] : sentinel;
+    auto b_col = b_ptr < b_end ? b_col_idxs[b_ptr] : sentinel;
+    IndexType count{};
+    IndexType i{};
+    IndexType c_col{};
+    while (i < a_size + b_size) {
+        auto advance_a = (a_col <= b_col);
+        auto advance_b = (b_col <= a_col);
+        c_col = advance_a ? a_col : b_col;
+        i += advance_a + advance_b;
+        a_ptr += advance_a;
+        b_ptr += advance_b;
+        ValueType c_val{};
+        if (advance_a) {
+            a_col = a_ptr < a_end ? a_col_idxs[a_ptr] : sentinel;
+            c_val += alpha * a_vals[a_ptr - 1];
+        }
+        if (advance_b) {
+            b_col = b_ptr < b_end ? b_col_idxs[b_ptr] : sentinel;
+            c_val += beta * b_vals[b_ptr - 1];
+        }
+        c_col_idxs[c_begin + count] = c_col;
+        c_vals[c_begin + count] = c_val;
+        ++count;
+    }
+}
+
+
+template <typename IndexType>
 __global__ __launch_bounds__(default_block_size) void convert_row_ptrs_to_idxs(
     size_type num_rows, const IndexType *__restrict__ ptrs,
     IndexType *__restrict__ idxs)

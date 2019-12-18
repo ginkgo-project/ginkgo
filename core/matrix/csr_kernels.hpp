@@ -75,7 +75,7 @@ namespace kernels {
                          const matrix::Csr<ValueType, IndexType> *a,  \
                          const matrix::Csr<ValueType, IndexType> *b,  \
                          const matrix::Dense<ValueType> *beta,        \
-                         const matrix::Csr<ValueType, IndexType> *c,  \
+                         const matrix::Csr<ValueType, IndexType> *d,  \
                          Array<IndexType> &c_row_ptrs,                \
                          Array<IndexType> &c_col_idxs,                \
                          Array<ValueType> &c_vals)

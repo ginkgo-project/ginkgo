@@ -61,7 +61,7 @@ protected:
     using Mtx = gko::matrix::Csr<>;
     using Vec = gko::matrix::Dense<>;
 
-    Csr() : rand_engine(42) {}
+    Csr() : mtx_size(532, 231), rand_engine(42) {}
 
     void SetUp()
     {
@@ -91,13 +91,17 @@ protected:
                            int num_vectors = 1)
     {
         mtx = Mtx::create(ref, strategy);
-        mtx->copy_from(gen_mtx<Vec>(532, 231, 1));
-        expected = gen_mtx<Vec>(532, num_vectors, 1);
-        y = gen_mtx<Vec>(231, num_vectors, 1);
+        mtx->copy_from(gen_mtx<Vec>(mtx_size[0], mtx_size[1], 1));
+        square_mtx = Mtx::create(ref, strategy);
+        square_mtx->copy_from(gen_mtx<Vec>(mtx_size[0], mtx_size[0], 1));
+        expected = gen_mtx<Vec>(mtx_size[0], num_vectors, 1);
+        y = gen_mtx<Vec>(mtx_size[1], num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(hip, strategy);
         dmtx->copy_from(mtx.get());
+        square_dmtx = Mtx::create(hip, strategy);
+        square_dmtx->copy_from(square_mtx.get());
         dresult = Vec::create(hip);
         dresult->copy_from(expected.get());
         dy = Vec::create(hip);
@@ -111,15 +115,18 @@ protected:
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::HipExecutor> hip;
 
+    const gko::dim<2> mtx_size;
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<Mtx> square_mtx;
     std::unique_ptr<Vec> expected;
     std::unique_ptr<Vec> y;
     std::unique_ptr<Vec> alpha;
     std::unique_ptr<Vec> beta;
 
     std::unique_ptr<Mtx> dmtx;
+    std::unique_ptr<Mtx> square_dmtx;
     std::unique_ptr<Vec> dresult;
     std::unique_ptr<Vec> dy;
     std::unique_ptr<Vec> dalpha;
@@ -298,6 +305,32 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithMergePath)
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
+    auto trans = mtx->transpose();
+    auto d_trans = dmtx->transpose();
+
+    mtx->apply(alpha.get(), trans.get(), beta.get(), square_mtx.get());
+    dmtx->apply(dalpha.get(), d_trans.get(), dbeta.get(), square_dmtx.get());
+
+    GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
+}
+
+
+TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
+    auto trans = mtx->transpose();
+    auto d_trans = dmtx->transpose();
+
+    mtx->apply(trans.get(), square_mtx.get());
+    dmtx->apply(d_trans.get(), square_dmtx.get());
+
+    GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
 }
 
 

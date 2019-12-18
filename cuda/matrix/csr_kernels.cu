@@ -446,6 +446,7 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
         auto b_col_idxs = b->get_const_col_idxs();
         auto null_value = static_cast<ValueType *>(nullptr);
         auto null_index = static_cast<IndexType *>(nullptr);
+        auto zero_nnz = IndexType{};
         auto m = IndexType(a->get_size()[0]);
         auto n = IndexType(b->get_size()[1]);
         auto k = IndexType(a->get_size()[1]);
@@ -455,7 +456,7 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
         cusparse::spgemm_buffer_size(
             handle, m, n, k, &alpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
             b_descr, b_nnz, b_row_ptrs, b_col_idxs, null_value, d_descr,
-            IndexType(0), null_index, null_index, info, buffer_size);
+            zero_nnz, null_index, null_index, info, buffer_size);
         Array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
 
@@ -465,8 +466,8 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
         IndexType c_nnz{};
         cusparse::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
                              a_col_idxs, b_descr, b_nnz, b_row_ptrs, b_col_idxs,
-                             d_descr, IndexType(0), null_index, null_index,
-                             c_descr, c_row_ptrs, &c_nnz, info, buffer);
+                             d_descr, zero_nnz, null_index, null_index, c_descr,
+                             c_row_ptrs, &c_nnz, info, buffer);
 
         // accumulate non-zeros
         c_col_idxs_array.resize_and_reset(c_nnz);
@@ -475,9 +476,9 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
         auto c_vals = c_vals_array.get_data();
         cusparse::spgemm(handle, m, n, k, &alpha, a_descr, a_nnz, a_vals,
                          a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
-                         b_row_ptrs, b_col_idxs, null_value, d_descr,
-                         IndexType(0), null_value, null_index, null_index,
-                         c_descr, c_vals, c_row_ptrs, c_col_idxs, info, buffer);
+                         b_row_ptrs, b_col_idxs, null_value, d_descr, zero_nnz,
+                         null_value, null_index, null_index, c_descr, c_vals,
+                         c_row_ptrs, c_col_idxs, info, buffer);
 
         cusparse::destroy(info);
         cusparse::destroy(d_descr);
@@ -498,7 +499,7 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
                      const matrix::Csr<ValueType, IndexType> *a,
                      const matrix::Csr<ValueType, IndexType> *b,
                      const matrix::Dense<ValueType> *beta,
-                     const matrix::Csr<ValueType, IndexType> *c,
+                     const matrix::Csr<ValueType, IndexType> *d,
                      Array<IndexType> &c_row_ptrs_array,
                      Array<IndexType> &c_col_idxs_array,
                      Array<ValueType> &c_vals_array)
@@ -509,7 +510,7 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
         auto a_descr = cusparse::create_mat_descr();
         auto b_descr = cusparse::create_mat_descr();
         auto c_descr = cusparse::create_mat_descr();
-        auto c_old_descr = cusparse::create_mat_descr();
+        auto d_descr = cusparse::create_mat_descr();
         auto info = cusparse::create_spgemm_info();
 
         ValueType valpha{};
@@ -526,10 +527,10 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
         ValueType vbeta{};
         exec->get_master()->copy_from(exec.get(), 1, beta->get_const_values(),
                                       &vbeta);
-        auto c_old_nnz = IndexType(c->get_num_stored_elements());
-        auto c_old_vals = c->get_const_values();
-        auto c_old_row_ptrs = c->get_const_row_ptrs();
-        auto c_old_col_idxs = c->get_const_col_idxs();
+        auto d_nnz = IndexType(d->get_num_stored_elements());
+        auto d_vals = d->get_const_values();
+        auto d_row_ptrs = d->get_const_row_ptrs();
+        auto d_col_idxs = d->get_const_col_idxs();
         auto m = IndexType(a->get_size()[0]);
         auto n = IndexType(b->get_size()[1]);
         auto k = IndexType(a->get_size()[1]);
@@ -538,8 +539,8 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
         size_type buffer_size{};
         cusparse::spgemm_buffer_size(
             handle, m, n, k, &valpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
-            b_descr, b_nnz, b_row_ptrs, b_col_idxs, &vbeta, c_old_descr,
-            c_old_nnz, c_old_row_ptrs, c_old_col_idxs, info, buffer_size);
+            b_descr, b_nnz, b_row_ptrs, b_col_idxs, &vbeta, d_descr, d_nnz,
+            d_row_ptrs, d_col_idxs, info, buffer_size);
         Array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
 
@@ -549,9 +550,8 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
         IndexType c_nnz{};
         cusparse::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
                              a_col_idxs, b_descr, b_nnz, b_row_ptrs, b_col_idxs,
-                             c_old_descr, c_old_nnz, c_old_row_ptrs,
-                             c_old_col_idxs, c_descr, c_row_ptrs, &c_nnz, info,
-                             buffer);
+                             d_descr, d_nnz, d_row_ptrs, d_col_idxs, c_descr,
+                             c_row_ptrs, &c_nnz, info, buffer);
 
         // accumulate non-zeros
         c_col_idxs_array.resize_and_reset(c_nnz);
@@ -560,12 +560,12 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
         auto c_vals = c_vals_array.get_data();
         cusparse::spgemm(handle, m, n, k, &valpha, a_descr, a_nnz, a_vals,
                          a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
-                         b_row_ptrs, b_col_idxs, &vbeta, c_old_descr, c_old_nnz,
-                         c_old_vals, c_old_row_ptrs, c_old_col_idxs, c_descr,
-                         c_vals, c_row_ptrs, c_col_idxs, info, buffer);
+                         b_row_ptrs, b_col_idxs, &vbeta, d_descr, d_nnz, d_vals,
+                         d_row_ptrs, d_col_idxs, c_descr, c_vals, c_row_ptrs,
+                         c_col_idxs, info, buffer);
 
         cusparse::destroy(info);
-        cusparse::destroy(c_old_descr);
+        cusparse::destroy(d_descr);
         cusparse::destroy(c_descr);
         cusparse::destroy(b_descr);
         cusparse::destroy(a_descr);

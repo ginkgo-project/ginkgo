@@ -260,7 +260,7 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
                      const matrix::Csr<ValueType, IndexType> *a,
                      const matrix::Csr<ValueType, IndexType> *b,
                      const matrix::Dense<ValueType> *beta,
-                     const matrix::Csr<ValueType, IndexType> *c,
+                     const matrix::Csr<ValueType, IndexType> *d,
                      Array<IndexType> &c_row_ptrs_array,
                      Array<IndexType> &c_col_idxs_array,
                      Array<ValueType> &c_vals_array)
@@ -278,7 +278,7 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_col_idxs.clear();
         if (vbeta != zero(vbeta)) {
-            spgemm_insert_row(local_col_idxs, c, a_row);
+            spgemm_insert_row(local_col_idxs, d, a_row);
         }
         if (valpha != zero(valpha)) {
             spgemm_insert_row2(local_col_idxs, a, b, a_row);
@@ -302,7 +302,7 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_row_nzs.clear();
         if (vbeta != zero(vbeta)) {
-            spgemm_accumulate_row(local_row_nzs, c, vbeta, a_row);
+            spgemm_accumulate_row(local_row_nzs, d, vbeta, a_row);
         }
         if (valpha != zero(valpha)) {
             spgemm_accumulate_row2(local_row_nzs, a, b, valpha, a_row);
