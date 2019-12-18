@@ -475,6 +475,7 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
         auto b_col_idxs = b->get_const_col_idxs();
         auto null_value = static_cast<ValueType *>(nullptr);
         auto null_index = static_cast<IndexType *>(nullptr);
+        auto zero_nnz = IndexType{};
         auto m = IndexType(a->get_size()[0]);
         auto n = IndexType(b->get_size()[1]);
         auto k = IndexType(a->get_size()[1]);
@@ -484,7 +485,7 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
         hipsparse::spgemm_buffer_size(
             handle, m, n, k, &alpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
             b_descr, b_nnz, b_row_ptrs, b_col_idxs, null_value, d_descr,
-            IndexType(0), null_index, null_index, info, buffer_size);
+            zero_nnz, null_index, null_index, info, buffer_size);
         Array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
 
@@ -494,7 +495,7 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
         IndexType c_nnz{};
         hipsparse::spgemm_nnz(
             handle, m, n, k, a_descr, a_nnz, a_row_ptrs, a_col_idxs, b_descr,
-            b_nnz, b_row_ptrs, b_col_idxs, d_descr, IndexType(0), null_index,
+            b_nnz, b_row_ptrs, b_col_idxs, d_descr, zero_nnz, null_index,
             null_index, c_descr, c_row_ptrs, &c_nnz, info, buffer);
 
         // accumulate non-zeros
@@ -502,11 +503,11 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
         c_vals_array.resize_and_reset(c_nnz);
         auto c_col_idxs = c_col_idxs_array.get_data();
         auto c_vals = c_vals_array.get_data();
-        hipsparse::spgemm(
-            handle, m, n, k, &alpha, a_descr, a_nnz, a_vals, a_row_ptrs,
-            a_col_idxs, b_descr, b_nnz, b_vals, b_row_ptrs, b_col_idxs,
-            null_value, d_descr, IndexType(0), null_value, null_index,
-            null_index, c_descr, c_vals, c_row_ptrs, c_col_idxs, info, buffer);
+        hipsparse::spgemm(handle, m, n, k, &alpha, a_descr, a_nnz, a_vals,
+                          a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
+                          b_row_ptrs, b_col_idxs, null_value, d_descr, zero_nnz,
+                          null_value, null_index, null_index, c_descr, c_vals,
+                          c_row_ptrs, c_col_idxs, info, buffer);
 
         hipsparse::destroy_spgemm_info(info);
         hipsparse::destroy(d_descr);
