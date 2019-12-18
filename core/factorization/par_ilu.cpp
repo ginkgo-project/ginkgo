@@ -67,7 +67,9 @@ GKO_REGISTER_OPERATION(csr_transpose, csr::transpose);
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>>
 ParIlu<ValueType, IndexType>::generate_l_u(
-    const std::shared_ptr<const LinOp> &system_matrix, bool skip_sorting) const
+    const std::shared_ptr<const LinOp> &system_matrix, bool skip_sorting,
+    std::shared_ptr<typename l_matrix_type::strategy_type> l_strategy,
+    std::shared_ptr<typename u_matrix_type::strategy_type> u_strategy) const
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
     using CooMatrix = matrix::Coo<ValueType, IndexType>;
@@ -76,9 +78,6 @@ ParIlu<ValueType, IndexType>::generate_l_u(
 
     const auto exec = this->get_executor();
     const auto host_exec = exec->get_master();
-
-    // If required, it is also possible to make this a Factory parameter
-    auto csr_strategy = std::make_shared<typename CsrMatrix::sparselib>();
 
     // Only copies the matrix if it is not on the same executor or was not in
     // the right format. Throws an exception if it is not convertable.
@@ -125,12 +124,12 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     Array<ValueType> l_vals{exec, l_nnz};
     std::shared_ptr<CsrMatrix> l_factor = l_matrix_type::create(
         exec, matrix_size, std::move(l_vals), std::move(l_col_idxs),
-        std::move(l_row_ptrs), csr_strategy);
+        std::move(l_row_ptrs), l_strategy);
     Array<IndexType> u_col_idxs{exec, u_nnz};
     Array<ValueType> u_vals{exec, u_nnz};
     std::shared_ptr<CsrMatrix> u_factor = u_matrix_type::create(
         exec, matrix_size, std::move(u_vals), std::move(u_col_idxs),
-        std::move(u_row_ptrs), csr_strategy);
+        std::move(u_row_ptrs), u_strategy);
 
     exec->run(par_ilu_factorization::make_initialize_l_u(
         csr_system_matrix, l_factor.get(), u_factor.get()));
