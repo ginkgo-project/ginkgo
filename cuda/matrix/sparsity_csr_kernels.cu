@@ -48,7 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/segment_scan.cuh"
 #include "cuda/components/uninitialized_array.hpp"

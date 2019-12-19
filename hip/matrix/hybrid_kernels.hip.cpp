@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 
 
+#include "core/matrix/common_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 #include "hip/base/config.hip.hpp"
@@ -47,7 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/atomic.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/format_conversion.hip.hpp"
-#include "hip/components/prefix_sum.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/segment_scan.hip.hpp"
 #include "hip/components/zero_array.hip.hpp"
@@ -134,18 +134,7 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
                        0, num_rows, as_hip_type(row_ptrs),
                        as_hip_type(coo_row_ptrs.get_const_data()));
 
-    grid_num = ceildiv(num_rows + 1, default_block_size);
-    auto add_values = Array<IndexType>(exec, grid_num);
-
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(start_prefix_sum<default_block_size>),
-                       dim3(grid_num), dim3(default_block_size), 0, 0,
-                       num_rows + 1, as_hip_type(row_ptrs),
-                       as_hip_type(add_values.get_data()));
-
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(finalize_prefix_sum<default_block_size>),
-                       dim3(grid_num), dim3(default_block_size), 0, 0,
-                       num_rows + 1, as_hip_type(row_ptrs),
-                       as_hip_type(add_values.get_const_data()));
+    prefix_sum(exec, row_ptrs, num_rows + 1);
 
     // Fill the value
     grid_num = ceildiv(num_rows, default_block_size);

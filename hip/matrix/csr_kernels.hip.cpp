@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
+#include "core/matrix/common_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
@@ -59,7 +60,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/base/types.hip.hpp"
 #include "hip/components/atomic.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/prefix_sum.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/segment_scan.hip.hpp"
 #include "hip/components/uninitialized_array.hip.hpp"
@@ -611,18 +611,7 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
                            d_col_idxs, m, c_row_ptrs);
 
         // build row pointers
-        auto num_row_ptrs = m + 1;
-        auto num_blocks_prefixsum = ceildiv(num_row_ptrs, default_block_size);
-        Array<IndexType> block_sums_array(exec, num_blocks_prefixsum);
-        auto block_sums = block_sums_array.get_data();
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(start_prefix_sum<default_block_size>),
-            dim3(num_blocks_prefixsum), dim3(default_block_size), 0, 0,
-            num_row_ptrs, c_row_ptrs, block_sums);
-        hipLaunchKernelGGL(
-            HIP_KERNEL_NAME(finalize_prefix_sum<default_block_size>),
-            dim3(num_blocks_prefixsum), dim3(default_block_size), 0, 0,
-            num_row_ptrs, c_row_ptrs, block_sums);
+        prefix_sum(exec, c_row_ptrs, m + 1);
 
         // accumulate non-zeros for alpha * A * B + beta * D
         ValueType vbeta{};
@@ -749,19 +738,7 @@ void convert_to_sellp(std::shared_ptr<const HipExecutor> exec,
                        stride_factor, as_hip_type(nnz_per_row.get_const_data()),
                        as_hip_type(slice_lengths), as_hip_type(slice_sets));
 
-    auto add_values =
-        Array<size_type>(exec, ceildiv(slice_num + 1, default_block_size));
-    grid_dim = ceildiv(slice_num + 1, default_block_size);
-
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(start_prefix_sum<default_block_size>),
-                       dim3(grid_dim), dim3(default_block_size), 0, 0,
-                       slice_num + 1, as_hip_type(slice_sets),
-                       as_hip_type(add_values.get_data()));
-
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(finalize_prefix_sum<default_block_size>),
-                       dim3(grid_dim), dim3(default_block_size), 0, 0,
-                       slice_num + 1, as_hip_type(slice_sets),
-                       as_hip_type(add_values.get_const_data()));
+    prefix_sum(exec, slice_sets, slice_num + 1);
 
     grid_dim = ceildiv(num_rows, default_block_size);
     hipLaunchKernelGGL(kernel::fill_in_sellp, dim3(grid_dim),
@@ -770,9 +747,6 @@ void convert_to_sellp(std::shared_ptr<const HipExecutor> exec,
                        as_hip_type(source_col_idxs), as_hip_type(slice_lengths),
                        as_hip_type(slice_sets), as_hip_type(result_col_idxs),
                        as_hip_type(result_values));
-
-    nnz_per_row.clear();
-    add_values.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -860,11 +834,6 @@ void calculate_total_cols(std::shared_ptr<const HipExecutor> exec,
 
     exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
                                   result);
-
-    block_results.clear();
-    nnz_per_row.clear();
-    max_nnz_per_slice.clear();
-    d_result.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1001,10 +970,6 @@ void calculate_max_nnz_per_row(std::shared_ptr<const HipExecutor> exec,
 
     exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
                                   result);
-
-    nnz_per_row.clear();
-    block_results.clear();
-    d_result.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1039,17 +1004,7 @@ void convert_to_hybrid(std::shared_ptr<const HipExecutor> exec,
                        as_hip_type(source->get_const_row_ptrs()),
                        as_hip_type(coo_offset.get_data()));
 
-    auto add_values =
-        Array<size_type>(exec, ceildiv(num_rows, default_block_size));
-    grid_dim = ceildiv(num_rows, default_block_size);
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(start_prefix_sum<default_block_size>),
-                       dim3(grid_dim), dim3(default_block_size), 0, 0, num_rows,
-                       as_hip_type(coo_offset.get_data()),
-                       as_hip_type(add_values.get_data()));
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(finalize_prefix_sum<default_block_size>),
-                       dim3(grid_dim), dim3(default_block_size), 0, 0, num_rows,
-                       as_hip_type(coo_offset.get_data()),
-                       as_hip_type(add_values.get_const_data()));
+    prefix_sum(exec, coo_offset.get_data(), num_rows);
 
     grid_dim = ceildiv(num_rows * config::warp_size, default_block_size);
     hipLaunchKernelGGL(kernel::fill_in_hybrid, dim3(grid_dim),
