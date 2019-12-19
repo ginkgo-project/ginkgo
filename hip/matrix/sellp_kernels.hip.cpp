@@ -43,10 +43,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/matrix/common_kernels.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/types.hip.hpp"
-#include "hip/components/prefix_sum.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 
 
@@ -179,18 +179,7 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
         0, num_rows, slice_size, as_hip_type(source_slice_sets),
         as_hip_type(source_values), as_hip_type(result_row_ptrs));
 
-    grid_dim = ceildiv(num_rows + 1, default_block_size);
-    auto add_values = Array<IndexType>(exec, grid_dim);
-
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(start_prefix_sum<default_block_size>),
-                       dim3(grid_dim), dim3(default_block_size), 0, 0,
-                       num_rows + 1, as_hip_type(result_row_ptrs),
-                       as_hip_type(add_values.get_data()));
-
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(finalize_prefix_sum<default_block_size>),
-                       dim3(grid_dim), dim3(default_block_size), 0, 0,
-                       num_rows + 1, as_hip_type(result_row_ptrs),
-                       as_hip_type(add_values.get_const_data()));
+    prefix_sum(exec, result_row_ptrs, num_rows + 1);
 
     grid_dim = ceildiv(num_rows, default_block_size);
 
@@ -200,8 +189,6 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
         as_hip_type(source_col_idxs), as_hip_type(source_values),
         as_hip_type(result_row_ptrs), as_hip_type(result_col_idxs),
         as_hip_type(result_values));
-
-    add_values.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -228,7 +215,6 @@ void count_nonzeros(std::shared_ptr<const HipExecutor> exec,
                        as_hip_type(nnz_per_row.get_data()));
 
     *result = reduce_add_array(exec, num_rows, nnz_per_row.get_const_data());
-    nnz_per_row.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

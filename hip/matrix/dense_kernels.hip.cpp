@@ -45,11 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/matrix/common_kernels.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/base/hipblas_bindings.hip.hpp"
 #include "hip/base/pointer_mode_guard.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/prefix_sum.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/uninitialized_array.hip.hpp"
 
@@ -264,15 +264,7 @@ void convert_to_coo(std::shared_ptr<const HipExecutor> exec,
     const size_type grid_dim = ceildiv(num_rows, default_block_size);
     auto add_values = Array<size_type>(exec, grid_dim);
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(start_prefix_sum<default_block_size>),
-                       dim3(grid_dim), dim3(default_block_size), 0, 0, num_rows,
-                       as_hip_type(nnz_prefix_sum.get_data()),
-                       as_hip_type(add_values.get_data()));
-
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(finalize_prefix_sum<default_block_size>),
-                       dim3(grid_dim), dim3(default_block_size), 0, 0, num_rows,
-                       as_hip_type(nnz_prefix_sum.get_data()),
-                       as_hip_type(add_values.get_data()));
+    prefix_sum(exec, nnz_prefix_sum.get_data(), num_rows);
 
     hipLaunchKernelGGL(kernel::fill_in_coo, dim3(grid_dim),
                        dim3(default_block_size), 0, 0, num_rows, num_cols,
@@ -280,9 +272,6 @@ void convert_to_coo(std::shared_ptr<const HipExecutor> exec,
                        as_hip_type(source->get_const_values()),
                        as_hip_type(row_idxs), as_hip_type(col_idxs),
                        as_hip_type(values));
-
-    nnz_prefix_sum.clear();
-    add_values.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -311,25 +300,14 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
                        stride, as_hip_type(source->get_const_values()),
                        as_hip_type(row_ptrs));
 
-    size_type grid_dim = ceildiv(num_rows + 1, default_block_size);
-    auto add_values = Array<IndexType>(exec, grid_dim);
+    prefix_sum(exec, row_ptrs, num_rows + 1);
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(start_prefix_sum<default_block_size>),
-                       dim3(grid_dim), dim3(default_block_size), 0, 0,
-                       num_rows + 1, as_hip_type(row_ptrs),
-                       as_hip_type(add_values.get_data()));
-
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(finalize_prefix_sum<default_block_size>),
-                       dim3(grid_dim), dim3(default_block_size), 0, 0,
-                       num_rows + 1, as_hip_type(row_ptrs),
-                       as_hip_type(add_values.get_const_data()));
+    size_type grid_dim = ceildiv(num_rows, default_block_size);
 
     hipLaunchKernelGGL(
         kernel::fill_in_csr, dim3(grid_dim), dim3(default_block_size), 0, 0,
         num_rows, num_cols, stride, as_hip_type(source->get_const_values()),
         as_hip_type(row_ptrs), as_hip_type(col_idxs), as_hip_type(values));
-
-    add_values.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -406,19 +384,7 @@ void convert_to_sellp(std::shared_ptr<const HipExecutor> exec,
                        as_hip_type(nnz_per_row.get_const_data()),
                        as_hip_type(slice_lengths), as_hip_type(slice_sets));
 
-    auto add_values =
-        Array<size_type>(exec, ceildiv(slice_num + 1, default_block_size));
-    grid_dim = ceildiv(slice_num + 1, default_block_size);
-
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(start_prefix_sum<default_block_size>),
-                       dim3(grid_dim), dim3(default_block_size), 0, 0,
-                       slice_num + 1, as_hip_type(slice_sets),
-                       as_hip_type(add_values.get_data()));
-
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(finalize_prefix_sum<default_block_size>),
-                       dim3(grid_dim), dim3(default_block_size), 0, 0,
-                       slice_num + 1, as_hip_type(slice_sets),
-                       as_hip_type(add_values.get_const_data()));
+    prefix_sum(exec, slice_sets, slice_num + 1);
 
     grid_dim = ceildiv(num_rows, default_block_size);
     hipLaunchKernelGGL(
@@ -426,9 +392,6 @@ void convert_to_sellp(std::shared_ptr<const HipExecutor> exec,
         num_rows, num_cols, slice_size, stride,
         as_hip_type(source->get_const_values()), as_hip_type(slice_lengths),
         as_hip_type(slice_sets), as_hip_type(col_idxs), as_hip_type(vals));
-
-    add_values.clear();
-    nnz_per_row.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -455,7 +418,6 @@ void count_nonzeros(std::shared_ptr<const HipExecutor> exec,
     calculate_nonzeros_per_row(exec, source, &nnz_per_row);
 
     *result = reduce_add_array(exec, num_rows, nnz_per_row.get_const_data());
-    nnz_per_row.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL);
@@ -493,9 +455,6 @@ void calculate_max_nnz_per_row(std::shared_ptr<const HipExecutor> exec,
 
     exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
                                   result);
-    d_result.clear();
-    block_results.clear();
-    nnz_per_row.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -564,11 +523,6 @@ void calculate_total_cols(std::shared_ptr<const HipExecutor> exec,
 
     exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
                                   result);
-
-    block_results.clear();
-    nnz_per_row.clear();
-    max_nnz_per_slice.clear();
-    d_result.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
