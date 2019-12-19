@@ -78,6 +78,7 @@ protected:
     using Dense = gko::matrix::Dense<value_type>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
+    using par_ilu_type = gko::factorization::ParIlu<value_type, index_type>;
     ParIlu()
         : ref(gko::ReferenceExecutor::create()),
           exec(std::static_pointer_cast<const gko::Executor>(ref)),
@@ -151,11 +152,9 @@ protected:
                                                 exec)),
           // clang-format on
           ilu_factory_skip(
-              gko::factorization::ParIlu<>::build().with_skip_sorting(true).on(
-                  exec)),
+              par_ilu_type::build().with_skip_sorting(true).on(exec)),
           ilu_factory_sort(
-              gko::factorization::ParIlu<>::build().with_skip_sorting(false).on(
-                  exec))
+              par_ilu_type::build().with_skip_sorting(false).on(exec))
     {
         auto tmp_csr = Csr::create(exec);
         mtx_small->convert_to(gko::lend(tmp_csr));
@@ -177,8 +176,8 @@ protected:
     std::shared_ptr<const Csr> mtx_big_nodiag;
     std::shared_ptr<const Dense> big_nodiag_l_expected;
     std::shared_ptr<const Dense> big_nodiag_u_expected;
-    std::unique_ptr<gko::factorization::ParIlu<>::Factory> ilu_factory_skip;
-    std::unique_ptr<gko::factorization::ParIlu<>::Factory> ilu_factory_sort;
+    std::unique_ptr<par_ilu_type::Factory> ilu_factory_skip;
+    std::unique_ptr<par_ilu_type::Factory> ilu_factory_sort;
 };
 
 
@@ -293,6 +292,30 @@ TEST_F(ParIlu, ThrowDimensionMismatch)
 
     ASSERT_THROW(ilu_factory_sort->generate(gko::share(matrix)),
                  gko::DimensionMismatch);
+}
+
+
+TEST_F(ParIlu, SetLStrategy)
+{
+    auto l_strategy = std::make_shared<typename Csr::automatical>(0, 0);
+
+    auto factory = par_ilu_type::build().with_l_strategy(l_strategy).on(ref);
+    auto par_ilu = factory->generate(mtx_small);
+
+    ASSERT_EQ(factory->get_parameters().l_strategy, l_strategy);
+    ASSERT_EQ(par_ilu->get_l_factor()->get_strategy(), l_strategy);
+}
+
+
+TEST_F(ParIlu, SetUStrategy)
+{
+    auto u_strategy = std::make_shared<typename Csr::classical>();
+
+    auto factory = par_ilu_type::build().with_u_strategy(u_strategy).on(ref);
+    auto par_ilu = factory->generate(mtx_small);
+
+    ASSERT_EQ(factory->get_parameters().u_strategy, u_strategy);
+    ASSERT_EQ(par_ilu->get_u_factor()->get_strategy(), u_strategy);
 }
 
 
@@ -422,10 +445,9 @@ TEST_F(ParIlu, GenerateForCsrBigWithDiagonalZeros)
 
 TEST_F(ParIlu, GenerateForDenseSmallWithMultipleIterations)
 {
-    auto multiple_iter_factory = gko::factorization::ParIlu<>::build()
-                                     .with_iterations(5u)
-                                     .with_skip_sorting(true)
-                                     .on(exec);
+    auto multiple_iter_factory =
+        par_ilu_type::build().with_iterations(5u).with_skip_sorting(true).on(
+            exec);
     auto factors = multiple_iter_factory->generate(mtx_small);
     auto l_factor = factors->get_l_factor();
     auto u_factor = factors->get_u_factor();
