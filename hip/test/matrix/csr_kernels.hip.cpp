@@ -138,10 +138,10 @@ protected:
                 std::swap(vals[idx1], vals[idx2]);
             }
         }
-        auto local_mtx_cuda = Mtx::create(hip);
-        local_mtx_cuda->copy_from(local_mtx_ref.get());
+        auto local_mtx_hip = Mtx::create(hip);
+        local_mtx_hip->copy_from(local_mtx_ref.get());
 
-        return {std::move(local_mtx_ref), std::move(local_mtx_cuda)};
+        return {std::move(local_mtx_ref), std::move(local_mtx_hip)};
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
