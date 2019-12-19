@@ -112,6 +112,38 @@ protected:
         dbeta->copy_from(beta.get());
     }
 
+    struct matrix_pair {
+        std::unique_ptr<Mtx> ref;
+        std::unique_ptr<Mtx> hip;
+    };
+
+    matrix_pair gen_unsorted_mtx()
+    {
+        constexpr int min_nnz_per_row = 2;  // Must be larger/equal than 2
+        auto local_mtx_ref =
+            gen_mtx<Mtx>(mtx_size[0], mtx_size[1], min_nnz_per_row);
+        for (size_t row = 0; row < mtx_size[0]; ++row) {
+            const auto row_ptrs = local_mtx_ref->get_const_row_ptrs();
+            const auto start_row = row_ptrs[row];
+            auto col_idx = local_mtx_ref->get_col_idxs() + start_row;
+            auto vals = local_mtx_ref->get_values() + start_row;
+            const auto nnz_in_this_row = row_ptrs[row + 1] - row_ptrs[row];
+            auto swap_idx_dist =
+                std::uniform_int_distribution<>(0, nnz_in_this_row - 1);
+            // shuffle `nnz_in_this_row / 2` times
+            for (size_t perm = 0; perm < nnz_in_this_row; perm += 2) {
+                const auto idx1 = swap_idx_dist(rand_engine);
+                const auto idx2 = swap_idx_dist(rand_engine);
+                std::swap(col_idx[idx1], col_idx[idx2]);
+                std::swap(vals[idx1], vals[idx2]);
+            }
+        }
+        auto local_mtx_cuda = Mtx::create(hip);
+        local_mtx_cuda->copy_from(local_mtx_ref.get());
+
+        return {std::move(local_mtx_ref), std::move(local_mtx_cuda)};
+    }
+
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::HipExecutor> hip;
 
@@ -549,6 +581,30 @@ TEST_F(Csr, MoveToHybridIsEquivalentToRef)
     dmtx->move_to(dhybrid_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(hybrid_mtx.get(), dhybrid_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, SortSortedMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortUnsortedMatrixIsEquivalentToRef)
+{
+    auto uns_mtx = gen_unsorted_mtx();
+
+    uns_mtx.ref->sort_by_column_index();
+    uns_mtx.hip->sort_by_column_index();
+
+    // Values must be unchanged, therefore, tolerance is `0`
+    GKO_ASSERT_MTX_NEAR(uns_mtx.ref, uns_mtx.hip, 0);
 }
 
 
