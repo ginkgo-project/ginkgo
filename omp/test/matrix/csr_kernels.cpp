@@ -141,7 +141,7 @@ protected:
 
     matrix_pair gen_unsorted_mtx()
     {
-        constexpr int min_nnz_per_row = 2;  // Must be larger/equal than 2
+        constexpr int min_nnz_per_row = 2;  // Must be at least 2
         auto local_mtx_ref =
             gen_mtx<Mtx>(mtx_size[0], mtx_size[1], min_nnz_per_row);
         for (size_t row = 0; row < mtx_size[0]; ++row) {
