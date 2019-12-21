@@ -602,6 +602,84 @@ inline void destroy_spgemm_info(csrgemm2Info_t info)
 }
 
 
+template <typename IndexType>
+void create_identity_permutation(hipsparseHandle_t handle, IndexType size,
+                                 IndexType *permutation) GKO_NOT_IMPLEMENTED;
+
+template <>
+inline void create_identity_permutation<int32>(hipsparseHandle_t handle,
+                                               int32 size, int32 *permutation)
+{
+    GKO_ASSERT_NO_HIPSPARSE_ERRORS(
+        hipsparseCreateIdentityPermutation(handle, size, permutation));
+}
+
+
+template <typename IndexType>
+void csrsort_buffer_size(hipsparseHandle_t handle, IndexType m, IndexType n,
+                         IndexType nnz, const IndexType *row_ptrs,
+                         const IndexType *col_idxs,
+                         size_type &buffer_size) GKO_NOT_IMPLEMENTED;
+
+template <>
+inline void csrsort_buffer_size<int32>(hipsparseHandle_t handle, int32 m,
+                                       int32 n, int32 nnz,
+                                       const int32 *row_ptrs,
+                                       const int32 *col_idxs,
+                                       size_type &buffer_size)
+{
+    GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseXcsrsort_bufferSizeExt(
+        handle, m, n, nnz, row_ptrs, col_idxs, &buffer_size));
+}
+
+
+template <typename IndexType>
+void csrsort(hipsparseHandle_t handle, IndexType m, IndexType n, IndexType nnz,
+             const hipsparseMatDescr_t descr, const IndexType *row_ptrs,
+             IndexType *col_idxs, IndexType *permutation,
+             void *buffer) GKO_NOT_IMPLEMENTED;
+
+template <>
+inline void csrsort<int32>(hipsparseHandle_t handle, int32 m, int32 n,
+                           int32 nnz, const hipsparseMatDescr_t descr,
+                           const int32 *row_ptrs, int32 *col_idxs,
+                           int32 *permutation, void *buffer)
+{
+    GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseXcsrsort(
+        handle, m, n, nnz, descr, row_ptrs, col_idxs, permutation, buffer));
+}
+
+
+template <typename IndexType, typename ValueType>
+void gather(hipsparseHandle_t handle, IndexType nnz, const ValueType *in,
+            ValueType *out, const IndexType *permutation) GKO_NOT_IMPLEMENTED;
+
+#define GKO_BIND_HIPSPARSE_GATHER(ValueType, HipsparseName)                   \
+    template <>                                                               \
+    inline void gather<int32, ValueType>(hipsparseHandle_t handle, int32 nnz, \
+                                         const ValueType *in, ValueType *out, \
+                                         const int32 *permutation)            \
+    {                                                                         \
+        GKO_ASSERT_NO_HIPSPARSE_ERRORS(HipsparseName(                         \
+            handle, nnz, as_hiplibs_type(in), as_hiplibs_type(out),           \
+            permutation, HIPSPARSE_INDEX_BASE_ZERO));                         \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
+                  "semi-colon warnings")
+
+GKO_BIND_HIPSPARSE_GATHER(float, hipsparseSgthr);
+GKO_BIND_HIPSPARSE_GATHER(double, hipsparseDgthr);
+#if defined(hipsparseVersionMajor) && defined(hipsparseVersionMinor) && \
+    ((hipsparseVersionMajor > 1) ||                                     \
+     (hipsparseVersionMajor == 1 && hipsparseVersionMinor >= 4))
+GKO_BIND_HIPSPARSE_GATHER(std::complex<float>, hipsparseCgthr);
+GKO_BIND_HIPSPARSE_GATHER(std::complex<double>, hipsparseZgthr);
+#endif  // hipsparse version >= 1.4
+
+#undef GKO_BIND_HIPSPARSE_GATHER
+
+
 }  // namespace hipsparse
 }  // namespace hip
 }  // namespace kernels
