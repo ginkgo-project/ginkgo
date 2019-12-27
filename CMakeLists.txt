@@ -3,6 +3,25 @@ cmake_minimum_required(VERSION 3.9)
 project(Ginkgo LANGUAGES C CXX VERSION 1.1.1 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "master")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
+include(CheckLanguage)
+
+# Determine which languages can be compiled
+check_language(CUDA)
+if(CMAKE_CUDA_COMPILER)
+    set(GINKGO_HAS_CUDA ON)
+else()
+    set(GINKGO_HAS_CUDA OFF)
+endif()
+
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    set(GINKGO_HAS_OMP ON)
+else()
+    set(GINKGO_HAS_OMP OFF)
+endif()
+
+# TODO: auto-detect HIP
+set(GINKGO_HAS_HIP OFF)
 
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" ON)
@@ -10,9 +29,9 @@ option(GINKGO_BUILD_TESTS "Generate build files for unit tests" ON)
 option(GINKGO_BUILD_EXAMPLES "Build Ginkgo's examples" ON)
 option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
 option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" ON)
-option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" OFF)
-option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" OFF)
-option(GINKGO_BUILD_HIP "Compile kernels for AMD or NVIDIA GPUs" OFF)
+option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" ${GINKGO_HAS_OMP})
+option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" ${GINKGO_HAS_CUDA})
+option(GINKGO_BUILD_HIP "Compile kernels for AMD or NVIDIA GPUs" ${GINKGO_HAS_HIP})
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
 option(GINKGO_SKIP_DEPENDENCY_UPDATE
     "Do not update dependencies each time the project is rebuilt" ON)
