@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/sparsity_csr_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
+#include "core/reorder/rcm_kernels.hpp"
 #include "core/solver/bicg_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 #include "core/solver/cg_kernels.hpp"
@@ -1050,6 +1051,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace par_ilut_factorization
+
+
+namespace rcm {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL);
+
+
+}  // namespace rcm
 
 
 namespace set_all_statuses {

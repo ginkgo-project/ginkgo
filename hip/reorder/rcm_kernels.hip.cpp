@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,22 +30,57 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_MATRICES_CONFIG_HPP_
-#define GKO_MATRICES_CONFIG_HPP_
+#include "core/reorder/rcm_kernels.hpp"
+
+
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
+
+
+#include "hip/base/math.hip.hpp"
+#include "hip/base/types.hip.hpp"
+#include "hip/components/prefix_sum.hip.hpp"
 
 
 namespace gko {
-namespace matrices {
+namespace kernels {
+namespace hip {
+/**
+ * @brief The parallel ilu factorization namespace.
+ *
+ * @ingroup factor
+ */
+namespace rcm {
 
 
-const char *location_ani1_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani1.mtx";
-const char *location_ani4_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani4.mtx";
-const char *location_isai_mtxs = "@Ginkgo_BINARY_DIR@/matrices/test/";
-const char *location_1138_bus_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/1138_bus.mtx";
+template <typename ValueType, typename IndexType>
+void get_degree_of_nodes(
+    std::shared_ptr<const HipExecutor> exec,
+    std::shared_ptr<matrix::SparsityCsr<ValueType, IndexType>> adjacency_matrix,
+    std::shared_ptr<gko::Array<IndexType>> node_degrees) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL);
 
 
-}  // namespace matrices
+template <typename ValueType, typename IndexType>
+void get_permutation(
+    std::shared_ptr<const HipExecutor> exec, size_type num_vertices,
+    std::shared_ptr<matrix::SparsityCsr<ValueType, IndexType>> adjacency_matrix,
+    std::shared_ptr<Array<IndexType>> node_degrees,
+    std::shared_ptr<matrix::Permutation<IndexType>> permutation_mat,
+    std::shared_ptr<matrix::Permutation<IndexType>> inv_permutation_mat)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL);
+
+
+}  // namespace rcm
+}  // namespace hip
+}  // namespace kernels
 }  // namespace gko
-
-
-#endif  // GKO_MATRICES_CONFIG_HPP_

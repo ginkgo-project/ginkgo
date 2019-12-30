@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,22 +30,43 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_MATRICES_CONFIG_HPP_
-#define GKO_MATRICES_CONFIG_HPP_
+#include <ginkgo/core/reorder/rcm.hpp>
 
 
-namespace gko {
-namespace matrices {
+#include <memory>
 
 
-const char *location_ani1_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani1.mtx";
-const char *location_ani4_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani4.mtx";
-const char *location_isai_mtxs = "@Ginkgo_BINARY_DIR@/matrices/test/";
-const char *location_1138_bus_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/1138_bus.mtx";
+#include <gtest/gtest.h>
 
 
-}  // namespace matrices
-}  // namespace gko
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
-#endif  // GKO_MATRICES_CONFIG_HPP_
+namespace {
+
+
+class Rcm : public ::testing::Test {
+protected:
+    using v_type = double;
+    using i_type = int;
+    using Mtx = gko::matrix::Dense<v_type>;
+    using reorder_factory_type = gko::reorder::Rcm<v_type, i_type>;
+
+    Rcm()
+        : exec(gko::ReferenceExecutor::create()),
+          rcm_factory(reorder_factory_type::build().on(exec))
+    {}
+
+    std::shared_ptr<const gko::Executor> exec;
+    std::unique_ptr<reorder_factory_type::Factory> rcm_factory;
+};
+
+
+TEST_F(Rcm, RcmFactoryKnowsItsExecutor)
+{
+    ASSERT_EQ(rcm_factory->get_executor(), exec);
+}
+
+
+}  // namespace
