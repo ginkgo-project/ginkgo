@@ -44,7 +44,7 @@ namespace hip {
 constexpr int default_block_size = 512;
 
 
-#include "common/components/zero_array.hip.inc"
+#include "common/components/zero_array.hpp.inc"
 
 
 template <typename ValueType>
