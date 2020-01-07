@@ -64,10 +64,6 @@ GKO_REGISTER_OPERATION(step_2, bicg::step_2);
 template <typename ValueType, typename IndexType>
 void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    // write(std::cout,
-    // lend(as<matrix::Dense<ValueType>>(system_matrix_.get())));
-    // write(std::cout,
-    // lend(as<matrix::Dense<ValueType>>(get_preconditioner().get())));
     using std::swap;
 
     using Vector = matrix::Dense<ValueType>;
@@ -76,9 +72,7 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
     constexpr uint8 RelativeStoppingId{1};
 
-    auto exec = this->get_executor();  // jeder solver ist ein LinOp und jedes
-                                       // LinOp hat seinen eigenen exec...dieser
-                                       // wird zurück gegeben
+    auto exec = this->get_executor();
 
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
@@ -104,19 +98,10 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
                                        dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
-    // initialisiert die Variablen, die man für das cg verfahren benötigt. Ist
-    // im jeweiligen Kernel definiert, aber durch initialize und nicht
-    // make_initialize?
-    //.get übergibt den smartpointer, damit der solver die pointer hält
 
     exec->run(bicg::make_initialize(
         dense_b, r.get(), z.get(), p.get(), q.get(), prev_rho.get(), rho.get(),
         r2.get(), z2.get(), p2.get(), q2.get(), &stop_status));
-
-
-    // auto trans_A = gko::LinOp(exec,system_matrix_->get_size() ));//Linop ->
-    // Matrix casting? auto trans_P =
-    // gko::LinOp(exec,get_preconditioner()->get_size());
 
     // r = dense_b
     // rho = 0.0
@@ -132,75 +117,50 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
     auto csr_system_matrix_ =
         dynamic_cast<const CsrMatrix *>(system_matrix_.get());
-    //  if the cast is not possible, use copy_and_convert to
+
     if (csr_system_matrix_ == nullptr ||
         csr_system_matrix_->get_executor() != exec) {
         csr_system_matrix_unique_ptr = copy_and_convert_to<CsrMatrix>(
             exec, const_cast<LinOp *>(system_matrix_.get()));
 
-        // matrix is not of CSR type, so we need to convert it
         csr_system_matrix_unique_ptr->set_strategy(
             std::make_shared<typename CsrMatrix::classical>());
 
         csr_system_matrix_ = csr_system_matrix_unique_ptr.get();
-        // csr_system_matrix_unique_ptr = CsrMatrix::create(exec);
-
-        // as<ConvertibleTo<CsrMatrix>>(system_matrix.get())
-        //    ->convert_to(csr_system_matrix_unique_ptr.get());
-        // csr_system_matrix = csr_system_matrix_unique_ptr.get();
     }
-    auto trans_A = csr_system_matrix_->transpose();
-    // write(std::cout,
-    // lend(as<matrix::Dense<ValueType>>(system_matrix_.get())));
-    // write(std::cout, lend(trans_A.get()));
 
-    system_matrix_->apply(
-        neg_one_op.get(), dense_x, one_op.get(),
-        r.get());  // system_matrix_ ist im header definiert. Da die Matrix ein
-                   // Linop ist, hat sie ein apply
-                   // stop kriterium wird durch fabrik generiert, genaueres?
-                   // r = r - Ax =  -1.0 * A*dense_x + 1.0*r
+    auto trans_A = csr_system_matrix_->transpose();
+
+    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
+    // r = r - Ax =  -1.0 * A*dense_x + 1.0*r
 
     // TODO set r2 = r so there has to be only one apply
-    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
-                          r2.get());  // r2 = r
-
-    // auto trans = Vector::create(exec,
-    // gko::transpose(get_preconditioner->get_size()));//ist vector hier das
-    // richtige? auto trans = system_matrix_.Matrix<ValueType>::transpose();
-    // trans->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
+    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r2.get());
+    // r2 = r
 
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, r.get());
 
-    int iter = -1;  // zählt in der wievielten iteration man sich gerade aufhält
-    // GKO_ASSERT_MTX_NEAR(get_preconditioner(), l({{1, 0.0, 0.0}, {0.0, 2,
-    // 0.0}, {0.0, 0.0, 2}}), 1e-14);
+    int iter = -1;
 
     while (true) {
-        // TODO preconditioner transponieren
+        get_preconditioner()->apply(r.get(), z.get());
 
-        get_preconditioner()->apply(
-            r.get(), z.get());  // preconditioner berechnen?(berechnet P*r und
-                                // speichert in z)
+        // TODO transpose Preconditioner (not necessary right now since jacobi
+        // is the only preconditioner and is symmetrical)
+        get_preconditioner()->apply(r2.get(), z2.get());
 
-        // TODO transponieren(not necessary right now since jacobi is
-        // symmetrical)
-        get_preconditioner()->apply(
-            r2.get(), z2.get());  // preconditioner berechnen?(berechnet P*r2
-                                  // und speichert in z2)
-
-        z->compute_dot(r2.get(), rho.get());  // rho = r * z
+        z->compute_dot(r2.get(), rho.get());
 
 
-        ++iter;  // sind jetzt in nächster iteration
+        ++iter;
         this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
                                                             dense_x);
 
         this->template log<log::Logger::iteration_complete>(this, iter,
                                                             r2.get(), dense_x);
-        // checkt ob man abbrechen sollte
+
         if (stop_criterion->update()
                 .num_iterations(iter)
                 .residual(r.get())
@@ -215,18 +175,17 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
-        // run nimmt eine funktion und führt sie dann demetsprechend auf dem
-        // kernel aus?
+
         exec->run(bicg::make_step_1(p.get(), z.get(), p2.get(), z2.get(),
                                     rho.get(), prev_rho.get(), &stop_status));
         // tmp = rho / prev_rho
         // p = z + tmp * p
         // p2 = z2 + tmp * p2
-        system_matrix_->apply(p.get(), q.get());  // q = A*p
+        system_matrix_->apply(p.get(), q.get());
 
-        trans_A->apply(p2.get(), q2.get());  // q2 = A*p2
+        trans_A->apply(p2.get(), q2.get());
 
-        p2->compute_dot(q.get(), beta.get());  // beta = p2 * q (skalarprodukt)
+        p2->compute_dot(q.get(), beta.get());
 
         exec->run(bicg::make_step_2(dense_x, r.get(), r2.get(), p.get(),
                                     q.get(), q2.get(), beta.get(), rho.get(),
