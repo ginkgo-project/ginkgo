@@ -33,6 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/bicg.hpp>
 
 
+#include <iostream>
+
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -62,42 +64,40 @@ GKO_REGISTER_OPERATION(step_2, bicg::step_2);
 template <typename ValueType, typename IndexType>
 void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    using std::swap;  // Damit man swap benutzen kann, obwohl swap nur in einem
-                      // anderen namespace definiert ist
-    using Vector =
-        matrix::Dense<ValueType>;  // Vector bezeichnet nun das selbe wie
-                                   // matrix::De..., also eine Abkürzung
+    // write(std::cout,
+    // lend(as<matrix::Dense<ValueType>>(system_matrix_.get())));
+    // write(std::cout,
+    // lend(as<matrix::Dense<ValueType>>(get_preconditioner().get())));
+    using std::swap;
+
+    using Vector = matrix::Dense<ValueType>;
 
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
 
-    constexpr uint8 RelativeStoppingId{1};  // wird schon zur compilezeit
-                                            // berchnet, (aber was macht das
-                                            // {1}?)
+    constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();  // jeder solver ist ein LinOp und jedes
                                        // LinOp hat seinen eigenen exec...dieser
                                        // wird zurück gegeben
 
-    auto one_op = initialize<Vector>({one<ValueType>()}, exec);  // 1-vektor?
-    auto neg_one_op =
-        initialize<Vector>({-one<ValueType>()}, exec);  // -1-vektor?
+    auto one_op = initialize<Vector>({one<ValueType>()}, exec);
+    auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);
 
-    auto dense_b =
-        as<const Vector>(b);  // casted den linop b pointer auf ein dense vector
-    auto dense_x = as<Vector>(x);  // x vektor
+    auto dense_b = as<const Vector>(b);
+    auto dense_x = as<Vector>(x);
     auto r = Vector::create_with_config_of(dense_b);
-    auto r2 = Vector::create_with_config_of(dense_b);  //
-    auto z = Vector::create_with_config_of(dense_b);   //
+    auto r2 = Vector::create_with_config_of(dense_b);
+    auto z = Vector::create_with_config_of(dense_b);
     auto z2 = Vector::create_with_config_of(dense_b);
-    auto p = Vector::create_with_config_of(dense_b);  //
+    auto p = Vector::create_with_config_of(dense_b);
     auto p2 = Vector::create_with_config_of(dense_b);
     auto q = Vector::create_with_config_of(dense_b);
-    auto q2 = Vector::create_with_config_of(dense_b);  //
+    auto q2 = Vector::create_with_config_of(dense_b);
 
-    auto alpha = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});  //
-    auto beta = Vector::create_with_config_of(alpha.get());                //
-    auto prev_rho = Vector::create_with_config_of(alpha.get());            //
-    auto rho = Vector::create_with_config_of(alpha.get());                 //
+    auto alpha = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
+    auto beta = Vector::create_with_config_of(alpha.get());
+    auto prev_rho = Vector::create_with_config_of(alpha.get());
+    auto rho = Vector::create_with_config_of(alpha.get());
 
     bool one_changed{};
     Array<stopping_status> stop_status(alpha->get_executor(),
@@ -150,10 +150,9 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
         // csr_system_matrix = csr_system_matrix_unique_ptr.get();
     }
     auto trans_A = csr_system_matrix_->transpose();
-
-
-    // auto trans_A = system_matrix_->transpose();
-    // auto trans_P = static_cast<Vector>(get_preconditioner())->transpose();
+    // write(std::cout,
+    // lend(as<matrix::Dense<ValueType>>(system_matrix_.get())));
+    // write(std::cout, lend(trans_A.get()));
 
     system_matrix_->apply(
         neg_one_op.get(), dense_x, one_op.get(),
@@ -161,9 +160,11 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
                    // Linop ist, hat sie ein apply
                    // stop kriterium wird durch fabrik generiert, genaueres?
                    // r = r - Ax =  -1.0 * A*dense_x + 1.0*r
+
     // TODO set r2 = r so there has to be only one apply
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                           r2.get());  // r2 = r
+
     // auto trans = Vector::create(exec,
     // gko::transpose(get_preconditioner->get_size()));//ist vector hier das
     // richtige? auto trans = system_matrix_.Matrix<ValueType>::transpose();
@@ -174,28 +175,44 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
         x, r.get());
 
     int iter = -1;  // zählt in der wievielten iteration man sich gerade aufhält
+    // GKO_ASSERT_MTX_NEAR(get_preconditioner(), l({{1, 0.0, 0.0}, {0.0, 2,
+    // 0.0}, {0.0, 0.0, 2}}), 1e-14);
+
     while (true) {
         // TODO preconditioner transponieren
+
         get_preconditioner()->apply(
             r.get(), z.get());  // preconditioner berechnen?(berechnet P*r und
                                 // speichert in z)
-        // TODO transponieren
+
+        // TODO transponieren(not necessary right now since jacobi is
+        // symmetrical)
         get_preconditioner()->apply(
             r2.get(), z2.get());  // preconditioner berechnen?(berechnet P*r2
                                   // und speichert in z2)
-        z2->compute_dot(r2.get(), rho.get());  // rho = r * z
+
+        z->compute_dot(r2.get(), rho.get());  // rho = r * z
+
 
         ++iter;  // sind jetzt in nächster iteration
-        this->template log<log::Logger::iteration_complete>(this, iter,
-                                                            r.get(),  //?
+        this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
                                                             dense_x);
+
+        this->template log<log::Logger::iteration_complete>(this, iter,
+                                                            r2.get(), dense_x);
         // checkt ob man abbrechen sollte
         if (stop_criterion->update()
                 .num_iterations(iter)
                 .residual(r.get())
                 .solution(dense_x)
-                .check(RelativeStoppingId, true, &stop_status,
-                       &one_changed)) {  //?
+                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
+            break;
+        }
+        if (stop_criterion->update()
+                .num_iterations(iter)
+                .residual(r2.get())
+                .solution(dense_x)
+                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
         // run nimmt eine funktion und führt sie dann demetsprechend auf dem
