@@ -62,12 +62,11 @@ namespace kernels {
                        const matrix::Dense<ValueType> *beta,        \
                        matrix::Dense<ValueType> *c)
 
-#define GKO_DECLARE_CSR_SPGEMM_KERNEL(ValueType, IndexType)                 \
-    void spgemm(std::shared_ptr<const DefaultExecutor> exec,                \
-                const matrix::Csr<ValueType, IndexType> *a,                 \
-                const matrix::Csr<ValueType, IndexType> *b,                 \
-                Array<IndexType> &c_row_ptrs, Array<IndexType> &c_col_idxs, \
-                Array<ValueType> &c_vals)
+#define GKO_DECLARE_CSR_SPGEMM_KERNEL(ValueType, IndexType)  \
+    void spgemm(std::shared_ptr<const DefaultExecutor> exec, \
+                const matrix::Csr<ValueType, IndexType> *a,  \
+                const matrix::Csr<ValueType, IndexType> *b,  \
+                matrix::Csr<ValueType, IndexType> *c)
 
 #define GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL(ValueType, IndexType)  \
     void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec, \
@@ -76,9 +75,7 @@ namespace kernels {
                          const matrix::Csr<ValueType, IndexType> *b,  \
                          const matrix::Dense<ValueType> *beta,        \
                          const matrix::Csr<ValueType, IndexType> *d,  \
-                         Array<IndexType> &c_row_ptrs,                \
-                         Array<IndexType> &c_col_idxs,                \
-                         Array<ValueType> &c_vals)
+                         matrix::Csr<ValueType, IndexType> *c)
 
 #define GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)  \
     void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
