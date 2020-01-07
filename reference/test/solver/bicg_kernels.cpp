@@ -83,13 +83,20 @@ protected:
                       gko::stop::ResidualNormReduction<>::build()
                           .with_reduction_factor(1e-15)
                           .on(exec))
-                  .on(exec))
+                  .on(exec)),
+          mtx_non_symmetric(gko::initialize<Mtx>(
+              {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec))
+
+
     {}
+
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> mtx_big;
+    std::shared_ptr<Mtx> mtx_non_symmetric;
     std::unique_ptr<gko::solver::Bicg<>::Factory> bicg_factory;
     std::unique_ptr<gko::solver::Bicg<>::Factory> bicg_factory_big;
+    std::unique_ptr<gko::solver::Bicg<>::Factory> bicg_factory_non_symmetric;
 };
 
 
@@ -169,6 +176,20 @@ TEST_F(Bicg, SolvesBigDenseSystem2)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}), 1e-10);
+}
+
+
+TEST_F(Bicg, SolvesNonSymmetricStencilSystem)
+{
+    auto solver = bicg_factory->generate(mtx_non_symmetric);
+    auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, exec);
+
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
+
+    solver->apply(b.get(), x.get());
+
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), 1e-14);
 }
 
 
