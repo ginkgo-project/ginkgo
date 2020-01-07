@@ -80,8 +80,8 @@ protected:
 
     void initialize_data()
     {
-        int m = 4;  // 597;
-        int n = 3;  // 43
+        int m = 597;
+        int n = 43;
         b = gen_mtx(m, n);
         r = gen_mtx(m, n);
         z = gen_mtx(m, n);
