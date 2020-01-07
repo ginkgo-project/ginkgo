@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
+#include "core/matrix/csr_builder.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "hip/base/config.hip.hpp"
@@ -452,8 +453,7 @@ template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const HipExecutor> exec,
             const matrix::Csr<ValueType, IndexType> *a,
             const matrix::Csr<ValueType, IndexType> *b,
-            Array<IndexType> &c_row_ptrs_array,
-            Array<IndexType> &c_col_idxs_array, Array<ValueType> &c_vals_array)
+            matrix::Csr<ValueType, IndexType> *c)
 {
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_hipsparse_handle();
@@ -479,6 +479,10 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
         auto m = IndexType(a->get_size()[0]);
         auto n = IndexType(b->get_size()[1]);
         auto k = IndexType(a->get_size()[1]);
+        auto c_row_ptrs = c->get_row_ptrs();
+        matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+        auto &c_col_idxs_array = c_builder.get_col_idx_array();
+        auto &c_vals_array = c_builder.get_value_array();
 
         // allocate buffer
         size_type buffer_size{};
@@ -490,8 +494,6 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
         auto buffer = buffer_array.get_data();
 
         // count nnz
-        c_row_ptrs_array.resize_and_reset(m + 1);
-        auto c_row_ptrs = c_row_ptrs_array.get_data();
         IndexType c_nnz{};
         hipsparse::spgemm_nnz(
             handle, m, n, k, a_descr, a_nnz, a_row_ptrs, a_col_idxs, b_descr,
@@ -529,9 +531,7 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
                      const matrix::Csr<ValueType, IndexType> *b,
                      const matrix::Dense<ValueType> *beta,
                      const matrix::Csr<ValueType, IndexType> *d,
-                     Array<IndexType> &c_row_ptrs_array,
-                     Array<IndexType> &c_col_idxs_array,
-                     Array<ValueType> &c_vals_array)
+                     matrix::Csr<ValueType, IndexType> *c)
 {
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_hipsparse_handle();
@@ -561,6 +561,10 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
         auto m = IndexType(a->get_size()[0]);
         auto n = IndexType(b->get_size()[1]);
         auto k = IndexType(a->get_size()[1]);
+        auto c_row_ptrs = c->get_row_ptrs();
+        matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+        auto &c_col_idxs_array = c_builder.get_col_idx_array();
+        auto &c_vals_array = c_builder.get_value_array();
 
         // allocate buffer
         size_type buffer_size{};
@@ -600,8 +604,6 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
         hipsparse::destroy(a_descr);
 
         // count nnz for alpha * A * B + beta * D
-        c_row_ptrs_array.resize_and_reset(m + 1);
-        auto c_row_ptrs = c_row_ptrs_array.get_data();
         auto num_blocks = ceildiv(m, default_block_size);
         hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::spgeam_nnz),
                            dim3(num_blocks), dim3(default_block_size), 0, 0,
