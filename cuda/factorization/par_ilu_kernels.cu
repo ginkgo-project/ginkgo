@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/coo.hpp>
 
 
-#include "core/matrix/common_kernels.hpp"
+#include "core/components/prefix_sum.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 

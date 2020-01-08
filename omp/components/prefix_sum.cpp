@@ -31,33 +31,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 
-#include "core/matrix/common_kernels.hpp"
-
-
-#include "cuda/components/prefix_sum.cuh"
+#include "core/components/prefix_sum.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
-
-
-constexpr int prefix_sum_block_size = 512;
+namespace omp {
 
 
 template <typename IndexType>
-void prefix_sum(std::shared_ptr<const CudaExecutor> exec, IndexType *counts,
+void prefix_sum(std::shared_ptr<const OmpExecutor> exec, IndexType *counts,
                 size_type num_entries)
 {
-    auto num_blocks = ceildiv(num_entries, prefix_sum_block_size);
-    Array<IndexType> block_sum_array(exec, num_blocks);
-    auto block_sums = block_sum_array.get_data();
-    start_prefix_sum<prefix_sum_block_size>
-        <<<num_blocks, prefix_sum_block_size>>>(num_entries, counts,
-                                                block_sums);
-    finalize_prefix_sum<prefix_sum_block_size>
-        <<<num_blocks, prefix_sum_block_size>>>(num_entries, counts,
-                                                block_sums);
+    IndexType partial_sum{};
+    for (IndexType i = 0; i < num_entries; ++i) {
+        auto nnz = counts[i];
+        counts[i] = partial_sum;
+        partial_sum += nnz;
+    }
 }
 
 
@@ -65,10 +56,10 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
 
 // explicitly instantiate for size_type as well, as this is used in the SellP
 // format
-template void prefix_sum<size_type>(std::shared_ptr<const CudaExecutor> exec,
+template void prefix_sum<size_type>(std::shared_ptr<const OmpExecutor> exec,
                                     size_type *counts, size_type num_entries);
 
 
-}  // namespace cuda
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko

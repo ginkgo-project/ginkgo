@@ -30,46 +30,63 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_CORE_COMPONENTS_PREFIX_SUM_HPP_
+#define GKO_CORE_COMPONENTS_PREFIX_SUM_HPP_
 
-#include "core/matrix/common_kernels.hpp"
+
+#include <memory>
 
 
-#include "hip/components/prefix_sum.hip.hpp"
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
 namespace kernels {
+
+
+#define GKO_DECLARE_PREFIX_SUM_KERNEL(IndexType)                 \
+    void prefix_sum(std::shared_ptr<const DefaultExecutor> exec, \
+                    IndexType *counts, size_type num_entries)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES \
+    template <typename IndexType>    \
+    GKO_DECLARE_PREFIX_SUM_KERNEL(IndexType)
+
+
+namespace omp {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace omp
+
+
+namespace cuda {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace cuda
+
+
+namespace reference {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace reference
+
+
 namespace hip {
 
-
-constexpr int prefix_sum_block_size = 512;
-
-
-template <typename IndexType>
-void prefix_sum(std::shared_ptr<const HipExecutor> exec, IndexType *counts,
-                size_type num_entries)
-{
-    auto num_blocks = ceildiv(num_entries, prefix_sum_block_size);
-    Array<IndexType> block_sum_array(exec, num_blocks);
-    auto block_sums = block_sum_array.get_data();
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(start_prefix_sum<prefix_sum_block_size>),
-                       dim3(num_blocks), dim3(prefix_sum_block_size), 0, 0,
-                       num_entries, counts, block_sums);
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(finalize_prefix_sum<prefix_sum_block_size>),
-        dim3(num_blocks), dim3(prefix_sum_block_size), 0, 0, num_entries,
-        counts, block_sums);
-}
-
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
-
-// explicitly instantiate for size_type as well, as this is used in the SellP
-// format
-template void prefix_sum<size_type>(std::shared_ptr<const HipExecutor> exec,
-                                    size_type *counts, size_type num_entries);
-
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace hip
+
+
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
+
+
 }  // namespace kernels
 }  // namespace gko
+
+#endif  // GKO_CORE_COMPONENTS_PREFIX_SUM_HPP_
