@@ -9,7 +9,7 @@ include(cmake/hip_path.cmake)
 include(cmake/autodetect_executors.cmake)
 
 # Ginkgo configuration options
-option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" ON)
+option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" OFF)
 option(GINKGO_BUILD_TESTS "Generate build files for unit tests" ON)
 option(GINKGO_BUILD_EXAMPLES "Build Ginkgo's examples" ON)
 option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
