@@ -499,7 +499,6 @@ protected:
                       parameters_.block_pointers.get_num_elems() - 1)),
           conditioning_(factory->get_executor())
     {
-        // GKO_NOT_SUPPORTED(this);
         parameters_.block_pointers.set_executor(this->get_executor());
         parameters_.storage_optimization.block_wise.set_executor(
             this->get_executor());
@@ -518,13 +517,15 @@ protected:
         uint32 max_block_size, uint32 param_max_block_stride)
     {
         uint32 default_block_stride = 32;
+        // If the executor is hip, the warp size is 32 or 64
         if (auto hip_exec = std::dynamic_pointer_cast<const gko::HipExecutor>(
                 this->get_executor())) {
             default_block_stride = hip_exec->get_warp_size();
         }
         uint32 max_block_stride = default_block_stride;
         if (param_max_block_stride != 0) {
-            // if max_block_stride is not zero, overwrite the max_block_stride
+            // if parameter max_block_stride is not zero, set max_block_stride =
+            // param_max_block_stride
             max_block_stride = param_max_block_stride;
             if (this->get_executor() != this->get_executor()->get_master() &&
                 max_block_stride != default_block_stride) {
