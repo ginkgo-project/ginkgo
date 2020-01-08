@@ -70,4 +70,27 @@ TEST_F(CsrBuilder, ReturnsCorrectArrays)
 }
 
 
+TEST_F(CsrBuilder, UpdatesSrowOnDestruction)
+{
+    struct mock_strategy : public Mtx::strategy_type {
+        virtual void process(const gko::Array<gko::int32> &,
+                             gko::Array<gko::int32> *)
+        {
+            *was_called = true;
+        }
+        virtual int64_t clac_size(const int64_t nnz) { return 0; }
+
+        mock_strategy(bool &flag) : Mtx::strategy_type(""), was_called(&flag) {}
+
+        bool *was_called;
+    };
+    bool was_called{};
+    mtx->set_strategy(std::make_shared<mock_strategy>(was_called));
+
+    gko::matrix::CsrBuilder<>{mtx.get()};
+
+    ASSERT_TRUE(was_called);
+}
+
+
 }  // namespace
