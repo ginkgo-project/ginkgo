@@ -30,63 +30,37 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_MATRIX_COMMON_KERNELS_HPP_
-#define GKO_CORE_MATRIX_COMMON_KERNELS_HPP_
 
-
-#include <memory>
-
-
-#include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/types.hpp>
+#include "core/components/prefix_sum.hpp"
 
 
 namespace gko {
 namespace kernels {
-
-
-#define GKO_DECLARE_PREFIX_SUM_KERNEL(IndexType)                 \
-    void prefix_sum(std::shared_ptr<const DefaultExecutor> exec, \
-                    IndexType *counts, size_type num_entries)
-
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES \
-    template <typename IndexType>    \
-    GKO_DECLARE_PREFIX_SUM_KERNEL(IndexType)
-
-
-namespace omp {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace omp
-
-
-namespace cuda {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace cuda
-
-
 namespace reference {
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
+
+template <typename IndexType>
+void prefix_sum(std::shared_ptr<const ReferenceExecutor> exec,
+                IndexType *counts, size_type num_entries)
+{
+    IndexType partial_sum{};
+    for (IndexType i = 0; i < num_entries; ++i) {
+        auto nnz = counts[i];
+        counts[i] = partial_sum;
+        partial_sum += nnz;
+    }
+}
+
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
+
+// explicitly instantiate for size_type as well, as this is used in the SellP
+// format
+template void prefix_sum<size_type>(
+    std::shared_ptr<const ReferenceExecutor> exec, size_type *counts,
+    size_type num_entries);
+
 
 }  // namespace reference
-
-
-namespace hip {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace hip
-
-
-#undef GKO_DECLARE_ALL_AS_TEMPLATES
-
-
 }  // namespace kernels
 }  // namespace gko
-
-#endif  // GKO_CORE_MATRIX_COMMON_KERNELS_HPP_
