@@ -61,7 +61,7 @@ public:
     /** Returns the value array of the COO matrix. */
     Array<ValueType> &get_value_array() { return matrix_->values_; }
 
-    /** Initializes a CsrBuilder from an existing COO matrix. */
+    /** Initializes a CooBuilder from an existing COO matrix. */
     explicit CooBuilder(Coo<ValueType, IndexType> *matrix) : matrix_{matrix} {}
 
     // make this type non-movable
