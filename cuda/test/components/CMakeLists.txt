@@ -1,1 +1,2 @@
+ginkgo_create_cuda_test(prefix_sum)
 ginkgo_create_cuda_test(sorting)
