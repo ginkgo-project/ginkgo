@@ -59,7 +59,7 @@ public:
     Array<ValueType> &get_value_array() { return matrix_->values_; }
 
     /** Initializes a CsrBuilder from an existing CSR matrix. */
-    CsrBuilder(Csr<ValueType, IndexType> *matrix) : matrix_{matrix} {}
+    explicit CsrBuilder(Csr<ValueType, IndexType> *matrix) : matrix_{matrix} {}
 
     /** Updates the internal matrix data structures at destruction. */
     ~CsrBuilder() { matrix_->make_srow(); }

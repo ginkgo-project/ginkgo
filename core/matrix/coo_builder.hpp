@@ -62,7 +62,7 @@ public:
     Array<ValueType> &get_value_array() { return matrix_->values_; }
 
     /** Initializes a CsrBuilder from an existing COO matrix. */
-    CooBuilder(Coo<ValueType, IndexType> *matrix) : matrix_{matrix} {}
+    explicit CooBuilder(Coo<ValueType, IndexType> *matrix) : matrix_{matrix} {}
 
     // make this type non-movable
     CooBuilder(const CooBuilder &) = delete;
