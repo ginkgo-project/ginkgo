@@ -86,6 +86,7 @@ TEST_F(CsrBuilder, UpdatesSrowOnDestruction)
     };
     bool was_called{};
     mtx->set_strategy(std::make_shared<mock_strategy>(was_called));
+    was_called = false;
 
     gko::matrix::CsrBuilder<>{mtx.get()};
 
