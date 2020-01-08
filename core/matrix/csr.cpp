@@ -90,7 +90,6 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
         // if b is a CSR matrix, we compute a SpGeMM
         auto x_csr = as<TCsr>(x);
         this->get_executor()->run(csr::make_spgemm(this, b_csr, x_csr));
-        x_csr->make_srow();
     } else {
         // otherwise we assume that b is dense and compute a SpMV/SpMM
         this->get_executor()->run(
@@ -112,7 +111,6 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
         this->get_executor()->run(
             csr::make_advanced_spgemm(as<Dense>(alpha), this, b_csr,
                                       as<Dense>(beta), x_copy.get(), x_csr));
-        x_csr->make_srow();
     } else {
         // otherwise we assume that b is dense and compute a SpMV/SpMM
         this->get_executor()->run(

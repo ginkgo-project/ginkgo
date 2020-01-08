@@ -64,6 +64,12 @@ public:
     /** Initializes a CsrBuilder from an existing COO matrix. */
     CooBuilder(Coo<ValueType, IndexType> *matrix) : matrix_{matrix} {}
 
+    // make this type non-movable
+    CooBuilder(const CooBuilder &) = delete;
+    CooBuilder(CooBuilder &&) = delete;
+    CooBuilder &operator=(const CooBuilder &) = delete;
+    CooBuilder &operator=(CooBuilder &&) = delete;
+
 private:
     Coo<ValueType, IndexType> *matrix_;
 };

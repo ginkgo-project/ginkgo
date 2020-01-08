@@ -61,6 +61,15 @@ public:
     /** Initializes a CsrBuilder from an existing CSR matrix. */
     CsrBuilder(Csr<ValueType, IndexType> *matrix) : matrix_{matrix} {}
 
+    /** Updates the internal matrix data structures at destruction. */
+    ~CsrBuilder() { matrix_->make_srow(); }
+
+    // make this type non-movable
+    CsrBuilder(const CsrBuilder &) = delete;
+    CsrBuilder(CsrBuilder &&) = delete;
+    CsrBuilder &operator=(const CsrBuilder &) = delete;
+    CsrBuilder &operator=(CsrBuilder &&) = delete;
+
 private:
     Csr<ValueType, IndexType> *matrix_;
 };
