@@ -66,7 +66,7 @@ namespace hip {
 namespace jacobi {
 
 
-#include "common/preconditioner/jacobi_gernerate_kernel.hpp.inc"
+#include "common/preconditioner/jacobi_generate_kernel.hpp.inc"
 
 
 namespace {
