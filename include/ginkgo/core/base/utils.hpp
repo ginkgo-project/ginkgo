@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 
@@ -290,7 +291,8 @@ inline typename std::decay<T>::type *as(U *obj)
     if (auto p = dynamic_cast<typename std::decay<T>::type *>(obj)) {
         return p;
     } else {
-        throw NotSupported(__FILE__, __LINE__, __func__, typeid(obj).name());
+        throw NotSupported(__FILE__, __LINE__, __func__,
+                           name_demangling::get_type_name(typeid(obj)));
     }
 }
 
@@ -313,7 +315,8 @@ inline const typename std::decay<T>::type *as(const U *obj)
     if (auto p = dynamic_cast<const typename std::decay<T>::type *>(obj)) {
         return p;
     } else {
-        throw NotSupported(__FILE__, __LINE__, __func__, typeid(obj).name());
+        throw NotSupported(__FILE__, __LINE__, __func__,
+                           name_demangling::get_type_name(typeid(obj)));
     }
 }
 
