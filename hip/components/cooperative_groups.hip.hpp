@@ -171,14 +171,22 @@ namespace detail {
  */
 template <size_type Size>
 class thread_block_tile {
+    /**
+     * Mask with Size consecutive ones starting at the least significant bit.
+     */
+    static constexpr auto lane_mask_base = ~config::lane_mask_type{} >>
+                                           (config::warp_size - Size);
+
 public:
-    __device__ thread_block_tile()
-        : data_{Size,
-                static_cast<unsigned>(
-                    (threadIdx.x +
-                     blockDim.x * (threadIdx.y + blockDim.y * threadIdx.z)) %
-                    Size)}
-    {}
+    __device__ thread_block_tile() : data_{Size, 0, 0, lane_mask_base}
+    {
+        auto tid =
+            unsigned(threadIdx.x +
+                     blockDim.x * (threadIdx.y + blockDim.y * threadIdx.z));
+        data_.rank = tid % Size;
+        data_.lane_offset = (tid % config::warp_size) / Size * Size;
+        data_.mask <<= data_.lane_offset;
+    }
 
     __device__ __forceinline__ unsigned thread_rank() const noexcept
     {
@@ -190,8 +198,14 @@ public:
         return data_.size;
     }
 
-    __device__ __forceinline__ void sync() const noexcept {}
+    __device__ __forceinline__ void sync() const noexcept
+    {
+#if GINKGO_HIP_PLATFORM_NVCC
+        __syncwarp(data_.mask);
+#endif
+    }
 
+#if GINKGO_HIP_PLATFORM_HCC
 #define GKO_BIND_SHFL(ShflOp, ValueType, SelectorType)                       \
     __device__ __forceinline__ ValueType ShflOp(                             \
         ValueType var, SelectorType selector) const noexcept                 \
@@ -201,6 +215,17 @@ public:
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
+#else
+#define GKO_BIND_SHFL(ShflOp, ValueType, SelectorType)                       \
+    __device__ __forceinline__ ValueType ShflOp(                             \
+        ValueType var, SelectorType selector) const noexcept                 \
+    {                                                                        \
+        return __##ShflOp##_sync(data_.mask, var, selector, Size);           \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+#endif
 
     GKO_BIND_SHFL(shfl, int32, int32);
     GKO_BIND_SHFL(shfl, float, int32);
@@ -224,30 +249,38 @@ public:
 
     __device__ __forceinline__ int any(int predicate) const noexcept
     {
-        static_assert(Size == kernels::hip::config::warp_size,
-                      "Hip does not have subwarp any.");
-        return __any(predicate);
+#if GINKGO_HIP_PLATFORM_HCC
+        return (__ballot(predicate) & data_.mask) != 0;
+#else
+        return __any_sync(data_.mask, predicate);
+#endif
     }
 
     __device__ __forceinline__ int all(int predicate) const noexcept
     {
-        static_assert(Size == kernels::hip::config::warp_size,
-                      "Hip does not have subwarp all.");
-        return __all(predicate);
+#if GINKGO_HIP_PLATFORM_HCC
+        return (__ballot(predicate) & data_.mask) == data_.mask;
+#else
+        return __all_sync(data_.mask, predicate);
+#endif
     }
 
     __device__ __forceinline__ config::lane_mask_type ballot(
         int predicate) const noexcept
     {
-        static_assert(Size == kernels::hip::config::warp_size,
-                      "Hip does not have subwarp ballot.");
-        return __ballot(predicate);
+#if GINKGO_HIP_PLATFORM_HCC
+        return (__ballot(predicate) & data_.mask) >> data_.lane_offset;
+#else
+        return __ballot_sync(data_.mask, predicate) >> data_.lane_offset;
+#endif
     }
 
 private:
     struct alignas(8) {
         unsigned size;
         unsigned rank;
+        unsigned lane_offset;
+        config::lane_mask_type mask;
     } data_;
 };
 
