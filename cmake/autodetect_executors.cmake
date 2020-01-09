@@ -1,0 +1,21 @@
+set(GINKGO_HAS_OMP OFF)
+set(GINKGO_HAS_CUDA OFF)
+set(GINKGO_HAS_HIP OFF)
+find_package(OpenMP)
+include(CheckLanguage)
+check_language(CUDA)
+
+if(NOT DEFINED GINKGO_BUILD_OMP AND OpenMP_CXX_FOUND)
+    message(STATUS "Enabling OpenMP executor")
+    set(GINKGO_HAS_OMP ON)
+endif()
+
+if(NOT DEFINED GINKGO_BUILD_CUDA AND CMAKE_CUDA_COMPILER)
+    message(STATUS "Enabling CUDA executor")
+    set(GINKGO_HAS_CUDA ON)
+endif()
+
+if(NOT DEFINED GINKGO_BUILD_HIP AND GINKGO_HIPCONFIG_PATH)
+    message(STATUS "Enabling HIP executor")
+    set(GINKGO_HAS_HIP ON)
+endif()

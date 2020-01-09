@@ -3,37 +3,10 @@ cmake_minimum_required(VERSION 3.9)
 project(Ginkgo LANGUAGES C CXX VERSION 1.1.1 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
-include(CheckLanguage)
 
-# Determine which languages can be compiled
-check_language(CUDA)
-if(CMAKE_CUDA_COMPILER)
-    set(GINKGO_HAS_CUDA ON)
-else()
-    set(GINKGO_HAS_CUDA OFF)
-endif()
-
-find_package(OpenMP)
-if(OpenMP_CXX_FOUND)
-    set(GINKGO_HAS_OMP ON)
-else()
-    set(GINKGO_HAS_OMP OFF)
-endif()
-
-if(NOT DEFINED HIP_PATH)
-    if(NOT DEFINED ENV{HIP_PATH})
-        set(HIP_PATH "/opt/rocm/hip" CACHE PATH "Path to which HIP has been installed")
-        set(ENV{HIP_PATH} ${HIP_PATH})
-    else()
-        set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
-    endif()
-endif()
-find_program(GINKGO_HIPCONFIG_PATH hipconfig HINTS "${HIP_PATH}/bin")
-if(GINKGO_HIPCONFIG_PATH)
-    set(GINKGO_HAS_HIP ON)
-else()
-    set(GINKGO_HAS_HIP OFF)
-endif()
+# Determine which executors can be compiled
+include(cmake/hip_path.cmake)
+include(cmake/autodetect_executors.cmake)
 
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" ON)
@@ -151,6 +124,7 @@ set(GINKGO_HIP_PLATFORM_NVCC 0)
 set(GINKGO_HIP_PLATFORM_HCC 0)
 
 if (GINKGO_BUILD_HIP)
+    # GINKGO_HIPCONFIG_PATH and HIP_PATH are set in cmake/hip_path.cmake
     if(GINKGO_HIPCONFIG_PATH)
         execute_process(COMMAND ${GINKGO_HIPCONFIG_PATH} --platform OUTPUT_VARIABLE GINKGO_HIP_PLATFORM)
     elseif(DEFINED ENV{HIP_PLATFORM})
