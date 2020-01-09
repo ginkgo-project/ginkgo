@@ -28,11 +28,13 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_BUILD_REFERENCE={ON, OFF}` build reference implementations of the
     kernels, useful for testing, default is `ON`
 *   `-DGINKGO_BUILD_OMP={ON, OFF}` builds optimized OpenMP versions of the kernels,
-    default is `OFF`
+    default is `ON` if the selected C++ compiler supports OpenMP, `OFF` otherwise.
 *   `-DGINKGO_BUILD_CUDA={ON, OFF}` builds optimized cuda versions of the kernels
-    (requires CUDA), default is `OFF`
+    (requires CUDA), default is `ON` if a CUDA compiler could be detected,
+    `OFF` otherwise.
 *   `-DGINKGO_BUILD_HIP={ON, OFF}` builds optimized HIP versions of the kernels
-    (requires HIP), default is `OFF`
+    (requires HIP), default is `ON` if an installation of HIP could be detected,
+    `OFF` otherwise.
 *   `-DGINKGO_HIP_AMDGPU="gpuarch1;gpuarch2"` the amdgpu_target(s) variable
     passed to hipcc for the `hcc` HIP backend. The default is none (auto).
 *   `-DGINKGO_BUILD_DOC={ON, OFF}` creates an HTML version of Ginkgo's documentation
@@ -104,7 +106,7 @@ For example, to build everything (in debug mode), use:
 ```cmake
 cmake  -G "Unix Makefiles" -H. -BDebug -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \
     -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON \
-    -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_HIP=ON \
+    -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_HIP=ON
 cmake --build Debug
 ```
 
@@ -114,8 +116,10 @@ generators. Other CMake generators are untested.
 ### Building Ginkgo with HIP support
 Ginkgo provides a [HIP](https://github.com/ROCm-Developer-Tools/HIP) backend.
 This allows to compile optimized versions of the kernels for either AMD or
-NVIDIA GPUs. To build Ginkgo with this backend, use the CMake option
-`-DGINKGO_BUILD_HIP=ON`.
+NVIDIA GPUs. The CMake configuration step will try to auto-detect the presence
+of HIP either at `/opt/rocm/hip` or at the path specified by `HIP_PATH` as a
+CMake parameter (`-DHIP_PATH=`) or environment variable (`export HIP_PATH=`),
+unless `-DGINKGO_BUILD_HIP=ON/OFF` is set explicitly.
 
 #### Correctly installing HIP toolkits and dependencies for Ginkgo
 In general, Ginkgo's HIP backend requires the following packages:
