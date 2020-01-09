@@ -292,7 +292,7 @@ public:
         /**
          * Maximal size of diagonal blocks.
          *
-         * @note This value has to be between 1 and 32(NVIDIA)/64(AMD).
+         * @note This value has to be between 1 and 32 (NVIDIA)/64 (AMD).
          */
         uint32 GKO_FACTORY_PARAMETER(max_block_size, 32u);
 
