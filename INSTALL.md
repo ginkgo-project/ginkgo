@@ -17,7 +17,7 @@ Ginkgo adds the following additional switches to control what is being built:
 
 *   `-DGINKGO_DEVEL_TOOLS={ON, OFF}` sets up the build system for development
     (requires clang-format, will also download git-cmake-format),
-    default is `ON`.
+    default is `OFF`.
 *   `-DGINKGO_BUILD_TESTS={ON, OFF}` builds Ginkgo's tests
     (will download googletest), default is `ON`.
 *   `-DGINKGO_BUILD_BENCHMARKS={ON, OFF}` builds Ginkgo's benchmarks
