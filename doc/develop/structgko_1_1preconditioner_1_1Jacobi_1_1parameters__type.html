@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/108148852 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/108211504 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -91,6 +91,10 @@ Public Member Functions</h2></td></tr>
 template&lt;typename... Args&gt; </td></tr>
 <tr class="memitem:a4514d906e32b8331a0c9c90ff29f4fbd"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><b>with_max_block_size</b> (Args &amp;&amp;... _value) const -&gt; const ::gko::xstd::decay_t&lt; decltype(*this)&gt; &amp;</td></tr>
 <tr class="separator:a4514d906e32b8331a0c9c90ff29f4fbd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a17aa9161d5ea5c0f4974c77afc41d900"><td class="memTemplParams" colspan="2"><a id="a17aa9161d5ea5c0f4974c77afc41d900"></a>
+template&lt;typename... Args&gt; </td></tr>
+<tr class="memitem:a17aa9161d5ea5c0f4974c77afc41d900"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><b>with_max_block_stride</b> (Args &amp;&amp;... _value) const -&gt; const ::gko::xstd::decay_t&lt; decltype(*this)&gt; &amp;</td></tr>
+<tr class="separator:a17aa9161d5ea5c0f4974c77afc41d900"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9fcbaa7fdaf17490d0b6a5fccfe70e80"><td class="memTemplParams" colspan="2"><a id="a9fcbaa7fdaf17490d0b6a5fccfe70e80"></a>
 template&lt;typename... Args&gt; </td></tr>
 <tr class="memitem:a9fcbaa7fdaf17490d0b6a5fccfe70e80"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><b>with_block_pointers</b> (Args &amp;&amp;... _value) const -&gt; const ::gko::xstd::decay_t&lt; decltype(*this)&gt; &amp;</td></tr>
@@ -113,6 +117,9 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a7d11d10b347b25b64b5b916e6a74364e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a7d11d10b347b25b64b5b916e6a74364e">max_block_size</a> { 32u }</td></tr>
 <tr class="memdesc:a7d11d10b347b25b64b5b916e6a74364e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximal size of diagonal blocks.  <a href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a7d11d10b347b25b64b5b916e6a74364e">More...</a><br /></td></tr>
 <tr class="separator:a7d11d10b347b25b64b5b916e6a74364e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a042df68c54ea721101c4b064ed450a1f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a042df68c54ea721101c4b064ed450a1f">max_block_stride</a> { 0u }</td></tr>
+<tr class="memdesc:a042df68c54ea721101c4b064ed450a1f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Stride between two columns of a block (as number of elements).  <a href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a042df68c54ea721101c4b064ed450a1f">More...</a><br /></td></tr>
+<tr class="separator:a042df68c54ea721101c4b064ed450a1f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab70db5d25c2efd13579170b28218ea66"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classgko_1_1Array.html">gko::Array</a>&lt; index_type &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#ab70db5d25c2efd13579170b28218ea66">block_pointers</a> { nullptr }</td></tr>
 <tr class="memdesc:ab70db5d25c2efd13579170b28218ea66"><td class="mdescLeft">&#160;</td><td class="mdescRight">Starting (row / column) indexes of individual blocks.  <a href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#ab70db5d25c2efd13579170b28218ea66">More...</a><br /></td></tr>
 <tr class="separator:ab70db5d25c2efd13579170b28218ea66"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -219,7 +226,35 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 </div><div class="memdoc">
 
 <p>Maximal size of diagonal blocks. </p>
-<dl class="section note"><dt>Note</dt><dd>This value has to be between 1 and 32. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>This value has to be between 1 and 32 (NVIDIA)/64 (AMD). </dd></dl>
+
+</div>
+</div>
+<a id="a042df68c54ea721101c4b064ed450a1f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a042df68c54ea721101c4b064ed450a1f">&#9670;&nbsp;</a></span>max_block_stride</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a> <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi</a>&lt; ValueType, IndexType &gt;::parameters_type::max_block_stride { 0u }</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">mutable</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Stride between two columns of a block (as number of elements). </p>
+<p>Should be a multiple of cache line size for best performance.</p>
+<dl class="section note"><dt>Note</dt><dd>If this value is 0, it uses 64 in hip AMD but 32 in NVIDIA or reference executor. The allowed value: 0, 64 for AMD and 0, 32 for NVIDIA </dd></dl>
 
 </div>
 </div>
@@ -258,10 +293,10 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 </div>
 </div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
-<li>ginkgo/core/preconditioner/<a class="el" href="include_2ginkgo_2core_2preconditioner_2jacobi_8hpp_source.html">jacobi.hpp (29444d385)</a></li>
+<li>ginkgo/core/preconditioner/<a class="el" href="include_2ginkgo_2core_2preconditioner_2jacobi_8hpp_source.html">jacobi.hpp (ec80371cc)</a></li>
 </ul>
 </div><!-- contents -->
-<div class="ttc" id="astructgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_html_ad4fd0de7ce4d390584e947afb6d0ce73"><div class="ttname"><a href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#ad4fd0de7ce4d390584e947afb6d0ce73">gko::preconditioner::Jacobi::parameters_type::accuracy</a></div><div class="ttdeci">remove_complex&lt; value_type &gt; accuracy</div><div class="ttdoc">The relative accuracy of the adaptive Jacobi variant.</div><div class="ttdef"><b>Definition:</b> jacobi.hpp:450</div></div>
+<div class="ttc" id="astructgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_html_ad4fd0de7ce4d390584e947afb6d0ce73"><div class="ttname"><a href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#ad4fd0de7ce4d390584e947afb6d0ce73">gko::preconditioner::Jacobi::parameters_type::accuracy</a></div><div class="ttdeci">remove_complex&lt; value_type &gt; accuracy</div><div class="ttdoc">The relative accuracy of the adaptive Jacobi variant.</div><div class="ttdef"><b>Definition:</b> jacobi.hpp:461</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by &#160;<a href="http://www.doxygen.org/index.html">

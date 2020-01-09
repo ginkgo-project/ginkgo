@@ -16,6 +16,9 @@ Collaboration diagram for gko\+::preconditioner\+::Jacobi$<$ Value\+Type, Index\
 \mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a4514d906e32b8331a0c9c90ff29f4fbd}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a4514d906e32b8331a0c9c90ff29f4fbd}} 
 {\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+max\+\_\+block\+\_\+size} (Args \&\&... \+\_\+value) const -\/$>$ const \+::gko\+::xstd\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
 \item 
+\mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a17aa9161d5ea5c0f4974c77afc41d900}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a17aa9161d5ea5c0f4974c77afc41d900}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+max\+\_\+block\+\_\+stride} (Args \&\&... \+\_\+value) const -\/$>$ const \+::gko\+::xstd\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
 \mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a9fcbaa7fdaf17490d0b6a5fccfe70e80}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a9fcbaa7fdaf17490d0b6a5fccfe70e80}} 
 {\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+block\+\_\+pointers} (Args \&\&... \+\_\+value) const -\/$>$ const \+::gko\+::xstd\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
 \item 
@@ -30,6 +33,8 @@ Collaboration diagram for gko\+::preconditioner\+::Jacobi$<$ Value\+Type, Index\
 \item 
 \mbox{\hyperlink{namespacegko_a318c831e3fe269ba04c6ed8bf5a71073}{uint32}} \mbox{\hyperlink{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a7d11d10b347b25b64b5b916e6a74364e}{max\+\_\+block\+\_\+size}} \{ 32u \}
 \begin{DoxyCompactList}\small\item\em Maximal size of diagonal blocks. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a318c831e3fe269ba04c6ed8bf5a71073}{uint32}} \mbox{\hyperlink{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a042df68c54ea721101c4b064ed450a1f}{max\+\_\+block\+\_\+stride}} \{ 0u \}
+\begin{DoxyCompactList}\small\item\em Stride between two columns of a block (as number of elements). \end{DoxyCompactList}\item 
 \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ index\+\_\+type $>$ \mbox{\hyperlink{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_ab70db5d25c2efd13579170b28218ea66}{block\+\_\+pointers}} \{ nullptr \}
 \begin{DoxyCompactList}\small\item\em Starting (row / column) indexes of individual blocks. \end{DoxyCompactList}\item 
 storage\+\_\+optimization\+\_\+type \mbox{\hyperlink{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a51d0eec65f99d6dd5b0ebe5ba69390dd}{storage\+\_\+optimization}} \{ \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}}(0, 0) \}
@@ -97,7 +102,23 @@ The maximum block size set by the max\+\_\+block\+\_\+size parameter has to be r
 Maximal size of diagonal blocks. 
 
 \begin{DoxyNote}{Note}
-This value has to be between 1 and 32. 
+This value has to be between 1 and 32 (N\+V\+I\+D\+IA)/64 (A\+MD). 
+\end{DoxyNote}
+\mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a042df68c54ea721101c4b064ed450a1f}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a042df68c54ea721101c4b064ed450a1f}} 
+\index{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type}!max\_block\_stride@{max\_block\_stride}}
+\index{max\_block\_stride@{max\_block\_stride}!gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{max\_block\_stride}{max\_block\_stride}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a318c831e3fe269ba04c6ed8bf5a71073}{uint32}} \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko\+::preconditioner\+::\+Jacobi}}$<$ Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::max\+\_\+block\+\_\+stride \{ 0u \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+Stride between two columns of a block (as number of elements). 
+
+Should be a multiple of cache line size for best performance.
+
+\begin{DoxyNote}{Note}
+If this value is 0, it uses 64 in hip A\+MD but 32 in N\+V\+I\+D\+IA or reference executor. The allowed value\+: 0, 64 for A\+MD and 0, 32 for N\+V\+I\+D\+IA 
 \end{DoxyNote}
 \mbox{\Hypertarget{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a51d0eec65f99d6dd5b0ebe5ba69390dd}\label{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a51d0eec65f99d6dd5b0ebe5ba69390dd}} 
 \index{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Jacobi$<$ ValueType, IndexType $>$::parameters\_type}!storage\_optimization@{storage\_optimization}}
@@ -128,4 +149,4 @@ Once an instance of the \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{J
 
 The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/preconditioner/jacobi.\+hpp (29444d385)\end{DoxyCompactItemize}
+ginkgo/core/preconditioner/jacobi.\+hpp (ec80371cc)\end{DoxyCompactItemize}
