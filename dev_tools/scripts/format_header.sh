@@ -94,7 +94,8 @@ RECORD_HEADER=0
 IFNDEF="^#ifndef"
 DEFINE="^#define"
 NAMESPACE="^namespace"
-
+config_regex=$(dev_tools/scripts/temp.sh $1)
+# echo "config_regex ${config_regex}"
 compute_score() {
     # $1 filename
     # $2 include
@@ -110,6 +111,7 @@ compute_score() {
 }
 
 SCORE=0
+FINAL_CONFIG=""
 while IFS='' read -r line; do
     if [ "${DURING_CONTENT}" = "true" ]; then
         echo "${line}" >> "${CONTENT}"
@@ -123,6 +125,9 @@ while IFS='' read -r line; do
     elif [ -z "${line}" ] && [[ ${RECORD_HEADER} < 3 ]]; then
         :
     elif [[ ! "${line}" =~ ${NAMESPACE} ]]; then
+        if [[ "${line}" =~ ${config_regex} ]]; then
+                FINAL_CONFIG="${FINAL_CONFIG}$(convert_header ${line})"
+        fi
         if [[ "${line}" =~ ${IFNDEF} ]] && [[ ${RECORD_HEADER} == 0 ]]; then
             echo "${line}" >> ${BEFORE}
             RECORD_HEADER=$((RECORD_HEADER+1))
@@ -134,8 +139,8 @@ while IFS='' read -r line; do
                 echo "" >> ${BEFORE}
                 echo "" >> ${BEFORE}
             fi
-            
             line="$(convert_header ${line})"
+            # echo "match original ${line}"
 
             if [[ -z "${MAIN_INCLUDE}" ]]; then
                 MAIN_INCLUDE="${line}"
@@ -170,7 +175,11 @@ while IFS='' read -r line; do
         echo "${line}" >> "${CONTENT}"
     fi
 done < $1
-# echo "${MAIN_INCLUDE}"
+# echo "final ${MAIN_INCLUDE}"
+if [ ! "${MAIN_INCLUDE}" = "${FINAL_CONFIG}" ]; then
+    echo "$1 config_regex ${config_regex}"
+    echo "${MAIN_INCLUDE} config ${FINAL_CONFIG}"
+fi
 # cp ${HEADER} header2
 echo "/*${GINKGO_LICENSE_BEACON}" > $1
 cat LICENSE >> $1
