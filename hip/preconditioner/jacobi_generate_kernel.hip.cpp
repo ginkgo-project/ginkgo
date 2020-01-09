@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/jacobi_kernels.hpp"
 
 
+#include <hip/hip_runtime.h>
+
+
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 
@@ -40,21 +43,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/extended_float.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/base/math.hpp"
-#include "cuda/base/types.hpp"
-#include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/diagonal_block_manipulation.cuh"
-#include "cuda/components/thread_ids.cuh"
-#include "cuda/components/uninitialized_array.hpp"
-#include "cuda/components/warp_blas.cuh"
-#include "cuda/components/zero_array.hpp"
-#include "cuda/preconditioner/jacobi_common.hpp"
+#include "hip/base/config.hip.hpp"
+#include "hip/base/math.hip.hpp"
+#include "hip/base/types.hip.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/diagonal_block_manipulation.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
+#include "hip/components/uninitialized_array.hip.hpp"
+#include "hip/components/warp_blas.hip.hpp"
+#include "hip/components/zero_array.hip.hpp"
+#include "hip/preconditioner/jacobi_common.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace hip {
 /**
  * @brief The Jacobi preconditioner namespace.
  * @ref Jacobi
@@ -87,21 +90,23 @@ void generate(syn::value_list<int, max_block_size>,
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
 
     if (block_precisions) {
-        kernel::adaptive_generate<max_block_size, subwarp_size, warps_per_block>
-            <<<grid_size, block_size, 0, 0>>>(
-                mtx->get_size()[0], mtx->get_const_row_ptrs(),
-                mtx->get_const_col_idxs(),
-                as_cuda_type(mtx->get_const_values()), as_cuda_type(accuracy),
-                as_cuda_type(block_data), storage_scheme,
-                as_cuda_type(conditioning), block_precisions, block_ptrs,
-                num_blocks);
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(
+                kernel::adaptive_generate<max_block_size, subwarp_size,
+                                          warps_per_block>),
+            dim3(grid_size), dim3(block_size), 0, 0, mtx->get_size()[0],
+            mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+            as_hip_type(mtx->get_const_values()), as_hip_type(accuracy),
+            as_hip_type(block_data), storage_scheme, as_hip_type(conditioning),
+            block_precisions, block_ptrs, num_blocks);
     } else {
-        kernel::generate<max_block_size, subwarp_size, warps_per_block>
-            <<<grid_size, block_size, 0, 0>>>(
-                mtx->get_size()[0], mtx->get_const_row_ptrs(),
-                mtx->get_const_col_idxs(),
-                as_cuda_type(mtx->get_const_values()), as_cuda_type(block_data),
-                storage_scheme, block_ptrs, num_blocks);
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(kernel::generate<max_block_size, subwarp_size,
+                                             warps_per_block>),
+            dim3(grid_size), dim3(block_size), 0, 0, mtx->get_size()[0],
+            mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+            as_hip_type(mtx->get_const_values()), as_hip_type(block_data),
+            storage_scheme, block_ptrs, num_blocks);
     }
 }
 
@@ -112,7 +117,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generate, generate);
 
 
 template <typename ValueType, typename IndexType>
-void generate(std::shared_ptr<const CudaExecutor> exec,
+void generate(std::shared_ptr<const HipExecutor> exec,
               const matrix::Csr<ValueType, IndexType> *system_matrix,
               size_type num_blocks, uint32 max_block_size,
               remove_complex<ValueType> accuracy,
@@ -139,6 +144,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace jacobi
-}  // namespace cuda
+}  // namespace hip
 }  // namespace kernels
 }  // namespace gko

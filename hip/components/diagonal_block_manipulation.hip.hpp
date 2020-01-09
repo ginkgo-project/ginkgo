@@ -30,38 +30,28 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_HIP_COMPONENTS_DIAGONAL_BLOCK_MANIPULATION_HIP_HPP_
+#define GKO_HIP_COMPONENTS_DIAGONAL_BLOCK_MANIPULATION_HIP_HPP_
 
-#include <ginkgo/config.hpp>
-#include <ginkgo/core/synthesizer/containers.hpp>
 
+#include "hip/base/config.hip.hpp"
+#include "hip/base/types.hip.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
 
-#include "cuda/base/config.hpp"
 
 namespace gko {
 namespace kernels {
-namespace cuda {
-namespace jacobi {
+namespace hip {
+namespace csr {
 
 
-/**
- * A compile-time list of block sizes for which dedicated generate and apply
- * kernels should be compiled.
- */
-#ifdef GINKGO_JACOBI_FULL_OPTIMIZATIONS
-using compiled_kernels = syn::as_list<syn::range<1, config::warp_size + 1, 1>>;
-#else
-using compiled_kernels =
-    syn::value_list<int, 1, 2, 4, 8, 13, 16, 32, config::warp_size>;
-#endif
+#include "common/components/diagonal_block_manipulation.hpp.inc"
 
 
-constexpr int get_larger_power(int value, int guess = 1)
-{
-    return guess >= value ? guess : get_larger_power(value, guess << 1);
-}
-
-
-}  // namespace jacobi
-}  // namespace cuda
+}  // namespace csr
+}  // namespace hip
 }  // namespace kernels
 }  // namespace gko
+
+
+#endif  // GKO_HIP_COMPONENTS_DIAGONAL_BLOCK_MANIPULATION_HIP_HPP_

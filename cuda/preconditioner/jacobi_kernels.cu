@@ -62,92 +62,7 @@ constexpr int default_block_size = 32;
 constexpr int default_grid_size = 32 * 32 * 128;
 
 
-template <int warps_per_block>
-__global__
-__launch_bounds__(warps_per_block *config::warp_size) void duplicate_array(
-    const precision_reduction *__restrict__ source, size_type source_size,
-    precision_reduction *__restrict__ dest, size_type dest_size)
-{
-    auto grid = group::this_grid();
-    if (grid.thread_rank() >= dest_size) {
-        return;
-    }
-    for (auto i = grid.thread_rank(); i < dest_size; i += grid.size()) {
-        dest[i] = source[i % source_size];
-    }
-}
-
-
-template <typename IndexType>
-__global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
-                                      const IndexType *__restrict__ row_ptrs,
-                                      const IndexType *__restrict__ col_idx,
-                                      bool *__restrict__ matching_next_row)
-{
-    const auto global_tid = blockDim.x * blockIdx.x + threadIdx.x;
-    const auto local_tid = threadIdx.x % config::warp_size;
-    const auto warp_id = global_tid / config::warp_size;
-    const auto warp =
-        group::tiled_partition<config::warp_size>(group::this_thread_block());
-
-    if (warp_id >= num_rows - 1) {
-        return;
-    }
-
-    const auto curr_row_start = row_ptrs[warp_id];
-    const auto next_row_start = row_ptrs[warp_id + 1];
-    const auto next_row_end = row_ptrs[warp_id + 2];
-
-    const auto nz_this_row = next_row_end - next_row_start;
-    const auto nz_prev_row = next_row_start - curr_row_start;
-
-    if (nz_this_row != nz_prev_row) {
-        matching_next_row[warp_id] = false;
-        return;
-    }
-    size_type steps = ceildiv(nz_this_row, config::warp_size);
-    for (size_type i = 0; i < steps; i++) {
-        auto j = local_tid + i * config::warp_size;
-        auto prev_col = (curr_row_start + j < next_row_start)
-                            ? col_idx[curr_row_start + j]
-                            : 0;
-        auto this_col = (curr_row_start + j < next_row_start)
-                            ? col_idx[next_row_start + j]
-                            : 0;
-        if (warp.any(prev_col != this_col)) {
-            matching_next_row[warp_id] = false;
-            return;
-        }
-    }
-    matching_next_row[warp_id] = true;
-}
-
-
-template <typename IndexType>
-__global__ void generate_natural_block_pointer(
-    size_type num_rows, int32 max_block_size,
-    const bool *__restrict__ matching_next_row,
-    IndexType *__restrict__ block_ptrs, size_type *__restrict__ num_blocks_arr)
-{
-    block_ptrs[0] = 0;
-    if (num_rows == 0) {
-        return;
-    }
-    size_type num_blocks = 1;
-    int32 current_block_size = 1;
-    for (size_type i = 0; i < num_rows - 1; ++i) {
-        if ((matching_next_row[i]) && (current_block_size < max_block_size)) {
-            ++current_block_size;
-        } else {
-            block_ptrs[num_blocks] =
-                block_ptrs[num_blocks - 1] + current_block_size;
-            ++num_blocks;
-            current_block_size = 1;
-        }
-    }
-    block_ptrs[num_blocks] = block_ptrs[num_blocks - 1] + current_block_size;
-    num_blocks_arr[0] = num_blocks;
-}
+#include "common/preconditioner/jacobi_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>
@@ -171,32 +86,6 @@ size_type find_natural_blocks(std::shared_ptr<const CudaExecutor> exec,
         block_ptrs, nums.get_data());
     nums.set_executor(exec->get_master());
     return nums.get_const_data()[0];
-}
-
-
-template <typename IndexType>
-__global__ void agglomerate_supervariables_kernel(
-    int32 max_block_size, size_type num_natural_blocks,
-    IndexType *__restrict__ block_ptrs, size_type *__restrict__ num_blocks_arr)
-{
-    num_blocks_arr[0] = 0;
-    if (num_natural_blocks == 0) {
-        return;
-    }
-    size_type num_blocks = 1;
-    int32 current_block_size = block_ptrs[1] - block_ptrs[0];
-    for (size_type i = 1; i < num_natural_blocks; ++i) {
-        const int32 block_size = block_ptrs[i + 1] - block_ptrs[i];
-        if (current_block_size + block_size <= max_block_size) {
-            current_block_size += block_size;
-        } else {
-            block_ptrs[num_blocks] = block_ptrs[i];
-            ++num_blocks;
-            current_block_size = block_size;
-        }
-    }
-    block_ptrs[num_blocks] = block_ptrs[num_natural_blocks];
-    num_blocks_arr[0] = num_blocks;
 }
 
 

@@ -35,11 +35,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/synthesizer/containers.hpp>
 
 
-#include "cuda/base/config.hpp"
+#include "hip/base/config.hip.hpp"
+
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace hip {
 namespace jacobi {
 
 
@@ -62,6 +63,6 @@ constexpr int get_larger_power(int value, int guess = 1)
 
 
 }  // namespace jacobi
-}  // namespace cuda
+}  // namespace hip
 }  // namespace kernels
 }  // namespace gko

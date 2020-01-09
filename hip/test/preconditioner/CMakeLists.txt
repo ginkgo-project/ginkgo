@@ -1,0 +1,1 @@
+ginkgo_create_hip_test_special_linkage(jacobi_kernels)

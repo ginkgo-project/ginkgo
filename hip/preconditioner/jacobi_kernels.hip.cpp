@@ -40,8 +40,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/extended_float.hpp"
+#include "hip/base/config.hip.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
 
 
 namespace gko {
@@ -53,66 +55,94 @@ namespace hip {
  * @ingroup jacobi
  */
 namespace jacobi {
+namespace {
+
+
+// a total of 32/16 warps (1024 threads)
+#if GINKGO_HIP_PLATFORM_HCC
+constexpr int default_block_size = 16;
+#else  // GINKGO_HIP_PLATFORM_NVCC
+constexpr int default_block_size = 32;
+#endif
+// with current architectures, at most 32 warps can be scheduled per SM (and
+// current GPUs have at most 84 SMs)
+constexpr int default_grid_size = 32 * 32 * 128;
+
+
+#include "common/preconditioner/jacobi_kernels.hpp.inc"
+
+
+template <typename ValueType, typename IndexType>
+size_type find_natural_blocks(std::shared_ptr<const HipExecutor> exec,
+                              const matrix::Csr<ValueType, IndexType> *mtx,
+                              int32 max_block_size,
+                              IndexType *__restrict__ block_ptrs)
+{
+    Array<size_type> nums(exec, 1);
+
+    Array<bool> matching_next_row(exec, mtx->get_size()[0] - 1);
+
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(
+        ceildiv(mtx->get_size()[0] * config::warp_size, block_size.x), 1, 1);
+    hipLaunchKernelGGL(compare_adjacent_rows, dim3(grid_size), dim3(block_size),
+                       0, 0, mtx->get_size()[0], max_block_size,
+                       mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+                       matching_next_row.get_data());
+    hipLaunchKernelGGL(generate_natural_block_pointer, dim3(1), dim3(1), 0, 0,
+                       mtx->get_size()[0], max_block_size,
+                       matching_next_row.get_const_data(), block_ptrs,
+                       nums.get_data());
+    nums.set_executor(exec->get_master());
+    return nums.get_const_data()[0];
+}
+
+
+template <typename IndexType>
+inline size_type agglomerate_supervariables(
+    std::shared_ptr<const HipExecutor> exec, int32 max_block_size,
+    size_type num_natural_blocks, IndexType *block_ptrs)
+{
+    Array<size_type> nums(exec, 1);
+
+    hipLaunchKernelGGL(agglomerate_supervariables_kernel, dim3(1), dim3(1), 0,
+                       0, max_block_size, num_natural_blocks, block_ptrs,
+                       nums.get_data());
+
+    nums.set_executor(exec->get_master());
+    return nums.get_const_data()[0];
+}
+
+
+}  // namespace
 
 
 void initialize_precisions(std::shared_ptr<const HipExecutor> exec,
                            const Array<precision_reduction> &source,
                            Array<precision_reduction> &precisions)
-    GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType, typename IndexType>
-void simple_apply(
-    std::shared_ptr<const HipExecutor> exec, size_type num_blocks,
-    uint32 max_block_size,
-    const preconditioner::block_interleaved_storage_scheme<IndexType>
-        &storage_scheme,
-    const Array<precision_reduction> &block_precisions,
-    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
-    const matrix::Dense<ValueType> *b,
-    matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void apply(std::shared_ptr<const HipExecutor> exec, size_type num_blocks,
-           uint32 max_block_size,
-           const preconditioner::block_interleaved_storage_scheme<IndexType>
-               &storage_scheme,
-           const Array<precision_reduction> &block_precisions,
-           const Array<IndexType> &block_pointers,
-           const Array<ValueType> &blocks,
-           const matrix::Dense<ValueType> *alpha,
-           const matrix::Dense<ValueType> *b,
-           const matrix::Dense<ValueType> *beta,
-           matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_JACOBI_APPLY_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void generate(std::shared_ptr<const HipExecutor> exec,
-              const matrix::Csr<ValueType, IndexType> *system_matrix,
-              size_type num_blocks, uint32 max_block_size,
-              remove_complex<ValueType> accuracy,
-              const preconditioner::block_interleaved_storage_scheme<IndexType>
-                  &storage_scheme,
-              Array<remove_complex<ValueType>> &conditioning,
-              Array<precision_reduction> &block_precisions,
-              const Array<IndexType> &block_pointers,
-              Array<ValueType> &blocks) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_JACOBI_GENERATE_KERNEL);
+{
+    const auto block_size = default_block_size * config::warp_size;
+    const auto grid_size = min(
+        default_grid_size,
+        static_cast<int32>(ceildiv(precisions.get_num_elems(), block_size)));
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(duplicate_array<default_block_size>),
+                       dim3(grid_size), dim3(block_size), 0, 0,
+                       source.get_const_data(), source.get_num_elems(),
+                       precisions.get_data(), precisions.get_num_elems());
+}
 
 
 template <typename ValueType, typename IndexType>
 void find_blocks(std::shared_ptr<const HipExecutor> exec,
                  const matrix::Csr<ValueType, IndexType> *system_matrix,
                  uint32 max_block_size, size_type &num_blocks,
-                 Array<IndexType> &block_pointers) GKO_NOT_IMPLEMENTED;
+                 Array<IndexType> &block_pointers)
+{
+    auto num_natural_blocks = find_natural_blocks(
+        exec, system_matrix, max_block_size, block_pointers.get_data());
+    num_blocks = agglomerate_supervariables(
+        exec, max_block_size, num_natural_blocks, block_pointers.get_data());
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL);
