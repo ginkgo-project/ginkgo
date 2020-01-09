@@ -52,16 +52,24 @@ namespace matrix {
 template <typename ValueType = default_precision, typename IndexType = int32>
 class CsrBuilder {
 public:
-    /** Returns the column index array of the CSR matrix. */
+    /**
+     * Returns the column index array of the CSR matrix.
+     */
     Array<IndexType> &get_col_idx_array() { return matrix_->col_idxs_; }
 
-    /** Returns the value array of the CSR matrix. */
+    /**
+     * Returns the value array of the CSR matrix.
+     */
     Array<ValueType> &get_value_array() { return matrix_->values_; }
 
-    /** Initializes a CsrBuilder from an existing CSR matrix. */
+    /**
+     * Initializes a CsrBuilder from an existing CSR matrix.
+     */
     explicit CsrBuilder(Csr<ValueType, IndexType> *matrix) : matrix_{matrix} {}
 
-    /** Updates the internal matrix data structures at destruction. */
+    /**
+     * Updates the internal matrix data structures at destruction.
+     */
     ~CsrBuilder() { matrix_->make_srow(); }
 
     // make this type non-movable

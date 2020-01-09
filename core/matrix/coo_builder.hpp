@@ -52,16 +52,24 @@ namespace matrix {
 template <typename ValueType = default_precision, typename IndexType = int32>
 class CooBuilder {
 public:
-    /** Returns the row index array of the COO matrix. */
+    /**
+     * Returns the row index array of the COO matrix.
+     */
     Array<IndexType> &get_row_idx_array() { return matrix_->row_idxs_; }
 
-    /** Returns the column index array of the COO matrix. */
+    /**
+     * Returns the column index array of the COO matrix.
+     */
     Array<IndexType> &get_col_idx_array() { return matrix_->col_idxs_; }
 
-    /** Returns the value array of the COO matrix. */
+    /**
+     * Returns the value array of the COO matrix.
+     */
     Array<ValueType> &get_value_array() { return matrix_->values_; }
 
-    /** Initializes a CooBuilder from an existing COO matrix. */
+    /**
+     * Initializes a CooBuilder from an existing COO matrix.
+     */
     explicit CooBuilder(Coo<ValueType, IndexType> *matrix) : matrix_{matrix} {}
 
     // make this type non-movable
