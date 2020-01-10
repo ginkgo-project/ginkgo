@@ -4,15 +4,19 @@ project(Ginkgo LANGUAGES C CXX VERSION 1.1.1 DESCRIPTION "A numerical linear alg
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
+# Determine which executors can be compiled
+include(cmake/hip_path.cmake)
+include(cmake/autodetect_executors.cmake)
+
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" ON)
 option(GINKGO_BUILD_TESTS "Generate build files for unit tests" ON)
 option(GINKGO_BUILD_EXAMPLES "Build Ginkgo's examples" ON)
 option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
 option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" ON)
-option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" OFF)
-option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" OFF)
-option(GINKGO_BUILD_HIP "Compile kernels for AMD or NVIDIA GPUs" OFF)
+option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" ${GINKGO_HAS_OMP})
+option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" ${GINKGO_HAS_CUDA})
+option(GINKGO_BUILD_HIP "Compile kernels for AMD or NVIDIA GPUs" ${GINKGO_HAS_HIP})
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
 option(GINKGO_SKIP_DEPENDENCY_UPDATE
     "Do not update dependencies each time the project is rebuilt" ON)
@@ -120,16 +124,7 @@ set(GINKGO_HIP_PLATFORM_NVCC 0)
 set(GINKGO_HIP_PLATFORM_HCC 0)
 
 if (GINKGO_BUILD_HIP)
-    if(NOT DEFINED HIP_PATH)
-        if(NOT DEFINED ENV{HIP_PATH})
-            set(HIP_PATH "/opt/rocm/hip" CACHE PATH "Path to which HIP has been installed")
-            set(ENV{HIP_PATH} ${HIP_PATH})
-        else()
-            set(HIP_PATH $ENV{HIP_PATH} CACHE PATH "Path to which HIP has been installed")
-        endif()
-    endif()
-
-    find_program(GINKGO_HIPCONFIG_PATH hipconfig HINTS "${HIP_PATH}/bin")
+    # GINKGO_HIPCONFIG_PATH and HIP_PATH are set in cmake/hip_path.cmake
     if(GINKGO_HIPCONFIG_PATH)
         execute_process(COMMAND ${GINKGO_HIPCONFIG_PATH} --platform OUTPUT_VARIABLE GINKGO_HIP_PLATFORM)
     elseif(DEFINED ENV{HIP_PLATFORM})
