@@ -20,13 +20,24 @@ convert_header () {
     fi
 }
 
+get_header_def () {
+    local regex="\.(hpp|cuh)"
+    if [[ $@ =~ $regex ]]; then
+        local def=$(echo "$@" | sed -E "s~include/ginkgo/~~g;s~/|\.~_~g")
+        def=$(echo GKO_${def^^}_)
+        echo $def
+    else
+        echo ""
+    fi
+}
+
 
 
 GINKGO_LICENSE_BEACON="******************************<GINKGO LICENSE>******************************"
 
-HEADER="header"
-CONTENT="content"
-BEFORE="before"
+HEADER="header" # Store the included header except main header
+CONTENT="content" # Store the residual part (start from namespace)
+BEFORE="before" # Store the main header and the #ifdef/#define of header file
 HAS_HIP_RUNTIME="false"
 DURING_LICENSE="false"
 DURING_CONTENT="false"
@@ -55,11 +66,16 @@ FORMAT_COMMAND="clang-format -i -style=${Style}"
 
 INCLUDE_REGEX="^#include.*"
 RECORD_HEADER=0
-IFNDEF="^#ifndef"
-DEFINE="^#define"
 NAMESPACE="^namespace"
 MAIN_PART_MATCH=$(dev_tools/scripts/temp.sh $1)
-
+HEADER_DEF=$(get_header_def $1)
+IFNDEF="#ifndef $HEADER_DEF"
+DEFINE="#define $HEADER_DEF"
+HEADER_REGEX="\.(hpp|cuh)"
+SKIP="true"
+IF_REX="^#if"
+ENDIF_REX="^#endif"
+IN_IF="false"
 while IFS='' read -r line || [ -n "$line" ]; do
     if [ "${DURING_CONTENT}" = "true" ]; then
         echo "${line}" >> "${CONTENT}"
@@ -70,15 +86,19 @@ while IFS='' read -r line || [ -n "$line" ]; do
         if [ "${line}" = "${GINKGO_LICENSE_BEACON}*/" ]; then
             DURING_LICENSE="false"
         fi
-    elif [ -z "${line}" ] && [[ ${RECORD_HEADER} < 3 ]]; then
+    elif [ -z "${line}" ] && [ "${SKIP}" = "true" ]; then
         :
     elif [[ ! "${line}" =~ ${NAMESPACE} ]]; then
-        if [[ "${line}" =~ ${IFNDEF} ]] && [[ ${RECORD_HEADER} == 0 ]]; then
+        if [[ $1 =~ ${HEADER_REGEX} ]] && [ "${line}" = "${IFNDEF}" ]; then
             echo "${line}" >> ${BEFORE}
-            RECORD_HEADER=$((RECORD_HEADER+1))
-        elif [[ "${line}" =~ ${DEFINE} ]] && [[ ${RECORD_HEADER} == 1 ]]; then
+        elif [[ $1 =~ ${HEADER_REGEX} ]] && [ "${line}" = "${DEFINE}" ]; then
             echo "${line}" >> ${BEFORE}
-            RECORD_HEADER=$((RECORD_HEADER+1))
+        elif [[ "${line}" =~ $IF_REX ]] || [ "$IN_IF" = "true" ]; then
+            echo "${line}" >> "${HEADER}"
+            IN_IF="true"
+            if [[ "${line}" =~ $ENDIF_REX ]]; then
+                IN_IF="false"
+            fi
         elif [[ "${line}" =~ ${MAIN_PART_MATCH} ]]; then
             if [ -f ${BEFORE} ] && [[ -z "${MAIN_INCLUDE}" ]]; then
                 echo "" >> ${BEFORE}
@@ -86,18 +106,18 @@ while IFS='' read -r line || [ -n "$line" ]; do
             fi
             line="$(convert_header ${line})"
             if [ ! "${line}" = "${MAIN_INCLUDE}" ]; then
+                if [ ! -z "${MAIN_INCLUDE}" ]; then
+                    echo "Warning there are different main headers matches: ${MAIN_INCLUDE}, ${line}"
+                fi
                 echo "${line}" >> ${BEFORE}
                 MAIN_INCLUDE="${line}"
             fi
-            
-            
         else 
             if [[ "${line}" =~ $INCLUDE_REGEX ]]; then
                 line="$(convert_header ${line})"
             fi
-            # echo "${line}"
             echo "${line}" >> "${HEADER}"
-            RECORD_HEADER=3 
+            SKIP="false"
         fi
     else
         DURING_CONTENT="true"
