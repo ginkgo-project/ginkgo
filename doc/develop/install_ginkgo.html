@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/108275207 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/108331006 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -84,9 +84,9 @@ Building</h2>
 <li><code>-DGINKGO_BUILD_EXAMPLES={ON, OFF}</code> builds Ginkgo's examples, default is <code>ON</code></li>
 <li><code>-DGINKGO_BUILD_EXTLIB_EXAMPLE={ON, OFF}</code> builds the interfacing example with deal.II, default is <code>OFF</code>.</li>
 <li><code>-DGINKGO_BUILD_REFERENCE={ON, OFF}</code> build reference implementations of the kernels, useful for testing, default is <code>ON</code></li>
-<li><code>-DGINKGO_BUILD_OMP={ON, OFF}</code> builds optimized OpenMP versions of the kernels, default is <code>OFF</code></li>
-<li><code>-DGINKGO_BUILD_CUDA={ON, OFF}</code> builds optimized cuda versions of the kernels (requires CUDA), default is <code>OFF</code></li>
-<li><code>-DGINKGO_BUILD_HIP={ON, OFF}</code> builds optimized HIP versions of the kernels (requires HIP), default is <code>OFF</code></li>
+<li><code>-DGINKGO_BUILD_OMP={ON, OFF}</code> builds optimized OpenMP versions of the kernels, default is <code>ON</code> if the selected C++ compiler supports OpenMP, <code>OFF</code> otherwise.</li>
+<li><code>-DGINKGO_BUILD_CUDA={ON, OFF}</code> builds optimized cuda versions of the kernels (requires CUDA), default is <code>ON</code> if a CUDA compiler could be detected, <code>OFF</code> otherwise.</li>
+<li><code>-DGINKGO_BUILD_HIP={ON, OFF}</code> builds optimized HIP versions of the kernels (requires HIP), default is <code>ON</code> if an installation of HIP could be detected, <code>OFF</code> otherwise.</li>
 <li><code>-DGINKGO_HIP_AMDGPU="gpuarch1;gpuarch2"</code> the amdgpu_target(s) variable passed to hipcc for the <code>hcc</code> HIP backend. The default is none (auto).</li>
 <li><code>-DGINKGO_BUILD_DOC={ON, OFF}</code> creates an HTML version of Ginkgo's documentation from inline comments in the code. The default is <code>OFF</code>.</li>
 <li><code>-DGINKGO_DOC_GENERATE_EXAMPLES={ON, OFF}</code> generates the documentation of examples in Ginkgo. The default is <code>ON</code>.</li>
@@ -118,12 +118,12 @@ Building</h2>
 <p>For example, to build everything (in debug mode), use:</p>
 <div class="fragment"><div class="line">cmake  -G &quot;Unix Makefiles&quot; -H. -BDebug -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_TOOLS=ON \</div>
 <div class="line">    -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON \</div>
-<div class="line">    -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_HIP=ON \</div>
+<div class="line">    -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_HIP=ON</div>
 <div class="line">cmake --build Debug</div>
 </div><!-- fragment --><p>NOTE: Ginkgo is known to work with the <code>Unix Makefiles</code> and <code>Ninja</code> based generators. Other CMake generators are untested.</p>
 <h2><a class="anchor" id="autotoc_md1"></a>
 Building Ginkgo with HIP support</h2>
-<p>Ginkgo provides a <a href="https://github.com/ROCm-Developer-Tools/HIP">HIP</a> backend. This allows to compile optimized versions of the kernels for either AMD or NVIDIA GPUs. To build Ginkgo with this backend, use the CMake option <code>-DGINKGO_BUILD_HIP=ON</code>.</p>
+<p>Ginkgo provides a <a href="https://github.com/ROCm-Developer-Tools/HIP">HIP</a> backend. This allows to compile optimized versions of the kernels for either AMD or NVIDIA GPUs. The CMake configuration step will try to auto-detect the presence of HIP either at <code>/opt/rocm/hip</code> or at the path specified by <code>HIP_PATH</code> as a CMake parameter (<code>-DHIP_PATH=</code>) or environment variable (<code>export HIP_PATH=</code>), unless <code>-DGINKGO_BUILD_HIP=ON/OFF</code> is set explicitly.</p>
 <h3><a class="anchor" id="autotoc_md2"></a>
 Correctly installing HIP toolkits and dependencies for Ginkgo</h3>
 <p>In general, Ginkgo's HIP backend requires the following packages:</p><ul>

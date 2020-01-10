@@ -20,9 +20,9 @@ Replace {\ttfamily \mbox{[}O\+P\+T\+I\+O\+NS\mbox{]}} with desired cmake options
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+E\+X\+A\+M\+P\+L\+ES=\{ON, O\+FF\}} builds Ginkgo\textquotesingle{}s examples, default is {\ttfamily ON}
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+E\+X\+T\+L\+I\+B\+\_\+\+E\+X\+A\+M\+P\+LE=\{ON, O\+FF\}} builds the interfacing example with deal.\+II, default is {\ttfamily O\+FF}.
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+R\+E\+F\+E\+R\+E\+N\+CE=\{ON, O\+FF\}} build reference implementations of the kernels, useful for testing, default is {\ttfamily ON}
-\item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+O\+MP=\{ON, O\+FF\}} builds optimized Open\+MP versions of the kernels, default is {\ttfamily O\+FF}
-\item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+C\+U\+DA=\{ON, O\+FF\}} builds optimized cuda versions of the kernels (requires C\+U\+DA), default is {\ttfamily O\+FF}
-\item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+H\+IP=\{ON, O\+FF\}} builds optimized H\+IP versions of the kernels (requires H\+IP), default is {\ttfamily O\+FF}
+\item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+O\+MP=\{ON, O\+FF\}} builds optimized Open\+MP versions of the kernels, default is {\ttfamily ON} if the selected C++ compiler supports Open\+MP, {\ttfamily O\+FF} otherwise.
+\item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+C\+U\+DA=\{ON, O\+FF\}} builds optimized cuda versions of the kernels (requires C\+U\+DA), default is {\ttfamily ON} if a C\+U\+DA compiler could be detected, {\ttfamily O\+FF} otherwise.
+\item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+H\+IP=\{ON, O\+FF\}} builds optimized H\+IP versions of the kernels (requires H\+IP), default is {\ttfamily ON} if an installation of H\+IP could be detected, {\ttfamily O\+FF} otherwise.
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+H\+I\+P\+\_\+\+A\+M\+D\+G\+PU=\char`\"{}gpuarch1;gpuarch2\char`\"{}} the amdgpu\+\_\+target(s) variable passed to hipcc for the {\ttfamily hcc} H\+IP backend. The default is none (auto).
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+D\+OC=\{ON, O\+FF\}} creates an H\+T\+ML version of Ginkgo\textquotesingle{}s documentation from inline comments in the code. The default is {\ttfamily O\+FF}.
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+D\+O\+C\+\_\+\+G\+E\+N\+E\+R\+A\+T\+E\+\_\+\+E\+X\+A\+M\+P\+L\+ES=\{ON, O\+FF\}} generates the documentation of examples in Ginkgo. The default is {\ttfamily ON}.
@@ -59,13 +59,13 @@ For example, to build everything (in debug mode), use\+:
 \begin{DoxyCode}{0}
 \DoxyCodeLine{cmake  -\/G "Unix Makefiles" -\/H. -\/BDebug -\/DCMAKE\_BUILD\_TYPE=Debug -\/DGINKGO\_DEVEL\_TOOLS=ON \(\backslash\)}
 \DoxyCodeLine{    -\/DGINKGO\_BUILD\_TESTS=ON -\/DGINKGO\_BUILD\_REFERENCE=ON -\/DGINKGO\_BUILD\_OMP=ON \(\backslash\)}
-\DoxyCodeLine{    -\/DGINKGO\_BUILD\_CUDA=ON -\/DGINKGO\_BUILD\_HIP=ON \(\backslash\)}
+\DoxyCodeLine{    -\/DGINKGO\_BUILD\_CUDA=ON -\/DGINKGO\_BUILD\_HIP=ON}
 \DoxyCodeLine{cmake -\/-\/build Debug}
 \end{DoxyCode}
 
 
 N\+O\+TE\+: Ginkgo is known to work with the {\ttfamily Unix Makefiles} and {\ttfamily Ninja} based generators. Other C\+Make generators are untested.\hypertarget{install_ginkgo_autotoc_md1}{}\doxysubsection{Building Ginkgo with H\+I\+P support}\label{install_ginkgo_autotoc_md1}
-Ginkgo provides a \href{https://github.com/ROCm-Developer-Tools/HIP}{\texttt{ H\+IP}} backend. This allows to compile optimized versions of the kernels for either A\+MD or N\+V\+I\+D\+IA G\+P\+Us. To build Ginkgo with this backend, use the C\+Make option {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+H\+IP=ON}.\hypertarget{install_ginkgo_autotoc_md2}{}\doxysubsubsection{Correctly installing H\+I\+P toolkits and dependencies for Ginkgo}\label{install_ginkgo_autotoc_md2}
+Ginkgo provides a \href{https://github.com/ROCm-Developer-Tools/HIP}{\texttt{ H\+IP}} backend. This allows to compile optimized versions of the kernels for either A\+MD or N\+V\+I\+D\+IA G\+P\+Us. The C\+Make configuration step will try to auto-\/detect the presence of H\+IP either at {\ttfamily /opt/rocm/hip} or at the path specified by {\ttfamily H\+I\+P\+\_\+\+P\+A\+TH} as a C\+Make parameter ({\ttfamily -\/D\+H\+I\+P\+\_\+\+P\+A\+TH=}) or environment variable ({\ttfamily export H\+I\+P\+\_\+\+P\+A\+TH=}), unless {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+H\+IP=O\+N/\+O\+FF} is set explicitly.\hypertarget{install_ginkgo_autotoc_md2}{}\doxysubsubsection{Correctly installing H\+I\+P toolkits and dependencies for Ginkgo}\label{install_ginkgo_autotoc_md2}
 In general, Ginkgo\textquotesingle{}s H\+IP backend requires the following packages\+:
 \begin{DoxyItemize}
 \item H\+IP,
