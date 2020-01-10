@@ -54,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/iterator_factory.hpp"
+#include "core/matrix/csr_builder.hpp"
 #include "reference/components/format_conversion.hpp"
 
 
@@ -207,14 +208,12 @@ template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Csr<ValueType, IndexType> *a,
             const matrix::Csr<ValueType, IndexType> *b,
-            Array<IndexType> &c_row_ptrs_array,
-            Array<IndexType> &c_col_idxs_array, Array<ValueType> &c_vals_array)
+            matrix::Csr<ValueType, IndexType> *c)
 {
     auto num_rows = a->get_size()[0];
 
     // first sweep: count nnz for each row
-    c_row_ptrs_array.resize_and_reset(num_rows + 1);
-    auto c_row_ptrs = c_row_ptrs_array.get_data();
+    auto c_row_ptrs = c->get_row_ptrs();
 
     std::unordered_set<IndexType> local_col_idxs;
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
@@ -229,6 +228,9 @@ void spgemm(std::shared_ptr<const ReferenceExecutor> exec,
 
     // second sweep: accumulate non-zeros
     auto new_nnz = c_row_ptrs[num_rows];
+    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+    auto &c_col_idxs_array = c_builder.get_col_idx_array();
+    auto &c_vals_array = c_builder.get_value_array();
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
     auto c_col_idxs = c_col_idxs_array.get_data();
@@ -258,17 +260,14 @@ void advanced_spgemm(std::shared_ptr<const ReferenceExecutor> exec,
                      const matrix::Csr<ValueType, IndexType> *b,
                      const matrix::Dense<ValueType> *beta,
                      const matrix::Csr<ValueType, IndexType> *d,
-                     Array<IndexType> &c_row_ptrs_array,
-                     Array<IndexType> &c_col_idxs_array,
-                     Array<ValueType> &c_vals_array)
+                     matrix::Csr<ValueType, IndexType> *c)
 {
     auto num_rows = a->get_size()[0];
     auto valpha = alpha->at(0, 0);
     auto vbeta = beta->at(0, 0);
 
     // first sweep: count nnz for each row
-    c_row_ptrs_array.resize_and_reset(num_rows + 1);
-    auto c_row_ptrs = c_row_ptrs_array.get_data();
+    auto c_row_ptrs = c->get_row_ptrs();
 
     std::unordered_set<IndexType> local_col_idxs;
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
@@ -288,6 +287,9 @@ void advanced_spgemm(std::shared_ptr<const ReferenceExecutor> exec,
 
     // second sweep: accumulate non-zeros
     auto new_nnz = c_row_ptrs[num_rows];
+    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+    auto &c_col_idxs_array = c_builder.get_col_idx_array();
+    auto &c_vals_array = c_builder.get_value_array();
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
     auto c_col_idxs = c_col_idxs_array.get_data();
