@@ -1,2 +1,3 @@
+ginkgo_create_hip_test(cooperative_groups)
 ginkgo_create_hip_test(prefix_sum)
 ginkgo_create_hip_test(sorting)
