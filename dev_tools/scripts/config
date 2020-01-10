@@ -7,6 +7,7 @@
 - "core/test/base/(extended_float|iterator_factory)"
     - RemoveTest: "true"
 - "components"
+    - RemoveTest: "true"
 - "test/utils"
     - CoreSuffix: "_test"
     - PathIgnore: "1"
