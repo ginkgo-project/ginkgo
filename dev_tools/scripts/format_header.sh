@@ -20,25 +20,6 @@ convert_header () {
     fi
 }
 
-get_core_name () {
-    LISTS=$(find include/ginkgo/core -type f)
-    # special case
-    LISTS="$(find core/test/utils -type f -name "*.hpp")"$'\n'"${LISTS}"
-    MIN_DISTANCE="-1"
-    MATCH=""
-    while IFS='' read -r line; do
-        line=$(echo "${line}" | sed -E "s/include\/ginkgo\///g;s/core\///g;s/\.hpp//g")
-        if [[ "$@" =~ "${line}" ]]; then 
-            distance=$(( $(expr length $@) - $(expr length ${line}) ))
-            if [[ -z "${MATCH}" ]] || [[ ${distance} -lt ${MIN_DISTANCE} ]]; then
-                MATCH="${line}"
-                MIN_DISTANCE="${distance}"
-            fi
-        fi
-    done <<< "${LISTS}"
-    echo "${MATCH}"
-}
-
 
 
 GINKGO_LICENSE_BEACON="******************************<GINKGO LICENSE>******************************"
@@ -72,47 +53,14 @@ Style="${Style} AlignEscapedNewlines: Left"
 Style="${Style} }\""
 FORMAT_COMMAND="clang-format -i -style=${Style}"
 
-CORE_NAME="$(get_core_name $1)"
-TEST_REGEX="_test(\.hip)?\.(cpp|hpp|cuh|cu)"
-SELF=$(echo $1 | sed -E "s/\.cpp/\.hpp/g;s/\.cu/\.cuh/g")
-SELF=$(echo ${SELF} | sed -E "s/_test//g")
-# core/test/base/extended_float.cpp use core/base/extended_float.hpp
-if [[ ! $1 =~ ${TEST_REGEX} ]]; then
-    SELF=$(echo $SELF | sed -E "s/test\///g")
-else
-    SELF=$(echo $SELF | sed -E "s/(cuda|hip|omp|reference)\//core\//g")
-fi
-if [[ "$1" =~ executor\. ]]; then
-    MAIN_PART_MATCH="<ginkgo/core/base/executor.hpp>"
-else
-    MAIN_PART_MATCH="(<|\")((ginkgo/)?core/(test/)?${CORE_NAME}(_kernels)?\.hpp|${SELF})(\"|>)$"
-fi
-SELF_REGEX="^#include (<|\")${SELF}(\"|>)$"
 INCLUDE_REGEX="^#include.*"
-MAIN_PART_MATCH="^#include ${MAIN_PART_MATCH}"
 RECORD_HEADER=0
 IFNDEF="^#ifndef"
 DEFINE="^#define"
 NAMESPACE="^namespace"
-config_regex=$(dev_tools/scripts/temp.sh $1)
-# echo "config_regex ${config_regex}"
-compute_score() {
-    # $1 filename
-    # $2 include
-    if [[ "$2" =~ ${SELF_REGEX} ]]; then
-        return 300
-    elif [[ "$1" =~ core|test ]] && [[ "$2" =~ ginkgo ]]; then
-        return 250
-    elif [[ ! "$1" =~ core ]] && [[ "$2" =~ kernels ]]; then 
-        return 200
-    else
-        return $(expr length "$2")
-    fi
-}
+MAIN_PART_MATCH=$(dev_tools/scripts/temp.sh $1)
 
-SCORE=0
-FINAL_CONFIG=""
-while IFS='' read -r line; do
+while IFS='' read -r line || [ -n "$line" ]; do
     if [ "${DURING_CONTENT}" = "true" ]; then
         echo "${line}" >> "${CONTENT}"
     elif [ "${line}" = '#include "hip/hip_runtime.h"' ]; then
@@ -125,9 +73,6 @@ while IFS='' read -r line; do
     elif [ -z "${line}" ] && [[ ${RECORD_HEADER} < 3 ]]; then
         :
     elif [[ ! "${line}" =~ ${NAMESPACE} ]]; then
-        if [[ "${line}" =~ ${config_regex} ]]; then
-                FINAL_CONFIG="${FINAL_CONFIG}$(convert_header ${line})"
-        fi
         if [[ "${line}" =~ ${IFNDEF} ]] && [[ ${RECORD_HEADER} == 0 ]]; then
             echo "${line}" >> ${BEFORE}
             RECORD_HEADER=$((RECORD_HEADER+1))
@@ -140,30 +85,17 @@ while IFS='' read -r line; do
                 echo "" >> ${BEFORE}
             fi
             line="$(convert_header ${line})"
-            # echo "match original ${line}"
-
-            if [[ -z "${MAIN_INCLUDE}" ]]; then
-                MAIN_INCLUDE="${line}"
-                compute_score "$1" "${line}"
-                SCORE=$?
+            if [ ! "${line}" = "${MAIN_INCLUDE}" ]; then
                 echo "${line}" >> ${BEFORE}
-            elif [[ ! "${MAIN_INCLUDE}" = "${line}" ]]; then
-                compute_score "$1" "${line}"
-                score=$?
-                if [[ ${score} -gt ${SCORE} ]]; then
-                    sed -i -E "s~${MAIN_INCLUDE}~${line}~g" ${BEFORE}
-                    echo "${MAIN_INCLUDE}" >> ${HEADER}
-                    SCORE=${score}
-                    MAIN_INCLUDE="${line}"
-                else
-                    echo "${line}" >> ${HEADER}
-                fi
+                MAIN_INCLUDE="${line}"
             fi
-
+            
+            
         else 
-            if [[ "${line}" =~ INCLUDE_REGEX ]]; then
+            if [[ "${line}" =~ $INCLUDE_REGEX ]]; then
                 line="$(convert_header ${line})"
             fi
+            # echo "${line}"
             echo "${line}" >> "${HEADER}"
             RECORD_HEADER=3 
         fi
@@ -176,10 +108,10 @@ while IFS='' read -r line; do
     fi
 done < $1
 # echo "final ${MAIN_INCLUDE}"
-if [ ! "${MAIN_INCLUDE}" = "${FINAL_CONFIG}" ]; then
-    echo "$1 config_regex ${config_regex}"
-    echo "${MAIN_INCLUDE} config ${FINAL_CONFIG}"
-fi
+# if [ ! "${MAIN_INCLUDE}" = "${FINAL_CONFIG}" ]; then
+#     echo "$1 config_regex ${config_regex}"
+#     echo "${MAIN_INCLUDE} config ${FINAL_CONFIG}"
+# fi
 # cp ${HEADER} header2
 echo "/*${GINKGO_LICENSE_BEACON}" > $1
 cat LICENSE >> $1
