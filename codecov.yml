@@ -10,5 +10,3 @@ coverage:
         target: auto
         threshold: 2
         base: auto
-  ignore:
-    - "**/test/"
