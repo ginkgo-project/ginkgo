@@ -250,7 +250,11 @@ public:
     __device__ __forceinline__ int any(int predicate) const noexcept
     {
 #if GINKGO_HIP_PLATFORM_HCC
-        return (__ballot(predicate) & data_.mask) != 0;
+        if (Size == config::warp_size) {
+            return __any(predicate);
+        } else {
+            return (__ballot(predicate) & data_.mask) != 0;
+        }
 #else
         return __any_sync(data_.mask, predicate);
 #endif
@@ -259,7 +263,11 @@ public:
     __device__ __forceinline__ int all(int predicate) const noexcept
     {
 #if GINKGO_HIP_PLATFORM_HCC
-        return (__ballot(predicate) & data_.mask) == data_.mask;
+        if (Size == config::warp_size) {
+            return __all(predicate);
+        } else {
+            return (__ballot(predicate) & data_.mask) == data_.mask;
+        }
 #else
         return __all_sync(data_.mask, predicate);
 #endif
@@ -269,9 +277,17 @@ public:
         int predicate) const noexcept
     {
 #if GINKGO_HIP_PLATFORM_HCC
-        return (__ballot(predicate) & data_.mask) >> data_.lane_offset;
+        if (Size == config::warp_size) {
+            return __ballot(predicate);
+        } else {
+            return (__ballot(predicate) & data_.mask) >> data_.lane_offset;
+        }
 #else
-        return __ballot_sync(data_.mask, predicate) >> data_.lane_offset;
+        if (Size == config::warp_size) {
+            return __ballot_sync(data_.mask, predicate);
+        } else {
+            return __ballot_sync(data_.mask, predicate) >> data_.lane_offset;
+        }
 #endif
     }
 
