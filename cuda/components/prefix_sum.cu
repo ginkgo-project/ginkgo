@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 #include "core/components/prefix_sum.hpp"
 
 
@@ -59,7 +58,6 @@ void prefix_sum(std::shared_ptr<const CudaExecutor> exec, IndexType *counts,
         <<<num_blocks, prefix_sum_block_size>>>(num_entries, counts,
                                                 block_sums);
 }
-
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
 
