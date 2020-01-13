@@ -1,8 +1,8 @@
 #!/bin/bash
 
 convert_header () {
-    REGEX="^(#include )(<|\")(.*)(\"|>)$"
-    if [[ $@ =~ ${REGEX} ]]; then
+    local regex="^(#include )(<|\")(.*)(\"|>)$"
+    if [[ $@ =~ ${regex} ]]; then
         header_file="${BASH_REMATCH[3]}"
         if [ -f "${header_file}" ]; then
             if [[ "${header_file}" =~ ^ginkgo ]]; then
@@ -31,43 +31,81 @@ get_header_def () {
     fi
 }
 
+add_regroup () {
+    cp .clang-format .clang-format.temp
+    sed -i "s~\.\.\.~~g" .clang-format
+    cat dev_tools/scripts/regroup >> .clang-format
+    echo "..." >> .clang-format
+}
 
+remove_regroup () {
+    mv .clang-format.temp .clang-format
+}
+
+get_include_regex () {
+local file="$1"
+local core_suffix=""
+local path_prefix=""
+local path_ignore="0"
+local fix_include=""
+local remove_test="false"
+local item_regex="^-\ +\"(.*)\""
+local path_prefix_regex="PathPrefix:\ +\"(.*)\""
+local core_suffix_regex="CoreSuffix:\ +\"(.*)\""
+local path_ignore_regex="PathIgnore:\ +\"(.*)\""
+local fix_include_regex="FixInclude:\ +\"(.*)\""
+local remove_test_regex="RemoveTest:\ +\"(.*)\""
+local match="false"
+while IFS='' read -r line; do
+    if [[ "$line" =~ $item_regex ]]; then
+        file_regex="${BASH_REMATCH[1]}"
+        if [[ "$match" = "true" ]]; then
+            break
+        elif [[ $file =~ $file_regex ]]; then
+            match="true"
+        fi
+    elif [ "$match" = "true" ]; then
+        if [[ "$line" =~ $path_prefix_regex ]]; then
+            path_prefix="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ $core_suffix_regex ]]; then
+            core_suffix="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ $path_ignore_regex ]]; then
+            path_ignore="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ $fix_include_regex ]]; then
+            fix_include="${BASH_REMATCH[1]}"
+        elif [[ "$line" =~ $remove_test_regex ]]; then
+            remove_test="${BASH_REMATCH[1]}"
+        else
+            echo "wrong: ${line}"
+        fi
+    fi
+done < "dev_tools/scripts/config"
+output=""
+if [ -z "${fix_include}" ]; then
+    local path_regex="([a-zA-Z_]*\/){${path_ignore}}(.*)\.(cpp|hpp|cu|cuh)"
+    if [ ! -z "${path_prefix}" ]; then
+        path_prefix="${path_prefix}/"
+    fi
+    output=$(echo "${file}" | sed -E "s~\.hip~~g;s~$path_regex~$path_prefix\2~g")
+    output=$(echo "${output}" | sed -E "s~$core_suffix$~~g")
+    output="#include (<|\")$output\.(hpp|hip\.hpp|cuh)(\"|>)"
+    if [ "${remove_test}" = "true" ]; then
+        output=$(echo "${output}" | sed -E "s~test/~~g")
+    fi
+else
+    output="#include (<|\")$fix_include(\"|>)"
+fi
+echo "$output"
+}
 
 GINKGO_LICENSE_BEACON="******************************<GINKGO LICENSE>******************************"
 
-HEADER="header" # Store the included header except main header
 CONTENT="content" # Store the residual part (start from namespace)
 BEFORE="before" # Store the main header and the #ifdef/#define of header file
 HAS_HIP_RUNTIME="false"
 DURING_LICENSE="false"
-DURING_CONTENT="false"
-MAIN_INCLUDE=""
-
-Style="\"{"
-Style="${Style} Language: Cpp,"
-Style="${Style} SortIncludes: true,"
-Style="${Style} IncludeBlocks: Regroup,"
-Style="${Style} IncludeCategories: ["
-Style="${Style} {Regex: '^(<)(omp|cu|hip|rapidjson|gflags|gtest|thrust|papi).*',"
-Style="${Style}  Priority: 2},"
-Style="${Style} {Regex: '^<ginkgo.*', "
-Style="${Style}  Priority: 4},"
-Style="${Style} {Regex: '^\\\".*',"
-Style="${Style}  Priority: 5},"
-Style="${Style} {Regex: '.*',"
-Style="${Style}  Priority: 1}"
-Style="${Style} ],"
-Style="${Style} MaxEmptyLinesToKeep: 2,"
-Style="${Style} SpacesBeforeTrailingComments: 2,"
-Style="${Style} IndentWidth: 4,"
-Style="${Style} AlignEscapedNewlines: Left"
-Style="${Style} }\""
-FORMAT_COMMAND="clang-format -i -style=${Style}"
-
 INCLUDE_REGEX="^#include.*"
-RECORD_HEADER=0
-NAMESPACE="^namespace"
-MAIN_PART_MATCH=$(dev_tools/scripts/temp.sh $1)
+MAIN_PART_MATCH="$(get_include_regex $1)"
 HEADER_DEF=$(get_header_def $1)
 IFNDEF=""
 DEFINE=""
@@ -79,10 +117,11 @@ IF_REX="^#if"
 ENDIF_REX="^#endif"
 IN_IF="false"
 KEEP_LINES=0
+LAST_NONEMPTY=""
+
+
 while IFS='' read -r line || [ -n "$line" ]; do
-    if [ "${DURING_CONTENT}" = "true" ]; then
-        echo "${line}" >> "${CONTENT}"
-    elif [ "${line}" = '#include "hip/hip_runtime.h"' ]; then
+    if [ "${line}" = '#include "hip/hip_runtime.h"' ] && [ "${SKIP}" = "true" ]; then
         HAS_HIP_RUNTIME="true"
     elif [ "${line}" = "/*${GINKGO_LICENSE_BEACON}" ] || [ "${DURING_LICENSE}" = "true" ]; then
         DURING_LICENSE="true"
@@ -92,55 +131,37 @@ while IFS='' read -r line || [ -n "$line" ]; do
     elif [ -z "${line}" ] && [ "${SKIP}" = "true" ]; then
     # Ignore all empty lines beteen LICENSE and Header
         :
-    elif [[ ! "${line}" =~ ${NAMESPACE} ]]; then
-        if [ -z "$line" ]; then
+    else
+        if [ -z "${line}" ]; then
             KEEP_LINES=$((KEEP_LINES+1))
         else
+            LAST_NONEMPTY="${line}"
             KEEP_LINES=0
         fi
         if [[ $1 =~ ${HEADER_REGEX} ]] && [[ "${line}" =~ ${IFNDEF_REGEX} ]] && [ "${SKIP}" = "true" ] && [ -z "${DEFINE}" ]; then
             IFNDEF="${line}"
-        elif [[ $1 =~ ${HEADER_REGEX} ]] && [[ "${line}" =~ ${DEFINE_REGEX} ]] && [ "${SKIP}" = "true" ]; then
+        elif [[ $1 =~ ${HEADER_REGEX} ]] && [[ "${line}" =~ ${DEFINE_REGEX} ]] && [ "${SKIP}" = "true" ] && [ ! -z "${IFNDEF}" ]; then
             DEFINE="${line}"
         elif [[ "${line}" =~ $IF_REX ]] || [ "$IN_IF" = "true" ]; then
             # make sure that the header in #if is not extracted
-            echo "${line}" >> "${HEADER}"
+            echo "${line}" >> "${CONTENT}"
             IN_IF="true"
             if [[ "${line}" =~ $ENDIF_REX ]]; then
                 IN_IF="false"
             fi
             SKIP="false"
-        elif [[ "${line}" =~ ${MAIN_PART_MATCH} ]]; then
+        elif [ ! -z "${MAIN_PART_MATCH}" ] && [[ "${line}" =~ ${MAIN_PART_MATCH} ]]; then
             line="$(convert_header ${line})"
-            if [ ! "${line}" = "${MAIN_INCLUDE}" ]; then
-                if [ ! -z "${MAIN_INCLUDE}" ]; then
-                    echo "Warning there are different main headers matches: ${MAIN_INCLUDE}, ${line}"
-                fi
-                echo "${line}" >> ${BEFORE}
-                MAIN_INCLUDE="${line}"
-            fi
+            echo "${line}" >> ${BEFORE}
         else 
             if [[ "${line}" =~ $INCLUDE_REGEX ]]; then
                 line="$(convert_header ${line})"
             fi
-            echo "${line}" >> "${HEADER}"
+            echo "${line}" >> "${CONTENT}"
             SKIP="false"
-            # echo "${line}"
         fi
-    else
-        DURING_CONTENT="true"
-        if [ "HAS_HIP_RUNTIME" = "true" ]; then
-            echo '#include <hip/hip_runtime.h>' >> "${HEADER}"
-        fi
-        echo "${line}" >> "${CONTENT}"
     fi
 done < $1
-# echo "final ${MAIN_INCLUDE}"
-# if [ ! "${MAIN_INCLUDE}" = "${FINAL_CONFIG}" ]; then
-#     echo "$1 config_regex ${config_regex}"
-#     echo "${MAIN_INCLUDE} config ${FINAL_CONFIG}"
-# fi
-# cp ${HEADER} header2
 echo "/*${GINKGO_LICENSE_BEACON}" > $1
 cat LICENSE >> $1
 echo "${GINKGO_LICENSE_BEACON}*/" >> $1
@@ -161,22 +182,44 @@ if [ ! -z "${DEFINE}" ]; then
     echo "" >> $1
     echo "" >> $1
 fi
+
 if [ -f "${BEFORE}" ]; then
+    # sort or remove the duplication
+    clang-format -i ${BEFORE}
+    if [ $(wc -l < ${BEFORE}) -gt "1" ]; then
+        echo "Warning there are multiple main header matched"
+    fi
     cat ${BEFORE} >> $1
-    if [ -f "${HEADER}" ]; then
-        echo "" >> $1
-        echo "" >> $1
-    elif [ -f "${CONTENT}" ]; then
+    if [ -f "${CONTENT}" ]; then
         echo "" >> $1
         echo "" >> $1
     fi
     rm ${BEFORE}
 fi
-PREV_INC=0
-IN_IF="false"
-if [ -f "${HEADER}" ]; then
-    COMMAND="${FORMAT_COMMAND} ${HEADER}"
-    eval "${COMMAND}"
+
+if [ -f "${CONTENT}" ]; then
+    add_regroup
+    if [ "${HAS_HIP_RUNTIME}" = "true" ]; then
+        echo "#include <hip/hip_runtime.h>" > temp
+    fi
+    head -n -${KEEP_LINES} ${CONTENT} >> temp
+    if [ ! -z "${IFNDEF}" ] && [ ! -z "${DEFINE}" ]; then
+        # Ignore the last line #endif
+        if [[ "${LAST_NONEMPTY}" =~ $ENDIF_REX ]]; then
+            head -n -1 temp > ${CONTENT}
+            echo "#endif  // $HEADER_DEF" >> ${CONTENT}
+        else 
+            echo "Warning - Found the begin header_def but do not find the end of header_def"
+            cat temp > ${CONTENT}
+        fi
+    else
+        cat temp > ${CONTENT}
+    fi
+    clang-format -i ${CONTENT}
+    rm temp
+    remove_regroup
+    PREV_INC=0
+    IN_IF="false"
     while IFS='' read -r line; do
         if [[ "${line}" =~ $IF_REX ]] || [ "$IN_IF" = "true" ]; then
             # make sure that the header in #if is not extracted
@@ -203,22 +246,6 @@ if [ -f "${HEADER}" ]; then
             fi
             echo "${line}" >> $1
         fi
-        
-    done < ${HEADER}
-    if [ -f "${CONTENT}" ]; then
-        for (( i=0; i < ${KEEP_LINES}; i++ ))
-        do
-            echo "" >> $1
-        done
-    fi
-    rm "${HEADER}"
-fi
-if [ -f "${CONTENT}" ]; then
-    if [ ! -z "${IFNDEF}" ] && [ ! -z "${DEFINE}" ]; then
-        head -n -1 ${CONTENT} >> $1
-        echo "#endif  // $HEADER_DEF" >> $1
-    else
-        cat ${CONTENT} >> $1
-    fi
-    rm "${CONTENT}"
+    done < ${CONTENT}
+    rm ${CONTENT}
 fi

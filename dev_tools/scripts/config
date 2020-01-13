@@ -1,5 +1,7 @@
 - "executor"
     - FixInclude: "ginkgo/core/base/executor.hpp"
+- "hip/base/config.hip.hpp"
+    - FixInclude: "hip/hip_runtime.h"
 - "(cuda|hip|omp)/test/factorization/par_ilu_kernels"
     - FixInclude: "core/factorization/par_ilu_kernels.hpp"
 - "(cuda|hip)/preconditioner/jacobi_"

@@ -1,0 +1,10 @@
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^<(omp|cu|hip|rapidjson|gflags|gtest|thrust|papi).*'
+    Priority: 2
+  - Regex: '^<ginkgo.*'
+    Priority: 4
+  - Regex: '^".*'
+    Priority: 5
+  - Regex: '.*'
+    Priority: 1
