@@ -42,8 +42,26 @@ remove_regroup () {
     mv .clang-format.temp .clang-format
 }
 
+# It reads "dev_tools/scripts/config" to generate the corresponding main header
+# The setting setting:
+# - "file_regex"
+#   - CoreSuffix: "core_suffix_regex"           (default "")
+#   - PathPrefix: "path_prefix_regex"           (default "")
+#   - PathIgnore: "path_ignore_number"          (default "0")
+#   - RemoveTest: "false/true"                  (default "test")
+#   - FixInclude: "the specific main header"    (default "")
+# Only "file_regex" without any setting is fine, and it means find the same name with header suffix
+# For exmaple, /path/to/file.cpp will /path/to/file.hpp
+# file_regex : selecting which file apply this rule
+# CoreSuffix : remove the pattern which passes the "core_suffix_regex" of file
+# PathPrefix : adds "path_prefix_regex" before path, and the position depends on PathIgnore
+# PathIgnore : ignore the number "path_ignore_number" folder from top level, and then add "path_prefix_regex" into path
+# RemoveTest : Decide whether ignore /test/ in the path
+# FixInclude : Specify the main header. If it is set, ignore others setting
+# Note: This script picks the first fitting "file_regex" rules according the ordering in config
 get_include_regex () {
     local file="$1"
+    declare -n local_output=$2
     local core_suffix=""
     local path_prefix=""
     local path_ignore="0"
@@ -76,26 +94,25 @@ get_include_regex () {
             elif [[ "$line" =~ $remove_test_regex ]]; then
                 remove_test="${BASH_REMATCH[1]}"
             else
-                echo "wrong: ${line}"
+                echo "Ignore unknow setting: \"${file_regex}\" - ${line}"
             fi
         fi
     done < "dev_tools/scripts/config"
-    output=""
+    local_output=""
     if [ -z "${fix_include}" ]; then
         local path_regex="([a-zA-Z_]*\/){${path_ignore}}(.*)\.(cpp|hpp|cu|cuh)"
         if [ ! -z "${path_prefix}" ]; then
             path_prefix="${path_prefix}/"
         fi
-        output=$(echo "${file}" | sed -E "s~\.hip~~g;s~$path_regex~$path_prefix\2~g")
-        output=$(echo "${output}" | sed -E "s~$core_suffix$~~g")
-        output="#include (<|\")$output\.(hpp|hip\.hpp|cuh)(\"|>)"
+        local_output=$(echo "${file}" | sed -E "s~\.hip~~g;s~$path_regex~$path_prefix\2~g")
+        local_output=$(echo "${local_output}" | sed -E "s~$core_suffix$~~g")
+        local_output="#include (<|\")$local_output\.(hpp|hip\.hpp|cuh)(\"|>)"
         if [ "${remove_test}" = "true" ]; then
-            output=$(echo "${output}" | sed -E "s~test/~~g")
+            local_output=$(echo "${local_output}" | sed -E "s~test/~~g")
         fi
     else
-        output="#include (<|\")$fix_include(\"|>)"
+        local_output="#include (<|\")$fix_include(\"|>)"
     fi
-    echo "$output"
 }
 
 GINKGO_LICENSE_BEACON="******************************<GINKGO LICENSE>******************************"
@@ -106,8 +123,11 @@ HAS_HIP_RUNTIME="false"
 DURING_LICENSE="false"
 INCLUDE_REGEX="^#include.*"
 INCLUDE_INC="\.inc"
-MAIN_PART_MATCH="$(get_include_regex $1)"
+MAIN_PART_MATCH=""
+
+get_include_regex $1 MAIN_PART_MATCH
 HEADER_DEF=$(get_header_def $1)
+
 IFNDEF=""
 DEFINE=""
 IFNDEF_REGEX="^#ifndef GKO_"
@@ -173,7 +193,7 @@ while IFS='' read -r line || [ -n "$line" ]; do
     fi
 done < $1
 if [ "${ALARM}" = "true" ]; then
-    echo "ALARM $1 may not be sorted correctly"
+    echo "Warning $1: sorting maybe is not correct"
 fi
 echo "/*${GINKGO_LICENSE_BEACON}" > $1
 cat LICENSE >> $1
@@ -185,7 +205,7 @@ if [ ! -z "${IFNDEF}" ] && [ ! -z "${DEFINE}" ]; then
 elif [ -z "${IFNDEF}" ] && [ -z "${DEFINE}" ]; then
     :
 else
-    echo "Warning: only #ifndef GKO_ or #define GKO_ is in the header"
+    echo "Warning $1: only #ifndef GKO_ or #define GKO_ is in the header"
 fi
 if [ ! -z "${IFNDEF}" ]; then
     echo "${IFNDEF}" >> $1
@@ -200,7 +220,7 @@ if [ -f "${BEFORE}" ]; then
     # sort or remove the duplication
     clang-format -i ${BEFORE}
     if [ $(wc -l < ${BEFORE}) -gt "1" ]; then
-        echo "Warning there are multiple main header matched"
+        echo "Warning $1: there are multiple main header matched"
     fi
     cat ${BEFORE} >> $1
     if [ -f "${CONTENT}" ]; then
@@ -222,7 +242,7 @@ if [ -f "${CONTENT}" ]; then
             head -n -1 temp > ${CONTENT}
             echo "#endif  // $HEADER_DEF" >> ${CONTENT}
         else 
-            echo "Warning - Found the begin header_def but do not find the end of header_def"
+            echo "Warning $1: Found the begin header_def but do not find the end of header_def"
             cat temp > ${CONTENT}
         fi
     else

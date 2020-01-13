@@ -9,6 +9,7 @@
 - "core/test/base/(extended_float|iterator_factory)"
     - RemoveTest: "true"
 - "components.*_kernels(\.hip)+\.(cu|cpp|hpp|cuh)"
+    - CoreSuffix: "_kernels"
     - RemoveTest: "true"
 - "components"
     - RemoveTest: "true"
