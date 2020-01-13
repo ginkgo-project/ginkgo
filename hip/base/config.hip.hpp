@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_BASE_CONFIG_HIP_HPP_
 
 
+#include <hip/hip_runtime.h>
+
+
 #include <hip/device_functions.h>
 
 
