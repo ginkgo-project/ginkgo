@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 
 
+#include "core/components/prefix_sum.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 #include "cuda/base/config.hpp"
@@ -44,7 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/format_conversion.cuh"
-#include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/segment_scan.cuh"
 #include "cuda/components/zero_array.hpp"
@@ -128,16 +128,7 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
         num_rows, as_cuda_type(row_ptrs),
         as_cuda_type(coo_row_ptrs.get_const_data()));
 
-    grid_num = ceildiv(num_rows + 1, default_block_size);
-    auto add_values = Array<IndexType>(exec, grid_num);
-
-    start_prefix_sum<default_block_size>
-        <<<grid_num, default_block_size>>>(num_rows + 1, as_cuda_type(row_ptrs),
-                                           as_cuda_type(add_values.get_data()));
-
-    finalize_prefix_sum<default_block_size><<<grid_num, default_block_size>>>(
-        num_rows + 1, as_cuda_type(row_ptrs),
-        as_cuda_type(add_values.get_const_data()));
+    prefix_sum(exec, row_ptrs, num_rows + 1);
 
     // Fill the value
     grid_num = ceildiv(num_rows, default_block_size);

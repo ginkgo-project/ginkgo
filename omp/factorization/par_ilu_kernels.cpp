@@ -38,6 +38,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/components/prefix_sum.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace omp {
@@ -55,14 +58,13 @@ void initialize_row_ptrs_l_u(
     const matrix::Csr<ValueType, IndexType> *system_matrix,
     IndexType *l_row_ptrs, IndexType *u_row_ptrs)
 {
+    auto num_rows = system_matrix->get_size()[0];
     auto row_ptrs = system_matrix->get_const_row_ptrs();
     auto col_idxs = system_matrix->get_const_col_idxs();
 
-    l_row_ptrs[0] = 0;
-    u_row_ptrs[0] = 0;
 // Calculate the NNZ per row first
 #pragma omp parallel for
-    for (size_type row = 0; row < system_matrix->get_size()[0]; ++row) {
+    for (size_type row = 0; row < num_rows; ++row) {
         size_type l_nnz{};
         size_type u_nnz{};
         bool has_diagonal{};
@@ -76,20 +78,13 @@ void initialize_row_ptrs_l_u(
             }
             has_diagonal |= col == row;
         }
-        l_row_ptrs[row + 1] = l_nnz + !has_diagonal;
-        u_row_ptrs[row + 1] = u_nnz + !has_diagonal;
+        l_row_ptrs[row] = l_nnz + !has_diagonal;
+        u_row_ptrs[row] = u_nnz + !has_diagonal;
     }
 
     // Now, compute the prefix-sum, to get proper row_ptrs for L and U
-    IndexType l_previous_nnz{};
-    IndexType u_previous_nnz{};
-    for (size_type row = 1; row < system_matrix->get_size()[0] + 1; ++row) {
-        l_previous_nnz += l_row_ptrs[row];
-        u_previous_nnz += u_row_ptrs[row];
-
-        l_row_ptrs[row] = l_previous_nnz;
-        u_row_ptrs[row] = u_previous_nnz;
-    }
+    prefix_sum(exec, l_row_ptrs, num_rows + 1);
+    prefix_sum(exec, u_row_ptrs, num_rows + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

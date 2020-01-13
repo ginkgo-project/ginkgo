@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/prefix_sum.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/config.hpp"
@@ -51,7 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/format_conversion.cuh"
-#include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/zero_array.hpp"
 
@@ -307,24 +307,15 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
         num_rows, max_nnz_per_row, stride,
         as_cuda_type(source->get_const_values()), as_cuda_type(row_ptrs));
 
-    size_type grid_dim = ceildiv(num_rows + 1, default_block_size);
-    auto add_values = Array<IndexType>(exec, grid_dim);
+    prefix_sum(exec, row_ptrs, num_rows + 1);
 
-    start_prefix_sum<default_block_size>
-        <<<grid_dim, default_block_size>>>(num_rows + 1, as_cuda_type(row_ptrs),
-                                           as_cuda_type(add_values.get_data()));
-
-    finalize_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
-        num_rows + 1, as_cuda_type(row_ptrs),
-        as_cuda_type(add_values.get_const_data()));
+    size_type grid_dim = ceildiv(num_rows, default_block_size);
 
     kernel::fill_in_csr<<<grid_dim, default_block_size>>>(
         num_rows, max_nnz_per_row, stride,
         as_cuda_type(source->get_const_values()),
         as_cuda_type(source->get_const_col_idxs()), as_cuda_type(row_ptrs),
         as_cuda_type(col_idxs), as_cuda_type(values));
-
-    add_values.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -342,7 +333,6 @@ void count_nonzeros(std::shared_ptr<const CudaExecutor> exec,
     calculate_nonzeros_per_row(exec, source, &nnz_per_row);
 
     *result = reduce_add_array(exec, num_rows, nnz_per_row.get_const_data());
-    nnz_per_row.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

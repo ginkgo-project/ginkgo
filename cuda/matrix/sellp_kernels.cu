@@ -40,10 +40,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/prefix_sum.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/types.hpp"
-#include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"
 
 
@@ -175,13 +175,7 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
     grid_dim = ceildiv(num_rows + 1, default_block_size);
     auto add_values = Array<IndexType>(exec, grid_dim);
 
-    start_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
-        num_rows + 1, as_cuda_type(result_row_ptrs),
-        as_cuda_type(add_values.get_data()));
-
-    finalize_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
-        num_rows + 1, as_cuda_type(result_row_ptrs),
-        as_cuda_type(add_values.get_const_data()));
+    prefix_sum(exec, result_row_ptrs, num_rows + 1);
 
     grid_dim = ceildiv(num_rows, default_block_size);
 
@@ -190,8 +184,6 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(source_col_idxs), as_cuda_type(source_values),
         as_cuda_type(result_row_ptrs), as_cuda_type(result_col_idxs),
         as_cuda_type(result_values));
-
-    add_values.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -217,7 +209,6 @@ void count_nonzeros(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(nnz_per_row.get_data()));
 
     *result = reduce_add_array(exec, num_rows, nnz_per_row.get_const_data());
-    nnz_per_row.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

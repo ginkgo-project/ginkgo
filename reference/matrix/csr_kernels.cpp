@@ -54,6 +54,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/iterator_factory.hpp"
+#include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "reference/components/format_conversion.hpp"
 
@@ -219,12 +220,11 @@ void spgemm(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_col_idxs.clear();
         spgemm_insert_row2(local_col_idxs, a, b, a_row);
-        c_row_ptrs[a_row + 1] = local_col_idxs.size();
+        c_row_ptrs[a_row] = local_col_idxs.size();
     }
 
-    // build row pointers: exclusive scan (thus the + 1)
-    c_row_ptrs[0] = 0;
-    std::partial_sum(c_row_ptrs + 1, c_row_ptrs + num_rows + 1, c_row_ptrs + 1);
+    // build row pointers
+    prefix_sum(exec, c_row_ptrs, num_rows + 1);
 
     // second sweep: accumulate non-zeros
     auto new_nnz = c_row_ptrs[num_rows];
@@ -278,12 +278,11 @@ void advanced_spgemm(std::shared_ptr<const ReferenceExecutor> exec,
         if (valpha != zero(valpha)) {
             spgemm_insert_row2(local_col_idxs, a, b, a_row);
         }
-        c_row_ptrs[a_row + 1] = local_col_idxs.size();
+        c_row_ptrs[a_row] = local_col_idxs.size();
     }
 
-    // build row pointers: exclusive scan (thus the + 1)
-    c_row_ptrs[0] = 0;
-    std::partial_sum(c_row_ptrs + 1, c_row_ptrs + num_rows + 1, c_row_ptrs + 1);
+    // build row pointers
+    prefix_sum(exec, c_row_ptrs, num_rows + 1);
 
     // second sweep: accumulate non-zeros
     auto new_nnz = c_row_ptrs[num_rows];

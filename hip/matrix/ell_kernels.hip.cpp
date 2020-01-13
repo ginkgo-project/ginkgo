@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/prefix_sum.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "hip/base/config.hip.hpp"
@@ -54,7 +55,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/atomic.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/format_conversion.hip.hpp"
-#include "hip/components/prefix_sum.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/zero_array.hip.hpp"
 
@@ -316,15 +316,7 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
     size_type grid_dim = ceildiv(num_rows + 1, default_block_size);
     auto add_values = Array<IndexType>(exec, grid_dim);
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(start_prefix_sum<default_block_size>),
-                       dim3(grid_dim), dim3(default_block_size), 0, 0,
-                       num_rows + 1, as_hip_type(row_ptrs),
-                       as_hip_type(add_values.get_data()));
-
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(finalize_prefix_sum<default_block_size>),
-                       dim3(grid_dim), dim3(default_block_size), 0, 0,
-                       num_rows + 1, as_hip_type(row_ptrs),
-                       as_hip_type(add_values.get_const_data()));
+    prefix_sum(exec, row_ptrs, num_rows + 1);
 
     hipLaunchKernelGGL(
         kernel::fill_in_csr, dim3(grid_dim), dim3(default_block_size), 0, 0,
@@ -332,8 +324,6 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
         as_hip_type(source->get_const_values()),
         as_hip_type(source->get_const_col_idxs()), as_hip_type(row_ptrs),
         as_hip_type(col_idxs), as_hip_type(values));
-
-    add_values.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -351,7 +341,6 @@ void count_nonzeros(std::shared_ptr<const HipExecutor> exec,
     calculate_nonzeros_per_row(exec, source, &nnz_per_row);
 
     *result = reduce_add_array(exec, num_rows, nnz_per_row.get_const_data());
-    nnz_per_row.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

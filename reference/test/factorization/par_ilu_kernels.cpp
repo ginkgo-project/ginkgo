@@ -83,6 +83,10 @@ protected:
         : ref(gko::ReferenceExecutor::create()),
           exec(std::static_pointer_cast<const gko::Executor>(ref)),
           // clang-format off
+          empty_csr(gko::initialize<Csr>(
+              {{0., 0., 0.},
+               {0., 0., 0.},
+               {0., 0., 0.}}, exec)),
           identity(gko::initialize<Dense>(
               {{1., 0., 0.},
                {0., 1., 0.},
@@ -139,16 +143,16 @@ protected:
           big_nodiag_l_expected(gko::initialize<Dense>({{1., 0., 0., 0., 0., 0.},
                                                         {1., 1., 0., 0., 0., 0.},
                                                         {0., 2., 1., 0., 0., 0.},
-                                                        {2., 0., 0., 1., 0., 0.},
-                                                        {1., 1., 0., 1., 1., 0.},
-                                                        {0., 2., 1., 0.25, -0.5, 1.}},
+                                                        {1., 0., 2., 1., 0., 0.},
+                                                        {1., 1., 0., -2., 1., 0.},
+                                                        {0., 2., 1., -0.5, 2.5, 1.}},
                                                 exec)),
           big_nodiag_u_expected(gko::initialize<Dense>({{1., 1., 1., 0., 1., 3.},
                                                         {0., 1., 1., 0., 1., 0.},
-                                                        {0., 0., 1., 3., 1., -2.},
-                                                        {0., 0., 0., 4., 2., 0.},
-                                                        {0., 0., 0., 0., -3., 3.},
-                                                        {0., 0., 0., 0., 0., 11.5}},
+                                                        {0., 0., 1., 3., 1., 5.},
+                                                        {0., 0., 0., -2., 1., -9.},
+                                                        {0., 0., 0., 0., 1., -15.},
+                                                        {0., 0., 0., 0., 0., 36.}},
                                                 exec)),
           // clang-format on
           ilu_factory_skip(
@@ -163,6 +167,7 @@ protected:
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::Executor> exec;
+    std::shared_ptr<const Csr> empty_csr;
     std::shared_ptr<const Dense> identity;
     std::shared_ptr<const Dense> lower_triangular;
     std::shared_ptr<const Dense> upper_triangular;
@@ -203,6 +208,28 @@ TEST_F(ParIlu, KernelInitializeRowPtrsLU)
 }
 
 
+TEST_F(ParIlu, KernelInitializeRowPtrsLUZeroMatrix)
+{
+    auto empty_csr_l_expected = Csr::create(ref);
+    identity->convert_to(gko::lend(empty_csr_l_expected));
+    auto empty_csr_u_expected = Csr::create(ref);
+    identity->convert_to(gko::lend(empty_csr_u_expected));
+    auto num_row_ptrs = empty_csr->get_size()[0] + 1;
+    std::vector<index_type> l_row_ptrs_vector(num_row_ptrs);
+    std::vector<index_type> u_row_ptrs_vector(num_row_ptrs);
+    auto l_row_ptrs = l_row_ptrs_vector.data();
+    auto u_row_ptrs = u_row_ptrs_vector.data();
+
+    gko::kernels::reference::par_ilu_factorization::initialize_row_ptrs_l_u(
+        ref, gko::lend(empty_csr), l_row_ptrs, u_row_ptrs);
+
+    ASSERT_TRUE(std::equal(l_row_ptrs, l_row_ptrs + num_row_ptrs,
+                           empty_csr_l_expected->get_const_row_ptrs()));
+    ASSERT_TRUE(std::equal(u_row_ptrs, u_row_ptrs + num_row_ptrs,
+                           empty_csr_u_expected->get_const_row_ptrs()));
+}
+
+
 TEST_F(ParIlu, KernelInitializeLU)
 {
     // clang-format off
@@ -230,6 +257,21 @@ TEST_F(ParIlu, KernelInitializeLU)
 
     GKO_ASSERT_MTX_NEAR(actual_l, expected_l, 1e-14);
     GKO_ASSERT_MTX_NEAR(actual_u, expected_u, 1e-14);
+}
+
+
+TEST_F(ParIlu, KernelInitializeLUZeroMatrix)
+{
+    auto actual_l = Csr::create(ref);
+    auto actual_u = Csr::create(ref);
+    actual_l->copy_from(identity.get());
+    actual_u->copy_from(identity.get());
+
+    gko::kernels::reference::par_ilu_factorization::initialize_l_u(
+        ref, gko::lend(empty_csr), gko::lend(actual_l), gko::lend(actual_u));
+
+    GKO_ASSERT_MTX_NEAR(actual_l, identity, 1e-14);
+    GKO_ASSERT_MTX_NEAR(actual_u, identity, 1e-14);
 }
 
 

@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
+#include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
@@ -56,7 +57,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/segment_scan.cuh"
 #include "cuda/components/uninitialized_array.hpp"
@@ -677,17 +677,7 @@ void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(nnz_per_row.get_const_data()), as_cuda_type(slice_lengths),
         as_cuda_type(slice_sets));
 
-    auto add_values =
-        Array<size_type>(exec, ceildiv(slice_num + 1, default_block_size));
-    grid_dim = ceildiv(slice_num + 1, default_block_size);
-
-    start_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
-        slice_num + 1, as_cuda_type(slice_sets),
-        as_cuda_type(add_values.get_data()));
-
-    finalize_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
-        slice_num + 1, as_cuda_type(slice_sets),
-        as_cuda_type(add_values.get_const_data()));
+    prefix_sum(exec, slice_sets, slice_num + 1);
 
     grid_dim = ceildiv(num_rows, default_block_size);
     kernel::fill_in_sellp<<<grid_dim, default_block_size>>>(
@@ -695,9 +685,6 @@ void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(source_row_ptrs), as_cuda_type(source_col_idxs),
         as_cuda_type(slice_lengths), as_cuda_type(slice_sets),
         as_cuda_type(result_col_idxs), as_cuda_type(result_values));
-
-    nnz_per_row.clear();
-    add_values.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -779,11 +766,6 @@ void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
 
     exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
                                   result);
-
-    block_results.clear();
-    nnz_per_row.clear();
-    max_nnz_per_slice.clear();
-    d_result.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -917,10 +899,6 @@ void calculate_max_nnz_per_row(std::shared_ptr<const CudaExecutor> exec,
 
     exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
                                   result);
-
-    nnz_per_row.clear();
-    block_results.clear();
-    d_result.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -952,15 +930,7 @@ void convert_to_hybrid(std::shared_ptr<const CudaExecutor> exec,
         num_rows, max_nnz_per_row, as_cuda_type(source->get_const_row_ptrs()),
         as_cuda_type(coo_offset.get_data()));
 
-    auto add_values =
-        Array<size_type>(exec, ceildiv(num_rows, default_block_size));
-    grid_dim = ceildiv(num_rows, default_block_size);
-    start_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
-        num_rows, as_cuda_type(coo_offset.get_data()),
-        as_cuda_type(add_values.get_data()));
-    finalize_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
-        num_rows, as_cuda_type(coo_offset.get_data()),
-        as_cuda_type(add_values.get_const_data()));
+    prefix_sum(exec, coo_offset.get_data(), num_rows);
 
     grid_dim = ceildiv(num_rows * config::warp_size, default_block_size);
     kernel::fill_in_hybrid<<<grid_dim, default_block_size>>>(

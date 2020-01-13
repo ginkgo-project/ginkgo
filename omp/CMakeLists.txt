@@ -4,6 +4,7 @@ add_library(ginkgo_omp $<TARGET_OBJECTS:ginkgo_omp_device> "")
 target_sources(ginkgo_omp
     PRIVATE
         base/version.cpp
+        components/prefix_sum.cpp
         factorization/par_ilu_kernels.cpp
         matrix/coo_kernels.cpp
         matrix/csr_kernels.cpp

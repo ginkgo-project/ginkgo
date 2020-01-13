@@ -41,9 +41,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/coo.hpp>
 
 
+#include "core/components/prefix_sum.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
-#include "hip/components/prefix_sum.hip.hpp"
 
 
 namespace gko {
@@ -70,7 +70,6 @@ void initialize_row_ptrs_l_u(
     IndexType *l_row_ptrs, IndexType *u_row_ptrs)
 {
     const size_type num_rows{system_matrix->get_size()[0]};
-    const size_type num_row_ptrs{num_rows + 1};
 
     const dim3 block_size{default_block_size, 1, 1};
     const uint32 number_blocks =
@@ -84,22 +83,8 @@ void initialize_row_ptrs_l_u(
                        as_hip_type(system_matrix->get_const_values()),
                        as_hip_type(l_row_ptrs), as_hip_type(u_row_ptrs));
 
-    Array<IndexType> block_sum(exec, grid_dim.x);
-    auto block_sum_ptr = block_sum.get_data();
-
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(start_prefix_sum<default_block_size>),
-                       dim3(grid_dim), dim3(block_size), 0, 0, num_row_ptrs,
-                       as_hip_type(l_row_ptrs), as_hip_type(block_sum_ptr));
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(finalize_prefix_sum<default_block_size>),
-                       dim3(grid_dim), dim3(block_size), 0, 0, num_row_ptrs,
-                       as_hip_type(l_row_ptrs), as_hip_type(block_sum_ptr));
-
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(start_prefix_sum<default_block_size>),
-                       dim3(grid_dim), dim3(block_size), 0, 0, num_row_ptrs,
-                       as_hip_type(u_row_ptrs), as_hip_type(block_sum_ptr));
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(finalize_prefix_sum<default_block_size>),
-                       dim3(grid_dim), dim3(block_size), 0, 0, num_row_ptrs,
-                       as_hip_type(u_row_ptrs), as_hip_type(block_sum_ptr));
+    prefix_sum(exec, l_row_ptrs, num_rows + 1);
+    prefix_sum(exec, u_row_ptrs, num_rows + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
