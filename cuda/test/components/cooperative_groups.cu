@@ -71,6 +71,16 @@ protected:
         ASSERT_TRUE(success);
     }
 
+    template <typename Kernel>
+    void test_subwarp(Kernel kernel)
+    {
+        kernel<<<1, config::warp_size / 2>>>(dresult.get_data());
+        result = dresult;
+        auto success = *result.get_const_data();
+
+        ASSERT_TRUE(success);
+    }
+
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::CudaExecutor> cuda;
     gko::Array<bool> result;
@@ -83,11 +93,8 @@ constexpr static int subwarp_size = config::warp_size / 4;
 
 __device__ void test_assert(bool *success, bool partial)
 {
-    auto warp =
-        group::tiled_partition<config::warp_size>(group::this_thread_block());
-    auto full = warp.all(partial);
-    if (threadIdx.x == 0) {
-        *success &= full;
+    if (!partial) {
+        *success = false;
     }
 }
 
@@ -150,9 +157,20 @@ __global__ void cg_subwarp_shuffle(bool *s)
     test_assert(s, group.shfl_down(i, 1) == min(i + 1, subwarp_size - 1));
     auto group_base = threadIdx.x / subwarp_size * subwarp_size;
     test_assert(s, group.shfl(int(threadIdx.x), 0) == group_base);
+    if (threadIdx.x / subwarp_size == 1) {
+        test_assert(s, group.shfl_up(i, 1) == max(i - 1, 0));
+        test_assert(s, group.shfl_down(i, 1) == min(i + 1, subwarp_size - 1));
+        test_assert(s, group.shfl(int(threadIdx.x), 0) == group_base);
+    } else {
+        test_assert(s, group.shfl_down(i, 1) == min(i + 1, subwarp_size - 1));
+        test_assert(s, group.shfl(int(threadIdx.x), 0) == group_base);
+        test_assert(s, group.shfl_up(i, 1) == max(i - 1, 0));
+    }
 }
 
 TEST_F(CooperativeGroups, SubwarpShuffle) { test(cg_subwarp_shuffle); }
+
+TEST_F(CooperativeGroups, SubwarpShuffle2) { test_subwarp(cg_subwarp_shuffle); }
 
 
 __global__ void cg_subwarp_all(bool *s)
@@ -166,9 +184,20 @@ __global__ void cg_subwarp_all(bool *s)
     test_assert(s, !test_grp || group.all(test_grp));
     test_assert(s, !test_grp || !group.all(!test_grp));
     test_assert(s, !test_grp || !group.all(i < subwarp_size - 3 || !test_grp));
+    if (test_grp) {
+        test_assert(s, group.all(true));
+        test_assert(s, !group.all(false));
+        test_assert(s, !group.all(i < subwarp_size - 3));
+    } else {
+        test_assert(s, !group.all(false));
+        test_assert(s, !group.all(i < subwarp_size - 3));
+        test_assert(s, group.all(true));
+    }
 }
 
 TEST_F(CooperativeGroups, SubwarpAll) { test(cg_subwarp_all); }
+
+TEST_F(CooperativeGroups, SubwarpAll2) { test_subwarp(cg_subwarp_all); }
 
 
 __global__ void cg_subwarp_any(bool *s)
@@ -182,9 +211,20 @@ __global__ void cg_subwarp_any(bool *s)
     test_assert(s, !test_grp || group.any(test_grp));
     test_assert(s, !test_grp || group.any(test_grp && i == 1));
     test_assert(s, !test_grp || !group.any(!test_grp));
+    if (test_grp) {
+        test_assert(s, group.any(true));
+        test_assert(s, group.any(i == 1));
+        test_assert(s, !group.any(false));
+    } else {
+        test_assert(s, !group.any(false));
+        test_assert(s, group.any(true));
+        test_assert(s, group.any(i == 1));
+    }
 }
 
 TEST_F(CooperativeGroups, SubwarpAny) { test(cg_subwarp_any); }
+
+TEST_F(CooperativeGroups, SubwarpAny2) { test_subwarp(cg_subwarp_any); }
 
 
 __global__ void cg_subwarp_ballot(bool *s)
@@ -199,9 +239,20 @@ __global__ void cg_subwarp_ballot(bool *s)
     test_assert(s, !test_grp || group.ballot(!test_grp) == 0);
     test_assert(s, !test_grp || group.ballot(test_grp) == full_mask);
     test_assert(s, !test_grp || group.ballot(i < 4 || !test_grp) == 0xf);
+    if (test_grp) {
+        test_assert(s, group.ballot(false) == 0);
+        test_assert(s, group.ballot(true) == full_mask);
+        test_assert(s, group.ballot(i < 4) == 0xf);
+    } else {
+        test_assert(s, group.ballot(true) == full_mask);
+        test_assert(s, group.ballot(i < 4) == 0xf);
+        test_assert(s, group.ballot(false) == 0);
+    }
 }
 
 TEST_F(CooperativeGroups, SubwarpBallot) { test(cg_subwarp_ballot); }
+
+TEST_F(CooperativeGroups, SubwarpBallot2) { test_subwarp(cg_subwarp_ballot); }
 
 
 }  // namespace
