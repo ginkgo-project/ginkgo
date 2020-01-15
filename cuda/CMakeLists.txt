@@ -63,7 +63,7 @@ target_sources(ginkgo_cuda
         base/executor.cpp
         base/version.cpp
         components/prefix_sum.cu
-        components/zero_array.cu
+        components/zero_array_kernels.cu
         factorization/par_ilu_kernels.cu
         matrix/coo_kernels.cu
         matrix/csr_kernels.cu
