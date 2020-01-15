@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_COMPONENTS_ATOMIC_CUH_
 
 
+#include <cuda.h>
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {
