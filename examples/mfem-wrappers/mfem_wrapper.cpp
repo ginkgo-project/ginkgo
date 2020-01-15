@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -59,7 +59,21 @@ void MFEMOperatorWrapper::apply_impl(const gko::LinOp *alpha,
     const MFEMVectorWrapper *mfem_b = gko::as<const MFEMVectorWrapper>(b);
     MFEMVectorWrapper *mfem_x = gko::as<MFEMVectorWrapper>(x);
 
-    // Assume alpha and beta are Dense<double> of size (1,1):
+    // Check that alpha and beta are Dense<double> of size (1,1):
+    if (alpha->get_size()[0] > 1 || alpha->get_size()[1] > 1) {
+        throw gko::BadDimension(
+            __FILE__, __LINE__, __func__, "alpha", alpha->get_size()[0],
+            alpha->get_size()[1],
+            "Expected an object of size [1 x 1] for scaling "
+            " in this operator's apply_impl");
+    }
+    if (beta->get_size()[0] > 1 || beta->get_size()[1] > 1) {
+        throw gko::BadDimension(
+            __FILE__, __LINE__, __func__, "beta", beta->get_size()[0],
+            beta->get_size()[1],
+            "Expected an object of size [1 x 1] for scaling "
+            " in this operator's apply_impl");
+    }
     const auto alpha_d = gko::as<gko::matrix::Dense<double>>(alpha)->at(0, 0);
     const auto beta_d = gko::as<gko::matrix::Dense<double>>(beta)->at(0, 0);
 
@@ -72,4 +86,6 @@ void MFEMOperatorWrapper::apply_impl(const gko::LinOp *alpha,
 
     // Scale tmp by alpha and add
     mfem_x->get_mfem_vec_ref().Add(alpha_d, mfem_tmp);
+
+    mfem_tmp.Destroy();
 }

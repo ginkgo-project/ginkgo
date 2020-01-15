@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,30 +34,54 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/ginkgo.hpp>
 
+template <typename T>
+class mfem_destroy {
+public:
+    using pointer = T *;
+
+    /**
+     * Destroys an MFEM object.  Requires object to have a Destroy() method.
+     *
+     * @param ptr  pointer to the object being deleted
+     */
+    void operator()(pointer ptr) const noexcept { ptr->Destroy(); }
+};
 
 class MFEMVectorWrapper : public gko::matrix::Dense<double> {
 public:
     MFEMVectorWrapper(std::shared_ptr<const gko::Executor> exec,
-                      gko::size_type size = 0,
-                      mfem::Vector *mfem_vec = new mfem::Vector())
+                      gko::size_type size, mfem::Vector *mfem_vec,
+                      bool ownership = false)
         : gko::matrix::Dense<double>(
               exec, gko::dim<2>{size, 1},
-              gko::Array<double>::view(exec, size, mfem_vec->GetData()), 1),
-          mfem_vec_{mfem_vec}
-    {}
+              gko::Array<double>::view(exec, size, mfem_vec->GetData()), 1)
+    {
+        if (ownership) {
+            using deleter = mfem_destroy<mfem::Vector>;
+            mfem_vec_ = std::unique_ptr<mfem::Vector,
+                                        std::function<void(mfem::Vector *)>>(
+                mfem_vec, deleter{});
+        } else {
+            using deleter = gko::null_deleter<mfem::Vector>;
+            mfem_vec_ = std::unique_ptr<mfem::Vector,
+                                        std::function<void(mfem::Vector *)>>(
+                mfem_vec, deleter{});
+        }
+    }
+
 
     static std::unique_ptr<MFEMVectorWrapper> create(
         std::shared_ptr<const gko::Executor> exec, gko::size_type size,
-        mfem::Vector *mfem_vec)
+        mfem::Vector *mfem_vec, bool ownership = false)
     {
         return std::unique_ptr<MFEMVectorWrapper>(
-            new MFEMVectorWrapper(exec, size, mfem_vec));
+            new MFEMVectorWrapper(exec, size, mfem_vec, ownership));
     }
 
-    mfem::Vector &get_mfem_vec_ref() { return *(this->mfem_vec_); }
+    mfem::Vector &get_mfem_vec_ref() { return *(this->mfem_vec_.get()); }
     const mfem::Vector &get_mfem_vec_const_ref() const
     {
-        return const_cast<const mfem::Vector &>(*(this->mfem_vec_));
+        return const_cast<const mfem::Vector &>(*(this->mfem_vec_.get()));
     }
 
     // Override base Dense class implementation
@@ -66,7 +90,7 @@ public:
     {
         mfem::Vector *mfem_vec = new mfem::Vector(this->get_size()[0]);
         return MFEMVectorWrapper::create(this->get_executor(),
-                                         this->get_size()[0], mfem_vec);
+                                         this->get_size()[0], mfem_vec, true);
     }
 
 
@@ -76,7 +100,8 @@ protected:
                     const gko::LinOp *beta, gko::LinOp *x) const override;
 
 private:
-    mfem::Vector *mfem_vec_;
+    std::unique_ptr<mfem::Vector, std::function<void(mfem::Vector *)>>
+        mfem_vec_;
 };
 
 class MFEMOperatorWrapper
