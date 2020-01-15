@@ -72,7 +72,9 @@ protected:
                     const Updater &) override;
 
     explicit Time(std::shared_ptr<const gko::Executor> exec)
-        : EnablePolymorphicObject<Time, Criterion>(std::move(exec))
+        : EnablePolymorphicObject<Time, Criterion>(std::move(exec)),
+          time_limit_{},
+          start_{}
     {}
 
     explicit Time(const Factory *factory, const CriterionArgs args)
@@ -89,8 +91,8 @@ private:
      * parameters and here properly convert the double to a
      * std::chrono::duration type
      */
-    std::chrono::duration<double> time_limit_{};
-    clock::time_point start_{};
+    std::chrono::duration<double> time_limit_;
+    clock::time_point start_;
 };
 
 
