@@ -247,6 +247,10 @@ public:
     GKO_BIND_SHFL(shfl_xor, uint32, int32);
     GKO_BIND_SHFL(shfl_xor, double, int32);
 
+    /**
+     * Returns true iff the predicate is true for at least one threads in the
+     * group. Note that the whole group needs to execute the same operation.
+     */
     __device__ __forceinline__ int any(int predicate) const noexcept
     {
 #if GINKGO_HIP_PLATFORM_HCC
@@ -260,6 +264,10 @@ public:
 #endif
     }
 
+    /**
+     * Returns true iff the predicate is true for all threads in the group.
+     * Note that the whole group needs to execute the same operation.
+     */
     __device__ __forceinline__ int all(int predicate) const noexcept
     {
 #if GINKGO_HIP_PLATFORM_HCC
@@ -273,6 +281,13 @@ public:
 #endif
     }
 
+    /**
+     * Returns a bitmask containing the value of the given predicate
+     * for all threads in the group.
+     * This means that the ith bit is equal to the predicate of the
+     * thread with thread_rank() == i in the group.
+     * Note that the whole group needs to execute the same operation.
+     */
     __device__ __forceinline__ config::lane_mask_type ballot(
         int predicate) const noexcept
     {
