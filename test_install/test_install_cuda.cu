@@ -122,7 +122,8 @@ int main(int, char **)
 
     // core/base/mtx_io.hpp
     {
-        /*auto test =*/gko::layout_type::array;
+        static_assert(gko::layout_type::array != gko::layout_type::coordinate,
+                      "mtx_io.hpp not included properly!");
     }
 
     // core/base/name_demangling.hpp
@@ -134,7 +135,8 @@ int main(int, char **)
 
     // core/base/polymorphic_object.hpp
     {
-        /*auto test =*/gko::layout_type::array;
+        gko::PolymorphicObject *test;
+        (void)test;  // silence unused variable warning
     }
 
     // core/base/range.hpp
@@ -161,12 +163,13 @@ int main(int, char **)
     // core/base/std_extensions.hpp
     {
         static_assert(std::is_same<gko::xstd::void_t<double>, void>::value,
-                      "std::extensions.hpp not included properly!");
+                      "std_extensions.hpp not included properly!");
     }
 
     // core/base/types.hpp
     {
-        /*auto test =*/gko::size_type{12};
+        static_assert(gko::size_type{12} == 12,
+                      "types.hpp not included properly");
     }
 
     // core/base/utils.hpp
