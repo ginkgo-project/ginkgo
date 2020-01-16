@@ -54,7 +54,10 @@ public:
                       bool ownership = false)
         : gko::matrix::Dense<double>(
               exec, gko::dim<2>{size, 1},
-              gko::Array<double>::view(exec, size, mfem_vec->GetData()), 1)
+              gko::Array<double>::view(
+                  exec, size, mfem_vec->ReadWrite(mfem_vec->UseDevice())),
+              1)
+    // TODO: is ReadWrite the best choice?
     {
         if (ownership) {
             using deleter = mfem_destroy<mfem::Vector>;
@@ -88,7 +91,12 @@ public:
     virtual std::unique_ptr<gko::matrix::Dense<double>>
     create_with_same_config() const override
     {
-        mfem::Vector *mfem_vec = new mfem::Vector(this->get_size()[0]);
+        //        mfem::Vector *mfem_vec = new
+        //        mfem::Vector(this->get_size()[0]);
+        mfem::Vector *mfem_vec = new mfem::Vector(
+            this->get_size()[0],
+            this->mfem_vec_.get()->GetMemory().GetMemoryType());
+        // mfem::MemoryType::HOST);
         return MFEMVectorWrapper::create(this->get_executor(),
                                          this->get_size()[0], mfem_vec, true);
     }

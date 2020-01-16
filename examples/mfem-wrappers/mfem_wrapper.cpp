@@ -81,7 +81,9 @@ void MFEMOperatorWrapper::apply_impl(const gko::LinOp *alpha,
     mfem_x->get_mfem_vec_ref() *= beta_d;
 
     // Multiply operator with b and store in tmp
-    mfem::Vector mfem_tmp = mfem::Vector(mfem_b->get_size()[0]);
+    mfem::Vector mfem_tmp = mfem::Vector(
+        mfem_b->get_size()[0],
+        mfem_b->get_mfem_vec_const_ref().GetMemory().GetMemoryType());
     this->mfem_oper_->Mult(mfem_b->get_mfem_vec_const_ref(), mfem_tmp);
 
     // Scale tmp by alpha and add
