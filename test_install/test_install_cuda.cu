@@ -64,7 +64,7 @@ int main(int, char **)
     {
         using type1 = int;
         using ArrayType = gko::Array<type1>;
-        ArrayType test;
+        /*auto test =*/ArrayType{};
     }
 
     // core/base/combination.hpp
@@ -86,13 +86,14 @@ int main(int, char **)
     // core/base/dim.hpp
     {
         using type1 = int;
-        auto test = gko::dim<3, type1>{4, 4, 4};
+        /*auto test = gko::dim<3, type1>{4, 4, 4};
     }
 
     // core/base/exception.hpp
     {
-        auto test = gko::Error(std::string("file"), 12,
-                               std::string("Test for an error class."));
+        /*auto test =*/
+        gko::Error(std::string("file"), 12,
+                   std::string("Test for an error class."));
     }
 
     // core/base/exception_helpers.hpp
@@ -103,7 +104,7 @@ int main(int, char **)
 
     // core/base/executor.hpp
     {
-        auto test = gko::ReferenceExecutor::create();
+        /*auto test =*/gko::ReferenceExecutor::create();
     }
 
     // core/base/math.hpp
@@ -115,36 +116,37 @@ int main(int, char **)
 
     // core/base/matrix_data.hpp
     {
-        gko::matrix_data<> test{};
+        /*auto test =*/gko::matrix_data<>{};
     }
 
     // core/base/mtx_io.hpp
     {
-        auto test = gko::layout_type::array;
+        /*auto test =*/gko::layout_type::array;
     }
 
     // core/base/name_demangling.hpp
     {
         auto testVar = 3.0;
-        auto test = gko::name_demangling::get_static_type(testVar);
+        /*auto test =*/gko::name_demangling::get_static_type(testVar);
     }
 
 
     // core/base/polymorphic_object.hpp
     {
-        auto test = gko::layout_type::array;
+        /*auto test =*/gko::layout_type::array;
     }
 
     // core/base/range.hpp
     {
-        auto test = gko::span{12};
+        /*auto test =*/gko::span{12};
     }
 
     // core/base/range_accessors.hpp
     {
         auto testVar = 12;
-        auto test = gko::range<gko::accessor::row_major<decltype(testVar), 2>>(
-            &testVar, 1u, 1u, 1u);
+        /*auto test =*/gko::range<
+            gko::accessor::row_major<decltype(testVar), 2>>(&testVar, 1u, 1u,
+                                                            1u);
     }
 
     // core/base/perturbation.hpp
@@ -163,174 +165,169 @@ int main(int, char **)
 
     // core/base/types.hpp
     {
-        gko::size_type test{12};
+        /*auto test =*/gko::size_type{12};
     }
 
     // core/base/utils.hpp
     {
-        auto test = gko::null_deleter<double>{};
+        /*auto test =*/gko::null_deleter<double>{};
     }
 
     // core/base/version.hpp
     {
-        auto test = gko::version_info::get().header_version;
+        /*auto test =*/gko::version_info::get().header_version;
     }
 
     // core/factorization/par_ilu.hpp
     {
-        auto test = gko::factorization::ParIlu<>::build().on(refExec);
+        /*auto test =*/gko::factorization::ParIlu<>::build().on(refExec);
     }
 
     // core/log/convergence.hpp
     {
-        auto test = gko::log::Convergence<>::create(refExec);
+        /*auto test =*/gko::log::Convergence<>::create(refExec);
     }
 
     // core/log/record.hpp
     {
-        auto test = gko::log::executor_data{};
+        /*auto test =*/gko::log::executor_data{};
     }
 
     // core/log/stream.hpp
     {
-        auto test = gko::log::Stream<>::create(refExec);
+        /*auto test =*/gko::log::Stream<>::create(refExec);
     }
 
     // core/log/convergence.hpp
     {
-        auto test = gko::log::Convergence<>::create(refExec);
+        /*auto test =*/gko::log::Convergence<>::create(refExec);
     }
 
     // core/matrix/coo.hpp
     {
         using Mtx = gko::matrix::Coo<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2);
+        /*auto test =*/Mtx::create(refExec, gko::dim<2>{2, 2}, 2);
     }
 
     // core/matrix/csr.hpp
     {
         using Mtx = gko::matrix::Csr<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2,
-                                std::make_shared<Mtx::load_balance>(2));
+        /*auto test =*/Mtx::create(refExec, gko::dim<2>{2, 2}, 2,
+                                   std::make_shared<Mtx::load_balance>(2));
     }
 
     // core/matrix/dense.hpp
     {
         using Mtx = gko::matrix::Dense<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2});
+        /*auto test =*/Mtx::create(refExec, gko::dim<2>{2, 2});
     }
 
     // core/matrix/ell.hpp
     {
         using Mtx = gko::matrix::Ell<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2);
+        /*auto test =*/Mtx::create(refExec, gko::dim<2>{2, 2}, 2);
     }
 
     // core/matrix/hybrid.hpp
     {
         using Mtx = gko::matrix::Hybrid<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2, 2, 1);
+        /*auto test =*/Mtx::create(refExec, gko::dim<2>{2, 2}, 2, 2, 1);
     }
 
     // core/matrix/identity.hpp
     {
         using Mtx = gko::matrix::Identity<>;
-        auto test = Mtx::create(refExec);
+        /*auto test =*/Mtx::create(refExec);
     }
 
     // core/matrix/permutation.hpp
     {
         using Mtx = gko::matrix::Permutation<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2});
+        /*auto test =*/Mtx::create(refExec, gko::dim<2>{2, 2});
     }
 
     // core/matrix/sellp.hpp
     {
         using Mtx = gko::matrix::Sellp<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2}, 2);
+        /*auto test =*/Mtx::create(refExec, gko::dim<2>{2, 2}, 2);
     }
 
     // core/matrix/sparsity_csr.hpp
     {
         using Mtx = gko::matrix::SparsityCsr<>;
-        auto test = Mtx::create(refExec, gko::dim<2>{2, 2});
+        /*auto test =*/Mtx::create(refExec, gko::dim<2>{2, 2});
     }
 
     // core/preconditioner/ilu.hpp
     {
-        auto test = gko::preconditioner::Ilu<>::build().on(refExec);
+        /*auto test =*/gko::preconditioner::Ilu<>::build().on(refExec);
     }
 
     // core/preconditioner/jacobi.hpp
     {
         using Bj = gko::preconditioner::Jacobi<>;
-        auto test = Bj::build().with_max_block_size(1u).on(refExec);
+        /*auto test =*/
+        Bj::build().with_max_block_size(1u).on(refExec);
     }
 
     // core/solver/bicgstab.hpp
     {
         using Solver = gko::solver::Bicgstab<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        /*auto test =*/Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(refExec))
+            .on(refExec);
     }
 
     // core/solver/cg.hpp
     {
         using Solver = gko::solver::Cg<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        /*auto test =*/Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(refExec))
+            .on(refExec);
     }
 
     // core/solver/cgs.hpp
     {
         using Solver = gko::solver::Cgs<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        /*auto test =*/Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(refExec))
+            .on(refExec);
     }
 
     // core/solver/fcg.hpp
     {
         using Solver = gko::solver::Fcg<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        /*auto test =*/Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(refExec))
+            .on(refExec);
     }
 
     // core/solver/gmres.hpp
     {
         using Solver = gko::solver::Gmres<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        /*auto test =*/Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(refExec))
+            .on(refExec);
     }
 
     // core/solver/ir.hpp
     {
         using Solver = gko::solver::Ir<>;
-        auto test = Solver::build()
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(1u).on(
-                                refExec))
-                        .on(refExec);
+        /*auto test =*/Solver::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(refExec))
+            .on(refExec);
     }
 
     // core/solver/lower_trs.hpp
     {
         using Solver = gko::solver::LowerTrs<>;
-        auto test = Solver::build().on(refExec);
+        /*auto test =*/Solver::build().on(refExec);
     }
 
     // core/stop/
@@ -344,12 +341,12 @@ int main(int, char **)
                         .with_time_limit(std::chrono::milliseconds(10))
                         .on(refExec);
         // residual_norm_reduction.hpp
-        auto res_red = gko::stop::ResidualNormReduction<>::build()
-                           .with_reduction_factor(1e-10)
-                           .on(refExec);
+        /*auto res_red =*/gko::stop::ResidualNormReduction<>::build()
+            .with_reduction_factor(1e-10)
+            .on(refExec);
 
         // stopping_status.hpp
-        auto stop_status = gko::stopping_status{};
+        /*auto stop_status =*/gko::stopping_status{};
 
         // combined.hpp
         auto combined =
