@@ -7,6 +7,8 @@ list(APPEND CTEST_CUSTOM_COVERAGE_EXCLUDE
 
   ".*/third_party/.*"
 
+  ".*/doc/.*"
+
   ".*/benchmark/.*"
 
   ".*/examples/.*"
