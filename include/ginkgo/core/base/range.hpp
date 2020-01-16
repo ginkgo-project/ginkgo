@@ -382,7 +382,7 @@ public:
         return *this;
     }
 
-    GKO_ATTRIBUTES range(const range &other) = default;
+    range(const range &other) = default;
 
     /**
      * Returns the length of the specified dimension of the range.
