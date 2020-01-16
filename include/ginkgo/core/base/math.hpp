@@ -694,8 +694,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr auto squared_norm(const T &x)
  * @return maximum of `hint` and the significant bit position of `n`
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr uint32 get_significant_bit(
-    const T &n, uint32 hint = 0u) noexcept
+constexpr uint32 get_significant_bit(const T &n, uint32 hint = 0u) noexcept
 {
     return (T{1} << (hint + 1)) > n ? hint : get_significant_bit(n, hint + 1u);
 }
@@ -713,8 +712,8 @@ GKO_INLINE GKO_ATTRIBUTES constexpr uint32 get_significant_bit(
  * @return the smallest power of `base` not smaller than `limit`
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr T get_superior_power(
-    const T &base, const T &limit, const T &hint = T{1}) noexcept
+constexpr T get_superior_power(const T &base, const T &limit,
+                               const T &hint = T{1}) noexcept
 {
     return hint >= limit ? hint : get_superior_power(base, limit, hint * base);
 }
