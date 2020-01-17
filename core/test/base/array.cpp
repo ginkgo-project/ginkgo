@@ -39,9 +39,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include <core/test/utils.hpp>
+
+
 namespace {
 
-
+template <typename T>
 class Array : public ::testing::Test {
 protected:
     Array() : exec(gko::ReferenceExecutor::create()), x(exec, 2)
@@ -50,259 +53,267 @@ protected:
         x.get_data()[1] = 2;
     }
 
-    static void assert_equal_to_original_x(gko::Array<int> &a)
+    static void assert_equal_to_original_x(gko::Array<T> &a)
     {
         ASSERT_EQ(a.get_num_elems(), 2);
-        EXPECT_EQ(a.get_data()[0], 5);
-        EXPECT_EQ(a.get_data()[1], 2);
-        EXPECT_EQ(a.get_const_data()[0], 5);
-        EXPECT_EQ(a.get_const_data()[1], 2);
+        EXPECT_EQ(a.get_data()[0], T(5));
+        EXPECT_EQ(a.get_data()[1], T(2));
+        EXPECT_EQ(a.get_const_data()[0], T(5));
+        EXPECT_EQ(a.get_const_data()[1], T(2));
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    gko::Array<int> x;
+    gko::Array<T> x;
 };
 
 
-TEST_F(Array, CanBeCreatedWithoutAnExecutor)
+TYPED_TEST_CASE(Array, gko::test::ValueAndIndexTypes);
+
+
+TYPED_TEST(Array, CanBeCreatedWithoutAnExecutor)
 {
-    gko::Array<int> a;
+    gko::Array<TypeParam> a;
 
     ASSERT_EQ(a.get_executor(), nullptr);
     ASSERT_EQ(a.get_num_elems(), 0);
 }
 
 
-TEST_F(Array, CanBeEmpty)
+TYPED_TEST(Array, CanBeEmpty)
 {
-    gko::Array<int> a(exec);
+    gko::Array<TypeParam> a(this->exec);
 
     ASSERT_EQ(a.get_num_elems(), 0);
 }
 
 
-TEST_F(Array, ReturnsNullWhenEmpty)
+TYPED_TEST(Array, ReturnsNullWhenEmpty)
 {
-    gko::Array<int> a(exec);
+    gko::Array<TypeParam> a(this->exec);
 
     EXPECT_EQ(a.get_const_data(), nullptr);
     ASSERT_EQ(a.get_data(), nullptr);
 }
 
 
-TEST_F(Array, CanBeCreatedFromExistingData)
+TYPED_TEST(Array, CanBeCreatedFromExistingData)
 {
-    gko::Array<int> a{exec, 3, new int[3], std::default_delete<int[]>{}};
+    gko::Array<TypeParam> a{this->exec, 3, new TypeParam[3],
+                            std::default_delete<TypeParam[]>{}};
 
     EXPECT_EQ(a.get_num_elems(), 3);
 }
 
 
-TEST_F(Array, CanBeCreatedFromDataOnExecutor)
+TYPED_TEST(Array, CanBeCreatedFromDataOnExecutor)
 {
-    gko::Array<int> a{exec, 3, exec->alloc<int>(3)};
+    gko::Array<TypeParam> a{this->exec, 3,
+                            this->exec->template alloc<TypeParam>(3)};
 
     EXPECT_EQ(a.get_num_elems(), 3);
 }
 
 
-TEST_F(Array, CanBeCreatedFromRange)
+TYPED_TEST(Array, CanBeCreatedFromRange)
 {
     using std::begin;
     auto data = {1, 2, 3};
 
-    gko::Array<int> a{exec, begin(data), end(data)};
+    gko::Array<TypeParam> a{this->exec, begin(data), end(data)};
 
-    EXPECT_EQ(a.get_const_data()[0], 1);
-    EXPECT_EQ(a.get_const_data()[1], 2);
-    ASSERT_EQ(a.get_const_data()[2], 3);
+    EXPECT_EQ(a.get_const_data()[0], TypeParam(1));
+    EXPECT_EQ(a.get_const_data()[1], TypeParam(2));
+    ASSERT_EQ(a.get_const_data()[2], TypeParam(3));
 }
 
 
-TEST_F(Array, CanBeCreatedFromInitializerList)
+TYPED_TEST(Array, CanBeCreatedFromInitializerList)
 {
-    gko::Array<int> a{exec, {1, 2, 3}};
+    gko::Array<TypeParam> a{this->exec, {1, 2, 3}};
 
-    EXPECT_EQ(a.get_const_data()[0], 1);
-    EXPECT_EQ(a.get_const_data()[1], 2);
-    ASSERT_EQ(a.get_const_data()[2], 3);
+    EXPECT_EQ(a.get_const_data()[0], TypeParam(1));
+    EXPECT_EQ(a.get_const_data()[1], TypeParam(2));
+    ASSERT_EQ(a.get_const_data()[2], TypeParam(3));
 }
 
 
-TEST_F(Array, KnowsItsSize) { ASSERT_EQ(x.get_num_elems(), 2); }
+TYPED_TEST(Array, KnowsItsSize) { ASSERT_EQ(this->x.get_num_elems(), 2); }
 
 
-TEST_F(Array, ReturnsValidDataPtr)
+TYPED_TEST(Array, ReturnsValidDataPtr)
 {
-    EXPECT_EQ(x.get_data()[0], 5);
-    EXPECT_EQ(x.get_data()[1], 2);
+    EXPECT_EQ(this->x.get_data()[0], TypeParam(5));
+    EXPECT_EQ(this->x.get_data()[1], TypeParam(2));
 }
 
 
-TEST_F(Array, ReturnsValidConstDataPtr)
+TYPED_TEST(Array, ReturnsValidConstDataPtr)
 {
-    EXPECT_EQ(x.get_const_data()[0], 5);
-    EXPECT_EQ(x.get_const_data()[1], 2);
+    EXPECT_EQ(this->x.get_const_data()[0], TypeParam(5));
+    EXPECT_EQ(this->x.get_const_data()[1], TypeParam(2));
 }
 
 
-TEST_F(Array, KnowsItsExecutor) { ASSERT_EQ(x.get_executor(), exec); }
-
-
-TEST_F(Array, CanBeCopyConstructed)
+TYPED_TEST(Array, KnowsItsExecutor)
 {
-    gko::Array<int> a(x);
-    x.get_data()[0] = 7;
-
-    assert_equal_to_original_x(a);
+    ASSERT_EQ(this->x.get_executor(), this->exec);
 }
 
 
-TEST_F(Array, CanBeMoveConstructed)
+TYPED_TEST(Array, CanBeCopyConstructed)
 {
-    gko::Array<int> a(std::move(x));
+    gko::Array<TypeParam> a(this->x);
+    this->x.get_data()[0] = 7;
 
-    assert_equal_to_original_x(a);
+    this->assert_equal_to_original_x(a);
 }
 
 
-TEST_F(Array, CanBeCopyConstructedToADifferentExecutor)
+TYPED_TEST(Array, CanBeMoveConstructed)
 {
-    gko::Array<int> a{exec, x};
+    gko::Array<TypeParam> a(std::move(this->x));
 
-    assert_equal_to_original_x(a);
+    this->assert_equal_to_original_x(a);
 }
 
 
-TEST_F(Array, CanBeMoveConstructedToADifferentExecutor)
+TYPED_TEST(Array, CanBeCopyConstructedToADifferentExecutor)
 {
-    gko::Array<int> a{exec, std::move(x)};
+    gko::Array<TypeParam> a{this->exec, this->x};
 
-    assert_equal_to_original_x(a);
+    this->assert_equal_to_original_x(a);
 }
 
 
-TEST_F(Array, CanBeCopied)
+TYPED_TEST(Array, CanBeMoveConstructedToADifferentExecutor)
 {
-    auto omp = gko::OmpExecutor::create();
-    gko::Array<int> a(omp, 3);
+    gko::Array<TypeParam> a{this->exec, std::move(this->x)};
 
-    a = x;
-    x.get_data()[0] = 7;
-
-    assert_equal_to_original_x(a);
+    this->assert_equal_to_original_x(a);
 }
 
 
-TEST_F(Array, CanBeCopiedToExecutorlessArray)
-{
-    gko::Array<int> a;
-
-    a = x;
-
-    ASSERT_EQ(a.get_executor(), x.get_executor());
-    assert_equal_to_original_x(a);
-}
-
-
-TEST_F(Array, CanBeCopiedFromExecutorlessArray)
-{
-    gko::Array<int> a;
-
-    x = a;
-
-    ASSERT_NE(x.get_executor(), nullptr);
-    ASSERT_EQ(x.get_num_elems(), 0);
-}
-
-
-TEST_F(Array, CanBeMoved)
+TYPED_TEST(Array, CanBeCopied)
 {
     auto omp = gko::OmpExecutor::create();
-    gko::Array<int> a(omp, 3);
+    gko::Array<TypeParam> a(omp, 3);
 
-    a = std::move(x);
+    a = this->x;
+    this->x.get_data()[0] = 7;
 
-    assert_equal_to_original_x(a);
+    this->assert_equal_to_original_x(a);
 }
 
 
-TEST_F(Array, CanBeMovedToExecutorlessArray)
+TYPED_TEST(Array, CanBeCopiedToExecutorlessArray)
 {
-    gko::Array<int> a;
+    gko::Array<TypeParam> a;
 
-    a = std::move(x);
+    a = this->x;
+
+    ASSERT_EQ(a.get_executor(), this->x.get_executor());
+    this->assert_equal_to_original_x(a);
+}
+
+
+TYPED_TEST(Array, CanBeCopiedFromExecutorlessArray)
+{
+    gko::Array<TypeParam> a;
+
+    this->x = a;
+
+    ASSERT_NE(this->x.get_executor(), nullptr);
+    ASSERT_EQ(this->x.get_num_elems(), 0);
+}
+
+
+TYPED_TEST(Array, CanBeMoved)
+{
+    auto omp = gko::OmpExecutor::create();
+    gko::Array<TypeParam> a(omp, 3);
+
+    a = std::move(this->x);
+
+    this->assert_equal_to_original_x(a);
+}
+
+
+TYPED_TEST(Array, CanBeMovedToExecutorlessArray)
+{
+    gko::Array<TypeParam> a;
+
+    a = std::move(this->x);
 
     ASSERT_NE(a.get_executor(), nullptr);
-    assert_equal_to_original_x(a);
+    this->assert_equal_to_original_x(a);
 }
 
 
-TEST_F(Array, CanBeMovedFromExecutorlessArray)
+TYPED_TEST(Array, CanBeMovedFromExecutorlessArray)
 {
-    gko::Array<int> a;
+    gko::Array<TypeParam> a;
 
-    x = std::move(a);
+    this->x = std::move(a);
 
-    ASSERT_NE(x.get_executor(), nullptr);
-    ASSERT_EQ(x.get_num_elems(), 0);
+    ASSERT_NE(this->x.get_executor(), nullptr);
+    ASSERT_EQ(this->x.get_num_elems(), 0);
 }
 
 
-TEST_F(Array, CanBeCleared)
+TYPED_TEST(Array, CanBeCleared)
 {
-    x.clear();
+    this->x.clear();
 
-    ASSERT_EQ(x.get_num_elems(), 0);
-    ASSERT_EQ(x.get_data(), nullptr);
-    ASSERT_EQ(x.get_const_data(), nullptr);
+    ASSERT_EQ(this->x.get_num_elems(), 0);
+    ASSERT_EQ(this->x.get_data(), nullptr);
+    ASSERT_EQ(this->x.get_const_data(), nullptr);
 }
 
 
-TEST_F(Array, CanBeResized)
+TYPED_TEST(Array, CanBeResized)
 {
-    x.resize_and_reset(3);
+    this->x.resize_and_reset(3);
 
-    x.get_data()[0] = 1;
-    x.get_data()[1] = 8;
-    x.get_data()[2] = 7;
+    this->x.get_data()[0] = 1;
+    this->x.get_data()[1] = 8;
+    this->x.get_data()[2] = 7;
 
-    EXPECT_EQ(x.get_const_data()[0], 1);
-    EXPECT_EQ(x.get_const_data()[1], 8);
-    EXPECT_EQ(x.get_const_data()[2], 7);
+    EXPECT_EQ(this->x.get_const_data()[0], TypeParam(1));
+    EXPECT_EQ(this->x.get_const_data()[1], TypeParam(8));
+    EXPECT_EQ(this->x.get_const_data()[2], TypeParam(7));
 }
 
 
-TEST_F(Array, CanBeAssignedAnExecutor)
+TYPED_TEST(Array, CanBeAssignedAnExecutor)
 {
-    gko::Array<int> a;
+    gko::Array<TypeParam> a;
 
-    a.set_executor(exec);
+    a.set_executor(this->exec);
 
-    ASSERT_EQ(a.get_executor(), exec);
+    ASSERT_EQ(a.get_executor(), this->exec);
 }
 
 
-TEST_F(Array, ChangesExecutors)
+TYPED_TEST(Array, ChangesExecutors)
 {
     auto omp = gko::OmpExecutor::create();
-    x.set_executor(omp);
+    this->x.set_executor(omp);
 
-    ASSERT_EQ(x.get_executor(), omp);
-    assert_equal_to_original_x(x);
+    ASSERT_EQ(this->x.get_executor(), omp);
+    this->assert_equal_to_original_x(this->x);
 }
 
 
-TEST_F(Array, CanCreateView)
+TYPED_TEST(Array, CanCreateView)
 {
-    int data[] = {1, 2, 3};
+    TypeParam data[] = {1, 2, 3};
 
-    auto view = gko::Array<int>::view(exec, 3, data);
-    view = gko::Array<int>{exec, {5, 4, 2}};
+    auto view = gko::Array<TypeParam>::view(this->exec, 3, data);
+    view = gko::Array<TypeParam>{this->exec, {5, 4, 2}};
 
-    EXPECT_EQ(data[0], 5);
-    EXPECT_EQ(data[1], 4);
-    EXPECT_EQ(data[2], 2);
+    EXPECT_EQ(data[0], TypeParam(5));
+    EXPECT_EQ(data[1], TypeParam(4));
+    EXPECT_EQ(data[2], TypeParam(2));
 }
 
 

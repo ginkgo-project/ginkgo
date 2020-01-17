@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <gtest/gtest.h>
 #include <cmath>
+#include <complex>
 #include <cstdlib>
 #include <initializer_list>
 #include <string>
@@ -91,12 +92,14 @@ void print_componentwise_error(Ostream &os, const MatrixData1 &first,
         for (size_type col = 0; col < first.size[1]; ++col) {
             auto r = get_next_value(first_it, end(first.nonzeros), row, col);
             auto e = get_next_value(second_it, end(second.nonzeros), row, col);
-            auto m =
-                max(static_cast<real_vt>(abs(r)), static_cast<real_vt>(abs(e)));
+            auto rr = static_cast<real_vt>(std::real(r));
+            auto re = static_cast<real_vt>(std::real(e));
+            auto m = std::max(static_cast<real_vt>(abs(r)),
+                              static_cast<real_vt>(abs(e)));
             if (m == zero<real_vt>()) {
-                os << abs(r - e) << "\t";
+                os << abs(rr - re) << "\t";
             } else {
-                os << abs((r - e) / m) << "\t";
+                os << abs((rr - re) / m) << "\t";
             }
         }
         os << "\n";
@@ -116,6 +119,7 @@ void print_columns(Ostream &os, const Iterator &begin, const Iterator &end)
 template <typename MatrixData1, typename MatrixData2>
 double get_relative_error(const MatrixData1 &first, const MatrixData2 &second)
 {
+    using real_vt = remove_complex<typename MatrixData2::value_type>;
     double diff = 0.0;
     double first_norm = 0.0;
     double second_norm = 0.0;
@@ -127,15 +131,18 @@ double get_relative_error(const MatrixData1 &first, const MatrixData2 &second)
                 get_next_value(first_it, end(first.nonzeros), row, col);
             const auto second_val =
                 get_next_value(second_it, end(second.nonzeros), row, col);
-            diff += squared_norm(first_val - second_val);
-            first_norm += squared_norm(first_val);
-            second_norm += squared_norm(second_val);
+            const auto real_first = static_cast<real_vt>(std::real(first_val));
+            const auto real_second =
+                static_cast<real_vt>(std::real(second_val));
+            diff += squared_norm(real_first - real_second);
+            first_norm += squared_norm(real_first);
+            second_norm += squared_norm(real_second);
         }
     }
     if (first_norm == 0.0 && second_norm == 0.0) {
         first_norm = 1.0;
     }
-    return sqrt(diff / max(first_norm, second_norm));
+    return sqrt(diff / std::max(first_norm, second_norm));
 }
 
 

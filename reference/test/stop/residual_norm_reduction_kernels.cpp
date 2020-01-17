@@ -40,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <core/test/utils.hpp>
+
+
 namespace {
 
 
@@ -47,14 +50,13 @@ template <typename T>
 class ResidualNormReduction : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<T>;
-    static constexpr gko::remove_complex<T> reduction_factor =
-        std::is_same<gko::remove_complex<T>, float>::value ? 1.0e-7 : 1.0e-14;
+
 
     ResidualNormReduction()
     {
         exec_ = gko::ReferenceExecutor::create();
         factory_ = gko::stop::ResidualNormReduction<T>::build()
-                       .with_reduction_factor(reduction_factor)
+                       .with_reduction_factor(r<T>::value)
                        .on(exec_);
     }
 
@@ -64,20 +66,14 @@ protected:
 };
 
 
-template <typename T>
-constexpr gko::remove_complex<T> ResidualNormReduction<T>::reduction_factor;
-
-
-using ValueTypes =
-    ::testing::Types<float, double, std::complex<float>, std::complex<double>>;
-TYPED_TEST_CASE(ResidualNormReduction, ValueTypes);
+TYPED_TEST_CASE(ResidualNormReduction, gko::test::ValueTypes);
 
 
 TYPED_TEST(ResidualNormReduction, CanCreateFactory)
 {
     ASSERT_NE(this->factory_, nullptr);
     ASSERT_EQ(this->factory_->get_parameters().reduction_factor,
-              TestFixture::reduction_factor);
+              r<TypeParam>::value);
     ASSERT_EQ(this->factory_->get_executor(), this->exec_);
 }
 
@@ -116,7 +112,7 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
             .residual_norm(scalar.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    scalar->at(0) = TestFixture::reduction_factor * 1.0e+2;
+    scalar->at(0) = r<TypeParam>::value * 1.0e+2;
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(scalar.get())
@@ -124,7 +120,7 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
     ASSERT_EQ(one_changed, false);
 
-    scalar->at(0) = TestFixture::reduction_factor * 1.0e-2;
+    scalar->at(0) = r<TypeParam>::value * 1.0e-2;
     ASSERT_TRUE(
         criterion->update()
             .residual_norm(scalar.get())
@@ -154,14 +150,14 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
     ASSERT_FALSE(criterion->update().residual_norm(mtx.get()).check(
         RelativeStoppingId, true, &stop_status, &one_changed));
 
-    mtx->at(0, 0) = TestFixture::reduction_factor * 1.0e-2;
+    mtx->at(0, 0) = r<TypeParam>::value * 1.0e-2;
     ASSERT_FALSE(criterion->update().residual_norm(mtx.get()).check(
         RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
     ASSERT_EQ(one_changed, true);
     one_changed = false;
 
-    mtx->at(0, 1) = TestFixture::reduction_factor * 1.0e-2;
+    mtx->at(0, 1) = r<TypeParam>::value * 1.0e-2;
     ASSERT_TRUE(criterion->update().residual_norm(mtx.get()).check(
         RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[1].has_converged(), true);

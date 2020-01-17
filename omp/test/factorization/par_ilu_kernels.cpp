@@ -58,10 +58,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
+template <typename ValueIndexType>
 class ParIlu : public ::testing::Test {
 protected:
-    using value_type = gko::default_precision;
-    using index_type = gko::int32;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Dense = gko::matrix::Dense<value_type>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
@@ -106,7 +109,8 @@ protected:
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
             std::uniform_int_distribution<index_type>(0, num_cols - 1),
-            std::normal_distribution<value_type>(0.0, 1.0), rand_engine, ref);
+            std::normal_distribution<gko::remove_complex<value_type>>(0.0, 1.0),
+            rand_engine, ref);
     }
 
     std::unique_ptr<Csr> gen_unsorted_mtx(index_type num_rows,
@@ -220,18 +224,23 @@ protected:
 };
 
 
-TEST_F(ParIlu, OmpKernelAddDiagonalElementsSortedEquivalentToRef)
+TYPED_TEST_CASE(ParIlu, gko::test::ValueIndexTypes);
+
+
+TYPED_TEST(ParIlu, OmpKernelAddDiagonalElementsSortedEquivalentToRef)
 {
+    using index_type = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Csr;
     index_type num_rows{200};
     index_type num_cols{200};
-    auto mtx_ref = gen_mtx<Csr>(num_rows, num_cols);
-    auto mtx_omp = Csr::create(omp);
+    auto mtx_ref = this->template gen_mtx<Csr>(num_rows, num_cols);
+    auto mtx_omp = Csr::create(this->omp);
     mtx_omp->copy_from(gko::lend(mtx_ref));
 
     gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
-        ref, gko::lend(mtx_ref), true);
+        this->ref, gko::lend(mtx_ref), true);
     gko::kernels::omp::par_ilu_factorization::add_diagonal_elements(
-        omp, gko::lend(mtx_omp), true);
+        this->omp, gko::lend(mtx_omp), true);
 
     ASSERT_TRUE(mtx_ref->is_sorted_by_column_index());
     GKO_ASSERT_MTX_NEAR(mtx_ref, mtx_omp, 0.);
@@ -239,18 +248,20 @@ TEST_F(ParIlu, OmpKernelAddDiagonalElementsSortedEquivalentToRef)
 }
 
 
-TEST_F(ParIlu, OmpKernelAddDiagonalElementsUnsortedEquivalentToRef)
+TYPED_TEST(ParIlu, OmpKernelAddDiagonalElementsUnsortedEquivalentToRef)
 {
+    using index_type = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Csr;
     index_type num_rows{200};
     index_type num_cols{200};
-    auto mtx_ref = gen_unsorted_mtx(num_rows, num_cols);
-    auto mtx_omp = Csr::create(omp);
+    auto mtx_ref = this->gen_unsorted_mtx(num_rows, num_cols);
+    auto mtx_omp = Csr::create(this->omp);
     mtx_omp->copy_from(gko::lend(mtx_ref));
 
     gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
-        ref, gko::lend(mtx_ref), false);
+        this->ref, gko::lend(mtx_ref), false);
     gko::kernels::omp::par_ilu_factorization::add_diagonal_elements(
-        omp, gko::lend(mtx_omp), false);
+        this->omp, gko::lend(mtx_omp), false);
 
     ASSERT_FALSE(mtx_ref->is_sorted_by_column_index());
     GKO_ASSERT_MTX_NEAR(mtx_ref, mtx_omp, 0.);
@@ -258,18 +269,20 @@ TEST_F(ParIlu, OmpKernelAddDiagonalElementsUnsortedEquivalentToRef)
 }
 
 
-TEST_F(ParIlu, OmpKernelAddDiagonalElementsNonSquareEquivalentToRef)
+TYPED_TEST(ParIlu, OmpKernelAddDiagonalElementsNonSquareEquivalentToRef)
 {
+    using index_type = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Csr;
     index_type num_rows{200};
     index_type num_cols{100};
-    auto mtx_ref = gen_mtx<Csr>(num_rows, num_cols);
-    auto mtx_omp = Csr::create(omp);
+    auto mtx_ref = this->template gen_mtx<Csr>(num_rows, num_cols);
+    auto mtx_omp = Csr::create(this->omp);
     mtx_omp->copy_from(gko::lend(mtx_ref));
 
     gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
-        ref, gko::lend(mtx_ref), true);
+        this->ref, gko::lend(mtx_ref), true);
     gko::kernels::omp::par_ilu_factorization::add_diagonal_elements(
-        omp, gko::lend(mtx_omp), true);
+        this->omp, gko::lend(mtx_omp), true);
 
     ASSERT_TRUE(mtx_ref->is_sorted_by_column_index());
     GKO_ASSERT_MTX_NEAR(mtx_ref, mtx_omp, 0.);
@@ -277,20 +290,21 @@ TEST_F(ParIlu, OmpKernelAddDiagonalElementsNonSquareEquivalentToRef)
 }
 
 
-TEST_F(ParIlu, OmpKernelInitializeRowPtrsLUEquivalentToRef)
+TYPED_TEST(ParIlu, OmpKernelInitializeRowPtrsLUEquivalentToRef)
 {
-    auto num_row_ptrs = csr_ref->get_size()[0] + 1;
-    gko::Array<index_type> l_row_ptrs_array_ref(ref, num_row_ptrs);
-    gko::Array<index_type> u_row_ptrs_array_ref(ref, num_row_ptrs);
-    gko::Array<index_type> l_row_ptrs_array_omp(omp, num_row_ptrs);
-    gko::Array<index_type> u_row_ptrs_array_omp(omp, num_row_ptrs);
+    using index_type = typename TestFixture::index_type;
+    auto num_row_ptrs = this->csr_ref->get_size()[0] + 1;
+    gko::Array<index_type> l_row_ptrs_array_ref(this->ref, num_row_ptrs);
+    gko::Array<index_type> u_row_ptrs_array_ref(this->ref, num_row_ptrs);
+    gko::Array<index_type> l_row_ptrs_array_omp(this->omp, num_row_ptrs);
+    gko::Array<index_type> u_row_ptrs_array_omp(this->omp, num_row_ptrs);
     auto l_row_ptrs_ref = l_row_ptrs_array_ref.get_data();
     auto u_row_ptrs_ref = u_row_ptrs_array_ref.get_data();
     auto l_row_ptrs_omp = l_row_ptrs_array_omp.get_data();
     auto u_row_ptrs_omp = u_row_ptrs_array_omp.get_data();
 
-    initialize_row_ptrs(l_row_ptrs_ref, u_row_ptrs_ref, l_row_ptrs_omp,
-                        u_row_ptrs_omp);
+    this->initialize_row_ptrs(l_row_ptrs_ref, u_row_ptrs_ref, l_row_ptrs_omp,
+                              u_row_ptrs_omp);
 
     ASSERT_TRUE(std::equal(l_row_ptrs_ref, l_row_ptrs_ref + num_row_ptrs,
                            l_row_ptrs_omp));
@@ -299,30 +313,33 @@ TEST_F(ParIlu, OmpKernelInitializeRowPtrsLUEquivalentToRef)
 }
 
 
-TEST_F(ParIlu, KernelInitializeParILUIsEquivalentToRef)
+TYPED_TEST(ParIlu, KernelInitializeParILUIsEquivalentToRef)
 {
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
     std::unique_ptr<Csr> l_ref{};
     std::unique_ptr<Csr> u_ref{};
     std::unique_ptr<Csr> l_omp{};
     std::unique_ptr<Csr> u_omp{};
 
-    initialize_lu(&l_ref, &u_ref, &l_omp, &u_omp);
+    this->initialize_lu(&l_ref, &u_ref, &l_omp, &u_omp);
 
-    GKO_ASSERT_MTX_NEAR(l_ref, l_omp, 1e-14);
-    GKO_ASSERT_MTX_NEAR(u_ref, u_omp, 1e-14);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_omp, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_omp, r<value_type>::value);
     GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_omp);
     GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_omp);
 }
 
 
-TEST_F(ParIlu, KernelComputeParILUIsEquivalentToRef)
+TYPED_TEST(ParIlu, KernelComputeParILUIsEquivalentToRef)
 {
+    using Csr = typename TestFixture::Csr;
     std::unique_ptr<Csr> l_ref{};
     std::unique_ptr<Csr> u_ref{};
     std::unique_ptr<Csr> l_omp{};
     std::unique_ptr<Csr> u_omp{};
 
-    compute_lu(&l_ref, &u_ref, &l_omp, &u_omp);
+    this->compute_lu(&l_ref, &u_ref, &l_omp, &u_omp);
 
     GKO_ASSERT_MTX_NEAR(l_ref, l_omp, 5e-2);
     GKO_ASSERT_MTX_NEAR(u_ref, u_omp, 5e-2);
@@ -331,18 +348,20 @@ TEST_F(ParIlu, KernelComputeParILUIsEquivalentToRef)
 }
 
 
-TEST_F(ParIlu, KernelComputeParILUWithMoreIterationsIsEquivalentToRef)
+TYPED_TEST(ParIlu, KernelComputeParILUWithMoreIterationsIsEquivalentToRef)
 {
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
     std::unique_ptr<Csr> l_ref{};
     std::unique_ptr<Csr> u_ref{};
     std::unique_ptr<Csr> l_omp{};
     std::unique_ptr<Csr> u_omp{};
     gko::size_type iterations{20};
 
-    compute_lu(&l_ref, &u_ref, &l_omp, &u_omp, iterations);
+    this->compute_lu(&l_ref, &u_ref, &l_omp, &u_omp, iterations);
 
-    GKO_ASSERT_MTX_NEAR(l_ref, l_omp, 1e-14);
-    GKO_ASSERT_MTX_NEAR(u_ref, u_omp, 1e-14);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_omp, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_omp, r<value_type>::value);
     GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_omp);
     GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_omp);
 }
