@@ -38,7 +38,7 @@ add_executable(test_install test_install.cpp)
 target_compile_features(test_install PUBLIC cxx_std_11)
 target_link_libraries(test_install PRIVATE Ginkgo::ginkgo)
 
-if(CMAKE_CUDA_COMPILER)
+if(GINKGO_BUILD_CUDA)
     enable_language(CUDA)
     add_executable(test_install_cuda test_install_cuda.cu)
     target_link_libraries(test_install_cuda PRIVATE Ginkgo::ginkgo)
