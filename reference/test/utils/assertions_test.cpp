@@ -40,16 +40,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include <core/test/utils.hpp>
+
+
 namespace {
 
+template <typename T>
+class MatricesNear : public ::testing::Test {};
 
-TEST(MatricesNear, CanPassAnyMatrixType)
+
+TYPED_TEST_CASE(MatricesNear, gko::test::ValueTypes);
+
+
+TYPED_TEST(MatricesNear, CanPassAnyMatrixType)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto mtx = gko::initialize<gko::matrix::Dense<>>(
+    auto mtx = gko::initialize<gko::matrix::Dense<TypeParam>>(
         {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, exec);
 
-    auto csr_mtx = gko::matrix::Csr<>::create(exec);
+    auto csr_mtx = gko::matrix::Csr<TypeParam>::create(exec);
     csr_mtx->copy_from(mtx.get());
 
     GKO_EXPECT_MTX_NEAR(csr_mtx, mtx, 0.0);

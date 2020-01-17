@@ -39,21 +39,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils/assertions.hpp>
+#include <core/test/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace {
 
 
+template <typename T>
 class Composition : public ::testing::Test {
 protected:
-    using mtx = gko::matrix::Dense<>;
+    using Mtx = gko::matrix::Dense<T>;
 
     Composition()
         : exec{gko::ReferenceExecutor::create()},
-          operators{gko::initialize<mtx>({2.0, 1.0}, exec),
-                    gko::initialize<mtx>({{3.0, 2.0}}, exec)}
+          operators{gko::initialize<Mtx>(I<T>{2.0, 1.0}, exec),
+                    gko::initialize<Mtx>({I<T>{3.0, 2.0}}, exec)}
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -62,37 +63,44 @@ protected:
 };
 
 
-TEST_F(Composition, AppliesToVector)
+TYPED_TEST_CASE(Composition, gko::test::ValueTypes);
+
+
+TYPED_TEST(Composition, AppliesToVector)
 {
     /*
         cmp = [ 2 ] * [ 3 2 ]
               [ 1 ]
     */
-    auto cmp = gko::Composition<>::create(operators[0], operators[1]);
-    auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
+    using Mtx = typename TestFixture::Mtx;
+    auto cmp = gko::Composition<TypeParam>::create(this->operators[0],
+                                                   this->operators[1]);
+    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmp->apply(lend(x), lend(res));
 
-    GKO_ASSERT_MTX_NEAR(res, l({14.0, 7.0}), 1e-15);
+    GKO_ASSERT_MTX_NEAR(res, l({14.0, 7.0}), r<TypeParam>::value);
 }
 
 
-TEST_F(Composition, AppliesLinearCombinationToVector)
+TYPED_TEST(Composition, AppliesLinearCombinationToVector)
 {
     /*
         cmp = [ 2 ] * [ 3 2 ]
               [ 1 ]
     */
-    auto cmp = gko::Composition<>::create(operators[0], operators[1]);
-    auto alpha = gko::initialize<mtx>({3.0}, exec);
-    auto beta = gko::initialize<mtx>({-1.0}, exec);
-    auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
+    using Mtx = typename TestFixture::Mtx;
+    auto cmp = gko::Composition<TypeParam>::create(this->operators[0],
+                                                   this->operators[1]);
+    auto alpha = gko::initialize<Mtx>({3.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
 
-    GKO_ASSERT_MTX_NEAR(res, l({41.0, 19.0}), 1e-15);
+    GKO_ASSERT_MTX_NEAR(res, l({41.0, 19.0}), r<TypeParam>::value);
 }
 
 
