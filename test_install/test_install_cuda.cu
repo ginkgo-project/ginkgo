@@ -65,7 +65,7 @@ int main(int, char **)
     {
         using type1 = int;
         using ArrayType = gko::Array<type1>;
-        /*auto test =*/ArrayType{};
+        ArrayType{};
     }
 
     // core/base/combination.hpp
@@ -87,12 +87,11 @@ int main(int, char **)
     // core/base/dim.hpp
     {
         using type1 = int;
-        /*auto test = gko::dim<3, type1>{4, 4, 4};
+        gko::dim<3, type1>{4, 4, 4};
     }
 
     // core/base/exception.hpp
     {
-        /*auto test =*/
         gko::Error(std::string("file"), 12,
                    std::string("Test for an error class."));
     }
@@ -105,7 +104,7 @@ int main(int, char **)
 
     // core/base/executor.hpp
     {
-        /*auto test =*/gko::ReferenceExecutor::create();
+        gko::ReferenceExecutor::create();
     }
 
     // core/base/math.hpp
@@ -117,7 +116,7 @@ int main(int, char **)
 
     // core/base/matrix_data.hpp
     {
-        /*auto test =*/gko::matrix_data<>{};
+        gko::matrix_data<>{};
     }
 
     // core/base/mtx_io.hpp
@@ -129,7 +128,7 @@ int main(int, char **)
     // core/base/name_demangling.hpp
     {
         auto testVar = 3.0;
-        /*auto test =*/gko::name_demangling::get_static_type(testVar);
+        gko::name_demangling::get_static_type(testVar);
     }
 
 
@@ -141,15 +140,14 @@ int main(int, char **)
 
     // core/base/range.hpp
     {
-        /*auto test =*/gko::span{12};
+        gko::span{12};
     }
 
     // core/base/range_accessors.hpp
     {
         auto testVar = 12;
-        /*auto test =*/gko::range<
-            gko::accessor::row_major<decltype(testVar), 2>>(&testVar, 1u, 1u,
-                                                            1u);
+        gko::range<gko::accessor::row_major<decltype(testVar), 2>>(&testVar, 1u,
+                                                                   1u, 1u);
     }
 
     // core/base/perturbation.hpp
@@ -174,110 +172,109 @@ int main(int, char **)
 
     // core/base/utils.hpp
     {
-        /*auto test =*/gko::null_deleter<double>{};
+        gko::null_deleter<double>{};
     }
 
     // core/base/version.hpp
     {
-        /*auto test =*/gko::version_info::get().header_version;
+        gko::version_info::get().header_version;
     }
 
     // core/factorization/par_ilu.hpp
     {
-        /*auto test =*/gko::factorization::ParIlu<>::build().on(cudaExec);
+        gko::factorization::ParIlu<>::build().on(cudaExec);
     }
 
     // core/log/convergence.hpp
     {
-        /*auto test =*/gko::log::Convergence<>::create(cudaExec);
+        gko::log::Convergence<>::create(cudaExec);
     }
 
     // core/log/record.hpp
     {
-        /*auto test =*/gko::log::executor_data{};
+        gko::log::executor_data{};
     }
 
     // core/log/stream.hpp
     {
-        /*auto test =*/gko::log::Stream<>::create(cudaExec);
+        gko::log::Stream<>::create(cudaExec);
     }
 
     // core/log/convergence.hpp
     {
-        /*auto test =*/gko::log::Convergence<>::create(cudaExec);
+        gko::log::Convergence<>::create(cudaExec);
     }
 
     // core/matrix/coo.hpp
     {
         using Mtx = gko::matrix::Coo<>;
-        /*auto test =*/Mtx::create(cudaExec, gko::dim<2>{2, 2}, 2);
+        Mtx::create(cudaExec, gko::dim<2>{2, 2}, 2);
     }
 
     // core/matrix/csr.hpp
     {
         using Mtx = gko::matrix::Csr<>;
-        /*auto test =*/Mtx::create(cudaExec, gko::dim<2>{2, 2}, 2,
-                                   std::make_shared<Mtx::load_balance>(2));
+        Mtx::create(cudaExec, gko::dim<2>{2, 2}, 2,
+                    std::make_shared<Mtx::load_balance>(2));
     }
 
     // core/matrix/dense.hpp
     {
         using Mtx = gko::matrix::Dense<>;
-        /*auto test =*/Mtx::create(cudaExec, gko::dim<2>{2, 2});
+        Mtx::create(cudaExec, gko::dim<2>{2, 2});
     }
 
     // core/matrix/ell.hpp
     {
         using Mtx = gko::matrix::Ell<>;
-        /*auto test =*/Mtx::create(cudaExec, gko::dim<2>{2, 2}, 2);
+        Mtx::create(cudaExec, gko::dim<2>{2, 2}, 2);
     }
 
     // core/matrix/hybrid.hpp
     {
         using Mtx = gko::matrix::Hybrid<>;
-        /*auto test =*/Mtx::create(cudaExec, gko::dim<2>{2, 2}, 2, 2, 1);
+        Mtx::create(cudaExec, gko::dim<2>{2, 2}, 2, 2, 1);
     }
 
     // core/matrix/identity.hpp
     {
         using Mtx = gko::matrix::Identity<>;
-        /*auto test =*/Mtx::create(cudaExec);
+        Mtx::create(cudaExec);
     }
 
     // core/matrix/permutation.hpp
     {
         using Mtx = gko::matrix::Permutation<>;
-        /*auto test =*/Mtx::create(cudaExec, gko::dim<2>{2, 2});
+        Mtx::create(cudaExec, gko::dim<2>{2, 2});
     }
 
     // core/matrix/sellp.hpp
     {
         using Mtx = gko::matrix::Sellp<>;
-        /*auto test =*/Mtx::create(cudaExec, gko::dim<2>{2, 2}, 2);
+        Mtx::create(cudaExec, gko::dim<2>{2, 2}, 2);
     }
 
     // core/matrix/sparsity_csr.hpp
     {
         using Mtx = gko::matrix::SparsityCsr<>;
-        /*auto test =*/Mtx::create(cudaExec, gko::dim<2>{2, 2});
+        Mtx::create(cudaExec, gko::dim<2>{2, 2});
     }
 
     // core/preconditioner/ilu.hpp
     {
-        /*auto test =*/gko::preconditioner::Ilu<>::build().on(cudaExec);
+        gko::preconditioner::Ilu<>::build().on(cudaExec);
     }
 
     // core/preconditioner/jacobi.hpp
     {
         using Bj = gko::preconditioner::Jacobi<>;
-        /*auto test =*/
         Bj::build().with_max_block_size(1u).on(cudaExec);
     }
 
     // core/solver/bicgstab.hpp
     {
         using Solver = gko::solver::Bicgstab<>;
-        /*auto test =*/Solver::build()
+        Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(cudaExec))
             .on(cudaExec);
@@ -286,7 +283,7 @@ int main(int, char **)
     // core/solver/cg.hpp
     {
         using Solver = gko::solver::Cg<>;
-        /*auto test =*/Solver::build()
+        Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(cudaExec))
             .on(cudaExec);
@@ -295,7 +292,7 @@ int main(int, char **)
     // core/solver/cgs.hpp
     {
         using Solver = gko::solver::Cgs<>;
-        /*auto test =*/Solver::build()
+        Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(cudaExec))
             .on(cudaExec);
@@ -304,7 +301,7 @@ int main(int, char **)
     // core/solver/fcg.hpp
     {
         using Solver = gko::solver::Fcg<>;
-        /*auto test =*/Solver::build()
+        Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(cudaExec))
             .on(cudaExec);
@@ -313,7 +310,7 @@ int main(int, char **)
     // core/solver/gmres.hpp
     {
         using Solver = gko::solver::Gmres<>;
-        /*auto test =*/Solver::build()
+        Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(cudaExec))
             .on(cudaExec);
@@ -322,7 +319,7 @@ int main(int, char **)
     // core/solver/ir.hpp
     {
         using Solver = gko::solver::Ir<>;
-        /*auto test =*/Solver::build()
+        Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1u).on(cudaExec))
             .on(cudaExec);
@@ -331,7 +328,7 @@ int main(int, char **)
     // core/solver/lower_trs.hpp
     {
         using Solver = gko::solver::LowerTrs<>;
-        /*auto test =*/Solver::build().on(cudaExec);
+        Solver::build().on(cudaExec);
     }
 
     // core/stop/
@@ -345,12 +342,12 @@ int main(int, char **)
                         .with_time_limit(std::chrono::milliseconds(10))
                         .on(cudaExec);
         // residual_norm_reduction.hpp
-        /*auto res_red =*/gko::stop::ResidualNormReduction<>::build()
+        gko::stop::ResidualNormReduction<>::build()
             .with_reduction_factor(1e-10)
             .on(cudaExec);
 
         // stopping_status.hpp
-        /*auto stop_status =*/gko::stopping_status{};
+        gko::stopping_status{};
 
         // combined.hpp
         auto combined =
@@ -359,9 +356,10 @@ int main(int, char **)
                 .on(cudaExec);
     }
 
-    std::cout << "test_install: the Ginkgo installation was correctly detected "
-                 "and is complete."
-              << std::endl;
+    std::cout
+        << "test_install_cuda: the Ginkgo installation was correctly detected "
+           "and is complete."
+        << std::endl;
 
     return 0;
 }
