@@ -307,7 +307,7 @@ private:
  */
 class half {
 public:
-    GKO_ATTRIBUTES half() noexcept = default;
+    half() noexcept = default;
 
     GKO_ATTRIBUTES half(float32 val) noexcept
     {
@@ -440,7 +440,7 @@ public:
     static_assert(component_id < num_components,
                   "This type doesn't have that many components");
 
-    GKO_ATTRIBUTES truncated() noexcept = default;
+    truncated() noexcept = default;
 
     GKO_ATTRIBUTES explicit truncated(const float_type &val) noexcept
     {

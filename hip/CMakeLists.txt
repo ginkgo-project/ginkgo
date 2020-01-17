@@ -128,10 +128,17 @@ if (GINKGO_HIP_PLATFORM MATCHES "nvcc")
     if (CMAKE_CUDA_HOST_COMPILER)
         set(GINKGO_HIP_CUDA_HOST_COMPILER "-ccbin=${CMAKE_CUDA_HOST_COMPILER}")
     endif()
+    
+    # Remove false positive CUDA warnings when calling one<T>() and zero<T>()
+    # This creates a compilation bug on nvcc 9.0.102 *with* the new array_deleter
+    # merged at commit ed12b3df5d26
+    if(NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")
+        set(GINKGO_HIP_NVCC_ADDITIONAL_FLAGS --expt-relaxed-constexpr)
+    endif()
 endif()
 
 set(GINKGO_HIPCC_OPTIONS ${GINKGO_HIP_COMPILER_FLAGS})
-set(GINKGO_HIP_NVCC_OPTIONS ${GINKGO_HIP_NVCC_COMPILER_FLAGS})
+set(GINKGO_HIP_NVCC_OPTIONS ${GINKGO_HIP_NVCC_COMPILER_FLAGS} ${GINKGO_HIP_NVCC_ADDITIONAL_FLAGS})
 set(GINKGO_HIP_HCC_OPTIONS ${GINKGO_HIP_HCC_COMPILER_FLAGS})
 
 set_source_files_properties(${GINKGO_HIP_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
