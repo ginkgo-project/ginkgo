@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/base/math.hpp (29444d385) Source File</title>
+<title>Ginkgo: ginkgo/core/base/math.hpp (be506a3fe) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/110311221 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/110413232 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -528,50 +528,49 @@ $(function() {
 <div class="line"><a name="l00682"></a><span class="lineno">  682</span>&#160; </div>
 <div class="line"><a name="l00683"></a><span class="lineno">  683</span>&#160; </div>
 <div class="line"><a name="l00696"></a><span class="lineno">  696</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a name="l00697"></a><span class="lineno"><a class="line" href="namespacegko.html#a4eea40e4123a3fdb60fcd92f902c6d6d">  697</a></span>&#160;GKO_INLINE GKO_ATTRIBUTES constexpr <a class="code" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a> <a class="code" href="namespacegko.html#a4eea40e4123a3fdb60fcd92f902c6d6d">get_significant_bit</a>(</div>
-<div class="line"><a name="l00698"></a><span class="lineno">  698</span>&#160;    <span class="keyword">const</span> T &amp;n, <a class="code" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a> hint = 0u) noexcept</div>
-<div class="line"><a name="l00699"></a><span class="lineno">  699</span>&#160;{</div>
-<div class="line"><a name="l00700"></a><span class="lineno">  700</span>&#160;    <span class="keywordflow">return</span> (T{1} &lt;&lt; (hint + 1)) &gt; n ? hint : <a class="code" href="namespacegko.html#a4eea40e4123a3fdb60fcd92f902c6d6d">get_significant_bit</a>(n, hint + 1u);</div>
-<div class="line"><a name="l00701"></a><span class="lineno">  701</span>&#160;}</div>
+<div class="line"><a name="l00697"></a><span class="lineno"><a class="line" href="namespacegko.html#a4eea40e4123a3fdb60fcd92f902c6d6d">  697</a></span>&#160;constexpr <a class="code" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a> <a class="code" href="namespacegko.html#a4eea40e4123a3fdb60fcd92f902c6d6d">get_significant_bit</a>(<span class="keyword">const</span> T &amp;n, <a class="code" href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">uint32</a> hint = 0u) noexcept</div>
+<div class="line"><a name="l00698"></a><span class="lineno">  698</span>&#160;{</div>
+<div class="line"><a name="l00699"></a><span class="lineno">  699</span>&#160;    <span class="keywordflow">return</span> (T{1} &lt;&lt; (hint + 1)) &gt; n ? hint : <a class="code" href="namespacegko.html#a4eea40e4123a3fdb60fcd92f902c6d6d">get_significant_bit</a>(n, hint + 1u);</div>
+<div class="line"><a name="l00700"></a><span class="lineno">  700</span>&#160;}</div>
+<div class="line"><a name="l00701"></a><span class="lineno">  701</span>&#160; </div>
 <div class="line"><a name="l00702"></a><span class="lineno">  702</span>&#160; </div>
-<div class="line"><a name="l00703"></a><span class="lineno">  703</span>&#160; </div>
-<div class="line"><a name="l00715"></a><span class="lineno">  715</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a name="l00716"></a><span class="lineno"><a class="line" href="namespacegko.html#ad39645fe8148a8a812a9528865a77600">  716</a></span>&#160;GKO_INLINE GKO_ATTRIBUTES constexpr T <a class="code" href="namespacegko.html#ad39645fe8148a8a812a9528865a77600">get_superior_power</a>(</div>
-<div class="line"><a name="l00717"></a><span class="lineno">  717</span>&#160;    <span class="keyword">const</span> T &amp;base, <span class="keyword">const</span> T &amp;limit, <span class="keyword">const</span> T &amp;hint = T{1}) noexcept</div>
-<div class="line"><a name="l00718"></a><span class="lineno">  718</span>&#160;{</div>
-<div class="line"><a name="l00719"></a><span class="lineno">  719</span>&#160;    <span class="keywordflow">return</span> hint &gt;= limit ? hint : <a class="code" href="namespacegko.html#ad39645fe8148a8a812a9528865a77600">get_superior_power</a>(base, limit, hint * base);</div>
-<div class="line"><a name="l00720"></a><span class="lineno">  720</span>&#160;}</div>
+<div class="line"><a name="l00714"></a><span class="lineno">  714</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a name="l00715"></a><span class="lineno"><a class="line" href="namespacegko.html#ad39645fe8148a8a812a9528865a77600">  715</a></span>&#160;constexpr T <a class="code" href="namespacegko.html#ad39645fe8148a8a812a9528865a77600">get_superior_power</a>(<span class="keyword">const</span> T &amp;base, <span class="keyword">const</span> T &amp;limit,</div>
+<div class="line"><a name="l00716"></a><span class="lineno">  716</span>&#160;                               <span class="keyword">const</span> T &amp;hint = T{1}) noexcept</div>
+<div class="line"><a name="l00717"></a><span class="lineno">  717</span>&#160;{</div>
+<div class="line"><a name="l00718"></a><span class="lineno">  718</span>&#160;    <span class="keywordflow">return</span> hint &gt;= limit ? hint : <a class="code" href="namespacegko.html#ad39645fe8148a8a812a9528865a77600">get_superior_power</a>(base, limit, hint * base);</div>
+<div class="line"><a name="l00719"></a><span class="lineno">  719</span>&#160;}</div>
+<div class="line"><a name="l00720"></a><span class="lineno">  720</span>&#160; </div>
 <div class="line"><a name="l00721"></a><span class="lineno">  721</span>&#160; </div>
-<div class="line"><a name="l00722"></a><span class="lineno">  722</span>&#160; </div>
-<div class="line"><a name="l00723"></a><span class="lineno">  723</span>&#160;<span class="preprocessor">#if !(defined(__CUDA_ARCH__))</span></div>
+<div class="line"><a name="l00722"></a><span class="lineno">  722</span>&#160;<span class="preprocessor">#if !(defined(__CUDA_ARCH__))</span></div>
+<div class="line"><a name="l00723"></a><span class="lineno">  723</span>&#160; </div>
 <div class="line"><a name="l00724"></a><span class="lineno">  724</span>&#160; </div>
-<div class="line"><a name="l00725"></a><span class="lineno">  725</span>&#160; </div>
-<div class="line"><a name="l00726"></a><span class="lineno">  726</span>&#160;<span class="comment">// Since a lot of compiler in combination with CUDA seem to have difficulties</span></div>
-<div class="line"><a name="l00727"></a><span class="lineno">  727</span>&#160;<span class="comment">// distinguishing between the CUDA `isfinite` and the `std::isfinite` when</span></div>
-<div class="line"><a name="l00728"></a><span class="lineno">  728</span>&#160;<span class="comment">// it is put into the `gko` namespace, only enable `std::isfinite` when</span></div>
-<div class="line"><a name="l00729"></a><span class="lineno">  729</span>&#160;<span class="comment">// compiling host code.</span></div>
-<div class="line"><a name="l00730"></a><span class="lineno">  730</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a name="l00731"></a><span class="lineno">  731</span>&#160;GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t&lt;!is_complex_s&lt;T&gt;::value, <span class="keywordtype">bool</span>&gt;</div>
-<div class="line"><a name="l00732"></a><span class="lineno">  732</span>&#160;isfinite(<span class="keyword">const</span> T &amp;value)</div>
-<div class="line"><a name="l00733"></a><span class="lineno">  733</span>&#160;{</div>
-<div class="line"><a name="l00734"></a><span class="lineno">  734</span>&#160;    <span class="keywordflow">return</span> std::isfinite(value);</div>
-<div class="line"><a name="l00735"></a><span class="lineno">  735</span>&#160;}</div>
-<div class="line"><a name="l00736"></a><span class="lineno">  736</span>&#160; </div>
-<div class="line"><a name="l00737"></a><span class="lineno">  737</span>&#160;<span class="preprocessor">#endif  // defined(__CUDA_ARCH__)</span></div>
+<div class="line"><a name="l00725"></a><span class="lineno">  725</span>&#160;<span class="comment">// Since a lot of compiler in combination with CUDA seem to have difficulties</span></div>
+<div class="line"><a name="l00726"></a><span class="lineno">  726</span>&#160;<span class="comment">// distinguishing between the CUDA `isfinite` and the `std::isfinite` when</span></div>
+<div class="line"><a name="l00727"></a><span class="lineno">  727</span>&#160;<span class="comment">// it is put into the `gko` namespace, only enable `std::isfinite` when</span></div>
+<div class="line"><a name="l00728"></a><span class="lineno">  728</span>&#160;<span class="comment">// compiling host code.</span></div>
+<div class="line"><a name="l00729"></a><span class="lineno">  729</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a name="l00730"></a><span class="lineno">  730</span>&#160;GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t&lt;!is_complex_s&lt;T&gt;::value, <span class="keywordtype">bool</span>&gt;</div>
+<div class="line"><a name="l00731"></a><span class="lineno">  731</span>&#160;isfinite(<span class="keyword">const</span> T &amp;value)</div>
+<div class="line"><a name="l00732"></a><span class="lineno">  732</span>&#160;{</div>
+<div class="line"><a name="l00733"></a><span class="lineno">  733</span>&#160;    <span class="keywordflow">return</span> std::isfinite(value);</div>
+<div class="line"><a name="l00734"></a><span class="lineno">  734</span>&#160;}</div>
+<div class="line"><a name="l00735"></a><span class="lineno">  735</span>&#160; </div>
+<div class="line"><a name="l00736"></a><span class="lineno">  736</span>&#160;<span class="preprocessor">#endif  // defined(__CUDA_ARCH__)</span></div>
+<div class="line"><a name="l00737"></a><span class="lineno">  737</span>&#160; </div>
 <div class="line"><a name="l00738"></a><span class="lineno">  738</span>&#160; </div>
-<div class="line"><a name="l00739"></a><span class="lineno">  739</span>&#160; </div>
-<div class="line"><a name="l00751"></a><span class="lineno">  751</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a name="l00752"></a><span class="lineno">  752</span>&#160;GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t&lt;is_complex_s&lt;T&gt;::value, <span class="keywordtype">bool</span>&gt;</div>
-<div class="line"><a name="l00753"></a><span class="lineno"><a class="line" href="namespacegko.html#afb0f20b5d373f9439702e723d48548fa">  753</a></span>&#160;isfinite(<span class="keyword">const</span> T &amp;value)</div>
-<div class="line"><a name="l00754"></a><span class="lineno">  754</span>&#160;{</div>
-<div class="line"><a name="l00755"></a><span class="lineno">  755</span>&#160;    <span class="keywordflow">return</span> isfinite(value.real()) &amp;&amp; isfinite(value.imag());</div>
-<div class="line"><a name="l00756"></a><span class="lineno">  756</span>&#160;}</div>
+<div class="line"><a name="l00750"></a><span class="lineno">  750</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a name="l00751"></a><span class="lineno">  751</span>&#160;GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t&lt;is_complex_s&lt;T&gt;::value, <span class="keywordtype">bool</span>&gt;</div>
+<div class="line"><a name="l00752"></a><span class="lineno"><a class="line" href="namespacegko.html#afb0f20b5d373f9439702e723d48548fa">  752</a></span>&#160;isfinite(<span class="keyword">const</span> T &amp;value)</div>
+<div class="line"><a name="l00753"></a><span class="lineno">  753</span>&#160;{</div>
+<div class="line"><a name="l00754"></a><span class="lineno">  754</span>&#160;    <span class="keywordflow">return</span> isfinite(value.real()) &amp;&amp; isfinite(value.imag());</div>
+<div class="line"><a name="l00755"></a><span class="lineno">  755</span>&#160;}</div>
+<div class="line"><a name="l00756"></a><span class="lineno">  756</span>&#160; </div>
 <div class="line"><a name="l00757"></a><span class="lineno">  757</span>&#160; </div>
-<div class="line"><a name="l00758"></a><span class="lineno">  758</span>&#160; </div>
-<div class="line"><a name="l00759"></a><span class="lineno">  759</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00758"></a><span class="lineno">  758</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00759"></a><span class="lineno">  759</span>&#160; </div>
 <div class="line"><a name="l00760"></a><span class="lineno">  760</span>&#160; </div>
-<div class="line"><a name="l00761"></a><span class="lineno">  761</span>&#160; </div>
-<div class="line"><a name="l00762"></a><span class="lineno">  762</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_BASE_MATH_HPP_</span></div>
+<div class="line"><a name="l00761"></a><span class="lineno">  761</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_BASE_MATH_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="anamespacegko_html_a57797fc0a00fd4b7ff34ca4bfc84bc51"><div class="ttname"><a href="namespacegko.html#a57797fc0a00fd4b7ff34ca4bfc84bc51">gko::abs</a></div><div class="ttdeci">constexpr T abs(const T &amp;x)</div><div class="ttdoc">Returns the absolute value of the object.</div><div class="ttdef"><b>Definition:</b> math.hpp:549</div></div>
 <div class="ttc" id="astructgko_1_1default__converter_html_aeeb535f41abb975f20857989c8ac2470"><div class="ttname"><a href="structgko_1_1default__converter.html#aeeb535f41abb975f20857989c8ac2470">gko::default_converter::operator()</a></div><div class="ttdeci">R operator()(S val)</div><div class="ttdoc">Converts the object to result type.</div><div class="ttdef"><b>Definition:</b> math.hpp:334</div></div>
@@ -586,7 +585,7 @@ $(function() {
 <div class="ttc" id="anamespacegko_html_adfcb75c44f6b6c701989419c166f6e7e"><div class="ttname"><a href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex</a></div><div class="ttdeci">typename detail::remove_complex_impl&lt; T &gt;::type remove_complex</div><div class="ttdoc">Obtains a real counterpart of a std::complex type, and leaves the type unchanged if it is not a compl...</div><div class="ttdef"><b>Definition:</b> math.hpp:151</div></div>
 <div class="ttc" id="anamespacegko_html"><div class="ttname"><a href="namespacegko.html">gko</a></div><div class="ttdoc">The Ginkgo namespace.</div><div class="ttdef"><b>Definition:</b> abstract_factory.hpp:45</div></div>
 <div class="ttc" id="anamespacegko_html_a5f9c197f1db98fdc874f8907978ad114"><div class="ttname"><a href="namespacegko.html#a5f9c197f1db98fdc874f8907978ad114">gko::round_down</a></div><div class="ttdeci">constexpr reduce_precision&lt; T &gt; round_down(T val)</div><div class="ttdoc">Reduces the precision of the input parameter.</div><div class="ttdef"><b>Definition:</b> math.hpp:251</div></div>
-<div class="ttc" id="anamespacegko_html_ad39645fe8148a8a812a9528865a77600"><div class="ttname"><a href="namespacegko.html#ad39645fe8148a8a812a9528865a77600">gko::get_superior_power</a></div><div class="ttdeci">constexpr T get_superior_power(const T &amp;base, const T &amp;limit, const T &amp;hint=T{1}) noexcept</div><div class="ttdoc">Returns the smallest power of base not smaller than limit.</div><div class="ttdef"><b>Definition:</b> math.hpp:716</div></div>
+<div class="ttc" id="anamespacegko_html_ad39645fe8148a8a812a9528865a77600"><div class="ttname"><a href="namespacegko.html#ad39645fe8148a8a812a9528865a77600">gko::get_superior_power</a></div><div class="ttdeci">constexpr T get_superior_power(const T &amp;base, const T &amp;limit, const T &amp;hint=T{1}) noexcept</div><div class="ttdoc">Returns the smallest power of base not smaller than limit.</div><div class="ttdef"><b>Definition:</b> math.hpp:715</div></div>
 <div class="ttc" id="anamespacegko_html_ab5d71c1f4bd1b654df1e561ea7a811f2"><div class="ttname"><a href="namespacegko.html#ab5d71c1f4bd1b654df1e561ea7a811f2">gko::reduce_precision</a></div><div class="ttdeci">typename detail::reduce_precision_impl&lt; T &gt;::type reduce_precision</div><div class="ttdoc">Obtains the next type in the hierarchy with lower precision than T.</div><div class="ttdef"><b>Definition:</b> math.hpp:231</div></div>
 <div class="ttc" id="anamespacegko_html_a318c831e3fe269ba04c6ed8bf5a71073"><div class="ttname"><a href="namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073">gko::uint32</a></div><div class="ttdeci">std::uint32_t uint32</div><div class="ttdoc">32-bit unsigned integral type.</div><div class="ttdef"><b>Definition:</b> types.hpp:140</div></div>
 <div class="ttc" id="anamespacegko_html_aeede19206954d5c8ebd04c95cf63bb88"><div class="ttname"><a href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">gko::is_complex_s</a></div><div class="ttdeci">detail::is_complex_impl&lt; T &gt; is_complex_s</div><div class="ttdoc">Allows to check if T is a complex value during compile time by accessing the value attribute of this ...</div><div class="ttdef"><b>Definition:</b> math.hpp:163</div></div>
