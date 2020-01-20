@@ -58,6 +58,10 @@ namespace gko {
 namespace log {
 
 
+static size_type papi_logger_count = 0;
+static std::mutex papi_count_mutex;
+
+
 /**
  * Papi is a Logger which logs every event to the PAPI software. Thanks to this
  * logger, applications which interface with PAPI can access Ginkgo internal
@@ -200,11 +204,11 @@ protected:
     {
         std::ostringstream os;
 
-        std::lock_guard<std::mutex> guard(count_mutex);
-        os << "ginkgo" << logger_count;
+        std::lock_guard<std::mutex> guard(papi_count_mutex);
+        os << "ginkgo" << papi_logger_count;
         name = os.str();
         papi_handle = papi_sde_init(name.c_str());
-        logger_count++;
+        papi_logger_count++;
     }
 
 private:
@@ -301,8 +305,6 @@ private:
     mutable papi_queue<LinOp> iteration_complete{&papi_handle,
                                                  "iteration_complete"};
 
-    static size_type logger_count;
-    std::mutex count_mutex;
 
     std::string name{"ginkgo"};
     papi_handle_t papi_handle;
