@@ -46,17 +46,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/test/utils/assertions.hpp"
+#include <core/test/utils.hpp>
 
 
 namespace {
 
 
+template <typename ValueIndexType>
 class Coo : public ::testing::Test {
 protected:
-    using Csr = gko::matrix::Csr<>;
-    using Mtx = gko::matrix::Coo<>;
-    using Vec = gko::matrix::Dense<>;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Csr = gko::matrix::Csr<value_type, index_type>;
+    using Mtx = gko::matrix::Coo<value_type, index_type>;
+    using Vec = gko::matrix::Dense<value_type>;
 
     Coo() : exec(gko::ReferenceExecutor::create()), mtx(Mtx::create(exec))
     {
@@ -80,10 +85,10 @@ protected:
         EXPECT_EQ(c[1], 1);
         EXPECT_EQ(c[2], 2);
         EXPECT_EQ(c[3], 1);
-        EXPECT_EQ(v[0], 1.0);
-        EXPECT_EQ(v[1], 3.0);
-        EXPECT_EQ(v[2], 2.0);
-        EXPECT_EQ(v[3], 5.0);
+        EXPECT_EQ(v[0], value_type{1.0});
+        EXPECT_EQ(v[1], value_type{3.0});
+        EXPECT_EQ(v[2], value_type{2.0});
+        EXPECT_EQ(v[3], value_type{5.0});
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -91,50 +96,58 @@ protected:
 };
 
 
-TEST_F(Coo, ConvertsToCsr)
+TYPED_TEST_CASE(Coo, gko::test::ValueIndexTypes);
+
+
+TYPED_TEST(Coo, ConvertsToCsr)
 {
-    auto csr_s_classical = std::make_shared<gko::matrix::Csr<>::classical>();
-    auto csr_s_merge = std::make_shared<gko::matrix::Csr<>::merge_path>();
-    auto csr_mtx_c =
-        gko::matrix::Csr<>::create(mtx->get_executor(), csr_s_classical);
-    auto csr_mtx_m =
-        gko::matrix::Csr<>::create(mtx->get_executor(), csr_s_merge);
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Csr;
+    auto csr_s_classical = std::make_shared<typename Csr::classical>();
+    auto csr_s_merge = std::make_shared<typename Csr::merge_path>();
+    auto csr_mtx_c = Csr::create(this->mtx->get_executor(), csr_s_classical);
+    auto csr_mtx_m = Csr::create(this->mtx->get_executor(), csr_s_merge);
 
-    mtx->convert_to(csr_mtx_c.get());
-    mtx->convert_to(csr_mtx_m.get());
+    this->mtx->convert_to(csr_mtx_c.get());
+    this->mtx->convert_to(csr_mtx_m.get());
 
-    assert_equal_to_mtx_in_csr_format(csr_mtx_c.get());
-    assert_equal_to_mtx_in_csr_format(csr_mtx_m.get());
+    this->assert_equal_to_mtx_in_csr_format(csr_mtx_c.get());
+    this->assert_equal_to_mtx_in_csr_format(csr_mtx_m.get());
     ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
     ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
 }
 
 
-TEST_F(Coo, MovesToCsr)
+TYPED_TEST(Coo, MovesToCsr)
 {
-    auto csr_s_classical = std::make_shared<gko::matrix::Csr<>::classical>();
-    auto csr_s_merge = std::make_shared<gko::matrix::Csr<>::merge_path>();
-    auto csr_mtx_c =
-        gko::matrix::Csr<>::create(mtx->get_executor(), csr_s_classical);
-    auto csr_mtx_m =
-        gko::matrix::Csr<>::create(mtx->get_executor(), csr_s_merge);
-    auto mtx_clone = mtx->clone();
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Csr;
+    auto csr_s_classical = std::make_shared<typename Csr::classical>();
+    auto csr_s_merge = std::make_shared<typename Csr::merge_path>();
+    auto csr_mtx_c = Csr::create(this->mtx->get_executor(), csr_s_classical);
+    auto csr_mtx_m = Csr::create(this->mtx->get_executor(), csr_s_merge);
+    auto mtx_clone = this->mtx->clone();
 
-    mtx->move_to(csr_mtx_c.get());
+    this->mtx->move_to(csr_mtx_c.get());
     mtx_clone->move_to(csr_mtx_m.get());
 
-    assert_equal_to_mtx_in_csr_format(csr_mtx_c.get());
-    assert_equal_to_mtx_in_csr_format(csr_mtx_m.get());
+    this->assert_equal_to_mtx_in_csr_format(csr_mtx_c.get());
+    this->assert_equal_to_mtx_in_csr_format(csr_mtx_m.get());
     ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
     ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
 }
 
 
-TEST_F(Coo, ConvertsToDense)
+TYPED_TEST(Coo, ConvertsToDense)
 {
-    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Dense = typename TestFixture::Vec;
+    auto dense_mtx = Dense::create(this->mtx->get_executor());
 
-    mtx->convert_to(dense_mtx.get());
+    this->mtx->convert_to(dense_mtx.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense_mtx,
@@ -144,11 +157,13 @@ TEST_F(Coo, ConvertsToDense)
 }
 
 
-TEST_F(Coo, MovesToDense)
+TYPED_TEST(Coo, MovesToDense)
 {
-    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+    using value_type = typename TestFixture::value_type;
+    using Dense = typename TestFixture::Vec;
+    auto dense_mtx = Dense::create(this->mtx->get_executor());
 
-    mtx->move_to(dense_mtx.get());
+    this->mtx->move_to(dense_mtx.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense_mtx,
@@ -158,193 +173,211 @@ TEST_F(Coo, MovesToDense)
 }
 
 
-TEST_F(Coo, AppliesToDenseVector)
+TYPED_TEST(Coo, AppliesToDenseVector)
 {
-    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
-    auto y = Vec::create(exec, gko::dim<2>{2, 1});
+    using Vec = typename TestFixture::Vec;
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
 
-    mtx->apply(x.get(), y.get());
+    this->mtx->apply(x.get(), y.get());
 
     GKO_ASSERT_MTX_NEAR(y, l({13.0, 5.0}), 0.0);
 }
 
 
-TEST_F(Coo, AppliesToDenseMatrix)
+TYPED_TEST(Coo, AppliesToDenseMatrix)
 {
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
     // clang-format off
     auto x = gko::initialize<Vec>(
-        {{2.0, 3.0},
-         {1.0, -1.5},
-         {4.0, 2.5}}, exec);
+        {I<T>{2.0, 3.0},
+         I<T>{1.0, -1.5},
+         I<T>{4.0, 2.5}}, this->exec);
     // clang-format on
-    auto y = Vec::create(exec, gko::dim<2>{2, 2});
+    auto y = Vec::create(this->exec, gko::dim<2>{2, 2});
 
-    mtx->apply(x.get(), y.get());
+    this->mtx->apply(x.get(), y.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
-                    l({{13.0,  3.5},
-                       { 5.0, -7.5}}), 0.0);
+                        l({I<T>{13.0,  3.5},
+                           I<T>{ 5.0, -7.5}}), 0.0);
     // clang-format on
 }
 
 
-TEST_F(Coo, AppliesLinearCombinationToDenseVector)
+TYPED_TEST(Coo, AppliesLinearCombinationToDenseVector)
 {
-    auto alpha = gko::initialize<Vec>({-1.0}, exec);
-    auto beta = gko::initialize<Vec>({2.0}, exec);
-    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
-    auto y = gko::initialize<Vec>({1.0, 2.0}, exec);
+    using Vec = typename TestFixture::Vec;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<Vec>({1.0, 2.0}, this->exec);
 
-    mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
 
     GKO_ASSERT_MTX_NEAR(y, l({-11.0, -1.0}), 0.0);
 }
 
 
-TEST_F(Coo, AppliesLinearCombinationToDenseMatrix)
+TYPED_TEST(Coo, AppliesLinearCombinationToDenseMatrix)
 {
-    auto alpha = gko::initialize<Vec>({-1.0}, exec);
-    auto beta = gko::initialize<Vec>({2.0}, exec);
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
     // clang-format off
     auto x = gko::initialize<Vec>(
-        {{2.0, 3.0},
-         {1.0, -1.5},
-         {4.0, 2.5}}, exec);
+        {I<T>{2.0, 3.0},
+         I<T>{1.0, -1.5},
+         I<T>{4.0, 2.5}}, this->exec);
     auto y = gko::initialize<Vec>(
-        {{1.0, 0.5},
-         {2.0, -1.5}}, exec);
+        {I<T>{1.0, 0.5},
+         I<T>{2.0, -1.5}}, this->exec);
     // clang-format on
 
-    mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
-                    l({{-11.0, -2.5},
-                       { -1.0,  4.5}}), 0.0);
+                        l({I<T>{-11.0, -2.5},
+                           I<T>{ -1.0,  4.5}}), 0.0);
     // clang-format on
 }
 
 
-TEST_F(Coo, ApplyFailsOnWrongInnerDimension)
+TYPED_TEST(Coo, ApplyFailsOnWrongInnerDimension)
 {
-    auto x = Vec::create(exec, gko::dim<2>{2});
-    auto y = Vec::create(exec, gko::dim<2>{2});
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{2});
+    auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
-TEST_F(Coo, ApplyFailsOnWrongNumberOfRows)
+TYPED_TEST(Coo, ApplyFailsOnWrongNumberOfRows)
 {
-    auto x = Vec::create(exec, gko::dim<2>{3, 2});
-    auto y = Vec::create(exec, gko::dim<2>{3, 2});
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{3, 2});
+    auto y = Vec::create(this->exec, gko::dim<2>{3, 2});
 
-    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
-TEST_F(Coo, ApplyFailsOnWrongNumberOfCols)
+TYPED_TEST(Coo, ApplyFailsOnWrongNumberOfCols)
 {
-    auto x = Vec::create(exec, gko::dim<2>{3});
-    auto y = Vec::create(exec, gko::dim<2>{2});
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{3});
+    auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
-TEST_F(Coo, AppliesAddToDenseVector)
+TYPED_TEST(Coo, AppliesAddToDenseVector)
 {
-    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
-    auto y = gko::initialize<Vec>({2.0, 1.0}, exec);
+    using Vec = typename TestFixture::Vec;
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<Vec>({2.0, 1.0}, this->exec);
 
-    mtx->apply2(x.get(), y.get());
+    this->mtx->apply2(x.get(), y.get());
 
     GKO_ASSERT_MTX_NEAR(y, l({15.0, 6.0}), 0.0);
 }
 
 
-TEST_F(Coo, AppliesAddToDenseMatrix)
+TYPED_TEST(Coo, AppliesAddToDenseMatrix)
 {
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
     // clang-format off
     auto x = gko::initialize<Vec>(
-        {{2.0, 3.0},
-         {1.0, -1.5},
-         {4.0, 2.5}}, exec);
+        {I<T>{2.0, 3.0},
+         I<T>{1.0, -1.5},
+         I<T>{4.0, 2.5}}, this->exec);
     auto y = gko::initialize<Vec>(
-        {{1.0, 0.5},
-         {2.0, -1.5}}, exec);
+        {I<T>{1.0, 0.5},
+         I<T>{2.0, -1.5}}, this->exec);
     // clang-format on
 
-    mtx->apply2(x.get(), y.get());
+    this->mtx->apply2(x.get(), y.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
-                    l({{14.0,  4.0},
-                       { 7.0, -9.0}}), 0.0);
+                        l({I<T>{14.0,  4.0},
+                           I<T>{ 7.0, -9.0}}), 0.0);
     // clang-format on
 }
 
 
-TEST_F(Coo, AppliesLinearCombinationAddToDenseVector)
+TYPED_TEST(Coo, AppliesLinearCombinationAddToDenseVector)
 {
-    auto alpha = gko::initialize<Vec>({-1.0}, exec);
-    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
-    auto y = gko::initialize<Vec>({1.0, 2.0}, exec);
+    using Vec = typename TestFixture::Vec;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<Vec>({1.0, 2.0}, this->exec);
 
-    mtx->apply2(alpha.get(), x.get(), y.get());
+    this->mtx->apply2(alpha.get(), x.get(), y.get());
 
     GKO_ASSERT_MTX_NEAR(y, l({-12.0, -3.0}), 0.0);
 }
 
 
-TEST_F(Coo, AppliesLinearCombinationAddToDenseMatrix)
+TYPED_TEST(Coo, AppliesLinearCombinationAddToDenseMatrix)
 {
-    auto alpha = gko::initialize<Vec>({-1.0}, exec);
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
     // clang-format off
     auto x = gko::initialize<Vec>(
-        {{2.0, 3.0},
-         {1.0, -1.5},
-         {4.0, 2.5}}, exec);
+        {I<T>{2.0, 3.0},
+         I<T>{1.0, -1.5},
+         I<T>{4.0, 2.5}}, this->exec);
     auto y = gko::initialize<Vec>(
-        {{1.0, 0.5},
-         {2.0, -1.5}}, exec);
+        {I<T>{1.0, 0.5},
+         I<T>{2.0, -1.5}}, this->exec);
     // clang-format on
 
-    mtx->apply2(alpha.get(), x.get(), y.get());
+    this->mtx->apply2(alpha.get(), x.get(), y.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
-                    l({{-12.0, -3.0},
-                       { -3.0,  6.0}}), 0.0);
+                        l({I<T>{-12.0, -3.0},
+                           I<T>{ -3.0,  6.0}}), 0.0);
     // clang-format on
 }
 
 
-TEST_F(Coo, ApplyAddFailsOnWrongInnerDimension)
+TYPED_TEST(Coo, ApplyAddFailsOnWrongInnerDimension)
 {
-    auto x = Vec::create(exec, gko::dim<2>{2});
-    auto y = Vec::create(exec, gko::dim<2>{2});
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{2});
+    auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(mtx->apply2(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx->apply2(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
-TEST_F(Coo, ApplyAddFailsOnWrongNumberOfRows)
+TYPED_TEST(Coo, ApplyAddFailsOnWrongNumberOfRows)
 {
-    auto x = Vec::create(exec, gko::dim<2>{3, 2});
-    auto y = Vec::create(exec, gko::dim<2>{3, 2});
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{3, 2});
+    auto y = Vec::create(this->exec, gko::dim<2>{3, 2});
 
-    ASSERT_THROW(mtx->apply2(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx->apply2(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
-TEST_F(Coo, ApplyAddFailsOnWrongNumberOfCols)
+TYPED_TEST(Coo, ApplyAddFailsOnWrongNumberOfCols)
 {
-    auto x = Vec::create(exec, gko::dim<2>{3});
-    auto y = Vec::create(exec, gko::dim<2>{2});
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{3});
+    auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    ASSERT_THROW(mtx->apply2(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_THROW(this->mtx->apply2(x.get(), y.get()), gko::DimensionMismatch);
 }
 
 
