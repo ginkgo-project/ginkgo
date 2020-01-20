@@ -46,6 +46,10 @@ using ValueTypes =
     ::testing::Types<float, double, std::complex<float>, std::complex<double>>;
 
 
+using ComplexValueTypes =
+    ::testing::Types<std::complex<float>, std::complex<double>>;
+
+
 using IndexTypes = ::testing::Types<gko::int32, gko::int64>;
 
 
