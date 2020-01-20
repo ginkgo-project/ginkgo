@@ -53,8 +53,91 @@ namespace par_ilu_factorization {
 
 
 template <typename ValueType, typename IndexType>
+void find_missing_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
+                                    size_type m, size_type n,
+                                    const ValueType *values,
+                                    const IndexType *col_idxs,
+                                    const IndexType *row_ptrs,
+                                    ValueType *elements_to_add_per_row,
+                                    bool *changes_required)
+{
+    *changes_required = false;
+#pragma omp parallel for
+    for (IndexType row = 0; row < m && row < n; ++row) {
+        bool was_diagonal_found{false};
+        for (IndexType idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
+            const auto col = col_idxs[idx];
+            if (col == row) {
+                elements_to_add_per_row[row] = 0;
+                was_diagonal_found = true;
+                break;
+            }
+        }
+        if (!was_diagonal_found) {
+            elements_to_add_per_row[row] = 1;
+            *changes_required = true;
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void add_missing_diagonal_elements(
+    std::shared_ptr<const DefaultExecutor> exec, size_type m, size_type n,
+    const ValueType *old_values, const IndexType *old_col_idxs,
+    const IndexType *old_row_ptrs, ValueType *new_values,
+    IndexType *new_col_idxs, const IndexType *new_row_ptrs)
+{
+    for (IndexType row = 0; row < m; ++row) {
+        const IndexType new_row_start{new_row_ptrs[row]};
+        const IndexType new_row_end{new_row_ptrs[row + 1]};
+        const IndexType old_row_start{old_row_ptrs[row]};
+        const IndexType old_row_end{old_row_ptrs[row + 1]};
+        // if no element needs to be added, do a simple copy
+        if (new_row_end - new_row_start == old_row_end - old_row_start) {
+            for (IndexType i = 0; i < new_row_end - new_row_start; ++i) {
+                const IndexType new_idx = new_row_start + i;
+                const IndexType old_idx = old_row_start + i;
+                new_values[new_idx] = old_values[old_idx];
+                new_col_idxs[new_idx] = old_col_idxs[old_idx];
+            }
+        } else {
+            IndexType new_idx = new_row_start;
+            bool diagonal_added{false};
+            for (IndexType old_idx = old_row_start; old_idx < old_row_end;
+                 ++old_idx, ++new_idx) {
+                const auto col_idx = old_col_idxs[old_idx];
+                if (!diagonal_added && row < col_idx) {
+                    new_values[new_idx] = zero<ValueType>();
+                    new_col_idxs[new_idx] = row;
+                    ++new_idx;
+                    diagonal_added = true;
+                }
+                new_values[new_idx] = old_values[old_idx];
+                new_col_idxs[new_idx] = old_col_idxs[old_idx];
+            }
+            if (!diagonal_added) {
+                new_values[new_idx] = zero<ValueType>();
+                new_col_idxs[new_idx] = row;
+                diagonal_added = true;
+            }
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
+                           matrix::Csr<ValueType, IndexType> *mtx)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PAR_ILU_ADD_DIAGONAL_ELEMENTS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l_u(
-    std::shared_ptr<const OmpExecutor> exec,
+    std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType> *system_matrix,
     IndexType *l_row_ptrs, IndexType *u_row_ptrs)
 {
@@ -92,7 +175,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void initialize_l_u(std::shared_ptr<const OmpExecutor> exec,
+void initialize_l_u(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType> *system_matrix,
                     matrix::Csr<ValueType, IndexType> *csr_l,
                     matrix::Csr<ValueType, IndexType> *csr_u)
@@ -152,7 +235,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void compute_l_u_factors(std::shared_ptr<const OmpExecutor> exec,
+void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
                          size_type iterations,
                          const matrix::Coo<ValueType, IndexType> *system_matrix,
                          matrix::Csr<ValueType, IndexType> *l_factor,

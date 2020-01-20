@@ -101,6 +101,7 @@ ParIlu<ValueType, IndexType>::generate_l_u(
         csr_system_matrix = csr_system_matrix_unique_ptr.get();
     }
 
+    // TODO call add_diagonal_elements kernel
     const auto matrix_size = csr_system_matrix->get_size();
     const auto number_rows = matrix_size[0];
     Array<IndexType> l_row_ptrs{exec, number_rows + 1};
