@@ -39,12 +39,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <core/test/utils.hpp>
+
+
 namespace {
 
 
+template <typename ValueIndexType>
 class CooBuilder : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Coo<>;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Mtx = gko::matrix::Coo<value_type, index_type>;
 
     CooBuilder()
         : exec(gko::ReferenceExecutor::create()),
@@ -56,16 +64,21 @@ protected:
 };
 
 
-TEST_F(CooBuilder, ReturnsCorrectArrays)
+TYPED_TEST_CASE(CooBuilder, gko::test::ValueIndexTypes);
+
+
+TYPED_TEST(CooBuilder, ReturnsCorrectArrays)
 {
-    gko::matrix::CooBuilder<> builder{mtx.get()};
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    gko::matrix::CooBuilder<value_type, index_type> builder{this->mtx.get()};
 
     auto builder_row_idxs = builder.get_row_idx_array().get_data();
     auto builder_col_idxs = builder.get_col_idx_array().get_data();
     auto builder_values = builder.get_value_array().get_data();
-    auto ref_row_idxs = mtx->get_row_idxs();
-    auto ref_col_idxs = mtx->get_col_idxs();
-    auto ref_values = mtx->get_values();
+    auto ref_row_idxs = this->mtx->get_row_idxs();
+    auto ref_col_idxs = this->mtx->get_col_idxs();
+    auto ref_values = this->mtx->get_values();
 
     ASSERT_EQ(builder_row_idxs, ref_row_idxs);
     ASSERT_EQ(builder_col_idxs, ref_col_idxs);

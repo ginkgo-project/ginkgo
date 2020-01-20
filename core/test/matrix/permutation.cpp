@@ -42,16 +42,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/test/utils/assertions.hpp"
+#include <core/test/utils.hpp>
 
 
 namespace {
 
 
+template <typename ValueIndexType>
 class Permutation : public ::testing::Test {
 protected:
-    using i_type = int;
-    using v_type = double;
+    using v_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using i_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Vec = gko::matrix::Dense<v_type>;
     using Csr = gko::matrix::Csr<v_type, i_type>;
     Permutation()
@@ -84,109 +87,120 @@ protected:
 };
 
 
-TEST_F(Permutation, CanBeEmpty)
-{
-    auto empty = gko::matrix::Permutation<i_type>::create(exec);
+TYPED_TEST_CASE(Permutation, gko::test::ValueIndexTypes);
 
-    assert_empty(empty.get());
+
+TYPED_TEST(Permutation, CanBeEmpty)
+{
+    using i_type = typename TestFixture::i_type;
+    auto empty = gko::matrix::Permutation<i_type>::create(this->exec);
+
+    this->assert_empty(empty.get());
 }
 
 
-TEST_F(Permutation, ReturnsNullValuesArrayWhenEmpty)
+TYPED_TEST(Permutation, ReturnsNullValuesArrayWhenEmpty)
 {
-    auto empty = gko::matrix::Permutation<i_type>::create(exec);
+    using i_type = typename TestFixture::i_type;
+    auto empty = gko::matrix::Permutation<i_type>::create(this->exec);
 
     ASSERT_EQ(empty->get_const_permutation(), nullptr);
 }
 
 
-TEST_F(Permutation, CanBeConstructedWithSize)
+TYPED_TEST(Permutation, CanBeConstructedWithSize)
 {
-    auto m = gko::matrix::Permutation<i_type>::create(exec, gko::dim<2>{2, 3});
+    using i_type = typename TestFixture::i_type;
+    auto m =
+        gko::matrix::Permutation<i_type>::create(this->exec, gko::dim<2>{2, 3});
 
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(m->get_permutation_size(), 2);
 }
 
 
-TEST_F(Permutation, PermutationCanBeConstructedFromExistingData)
+TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingData)
 {
+    using i_type = typename TestFixture::i_type;
     i_type data[] = {1, 0, 2};
 
     auto m = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{3, 5}, gko::Array<i_type>::view(exec, 3, data));
+        this->exec, gko::dim<2>{3, 5},
+        gko::Array<i_type>::view(this->exec, 3, data));
 
     ASSERT_EQ(m->get_const_permutation(), data);
 }
 
 
-TEST_F(Permutation, PermutationThrowsforWrongRowPermDimensions)
+TYPED_TEST(Permutation, PermutationThrowsforWrongRowPermDimensions)
 {
+    using i_type = typename TestFixture::i_type;
     i_type data[] = {0, 2, 1};
 
-    ASSERT_THROW(
-        gko::matrix::Permutation<>::create(
-            exec, gko::dim<2>{4, 2}, gko::Array<i_type>::view(exec, 3, data)),
-        gko::ValueMismatch);
+    ASSERT_THROW(gko::matrix::Permutation<i_type>::create(
+                     this->exec, gko::dim<2>{4, 2},
+                     gko::Array<i_type>::view(this->exec, 3, data)),
+                 gko::ValueMismatch);
 }
 
 
-TEST_F(Permutation, PermutationThrowsforWrongColPermDimensions)
+TYPED_TEST(Permutation, PermutationThrowsforWrongColPermDimensions)
 {
+    using i_type = typename TestFixture::i_type;
     i_type data[] = {0, 2, 1};
 
-    ASSERT_THROW(
-        gko::matrix::Permutation<>::create(
-            exec, gko::dim<2>{3, 4}, gko::Array<i_type>::view(exec, 3, data),
-            gko::matrix::column_permute),
-        gko::ValueMismatch);
+    ASSERT_THROW(gko::matrix::Permutation<i_type>::create(
+                     this->exec, gko::dim<2>{3, 4},
+                     gko::Array<i_type>::view(this->exec, 3, data),
+                     gko::matrix::column_permute),
+                 gko::ValueMismatch);
 }
 
 
-TEST_F(Permutation, KnowsItsSizeAndValues)
+TYPED_TEST(Permutation, KnowsItsSizeAndValues)
 {
-    assert_equal_to_original_mtx(mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx.get());
 }
 
 
-TEST_F(Permutation, CanBeCopied)
+TYPED_TEST(Permutation, CanBeCopied)
 {
-    auto mtx_copy = gko::matrix::Permutation<i_type>::create(exec);
+    using i_type = typename TestFixture::i_type;
+    auto mtx_copy = gko::matrix::Permutation<i_type>::create(this->exec);
 
-    mtx_copy->copy_from(mtx.get());
+    mtx_copy->copy_from(this->mtx.get());
 
-    assert_equal_to_original_mtx(mtx.get());
-
-    mtx->get_permutation()[0] = 3;
-
-    assert_equal_to_original_mtx(mtx_copy.get());
+    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->mtx->get_permutation()[0] = 3;
+    this->assert_equal_to_original_mtx(mtx_copy.get());
 }
 
 
-TEST_F(Permutation, CanBeMoved)
+TYPED_TEST(Permutation, CanBeMoved)
 {
-    auto mtx_copy = gko::matrix::Permutation<i_type>::create(exec);
+    using i_type = typename TestFixture::i_type;
+    auto mtx_copy = gko::matrix::Permutation<i_type>::create(this->exec);
 
-    mtx_copy->copy_from(std::move(mtx));
+    mtx_copy->copy_from(std::move(this->mtx));
 
-    assert_equal_to_original_mtx(mtx_copy.get());
+    this->assert_equal_to_original_mtx(mtx_copy.get());
 }
 
 
-TEST_F(Permutation, CanBeCloned)
+TYPED_TEST(Permutation, CanBeCloned)
 {
-    auto mtx_clone = mtx->clone();
+    auto mtx_clone = this->mtx->clone();
 
-    assert_equal_to_original_mtx(
-        dynamic_cast<decltype(mtx.get())>(mtx_clone.get()));
+    this->assert_equal_to_original_mtx(
+        dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
 }
 
 
-TEST_F(Permutation, CanBeCleared)
+TYPED_TEST(Permutation, CanBeCleared)
 {
-    mtx->clear();
+    this->mtx->clear();
 
-    assert_empty(mtx.get());
+    this->assert_empty(this->mtx.get());
 }
 
 

@@ -36,7 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -44,13 +43,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
 
 
+#include <core/test/utils.hpp>
+
+
 namespace {
 
 
+template <typename T>
 class Fcg : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
-    using Solver = gko::solver::Fcg<>;
+    using value_type = T;
+    using Mtx = gko::matrix::Dense<value_type>;
+    using Solver = gko::solver::Fcg<value_type>;
 
     Fcg()
         : exec(gko::ReferenceExecutor::create()),
@@ -60,8 +64,8 @@ protected:
               Solver::build()
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(3u).on(exec),
-                      gko::stop::ResidualNormReduction<>::build()
-                          .with_reduction_factor(1e-6)
+                      gko::stop::ResidualNormReduction<value_type>::build()
+                          .with_reduction_factor(gko::remove_complex<T>{1e-6})
                           .on(exec))
                   .on(exec)),
           solver(fcg_factory->generate(mtx))
@@ -69,112 +73,128 @@ protected:
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<Solver::Factory> fcg_factory;
+    std::unique_ptr<typename Solver::Factory> fcg_factory;
     std::unique_ptr<gko::LinOp> solver;
 };
 
 
-TEST_F(Fcg, FcgFactoryKnowsItsExecutor)
+TYPED_TEST_CASE(Fcg, gko::test::ValueTypes);
+
+
+TYPED_TEST(Fcg, FcgFactoryKnowsItsExecutor)
 {
-    ASSERT_EQ(fcg_factory->get_executor(), exec);
+    ASSERT_EQ(this->fcg_factory->get_executor(), this->exec);
 }
 
 
-TEST_F(Fcg, FcgFactoryCreatesCorrectSolver)
+TYPED_TEST(Fcg, FcgFactoryCreatesCorrectSolver)
 {
-    ASSERT_EQ(solver->get_size(), gko::dim<2>(3, 3));
-    auto fcg_solver = dynamic_cast<Solver *>(solver.get());
+    using Solver = typename TestFixture::Solver;
+    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(3, 3));
+    auto fcg_solver = dynamic_cast<Solver *>(this->solver.get());
     ASSERT_NE(fcg_solver->get_system_matrix(), nullptr);
-    ASSERT_EQ(fcg_solver->get_system_matrix(), mtx);
+    ASSERT_EQ(fcg_solver->get_system_matrix(), this->mtx);
 }
 
 
-TEST_F(Fcg, CanBeCopied)
+TYPED_TEST(Fcg, CanBeCopied)
 {
-    auto copy = fcg_factory->generate(Mtx::create(exec));
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    auto copy = this->fcg_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(solver.get());
+    copy->copy_from(this->solver.get());
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get(),
-                        1e-14);
+    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()),
+                        this->mtx.get(), r<TypeParam>::value);
 }
 
 
-TEST_F(Fcg, CanBeMoved)
+TYPED_TEST(Fcg, CanBeMoved)
 {
-    auto copy = fcg_factory->generate(Mtx::create(exec));
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    auto copy = this->fcg_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(std::move(solver));
+    copy->copy_from(std::move(this->solver));
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()), mtx.get(),
-                        1e-14);
+    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()),
+                        this->mtx.get(), r<TypeParam>::value);
 }
 
 
-TEST_F(Fcg, CanBeCloned)
+TYPED_TEST(Fcg, CanBeCloned)
 {
-    auto clone = solver->clone();
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    auto clone = this->solver->clone();
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
     auto clone_mtx = dynamic_cast<Solver *>(clone.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(clone_mtx.get()), mtx.get(),
-                        1e-14);
+    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(clone_mtx.get()),
+                        this->mtx.get(), 1e-14);
 }
 
 
-TEST_F(Fcg, CanBeCleared)
+TYPED_TEST(Fcg, CanBeCleared)
 {
-    solver->clear();
+    using Solver = typename TestFixture::Solver;
+    this->solver->clear();
 
-    ASSERT_EQ(solver->get_size(), gko::dim<2>(0, 0));
-    auto solver_mtx = static_cast<Solver *>(solver.get())->get_system_matrix();
+    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
+    auto solver_mtx =
+        static_cast<Solver *>(this->solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
 }
 
 
-TEST_F(Fcg, CanSetPreconditionerGenerator)
+TYPED_TEST(Fcg, CanSetPreconditionerGenerator)
 {
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
     auto fcg_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec),
-                gko::stop::ResidualNormReduction<>::build()
-                    .with_reduction_factor(1e-6)
-                    .on(exec))
-            .with_preconditioner(Solver::build().on(exec))
-            .on(exec);
-    auto solver = fcg_factory->generate(mtx);
-    auto precond = dynamic_cast<const gko::solver::Fcg<> *>(
-        static_cast<gko::solver::Fcg<> *>(solver.get())
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
+                gko::stop::ResidualNormReduction<value_type>::build()
+                    .with_reduction_factor(
+                        gko::remove_complex<value_type>(1e-6))
+                    .on(this->exec))
+            .with_preconditioner(Solver::build().on(this->exec))
+            .on(this->exec);
+    auto solver = fcg_factory->generate(this->mtx);
+    auto precond = dynamic_cast<const gko::solver::Fcg<value_type> *>(
+        static_cast<gko::solver::Fcg<value_type> *>(solver.get())
             ->get_preconditioner()
             .get());
 
     ASSERT_NE(precond, nullptr);
     ASSERT_EQ(precond->get_size(), gko::dim<2>(3, 3));
-    ASSERT_EQ(precond->get_system_matrix(), mtx);
+    ASSERT_EQ(precond->get_system_matrix(), this->mtx);
 }
 
 
-TEST_F(Fcg, CanSetPreconditionerInFactory)
+TYPED_TEST(Fcg, CanSetPreconditionerInFactory)
 {
+    using Solver = typename TestFixture::Solver;
     std::shared_ptr<Solver> fcg_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .on(exec)
-            ->generate(mtx);
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .on(this->exec)
+            ->generate(this->mtx);
 
     auto fcg_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
             .with_generated_preconditioner(fcg_precond)
-            .on(exec);
-    auto solver = fcg_factory->generate(mtx);
+            .on(this->exec);
+    auto solver = fcg_factory->generate(this->mtx);
     auto precond = solver->get_preconditioner();
 
     ASSERT_NE(precond.get(), nullptr);
@@ -182,42 +202,46 @@ TEST_F(Fcg, CanSetPreconditionerInFactory)
 }
 
 
-TEST_F(Fcg, ThrowsOnWrongPreconditionerInFactory)
+TYPED_TEST(Fcg, ThrowsOnWrongPreconditionerInFactory)
 {
-    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1, 3});
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<Mtx> wrong_sized_mtx =
+        Mtx::create(this->exec, gko::dim<2>{1, 3});
     std::shared_ptr<Solver> fcg_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .on(exec)
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .on(this->exec)
             ->generate(wrong_sized_mtx);
 
     auto fcg_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
             .with_generated_preconditioner(fcg_precond)
-            .on(exec);
+            .on(this->exec);
 
-    ASSERT_THROW(fcg_factory->generate(mtx), gko::DimensionMismatch);
+    ASSERT_THROW(fcg_factory->generate(this->mtx), gko::DimensionMismatch);
 }
 
 
-TEST_F(Fcg, CanSetPreconditioner)
+TYPED_TEST(Fcg, CanSetPreconditioner)
 {
+    using Solver = typename TestFixture::Solver;
     std::shared_ptr<Solver> fcg_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .on(exec)
-            ->generate(mtx);
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .on(this->exec)
+            ->generate(this->mtx);
 
     auto fcg_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .on(exec);
-    auto solver = fcg_factory->generate(mtx);
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .on(this->exec);
+    auto solver = fcg_factory->generate(this->mtx);
     solver->set_preconditioner(fcg_precond);
     auto precond = solver->get_preconditioner();
 

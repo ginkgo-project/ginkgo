@@ -36,17 +36,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include <core/test/utils.hpp>
 
 
 namespace {
 
 
+template <typename T>
 class Identity : public ::testing::Test {
 protected:
-    using Id = gko::matrix::Identity<>;
-    using Vec = gko::matrix::Dense<>;
+    using value_type = T;
+    using Id = gko::matrix::Identity<T>;
+    using Vec = gko::matrix::Dense<T>;
 
     Identity() : exec(gko::ReferenceExecutor::create()) {}
 
@@ -54,25 +58,32 @@ protected:
 };
 
 
-TEST_F(Identity, CanBeEmpty)
+TYPED_TEST_CASE(Identity, gko::test::ValueTypes);
+
+
+TYPED_TEST(Identity, CanBeEmpty)
 {
-    auto empty = Id::create(exec);
+    using Id = typename TestFixture::Id;
+    auto empty = Id::create(this->exec);
     ASSERT_EQ(empty->get_size(), gko::dim<2>(0, 0));
 }
 
 
-TEST_F(Identity, CanBeConstructedWithSize)
+TYPED_TEST(Identity, CanBeConstructedWithSize)
 {
-    auto identity = Id::create(exec, 5);
+    using Id = typename TestFixture::Id;
+    auto identity = Id::create(this->exec, 5);
     ASSERT_EQ(identity->get_size(), gko::dim<2>(5, 5));
 }
 
 
-TEST_F(Identity, AppliesToVector)
+TYPED_TEST(Identity, AppliesToVector)
 {
-    auto identity = Id::create(exec, 3);
-    auto x = Vec::create(exec, gko::dim<2>{3, 1});
-    auto b = gko::initialize<Vec>({2.0, 1.0, 5.0}, exec);
+    using Id = typename TestFixture::Id;
+    using Vec = typename TestFixture::Vec;
+    auto identity = Id::create(this->exec, 3);
+    auto x = Vec::create(this->exec, gko::dim<2>{3, 1});
+    auto b = gko::initialize<Vec>({2.0, 1.0, 5.0}, this->exec);
 
     identity->apply(b.get(), x.get());
 
@@ -80,24 +91,38 @@ TEST_F(Identity, AppliesToVector)
 }
 
 
-TEST_F(Identity, AppliesToMultipleVectors)
+TYPED_TEST(Identity, AppliesToMultipleVectors)
 {
-    auto identity = Id::create(exec, 3);
-    auto x = Vec::create(exec, gko::dim<2>{3, 2}, 3);
-    auto b =
-        gko::initialize<Vec>(3, {{2.0, 3.0}, {1.0, 2.0}, {5.0, -1.0}}, exec);
+    using Id = typename TestFixture::Id;
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto identity = Id::create(this->exec, 3);
+    auto x = Vec::create(this->exec, gko::dim<2>{3, 2}, 3);
+    auto b = gko::initialize<Vec>(
+        3, {I<T>{2.0, 3.0}, I<T>{1.0, 2.0}, I<T>{5.0, -1.0}}, this->exec);
 
     identity->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({{2.0, 3.0}, {1.0, 2.0}, {5.0, -1.0}}), 0.0);
+    GKO_ASSERT_MTX_NEAR(x, l({I<T>{2.0, 3.0}, I<T>{1.0, 2.0}, I<T>{5.0, -1.0}}),
+                        0.0);
 }
 
 
-TEST(IdentityFactory, CanGenerateIdentityMatrix)
+template <typename T>
+class IdentityFactory : public ::testing::Test {
+protected:
+    using value_type = T;
+};
+
+
+TYPED_TEST_CASE(IdentityFactory, gko::test::ValueTypes);
+
+
+TYPED_TEST(IdentityFactory, CanGenerateIdentityMatrix)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto id_factory = gko::matrix::IdentityFactory<>::create(exec);
-    auto mtx = gko::matrix::Dense<>::create(exec, gko::dim<2>{5, 5});
+    auto id_factory = gko::matrix::IdentityFactory<TypeParam>::create(exec);
+    auto mtx = gko::matrix::Dense<TypeParam>::create(exec, gko::dim<2>{5, 5});
 
     auto id = id_factory->generate(std::move(mtx));
 

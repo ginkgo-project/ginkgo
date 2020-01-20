@@ -40,59 +40,68 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/range.hpp>
 
 
+#include <core/test/utils.hpp>
+
+
 namespace {
 
 
+template <typename T>
 class Dense : public ::testing::Test {
 protected:
+    using value_type = T;
     Dense()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<gko::matrix::Dense<>>(
+          mtx(gko::initialize<gko::matrix::Dense<value_type>>(
               4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}}, exec))
     {}
 
 
-    static void assert_equal_to_original_mtx(gko::matrix::Dense<> *m)
+    static void assert_equal_to_original_mtx(gko::matrix::Dense<value_type> *m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_stride(), 4);
         ASSERT_EQ(m->get_num_stored_elements(), 2 * 4);
-        EXPECT_EQ(m->at(0, 0), 1.0);
-        EXPECT_EQ(m->at(0, 1), 2.0);
-        EXPECT_EQ(m->at(0, 2), 3.0);
-        EXPECT_EQ(m->at(1, 0), 1.5);
-        EXPECT_EQ(m->at(1, 1), 2.5);
-        ASSERT_EQ(m->at(1, 2), 3.5);
+        EXPECT_EQ(m->at(0, 0), value_type{1.0});
+        EXPECT_EQ(m->at(0, 1), value_type{2.0});
+        EXPECT_EQ(m->at(0, 2), value_type{3.0});
+        EXPECT_EQ(m->at(1, 0), value_type{1.5});
+        EXPECT_EQ(m->at(1, 1), value_type{2.5});
+        ASSERT_EQ(m->at(1, 2), value_type{3.5});
     }
 
-    static void assert_empty(gko::matrix::Dense<> *m)
+    static void assert_empty(gko::matrix::Dense<value_type> *m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<gko::matrix::Dense<>> mtx;
+    std::unique_ptr<gko::matrix::Dense<value_type>> mtx;
 };
 
 
-TEST_F(Dense, CanBeEmpty)
+TYPED_TEST_CASE(Dense, gko::test::ValueTypes);
+
+
+TYPED_TEST(Dense, CanBeEmpty)
 {
-    auto empty = gko::matrix::Dense<>::create(exec);
-    assert_empty(empty.get());
+    auto empty = gko::matrix::Dense<TypeParam>::create(this->exec);
+    this->assert_empty(empty.get());
 }
 
 
-TEST_F(Dense, ReturnsNullValuesArrayWhenEmpty)
+TYPED_TEST(Dense, ReturnsNullValuesArrayWhenEmpty)
 {
-    auto empty = gko::matrix::Dense<>::create(exec);
+    auto empty = gko::matrix::Dense<TypeParam>::create(this->exec);
     ASSERT_EQ(empty->get_const_values(), nullptr);
 }
 
 
-TEST_F(Dense, CanBeConstructedWithSize)
+TYPED_TEST(Dense, CanBeConstructedWithSize)
 {
-    auto m = gko::matrix::Dense<>::create(exec, gko::dim<2>{2, 3});
+    auto m =
+        gko::matrix::Dense<TypeParam>::create(this->exec, gko::dim<2>{2, 3});
 
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
     EXPECT_EQ(m->get_stride(), 3);
@@ -100,9 +109,10 @@ TEST_F(Dense, CanBeConstructedWithSize)
 }
 
 
-TEST_F(Dense, CanBeConstructedWithSizeAndStride)
+TYPED_TEST(Dense, CanBeConstructedWithSizeAndStride)
 {
-    auto m = gko::matrix::Dense<>::create(exec, gko::dim<2>{2, 3}, 4);
+    auto m =
+        gko::matrix::Dense<TypeParam>::create(this->exec, gko::dim<2>{2, 3}, 4);
 
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
     EXPECT_EQ(m->get_stride(), 4);
@@ -110,172 +120,187 @@ TEST_F(Dense, CanBeConstructedWithSizeAndStride)
 }
 
 
-TEST_F(Dense, CanBeConstructedFromExistingData)
+TYPED_TEST(Dense, CanBeConstructedFromExistingData)
 {
+    using value_type = typename TestFixture::value_type;
     // clang-format off
-    double data[] = {
+    value_type data[] = {
         1.0, 2.0, -1.0,
         3.0, 4.0, -1.0,
         5.0, 6.0, -1.0};
     // clang-format on
 
-    auto m = gko::matrix::Dense<>::create(
-        exec, gko::dim<2>{3, 2}, gko::Array<double>::view(exec, 9, data), 3);
+    auto m = gko::matrix::Dense<TypeParam>::create(
+        this->exec, gko::dim<2>{3, 2},
+        gko::Array<value_type>::view(this->exec, 9, data), 3);
 
     ASSERT_EQ(m->get_const_values(), data);
-    ASSERT_EQ(m->at(2, 1), 6.0);
+    ASSERT_EQ(m->at(2, 1), value_type{6.0});
 }
 
 
-TEST_F(Dense, KnowsItsSizeAndValues)
+TYPED_TEST(Dense, KnowsItsSizeAndValues)
 {
-    assert_equal_to_original_mtx(mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx.get());
 }
 
 
-TEST_F(Dense, CanBeListConstructed)
+TYPED_TEST(Dense, CanBeListConstructed)
 {
-    auto m = gko::initialize<gko::matrix::Dense<>>({1.0, 2.0}, exec);
+    using value_type = typename TestFixture::value_type;
+    auto m =
+        gko::initialize<gko::matrix::Dense<TypeParam>>({1.0, 2.0}, this->exec);
 
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 1));
     ASSERT_EQ(m->get_num_stored_elements(), 2);
-    EXPECT_EQ(m->at(0), 1);
-    EXPECT_EQ(m->at(1), 2);
+    EXPECT_EQ(m->at(0), value_type{1});
+    EXPECT_EQ(m->at(1), value_type{2});
 }
 
 
-TEST_F(Dense, CanBeListConstructedWithstride)
+TYPED_TEST(Dense, CanBeListConstructedWithstride)
 {
-    auto m = gko::initialize<gko::matrix::Dense<>>(2, {1.0, 2.0}, exec);
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::initialize<gko::matrix::Dense<TypeParam>>(2, {1.0, 2.0},
+                                                            this->exec);
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 1));
     ASSERT_EQ(m->get_num_stored_elements(), 4);
-    EXPECT_EQ(m->at(0), 1.0);
-    EXPECT_EQ(m->at(1), 2.0);
+    EXPECT_EQ(m->at(0), value_type{1.0});
+    EXPECT_EQ(m->at(1), value_type{2.0});
 }
 
 
-TEST_F(Dense, CanBeDoubleListConstructed)
+TYPED_TEST(Dense, CanBeDoubleListConstructed)
 {
-    auto m = gko::initialize<gko::matrix::Dense<>>(
-        {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}}, exec);
+    using value_type = typename TestFixture::value_type;
+    using T = value_type;
+    auto m = gko::initialize<gko::matrix::Dense<TypeParam>>(
+        {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}, this->exec);
 
     ASSERT_EQ(m->get_size(), gko::dim<2>(3, 2));
     ASSERT_EQ(m->get_num_stored_elements(), 6);
-    EXPECT_EQ(m->at(0), 1.0);
-    EXPECT_EQ(m->at(1), 2.0);
-    EXPECT_EQ(m->at(2), 3.0);
-    ASSERT_EQ(m->at(3), 4.0);
-    EXPECT_EQ(m->at(4), 5.0);
+    EXPECT_EQ(m->at(0), value_type{1.0});
+    EXPECT_EQ(m->at(1), value_type{2.0});
+    EXPECT_EQ(m->at(2), value_type{3.0});
+    ASSERT_EQ(m->at(3), value_type{4.0});
+    EXPECT_EQ(m->at(4), value_type{5.0});
 }
 
 
-TEST_F(Dense, CanBeDoubleListConstructedWithstride)
+TYPED_TEST(Dense, CanBeDoubleListConstructedWithstride)
 {
-    auto m = gko::initialize<gko::matrix::Dense<>>(
-        4, {{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}}, exec);
+    using value_type = typename TestFixture::value_type;
+    using T = value_type;
+    auto m = gko::initialize<gko::matrix::Dense<TypeParam>>(
+        4, {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}, this->exec);
 
     ASSERT_EQ(m->get_size(), gko::dim<2>(3, 2));
     ASSERT_EQ(m->get_num_stored_elements(), 12);
-    EXPECT_EQ(m->at(0), 1.0);
-    EXPECT_EQ(m->at(1), 2.0);
-    EXPECT_EQ(m->at(2), 3.0);
-    ASSERT_EQ(m->at(3), 4.0);
-    EXPECT_EQ(m->at(4), 5.0);
+    EXPECT_EQ(m->at(0), value_type{1.0});
+    EXPECT_EQ(m->at(1), value_type{2.0});
+    EXPECT_EQ(m->at(2), value_type{3.0});
+    ASSERT_EQ(m->at(3), value_type{4.0});
+    EXPECT_EQ(m->at(4), value_type{5.0});
 }
 
 
-TEST_F(Dense, CanBeCopied)
+TYPED_TEST(Dense, CanBeCopied)
 {
-    auto mtx_copy = gko::matrix::Dense<>::create(exec);
-    mtx_copy->copy_from(mtx.get());
-    assert_equal_to_original_mtx(mtx.get());
-    mtx->at(0) = 7;
-    assert_equal_to_original_mtx(mtx_copy.get());
+    auto mtx_copy = gko::matrix::Dense<TypeParam>::create(this->exec);
+    mtx_copy->copy_from(this->mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->mtx->at(0) = 7;
+    this->assert_equal_to_original_mtx(mtx_copy.get());
 }
 
 
-TEST_F(Dense, CanBeMoved)
+TYPED_TEST(Dense, CanBeMoved)
 {
-    auto mtx_copy = gko::matrix::Dense<>::create(exec);
-    mtx_copy->copy_from(std::move(mtx));
-    assert_equal_to_original_mtx(mtx_copy.get());
+    auto mtx_copy = gko::matrix::Dense<TypeParam>::create(this->exec);
+    mtx_copy->copy_from(std::move(this->mtx));
+    this->assert_equal_to_original_mtx(mtx_copy.get());
 }
 
 
-TEST_F(Dense, CanBeCloned)
+TYPED_TEST(Dense, CanBeCloned)
 {
-    auto mtx_clone = mtx->clone();
-    assert_equal_to_original_mtx(
-        dynamic_cast<decltype(mtx.get())>(mtx_clone.get()));
+    auto mtx_clone = this->mtx->clone();
+    this->assert_equal_to_original_mtx(
+        dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
 }
 
 
-TEST_F(Dense, CanBeCleared)
+TYPED_TEST(Dense, CanBeCleared)
 {
-    mtx->clear();
-    assert_empty(mtx.get());
+    this->mtx->clear();
+    this->assert_empty(this->mtx.get());
 }
 
 
-TEST_F(Dense, CanBeReadFromMatrixData)
+TYPED_TEST(Dense, CanBeReadFromMatrixData)
 {
-    auto m = gko::matrix::Dense<>::create(exec);
-    m->read(gko::matrix_data<>{{2, 3},
-                               {{0, 0, 1.0},
-                                {0, 1, 3.0},
-                                {0, 2, 2.0},
-                                {1, 0, 0.0},
-                                {1, 1, 5.0},
-                                {1, 2, 0.0}}});
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::matrix::Dense<TypeParam>::create(this->exec);
+    m->read(gko::matrix_data<TypeParam>{{2, 3},
+                                        {{0, 0, 1.0},
+                                         {0, 1, 3.0},
+                                         {0, 2, 2.0},
+                                         {1, 0, 0.0},
+                                         {1, 1, 5.0},
+                                         {1, 2, 0.0}}});
 
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(m->get_num_stored_elements(), 6);
-    EXPECT_EQ(m->at(0, 0), 1.0);
-    EXPECT_EQ(m->at(1, 0), 0.0);
-    EXPECT_EQ(m->at(0, 1), 3.0);
-    EXPECT_EQ(m->at(1, 1), 5.0);
-    EXPECT_EQ(m->at(0, 2), 2.0);
-    ASSERT_EQ(m->at(1, 2), 0.0);
+    EXPECT_EQ(m->at(0, 0), value_type{1.0});
+    EXPECT_EQ(m->at(1, 0), value_type{0.0});
+    EXPECT_EQ(m->at(0, 1), value_type{3.0});
+    EXPECT_EQ(m->at(1, 1), value_type{5.0});
+    EXPECT_EQ(m->at(0, 2), value_type{2.0});
+    ASSERT_EQ(m->at(1, 2), value_type{0.0});
 }
 
 
-TEST_F(Dense, GeneratesCorrectMatrixData)
+TYPED_TEST(Dense, GeneratesCorrectMatrixData)
 {
-    using tpl = gko::matrix_data<>::nonzero_type;
-    gko::matrix_data<> data;
+    using value_type = typename TestFixture::value_type;
+    using tpl = typename gko::matrix_data<TypeParam>::nonzero_type;
+    gko::matrix_data<TypeParam> data;
 
-    mtx->write(data);
+    this->mtx->write(data);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     ASSERT_EQ(data.nonzeros.size(), 6);
-    EXPECT_EQ(data.nonzeros[0], tpl(0, 0, 1.0));
-    EXPECT_EQ(data.nonzeros[1], tpl(0, 1, 2.0));
-    EXPECT_EQ(data.nonzeros[2], tpl(0, 2, 3.0));
-    EXPECT_EQ(data.nonzeros[3], tpl(1, 0, 1.5));
-    EXPECT_EQ(data.nonzeros[4], tpl(1, 1, 2.5));
-    EXPECT_EQ(data.nonzeros[5], tpl(1, 2, 3.5));
+    EXPECT_EQ(data.nonzeros[0], tpl(0, 0, value_type{1.0}));
+    EXPECT_EQ(data.nonzeros[1], tpl(0, 1, value_type{2.0}));
+    EXPECT_EQ(data.nonzeros[2], tpl(0, 2, value_type{3.0}));
+    EXPECT_EQ(data.nonzeros[3], tpl(1, 0, value_type{1.5}));
+    EXPECT_EQ(data.nonzeros[4], tpl(1, 1, value_type{2.5}));
+    EXPECT_EQ(data.nonzeros[5], tpl(1, 2, value_type{3.5}));
 }
 
 
-TEST_F(Dense, CanCreateSubmatrix)
+TYPED_TEST(Dense, CanCreateSubmatrix)
 {
-    auto submtx = mtx->create_submatrix(gko::span{0, 1}, gko::span{1, 2});
+    using value_type = typename TestFixture::value_type;
+    auto submtx = this->mtx->create_submatrix(gko::span{0, 1}, gko::span{1, 2});
 
-    EXPECT_EQ(submtx->at(0, 0), 2.0);
-    EXPECT_EQ(submtx->at(0, 1), 3.0);
-    EXPECT_EQ(submtx->at(1, 0), 2.5);
-    EXPECT_EQ(submtx->at(1, 1), 3.5);
+    EXPECT_EQ(submtx->at(0, 0), value_type{2.0});
+    EXPECT_EQ(submtx->at(0, 1), value_type{3.0});
+    EXPECT_EQ(submtx->at(1, 0), value_type{2.5});
+    EXPECT_EQ(submtx->at(1, 1), value_type{3.5});
 }
 
 
-TEST_F(Dense, CanCreateSubmatrixWithStride)
+TYPED_TEST(Dense, CanCreateSubmatrixWithStride)
 {
-    auto submtx = mtx->create_submatrix(gko::span{0, 1}, gko::span{1, 2}, 3);
+    using value_type = typename TestFixture::value_type;
+    auto submtx =
+        this->mtx->create_submatrix(gko::span{0, 1}, gko::span{1, 2}, 3);
 
-    EXPECT_EQ(submtx->at(0, 0), 2.0);
-    EXPECT_EQ(submtx->at(0, 1), 3.0);
-    EXPECT_EQ(submtx->at(1, 0), 1.5);
-    EXPECT_EQ(submtx->at(1, 1), 2.5);
+    EXPECT_EQ(submtx->at(0, 0), value_type{2.0});
+    EXPECT_EQ(submtx->at(0, 1), value_type{3.0});
+    EXPECT_EQ(submtx->at(1, 0), value_type{1.5});
+    EXPECT_EQ(submtx->at(1, 1), value_type{2.5});
 }
 
 
