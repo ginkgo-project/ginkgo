@@ -33,12 +33,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ilu_kernels.hpp"
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
 #include "core/components/prefix_sum.hpp"
+#include "core/matrix/csr_builder.hpp"
 
 
 namespace gko {
@@ -53,17 +55,18 @@ namespace par_ilu_factorization {
 
 
 template <typename ValueType, typename IndexType>
-void find_missing_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
-                                    size_type m, size_type n,
-                                    const ValueType *values,
-                                    const IndexType *col_idxs,
-                                    const IndexType *row_ptrs,
-                                    ValueType *elements_to_add_per_row,
-                                    bool *changes_required)
+void find_missing_diagonal_elements(
+    const matrix::Csr<ValueType, IndexType> *mtx,
+    IndexType *elements_to_add_per_row, bool *changes_required)
 {
+    auto size = mtx->get_size();
+    auto values = mtx->get_const_values();
+    auto col_idxs = mtx->get_const_col_idxs();
+    auto row_ptrs = mtx->get_const_row_ptrs();
     *changes_required = false;
+    size_type row_limit{(size[0] < size[1]) ? size[0] : size[1]};
 #pragma omp parallel for
-    for (IndexType row = 0; row < m && row < n; ++row) {
+    for (IndexType row = 0; row < row_limit; ++row) {
         bool was_diagonal_found{false};
         for (IndexType idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
             const auto col = col_idxs[idx];
@@ -82,17 +85,23 @@ void find_missing_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void add_missing_diagonal_elements(
-    std::shared_ptr<const DefaultExecutor> exec, size_type m, size_type n,
-    const ValueType *old_values, const IndexType *old_col_idxs,
-    const IndexType *old_row_ptrs, ValueType *new_values,
-    IndexType *new_col_idxs, const IndexType *new_row_ptrs)
+void add_missing_diagonal_elements(matrix::Csr<ValueType, IndexType> *mtx,
+                                   ValueType *new_values,
+                                   IndexType *new_col_idxs,
+                                   const IndexType *row_ptrs_add)
 {
-    for (IndexType row = 0; row < m; ++row) {
-        const IndexType new_row_start{new_row_ptrs[row]};
-        const IndexType new_row_end{new_row_ptrs[row + 1]};
-        const IndexType old_row_start{old_row_ptrs[row]};
-        const IndexType old_row_end{old_row_ptrs[row + 1]};
+    const auto num_rows = mtx->get_size()[0];
+    const auto old_values = mtx->get_const_values();
+    const auto old_col_idxs = mtx->get_const_col_idxs();
+    auto row_ptrs = mtx->get_row_ptrs();
+#pragma omp parallel for
+    for (IndexType row = 0; row < num_rows; ++row) {
+        const IndexType old_row_start{row_ptrs[row]};
+        const IndexType old_row_end{row_ptrs[row + 1]};
+        const IndexType new_row_start{row_ptrs_add[row] + old_row_start};
+        const IndexType new_row_end{row_ptrs_add[row + 1] + old_row_end};
+
+        row_ptrs[row] = new_row_start;
         // if no element needs to be added, do a simple copy
         if (new_row_end - new_row_start == old_row_end - old_row_start) {
             for (IndexType i = 0; i < new_row_end - new_row_start; ++i) {
@@ -129,7 +138,31 @@ void add_missing_diagonal_elements(
 template <typename ValueType, typename IndexType>
 void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
                            matrix::Csr<ValueType, IndexType> *mtx)
-    GKO_NOT_IMPLEMENTED;
+{
+    auto mtx_size = mtx->get_size();
+    size_type row_ptrs_size = mtx_size[0] + 1;
+    Array<IndexType> row_ptrs_addition(exec, row_ptrs_size);
+    bool needs_change{};
+    find_missing_diagonal_elements(mtx, row_ptrs_addition.get_data(),
+                                   &needs_change);
+    if (!needs_change) {
+        return;
+    }
+
+    row_ptrs_addition.get_data()[row_ptrs_size - 1] = 0;
+    prefix_sum(exec, row_ptrs_addition.get_data(), row_ptrs_size);
+
+    auto new_num_elems = row_ptrs_addition.get_data()[mtx_size[0]];
+    Array<ValueType> new_values(exec, new_num_elems);
+    Array<IndexType> new_col_idxs(exec, new_num_elems);
+    add_missing_diagonal_elements(mtx, new_values.get_data(),
+                                  new_col_idxs.get_data(),
+                                  row_ptrs_addition.get_const_data());
+
+    matrix::CsrBuilder<ValueType, IndexType> mtx_builder{mtx};
+    mtx_builder.get_value_array() = std::move(new_values);
+    mtx_builder.get_col_idx_array() = std::move(new_col_idxs);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILU_ADD_DIAGONAL_ELEMENTS_KERNEL);
