@@ -64,6 +64,15 @@ constexpr int default_block_size{512};
 
 
 template <typename ValueType, typename IndexType>
+void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
+                           matrix::Csr<ValueType, IndexType> *mtx)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PAR_ILU_ADD_DIAGONAL_ELEMENTS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l_u(
     std::shared_ptr<const HipExecutor> exec,
     const matrix::Csr<ValueType, IndexType> *system_matrix,

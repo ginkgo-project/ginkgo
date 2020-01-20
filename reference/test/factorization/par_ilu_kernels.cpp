@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <initializer_list>
 #include <memory>
 #include <vector>
 
@@ -184,6 +185,88 @@ protected:
     std::unique_ptr<par_ilu_type::Factory> ilu_factory_skip;
     std::unique_ptr<par_ilu_type::Factory> ilu_factory_sort;
 };
+
+
+TEST_F(ParIlu, KernelAddDiagonalElementsEmpty)
+{
+    auto expected_mtx =
+        Csr::create(ref, empty_csr->get_size(),
+                    std::initializer_list<value_type>{0., 0., 0.},
+                    std::initializer_list<index_type>{0, 1, 2},
+                    std::initializer_list<index_type>{0, 1, 2, 3});
+    auto empty_mtx = empty_csr->clone();
+
+    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        ref, empty_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(empty_mtx, expected_mtx, 0.);
+    GKO_ASSERT_MTX_EQ_SPARSITY(empty_mtx, expected_mtx);
+}
+
+
+TEST_F(ParIlu, KernelAddDiagonalElementsAsymetric)
+{
+    auto matrix = gko::initialize<Csr>(
+        {{0., 0., 0.}, {1., 0., 0.}, {1., 1., 1.}, {1., 1., 1.}}, ref);
+    auto exp_values = {0., 1., 0., 1., 1., 1., 1., 1., 1.};
+    auto exp_col_idxs = {0, 0, 1, 0, 1, 2, 0, 1, 2};
+    auto exp_row_ptrs = {0, 1, 3, 6, 9};
+    auto expected_mtx =
+        Csr::create(ref, matrix->get_size(), std::move(exp_values),
+                    std::move(exp_col_idxs), std::move(exp_row_ptrs));
+
+    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        ref, matrix.get());
+
+    GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
+    GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
+}
+
+
+TEST_F(ParIlu, KernelAddDiagonalElementsAsymetric2)
+{
+    auto matrix = gko::initialize<Csr>({{1., 0., 0.}, {1., 0., 0.}}, ref);
+    auto exp_values = {1., 1., 0.};
+    auto exp_col_idxs = {0, 0, 1};
+    auto exp_row_ptrs = {0, 1, 3};
+    auto expected_mtx =
+        Csr::create(ref, matrix->get_size(), std::move(exp_values),
+                    std::move(exp_col_idxs), std::move(exp_row_ptrs));
+
+    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        ref, matrix.get());
+
+    GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
+    GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
+}
+
+
+TEST_F(ParIlu, KernelAddDiagonalElementsUnsorted)
+{
+    auto size = gko::dim<2>{3, 3};
+    /* matrix:
+    1 2 3
+    1 0 3
+    1 2 0
+    */
+    auto mtx_values = {3., 2., 1., 3., 1., 2., 1.};
+    auto mtx_col_idxs = {2, 1, 0, 2, 0, 1, 0};
+    auto mtx_row_ptrs = {0, 3, 5, 7};
+    auto matrix = Csr::create(ref, size, std::move(mtx_values),
+                              std::move(mtx_col_idxs), std::move(mtx_row_ptrs));
+    auto exp_values = {1., 2., 3., 1., 0., 3., 1., 2., 0.};
+    auto exp_col_idxs = {0, 1, 2, 0, 1, 2, 0, 1, 2};
+    auto exp_row_ptrs = {0, 3, 6, 9};
+    auto expected_mtx =
+        Csr::create(ref, size, std::move(exp_values), std::move(exp_col_idxs),
+                    std::move(exp_row_ptrs));
+
+    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        ref, matrix.get());
+
+    GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
+    GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
+}
 
 
 TEST_F(ParIlu, KernelInitializeRowPtrsLU)
