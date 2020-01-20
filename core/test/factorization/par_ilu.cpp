@@ -39,13 +39,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include <core/test/utils.hpp>
+
+
 namespace {
 
 
+template <typename ValueIndexType>
 class ParIlu : public ::testing::Test {
 public:
-    using value_type = gko::default_precision;
-    using index_type = gko::int32;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using ilu_factory_type = gko::factorization::ParIlu<value_type, index_type>;
 
 protected:
@@ -55,28 +61,35 @@ protected:
 };
 
 
-TEST_F(ParIlu, SetIterations)
+TYPED_TEST_CASE(ParIlu, gko::test::ValueIndexTypes);
+
+
+TYPED_TEST(ParIlu, SetIterations)
 {
-    auto factory = ilu_factory_type::build().with_iterations(5u).on(ref);
+    auto factory =
+        TestFixture::ilu_factory_type::build().with_iterations(5u).on(
+            this->ref);
 
     ASSERT_EQ(factory->get_parameters().iterations, 5u);
 }
 
 
-TEST_F(ParIlu, SetSkip)
+TYPED_TEST(ParIlu, SetSkip)
 {
-    auto factory = ilu_factory_type::build().with_skip_sorting(true).on(ref);
+    auto factory =
+        TestFixture::ilu_factory_type::build().with_skip_sorting(true).on(
+            this->ref);
 
     ASSERT_EQ(factory->get_parameters().skip_sorting, true);
 }
 
 
-TEST_F(ParIlu, SetEverything)
+TYPED_TEST(ParIlu, SetEverything)
 {
-    auto factory = ilu_factory_type::build()
+    auto factory = TestFixture::ilu_factory_type::build()
                        .with_skip_sorting(false)
                        .with_iterations(7u)
-                       .on(ref);
+                       .on(this->ref);
 
     ASSERT_EQ(factory->get_parameters().skip_sorting, false);
     ASSERT_EQ(factory->get_parameters().iterations, 7u);

@@ -43,10 +43,6 @@ namespace log {
 
 
 template <typename ValueType>
-size_type Papi<ValueType>::logger_count = 0;
-
-
-template <typename ValueType>
 void Papi<ValueType>::on_allocation_started(const Executor *exec,
                                             const size_type &num_bytes) const
 {
