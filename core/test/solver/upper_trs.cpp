@@ -42,15 +42,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include "core/test/utils/assertions.hpp"
+#include <core/test/utils.hpp>
 
 
 namespace {
 
 
+template <typename ValueIndexType>
 class UpperTrs : public ::testing::Test {
 protected:
-    using Solver = gko::solver::UpperTrs<>;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Solver = gko::solver::UpperTrs<value_type, index_type>;
 
     UpperTrs()
         : exec(gko::ReferenceExecutor::create()),
@@ -58,13 +63,16 @@ protected:
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<Solver::Factory> upper_trs_factory;
+    std::unique_ptr<typename Solver::Factory> upper_trs_factory;
 };
 
 
-TEST_F(UpperTrs, UpperTrsFactoryKnowsItsExecutor)
+TYPED_TEST_CASE(UpperTrs, gko::test::ValueIndexTypes);
+
+
+TYPED_TEST(UpperTrs, UpperTrsFactoryKnowsItsExecutor)
 {
-    ASSERT_EQ(upper_trs_factory->get_executor(), exec);
+    ASSERT_EQ(this->upper_trs_factory->get_executor(), this->exec);
 }
 
 

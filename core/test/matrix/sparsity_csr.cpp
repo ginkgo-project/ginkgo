@@ -43,19 +43,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/dim.hpp>
 
 
+#include <core/test/utils.hpp>
+
+
 namespace {
 
 
+template <typename ValueIndexType>
 class SparsityCsr : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::SparsityCsr<>;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Mtx = gko::matrix::SparsityCsr<value_type, index_type>;
 
     SparsityCsr()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::SparsityCsr<>::create(exec, gko::dim<2>{2, 3}, 4))
+          mtx(gko::matrix::SparsityCsr<value_type, index_type>::create(
+              exec, gko::dim<2>{2, 3}, 4))
     {
-        Mtx::index_type *c = mtx->get_col_idxs();
-        Mtx::index_type *r = mtx->get_row_ptrs();
+        index_type *c = mtx->get_col_idxs();
+        index_type *r = mtx->get_row_ptrs();
         r[0] = 0;
         r[1] = 3;
         r[2] = 4;
@@ -82,7 +91,7 @@ protected:
         EXPECT_EQ(c[1], 1);
         EXPECT_EQ(c[2], 2);
         EXPECT_EQ(c[3], 1);
-        EXPECT_EQ(v[0], 1.0);
+        EXPECT_EQ(v[0], value_type{1.0});
     }
 
     void assert_empty(Mtx *m)
@@ -99,97 +108,109 @@ protected:
 };
 
 
-TEST_F(SparsityCsr, KnowsItsSize)
+TYPED_TEST_CASE(SparsityCsr, gko::test::ValueIndexTypes);
+
+
+TYPED_TEST(SparsityCsr, KnowsItsSize)
 {
-    ASSERT_EQ(mtx->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(mtx->get_num_nonzeros(), 4);
+    ASSERT_EQ(this->mtx->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(this->mtx->get_num_nonzeros(), 4);
 }
 
 
-TEST_F(SparsityCsr, ContainsCorrectData)
+TYPED_TEST(SparsityCsr, ContainsCorrectData)
 {
-    assert_equal_to_original_mtx(mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx.get());
 }
 
 
-TEST_F(SparsityCsr, CanBeEmpty)
+TYPED_TEST(SparsityCsr, CanBeEmpty)
 {
-    auto mtx = Mtx::create(exec);
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = Mtx::create(this->exec);
 
-    assert_empty(mtx.get());
+    this->assert_empty(mtx.get());
 }
 
 
-TEST_F(SparsityCsr, SetsCorrectDefaultValue)
+TYPED_TEST(SparsityCsr, SetsCorrectDefaultValue)
 {
-    auto mtx = gko::matrix::SparsityCsr<>::create(
-        exec, gko::dim<2>{3, 2}, static_cast<gko::size_type>(0));
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto mtx = gko::matrix::SparsityCsr<value_type, index_type>::create(
+        this->exec, gko::dim<2>{3, 2}, static_cast<gko::size_type>(0));
 
-    ASSERT_EQ(mtx->get_const_value()[0], 1.0);
-    ASSERT_EQ(mtx->get_value()[0], 1.0);
+    ASSERT_EQ(mtx->get_const_value()[0], value_type{1.0});
+    ASSERT_EQ(mtx->get_value()[0], value_type{1.0});
 }
 
 
-TEST_F(SparsityCsr, CanBeCreatedFromExistingData)
+TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingData)
 {
-    gko::int32 col_idxs[] = {0, 1, 1, 0};
-    gko::int32 row_ptrs[] = {0, 2, 3, 4};
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    index_type col_idxs[] = {0, 1, 1, 0};
+    index_type row_ptrs[] = {0, 2, 3, 4};
 
-    auto mtx = gko::matrix::SparsityCsr<>::create(
-        exec, gko::dim<2>{3, 2},
-        gko::Array<gko::int32>::view(exec, 4, col_idxs),
-        gko::Array<gko::int32>::view(exec, 4, row_ptrs), 2.0);
+    auto mtx = gko::matrix::SparsityCsr<value_type, index_type>::create(
+        this->exec, gko::dim<2>{3, 2},
+        gko::Array<index_type>::view(this->exec, 4, col_idxs),
+        gko::Array<index_type>::view(this->exec, 4, row_ptrs), 2.0);
 
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
     ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
-    ASSERT_EQ(mtx->get_const_value()[0], 2.0);
+    ASSERT_EQ(mtx->get_const_value()[0], value_type{2.0});
     ASSERT_EQ(mtx->get_col_idxs(), col_idxs);
     ASSERT_EQ(mtx->get_row_ptrs(), row_ptrs);
-    ASSERT_EQ(mtx->get_value()[0], 2.0);
+    ASSERT_EQ(mtx->get_value()[0], value_type{2.0});
 }
 
 
-TEST_F(SparsityCsr, CanBeCopied)
+TYPED_TEST(SparsityCsr, CanBeCopied)
 {
-    auto copy = Mtx::create(exec);
+    using Mtx = typename TestFixture::Mtx;
+    auto copy = Mtx::create(this->exec);
 
-    copy->copy_from(mtx.get());
+    copy->copy_from(this->mtx.get());
 
-    assert_equal_to_original_mtx(mtx.get());
-    assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(copy.get());
 }
 
 
-TEST_F(SparsityCsr, CanBeMoved)
+TYPED_TEST(SparsityCsr, CanBeMoved)
 {
-    auto copy = Mtx::create(exec);
+    using Mtx = typename TestFixture::Mtx;
+    auto copy = Mtx::create(this->exec);
 
-    copy->copy_from(std::move(mtx));
+    copy->copy_from(std::move(this->mtx));
 
-    assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(copy.get());
 }
 
 
-TEST_F(SparsityCsr, CanBeCloned)
+TYPED_TEST(SparsityCsr, CanBeCloned)
 {
-    auto clone = mtx->clone();
+    using Mtx = typename TestFixture::Mtx;
+    auto clone = this->mtx->clone();
 
-    assert_equal_to_original_mtx(mtx.get());
-    assert_equal_to_original_mtx(dynamic_cast<Mtx *>(clone.get()));
+    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(dynamic_cast<Mtx *>(clone.get()));
 }
 
 
-TEST_F(SparsityCsr, CanBeCleared)
+TYPED_TEST(SparsityCsr, CanBeCleared)
 {
-    mtx->clear();
+    this->mtx->clear();
 
-    assert_empty(mtx.get());
+    this->assert_empty(this->mtx.get());
 }
 
 
-TEST_F(SparsityCsr, CanBeReadFromMatrixData)
+TYPED_TEST(SparsityCsr, CanBeReadFromMatrixData)
 {
-    auto m = Mtx::create(exec);
+    using Mtx = typename TestFixture::Mtx;
+    auto m = Mtx::create(this->exec);
 
     m->read({{2, 3},
              {{0, 0, 1.0},
@@ -199,23 +220,25 @@ TEST_F(SparsityCsr, CanBeReadFromMatrixData)
               {1, 1, 5.0},
               {1, 2, 0.0}}});
 
-    assert_equal_to_original_mtx(m.get());
+    this->assert_equal_to_original_mtx(m.get());
 }
 
 
-TEST_F(SparsityCsr, GeneratesCorrectMatrixData)
+TYPED_TEST(SparsityCsr, GeneratesCorrectMatrixData)
 {
-    using tpl = gko::matrix_data<>::nonzero_type;
-    gko::matrix_data<> data;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
+    gko::matrix_data<value_type, index_type> data;
 
-    mtx->write(data);
+    this->mtx->write(data);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     ASSERT_EQ(data.nonzeros.size(), 4);
-    EXPECT_EQ(data.nonzeros[0], tpl(0, 0, 1.0));
-    EXPECT_EQ(data.nonzeros[1], tpl(0, 1, 1.0));
-    EXPECT_EQ(data.nonzeros[2], tpl(0, 2, 1.0));
-    EXPECT_EQ(data.nonzeros[3], tpl(1, 1, 1.0));
+    EXPECT_EQ(data.nonzeros[0], tpl(0, 0, value_type{1.0}));
+    EXPECT_EQ(data.nonzeros[1], tpl(0, 1, value_type{1.0}));
+    EXPECT_EQ(data.nonzeros[2], tpl(0, 2, value_type{1.0}));
+    EXPECT_EQ(data.nonzeros[3], tpl(1, 1, value_type{1.0}));
 }
 
 
