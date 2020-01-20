@@ -1729,36 +1729,32 @@ TYPED_TEST(Dense, NonSquareMatrixIsInverseColPermutable64)
 }
 
 
-template <typename ValueIndexType>
+template <typename T>
 class DenseComplex : public ::testing::Test {
 protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
-    using index_type =
-        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using value_type = T;
     using Mtx = gko::matrix::Dense<value_type>;
 };
 
 
-TYPED_TEST_CASE(DenseComplex, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_CASE(DenseComplex, gko::test::ComplexValueTypes);
 
 
 TYPED_TEST(DenseComplex, NonSquareMatrixIsConjugateTransposable)
 {
     using Dense = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    std::complex<double> i{0, 1};
     auto exec = gko::ReferenceExecutor::create();
-    auto mtx = gko::initialize<Dense>(
-        {I<T>{1.0 + 2.0 * i, -1.0 + 2.1 * i},
-         I<T>{-2.0 + 1.5 * i, 4.5 + 0.0 * i}, I<T>{1.0 + 0.0 * i, i}},
-        exec);
+    auto mtx = gko::initialize<Dense>({{T{1.0, 2.0}, T{-1.0, 2.1}},
+                                       {T{-2.0, 1.5}, T{4.5, 0.0}},
+                                       {T{1.0, 0.0}, T{0.0, 1.0}}},
+                                      exec);
     auto trans = mtx->conj_transpose();
     auto trans_as_dense = static_cast<Dense *>(trans.get());
 
     GKO_ASSERT_MTX_NEAR(trans_as_dense,
-                        l({I<T>{1.0 - 2.0 * i, -2.0 - 1.5 * i, 1.0 + 0.0 * i},
-                           I<T>{-1.0 - 2.1 * i, 4.5 + 0.0 * i, -i}}),
+                        l({{T{1.0, -2.0}, T{-2.0, -1.5}, T{1.0, 0.0}},
+                           {T{-1.0, -2.1}, T{4.5, 0.0}, T{0.0, -1.0}}}),
                         0.0);
 }
 

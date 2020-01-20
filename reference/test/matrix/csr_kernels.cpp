@@ -1086,14 +1086,14 @@ TYPED_TEST(CsrComplex, MtxIsConjugateTransposable)
 {
     using Csr = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
+    using value_type = typename TestFixture::value_type;
 
     auto exec = gko::ReferenceExecutor::create();
-    std::complex<double> i{0, 1};
     // clang-format off
         auto mtx2 = gko::initialize<Csr>(
-            {I<T>{1.0 + 2.0 * i, 3.0 + 0.0 * i, 2.0 + 0.0 * i},
-             I<T>{0.0 + 0.0 * i, 5.0 - 3.5 * i, 0.0 + 0.0 * i},
-             I<T>{0.0 + 0.0 * i, 0.0 + 1.5 * i, 2.0 + 0.0 * i}}, exec);
+            {{T{1.0, 2.0}, T{3.0, 0.0}, T{2.0, 0.0}},
+             {T{0.0, 0.0}, T{5.0, - 3.5}, T{0.0,0.0}},
+             {T{0.0, 0.0}, T{0.0, 1.5}, T{2.0,0.0}}}, exec);
     // clang-format on
 
     auto trans = mtx2->conj_transpose();
@@ -1101,9 +1101,9 @@ TYPED_TEST(CsrComplex, MtxIsConjugateTransposable)
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(trans_as_csr,
-                        l({I<T>{1.0 - 2.0 * i, 0.0 + 0.0 * i, 0.0 + 0.0 * i},
-                           I<T>{3.0 + 0.0 * i, 5.0 + 3.5 * i, 0.0 - 1.5 * i},
-                           I<T>{2.0 + 0.0 * i, 0.0 + 0.0 * i, 2.0 + 0.0 * i}}), 0.0);
+                        l({{T{1.0, - 2.0}, T{0.0, 0.0}, T{0.0, 0.0}},
+                           {T{3.0, 0.0}, T{5.0, 3.5}, T{0.0, - 1.5}},
+                           {T{2.0, 0.0}, T{0.0, 0.0}, T{2.0 + 0.0}}}), 0.0);
     // clang-format on
 }
 

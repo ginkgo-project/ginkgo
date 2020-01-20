@@ -47,13 +47,14 @@ namespace {
 
 template <typename ValueIndexType>
 class CsrBuilder : public ::testing::Test {
-protected:
+public:
     using value_type =
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
 
+protected:
     CsrBuilder()
         : exec(gko::ReferenceExecutor::create()),
           mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4))
