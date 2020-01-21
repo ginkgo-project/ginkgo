@@ -42,36 +42,47 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/test/utils/assertions.hpp"
+#include <core/test/utils.hpp>
 
 
 namespace {
 
 
+template <typename ValueIndexType>
 class Permutation : public ::testing::Test {
 protected:
-    using i_type = int;
-    using v_type = double;
+    using v_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using i_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Vec = gko::matrix::Dense<v_type>;
     using Csr = gko::matrix::Csr<v_type, i_type>;
+
     Permutation() : exec(gko::ReferenceExecutor::create()) {}
 
     std::shared_ptr<const gko::Executor> exec;
 };
 
 
-TEST_F(Permutation, AppliesRowPermutationToDense)
+TYPED_TEST_CASE(Permutation, gko::test::ValueIndexTypes);
+
+
+TYPED_TEST(Permutation, AppliesRowPermutationToDense)
 {
+    using i_type = typename TestFixture::i_type;
+    using T = typename TestFixture::v_type;
+    using Vec = typename TestFixture::Vec;
     // clang-format off
     auto x = gko::initialize<Vec>(
-                                  {{2.0, 3.0},
-                                   {4.0, 2.5}}, exec);
+        {I<T>{2.0, 3.0},
+         I<T>{4.0, 2.5}}, this->exec);
     // clang-format on
-    auto y = Vec::create(exec, gko::dim<2>{2});
+    auto y = Vec::create(this->exec, gko::dim<2>{2});
     i_type rdata[] = {1, 0};
 
     auto perm = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{2}, gko::Array<i_type>::view(exec, 2, rdata));
+        this->exec, gko::dim<2>{2},
+        gko::Array<i_type>::view(this->exec, 2, rdata));
 
     perm->apply(x.get(), y.get());
     // clang-format off
@@ -83,18 +94,22 @@ TEST_F(Permutation, AppliesRowPermutationToDense)
 }
 
 
-TEST_F(Permutation, AppliesColPermutationToDense)
+TYPED_TEST(Permutation, AppliesColPermutationToDense)
 {
+    using i_type = typename TestFixture::i_type;
+    using T = typename TestFixture::v_type;
+    using Vec = typename TestFixture::Vec;
     // clang-format off
     auto x = gko::initialize<Vec>(
-                                  {{2.0, 3.0},
-                                   {4.0, 2.5}}, exec);
+        {I<T>{2.0, 3.0},
+         I<T>{4.0, 2.5}}, this->exec);
     // clang-format on
-    auto y = Vec::create(exec, gko::dim<2>{2});
+    auto y = Vec::create(this->exec, gko::dim<2>{2});
     i_type rdata[] = {1, 0};
 
     auto perm = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{2}, gko::Array<i_type>::view(exec, 2, rdata),
+        this->exec, gko::dim<2>{2},
+        gko::Array<i_type>::view(this->exec, 2, rdata),
         gko::matrix::column_permute);
 
     perm->apply(x.get(), y.get());
@@ -107,22 +122,27 @@ TEST_F(Permutation, AppliesColPermutationToDense)
 }
 
 
-TEST_F(Permutation, AppliesRowAndColPermutationToDense)
+TYPED_TEST(Permutation, AppliesRowAndColPermutationToDense)
 {
+    using i_type = typename TestFixture::i_type;
+    using T = typename TestFixture::v_type;
+    using Vec = typename TestFixture::Vec;
     // clang-format off
     auto x = gko::initialize<Vec>(
-                                  {{2.0, 3.0},
-                                   {4.0, 2.5}}, exec);
+        {I<T>{2.0, 3.0},
+         I<T>{4.0, 2.5}}, this->exec);
     // clang-format on
-    auto y1 = Vec::create(exec, gko::dim<2>{2});
-    auto y2 = Vec::create(exec, gko::dim<2>{2});
+    auto y1 = Vec::create(this->exec, gko::dim<2>{2});
+    auto y2 = Vec::create(this->exec, gko::dim<2>{2});
     i_type cdata[] = {1, 0};
     i_type rdata[] = {1, 0};
 
     auto rperm = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{2}, gko::Array<i_type>::view(exec, 2, rdata));
+        this->exec, gko::dim<2>{2},
+        gko::Array<i_type>::view(this->exec, 2, rdata));
     auto cperm = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{2}, gko::Array<i_type>::view(exec, 2, cdata),
+        this->exec, gko::dim<2>{2},
+        gko::Array<i_type>::view(this->exec, 2, cdata),
         gko::matrix::column_permute);
 
     rperm->apply(x.get(), y1.get());
@@ -136,18 +156,22 @@ TEST_F(Permutation, AppliesRowAndColPermutationToDense)
 }
 
 
-TEST_F(Permutation, AppliesRowAndColPermutationToDenseWithOneArray)
+TYPED_TEST(Permutation, AppliesRowAndColPermutationToDenseWithOneArray)
 {
+    using i_type = typename TestFixture::i_type;
+    using T = typename TestFixture::v_type;
+    using Vec = typename TestFixture::Vec;
     // clang-format off
     auto x = gko::initialize<Vec>(
-                                  {{2.0, 3.0},
-                                   {4.0, 2.5}}, exec);
+        {I<T>{2.0, 3.0},
+         I<T>{4.0, 2.5}}, this->exec);
     // clang-format on
-    auto y1 = Vec::create(exec, gko::dim<2>{2});
+    auto y1 = Vec::create(this->exec, gko::dim<2>{2});
     i_type data[] = {1, 0};
 
     auto perm = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{2}, gko::Array<i_type>::view(exec, 2, data),
+        this->exec, gko::dim<2>{2},
+        gko::Array<i_type>::view(this->exec, 2, data),
         gko::matrix::row_permute | gko::matrix::column_permute);
 
     perm->apply(x.get(), y1.get());
@@ -160,24 +184,28 @@ TEST_F(Permutation, AppliesRowAndColPermutationToDenseWithOneArray)
 }
 
 
-TEST_F(Permutation, AppliesInverseRowAndColPermutationToDense)
+TYPED_TEST(Permutation, AppliesInverseRowAndColPermutationToDense)
 {
+    using i_type = typename TestFixture::i_type;
+    using Vec = typename TestFixture::Vec;
     // clang-format off
   auto x = gko::initialize<Vec>({{2.0, 3.0, 0.0},
                                 {0.0, 1.0, 0.0},
                                 {0.0, 4.0, 2.5}},
-                               exec);
+                               this->exec);
     // clang-format on
-    auto y1 = Vec::create(exec, gko::dim<2>{3});
-    auto y2 = Vec::create(exec, gko::dim<2>{3});
+    auto y1 = Vec::create(this->exec, gko::dim<2>{3});
+    auto y2 = Vec::create(this->exec, gko::dim<2>{3});
     i_type cdata[] = {1, 2, 0};
     i_type rdata[] = {1, 2, 0};
 
     auto rperm = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{3}, gko::Array<i_type>::view(exec, 3, rdata),
+        this->exec, gko::dim<2>{3},
+        gko::Array<i_type>::view(this->exec, 3, rdata),
         gko::matrix::row_permute | gko::matrix::inverse_permute);
     auto cperm = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{3}, gko::Array<i_type>::view(exec, 3, cdata),
+        this->exec, gko::dim<2>{3},
+        gko::Array<i_type>::view(this->exec, 3, cdata),
         gko::matrix::inverse_permute | gko::matrix::column_permute);
 
     rperm->apply(x.get(), y1.get());
@@ -192,19 +220,22 @@ TEST_F(Permutation, AppliesInverseRowAndColPermutationToDense)
 }
 
 
-TEST_F(Permutation, AppliesInverseRowAndColPermutationToDenseWithOneArray)
+TYPED_TEST(Permutation, AppliesInverseRowAndColPermutationToDenseWithOneArray)
 {
+    using i_type = typename TestFixture::i_type;
+    using Vec = typename TestFixture::Vec;
     // clang-format off
     auto x = gko::initialize<Vec>({{2.0, 3.0, 0.0},
                                    {0.0, 1.0, 0.0},
                                    {0.0, 4.0, 2.5}},
-                                 exec);
+                                 this->exec);
     // clang-format on
-    auto y1 = Vec::create(exec, gko::dim<2>{3});
+    auto y1 = Vec::create(this->exec, gko::dim<2>{3});
     i_type data[] = {1, 2, 0};
 
     auto perm = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{3}, gko::Array<i_type>::view(exec, 3, data),
+        this->exec, gko::dim<2>{3},
+        gko::Array<i_type>::view(this->exec, 3, data),
         gko::matrix::column_permute | gko::matrix::row_permute |
             gko::matrix::inverse_permute);
 
@@ -219,19 +250,22 @@ TEST_F(Permutation, AppliesInverseRowAndColPermutationToDenseWithOneArray)
 }
 
 
-TEST_F(Permutation, AppliesInverseRowPermutationToDense)
+TYPED_TEST(Permutation, AppliesInverseRowPermutationToDense)
 {
+    using i_type = typename TestFixture::i_type;
+    using Vec = typename TestFixture::Vec;
     // clang-format off
     auto x = gko::initialize<Vec>({{2.0, 3.0, 0.0},
                                  {0.0, 1.0, 0.0},
                                  {0.0, 4.0, 2.5}},
-                                exec);
+                                this->exec);
     // clang-format on
-    auto y = Vec::create(exec, gko::dim<2>{3});
+    auto y = Vec::create(this->exec, gko::dim<2>{3});
     i_type rdata[] = {1, 2, 0};
 
     auto rperm = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{3}, gko::Array<i_type>::view(exec, 3, rdata),
+        this->exec, gko::dim<2>{3},
+        gko::Array<i_type>::view(this->exec, 3, rdata),
         gko::matrix::row_permute | gko::matrix::inverse_permute);
 
     rperm->apply(x.get(), y.get());
@@ -245,19 +279,22 @@ TEST_F(Permutation, AppliesInverseRowPermutationToDense)
 }
 
 
-TEST_F(Permutation, AppliesInverseColPermutationToDense)
+TYPED_TEST(Permutation, AppliesInverseColPermutationToDense)
 {
+    using i_type = typename TestFixture::i_type;
+    using Vec = typename TestFixture::Vec;
     // clang-format off
     auto x = gko::initialize<Vec>({{2.0, 3.0, 0.0},
                                    {0.0, 1.0, 0.0},
                                    {0.0, 4.0, 2.5}},
-                                  exec);
+                                  this->exec);
     // clang-format on
-    auto y = Vec::create(exec, gko::dim<2>{3});
+    auto y = Vec::create(this->exec, gko::dim<2>{3});
     i_type cdata[] = {1, 2, 0};
 
     auto cperm = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{3}, gko::Array<i_type>::view(exec, 3, cdata),
+        this->exec, gko::dim<2>{3},
+        gko::Array<i_type>::view(this->exec, 3, cdata),
         gko::matrix::inverse_permute | gko::matrix::column_permute);
 
     cperm->apply(x.get(), y.get());
@@ -271,20 +308,23 @@ TEST_F(Permutation, AppliesInverseColPermutationToDense)
 }
 
 
-TEST_F(Permutation, AppliesRowPermutationToCsr)
+TYPED_TEST(Permutation, AppliesRowPermutationToCsr)
 {
+    using i_type = typename TestFixture::i_type;
+    using Csr = typename TestFixture::Csr;
     // clang-format off
     auto x = gko::initialize<Csr>(
                                   {{2.0, 3.0, 0.0},
                                    {0.0, 1.0, 0.0},
                                    {0.0, 4.0, 2.5}},
-                                  exec);
+                                  this->exec);
     // clang-format on
-    auto y = Csr::create(exec, gko::dim<2>{3});
+    auto y = Csr::create(this->exec, gko::dim<2>{3});
     i_type rdata[] = {1, 2, 0};
 
     auto perm = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{3}, gko::Array<i_type>::view(exec, 3, rdata));
+        this->exec, gko::dim<2>{3},
+        gko::Array<i_type>::view(this->exec, 3, rdata));
 
     perm->apply(x.get(), y.get());
     // clang-format off
@@ -297,20 +337,23 @@ TEST_F(Permutation, AppliesRowPermutationToCsr)
 }
 
 
-TEST_F(Permutation, AppliesColPermutationToCsr)
+TYPED_TEST(Permutation, AppliesColPermutationToCsr)
 {
+    using i_type = typename TestFixture::i_type;
+    using Csr = typename TestFixture::Csr;
     // clang-format off
     auto x = gko::initialize<Csr>(
                                   {{2.0, 3.0, 0.0},
                                    {0.0, 1.0, 0.0},
                                    {0.0, 4.0, 2.5}},
-                                  exec);
+                                  this->exec);
     // clang-format on
-    auto y = Csr::create(exec, gko::dim<2>{3});
+    auto y = Csr::create(this->exec, gko::dim<2>{3});
     i_type cdata[] = {1, 2, 0};
 
     auto perm = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{3}, gko::Array<i_type>::view(exec, 3, cdata),
+        this->exec, gko::dim<2>{3},
+        gko::Array<i_type>::view(this->exec, 3, cdata),
         gko::matrix::column_permute);
 
     perm->apply(x.get(), y.get());
@@ -324,24 +367,28 @@ TEST_F(Permutation, AppliesColPermutationToCsr)
 }
 
 
-TEST_F(Permutation, AppliesRowAndColPermutationToCsr)
+TYPED_TEST(Permutation, AppliesRowAndColPermutationToCsr)
 {
+    using i_type = typename TestFixture::i_type;
+    using Csr = typename TestFixture::Csr;
     // clang-format off
     auto x = gko::initialize<Csr>(
                                   {{2.0, 3.0, 0.0},
                                    {0.0, 1.0, 0.0},
                                    {0.0, 4.0, 2.5}},
-                                  exec);
+                                  this->exec);
     // clang-format on
-    auto y1 = Csr::create(exec, gko::dim<2>{3});
-    auto y2 = Csr::create(exec, gko::dim<2>{3});
+    auto y1 = Csr::create(this->exec, gko::dim<2>{3});
+    auto y2 = Csr::create(this->exec, gko::dim<2>{3});
     i_type cdata[] = {1, 2, 0};
     i_type rdata[] = {1, 2, 0};
 
     auto rperm = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{3}, gko::Array<i_type>::view(exec, 3, rdata));
+        this->exec, gko::dim<2>{3},
+        gko::Array<i_type>::view(this->exec, 3, rdata));
     auto cperm = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{3}, gko::Array<i_type>::view(exec, 3, cdata),
+        this->exec, gko::dim<2>{3},
+        gko::Array<i_type>::view(this->exec, 3, cdata),
         gko::matrix::column_permute);
 
     rperm->apply(x.get(), y1.get());
@@ -356,19 +403,22 @@ TEST_F(Permutation, AppliesRowAndColPermutationToCsr)
 }
 
 
-TEST_F(Permutation, AppliesInverseRowPermutationToCsr)
+TYPED_TEST(Permutation, AppliesInverseRowPermutationToCsr)
 {
+    using i_type = typename TestFixture::i_type;
+    using Csr = typename TestFixture::Csr;
     // clang-format off
     auto x = gko::initialize<Csr>({{2.0, 3.0, 0.0},
                                    {0.0, 1.0, 0.0},
                                    {0.0, 4.0, 2.5}},
-                                  exec);
+                                  this->exec);
     // clang-format on
-    auto y = Csr::create(exec, gko::dim<2>{3});
+    auto y = Csr::create(this->exec, gko::dim<2>{3});
     i_type rdata[] = {1, 2, 0};
 
     auto rperm = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{3}, gko::Array<i_type>::view(exec, 3, rdata),
+        this->exec, gko::dim<2>{3},
+        gko::Array<i_type>::view(this->exec, 3, rdata),
         gko::matrix::row_permute | gko::matrix::inverse_permute);
 
     rperm->apply(x.get(), y.get());
@@ -382,19 +432,22 @@ TEST_F(Permutation, AppliesInverseRowPermutationToCsr)
 }
 
 
-TEST_F(Permutation, AppliesInverseColPermutationToCsr)
+TYPED_TEST(Permutation, AppliesInverseColPermutationToCsr)
 {
+    using i_type = typename TestFixture::i_type;
+    using Csr = typename TestFixture::Csr;
     // clang-format off
     auto x = gko::initialize<Csr>({{2.0, 3.0, 0.0},
                                    {0.0, 1.0, 0.0},
                                    {0.0, 4.0, 2.5}},
-                                  exec);
+                                  this->exec);
     // clang-format on
-    auto y = Csr::create(exec, gko::dim<2>{3});
+    auto y = Csr::create(this->exec, gko::dim<2>{3});
     i_type cdata[] = {1, 2, 0};
 
     auto cperm = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{3}, gko::Array<i_type>::view(exec, 3, cdata),
+        this->exec, gko::dim<2>{3},
+        gko::Array<i_type>::view(this->exec, 3, cdata),
         gko::matrix::inverse_permute | gko::matrix::column_permute);
 
     cperm->apply(x.get(), y.get());
@@ -408,24 +461,28 @@ TEST_F(Permutation, AppliesInverseColPermutationToCsr)
 }
 
 
-TEST_F(Permutation, AppliesInverseRowAndColPermutationToCsr)
+TYPED_TEST(Permutation, AppliesInverseRowAndColPermutationToCsr)
 {
+    using i_type = typename TestFixture::i_type;
+    using Csr = typename TestFixture::Csr;
     // clang-format off
     auto x = gko::initialize<Csr>({{2.0, 3.0, 0.0},
                                    {0.0, 1.0, 0.0},
                                    {0.0, 4.0, 2.5}},
-                                  exec);
+                                  this->exec);
     // clang-format on
-    auto y1 = Csr::create(exec, gko::dim<2>{3});
-    auto y2 = Csr::create(exec, gko::dim<2>{3});
+    auto y1 = Csr::create(this->exec, gko::dim<2>{3});
+    auto y2 = Csr::create(this->exec, gko::dim<2>{3});
     i_type cdata[] = {1, 2, 0};
     i_type rdata[] = {1, 2, 0};
 
     auto rperm = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{3}, gko::Array<i_type>::view(exec, 3, rdata),
+        this->exec, gko::dim<2>{3},
+        gko::Array<i_type>::view(this->exec, 3, rdata),
         gko::matrix::row_permute | gko::matrix::inverse_permute);
     auto cperm = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{3}, gko::Array<i_type>::view(exec, 3, cdata),
+        this->exec, gko::dim<2>{3},
+        gko::Array<i_type>::view(this->exec, 3, cdata),
         gko::matrix::inverse_permute | gko::matrix::column_permute);
 
     rperm->apply(x.get(), y1.get());

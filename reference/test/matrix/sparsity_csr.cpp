@@ -43,16 +43,19 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/test/utils/assertions.hpp"
+#include <core/test/utils.hpp>
 
 
 namespace {
 
 
+template <typename ValueIndexType>
 class SparsityCsr : public ::testing::Test {
 protected:
-    using v_type = double;
-    using i_type = int;
+    using v_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using i_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::SparsityCsr<v_type, i_type>;
     using Csr = gko::matrix::Csr<v_type, i_type>;
     using DenseMtx = gko::matrix::Dense<v_type>;
@@ -61,8 +64,8 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4))
     {
-        Mtx::index_type *c = mtx->get_col_idxs();
-        Mtx::index_type *r = mtx->get_row_ptrs();
+        i_type *c = mtx->get_col_idxs();
+        i_type *r = mtx->get_row_ptrs();
         r[0] = 0;
         r[1] = 3;
         r[2] = 4;
@@ -77,27 +80,35 @@ protected:
 };
 
 
-TEST_F(SparsityCsr, CanBeCreatedFromExistingCsrMatrix)
-{
-    auto csr_mtx = gko::initialize<Csr>(
-        {{2.0, 3.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 0.0, -3.0}}, exec);
-    auto comp_mtx = gko::initialize<DenseMtx>(
-        {{1.0, 1.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 0.0, 1.0}}, exec);
+TYPED_TEST_CASE(SparsityCsr, gko::test::ValueIndexTypes);
 
-    auto mtx = Mtx::create(exec, std::move(csr_mtx));
+
+TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingCsrMatrix)
+{
+    using Csr = typename TestFixture::Csr;
+    using DenseMtx = typename TestFixture::DenseMtx;
+    using Mtx = typename TestFixture::Mtx;
+    auto csr_mtx = gko::initialize<Csr>(
+        {{2.0, 3.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 0.0, -3.0}}, this->exec);
+    auto comp_mtx = gko::initialize<DenseMtx>(
+        {{1.0, 1.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 0.0, 1.0}}, this->exec);
+
+    auto mtx = Mtx::create(this->exec, std::move(csr_mtx));
 
     GKO_ASSERT_MTX_NEAR(comp_mtx.get(), mtx.get(), 0.0);
 }
 
 
-TEST_F(SparsityCsr, CanBeCreatedFromExistingDenseMatrix)
+TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingDenseMatrix)
 {
+    using DenseMtx = typename TestFixture::DenseMtx;
+    using Mtx = typename TestFixture::Mtx;
     auto dense_mtx = gko::initialize<DenseMtx>(
-        {{2.0, 3.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 0.0, -3.0}}, exec);
+        {{2.0, 3.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 0.0, -3.0}}, this->exec);
     auto comp_mtx = gko::initialize<DenseMtx>(
-        {{1.0, 1.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 0.0, 1.0}}, exec);
+        {{1.0, 1.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 0.0, 1.0}}, this->exec);
 
-    auto mtx = Mtx::create(exec, std::move(dense_mtx));
+    auto mtx = Mtx::create(this->exec, std::move(dense_mtx));
 
     GKO_ASSERT_MTX_NEAR(comp_mtx.get(), mtx.get(), 0.0);
 }

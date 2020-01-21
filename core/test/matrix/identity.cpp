@@ -103,8 +103,7 @@ TYPED_TEST(Identity, AppliesToMultipleVectors)
 
     identity->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({I<T>{2.0, 3.0}, I<T>{1.0, 2.0}, I<T>{5.0, -1.0}}),
-                        0.0);
+    GKO_ASSERT_MTX_NEAR(x, l({{2.0, 3.0}, {1.0, 2.0}, {5.0, -1.0}}), 0.0);
 }
 
 

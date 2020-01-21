@@ -1459,13 +1459,11 @@ TYPED_TEST(Dense, SquareMatrixIsTransposable)
 
 TYPED_TEST(Dense, NonSquareMatrixIsTransposable)
 {
-    using T = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
     auto trans = this->mtx4->transpose();
     auto trans_as_dense = static_cast<Mtx *>(trans.get());
 
-    GKO_ASSERT_MTX_NEAR(trans_as_dense,
-                        l({I<T>{1.0, 0.0}, I<T>{3.0, 5.0}, I<T>{2.0, 0.0}}),
+    GKO_ASSERT_MTX_NEAR(trans_as_dense, l({{1.0, 0.0}, {3.0, 5.0}, {2.0, 0.0}}),
                         r<TypeParam>::value);
 }
 
