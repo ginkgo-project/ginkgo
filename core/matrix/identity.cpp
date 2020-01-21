@@ -72,23 +72,12 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Identity<ValueType>::transpose() const
 {
     return this->clone();
-    // auto exec = this->get_executor();
-    // auto trans_cpy = Dense::create(exec, gko::transpose(this->get_size()));
-
-    // exec->run(dense::make_transpose(trans_cpy.get(), this));
-
-    // return std::move(trans_cpy);
 }
 
 template <typename ValueType>
 std::unique_ptr<LinOp> Identity<ValueType>::conj_transpose() const
 {
     return this->clone();
-    // auto exec = this->get_executor();
-    // auto trans_cpy = Dense::create(exec, gko::transpose(this->get_size()));
-
-    // exec->run(dense::make_conj_transpose(trans_cpy.get(), this));
-    // return std::move(trans_cpy);
 }
 
 
