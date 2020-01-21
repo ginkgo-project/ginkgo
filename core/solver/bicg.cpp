@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -114,22 +114,30 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
         exec, const_cast<LinOp *>(
                   system_matrix_.get()))) csr_system_matrix_unique_ptr{};
 
+    std::unique_ptr<LinOp> trans_A;
+    auto transposable_system_matrix =
+        dynamic_cast<const Transposable *>(system_matrix_.get());
 
-    auto csr_system_matrix_ =
-        dynamic_cast<const CsrMatrix *>(system_matrix_.get());
+    if (transposable_system_matrix) {
+        trans_A = transposable_system_matrix->transpose();
+    } else {
+        auto csr_system_matrix_ =
+            dynamic_cast<const CsrMatrix *>(system_matrix_.get());
 
-    if (csr_system_matrix_ == nullptr ||
-        csr_system_matrix_->get_executor() != exec) {
-        csr_system_matrix_unique_ptr = copy_and_convert_to<CsrMatrix>(
-            exec, const_cast<LinOp *>(system_matrix_.get()));
+        if (csr_system_matrix_ == nullptr) {
+            csr_system_matrix_unique_ptr = copy_and_convert_to<CsrMatrix>(
+                system_matrix_->get_executor(),
+                const_cast<LinOp *>(system_matrix_.get()));
 
-        csr_system_matrix_unique_ptr->set_strategy(
-            std::make_shared<typename CsrMatrix::classical>());
+            csr_system_matrix_unique_ptr->set_strategy(
+                std::make_shared<typename CsrMatrix::classical>());
 
-        csr_system_matrix_ = csr_system_matrix_unique_ptr.get();
+            csr_system_matrix_ = csr_system_matrix_unique_ptr.get();
+        }
+
+        trans_A = csr_system_matrix_->transpose();
     }
 
-    auto trans_A = csr_system_matrix_->transpose();
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     // r = r - Ax =  -1.0 * A*dense_x + 1.0*r
