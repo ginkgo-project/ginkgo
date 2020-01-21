@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
 
+
 namespace {
 
 
@@ -243,6 +244,7 @@ TEST_F(Bicg, CudaBicgStep1IsEquivalentToRef)
 TEST_F(Bicg, CudaBicgStep2IsEquivalentToRef)
 {
     initialize_data();
+
     gko::kernels::reference::bicg::step_2(
         ref, x.get(), r.get(), r2.get(), p.get(), q.get(), q2.get(), beta.get(),
         rho.get(), stop_status.get());
