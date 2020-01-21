@@ -33,6 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ilu_kernels.hpp"
 
 
+#include <algorithm>
+#include <memory>
+
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -54,7 +58,27 @@ namespace omp {
 namespace par_ilu_factorization {
 
 
-template <typename ValueType, typename IndexType>
+template <bool IsSorted = false>
+struct find_helper {
+    template <typename ForwardIt, typename IndexType>
+    static bool find(ForwardIt first, ForwardIt last, const IndexType &value)
+    {
+        return std::find(first, last, value) != last;
+    }
+};
+
+
+template <>
+struct find_helper<true> {
+    template <typename ForwardIt, typename IndexType>
+    static bool find(ForwardIt first, ForwardIt last, const IndexType &value)
+    {
+        return std::binary_search(first, last, value);
+    }
+};
+
+
+template <bool IsSorted, typename ValueType, typename IndexType>
 void find_missing_diagonal_elements(
     const matrix::Csr<ValueType, IndexType> *mtx,
     IndexType *elements_to_add_per_row, bool *changes_required)
@@ -63,24 +87,20 @@ void find_missing_diagonal_elements(
     auto values = mtx->get_const_values();
     auto col_idxs = mtx->get_const_col_idxs();
     auto row_ptrs = mtx->get_const_row_ptrs();
-    *changes_required = false;
     size_type row_limit{(size[0] < size[1]) ? size[0] : size[1]};
-#pragma omp parallel for
+    bool local_change{false};
+#pragma omp parallel for reduction(|| : local_change)
     for (IndexType row = 0; row < row_limit; ++row) {
-        bool was_diagonal_found{false};
-        for (IndexType idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
-            const auto col = col_idxs[idx];
-            if (col == row) {
-                elements_to_add_per_row[row] = 0;
-                was_diagonal_found = true;
-                break;
-            }
-        }
-        if (!was_diagonal_found) {
+        const auto *start_cols = col_idxs + row_ptrs[row];
+        const auto *end_cols = col_idxs + row_ptrs[row + 1];
+        if (find_helper<IsSorted>::find(start_cols, end_cols, row)) {
+            elements_to_add_per_row[row] = 0;
+        } else {
             elements_to_add_per_row[row] = 1;
-            *changes_required = true;
+            local_change = true;
         }
     }
+    *changes_required = local_change;
 }
 
 
@@ -132,19 +152,26 @@ void add_missing_diagonal_elements(matrix::Csr<ValueType, IndexType> *mtx,
             }
         }
     }
+    row_ptrs[num_rows] += row_ptrs_add[num_rows];
 }
 
 
 template <typename ValueType, typename IndexType>
 void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
-                           matrix::Csr<ValueType, IndexType> *mtx)
+                           matrix::Csr<ValueType, IndexType> *mtx,
+                           bool is_sorted)
 {
     auto mtx_size = mtx->get_size();
     size_type row_ptrs_size = mtx_size[0] + 1;
     Array<IndexType> row_ptrs_addition(exec, row_ptrs_size);
     bool needs_change{};
-    find_missing_diagonal_elements(mtx, row_ptrs_addition.get_data(),
-                                   &needs_change);
+    if (is_sorted) {
+        find_missing_diagonal_elements<true>(mtx, row_ptrs_addition.get_data(),
+                                             &needs_change);
+    } else {
+        find_missing_diagonal_elements<false>(mtx, row_ptrs_addition.get_data(),
+                                              &needs_change);
+    }
     if (!needs_change) {
         return;
     }
@@ -152,9 +179,10 @@ void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
     row_ptrs_addition.get_data()[row_ptrs_size - 1] = 0;
     prefix_sum(exec, row_ptrs_addition.get_data(), row_ptrs_size);
 
-    auto new_num_elems = row_ptrs_addition.get_data()[mtx_size[0]];
-    Array<ValueType> new_values(exec, new_num_elems);
-    Array<IndexType> new_col_idxs(exec, new_num_elems);
+    auto new_num_elems = row_ptrs_addition.get_data()[row_ptrs_size - 1] +
+                         mtx->get_num_stored_elements();
+    Array<ValueType> new_values{exec, new_num_elems};
+    Array<IndexType> new_col_idxs{exec, new_num_elems};
     add_missing_diagonal_elements(mtx, new_values.get_data(),
                                   new_col_idxs.get_data(),
                                   row_ptrs_addition.get_const_data());

@@ -197,7 +197,7 @@ TEST_F(ParIlu, KernelAddDiagonalElementsEmpty)
     auto empty_mtx = empty_csr->clone();
 
     gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
-        ref, empty_mtx.get());
+        ref, empty_mtx.get(), true);
 
     GKO_ASSERT_MTX_NEAR(empty_mtx, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(empty_mtx, expected_mtx);
@@ -216,7 +216,7 @@ TEST_F(ParIlu, KernelAddDiagonalElementsAsymetric)
                     std::move(exp_col_idxs), std::move(exp_row_ptrs));
 
     gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
-        ref, matrix.get());
+        ref, matrix.get(), true);
 
     GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
@@ -234,7 +234,7 @@ TEST_F(ParIlu, KernelAddDiagonalElementsAsymetric2)
                     std::move(exp_col_idxs), std::move(exp_row_ptrs));
 
     gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
-        ref, matrix.get());
+        ref, matrix.get(), true);
 
     GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
@@ -262,7 +262,7 @@ TEST_F(ParIlu, KernelAddDiagonalElementsUnsorted)
                     std::move(exp_row_ptrs));
 
     gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
-        ref, matrix.get());
+        ref, matrix.get(), false);
 
     GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);

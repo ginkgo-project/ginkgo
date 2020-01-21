@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/factorization/par_ilu_kernels.hpp"
 
 
+#include <algorithm>
 #include <memory>
 
 
@@ -59,7 +60,8 @@ namespace par_ilu_factorization {
 
 template <typename ValueType, typename IndexType>
 void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
-                           matrix::Csr<ValueType, IndexType> *mtx)
+                           matrix::Csr<ValueType, IndexType> *mtx,
+                           bool /*is_sorted*/)
 {
     const auto values = mtx->get_const_values();
     const auto col_idxs = mtx->get_const_col_idxs();
@@ -109,14 +111,12 @@ void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
             auto new_idx = old_idx + added_elements;
             const auto col_idx = col_idxs[old_idx];
             if (!diagonal_handled && col_idx > row) {
+                const auto start_cols = col_idxs + old_idx;
+                const auto end_cols = col_idxs + old_row_ptrs_end;
                 // expect row to not be sorted, so search for a diagonal entry
-                for (IndexType i = old_idx; i < old_row_ptrs_end; ++i) {
-                    if (col_idxs[i] == row) {
-                        // since diagonal is present, nothing needs to be done
-                        // in this row
-                        diagonal_handled = true;
-                        break;
-                    }
+                if (std::find(start_cols, end_cols, row) != end_cols) {
+                    // no need to add diagonal since diagonal is already present
+                    diagonal_handled = true;
                 }
                 // if diagonal was not found, add it
                 if (!diagonal_handled) {
@@ -142,8 +142,6 @@ void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
         }
     }
     row_ptrs[num_rows] = new_nnz;
-    // TODO remove this debug code
-    if (added_elements != missing_elements) throw "Mismatch!";
 
     matrix::CsrBuilder<ValueType, IndexType> mtx_builder{mtx};
     mtx_builder.get_value_array() = std::move(new_values_array);
