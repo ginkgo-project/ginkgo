@@ -94,7 +94,6 @@ TEST_F(Bicg, BicgFactoryKnowsItsExecutor)
 
 
 TEST_F(Bicg, BicgFactoryCreatesCorrectSolver)
-
 {
     ASSERT_EQ(solver->get_size(), gko::dim<2>(3, 3));
     auto bicg_solver = static_cast<Solver *>(solver.get());
@@ -104,7 +103,6 @@ TEST_F(Bicg, BicgFactoryCreatesCorrectSolver)
 
 
 TEST_F(Bicg, CanBeCopied)
-
 {
     auto copy = bicg_factory->generate(Mtx::create(exec));
 
@@ -117,7 +115,6 @@ TEST_F(Bicg, CanBeCopied)
 
 
 TEST_F(Bicg, CanBeMoved)
-
 {
     auto copy = bicg_factory->generate(Mtx::create(exec));
 
@@ -130,7 +127,6 @@ TEST_F(Bicg, CanBeMoved)
 
 
 TEST_F(Bicg, CanBeCloned)
-
 {
     auto clone = solver->clone();
 
@@ -141,7 +137,6 @@ TEST_F(Bicg, CanBeCloned)
 
 
 TEST_F(Bicg, CanBeCleared)
-
 {
     solver->clear();
 
@@ -152,7 +147,6 @@ TEST_F(Bicg, CanBeCleared)
 
 
 TEST_F(Bicg, CanSetPreconditionerGenerator)
-
 {
     auto bicg_factory =
         Solver::build()
@@ -164,7 +158,7 @@ TEST_F(Bicg, CanSetPreconditionerGenerator)
             .with_preconditioner(Solver::build().on(exec))
             .on(exec);
     auto solver = bicg_factory->generate(mtx);
-    auto precond = dynamic_cast<const gko::solver::Bicg<> *>(
+    auto precond = static_cast<const gko::solver::Bicg<> *>(
         static_cast<gko::solver::Bicg<> *>(solver.get())
             ->get_preconditioner()
             .get());
@@ -176,7 +170,6 @@ TEST_F(Bicg, CanSetPreconditionerGenerator)
 
 
 TEST_F(Bicg, CanSetPreconditionerInFactory)
-
 {
     std::shared_ptr<Solver> bicg_precond =
         Solver::build()
@@ -200,7 +193,6 @@ TEST_F(Bicg, CanSetPreconditionerInFactory)
 
 
 TEST_F(Bicg, ThrowsOnWrongPreconditionerInFactory)
-
 {
     std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1, 3});
     std::shared_ptr<Solver> bicg_precond =
@@ -222,7 +214,6 @@ TEST_F(Bicg, ThrowsOnWrongPreconditionerInFactory)
 
 
 TEST_F(Bicg, CanSetPreconditioner)
-
 {
     std::shared_ptr<Solver> bicg_precond =
         Solver::build()
