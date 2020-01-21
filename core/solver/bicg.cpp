@@ -138,6 +138,9 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
         trans_A = csr_system_matrix_->transpose();
     }
 
+    auto trans_Preconditioner_tmp =
+        as<const Transposable>(get_preconditioner().get());
+    auto trans_Preconditioner = trans_Preconditioner_tmp->transpose();
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     // r = r - Ax =  -1.0 * A*dense_x + 1.0*r
@@ -153,13 +156,9 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
     while (true) {
         get_preconditioner()->apply(r.get(), z.get());
-
-        // TODO transpose Preconditioner (not necessary right now since jacobi
-        // is the only preconditioner and is symmetrical)
-        get_preconditioner()->apply(r2.get(), z2.get());
+        trans_Preconditioner->apply(r2.get(), z2.get());
 
         z->compute_dot(r2.get(), rho.get());
-
 
         ++iter;
         this->template log<log::Logger::iteration_complete>(this, iter, r.get(),

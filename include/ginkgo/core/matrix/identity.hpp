@@ -61,7 +61,8 @@ namespace matrix {
  */
 template <typename ValueType = default_precision>
 class Identity : public EnableLinOp<Identity<ValueType>>,
-                 public EnableCreateMethod<Identity<ValueType>> {
+                 public EnableCreateMethod<Identity<ValueType>>,
+                 public Transposable {
     friend class EnablePolymorphicObject<Identity, LinOp>;
     friend class EnableCreateMethod<Identity>;
 
@@ -70,6 +71,11 @@ public:
     using EnableLinOp<Identity>::move_to;
 
     using value_type = ValueType;
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
+
 
 protected:
     /**
