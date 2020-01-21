@@ -61,7 +61,7 @@ void initialize(std::shared_ptr<const OmpExecutor> exec,
                 matrix::Dense<ValueType> *rho, matrix::Dense<ValueType> *r2,
                 matrix::Dense<ValueType> *z2, matrix::Dense<ValueType> *p2,
                 matrix::Dense<ValueType> *q2,
-                Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
+                Array<stopping_status> *stop_status)
 {
 #pragma omp parallel for
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
@@ -89,7 +89,7 @@ void step_1(std::shared_ptr<const OmpExecutor> exec,
             matrix::Dense<ValueType> *p2, const matrix::Dense<ValueType> *z2,
             const matrix::Dense<ValueType> *rho,
             const matrix::Dense<ValueType> *prev_rho,
-            const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
+            const Array<stopping_status> *stop_status)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < p->get_size()[0]; ++i) {
@@ -120,7 +120,7 @@ void step_2(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *q2,
             const matrix::Dense<ValueType> *beta,
             const matrix::Dense<ValueType> *rho,
-            const Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
+            const Array<stopping_status> *stop_status)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < x->get_size()[0]; ++i) {
