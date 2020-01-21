@@ -106,7 +106,6 @@ TEST_F(Bicg, SolvesStencilSystem)
 {
     auto solver = bicg_factory->generate(mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, exec);
-
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
 
     solver->apply(b.get(), x.get());
@@ -185,11 +184,9 @@ TEST_F(Bicg, SolvesNonSymmetricStencilSystem)
 {
     auto solver = bicg_factory->generate(mtx_non_symmetric);
     auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, exec);
-
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
 
     solver->apply(b.get(), x.get());
-
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), 1e-14);
 }
@@ -214,16 +211,13 @@ TEST_F(Bicg, SolvesMultipleDenseSystemForDivergenceCheck)
         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5}, exec);
     auto b2 = gko::initialize<Mtx>(
         {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0}, exec);
-
     auto x1 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
     auto x2 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
-
     auto bc = Mtx::create(exec, gko::dim<2>{mtx_big->get_size()[0], 2});
     auto xc = Mtx::create(exec, gko::dim<2>{mtx_big->get_size()[1], 2});
     for (size_t i = 0; i < bc->get_size()[0]; ++i) {
         bc->at(i, 0) = b1->at(i);
         bc->at(i, 1) = b2->at(i);
-
         xc->at(i, 0) = x1->at(i);
         xc->at(i, 1) = x2->at(i);
     }
@@ -239,7 +233,6 @@ TEST_F(Bicg, SolvesMultipleDenseSystemForDivergenceCheck)
 
     auto alpha = gko::initialize<Mtx>({1.0}, exec);
     auto beta = gko::initialize<Mtx>({-1.0}, exec);
-
     auto residual1 = Mtx::create(exec, b1->get_size());
     residual1->copy_from(b1.get());
     auto residual2 = Mtx::create(exec, b2->get_size());
@@ -257,12 +250,10 @@ TEST_F(Bicg, SolvesMultipleDenseSystemForDivergenceCheck)
     double normC2 = infNorm(residualC.get(), 1);
     double normB1 = infNorm(b1.get());
     double normB2 = infNorm(b2.get());
-
     // make sure that all combined solutions are as good or better than the
     // single solutions
     ASSERT_LE(normC1 / normB1, normS1 / normB1 + 1e-14);
     ASSERT_LE(normC2 / normB2, normS2 / normB2 + 1e-14);
-
     // Not sure if this is necessary, the assertions above should cover what
     // is needed.
     GKO_ASSERT_MTX_NEAR(xc, mergedRes, 1e-14);
