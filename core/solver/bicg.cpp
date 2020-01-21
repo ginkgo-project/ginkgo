@@ -142,8 +142,7 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     // r = r - Ax =  -1.0 * A*dense_x + 1.0*r
 
-    // TODO set r2 = r so there has to be only one apply
-    system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r2.get());
+    r2->copy_from(r.get());
     // r2 = r
 
     auto stop_criterion = stop_criterion_factory_->generate(
