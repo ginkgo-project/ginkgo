@@ -201,8 +201,8 @@ TYPED_TEST(Coo, AppliesToDenseMatrix)
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
-                        l({I<T>{13.0,  3.5},
-                           I<T>{ 5.0, -7.5}}), 0.0);
+                        l({{13.0,  3.5},
+                           { 5.0, -7.5}}), 0.0);
     // clang-format on
 }
 
@@ -241,8 +241,8 @@ TYPED_TEST(Coo, AppliesLinearCombinationToDenseMatrix)
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
-                        l({I<T>{-11.0, -2.5},
-                           I<T>{ -1.0,  4.5}}), 0.0);
+                        l({{-11.0, -2.5},
+                           { -1.0,  4.5}}), 0.0);
     // clang-format on
 }
 
@@ -307,8 +307,8 @@ TYPED_TEST(Coo, AppliesAddToDenseMatrix)
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
-                        l({I<T>{14.0,  4.0},
-                           I<T>{ 7.0, -9.0}}), 0.0);
+                        l({{14.0,  4.0},
+                           { 7.0, -9.0}}), 0.0);
     // clang-format on
 }
 
@@ -345,8 +345,8 @@ TYPED_TEST(Coo, AppliesLinearCombinationAddToDenseMatrix)
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(y,
-                        l({I<T>{-12.0, -3.0},
-                           I<T>{ -3.0,  6.0}}), 0.0);
+                        l({{-12.0, -3.0},
+                           { -3.0,  6.0}}), 0.0);
     // clang-format on
 }
 
