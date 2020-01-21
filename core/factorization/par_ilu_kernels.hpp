@@ -51,7 +51,8 @@ namespace kernels {
 
 #define GKO_DECLARE_PAR_ILU_ADD_DIAGONAL_ELEMENTS_KERNEL(ValueType, IndexType) \
     void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,    \
-                               matrix::Csr<ValueType, IndexType> *mtx)
+                               matrix::Csr<ValueType, IndexType> *mtx,         \
+                               bool is_sorted)
 #define GKO_DECLARE_PAR_ILU_INITIALIZE_ROW_PTRS_L_U_KERNEL(ValueType, \
                                                            IndexType) \
     void initialize_row_ptrs_l_u(                                     \

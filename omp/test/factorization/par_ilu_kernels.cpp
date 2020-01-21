@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <fstream>
 #include <memory>
+#include <random>
 #include <string>
 
 
@@ -44,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -65,11 +67,20 @@ protected:
     using Csr = gko::matrix::Csr<value_type, index_type>;
 
     ParIlu()
-        : ref(gko::ReferenceExecutor::create()),
+        : rand_engine(17),
+          ref(gko::ReferenceExecutor::create()),
           omp(gko::OmpExecutor::create()),
           csr_ref(nullptr),
           csr_omp(nullptr)
     {}
+
+    template <typename Mtx>
+    std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
+    {
+        return gko::test::generate_random_matrix<Mtx>(
+            num_rows, num_cols, std::uniform_int_distribution<>(0, num_cols),
+            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
+    }
 
     void SetUp() override
     {
@@ -85,6 +96,7 @@ protected:
         csr_omp = gko::give(csr_omp_temp);
     }
 
+    std::ranlux48 rand_engine;
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::OmpExecutor> omp;
     std::shared_ptr<const Csr> csr_ref;
@@ -173,6 +185,49 @@ protected:
         *u_omp = static_unique_ptr_cast<Csr>(std::move(u_lin_op_omp));
     }
 };
+
+
+TEST_F(ParIlu, OmpKernelAddDiagonalElementsSortedEquivalentToRef)
+{
+    size_t num_rows = 200;
+    size_t num_cols = 200;
+    auto dense_mtx = gen_mtx<Dense>(num_rows, num_cols);
+    // ensure that at least some diagonal entries are zero
+    dense_mtx->get_values()[0] = gko::zero<value_type>();
+    auto idx = num_rows / 2;
+    dense_mtx->get_values()[idx * num_cols + idx] = gko::zero<value_type>();
+    auto mtx_ref = Csr::create(ref);
+    dense_mtx->convert_to(mtx_ref.get());
+    auto mtx_omp = Csr::create(omp);
+    dense_mtx->convert_to(mtx_omp.get());
+
+    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        ref, mtx_ref.get(), true);
+    gko::kernels::omp::par_ilu_factorization::add_diagonal_elements(
+        omp, mtx_omp.get(), true);
+
+    GKO_ASSERT_MTX_NEAR(mtx_ref, mtx_omp, 0.);
+    GKO_ASSERT_MTX_EQ_SPARSITY(mtx_ref, mtx_omp);
+}
+
+
+// TODO add test for unsorted matrices
+TEST_F(ParIlu, OmpKernelAddDiagonalElementsAsymetricEquivalentToRef)
+{
+    size_t num_rows = 20;
+    size_t num_cols = 10;
+    auto mtx_ref = gen_mtx<Csr>(num_rows, num_cols);
+    auto mtx_omp = Csr::create(omp);
+    mtx_omp->copy_from(mtx_ref.get());
+
+    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        ref, mtx_ref.get(), true);
+    gko::kernels::omp::par_ilu_factorization::add_diagonal_elements(
+        omp, mtx_omp.get(), true);
+
+    GKO_ASSERT_MTX_NEAR(mtx_ref, mtx_omp, 0.);
+    GKO_ASSERT_MTX_EQ_SPARSITY(mtx_ref, mtx_omp);
+}
 
 
 TEST_F(ParIlu, OmpKernelInitializeRowPtrsLUEquivalentToRef)
