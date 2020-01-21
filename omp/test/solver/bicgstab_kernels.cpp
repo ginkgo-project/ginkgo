@@ -33,10 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/bicgstab.hpp>
 
 
-#include <gtest/gtest.h>
-
-
 #include <random>
+
+
+#include <gtest/gtest.h>
 
 
 #include <core/solver/bicgstab_kernels.hpp>
