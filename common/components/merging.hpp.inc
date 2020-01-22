@@ -74,6 +74,10 @@ checked_load(const ValueType *p, IndexType i, IndexType size,
  * the value of `a` at thread i is smaller or equal the value at thread j, and
  * the same holds for `b`.
  *
+ * This implementation is based on ideas from  Green et al.,
+ * "GPU merge path: a GPU merging algorithm", but uses random-access warp
+ * shuffles instead of shared-memory to exchange values of a and b.
+ *
  * @param a      the element from the first range
  * @param b      the element from the second range
  * @param size   the number of elements in the output range

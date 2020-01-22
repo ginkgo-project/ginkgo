@@ -139,6 +139,9 @@ __device__ int synchronous_binary_search(int size, Predicate p)
  *
  * It executes `log2(length / group.size())` coalescing calls to `p`.
  *
+ * This implementation is based on the w-wide search mentioned in
+ * Green et al., "GPU merge path: a GPU merging algorithm"
+ *
  * @param offset  the starting index of the partitioned range
  * @param length  the length of the partitioned range
  * @param group   the coalescing group executing the search
@@ -189,6 +192,9 @@ __device__ IndexType group_wide_search(IndexType offset, IndexType length,
  *
  * It executes `log2(length) / log2(group.size())` calls to `p` that effectively
  * follow a random-access pattern.
+ *
+ * This implementation is based on the w-partition search mentioned in
+ * Green et al., "GPU merge path: a GPU merging algorithm"
  *
  * @param offset  the starting index of the partitioned range
  * @param length  the length of the partitioned range
