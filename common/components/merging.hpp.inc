@@ -84,14 +84,11 @@ checked_load(const ValueType *p, IndexType i, IndexType size,
  * @param group  the cooperative group that executes the merge
  * @return  a structure containing the merge result distributed over the group.
  */
-template <typename ValueType, typename Group>
+template <int group_size, typename ValueType, typename Group>
 __device__ detail::merge_result<ValueType> group_merge_step(ValueType a,
                                                             ValueType b,
-                                                            int size,
                                                             Group group)
 {
-    // round up to the next power of two
-    auto size_pow2 = 1 << (32 - clz(uint32(size - 1)));
     // thread i takes care of ith element of the merged sequence
     auto i = int(group.thread_rank());
 
@@ -107,9 +104,7 @@ __device__ detail::merge_result<ValueType> group_merge_step(ValueType a,
     //   b[i - x] >= a[x - 1]
     //   and a[x] >= a[0...x - 1], b[0...i - x - 1]
     //     => merge a[x] with b[i - x]
-    auto minx = synchronous_binary_search(size_pow2, [&](int x) {
-        // potentially faster (because of unrolling):
-        // auto minx = synchronous_fixed_binary_search<group.size()>([&](int x){
+    auto minx = synchronous_fixed_binary_search<group_size>([&](int x) {
         auto a_remote = group.shfl(a, x);
         auto b_remote = group.shfl(b, max(i - x - 1, 0));
         return a_remote >= b_remote || x >= i;
@@ -144,8 +139,8 @@ __device__ detail::merge_result<ValueType> group_merge_step(ValueType a,
  *                   `*_val` and `*_idx` are the values resp. the indices of the
  *                   values from a/b being compared at output index `c_index`.
  */
-template <typename IndexType, typename ValueType, typename Group,
-          typename Callback>
+template <int group_size, typename IndexType, typename ValueType,
+          typename Group, typename Callback>
 __device__ void group_merge(const ValueType *a, IndexType a_size,
                             const ValueType *b, IndexType b_size, Group group,
                             Callback merge_fn)
@@ -158,8 +153,7 @@ __device__ void group_merge(const ValueType *a, IndexType a_size,
     auto a_cur = detail::checked_load(a, a_begin + lane, a_size);
     auto b_cur = detail::checked_load(b, b_begin + lane, a_size);
     while (c_begin < c_size) {
-        auto merge_size = min<int>(group.size(), c_size - c_begin);
-        auto merge_result = group_merge_step(a_cur, b_cur, merge_size, group);
+        auto merge_result = group_merge_step<group_size>(a_cur, b_cur, group);
         if (c_begin + lane < c_size) {
             merge_fn(merge_result.a_idx + a_begin, merge_result.a_val,
                      merge_result.b_idx + b_begin, merge_result.b_val,
@@ -169,7 +163,7 @@ __device__ void group_merge(const ValueType *a, IndexType a_size,
         auto b_advance = merge_result.b_advance;
         a_begin += a_advance;
         b_begin += b_advance;
-        c_begin += group.size();
+        c_begin += group_size;
 
         // shuffle the unmerged elements to the front
         a_cur = group.shfl_down(a_cur, a_advance);
