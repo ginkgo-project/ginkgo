@@ -161,93 +161,15 @@ __device__ void group_merge(const ValueType *a, IndexType a_size,
         auto merge_size = min<int>(group.size(), c_size - c_begin);
         auto merge_result = group_merge_step(a_cur, b_cur, merge_size, group);
         if (c_begin + lane < c_size) {
-            merge_fn(merge_result.a_idx, merge_result.a_val, merge_result.b_idx,
-                     merge_result.b_val, c_begin + lane);
+            merge_fn(merge_result.a_idx + a_begin, merge_result.a_val,
+                     merge_result.b_idx + b_begin, merge_result.b_val,
+                     c_begin + lane);
         }
         auto a_advance = merge_result.a_advance;
         auto b_advance = merge_result.b_advance;
         a_begin += a_advance;
         b_begin += b_advance;
         c_begin += group.size();
-
-        // shuffle the unmerged elements to the front
-        a_cur = group.shfl_down(a_cur, a_advance);
-        b_cur = group.shfl_down(b_cur, b_advance);
-        /*
-         * To optimize memory access, we load the new elements for `a` and `b`
-         * with a single load instruction:
-         * the lower part of the group loads new elements for `a`
-         * the upper part of the group loads new elements for `b`
-         * `load_lane` is the part-local lane idx
-         * The elements for `a` have to be shuffled up afterwards.
-         */
-        auto load_a = lane < a_advance;
-        auto load_lane = load_a ? lane : lane - a_advance;
-        auto load_source = load_a ? a : b;
-        auto load_begin = load_a ? a_begin + b_advance : b_begin + a_advance;
-        auto load_size = load_a ? a_size : b_size;
-
-        auto load_idx = load_begin + load_lane;
-        auto loaded = detail::checked_load(load_source, load_idx, load_size);
-        // shuffle the `a` values to the end of the warp
-        auto lower_loaded = group.shfl_up(loaded, b_advance);
-        a_cur = lane < b_advance ? a_cur : lower_loaded;
-        b_cur = lane < a_advance ? b_cur : loaded;
-    }
-}
-
-
-/**
- * @internal
- * Warp-parallel merge algorithm that merges two sorted ranges of arbitrary
- * size, where the first range is stored in two halves.
- * `merge_fun` will be called for each merged element.
- *
- * @param a1  the first half of the first range
- * @param a1_begin  the beginning offset of the first half of the first range
- * @param a1_size the size of the first half of the first range.
- * @param a2  the second half of the first range
- * @param a2_begin  the beginning offset of the second half of the first range
- * @param a2_size the size of the second half of the first range.
- * @param b  the second range
- * @param b_size the size of the second range
- * @param group   the group that executes the merge
- * @param merge_fn  the callback that is being called for each merged element.
- *                  It takes five parameters:
- *                  `IndexType a_idx, ValueType a_val,
- *                   IndexType b_idx, ValueType b_val, IndexType c_index`.
- *                   `*_val` and `*_idx` are the values resp. the indices of the
- *                   values from a/b being compared at output index `c_index`.
- */
-template <typename IndexType, typename ValueType, typename Group,
-          typename Callback>
-__device__ void group_merge_3way(const ValueType *a1, IndexType a1_size,
-                                 const ValueType *a2, IndexType a2_size,
-                                 const ValueType *b, IndexType b_size,
-                                 Group group, Callback merge_fn)
-{
-    auto a_size = a1_size + a2_size;
-    auto c_size = a_size + b_size;
-    IndexType a_begin{};
-    IndexType b_begin{};
-    IndexType c_begin{};
-    auto lane = IndexType(group.thread_rank());
-    auto a = lane < a1_size ? a1 : a2 - a1_size;
-    auto a_cur = detail::checked_load(a, a_begin + lane, a_size);
-    auto b_cur = detail::checked_load(b, b_begin + lane, a_size);
-    while (c_begin < c_size) {
-        auto merge_size = min<int>(group.size(), c_size - c_begin);
-        auto merge_result = group_merge_step(a_cur, b_cur, merge_size, group);
-        if (c_begin + lane < c_size) {
-            merge_fn(merge_result.a_idx, merge_result.a_val, merge_result.b_idx,
-                     merge_result.b_val, c_begin + lane);
-        }
-        auto a_advance = merge_result.a_advance;
-        auto b_advance = merge_result.b_advance;
-        a_begin += a_advance;
-        b_begin += b_advance;
-        c_begin += group.size();
-        a = a_begin + lane < a1_size ? a1 : a2 - a1_size;
 
         // shuffle the unmerged elements to the front
         a_cur = group.shfl_down(a_cur, a_advance);
@@ -310,62 +232,6 @@ __device__ void sequential_merge(const ValueType *a, IndexType a_size,
         a_begin += a_advance;
         b_begin += b_advance;
         c_begin++;
-
-        auto load = a_advance ? a : b;
-        auto load_size = a_advance ? a_size : b_size;
-        auto load_idx = a_advance ? a_begin : b_begin;
-        auto loaded = detail::checked_load(load, load_idx, load_size);
-        a_cur = a_advance ? loaded : a_cur;
-        b_cur = b_advance ? loaded : b_cur;
-    }
-}
-
-
-/**
- * @internal
- * Sequential merge algorithm that merges two sorted ranges of arbitrary
- * size, where the first range is stored in two halves.
- * `merge_fun` will be called for each merged element.
- *
- * @param a1  the first half of the first range
- * @param a1_begin  the beginning offset of the first half of the first range
- * @param a1_size the size of the first half of the first range.
- * @param a2  the second half of the first range
- * @param a2_begin  the beginning offset of the second half of the first range
- * @param a2_size the size of the second half of the first range.
- * @param b  the second range
- * @param b_size the size of the second range
- * @param merge_fn  the callback that is being called for each merged element.
- *                  It takes five parameters:
- *                  `IndexType a_idx, ValueType a_val,
- *                   IndexType b_idx, ValueType b_val, IndexType c_index`.
- *                   `*_val` and `*_idx` are the values resp. the indices of the
- *                   values from a/b being compared at output index `c_index`.
- */
-template <typename IndexType, typename ValueType, typename Callback>
-__device__ void sequential_merge_3way(const ValueType *a1, IndexType a1_size,
-                                      const ValueType *a2, IndexType a2_size,
-                                      const ValueType *b, IndexType b_size,
-                                      Callback merge_fn)
-{
-    auto a = a1_size > 0 ? a1 : a2;
-    auto a_size = a1_size + a2_size;
-    auto c_size = a_size + b_size;
-    IndexType a_begin{};
-    IndexType b_begin{};
-    IndexType c_begin{};
-    auto a_cur = detail::checked_load(a, a_begin, a_size);
-    auto b_cur = detail::checked_load(b, b_begin, b_size);
-    while (c_begin < c_size) {
-        merge_fn(a_begin, a_cur, b_begin, b_cur, c_begin);
-        auto a_advance = a_cur < b_cur;
-        auto b_advance = !a_advance;
-        a_begin += a_advance;
-        b_begin += b_advance;
-        c_begin++;
-        if (a_begin == a1_size) {
-            a = a2 - a1_size;
-        }
 
         auto load = a_advance ? a : b;
         auto load_size = a_advance ? a_size : b_size;

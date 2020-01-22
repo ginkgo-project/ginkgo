@@ -73,9 +73,21 @@ protected:
           data1(ref, max_size),
           data2(ref, max_size),
           outdata(ref, 2 * max_size),
+          idxs1(ref),
+          idxs2(ref),
+          idxs3(ref),
+          refidxs1(ref),
+          refidxs2(ref),
+          refidxs3(ref),
           refdata(ref, 2 * max_size),
           ddata1(hip),
           ddata2(hip),
+          didxs1(hip, 2 * max_size),
+          didxs2(hip, 2 * max_size),
+          didxs3(hip, 2 * max_size),
+          drefidxs1(hip, 2 * max_size),
+          drefidxs2(hip, 2 * max_size),
+          drefidxs3(hip, 2 * max_size),
           doutdata(hip, 2 * max_size)
     {}
 
@@ -121,10 +133,22 @@ protected:
     std::vector<int> sizes;
     gko::Array<gko::int32> data1;
     gko::Array<gko::int32> data2;
+    gko::Array<gko::int32> idxs1;
+    gko::Array<gko::int32> idxs2;
+    gko::Array<gko::int32> idxs3;
+    gko::Array<gko::int32> refidxs1;
+    gko::Array<gko::int32> refidxs2;
+    gko::Array<gko::int32> refidxs3;
     gko::Array<gko::int32> outdata;
     gko::Array<gko::int32> refdata;
     gko::Array<gko::int32> ddata1;
     gko::Array<gko::int32> ddata2;
+    gko::Array<gko::int32> didxs1;
+    gko::Array<gko::int32> didxs2;
+    gko::Array<gko::int32> didxs3;
+    gko::Array<gko::int32> drefidxs1;
+    gko::Array<gko::int32> drefidxs2;
+    gko::Array<gko::int32> drefidxs3;
     gko::Array<gko::int32> doutdata;
 };
 
@@ -177,37 +201,6 @@ TEST_F(Merging, FullMerge)
 }
 
 
-__global__ void test_merge_3way(const gko::int32 *a, const gko::int32 *b,
-                                int size, int separator, gko::int32 *c)
-{
-    auto warp = tiled_partition<config::warp_size>(this_thread_block());
-    group_merge_3way(
-        a, separator, a + separator, size - separator, b, size, warp,
-        [&](int a_idx, gko::int32 a_val, int b_idx, gko::int32 b_val, int i) {
-            c[i] = min(a_val, b_val);
-        });
-}
-
-TEST_F(Merging, FullMerge3Way)
-{
-    for (auto i = 0; i < rng_runs; ++i) {
-        init_data();
-        for (auto size : sizes) {
-            for (auto separator :
-                 {0, 1, size / 3, 2 * size / 3, size - 1, size}) {
-                hipLaunchKernelGGL(HIP_KERNEL_NAME(test_merge_3way), dim3(1),
-                                   dim3(config::warp_size), 0, 0,
-                                   ddata1.get_const_data(),
-                                   ddata2.get_const_data(), size, separator,
-                                   doutdata.get_data());
-
-                assert_eq_ref(size, 2 * size);
-            }
-        }
-    }
-}
-
-
 __global__ void test_sequential_merge(const gko::int32 *a, const gko::int32 *b,
                                       int size, gko::int32 *c)
 {
@@ -234,32 +227,65 @@ TEST_F(Merging, SequentialFullMerge)
 }
 
 
-__global__ void test_sequential_merge_3way(const gko::int32 *a,
-                                           const gko::int32 *b, int size,
-                                           int separator, gko::int32 *c)
+__global__ void test_merge_idxs(const gko::int32 *a, const gko::int32 *b,
+                                int size, gko::int32 *c, gko::int32 *aidxs,
+                                gko::int32 *bidxs, gko::int32 *cidxs,
+                                gko::int32 *refaidxs, gko::int32 *refbidxs,
+                                gko::int32 *refcidxs)
 {
-    sequential_merge_3way(
-        a, separator, a + separator, size - separator, b, size,
+    if (threadIdx.x == 0) {
+        sequential_merge(a, size, b, size,
+                         [&](int a_idx, gko::int32 a_val, int b_idx,
+                             gko::int32 b_val, int i) {
+                             refaidxs[i] = a_idx;
+                             refbidxs[i] = b_idx;
+                             refcidxs[i] = i;
+                         });
+    }
+    auto warp = tiled_partition<config::warp_size>(this_thread_block());
+    group_merge(
+        a, size, b, size, warp,
         [&](int a_idx, gko::int32 a_val, int b_idx, gko::int32 b_val, int i) {
+            aidxs[i] = a_idx;
+            bidxs[i] = b_idx;
+            cidxs[i] = i;
             c[i] = min(a_val, b_val);
         });
 }
 
-TEST_F(Merging, SequentialFull3WayMerge)
+TEST_F(Merging, FullMergeIdxs)
 {
     for (auto i = 0; i < rng_runs; ++i) {
         init_data();
         for (auto size : sizes) {
-            for (auto separator :
-                 {0, 1, size / 3, 2 * size / 3, size - 1, size}) {
-                hipLaunchKernelGGL(HIP_KERNEL_NAME(test_sequential_merge_3way),
-                                   dim3(1), dim3(1), 0, 0,
-                                   ddata1.get_const_data(),
-                                   ddata2.get_const_data(), size, separator,
-                                   doutdata.get_data());
+            hipLaunchKernelGGL(HIP_KERNEL_NAME(test_merge_idxs), dim3(1),
+                               dim3(config::warp_size), 0, 0,
+                               ddata1.get_const_data(), ddata2.get_const_data(),
+                               size, doutdata.get_data(), didxs1.get_data(),
+                               didxs2.get_data(), didxs3.get_data(),
+                               drefidxs1.get_data(), drefidxs2.get_data(),
+                               drefidxs3.get_data());
 
-                assert_eq_ref(size, 2 * size);
-            }
+            assert_eq_ref(size, 2 * size);
+            idxs1 = didxs1;
+            idxs2 = didxs2;
+            idxs3 = didxs3;
+            refidxs1 = drefidxs1;
+            refidxs2 = drefidxs2;
+            refidxs3 = drefidxs3;
+            auto idxs1_ptr = idxs1.get_const_data();
+            auto idxs2_ptr = idxs2.get_const_data();
+            auto idxs3_ptr = idxs3.get_const_data();
+            auto refidxs1_ptr = refidxs1.get_const_data();
+            auto refidxs2_ptr = refidxs2.get_const_data();
+            auto refidxs3_ptr = refidxs3.get_const_data();
+
+            ASSERT_TRUE(
+                std::equal(idxs1_ptr, idxs1_ptr + 2 * size, refidxs1_ptr));
+            ASSERT_TRUE(
+                std::equal(idxs2_ptr, idxs2_ptr + 2 * size, refidxs2_ptr));
+            ASSERT_TRUE(
+                std::equal(idxs3_ptr, idxs3_ptr + 2 * size, refidxs3_ptr));
         }
     }
 }
