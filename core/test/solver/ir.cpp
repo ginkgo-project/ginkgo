@@ -46,13 +46,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
 
 
+#include <core/test/utils.hpp>
+
+
 namespace {
 
 
+template <typename T>
 class Ir : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
-    using Solver = gko::solver::Ir<>;
+    using value_type = T;
+    using Mtx = gko::matrix::Dense<value_type>;
+    using Solver = gko::solver::Ir<value_type>;
 
     Ir()
         : exec(gko::ReferenceExecutor::create()),
@@ -62,8 +67,8 @@ protected:
               Solver::build()
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(3u).on(exec),
-                      gko::stop::ResidualNormReduction<>::build()
-                          .with_reduction_factor(1e-6)
+                      gko::stop::ResidualNormReduction<value_type>::build()
+                          .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),
           solver(ir_factory->generate(mtx))
@@ -71,7 +76,7 @@ protected:
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<Solver::Factory> ir_factory;
+    std::unique_ptr<typename Solver::Factory> ir_factory;
     std::unique_ptr<gko::LinOp> solver;
 
     static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
@@ -87,102 +92,120 @@ protected:
 };
 
 
-TEST_F(Ir, IrFactoryKnowsItsExecutor)
+TYPED_TEST_CASE(Ir, gko::test::ValueTypes);
+
+
+TYPED_TEST(Ir, IrFactoryKnowsItsExecutor)
 {
-    ASSERT_EQ(ir_factory->get_executor(), exec);
+    ASSERT_EQ(this->ir_factory->get_executor(), this->exec);
 }
 
 
-TEST_F(Ir, IrFactoryCreatesCorrectSolver)
+TYPED_TEST(Ir, IrFactoryCreatesCorrectSolver)
 {
-    ASSERT_EQ(solver->get_size(), gko::dim<2>(3, 3));
-    auto cg_solver = static_cast<Solver *>(solver.get());
+    using Solver = typename TestFixture::Solver;
+    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(3, 3));
+    auto cg_solver = static_cast<Solver *>(this->solver.get());
     ASSERT_NE(cg_solver->get_system_matrix(), nullptr);
-    ASSERT_EQ(cg_solver->get_system_matrix(), mtx);
+    ASSERT_EQ(cg_solver->get_system_matrix(), this->mtx);
 }
 
 
-TEST_F(Ir, CanBeCopied)
+TYPED_TEST(Ir, CanBeCopied)
 {
-    auto copy = ir_factory->generate(Mtx::create(exec));
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    auto copy = this->ir_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(solver.get());
+    copy->copy_from(this->solver.get());
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-    assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
+    this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
+                               this->mtx.get());
 }
 
 
-TEST_F(Ir, CanBeMoved)
+TYPED_TEST(Ir, CanBeMoved)
 {
-    auto copy = ir_factory->generate(Mtx::create(exec));
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    auto copy = this->ir_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(std::move(solver));
+    copy->copy_from(std::move(this->solver));
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-    assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
+    this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
+                               this->mtx.get());
 }
 
 
-TEST_F(Ir, CanBeCloned)
+TYPED_TEST(Ir, CanBeCloned)
 {
-    auto clone = solver->clone();
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    auto clone = this->solver->clone();
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
     auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
-    assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()), mtx.get());
+    this->assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()),
+                               this->mtx.get());
 }
 
 
-TEST_F(Ir, CanBeCleared)
+TYPED_TEST(Ir, CanBeCleared)
 {
-    solver->clear();
+    using Solver = typename TestFixture::Solver;
+    this->solver->clear();
 
-    ASSERT_EQ(solver->get_size(), gko::dim<2>(0, 0));
-    auto solver_mtx = static_cast<Solver *>(solver.get())->get_system_matrix();
+    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
+    auto solver_mtx =
+        static_cast<Solver *>(this->solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
 }
 
 
-TEST_F(Ir, CanSetInnerSolverInFactory)
+TYPED_TEST(Ir, CanSetInnerSolverInFactory)
 {
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
     auto ir_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec),
-                gko::stop::ResidualNormReduction<>::build()
-                    .with_reduction_factor(1e-6)
-                    .on(exec))
-            .with_solver(Solver::build().on(exec))
-            .on(exec);
-    auto solver = ir_factory->generate(mtx);
-    auto inner_solver = dynamic_cast<const gko::solver::Ir<> *>(
-        static_cast<gko::solver::Ir<> *>(solver.get())->get_solver().get());
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
+                gko::stop::ResidualNormReduction<value_type>::build()
+                    .with_reduction_factor(r<value_type>::value)
+                    .on(this->exec))
+            .with_solver(Solver::build().on(this->exec))
+            .on(this->exec);
+    auto solver = ir_factory->generate(this->mtx);
+    auto inner_solver = dynamic_cast<const Solver *>(
+        static_cast<Solver *>(solver.get())->get_solver().get());
 
     ASSERT_NE(inner_solver, nullptr);
     ASSERT_EQ(inner_solver->get_size(), gko::dim<2>(3, 3));
-    ASSERT_EQ(inner_solver->get_system_matrix(), mtx);
+    ASSERT_EQ(inner_solver->get_system_matrix(), this->mtx);
 }
 
 
-TEST_F(Ir, CanSetGeneratedInnerSolverInFactory)
+TYPED_TEST(Ir, CanSetGeneratedInnerSolverInFactory)
 {
+    using Solver = typename TestFixture::Solver;
     std::shared_ptr<Solver> ir_solver =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .on(exec)
-            ->generate(mtx);
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .on(this->exec)
+            ->generate(this->mtx);
 
     auto ir_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
             .with_generated_solver(ir_solver)
-            .on(exec);
-    auto solver = ir_factory->generate(mtx);
+            .on(this->exec);
+    auto solver = ir_factory->generate(this->mtx);
     auto inner_solver = solver->get_solver();
 
     ASSERT_NE(inner_solver.get(), nullptr);
@@ -190,42 +213,46 @@ TEST_F(Ir, CanSetGeneratedInnerSolverInFactory)
 }
 
 
-TEST_F(Ir, ThrowsOnWrongInnerSolverInFactory)
+TYPED_TEST(Ir, ThrowsOnWrongInnerSolverInFactory)
 {
-    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1, 3});
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<Mtx> wrong_sized_mtx =
+        Mtx::create(this->exec, gko::dim<2>{1, 3});
     std::shared_ptr<Solver> ir_solver =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .on(exec)
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .on(this->exec)
             ->generate(wrong_sized_mtx);
 
     auto ir_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
             .with_generated_solver(ir_solver)
-            .on(exec);
+            .on(this->exec);
 
-    ASSERT_THROW(ir_factory->generate(mtx), gko::DimensionMismatch);
+    ASSERT_THROW(ir_factory->generate(this->mtx), gko::DimensionMismatch);
 }
 
 
-TEST_F(Ir, CanSetInnerSolver)
+TYPED_TEST(Ir, CanSetInnerSolver)
 {
+    using Solver = typename TestFixture::Solver;
     std::shared_ptr<Solver> ir_solver =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .on(exec)
-            ->generate(mtx);
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .on(this->exec)
+            ->generate(this->mtx);
 
     auto ir_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .on(exec);
-    auto solver = ir_factory->generate(mtx);
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .on(this->exec);
+    auto solver = ir_factory->generate(this->mtx);
     solver->set_solver(ir_solver);
     auto inner_solver = solver->get_solver();
 
@@ -234,22 +261,25 @@ TEST_F(Ir, CanSetInnerSolver)
 }
 
 
-TEST_F(Ir, ThrowOnWrongInnerSolverSet)
+TYPED_TEST(Ir, ThrowOnWrongInnerSolverSet)
 {
-    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1, 3});
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<Mtx> wrong_sized_mtx =
+        Mtx::create(this->exec, gko::dim<2>{1, 3});
     std::shared_ptr<Solver> ir_solver =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .on(exec)
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .on(this->exec)
             ->generate(wrong_sized_mtx);
 
     auto ir_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .on(exec);
-    auto solver = ir_factory->generate(mtx);
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .on(this->exec);
+    auto solver = ir_factory->generate(this->mtx);
 
     ASSERT_THROW(solver->set_solver(ir_solver), gko::DimensionMismatch);
 }
