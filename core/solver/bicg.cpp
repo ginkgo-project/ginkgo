@@ -114,20 +114,16 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
     if (transposable_system_matrix) {
         trans_A = transposable_system_matrix->transpose();
+
     } else {
-        auto csr_system_matrix_ =
-            dynamic_cast<const CsrMatrix *>(system_matrix_.get());
+        csr_system_matrix_unique_ptr = copy_and_convert_to<CsrMatrix>(
+            system_matrix_->get_executor(),
+            const_cast<LinOp *>(system_matrix_.get()));
 
-        if (csr_system_matrix_ == nullptr) {
-            csr_system_matrix_unique_ptr = copy_and_convert_to<CsrMatrix>(
-                system_matrix_->get_executor(),
-                const_cast<LinOp *>(system_matrix_.get()));
+        csr_system_matrix_unique_ptr->set_strategy(
+            std::make_shared<typename CsrMatrix::classical>());
 
-            csr_system_matrix_unique_ptr->set_strategy(
-                std::make_shared<typename CsrMatrix::classical>());
-
-            csr_system_matrix_ = csr_system_matrix_unique_ptr.get();
-        }
+        auto csr_system_matrix_ = csr_system_matrix_unique_ptr.get();
 
         trans_A = csr_system_matrix_->transpose();
     }
