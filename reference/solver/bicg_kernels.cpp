@@ -123,7 +123,7 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             }
             if (beta->at(j) != zero<ValueType>()) {
                 auto tmp = rho->at(j) / beta->at(j);
-                x->at(i, j) += tmp * p->at(i, j);  // p2?
+                x->at(i, j) += tmp * p->at(i, j);
                 r->at(i, j) -= tmp * q->at(i, j);
                 r2->at(i, j) -= tmp * q2->at(i, j);
             }
