@@ -66,6 +66,12 @@ protected:
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
 
+    std::ranlux48 rand_engine;
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::OmpExecutor> omp;
+    std::shared_ptr<const Csr> csr_ref;
+    std::shared_ptr<const Csr> csr_omp;
+
     ParIlu()
         : rand_engine(17),
           ref(gko::ReferenceExecutor::create()),
@@ -73,6 +79,20 @@ protected:
           csr_ref(nullptr),
           csr_omp(nullptr)
     {}
+
+    void SetUp() override
+    {
+        std::string file_name(gko::matrices::location_ani1_mtx);
+        auto input_file = std::ifstream(file_name, std::ios::in);
+        if (!input_file) {
+            FAIL() << "Could not find the file \"" << file_name
+                   << "\", which is required for this test.\n";
+        }
+        csr_ref = gko::read<Csr>(input_file, ref);
+        auto csr_omp_temp = Csr::create(omp);
+        csr_omp_temp->copy_from(gko::lend(csr_ref));
+        csr_omp = gko::give(csr_omp_temp);
+    }
 
     template <typename Mtx>
     std::unique_ptr<Mtx> gen_mtx(index_type num_rows, index_type num_cols)
@@ -108,26 +128,6 @@ protected:
         }
         return mtx;
     }
-
-    void SetUp() override
-    {
-        std::string file_name(gko::matrices::location_ani1_mtx);
-        auto input_file = std::ifstream(file_name, std::ios::in);
-        if (!input_file) {
-            FAIL() << "Could not find the file \"" << file_name
-                   << "\", which is required for this test.\n";
-        }
-        csr_ref = gko::read<Csr>(input_file, ref);
-        auto csr_omp_temp = Csr::create(omp);
-        csr_omp_temp->copy_from(gko::lend(csr_ref));
-        csr_omp = gko::give(csr_omp_temp);
-    }
-
-    std::ranlux48 rand_engine;
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::OmpExecutor> omp;
-    std::shared_ptr<const Csr> csr_ref;
-    std::shared_ptr<const Csr> csr_omp;
 
     void initialize_row_ptrs(index_type *l_row_ptrs_ref,
                              index_type *u_row_ptrs_ref,

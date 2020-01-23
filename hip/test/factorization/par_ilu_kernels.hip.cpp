@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <fstream>
 #include <memory>
+#include <random>
 #include <string>
 
 
@@ -64,8 +65,15 @@ protected:
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
 
+    std::ranlux48 rand_engine;
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::HipExecutor> hip;
+    std::shared_ptr<const Csr> csr_ref;
+    std::shared_ptr<const Csr> csr_hip;
+
     ParIlu()
-        : ref(gko::ReferenceExecutor::create()),
+        : rand_engine(19),
+          ref(gko::ReferenceExecutor::create()),
           hip(gko::HipExecutor::create(0, ref)),
           csr_ref(nullptr),
           csr_hip(nullptr)
@@ -85,10 +93,40 @@ protected:
         csr_hip = gko::give(csr_hip_temp);
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::HipExecutor> hip;
-    std::shared_ptr<const Csr> csr_ref;
-    std::shared_ptr<const Csr> csr_hip;
+    template <typename Mtx>
+    std::unique_ptr<Mtx> gen_mtx(index_type num_rows, index_type num_cols)
+    {
+        return gko::test::generate_random_matrix<Mtx>(
+            num_rows, num_cols,
+            std::uniform_int_distribution<index_type>(0, num_cols - 1),
+            std::normal_distribution<value_type>(0.0, 1.0), rand_engine, ref);
+    }
+
+    std::unique_ptr<Csr> gen_unsorted_mtx(index_type num_rows,
+                                          index_type num_cols)
+    {
+        using std::swap;
+        auto mtx = gen_mtx<Csr>(num_rows, num_cols);
+        auto values = mtx->get_values();
+        auto col_idxs = mtx->get_col_idxs();
+        const auto row_ptrs = mtx->get_const_row_ptrs();
+        for (int row = 0; row < num_rows; ++row) {
+            const auto row_start = row_ptrs[row];
+            const auto row_end = row_ptrs[row + 1];
+            const int num_row_elements = row_end - row_start;
+            auto idx_dist = std::uniform_int_distribution<index_type>(
+                row_start, row_end - 1);
+            for (int i = 0; i < num_row_elements / 2; ++i) {
+                auto idx1 = idx_dist(rand_engine);
+                auto idx2 = idx_dist(rand_engine);
+                if (idx1 != idx2) {
+                    swap(values[idx1], values[idx2]);
+                    swap(col_idxs[idx1], col_idxs[idx2]);
+                }
+            }
+        }
+        return mtx;
+    }
 
     void initialize_row_ptrs(index_type *l_row_ptrs_ref,
                              index_type *u_row_ptrs_ref,
@@ -173,6 +211,66 @@ protected:
         *u_hip = static_unique_ptr_cast<Csr>(std::move(u_lin_op_hip));
     }
 };
+
+
+TEST_F(ParIlu, HipKernelAddDiagonalElementsSortedEquivalentToRef)
+{
+    index_type num_rows{600};
+    index_type num_cols{600};
+    auto mtx_ref = gen_mtx<Csr>(num_rows, num_cols);
+    auto mtx_hip = Csr::create(hip);
+    mtx_hip->copy_from(gko::lend(mtx_ref));
+
+    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        ref, gko::lend(mtx_ref), true);
+    gko::kernels::hip::par_ilu_factorization::add_diagonal_elements(
+        hip, gko::lend(mtx_hip), true);
+    hip->synchronize();
+
+    ASSERT_TRUE(mtx_ref->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_NEAR(mtx_ref, mtx_hip, 0.);
+    GKO_ASSERT_MTX_EQ_SPARSITY(mtx_ref, mtx_hip);
+}
+
+
+TEST_F(ParIlu, HipKernelAddDiagonalElementsUnsortedEquivalentToRef)
+{
+    index_type num_rows{600};
+    index_type num_cols{600};
+    auto mtx_ref = gen_unsorted_mtx(num_rows, num_cols);
+    auto mtx_hip = Csr::create(hip);
+    mtx_hip->copy_from(gko::lend(mtx_ref));
+
+    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        ref, gko::lend(mtx_ref), false);
+    gko::kernels::hip::par_ilu_factorization::add_diagonal_elements(
+        hip, gko::lend(mtx_hip), false);
+    hip->synchronize();
+
+    ASSERT_FALSE(mtx_ref->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_NEAR(mtx_ref, mtx_hip, 0.);
+    GKO_ASSERT_MTX_EQ_SPARSITY(mtx_ref, mtx_hip);
+}
+
+
+TEST_F(ParIlu, HipKernelAddDiagonalElementsAsymetricEquivalentToRef)
+{
+    index_type num_rows{600};
+    index_type num_cols{500};
+    auto mtx_ref = gen_mtx<Csr>(num_rows, num_cols);
+    auto mtx_hip = Csr::create(hip);
+    mtx_hip->copy_from(gko::lend(mtx_ref));
+
+    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        ref, gko::lend(mtx_ref), true);
+    gko::kernels::hip::par_ilu_factorization::add_diagonal_elements(
+        hip, gko::lend(mtx_hip), true);
+    hip->synchronize();
+
+    ASSERT_TRUE(mtx_ref->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_NEAR(mtx_ref, mtx_hip, 0.);
+    GKO_ASSERT_MTX_EQ_SPARSITY(mtx_ref, mtx_hip);
+}
 
 
 TEST_F(ParIlu, KernelInitializeRowPtrsLUEquivalentToRef)

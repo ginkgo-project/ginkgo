@@ -33,6 +33,184 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace kernel {
 
 
+namespace detail {
+
+
+template <bool IsSorted = false>
+struct find_helper {
+    template <typename Group, typename IndexType>
+    static __device__ bool find(Group subwarp_grp, const IndexType *first,
+                                const IndexType *last, const IndexType &value)
+    {
+        auto subwarp_idx = subwarp_grp.thread_rank();
+        bool found{false};
+        for (auto curr = first + subwarp_idx; curr < last;
+             curr += subwarp_grp.size()) {
+            found = (*curr == value);
+            found = subwarp_grp.any(found);
+            if (found) {
+                break;
+            }
+        }
+        return found;
+    }
+};
+
+
+/* TODO write specialization for the sorted case.
+template <>
+struct find_helper<true> {
+    template <int SubwarpSize, typename IndexType>
+    static bool find(IndexType subwarp_idx, const IndexType *first, const
+IndexType *last, const IndexType &value)
+    {
+        return std::binary_search(first, last, value);
+    }
+};
+*/
+
+
+}  // namespace detail
+
+// SubwarpSize needs to be a power of 2
+// Each subwarp works on one row
+template <bool IsSorted, int SubwarpSize, typename IndexType>
+__global__
+    __launch_bounds__(default_block_size) void find_missing_diagonal_elements(
+        IndexType num_rows, IndexType num_cols,
+        const IndexType *__restrict__ col_idxs,
+        const IndexType *__restrict__ row_ptrs,
+        IndexType *__restrict__ elements_to_add_per_row,
+        bool *__restrict__ changes_required)
+{
+    const auto rows_covered_by_threads =
+        static_cast<size_type>(blockDim.x) * gridDim.x / SubwarpSize;
+    const auto tidx =
+        threadIdx.x + static_cast<size_type>(blockIdx.x) * blockDim.x;
+    const auto begin_row = static_cast<IndexType>(tidx / SubwarpSize);
+
+    auto thread_block = group::this_thread_block();
+    auto subwarp_grp = group::tiled_partition<SubwarpSize>(thread_block);
+    bool local_change{false};
+    for (IndexType row = begin_row; row < num_rows;
+         row += rows_covered_by_threads) {
+        if (row >= num_cols) {
+            elements_to_add_per_row[row] = 0;
+            continue;
+        }
+        const auto *start_cols = col_idxs + row_ptrs[row];
+        const auto *end_cols = col_idxs + row_ptrs[row + 1];
+        if (detail::find_helper<IsSorted>::find(subwarp_grp, start_cols,
+                                                end_cols, row)) {
+            elements_to_add_per_row[row] = 0;
+        } else {
+            elements_to_add_per_row[row] = 1;
+            local_change = true;
+        }
+    }
+    if (local_change) {
+        *changes_required = true;
+    }
+    if (tidx == 0) {
+        elements_to_add_per_row[num_rows] = 0;
+    }
+}
+
+
+// SubwarpSize needs to be a power of 2
+// Each subwarp works on one row
+template <int SubwarpSize, typename ValueType, typename IndexType>
+__global__
+    __launch_bounds__(default_block_size) void add_missing_diagonal_elements(
+        IndexType num_rows, const ValueType *__restrict__ old_values,
+        const IndexType *__restrict__ old_col_idxs,
+        const IndexType *__restrict__ old_row_ptrs,
+        ValueType *__restrict__ new_values,
+        IndexType *__restrict__ new_col_idxs,
+        const IndexType *__restrict__ row_ptrs_addition)
+{
+    const auto rows_covered_by_threads =
+        static_cast<size_type>(blockDim.x) * gridDim.x / SubwarpSize;
+    const auto tidx =
+        threadIdx.x + static_cast<size_type>(blockIdx.x) * blockDim.x;
+    const auto begin_row = static_cast<IndexType>(tidx / SubwarpSize);
+
+    auto thread_block = group::this_thread_block();
+    auto subwarp_grp = group::tiled_partition<SubwarpSize>(thread_block);
+    const auto subwarp_idx = subwarp_grp.thread_rank();
+
+    for (IndexType row = begin_row; row < num_rows;
+         row += rows_covered_by_threads) {
+        const IndexType old_row_start{old_row_ptrs[row]};
+        const IndexType old_row_end{old_row_ptrs[row + 1]};
+        const IndexType new_row_start{old_row_start + row_ptrs_addition[row]};
+        const IndexType new_row_end{old_row_end + row_ptrs_addition[row + 1]};
+
+        // if no element needs to be added, do a simple copy
+        if (new_row_end - new_row_start == old_row_end - old_row_start) {
+            for (IndexType i = subwarp_idx; i < new_row_end - new_row_start;
+                 i += SubwarpSize) {
+                const IndexType new_idx = new_row_start + i;
+                const IndexType old_idx = old_row_start + i;
+                new_values[new_idx] = old_values[old_idx];
+                new_col_idxs[new_idx] = old_col_idxs[old_idx];
+            }
+        } else {
+            IndexType new_idx = new_row_start + subwarp_idx;
+            bool diagonal_added{false};
+            for (IndexType old_idx = old_row_start + subwarp_idx;
+                 old_idx < old_row_end;
+                 old_idx += SubwarpSize, new_idx += SubwarpSize) {
+                const auto col_idx = old_col_idxs[old_idx];
+                bool diagonal_add_required = !diagonal_added && row < col_idx;
+                auto ballot = subwarp_grp.ballot(diagonal_add_required);
+                if (ballot) {
+                    auto first_subwarp_idx = ffs(ballot) - 1;
+                    if (first_subwarp_idx == subwarp_idx) {
+                        new_values[new_idx] = zero<ValueType>();
+                        new_col_idxs[new_idx] = row;
+                    }
+                    // if diagonal was inserted in a thread below this one,
+                    // add it to the new_idx.
+                    new_idx += (first_subwarp_idx <= subwarp_idx) ? 1 : 0;
+                    new_values[new_idx] = old_values[old_idx];
+                    new_col_idxs[new_idx] = col_idx;
+                    // if diagonal is inserted in a thread after this one,
+                    // it needs to be considered after writing the values
+                    new_idx += (subwarp_idx < first_subwarp_idx) ? 1 : 0;
+                    diagonal_added = true;
+                } else {
+                    new_values[new_idx] = old_values[old_idx];
+                    new_col_idxs[new_idx] = col_idx;
+                }
+            }
+            if (!diagonal_added) {
+                new_idx = new_row_end - 1;
+                new_values[new_idx] = zero<ValueType>();
+                new_col_idxs[new_idx] = row;
+            }
+        }
+    }
+}
+
+
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void update_row_ptrs(
+    IndexType num_rows, IndexType *__restrict__ row_ptrs,
+    IndexType *__restrict__ row_ptr_addition)
+{
+    const auto rows_covered_by_threads =
+        static_cast<size_type>(blockDim.x) * gridDim.x;
+    const auto begin_row =
+        threadIdx.x + static_cast<size_type>(blockIdx.x) * blockDim.x;
+
+    for (IndexType row = begin_row; row < num_rows;
+         row += rows_covered_by_threads) {
+        row_ptrs[row] += row_ptr_addition[row];
+    }
+}
+
+
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void count_nnz_per_l_u_row(
     size_type num_rows, const IndexType *__restrict__ row_ptrs,
