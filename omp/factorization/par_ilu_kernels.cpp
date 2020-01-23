@@ -58,6 +58,10 @@ namespace omp {
 namespace par_ilu_factorization {
 
 
+namespace kernel {
+namespace detail {
+
+
 template <bool IsSorted = false>
 struct find_helper {
     template <typename ForwardIt, typename IndexType>
@@ -78,13 +82,15 @@ struct find_helper<true> {
 };
 
 
+}  // namespace detail
+
+
 template <bool IsSorted, typename ValueType, typename IndexType>
 void find_missing_diagonal_elements(
     const matrix::Csr<ValueType, IndexType> *mtx,
     IndexType *elements_to_add_per_row, bool *changes_required)
 {
     auto size = mtx->get_size();
-    auto values = mtx->get_const_values();
     auto col_idxs = mtx->get_const_col_idxs();
     auto row_ptrs = mtx->get_const_row_ptrs();
     bool local_change{false};
@@ -96,7 +102,7 @@ void find_missing_diagonal_elements(
         }
         const auto *start_cols = col_idxs + row_ptrs[row];
         const auto *end_cols = col_idxs + row_ptrs[row + 1];
-        if (find_helper<IsSorted>::find(start_cols, end_cols, row)) {
+        if (detail::find_helper<IsSorted>::find(start_cols, end_cols, row)) {
             elements_to_add_per_row[row] = 0;
         } else {
             elements_to_add_per_row[row] = 1;
@@ -157,6 +163,9 @@ void add_missing_diagonal_elements(const matrix::Csr<ValueType, IndexType> *mtx,
 }
 
 
+}  // namespace kernel
+
+
 template <typename ValueType, typename IndexType>
 void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
                            matrix::Csr<ValueType, IndexType> *mtx,
@@ -167,11 +176,11 @@ void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
     Array<IndexType> row_ptrs_addition(exec, row_ptrs_size);
     bool needs_change{};
     if (is_sorted) {
-        find_missing_diagonal_elements<true>(mtx, row_ptrs_addition.get_data(),
-                                             &needs_change);
+        kernel::find_missing_diagonal_elements<true>(
+            mtx, row_ptrs_addition.get_data(), &needs_change);
     } else {
-        find_missing_diagonal_elements<false>(mtx, row_ptrs_addition.get_data(),
-                                              &needs_change);
+        kernel::find_missing_diagonal_elements<false>(
+            mtx, row_ptrs_addition.get_data(), &needs_change);
     }
     if (!needs_change) {
         return;
@@ -184,9 +193,9 @@ void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
                               row_ptrs_addition.get_data()[row_ptrs_size - 1];
     Array<ValueType> new_values{exec, new_num_elems};
     Array<IndexType> new_col_idxs{exec, new_num_elems};
-    add_missing_diagonal_elements(mtx, new_values.get_data(),
-                                  new_col_idxs.get_data(),
-                                  row_ptrs_addition.get_const_data());
+    kernel::add_missing_diagonal_elements(mtx, new_values.get_data(),
+                                          new_col_idxs.get_data(),
+                                          row_ptrs_addition.get_const_data());
 
     auto old_row_ptrs_ptr = mtx->get_row_ptrs();
     auto row_ptrs_addition_ptr = row_ptrs_addition.get_const_data();
