@@ -113,6 +113,19 @@ protected:
               {{4., 6., 8.},
                {0., -1., 1.},
                {0., 0., -1.5}}, exec)),
+          mtx_small2(gko::initialize<Dense>(
+              {{8., 8., 0},
+              {2., 0., 5.},
+              {1., 1., 1}}, exec)),
+          mtx_csr_small2(nullptr),
+          small2_l_expected(gko::initialize<Dense>(
+              {{1., 0., 0},
+              {.25, 1., 0.},
+              {.125, 0., 1}}, exec)),
+          small2_u_expected(gko::initialize<Dense>(
+              {{8., 8., 0},
+              {0., -2., 5.},
+              {0., 0., 1}}, exec)),
           mtx_big(gko::initialize<Dense>({{1., 1., 1., 0., 1., 3.},
                                           {1., 2., 2., 0., 2., 0.},
                                           {0., 2., 3., 3., 3., 5.},
@@ -164,6 +177,9 @@ protected:
         auto tmp_csr = Csr::create(exec);
         mtx_small->convert_to(gko::lend(tmp_csr));
         mtx_csr_small = std::move(tmp_csr);
+        auto tmp_csr2 = Csr::create(exec);
+        mtx_small2->convert_to(gko::lend(tmp_csr2));
+        mtx_csr_small2 = std::move(tmp_csr2);
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
@@ -176,6 +192,10 @@ protected:
     std::shared_ptr<const Csr> mtx_csr_small;
     std::shared_ptr<const Dense> small_l_expected;
     std::shared_ptr<const Dense> small_u_expected;
+    std::shared_ptr<const Dense> mtx_small2;
+    std::shared_ptr<const Csr> mtx_csr_small2;
+    std::shared_ptr<const Dense> small2_l_expected;
+    std::shared_ptr<const Dense> small2_u_expected;
     std::shared_ptr<const Dense> mtx_big;
     std::shared_ptr<const Dense> big_l_expected;
     std::shared_ptr<const Dense> big_u_expected;
@@ -554,6 +574,17 @@ TEST_F(ParIlu, GenerateForCsrSmall)
 
     GKO_ASSERT_MTX_NEAR(l_factor, small_l_expected, 1e-14);
     GKO_ASSERT_MTX_NEAR(u_factor, small_u_expected, 1e-14);
+}
+
+
+TEST_F(ParIlu, GenerateForCsrSmall2ZeroDiagonal)
+{
+    auto factors = ilu_factory_skip->generate(mtx_csr_small2);
+    auto l_factor = factors->get_l_factor();
+    auto u_factor = factors->get_u_factor();
+
+    GKO_ASSERT_MTX_NEAR(l_factor, small2_l_expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(u_factor, small2_u_expected, 1e-14);
 }
 
 
