@@ -36,7 +36,8 @@ namespace kernel {
 namespace detail {
 
 
-template <bool IsSorted = false>
+// Default implementation for the unsorted case
+template <bool IsSorted>
 struct find_helper {
     template <typename Group, typename IndexType>
     static __device__ bool find(Group subwarp_grp, const IndexType *first,
@@ -44,9 +45,10 @@ struct find_helper {
     {
         auto subwarp_idx = subwarp_grp.thread_rank();
         bool found{false};
-        for (auto curr = first + subwarp_idx; curr < last;
-             curr += subwarp_grp.size()) {
-            found = (*curr == value);
+        for (auto curr_start = first; curr_start < last;
+             curr_start += subwarp_grp.size()) {
+            const auto curr = curr_start + subwarp_idx;
+            found = (curr < last && *curr == value);
             found = subwarp_grp.any(found);
             if (found) {
                 break;
@@ -60,17 +62,17 @@ struct find_helper {
 /* TODO write specialization for the sorted case.
 template <>
 struct find_helper<true> {
-    template <int SubwarpSize, typename IndexType>
-    static bool find(IndexType subwarp_idx, const IndexType *first, const
-IndexType *last, const IndexType &value)
+    template <typename Group, typename IndexType>
+    static __device__ bool find(Group subwarp_grp, const IndexType *first,
+                                const IndexType *last, const IndexType &value)
     {
-        return std::binary_search(first, last, value);
     }
 };
 */
 
 
 }  // namespace detail
+
 
 // SubwarpSize needs to be a power of 2
 // Each subwarp works on one row
@@ -91,28 +93,34 @@ __global__
 
     auto thread_block = group::this_thread_block();
     auto subwarp_grp = group::tiled_partition<SubwarpSize>(thread_block);
+    const auto subwarp_idx = subwarp_grp.thread_rank();
+
     bool local_change{false};
     for (IndexType row = begin_row; row < num_rows;
          row += rows_covered_by_threads) {
         if (row >= num_cols) {
-            elements_to_add_per_row[row] = 0;
+            if (subwarp_idx == 0) {
+                elements_to_add_per_row[row] = 0;
+            }
             continue;
         }
         const auto *start_cols = col_idxs + row_ptrs[row];
         const auto *end_cols = col_idxs + row_ptrs[row + 1];
         if (detail::find_helper<IsSorted>::find(subwarp_grp, start_cols,
                                                 end_cols, row)) {
-            elements_to_add_per_row[row] = 0;
+            if (subwarp_idx == 0) {
+                elements_to_add_per_row[row] = 0;
+            }
         } else {
-            elements_to_add_per_row[row] = 1;
+            if (subwarp_idx == 0) {
+                elements_to_add_per_row[row] = 1;
+            }
             local_change = true;
         }
     }
-    if (local_change) {
+    // Could also be reduced (not sure if that leads to a performance benefit)
+    if (local_change && subwarp_idx == 0) {
         *changes_required = true;
-    }
-    if (tidx == 0) {
-        elements_to_add_per_row[num_rows] = 0;
     }
 }
 
@@ -129,6 +137,7 @@ __global__
         IndexType *__restrict__ new_col_idxs,
         const IndexType *__restrict__ row_ptrs_addition)
 {
+    // Precaution in case not enough threads were created
     const auto rows_covered_by_threads =
         static_cast<size_type>(blockDim.x) * gridDim.x / SubwarpSize;
     const auto tidx =
@@ -158,10 +167,14 @@ __global__
         } else {
             IndexType new_idx = new_row_start + subwarp_idx;
             bool diagonal_added{false};
-            for (IndexType old_idx = old_row_start + subwarp_idx;
-                 old_idx < old_row_end;
-                 old_idx += SubwarpSize, new_idx += SubwarpSize) {
-                const auto col_idx = old_col_idxs[old_idx];
+            for (IndexType old_idx_start = old_row_start;
+                 old_idx_start < old_row_end;
+                 old_idx_start += SubwarpSize, new_idx += SubwarpSize) {
+                const auto old_idx = old_idx_start + subwarp_idx;
+                bool thread_is_active = old_idx < old_row_end;
+                const auto col_idx =
+                    thread_is_active ? old_col_idxs[old_idx] : IndexType{};
+                // automatically false if thread is not active
                 bool diagonal_add_required = !diagonal_added && row < col_idx;
                 auto ballot = subwarp_grp.ballot(diagonal_add_required);
                 if (ballot) {
@@ -170,21 +183,23 @@ __global__
                         new_values[new_idx] = zero<ValueType>();
                         new_col_idxs[new_idx] = row;
                     }
-                    // if diagonal was inserted in a thread below this one,
-                    // add it to the new_idx.
-                    new_idx += (first_subwarp_idx <= subwarp_idx) ? 1 : 0;
-                    new_values[new_idx] = old_values[old_idx];
-                    new_col_idxs[new_idx] = col_idx;
-                    // if diagonal is inserted in a thread after this one,
-                    // it needs to be considered after writing the values
-                    new_idx += (subwarp_idx < first_subwarp_idx) ? 1 : 0;
+                    if (thread_is_active) {
+                        // if diagonal was inserted in a thread below this one,
+                        // add it to the new_idx.
+                        new_idx += (first_subwarp_idx <= subwarp_idx) ? 1 : 0;
+                        new_values[new_idx] = old_values[old_idx];
+                        new_col_idxs[new_idx] = col_idx;
+                        // if diagonal is inserted in a thread after this one,
+                        // it needs to be considered after writing the values
+                        new_idx += (subwarp_idx < first_subwarp_idx) ? 1 : 0;
+                    }
                     diagonal_added = true;
-                } else {
+                } else if (thread_is_active) {
                     new_values[new_idx] = old_values[old_idx];
                     new_col_idxs[new_idx] = col_idx;
                 }
             }
-            if (!diagonal_added) {
+            if (!diagonal_added && subwarp_idx == 0) {
                 new_idx = new_row_end - 1;
                 new_values[new_idx] = zero<ValueType>();
                 new_col_idxs[new_idx] = row;
