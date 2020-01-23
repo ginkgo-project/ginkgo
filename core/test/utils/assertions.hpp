@@ -47,6 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include <core/base/extended_float.hpp>
+
+
 namespace gko {
 namespace test {
 namespace assertions {
@@ -320,6 +323,85 @@ std::string remove_list_wrapper(const std::string &expression)
 
 
 /**
+ * This is a gtest predicate which checks if two values are relatively near.
+ *
+ * This function should not be called directly, but used in conjunction with
+ * `ASSERT_PRED_FORMAT3` as follows:
+ *
+ * ```
+ * // Check if first and second are near
+ * ASSERT_PRED_FORMAT3(gko::test::assertions::values_near,
+ *                     first, second, tolerance);
+ * // Check if first and second are far
+ * ASSERT_PRED_FORMAT3(!gko::test::assertions::values_near,
+ *                     first, second, tolerance);
+ * ```
+ *
+ * @see GKO_ASSERT_MTX_NEAR
+ * @see GKO_EXPECT_MTX_NEAR
+ */
+template <typename T, typename U>
+::testing::AssertionResult values_near(const std::string &first_expression,
+                                       const std::string &second_expression,
+                                       const std::string &tolerance_expression,
+                                       T val1, U val2, double abs_error)
+{
+    static_assert(std::is_same<T, U>(),
+                  "The types of the operands should be the same.");
+    const double diff = abs(val1 - val2);
+    if (diff <= abs_error) return ::testing::AssertionSuccess();
+
+    return ::testing::AssertionFailure()
+           << "The difference between " << first_expression << " and "
+           << second_expression << " is " << diff << ", which exceeds "
+           << tolerance_expression << ", where\n"
+           << first_expression << " evaluates to " << val1 << ",\n"
+           << second_expression << " evaluates to " << val2 << ", and\n"
+           << tolerance_expression << " evaluates to " << abs_error << ".";
+}
+
+
+template <>
+::testing::AssertionResult values_near<gko::half, gko::half>(
+    const std::string &first_expression, const std::string &second_expression,
+    const std::string &tolerance_expression, gko::half val1, gko::half val2,
+    double abs_error)
+{
+    using T = float32;
+    const double diff = abs(T{val1} - T{val2});
+    if (diff <= abs_error) return ::testing::AssertionSuccess();
+
+    return ::testing::AssertionFailure()
+           << "The difference between " << first_expression << " and "
+           << second_expression << " is " << diff << ", which exceeds "
+           << tolerance_expression << ", where\n"
+           << first_expression << " evaluates to " << T{val1} << ",\n"
+           << second_expression << " evaluates to " << T{val2} << ", and\n"
+           << tolerance_expression << " evaluates to " << abs_error << ".";
+}
+
+
+template <>
+::testing::AssertionResult values_near<std::complex<half>, std::complex<half>>(
+    const std::string &first_expression, const std::string &second_expression,
+    const std::string &tolerance_expression, std::complex<half> val1,
+    std::complex<half> val2, double abs_error)
+{
+    using T = std::complex<float32>;
+    const double diff = abs(T{val1} - T{val2});
+    if (diff <= abs_error) return ::testing::AssertionSuccess();
+
+    return ::testing::AssertionFailure()
+           << "The difference between " << first_expression << " and "
+           << second_expression << " is " << diff << ", which exceeds "
+           << tolerance_expression << ", where\n"
+           << first_expression << " evaluates to " << T{val1} << ",\n"
+           << second_expression << " evaluates to " << T{val2} << ", and\n"
+           << tolerance_expression << " evaluates to " << abs_error << ".";
+}
+
+
+/**
  * This is a gtest predicate which checks if two matrices are relatively near.
  *
  * More formally, it checks whether the following equation holds:
@@ -525,6 +607,33 @@ T plain_ptr(T ptr)
 }  // namespace assertions
 }  // namespace test
 }  // namespace gko
+
+
+/**
+ * Checks if two values are near each other.
+ *
+ * Has to be called from within a google test unit test.
+ * Internally calls gko::test::assertions::values_near().
+ *
+ * @param _val1  first value
+ * @param _val2  second value
+ * @param _tol  tolerance level
+ */
+#define GKO_ASSERT_NEAR(_val1, _val2, _tol)                              \
+    {                                                                    \
+        ASSERT_PRED_FORMAT3(::gko::test::assertions::values_near, _val1, \
+                            _val2, _tol);                                \
+    }
+
+
+/**
+ * @copydoc GKO_ASSERT_NEAR
+ */
+#define GKO_EXPECT_NEAR(_val1, _val2, _tol)                              \
+    {                                                                    \
+        EXPECT_PRED_FORMAT3(::gko::test::assertions::values_near, _val1, \
+                            _val2, _tol);                                \
+    }
 
 
 /**
