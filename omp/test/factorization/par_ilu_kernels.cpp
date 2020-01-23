@@ -75,11 +75,38 @@ protected:
     {}
 
     template <typename Mtx>
-    std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
+    std::unique_ptr<Mtx> gen_mtx(index_type num_rows, index_type num_cols)
     {
         return gko::test::generate_random_matrix<Mtx>(
-            num_rows, num_cols, std::uniform_int_distribution<>(0, num_cols),
-            std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
+            num_rows, num_cols,
+            std::uniform_int_distribution<index_type>(0, num_cols - 1),
+            std::normal_distribution<value_type>(0.0, 1.0), rand_engine, ref);
+    }
+
+    std::unique_ptr<Csr> gen_unsorted_mtx(index_type num_rows,
+                                          index_type num_cols)
+    {
+        using std::swap;
+        auto mtx = gen_mtx<Csr>(num_rows, num_cols);
+        auto values = mtx->get_values();
+        auto col_idxs = mtx->get_col_idxs();
+        const auto row_ptrs = mtx->get_const_row_ptrs();
+        for (int row = 0; row < num_rows; ++row) {
+            const auto row_start = row_ptrs[row];
+            const auto row_end = row_ptrs[row + 1];
+            const int num_row_elements = row_end - row_start;
+            auto idx_dist = std::uniform_int_distribution<index_type>(
+                row_start, row_end - 1);
+            for (int i = 0; i < num_row_elements / 2; ++i) {
+                auto idx1 = idx_dist(rand_engine);
+                auto idx2 = idx_dist(rand_engine);
+                if (idx1 != idx2) {
+                    swap(values[idx1], values[idx2]);
+                    swap(col_idxs[idx1], col_idxs[idx2]);
+                }
+            }
+        }
+        return mtx;
     }
 
     void SetUp() override
@@ -189,42 +216,56 @@ protected:
 
 TEST_F(ParIlu, OmpKernelAddDiagonalElementsSortedEquivalentToRef)
 {
-    size_t num_rows = 200;
-    size_t num_cols = 200;
-    auto dense_mtx = gen_mtx<Dense>(num_rows, num_cols);
-    // ensure that at least some diagonal entries are zero
-    dense_mtx->get_values()[0] = gko::zero<value_type>();
-    auto idx = num_rows / 2;
-    dense_mtx->get_values()[idx * num_cols + idx] = gko::zero<value_type>();
-    auto mtx_ref = Csr::create(ref);
-    dense_mtx->convert_to(mtx_ref.get());
+    index_type num_rows{200};
+    index_type num_cols{200};
+    auto mtx_ref = gen_mtx<Csr>(num_rows, num_cols);
     auto mtx_omp = Csr::create(omp);
-    dense_mtx->convert_to(mtx_omp.get());
+    mtx_omp->copy_from(gko::lend(mtx_ref));
 
     gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
-        ref, mtx_ref.get(), true);
+        ref, gko::lend(mtx_ref), true);
     gko::kernels::omp::par_ilu_factorization::add_diagonal_elements(
-        omp, mtx_omp.get(), true);
+        omp, gko::lend(mtx_omp), true);
 
+    ASSERT_TRUE(mtx_ref->is_sorted_by_column_index());
     GKO_ASSERT_MTX_NEAR(mtx_ref, mtx_omp, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(mtx_ref, mtx_omp);
 }
 
 
-// TODO add test for unsorted matrices
-TEST_F(ParIlu, OmpKernelAddDiagonalElementsAsymetricEquivalentToRef)
+TEST_F(ParIlu, OmpKernelAddDiagonalElementsUnsortedEquivalentToRef)
 {
-    size_t num_rows = 20;
-    size_t num_cols = 10;
-    auto mtx_ref = gen_mtx<Csr>(num_rows, num_cols);
+    index_type num_rows{200};
+    index_type num_cols{200};
+    auto mtx_ref = gen_unsorted_mtx(num_rows, num_cols);
     auto mtx_omp = Csr::create(omp);
-    mtx_omp->copy_from(mtx_ref.get());
+    mtx_omp->copy_from(gko::lend(mtx_ref));
 
     gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
-        ref, mtx_ref.get(), true);
+        ref, gko::lend(mtx_ref), false);
     gko::kernels::omp::par_ilu_factorization::add_diagonal_elements(
-        omp, mtx_omp.get(), true);
+        omp, gko::lend(mtx_omp), false);
 
+    ASSERT_FALSE(mtx_ref->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_NEAR(mtx_ref, mtx_omp, 0.);
+    GKO_ASSERT_MTX_EQ_SPARSITY(mtx_ref, mtx_omp);
+}
+
+
+TEST_F(ParIlu, OmpKernelAddDiagonalElementsAsymetricEquivalentToRef)
+{
+    index_type num_rows{200};
+    index_type num_cols{100};
+    auto mtx_ref = gen_mtx<Csr>(num_rows, num_cols);
+    auto mtx_omp = Csr::create(omp);
+    mtx_omp->copy_from(gko::lend(mtx_ref));
+
+    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        ref, gko::lend(mtx_ref), true);
+    gko::kernels::omp::par_ilu_factorization::add_diagonal_elements(
+        omp, gko::lend(mtx_omp), true);
+
+    ASSERT_TRUE(mtx_ref->is_sorted_by_column_index());
     GKO_ASSERT_MTX_NEAR(mtx_ref, mtx_omp, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(mtx_ref, mtx_omp);
 }

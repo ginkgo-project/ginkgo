@@ -87,10 +87,13 @@ void find_missing_diagonal_elements(
     auto values = mtx->get_const_values();
     auto col_idxs = mtx->get_const_col_idxs();
     auto row_ptrs = mtx->get_const_row_ptrs();
-    size_type row_limit{(size[0] < size[1]) ? size[0] : size[1]};
     bool local_change{false};
 #pragma omp parallel for reduction(|| : local_change)
-    for (IndexType row = 0; row < row_limit; ++row) {
+    for (IndexType row = 0; row < size[0]; ++row) {
+        if (row >= size[1]) {
+            elements_to_add_per_row[row] = 0;
+            continue;
+        }
         const auto *start_cols = col_idxs + row_ptrs[row];
         const auto *end_cols = col_idxs + row_ptrs[row + 1];
         if (find_helper<IsSorted>::find(start_cols, end_cols, row)) {
@@ -105,23 +108,22 @@ void find_missing_diagonal_elements(
 
 
 template <typename ValueType, typename IndexType>
-void add_missing_diagonal_elements(matrix::Csr<ValueType, IndexType> *mtx,
+void add_missing_diagonal_elements(const matrix::Csr<ValueType, IndexType> *mtx,
                                    ValueType *new_values,
                                    IndexType *new_col_idxs,
-                                   const IndexType *row_ptrs_add)
+                                   const IndexType *row_ptrs_addition)
 {
     const auto num_rows = mtx->get_size()[0];
     const auto old_values = mtx->get_const_values();
     const auto old_col_idxs = mtx->get_const_col_idxs();
-    auto row_ptrs = mtx->get_row_ptrs();
+    const auto row_ptrs = mtx->get_const_row_ptrs();
 #pragma omp parallel for
     for (IndexType row = 0; row < num_rows; ++row) {
         const IndexType old_row_start{row_ptrs[row]};
         const IndexType old_row_end{row_ptrs[row + 1]};
-        const IndexType new_row_start{row_ptrs_add[row] + old_row_start};
-        const IndexType new_row_end{row_ptrs_add[row + 1] + old_row_end};
+        const IndexType new_row_start{old_row_start + row_ptrs_addition[row]};
+        const IndexType new_row_end{old_row_end + row_ptrs_addition[row + 1]};
 
-        row_ptrs[row] = new_row_start;
         // if no element needs to be added, do a simple copy
         if (new_row_end - new_row_start == old_row_end - old_row_start) {
             for (IndexType i = 0; i < new_row_end - new_row_start; ++i) {
@@ -143,7 +145,7 @@ void add_missing_diagonal_elements(matrix::Csr<ValueType, IndexType> *mtx,
                     diagonal_added = true;
                 }
                 new_values[new_idx] = old_values[old_idx];
-                new_col_idxs[new_idx] = old_col_idxs[old_idx];
+                new_col_idxs[new_idx] = col_idx;
             }
             if (!diagonal_added) {
                 new_values[new_idx] = zero<ValueType>();
@@ -152,7 +154,6 @@ void add_missing_diagonal_elements(matrix::Csr<ValueType, IndexType> *mtx,
             }
         }
     }
-    row_ptrs[num_rows] += row_ptrs_add[num_rows];
 }
 
 
@@ -179,13 +180,20 @@ void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
     row_ptrs_addition.get_data()[row_ptrs_size - 1] = 0;
     prefix_sum(exec, row_ptrs_addition.get_data(), row_ptrs_size);
 
-    auto new_num_elems = row_ptrs_addition.get_data()[row_ptrs_size - 1] +
-                         mtx->get_num_stored_elements();
+    size_type new_num_elems = mtx->get_num_stored_elements() +
+                              row_ptrs_addition.get_data()[row_ptrs_size - 1];
     Array<ValueType> new_values{exec, new_num_elems};
     Array<IndexType> new_col_idxs{exec, new_num_elems};
     add_missing_diagonal_elements(mtx, new_values.get_data(),
                                   new_col_idxs.get_data(),
                                   row_ptrs_addition.get_const_data());
+
+    auto old_row_ptrs_ptr = mtx->get_row_ptrs();
+    auto row_ptrs_addition_ptr = row_ptrs_addition.get_const_data();
+#pragma omp parallel for
+    for (IndexType i = 0; i < row_ptrs_size; ++i) {
+        old_row_ptrs_ptr[i] += row_ptrs_addition_ptr[i];
+    }
 
     matrix::CsrBuilder<ValueType, IndexType> mtx_builder{mtx};
     mtx_builder.get_value_array() = std::move(new_values);
@@ -315,7 +323,7 @@ void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
     auto vals_l = l_factor->get_values();
     auto vals_u = u_factor->get_values();
     for (size_type iter = 0; iter < iterations; ++iter) {
-        // all elements in the incomplete factors are updated in parallel
+    // all elements in the incomplete factors are updated in parallel
 #pragma omp parallel for
         for (size_type el = 0; el < system_matrix->get_num_stored_elements();
              ++el) {
