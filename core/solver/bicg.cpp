@@ -33,8 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/bicg.hpp>
 
 
-#include <iostream>
-
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -65,11 +63,8 @@ template <typename ValueType, typename IndexType>
 void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using std::swap;
-
     using Vector = matrix::Dense<ValueType>;
-
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
-
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
@@ -103,11 +98,10 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
         dense_b, r.get(), z.get(), p.get(), q.get(), prev_rho.get(), rho.get(),
         r2.get(), z2.get(), p2.get(), q2.get(), &stop_status));
 
-    // r = dense_b
     // rho = 0.0
     // prev_rho = 1.0
     // z = p = q = 0
-    // r2 = dense_b
+    // r = r2 = dense_b
     // z2 = p2 = q2 = 0
 
     decltype(copy_and_convert_to<CsrMatrix>(
@@ -138,9 +132,9 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
         trans_A = csr_system_matrix_->transpose();
     }
 
-    auto trans_Preconditioner_tmp =
+    auto trans_preconditioner_tmp =
         as<const Transposable>(get_preconditioner().get());
-    auto trans_Preconditioner = trans_Preconditioner_tmp->transpose();
+    auto trans_preconditioner = trans_preconditioner_tmp->transpose();
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     // r = r - Ax =  -1.0 * A*dense_x + 1.0*r
@@ -156,7 +150,7 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
     while (true) {
         get_preconditioner()->apply(r.get(), z.get());
-        trans_Preconditioner->apply(r2.get(), z2.get());
+        trans_preconditioner->apply(r2.get(), z2.get());
 
         z->compute_dot(r2.get(), rho.get());
 

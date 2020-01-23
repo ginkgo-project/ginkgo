@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
+
 #include "core/test/utils.hpp"
 
 

@@ -68,11 +68,13 @@ std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate_impl(
                                        base->get_size()[0]);
 }
 
+
 template <typename ValueType>
 std::unique_ptr<LinOp> Identity<ValueType>::transpose() const
 {
     return this->clone();
 }
+
 
 template <typename ValueType>
 std::unique_ptr<LinOp> Identity<ValueType>::conj_transpose() const
