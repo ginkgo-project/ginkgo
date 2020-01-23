@@ -110,7 +110,8 @@ namespace preconditioner {
 template <typename LSolverType = solver::LowerTrs<>,
           typename USolverType = solver::UpperTrs<>, bool ReverseApply = false,
           typename IndexTypeParIlu = int32>
-class Ilu : public EnableLinOp<Ilu<LSolverType, USolverType, ReverseApply>> {
+class Ilu : public EnableLinOp<
+                Ilu<LSolverType, USolverType, ReverseApply, IndexTypeParIlu>> {
     friend class EnableLinOp<Ilu>;
     friend class EnablePolymorphicObject<Ilu, LinOp>;
 
@@ -314,7 +315,7 @@ protected:
             .with_criteria(gko::stop::Iteration::build()
                                .with_max_iters(default_max_iters)
                                .on(exec),
-                           gko::stop::ResidualNormReduction<>::build()
+                           gko::stop::ResidualNormReduction<value_type>::build()
                                .with_reduction_factor(default_reduce_residual)
                                .on(exec))
             .on(exec)
