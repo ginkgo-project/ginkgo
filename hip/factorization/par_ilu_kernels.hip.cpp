@@ -95,13 +95,15 @@ void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
         1, 1};
     if (is_sorted) {
         hipLaunchKernelGGL(
-            kernel::find_missing_diagonal_elements<true, subwarp_size>,
+            HIP_KERNEL_NAME(
+                kernel::find_missing_diagonal_elements<true, subwarp_size>),
             grid_dim, block_dim, 0, 0, num_rows, num_cols, hip_old_col_idxs,
             hip_old_row_ptrs, hip_row_ptrs_add,
             as_hip_type(needs_change_device.get_data()));
     } else {
         hipLaunchKernelGGL(
-            kernel::find_missing_diagonal_elements<false, subwarp_size>,
+            HIP_KERNEL_NAME(
+                kernel::find_missing_diagonal_elements<false, subwarp_size>),
             grid_dim, block_dim, 0, 0, num_rows, num_cols, hip_old_col_idxs,
             hip_old_row_ptrs, hip_row_ptrs_add,
             as_hip_type(needs_change_device.get_data()));
@@ -126,10 +128,10 @@ void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
     auto hip_new_values = as_hip_type(new_values.get_data());
     auto hip_new_col_idxs = as_hip_type(new_col_idxs.get_data());
 
-    hipLaunchKernelGGL(kernel::add_missing_diagonal_elements<subwarp_size>,
-                       grid_dim, block_dim, 0, 0, num_rows, hip_old_values,
-                       hip_old_col_idxs, hip_old_row_ptrs, hip_new_values,
-                       hip_new_col_idxs, hip_row_ptrs_add);
+    hipLaunchKernelGGL(
+        HIP_KERNEL_NAME(kernel::add_missing_diagonal_elements<subwarp_size>),
+        grid_dim, block_dim, 0, 0, num_rows, hip_old_values, hip_old_col_idxs,
+        hip_old_row_ptrs, hip_new_values, hip_new_col_idxs, hip_row_ptrs_add);
 
     const dim3 grid_dim_row_ptrs_update{
         static_cast<uint32>(
