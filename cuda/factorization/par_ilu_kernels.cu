@@ -76,29 +76,36 @@ void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
     size_type row_ptrs_size = num_rows + 1;
 
     Array<IndexType> row_ptrs_addition(exec, row_ptrs_size);
-    Array<bool> needs_change{exec, 1};
+    Array<bool> needs_change_host{exec->get_master(), 1};
+    needs_change_host.get_data()[0] = false;
+    Array<bool> needs_change_device{exec, 1};
+    needs_change_device = needs_change_host;
 
     auto cuda_old_values = as_cuda_type(mtx->get_const_values());
     auto cuda_old_col_idxs = as_cuda_type(mtx->get_const_col_idxs());
     auto cuda_old_row_ptrs = as_cuda_type(mtx->get_row_ptrs());
     auto cuda_row_ptrs_add = as_cuda_type(row_ptrs_addition.get_data());
 
-    dim3 block_dim{default_block_size};
-    dim3 grid_dim{static_cast<uint32>(
-        ceildiv(num_rows, static_cast<size_type>(block_dim.x / subwarp_size)))};
+    const dim3 block_dim{default_block_size, 1, 1};
+    const dim3 grid_dim{
+        static_cast<uint32>(ceildiv(
+            num_rows, static_cast<size_type>(block_dim.x / subwarp_size))),
+        1, 1};
     if (is_sorted) {
         kernel::find_missing_diagonal_elements<true, subwarp_size>
-            <<<grid_dim, block_dim>>>(num_rows, num_cols, cuda_old_col_idxs,
-                                      cuda_old_row_ptrs, cuda_row_ptrs_add,
-                                      as_cuda_type(needs_change.get_data()));
+            <<<grid_dim, block_dim>>>(
+                num_rows, num_cols, cuda_old_col_idxs, cuda_old_row_ptrs,
+                cuda_row_ptrs_add,
+                as_cuda_type(needs_change_device.get_data()));
     } else {
         kernel::find_missing_diagonal_elements<false, subwarp_size>
-            <<<grid_dim, block_dim>>>(num_rows, num_cols, cuda_old_col_idxs,
-                                      cuda_old_row_ptrs, cuda_row_ptrs_add,
-                                      as_cuda_type(needs_change.get_data()));
+            <<<grid_dim, block_dim>>>(
+                num_rows, num_cols, cuda_old_col_idxs, cuda_old_row_ptrs,
+                cuda_row_ptrs_add,
+                as_cuda_type(needs_change_device.get_data()));
     }
-    needs_change.set_executor(exec->get_master());
-    if (!needs_change.get_const_data()[0]) {
+    needs_change_host = needs_change_device;
+    if (!needs_change_host.get_const_data()[0]) {
         return;
     }
 
@@ -122,8 +129,10 @@ void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
                                   cuda_old_row_ptrs, cuda_new_values,
                                   cuda_new_col_idxs, cuda_row_ptrs_add);
 
-    dim3 grid_dim_row_ptrs_update{static_cast<uint32>(
-        ceildiv(num_rows, static_cast<size_type>(block_dim.x)))};
+    const dim3 grid_dim_row_ptrs_update{
+        static_cast<uint32>(
+            ceildiv(num_rows, static_cast<size_type>(block_dim.x))),
+        1, 1};
     kernel::update_row_ptrs<<<grid_dim_row_ptrs_update, block_dim>>>(
         num_rows + 1, cuda_old_row_ptrs, cuda_row_ptrs_add);
 
