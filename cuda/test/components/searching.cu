@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 #include <numeric>
+#include <vector>
 
 
 #include <gtest/gtest.h>
@@ -97,7 +98,7 @@ __device__ void test_assert(bool *success, bool predicate)
 
 __global__ void test_binary_search(bool *success, int offset, int size)
 {
-    // test binary search on [0, size)
+    // test binary search on [offset, offset + size)
     // for all possible partition points
     auto result = binary_search(offset, size, [&](int i) {
         // don't access out-of-bounds!
@@ -147,7 +148,7 @@ TEST_F(Searching, BinaryEmptyOffset)
 
 __global__ void test_sync_binary_search(bool *success, int, int size)
 {
-    // test binary search on [0, warp_size)
+    // test binary search on [0, size)
     // for all possible partition points
     auto result = synchronous_binary_search(size, [&](int i) {
         // don't access out-of-bounds!
@@ -187,7 +188,7 @@ TEST_F(Searching, EmptySyncBinary)
 
 __global__ void test_warp_ary_search(bool *success, int offset, int size)
 {
-    // test binary search on [0, length)
+    // test binary search on [offset, offset + size)
     // for all possible partition points
     auto warp = group::tiled_partition<config::warp_size>(this_thread_block());
     auto result = group_ary_search(offset, size, warp, [&](int i) {
@@ -215,7 +216,7 @@ TEST_F(Searching, WarpAryOffset)
 
 __global__ void test_warp_wide_search(bool *success, int offset, int size)
 {
-    // test binary search on [0, length)
+    // test binary search on [offset, offset + size)
     // for all possible partition points
     auto warp = group::tiled_partition<config::warp_size>(this_thread_block());
     auto result = group_wide_search(offset, size, warp, [&](int i) {
