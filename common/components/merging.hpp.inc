@@ -35,7 +35,7 @@ namespace detail {
 
 /**
  * @internal
- * The result from the @ref parallel_merge_step function.
+ * The result from the @ref group_merge_step function.
  */
 template <typename ValueType>
 struct merge_result {
@@ -71,8 +71,8 @@ checked_load(const ValueType *p, IndexType i, IndexType size,
  * Warp-parallel merge algorithm that merges the first `warp_size` elements from
  * two ranges, where each warp stores a single element from each range.
  * It assumes that the elements are sorted in ascending order, i.e. for i < j,
- * the value of `a` at thread i is smaller or equal the value at thread j, and
- * the same holds for `b`.
+ * the value of `a` at thread i is smaller or equal to the value at thread j,
+ * and the same holds for `b`.
  *
  * This implementation is based on ideas from  Green et al.,
  * "GPU merge path: a GPU merging algorithm", but uses random-access warp
@@ -115,7 +115,7 @@ __device__ detail::merge_result<ValueType> group_merge_step(ValueType a,
     auto a_val = group.shfl(a, a_idx);
     auto b_val = group.shfl(b, b_idx);
     auto cmp = a_val < b_val;
-    auto a_advance = int(popcnt(group.ballot(cmp)));
+    auto a_advance = popcnt(group.ballot(cmp));
     auto b_advance = int(group.size()) - a_advance;
 
     return {a_val, b_val, a_idx, b_idx, a_advance, b_advance};
@@ -125,7 +125,7 @@ __device__ detail::merge_result<ValueType> group_merge_step(ValueType a,
 /**
  * @internal
  * Warp-parallel merge algorithm that merges two sorted ranges of arbitrary
- * size. `merge_fun` will be called for each merged element.
+ * size. `merge_fn` will be called for each merged element.
  *
  * @param a       the first range
  * @param a_size  the size of the first range
@@ -195,7 +195,7 @@ __device__ void group_merge(const ValueType *a, IndexType a_size,
 /**
  * @internal
  * Sequential merge algorithm that merges two sorted ranges of arbitrary
- * size. `merge_fun` will be called for each merged element.
+ * size. `merge_fn` will be called for each merged element.
  *
  * @param a  the first range
  * @param a_size the size of the first range

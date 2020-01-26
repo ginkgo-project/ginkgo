@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <memory>
 #include <random>
+#include <vector>
 
 
 #include <gtest/gtest.h>
@@ -66,7 +67,6 @@ protected:
           hip(gko::HipExecutor::create(0, ref)),
           rng(123456),
           rng_runs{100},
-          rng_run{},
           max_size{1637},
           sizes{0,  1,  2,   3,   4,   10,  15,   16,
                 31, 34, 102, 242, 534, 956, 1239, 1637},
@@ -91,17 +91,17 @@ protected:
           doutdata(hip, 2 * max_size)
     {}
 
-    void init_data()
+    void init_data(int rng_run)
     {
         std::uniform_int_distribution<gko::int32> dist(0, max_size);
         std::fill_n(data1.get_data(), max_size, 0);
         std::fill_n(data2.get_data(), max_size, 0);
-        for (auto i = 0; i < max_size; ++i) {
+        for (int i = 0; i < max_size; ++i) {
             // here we also want to test some corner cases
             // first two runs: zero data1
-            if (rng_run > 0) data1.get_data()[i] = dist(rng);
+            if (rng_run > 1) data1.get_data()[i] = dist(rng);
             // first and third run: zero data2
-            if (rng_run > 3 || rng_run == 1) data2.get_data()[i] = dist(rng);
+            if (rng_run > 2 || rng_run == 1) data2.get_data()[i] = dist(rng);
         }
         std::sort(data1.get_data(), data1.get_data() + max_size);
         std::sort(data2.get_data(), data2.get_data() + max_size);
@@ -128,7 +128,6 @@ protected:
     std::default_random_engine rng;
 
     int rng_runs;
-    int rng_run;
     int max_size;
     std::vector<int> sizes;
     gko::Array<gko::int32> data1;
@@ -164,8 +163,8 @@ __global__ void test_merge_step(const gko::int32 *a, const gko::int32 *b,
 
 TEST_F(Merging, MergeStep)
 {
-    for (auto i = 0; i < rng_runs; ++i) {
-        init_data();
+    for (int i = 0; i < rng_runs; ++i) {
+        init_data(i);
         hipLaunchKernelGGL(HIP_KERNEL_NAME(test_merge_step), dim3(1),
                            dim3(config::warp_size), 0, 0,
                            ddata1.get_const_data(), ddata2.get_const_data(),
@@ -189,8 +188,8 @@ __global__ void test_merge(const gko::int32 *a, const gko::int32 *b, int size,
 
 TEST_F(Merging, FullMerge)
 {
-    for (auto i = 0; i < rng_runs; ++i) {
-        init_data();
+    for (int i = 0; i < rng_runs; ++i) {
+        init_data(i);
         for (auto size : sizes) {
             hipLaunchKernelGGL(HIP_KERNEL_NAME(test_merge), dim3(1),
                                dim3(config::warp_size), 0, 0,
@@ -215,8 +214,8 @@ __global__ void test_sequential_merge(const gko::int32 *a, const gko::int32 *b,
 
 TEST_F(Merging, SequentialFullMerge)
 {
-    for (auto i = 0; i < rng_runs; ++i) {
-        init_data();
+    for (int i = 0; i < rng_runs; ++i) {
+        init_data(i);
         for (auto size : sizes) {
             hipLaunchKernelGGL(HIP_KERNEL_NAME(test_sequential_merge), dim3(1),
                                dim3(1), 0, 0, ddata1.get_const_data(),
@@ -257,8 +256,8 @@ __global__ void test_merge_idxs(const gko::int32 *a, const gko::int32 *b,
 
 TEST_F(Merging, FullMergeIdxs)
 {
-    for (auto i = 0; i < rng_runs; ++i) {
-        init_data();
+    for (int i = 0; i < rng_runs; ++i) {
+        init_data(i);
         for (auto size : sizes) {
             hipLaunchKernelGGL(HIP_KERNEL_NAME(test_merge_idxs), dim3(1),
                                dim3(config::warp_size), 0, 0,

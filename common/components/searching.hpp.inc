@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * into two subranges [offset, middle), [middle, offset + length) such that
  * the predicate is `false` for all elements in the first range and `true` for
  * all elements in the second range. `middle` is called the partition point.
+ * If the predicate is `false` everywhere, `middle` equals `offset + length`.
  * The implementation is based on Stepanov & McJones, "Elements of Programming".
  *
  * @param offset  the starting index of the partitioned range
@@ -69,6 +70,7 @@ __device__ IndexType binary_search(IndexType offset, IndexType length,
  * into two subranges [offset, middle), [middle, offset + length) such that
  * the predicate is `false` for all elements in the first range and `true` for
  * all elements in the second range. `middle` is called the partition point.
+ * If the predicate is `false` everywhere, `middle` equals `offset + length`.
  *
  * @tparam size  the length of the partitioned range - must be a power of two
  * @param p  the predicate to be evaluated on the range - it should not have
@@ -81,7 +83,7 @@ __device__ int synchronous_fixed_binary_search(Predicate p)
     if (size == 0) {
         return 0;
     }
-    auto begin = 0;
+    int begin{};
     static_assert(size > 0, "size must be positive");
     static_assert(!(size & (size - 1)), "size must be a power of two");
 #pragma unroll
@@ -105,6 +107,7 @@ __device__ int synchronous_fixed_binary_search(Predicate p)
  * into two subranges [offset, middle), [middle, offset + length) such that
  * the predicate is `false` for all elements in the first range and `true` for
  * all elements in the second range. `middle` is called the partition point.
+ * If the predicate is `false` everywhere, `middle` equals `offset + length`.
  *
  * @param size  the length of the partitioned range - must be a power of two
  * @param p  the predicate to be evaluated on the range - it should not have
@@ -117,7 +120,7 @@ __device__ int synchronous_binary_search(int size, Predicate p)
     if (size == 0) {
         return 0;
     }
-    auto begin = 0;
+    int begin{};
     for (auto cur_size = size; cur_size > 1; cur_size /= 2) {
         auto half_size = cur_size / 2;
         auto mid = begin + half_size;
@@ -136,6 +139,7 @@ __device__ int synchronous_binary_search(int size, Predicate p)
  * into two subranges [offset, middle), [middle, offset + length) such that
  * the predicate is `false` for all elements in the first range and `true` for
  * all elements in the second range. `middle` is called the partition point.
+ * If the predicate is `false` everywhere, `middle` equals `offset + length`.
  *
  * It executes `log2(length / group.size())` coalescing calls to `p`.
  *
@@ -189,6 +193,7 @@ __device__ IndexType group_wide_search(IndexType offset, IndexType length,
  * into two subranges [offset, middle), [middle, offset + length) such that
  * the predicate is `false` for all elements in the first range and `true` for
  * all elements in the second range. `middle` is called the partition point.
+ * If the predicate is `false` everywhere, `middle` equals `offset + length`.
  *
  * It executes `log2(length) / log2(group.size())` calls to `p` that effectively
  * follow a random-access pattern.
