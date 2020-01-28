@@ -59,12 +59,33 @@ GKO_REGISTER_OPERATION(step_2, bicg::step_2);
 }  // namespace bicg
 
 
-template <typename ValueType, typename IndexType>
-void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
+/**
+ * @internal
+ * Transposes the matrix by converting it into a CSR matrix of type
+ * CsrType, followed by transposing.
+ *
+ * @param mtx  Matrix to transpose
+ * @tparam CsrType  Matrix format in which the matrix mtx is converted into
+ *                  before transposing it
+ */
+template <typename CsrType>
+std::unique_ptr<LinOp> transpose_with_csr(const LinOp *mtx)
+{
+    auto csr_matrix_unique_ptr = copy_and_convert_to<CsrType>(
+        mtx->get_executor(), const_cast<LinOp *>(mtx));
+
+    csr_matrix_unique_ptr->set_strategy(
+        std::make_shared<typename CsrType::classical>());
+
+    return csr_matrix_unique_ptr->transpose();
+}
+
+
+template <typename ValueType>
+void Bicg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using std::swap;
     using Vector = matrix::Dense<ValueType>;
-    using CsrMatrix = matrix::Csr<ValueType, IndexType>;
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
@@ -102,10 +123,6 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
     // r = r2 = dense_b
     // z2 = p2 = q2 = 0
 
-    decltype(copy_and_convert_to<CsrMatrix>(
-        exec, const_cast<LinOp *>(
-                  system_matrix_.get()))) csr_system_matrix_unique_ptr{};
-
     std::unique_ptr<LinOp> trans_A;
     auto transposable_system_matrix =
         dynamic_cast<const Transposable *>(system_matrix_.get());
@@ -113,16 +130,17 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
     if (transposable_system_matrix) {
         trans_A = transposable_system_matrix->transpose();
     } else {
-        csr_system_matrix_unique_ptr = copy_and_convert_to<CsrMatrix>(
-            system_matrix_->get_executor(),
-            const_cast<LinOp *>(system_matrix_.get()));
-
-        csr_system_matrix_unique_ptr->set_strategy(
-            std::make_shared<typename CsrMatrix::classical>());
-
-        auto csr_system_matrix_ = csr_system_matrix_unique_ptr.get();
-
-        trans_A = csr_system_matrix_->transpose();
+        // TODO Extend when adding more IndexTypes
+        // Try to figure out the IndexType that can be used for the CSR matrix
+        using Csr32 = matrix::Csr<ValueType, int32>;
+        using Csr64 = matrix::Csr<ValueType, int64>;
+        auto supports_int64 =
+            dynamic_cast<const ConvertibleTo<Csr64> *>(system_matrix_.get());
+        if (supports_int64) {
+            trans_A = transpose_with_csr<Csr64>(system_matrix_.get());
+        } else {
+            trans_A = transpose_with_csr<Csr32>(system_matrix_.get());
+        }
     }
 
     auto trans_preconditioner_tmp =
@@ -175,9 +193,9 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 }
 
 
-template <typename ValueType, typename IndexType>
-void Bicg<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                            const LinOp *beta, LinOp *x) const
+template <typename ValueType>
+void Bicg<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                 const LinOp *beta, LinOp *x) const
 {
     auto dense_x = as<matrix::Dense<ValueType>>(x);
 
@@ -188,8 +206,8 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
 }
 
 
-#define GKO_DECLARE_BICG(_vtype, _itype) class Bicg<_vtype, _itype>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BICG);
+#define GKO_DECLARE_BICG(_type) class Bicg<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG);
 
 
 }  // namespace solver
