@@ -63,20 +63,17 @@ namespace solver {
  * BiCGSTAB.
  *
  * @tparam ValueType  precision of matrix elements
- * @tparam IndexType  precision of matrix indices
  *
  * @ingroup solvers
  * @ingroup LinOp
  */
-template <typename ValueType = default_precision, typename IndexType = int32>
-class Bicg : public EnableLinOp<Bicg<ValueType, IndexType>>,
-             public Preconditionable {
+template <typename ValueType = default_precision>
+class Bicg : public EnableLinOp<Bicg<ValueType>>, public Preconditionable {
     friend class EnableLinOp<Bicg>;
     friend class EnablePolymorphicObject<Bicg, LinOp>;
 
 public:
     using value_type = ValueType;
-    using index_type = IndexType;
 
     /**
      * Gets the system operator (matrix) of the linear system.
@@ -142,8 +139,6 @@ protected:
         }
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
-
-        using CsrMatrix = matrix::Csr<ValueType, IndexType>;
     }
 
 private:
