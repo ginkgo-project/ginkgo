@@ -93,11 +93,9 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
                                        dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
-
     exec->run(bicg::make_initialize(
         dense_b, r.get(), z.get(), p.get(), q.get(), prev_rho.get(), rho.get(),
         r2.get(), z2.get(), p2.get(), q2.get(), &stop_status));
-
     // rho = 0.0
     // prev_rho = 1.0
     // z = p = q = 0
@@ -114,7 +112,6 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
     if (transposable_system_matrix) {
         trans_A = transposable_system_matrix->transpose();
-
     } else {
         csr_system_matrix_unique_ptr = copy_and_convert_to<CsrMatrix>(
             system_matrix_->get_executor(),
@@ -134,10 +131,8 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     // r = r - Ax =  -1.0 * A*dense_x + 1.0*r
-
     r2->copy_from(r.get());
     // r2 = r
-
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, r.get());
@@ -147,13 +142,11 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
     while (true) {
         get_preconditioner()->apply(r.get(), z.get());
         trans_preconditioner->apply(r2.get(), z2.get());
-
         z->compute_dot(r2.get(), rho.get());
 
         ++iter;
         this->template log<log::Logger::iteration_complete>(this, iter, r.get(),
                                                             dense_x);
-
         if (stop_criterion->update()
                 .num_iterations(iter)
                 .residual(r.get())
@@ -168,11 +161,8 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
         // p = z + tmp * p
         // p2 = z2 + tmp * p2
         system_matrix_->apply(p.get(), q.get());
-
         trans_A->apply(p2.get(), q2.get());
-
         p2->compute_dot(q.get(), beta.get());
-
         exec->run(bicg::make_step_2(dense_x, r.get(), r2.get(), p.get(),
                                     q.get(), q2.get(), beta.get(), rho.get(),
                                     &stop_status));
