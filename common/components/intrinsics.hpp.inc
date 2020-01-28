@@ -34,10 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @internal
  * Returns the number of set bits in the given mask.
  */
-inline __device__ int popcnt(uint32 mask) { return __popc(mask); }
+__forceinline__ __device__ int popcnt(uint32 mask) { return __popc(mask); }
 
 /** @copydoc popcnt */
-inline __device__ int popcnt(uint64 mask) { return __popcll(mask); }
+__forceinline__ __device__ int popcnt(uint64 mask) { return __popcll(mask); }
 
 
 /**
@@ -45,10 +45,10 @@ inline __device__ int popcnt(uint64 mask) { return __popcll(mask); }
  * Returns the (1-based!) index of the first set bit in the given mask,
  * starting from the least significant bit.
  */
-inline __device__ int ffs(uint32 mask) { return __ffs(mask); }
+__forceinline__ __device__ int ffs(uint32 mask) { return __ffs(mask); }
 
 /** @copydoc ffs */
-inline __device__ int ffs(uint64 mask)
+__forceinline__ __device__ int ffs(uint64 mask)
 {
     // the cast is necessary, as the overloads defined by HIP are ambiguous
     return __ffsll(static_cast<unsigned long long int>(mask));
@@ -60,7 +60,7 @@ inline __device__ int ffs(uint64 mask)
  * Returns the number of zero bits before the first set bit in the given mask,
  * starting from the most significant bit.
  */
-inline __device__ int clz(uint32 mask) { return __clz(mask); }
+__forceinline__ __device__ int clz(uint32 mask) { return __clz(mask); }
 
 /** @copydoc clz */
-inline __device__ int clz(uint64 mask) { return __clzll(mask); }
+__forceinline__ __device__ int clz(uint64 mask) { return __clzll(mask); }
