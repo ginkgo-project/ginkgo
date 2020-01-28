@@ -133,11 +133,13 @@ __device__ detail::merge_result<ValueType> group_merge_step(ValueType a,
  * @param b_size  the size of the second range
  * @param group   the group that executes the merge
  * @param merge_fn  the callback that is being called for each merged element.
- *                  It takes five parameters:
- *                  `IndexType a_idx, ValueType a_val,
- *                   IndexType b_idx, ValueType b_val, IndexType c_index`.
- *                   `*_val` and `*_idx` are the values resp. the indices of the
- *                   values from a/b being compared at output index `c_index`.
+ *                  It takes six parameters:
+ *                  `IndexType a_idx, ValueType a_val, IndexType b_idx,
+ *                   ValueType b_val, IndexType c_index, bool valid`.
+ *                  `*_val` and `*_idx` are the values resp. the indices of the
+ *                  values from a/b being compared at output index `c_index`.
+ *                  `valid` specifies if the current thread has to merge an
+ *                  element (this is necessary for shfl and ballot operations).
  */
 template <int group_size, typename IndexType, typename ValueType,
           typename Group, typename Callback>
@@ -154,11 +156,9 @@ __device__ void group_merge(const ValueType *a, IndexType a_size,
     auto b_cur = detail::checked_load(b, b_begin + lane, a_size);
     while (c_begin < c_size) {
         auto merge_result = group_merge_step<group_size>(a_cur, b_cur, group);
-        if (c_begin + lane < c_size) {
-            merge_fn(merge_result.a_idx + a_begin, merge_result.a_val,
-                     merge_result.b_idx + b_begin, merge_result.b_val,
-                     c_begin + lane);
-        }
+        merge_fn(merge_result.a_idx + a_begin, merge_result.a_val,
+                 merge_result.b_idx + b_begin, merge_result.b_val,
+                 c_begin + lane, c_begin + lane < c_size);
         auto a_advance = merge_result.a_advance;
         auto b_advance = merge_result.b_advance;
         a_begin += a_advance;
