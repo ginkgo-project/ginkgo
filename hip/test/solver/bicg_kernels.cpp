@@ -78,9 +78,9 @@ protected:
                    << "\", which is required for this test.\n";
         }
         csr_ref = gko::read<Csr>(input_file, ref);
-        auto csr_cuda_temp = Csr::create(cuda);
-        csr_cuda_temp->copy_from(gko::lend(csr_ref));
-        csr_cuda = gko::give(csr_cuda_temp);
+        auto csr_hip_temp = Csr::create(hip);
+        csr_hip_temp->copy_from(gko::lend(csr_ref));
+        csr_hip = gko::give(csr_hip_temp);
     }
 
     void TearDown()
@@ -214,7 +214,7 @@ protected:
     std::unique_ptr<Mtx> d_rho;
     std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
     std::shared_ptr<const Csr> csr_ref;
-    std::shared_ptr<const Csr> csr_cuda;
+    std::shared_ptr<const Csr> csr_hip;
 };
 
 
@@ -339,13 +339,13 @@ TEST_F(Bicg, ApplyWithSuiteSparseMatrixIsEquivalentToRef)
     auto d_bicg_factory =
         gko::solver::Bicg<>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(50u).on(cuda),
+                gko::stop::Iteration::build().with_max_iters(50u).on(hip),
                 gko::stop::ResidualNormReduction<>::build()
                     .with_reduction_factor(1e-14)
-                    .on(cuda))
-            .on(cuda);
+                    .on(hip))
+            .on(hip);
     auto solver = bicg_factory->generate(std::move(csr_ref));
-    auto d_solver = d_bicg_factory->generate(std::move(csr_cuda));
+    auto d_solver = d_bicg_factory->generate(std::move(csr_hip));
 
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());
