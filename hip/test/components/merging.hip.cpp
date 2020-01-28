@@ -179,11 +179,13 @@ __global__ void test_merge(const gko::int32 *a, const gko::int32 *b, int size,
                            gko::int32 *c)
 {
     auto warp = tiled_partition<config::warp_size>(this_thread_block());
-    group_merge<config::warp_size>(
-        a, size, b, size, warp,
-        [&](int a_idx, gko::int32 a_val, int b_idx, gko::int32 b_val, int i) {
-            c[i] = min(a_val, b_val);
-        });
+    group_merge<config::warp_size>(a, size, b, size, warp,
+                                   [&](int a_idx, gko::int32 a_val, int b_idx,
+                                       gko::int32 b_val, int i, bool valid) {
+                                       if (valid) {
+                                           c[i] = min(a_val, b_val);
+                                       }
+                                   });
 }
 
 TEST_F(Merging, FullMerge)
@@ -244,14 +246,16 @@ __global__ void test_merge_idxs(const gko::int32 *a, const gko::int32 *b,
                          });
     }
     auto warp = tiled_partition<config::warp_size>(this_thread_block());
-    group_merge<config::warp_size>(
-        a, size, b, size, warp,
-        [&](int a_idx, gko::int32 a_val, int b_idx, gko::int32 b_val, int i) {
-            aidxs[i] = a_idx;
-            bidxs[i] = b_idx;
-            cidxs[i] = i;
-            c[i] = min(a_val, b_val);
-        });
+    group_merge<config::warp_size>(a, size, b, size, warp,
+                                   [&](int a_idx, gko::int32 a_val, int b_idx,
+                                       gko::int32 b_val, int i, bool valid) {
+                                       if (valid) {
+                                           aidxs[i] = a_idx;
+                                           bidxs[i] = b_idx;
+                                           cidxs[i] = i;
+                                           c[i] = min(a_val, b_val);
+                                       }
+                                   });
 }
 
 TEST_F(Merging, FullMergeIdxs)
