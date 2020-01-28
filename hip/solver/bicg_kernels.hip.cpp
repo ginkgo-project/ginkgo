@@ -40,8 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-#include "hip/base/math.hpp"
-#include "hip/base/types.hpp"
+#include "hip/base/math.hip.hpp"
+#include "hip/base/types.hip.hpp"
 
 
 namespace gko {
