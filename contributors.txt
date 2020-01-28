@@ -15,3 +15,4 @@ Holeksa Claudius <mail@keldu.de> Karlsruhe Institute of Technology
 Nayak Pratik <pratik.nayak@kit.edu> Karlsruhe Institute of Technology
 Ribizel Tobias <mail@upsj.de> Karlsruhe Institute of Technology
 Tsai Yuhsiang <yhmtsai@gmail.com> National Taiwan University
+Dennis Grötzinger <dennis.groetzinger@web.de> Karlsruhe Institute of Technology
