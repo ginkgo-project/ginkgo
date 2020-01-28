@@ -59,16 +59,20 @@ struct find_helper {
 };
 
 
-/* TODO write specialization for the sorted case.
+// Improved version in case the CSR matrix is sorted
 template <>
 struct find_helper<true> {
     template <typename Group, typename IndexType>
     static __device__ bool find(Group subwarp_grp, const IndexType *first,
                                 const IndexType *last, const IndexType &value)
     {
+        const auto length = static_cast<IndexType>(last - first);
+        const auto pos =
+            group_wide_search(IndexType{}, length, subwarp_grp,
+                              [&](IndexType i) { return first[i] >= value; });
+        return pos < length && first[pos] == value;
     }
 };
-*/
 
 
 }  // namespace detail
@@ -85,7 +89,10 @@ __global__
         IndexType *__restrict__ elements_to_add_per_row,
         bool *__restrict__ changes_required)
 {
-    const auto rows_covered_by_threads =
+    static_assert(SubwarpSize & (SubwarpSize - 1) == 0,
+                  "SubwarpSize must be a power of 2!");
+
+    const auto total_thread_count =
         static_cast<size_type>(blockDim.x) * gridDim.x / SubwarpSize;
     const auto tidx =
         threadIdx.x + static_cast<size_type>(blockIdx.x) * blockDim.x;
@@ -96,8 +103,7 @@ __global__
     const auto subwarp_idx = subwarp_grp.thread_rank();
 
     bool local_change{false};
-    for (IndexType row = begin_row; row < num_rows;
-         row += rows_covered_by_threads) {
+    for (IndexType row = begin_row; row < num_rows; row += total_thread_count) {
         if (row >= num_cols) {
             if (subwarp_idx == 0) {
                 elements_to_add_per_row[row] = 0;
@@ -138,7 +144,7 @@ __global__
         const IndexType *__restrict__ row_ptrs_addition)
 {
     // Precaution in case not enough threads were created
-    const auto rows_covered_by_threads =
+    const auto total_thread_count =
         static_cast<size_type>(blockDim.x) * gridDim.x / SubwarpSize;
     const auto tidx =
         threadIdx.x + static_cast<size_type>(blockIdx.x) * blockDim.x;
@@ -148,14 +154,13 @@ __global__
     auto subwarp_grp = group::tiled_partition<SubwarpSize>(thread_block);
     const auto subwarp_idx = subwarp_grp.thread_rank();
 
-    for (IndexType row = begin_row; row < num_rows;
-         row += rows_covered_by_threads) {
+    for (IndexType row = begin_row; row < num_rows; row += total_thread_count) {
         const IndexType old_row_start{old_row_ptrs[row]};
         const IndexType old_row_end{old_row_ptrs[row + 1]};
         const IndexType new_row_start{old_row_start + row_ptrs_addition[row]};
         const IndexType new_row_end{old_row_end + row_ptrs_addition[row + 1]};
 
-        // if no element needs to be added, do a simple copy
+        // if no element needs to be added, do a simple copy of the whole row
         if (new_row_end - new_row_start == old_row_end - old_row_start) {
             for (IndexType i = subwarp_idx; i < new_row_end - new_row_start;
                  i += SubwarpSize) {
@@ -177,6 +182,7 @@ __global__
                 // automatically false if thread is not active
                 bool diagonal_add_required = !diagonal_added && row < col_idx;
                 auto ballot = subwarp_grp.ballot(diagonal_add_required);
+
                 if (ballot) {
                     auto first_subwarp_idx = ffs(ballot) - 1;
                     if (first_subwarp_idx == subwarp_idx) {
@@ -186,12 +192,14 @@ __global__
                     if (thread_is_active) {
                         // if diagonal was inserted in a thread below this one,
                         // add it to the new_idx.
-                        new_idx += (first_subwarp_idx <= subwarp_idx) ? 1 : 0;
+                        bool is_thread_after_diagonal =
+                            (first_subwarp_idx <= subwarp_idx);
+                        new_idx += is_thread_after_diagonal;
                         new_values[new_idx] = old_values[old_idx];
                         new_col_idxs[new_idx] = col_idx;
                         // if diagonal is inserted in a thread after this one,
                         // it needs to be considered after writing the values
-                        new_idx += (subwarp_idx < first_subwarp_idx) ? 1 : 0;
+                        new_idx += !is_thread_after_diagonal;
                     }
                     diagonal_added = true;
                 } else if (thread_is_active) {
@@ -214,13 +222,12 @@ __global__ __launch_bounds__(default_block_size) void update_row_ptrs(
     IndexType num_rows, IndexType *__restrict__ row_ptrs,
     IndexType *__restrict__ row_ptr_addition)
 {
-    const auto rows_covered_by_threads =
+    const auto total_thread_count =
         static_cast<size_type>(blockDim.x) * gridDim.x;
     const auto begin_row =
         threadIdx.x + static_cast<size_type>(blockIdx.x) * blockDim.x;
 
-    for (IndexType row = begin_row; row < num_rows;
-         row += rows_covered_by_threads) {
+    for (IndexType row = begin_row; row < num_rows; row += total_thread_count) {
         row_ptrs[row] += row_ptr_addition[row];
     }
 }

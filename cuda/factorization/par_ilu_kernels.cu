@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/intrinsics.cuh"
+#include "cuda/components/searching.cuh"
 
 
 namespace gko {
@@ -69,6 +70,8 @@ void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
                            matrix::Csr<ValueType, IndexType> *mtx,
                            bool is_sorted)
 {
+    // TODO: Runtime can be optimized by choosing a appropriate size for the
+    //       subwarp dependent on the matrix properties
     constexpr int subwarp_size = config::warp_size / 2;
     auto mtx_size = mtx->get_size();
     auto num_rows = static_cast<IndexType>(mtx_size[0]);
