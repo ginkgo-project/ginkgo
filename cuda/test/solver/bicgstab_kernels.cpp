@@ -33,14 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/bicgstab.hpp>
 
 
-#include <gtest/gtest.h>
-
-
 #include <random>
 
 
-#include <core/solver/bicgstab_kernels.hpp>
-#include <core/test/utils.hpp>
+#include <gtest/gtest.h>
+
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -48,6 +46,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
+
+
+#include "core/solver/bicgstab_kernels.hpp"
+#include "core/test/utils.hpp"
 
 
 namespace {

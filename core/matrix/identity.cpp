@@ -69,6 +69,20 @@ std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate_impl(
 }
 
 
+template <typename ValueType>
+std::unique_ptr<LinOp> Identity<ValueType>::transpose() const
+{
+    return this->clone();
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Identity<ValueType>::conj_transpose() const
+{
+    return this->clone();
+}
+
+
 #define GKO_DECLARE_IDENTITY_MATRIX(_type) class Identity<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDENTITY_MATRIX);
 #define GKO_DECLARE_IDENTITY_FACTORY(_type) class IdentityFactory<_type>
