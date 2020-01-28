@@ -189,7 +189,7 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 
 #define GKO_DECLARE_BICG(_type) class Bicg<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BICG);
 
 
 }  // namespace solver
