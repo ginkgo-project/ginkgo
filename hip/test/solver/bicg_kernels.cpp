@@ -33,7 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/bicg.hpp>
 
 
+#include <fstream>
 #include <random>
+#include <string>
 
 
 #include <gtest/gtest.h>
@@ -49,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/bicg_kernels.hpp"
 #include "core/test/utils.hpp"
+#include "matrices/config.hpp"
 
 
 namespace {
@@ -56,7 +59,10 @@ namespace {
 
 class Bicg : public ::testing::Test {
 protected:
+    using value_type = gko::default_precision;
+    using index_type = gko::int32;
     using Mtx = gko::matrix::Dense<>;
+    using Csr = gko::matrix::Csr<value_type, index_type>;
     Bicg() : rand_engine(30) {}
 
     void SetUp()
@@ -64,6 +70,17 @@ protected:
         ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
         hip = gko::HipExecutor::create(0, ref);
+
+        std::string file_name(gko::matrices::location_ani1_mtx);
+        auto input_file = std::ifstream(file_name, std::ios::in);
+        if (!input_file) {
+            FAIL() << "Could not find the file \"" << file_name
+                   << "\", which is required for this test.\n";
+        }
+        csr_ref = gko::read<Csr>(input_file, ref);
+        auto csr_cuda_temp = Csr::create(cuda);
+        csr_cuda_temp->copy_from(gko::lend(csr_ref));
+        csr_cuda = gko::give(csr_cuda_temp);
     }
 
     void TearDown()
@@ -196,6 +213,8 @@ protected:
     std::unique_ptr<Mtx> d_prev_rho;
     std::unique_ptr<Mtx> d_rho;
     std::unique_ptr<gko::Array<gko::stopping_status>> d_stop_status;
+    std::shared_ptr<const Csr> csr_ref;
+    std::shared_ptr<const Csr> csr_cuda;
 };
 
 
@@ -263,7 +282,7 @@ TEST_F(Bicg, HipBicgStep2IsEquivalentToRef)
 }
 
 
-TEST_F(Bicg, ApplyIsEquivalentToRef)
+TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
 {
     auto mtx = gen_mtx(50, 50);
     make_spd(mtx.get());
@@ -293,6 +312,40 @@ TEST_F(Bicg, ApplyIsEquivalentToRef)
             .on(hip);
     auto solver = bicg_factory->generate(std::move(mtx));
     auto d_solver = d_bicg_factory->generate(std::move(d_mtx));
+
+    solver->apply(b.get(), x.get());
+    d_solver->apply(d_b.get(), d_x.get());
+
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+}
+
+
+TEST_F(Bicg, ApplyWithSuiteSparseMatrixIsEquivalentToRef)
+{
+    auto x = gen_mtx(36, 1);
+    auto b = gen_mtx(36, 1);
+    auto d_x = Mtx::create(hip);
+    d_x->copy_from(x.get());
+    auto d_b = Mtx::create(hip);
+    d_b->copy_from(b.get());
+    auto bicg_factory =
+        gko::solver::Bicg<>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(50u).on(ref),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-14)
+                    .on(ref))
+            .on(ref);
+    auto d_bicg_factory =
+        gko::solver::Bicg<>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(50u).on(cuda),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-14)
+                    .on(cuda))
+            .on(cuda);
+    auto solver = bicg_factory->generate(std::move(csr_ref));
+    auto d_solver = d_bicg_factory->generate(std::move(csr_cuda));
 
     solver->apply(b.get(), x.get());
     d_solver->apply(d_b.get(), d_x.get());

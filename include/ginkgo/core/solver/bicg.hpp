@@ -54,17 +54,16 @@ namespace solver {
 
 
 /**
- * BICG or the conjugate gradient method is an iterative type Krylov subspace
- * method which is suitable for symmetric positive definite methods.
+ * BICG or the Biconjugate gradient method is a Krylov subspace solver.
  *
- * Though this method performs very well for symmetric positive definite
- * matrices, it is in general not suitable for general matrices.
- *
- * The implementation in Ginkgo makes use of the merged kernel to make the best
- * use of data locality. The inner operations in one iteration of BICG are
- * merged into 2 separate steps.
+ * Being a generic solver, it is capable of solving general matrices, including
+ * non-s.p.d matrices. Though, the memory and the computational requirement of
+ * the BiCG solver are higher than of its s.p.d solver counterpart, it has
+ * the capability to solve generic systems. BiCG is the unstable version of
+ * BiCGSTAB.
  *
  * @tparam ValueType  precision of matrix elements
+ * @tparam IndexType  precision of matrix indices
  *
  * @ingroup solvers
  * @ingroup LinOp
