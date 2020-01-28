@@ -188,7 +188,7 @@ void Bicg<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
 }
 
 
-#define GKO_DECLARE_BICG(_type) class Bicg<_type>
+#define GKO_DECLARE_BICG(_vtype, _itype) class Bicg<_vtype, _itype>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_BICG);
 
 
