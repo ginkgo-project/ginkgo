@@ -111,6 +111,7 @@ int main(int argc, char *argv[])
     //    the FEM linear system, which in this case is (1,phi_i) where phi_i are
     //    the basis functions in the finite element fespace.
     LinearForm *b = new LinearForm(fespace);
+
     ConstantCoefficient one(1.0);
     b->AddDomainIntegrator(new DomainLFIntegrator(one));
     b->Assemble();
@@ -142,6 +143,9 @@ int main(int argc, char *argv[])
     OperatorPtr A;
     Vector B, X;
 
+    // TODO: is this addition needed now?
+    X.UseDevice(true);
+
     a->FormLinearSystem(ess_tdof_list, x, *b, A, X, B);
 
     // 11. Solve the linear system A X = B.
@@ -150,11 +154,20 @@ int main(int argc, char *argv[])
     // -------------------- Start Ginkgo section ---------------------
 
     // Ginkgo executor
-    auto executor = gko::OmpExecutor::create();
+    auto omp_executor = gko::OmpExecutor::create();
+    auto cuda_executor =
+        gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    std::shared_ptr<gko::Executor> executor;
+    if (!strcmp(device_config, "cuda")) {
+        executor = cuda_executor;
+    } else {
+        executor = omp_executor;
+    }
 
     // MFEM Vector wrappers
-    auto gko_rhs = MFEMVectorWrapper::create(executor, B.Size(), &B);
-    auto gko_x = MFEMVectorWrapper::create(executor, X.Size(), &X);
+    // The "true" here is now for on_device (ownership is default = false)
+    auto gko_rhs = MFEMVectorWrapper::create(executor, B.Size(), &B, true);
+    auto gko_x = MFEMVectorWrapper::create(executor, X.Size(), &X, true);
 
     // MFEM Operator Wrapper
     // Note we must set this to false or else the operator might be accidentally
@@ -205,6 +218,9 @@ int main(int argc, char *argv[])
         sol_sock << "solution\n" << *mesh << x << flush;
     }
 
+    //** TEST
+    gko_x.release();
+
     // 15. Free the used memory.
     delete a;
     delete b;
@@ -213,6 +229,8 @@ int main(int argc, char *argv[])
         delete fec;
     }
     delete mesh;
+
+    std::cout << "about to return 0 " << std::endl;
 
     return 0;
 }

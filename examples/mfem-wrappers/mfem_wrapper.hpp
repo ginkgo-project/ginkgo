@@ -51,13 +51,12 @@ class MFEMVectorWrapper : public gko::matrix::Dense<double> {
 public:
     MFEMVectorWrapper(std::shared_ptr<const gko::Executor> exec,
                       gko::size_type size, mfem::Vector *mfem_vec,
-                      bool ownership = false)
+                      bool on_device = true, bool ownership = false)
         : gko::matrix::Dense<double>(
               exec, gko::dim<2>{size, 1},
-              gko::Array<double>::view(
-                  exec, size, mfem_vec->ReadWrite(mfem_vec->UseDevice())),
+              gko::Array<double>::view(exec, size,
+                                       mfem_vec->ReadWrite(on_device)),
               1)
-    // TODO: is ReadWrite the best choice?
     {
         if (ownership) {
             using deleter = mfem_destroy<mfem::Vector>;
@@ -72,13 +71,12 @@ public:
         }
     }
 
-
     static std::unique_ptr<MFEMVectorWrapper> create(
         std::shared_ptr<const gko::Executor> exec, gko::size_type size,
-        mfem::Vector *mfem_vec, bool ownership = false)
+        mfem::Vector *mfem_vec, bool on_device = true, bool ownership = false)
     {
         return std::unique_ptr<MFEMVectorWrapper>(
-            new MFEMVectorWrapper(exec, size, mfem_vec, ownership));
+            new MFEMVectorWrapper(exec, size, mfem_vec, on_device, ownership));
     }
 
     mfem::Vector &get_mfem_vec_ref() { return *(this->mfem_vec_.get()); }
@@ -91,14 +89,15 @@ public:
     virtual std::unique_ptr<gko::matrix::Dense<double>>
     create_with_same_config() const override
     {
-        //        mfem::Vector *mfem_vec = new
-        //        mfem::Vector(this->get_size()[0]);
         mfem::Vector *mfem_vec = new mfem::Vector(
             this->get_size()[0],
             this->mfem_vec_.get()->GetMemory().GetMemoryType());
-        // mfem::MemoryType::HOST);
-        return MFEMVectorWrapper::create(this->get_executor(),
-                                         this->get_size()[0], mfem_vec, true);
+
+        mfem_vec->UseDevice(this->mfem_vec_.get()->UseDevice());
+
+        return MFEMVectorWrapper::create(
+            this->get_executor(), this->get_size()[0], mfem_vec,
+            this->mfem_vec_.get()->UseDevice(), true);
     }
 
 

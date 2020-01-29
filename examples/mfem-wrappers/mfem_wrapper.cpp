@@ -74,20 +74,53 @@ void MFEMOperatorWrapper::apply_impl(const gko::LinOp *alpha,
             "Expected an object of size [1 x 1] for scaling "
             " in this operator's apply_impl");
     }
-    const auto alpha_d = gko::as<gko::matrix::Dense<double>>(alpha)->at(0, 0);
-    const auto beta_d = gko::as<gko::matrix::Dense<double>>(beta)->at(0, 0);
+
+    double alpha_f;
+    double beta_f;
+
+    if (mfem_x->get_mfem_vec_ref().GetMemory().GetMemoryType() ==
+        mfem::MemoryType::CUDA) {
+        cudaMemcpy(
+            &alpha_f,
+            gko::as<gko::matrix::Dense<double>>(alpha)->get_const_values(),
+            sizeof(double), cudaMemcpyDeviceToHost);
+    } else if (mfem_x->get_mfem_vec_ref().GetMemory().GetMemoryType() ==
+               mfem::MemoryType::HOST) {
+        alpha_f = gko::as<gko::matrix::Dense<double>>(alpha)->at(0, 0);
+    } else {
+        std::cout << "error: can't understand MFEM MemoryType of alpha"
+                  << std::endl;
+    }
+    if (mfem_x->get_mfem_vec_ref().GetMemory().GetMemoryType() ==
+        mfem::MemoryType::CUDA) {
+        cudaMemcpy(
+            &beta_f,
+            gko::as<gko::matrix::Dense<double>>(beta)->get_const_values(),
+            sizeof(double), cudaMemcpyDeviceToHost);
+    } else if (mfem_x->get_mfem_vec_ref().GetMemory().GetMemoryType() ==
+               mfem::MemoryType::HOST) {
+        beta_f = gko::as<gko::matrix::Dense<double>>(beta)->at(0, 0);
+    } else {
+        std::cout << "error: can't understand MFEM MemoryType of beta"
+                  << std::endl;
+    }
 
     // Scale x by beta
-    mfem_x->get_mfem_vec_ref() *= beta_d;
+    mfem_x->get_mfem_vec_ref() *= beta_f;
 
     // Multiply operator with b and store in tmp
-    mfem::Vector mfem_tmp = mfem::Vector(
-        mfem_b->get_size()[0],
-        mfem_b->get_mfem_vec_const_ref().GetMemory().GetMemoryType());
+    mfem::Vector mfem_tmp =
+        mfem::Vector(mfem_x->get_size()[0],
+                     mfem_x->get_mfem_vec_ref().GetMemory().GetMemoryType());
+
+    // Set UseDevice flag to match mfem_x (not automatically done through
+    // MemoryType)
+    mfem_tmp.UseDevice(mfem_x->get_mfem_vec_ref().UseDevice());
+
     this->mfem_oper_->Mult(mfem_b->get_mfem_vec_const_ref(), mfem_tmp);
 
     // Scale tmp by alpha and add
-    mfem_x->get_mfem_vec_ref().Add(alpha_d, mfem_tmp);
+    mfem_x->get_mfem_vec_ref().Add(alpha_f, mfem_tmp);
 
     mfem_tmp.Destroy();
 }
