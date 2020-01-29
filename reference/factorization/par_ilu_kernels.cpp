@@ -166,7 +166,6 @@ void initialize_row_ptrs_l_u(
     l_row_ptrs[0] = 0;
     u_row_ptrs[0] = 0;
     for (size_type row = 0; row < system_matrix->get_size()[0]; ++row) {
-        bool has_diagonal{};
         for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
             size_type col = col_idxs[el];
             if (col <= row) {
@@ -175,10 +174,7 @@ void initialize_row_ptrs_l_u(
             if (col >= row) {
                 ++u_nnz;
             }
-            has_diagonal |= col == row;
         }
-        l_nnz += !has_diagonal;
-        u_nnz += !has_diagonal;
         l_row_ptrs[row + 1] = l_nnz;
         u_row_ptrs[row + 1] = u_nnz;
     }
@@ -208,10 +204,7 @@ void initialize_l_u(std::shared_ptr<const DefaultExecutor> exec,
 
     for (size_type row = 0; row < system_matrix->get_size()[0]; ++row) {
         size_type current_index_l = row_ptrs_l[row];
-        size_type current_index_u =
-            row_ptrs_u[row] + 1;  // we treat the diagonal separately
-        bool has_diagonal{};
-        ValueType diag_val{};
+        size_type current_index_u = row_ptrs_u[row];
         for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
             const auto col = col_idxs[el];
             const auto val = vals[el];
@@ -220,26 +213,20 @@ void initialize_l_u(std::shared_ptr<const DefaultExecutor> exec,
                 vals_l[current_index_l] = val;
                 ++current_index_l;
             } else if (col == row) {
-                // save diagonal value
-                has_diagonal = true;
-                diag_val = val;
+                // Update both L and U
+                col_idxs_l[current_index_l] = col;
+                vals_l[current_index_l] = one<ValueType>();
+                ++current_index_l;
+
+                col_idxs_u[current_index_u] = col;
+                vals_u[current_index_u] = val;
+                ++current_index_u;
             } else {  // col > row
                 col_idxs_u[current_index_u] = col;
                 vals_u[current_index_u] = val;
                 ++current_index_u;
             }
         }
-        // if there was no diagonal entry, set it to one
-        if (!has_diagonal) {
-            diag_val = one<ValueType>();
-        }
-        // store diagonal values separately
-        auto l_diag_idx = row_ptrs_l[row + 1] - 1;
-        auto u_diag_idx = row_ptrs_u[row];
-        col_idxs_l[l_diag_idx] = row;
-        col_idxs_u[u_diag_idx] = row;
-        vals_l[l_diag_idx] = one<ValueType>();
-        vals_u[u_diag_idx] = diag_val;
     }
 }
 

@@ -241,16 +241,13 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_l_u_row(
     if (row < num_rows) {
         IndexType l_row_nnz{};
         IndexType u_row_nnz{};
-        bool has_diagonal{};
         for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
             auto col = col_idxs[idx];
             l_row_nnz += (col <= row);
             u_row_nnz += (row <= col);
-            has_diagonal |= col == row;
         }
-        // if we didn't find it, add the diagonal entry
-        l_nnz_row[row] = l_row_nnz + !has_diagonal;
-        u_nnz_row[row] = u_row_nnz + !has_diagonal;
+        l_nnz_row[row] = l_row_nnz;
+        u_nnz_row[row] = u_row_nnz;
     }
 }
 
@@ -268,39 +265,21 @@ __global__ __launch_bounds__(default_block_size) void initialize_l_u(
     const auto row = blockDim.x * blockIdx.x + threadIdx.x;
     if (row < num_rows) {
         auto l_idx = l_row_ptrs[row];
-        auto u_idx = u_row_ptrs[row] + 1;  // we treat the diagonal separately
-        bool has_diagonal{};
-        ValueType diag_val{};
+        auto u_idx = u_row_ptrs[row];
         for (size_type i = row_ptrs[row]; i < row_ptrs[row + 1]; ++i) {
             const auto col = col_idxs[i];
             const auto val = values[i];
-            // save diagonal entry for later
-            if (col == row) {
-                has_diagonal = true;
-                diag_val = val;
-            }
-            if (col < row) {
+            if (col <= row) {
                 l_col_idxs[l_idx] = col;
-                l_values[l_idx] = val;
+                l_values[l_idx] = (col == row ? one<ValueType>() : val);
                 ++l_idx;
             }
-            if (row < col) {
+            if (row <= col) {
                 u_col_idxs[u_idx] = col;
                 u_values[u_idx] = val;
                 ++u_idx;
             }
         }
-        // if there was no diagonal entry, set it to one
-        if (!has_diagonal) {
-            diag_val = one<ValueType>();
-        }
-        // store diagonal entries
-        auto l_diag_idx = l_row_ptrs[row + 1] - 1;
-        auto u_diag_idx = u_row_ptrs[row];
-        l_col_idxs[l_diag_idx] = row;
-        u_col_idxs[u_diag_idx] = row;
-        l_values[l_diag_idx] = one<ValueType>();
-        u_values[u_diag_idx] = diag_val;
     }
 }
 
