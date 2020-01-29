@@ -89,9 +89,6 @@ __global__
         IndexType *__restrict__ elements_to_add_per_row,
         bool *__restrict__ changes_required)
 {
-    static_assert(SubwarpSize & (SubwarpSize - 1) == 0,
-                  "SubwarpSize must be a power of 2!");
-
     const auto total_thread_count =
         static_cast<size_type>(blockDim.x) * gridDim.x / SubwarpSize;
     const auto tidx =
