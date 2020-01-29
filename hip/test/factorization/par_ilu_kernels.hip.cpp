@@ -87,9 +87,15 @@ protected:
             FAIL() << "Could not find the file \"" << file_name
                    << "\", which is required for this test.\n";
         }
-        csr_ref = gko::read<Csr>(input_file, ref);
+        auto csr_ref_temp = gko::read<Csr>(input_file, ref);
         auto csr_hip_temp = Csr::create(hip);
-        csr_hip_temp->copy_from(gko::lend(csr_ref));
+        csr_hip_temp->copy_from(gko::lend(csr_ref_temp));
+        // Make sure there are diagonal elements present
+        gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+            ref, gko::lend(csr_ref_temp), false);
+        gko::kernels::hip::par_ilu_factorization::add_diagonal_elements(
+            hip, gko::lend(csr_hip_temp), false);
+        csr_ref = gko::give(csr_ref_temp);
         csr_hip = gko::give(csr_hip_temp);
     }
 

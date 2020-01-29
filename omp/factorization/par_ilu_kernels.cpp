@@ -237,8 +237,8 @@ void initialize_row_ptrs_l_u(
                 ++u_nnz;
             }
         }
-        l_row_ptrs[row + 1] = l_nnz;
-        u_row_ptrs[row + 1] = u_nnz;
+        l_row_ptrs[row] = l_nnz;
+        u_row_ptrs[row] = u_nnz;
     }
 
     // Now, compute the prefix-sum, to get proper row_ptrs for L and U
