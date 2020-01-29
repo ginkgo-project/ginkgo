@@ -219,7 +219,7 @@ TEST_F(ParIlu, KernelAddDiagonalElementsEmpty)
     auto empty_mtx = empty_csr->clone();
 
     gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
-        ref, empty_mtx.get(), true);
+        ref, gko::lend(empty_mtx), true);
 
     GKO_ASSERT_MTX_NEAR(empty_mtx, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(empty_mtx, expected_mtx);
@@ -238,7 +238,7 @@ TEST_F(ParIlu, KernelAddDiagonalElementsAsymetric)
                     std::move(exp_col_idxs), std::move(exp_row_ptrs));
 
     gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
-        ref, matrix.get(), true);
+        ref, gko::lend(matrix), true);
 
     GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
@@ -256,7 +256,7 @@ TEST_F(ParIlu, KernelAddDiagonalElementsAsymetric2)
                     std::move(exp_col_idxs), std::move(exp_row_ptrs));
 
     gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
-        ref, matrix.get(), true);
+        ref, gko::lend(matrix), true);
 
     GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
@@ -284,7 +284,7 @@ TEST_F(ParIlu, KernelAddDiagonalElementsUnsorted)
                     std::move(exp_row_ptrs));
 
     gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
-        ref, matrix.get(), false);
+        ref, gko::lend(matrix), false);
 
     GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
@@ -315,23 +315,26 @@ TEST_F(ParIlu, KernelInitializeRowPtrsLU)
 
 TEST_F(ParIlu, KernelInitializeRowPtrsLUZeroMatrix)
 {
-    auto empty_csr_l_expected = Csr::create(ref);
-    identity->convert_to(gko::lend(empty_csr_l_expected));
-    auto empty_csr_u_expected = Csr::create(ref);
-    identity->convert_to(gko::lend(empty_csr_u_expected));
-    auto num_row_ptrs = empty_csr->get_size()[0] + 1;
+    auto empty_mtx = empty_csr->clone();
+    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        ref, gko::lend(empty_mtx), true);
+    auto empty_mtx_l_expected = Csr::create(ref);
+    identity->convert_to(gko::lend(empty_mtx_l_expected));
+    auto empty_mtx_u_expected = Csr::create(ref);
+    identity->convert_to(gko::lend(empty_mtx_u_expected));
+    auto num_row_ptrs = empty_mtx->get_size()[0] + 1;
     std::vector<index_type> l_row_ptrs_vector(num_row_ptrs);
     std::vector<index_type> u_row_ptrs_vector(num_row_ptrs);
     auto l_row_ptrs = l_row_ptrs_vector.data();
     auto u_row_ptrs = u_row_ptrs_vector.data();
 
     gko::kernels::reference::par_ilu_factorization::initialize_row_ptrs_l_u(
-        ref, gko::lend(empty_csr), l_row_ptrs, u_row_ptrs);
+        ref, gko::lend(empty_mtx), l_row_ptrs, u_row_ptrs);
 
     ASSERT_TRUE(std::equal(l_row_ptrs, l_row_ptrs + num_row_ptrs,
-                           empty_csr_l_expected->get_const_row_ptrs()));
+                           empty_mtx_l_expected->get_const_row_ptrs()));
     ASSERT_TRUE(std::equal(u_row_ptrs, u_row_ptrs + num_row_ptrs,
-                           empty_csr_u_expected->get_const_row_ptrs()));
+                           empty_mtx_u_expected->get_const_row_ptrs()));
 }
 
 
@@ -369,8 +372,8 @@ TEST_F(ParIlu, KernelInitializeLUZeroMatrix)
 {
     auto actual_l = Csr::create(ref);
     auto actual_u = Csr::create(ref);
-    actual_l->copy_from(identity.get());
-    actual_u->copy_from(identity.get());
+    actual_l->copy_from(gko::lend(identity));
+    actual_u->copy_from(gko::lend(identity));
 
     gko::kernels::reference::par_ilu_factorization::initialize_l_u(
         ref, gko::lend(empty_csr), gko::lend(actual_l), gko::lend(actual_u));
@@ -471,11 +474,11 @@ TEST_F(ParIlu, LUFactorFunctionsSetProperly)
     auto factors = ilu_factory_skip->generate(mtx_small);
 
     auto lin_op_l_factor =
-        static_cast<const gko::LinOp *>(factors->get_l_factor().get());
+        static_cast<const gko::LinOp *>(gko::lend(factors->get_l_factor()));
     auto lin_op_u_factor =
-        static_cast<const gko::LinOp *>(factors->get_u_factor().get());
-    auto first_operator = factors->get_operators()[0].get();
-    auto second_operator = factors->get_operators()[1].get();
+        static_cast<const gko::LinOp *>(gko::lend(factors->get_u_factor()));
+    auto first_operator = gko::lend(factors->get_operators()[0]);
+    auto second_operator = gko::lend(factors->get_operators()[1]);
 
     ASSERT_EQ(lin_op_l_factor, first_operator);
     ASSERT_EQ(lin_op_u_factor, second_operator);
@@ -485,7 +488,7 @@ TEST_F(ParIlu, LUFactorFunctionsSetProperly)
 TEST_F(ParIlu, GenerateForCooIdentity)
 {
     auto coo_mtx = gko::share(Coo::create(exec));
-    identity->convert_to(coo_mtx.get());
+    identity->convert_to(gko::lend(coo_mtx));
 
     auto factors = ilu_factory_skip->generate(coo_mtx);
     auto l_factor = factors->get_l_factor();
@@ -499,7 +502,7 @@ TEST_F(ParIlu, GenerateForCooIdentity)
 TEST_F(ParIlu, GenerateForCsrIdentity)
 {
     auto csr_mtx = gko::share(Csr::create(exec));
-    identity->convert_to(csr_mtx.get());
+    identity->convert_to(gko::lend(csr_mtx));
 
     auto factors = ilu_factory_skip->generate(csr_mtx);
     auto l_factor = factors->get_l_factor();
@@ -667,7 +670,7 @@ TEST_F(ParIlu, GenerateForReverseCsrSmall)
     const auto size = mtx_csr_small->get_size();
     const auto nnz = size[0] * size[1];
     auto reverse_csr = gko::share(Csr::create(exec));
-    reverse_csr->copy_from(mtx_csr_small.get());
+    reverse_csr->copy_from(gko::lend(mtx_csr_small));
     // Fill the Csr matrix rows in reverse order
     for (size_t i = 0; i < size[0]; ++i) {
         const auto row_start = reverse_csr->get_row_ptrs()[i];
