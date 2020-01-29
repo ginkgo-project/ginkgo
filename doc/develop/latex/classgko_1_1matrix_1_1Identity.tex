@@ -25,6 +25,13 @@ Collaboration diagram for gko\+::matrix\+::Identity$<$ Value\+Type $>$\+:
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Identity_aa84aa862065ce17dde7941b77d0ca209}\label{classgko_1_1matrix_1_1Identity_aa84aa862065ce17dde7941b77d0ca209}} 
 using {\bfseries value\+\_\+type} = Value\+Type
 \end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Identity_a056ccc29abb9cb92573f8ab608984afc}{transpose}} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Identity_ac308028f6bf144e79f944f642d8efb2e}{conj\+\_\+transpose}} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Friends}
 \begin{DoxyCompactItemize}
 \item 
@@ -55,6 +62,45 @@ This class is useful when composing it with other operators. For example, it can
 \end{DoxyTemplParams}
 
 
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Identity_ac308028f6bf144e79f944f642d8efb2e}\label{classgko_1_1matrix_1_1Identity_ac308028f6bf144e79f944f642d8efb2e}} 
+\index{gko::matrix::Identity$<$ ValueType $>$@{gko::matrix::Identity$<$ ValueType $>$}!conj\_transpose@{conj\_transpose}}
+\index{conj\_transpose@{conj\_transpose}!gko::matrix::Identity$<$ ValueType $>$@{gko::matrix::Identity$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{conj\_transpose()}{conj\_transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Identity}{gko\+::matrix\+::\+Identity}}$<$ Value\+Type $>$\+::conj\+\_\+transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new conjugate transposed object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Transposable_ab41b669288740cf2a6f7bf76e875b077}{gko\+::\+Transposable}}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Identity_a056ccc29abb9cb92573f8ab608984afc}\label{classgko_1_1matrix_1_1Identity_a056ccc29abb9cb92573f8ab608984afc}} 
+\index{gko::matrix::Identity$<$ ValueType $>$@{gko::matrix::Identity$<$ ValueType $>$}!transpose@{transpose}}
+\index{transpose@{transpose}!gko::matrix::Identity$<$ ValueType $>$@{gko::matrix::Identity$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{transpose()}{transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Identity}{gko\+::matrix\+::\+Identity}}$<$ Value\+Type $>$\+::transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new transposed object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Transposable_a5c6b778b71b47d53e0bda6ccf894d318}{gko\+::\+Transposable}}.
+
+
+
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/matrix/identity.\+hpp (29444d385)\end{DoxyCompactItemize}
+ginkgo/core/matrix/identity.\+hpp (3c1eeba89)\end{DoxyCompactItemize}
