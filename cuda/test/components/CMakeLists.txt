@@ -1,3 +1,5 @@
 ginkgo_create_cuda_test(cooperative_groups)
+ginkgo_create_cuda_test(merging)
 ginkgo_create_cuda_test(prefix_sum)
+ginkgo_create_cuda_test(searching)
 ginkgo_create_cuda_test(sorting)

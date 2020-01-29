@@ -30,37 +30,25 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-/**
- * @internal
- * Returns the number of set bits in the given mask.
- */
-__forceinline__ __device__ int popcnt(uint32 mask) { return __popc(mask); }
-
-/** @copydoc popcnt */
-__forceinline__ __device__ int popcnt(uint64 mask) { return __popcll(mask); }
+#ifndef GKO_CUDA_COMPONENTS_SEARCHING_CUH_
+#define GKO_CUDA_COMPONENTS_SEARCHING_CUH_
 
 
-/**
- * @internal
- * Returns the (1-based!) index of the first set bit in the given mask,
- * starting from the least significant bit.
- */
-__forceinline__ __device__ int ffs(uint32 mask) { return __ffs(mask); }
-
-/** @copydoc ffs */
-__forceinline__ __device__ int ffs(uint64 mask)
-{
-    // the cast is necessary, as the overloads defined by HIP are ambiguous
-    return __ffsll(static_cast<unsigned long long int>(mask));
-}
+#include "cuda/base/config.hpp"
+#include "cuda/components/intrinsics.cuh"
 
 
-/**
- * @internal
- * Returns the number of zero bits before the first set bit in the given mask,
- * starting from the most significant bit.
- */
-__forceinline__ __device__ int clz(uint32 mask) { return __clz(mask); }
+namespace gko {
+namespace kernels {
+namespace cuda {
 
-/** @copydoc clz */
-__forceinline__ __device__ int clz(uint64 mask) { return __clzll(mask); }
+
+#include "common/components/searching.hpp.inc"
+
+
+}  // namespace cuda
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif  // GKO_CUDA_COMPONENTS_SEARCHING_CUH_
