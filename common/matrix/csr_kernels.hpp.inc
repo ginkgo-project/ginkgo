@@ -494,95 +494,95 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
 }
 
 
-template <typename IndexType>
+template <int subwarp_size, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void spgeam_nnz(
     const IndexType *a_row_ptrs, const IndexType *a_col_idxs,
     const IndexType *b_row_ptrs, const IndexType *b_col_idxs,
     IndexType num_rows, IndexType *nnz)
 {
-    constexpr auto sentinel = device_numeric_limits<IndexType>::max;
-    auto row = threadIdx.x + blockDim.x * static_cast<size_type>(blockIdx.x);
+    auto row =
+        (threadIdx.x + blockDim.x * size_type(blockIdx.x)) / subwarp_size;
+    auto subwarp =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
     if (row >= num_rows) {
         return;
     }
 
     auto a_begin = a_row_ptrs[row];
     auto b_begin = b_row_ptrs[row];
-    auto a_end = a_row_ptrs[row + 1];
-    auto b_end = b_row_ptrs[row + 1];
-    auto a_size = a_end - a_begin;
-    auto b_size = b_end - b_begin;
-    auto a_ptr = a_begin;
-    auto b_ptr = b_begin;
-    auto a_col = a_ptr < a_end ? a_col_idxs[a_ptr] : sentinel;
-    auto b_col = b_ptr < b_end ? b_col_idxs[b_ptr] : sentinel;
+    auto a_size = a_row_ptrs[row + 1] - a_begin;
+    auto b_size = b_row_ptrs[row + 1] - b_begin;
     IndexType count{};
-    IndexType i{};
-    while (i < a_size + b_size) {
-        auto advance_a = (a_col <= b_col);
-        auto advance_b = (b_col <= a_col);
-        i += advance_a + advance_b;
-        a_ptr += advance_a;
-        b_ptr += advance_b;
-        if (advance_a) {
-            a_col = a_ptr < a_end ? a_col_idxs[a_ptr] : sentinel;
-        }
-        if (advance_b) {
-            b_col = b_ptr < b_end ? b_col_idxs[b_ptr] : sentinel;
-        }
-        ++count;
+    group_merge<subwarp_size>(
+        a_col_idxs + a_begin, a_size, b_col_idxs + b_begin, b_size, subwarp,
+        [&](IndexType, IndexType a_col, IndexType, IndexType b_col, IndexType,
+            bool valid) {
+            count += popcnt(subwarp.ballot(a_col != b_col && valid));
+        });
+
+    if (subwarp.thread_rank() == 0) {
+        nnz[row] = count;
     }
-    nnz[row] = count;
 }
 
 
-template <typename IndexType, typename ValueType>
+template <int subwarp_size, typename IndexType, typename ValueType>
 __global__ __launch_bounds__(default_block_size) void spgeam(
     ValueType alpha, const IndexType *a_row_ptrs, const IndexType *a_col_idxs,
     const ValueType *a_vals, ValueType beta, const IndexType *b_row_ptrs,
     const IndexType *b_col_idxs, const ValueType *b_vals, IndexType num_rows,
     const IndexType *c_row_ptrs, IndexType *c_col_idxs, ValueType *c_vals)
 {
-    constexpr auto sentinel = device_numeric_limits<IndexType>::max;
-    auto row = threadIdx.x + blockDim.x * static_cast<size_type>(blockIdx.x);
+    auto row =
+        (threadIdx.x + blockDim.x * size_type(blockIdx.x)) / subwarp_size;
+    auto subwarp =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
     if (row >= num_rows) {
         return;
     }
 
+    auto lane = IndexType(subwarp.thread_rank());
+    constexpr auto lanemask_full =
+        ~config::lane_mask_type{} >> (config::warp_size - subwarp_size);
+    auto lanemask_eq = config::lane_mask_type{1} << lane;
+    auto lanemask_lt = lanemask_eq - 1;
+
     auto a_begin = a_row_ptrs[row];
     auto b_begin = b_row_ptrs[row];
+    auto a_size = a_row_ptrs[row + 1] - a_begin;
+    auto b_size = b_row_ptrs[row + 1] - b_begin;
     auto c_begin = c_row_ptrs[row];
-    auto a_end = a_row_ptrs[row + 1];
-    auto b_end = b_row_ptrs[row + 1];
-    auto a_size = a_end - a_begin;
-    auto b_size = b_end - b_begin;
-    auto a_ptr = a_begin;
-    auto b_ptr = b_begin;
-    auto a_col = a_ptr < a_end ? a_col_idxs[a_ptr] : sentinel;
-    auto b_col = b_ptr < b_end ? b_col_idxs[b_ptr] : sentinel;
-    IndexType count{};
-    IndexType i{};
-    IndexType c_col{};
-    while (i < a_size + b_size) {
-        auto advance_a = (a_col <= b_col);
-        auto advance_b = (b_col <= a_col);
-        c_col = advance_a ? a_col : b_col;
-        i += advance_a + advance_b;
-        a_ptr += advance_a;
-        b_ptr += advance_b;
-        ValueType c_val{};
-        if (advance_a) {
-            a_col = a_ptr < a_end ? a_col_idxs[a_ptr] : sentinel;
-            c_val += alpha * a_vals[a_ptr - 1];
-        }
-        if (advance_b) {
-            b_col = b_ptr < b_end ? b_col_idxs[b_ptr] : sentinel;
-            c_val += beta * b_vals[b_ptr - 1];
-        }
-        c_col_idxs[c_begin + count] = c_col;
-        c_vals[c_begin + count] = c_val;
-        ++count;
-    }
+    bool skip_first{};
+    group_merge<subwarp_size>(
+        a_col_idxs + a_begin, a_size, b_col_idxs + b_begin, b_size, subwarp,
+        [&](IndexType a_nz, IndexType a_col, IndexType b_nz, IndexType b_col,
+            IndexType, bool valid) {
+            auto c_col = min(a_col, b_col);
+            auto equal_mask = subwarp.ballot(a_col == b_col && valid);
+            // check if the elements in the previous merge step are
+            // equal
+            auto prev_equal_mask = equal_mask << 1 | skip_first;
+            // store the highest bit for the next group_merge_step
+            skip_first = bool(equal_mask >> (subwarp_size - 1));
+            auto prev_equal = bool(prev_equal_mask & lanemask_eq);
+            // only output an entry if the previous cols weren't equal.
+            // if they were equal, they were both handled in the
+            // previous step
+            if (valid && !prev_equal) {
+                auto c_ofs = popcnt(~prev_equal_mask & lanemask_lt);
+                c_col_idxs[c_begin + c_ofs] = c_col;
+                auto a_val =
+                    a_col <= b_col ? a_vals[a_nz + a_begin] : zero<ValueType>();
+                auto b_val =
+                    b_col <= a_col ? b_vals[b_nz + b_begin] : zero<ValueType>();
+                c_vals[c_begin + c_ofs] = alpha * a_val + beta * b_val;
+            }
+            // advance by the number of merged elements
+            // in theory, we would need to mask by `valid`, but this
+            // would only be false somwhere in the last iteration, where
+            // we don't need the value of c_begin afterwards, anyways.
+            c_begin += popcnt(~prev_equal_mask & lanemask_full);
+        });
 }
 
 
