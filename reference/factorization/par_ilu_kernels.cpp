@@ -59,7 +59,7 @@ namespace par_ilu_factorization {
 
 
 template <typename ValueType, typename IndexType>
-void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
+void add_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
                            matrix::Csr<ValueType, IndexType> *mtx,
                            bool /*is_sorted*/)
 {
@@ -68,8 +68,8 @@ void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
     auto row_ptrs = mtx->get_row_ptrs();
 
     size_type missing_elements{};
-    auto num_rows = mtx->get_size()[0];
-    auto num_cols = mtx->get_size()[1];
+    auto num_rows = static_cast<IndexType>(mtx->get_size()[0]);
+    auto num_cols = static_cast<IndexType>(mtx->get_size()[1]);
     // if row >= num_cols, diagonal elements no longer exist
     for (IndexType row = 0; row < num_rows && row < num_cols; ++row) {
         bool was_diagonal_found{false};
@@ -154,7 +154,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l_u(
-    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<const ReferenceExecutor> exec,
     const matrix::Csr<ValueType, IndexType> *system_matrix,
     IndexType *l_row_ptrs, IndexType *u_row_ptrs)
 {
@@ -185,7 +185,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void initialize_l_u(std::shared_ptr<const DefaultExecutor> exec,
+void initialize_l_u(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Csr<ValueType, IndexType> *system_matrix,
                     matrix::Csr<ValueType, IndexType> *csr_l,
                     matrix::Csr<ValueType, IndexType> *csr_u)
@@ -235,7 +235,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
+void compute_l_u_factors(std::shared_ptr<const ReferenceExecutor> exec,
                          size_type iterations,
                          const matrix::Coo<ValueType, IndexType> *system_matrix,
                          matrix::Csr<ValueType, IndexType> *l_factor,

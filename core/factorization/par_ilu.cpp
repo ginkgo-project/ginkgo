@@ -93,8 +93,7 @@ ParIlu<ValueType, IndexType>::generate_l_u(
         as<ConvertibleTo<CsrMatrix>>(system_matrix.get())
             ->convert_to(csr_system_matrix_unique_ptr.get());
     } else {
-        csr_system_matrix_unique_ptr = std::unique_ptr<CsrMatrix>{
-            static_cast<CsrMatrix *>(system_matrix->clone().release())};
+        csr_system_matrix_unique_ptr = csr_system_matrix_const->clone();
     }
     csr_system_matrix = csr_system_matrix_unique_ptr.get();
     // If it needs to be sorted, copy it if necessary and sort it

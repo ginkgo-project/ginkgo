@@ -65,7 +65,7 @@ namespace detail {
 template <bool IsSorted = false>
 struct find_helper {
     template <typename ForwardIt, typename IndexType>
-    static bool find(ForwardIt first, ForwardIt last, const IndexType &value)
+    static bool find(ForwardIt first, ForwardIt last, IndexType value)
     {
         return std::find(first, last, value) != last;
     }
@@ -75,7 +75,7 @@ struct find_helper {
 template <>
 struct find_helper<true> {
     template <typename ForwardIt, typename IndexType>
-    static bool find(ForwardIt first, ForwardIt last, const IndexType &value)
+    static bool find(ForwardIt first, ForwardIt last, IndexType value)
     {
         return std::binary_search(first, last, value);
     }
@@ -90,13 +90,14 @@ void find_missing_diagonal_elements(
     const matrix::Csr<ValueType, IndexType> *mtx,
     IndexType *elements_to_add_per_row, bool *changes_required)
 {
-    auto size = mtx->get_size();
+    auto num_rows = static_cast<IndexType>(mtx->get_size()[0]);
+    auto num_cols = static_cast<IndexType>(mtx->get_size()[1]);
     auto col_idxs = mtx->get_const_col_idxs();
     auto row_ptrs = mtx->get_const_row_ptrs();
     bool local_change{false};
 #pragma omp parallel for reduction(|| : local_change)
-    for (IndexType row = 0; row < size[0]; ++row) {
-        if (row >= size[1]) {
+    for (IndexType row = 0; row < num_rows; ++row) {
+        if (row >= num_cols) {
             elements_to_add_per_row[row] = 0;
             continue;
         }
@@ -119,7 +120,7 @@ void add_missing_diagonal_elements(const matrix::Csr<ValueType, IndexType> *mtx,
                                    IndexType *new_col_idxs,
                                    const IndexType *row_ptrs_addition)
 {
-    const auto num_rows = mtx->get_size()[0];
+    const auto num_rows = static_cast<IndexType>(mtx->get_size()[0]);
     const auto old_values = mtx->get_const_values();
     const auto old_col_idxs = mtx->get_const_col_idxs();
     const auto row_ptrs = mtx->get_const_row_ptrs();
@@ -167,13 +168,13 @@ void add_missing_diagonal_elements(const matrix::Csr<ValueType, IndexType> *mtx,
 
 
 template <typename ValueType, typename IndexType>
-void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
+void add_diagonal_elements(std::shared_ptr<const OmpExecutor> exec,
                            matrix::Csr<ValueType, IndexType> *mtx,
                            bool is_sorted)
 {
     auto mtx_size = mtx->get_size();
     size_type row_ptrs_size = mtx_size[0] + 1;
-    Array<IndexType> row_ptrs_addition(exec, row_ptrs_size);
+    Array<IndexType> row_ptrs_addition{exec, row_ptrs_size};
     bool needs_change{};
     if (is_sorted) {
         kernel::find_missing_diagonal_elements<true>(
@@ -215,7 +216,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l_u(
-    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<const OmpExecutor> exec,
     const matrix::Csr<ValueType, IndexType> *system_matrix,
     IndexType *l_row_ptrs, IndexType *u_row_ptrs)
 {
@@ -251,7 +252,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void initialize_l_u(std::shared_ptr<const DefaultExecutor> exec,
+void initialize_l_u(std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Csr<ValueType, IndexType> *system_matrix,
                     matrix::Csr<ValueType, IndexType> *csr_l,
                     matrix::Csr<ValueType, IndexType> *csr_u)
@@ -302,7 +303,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
+void compute_l_u_factors(std::shared_ptr<const OmpExecutor> exec,
                          size_type iterations,
                          const matrix::Coo<ValueType, IndexType> *system_matrix,
                          matrix::Csr<ValueType, IndexType> *l_factor,

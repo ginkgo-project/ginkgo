@@ -66,13 +66,13 @@ constexpr int default_block_size{512};
 
 
 template <typename ValueType, typename IndexType>
-void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
+void add_diagonal_elements(std::shared_ptr<const CudaExecutor> exec,
                            matrix::Csr<ValueType, IndexType> *mtx,
                            bool is_sorted)
 {
     // TODO: Runtime can be optimized by choosing a appropriate size for the
     //       subwarp dependent on the matrix properties
-    constexpr int subwarp_size = config::warp_size / 2;
+    constexpr int subwarp_size = config::warp_size;
     auto mtx_size = mtx->get_size();
     auto num_rows = static_cast<IndexType>(mtx_size[0]);
     auto num_cols = static_cast<IndexType>(mtx_size[1]);
@@ -91,9 +91,8 @@ void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
 
     const dim3 block_dim{default_block_size, 1, 1};
     const dim3 grid_dim{
-        static_cast<uint32>(ceildiv(
-            num_rows, static_cast<size_type>(block_dim.x / subwarp_size))),
-        1, 1};
+        static_cast<uint32>(ceildiv(num_rows, block_dim.x / subwarp_size)), 1,
+        1};
     if (is_sorted) {
         kernel::find_missing_diagonal_elements<true, subwarp_size>
             <<<grid_dim, block_dim>>>(
@@ -133,9 +132,7 @@ void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
                                   cuda_new_col_idxs, cuda_row_ptrs_add);
 
     const dim3 grid_dim_row_ptrs_update{
-        static_cast<uint32>(
-            ceildiv(num_rows, static_cast<size_type>(block_dim.x))),
-        1, 1};
+        static_cast<uint32>(ceildiv(num_rows, block_dim.x)), 1, 1};
     kernel::update_row_ptrs<<<grid_dim_row_ptrs_update, block_dim>>>(
         num_rows + 1, cuda_old_row_ptrs, cuda_row_ptrs_add);
 
@@ -150,7 +147,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l_u(
-    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<const CudaExecutor> exec,
     const matrix::Csr<ValueType, IndexType> *system_matrix,
     IndexType *l_row_ptrs, IndexType *u_row_ptrs)
 {
@@ -176,7 +173,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void initialize_l_u(std::shared_ptr<const DefaultExecutor> exec,
+void initialize_l_u(std::shared_ptr<const CudaExecutor> exec,
                     const matrix::Csr<ValueType, IndexType> *system_matrix,
                     matrix::Csr<ValueType, IndexType> *csr_l,
                     matrix::Csr<ValueType, IndexType> *csr_u)
@@ -202,7 +199,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
+void compute_l_u_factors(std::shared_ptr<const CudaExecutor> exec,
                          size_type iterations,
                          const matrix::Coo<ValueType, IndexType> *system_matrix,
                          matrix::Csr<ValueType, IndexType> *l_factor,
