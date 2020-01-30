@@ -40,8 +40,10 @@ namespace detail {
 template <bool IsSorted>
 struct find_helper {
     template <typename Group, typename IndexType>
-    static __device__ bool find(Group subwarp_grp, const IndexType *first,
-                                const IndexType *last, IndexType value)
+    static __forceinline__ __device__ bool find(Group subwarp_grp,
+                                                const IndexType *first,
+                                                const IndexType *last,
+                                                IndexType value)
     {
         auto subwarp_idx = subwarp_grp.thread_rank();
         bool found{false};
@@ -63,8 +65,10 @@ struct find_helper {
 template <>
 struct find_helper<true> {
     template <typename Group, typename IndexType>
-    static __device__ bool find(Group subwarp_grp, const IndexType *first,
-                                const IndexType *last, IndexType value)
+    static __forceinline__ __device__ bool find(Group subwarp_grp,
+                                                const IndexType *first,
+                                                const IndexType *last,
+                                                IndexType value)
     {
         const auto length = static_cast<IndexType>(last - first);
         const auto pos =

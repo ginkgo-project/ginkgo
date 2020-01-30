@@ -62,10 +62,10 @@ namespace kernel {
 namespace detail {
 
 
-template <bool IsSorted = false>
+template <bool IsSorted>
 struct find_helper {
     template <typename ForwardIt, typename IndexType>
-    static bool find(ForwardIt first, ForwardIt last, IndexType value)
+    static inline bool find(ForwardIt first, ForwardIt last, IndexType value)
     {
         return std::find(first, last, value) != last;
     }
@@ -75,7 +75,7 @@ struct find_helper {
 template <>
 struct find_helper<true> {
     template <typename ForwardIt, typename IndexType>
-    static bool find(ForwardIt first, ForwardIt last, IndexType value)
+    static inline bool find(ForwardIt first, ForwardIt last, IndexType value)
     {
         return std::binary_search(first, last, value);
     }
