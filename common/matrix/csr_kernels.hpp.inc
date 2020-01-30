@@ -500,8 +500,8 @@ __global__ __launch_bounds__(default_block_size) void spgeam_nnz(
     const IndexType *b_row_ptrs, const IndexType *b_col_idxs,
     IndexType num_rows, IndexType *nnz)
 {
-    auto row =
-        (threadIdx.x + blockDim.x * size_type(blockIdx.x)) / subwarp_size;
+    auto row = (threadIdx.x + blockDim.x * static_cast<size_type>(blockIdx.x)) /
+               subwarp_size;
     auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     if (row >= num_rows) {
@@ -533,15 +533,15 @@ __global__ __launch_bounds__(default_block_size) void spgeam(
     const IndexType *b_col_idxs, const ValueType *b_vals, IndexType num_rows,
     const IndexType *c_row_ptrs, IndexType *c_col_idxs, ValueType *c_vals)
 {
-    auto row =
-        (threadIdx.x + blockDim.x * size_type(blockIdx.x)) / subwarp_size;
+    auto row = (threadIdx.x + blockDim.x * static_cast<size_type>(blockIdx.x)) /
+               subwarp_size;
     auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     if (row >= num_rows) {
         return;
     }
 
-    auto lane = IndexType(subwarp.thread_rank());
+    auto lane = static_cast<IndexType>(subwarp.thread_rank());
     constexpr auto lanemask_full =
         ~config::lane_mask_type{} >> (config::warp_size - subwarp_size);
     auto lanemask_eq = config::lane_mask_type{1} << lane;

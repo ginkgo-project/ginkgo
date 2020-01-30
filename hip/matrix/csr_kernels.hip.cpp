@@ -470,20 +470,20 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
         auto info = hipsparse::create_spgemm_info();
 
         auto alpha = one<ValueType>();
-        auto a_nnz = IndexType(a->get_num_stored_elements());
+        auto a_nnz = static_cast<IndexType>(a->get_num_stored_elements());
         auto a_vals = a->get_const_values();
         auto a_row_ptrs = a->get_const_row_ptrs();
         auto a_col_idxs = a->get_const_col_idxs();
-        auto b_nnz = IndexType(b->get_num_stored_elements());
+        auto b_nnz = static_cast<IndexType>(b->get_num_stored_elements());
         auto b_vals = b->get_const_values();
         auto b_row_ptrs = b->get_const_row_ptrs();
         auto b_col_idxs = b->get_const_col_idxs();
         auto null_value = static_cast<ValueType *>(nullptr);
         auto null_index = static_cast<IndexType *>(nullptr);
         auto zero_nnz = IndexType{};
-        auto m = IndexType(a->get_size()[0]);
-        auto n = IndexType(b->get_size()[1]);
-        auto k = IndexType(a->get_size()[1]);
+        auto m = static_cast<IndexType>(a->get_size()[0]);
+        auto n = static_cast<IndexType>(b->get_size()[1]);
+        auto k = static_cast<IndexType>(a->get_size()[1]);
         auto c_row_ptrs = c->get_row_ptrs();
         matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
         auto &c_col_idxs_array = c_builder.get_col_idx_array();
@@ -540,7 +540,7 @@ void spgeam(syn::value_list<int, subwarp_size>,
             const IndexType *b_row_ptrs, const IndexType *b_col_idxs,
             const ValueType *b_vals, matrix::Csr<ValueType, IndexType> *c)
 {
-    auto m = IndexType(c->get_size()[0]);
+    auto m = static_cast<IndexType>(c->get_size()[0]);
     auto c_row_ptrs = c->get_row_ptrs();
     // count nnz for alpha * A + beta * B
     auto subwarps_per_block = default_block_size / subwarp_size;
@@ -594,11 +594,11 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
         auto d_descr = hipsparse::create_mat_descr();
         auto info = hipsparse::create_spgemm_info();
 
-        auto a_nnz = IndexType(a->get_num_stored_elements());
+        auto a_nnz = static_cast<IndexType>(a->get_num_stored_elements());
         auto a_vals = a->get_const_values();
         auto a_row_ptrs = a->get_const_row_ptrs();
         auto a_col_idxs = a->get_const_col_idxs();
-        auto b_nnz = IndexType(b->get_num_stored_elements());
+        auto b_nnz = static_cast<IndexType>(b->get_num_stored_elements());
         auto b_vals = b->get_const_values();
         auto b_row_ptrs = b->get_const_row_ptrs();
         auto b_col_idxs = b->get_const_col_idxs();
@@ -608,16 +608,16 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
         auto null_value = static_cast<ValueType *>(nullptr);
         auto null_index = static_cast<IndexType *>(nullptr);
         auto one_value = one<ValueType>();
-        auto m = IndexType(a->get_size()[0]);
-        auto n = IndexType(b->get_size()[1]);
-        auto k = IndexType(a->get_size()[1]);
+        auto m = static_cast<IndexType>(a->get_size()[0]);
+        auto n = static_cast<IndexType>(b->get_size()[1]);
+        auto k = static_cast<IndexType>(a->get_size()[1]);
 
         // allocate buffer
         size_type buffer_size{};
         hipsparse::spgemm_buffer_size(
             handle, m, n, k, &one_value, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
             b_descr, b_nnz, b_row_ptrs, b_col_idxs, null_value, d_descr,
-            IndexType(0), null_index, null_index, info, buffer_size);
+            IndexType{}, null_index, null_index, info, buffer_size);
         Array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
 
@@ -627,7 +627,7 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
         IndexType c_nnz{};
         hipsparse::spgemm_nnz(
             handle, m, n, k, a_descr, a_nnz, a_row_ptrs, a_col_idxs, b_descr,
-            b_nnz, b_row_ptrs, b_col_idxs, d_descr, IndexType(0), null_index,
+            b_nnz, b_row_ptrs, b_col_idxs, d_descr, IndexType{}, null_index,
             null_index, c_descr, c_tmp_row_ptrs, &c_nnz, info, buffer);
 
         // accumulate non-zeros for A * B
@@ -638,7 +638,7 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
         hipsparse::spgemm(handle, m, n, k, &one_value, a_descr, a_nnz, a_vals,
                           a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
                           b_row_ptrs, b_col_idxs, null_value, d_descr,
-                          IndexType(0), null_value, null_index, null_index,
+                          IndexType{}, null_value, null_index, null_index,
                           c_descr, c_tmp_vals, c_tmp_row_ptrs, c_tmp_col_idxs,
                           info, buffer);
 
