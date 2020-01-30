@@ -58,18 +58,12 @@ namespace reference {
 namespace par_ilu_factorization {
 
 
-template <typename ValueType, typename IndexType>
-void add_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
-                           matrix::Csr<ValueType, IndexType> *mtx,
-                           bool /*is_sorted*/)
+template <typename IndexType>
+size_type count_missing_elements(IndexType num_rows, IndexType num_cols,
+                                 const IndexType *col_idxs,
+                                 const IndexType *row_ptrs)
 {
-    const auto values = mtx->get_const_values();
-    const auto col_idxs = mtx->get_const_col_idxs();
-    auto row_ptrs = mtx->get_row_ptrs();
-
     size_type missing_elements{};
-    auto num_rows = static_cast<IndexType>(mtx->get_size()[0]);
-    auto num_cols = static_cast<IndexType>(mtx->get_size()[1]);
     // if row >= num_cols, diagonal elements no longer exist
     for (IndexType row = 0; row < num_rows && row < num_cols; ++row) {
         bool was_diagonal_found{false};
@@ -84,6 +78,23 @@ void add_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
             ++missing_elements;
         }
     }
+    return missing_elements;
+}
+
+
+template <typename ValueType, typename IndexType>
+void add_diagonal_elements(std::shared_ptr<const ReferenceExecutor> exec,
+                           matrix::Csr<ValueType, IndexType> *mtx,
+                           bool /*is_sorted*/)
+{
+    const auto values = mtx->get_const_values();
+    const auto col_idxs = mtx->get_const_col_idxs();
+    auto row_ptrs = mtx->get_row_ptrs();
+    auto num_rows = static_cast<IndexType>(mtx->get_size()[0]);
+    auto num_cols = static_cast<IndexType>(mtx->get_size()[1]);
+
+    auto missing_elements =
+        count_missing_elements(num_rows, num_cols, col_idxs, row_ptrs);
 
     if (missing_elements == 0) {
         return;
