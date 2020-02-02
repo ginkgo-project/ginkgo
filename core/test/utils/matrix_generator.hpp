@@ -238,8 +238,8 @@ std::unique_ptr<MatrixType> generate_random_triangular_matrix(
         for (size_type nz = 0; nz < nnz_in_row; ++nz) {
             auto col = col_idx[nz];
             // skip non-zeros outside triangle
-            if (col > row && lower_triangular ||
-                col < row && !lower_triangular) {
+            if ((col > row && lower_triangular) ||
+                (col < row && !lower_triangular)) {
                 continue;
             }
 

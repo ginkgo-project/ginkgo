@@ -215,10 +215,12 @@ template <typename MatrixData1, typename MatrixData2>
             !std::equal(fst_row_begin, fst_row_end, snd_row_begin, col_eq)) {
             auto fail = ::testing::AssertionFailure();
             fail << "Sparsity pattern differs between " << first_expression
-                 << " and " << second_expression << "\n\tIn row " << row << " "
-                 << first_expression << " has columns:\n";
+                 << " and " << second_expression << "\nIn row " << row << " "
+                 << first_expression << " has " << (fst_row_end - fst_row_begin)
+                 << " columns:\n";
             detail::print_columns(fail, fst_row_begin, fst_row_end);
-            fail << " and " << second_expression << " has columns:\n";
+            fail << "and " << second_expression << " has "
+                 << (snd_row_end - snd_row_begin) << " columns:\n";
             detail::print_columns(fail, snd_row_begin, snd_row_end);
             return fail;
         }
