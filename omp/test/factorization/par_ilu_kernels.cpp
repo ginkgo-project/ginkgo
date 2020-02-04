@@ -258,7 +258,7 @@ TEST_F(ParIlu, OmpKernelAddDiagonalElementsUnsortedEquivalentToRef)
 }
 
 
-TEST_F(ParIlu, OmpKernelAddDiagonalElementsAsymetricEquivalentToRef)
+TEST_F(ParIlu, OmpKernelAddDiagonalElementsNonSquareEquivalentToRef)
 {
     index_type num_rows{200};
     index_type num_cols{100};

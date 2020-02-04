@@ -226,7 +226,7 @@ TEST_F(ParIlu, KernelAddDiagonalElementsEmpty)
 }
 
 
-TEST_F(ParIlu, KernelAddDiagonalElementsAsymetric)
+TEST_F(ParIlu, KernelAddDiagonalElementsNonSquare)
 {
     auto matrix = gko::initialize<Csr>(
         {{0., 0., 0.}, {1., 0., 0.}, {1., 1., 1.}, {1., 1., 1.}}, ref);
@@ -245,7 +245,7 @@ TEST_F(ParIlu, KernelAddDiagonalElementsAsymetric)
 }
 
 
-TEST_F(ParIlu, KernelAddDiagonalElementsAsymetric2)
+TEST_F(ParIlu, KernelAddDiagonalElementsNonSquare2)
 {
     auto matrix = gko::initialize<Csr>({{1., 0., 0.}, {1., 0., 0.}}, ref);
     auto exp_values = {1., 1., 0.};

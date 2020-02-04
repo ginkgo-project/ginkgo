@@ -258,7 +258,7 @@ TEST_F(ParIlu, CudaKernelAddDiagonalElementsUnsortedEquivalentToRef)
 }
 
 
-TEST_F(ParIlu, CudaKernelAddDiagonalElementsAsymetricEquivalentToRef)
+TEST_F(ParIlu, CudaKernelAddDiagonalElementsNonSquareEquivalentToRef)
 {
     index_type num_rows{600};
     index_type num_cols{500};
