@@ -259,7 +259,7 @@ TEST_F(ParIlu, HipKernelAddDiagonalElementsUnsortedEquivalentToRef)
 }
 
 
-TEST_F(ParIlu, HipKernelAddDiagonalElementsAsymetricEquivalentToRef)
+TEST_F(ParIlu, HipKernelAddDiagonalElementsNonSquareEquivalentToRef)
 {
     index_type num_rows{600};
     index_type num_cols{500};
