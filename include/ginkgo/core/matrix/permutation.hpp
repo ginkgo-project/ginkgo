@@ -130,13 +130,15 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the permutable matrix
+     * @param enabled_permute  mask for the type of permutation to apply.
      */
-    Permutation(std::shared_ptr<const Executor> exec, const dim<2> &size)
+    Permutation(std::shared_ptr<const Executor> exec, const dim<2> &size,
+                const mask_type &enabled_permute = row_permute)
         : EnableLinOp<Permutation>(exec, size),
           permutation_(exec, size[0]),
           row_size_(size[0]),
           col_size_(size[1]),
-          enabled_permute_(row_permute)
+          enabled_permute_(enabled_permute)
     {}
 
     /**
@@ -148,6 +150,7 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the permutation array.
      * @param permutation_indices array of permutation array
+     * @param enabled_permute  mask for the type of permutation to apply.
      *
      * @note If `permutation_indices` is not an rvalue, not an array of
      * IndexType, or is on the wrong executor, an internal copy will be created,
