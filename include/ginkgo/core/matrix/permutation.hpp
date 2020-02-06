@@ -114,6 +114,23 @@ public:
         return permutation_.get_num_elems();
     }
 
+    /**
+     * Get the permute masks
+     *
+     * @param permute_mask the permute masks
+     */
+    mask_type get_permute_mask() { return enabled_permute_; }
+
+    /**
+     * Set the permute masks
+     *
+     * @param permute_mask the permute masks
+     */
+    void set_permute_mask(mask_type permute_mask)
+    {
+        enabled_permute_ = permute_mask;
+    }
+
 
 protected:
     /**
@@ -122,7 +139,7 @@ protected:
      * @param exec  Executor associated to the LinOp
      */
     Permutation(std::shared_ptr<const Executor> exec)
-        : Permutation(std::move(exec), dim<2>{})
+        : Permutation(std::move(exec), dim<2>{}, row_permute)
     {}
 
     /**
