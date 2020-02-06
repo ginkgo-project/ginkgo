@@ -320,7 +320,7 @@ void solve_system(const std::string &solver_name,
         std::chrono::nanoseconds generate_time(0);
         for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
             auto x_clone = clone(x);
-
+            auto it_logger = std::make_shared<IterationLogger>(exec);
             exec->synchronize();
             auto g_tic = std::chrono::steady_clock::now();
 
@@ -333,7 +333,7 @@ void solve_system(const std::string &solver_name,
             generate_time +=
                 std::chrono::duration_cast<std::chrono::nanoseconds>(g_tac -
                                                                      g_tic);
-
+            solver->add_logger(it_logger);
             exec->synchronize();
             auto a_tic = std::chrono::steady_clock::now();
 
@@ -343,7 +343,7 @@ void solve_system(const std::string &solver_name,
             auto a_tac = std::chrono::steady_clock::now();
             apply_time += std::chrono::duration_cast<std::chrono::nanoseconds>(
                 a_tac - a_tic);
-
+            it_logger->write_data(solver_json["apply"], allocator);
             if (FLAGS_nrhs == 1 && i == FLAGS_repetitions - 1) {
                 auto residual = compute_residual_norm(lend(system_matrix),
                                                       lend(b), lend(x_clone));
