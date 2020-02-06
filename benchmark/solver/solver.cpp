@@ -440,9 +440,15 @@ int main(int argc, char *argv[])
             auto system_matrix = share(formats::matrix_factory.at(
                 test_case["optimal"]["spmv"].GetString())(exec, data));
             auto b = create_matrix<etype>(
+                exec, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs});
+            // generate the correct answer x
+            auto x = create_matrix<etype>(
                 exec, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
                 engine);
-            auto x = create_matrix<etype>(
+            // get the right hand side
+            system_matrix->apply(lend(x), lend(b));
+            // set x all zero
+            x = create_matrix<etype>(
                 exec, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs});
 
             std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
