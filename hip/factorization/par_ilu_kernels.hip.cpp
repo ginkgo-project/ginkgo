@@ -42,8 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/components/prefix_sum.hpp"
+#include "core/matrix/csr_builder.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/intrinsics.hip.hpp"
+#include "hip/components/searching.hip.hpp"
 
 
 namespace gko {
@@ -61,6 +65,89 @@ constexpr int default_block_size{512};
 
 
 #include "common/factorization/par_ilu_kernels.hpp.inc"
+
+
+template <typename ValueType, typename IndexType>
+void add_diagonal_elements(std::shared_ptr<const HipExecutor> exec,
+                           matrix::Csr<ValueType, IndexType> *mtx,
+                           bool is_sorted)
+{
+    // TODO: Runtime can be optimized by choosing a appropriate size for the
+    //       subwarp dependent on the matrix properties
+    constexpr int subwarp_size = config::warp_size;
+    auto mtx_size = mtx->get_size();
+    auto num_rows = static_cast<IndexType>(mtx_size[0]);
+    auto num_cols = static_cast<IndexType>(mtx_size[1]);
+    size_type row_ptrs_size = num_rows + 1;
+
+    Array<IndexType> row_ptrs_addition(exec, row_ptrs_size);
+    Array<bool> needs_change_host{exec->get_master(), 1};
+    needs_change_host.get_data()[0] = false;
+    Array<bool> needs_change_device{exec, 1};
+    needs_change_device = needs_change_host;
+
+    auto hip_old_values = as_hip_type(mtx->get_const_values());
+    auto hip_old_col_idxs = as_hip_type(mtx->get_const_col_idxs());
+    auto hip_old_row_ptrs = as_hip_type(mtx->get_row_ptrs());
+    auto hip_row_ptrs_add = as_hip_type(row_ptrs_addition.get_data());
+
+    const dim3 block_dim{default_block_size, 1, 1};
+    const dim3 grid_dim{
+        static_cast<uint32>(ceildiv(num_rows, block_dim.x / subwarp_size)), 1,
+        1};
+    if (is_sorted) {
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(
+                kernel::find_missing_diagonal_elements<true, subwarp_size>),
+            grid_dim, block_dim, 0, 0, num_rows, num_cols, hip_old_col_idxs,
+            hip_old_row_ptrs, hip_row_ptrs_add,
+            as_hip_type(needs_change_device.get_data()));
+    } else {
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(
+                kernel::find_missing_diagonal_elements<false, subwarp_size>),
+            grid_dim, block_dim, 0, 0, num_rows, num_cols, hip_old_col_idxs,
+            hip_old_row_ptrs, hip_row_ptrs_add,
+            as_hip_type(needs_change_device.get_data()));
+    }
+    needs_change_host = needs_change_device;
+    if (!needs_change_host.get_const_data()[0]) {
+        return;
+    }
+
+    prefix_sum(exec, hip_row_ptrs_add, row_ptrs_size);
+    exec->synchronize();
+
+    IndexType total_additions{};
+    exec->get_master()->copy_from(
+        exec.get(), 1, hip_row_ptrs_add + row_ptrs_size - 1, &total_additions);
+    size_type new_num_elems = static_cast<size_type>(total_additions) +
+                              mtx->get_num_stored_elements();
+
+
+    Array<ValueType> new_values{exec, new_num_elems};
+    Array<IndexType> new_col_idxs{exec, new_num_elems};
+    auto hip_new_values = as_hip_type(new_values.get_data());
+    auto hip_new_col_idxs = as_hip_type(new_col_idxs.get_data());
+
+    hipLaunchKernelGGL(
+        HIP_KERNEL_NAME(kernel::add_missing_diagonal_elements<subwarp_size>),
+        grid_dim, block_dim, 0, 0, num_rows, hip_old_values, hip_old_col_idxs,
+        hip_old_row_ptrs, hip_new_values, hip_new_col_idxs, hip_row_ptrs_add);
+
+    const dim3 grid_dim_row_ptrs_update{
+        static_cast<uint32>(ceildiv(num_rows, block_dim.x)), 1, 1};
+    hipLaunchKernelGGL(kernel::update_row_ptrs, grid_dim_row_ptrs_update,
+                       block_dim, 0, 0, num_rows + 1, hip_old_row_ptrs,
+                       hip_row_ptrs_add);
+
+    matrix::CsrBuilder<ValueType, IndexType> mtx_builder{mtx};
+    mtx_builder.get_value_array() = std::move(new_values);
+    mtx_builder.get_col_idx_array() = std::move(new_col_idxs);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PAR_ILU_ADD_DIAGONAL_ELEMENTS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

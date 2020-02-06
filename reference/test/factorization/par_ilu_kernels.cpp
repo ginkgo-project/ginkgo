@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <initializer_list>
 #include <memory>
 #include <vector>
 
@@ -112,6 +113,19 @@ protected:
               {{4., 6., 8.},
                {0., -1., 1.},
                {0., 0., -1.5}}, exec)),
+          mtx_small2(gko::initialize<Dense>(
+              {{8., 8., 0},
+              {2., 0., 5.},
+              {1., 1., 1}}, exec)),
+          mtx_csr_small2(nullptr),
+          small2_l_expected(gko::initialize<Dense>(
+              {{1., 0., 0},
+              {.25, 1., 0.},
+              {.125, 0., 1}}, exec)),
+          small2_u_expected(gko::initialize<Dense>(
+              {{8., 8., 0},
+              {0., -2., 5.},
+              {0., 0., 1}}, exec)),
           mtx_big(gko::initialize<Dense>({{1., 1., 1., 0., 1., 3.},
                                           {1., 2., 2., 0., 2., 0.},
                                           {0., 2., 3., 3., 3., 5.},
@@ -140,20 +154,22 @@ protected:
                                                {1., 2., 0., 4., 1., 6.},
                                                {0., 2., 3., 4., 5., 8.}},
                                          exec)),
-          big_nodiag_l_expected(gko::initialize<Dense>({{1., 0., 0., 0., 0., 0.},
-                                                        {1., 1., 0., 0., 0., 0.},
-                                                        {0., 2., 1., 0., 0., 0.},
-                                                        {1., 0., 2., 1., 0., 0.},
-                                                        {1., 1., 0., -2., 1., 0.},
-                                                        {0., 2., 1., -0.5, 2.5, 1.}},
-                                                exec)),
-          big_nodiag_u_expected(gko::initialize<Dense>({{1., 1., 1., 0., 1., 3.},
-                                                        {0., 1., 1., 0., 1., 0.},
-                                                        {0., 0., 1., 3., 1., 5.},
-                                                        {0., 0., 0., -2., 1., -9.},
-                                                        {0., 0., 0., 0., 1., -15.},
-                                                        {0., 0., 0., 0., 0., 36.}},
-                                                exec)),
+          big_nodiag_l_expected(gko::initialize<Dense>(
+            {{1., 0., 0., 0., 0., 0.},
+             {1., 1., 0., 0., 0., 0.},
+             {0., 2., 1., 0., 0., 0.},
+             {1., 0., -1., 1., 0., 0.},
+             {1., 1., 0., 0.571428571428571, 1., 0.},
+             {0., 2., -0.5, 0.785714285714286, -0.108695652173913, 1.}},
+            exec)),
+          big_nodiag_u_expected(gko::initialize<Dense>(
+            {{1., 1., 1., 0., 1., 3.},
+             {0., 1., 1., 0., 1., 0.},
+             {0., 0., -2., 3., 1., 5.},
+             {0., 0., 0., 7., 4., 6.},
+             {0., 0., 0., 0., -3.28571428571429, -0.428571428571429},
+             {0., 0., 0., 0., 0., 5.73913043478261}},
+            exec)),
           // clang-format on
           ilu_factory_skip(
               par_ilu_type::build().with_skip_sorting(true).on(exec)),
@@ -163,6 +179,9 @@ protected:
         auto tmp_csr = Csr::create(exec);
         mtx_small->convert_to(gko::lend(tmp_csr));
         mtx_csr_small = std::move(tmp_csr);
+        auto tmp_csr2 = Csr::create(exec);
+        mtx_small2->convert_to(gko::lend(tmp_csr2));
+        mtx_csr_small2 = std::move(tmp_csr2);
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
@@ -175,6 +194,10 @@ protected:
     std::shared_ptr<const Csr> mtx_csr_small;
     std::shared_ptr<const Dense> small_l_expected;
     std::shared_ptr<const Dense> small_u_expected;
+    std::shared_ptr<const Dense> mtx_small2;
+    std::shared_ptr<const Csr> mtx_csr_small2;
+    std::shared_ptr<const Dense> small2_l_expected;
+    std::shared_ptr<const Dense> small2_u_expected;
     std::shared_ptr<const Dense> mtx_big;
     std::shared_ptr<const Dense> big_l_expected;
     std::shared_ptr<const Dense> big_u_expected;
@@ -184,6 +207,88 @@ protected:
     std::unique_ptr<par_ilu_type::Factory> ilu_factory_skip;
     std::unique_ptr<par_ilu_type::Factory> ilu_factory_sort;
 };
+
+
+TEST_F(ParIlu, KernelAddDiagonalElementsEmpty)
+{
+    auto expected_mtx =
+        Csr::create(ref, empty_csr->get_size(),
+                    std::initializer_list<value_type>{0., 0., 0.},
+                    std::initializer_list<index_type>{0, 1, 2},
+                    std::initializer_list<index_type>{0, 1, 2, 3});
+    auto empty_mtx = empty_csr->clone();
+
+    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        ref, gko::lend(empty_mtx), true);
+
+    GKO_ASSERT_MTX_NEAR(empty_mtx, expected_mtx, 0.);
+    GKO_ASSERT_MTX_EQ_SPARSITY(empty_mtx, expected_mtx);
+}
+
+
+TEST_F(ParIlu, KernelAddDiagonalElementsNonSquare)
+{
+    auto matrix = gko::initialize<Csr>(
+        {{0., 0., 0.}, {1., 0., 0.}, {1., 1., 1.}, {1., 1., 1.}}, ref);
+    auto exp_values = {0., 1., 0., 1., 1., 1., 1., 1., 1.};
+    auto exp_col_idxs = {0, 0, 1, 0, 1, 2, 0, 1, 2};
+    auto exp_row_ptrs = {0, 1, 3, 6, 9};
+    auto expected_mtx =
+        Csr::create(ref, matrix->get_size(), std::move(exp_values),
+                    std::move(exp_col_idxs), std::move(exp_row_ptrs));
+
+    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        ref, gko::lend(matrix), true);
+
+    GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
+    GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
+}
+
+
+TEST_F(ParIlu, KernelAddDiagonalElementsNonSquare2)
+{
+    auto matrix = gko::initialize<Csr>({{1., 0., 0.}, {1., 0., 0.}}, ref);
+    auto exp_values = {1., 1., 0.};
+    auto exp_col_idxs = {0, 0, 1};
+    auto exp_row_ptrs = {0, 1, 3};
+    auto expected_mtx =
+        Csr::create(ref, matrix->get_size(), std::move(exp_values),
+                    std::move(exp_col_idxs), std::move(exp_row_ptrs));
+
+    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        ref, gko::lend(matrix), true);
+
+    GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
+    GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
+}
+
+
+TEST_F(ParIlu, KernelAddDiagonalElementsUnsorted)
+{
+    auto size = gko::dim<2>{3, 3};
+    /* matrix:
+    1 2 3
+    1 0 3
+    1 2 0
+    */
+    auto mtx_values = {3., 2., 1., 3., 1., 2., 1.};
+    auto mtx_col_idxs = {2, 1, 0, 2, 0, 1, 0};
+    auto mtx_row_ptrs = {0, 3, 5, 7};
+    auto matrix = Csr::create(ref, size, std::move(mtx_values),
+                              std::move(mtx_col_idxs), std::move(mtx_row_ptrs));
+    auto exp_values = {1., 2., 3., 1., 0., 3., 1., 2., 0.};
+    auto exp_col_idxs = {0, 1, 2, 0, 1, 2, 0, 1, 2};
+    auto exp_row_ptrs = {0, 3, 6, 9};
+    auto expected_mtx =
+        Csr::create(ref, size, std::move(exp_values), std::move(exp_col_idxs),
+                    std::move(exp_row_ptrs));
+
+    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        ref, gko::lend(matrix), false);
+
+    GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
+    GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
+}
 
 
 TEST_F(ParIlu, KernelInitializeRowPtrsLU)
@@ -210,23 +315,26 @@ TEST_F(ParIlu, KernelInitializeRowPtrsLU)
 
 TEST_F(ParIlu, KernelInitializeRowPtrsLUZeroMatrix)
 {
-    auto empty_csr_l_expected = Csr::create(ref);
-    identity->convert_to(gko::lend(empty_csr_l_expected));
-    auto empty_csr_u_expected = Csr::create(ref);
-    identity->convert_to(gko::lend(empty_csr_u_expected));
-    auto num_row_ptrs = empty_csr->get_size()[0] + 1;
+    auto empty_mtx = empty_csr->clone();
+    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        ref, gko::lend(empty_mtx), true);
+    auto empty_mtx_l_expected = Csr::create(ref);
+    identity->convert_to(gko::lend(empty_mtx_l_expected));
+    auto empty_mtx_u_expected = Csr::create(ref);
+    identity->convert_to(gko::lend(empty_mtx_u_expected));
+    auto num_row_ptrs = empty_mtx->get_size()[0] + 1;
     std::vector<index_type> l_row_ptrs_vector(num_row_ptrs);
     std::vector<index_type> u_row_ptrs_vector(num_row_ptrs);
     auto l_row_ptrs = l_row_ptrs_vector.data();
     auto u_row_ptrs = u_row_ptrs_vector.data();
 
     gko::kernels::reference::par_ilu_factorization::initialize_row_ptrs_l_u(
-        ref, gko::lend(empty_csr), l_row_ptrs, u_row_ptrs);
+        ref, gko::lend(empty_mtx), l_row_ptrs, u_row_ptrs);
 
     ASSERT_TRUE(std::equal(l_row_ptrs, l_row_ptrs + num_row_ptrs,
-                           empty_csr_l_expected->get_const_row_ptrs()));
+                           empty_mtx_l_expected->get_const_row_ptrs()));
     ASSERT_TRUE(std::equal(u_row_ptrs, u_row_ptrs + num_row_ptrs,
-                           empty_csr_u_expected->get_const_row_ptrs()));
+                           empty_mtx_u_expected->get_const_row_ptrs()));
 }
 
 
@@ -264,8 +372,8 @@ TEST_F(ParIlu, KernelInitializeLUZeroMatrix)
 {
     auto actual_l = Csr::create(ref);
     auto actual_u = Csr::create(ref);
-    actual_l->copy_from(identity.get());
-    actual_u->copy_from(identity.get());
+    actual_l->copy_from(gko::lend(identity));
+    actual_u->copy_from(gko::lend(identity));
 
     gko::kernels::reference::par_ilu_factorization::initialize_l_u(
         ref, gko::lend(empty_csr), gko::lend(actual_l), gko::lend(actual_u));
@@ -366,11 +474,11 @@ TEST_F(ParIlu, LUFactorFunctionsSetProperly)
     auto factors = ilu_factory_skip->generate(mtx_small);
 
     auto lin_op_l_factor =
-        static_cast<const gko::LinOp *>(factors->get_l_factor().get());
+        static_cast<const gko::LinOp *>(gko::lend(factors->get_l_factor()));
     auto lin_op_u_factor =
-        static_cast<const gko::LinOp *>(factors->get_u_factor().get());
-    auto first_operator = factors->get_operators()[0].get();
-    auto second_operator = factors->get_operators()[1].get();
+        static_cast<const gko::LinOp *>(gko::lend(factors->get_u_factor()));
+    auto first_operator = gko::lend(factors->get_operators()[0]);
+    auto second_operator = gko::lend(factors->get_operators()[1]);
 
     ASSERT_EQ(lin_op_l_factor, first_operator);
     ASSERT_EQ(lin_op_u_factor, second_operator);
@@ -380,7 +488,7 @@ TEST_F(ParIlu, LUFactorFunctionsSetProperly)
 TEST_F(ParIlu, GenerateForCooIdentity)
 {
     auto coo_mtx = gko::share(Coo::create(exec));
-    identity->convert_to(coo_mtx.get());
+    identity->convert_to(gko::lend(coo_mtx));
 
     auto factors = ilu_factory_skip->generate(coo_mtx);
     auto l_factor = factors->get_l_factor();
@@ -394,7 +502,7 @@ TEST_F(ParIlu, GenerateForCooIdentity)
 TEST_F(ParIlu, GenerateForCsrIdentity)
 {
     auto csr_mtx = gko::share(Csr::create(exec));
-    identity->convert_to(csr_mtx.get());
+    identity->convert_to(gko::lend(csr_mtx));
 
     auto factors = ilu_factory_skip->generate(csr_mtx);
     auto l_factor = factors->get_l_factor();
@@ -471,6 +579,17 @@ TEST_F(ParIlu, GenerateForCsrSmall)
 
     GKO_ASSERT_MTX_NEAR(l_factor, small_l_expected, 1e-14);
     GKO_ASSERT_MTX_NEAR(u_factor, small_u_expected, 1e-14);
+}
+
+
+TEST_F(ParIlu, GenerateForCsrSmall2ZeroDiagonal)
+{
+    auto factors = ilu_factory_skip->generate(mtx_csr_small2);
+    auto l_factor = factors->get_l_factor();
+    auto u_factor = factors->get_u_factor();
+
+    GKO_ASSERT_MTX_NEAR(l_factor, small2_l_expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(u_factor, small2_u_expected, 1e-14);
 }
 
 
@@ -551,7 +670,7 @@ TEST_F(ParIlu, GenerateForReverseCsrSmall)
     const auto size = mtx_csr_small->get_size();
     const auto nnz = size[0] * size[1];
     auto reverse_csr = gko::share(Csr::create(exec));
-    reverse_csr->copy_from(mtx_csr_small.get());
+    reverse_csr->copy_from(gko::lend(mtx_csr_small));
     // Fill the Csr matrix rows in reverse order
     for (size_t i = 0; i < size[0]; ++i) {
         const auto row_start = reverse_csr->get_row_ptrs()[i];
