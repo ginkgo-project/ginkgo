@@ -255,6 +255,9 @@ void solve_system(const std::string &solver_name,
             add_or_set_member(solver_json[stage], "components",
                               rapidjson::Value(rapidjson::kObjectType),
                               allocator);
+            add_or_set_member(solver_json[stage], "each_repetitions_time",
+                              rapidjson::Value(rapidjson::kArrayType),
+                              allocator);
         }
 
         // warm run
@@ -330,9 +333,12 @@ void solve_system(const std::string &solver_name,
 
             exec->synchronize();
             auto g_tac = std::chrono::steady_clock::now();
-            generate_time +=
+            auto g_repetitions_time =
                 std::chrono::duration_cast<std::chrono::nanoseconds>(g_tac -
                                                                      g_tic);
+            generate_time += g_repetitions_time;
+            solver_json["generate"]["each_repetitions_time"].PushBack(
+                static_cast<long int>(g_repetitions_time.count()), allocator);
             solver->add_logger(it_logger);
             exec->synchronize();
             auto a_tic = std::chrono::steady_clock::now();
@@ -341,8 +347,12 @@ void solve_system(const std::string &solver_name,
 
             exec->synchronize();
             auto a_tac = std::chrono::steady_clock::now();
-            apply_time += std::chrono::duration_cast<std::chrono::nanoseconds>(
-                a_tac - a_tic);
+            auto a_repetitions_time =
+                std::chrono::duration_cast<std::chrono::nanoseconds>(a_tac -
+                                                                     a_tic);
+            apply_time += a_repetitions_time;
+            solver_json["apply"]["each_repetitions_time"].PushBack(
+                static_cast<long int>(a_repetitions_time.count()), allocator);
             it_logger->write_data(solver_json["apply"], allocator);
             if (FLAGS_nrhs == 1 && i == FLAGS_repetitions - 1) {
                 auto residual = compute_residual_norm(lend(system_matrix),

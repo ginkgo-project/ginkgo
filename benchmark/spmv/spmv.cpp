@@ -69,6 +69,8 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
         auto &spmv_case = test_case["spmv"];
         add_or_set_member(spmv_case, format_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
+        add_or_set_member(spmv_case[format_name], "each_repetitions_time",
+                          rapidjson::Value(rapidjson::kArrayType), allocator);
 
         auto storage_logger = std::make_shared<StorageLogger>(exec);
         exec->add_logger(storage_logger);
@@ -105,8 +107,11 @@ void apply_spmv(const char *format_name, std::shared_ptr<gko::Executor> exec,
 
             exec->synchronize();
             auto toc = std::chrono::steady_clock::now();
-            time +=
+            auto repetitions_time =
                 std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
+            time += repetitions_time;
+            spmv_case[format_name]["each_repetitions_time"].PushBack(
+                static_cast<long int>(repetitions_time.count()), allocator);
         }
         add_or_set_member(spmv_case[format_name], "time",
                           static_cast<double>(time.count()) / FLAGS_repetitions,
