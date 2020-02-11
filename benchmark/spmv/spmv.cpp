@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <regex>
 #include <typeinfo>
 
 
@@ -146,6 +147,18 @@ int main(int argc, char *argv[])
     auto engine = get_engine();
     auto formats = split(FLAGS_formats, ',');
 
+    // Modification of format
+    if (FLAGS_executor == "cuda") {
+        const std::regex regex("hipsp|splib");
+        for (auto &format_name : formats) {
+            format_name = std::regex_replace(format_name, regex, "cusp");
+        }
+    } else if (FLAGS_executor == "hip") {
+        const std::regex regex("cusp|splib");
+        for (auto &format_name : formats) {
+            format_name = std::regex_replace(format_name, regex, "hipsp");
+        }
+    }
     rapidjson::IStreamWrapper jcin(std::cin);
     rapidjson::Document test_cases;
     test_cases.ParseStream(jcin);
