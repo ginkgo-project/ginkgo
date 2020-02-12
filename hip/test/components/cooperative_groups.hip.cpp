@@ -47,6 +47,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include "core/test/utils.hpp"
+#include "hip/base/types.hip.hpp"
+
+
 namespace {
 
 
@@ -82,6 +86,18 @@ protected:
         hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel), dim3(1),
                            dim3(config::warp_size / 2), 0, 0,
                            dresult.get_data());
+        result = dresult;
+        auto success = *result.get_const_data();
+
+        ASSERT_TRUE(success);
+    }
+
+    template <typename Kernel>
+    void test_several_block(Kernel kernel)
+    {
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel), dim3(10240),
+                           dim3(config::warp_size, 256 / config::warp_size), 0,
+                           0, dresult.get_data());
         result = dresult;
         auto success = *result.get_const_data();
 
@@ -260,6 +276,55 @@ __global__ void cg_subwarp_ballot(bool *s)
 TEST_F(CooperativeGroups, SubwarpBallot) { test(cg_subwarp_ballot); }
 
 TEST_F(CooperativeGroups, SubwarpBallot2) { test_subwarp(cg_subwarp_ballot); }
+
+
+template <typename ValueType>
+__global__ void cg_shuffle_sum(const int num, ValueType *__restrict__ value)
+{
+    auto group =
+        group::tiled_partition<config::warp_size>(group::this_thread_block());
+    for (int ind = 0; ind < num; ind++) {
+        value[group.thread_rank()] += group.shfl(value[ind], ind);
+    }
+}
+
+TEST_F(CooperativeGroups, ShuffleSumDouble)
+{
+    int num = 4;
+    uint64_t x = 0x401022C90008B240;
+    gko::Array<double> value(ref, config::warp_size);
+    gko::Array<double> answer(ref, config::warp_size);
+    gko::Array<double> dvalue(hip);
+    for (int i = 0; i < value.get_num_elems(); i++) {
+        value.get_data()[i] = *reinterpret_cast<double *>(&x);
+        answer.get_data()[i] = value.get_data()[i] * (1 << num);
+    }
+    dvalue = value;
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(cg_shuffle_sum<double>), dim3(1),
+                       dim3(config::warp_size), 0, 0, num, dvalue.get_data());
+    value = dvalue;
+    GKO_ASSERT_ARRAY_EQ(&value, &answer);
+}
+
+TEST_F(CooperativeGroups, ShuffleSumComplexDouble)
+{
+    int num = 4;
+    uint64_t x = 0x401022C90008B240;
+    gko::Array<std::complex<double>> value(ref, config::warp_size);
+    gko::Array<std::complex<double>> answer(ref, config::warp_size);
+    gko::Array<std::complex<double>> dvalue(hip);
+    const double x_double = *reinterpret_cast<double *>(&x);
+    for (int i = 0; i < value.get_num_elems(); i++) {
+        value.get_data()[i] = std::complex<double>{x_double, 0};
+        answer.get_data()[i] = std::complex<double>{x_double * (1 << num), 0};
+    }
+    dvalue = value;
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(cg_shuffle_sum<thrust::complex<double>>),
+                       dim3(1), dim3(config::warp_size), 0, 0, num,
+                       as_hip_type(dvalue.get_data()));
+    value = dvalue;
+    GKO_ASSERT_ARRAY_EQ(&value, &answer);
+}
 
 
 }  // namespace
