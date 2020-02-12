@@ -230,7 +230,7 @@ public:
     GKO_BIND_SHFL(shfl, int32, int32);
     GKO_BIND_SHFL(shfl, float, int32);
     GKO_BIND_SHFL(shfl, uint32, int32);
-    GKO_BIND_SHFL(shfl, double, int32);
+    // GKO_BIND_SHFL(shfl, double, int32);
 
     GKO_BIND_SHFL(shfl_up, int32, uint32);
     GKO_BIND_SHFL(shfl_up, uint32, uint32);
@@ -355,7 +355,7 @@ private:
     template <typename ShuffleOperator, typename ValueType,
               typename SelectorType>
     static __device__ __forceinline__ ValueType
-    shuffle_impl(ShuffleOperator intrinsic_shuffle, const ValueType var,
+    shuffle_impl(ShuffleOperator intrinsic_shuffle, const ValueType &var,
                  SelectorType selector)
     {
         static_assert(sizeof(ValueType) % sizeof(uint32) == 0,
