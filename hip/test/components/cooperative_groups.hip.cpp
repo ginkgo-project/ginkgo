@@ -92,18 +92,6 @@ protected:
         ASSERT_TRUE(success);
     }
 
-    template <typename Kernel>
-    void test_several_block(Kernel kernel)
-    {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel), dim3(10240),
-                           dim3(config::warp_size, 256 / config::warp_size), 0,
-                           0, dresult.get_data());
-        result = dresult;
-        auto success = *result.get_const_data();
-
-        ASSERT_TRUE(success);
-    }
-
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::HipExecutor> hip;
     gko::Array<bool> result;
