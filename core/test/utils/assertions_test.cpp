@@ -59,13 +59,13 @@ protected:
           mtx1(gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, exec)),
           mtx2(gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {4.0, 0.0, 4.0}}, exec)),
           mtx3(gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 4.1, 0.0}}, exec)),
-          mtx13_row_ptrs{0, 3, 4},
-          mtx2_row_ptrs{0, 3, 5},
-          mtx13_col_idxs{0, 1, 2, 1},
-          mtx2_col_idxs{0, 1, 2, 0, 2},
-          mtx1_vals{1.0, 2.0, 3.0, 4.0},
-          mtx2_vals{1.0, 2.0, 3.0, 4.0, 4.0},
-          mtx3_vals{1.0, 2.0, 3.0, 4.1}
+          mtx13_row_ptrs({0, 3, 4}),
+          mtx2_row_ptrs({0, 3, 5}),
+          mtx13_col_idxs({0, 1, 2, 1}),
+          mtx2_col_idxs({0, 1, 2, 0, 2}),
+          mtx1_vals({1.0, 2.0, 3.0, 4.0}),
+          mtx2_vals({1.0, 2.0, 3.0, 4.0, 4.0}),
+          mtx3_vals({1.0, 2.0, 3.0, 4.1})
     {
         mtx1_sp = Sparse::create(exec, mtx1->get_size(), make_view(mtx1_vals),
                                  make_view(mtx13_col_idxs),

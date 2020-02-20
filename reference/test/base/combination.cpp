@@ -56,8 +56,8 @@ protected:
           coefficients{gko::initialize<Mtx>({1}, exec),
                        gko::initialize<Mtx>({2}, exec)},
           operators{
-              gko::initialize<Mtx>({I<T>{2.0, 3.0}, I<T>{1.0, 4.0}}, exec),
-              gko::initialize<Mtx>({I<T>{3.0, 2.0}, I<T>{2.0, 0.0}}, exec)}
+              gko::initialize<Mtx>({I<T>({2.0, 3.0}), I<T>({1.0, 4.0})}, exec),
+              gko::initialize<Mtx>({I<T>({3.0, 2.0}), I<T>({2.0, 0.0})}, exec)}
     {}
 
     std::shared_ptr<const gko::Executor> exec;
