@@ -121,6 +121,7 @@ __global__ void cg_shuffle(bool *s)
     test_assert(s, group.shfl(i, 0) == 0);
 }
 
+
 TEST_F(CooperativeGroups, Shuffle) { test(cg_shuffle); }
 
 
@@ -132,6 +133,7 @@ __global__ void cg_all(bool *s)
     test_assert(s, !group.all(false));
     test_assert(s, !group.all(threadIdx.x < 13));
 }
+
 
 TEST_F(CooperativeGroups, All) { test(cg_all); }
 
@@ -145,6 +147,7 @@ __global__ void cg_any(bool *s)
     test_assert(s, !group.any(false));
 }
 
+
 TEST_F(CooperativeGroups, Any) { test(cg_any); }
 
 
@@ -156,6 +159,7 @@ __global__ void cg_ballot(bool *s)
     test_assert(s, group.ballot(true) == ~config::lane_mask_type{});
     test_assert(s, group.ballot(threadIdx.x < 4) == 0xf);
 }
+
 
 TEST_F(CooperativeGroups, Ballot) { test(cg_ballot); }
 
@@ -180,7 +184,9 @@ __global__ void cg_subwarp_shuffle(bool *s)
     }
 }
 
+
 TEST_F(CooperativeGroups, SubwarpShuffle) { test(cg_subwarp_shuffle); }
+
 
 TEST_F(CooperativeGroups, SubwarpShuffle2) { test_subwarp(cg_subwarp_shuffle); }
 
@@ -207,7 +213,9 @@ __global__ void cg_subwarp_all(bool *s)
     }
 }
 
+
 TEST_F(CooperativeGroups, SubwarpAll) { test(cg_subwarp_all); }
+
 
 TEST_F(CooperativeGroups, SubwarpAll2) { test_subwarp(cg_subwarp_all); }
 
@@ -234,7 +242,9 @@ __global__ void cg_subwarp_any(bool *s)
     }
 }
 
+
 TEST_F(CooperativeGroups, SubwarpAny) { test(cg_subwarp_any); }
+
 
 TEST_F(CooperativeGroups, SubwarpAny2) { test_subwarp(cg_subwarp_any); }
 
@@ -262,7 +272,9 @@ __global__ void cg_subwarp_ballot(bool *s)
     }
 }
 
+
 TEST_F(CooperativeGroups, SubwarpBallot) { test(cg_subwarp_ballot); }
+
 
 TEST_F(CooperativeGroups, SubwarpBallot2) { test_subwarp(cg_subwarp_ballot); }
 
@@ -276,6 +288,7 @@ __global__ void cg_shuffle_sum(const int num, ValueType *__restrict__ value)
         value[group.thread_rank()] += group.shfl(value[ind], ind);
     }
 }
+
 
 TEST_F(CooperativeGroups, ShuffleSumDouble)
 {
@@ -298,6 +311,7 @@ TEST_F(CooperativeGroups, ShuffleSumDouble)
     value = dvalue;
     GKO_ASSERT_ARRAY_EQ(&value, &answer);
 }
+
 
 TEST_F(CooperativeGroups, ShuffleSumComplexDouble)
 {
