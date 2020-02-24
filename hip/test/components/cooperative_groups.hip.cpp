@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/cooperative_groups.hip.hpp"
 
 
+#include <cstring>
 #include <memory>
 
 
@@ -280,16 +281,20 @@ TEST_F(CooperativeGroups, ShuffleSumDouble)
 {
     int num = 4;
     uint64_t x = 0x401022C90008B240;
+    double x_dbl{};
+    std::memcpy(&x_dbl, &x, sizeof(x_dbl));
     gko::Array<double> value(ref, config::warp_size);
     gko::Array<double> answer(ref, config::warp_size);
     gko::Array<double> dvalue(hip);
     for (int i = 0; i < value.get_num_elems(); i++) {
-        value.get_data()[i] = *reinterpret_cast<double *>(&x);
+        value.get_data()[i] = x_dbl;
         answer.get_data()[i] = value.get_data()[i] * (1 << num);
     }
     dvalue = value;
+
     hipLaunchKernelGGL(HIP_KERNEL_NAME(cg_shuffle_sum<double>), dim3(1),
                        dim3(config::warp_size), 0, 0, num, dvalue.get_data());
+
     value = dvalue;
     GKO_ASSERT_ARRAY_EQ(&value, &answer);
 }
@@ -298,18 +303,22 @@ TEST_F(CooperativeGroups, ShuffleSumComplexDouble)
 {
     int num = 4;
     uint64_t x = 0x401022C90008B240;
+    double x_dbl{};
+    std::memcpy(&x_dbl, &x, sizeof(x_dbl));
     gko::Array<std::complex<double>> value(ref, config::warp_size);
     gko::Array<std::complex<double>> answer(ref, config::warp_size);
     gko::Array<std::complex<double>> dvalue(hip);
-    const double x_double = *reinterpret_cast<double *>(&x);
     for (int i = 0; i < value.get_num_elems(); i++) {
-        value.get_data()[i] = std::complex<double>{x_double, 0};
-        answer.get_data()[i] = std::complex<double>{x_double * (1 << num), 0};
+        value.get_data()[i] = std::complex<double>{x_dbl, x_dbl};
+        answer.get_data()[i] =
+            std::complex<double>{x_dbl * (1 << num), x_dbl * (1 << num)};
     }
     dvalue = value;
+
     hipLaunchKernelGGL(HIP_KERNEL_NAME(cg_shuffle_sum<thrust::complex<double>>),
                        dim3(1), dim3(config::warp_size), 0, 0, num,
                        as_hip_type(dvalue.get_data()));
+
     value = dvalue;
     GKO_ASSERT_ARRAY_EQ(&value, &answer);
 }
