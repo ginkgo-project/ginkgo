@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/ginkgo.hpp>
 
 
+#include <cuda.h>
 #include <cuda_runtime.h>
 #include <cusparse.h>
 #include <memory>
@@ -475,6 +476,105 @@ private:
 };
 
 
+#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
+
+
+template <typename ValueType = gko::default_precision,
+          typename IndexType = gko::int32>
+class CuspGenericCsr
+    : public gko::EnableLinOp<CuspGenericCsr<ValueType, IndexType>, CuspBase>,
+      public gko::EnableCreateMethod<CuspGenericCsr<ValueType, IndexType>>,
+      public gko::ReadableFromMatrixData<ValueType, IndexType> {
+    friend class gko::EnableCreateMethod<CuspGenericCsr>;
+    friend class gko::EnablePolymorphicObject<CuspGenericCsr, CuspBase>;
+
+public:
+    using csr = gko::matrix::Csr<ValueType, IndexType>;
+    using mat_data = gko::matrix_data<ValueType, IndexType>;
+
+    void read(const mat_data &data) override
+    {
+        csr_->read(data);
+        this->set_size(gko::dim<2>{csr_->get_size()});
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateCsr(
+            &mat_, csr_->get_size()[0], csr_->get_size()[0],
+            csr_->get_num_stored_elements(), csr_->get_row_ptrs(),
+            csr_->get_col_idxs(), csr_->get_values(), CUSPARSE_INDEX_32I,
+            CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F));
+    }
+
+    gko::size_type get_num_stored_elements() const noexcept
+    {
+        return csr_->get_num_stored_elements();
+    }
+
+    ~CuspGenericCsr() override
+    {
+        const auto id = this->get_gpu_exec()->get_device_id();
+        try {
+            gko::cuda::device_guard g{id};
+            GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroySpMat(mat_));
+        } catch (const std::exception &e) {
+            std::cerr << "Error when unallocating CuspGenericCsr mat_ matrix: "
+                      << e.what() << std::endl;
+        }
+    }
+
+protected:
+    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    {
+        auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
+        auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
+        auto db = dense_b->get_const_values();
+        auto dx = dense_x->get_values();
+        const auto id = this->get_gpu_exec()->get_device_id();
+        gko::cuda::device_guard g{id};
+        cusparseDnVecDescr_t vecb_, vecx_;
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateDnVec(
+            &vecx_, dense_x->get_num_stored_elements(), dx, CUDA_R_64F));
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseCreateDnVec(&vecb_, dense_b->get_num_stored_elements(),
+                                const_cast<ValueType *>(db), CUDA_R_64F));
+
+        void *dBuffer = NULL;
+        size_t bufferSize = 0;
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpMV_bufferSize(
+            this->get_gpu_exec()->get_cusparse_handle(), trans_,
+            &scalars.get_const_data()[0], mat_, vecb_,
+            &scalars.get_const_data()[1], vecx_, CUDA_R_64F,
+            CUSPARSE_MV_ALG_DEFAULT, &bufferSize));
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaMalloc(&dBuffer, bufferSize));
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(
+            cusparseSpMV(this->get_gpu_exec()->get_cusparse_handle(), trans_,
+                         &scalars.get_const_data()[0], mat_, vecb_,
+                         &scalars.get_const_data()[1], vecx_, CUDA_R_64F,
+                         CUSPARSE_MV_ALG_DEFAULT, dBuffer));
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(vecx_));
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(vecb_));
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(dBuffer));
+    }
+
+    CuspGenericCsr(std::shared_ptr<const gko::Executor> exec,
+                   const gko::dim<2> &size = gko::dim<2>{})
+        : gko::EnableLinOp<CuspGenericCsr, CuspBase>(exec, size),
+          csr_(std::move(
+              csr::create(exec, std::make_shared<typename csr::classical>()))),
+          trans_(CUSPARSE_OPERATION_NON_TRANSPOSE)
+    {}
+
+private:
+    // Contains {alpha, beta}
+    gko::Array<ValueType> scalars{
+        this->get_executor(), {gko::one<ValueType>(), gko::zero<ValueType>()}};
+    std::shared_ptr<csr> csr_;
+    cusparseOperation_t trans_;
+    cusparseSpMatDescr_t mat_;
+};
+
+
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
+
+
 }  // namespace detail
 
 
@@ -483,6 +583,15 @@ using cusp_csr = detail::CuspCsr<>;
 using cusp_csrex = detail::CuspCsrEx<>;
 using cusp_csrmp = detail::CuspCsrmp<>;
 using cusp_csrmm = detail::CuspCsrmm<>;
+
+
+#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
+
+
+using cusp_gcsr = detail::CuspGenericCsr<>;
+
+
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
 
 
 using cusp_coo =
