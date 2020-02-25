@@ -143,7 +143,7 @@ void add_missing_diagonal_elements(const matrix::Csr<ValueType, IndexType> *mtx,
             IndexType new_idx = new_row_start;
             bool diagonal_added{false};
             for (IndexType old_idx = old_row_start; old_idx < old_row_end;
-                 ++old_idx, ++new_idx) {
+                 ++old_idx) {
                 const auto col_idx = old_col_idxs[old_idx];
                 if (!diagonal_added && row < col_idx) {
                     new_values[new_idx] = zero<ValueType>();
@@ -153,6 +153,7 @@ void add_missing_diagonal_elements(const matrix::Csr<ValueType, IndexType> *mtx,
                 }
                 new_values[new_idx] = old_values[old_idx];
                 new_col_idxs[new_idx] = col_idx;
+                ++new_idx;
             }
             if (!diagonal_added) {
                 new_values[new_idx] = zero<ValueType>();
