@@ -33,8 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 __global__ __launch_bounds__(default_block_size) void initialize_kernel(
     size_type num_cols, stopping_status *stop_status)
 {
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
 
     if (tidx < num_cols) {
         stop_status[tidx].reset();

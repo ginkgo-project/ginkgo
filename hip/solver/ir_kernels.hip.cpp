@@ -39,6 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "hip/components/thread_ids.hip.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace hip {

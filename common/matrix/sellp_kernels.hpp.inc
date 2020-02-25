@@ -115,8 +115,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_dense(
     const IndexType *__restrict__ col_idxs,
     const ValueType *__restrict__ values, ValueType *__restrict__ result)
 {
-    const auto global_row =
-        (blockDim.x * blockIdx.x + threadIdx.x) / threads_per_row;
+    const auto global_row = thread::get_subwarp_id_flat<threads_per_row>();
     const auto row = global_row % slice_size;
     const auto slice = global_row / slice_size;
     const auto start_index = threadIdx.x % threads_per_row;
@@ -142,10 +141,11 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
     const ValueType *__restrict__ values, IndexType *__restrict__ result)
 {
     constexpr auto warp_size = config::warp_size;
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    const auto row_idx = tidx / warp_size;
+    auto warp_tile =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    const auto row_idx = thread::get_subwarp_id_flat<warp_size>();
     const auto slice_id = row_idx / slice_size;
-    const auto tid_in_warp = tidx % warp_size;
+    const auto tid_in_warp = warp_tile.thread_rank();
     const auto row_in_slice = row_idx % slice_size;
 
     if (row_idx < num_rows) {
@@ -159,9 +159,6 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
                 part_result += 1;
             }
         }
-
-        auto warp_tile =
-            group::tiled_partition<warp_size>(group::this_thread_block());
         result[row_idx] = reduce(
             warp_tile, part_result,
             [](const size_type &a, const size_type &b) { return a + b; });
@@ -179,7 +176,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_csr(
     IndexType *__restrict__ result_col_idxs,
     ValueType *__restrict__ result_values)
 {
-    const auto row = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto row = thread::get_thread_id_flat();
     const auto slice_id = row / slice_size;
     const auto row_in_slice = row % slice_size;
 

@@ -93,18 +93,17 @@ __global__
         IndexType *__restrict__ elements_to_add_per_row,
         bool *__restrict__ changes_required)
 {
-    const auto total_thread_count =
-        static_cast<size_type>(blockDim.x) * gridDim.x / SubwarpSize;
-    const auto tidx =
-        threadIdx.x + static_cast<size_type>(blockIdx.x) * blockDim.x;
-    const auto begin_row = static_cast<IndexType>(tidx / SubwarpSize);
+    const auto total_subwarp_count =
+        thread::get_subwarp_num_flat<SubwarpSize, IndexType>();
+    const auto begin_row =
+        thread::get_subwarp_id_flat<SubwarpSize, IndexType>();
 
     auto thread_block = group::this_thread_block();
     auto subwarp_grp = group::tiled_partition<SubwarpSize>(thread_block);
     const auto subwarp_idx = subwarp_grp.thread_rank();
 
     bool local_change{false};
-    for (IndexType row = begin_row; row < num_rows; row += total_thread_count) {
+    for (auto row = begin_row; row < num_rows; row += total_subwarp_count) {
         if (row >= num_cols) {
             if (subwarp_idx == 0) {
                 elements_to_add_per_row[row] = 0;
@@ -145,17 +144,16 @@ __global__
         const IndexType *__restrict__ row_ptrs_addition)
 {
     // Precaution in case not enough threads were created
-    const auto total_thread_count =
-        static_cast<size_type>(blockDim.x) * gridDim.x / SubwarpSize;
-    const auto tidx =
-        threadIdx.x + static_cast<size_type>(blockIdx.x) * blockDim.x;
-    const auto begin_row = static_cast<IndexType>(tidx / SubwarpSize);
+    const auto total_subwarp_count =
+        thread::get_subwarp_num_flat<SubwarpSize, IndexType>();
+    const auto begin_row =
+        thread::get_subwarp_id_flat<SubwarpSize, IndexType>();
 
     auto thread_block = group::this_thread_block();
     auto subwarp_grp = group::tiled_partition<SubwarpSize>(thread_block);
     const auto subwarp_idx = subwarp_grp.thread_rank();
 
-    for (IndexType row = begin_row; row < num_rows; row += total_thread_count) {
+    for (auto row = begin_row; row < num_rows; row += total_subwarp_count) {
         const IndexType old_row_start{old_row_ptrs[row]};
         const IndexType old_row_end{old_row_ptrs[row + 1]};
         const IndexType new_row_start{old_row_start + row_ptrs_addition[row]};
@@ -223,12 +221,10 @@ __global__ __launch_bounds__(default_block_size) void update_row_ptrs(
     IndexType num_rows, IndexType *__restrict__ row_ptrs,
     IndexType *__restrict__ row_ptr_addition)
 {
-    const auto total_thread_count =
-        static_cast<size_type>(blockDim.x) * gridDim.x;
-    const auto begin_row =
-        threadIdx.x + static_cast<size_type>(blockIdx.x) * blockDim.x;
+    const auto total_thread_count = thread::get_thread_num_flat<IndexType>();
+    const auto begin_row = thread::get_thread_id_flat<IndexType>();
 
-    for (IndexType row = begin_row; row < num_rows; row += total_thread_count) {
+    for (auto row = begin_row; row < num_rows; row += total_thread_count) {
         row_ptrs[row] += row_ptr_addition[row];
     }
 }
@@ -241,7 +237,7 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_l_u_row(
     const ValueType *__restrict__ values, IndexType *__restrict__ l_nnz_row,
     IndexType *__restrict__ u_nnz_row)
 {
-    const auto row = blockDim.x * blockIdx.x + threadIdx.x;
+    const auto row = thread::get_thread_id_flat<IndexType>();
     if (row < num_rows) {
         IndexType l_row_nnz{};
         IndexType u_row_nnz{};
@@ -266,7 +262,7 @@ __global__ __launch_bounds__(default_block_size) void initialize_l_u(
     const IndexType *__restrict__ u_row_ptrs,
     IndexType *__restrict__ u_col_idxs, ValueType *__restrict__ u_values)
 {
-    const auto row = blockDim.x * blockIdx.x + threadIdx.x;
+    const auto row = thread::get_thread_id_flat<IndexType>();
     if (row < num_rows) {
         auto l_idx = l_row_ptrs[row];
         auto u_idx = u_row_ptrs[row];
@@ -298,7 +294,7 @@ __global__ __launch_bounds__(default_block_size) void compute_l_u_factors(
     const IndexType *__restrict__ u_row_ptrs,
     const IndexType *__restrict__ u_col_idxs, ValueType *__restrict__ u_values)
 {
-    const auto elem_id = blockDim.x * blockIdx.x + threadIdx.x;
+    const auto elem_id = thread::get_thread_id_flat<IndexType>();
     if (elem_id < num_elements) {
         const auto row = row_idxs[elem_id];
         const auto col = col_idxs[elem_id];

@@ -104,7 +104,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_csr(
     IndexType *__restrict__ result_col_idxs,
     ValueType *__restrict__ result_values)
 {
-    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
 
     if (tidx < num_rows) {
         auto write_to = result_row_ptrs[tidx];
@@ -132,7 +132,7 @@ __global__ __launch_bounds__(default_block_size) void add(
     size_type num, ValueType1 *__restrict__ val1,
     const ValueType2 *__restrict__ val2)
 {
-    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
     if (tidx < num) {
         val1[tidx] += val2[tidx];
     }

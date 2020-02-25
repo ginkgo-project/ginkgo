@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
 
 
 namespace gko {

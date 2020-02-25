@@ -50,7 +50,7 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
     size_type num_elements, ValueType *__restrict__ elements,
     ValueType *__restrict__ block_sum)
 {
-    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
     const auto element_id = threadIdx.x;
     __shared__ size_type prefix_helper[block_size];
     prefix_helper[element_id] =
@@ -113,7 +113,7 @@ __global__ __launch_bounds__(block_size) void finalize_prefix_sum(
     size_type num_elements, ValueType *__restrict__ elements,
     const ValueType *__restrict__ block_sum)
 {
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto tidx = thread::get_thread_id_flat();
 
     if (tidx < num_elements) {
         ValueType prefix_block_sum = zero<ValueType>();

@@ -38,8 +38,7 @@ template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void zero_array(
     size_type n, ValueType *__restrict__ array)
 {
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
     if (tidx < n) {
         array[tidx] = zero<ValueType>();
     }

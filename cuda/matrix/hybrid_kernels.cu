@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/format_conversion.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/segment_scan.cuh"
+#include "cuda/components/thread_ids.cuh"
 #include "cuda/components/zero_array.hpp"
 
 

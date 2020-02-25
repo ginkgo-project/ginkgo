@@ -43,6 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
+
 
 namespace gko {
 namespace kernels {
@@ -67,8 +69,7 @@ __global__
         bool setFinalized, stopping_status *__restrict__ stop_status,
         bool *__restrict__ device_storage)
 {
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_cols) {
         if (abs(tau[tidx]) < rel_residual_goal * abs(orig_tau[tidx])) {
             stop_status[tidx].converge(stoppingId, setFinalized);

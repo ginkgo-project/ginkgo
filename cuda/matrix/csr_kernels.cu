@@ -61,6 +61,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/merging.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/segment_scan.cuh"
+#include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
 #include "cuda/components/zero_array.hpp"
 

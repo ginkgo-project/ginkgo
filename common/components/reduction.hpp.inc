@@ -142,7 +142,7 @@ __device__ void reduce_array(size_type size,
                              ValueType *__restrict__ result,
                              Operator reduce_op = Operator{})
 {
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto tidx = thread::get_thread_id_flat<size_type>();
     auto thread_result = zero<ValueType>();
     for (auto i = tidx; i < size; i += blockDim.x * gridDim.x) {
         thread_result = reduce_op(thread_result, source[i]);
