@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/cooperative_groups.hip.hpp"
 
 
+#include <cstring>
 #include <memory>
 
 
@@ -45,6 +46,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
+
+
+#include "core/test/utils.hpp"
+#include "hip/base/types.hip.hpp"
 
 
 namespace {
@@ -116,6 +121,7 @@ __global__ void cg_shuffle(bool *s)
     test_assert(s, group.shfl(i, 0) == 0);
 }
 
+
 TEST_F(CooperativeGroups, Shuffle) { test(cg_shuffle); }
 
 
@@ -127,6 +133,7 @@ __global__ void cg_all(bool *s)
     test_assert(s, !group.all(false));
     test_assert(s, !group.all(threadIdx.x < 13));
 }
+
 
 TEST_F(CooperativeGroups, All) { test(cg_all); }
 
@@ -140,6 +147,7 @@ __global__ void cg_any(bool *s)
     test_assert(s, !group.any(false));
 }
 
+
 TEST_F(CooperativeGroups, Any) { test(cg_any); }
 
 
@@ -151,6 +159,7 @@ __global__ void cg_ballot(bool *s)
     test_assert(s, group.ballot(true) == ~config::lane_mask_type{});
     test_assert(s, group.ballot(threadIdx.x < 4) == 0xf);
 }
+
 
 TEST_F(CooperativeGroups, Ballot) { test(cg_ballot); }
 
@@ -175,7 +184,9 @@ __global__ void cg_subwarp_shuffle(bool *s)
     }
 }
 
+
 TEST_F(CooperativeGroups, SubwarpShuffle) { test(cg_subwarp_shuffle); }
+
 
 TEST_F(CooperativeGroups, SubwarpShuffle2) { test_subwarp(cg_subwarp_shuffle); }
 
@@ -202,7 +213,9 @@ __global__ void cg_subwarp_all(bool *s)
     }
 }
 
+
 TEST_F(CooperativeGroups, SubwarpAll) { test(cg_subwarp_all); }
+
 
 TEST_F(CooperativeGroups, SubwarpAll2) { test_subwarp(cg_subwarp_all); }
 
@@ -229,7 +242,9 @@ __global__ void cg_subwarp_any(bool *s)
     }
 }
 
+
 TEST_F(CooperativeGroups, SubwarpAny) { test(cg_subwarp_any); }
+
 
 TEST_F(CooperativeGroups, SubwarpAny2) { test_subwarp(cg_subwarp_any); }
 
@@ -257,9 +272,70 @@ __global__ void cg_subwarp_ballot(bool *s)
     }
 }
 
+
 TEST_F(CooperativeGroups, SubwarpBallot) { test(cg_subwarp_ballot); }
 
+
 TEST_F(CooperativeGroups, SubwarpBallot2) { test_subwarp(cg_subwarp_ballot); }
+
+
+template <typename ValueType>
+__global__ void cg_shuffle_sum(const int num, ValueType *__restrict__ value)
+{
+    auto group =
+        group::tiled_partition<config::warp_size>(group::this_thread_block());
+    for (int ind = 0; ind < num; ind++) {
+        value[group.thread_rank()] += group.shfl(value[ind], ind);
+    }
+}
+
+
+TEST_F(CooperativeGroups, ShuffleSumDouble)
+{
+    int num = 4;
+    uint64_t x = 0x401022C90008B240;
+    double x_dbl{};
+    std::memcpy(&x_dbl, &x, sizeof(x_dbl));
+    gko::Array<double> value(ref, config::warp_size);
+    gko::Array<double> answer(ref, config::warp_size);
+    gko::Array<double> dvalue(hip);
+    for (int i = 0; i < value.get_num_elems(); i++) {
+        value.get_data()[i] = x_dbl;
+        answer.get_data()[i] = value.get_data()[i] * (1 << num);
+    }
+    dvalue = value;
+
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(cg_shuffle_sum<double>), dim3(1),
+                       dim3(config::warp_size), 0, 0, num, dvalue.get_data());
+
+    value = dvalue;
+    GKO_ASSERT_ARRAY_EQ(&value, &answer);
+}
+
+
+TEST_F(CooperativeGroups, ShuffleSumComplexDouble)
+{
+    int num = 4;
+    uint64_t x = 0x401022C90008B240;
+    double x_dbl{};
+    std::memcpy(&x_dbl, &x, sizeof(x_dbl));
+    gko::Array<std::complex<double>> value(ref, config::warp_size);
+    gko::Array<std::complex<double>> answer(ref, config::warp_size);
+    gko::Array<std::complex<double>> dvalue(hip);
+    for (int i = 0; i < value.get_num_elems(); i++) {
+        value.get_data()[i] = std::complex<double>{x_dbl, x_dbl};
+        answer.get_data()[i] =
+            std::complex<double>{x_dbl * (1 << num), x_dbl * (1 << num)};
+    }
+    dvalue = value;
+
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(cg_shuffle_sum<thrust::complex<double>>),
+                       dim3(1), dim3(config::warp_size), 0, 0, num,
+                       as_hip_type(dvalue.get_data()));
+
+    value = dvalue;
+    GKO_ASSERT_ARRAY_EQ(&value, &answer);
+}
 
 
 }  // namespace
