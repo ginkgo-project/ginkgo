@@ -166,8 +166,9 @@ std::unique_ptr<MatrixType> read_matrix_from_data(
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>,
                                 const gko::matrix_data<> &)>>
-    matrix_factory{
-        {"csr", READ_MATRIX(csr, std::make_shared<csr::automatical>())},
+    matrix_factory
+{
+    {"csr", READ_MATRIX(csr, std::make_shared<csr::automatical>())},
         {"csri", READ_MATRIX(csr, std::make_shared<csr::load_balance>())},
         {"csrm", READ_MATRIX(csr, std::make_shared<csr::merge_path>())},
         {"csrc", READ_MATRIX(csr, std::make_shared<csr::classical>())},
@@ -181,6 +182,9 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"cusp_hybrid", read_matrix_from_data<cusp_hybrid>},
         {"cusp_coo", read_matrix_from_data<cusp_coo>},
         {"cusp_ell", read_matrix_from_data<cusp_ell>},
+#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
+        {"cusp_gcsr", read_matrix_from_data<cusp_gcsr>},
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
 #endif  // HAS_CUDA
 #ifdef HAS_HIP
         {"hipsp_csr", read_matrix_from_data<hipsp_csr>},
@@ -215,7 +219,10 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"hybridminstorage",
          READ_MATRIX(hybrid,
                      std::make_shared<hybrid::minimal_storage_limit>())},
-        {"sellp", read_matrix_from_data<gko::matrix::Sellp<>>}};
+    {
+        "sellp", read_matrix_from_data<gko::matrix::Sellp<>>
+    }
+};
 
 
 }  // namespace formats
