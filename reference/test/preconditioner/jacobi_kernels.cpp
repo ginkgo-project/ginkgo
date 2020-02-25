@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <type_traits>
 
 
 #include <gtest/gtest.h>
@@ -44,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <core/base/extended_float.hpp>
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -115,7 +116,6 @@ protected:
     gko::Array<gko::precision_reduction> block_precisions;
     std::shared_ptr<gko::matrix::Csr<value_type, index_type>> mtx;
 };
-
 
 TYPED_TEST_CASE(Jacobi, gko::test::ValueIndexTypes);
 

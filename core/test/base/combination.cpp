@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -73,7 +73,6 @@ protected:
     std::vector<std::shared_ptr<gko::LinOp>> operators;
     std::vector<std::shared_ptr<gko::LinOp>> coefficients;
 };
-
 
 TYPED_TEST_CASE(Combination, gko::test::ValueTypes);
 

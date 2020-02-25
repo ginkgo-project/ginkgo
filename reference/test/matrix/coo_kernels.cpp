@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -94,7 +94,6 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 };
-
 
 TYPED_TEST_CASE(Coo, gko::test::ValueIndexTypes);
 

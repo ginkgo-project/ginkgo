@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -640,7 +640,6 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
 };
 
-
 TYPED_TEST_CASE(RealDummyLinOpTest, gko::test::RealValueIndexTypes);
 
 
@@ -713,7 +712,6 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
 };
-
 
 TYPED_TEST_CASE(ComplexDummyLinOpTest, gko::test::ComplexValueIndexTypes);
 

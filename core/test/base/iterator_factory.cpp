@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -95,7 +95,6 @@ protected:
     const std::vector<value_type> reversed_value;
     const std::vector<value_type> ordered_value;
 };
-
 
 TYPED_TEST_CASE(IteratorFactory, gko::test::ValueIndexTypes);
 

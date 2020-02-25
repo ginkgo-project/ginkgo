@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/time.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -124,7 +124,6 @@ protected:
     std::shared_ptr<typename ilu_prec_type::Factory> ilu_pre_factory;
     std::shared_ptr<typename ilu_rev_prec_type::Factory> ilu_rev_pre_factory;
 };
-
 
 TYPED_TEST_CASE(Ilu, gko::test::ValueTypes);
 

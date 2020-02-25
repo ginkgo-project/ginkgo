@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/time.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -97,7 +97,6 @@ protected:
     std::unique_ptr<typename Solver::Factory> cg_factory;
     std::unique_ptr<typename Solver::Factory> cg_factory_big;
 };
-
 
 TYPED_TEST_CASE(Cg, gko::test::ValueTypes);
 

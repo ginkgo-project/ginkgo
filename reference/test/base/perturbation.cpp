@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -65,7 +65,6 @@ protected:
     std::shared_ptr<gko::LinOp> projector;
     std::shared_ptr<gko::LinOp> scalar;
 };
-
 
 TYPED_TEST_CASE(Perturbation, gko::test::ValueTypes);
 

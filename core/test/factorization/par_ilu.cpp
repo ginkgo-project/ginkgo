@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -59,7 +59,6 @@ protected:
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
 };
-
 
 TYPED_TEST_CASE(ParIlu, gko::test::ValueIndexTypes);
 

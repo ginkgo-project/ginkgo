@@ -86,14 +86,13 @@ TYPED_TEST(Identity, AppliesLinearCombinationToMultipleVectors)
     auto alpha = gko::initialize<Vec>({2.0}, this->exec);
     auto beta = gko::initialize<Vec>({1.0}, this->exec);
     auto x = gko::initialize<Vec>(
-        3, {I<T>{3.0, 0.5}, I<T>{-1.0, 2.5}, I<T>{2.0, 3.4}}, this->exec);
+        3, {I<T>{3.0, 0.5}, I<T>{-1.0, 2.5}, I<T>{2.0, 3.5}}, this->exec);
     auto b = gko::initialize<Vec>(
         3, {I<T>{2.0, 3.0}, I<T>{1.0, 2.0}, I<T>{5.0, -1.0}}, this->exec);
 
     identity->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({{7.0, 6.5}, {1.0, 6.5}, {12.0, 1.4}}),
-                        r<TypeParam>::value);
+    GKO_ASSERT_MTX_NEAR(x, l({{7.0, 6.5}, {1.0, 6.5}, {12.0, 1.5}}), 0.0);
 }
 
 

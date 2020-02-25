@@ -34,6 +34,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_TEST_UTILS_HPP_
 
 
+#include <complex>
+#include <initializer_list>
+#include <type_traits>
+
+
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
+
+
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 

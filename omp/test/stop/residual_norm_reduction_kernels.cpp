@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -59,7 +59,6 @@ protected:
         factory_;
     std::shared_ptr<const gko::OmpExecutor> omp_;
 };
-
 
 TYPED_TEST_CASE(ResidualNormReduction, gko::test::ValueTypes);
 

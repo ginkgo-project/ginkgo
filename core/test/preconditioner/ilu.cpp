@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/bicgstab.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -68,7 +68,6 @@ protected:
     std::shared_ptr<typename l_solver_type::Factory> l_factory;
     std::shared_ptr<typename u_solver_type::Factory> u_factory;
 };
-
 
 TYPED_TEST_CASE(IluFactory, gko::test::ValueTypes);
 

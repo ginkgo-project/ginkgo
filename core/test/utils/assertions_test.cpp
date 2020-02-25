@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <core/test/utils/assertions.hpp>
 
 
+#include <type_traits>
+
+
 #include <gtest/gtest.h>
 
 
@@ -137,6 +140,66 @@ TEST_F(MatricesNear, CanPassInitializerList)
 {
     GKO_EXPECT_MTX_NEAR(mtx1, l({{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}), 0.0);
     GKO_ASSERT_MTX_NEAR(mtx1, l({{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}), 0.0);
+}
+
+
+TEST(BiggestValueType, SameNonComplex)
+{
+    using T1 = float;
+    using T2 = float;
+    using result =
+        gko::test::assertions::detail::biggest_valuetype<T1, T2>::type;
+
+    bool is_float = std::is_same<result, float>::value;
+    ASSERT_TRUE(is_float);
+}
+
+
+TEST(BiggestValueType, BetweenNonComplex)
+{
+    using T1 = float;
+    using T2 = double;
+    using result =
+        gko::test::assertions::detail::biggest_valuetype<T1, T2>::type;
+
+    bool is_double = std::is_same<result, double>::value;
+    ASSERT_TRUE(is_double);
+}
+
+
+TEST(BiggestValueType, WithSameComplex)
+{
+    using T1 = std::complex<float>;
+    using T2 = std::complex<float>;
+    using result =
+        gko::test::assertions::detail::biggest_valuetype<T1, T2>::type;
+
+    bool is_cpx_float = std::is_same<result, std::complex<float>>::value;
+    ASSERT_TRUE(is_cpx_float);
+}
+
+
+TEST(BiggestValueType, WithAComplex)
+{
+    using T1 = std::complex<float>;
+    using T2 = double;
+    using result =
+        gko::test::assertions::detail::biggest_valuetype<T1, T2>::type;
+
+    bool is_cpx_double = std::is_same<result, std::complex<double>>::value;
+    ASSERT_TRUE(is_cpx_double);
+}
+
+
+TEST(BiggestValueType, WithBothComplex)
+{
+    using T1 = std::complex<float>;
+    using T2 = std::complex<double>;
+    using result =
+        gko::test::assertions::detail::biggest_valuetype<T1, T2>::type;
+
+    bool is_cpx_double = std::is_same<result, std::complex<double>>::value;
+    ASSERT_TRUE(is_cpx_double);
 }
 
 

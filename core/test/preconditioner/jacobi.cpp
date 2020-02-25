@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -74,7 +74,6 @@ protected:
     gko::Array<gko::precision_reduction> block_precisions;
     std::shared_ptr<gko::matrix::Csr<value_type, index_type>> mtx;
 };
-
 
 TYPED_TEST_CASE(JacobiFactory, gko::test::ValueIndexTypes);
 
@@ -156,7 +155,6 @@ protected:
     gko::preconditioner::block_interleaved_storage_scheme<index_type> s{3, 16,
                                                                         2};
 };
-
 
 TYPED_TEST_CASE(BlockInterleavedStorageScheme, gko::test::IndexTypes);
 

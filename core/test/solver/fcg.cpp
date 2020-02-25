@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -77,7 +77,6 @@ protected:
     std::unique_ptr<gko::LinOp> solver;
 };
 
-
 TYPED_TEST_CASE(Fcg, gko::test::ValueTypes);
 
 
@@ -108,7 +107,7 @@ TYPED_TEST(Fcg, CanBeCopied)
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
     GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()),
-                        this->mtx.get(), r<TypeParam>::value);
+                        this->mtx.get(), 0.0);
 }
 
 
@@ -123,7 +122,7 @@ TYPED_TEST(Fcg, CanBeMoved)
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = dynamic_cast<Solver *>(copy.get())->get_system_matrix();
     GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(copy_mtx.get()),
-                        this->mtx.get(), r<TypeParam>::value);
+                        this->mtx.get(), 0.0);
 }
 
 
@@ -136,7 +135,7 @@ TYPED_TEST(Fcg, CanBeCloned)
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
     auto clone_mtx = dynamic_cast<Solver *>(clone.get())->get_system_matrix();
     GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx *>(clone_mtx.get()),
-                        this->mtx.get(), 1e-14);
+                        this->mtx.get(), 0.0);
 }
 
 

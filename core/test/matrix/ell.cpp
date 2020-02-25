@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -109,7 +109,6 @@ protected:
         ASSERT_EQ(m->get_stride(), 0);
     }
 };
-
 
 TYPED_TEST_CASE(Ell, gko::test::ValueIndexTypes);
 

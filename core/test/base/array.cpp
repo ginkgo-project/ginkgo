@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -57,16 +57,15 @@ protected:
     static void assert_equal_to_original_x(gko::Array<T> &a)
     {
         ASSERT_EQ(a.get_num_elems(), 2);
-        EXPECT_EQ(a.get_data()[0], T(5));
-        EXPECT_EQ(a.get_data()[1], T(2));
-        EXPECT_EQ(a.get_const_data()[0], T(5));
-        EXPECT_EQ(a.get_const_data()[1], T(2));
+        EXPECT_EQ(a.get_data()[0], T{5});
+        EXPECT_EQ(a.get_data()[1], T{2});
+        EXPECT_EQ(a.get_const_data()[0], T{5});
+        EXPECT_EQ(a.get_const_data()[1], T{2});
     }
 
     std::shared_ptr<const gko::Executor> exec;
     gko::Array<T> x;
 };
-
 
 TYPED_TEST_CASE(Array, gko::test::ValueAndIndexTypes);
 
@@ -122,9 +121,9 @@ TYPED_TEST(Array, CanBeCreatedFromRange)
 
     gko::Array<TypeParam> a{this->exec, begin(data), end(data)};
 
-    EXPECT_EQ(a.get_const_data()[0], TypeParam(1));
-    EXPECT_EQ(a.get_const_data()[1], TypeParam(2));
-    ASSERT_EQ(a.get_const_data()[2], TypeParam(3));
+    EXPECT_EQ(a.get_const_data()[0], TypeParam{1});
+    EXPECT_EQ(a.get_const_data()[1], TypeParam{2});
+    ASSERT_EQ(a.get_const_data()[2], TypeParam{3});
 }
 
 
@@ -132,9 +131,9 @@ TYPED_TEST(Array, CanBeCreatedFromInitializerList)
 {
     gko::Array<TypeParam> a{this->exec, {1, 2, 3}};
 
-    EXPECT_EQ(a.get_const_data()[0], TypeParam(1));
-    EXPECT_EQ(a.get_const_data()[1], TypeParam(2));
-    ASSERT_EQ(a.get_const_data()[2], TypeParam(3));
+    EXPECT_EQ(a.get_const_data()[0], TypeParam{1});
+    EXPECT_EQ(a.get_const_data()[1], TypeParam{2});
+    ASSERT_EQ(a.get_const_data()[2], TypeParam{3});
 }
 
 
@@ -143,15 +142,15 @@ TYPED_TEST(Array, KnowsItsSize) { ASSERT_EQ(this->x.get_num_elems(), 2); }
 
 TYPED_TEST(Array, ReturnsValidDataPtr)
 {
-    EXPECT_EQ(this->x.get_data()[0], TypeParam(5));
-    EXPECT_EQ(this->x.get_data()[1], TypeParam(2));
+    EXPECT_EQ(this->x.get_data()[0], TypeParam{5});
+    EXPECT_EQ(this->x.get_data()[1], TypeParam{2});
 }
 
 
 TYPED_TEST(Array, ReturnsValidConstDataPtr)
 {
-    EXPECT_EQ(this->x.get_const_data()[0], TypeParam(5));
-    EXPECT_EQ(this->x.get_const_data()[1], TypeParam(2));
+    EXPECT_EQ(this->x.get_const_data()[0], TypeParam{5});
+    EXPECT_EQ(this->x.get_const_data()[1], TypeParam{2});
 }
 
 
@@ -279,9 +278,9 @@ TYPED_TEST(Array, CanBeResized)
     this->x.get_data()[1] = 8;
     this->x.get_data()[2] = 7;
 
-    EXPECT_EQ(this->x.get_const_data()[0], TypeParam(1));
-    EXPECT_EQ(this->x.get_const_data()[1], TypeParam(8));
-    EXPECT_EQ(this->x.get_const_data()[2], TypeParam(7));
+    EXPECT_EQ(this->x.get_const_data()[0], TypeParam{1});
+    EXPECT_EQ(this->x.get_const_data()[1], TypeParam{8});
+    EXPECT_EQ(this->x.get_const_data()[2], TypeParam{7});
 }
 
 
@@ -312,9 +311,9 @@ TYPED_TEST(Array, CanCreateView)
     auto view = gko::Array<TypeParam>::view(this->exec, 3, data);
     view = gko::Array<TypeParam>{this->exec, {5, 4, 2}};
 
-    EXPECT_EQ(data[0], TypeParam(5));
-    EXPECT_EQ(data[1], TypeParam(4));
-    EXPECT_EQ(data[2], TypeParam(2));
+    EXPECT_EQ(data[0], TypeParam{5});
+    EXPECT_EQ(data[1], TypeParam{4});
+    EXPECT_EQ(data[2], TypeParam{2});
 }
 
 
