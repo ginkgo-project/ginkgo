@@ -76,7 +76,7 @@ __device__ bool test_complex_isfinite_function(FuncType isfin)
     static_assert(gko::is_complex_s<ComplexType>::value,
                   "Template type must be a complex type.");
     using T = gko::remove_complex<ComplexType>;
-    using c_type = gko::kernels::cuda::cuda_type<ComplexType>;
+    using c_type = gko::kernels::hip::hip_type<ComplexType>;
     constexpr T inf = gko::device_numeric_limits<T>::inf;
     constexpr T quiet_nan = NAN;
     bool test_true{};
