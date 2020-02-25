@@ -222,7 +222,7 @@ template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void set_zero(
     const size_type nnz, ValueType *__restrict__ val)
 {
-    const auto ind = size_type(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto ind = thread::get_thread_id_flat();
     if (ind < nnz) {
         val[ind] = zero<ValueType>();
     }
@@ -438,19 +438,19 @@ __device__ void device_classical_spmv(const size_type num_rows,
                                       ValueType *__restrict__ c,
                                       const size_type c_stride, Closure scale)
 {
-    const auto tid = size_type(blockDim.x) * blockIdx.x + threadIdx.x;
-    const auto subrow = size_type(gridDim.x) * blockDim.x / subwarp_size;
-    const auto subid = tid % subwarp_size;
+    auto subwarp_tile =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const auto subrow = thread::get_subwarp_num_flat<subwarp_size>();
+    const auto subid = subwarp_tile.thread_rank();
     const auto column_id = blockIdx.y;
-    for (auto row = tid / subwarp_size; row < num_rows; row += subrow) {
+    auto row = thread::get_subwarp_id_flat<subwarp_size>();
+    for (; row < num_rows; row += subrow) {
         const auto ind_end = row_ptrs[row + 1];
         ValueType temp_val = zero<ValueType>();
         for (auto ind = row_ptrs[row] + subid; ind < ind_end;
              ind += subwarp_size) {
             temp_val += val[ind] * b[col_idxs[ind] * b_stride + column_id];
         }
-        auto subwarp_tile =
-            group::tiled_partition<subwarp_size>(group::this_thread_block());
         auto subwarp_result = reduce(
             subwarp_tile, temp_val,
             [](const ValueType &a, const ValueType &b) { return a + b; });
@@ -500,8 +500,7 @@ __global__ __launch_bounds__(default_block_size) void spgeam_nnz(
     const IndexType *b_row_ptrs, const IndexType *b_col_idxs,
     IndexType num_rows, IndexType *nnz)
 {
-    auto row = (threadIdx.x + blockDim.x * static_cast<size_type>(blockIdx.x)) /
-               subwarp_size;
+    auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
     auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     if (row >= num_rows) {
@@ -533,8 +532,7 @@ __global__ __launch_bounds__(default_block_size) void spgeam(
     const IndexType *b_col_idxs, const ValueType *b_vals, IndexType num_rows,
     const IndexType *c_row_ptrs, IndexType *c_col_idxs, ValueType *c_vals)
 {
-    auto row = (threadIdx.x + blockDim.x * static_cast<size_type>(blockIdx.x)) /
-               subwarp_size;
+    auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
     auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     if (row >= num_rows) {
@@ -591,7 +589,7 @@ __global__ __launch_bounds__(default_block_size) void convert_row_ptrs_to_idxs(
     size_type num_rows, const IndexType *__restrict__ ptrs,
     IndexType *__restrict__ idxs)
 {
-    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_rows) {
         for (auto i = ptrs[tidx]; i < ptrs[tidx + 1]; i++) {
             idxs[i] = tidx;
@@ -620,7 +618,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_dense(
     const ValueType *__restrict__ values, size_type stride,
     ValueType *__restrict__ result)
 {
-    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_rows) {
         for (auto i = row_ptrs[tidx]; i < row_ptrs[tidx + 1]; i++) {
             result[stride * tidx + col_idxs[i]] = values[i];
@@ -634,7 +632,7 @@ __global__ __launch_bounds__(default_block_size) void calculate_nnz_per_row(
     size_type num_rows, const IndexType *__restrict__ row_ptrs,
     size_type *__restrict__ nnz_per_row)
 {
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_rows) {
         nnz_per_row[tidx] = row_ptrs[tidx + 1] - row_ptrs[tidx];
     }
@@ -685,7 +683,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_sellp(
     IndexType *__restrict__ result_col_idxs,
     ValueType *__restrict__ result_values)
 {
-    const auto global_row = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto global_row = thread::get_thread_id_flat();
     const auto row = global_row % slice_size;
     const auto sliceid = global_row / slice_size;
 
@@ -714,7 +712,7 @@ __global__ __launch_bounds__(default_block_size) void initialize_zero_ell(
     size_type max_nnz_per_row, size_type stride, ValueType *__restrict__ values,
     IndexType *__restrict__ col_idxs)
 {
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto tidx = thread::get_thread_id_flat();
 
     if (tidx < stride * max_nnz_per_row) {
         values[tidx] = zero<ValueType>();
@@ -732,10 +730,9 @@ __global__ __launch_bounds__(default_block_size) void fill_in_ell(
     ValueType *__restrict__ result_values,
     IndexType *__restrict__ result_col_idxs)
 {
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
     constexpr auto warp_size = config::warp_size;
-    const auto row = tidx / warp_size;
-    const auto local_tidx = tidx % warp_size;
+    const auto row = thread::get_subwarp_id_flat<warp_size>();
+    const auto local_tidx = threadIdx.x % warp_size;
 
     if (row < num_rows) {
         for (size_type i = local_tidx;
@@ -754,10 +751,11 @@ __global__ __launch_bounds__(default_block_size) void reduce_max_nnz_per_slice(
     size_type num_rows, size_type slice_size, size_type stride_factor,
     const size_type *__restrict__ nnz_per_row, size_type *__restrict__ result)
 {
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
     constexpr auto warp_size = config::warp_size;
-    const auto warpid = tidx / warp_size;
-    const auto tid_in_warp = tidx % warp_size;
+    auto warp_tile =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    const auto warpid = thread::get_subwarp_id_flat<warp_size>();
+    const auto tid_in_warp = warp_tile.thread_rank();
     const auto slice_num = ceildiv(num_rows, slice_size);
 
     size_type thread_result = 0;
@@ -767,9 +765,6 @@ __global__ __launch_bounds__(default_block_size) void reduce_max_nnz_per_slice(
                 max(thread_result, nnz_per_row[warpid * slice_size + i]);
         }
     }
-
-    auto warp_tile =
-        group::tiled_partition<warp_size>(group::this_thread_block());
     auto warp_result = reduce(
         warp_tile, thread_result,
         [](const size_type &a, const size_type &b) { return max(a, b); });
@@ -818,7 +813,7 @@ __global__
         IndexType *__restrict__ csr_row_idxs,
         size_type *__restrict__ coo_row_nnz)
 {
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_rows) {
         const size_type csr_nnz = csr_row_idxs[tidx + 1] - csr_row_idxs[tidx];
         coo_row_nnz[tidx] =
@@ -840,10 +835,9 @@ __global__ __launch_bounds__(default_block_size) void fill_in_hybrid(
     IndexType *__restrict__ result_coo_col,
     IndexType *__restrict__ result_coo_row)
 {
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
     constexpr auto warp_size = config::warp_size;
-    const auto row = tidx / warp_size;
-    const auto local_tidx = tidx % warp_size;
+    const auto row = thread::get_subwarp_id_flat<warp_size>();
+    const auto local_tidx = threadIdx.x % warp_size;
 
     if (row < num_rows) {
         for (size_type i = local_tidx;
@@ -876,7 +870,7 @@ template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void conjugate_kernel(
     size_type num_nonzeros, ValueType *__restrict__ val)
 {
-    const auto tidx = size_type(blockIdx.x) * default_block_size + threadIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
 
     if (tidx < num_nonzeros) {
         val[tidx] = conj(val[tidx]);

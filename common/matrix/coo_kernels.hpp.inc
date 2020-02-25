@@ -228,7 +228,7 @@ __global__ __launch_bounds__(default_block_size) void convert_row_idxs_to_ptrs(
     const IndexType *__restrict__ idxs, size_type num_nonzeros,
     IndexType *__restrict__ ptrs, size_type length)
 {
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto tidx = thread::get_thread_id_flat();
 
     if (tidx == 0) {
         ptrs[0] = 0;
@@ -265,7 +265,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_dense(
     const ValueType *__restrict__ values, size_type stride,
     ValueType *__restrict__ result)
 {
-    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
     if (tidx < nnz) {
         result[stride * row_idxs[tidx] + col_idxs[tidx]] = values[tidx];
     }

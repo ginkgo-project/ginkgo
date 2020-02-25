@@ -43,8 +43,7 @@ __device__ void spmv_kernel(
     const ValueType *__restrict__ b, const size_type b_stride,
     ValueType *__restrict__ c, const size_type c_stride, Closure op)
 {
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
     const auto column_id = blockIdx.y;
     if (num_thread_per_worker == 1) {
         // Specialize the num_thread_per_worker = 1. It doesn't need the shared
@@ -77,7 +76,8 @@ __device__ void spmv_kernel(
             }
             __syncthreads();
             ValueType temp = zero<ValueType>();
-            for (size_type idx = worker_id * num_thread_per_worker + idx_in_worker;
+            for (size_type idx =
+                     worker_id * num_thread_per_worker + idx_in_worker;
                  idx < num_stored_elements_per_row; idx += step_size) {
                 const auto ind = x + idx * stride;
                 const auto col_idx = col[ind];
@@ -176,7 +176,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_dense(
     const ValueType *__restrict__ values, size_type result_stride,
     ValueType *__restrict__ result)
 {
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_rows) {
         for (auto col = 0; col < nnz; col++) {
             result[tidx * result_stride +
@@ -193,20 +193,18 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
     const ValueType *__restrict__ values, IndexType *__restrict__ result)
 {
     constexpr auto warp_size = config::warp_size;
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    const auto row_idx = tidx / warp_size;
+    const auto row_idx = thread::get_subwarp_id_flat<warp_size>();
+    auto warp_tile =
+        group::tiled_partition<warp_size>(group::this_thread_block());
 
     if (row_idx < num_rows) {
         IndexType part_result{};
-        for (auto i = threadIdx.x % warp_size; i < max_nnz_per_row;
+        for (auto i = warp_tile.thread_rank(); i < max_nnz_per_row;
              i += warp_size) {
             if (values[stride * i + row_idx] != zero<ValueType>()) {
                 part_result += 1;
             }
         }
-
-        auto warp_tile =
-            group::tiled_partition<warp_size>(group::this_thread_block());
         result[row_idx] = reduce(
             warp_tile, part_result,
             [](const size_type &a, const size_type &b) { return a + b; });
@@ -223,7 +221,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_csr(
     IndexType *__restrict__ result_col_idxs,
     ValueType *__restrict__ result_values)
 {
-    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
 
     if (tidx < num_rows) {
         auto write_to = result_row_ptrs[tidx];

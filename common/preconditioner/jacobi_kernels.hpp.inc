@@ -52,11 +52,10 @@ __global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
                                       const IndexType *__restrict__ col_idx,
                                       bool *__restrict__ matching_next_row)
 {
-    const auto global_tid = blockDim.x * blockIdx.x + threadIdx.x;
-    const auto local_tid = threadIdx.x % config::warp_size;
-    const auto warp_id = global_tid / config::warp_size;
     const auto warp =
         group::tiled_partition<config::warp_size>(group::this_thread_block());
+    const auto local_tid = warp.thread_rank();
+    const auto warp_id = thread::get_subwarp_id_flat<config::warp_size>();
 
     if (warp_id >= num_rows - 1) {
         return;

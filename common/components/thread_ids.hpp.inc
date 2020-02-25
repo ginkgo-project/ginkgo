@@ -193,3 +193,80 @@ __device__ __forceinline__ size_type get_thread_id()
     return get_subwarp_id<subwarp_size, warps_per_block>() * subwarp_size +
            threadIdx.x;
 }
+
+
+/**
+ * @internal
+ *
+ * Returns the global ID of the thread in the given index type.
+ * This function assumes one-dimensional thread and block indexing.
+ *
+ * @return the global ID of the thread in the given index type.
+ *
+ * @tparam IndexType  the index type
+ */
+template <typename IndexType = size_type>
+__device__ __forceinline__ IndexType get_thread_id_flat()
+{
+    return threadIdx.x + static_cast<IndexType>(blockDim.x) * blockIdx.x;
+}
+
+
+/**
+ * @internal
+ *
+ * Returns the total number of threads in the given index type.
+ * This function assumes one-dimensional thread and block indexing.
+ *
+ * @return the total number of threads in the given index type.
+ *
+ * @tparam IndexType  the index type
+ */
+template <typename IndexType = size_type>
+__device__ __forceinline__ IndexType get_thread_num_flat()
+{
+    return blockDim.x * static_cast<IndexType>(gridDim.x);
+}
+
+
+/**
+ * @internal
+ *
+ * Returns the global ID of the subwarp in the given index type.
+ * This function assumes one-dimensional thread and block indexing
+ * with a power of two block size of at least subwarp_size.
+ *
+ * @return the global ID of the subwarp in the given index type.
+ *
+ * @tparam subwarp_size  the size of the subwarp. Must be a power of two!
+ * @tparam IndexType  the index type
+ */
+template <int subwarp_size, typename IndexType = size_type>
+__device__ __forceinline__ IndexType get_subwarp_id_flat()
+{
+    static_assert(!(subwarp_size & (subwarp_size - 1)),
+                  "subwarp_size must be a power of two");
+    return threadIdx.x / subwarp_size +
+           static_cast<IndexType>(blockDim.x / subwarp_size) * blockIdx.x;
+}
+
+
+/**
+ * @internal
+ *
+ * Returns the total number of subwarps in the given index type.
+ * This function assumes one-dimensional thread and block indexing
+ * with a power of two block size of at least subwarp_size.
+ *
+ * @return the total number of subwarps in the given index type.
+ *
+ * @tparam subwarp_size  the size of the subwarp. Must be a power of two!
+ * @tparam IndexType  the index type
+ */
+template <int subwarp_size, typename IndexType = size_type>
+__device__ __forceinline__ IndexType get_subwarp_num_flat()
+{
+    static_assert(!(subwarp_size & (subwarp_size - 1)),
+                  "subwarp_size must be a power of two");
+    return blockDim.x / subwarp_size * static_cast<IndexType>(gridDim.x);
+}

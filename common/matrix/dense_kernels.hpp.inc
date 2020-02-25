@@ -128,8 +128,7 @@ template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void compute_sqrt(
     size_type num_cols, ValueType *__restrict__ work)
 {
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_cols) {
         work[tidx] = sqrt(abs(work[tidx]));
     }
@@ -143,7 +142,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_coo(
     const ValueType *__restrict__ source, IndexType *__restrict__ row_idxs,
     IndexType *__restrict__ col_idxs, ValueType *__restrict__ values)
 {
-    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_rows) {
         size_type write_to = row_ptrs[tidx];
 
@@ -165,19 +164,17 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
     const ValueType *__restrict__ work, IndexType *__restrict__ result)
 {
     constexpr auto warp_size = config::warp_size;
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    const auto row_idx = tidx / warp_size;
+    const auto row_idx = thread::get_subwarp_id_flat<warp_size>();
+    auto warp_tile =
+        group::tiled_partition<warp_size>(group::this_thread_block());
 
     if (row_idx < num_rows) {
         IndexType part_result{};
-        for (auto i = threadIdx.x % warp_size; i < num_cols; i += warp_size) {
+        for (auto i = warp_tile.thread_rank(); i < num_cols; i += warp_size) {
             if (work[stride * row_idx + i] != zero<ValueType>()) {
                 part_result += 1;
             }
         }
-
-        auto warp_tile =
-            group::tiled_partition<warp_size>(group::this_thread_block());
         result[row_idx] = reduce(
             warp_tile, part_result,
             [](const size_type &a, const size_type &b) { return a + b; });
@@ -191,7 +188,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_csr(
     const ValueType *__restrict__ source, IndexType *__restrict__ row_ptrs,
     IndexType *__restrict__ col_idxs, ValueType *__restrict__ values)
 {
-    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
 
     if (tidx < num_rows) {
         auto write_to = row_ptrs[tidx];
@@ -213,7 +210,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_ell(
     size_type result_stride, IndexType *__restrict__ col_ptrs,
     ValueType *__restrict__ values)
 {
-    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_rows) {
         IndexType col_idx = 0;
         for (size_type col = 0; col < num_cols; col++) {
@@ -278,7 +275,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_sellp(
     size_type *__restrict__ slice_lengths, size_type *__restrict__ slice_sets,
     IndexType *__restrict__ col_idxs, ValueType *__restrict__ vals)
 {
-    const auto global_row = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto global_row = thread::get_thread_id_flat();
     const auto row = global_row % slice_size;
     const auto sliceid = global_row / slice_size;
 
@@ -324,10 +321,11 @@ __global__ __launch_bounds__(default_block_size) void reduce_max_nnz_per_slice(
     size_type num_rows, size_type slice_size, size_type stride_factor,
     const size_type *__restrict__ nnz_per_row, size_type *__restrict__ result)
 {
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
     constexpr auto warp_size = config::warp_size;
-    const auto warpid = tidx / warp_size;
-    const auto tid_in_warp = tidx % warp_size;
+    auto warp_tile =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    const auto warpid = thread::get_subwarp_id_flat<warp_size>();
+    const auto tid_in_warp = warp_tile.thread_rank();
     const auto slice_num = ceildiv(num_rows, slice_size);
 
     size_type thread_result = 0;
@@ -338,8 +336,6 @@ __global__ __launch_bounds__(default_block_size) void reduce_max_nnz_per_slice(
         }
     }
 
-    auto warp_tile =
-        group::tiled_partition<warp_size>(group::this_thread_block());
     auto warp_result = reduce(
         warp_tile, thread_result,
         [](const size_type &a, const size_type &b) { return max(a, b); });

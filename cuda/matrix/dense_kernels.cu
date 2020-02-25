@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/base/pointer_mode_guard.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/reduction.cuh"
+#include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
 
 

@@ -64,6 +64,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/merging.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/segment_scan.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
 #include "hip/components/uninitialized_array.hip.hpp"
 #include "hip/components/zero_array.hip.hpp"
 

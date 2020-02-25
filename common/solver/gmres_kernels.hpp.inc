@@ -41,7 +41,7 @@ __global__ __launch_bounds__(block_size) void initialize_1_kernel(
     ValueType *__restrict__ givens_cos, size_type stride_cos,
     stopping_status *__restrict__ stop_status)
 {
-    const auto global_id = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto global_id = thread::get_thread_id_flat();
 
     const auto row_idx = global_id / stride_b;
     const auto col_idx = global_id % stride_b;
@@ -73,7 +73,7 @@ __global__ __launch_bounds__(block_size) void initialize_2_1_kernel(
     ValueType *__restrict__ residual_norm_collection,
     size_type stride_residual_nc)
 {
-    const auto global_id = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto global_id = thread::get_thread_id_flat();
     const auto row_idx = global_id / stride_krylov;
     const auto col_idx = global_id % stride_krylov;
 
@@ -98,7 +98,7 @@ __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
     ValueType *__restrict__ krylov_bases, size_type stride_krylov,
     size_type *__restrict__ final_iter_nums)
 {
-    const auto global_id = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto global_id = thread::get_thread_id_flat();
     const auto row_idx = global_id / num_rhs;
     const auto col_idx = global_id % num_rhs;
 
@@ -120,10 +120,9 @@ __global__
         size_type *__restrict__ final_iter_nums,
         const stopping_status *__restrict__ stop_status, size_type total_number)
 {
-    const auto global_id = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto global_id = thread::get_thread_id_flat();
     if (global_id < total_number) {
-        final_iter_nums[global_id] +=
-            (1 - stop_status[global_id].has_stopped());
+        final_iter_nums[global_id] += !stop_status[global_id].has_stopped();
     }
 }
 
@@ -189,7 +188,7 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
     const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
-    const auto global_id = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto global_id = thread::get_thread_id_flat();
     const auto row_idx = global_id / stride_next_krylov;
     const auto col_idx = global_id % stride_next_krylov;
 
@@ -257,7 +256,7 @@ __global__ __launch_bounds__(block_size) void update_krylov_next_krylov_kernel(
     const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
-    const auto global_id = threadIdx.x + blockIdx.x * blockDim.x;
+    const auto global_id = thread::get_thread_id_flat();
     const auto row_idx = global_id / stride_next_krylov;
     const auto col_idx = global_id % stride_next_krylov;
     const auto hessenberg =
@@ -344,7 +343,7 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     const ValueType *__restrict__ b_norm,
     const stopping_status *__restrict__ stop_status)
 {
-    const auto col_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto col_idx = thread::get_thread_id_flat();
 
     if (col_idx >= num_cols || stop_status[col_idx].has_stopped()) {
         return;
@@ -409,7 +408,7 @@ __global__ __launch_bounds__(block_size) void solve_upper_triangular_kernel(
     ValueType *__restrict__ y, size_type stride_y,
     const size_type *__restrict__ final_iter_nums)
 {
-    const auto col_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto col_idx = thread::get_thread_id_flat();
 
     if (col_idx >= num_rhs) {
         return;
@@ -443,7 +442,7 @@ __global__ __launch_bounds__(block_size) void calculate_Qy_kernel(
     size_type stride_preconditioner,
     const size_type *__restrict__ final_iter_nums)
 {
-    const auto global_id = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto global_id = thread::get_thread_id_flat();
     const auto row_id = global_id / stride_preconditioner;
     const auto col_id = global_id % stride_preconditioner;
 

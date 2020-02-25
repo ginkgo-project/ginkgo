@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/format_conversion.hip.hpp"
 #include "hip/components/segment_scan.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
 #include "hip/components/zero_array.hip.hpp"
 
 
