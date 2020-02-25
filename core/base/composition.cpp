@@ -43,12 +43,12 @@ namespace {
 template <typename ValueType, typename OpIterator, typename VecIterator>
 inline void allocate_vectors(OpIterator begin, OpIterator end, VecIterator res)
 {
-    for (auto it = begin; it != end; ++it, ++res) {
-        if (*res != nullptr && (*res)->get_size()[0] == (*it)->get_size()[0]) {
-            continue;
+    for (auto it = begin; it != end; ++it) {
+        if (*res == nullptr || (*res)->get_size()[0] != (*it)->get_size()[0]) {
+            *res = matrix::Dense<ValueType>::create(
+                (*it)->get_executor(), gko::dim<2>{(*it)->get_size()[0], 1});
         }
-        *res = matrix::Dense<ValueType>::create(
-            (*it)->get_executor(), gko::dim<2>{(*it)->get_size()[0], 1});
+        ++res;
     }
 }
 
