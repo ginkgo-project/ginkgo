@@ -33,7 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/preconditioner/jacobi_kernels.hpp"
 
 
+#include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <numeric>
 #include <vector>
 
@@ -66,15 +68,9 @@ inline bool has_same_nonzero_pattern(const IndexType *prev_row_ptr,
                                      const IndexType *curr_row_ptr,
                                      const IndexType *next_row_ptr)
 {
-    if (next_row_ptr - curr_row_ptr != curr_row_ptr - prev_row_ptr) {
-        return false;
-    }
-    for (; curr_row_ptr < next_row_ptr; ++prev_row_ptr, ++curr_row_ptr) {
-        if (*curr_row_ptr != *prev_row_ptr) {
-            return false;
-        }
-    }
-    return true;
+    return std::distance(curr_row_ptr, next_row_ptr) ==
+               std::distance(prev_row_ptr, curr_row_ptr) &&
+           std::equal(curr_row_ptr, next_row_ptr, prev_row_ptr);
 }
 
 

@@ -34,6 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_ARRAY_H_
 
 
+#include <algorithm>
+#include <iterator>
 #include <memory>
 #include <utility>
 
@@ -178,11 +180,8 @@ public:
           RandomAccessIterator end)
         : Array(exec)
     {
-        Array tmp(exec->get_master(), end - begin);
-        int i = 0;
-        for (auto it = begin; it != end; ++it, ++i) {
-            tmp.data_[i] = *it;
-        }
+        Array tmp(exec->get_master(), std::distance(begin, end));
+        std::copy(begin, end, tmp.data_.get());
         *this = std::move(tmp);
     }
 
