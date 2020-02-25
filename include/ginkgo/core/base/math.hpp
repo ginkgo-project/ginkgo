@@ -726,12 +726,8 @@ constexpr T get_superior_power(const T &base, const T &limit,
 // distinguishing between the CUDA `isfinite` and the `std::isfinite` when
 // it is put into the `gko` namespace, only enable `std::isfinite` when
 // compiling host code.
-template <typename T>
-GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<!is_complex_s<T>::value, bool>
-isfinite(const T &value)
-{
-    return std::isfinite(value);
-}
+using std::isfinite;
+
 
 #endif  // defined(__CUDA_ARCH__)
 
