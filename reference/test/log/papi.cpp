@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/iteration.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -115,7 +115,6 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     int eventset;
 };
-
 
 TYPED_TEST_CASE(Papi, gko::test::ValueTypes);
 

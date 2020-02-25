@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -103,7 +103,6 @@ protected:
     std::unique_ptr<Mtx> mtx1;
     std::unique_ptr<Mtx> mtx2;
 };
-
 
 TYPED_TEST_CASE(Ell, gko::test::ValueIndexTypes);
 

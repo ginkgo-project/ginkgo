@@ -43,9 +43,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include <core/base/extended_float.hpp>
-#include <core/preconditioner/jacobi_utils.hpp>
-#include <core/test/utils.hpp>
+#include "core/base/extended_float.hpp"
+#include "core/preconditioner/jacobi_utils.hpp"
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -175,7 +175,6 @@ protected:
     std::unique_ptr<Bj> bj;
     std::unique_ptr<Bj> adaptive_bj;
 };
-
 
 TYPED_TEST_CASE(Jacobi, gko::test::ValueIndexTypes);
 

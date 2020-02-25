@@ -40,14 +40,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
 
 template <typename T>
 class MatricesNear : public ::testing::Test {};
-
 
 TYPED_TEST_CASE(MatricesNear, gko::test::ValueTypes);
 

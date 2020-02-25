@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -65,7 +65,6 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<typename Solver::Factory> upper_trs_factory;
 };
-
 
 TYPED_TEST_CASE(UpperTrs, gko::test::ValueIndexTypes);
 

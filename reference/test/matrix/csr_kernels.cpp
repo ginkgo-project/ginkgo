@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -345,7 +345,6 @@ protected:
     std::unique_ptr<Mtx> mtx3_sorted;
     std::unique_ptr<Mtx> mtx3_unsorted;
 };
-
 
 TYPED_TEST_CASE(Csr, gko::test::ValueIndexTypes);
 
@@ -1077,7 +1076,6 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
 };
-
 
 TYPED_TEST_CASE(CsrComplex, gko::test::ComplexValueIndexTypes);
 

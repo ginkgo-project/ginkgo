@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -56,7 +56,6 @@ protected:
 
     std::shared_ptr<const gko::Executor> exec;
 };
-
 
 TYPED_TEST_CASE(Identity, gko::test::ValueTypes);
 
@@ -112,7 +111,6 @@ class IdentityFactory : public ::testing::Test {
 protected:
     using value_type = T;
 };
-
 
 TYPED_TEST_CASE(IdentityFactory, gko::test::ValueTypes);
 

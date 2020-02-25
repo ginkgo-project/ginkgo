@@ -56,6 +56,78 @@ namespace assertions {
 namespace detail {
 
 
+/**
+ * Structure helper to return the biggest valuetype able to contain values from
+ * both ValueType1 and ValueType2.
+ *
+ * @tparam ValueType1  the first valuetype to compare
+ * @tparam ValueType2  the second valuetype to compare
+ * @tparam T  enable_if placeholder
+ */
+template <typename ValueType1, typename ValueType2, typename T = void>
+struct biggest_valuetype {
+    /** The type. This default is good but should not be used due to the
+     * enable_if versions. */
+    using type = std::complex<long double>;
+};
+
+
+/**
+ * Specialization when both ValueType1 and ValueType2 are the same.
+ *
+ * @copydoc biggest_valuetype
+ */
+template <typename ValueType1, typename ValueType2>
+struct biggest_valuetype<ValueType1, ValueType2,
+                         typename std::enable_if<std::is_same<
+                             ValueType1, ValueType2>::value>::type> {
+    /** The type. */
+    using type = ValueType1;
+};
+
+
+/**
+ * Specialization when both ValueType1 and ValueType2 are different but non
+ * complex.
+ *
+ * @copydoc biggest_valuetype
+ */
+template <typename ValueType1, typename ValueType2>
+struct biggest_valuetype<
+    ValueType1, ValueType2,
+    typename std::enable_if<!std::is_same<ValueType1, ValueType2>::value &&
+                            !(gko::is_complex_s<ValueType1>::value ||
+                              gko::is_complex_s<ValueType2>::value)>::type> {
+    /** The type. We pick the bigger of the two. */
+    using type = typename std::conditional<xstd::greater(sizeof(ValueType1),
+                                                         sizeof(ValueType2)),
+                                           ValueType1, ValueType2>::type;
+};
+
+
+/**
+ * Specialization when both ValueType1 and ValueType2 are different and one of
+ * them is complex.
+ *
+ * @copydoc biggest_valuetype
+ */
+template <typename ValueType1, typename ValueType2>
+class biggest_valuetype<
+    ValueType1, ValueType2,
+    typename std::enable_if<!std::is_same<ValueType1, ValueType2>::value &&
+                            (gko::is_complex_s<ValueType1>::value ||
+                             gko::is_complex_s<ValueType2>::value)>::type> {
+    using real_vt1 = remove_complex<ValueType1>;
+    using real_vt2 = remove_complex<ValueType2>;
+
+public:
+    /** The type. We make a complex with the bigger real of the two. */
+    using type = typename std::conditional<
+        xstd::greater(sizeof(real_vt1), sizeof(real_vt2)),
+        std::complex<real_vt1>, std::complex<real_vt2>>::type;
+};
+
+
 template <typename NonzeroIterator>
 auto get_next_value(NonzeroIterator &it, const NonzeroIterator &end,
                     size_type next_row, size_type next_col) ->
@@ -87,22 +159,26 @@ template <typename Ostream, typename MatrixData1, typename MatrixData2>
 void print_componentwise_error(Ostream &os, const MatrixData1 &first,
                                const MatrixData2 &second)
 {
-    using real_vt = remove_complex<typename MatrixData2::value_type>;
+    using std::abs;
+    using vt = typename detail::biggest_valuetype<
+        typename MatrixData1::value_type,
+        typename MatrixData2::value_type>::type;
+    using real_vt = remove_complex<vt>;
+
     auto first_it = begin(first.nonzeros);
     auto second_it = begin(second.nonzeros);
     for (size_type row = 0; row < first.size[0]; ++row) {
         os << "\t";
         for (size_type col = 0; col < first.size[1]; ++col) {
-            auto r = get_next_value(first_it, end(first.nonzeros), row, col);
-            auto e = get_next_value(second_it, end(second.nonzeros), row, col);
-            auto rr = static_cast<real_vt>(std::real(r));
-            auto re = static_cast<real_vt>(std::real(e));
-            auto m = std::max(static_cast<real_vt>(abs(r)),
-                              static_cast<real_vt>(abs(e)));
-            if (m == zero<real_vt>()) {
-                os << abs(rr - re) << "\t";
+            auto r =
+                vt{get_next_value(first_it, end(first.nonzeros), row, col)};
+            auto e =
+                vt{get_next_value(second_it, end(second.nonzeros), row, col)};
+            auto m = std::max(abs(r), abs(e));
+            if (m == zero<vt>()) {
+                os << abs(r - e) << "\t";
             } else {
-                os << abs((rr - re) / m) << "\t";
+                os << abs((r - e) / m) << "\t";
             }
         }
         os << "\n";
@@ -122,24 +198,27 @@ void print_columns(Ostream &os, const Iterator &begin, const Iterator &end)
 template <typename MatrixData1, typename MatrixData2>
 double get_relative_error(const MatrixData1 &first, const MatrixData2 &second)
 {
-    using real_vt = remove_complex<typename MatrixData2::value_type>;
-    double diff = 0.0;
-    double first_norm = 0.0;
-    double second_norm = 0.0;
+    using std::abs;
+    using vt = typename detail::biggest_valuetype<
+        typename MatrixData1::value_type,
+        typename MatrixData2::value_type>::type;
+    using real_vt = remove_complex<vt>;
+
+    real_vt diff = 0.0;
+    real_vt first_norm = 0.0;
+    real_vt second_norm = 0.0;
     auto first_it = begin(first.nonzeros);
     auto second_it = begin(second.nonzeros);
     for (size_type row = 0; row < first.size[0]; ++row) {
         for (size_type col = 0; col < first.size[1]; ++col) {
             const auto first_val =
-                get_next_value(first_it, end(first.nonzeros), row, col);
+                vt{get_next_value(first_it, end(first.nonzeros), row, col)};
             const auto second_val =
-                get_next_value(second_it, end(second.nonzeros), row, col);
-            const auto real_first = static_cast<real_vt>(std::real(first_val));
-            const auto real_second =
-                static_cast<real_vt>(std::real(second_val));
-            diff += squared_norm(real_first - real_second);
-            first_norm += squared_norm(real_first);
-            second_norm += squared_norm(real_second);
+                vt{get_next_value(second_it, end(second.nonzeros), row, col)};
+
+            diff += squared_norm(first_val - second_val);
+            first_norm += squared_norm(first_val);
+            second_norm += squared_norm(second_val);
         }
     }
     if (first_norm == 0.0 && second_norm == 0.0) {

@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -108,10 +108,8 @@ protected:
     }
 };
 
-
 template <typename T>
 constexpr gko::remove_complex<T> Gmres<T>::reduction_factor;
-
 
 TYPED_TEST_CASE(Gmres, gko::test::ValueTypes);
 

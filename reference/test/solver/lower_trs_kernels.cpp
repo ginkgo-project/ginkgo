@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <core/solver/lower_trs_kernels.hpp>
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -92,7 +92,6 @@ protected:
     std::unique_ptr<typename Solver::Factory> lower_trs_factory_mrhs;
     std::unique_ptr<typename Solver::Factory> lower_trs_factory_big;
 };
-
 
 TYPED_TEST_CASE(LowerTrs, gko::test::ValueIndexTypes);
 

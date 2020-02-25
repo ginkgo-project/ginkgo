@@ -39,14 +39,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
 
 template <typename T>
 class Convergence : public ::testing::Test {};
-
 
 TYPED_TEST_CASE(Convergence, gko::test::ValueTypes);
 

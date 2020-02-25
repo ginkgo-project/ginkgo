@@ -223,7 +223,6 @@ protected:
     }
 };
 
-
 TYPED_TEST_CASE(ParIlu, gko::test::ValueIndexTypes);
 
 

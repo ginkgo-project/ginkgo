@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -86,7 +86,6 @@ protected:
     gko::Array<index_type> vals;
     gko::Array<index_type> dvals;
 };
-
 
 TYPED_TEST_CASE(PrefixSum, gko::test::IndexTypes);
 

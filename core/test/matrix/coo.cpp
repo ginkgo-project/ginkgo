@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -91,10 +91,10 @@ protected:
         EXPECT_EQ(c[1], 1);
         EXPECT_EQ(c[2], 2);
         EXPECT_EQ(c[3], 1);
-        EXPECT_EQ(v[0], value_type(1.0));
-        EXPECT_EQ(v[1], value_type(3.0));
-        EXPECT_EQ(v[2], value_type(2.0));
-        EXPECT_EQ(v[3], value_type(5.0));
+        EXPECT_EQ(v[0], value_type{1.0});
+        EXPECT_EQ(v[1], value_type{3.0});
+        EXPECT_EQ(v[2], value_type{2.0});
+        EXPECT_EQ(v[3], value_type{5.0});
     }
 
     void assert_empty(const Mtx *m)
@@ -106,7 +106,6 @@ protected:
         ASSERT_EQ(m->get_const_row_idxs(), nullptr);
     }
 };
-
 
 TYPED_TEST_CASE(Coo, gko::test::ValueIndexTypes);
 

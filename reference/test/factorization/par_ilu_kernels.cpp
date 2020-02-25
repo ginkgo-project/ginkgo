@@ -48,8 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include <core/test/utils.hpp>
 #include "core/factorization/par_ilu_kernels.hpp"
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -210,7 +210,6 @@ protected:
     std::unique_ptr<typename par_ilu_type::Factory> ilu_factory_skip;
     std::unique_ptr<typename par_ilu_type::Factory> ilu_factory_sort;
 };
-
 
 TYPED_TEST_CASE(ParIlu, gko::test::ValueIndexTypes);
 

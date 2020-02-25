@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <core/solver/upper_trs_kernels.hpp>
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -90,7 +90,6 @@ protected:
     std::unique_ptr<typename Solver::Factory> upper_trs_factory;
     std::unique_ptr<typename Solver::Factory> upper_trs_factory_mrhs;
 };
-
 
 TYPED_TEST_CASE(UpperTrs, gko::test::ValueIndexTypes);
 

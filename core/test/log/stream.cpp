@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/iteration.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -55,7 +55,6 @@ constexpr int num_iters = 10;
 
 template <typename T>
 class Stream : public ::testing::Test {};
-
 
 TYPED_TEST_CASE(Stream, gko::test::ValueTypes);
 

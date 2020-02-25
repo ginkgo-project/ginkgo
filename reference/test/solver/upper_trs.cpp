@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/upper_trs.hpp>
+#include "ginkgo/core/solver/upper_trs.hpp"
 
 
 #include <memory>
@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -77,7 +77,6 @@ protected:
     std::unique_ptr<typename Solver::Factory> upper_trs_factory;
     std::unique_ptr<Solver> upper_trs_solver;
 };
-
 
 TYPED_TEST_CASE(UpperTrs, gko::test::ValueIndexTypes);
 

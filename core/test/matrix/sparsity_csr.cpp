@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/dim.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -106,7 +106,6 @@ protected:
         ASSERT_EQ(m->get_value(), nullptr);
     }
 };
-
 
 TYPED_TEST_CASE(SparsityCsr, gko::test::ValueIndexTypes);
 

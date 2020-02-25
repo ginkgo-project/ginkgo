@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/range.hpp>
 
 
-#include <core/test/utils.hpp>
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -79,7 +79,6 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<gko::matrix::Dense<value_type>> mtx;
 };
-
 
 TYPED_TEST_CASE(Dense, gko::test::ValueTypes);
 
