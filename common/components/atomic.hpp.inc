@@ -85,7 +85,7 @@ GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned long long int);
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
 
 
-#if !(defined(CUDA_VERSION) && (CUDA_VERSION < 10100))
+#if !(defined(CUDA_VERSION) && (CUDA_VERSION < 10010))
 // CUDA 10.1 starts supporting 16-bit unsigned short int atomicCAS
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned short int);
 #endif
