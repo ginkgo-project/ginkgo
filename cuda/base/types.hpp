@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <cublas_v2.h>
+#include <cusparse.h>
 #include <thrust/complex.h>
 
 
@@ -190,6 +191,31 @@ constexpr cudaDataType_t cuda_data_type_impl<uint8>()
 }
 
 
+#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
+
+
+template <typename T>
+constexpr cusparseIndexType_t cusparse_index_type_impl()
+{
+    return CUSPARSE_INDEX_16U;
+}
+
+template <>
+constexpr cusparseIndexType_t cusparse_index_type_impl<int32>()
+{
+    return CUSPARSE_INDEX_32I;
+}
+
+template <>
+constexpr cusparseIndexType_t cusparse_index_type_impl<int64>()
+{
+    return CUSPARSE_INDEX_64I;
+}
+
+
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
+
+
 }  // namespace detail
 
 
@@ -206,6 +232,27 @@ constexpr cudaDataType_t cuda_data_type()
 {
     return detail::cuda_data_type_impl<T>();
 }
+
+
+#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
+
+
+/**
+ * This is an alias for the `cudaIndexType_t` equivalent of `T`. By default,
+ * CUSPARSE_INDEX_16U is returned.
+ *
+ * @tparam T  a type
+ *
+ * @returns the actual `cusparseIndexType_t`
+ */
+template <typename T>
+constexpr cusparseIndexType_t cusparse_index_type()
+{
+    return detail::cusparse_index_type_impl<T>();
+}
+
+
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
 
 
 /**

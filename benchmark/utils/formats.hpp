@@ -184,6 +184,8 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"cusp_ell", read_matrix_from_data<cusp_ell>},
 #if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
         {"cusp_gcsr", read_matrix_from_data<cusp_gcsr>},
+        {"cusp_gcsr2", read_matrix_from_data<cusp_gcsr2>},
+        {"cusp_gcoo", read_matrix_from_data<cusp_gcoo>},
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
 #endif  // HAS_CUDA
 #ifdef HAS_HIP
