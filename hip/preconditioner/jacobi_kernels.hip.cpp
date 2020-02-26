@@ -83,7 +83,7 @@ size_type find_natural_blocks(std::shared_ptr<const HipExecutor> exec,
 
     Array<bool> matching_next_row(exec, mtx->get_size()[0] - 1);
 
-    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 block_size(config::warp_size, 1, 1);
     const dim3 grid_size(
         ceildiv(mtx->get_size()[0] * config::warp_size, block_size.x), 1, 1);
     hipLaunchKernelGGL(compare_adjacent_rows, dim3(grid_size), dim3(block_size),
