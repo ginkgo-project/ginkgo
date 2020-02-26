@@ -116,6 +116,8 @@ custom_isfinite(T value)
 
 GKO_DEFINE_ISFINITE_FOR_TYPE(float)
 GKO_DEFINE_ISFINITE_FOR_TYPE(double)
+GKO_DEFINE_ISFINITE_FOR_TYPE(thrust::complex<float>)
+GKO_DEFINE_ISFINITE_FOR_TYPE(thrust::complex<double>)
 #undef GKO_DEFINE_ISFINITE_FOR_TYPE
 
 
