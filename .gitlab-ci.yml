@@ -343,6 +343,8 @@ build/amd/clang/hip/release/static:
   image: localhost:5000/gko-amd-gnu7-llvm60
   variables:
     <<: *default_variables
+    C_COMPILER: clang
+    CXX_COMPILER: clang++
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: Release
