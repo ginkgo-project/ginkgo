@@ -97,8 +97,18 @@ std::string format_description =
     "cusp_csrex: benchmark CuSPARSE with the cusparseXcsrmvEx function.\n"
     "cusp_csrmp: benchmark CuSPARSE with the cusparseXcsrmv_mp function.\n"
     "cusp_csrmm: benchmark CuSPARSE with the cusparseXcsrmv_mm function."
+#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
+    "\n"
+    "cusp_gcsr: benchmark CuSPARSE with the generic csr with default "
+    "algorithm.\n"
+    "cusp_gcsr2: benchmark CuSPARSE with the generic csr with "
+    "CUSPARSE_CSRMV_ALG2.\n"
+    "cusp_gcoo: benchmark CuSPARSE with the generic coo with default "
+    "algorithm.\n"
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
 #endif  // HAS_CUDA
 #ifdef HAS_HIP
+    "\n"
     "hipsp_csr: benchmark HipSPARSE with the hipsparseXcsrmv function.\n"
     "hipsp_csrmm: benchmark HipSPARSE with the hipsparseXcsrmv_mm function.\n"
     "hipsp_hybrid: benchmark HipSPARSE spmv with hipsparseXhybmv and an "

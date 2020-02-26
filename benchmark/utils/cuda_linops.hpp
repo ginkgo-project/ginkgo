@@ -479,6 +479,7 @@ private:
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
 
+
 template <typename ValueType>
 void cusp_generic_spmv(const gko::CudaExecutor *gpu_exec,
                        const cusparseSpMatDescr_t mat,
@@ -517,6 +518,7 @@ void cusp_generic_spmv(const gko::CudaExecutor *gpu_exec,
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(vecb));
     GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(dBuffer));
 }
+
 
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32,
