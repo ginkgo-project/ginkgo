@@ -479,6 +479,44 @@ private:
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
 
+template <typename ValueType>
+void cusp_generic_spmv(const gko::CudaExecutor *gpu_exec,
+                       const cusparseSpMatDescr_t mat,
+                       const gko::Array<ValueType> &scalars,
+                       const gko::LinOp *b, gko::LinOp *x,
+                       cusparseOperation_t trans, cusparseSpMVAlg_t alg)
+{
+    cudaDataType_t cu_value = gko::kernels::cuda::cuda_data_type<ValueType>();
+    using gko::kernels::cuda::as_culibs_type;
+    auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
+    auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
+    auto db = dense_b->get_const_values();
+    auto dx = dense_x->get_values();
+    const auto id = gpu_exec->get_device_id();
+    gko::cuda::device_guard g{id};
+    cusparseDnVecDescr_t vecb, vecx;
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(
+        cusparseCreateDnVec(&vecx, dense_x->get_num_stored_elements(),
+                            as_culibs_type(dx), cu_value));
+    // cusparseCreateDnVec only allows non-const pointer
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateDnVec(
+        &vecb, dense_b->get_num_stored_elements(),
+        as_culibs_type(const_cast<ValueType *>(db)), cu_value));
+
+    void *dBuffer = NULL;
+    size_t bufferSize = 0;
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpMV_bufferSize(
+        gpu_exec->get_cusparse_handle(), trans, &scalars.get_const_data()[0],
+        mat, vecb, &scalars.get_const_data()[1], vecx, cu_value, alg,
+        &bufferSize));
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaMalloc(&dBuffer, bufferSize));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpMV(
+        gpu_exec->get_cusparse_handle(), trans, &scalars.get_const_data()[0],
+        mat, vecb, &scalars.get_const_data()[1], vecx, cu_value, alg, dBuffer));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(vecx));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(vecb));
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(dBuffer));
+}
 
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32,
@@ -532,36 +570,8 @@ public:
 protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
     {
-        using gko::kernels::cuda::as_culibs_type;
-        auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
-        auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
-        auto db = dense_b->get_const_values();
-        auto dx = dense_x->get_values();
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::cuda::device_guard g{id};
-        cusparseDnVecDescr_t vecb_, vecx_;
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(
-            cusparseCreateDnVec(&vecx_, dense_x->get_num_stored_elements(),
-                                as_culibs_type(dx), cu_value));
-        // cusparseCreateDnVec only allows non-const pointer
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateDnVec(
-            &vecb_, dense_b->get_num_stored_elements(),
-            as_culibs_type(const_cast<ValueType *>(db)), cu_value));
-
-        void *dBuffer = NULL;
-        size_t bufferSize = 0;
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpMV_bufferSize(
-            this->get_gpu_exec()->get_cusparse_handle(), trans_,
-            &scalars.get_const_data()[0], mat_, vecb_,
-            &scalars.get_const_data()[1], vecx_, cu_value, Alg, &bufferSize));
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaMalloc(&dBuffer, bufferSize));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpMV(
-            this->get_gpu_exec()->get_cusparse_handle(), trans_,
-            &scalars.get_const_data()[0], mat_, vecb_,
-            &scalars.get_const_data()[1], vecx_, cu_value, Alg, dBuffer));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(vecx_));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(vecb_));
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(dBuffer));
+        cusp_generic_spmv(this->get_gpu_exec(), mat_, scalars, b, x, trans_,
+                          Alg);
     }
 
     CuspGenericCsr(std::shared_ptr<const gko::Executor> exec,
@@ -632,38 +642,8 @@ public:
 protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
     {
-        using gko::kernels::cuda::as_culibs_type;
-        auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
-        auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
-        auto db = dense_b->get_const_values();
-        auto dx = dense_x->get_values();
-        const auto id = this->get_gpu_exec()->get_device_id();
-        gko::cuda::device_guard g{id};
-        cusparseDnVecDescr_t vecb_, vecx_;
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(
-            cusparseCreateDnVec(&vecx_, dense_x->get_num_stored_elements(),
-                                as_culibs_type(dx), cu_value));
-        // cusparseCreateDnVec only allows non-const pointer
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateDnVec(
-            &vecb_, dense_b->get_num_stored_elements(),
-            as_culibs_type(const_cast<ValueType *>(db)), cu_value));
-
-        void *dBuffer = NULL;
-        size_t bufferSize = 0;
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpMV_bufferSize(
-            this->get_gpu_exec()->get_cusparse_handle(), trans_,
-            &scalars.get_const_data()[0], mat_, vecb_,
-            &scalars.get_const_data()[1], vecx_, cu_value,
-            CUSPARSE_MV_ALG_DEFAULT, &bufferSize));
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaMalloc(&dBuffer, bufferSize));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(
-            cusparseSpMV(this->get_gpu_exec()->get_cusparse_handle(), trans_,
-                         &scalars.get_const_data()[0], mat_, vecb_,
-                         &scalars.get_const_data()[1], vecx_, cu_value,
-                         CUSPARSE_MV_ALG_DEFAULT, dBuffer));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(vecx_));
-        GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyDnVec(vecb_));
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaFree(dBuffer));
+        cusp_generic_spmv(this->get_gpu_exec(), mat_, scalars, b, x, trans_,
+                          CUSPARSE_MV_ALG_DEFAULT);
     }
 
     CuspGenericCoo(std::shared_ptr<const gko::Executor> exec,
