@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
+#include "hip/test/utils.hip.hpp"
 
 
 namespace {

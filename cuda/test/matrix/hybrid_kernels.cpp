@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/hybrid.hpp>
 
 
-#include "core/test/utils.hpp"
+#include "cuda/test/utils.hpp"
 
 
 namespace {
