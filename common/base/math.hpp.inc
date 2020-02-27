@@ -108,10 +108,10 @@ custom_isfinite(T value)
       (defined(__clang__) || defined(__ICC) || defined(__ICL))))
 
 
-#define GKO_DEFINE_ISFINITE_FOR_TYPE(_type)          \
-    GKO_INLINE __device__ bool isfinite(_type value) \
-    {                                                \
-        return detail::custom_isfinite(value);       \
+#define GKO_DEFINE_ISFINITE_FOR_TYPE(_type)                 \
+    GKO_INLINE __device__ bool isfinite(const _type &value) \
+    {                                                       \
+        return detail::custom_isfinite(value);              \
     }
 
 GKO_DEFINE_ISFINITE_FOR_TYPE(float)
