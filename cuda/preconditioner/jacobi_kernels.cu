@@ -57,7 +57,7 @@ namespace {
 
 
 // a total of 32 warps (1024 threads)
-constexpr int default_block_size = 32;
+constexpr int default_num_warps = 32;
 // with current architectures, at most 32 warps can be scheduled per SM (and
 // current GPUs have at most 84 SMs)
 constexpr int default_grid_size = 32 * 32 * 128;
@@ -112,11 +112,11 @@ void initialize_precisions(std::shared_ptr<const CudaExecutor> exec,
                            const Array<precision_reduction> &source,
                            Array<precision_reduction> &precisions)
 {
-    const auto block_size = default_block_size * config::warp_size;
+    const auto block_size = default_num_warps * config::warp_size;
     const auto grid_size = min(
         default_grid_size,
         static_cast<int32>(ceildiv(precisions.get_num_elems(), block_size)));
-    duplicate_array<default_block_size><<<grid_size, block_size>>>(
+    duplicate_array<default_num_warps><<<grid_size, block_size>>>(
         source.get_const_data(), source.get_num_elems(), precisions.get_data(),
         precisions.get_num_elems());
 }
