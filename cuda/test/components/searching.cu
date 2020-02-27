@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "cuda/components/cooperative_groups.cuh"
+#include "cuda/test/utils.hpp"
 
 
 namespace {

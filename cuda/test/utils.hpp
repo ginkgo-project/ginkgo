@@ -30,56 +30,24 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_CUDA_TEST_NORESET_HPP_
+#define GKO_CUDA_TEST_NORESET_HPP_
 
-#include <core/test/utils/assertions.hpp>
-
-
-#include <gtest/gtest.h>
-
-
-#include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/base/executor.hpp>
 
 
-#include "hip/test/utils.hip.hpp"
+#include "core/test/utils.hpp"
 
 
 namespace {
 
 
-class MatricesNear : public ::testing::Test {
-protected:
-    void SetUp()
-    {
-        ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
-        ref = gko::ReferenceExecutor::create();
-        hip = gko::HipExecutor::create(0, ref);
-    }
-
-    void TearDown()
-    {
-        if (hip != nullptr) {
-            ASSERT_NO_THROW(hip->synchronize());
-        }
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::HipExecutor> hip;
-};
-
-
-TEST_F(MatricesNear, CanPassHipMatrix)
-{
-    auto mtx = gko::initialize<gko::matrix::Dense<>>(
-        {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, ref);
-    auto csr_ref = gko::matrix::Csr<>::create(ref);
-    csr_ref->copy_from(mtx.get());
-    auto csr_mtx = gko::matrix::Csr<>::create(hip);
-    csr_mtx->copy_from(std::move(csr_ref));
-
-    GKO_EXPECT_MTX_NEAR(csr_mtx, mtx, 0.0);
-    GKO_ASSERT_MTX_NEAR(csr_mtx, mtx, 0.0);
-}
+// prevent device reset after each test
+auto no_reset_exec =
+    gko::CudaExecutor::create(0, gko::ReferenceExecutor::create());
 
 
 }  // namespace
+
+
+#endif  // GKO_CUDA_TEST_NORESET_HPP_
