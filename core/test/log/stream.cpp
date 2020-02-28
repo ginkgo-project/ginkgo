@@ -113,7 +113,7 @@ TYPED_TEST(Stream, CatchesFreeStarted)
     ptrstream << std::hex << "0x" << reinterpret_cast<gko::uintptr>(&dummy);
 
     logger->template on<gko::log::Logger::free_started>(
-        exec.get(), reinterpret_cast<gko::uintptr>(&dummy));
+        exec->get_mem_space().get(), reinterpret_cast<gko::uintptr>(&dummy));
 
     auto os = out.str();
     GKO_ASSERT_STR_CONTAINS(os, "free started on");
