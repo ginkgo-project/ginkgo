@@ -361,4 +361,80 @@ __global__ __launch_bounds__(default_block_size) void reduce_total_cols(
 }
 
 
+template <size_type block_size, typename IndexType, typename ValueType>
+__global__ __launch_bounds__(block_size) void row_permute(
+    size_type num_rows, size_type num_cols,
+    const IndexType *__restrict__ perm_idxs, const ValueType *__restrict__ orig,
+    size_type stride_orig, ValueType *__restrict__ result,
+    size_type stride_result)
+{
+    constexpr auto warps_per_block = block_size / config::warp_size;
+    const auto global_id =
+        thread::get_thread_id<config::warp_size, warps_per_block>();
+    const auto row_id = global_id / num_cols;
+    const auto col_id = global_id % num_cols;
+    if (row_id < num_rows) {
+        result[row_id * stride_result + col_id] =
+            orig[perm_idxs[row_id] * stride_orig + col_id];
+    }
+}
+
+
+template <size_type block_size, typename IndexType, typename ValueType>
+__global__ __launch_bounds__(block_size) void column_permute(
+    size_type num_rows, size_type num_cols,
+    const IndexType *__restrict__ perm_idxs, const ValueType *__restrict__ orig,
+    size_type stride_orig, ValueType *__restrict__ result,
+    size_type stride_result)
+{
+    constexpr auto warps_per_block = block_size / config::warp_size;
+    const auto global_id =
+        thread::get_thread_id<config::warp_size, warps_per_block>();
+    const auto row_id = global_id / num_cols;
+    const auto col_id = global_id % num_cols;
+    if (row_id < num_rows) {
+        result[row_id * stride_result + col_id] =
+            orig[row_id * stride_orig + perm_idxs[col_id]];
+    }
+}
+
+
+template <size_type block_size, typename IndexType, typename ValueType>
+__global__ __launch_bounds__(block_size) void inverse_row_permute(
+    size_type num_rows, size_type num_cols,
+    const IndexType *__restrict__ perm_idxs, const ValueType *__restrict__ orig,
+    size_type stride_orig, ValueType *__restrict__ result,
+    size_type stride_result)
+{
+    constexpr auto warps_per_block = block_size / config::warp_size;
+    const auto global_id =
+        thread::get_thread_id<config::warp_size, warps_per_block>();
+    const auto row_id = global_id / num_cols;
+    const auto col_id = global_id % num_cols;
+    if (row_id < num_rows) {
+        result[perm_idxs[row_id] * stride_result + col_id] =
+            orig[row_id * stride_orig + col_id];
+    }
+}
+
+
+template <size_type block_size, typename IndexType, typename ValueType>
+__global__ __launch_bounds__(block_size) void inverse_column_permute(
+    size_type num_rows, size_type num_cols,
+    const IndexType *__restrict__ perm_idxs, const ValueType *__restrict__ orig,
+    size_type stride_orig, ValueType *__restrict__ result,
+    size_type stride_result)
+{
+    constexpr auto warps_per_block = block_size / config::warp_size;
+    const auto global_id =
+        thread::get_thread_id<config::warp_size, warps_per_block>();
+    const auto row_id = global_id / num_cols;
+    const auto col_id = global_id % num_cols;
+    if (row_id < num_rows) {
+        result[row_id * stride_result + perm_idxs[col_id]] =
+            orig[row_id * stride_orig + col_id];
+    }
+}
+
+
 }  // namespace kernel
