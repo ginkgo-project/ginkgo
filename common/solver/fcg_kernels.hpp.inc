@@ -39,8 +39,7 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
     ValueType *__restrict__ prev_rho, ValueType *__restrict__ rho,
     ValueType *__restrict__ rho_t, stopping_status *__restrict__ stop_status)
 {
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
 
     if (tidx < num_cols) {
         rho[tidx] = zero<ValueType>();
@@ -66,8 +65,7 @@ __global__ __launch_bounds__(default_block_size) void step_1_kernel(
     const ValueType *__restrict__ rho, const ValueType *__restrict__ prev_rho,
     const stopping_status *__restrict__ stop_status)
 {
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
     const auto col = tidx % stride;
     if (col >= num_cols || tidx >= num_rows * stride ||
         stop_status[col].has_stopped()) {
@@ -88,8 +86,7 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
     const ValueType *__restrict__ rho,
     const stopping_status *__restrict__ stop_status)
 {
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
     const auto row = tidx / stride;
     const auto col = tidx % stride;
 

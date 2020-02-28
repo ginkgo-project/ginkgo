@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
 
 
 namespace gko {
@@ -60,9 +61,9 @@ namespace {
 
 // a total of 32/16 warps (1024 threads)
 #if GINKGO_HIP_PLATFORM_HCC
-constexpr int default_block_size = 16;
+constexpr int default_num_warps = 16;
 #else  // GINKGO_HIP_PLATFORM_NVCC
-constexpr int default_block_size = 32;
+constexpr int default_num_warps = 32;
 #endif
 // with current architectures, at most 32 warps can be scheduled per SM (and
 // current GPUs have at most 84 SMs)
@@ -82,7 +83,7 @@ size_type find_natural_blocks(std::shared_ptr<const HipExecutor> exec,
 
     Array<bool> matching_next_row(exec, mtx->get_size()[0] - 1);
 
-    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 block_size(config::warp_size, 1, 1);
     const dim3 grid_size(
         ceildiv(mtx->get_size()[0] * config::warp_size, block_size.x), 1, 1);
     hipLaunchKernelGGL(compare_adjacent_rows, dim3(grid_size), dim3(block_size),
@@ -121,11 +122,11 @@ void initialize_precisions(std::shared_ptr<const HipExecutor> exec,
                            const Array<precision_reduction> &source,
                            Array<precision_reduction> &precisions)
 {
-    const auto block_size = default_block_size * config::warp_size;
+    const auto block_size = default_num_warps * config::warp_size;
     const auto grid_size = min(
         default_grid_size,
         static_cast<int32>(ceildiv(precisions.get_num_elems(), block_size)));
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(duplicate_array<default_block_size>),
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(duplicate_array<default_num_warps>),
                        dim3(grid_size), dim3(block_size), 0, 0,
                        source.get_const_data(), source.get_num_elems(),
                        precisions.get_data(), precisions.get_num_elems());

@@ -52,6 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/atomic.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
 #include "hip/components/uninitialized_array.hip.hpp"
 
 

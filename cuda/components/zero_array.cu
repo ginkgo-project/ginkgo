@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/zero_array.hpp"
 
 
+#include "cuda/components/thread_ids.cuh"
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {

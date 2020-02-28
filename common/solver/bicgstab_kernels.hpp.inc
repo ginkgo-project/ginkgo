@@ -42,8 +42,7 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
     ValueType *__restrict__ beta, ValueType *__restrict__ gamma,
     ValueType *__restrict__ omega, stopping_status *__restrict__ stop_status)
 {
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
 
     if (tidx < num_cols) {
         prev_rho[tidx] = one<ValueType>();
@@ -77,8 +76,7 @@ __global__ __launch_bounds__(default_block_size) void step_1_kernel(
     const ValueType *__restrict__ omega,
     const stopping_status *__restrict__ stop_status)
 {
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
     const auto col = tidx % stride;
     if (col >= num_cols || tidx >= num_rows * stride ||
         stop_status[col].has_stopped()) {
@@ -101,8 +99,7 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
     ValueType *__restrict__ alpha, const ValueType *__restrict__ beta,
     const stopping_status *__restrict__ stop_status)
 {
-    const size_type tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const size_type tidx = thread::get_thread_id_flat();
     const size_type col = tidx % stride;
     if (col >= num_cols || tidx >= num_rows * stride ||
         stop_status[col].has_stopped()) {
@@ -129,8 +126,7 @@ __global__ __launch_bounds__(default_block_size) void step_3_kernel(
     const ValueType *__restrict__ gamma, ValueType *__restrict__ omega,
     const stopping_status *__restrict__ stop_status)
 {
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
     const auto row = tidx / stride;
     const auto col = tidx % stride;
     if (col >= num_cols || tidx >= num_rows * stride ||
@@ -159,8 +155,7 @@ __global__ __launch_bounds__(default_block_size) void finalize_kernel(
     const ValueType *__restrict__ y, const ValueType *__restrict__ alpha,
     stopping_status *__restrict__ stop_status)
 {
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
     const auto row = tidx / stride;
     const auto col = tidx % stride;
     if (col >= num_cols || tidx >= num_rows * stride ||
