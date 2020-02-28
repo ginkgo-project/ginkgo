@@ -562,7 +562,18 @@ template <typename ValueType, typename IndexType>
 void row_permute(std::shared_ptr<const CudaExecutor> exec,
                  const Array<IndexType> *permutation_indices,
                  matrix::Dense<ValueType> *row_permuted,
-                 const matrix::Dense<ValueType> *orig) GKO_NOT_IMPLEMENTED;
+                 const matrix::Dense<ValueType> *orig)
+{
+    constexpr auto block_size = default_block_size;
+    const dim3 grid_dim =
+        ceildiv(orig->get_size()[0] * orig->get_size()[1], block_size);
+    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
+    kernel::row_permute<block_size><<<grid_dim, block_dim>>>(
+        orig->get_size()[0], orig->get_size()[1],
+        as_cuda_type(permutation_indices->get_const_data()),
+        as_cuda_type(orig->get_const_values()), orig->get_stride(),
+        as_cuda_type(row_permuted->get_values()), row_permuted->get_stride());
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ROW_PERMUTE_KERNEL);
 
@@ -571,7 +582,19 @@ template <typename ValueType, typename IndexType>
 void column_permute(std::shared_ptr<const CudaExecutor> exec,
                     const Array<IndexType> *permutation_indices,
                     matrix::Dense<ValueType> *column_permuted,
-                    const matrix::Dense<ValueType> *orig) GKO_NOT_IMPLEMENTED;
+                    const matrix::Dense<ValueType> *orig)
+{
+    constexpr auto block_size = default_block_size;
+    const dim3 grid_dim =
+        ceildiv(orig->get_size()[0] * orig->get_size()[1], block_size);
+    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
+    kernel::column_permute<block_size><<<grid_dim, block_dim>>>(
+        orig->get_size()[0], orig->get_size()[1],
+        as_cuda_type(permutation_indices->get_const_data()),
+        as_cuda_type(orig->get_const_values()), orig->get_stride(),
+        as_cuda_type(column_permuted->get_values()),
+        column_permuted->get_stride());
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COLUMN_PERMUTE_KERNEL);
@@ -582,7 +605,17 @@ void inverse_row_permute(std::shared_ptr<const CudaExecutor> exec,
                          const Array<IndexType> *permutation_indices,
                          matrix::Dense<ValueType> *row_permuted,
                          const matrix::Dense<ValueType> *orig)
-    GKO_NOT_IMPLEMENTED;
+{
+    constexpr auto block_size = default_block_size;
+    const dim3 grid_dim =
+        ceildiv(orig->get_size()[0] * orig->get_size()[1], block_size);
+    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
+    kernel::inverse_row_permute<block_size><<<grid_dim, block_dim>>>(
+        orig->get_size()[0], orig->get_size()[1],
+        as_cuda_type(permutation_indices->get_const_data()),
+        as_cuda_type(orig->get_const_values()), orig->get_stride(),
+        as_cuda_type(row_permuted->get_values()), row_permuted->get_stride());
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_INVERSE_ROW_PERMUTE_KERNEL);
@@ -593,7 +626,18 @@ void inverse_column_permute(std::shared_ptr<const CudaExecutor> exec,
                             const Array<IndexType> *permutation_indices,
                             matrix::Dense<ValueType> *column_permuted,
                             const matrix::Dense<ValueType> *orig)
-    GKO_NOT_IMPLEMENTED;
+{
+    constexpr auto block_size = default_block_size;
+    const dim3 grid_dim =
+        ceildiv(orig->get_size()[0] * orig->get_size()[1], block_size);
+    const dim3 block_dim{config::warp_size, 1, block_size / config::warp_size};
+    kernel::inverse_column_permute<block_size><<<grid_dim, block_dim>>>(
+        orig->get_size()[0], orig->get_size()[1],
+        as_cuda_type(permutation_indices->get_const_data()),
+        as_cuda_type(orig->get_const_values()), orig->get_stride(),
+        as_cuda_type(column_permuted->get_values()),
+        column_permuted->get_stride());
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL);
