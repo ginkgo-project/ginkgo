@@ -153,7 +153,7 @@ __forceinline__ __device__ void group_merge(const ValueType *__restrict__ a,
     auto c_size = a_size + b_size;
     IndexType a_begin{};
     IndexType b_begin{};
-    auto lane = IndexType(group.thread_rank());
+    auto lane = static_cast<IndexType>(group.thread_rank());
     auto a_cur = detail::checked_load(a, a_begin + lane, a_size);
     auto b_cur = detail::checked_load(b, b_begin + lane, b_size);
     for (IndexType c_begin{}; c_begin < c_size; c_begin += group_size) {
