@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <hip/hip_complex.h>
+#include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
 #include <hipblas.h>
 #include <thrust/complex.h>
