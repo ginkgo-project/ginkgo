@@ -423,7 +423,7 @@ TYPED_TEST(Csr, AppliesToCsrMatrix)
 
     ASSERT_EQ(this->mtx2->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(this->mtx2->get_num_stored_elements(), 6);
-    this->mtx2->sort_by_column_index();
+    ASSERT_TRUE(this->mtx2->is_sorted_by_column_index());
     auto r = this->mtx2->get_const_row_ptrs();
     auto c = this->mtx2->get_const_col_idxs();
     auto v = this->mtx2->get_const_values();
@@ -459,7 +459,7 @@ TYPED_TEST(Csr, AppliesLinearCombinationToCsrMatrix)
 
     ASSERT_EQ(this->mtx2->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(this->mtx2->get_num_stored_elements(), 6);
-    this->mtx2->sort_by_column_index();
+    ASSERT_TRUE(this->mtx2->is_sorted_by_column_index());
     auto r = this->mtx2->get_const_row_ptrs();
     auto c = this->mtx2->get_const_col_idxs();
     auto v = this->mtx2->get_const_values();

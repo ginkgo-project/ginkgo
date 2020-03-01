@@ -34,8 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <map>
 #include <numeric>
-#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 
@@ -162,7 +162,7 @@ void spgemm_insert_row2(std::unordered_set<IndexType> &cols,
 
 
 template <typename ValueType, typename IndexType>
-void spgemm_accumulate_row(std::unordered_map<IndexType, ValueType> &cols,
+void spgemm_accumulate_row(std::map<IndexType, ValueType> &cols,
                            const matrix::Csr<ValueType, IndexType> *c,
                            ValueType scale, size_type row)
 {
@@ -179,7 +179,7 @@ void spgemm_accumulate_row(std::unordered_map<IndexType, ValueType> &cols,
 
 
 template <typename ValueType, typename IndexType>
-void spgemm_accumulate_row2(std::unordered_map<IndexType, ValueType> &cols,
+void spgemm_accumulate_row2(std::map<IndexType, ValueType> &cols,
                             const matrix::Csr<ValueType, IndexType> *a,
                             const matrix::Csr<ValueType, IndexType> *b,
                             ValueType scale, size_type row)
@@ -237,7 +237,7 @@ void spgemm(std::shared_ptr<const OmpExecutor> exec,
     auto c_col_idxs = c_col_idxs_array.get_data();
     auto c_vals = c_vals_array.get_data();
 
-    std::unordered_map<IndexType, ValueType> local_row_nzs;
+    std::map<IndexType, ValueType> local_row_nzs;
 #pragma omp parallel for firstprivate(local_row_nzs)
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_row_nzs.clear();
@@ -297,7 +297,7 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
     auto c_col_idxs = c_col_idxs_array.get_data();
     auto c_vals = c_vals_array.get_data();
 
-    std::unordered_map<IndexType, ValueType> local_row_nzs;
+    std::map<IndexType, ValueType> local_row_nzs;
 #pragma omp parallel for firstprivate(local_row_nzs)
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_row_nzs.clear();
