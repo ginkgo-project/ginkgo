@@ -70,6 +70,7 @@ target_sources(ginkgo_cuda
         factorization/ilu_kernels.cu
         factorization/factorization_kernels.cu
         factorization/par_ilu_kernels.cu
+        factorization/par_ilut_kernels.cu
         matrix/coo_kernels.cu
         matrix/csr_kernels.cu
         matrix/dense_kernels.cu
