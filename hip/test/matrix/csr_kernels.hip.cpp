@@ -350,6 +350,8 @@ TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
     dmtx->apply(dalpha.get(), d_trans.get(), dbeta.get(), square_dmtx.get());
 
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
+    GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
+    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
 }
 
 
@@ -363,6 +365,8 @@ TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
     dmtx->apply(d_trans.get(), square_dmtx.get());
 
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
+    GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
+    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
 }
 
 
@@ -581,6 +585,32 @@ TEST_F(Csr, MoveToHybridIsEquivalentToRef)
     dmtx->move_to(dhybrid_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(hybrid_mtx.get(), dhybrid_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, RecognizeSortedMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::sparselib>());
+    bool is_sorted_hip{};
+    bool is_sorted_ref{};
+
+    is_sorted_ref = mtx->is_sorted_by_column_index();
+    is_sorted_hip = dmtx->is_sorted_by_column_index();
+
+    ASSERT_EQ(is_sorted_ref, is_sorted_hip);
+}
+
+
+TEST_F(Csr, RecognizeUnsortedMatrixIsEquivalentToRef)
+{
+    auto uns_mtx = gen_unsorted_mtx();
+    bool is_sorted_hip{};
+    bool is_sorted_ref{};
+
+    is_sorted_ref = uns_mtx.ref->is_sorted_by_column_index();
+    is_sorted_hip = uns_mtx.hip->is_sorted_by_column_index();
+
+    ASSERT_EQ(is_sorted_ref, is_sorted_hip);
 }
 
 
