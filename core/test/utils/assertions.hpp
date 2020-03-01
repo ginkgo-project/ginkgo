@@ -34,9 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_TEST_UTILS_ASSERTIONS_HPP_
 
 
+#include <cctype>
 #include <cmath>
 #include <complex>
 #include <cstdlib>
+#include <fstream>
 #include <initializer_list>
 #include <string>
 #include <type_traits>
@@ -255,12 +257,43 @@ template <typename MatrixData1, typename MatrixData2>
              << second_expression << " is " << err << "\n"
              << "\twhich is larger than " << tolerance_expression
              << " (which is " << tolerance << ")\n";
-        fail << first_expression << " is:\n";
-        detail::print_matrix(fail, first);
-        fail << second_expression << " is:\n";
-        detail::print_matrix(fail, second);
-        fail << "component-wise relative error is:\n";
-        detail::print_componentwise_error(fail, first, second);
+        if (num_rows * num_cols <= 1000) {
+            fail << first_expression << " is:\n";
+            detail::print_matrix(fail, first);
+            fail << second_expression << " is:\n";
+            detail::print_matrix(fail, second);
+            fail << "component-wise relative error is:\n";
+            detail::print_componentwise_error(fail, first, second);
+        } else {
+            // build output filenames
+            auto test_case_info =
+                ::testing::UnitTest::GetInstance()->current_test_info();
+            auto testname =
+                test_case_info ? std::string{test_case_info->test_case_name()} +
+                                     "." + test_case_info->name()
+                               : std::string{"null"};
+            auto firstfile = testname + "." + first_expression + ".mtx";
+            auto secondfile = testname + "." + second_expression + ".mtx";
+            auto to_remove = [](char c) {
+                return !std::isalnum(c) && c != '_' && c != '.' && c != '-' &&
+                       c != '<' && c != '>';
+            };
+            // remove all but alphanumerical and _.-<> characters from
+            // expressions
+            firstfile.erase(
+                std::remove_if(firstfile.begin(), firstfile.end(), to_remove),
+                firstfile.end());
+            secondfile.erase(
+                std::remove_if(secondfile.begin(), secondfile.end(), to_remove),
+                secondfile.end());
+            // save matrices
+            std::ofstream first_stream{firstfile};
+            gko::write_raw(first_stream, first, gko::layout_type::coordinate);
+            std::ofstream second_stream{secondfile};
+            gko::write_raw(second_stream, second, gko::layout_type::coordinate);
+            fail << first_expression << " saved as " << firstfile << "\n";
+            fail << second_expression << " saved as " << secondfile << "\n";
+        }
         return fail;
     }
 }
