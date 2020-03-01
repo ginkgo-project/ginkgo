@@ -30,17 +30,74 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+
+/**
+ * @internal
+ * Computes the prefix sum and total sum of `element` over a subwarp.
+ *
+ * @param element     the element over which we compute the prefix sum.
+ * @param prefix_sum  will be set to the sum of all `element`s from lower
+ *                    lanes, plus the local `element` if `inclusive` is `true`.
+ * @param total_sum   will be set to the total sum of `element` in this subwarp.
+ * @param subwarp     the cooperative group representing the subwarp.
+ *
+ * @tparam inclusive  if this is true, the computed prefix sum will be
+ *                    inclusive, otherwise it will be exclusive.
+ *
+ * @note For this function to work on architectures with independent thread
+ * scheduling, all threads of the subwarp have to execute it.
+ */
+template <bool inclusive, typename ValueType, typename Group>
+__device__ void subwarp_prefix_sum(ValueType element, ValueType &prefix_sum,
+                                   ValueType &total_sum, Group subwarp)
+{
+    prefix_sum = inclusive ? element : zero<ValueType>();
+    total_sum = element;
+#pragma unroll
+    // hypercube prefix sum
+    for (auto step = 1; step < subwarp.size(); step *= 2) {
+        auto neighbor = subwarp.shfl_xor(total_sum, step);
+        total_sum += neighbor;
+        prefix_sum += bool(subwarp.thread_rank() & step) ? neighbor : 0;
+    }
+}
+
+/**
+ * @internal
+ * Computes the prefix sum of `element` over a subwarp.
+ *
+ * @param element     the element over which we compute the prefix sum.
+ * @param prefix_sum  will be set to the sum of all `element`s from lower
+ *                    lanes, plus the local `element` if `inclusive` is `true`.
+ * @param subwarp     the cooperative group representing the subwarp.
+ *
+ * @tparam inclusive  if this is true, the computed prefix sum will be
+ *                    inclusive, otherwise it will be exclusive.
+ *
+ * @note All threads of the subwarp have to execute this function for it to work
+ *       (and not dead-lock on newer architectures).
+ */
+template <bool inclusive, typename ValueType, typename Group>
+__device__ void subwarp_prefix_sum(ValueType element, ValueType &prefix_sum,
+                                   Group subwarp)
+{
+    ValueType tmp{};
+    subwarp_prefix_sum<inclusive>(element, prefix_sum, tmp, subwarp);
+}
+
+
 /**
  * @internal
  * First step of the calculation of a prefix sum. Calculates the prefix sum
  * in-place on parts of the array `elements`.
  *
- * @param block_size  thread block size for this kernel, also size of blocks on
- *                    which this kernel calculates the prefix sum in-place
  * @param elements  array on which the prefix sum is to be calculated
  * @param block_sum  array which stores the total sum of each block, requires at
  *                   least `ceildiv(num_elements, block_size)` elements
  * @param num_elements  total number of entries in `elements`
+ *
+ * @tparam block_size  thread block size for this kernel, also size of blocks on
+ *                     which this kernel calculates the prefix sum in-place
  *
  * @note To calculate the prefix sum over an array of size bigger than
  *       `block_size`, `finalize_prefix_sum` has to be used as well.
@@ -100,11 +157,12 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
  * Second step of the calculation of a prefix sum. Increases the value of each
  * entry of `elements` by the total sum of all preceding blocks.
  *
- * @param block_size  thread block size for this kernel, has to be the same as
- *                    for `start_prefix_sum`
  * @param elements  array on which the prefix sum is to be calculated
  * @param block_sum  array storing the total sum of each block
  * @param num_elements  total number of entries in `elements`
+ *
+ * @tparam block_size  thread block size for this kernel, has to be the same as
+ *                    for `start_prefix_sum`
  *
  * @note To calculate a prefix sum, first `start_prefix_sum` has to be called.
  */
