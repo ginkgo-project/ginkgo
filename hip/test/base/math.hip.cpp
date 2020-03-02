@@ -51,47 +51,68 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace {
+namespace kernel {
+
+
+template <typename T, typename FuncType>
+__device__ bool test_real_isfinite_function(FuncType isfin)
+{
+    constexpr T inf = gko::device_numeric_limits<T>::inf;
+    constexpr T quiet_nan = NAN;
+    bool test_true{};
+    bool test_false{};
+
+    test_true = isfin(T{0}) && isfin(-T{0}) && isfin(T{1});
+    test_false = isfin(inf) || isfin(-inf) || isfin(quiet_nan) ||
+                 isfin(inf - inf) || isfin(inf / inf) || isfin(inf * T{2}) ||
+                 isfin(T{1} / T{0}) || isfin(T{0} / T{0});
+    return test_true && !test_false;
+}
+
+
+template <typename ComplexType, typename FuncType>
+__device__ bool test_complex_isfinite_function(FuncType isfin)
+{
+    static_assert(gko::is_complex_s<ComplexType>::value,
+                  "Template type must be a complex type.");
+    using T = gko::remove_complex<ComplexType>;
+    using c_type = gko::kernels::hip::hip_type<ComplexType>;
+    constexpr T inf = gko::device_numeric_limits<T>::inf;
+    constexpr T quiet_nan = NAN;
+    bool test_true{};
+    bool test_false{};
+
+    test_true = isfin(c_type{T{0}, T{0}}) && isfin(c_type{-T{0}, -T{0}}) &&
+                isfin(c_type{T{1}, T{0}}) && isfin(c_type{T{0}, T{1}});
+    test_false = isfin(c_type{inf, T{0}}) || isfin(c_type{-inf, T{0}}) ||
+                 isfin(c_type{quiet_nan, T{0}}) || isfin(c_type{T{0}, inf}) ||
+                 isfin(c_type{T{0}, -inf}) || isfin(c_type{T{0}, quiet_nan});
+    return test_true && !test_false;
+}
+
+
+}  // namespace kernel
 
 
 template <typename T>
 __global__ void test_real_isfinite(bool *result)
 {
-    constexpr T inf = INFINITY;
-    bool test_true{};
-    bool test_false{};
-
-    test_true =
-        gko::isfinite(T{0}) && gko::isfinite(-T{0}) && gko::isfinite(T{1});
-    test_false = gko::isfinite(inf) || gko::isfinite(-inf) ||
-                 gko::isfinite(NAN) || gko::isfinite(inf - inf) ||
-                 gko::isfinite(inf / inf) || gko::isfinite(inf * T{2}) ||
-                 gko::isfinite(T{1} / T{0}) || gko::isfinite(T{0} / T{0});
-    *result = test_true && !test_false;
+    bool gko_isfinite = kernel::test_real_isfinite_function<T>(
+        [](T val) { return gko::isfinite(val); });
+    bool custom_isfinite = kernel::test_real_isfinite_function<T>(
+        [](T val) { return gko::detail::custom_isfinite(val); });
+    *result = gko_isfinite && custom_isfinite;
 }
 
 
 template <typename ComplexType>
 __global__ void test_complex_isfinite(bool *result)
 {
-    static_assert(gko::is_complex_s<ComplexType>::value,
-                  "Template type must be a complex type.");
-    using T = gko::remove_complex<ComplexType>;
-    using c_type = gko::kernels::hip::hip_type<ComplexType>;
-    constexpr T inf = INFINITY;
-    constexpr T quiet_nan = NAN;
-    bool test_true{};
-    bool test_false{};
-
-    test_true = gko::isfinite(c_type{T{0}, T{0}}) &&
-                gko::isfinite(c_type{-T{0}, -T{0}}) &&
-                gko::isfinite(c_type{T{1}, T{0}}) &&
-                gko::isfinite(c_type{T{0}, T{1}});
-    test_false =
-        gko::isfinite(c_type{inf, T{0}}) || gko::isfinite(c_type{-inf, T{0}}) ||
-        gko::isfinite(c_type{quiet_nan, T{0}}) ||
-        gko::isfinite(c_type{T{0}, inf}) || gko::isfinite(c_type{T{0}, -inf}) ||
-        gko::isfinite(c_type{T{0}, quiet_nan});
-    *result = test_true && !test_false;
+    bool gko_isfinite = kernel::test_complex_isfinite_function<ComplexType>(
+        [](ComplexType val) { return gko::isfinite(val); });
+    bool custom_isfinite = kernel::test_complex_isfinite_function<ComplexType>(
+        [](ComplexType val) { return gko::detail::custom_isfinite(val); });
+    *result = gko_isfinite && custom_isfinite;
 }
 
 

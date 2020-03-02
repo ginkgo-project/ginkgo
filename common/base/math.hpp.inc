@@ -30,6 +30,16 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+// We need this struct, because otherwise we would call a __host__ function in a
+// __device__ function (even though it is constexpr)
+template <typename T>
+struct device_numeric_limits {
+    static constexpr auto inf = std::numeric_limits<T>::infinity();
+    static constexpr auto max = std::numeric_limits<T>::max();
+    static constexpr auto min = std::numeric_limits<T>::min();
+};
+
+
 namespace detail {
 
 
@@ -50,6 +60,38 @@ struct truncate_type_impl<thrust::complex<T>> {
 };
 
 
+/**
+ * Checks if a given value is finite, meaning it is neither +/- infinity
+ * nor NaN.
+ *
+ * @internal  Should only be used if the provided one (from CUDA or HIP) can
+ *            not be used.
+ *            Designed to mirror the math function of CUDA (PTX code was
+ *            identical in the testcase).
+ *
+ * @tparam T  type of the value to check
+ *
+ * @param value  value to check
+ *
+ * returns `true` if the given value is finite, meaning it is neither
+ *         +/- infinity nor NaN.
+ */
+template <typename T>
+GKO_INLINE __device__ xstd::enable_if_t<!is_complex_s<T>::value, bool>
+custom_isfinite(T value)
+{
+    constexpr T infinity{device_numeric_limits<T>::inf};
+    return abs(value) < infinity;
+}
+
+template <typename T>
+GKO_INLINE __device__ xstd::enable_if_t<is_complex_s<T>::value, bool>
+custom_isfinite(T value)
+{
+    return custom_isfinite(value.real()) && custom_isfinite(value.imag());
+}
+
+
 }  // namespace detail
 
 
@@ -66,101 +108,17 @@ struct truncate_type_impl<thrust::complex<T>> {
       (defined(__clang__) || defined(__ICC) || defined(__ICL))))
 
 
-namespace detail {
-
-
-/**
- * This structure can be used to get the exponent mask of a given floating
- * point type. Uses specialization to implement different types.
- */
-template <typename T>
-struct mask_creator {};
-
-template <>
-struct mask_creator<float> {
-    using int_type = int32;
-    static constexpr int_type number_exponent_bits = 8;
-    static constexpr int_type number_significand_bits = 23;
-    // integer representation of a floating point number, where all exponent
-    // bits are set
-    static constexpr int_type exponent_mask =
-        ((int_type{1} << number_exponent_bits) - 1) << number_significand_bits;
-    static __device__ int_type reinterpret_int(const float &value)
-    {
-        return __float_as_int(value);
-    }
-};
-
-template <>
-struct mask_creator<double> {
-    using int_type = int64;
-    static constexpr int_type number_exponent_bits = 11;
-    static constexpr int_type number_significand_bits = 52;
-    // integer representation of a floating point number, where all exponent
-    // bits are set
-    static constexpr int_type exponent_mask =
-        ((int_type{1} << number_exponent_bits) - 1) << number_significand_bits;
-    static __device__ int_type reinterpret_int(const double &value)
-    {
-        return __double_as_longlong(value);
-    }
-};
-
-
-}  // namespace detail
-
-
-/**
- * Checks if a given value is finite, meaning it is neither +/- infinity
- * nor NaN.
- *
- * @internal  It checks if all exponent bits are set. If all are set, the
- *            number either represents NaN or +/- infinity, meaning it is a
- *            non-finite number.
- *
- * @param value  value to check
- *
- * returns `true` if the given value is finite, meaning it is neither
- *         +/- infinity nor NaN.
- */
-#define GKO_DEFINE_ISFINITE_FOR_TYPE(_type)                               \
-    GKO_INLINE __device__ bool isfinite(const _type &value)               \
-    {                                                                     \
-        constexpr auto mask = detail::mask_creator<_type>::exponent_mask; \
-        const auto re_int =                                               \
-            detail::mask_creator<_type>::reinterpret_int(value);          \
-        return (re_int & mask) != mask;                                   \
+#define GKO_DEFINE_ISFINITE_FOR_TYPE(_type)                 \
+    GKO_INLINE __device__ bool isfinite(const _type &value) \
+    {                                                       \
+        return detail::custom_isfinite(value);              \
     }
 
 GKO_DEFINE_ISFINITE_FOR_TYPE(float)
 GKO_DEFINE_ISFINITE_FOR_TYPE(double)
+GKO_DEFINE_ISFINITE_FOR_TYPE(thrust::complex<float>)
+GKO_DEFINE_ISFINITE_FOR_TYPE(thrust::complex<double>)
 #undef GKO_DEFINE_ISFINITE_FOR_TYPE
-
-
-/**
- * Checks if all components of a complex value are finite, meaning they are
- * neither +/- infinity nor NaN.
- *
- * @internal required for the clang compiler. This function will be used rather
- *           than the `isfinite` function in the public `math.hpp` because
- *           there is no template parameter, so it is prefered during lookup.
- *
- * @tparam T  complex type of the value to check
- *
- * @param value  complex value to check
- *
- * returns `true` if both components of the given value are finite, meaning
- *         they are neither +/- infinity nor NaN.
- */
-#define GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(_type)              \
-    GKO_INLINE __device__ bool isfinite(const _type &value)      \
-    {                                                            \
-        return isfinite(value.real()) && isfinite(value.imag()); \
-    }
-
-GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(thrust::complex<float>)
-GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE(thrust::complex<double>)
-#undef GKO_DEFINE_ISFINITE_FOR_COMPLEX_TYPE
 
 
 // For all other compiler in combination with CUDA or HIP, just use the provided
@@ -173,13 +131,3 @@ using ::isfinite;
 
 
 #endif  // defined(__CUDA_ARCH__) || __HIP_DEVICE_COMPILE__
-
-
-// We need this struct, because otherwise we would call a __host__ function in a
-// __device__ function (even though it is constexpr)
-template <typename T>
-struct device_numeric_limits {
-    static constexpr auto inf = std::numeric_limits<T>::infinity();
-    static constexpr auto max = std::numeric_limits<T>::max();
-    static constexpr auto min = std::numeric_limits<T>::min();
-};

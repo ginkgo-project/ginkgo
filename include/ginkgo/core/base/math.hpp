@@ -730,7 +730,8 @@ template <typename T>
 GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<!is_complex_s<T>::value, bool>
 isfinite(const T &value)
 {
-    return std::isfinite(value);
+    using std::isfinite;
+    return isfinite(value);
 }
 
 #endif  // defined(__CUDA_ARCH__)
