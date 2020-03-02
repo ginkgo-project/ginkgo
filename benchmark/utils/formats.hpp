@@ -173,12 +173,12 @@ std::unique_ptr<MatrixType> read_matrix_from_data(
     }
 
 
+// clang-format off
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>,
                                 const gko::matrix_data<> &)>>
-    matrix_factory
-{
-    {"csr", READ_MATRIX(csr, std::make_shared<csr::automatical>())},
+    matrix_factory{
+        {"csr", READ_MATRIX(csr, std::make_shared<csr::automatical>())},
         {"csri", READ_MATRIX(csr, std::make_shared<csr::load_balance>())},
         {"csrm", READ_MATRIX(csr, std::make_shared<csr::merge_path>())},
         {"csrc", READ_MATRIX(csr, std::make_shared<csr::classical>())},
@@ -231,10 +231,8 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"hybridminstorage",
          READ_MATRIX(hybrid,
                      std::make_shared<hybrid::minimal_storage_limit>())},
-    {
-        "sellp", read_matrix_from_data<gko::matrix::Sellp<>>
-    }
-};
+        {"sellp", read_matrix_from_data<gko::matrix::Sellp<>>}};
+// clang-format on
 
 
 }  // namespace formats
