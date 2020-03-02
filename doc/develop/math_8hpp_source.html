@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/base/math.hpp (be506a3fe) Source File</title>
+<title>Ginkgo: ginkgo/core/base/math.hpp (67abdb970) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/121995341 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/122454152 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -553,24 +553,25 @@ $(function() {
 <div class="line"><a name="l00730"></a><span class="lineno">  730</span>&#160;GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t&lt;!is_complex_s&lt;T&gt;::value, <span class="keywordtype">bool</span>&gt;</div>
 <div class="line"><a name="l00731"></a><span class="lineno">  731</span>&#160;isfinite(<span class="keyword">const</span> T &amp;value)</div>
 <div class="line"><a name="l00732"></a><span class="lineno">  732</span>&#160;{</div>
-<div class="line"><a name="l00733"></a><span class="lineno">  733</span>&#160;    <span class="keywordflow">return</span> std::isfinite(value);</div>
-<div class="line"><a name="l00734"></a><span class="lineno">  734</span>&#160;}</div>
-<div class="line"><a name="l00735"></a><span class="lineno">  735</span>&#160; </div>
-<div class="line"><a name="l00736"></a><span class="lineno">  736</span>&#160;<span class="preprocessor">#endif  // defined(__CUDA_ARCH__)</span></div>
-<div class="line"><a name="l00737"></a><span class="lineno">  737</span>&#160; </div>
+<div class="line"><a name="l00733"></a><span class="lineno">  733</span>&#160;    <span class="keyword">using</span> std::isfinite;</div>
+<div class="line"><a name="l00734"></a><span class="lineno">  734</span>&#160;    <span class="keywordflow">return</span> isfinite(value);</div>
+<div class="line"><a name="l00735"></a><span class="lineno">  735</span>&#160;}</div>
+<div class="line"><a name="l00736"></a><span class="lineno">  736</span>&#160; </div>
+<div class="line"><a name="l00737"></a><span class="lineno">  737</span>&#160;<span class="preprocessor">#endif  // defined(__CUDA_ARCH__)</span></div>
 <div class="line"><a name="l00738"></a><span class="lineno">  738</span>&#160; </div>
-<div class="line"><a name="l00750"></a><span class="lineno">  750</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a name="l00751"></a><span class="lineno">  751</span>&#160;GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t&lt;is_complex_s&lt;T&gt;::value, <span class="keywordtype">bool</span>&gt;</div>
-<div class="line"><a name="l00752"></a><span class="lineno"><a class="line" href="namespacegko.html#afb0f20b5d373f9439702e723d48548fa">  752</a></span>&#160;isfinite(<span class="keyword">const</span> T &amp;value)</div>
-<div class="line"><a name="l00753"></a><span class="lineno">  753</span>&#160;{</div>
-<div class="line"><a name="l00754"></a><span class="lineno">  754</span>&#160;    <span class="keywordflow">return</span> isfinite(value.real()) &amp;&amp; isfinite(value.imag());</div>
-<div class="line"><a name="l00755"></a><span class="lineno">  755</span>&#160;}</div>
-<div class="line"><a name="l00756"></a><span class="lineno">  756</span>&#160; </div>
+<div class="line"><a name="l00739"></a><span class="lineno">  739</span>&#160; </div>
+<div class="line"><a name="l00751"></a><span class="lineno">  751</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a name="l00752"></a><span class="lineno">  752</span>&#160;GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t&lt;is_complex_s&lt;T&gt;::value, <span class="keywordtype">bool</span>&gt;</div>
+<div class="line"><a name="l00753"></a><span class="lineno"><a class="line" href="namespacegko.html#afb0f20b5d373f9439702e723d48548fa">  753</a></span>&#160;isfinite(<span class="keyword">const</span> T &amp;value)</div>
+<div class="line"><a name="l00754"></a><span class="lineno">  754</span>&#160;{</div>
+<div class="line"><a name="l00755"></a><span class="lineno">  755</span>&#160;    <span class="keywordflow">return</span> isfinite(value.real()) &amp;&amp; isfinite(value.imag());</div>
+<div class="line"><a name="l00756"></a><span class="lineno">  756</span>&#160;}</div>
 <div class="line"><a name="l00757"></a><span class="lineno">  757</span>&#160; </div>
-<div class="line"><a name="l00758"></a><span class="lineno">  758</span>&#160;}  <span class="comment">// namespace gko</span></div>
-<div class="line"><a name="l00759"></a><span class="lineno">  759</span>&#160; </div>
+<div class="line"><a name="l00758"></a><span class="lineno">  758</span>&#160; </div>
+<div class="line"><a name="l00759"></a><span class="lineno">  759</span>&#160;}  <span class="comment">// namespace gko</span></div>
 <div class="line"><a name="l00760"></a><span class="lineno">  760</span>&#160; </div>
-<div class="line"><a name="l00761"></a><span class="lineno">  761</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_BASE_MATH_HPP_</span></div>
+<div class="line"><a name="l00761"></a><span class="lineno">  761</span>&#160; </div>
+<div class="line"><a name="l00762"></a><span class="lineno">  762</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_BASE_MATH_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="anamespacegko_html_a57797fc0a00fd4b7ff34ca4bfc84bc51"><div class="ttname"><a href="namespacegko.html#a57797fc0a00fd4b7ff34ca4bfc84bc51">gko::abs</a></div><div class="ttdeci">constexpr T abs(const T &amp;x)</div><div class="ttdoc">Returns the absolute value of the object.</div><div class="ttdef"><b>Definition:</b> math.hpp:549</div></div>
 <div class="ttc" id="astructgko_1_1default__converter_html_aeeb535f41abb975f20857989c8ac2470"><div class="ttname"><a href="structgko_1_1default__converter.html#aeeb535f41abb975f20857989c8ac2470">gko::default_converter::operator()</a></div><div class="ttdeci">R operator()(S val)</div><div class="ttdoc">Converts the object to result type.</div><div class="ttdef"><b>Definition:</b> math.hpp:334</div></div>
