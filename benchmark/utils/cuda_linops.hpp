@@ -56,6 +56,8 @@ class CuspBase : public gko::LinOp {
 public:
     cusparseMatDescr_t get_descr() const { return this->descr_.get(); }
 
+    // Return shared pointer not plain pointer such that CuspGenericSpMV uses
+    // gko::Array to allocate buffer.
     std::shared_ptr<const gko::CudaExecutor> get_gpu_exec() const
     {
         return gpu_exec_;
@@ -571,6 +573,10 @@ public:
         }
     }
 
+    CuspGenericCsr(const CuspGenericCsr &other) = delete;
+
+    CuspGenericCsr &operator=(const CuspGenericCsr &other) = default;
+
 protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
     {
@@ -642,6 +648,10 @@ public:
                       << e.what() << std::endl;
         }
     }
+
+    CuspGenericCoo(const CuspGenericCoo &other) = delete;
+
+    CuspGenericCoo &operator=(const CuspGenericCoo &other) = default;
 
 protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
