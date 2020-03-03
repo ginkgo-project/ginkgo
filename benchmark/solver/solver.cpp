@@ -59,14 +59,19 @@ DEFINE_uint32(max_iters, 1000,
 
 DEFINE_double(rel_res_goal, 1e-6, "The relative residual goal of the solver");
 
-DEFINE_string(solvers, "cg",
-              "A comma-separated list of solvers to run. "
-              "Supported values are: bicgstab, cg, cgs, fcg, gmres, overhead");
+DEFINE_string(
+    solvers, "cg",
+    "A comma-separated list of solvers to run. "
+    "Supported values are: bicgstab, bicg, cg, cgs, fcg, gmres, overhead");
 
 DEFINE_string(preconditioners, "none",
               "A comma-separated list of preconditioners to use. "
               "Supported values are: none, jacobi, adaptive-jacobi, parilu, "
-              "ilu, overhead");
+              "parilut, ilu, overhead");
+
+DEFINE_uint32(ilu_iterations, 5, "The number of iterations for ILU(T)");
+
+DEFINE_double(ilut_limit, 2.0, "The fill-in limit for ILUT");
 
 DEFINE_uint32(
     nrhs, 1,
@@ -81,7 +86,8 @@ DEFINE_bool(overhead, false,
 
 
 // input validation
-[[noreturn]] void print_config_error_and_exit() {
+[[noreturn]] void print_config_error_and_exit()
+{
     std::cerr << "Input has to be a JSON array of matrix configurations:\n"
               << "  [\n"
               << "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
@@ -126,6 +132,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                                 std::shared_ptr<const gko::Executor>,
                                 std::shared_ptr<const gko::LinOpFactory>)>>
     solver_factory{{"bicgstab", create_solver<gko::solver::Bicgstab<>>},
+                   {"bicg", create_solver<gko::solver::Bicg<>>},
                    {"cg", create_solver<gko::solver::Cg<>>},
                    {"cgs", create_solver<gko::solver::Cgs<>>},
                    {"fcg", create_solver<gko::solver::Fcg<>>},
@@ -188,7 +195,23 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                     {"parilu",
                      [](std::shared_ptr<const gko::Executor> exec) {
                          auto fact = std::shared_ptr<gko::LinOpFactory>(
-                             gko::factorization::ParIlu<>::build().on(exec));
+                             gko::factorization::ParIlu<>::build()
+                                 .with_iterations(FLAGS_ilu_iterations)
+                                 .on(exec));
+                         std::shared_ptr<const gko::LinOpFactory> f =
+                             gko::preconditioner::Ilu<>::build()
+                                 .with_factorization_factory(fact)
+                                 .on(exec);
+                         return std::unique_ptr<ReferenceFactoryWrapper>(
+                             new ReferenceFactoryWrapper(f));
+                     }},
+                    {"parilut",
+                     [](std::shared_ptr<const gko::Executor> exec) {
+                         auto fact = std::shared_ptr<gko::LinOpFactory>(
+                             gko::factorization::ParIlut<>::build()
+                                 .with_iterations(FLAGS_ilu_iterations)
+                                 .with_fill_in_limit(FLAGS_ilut_limit)
+                                 .on(exec));
                          std::shared_ptr<const gko::LinOpFactory> f =
                              gko::preconditioner::Ilu<>::build()
                                  .with_factorization_factory(fact)
