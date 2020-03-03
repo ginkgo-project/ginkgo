@@ -34,6 +34,10 @@ if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_BUILD_HIP)
     endif()
 endif()
 
+if(GINKGO_BUILD_OMP)
+  find_package(OpenMP REQUIRED)
+endif()
+
 add_executable(test_install test_install.cpp)
 target_compile_features(test_install PUBLIC cxx_std_11)
 target_link_libraries(test_install PRIVATE Ginkgo::ginkgo)

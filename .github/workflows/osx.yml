@@ -1,0 +1,46 @@
+name: OSX-build
+
+on: [push]
+
+jobs:
+  osx-clang-shared:
+
+    name: OSX build shared libs
+    runs-on: [macos-latest]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: setup
+      run: brew install libomp
+    - name: info
+      run: |
+        g++ -v
+        cmake --version
+    - name: configure
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+        make -j 10
+        ctest -j 10
+
+  osx-clang-static:
+
+    name: OSX build static libs
+    runs-on: [macos-latest]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: setup
+      run: brew install libomp
+    - name: info
+      run: |
+        g++ -v
+        cmake  --version
+    - name: configure
+      run: |
+        mkdir build
+        cd build
+        cmake -DBUILD_SHARED_LIBS=off ..
+        make -j 10
+        ctest -j 10

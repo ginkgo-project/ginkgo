@@ -27,7 +27,7 @@ target_sources(ginkgo_omp
         stop/residual_norm_reduction_kernels.cpp)
 
 ginkgo_compile_features(ginkgo_omp)
-target_link_libraries(ginkgo_omp PRIVATE "${OpenMP_CXX_LIBRARIES}")
+target_link_libraries(ginkgo_omp PRIVATE OpenMP::OpenMP_CXX)
 target_compile_options(ginkgo_omp PRIVATE "${OpenMP_CXX_FLAGS}")
 target_compile_options(ginkgo_omp PRIVATE "${GINKGO_COMPILER_FLAGS}")
 
