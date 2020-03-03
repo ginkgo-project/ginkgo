@@ -1,7 +1,7 @@
 ![Ginkgo](/assets/logo.png)
 
 [![Build status](https://gitlab.com/ginkgo-project/ginkgo-public-ci/badges/master/pipeline.svg)](https://github.com/ginkgo-project/ginkgo/commits/master)
-![OSX-build](https://github.com/ginkgo-project/ginkgo/workflows/OSX-build/badge.svg?branch=master)
+[![OSX-build](https://github.com/ginkgo-project/ginkgo/workflows/OSX-build/badge.svg?branch=master)](https://github.com/ginkgo-project/ginkgo/actions?query=workflow%3AOSX-build+branch%3Amaster)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)
 [![CDash dashboard](https://img.shields.io/badge/CDash-Access-blue.svg)](http://my.cdash.org/index.php?project=Ginkgo+Project)
