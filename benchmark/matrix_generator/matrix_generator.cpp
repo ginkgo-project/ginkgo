@@ -151,5 +151,5 @@ int main(int argc, char *argv[])
         }
     }
 
-    std::cout << configurations;
+    std::cout << configurations << std::endl;
 }

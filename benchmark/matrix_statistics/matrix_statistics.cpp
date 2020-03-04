@@ -208,5 +208,5 @@ int main(int argc, char *argv[])
         }
     }
 
-    std::cout << test_cases;
+    std::cout << test_cases << std::endl;
 }
