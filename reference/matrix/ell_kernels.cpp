@@ -106,8 +106,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
-                      matrix::Dense<ValueType> *result,
-                      const matrix::Ell<ValueType, IndexType> *source)
+                      const matrix::Ell<ValueType, IndexType> *source,
+                      matrix::Dense<ValueType> *result)
 {
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
@@ -130,8 +130,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
-                    matrix::Csr<ValueType, IndexType> *result,
-                    const matrix::Ell<ValueType, IndexType> *source)
+                    const matrix::Ell<ValueType, IndexType> *source,
+                    matrix::Csr<ValueType, IndexType> *result)
 {
     const auto num_rows = source->get_size()[0];
     const auto max_nnz_per_row = source->get_num_stored_elements_per_row();

@@ -129,7 +129,7 @@ void Csr<ValueType, IndexType>::convert_to(
         exec, this->get_size(), this->get_num_stored_elements());
     tmp->values_ = this->values_;
     tmp->col_idxs_ = this->col_idxs_;
-    exec->run(csr::make_convert_to_coo(tmp.get(), this));
+    exec->run(csr::make_convert_to_coo(this, tmp.get()));
     tmp->move_to(result);
 }
 
@@ -146,7 +146,7 @@ void Csr<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(csr::make_convert_to_dense(tmp.get(), this));
+    exec->run(csr::make_convert_to_dense(this, tmp.get()));
     tmp->move_to(result);
 }
 
@@ -176,7 +176,7 @@ void Csr<ValueType, IndexType>::convert_to(
     auto tmp = Hybrid<ValueType, IndexType>::create(
         exec, this->get_size(), max_nnz_per_row, stride, coo_nnz,
         result->get_strategy());
-    exec->run(csr::make_convert_to_hybrid(tmp.get(), this));
+    exec->run(csr::make_convert_to_hybrid(this, tmp.get()));
     tmp->move_to(result);
 }
 
@@ -204,7 +204,7 @@ void Csr<ValueType, IndexType>::convert_to(
                                              slice_size));
     auto tmp = Sellp<ValueType, IndexType>::create(
         exec, this->get_size(), slice_size, stride_factor, total_cols);
-    exec->run(csr::make_convert_to_sellp(tmp.get(), this));
+    exec->run(csr::make_convert_to_sellp(this, tmp.get()));
     tmp->move_to(result);
 }
 
@@ -251,7 +251,7 @@ void Csr<ValueType, IndexType>::convert_to(
     exec->run(csr::make_calculate_max_nnz_per_row(this, &max_nnz_per_row));
     auto tmp = Ell<ValueType, IndexType>::create(exec, this->get_size(),
                                                  max_nnz_per_row);
-    exec->run(csr::make_convert_to_ell(tmp.get(), this));
+    exec->run(csr::make_convert_to_ell(this, tmp.get()));
     tmp->move_to(result);
 }
 
@@ -328,7 +328,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::transpose() const
         Csr::create(exec, gko::transpose(this->get_size()),
                     this->get_num_stored_elements(), this->get_strategy());
 
-    exec->run(csr::make_transpose(trans_cpy.get(), this));
+    exec->run(csr::make_transpose(this, trans_cpy.get()));
     trans_cpy->make_srow();
     return std::move(trans_cpy);
 }
@@ -342,7 +342,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::conj_transpose() const
         Csr::create(exec, gko::transpose(this->get_size()),
                     this->get_num_stored_elements(), this->get_strategy());
 
-    exec->run(csr::make_conj_transpose(trans_cpy.get(), this));
+    exec->run(csr::make_conj_transpose(this, trans_cpy.get()));
     trans_cpy->make_srow();
     return std::move(trans_cpy);
 }
@@ -359,7 +359,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::row_permute(
                     this->get_strategy());
 
     exec->run(
-        csr::make_row_permute(permutation_indices, permute_cpy.get(), this));
+        csr::make_row_permute(permutation_indices, this, permute_cpy.get()));
     permute_cpy->make_srow();
     return std::move(permute_cpy);
 }
@@ -376,7 +376,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::column_permute(
                     this->get_strategy());
 
     exec->run(
-        csr::make_column_permute(permutation_indices, permute_cpy.get(), this));
+        csr::make_column_permute(permutation_indices, this, permute_cpy.get()));
     permute_cpy->make_srow();
     return std::move(permute_cpy);
 }
@@ -393,8 +393,8 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_row_permute(
         Csr::create(exec, this->get_size(), this->get_num_stored_elements(),
                     this->get_strategy());
 
-    exec->run(csr::make_inverse_row_permute(inverse_permutation_indices,
-                                            inverse_permute_cpy.get(), this));
+    exec->run(csr::make_inverse_row_permute(inverse_permutation_indices, this,
+                                            inverse_permute_cpy.get()));
     inverse_permute_cpy->make_srow();
     return std::move(inverse_permute_cpy);
 }
@@ -412,7 +412,7 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::inverse_column_permute(
                     this->get_strategy());
 
     exec->run(csr::make_inverse_column_permute(
-        inverse_permutation_indices, inverse_permute_cpy.get(), this));
+        inverse_permutation_indices, this, inverse_permute_cpy.get()));
     inverse_permute_cpy->make_srow();
     return std::move(inverse_permute_cpy);
 }

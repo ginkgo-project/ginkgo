@@ -113,7 +113,7 @@ void Coo<ValueType, IndexType>::convert_to(
         result->get_strategy());
     tmp->values_ = this->values_;
     tmp->col_idxs_ = this->col_idxs_;
-    exec->run(coo::make_convert_to_csr(tmp.get(), this));
+    exec->run(coo::make_convert_to_csr(this, tmp.get()));
     tmp->make_srow();
     tmp->move_to(result);
 }
@@ -128,7 +128,7 @@ void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
         result->get_strategy());
     tmp->values_ = std::move(this->values_);
     tmp->col_idxs_ = std::move(this->col_idxs_);
-    exec->run(coo::make_convert_to_csr(tmp.get(), this));
+    exec->run(coo::make_convert_to_csr(this, tmp.get()));
     tmp->make_srow();
     tmp->move_to(result);
 }
@@ -139,7 +139,7 @@ void Coo<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(coo::make_convert_to_dense(tmp.get(), this));
+    exec->run(coo::make_convert_to_dense(this, tmp.get()));
     tmp->move_to(result);
 }
 

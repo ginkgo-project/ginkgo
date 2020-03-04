@@ -59,8 +59,8 @@ namespace hybrid {
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
-                      matrix::Dense<ValueType> *result,
-                      const matrix::Hybrid<ValueType, IndexType> *source)
+                      const matrix::Hybrid<ValueType, IndexType> *source,
+                      matrix::Dense<ValueType> *result)
 {
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
@@ -99,8 +99,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
-                    matrix::Csr<ValueType, IndexType> *result,
-                    const matrix::Hybrid<ValueType, IndexType> *source)
+                    const matrix::Hybrid<ValueType, IndexType> *source,
+                    matrix::Csr<ValueType, IndexType> *result)
 {
     auto csr_val = result->get_values();
     auto csr_col_idxs = result->get_col_idxs();

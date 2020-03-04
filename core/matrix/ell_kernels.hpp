@@ -56,15 +56,15 @@ namespace kernels {
                        const matrix::Dense<ValueType> *beta,        \
                        matrix::Dense<ValueType> *c)
 
-#define GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)  \
-    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
-                          matrix::Dense<ValueType> *result,            \
-                          const matrix::Ell<ValueType, IndexType> *source)
+#define GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)      \
+    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,     \
+                          const matrix::Ell<ValueType, IndexType> *source, \
+                          matrix::Dense<ValueType> *result)
 
-#define GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)  \
-    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec, \
-                        matrix::Csr<ValueType, IndexType> *result,   \
-                        const matrix::Ell<ValueType, IndexType> *source)
+#define GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)      \
+    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,     \
+                        const matrix::Ell<ValueType, IndexType> *source, \
+                        matrix::Csr<ValueType, IndexType> *result)
 
 #define GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL(ValueType, IndexType)      \
     void count_nonzeros(std::shared_ptr<const DefaultExecutor> exec,     \

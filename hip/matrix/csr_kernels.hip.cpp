@@ -690,8 +690,8 @@ void convert_row_ptrs_to_idxs(std::shared_ptr<const HipExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const HipExecutor> exec,
-                    matrix::Coo<ValueType, IndexType> *result,
-                    const matrix::Csr<ValueType, IndexType> *source)
+                    const matrix::Csr<ValueType, IndexType> *source,
+                    matrix::Coo<ValueType, IndexType> *result)
 {
     auto num_rows = result->get_size()[0];
 
@@ -707,8 +707,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
-                      matrix::Dense<ValueType> *result,
-                      const matrix::Csr<ValueType, IndexType> *source)
+                      const matrix::Csr<ValueType, IndexType> *source,
+                      matrix::Dense<ValueType> *result)
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
@@ -738,8 +738,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const HipExecutor> exec,
-                      matrix::Sellp<ValueType, IndexType> *result,
-                      const matrix::Csr<ValueType, IndexType> *source)
+                      const matrix::Csr<ValueType, IndexType> *source,
+                      matrix::Sellp<ValueType, IndexType> *result)
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
@@ -793,8 +793,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_ell(std::shared_ptr<const HipExecutor> exec,
-                    matrix::Ell<ValueType, IndexType> *result,
-                    const matrix::Csr<ValueType, IndexType> *source)
+                    const matrix::Csr<ValueType, IndexType> *source,
+                    matrix::Ell<ValueType, IndexType> *result)
 {
     const auto source_values = source->get_const_values();
     const auto source_row_ptrs = source->get_const_row_ptrs();
@@ -880,8 +880,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const HipExecutor> exec,
-               matrix::Csr<ValueType, IndexType> *trans,
-               const matrix::Csr<ValueType, IndexType> *orig)
+               const matrix::Csr<ValueType, IndexType> *orig,
+               matrix::Csr<ValueType, IndexType> *trans)
 {
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
         hipsparseAction_t copyValues = HIPSPARSE_ACTION_NUMERIC;
@@ -903,8 +903,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void conj_transpose(std::shared_ptr<const HipExecutor> exec,
-                    matrix::Csr<ValueType, IndexType> *trans,
-                    const matrix::Csr<ValueType, IndexType> *orig)
+                    const matrix::Csr<ValueType, IndexType> *orig,
+                    matrix::Csr<ValueType, IndexType> *trans)
 {
     if (hipsparse::is_supported<ValueType, IndexType>::value) {
         const dim3 block_size(default_block_size, 1, 1);
@@ -936,8 +936,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void row_permute(std::shared_ptr<const HipExecutor> exec,
                  const Array<IndexType> *permutation_indices,
-                 matrix::Csr<ValueType, IndexType> *row_permuted,
-                 const matrix::Csr<ValueType, IndexType> *orig)
+                 const matrix::Csr<ValueType, IndexType> *orig,
+                 matrix::Csr<ValueType, IndexType> *row_permuted)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -947,8 +947,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void column_permute(std::shared_ptr<const HipExecutor> exec,
                     const Array<IndexType> *permutation_indices,
-                    matrix::Csr<ValueType, IndexType> *column_permuted,
-                    const matrix::Csr<ValueType, IndexType> *orig)
+                    const matrix::Csr<ValueType, IndexType> *orig,
+                    matrix::Csr<ValueType, IndexType> *column_permuted)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -958,8 +958,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void inverse_row_permute(std::shared_ptr<const HipExecutor> exec,
                          const Array<IndexType> *permutation_indices,
-                         matrix::Csr<ValueType, IndexType> *row_permuted,
-                         const matrix::Csr<ValueType, IndexType> *orig)
+                         const matrix::Csr<ValueType, IndexType> *orig,
+                         matrix::Csr<ValueType, IndexType> *row_permuted)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -969,8 +969,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void inverse_column_permute(std::shared_ptr<const HipExecutor> exec,
                             const Array<IndexType> *permutation_indices,
-                            matrix::Csr<ValueType, IndexType> *column_permuted,
-                            const matrix::Csr<ValueType, IndexType> *orig)
+                            const matrix::Csr<ValueType, IndexType> *orig,
+                            matrix::Csr<ValueType, IndexType> *column_permuted)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1016,8 +1016,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const HipExecutor> exec,
-                       matrix::Hybrid<ValueType, IndexType> *result,
-                       const matrix::Csr<ValueType, IndexType> *source)
+                       const matrix::Csr<ValueType, IndexType> *source,
+                       matrix::Hybrid<ValueType, IndexType> *result)
 {
     auto ell_val = result->get_ell_values();
     auto ell_col = result->get_ell_col_idxs();

@@ -149,7 +149,7 @@ std::unique_ptr<LinOp> SparsityCsr<ValueType, IndexType>::transpose() const
     auto trans_cpy = SparsityCsr::create(exec, gko::transpose(this->get_size()),
                                          this->get_num_nonzeros());
 
-    exec->run(sparsity_csr::make_transpose(trans_cpy.get(), this));
+    exec->run(sparsity_csr::make_transpose(this, trans_cpy.get()));
     return std::move(trans_cpy);
 }
 
@@ -174,7 +174,7 @@ SparsityCsr<ValueType, IndexType>::to_adjacency_matrix() const
                             this->get_num_nonzeros() - num_diagonal_elements);
 
     exec->run(sparsity_csr::make_remove_diagonal_elements(
-        adj_mat.get(), this->get_const_row_ptrs(), this->get_const_col_idxs()));
+        this->get_const_row_ptrs(), this->get_const_col_idxs(), adj_mat.get()));
     return std::move(adj_mat);
 }
 
