@@ -39,8 +39,8 @@ jobs:
       if: matrix.config.shared == 'ON'
       run: |
         echo "::add-path::$pwd\build\windows_shared_library"
-    - name: debug_static_env
-      if: matrix.config.shared == 'OFF' && matrix.config.build_type == 'Debug'
+    - name: debug_env
+      if: matrix.config.build_type == 'Debug'
       run: |
         echo "::set-env name=CXXFLAGS::/bigobj"
     - name: configure
