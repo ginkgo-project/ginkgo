@@ -2,6 +2,8 @@
 
 [![Build status](https://gitlab.com/ginkgo-project/ginkgo-public-ci/badges/master/pipeline.svg)](https://github.com/ginkgo-project/ginkgo/commits/master)
 [![OSX-build](https://github.com/ginkgo-project/ginkgo/workflows/OSX-build/badge.svg?branch=master)](https://github.com/ginkgo-project/ginkgo/actions?query=workflow%3AOSX-build+branch%3Amaster)
+[![Windows-build](https://github.com/ginkgo-project/ginkgo/workflows/windows-build/badge.svg?branch=master)](https://github.com/ginkgo-project/ginkgo/actions?query=workflow%3AWindows-build+branch%3Amaster)
+
 [![codecov](https://codecov.io/gh/ginkgo-project/ginkgo/branch/master/graph/badge.svg)](https://codecov.io/gh/ginkgo-project/ginkgo/branch/master)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)
