@@ -38,18 +38,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <papi.h>
 
 
-#include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
 
+#include "core/test/utils.hpp"
+
+
 namespace {
 
 
+template <typename T>
 class Papi : public ::testing::Test {
 protected:
-    using Dense = gko::matrix::Dense<>;
+    using Dense = gko::matrix::Dense<T>;
 
     Papi() : exec(gko::ReferenceExecutor::create()), eventset(PAPI_NULL) {}
 
@@ -67,11 +70,11 @@ protected:
 
     void TearDown() { eventset = PAPI_NULL; }
 
-    template <typename T>
+    template <typename U>
     const std::string init(const gko::log::Logger::mask_type &event,
-                           const std::string &event_name, T *ptr)
+                           const std::string &event_name, U *ptr)
     {
-        logger = gko::log::Papi<>::create(exec, event);
+        logger = gko::log::Papi<T>::create(exec, event);
         std::ostringstream os;
         os << "sde:::" << logger->get_handle_name() << "::" << event_name << "_"
            << reinterpret_cast<gko::uintptr>(ptr);
@@ -108,29 +111,33 @@ protected:
         }
     }
 
-    std::shared_ptr<const gko::log::Papi<>> logger;
+    std::shared_ptr<const gko::log::Papi<T>> logger;
     std::shared_ptr<const gko::Executor> exec;
     int eventset;
 };
 
+TYPED_TEST_CASE(Papi, gko::test::ValueTypes);
 
-TEST_F(Papi, CatchesCriterionCheckCompleted)
+
+TYPED_TEST(Papi, CatchesCriterionCheckCompleted)
 {
-    auto residual_norm = gko::initialize<Dense>({4.0}, exec);
-    auto criterion =
-        gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
-            nullptr, nullptr, nullptr);
-    auto str = init(gko::log::Logger::criterion_check_completed_mask,
-                    "criterion_check_completed", criterion.get());
-    add_event(str + ":CNT");
-    add_event(str);
+    using Dense = typename TestFixture::Dense;
+    auto residual_norm = gko::initialize<Dense>({4.0}, this->exec);
+    auto criterion = gko::stop::Iteration::build()
+                         .with_max_iters(3u)
+                         .on(this->exec)
+                         ->generate(nullptr, nullptr, nullptr);
+    auto str = this->init(gko::log::Logger::criterion_check_completed_mask,
+                          "criterion_check_completed", criterion.get());
+    this->add_event(str + ":CNT");
+    this->add_event(str);
 
-    start();
-    logger->on<gko::log::Logger::criterion_check_completed>(
+    this->start();
+    this->logger->template on<gko::log::Logger::criterion_check_completed>(
         criterion.get(), 0, nullptr, residual_norm.get(), nullptr, 0, false,
         nullptr, false, false);
     long long int values[2];
-    stop(values);
+    this->stop(values);
     double *sde_ptr = GET_SDE_RECORDER_ADDRESS(values[1], double);
 
     ASSERT_EQ(values[0], 1);

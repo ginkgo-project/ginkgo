@@ -49,10 +49,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
+template <typename T>
 class Fcg : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
-    using Solver = gko::solver::Fcg<>;
+    using value_type = T;
+    using Mtx = gko::matrix::Dense<value_type>;
+    using Solver = gko::solver::Fcg<value_type>;
 
     Fcg()
         : exec(gko::ReferenceExecutor::create()),
@@ -65,8 +67,8 @@ protected:
                       gko::stop::Time::build()
                           .with_time_limit(std::chrono::seconds(6))
                           .on(exec),
-                      gko::stop::ResidualNormReduction<>::build()
-                          .with_reduction_factor(1e-15)
+                      gko::stop::ResidualNormReduction<value_type>::build()
+                          .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),
           mtx_big(gko::initialize<Mtx>(
@@ -78,12 +80,12 @@ protected:
                {5856.0, 3919.5, 3836.5, -132.0, 4373.5, 5678.0}},
               exec)),
           fcg_factory_big(
-              gko::solver::Fcg<>::build()
+              Solver::build()
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(100u).on(
                           exec),
-                      gko::stop::ResidualNormReduction<>::build()
-                          .with_reduction_factor(1e-15)
+                      gko::stop::ResidualNormReduction<value_type>::build()
+                          .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec))
     {}
@@ -91,113 +93,147 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> mtx_big;
-    std::unique_ptr<gko::solver::Fcg<>::Factory> fcg_factory;
-    std::unique_ptr<gko::solver::Fcg<>::Factory> fcg_factory_big;
+    std::unique_ptr<typename Solver::Factory> fcg_factory;
+    std::unique_ptr<typename Solver::Factory> fcg_factory_big;
 };
 
+TYPED_TEST_CASE(Fcg, gko::test::ValueTypes);
 
-TEST_F(Fcg, SolvesStencilSystem)
+
+TYPED_TEST(Fcg, SolvesStencilSystem)
 {
-    auto solver = fcg_factory->generate(mtx);
-    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->fcg_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value);
 }
 
 
-TEST_F(Fcg, SolvesMultipleStencilSystems)
+TYPED_TEST(Fcg, SolvesMultipleStencilSystems)
 {
-    auto solver = fcg_factory->generate(mtx);
-    auto b = gko::initialize<Mtx>({{-1.0, 1.0}, {3.0, 0.0}, {1.0, 1.0}}, exec);
-    auto x = gko::initialize<Mtx>({{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}}, exec);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using T = value_type;
+    auto solver = this->fcg_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>(
+        {I<T>{-1.0, 1.0}, I<T>{3.0, 0.0}, I<T>{1.0, 1.0}}, this->exec);
+    auto x = gko::initialize<Mtx>(
+        {I<T>{0.0, 0.0}, I<T>{0.0, 0.0}, I<T>{0.0, 0.0}}, this->exec);
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({{1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({{1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}}),
+                        r<value_type>::value);
 }
 
 
-TEST_F(Fcg, SolvesStencilSystemUsingAdvancedApply)
+TYPED_TEST(Fcg, SolvesStencilSystemUsingAdvancedApply)
 {
-    auto solver = fcg_factory->generate(mtx);
-    auto alpha = gko::initialize<Mtx>({2.0}, exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, exec);
-    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, exec);
-    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, exec);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->fcg_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), r<value_type>::value * 1e1);
 }
 
 
-TEST_F(Fcg, SolvesMultipleStencilSystemsUsingAdvancedApply)
+TYPED_TEST(Fcg, SolvesMultipleStencilSystemsUsingAdvancedApply)
 {
-    auto solver = fcg_factory->generate(mtx);
-    auto alpha = gko::initialize<Mtx>({2.0}, exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, exec);
-    auto b = gko::initialize<Mtx>({{-1.0, 1.0}, {3.0, 0.0}, {1.0, 1.0}}, exec);
-    auto x = gko::initialize<Mtx>({{0.5, 1.0}, {1.0, 2.0}, {2.0, 3.0}}, exec);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using T = value_type;
+    auto solver = this->fcg_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto b = gko::initialize<Mtx>(
+        {I<T>{-1.0, 1.0}, I<T>{3.0, 0.0}, I<T>{1.0, 1.0}}, this->exec);
+    auto x = gko::initialize<Mtx>(
+        {I<T>{0.5, 1.0}, I<T>{1.0, 2.0}, I<T>{2.0, 3.0}}, this->exec);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}),
+                        r<value_type>::value * 1e1);
 }
 
-TEST_F(Fcg, SolvesBigDenseSystem1)
+TYPED_TEST(Fcg, SolvesBigDenseSystem1)
 {
-    auto solver = fcg_factory_big->generate(mtx_big);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->fcg_factory_big->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
-        {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5}, exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
+        {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}), 1e-10);
+    GKO_ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}),
+                        r<value_type>::value * 1e3);
 }
 
 
-TEST_F(Fcg, SolvesBigDenseSystem2)
+TYPED_TEST(Fcg, SolvesBigDenseSystem2)
 {
-    auto solver = fcg_factory_big->generate(mtx_big);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->fcg_factory_big->generate(this->mtx_big);
     auto b = gko::initialize<Mtx>(
-        {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0}, exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
+        {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}), 1e-10);
+    GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
+                        r<value_type>::value * 1e3);
 }
 
 
-double infNorm(gko::matrix::Dense<> *mat, size_t col = 0)
+template <typename T>
+gko::remove_complex<T> infNorm(gko::matrix::Dense<T> *mat, size_t col = 0)
 {
     using std::abs;
-    double norm = 0.0;
+    using no_cpx_t = gko::remove_complex<T>;
+    no_cpx_t norm = 0.0;
     for (size_t i = 0; i < mat->get_size()[0]; ++i) {
-        double absEntry = abs(mat->at(i, col));
+        no_cpx_t absEntry = abs(mat->at(i, col));
         if (norm < absEntry) norm = absEntry;
     }
     return norm;
 }
 
 
-TEST_F(Fcg, SolvesMultipleBigDenseSystems)
+TYPED_TEST(Fcg, SolvesMultipleBigDenseSystems)
 {
-    auto solver = fcg_factory_big->generate(mtx_big);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->fcg_factory_big->generate(this->mtx_big);
     auto b1 = gko::initialize<Mtx>(
-        {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5}, exec);
+        {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
+        this->exec);
     auto b2 = gko::initialize<Mtx>(
-        {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0}, exec);
+        {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
+        this->exec);
 
-    auto x1 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
-    auto x2 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, exec);
+    auto x1 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto x2 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-    auto bc = Mtx::create(exec, gko::dim<2>{mtx_big->get_size()[0], 2});
-    auto xc = Mtx::create(exec, gko::dim<2>{mtx_big->get_size()[1], 2});
+    auto bc =
+        Mtx::create(this->exec, gko::dim<2>{this->mtx_big->get_size()[0], 2});
+    auto xc =
+        Mtx::create(this->exec, gko::dim<2>{this->mtx_big->get_size()[1], 2});
     for (size_t i = 0; i < bc->get_size()[0]; ++i) {
         bc->at(i, 0) = b1->at(i);
         bc->at(i, 1) = b2->at(i);
@@ -209,25 +245,25 @@ TEST_F(Fcg, SolvesMultipleBigDenseSystems)
     solver->apply(b1.get(), x1.get());
     solver->apply(b2.get(), x2.get());
     solver->apply(bc.get(), xc.get());
-    auto mergedRes = Mtx::create(exec, gko::dim<2>{b1->get_size()[0], 2});
+    auto mergedRes = Mtx::create(this->exec, gko::dim<2>{b1->get_size()[0], 2});
     for (size_t i = 0; i < mergedRes->get_size()[0]; ++i) {
         mergedRes->at(i, 0) = x1->at(i);
         mergedRes->at(i, 1) = x2->at(i);
     }
 
-    auto alpha = gko::initialize<Mtx>({1.0}, exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, exec);
+    auto alpha = gko::initialize<Mtx>({1.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
 
-    auto residual1 = Mtx::create(exec, b1->get_size());
+    auto residual1 = Mtx::create(this->exec, b1->get_size());
     residual1->copy_from(b1.get());
-    auto residual2 = Mtx::create(exec, b2->get_size());
+    auto residual2 = Mtx::create(this->exec, b2->get_size());
     residual2->copy_from(b2.get());
-    auto residualC = Mtx::create(exec, bc->get_size());
+    auto residualC = Mtx::create(this->exec, bc->get_size());
     residualC->copy_from(bc.get());
 
-    mtx_big->apply(alpha.get(), x1.get(), beta.get(), residual1.get());
-    mtx_big->apply(alpha.get(), x2.get(), beta.get(), residual2.get());
-    mtx_big->apply(alpha.get(), xc.get(), beta.get(), residualC.get());
+    this->mtx_big->apply(alpha.get(), x1.get(), beta.get(), residual1.get());
+    this->mtx_big->apply(alpha.get(), x2.get(), beta.get(), residual2.get());
+    this->mtx_big->apply(alpha.get(), xc.get(), beta.get(), residualC.get());
 
     double normS1 = infNorm(residual1.get());
     double normS2 = infNorm(residual2.get());
@@ -238,12 +274,12 @@ TEST_F(Fcg, SolvesMultipleBigDenseSystems)
 
     // make sure that all combined solutions are as good or better than the
     // single solutions
-    ASSERT_LE(normC1 / normB1, normS1 / normB1 + 1e-14);
-    ASSERT_LE(normC2 / normB2, normS2 / normB2 + 1e-14);
+    ASSERT_LE(normC1 / normB1, normS1 / normB1 + r<value_type>::value);
+    ASSERT_LE(normC2 / normB2, normS2 / normB2 + r<value_type>::value);
 
     // Not sure if this is necessary, the assertions above should cover what is
     // needed.
-    GKO_ASSERT_MTX_NEAR(xc, mergedRes, 1e-14);
+    GKO_ASSERT_MTX_NEAR(xc, mergedRes, r<value_type>::value);
 }
 
 

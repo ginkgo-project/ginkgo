@@ -144,6 +144,29 @@ struct is_complex_impl<std::complex<T>>
 
 
 /**
+ * Access the underlying real type of a complex number.
+ *
+ * @tparam T  the type being checked.
+ */
+template <typename T>
+struct cpx_real_type {
+    /** The type. When the type is not complex, return the type itself.*/
+    using type = T;
+};
+
+/**
+ * Specialization for complex types.
+ *
+ * @copydoc cpx_real_type
+ */
+template <typename T>
+struct cpx_real_type<std::complex<T>> {
+    /** The type. When the type is complex, return the underlying value_type.*/
+    using type = typename std::complex<T>::value_type;
+};
+
+
+/**
  * Obtains a real counterpart of a std::complex type, and leaves the type
  * unchanged if it is not a complex type.
  */

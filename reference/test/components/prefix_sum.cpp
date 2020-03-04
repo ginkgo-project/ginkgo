@@ -41,12 +41,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include "core/test/utils.hpp"
+
+
 namespace {
 
 
+template <typename T>
 class PrefixSum : public ::testing::Test {
 protected:
-    using index_type = gko::int32;
+    using index_type = T;
     PrefixSum()
         : exec(gko::ReferenceExecutor::create()),
           vals{3, 5, 6, 7, 1, 5, 9, 7, 2, 0, 5},
@@ -58,12 +62,15 @@ protected:
     std::vector<index_type> expected;
 };
 
+TYPED_TEST_CASE(PrefixSum, gko::test::IndexTypes);
 
-TEST_F(PrefixSum, Works)
+
+TYPED_TEST(PrefixSum, Works)
 {
-    gko::kernels::reference::prefix_sum(exec, vals.data(), vals.size());
+    gko::kernels::reference::prefix_sum(this->exec, this->vals.data(),
+                                        this->vals.size());
 
-    ASSERT_EQ(vals, expected);
+    ASSERT_EQ(this->vals, this->expected);
 }
 
 

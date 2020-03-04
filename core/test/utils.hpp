@@ -34,8 +34,80 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_TEST_UTILS_HPP_
 
 
+#include <complex>
+#include <initializer_list>
+#include <type_traits>
+
+
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
+
+
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/matrix_generator.hpp"
+
+
+namespace gko {
+namespace test {
+
+
+using ValueTypes =
+    ::testing::Types<float, double, std::complex<float>, std::complex<double>>;
+
+
+using ComplexValueTypes =
+    ::testing::Types<std::complex<float>, std::complex<double>>;
+
+
+using IndexTypes = ::testing::Types<gko::int32, gko::int64>;
+
+
+using ValueAndIndexTypes =
+    ::testing::Types<float, double, std::complex<float>, std::complex<double>,
+                     gko::int32, gko::int64, gko::size_type>;
+
+
+using ValueIndexTypes = ::testing::Types<
+    std::tuple<float, gko::int32>, std::tuple<double, gko::int32>,
+    std::tuple<std::complex<float>, gko::int32>,
+    std::tuple<std::complex<double>, gko::int32>, std::tuple<float, gko::int64>,
+    std::tuple<double, gko::int64>, std::tuple<std::complex<float>, gko::int64>,
+    std::tuple<std::complex<double>, gko::int64>>;
+
+
+using RealValueIndexTypes = ::testing::Types<
+    std::tuple<float, gko::int32>, std::tuple<double, gko::int32>,
+    std::tuple<float, gko::int64>, std::tuple<double, gko::int64>>;
+
+
+using ComplexValueIndexTypes =
+    ::testing::Types<std::tuple<std::complex<float>, gko::int32>,
+                     std::tuple<std::complex<double>, gko::int32>,
+                     std::tuple<std::complex<float>, gko::int64>,
+                     std::tuple<std::complex<double>, gko::int64>>;
+
+
+template <typename T>
+struct reduction_factor {
+    static constexpr gko::remove_complex<T> value =
+        std::is_same<gko::remove_complex<T>, float>::value ? 1.0e-7 : 1.0e-14;
+};
+
+
+template <typename T>
+constexpr gko::remove_complex<T> reduction_factor<T>::value;
+
+
+}  // namespace test
+}  // namespace gko
+
+
+template <typename T>
+using r = typename gko::test::reduction_factor<T>;
+
+
+template <typename T>
+using I = std::initializer_list<T>;
 
 
 #endif  // GKO_CORE_TEST_UTILS_HPP_

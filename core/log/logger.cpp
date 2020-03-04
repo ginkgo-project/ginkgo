@@ -75,5 +75,6 @@ constexpr Logger::mask_type Logger::criterion_check_completed_mask;
 
 constexpr Logger::mask_type Logger::iteration_complete_mask;
 
+
 }  // namespace log
 }  // namespace gko

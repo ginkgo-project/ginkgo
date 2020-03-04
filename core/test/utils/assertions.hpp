@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <gtest/gtest.h>
 #include <cmath>
+#include <complex>
 #include <cstdlib>
 #include <initializer_list>
 #include <string>
@@ -46,10 +47,85 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include <core/base/extended_float.hpp>
+
+
 namespace gko {
 namespace test {
 namespace assertions {
 namespace detail {
+
+
+/**
+ * Structure helper to return the biggest valuetype able to contain values from
+ * both ValueType1 and ValueType2.
+ *
+ * @tparam ValueType1  the first valuetype to compare
+ * @tparam ValueType2  the second valuetype to compare
+ * @tparam T  enable_if placeholder
+ */
+template <typename ValueType1, typename ValueType2, typename T = void>
+struct biggest_valuetype {
+    /** The type. This default is good but should not be used due to the
+     * enable_if versions. */
+    using type = std::complex<long double>;
+};
+
+
+/**
+ * Specialization when both ValueType1 and ValueType2 are the same.
+ *
+ * @copydoc biggest_valuetype
+ */
+template <typename ValueType1, typename ValueType2>
+struct biggest_valuetype<ValueType1, ValueType2,
+                         typename std::enable_if<std::is_same<
+                             ValueType1, ValueType2>::value>::type> {
+    /** The type. */
+    using type = ValueType1;
+};
+
+
+/**
+ * Specialization when both ValueType1 and ValueType2 are different but non
+ * complex.
+ *
+ * @copydoc biggest_valuetype
+ */
+template <typename ValueType1, typename ValueType2>
+struct biggest_valuetype<
+    ValueType1, ValueType2,
+    typename std::enable_if<!std::is_same<ValueType1, ValueType2>::value &&
+                            !(gko::is_complex_s<ValueType1>::value ||
+                              gko::is_complex_s<ValueType2>::value)>::type> {
+    /** The type. We pick the bigger of the two. */
+    using type = typename std::conditional<xstd::greater(sizeof(ValueType1),
+                                                         sizeof(ValueType2)),
+                                           ValueType1, ValueType2>::type;
+};
+
+
+/**
+ * Specialization when both ValueType1 and ValueType2 are different and one of
+ * them is complex.
+ *
+ * @copydoc biggest_valuetype
+ */
+template <typename ValueType1, typename ValueType2>
+class biggest_valuetype<
+    ValueType1, ValueType2,
+    typename std::enable_if<!std::is_same<ValueType1, ValueType2>::value &&
+                            (gko::is_complex_s<ValueType1>::value ||
+                             gko::is_complex_s<ValueType2>::value)>::type> {
+    using real_vt1 = remove_complex<ValueType1>;
+    using real_vt2 = remove_complex<ValueType2>;
+
+public:
+    /** The type. We make a complex with the bigger real of the two. */
+    using type = typename std::conditional<
+        xstd::greater(sizeof(real_vt1), sizeof(real_vt2)),
+        std::complex<real_vt1>, std::complex<real_vt2>>::type;
+};
 
 
 template <typename NonzeroIterator>
@@ -83,17 +159,23 @@ template <typename Ostream, typename MatrixData1, typename MatrixData2>
 void print_componentwise_error(Ostream &os, const MatrixData1 &first,
                                const MatrixData2 &second)
 {
-    using real_vt = remove_complex<typename MatrixData2::value_type>;
+    using std::abs;
+    using vt = typename detail::biggest_valuetype<
+        typename MatrixData1::value_type,
+        typename MatrixData2::value_type>::type;
+    using real_vt = remove_complex<vt>;
+
     auto first_it = begin(first.nonzeros);
     auto second_it = begin(second.nonzeros);
     for (size_type row = 0; row < first.size[0]; ++row) {
         os << "\t";
         for (size_type col = 0; col < first.size[1]; ++col) {
-            auto r = get_next_value(first_it, end(first.nonzeros), row, col);
-            auto e = get_next_value(second_it, end(second.nonzeros), row, col);
-            auto m =
-                max(static_cast<real_vt>(abs(r)), static_cast<real_vt>(abs(e)));
-            if (m == zero<real_vt>()) {
+            auto r =
+                vt{get_next_value(first_it, end(first.nonzeros), row, col)};
+            auto e =
+                vt{get_next_value(second_it, end(second.nonzeros), row, col)};
+            auto m = std::max(abs(r), abs(e));
+            if (m == zero<vt>()) {
                 os << abs(r - e) << "\t";
             } else {
                 os << abs((r - e) / m) << "\t";
@@ -116,17 +198,24 @@ void print_columns(Ostream &os, const Iterator &begin, const Iterator &end)
 template <typename MatrixData1, typename MatrixData2>
 double get_relative_error(const MatrixData1 &first, const MatrixData2 &second)
 {
-    double diff = 0.0;
-    double first_norm = 0.0;
-    double second_norm = 0.0;
+    using std::abs;
+    using vt = typename detail::biggest_valuetype<
+        typename MatrixData1::value_type,
+        typename MatrixData2::value_type>::type;
+    using real_vt = remove_complex<vt>;
+
+    real_vt diff = 0.0;
+    real_vt first_norm = 0.0;
+    real_vt second_norm = 0.0;
     auto first_it = begin(first.nonzeros);
     auto second_it = begin(second.nonzeros);
     for (size_type row = 0; row < first.size[0]; ++row) {
         for (size_type col = 0; col < first.size[1]; ++col) {
             const auto first_val =
-                get_next_value(first_it, end(first.nonzeros), row, col);
+                vt{get_next_value(first_it, end(first.nonzeros), row, col)};
             const auto second_val =
-                get_next_value(second_it, end(second.nonzeros), row, col);
+                vt{get_next_value(second_it, end(second.nonzeros), row, col)};
+
             diff += squared_norm(first_val - second_val);
             first_norm += squared_norm(first_val);
             second_norm += squared_norm(second_val);
@@ -135,7 +224,7 @@ double get_relative_error(const MatrixData1 &first, const MatrixData2 &second)
     if (first_norm == 0.0 && second_norm == 0.0) {
         first_norm = 1.0;
     }
-    return sqrt(diff / max(first_norm, second_norm));
+    return sqrt(diff / std::max(first_norm, second_norm));
 }
 
 
@@ -310,6 +399,85 @@ std::string remove_list_wrapper(const std::string &expression)
 
 
 }  // namespace detail
+
+
+/**
+ * This is a gtest predicate which checks if two values are relatively near.
+ *
+ * This function should not be called directly, but used in conjunction with
+ * `ASSERT_PRED_FORMAT3` as follows:
+ *
+ * ```
+ * // Check if first and second are near
+ * ASSERT_PRED_FORMAT3(gko::test::assertions::values_near,
+ *                     first, second, tolerance);
+ * // Check if first and second are far
+ * ASSERT_PRED_FORMAT3(!gko::test::assertions::values_near,
+ *                     first, second, tolerance);
+ * ```
+ *
+ * @see GKO_ASSERT_MTX_NEAR
+ * @see GKO_EXPECT_MTX_NEAR
+ */
+template <typename T, typename U>
+::testing::AssertionResult values_near(const std::string &first_expression,
+                                       const std::string &second_expression,
+                                       const std::string &tolerance_expression,
+                                       T val1, U val2, double abs_error)
+{
+    static_assert(std::is_same<T, U>(),
+                  "The types of the operands should be the same.");
+    const double diff = abs(val1 - val2);
+    if (diff <= abs_error) return ::testing::AssertionSuccess();
+
+    return ::testing::AssertionFailure()
+           << "The difference between " << first_expression << " and "
+           << second_expression << " is " << diff << ", which exceeds "
+           << tolerance_expression << ", where\n"
+           << first_expression << " evaluates to " << val1 << ",\n"
+           << second_expression << " evaluates to " << val2 << ", and\n"
+           << tolerance_expression << " evaluates to " << abs_error << ".";
+}
+
+
+template <>
+::testing::AssertionResult values_near<gko::half, gko::half>(
+    const std::string &first_expression, const std::string &second_expression,
+    const std::string &tolerance_expression, gko::half val1, gko::half val2,
+    double abs_error)
+{
+    using T = float32;
+    const double diff = abs(T{val1} - T{val2});
+    if (diff <= abs_error) return ::testing::AssertionSuccess();
+
+    return ::testing::AssertionFailure()
+           << "The difference between " << first_expression << " and "
+           << second_expression << " is " << diff << ", which exceeds "
+           << tolerance_expression << ", where\n"
+           << first_expression << " evaluates to " << T{val1} << ",\n"
+           << second_expression << " evaluates to " << T{val2} << ", and\n"
+           << tolerance_expression << " evaluates to " << abs_error << ".";
+}
+
+
+template <>
+::testing::AssertionResult values_near<std::complex<half>, std::complex<half>>(
+    const std::string &first_expression, const std::string &second_expression,
+    const std::string &tolerance_expression, std::complex<half> val1,
+    std::complex<half> val2, double abs_error)
+{
+    using T = std::complex<float32>;
+    const double diff = abs(T{val1} - T{val2});
+    if (diff <= abs_error) return ::testing::AssertionSuccess();
+
+    return ::testing::AssertionFailure()
+           << "The difference between " << first_expression << " and "
+           << second_expression << " is " << diff << ", which exceeds "
+           << tolerance_expression << ", where\n"
+           << first_expression << " evaluates to " << T{val1} << ",\n"
+           << second_expression << " evaluates to " << T{val2} << ", and\n"
+           << tolerance_expression << " evaluates to " << abs_error << ".";
+}
 
 
 /**
@@ -518,6 +686,33 @@ T plain_ptr(T ptr)
 }  // namespace assertions
 }  // namespace test
 }  // namespace gko
+
+
+/**
+ * Checks if two values are near each other.
+ *
+ * Has to be called from within a google test unit test.
+ * Internally calls gko::test::assertions::values_near().
+ *
+ * @param _val1  first value
+ * @param _val2  second value
+ * @param _tol  tolerance level
+ */
+#define GKO_ASSERT_NEAR(_val1, _val2, _tol)                              \
+    {                                                                    \
+        ASSERT_PRED_FORMAT3(::gko::test::assertions::values_near, _val1, \
+                            _val2, _tol);                                \
+    }
+
+
+/**
+ * @copydoc GKO_ASSERT_NEAR
+ */
+#define GKO_EXPECT_NEAR(_val1, _val2, _tol)                              \
+    {                                                                    \
+        EXPECT_PRED_FORMAT3(::gko::test::assertions::values_near, _val1, \
+                            _val2, _tol);                                \
+    }
 
 
 /**

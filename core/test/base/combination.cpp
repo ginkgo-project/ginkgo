@@ -39,6 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include "core/test/utils.hpp"
+
+
 namespace {
 
 
@@ -55,6 +58,7 @@ struct DummyOperator : public gko::EnableLinOp<DummyOperator> {
 };
 
 
+template <typename T>
 class Combination : public ::testing::Test {
 protected:
     Combination()
@@ -70,10 +74,12 @@ protected:
     std::vector<std::shared_ptr<gko::LinOp>> coefficients;
 };
 
+TYPED_TEST_CASE(Combination, gko::test::ValueTypes);
 
-TEST_F(Combination, CanBeEmpty)
+
+TYPED_TEST(Combination, CanBeEmpty)
 {
-    auto cmb = gko::Combination<>::create(exec);
+    auto cmb = gko::Combination<TypeParam>::create(this->exec);
 
     ASSERT_EQ(cmb->get_size(), gko::dim<2>(0, 0));
     ASSERT_EQ(cmb->get_coefficients().size(), 0);
@@ -81,34 +87,35 @@ TEST_F(Combination, CanBeEmpty)
 }
 
 
-TEST_F(Combination, CanCreateFromIterators)
+TYPED_TEST(Combination, CanCreateFromIterators)
 {
-    auto cmb =
-        gko::Combination<>::create(begin(coefficients), end(coefficients),
-                                   begin(operators), end(operators));
+    auto cmb = gko::Combination<TypeParam>::create(
+        begin(this->coefficients), end(this->coefficients),
+        begin(this->operators), end(this->operators));
 
     ASSERT_EQ(cmb->get_size(), gko::dim<2>(1, 1));
     ASSERT_EQ(cmb->get_coefficients().size(), 2);
     ASSERT_EQ(cmb->get_operators().size(), 2);
-    ASSERT_EQ(cmb->get_coefficients()[0], coefficients[0]);
-    ASSERT_EQ(cmb->get_operators()[0], operators[0]);
-    ASSERT_EQ(cmb->get_coefficients()[1], coefficients[1]);
-    ASSERT_EQ(cmb->get_operators()[1], operators[1]);
+    ASSERT_EQ(cmb->get_coefficients()[0], this->coefficients[0]);
+    ASSERT_EQ(cmb->get_operators()[0], this->operators[0]);
+    ASSERT_EQ(cmb->get_coefficients()[1], this->coefficients[1]);
+    ASSERT_EQ(cmb->get_operators()[1], this->operators[1]);
 }
 
 
-TEST_F(Combination, CanCreateFromList)
+TYPED_TEST(Combination, CanCreateFromList)
 {
-    auto cmb = gko::Combination<>::create(coefficients[0], operators[0],
-                                          coefficients[1], operators[1]);
+    auto cmb = gko::Combination<TypeParam>::create(
+        this->coefficients[0], this->operators[0], this->coefficients[1],
+        this->operators[1]);
 
     ASSERT_EQ(cmb->get_size(), gko::dim<2>(1, 1));
     ASSERT_EQ(cmb->get_coefficients().size(), 2);
     ASSERT_EQ(cmb->get_operators().size(), 2);
-    ASSERT_EQ(cmb->get_coefficients()[0], coefficients[0]);
-    ASSERT_EQ(cmb->get_operators()[0], operators[0]);
-    ASSERT_EQ(cmb->get_coefficients()[1], coefficients[1]);
-    ASSERT_EQ(cmb->get_operators()[1], operators[1]);
+    ASSERT_EQ(cmb->get_coefficients()[0], this->coefficients[0]);
+    ASSERT_EQ(cmb->get_operators()[0], this->operators[0]);
+    ASSERT_EQ(cmb->get_coefficients()[1], this->coefficients[1]);
+    ASSERT_EQ(cmb->get_operators()[1], this->operators[1]);
 }
 
 

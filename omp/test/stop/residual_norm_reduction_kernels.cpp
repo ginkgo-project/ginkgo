@@ -36,37 +36,42 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include "core/test/utils.hpp"
+
+
 namespace {
 
 
-constexpr double reduction_factor = 1.0e-14;
-
-
+template <typename T>
 class ResidualNormReduction : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
+    using Mtx = gko::matrix::Dense<T>;
 
     ResidualNormReduction()
     {
         omp_ = gko::OmpExecutor::create();
-        factory_ = gko::stop::ResidualNormReduction<>::build()
-                       .with_reduction_factor(reduction_factor)
+        factory_ = gko::stop::ResidualNormReduction<T>::build()
+                       .with_reduction_factor(r<T>::value)
                        .on(omp_);
     }
 
-    std::unique_ptr<gko::stop::ResidualNormReduction<>::Factory> factory_;
+    std::unique_ptr<typename gko::stop::ResidualNormReduction<T>::Factory>
+        factory_;
     std::shared_ptr<const gko::OmpExecutor> omp_;
 };
 
+TYPED_TEST_CASE(ResidualNormReduction, gko::test::ValueTypes);
 
-TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
+
+TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
 {
-    auto scalar = gko::initialize<Mtx>({1.0}, omp_);
+    using Mtx = typename TestFixture::Mtx;
+    auto scalar = gko::initialize<Mtx>({1.0}, this->omp_);
     auto criterion =
-        factory_->generate(nullptr, nullptr, nullptr, scalar.get());
+        this->factory_->generate(nullptr, nullptr, nullptr, scalar.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(omp_, 1);
+    gko::Array<gko::stopping_status> stop_status(this->omp_, 1);
     stop_status.get_data()[0].reset();
 
     ASSERT_FALSE(
@@ -74,7 +79,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
             .residual_norm(scalar.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    scalar->at(0) = reduction_factor * 1.0e+2;
+    scalar->at(0) = r<TypeParam>::value * 1.0e+2;
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(scalar.get())
@@ -82,7 +87,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
     ASSERT_EQ(one_changed, false);
 
-    scalar->at(0) = reduction_factor * 1.0e-2;
+    scalar->at(0) = r<TypeParam>::value * 1.0e-2;
     ASSERT_TRUE(
         criterion->update()
             .residual_norm(scalar.get())
@@ -92,26 +97,29 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
 }
 
 
-TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
+TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
 {
-    auto mtx = gko::initialize<Mtx>({{1.0, 1.0}}, omp_);
-    auto criterion = factory_->generate(nullptr, nullptr, nullptr, mtx.get());
+    using Mtx = typename TestFixture::Mtx;
+    using T = TypeParam;
+    auto mtx = gko::initialize<Mtx>({I<T>{1.0, 1.0}}, this->omp_);
+    auto criterion =
+        this->factory_->generate(nullptr, nullptr, nullptr, mtx.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
-    gko::Array<gko::stopping_status> stop_status(omp_, 2);
+    gko::Array<gko::stopping_status> stop_status(this->omp_, 2);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
 
     ASSERT_FALSE(criterion->update().residual_norm(mtx.get()).check(
         RelativeStoppingId, true, &stop_status, &one_changed));
 
-    mtx->at(0, 0) = reduction_factor * 1.0e-2;
+    mtx->at(0, 0) = r<TypeParam>::value * 1.0e-2;
     ASSERT_FALSE(criterion->update().residual_norm(mtx.get()).check(
         RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
     ASSERT_EQ(one_changed, true);
 
-    mtx->at(0, 1) = reduction_factor * 1.0e-2;
+    mtx->at(0, 1) = r<TypeParam>::value * 1.0e-2;
     ASSERT_TRUE(criterion->update().residual_norm(mtx.get()).check(
         RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[1].has_converged(), true);

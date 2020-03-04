@@ -43,10 +43,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/lin_op.hpp>
 
 
+#include "core/test/utils.hpp"
+
+
 namespace {
 
 
-TEST(MtxReader, ReadsDenseRealMtx)
+TEST(MtxReader, ReadsDenseDoubleRealMtx)
 {
     using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
     std::istringstream iss(
@@ -72,20 +75,20 @@ TEST(MtxReader, ReadsDenseRealMtx)
 }
 
 
-TEST(MtxReader, ReadsDenseIntegerMtx)
+TEST(MtxReader, ReadsDenseDoubleRealMtxWith64Index)
 {
-    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    using tpl = gko::matrix_data<double, gko::int64>::nonzero_type;
     std::istringstream iss(
-        "%%MatrixMarket matrix array integer general\n"
+        "%%MatrixMarket matrix array real general\n"
         "2 3\n"
-        "1\n"
-        "0\n"
-        "3\n"
-        "5\n"
-        "2\n"
-        "0\n");
+        "1.0\n"
+        "0.0\n"
+        "3.0\n"
+        "5.0\n"
+        "2.0\n"
+        "0.0\n");
 
-    auto data = gko::read_raw<double, gko::int32>(iss);
+    auto data = gko::read_raw<double, gko::int64>(iss);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     auto &v = data.nonzeros;
@@ -98,7 +101,59 @@ TEST(MtxReader, ReadsDenseIntegerMtx)
 }
 
 
-TEST(MtxReader, ReadsDenseComplexMtx)
+TEST(MtxReader, ReadsDenseFloatIntegerMtx)
+{
+    using tpl = gko::matrix_data<float, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array integer general\n"
+        "2 3\n"
+        "1\n"
+        "0\n"
+        "3\n"
+        "5\n"
+        "2\n"
+        "0\n");
+
+    auto data = gko::read_raw<float, gko::int32>(iss);
+
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
+    auto &v = data.nonzeros;
+    ASSERT_EQ(v[0], tpl(0, 0, 1.0));
+    ASSERT_EQ(v[1], tpl(0, 1, 3.0));
+    ASSERT_EQ(v[2], tpl(0, 2, 2.0));
+    ASSERT_EQ(v[3], tpl(1, 0, 0.0));
+    ASSERT_EQ(v[4], tpl(1, 1, 5.0));
+    ASSERT_EQ(v[5], tpl(1, 2, 0.0));
+}
+
+
+TEST(MtxReader, ReadsDenseFloatIntegerMtxWith64Index)
+{
+    using tpl = gko::matrix_data<float, gko::int64>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array integer general\n"
+        "2 3\n"
+        "1\n"
+        "0\n"
+        "3\n"
+        "5\n"
+        "2\n"
+        "0\n");
+
+    auto data = gko::read_raw<float, gko::int64>(iss);
+
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
+    auto &v = data.nonzeros;
+    ASSERT_EQ(v[0], tpl(0, 0, 1.0));
+    ASSERT_EQ(v[1], tpl(0, 1, 3.0));
+    ASSERT_EQ(v[2], tpl(0, 2, 2.0));
+    ASSERT_EQ(v[3], tpl(1, 0, 0.0));
+    ASSERT_EQ(v[4], tpl(1, 1, 5.0));
+    ASSERT_EQ(v[5], tpl(1, 2, 0.0));
+}
+
+
+TEST(MtxReader, ReadsDenseComplexDoubleMtx)
 {
     using cpx = std::complex<double>;
     using tpl = gko::matrix_data<cpx, gko::int32>::nonzero_type;
@@ -113,6 +168,87 @@ TEST(MtxReader, ReadsDenseComplexMtx)
         "0.0 0.0\n");
 
     auto data = gko::read_raw<cpx, gko::int32>(iss);
+
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
+    auto &v = data.nonzeros;
+    ASSERT_EQ(v[0], tpl(0, 0, cpx(1.0, 2.0)));
+    ASSERT_EQ(v[1], tpl(0, 1, cpx(3.0, 1.0)));
+    ASSERT_EQ(v[2], tpl(0, 2, cpx(2.0, 4.0)));
+    ASSERT_EQ(v[3], tpl(1, 0, cpx(0.0, 0.0)));
+    ASSERT_EQ(v[4], tpl(1, 1, cpx(5.0, 3.0)));
+    ASSERT_EQ(v[5], tpl(1, 2, cpx(0.0, 0.0)));
+}
+
+
+TEST(MtxReader, ReadsDenseComplexDoubleMtxWith64Index)
+{
+    using cpx = std::complex<double>;
+    using tpl = gko::matrix_data<cpx, gko::int64>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array complex general\n"
+        "2 3\n"
+        "1.0 2.0\n"
+        "0.0 0.0\n"
+        "3.0 1.0\n"
+        "5.0 3.0\n"
+        "2.0 4.0\n"
+        "0.0 0.0\n");
+
+    auto data = gko::read_raw<cpx, gko::int64>(iss);
+
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
+    auto &v = data.nonzeros;
+    ASSERT_EQ(v[0], tpl(0, 0, cpx(1.0, 2.0)));
+    ASSERT_EQ(v[1], tpl(0, 1, cpx(3.0, 1.0)));
+    ASSERT_EQ(v[2], tpl(0, 2, cpx(2.0, 4.0)));
+    ASSERT_EQ(v[3], tpl(1, 0, cpx(0.0, 0.0)));
+    ASSERT_EQ(v[4], tpl(1, 1, cpx(5.0, 3.0)));
+    ASSERT_EQ(v[5], tpl(1, 2, cpx(0.0, 0.0)));
+}
+
+
+TEST(MtxReader, ReadsDenseComplexFloatMtx)
+{
+    using cpx = std::complex<float>;
+    using tpl = gko::matrix_data<cpx, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array complex general\n"
+        "2 3\n"
+        "1.0 2.0\n"
+        "0.0 0.0\n"
+        "3.0 1.0\n"
+        "5.0 3.0\n"
+        "2.0 4.0\n"
+        "0.0 0.0\n");
+
+    auto data = gko::read_raw<cpx, gko::int32>(iss);
+
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
+    auto &v = data.nonzeros;
+    ASSERT_EQ(v[0], tpl(0, 0, cpx(1.0, 2.0)));
+    ASSERT_EQ(v[1], tpl(0, 1, cpx(3.0, 1.0)));
+    ASSERT_EQ(v[2], tpl(0, 2, cpx(2.0, 4.0)));
+    ASSERT_EQ(v[3], tpl(1, 0, cpx(0.0, 0.0)));
+    ASSERT_EQ(v[4], tpl(1, 1, cpx(5.0, 3.0)));
+    ASSERT_EQ(v[5], tpl(1, 2, cpx(0.0, 0.0)));
+}
+
+
+TEST(MtxReader, ReadsDenseComplexFloatMtxWith64Index)
+{
+    using cpx = std::complex<float>;
+    using tpl = gko::matrix_data<cpx, gko::int64>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array complex general\n"
+        "2 3\n"
+        "1.0 2.0\n"
+        "0.0 0.0\n"
+        "3.0 1.0\n"
+        "5.0 3.0\n"
+        "2.0 4.0\n"
+        "0.0 0.0\n");
+
+    auto data = gko::read_raw<cpx, gko::int64>(iss);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     auto &v = data.nonzeros;
@@ -273,10 +409,10 @@ TEST(MtxReader, FailsWhenReadingSparseComplexMtxToRealMtx)
 }
 
 
-TEST(MatrixData, WritesRealMatrixToMatrixMarketArray)
+TEST(MatrixData, WritesDoubleRealMatrixToMatrixMarketArray)
 {
     // clang-format off
-    gko::matrix_data<> data{
+    gko::matrix_data<double, gko::int32> data{
         {1.0, 2.0},
         {2.1, 0.0},
         {3.0, 3.2}};
@@ -297,10 +433,10 @@ TEST(MatrixData, WritesRealMatrixToMatrixMarketArray)
 }
 
 
-TEST(MatrixData, WritesRealMatrixToMatrixMarketCoordinate)
+TEST(MatrixData, WritesFloatRealMatrixToMatrixMarketCoordinate)
 {
     // clang-format off
-    gko::matrix_data<> data{
+    gko::matrix_data<float, gko::int32> data{
         {1.0, 2.0},
         {2.1, 0.0},
         {3.0, 3.2}};
@@ -320,10 +456,57 @@ TEST(MatrixData, WritesRealMatrixToMatrixMarketCoordinate)
 }
 
 
-TEST(MatrixData, WritesComplexMatrixToMatrixMarketArray)
+TEST(MatrixData, WritesDoubleRealMatrixToMatrixMarketArrayWith64Index)
 {
     // clang-format off
-    gko::matrix_data<std::complex<double>> data{
+    gko::matrix_data<double, gko::int64> data{
+        {1.0, 2.0},
+        {2.1, 0.0},
+        {3.0, 3.2}};
+    // clang-format on
+    std::ostringstream oss{};
+
+    write_raw(oss, data);
+
+    ASSERT_EQ(oss.str(),
+              "%%MatrixMarket matrix array real general\n"
+              "3 2\n"
+              "1\n"
+              "2.1\n"
+              "3\n"
+              "2\n"
+              "0\n"
+              "3.2\n");
+}
+
+
+TEST(MatrixData, WritesFloatRealMatrixToMatrixMarketCoordinateWith64Index)
+{
+    // clang-format off
+    gko::matrix_data<float, gko::int64> data{
+        {1.0, 2.0},
+        {2.1, 0.0},
+        {3.0, 3.2}};
+    // clang-format on
+    std::ostringstream oss{};
+
+    write_raw(oss, data, gko::layout_type::coordinate);
+
+    ASSERT_EQ(oss.str(),
+              "%%MatrixMarket matrix coordinate real general\n"
+              "3 2 5\n"
+              "1 1 1\n"
+              "1 2 2\n"
+              "2 1 2.1\n"
+              "3 1 3\n"
+              "3 2 3.2\n");
+}
+
+
+TEST(MatrixData, WritesComplexDoubleMatrixToMatrixMarketArray)
+{
+    // clang-format off
+    gko::matrix_data<std::complex<double>, gko::int32> data{
         {{1.0, 0.0}, {2.0, 3.2}},
         {{2.1, 2.2}, {0.0, 0.0}},
         {{0.0, 3.0}, {3.2, 5.3}}};
@@ -344,10 +527,57 @@ TEST(MatrixData, WritesComplexMatrixToMatrixMarketArray)
 }
 
 
-TEST(MatrixData, WritesComplexMatrixToMatrixMarketCoordinate)
+TEST(MatrixData, WritesComplexFloatMatrixToMatrixMarketCoordinate)
 {
     // clang-format off
-    gko::matrix_data<std::complex<double>> data{
+    gko::matrix_data<std::complex<float>, gko::int32> data{
+        {{1.0, 0.0}, {2.0, 3.2}},
+        {{2.1, 2.2}, {0.0, 0.0}},
+        {{0.0, 3.0}, {3.2, 5.3}}};
+    // clang-format on
+    std::ostringstream oss{};
+
+    write_raw(oss, data, gko::layout_type::coordinate);
+
+    ASSERT_EQ(oss.str(),
+              "%%MatrixMarket matrix coordinate complex general\n"
+              "3 2 5\n"
+              "1 1 1 0\n"
+              "1 2 2 3.2\n"
+              "2 1 2.1 2.2\n"
+              "3 1 0 3\n"
+              "3 2 3.2 5.3\n");
+}
+
+
+TEST(MatrixData, WritesComplexDoubleMatrixToMatrixMarketArrayWith64Index)
+{
+    // clang-format off
+    gko::matrix_data<std::complex<double>, gko::int64> data{
+        {{1.0, 0.0}, {2.0, 3.2}},
+        {{2.1, 2.2}, {0.0, 0.0}},
+        {{0.0, 3.0}, {3.2, 5.3}}};
+    // clang-format on
+    std::ostringstream oss{};
+
+    write_raw(oss, data);
+
+    ASSERT_EQ(oss.str(),
+              "%%MatrixMarket matrix array complex general\n"
+              "3 2\n"
+              "1 0\n"
+              "2.1 2.2\n"
+              "0 3\n"
+              "2 3.2\n"
+              "0 0\n"
+              "3.2 5.3\n");
+}
+
+
+TEST(MatrixData, WritesComplexFloatMatrixToMatrixMarketCoordinateWith64Index)
+{
+    // clang-format off
+    gko::matrix_data<std::complex<float>, gko::int64> data{
         {{1.0, 0.0}, {2.0, 3.2}},
         {{2.1, 2.2}, {0.0, 0.0}},
         {{0.0, 3.0}, {3.2, 5.3}}};
@@ -401,9 +631,23 @@ public:
 };
 
 
-TEST(MtxReader, ReadsLinOpFromStream)
+template <typename ValueIndexType>
+class RealDummyLinOpTest : public ::testing::Test {
+protected:
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+};
+
+TYPED_TEST_CASE(RealDummyLinOpTest, gko::test::RealValueIndexTypes);
+
+
+TYPED_TEST(RealDummyLinOpTest, ReadsLinOpFromStream)
 {
-    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
     std::istringstream iss(
         "%%MatrixMarket matrix array real general\n"
         "2 3\n"
@@ -414,7 +658,7 @@ TEST(MtxReader, ReadsLinOpFromStream)
         "2.0\n"
         "0.0\n");
 
-    auto lin_op = gko::read<DummyLinOp<double, gko::int32>>(
+    auto lin_op = gko::read<DummyLinOp<value_type, index_type>>(
         iss, gko::ReferenceExecutor::create());
 
     const auto &data = lin_op->data_;
@@ -429,9 +673,10 @@ TEST(MtxReader, ReadsLinOpFromStream)
 }
 
 
-TEST(MtxReader, WritesLinOpToStream)
+TYPED_TEST(RealDummyLinOpTest, WritesLinOpToStream)
 {
-    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
     std::istringstream iss(
         "%%MatrixMarket matrix array real general\n"
         "2 3\n"
@@ -441,7 +686,7 @@ TEST(MtxReader, WritesLinOpToStream)
         "5.0\n"
         "2.0\n"
         "0.0\n");
-    auto lin_op = gko::read<DummyLinOp<double, gko::int32>>(
+    auto lin_op = gko::read<DummyLinOp<value_type, index_type>>(
         iss, gko::ReferenceExecutor::create());
     std::ostringstream oss{};
 
@@ -456,6 +701,79 @@ TEST(MtxReader, WritesLinOpToStream)
               "5\n"
               "2\n"
               "0\n");
+}
+
+
+template <typename ValueIndexType>
+class ComplexDummyLinOpTest : public ::testing::Test {
+protected:
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+};
+
+TYPED_TEST_CASE(ComplexDummyLinOpTest, gko::test::ComplexValueIndexTypes);
+
+
+TYPED_TEST(ComplexDummyLinOpTest, ReadsLinOpFromStream)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array complex general\n"
+        "2 3\n"
+        "1.0 2.0\n"
+        "0.0 0.0\n"
+        "3.0 4.0\n"
+        "5.0 6.0\n"
+        "2.0 3.0\n"
+        "0.0 0.0\n");
+
+    auto lin_op = gko::read<DummyLinOp<value_type, index_type>>(
+        iss, gko::ReferenceExecutor::create());
+
+    const auto &data = lin_op->data_;
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
+    const auto &v = data.nonzeros;
+    ASSERT_EQ(v[0], tpl(0, 0, value_type{1.0, 2.0}));
+    ASSERT_EQ(v[1], tpl(0, 1, value_type{3.0, 4.0}));
+    ASSERT_EQ(v[2], tpl(0, 2, value_type{2.0, 3.0}));
+    ASSERT_EQ(v[3], tpl(1, 0, value_type{0.0, 0.0}));
+    ASSERT_EQ(v[4], tpl(1, 1, value_type{5.0, 6.0}));
+    ASSERT_EQ(v[5], tpl(1, 2, value_type{0.0, 0.0}));
+}
+
+
+TYPED_TEST(ComplexDummyLinOpTest, WritesLinOpToStream)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    std::istringstream iss(
+        "%%MatrixMarket matrix array complex general\n"
+        "2 3\n"
+        "1.0 2.0\n"
+        "0.0 0.0\n"
+        "3.0 4.0\n"
+        "5.0 6.0\n"
+        "2.0 3.0\n"
+        "0.0 0.0\n");
+    auto lin_op = gko::read<DummyLinOp<value_type, index_type>>(
+        iss, gko::ReferenceExecutor::create());
+    std::ostringstream oss{};
+
+    write(oss, lend(lin_op));
+
+    ASSERT_EQ(oss.str(),
+              "%%MatrixMarket matrix array complex general\n"
+              "2 3\n"
+              "1 2\n"
+              "0 0\n"
+              "3 4\n"
+              "5 6\n"
+              "2 3\n"
+              "0 0\n");
 }
 
 

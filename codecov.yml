@@ -11,4 +11,5 @@ coverage:
         threshold: 2
         base: auto
   ignore:
-    - "**/test/"
+    - "examples"
+    - "benchmark"

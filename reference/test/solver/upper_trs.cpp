@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/solver/upper_trs.hpp>
+#include "ginkgo/core/solver/upper_trs.hpp"
 
 
 #include <memory>
@@ -44,17 +44,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/test/utils/assertions.hpp"
+#include "core/test/utils.hpp"
 
 
 namespace {
 
 
+template <typename ValueIndexType>
 class UpperTrs : public ::testing::Test {
 protected:
-    using CsrMtx = gko::matrix::Csr<double, int>;
-    using Mtx = gko::matrix::Dense<>;
-    using Solver = gko::solver::UpperTrs<>;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using CsrMtx = gko::matrix::Csr<value_type, index_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    using Solver = gko::solver::UpperTrs<value_type, index_type>;
 
     UpperTrs()
         : exec(gko::ReferenceExecutor::create()),
@@ -69,63 +74,69 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<CsrMtx> csr_mtx;
-    std::unique_ptr<Solver::Factory> upper_trs_factory;
+    std::unique_ptr<typename Solver::Factory> upper_trs_factory;
     std::unique_ptr<Solver> upper_trs_solver;
 };
 
+TYPED_TEST_CASE(UpperTrs, gko::test::ValueIndexTypes);
 
-TEST_F(UpperTrs, UpperTrsFactoryCreatesCorrectSolver)
+
+TYPED_TEST(UpperTrs, UpperTrsFactoryCreatesCorrectSolver)
 {
-    auto sys_mtx = upper_trs_solver->get_system_matrix();
+    auto sys_mtx = this->upper_trs_solver->get_system_matrix();
 
-    ASSERT_EQ(upper_trs_solver->get_size(), gko::dim<2>(3, 3));
+    ASSERT_EQ(this->upper_trs_solver->get_size(), gko::dim<2>(3, 3));
     ASSERT_NE(sys_mtx, nullptr);
-    GKO_ASSERT_MTX_NEAR(sys_mtx, csr_mtx, 0);
+    GKO_ASSERT_MTX_NEAR(sys_mtx, this->csr_mtx, 0);
 }
 
 
-TEST_F(UpperTrs, CanBeCopied)
+TYPED_TEST(UpperTrs, CanBeCopied)
 {
-    auto copy = Solver::build().on(exec)->generate(Mtx::create(exec));
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    auto copy =
+        Solver::build().on(this->exec)->generate(Mtx::create(this->exec));
 
-    copy->copy_from(gko::lend(upper_trs_solver));
+    copy->copy_from(gko::lend(this->upper_trs_solver));
     auto copy_mtx = copy->get_system_matrix();
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    GKO_ASSERT_MTX_NEAR(copy_mtx.get(), csr_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(copy_mtx.get(), this->csr_mtx.get(), 0);
 }
 
 
-TEST_F(UpperTrs, CanBeMoved)
+TYPED_TEST(UpperTrs, CanBeMoved)
 {
-    auto copy = upper_trs_factory->generate(Mtx::create(exec));
+    using Mtx = typename TestFixture::Mtx;
+    auto copy = this->upper_trs_factory->generate(Mtx::create(this->exec));
 
-    copy->copy_from(std::move(upper_trs_solver));
+    copy->copy_from(std::move(this->upper_trs_solver));
     auto copy_mtx = copy->get_system_matrix();
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    GKO_ASSERT_MTX_NEAR(copy_mtx.get(), csr_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(copy_mtx.get(), this->csr_mtx.get(), 0);
 }
 
 
-TEST_F(UpperTrs, CanBeCloned)
+TYPED_TEST(UpperTrs, CanBeCloned)
 {
-    auto clone = upper_trs_solver->clone();
+    auto clone = this->upper_trs_solver->clone();
 
     auto clone_mtx = clone->get_system_matrix();
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
-    GKO_ASSERT_MTX_NEAR(clone_mtx.get(), csr_mtx.get(), 0);
+    GKO_ASSERT_MTX_NEAR(clone_mtx.get(), this->csr_mtx.get(), 0);
 }
 
 
-TEST_F(UpperTrs, CanBeCleared)
+TYPED_TEST(UpperTrs, CanBeCleared)
 {
-    upper_trs_solver->clear();
+    this->upper_trs_solver->clear();
 
-    auto solver_mtx = upper_trs_solver->get_system_matrix();
+    auto solver_mtx = this->upper_trs_solver->get_system_matrix();
 
-    ASSERT_EQ(upper_trs_solver->get_size(), gko::dim<2>(0, 0));
+    ASSERT_EQ(this->upper_trs_solver->get_size(), gko::dim<2>(0, 0));
     ASSERT_EQ(solver_mtx, nullptr);
 }
 

@@ -36,29 +36,37 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
 
+#include "core/test/utils.hpp"
+
+
 namespace {
 
 
-TEST(Record, CatchesCriterionCheckCompleted)
+template <typename T>
+class Convergence : public ::testing::Test {};
+
+TYPED_TEST_CASE(Convergence, gko::test::ValueTypes);
+
+
+TYPED_TEST(Convergence, CatchesCriterionCheckCompleted)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::Convergence<>::create(
+    auto logger = gko::log::Convergence<TypeParam>::create(
         exec, gko::log::Logger::criterion_check_completed_mask);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
     gko::Array<gko::stopping_status> stop_status(exec, 1);
-    using Mtx = gko::matrix::Dense<>;
+    using Mtx = gko::matrix::Dense<TypeParam>;
     auto residual = gko::initialize<Mtx>({1.0, 2.0, 2.0}, exec);
 
-    logger->on<gko::log::Logger::criterion_check_completed>(
+    logger->template on<gko::log::Logger::criterion_check_completed>(
         criterion.get(), 1, residual.get(), nullptr, nullptr,
         RelativeStoppingId, true, &stop_status, true, true);
 

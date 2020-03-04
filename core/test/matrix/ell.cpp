@@ -36,19 +36,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include "core/test/utils.hpp"
+
+
 namespace {
 
 
+template <typename ValueIndexType>
 class Ell : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Ell<>;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Mtx = gko::matrix::Ell<value_type, index_type>;
 
     Ell()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Ell<>::create(exec, gko::dim<2>{2, 3}, 3))
+          mtx(gko::matrix::Ell<value_type, index_type>::create(
+              exec, gko::dim<2>{2, 3}, 3))
     {
-        Mtx::value_type *v = mtx->get_values();
-        Mtx::index_type *c = mtx->get_col_idxs();
+        value_type *v = mtx->get_values();
+        index_type *c = mtx->get_col_idxs();
         c[0] = 0;
         c[1] = 1;
         c[2] = 1;
@@ -82,12 +91,12 @@ protected:
         EXPECT_EQ(c[3], 0);
         EXPECT_EQ(c[4], 2);
         EXPECT_EQ(c[5], 0);
-        EXPECT_EQ(v[0], 1.0);
-        EXPECT_EQ(v[1], 5.0);
-        EXPECT_EQ(v[2], 3.0);
-        EXPECT_EQ(v[3], 0.0);
-        EXPECT_EQ(v[4], 2.0);
-        EXPECT_EQ(v[5], 0.0);
+        EXPECT_EQ(v[0], value_type{1.0});
+        EXPECT_EQ(v[1], value_type{5.0});
+        EXPECT_EQ(v[2], value_type{3.0});
+        EXPECT_EQ(v[3], value_type{0.0});
+        EXPECT_EQ(v[4], value_type{2.0});
+        EXPECT_EQ(v[5], value_type{0.0});
     }
 
     void assert_empty(const Mtx *m)
@@ -101,84 +110,97 @@ protected:
     }
 };
 
+TYPED_TEST_CASE(Ell, gko::test::ValueIndexTypes);
 
-TEST_F(Ell, KnowsItsSize)
+
+TYPED_TEST(Ell, KnowsItsSize)
 {
-    ASSERT_EQ(mtx->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(mtx->get_num_stored_elements(), 6);
-    ASSERT_EQ(mtx->get_num_stored_elements_per_row(), 3);
-    ASSERT_EQ(mtx->get_stride(), 2);
+    ASSERT_EQ(this->mtx->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(this->mtx->get_num_stored_elements(), 6);
+    ASSERT_EQ(this->mtx->get_num_stored_elements_per_row(), 3);
+    ASSERT_EQ(this->mtx->get_stride(), 2);
 }
 
 
-TEST_F(Ell, ContainsCorrectData) { assert_equal_to_original_mtx(mtx.get()); }
-
-
-TEST_F(Ell, CanBeEmpty)
+TYPED_TEST(Ell, ContainsCorrectData)
 {
-    auto mtx = Mtx::create(exec);
-
-    assert_empty(mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx.get());
 }
 
 
-TEST_F(Ell, CanBeCreatedFromExistingData)
+TYPED_TEST(Ell, CanBeEmpty)
 {
-    double values[] = {1.0, 3.0, 4.0, -1.0, 2.0, 0.0, 0.0, -1.0};
-    gko::int32 col_idxs[] = {0, 1, 0, -1, 1, 0, 0, -1};
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = Mtx::create(this->exec);
 
-    auto mtx = gko::matrix::Ell<>::create(
-        exec, gko::dim<2>{3, 2}, gko::Array<double>::view(exec, 8, values),
-        gko::Array<gko::int32>::view(exec, 8, col_idxs), 2, 4);
+    this->assert_empty(mtx.get());
+}
+
+
+TYPED_TEST(Ell, CanBeCreatedFromExistingData)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    value_type values[] = {1.0, 3.0, 4.0, -1.0, 2.0, 0.0, 0.0, -1.0};
+    index_type col_idxs[] = {0, 1, 0, -1, 1, 0, 0, -1};
+
+    auto mtx = gko::matrix::Ell<value_type, index_type>::create(
+        this->exec, gko::dim<2>{3, 2},
+        gko::Array<value_type>::view(this->exec, 8, values),
+        gko::Array<index_type>::view(this->exec, 8, col_idxs), 2, 4);
 
     ASSERT_EQ(mtx->get_const_values(), values);
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
 }
 
 
-TEST_F(Ell, CanBeCopied)
+TYPED_TEST(Ell, CanBeCopied)
 {
-    auto copy = Mtx::create(exec);
+    using Mtx = typename TestFixture::Mtx;
+    auto copy = Mtx::create(this->exec);
 
-    copy->copy_from(mtx.get());
+    copy->copy_from(this->mtx.get());
 
-    assert_equal_to_original_mtx(mtx.get());
-    mtx->get_values()[1] = 5.0;
-    assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->mtx->get_values()[1] = 5.0;
+    this->assert_equal_to_original_mtx(copy.get());
 }
 
 
-TEST_F(Ell, CanBeMoved)
+TYPED_TEST(Ell, CanBeMoved)
 {
-    auto copy = Mtx::create(exec);
+    using Mtx = typename TestFixture::Mtx;
+    auto copy = Mtx::create(this->exec);
 
-    copy->copy_from(std::move(mtx));
+    copy->copy_from(std::move(this->mtx));
 
-    assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(copy.get());
 }
 
 
-TEST_F(Ell, CanBeCloned)
+TYPED_TEST(Ell, CanBeCloned)
 {
-    auto clone = mtx->clone();
+    using Mtx = typename TestFixture::Mtx;
+    auto clone = this->mtx->clone();
 
-    assert_equal_to_original_mtx(mtx.get());
-    mtx->get_values()[1] = 5.0;
-    assert_equal_to_original_mtx(static_cast<Mtx *>(clone.get()));
+    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->mtx->get_values()[1] = 5.0;
+    this->assert_equal_to_original_mtx(static_cast<Mtx *>(clone.get()));
 }
 
 
-TEST_F(Ell, CanBeCleared)
+TYPED_TEST(Ell, CanBeCleared)
 {
-    mtx->clear();
+    this->mtx->clear();
 
-    assert_empty(mtx.get());
+    this->assert_empty(this->mtx.get());
 }
 
 
-TEST_F(Ell, CanBeReadFromMatrixData)
+TYPED_TEST(Ell, CanBeReadFromMatrixData)
 {
-    auto m = Mtx::create(exec);
+    using Mtx = typename TestFixture::Mtx;
+    auto m = Mtx::create(this->exec);
     m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
@@ -187,23 +209,25 @@ TEST_F(Ell, CanBeReadFromMatrixData)
               {1, 1, 5.0},
               {1, 2, 0.0}}});
 
-    assert_equal_to_original_mtx(m.get());
+    this->assert_equal_to_original_mtx(m.get());
 }
 
 
-TEST_F(Ell, GeneratesCorrectMatrixData)
+TYPED_TEST(Ell, GeneratesCorrectMatrixData)
 {
-    using tpl = gko::matrix_data<>::nonzero_type;
-    gko::matrix_data<> data;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
+    gko::matrix_data<value_type, index_type> data;
 
-    mtx->write(data);
+    this->mtx->write(data);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     ASSERT_EQ(data.nonzeros.size(), 4);
-    EXPECT_EQ(data.nonzeros[0], tpl(0, 0, 1.0));
-    EXPECT_EQ(data.nonzeros[1], tpl(0, 1, 3.0));
-    EXPECT_EQ(data.nonzeros[2], tpl(0, 2, 2.0));
-    EXPECT_EQ(data.nonzeros[3], tpl(1, 1, 5.0));
+    EXPECT_EQ(data.nonzeros[0], tpl(0, 0, value_type{1.0}));
+    EXPECT_EQ(data.nonzeros[1], tpl(0, 1, value_type{3.0}));
+    EXPECT_EQ(data.nonzeros[2], tpl(0, 2, value_type{2.0}));
+    EXPECT_EQ(data.nonzeros[3], tpl(1, 1, value_type{5.0}));
 }
 
 

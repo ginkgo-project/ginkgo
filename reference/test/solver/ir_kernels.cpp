@@ -44,15 +44,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
 
 
-#include "core/test/utils/assertions.hpp"
+#include "core/test/utils.hpp"
 
 
 namespace {
 
 
+template <typename T>
 class Ir : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
+    using value_type = T;
+    using Mtx = gko::matrix::Dense<value_type>;
+    using Solver = gko::solver::Ir<value_type>;
     Ir()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
@@ -60,71 +63,89 @@ protected:
           // Eigenvalues of mtx are 0.9, 1.0 and 1.1
           // Richardson iteration, converges since | lambda - 1 | < 1
           ir_factory(
-              gko::solver::Ir<>::build()
+              Solver::build()
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(30u).on(
                           exec),
-                      gko::stop::ResidualNormReduction<>::build()
-                          .with_reduction_factor(1e-15)
+                      gko::stop::ResidualNormReduction<value_type>::build()
+                          .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<gko::solver::Ir<>::Factory> ir_factory;
+    std::unique_ptr<typename Solver::Factory> ir_factory;
 };
 
+TYPED_TEST_CASE(Ir, gko::test::ValueTypes);
 
-TEST_F(Ir, SolvesTriangularSystem)
+
+TYPED_TEST(Ir, SolvesTriangularSystem)
 {
-    auto solver = ir_factory->generate(mtx);
-    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->ir_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
 }
 
 
-TEST_F(Ir, SolvesMultipleTriangularSystems)
+TYPED_TEST(Ir, SolvesMultipleTriangularSystems)
 {
-    auto solver = ir_factory->generate(mtx);
-    auto b = gko::initialize<Mtx>({{3.9, 2.9}, {9.0, 4.0}, {2.2, 1.1}}, exec);
-    auto x = gko::initialize<Mtx>({{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}}, exec);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using T = value_type;
+    auto solver = this->ir_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>(
+        {I<T>{3.9, 2.9}, I<T>{9.0, 4.0}, I<T>{2.2, 1.1}}, this->exec);
+    auto x = gko::initialize<Mtx>(
+        {I<T>{0.0, 0.0}, I<T>{0.0, 0.0}, I<T>{0.0, 0.0}}, this->exec);
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({{1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({{1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}}),
+                        r<value_type>::value * 1e1);
 }
 
 
-TEST_F(Ir, SolvesTriangularSystemUsingAdvancedApply)
+TYPED_TEST(Ir, SolvesTriangularSystemUsingAdvancedApply)
 {
-    auto solver = ir_factory->generate(mtx);
-    auto alpha = gko::initialize<Mtx>({2.0}, exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, exec);
-    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, exec);
-    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, exec);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->ir_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), r<value_type>::value);
 }
 
 
-TEST_F(Ir, SolvesMultipleStencilSystemsUsingAdvancedApply)
+TYPED_TEST(Ir, SolvesMultipleStencilSystemsUsingAdvancedApply)
 {
-    auto solver = ir_factory->generate(mtx);
-    auto alpha = gko::initialize<Mtx>({2.0}, exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, exec);
-    auto b = gko::initialize<Mtx>({{3.9, 2.9}, {9.0, 4.0}, {2.2, 1.1}}, exec);
-    auto x = gko::initialize<Mtx>({{0.5, 1.0}, {1.0, 2.0}, {2.0, 3.0}}, exec);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using T = value_type;
+    auto solver = this->ir_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto b = gko::initialize<Mtx>(
+        {I<T>{3.9, 2.9}, I<T>{9.0, 4.0}, I<T>{2.2, 1.1}}, this->exec);
+    auto x = gko::initialize<Mtx>(
+        {I<T>{0.5, 1.0}, I<T>{1.0, 2.0}, I<T>{2.0, 3.0}}, this->exec);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}),
+                        r<value_type>::value * 1e1);
 }
 
 

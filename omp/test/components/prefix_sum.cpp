@@ -44,12 +44,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 
 
+#include "core/test/utils.hpp"
+
+
 namespace {
 
 
+template <typename T>
 class PrefixSum : public ::testing::Test {
 protected:
-    using index_type = gko::int32;
+    using index_type = T;
     PrefixSum()
         : ref(gko::ReferenceExecutor::create()),
           exec(gko::OmpExecutor::create()),
@@ -83,11 +87,13 @@ protected:
     gko::Array<index_type> dvals;
 };
 
+TYPED_TEST_CASE(PrefixSum, gko::test::IndexTypes);
 
-TEST_F(PrefixSum, SmallEqualsReference) { test(100); }
+
+TYPED_TEST(PrefixSum, SmallEqualsReference) { this->test(100); }
 
 
-TEST_F(PrefixSum, BigEqualsReference) { test(total_size); }
+TYPED_TEST(PrefixSum, BigEqualsReference) { this->test(this->total_size); }
 
 
 }  // namespace

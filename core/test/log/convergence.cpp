@@ -39,13 +39,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include "core/test/utils.hpp"
+
+
 namespace {
 
+template <typename T>
+class Convergence : public ::testing::Test {};
 
-TEST(Record, CanGetData)
+TYPED_TEST_CASE(Convergence, gko::test::ValueTypes);
+
+
+TYPED_TEST(Convergence, CanGetData)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::Convergence<>::create(
+    auto logger = gko::log::Convergence<TypeParam>::create(
         exec, gko::log::Logger::iteration_complete_mask);
 
     ASSERT_EQ(logger->get_num_iterations(), 0);
