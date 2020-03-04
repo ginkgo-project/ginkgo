@@ -19,7 +19,7 @@ jobs:
         mkdir build
         cd build
         $env:PATH="$pwd\windows_shared_library;$env:PATH"
-        cmake -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_OMP=OFF ..
+        cmake -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_OMP=OFF ..
         cmake --build . -j8 --config Release
         
   windows_ref:
@@ -47,6 +47,6 @@ jobs:
       run: |
         mkdir build
         cd build
-        cmake .. -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_OMP=OFF
+        cmake .. -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_OMP=OFF
         cmake --build . -j8 --config ${{ matrix.config.build_type }}
         ctest . -C ${{ matrix.config.build_type }}
