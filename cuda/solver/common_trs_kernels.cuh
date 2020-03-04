@@ -319,8 +319,8 @@ void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
                         cuda_solve_struct->solve_info, b->get_const_values(),
                         b->get_size()[0], x->get_values(), x->get_size()[0]);
                 } else {
-                    dense::transpose(exec, trans_b, b);
-                    dense::transpose(exec, trans_x, x);
+                    dense::transpose(exec, b, trans_b);
+                    dense::transpose(exec, x, trans_x);
                     cusparse::csrsm_solve(
                         handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                         matrix->get_size()[0], trans_b->get_size()[0], &one,
@@ -331,7 +331,7 @@ void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
                         cuda_solve_struct->solve_info, trans_b->get_values(),
                         trans_b->get_size()[1], trans_x->get_values(),
                         trans_x->get_size()[1]);
-                    dense::transpose(exec, x, trans_x);
+                    dense::transpose(exec, trans_x, x);
                 }
             }
 

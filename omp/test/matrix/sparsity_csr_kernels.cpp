@@ -245,10 +245,10 @@ TEST_F(SparsityCsr, RemovesDiagElementsKernelIsEquivalentToRef)
                              dmtx->get_num_nonzeros() - num_diags);
 
     gko::kernels::reference::sparsity_csr::remove_diagonal_elements(
-        ref, tmp.get(), mtx->get_const_row_ptrs(), mtx->get_const_col_idxs());
+        ref, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(), tmp.get());
     gko::kernels::omp::sparsity_csr::remove_diagonal_elements(
-        omp, d_tmp.get(), dmtx->get_const_row_ptrs(),
-        dmtx->get_const_col_idxs());
+        omp, dmtx->get_const_row_ptrs(), dmtx->get_const_col_idxs(),
+        d_tmp.get());
 
     GKO_ASSERT_MTX_NEAR(tmp.get(), d_tmp.get(), 0.0);
 }

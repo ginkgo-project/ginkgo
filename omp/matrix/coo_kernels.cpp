@@ -156,8 +156,8 @@ void convert_row_idxs_to_ptrs(std::shared_ptr<const OmpExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
-                    matrix::Csr<ValueType, IndexType> *result,
-                    const matrix::Coo<ValueType, IndexType> *source)
+                    const matrix::Coo<ValueType, IndexType> *source,
+                    matrix::Csr<ValueType, IndexType> *result)
 {
     auto num_rows = result->get_size()[0];
 
@@ -176,8 +176,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
-                      matrix::Dense<ValueType> *result,
-                      const matrix::Coo<ValueType, IndexType> *source)
+                      const matrix::Coo<ValueType, IndexType> *source,
+                      matrix::Dense<ValueType> *result)
 {
     auto coo_val = source->get_const_values();
     auto coo_col = source->get_const_col_idxs();
