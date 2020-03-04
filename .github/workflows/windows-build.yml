@@ -1,0 +1,52 @@
+name: Windows-build
+
+on: [push]
+
+jobs:
+  windows_cuda:
+    name: cuda102/release/shared
+    runs-on: [windows-latest]
+    steps:
+    - uses: actions/checkout@v2
+    - name: setup
+      run: |
+        choco install cuda -y
+    - name: configure
+      run: |
+        $env:ChocolateyInstall = Convert-Path "$((Get-Command choco).Path)\..\.."   
+        Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+        refreshenv
+        mkdir build
+        cd build
+        $env:PATH="$pwd\windows_shared_library;$env:PATH"
+        cmake -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_OMP=OFF ..
+        cmake --build . -j8 --config Release
+        
+  windows_ref:
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {shared: "ON", build_type: "Debug", name: "reference/debug/shared"}
+        - {shared: "OFF", build_type: "Release", name: "reference/release/static"}
+        # Debug static needs too much storage
+        # - {shared: "OFF", build_type: "Debug", name: "reference/debug/static"}
+    name: ${{ matrix.config.name }}
+    runs-on: [windows-latest]
+    steps:
+    - uses: actions/checkout@v2
+    - name: shared_env
+      if: matrix.config.shared == 'ON'
+      run: |
+        echo "::add-path::$pwd\build\windows_shared_library"
+    - name: debug_static_env
+      if: matrix.config.shared == 'OFF' && matrix.config.build_type == 'Debug'
+      run: |
+        echo "::set-env name=CXXFLAGS::/bigobj"
+    - name: configure
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_OMP=OFF
+        cmake --build . -j8 --config ${{ matrix.config.build_type }}
+        ctest . -C ${{ matrix.config.build_type }}
