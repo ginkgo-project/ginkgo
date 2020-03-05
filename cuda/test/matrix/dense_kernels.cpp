@@ -487,6 +487,7 @@ TEST_F(Dense, CalculateTotalColsIsEquivalentToRef)
 TEST_F(Dense, IsRowPermutable)
 {
     set_up_apply_data();
+
     auto r_permute = x->row_permute(rpermute_idxs.get());
     auto dr_permute = dx->row_permute(drpermute_idxs.get());
 
@@ -498,6 +499,7 @@ TEST_F(Dense, IsRowPermutable)
 TEST_F(Dense, IsColPermutable)
 {
     set_up_apply_data();
+
     auto c_permute = x->column_permute(cpermute_idxs.get());
     auto dc_permute = dx->column_permute(dcpermute_idxs.get());
 
@@ -509,6 +511,7 @@ TEST_F(Dense, IsColPermutable)
 TEST_F(Dense, IsInverseRowPermutable)
 {
     set_up_apply_data();
+
     auto inverse_r_permute = x->inverse_row_permute(rpermute_idxs.get());
     auto d_inverse_r_permute = dx->inverse_row_permute(drpermute_idxs.get());
 
@@ -520,6 +523,7 @@ TEST_F(Dense, IsInverseRowPermutable)
 TEST_F(Dense, IsInverseColPermutable)
 {
     set_up_apply_data();
+
     auto inverse_c_permute = x->inverse_column_permute(cpermute_idxs.get());
     auto d_inverse_c_permute = dx->inverse_column_permute(dcpermute_idxs.get());
 
