@@ -120,7 +120,8 @@ TYPED_TEST(Permutation, CanBeConstructedWithSize)
 
 TYPED_TEST(Permutation, FactorySetsCorrectPermuteMask)
 {
-    auto m = gko::matrix::Permutation<i_type>::create(exec);
+    using i_type = typename TestFixture::i_type;
+    auto m = gko::matrix::Permutation<i_type>::create(this->exec);
     auto mask = m->get_permute_mask();
 
     ASSERT_EQ(mask, gko::matrix::row_permute);
@@ -129,6 +130,7 @@ TYPED_TEST(Permutation, FactorySetsCorrectPermuteMask)
 
 TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingData)
 {
+    using i_type = typename TestFixture::i_type;
     using i_type = typename TestFixture::i_type;
     i_type data[] = {1, 0, 2};
 
@@ -142,8 +144,9 @@ TYPED_TEST(Permutation, PermutationCanBeConstructedFromExistingData)
 
 TYPED_TEST(Permutation, CanBeConstructedWithSizeAndMask)
 {
+    using i_type = typename TestFixture::i_type;
     auto m = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{2, 3}, gko::matrix::column_permute);
+        this->exec, gko::dim<2>{2, 3}, gko::matrix::column_permute);
 
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(m->get_permutation_size(), 2);
@@ -153,8 +156,9 @@ TYPED_TEST(Permutation, CanBeConstructedWithSizeAndMask)
 
 TYPED_TEST(Permutation, CanExplicitlyOverrideSetPermuteMask)
 {
+    using i_type = typename TestFixture::i_type;
     auto m = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{2, 3}, gko::matrix::column_permute);
+        this->exec, gko::dim<2>{2, 3}, gko::matrix::column_permute);
 
     auto mask = m->get_permute_mask();
     ASSERT_EQ(mask, gko::matrix::column_permute);
@@ -181,10 +185,12 @@ TYPED_TEST(Permutation, PermutationThrowsforWrongRowPermDimensions)
 
 TYPED_TEST(Permutation, SettingMaskDoesNotModifyData)
 {
+    using i_type = typename TestFixture::i_type;
     i_type data[] = {1, 0, 2};
 
     auto m = gko::matrix::Permutation<i_type>::create(
-        exec, gko::dim<2>{3, 5}, gko::Array<i_type>::view(exec, 3, data));
+        this->exec, gko::dim<2>{3, 5},
+        gko::Array<i_type>::view(this->exec, 3, data));
 
     auto mask = m->get_permute_mask();
     ASSERT_EQ(m->get_const_permutation(), data);
@@ -244,23 +250,24 @@ TYPED_TEST(Permutation, CanBeMoved)
 
 TYPED_TEST(Permutation, CopyingPreservesMask)
 {
-    auto mtx_copy = gko::matrix::Permutation<i_type>::create(exec);
+    using i_type = typename TestFixture::i_type;
+    auto mtx_copy = gko::matrix::Permutation<i_type>::create(this->exec);
 
-    mtx_copy->copy_from(mtx.get());
+    mtx_copy->copy_from(this->mtx.get());
 
-    auto o_mask = mtx->get_permute_mask();
+    auto o_mask = this->mtx->get_permute_mask();
     auto n_mask = mtx_copy->get_permute_mask();
     ASSERT_EQ(o_mask, gko::matrix::row_permute);
     ASSERT_EQ(o_mask, n_mask);
 
-    mtx->set_permute_mask(gko::matrix::column_permute);
+    this->mtx->set_permute_mask(gko::matrix::column_permute);
 
-    o_mask = mtx->get_permute_mask();
+    o_mask = this->mtx->get_permute_mask();
     n_mask = mtx_copy->get_permute_mask();
     ASSERT_EQ(o_mask, gko::matrix::column_permute);
     ASSERT_NE(o_mask, n_mask);
 
-    mtx_copy->copy_from(mtx.get());
+    mtx_copy->copy_from(this->mtx.get());
 
     n_mask = mtx_copy->get_permute_mask();
     ASSERT_EQ(o_mask, n_mask);
