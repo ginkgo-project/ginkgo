@@ -12,10 +12,10 @@
 <!-- Node0 -->
 <g id="node1" class="node">
 <title>Node0</title>
-<g id="a_node1"><a xlink:href="structgko_1_1matrix__data_1_1nonzero__type.html" target="_top" xlink:title="Type used to store nonzeros.">
+<g id="a_node1"><a xlink:href="structgko_1_1matrix__data.html" target="_top" xlink:title="This structure is used as an intermediate data type to store a sparse matrix.">
 <polygon fill="#ffffff" stroke="#000000" points="0,-.5 0,-30.5 164,-30.5 164,-.5 0,-.5"/>
 <text text-anchor="start" x="8" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix_data&lt; ValueType,</text>
-<text text-anchor="middle" x="82" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> IndexType &gt;::nonzero_type</text>
+<text text-anchor="middle" x="82" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> IndexType &gt;</text>
 </a>
 </g>
 </g>
