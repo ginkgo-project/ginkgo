@@ -1,8 +1,4 @@
-if(APPLE)
-  cmake_minimum_required(VERSION 3.12)
-else()
-  cmake_minimum_required(VERSION 3.9)
-endif()
+cmake_minimum_required(VERSION 3.9)
 
 project(Ginkgo LANGUAGES C CXX VERSION 1.1.1 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "master")
