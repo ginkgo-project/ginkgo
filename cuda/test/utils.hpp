@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CUDA_TEST_NORESET_HPP_
 #define GKO_CUDA_TEST_NORESET_HPP_
 
+
 #include <ginkgo/core/base/executor.hpp>
 
 
