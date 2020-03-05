@@ -60,7 +60,7 @@ static constexpr mask_type column_permute = mask_type{1 << 2};
 static constexpr mask_type inverse_permute = mask_type{1 << 3};
 
 /**
- * Permutation is a matrix format which stores the row and column permutation
+ * Permutation is a matrix "format" which stores the row and column permutation
  * arrays which can be used for re-ordering the rows and columns a matrix.
  *
  * @tparam IndexType  precision of permutation array indices.
@@ -68,7 +68,8 @@ static constexpr mask_type inverse_permute = mask_type{1 << 3};
  * @note This format is used mainly to allow for an abstraction of the
  * permutation/re-ordering and provides the user with an apply method which
  * calls the respective LinOp's permute operation if the respective LinOp
- * implements the Permutable interface.
+ * implements the Permutable interface. As such it only stores an array of the
+ * permutation indices.
  *
  * @ingroup permutation
  * @ingroup mat_formats
@@ -117,9 +118,9 @@ public:
     /**
      * Get the permute masks
      *
-     * @param permute_mask the permute masks
+     * @return  permute_mask the permute masks
      */
-    mask_type get_permute_mask() { return enabled_permute_; }
+    mask_type get_permute_mask() const { return enabled_permute_; }
 
     /**
      * Set the permute masks
@@ -139,7 +140,7 @@ protected:
      * @param exec  Executor associated to the LinOp
      */
     Permutation(std::shared_ptr<const Executor> exec)
-        : Permutation(std::move(exec), dim<2>{}, row_permute)
+        : Permutation(std::move(exec), dim<2>{})
     {}
 
     /**
