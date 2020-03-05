@@ -1,5 +1,3 @@
-image: localhost:5000/gko-cuda100-gnu7-llvm60
-
 stages:
   - sync
   - build
@@ -86,6 +84,7 @@ stages:
 
 sync:
   stage: sync
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     GIT_STRATEGY: none
     PRIVATE_REPO: git@gitlab.com:ginkgo-project/ginkgo.git
@@ -102,6 +101,9 @@ sync:
     - develop
   except:
     - schedules
+  tags:
+    - private_ci
+    - cpu
 
 
 # Build jobs
@@ -117,6 +119,7 @@ build/cuda90/gcc/all/debug/shared:
     EXTRA_CMAKE_FLAGS: &cuda_flags
       "-DGINKGO_CUDA_ARCHITECTURES=35 -DCMAKE_CUDA_HOST_COMPILER=${CXX_COMPILER}"
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -134,6 +137,7 @@ build/cuda90/clang/all/release/static:
     BUILD_SHARED_LIBS: "OFF"
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -150,6 +154,7 @@ build/cuda91/gcc/all/debug/static:
     BUILD_SHARED_LIBS: "OFF"
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -166,6 +171,7 @@ build/cuda91/clang/all/release/shared:
     BUILD_TYPE: Release
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -181,6 +187,7 @@ build/cuda91/intel/cuda/debug/shared:
     BUILD_TYPE: Debug
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -196,6 +203,7 @@ build/cuda92/gcc/all/release/shared:
     BUILD_TYPE: Release
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -213,6 +221,7 @@ build/cuda92/clang/all/debug/static:
     BUILD_SHARED_LIBS: "OFF"
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -229,6 +238,7 @@ build/cuda92/intel/cuda/release/static:
     BUILD_SHARED_LIBS: "OFF"
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -244,6 +254,7 @@ build/cuda100/gcc/all/debug/shared:
     BUILD_TYPE: Debug
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -261,6 +272,7 @@ build/cuda100/clang/all/release/static:
     BUILD_SHARED_LIBS: "OFF"
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -276,6 +288,7 @@ build/cuda100/intel/cuda/release/shared:
     BUILD_TYPE: Release
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -291,6 +304,7 @@ build/cuda101/gcc/all/debug/shared:
     BUILD_TYPE: Debug
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -307,6 +321,7 @@ build/cuda101/clang/all/release/static:
     BUILD_TYPE: Debug
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -322,6 +337,7 @@ build/cuda101/intel/cuda/debug/static:
     BUILD_TYPE: Debug
     EXTRA_CMAKE_FLAGS: *cuda_flags
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -335,6 +351,7 @@ build/amd/gcc/hip/debug/shared:
     BUILD_HIP: "ON"
     BUILD_TYPE: Debug
   tags:
+    - private_ci
     - amd
     - gpu
 
@@ -350,6 +367,7 @@ build/amd/clang/hip/release/static:
     BUILD_TYPE: Release
     BUILD_SHARED_LIBS: "OFF"
   tags:
+    - private_ci
     - amd
     - gpu
 
@@ -363,6 +381,7 @@ build/nocuda/gcc/core/debug/static:
     BUILD_TYPE: Debug
     BUILD_SHARED_LIBS: "OFF"
   tags:
+    - private_ci
     - cpu
 
 build/nocuda/clang/core/release/shared:
@@ -375,6 +394,7 @@ build/nocuda/clang/core/release/shared:
     BUILD_REFERENCE: "OFF"
     BUILD_TYPE: Release
   tags:
+    - private_ci
     - cpu
 
 build/nocuda/intel/core/debug/shared:
@@ -387,6 +407,7 @@ build/nocuda/intel/core/debug/shared:
     BUILD_REFERENCE: "OFF"
     BUILD_TYPE: Debug
   tags:
+    - private_ci
     - cpu
 
 build/nocuda/gcc/omp/release/shared:
@@ -397,6 +418,7 @@ build/nocuda/gcc/omp/release/shared:
     BUILD_OMP: "ON"
     BUILD_TYPE: Release
   tags:
+    - private_ci
     - cpu
 
 build/nocuda/clang/omp/debug/static:
@@ -410,6 +432,7 @@ build/nocuda/clang/omp/debug/static:
     BUILD_TYPE: Debug
     BUILD_SHARED_LIBS: "OFF"
   tags:
+    - private_ci
     - cpu
 
 build/nocuda/intel/omp/release/static:
@@ -423,6 +446,7 @@ build/nocuda/intel/omp/release/static:
     BUILD_TYPE: Release
     BUILD_SHARED_LIBS: "OFF"
   tags:
+    - private_ci
     - cpu
 
 
@@ -440,6 +464,7 @@ warnings:
   dependencies: []
   allow_failure: yes
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -457,6 +482,7 @@ no-circular-deps:
   dependencies: []
   allow_failure: no
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -474,6 +500,7 @@ clang-tidy:
   dependencies: []
   allow_failure: yes
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -490,6 +517,7 @@ iwyu:
   dependencies: []
   allow_failure: yes
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -530,6 +558,7 @@ sonarqube_cov_:
     variables:
       - $PUBLIC_CI_TAG
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -556,6 +585,7 @@ sonarqube_cov:
     variables:
       - $PUBLIC_CI_TAG
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -603,6 +633,9 @@ gh-pages:
       - $PUBLIC_CI_TAG
   except:
       - schedules
+  tags:
+    - private_ci
+    - cpu
 
 
 threadsanitizer:
@@ -621,6 +654,7 @@ threadsanitizer:
     variables:
       - $PUBLIC_CI_TAG
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -640,6 +674,7 @@ addresssanitizer:
     variables:
       - $PUBLIC_CI_TAG
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -658,6 +693,7 @@ valgrind:
     variables:
       - $PUBLIC_CI_TAG
   tags:
+    - private_ci
     - cuda
     - gpu
 
@@ -683,6 +719,7 @@ valgrind:
 
 fineci-benchmark-build:
   stage: benchmark-build
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     BENCHMARK_SERVER: FINECI
@@ -721,6 +758,8 @@ fineci-benchmark-build:
     - schedules
 #    - develop
 #    - master
+  tags:
+    - private_ci
 
 
 # Benchmark runs
@@ -759,6 +798,7 @@ fineci-benchmark-build:
 
 fineci-benchmark-cuda:
   stage: benchmark-cuda
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     BENCHMARK_SERVER: FINECI
@@ -767,6 +807,8 @@ fineci-benchmark-cuda:
     BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
     SYSTEM_NAME: K20Xm
   <<: *default_benchmark
+  tags:
+    - private_ci
 
 # fineci-benchmark-omp:
 #   stage: benchmark-omp
@@ -792,6 +834,7 @@ fineci-benchmark-cuda:
 
 new-issue-on-failure:
   stage: on-failure
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   script: curl --request POST "https://gitlab.com/api/v4/projects/${PROJECT_ID}/issues?private_token=${BOT_ACCESS_TOKEN}&title=Error%20in%20${CI_PROJECT_NAME}%20with%20pipeline%20${CI_PIPELINE_ID}%20for%20commit%20${CI_COMMIT_SHA}&labels&description=${CI_PIPELINE_URL}"
   when: on_failure
   only:
@@ -799,3 +842,6 @@ new-issue-on-failure:
       - develop
       - master
   dependencies: []
+  tags:
+    - private_ci
+    - cpu
