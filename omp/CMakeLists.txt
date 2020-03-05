@@ -27,8 +27,13 @@ target_sources(ginkgo_omp
         stop/residual_norm_reduction_kernels.cpp)
 
 ginkgo_compile_features(ginkgo_omp)
-target_link_libraries(ginkgo_omp PRIVATE OpenMP::OpenMP_CXX)
-target_compile_options(ginkgo_omp PRIVATE "${OpenMP_CXX_FLAGS}")
+
+target_link_libraries(ginkgo_omp PRIVATE "${OpenMP_CXX_LIBRARIES}")
+target_include_directories(ginkgo_omp PRIVATE "${OpenMP_CXX_INCLUDE_DIRS}")
+# We first separate the arguments, otherwise, the target_compile_options adds it as a string
+# and the compiler is unhappy with the quotation marks.
+separate_arguments(OpenMP_SEP_FLAGS NATIVE_COMMAND "${OpenMP_CXX_FLAGS}")
+target_compile_options(ginkgo_omp PRIVATE "${OpenMP_SEP_FLAGS}")
 target_compile_options(ginkgo_omp PRIVATE "${GINKGO_COMPILER_FLAGS}")
 
 # Need to link against ginkgo_cuda for the `raw_copy_to(CudaExecutor ...)` method
