@@ -97,7 +97,8 @@ std::string format_description =
     "cusp_csrex: benchmark CuSPARSE with the cusparseXcsrmvEx function.\n"
     "cusp_csrmp: benchmark CuSPARSE with the cusparseXcsrmv_mp function.\n"
     "cusp_csrmm: benchmark CuSPARSE with the cusparseXcsrmv_mm function."
-#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
+#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) && \
+    !(defined(_WIN32) || defined(__CYGWIN__))
     "\n"
     "cusp_gcsr: benchmark CuSPARSE with the generic csr with default "
     "algorithm.\n"
@@ -105,7 +106,8 @@ std::string format_description =
     "CUSPARSE_CSRMV_ALG2.\n"
     "cusp_gcoo: benchmark CuSPARSE with the generic coo with default "
     "algorithm.\n"
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) &&
+        // !(defined(_WIN32) || defined(__CYGWIN__))
 #endif  // HAS_CUDA
 #ifdef HAS_HIP
     "\n"
@@ -192,11 +194,13 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"cusp_hybrid", read_matrix_from_data<cusp_hybrid>},
         {"cusp_coo", read_matrix_from_data<cusp_coo>},
         {"cusp_ell", read_matrix_from_data<cusp_ell>},
-#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
+#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) && \
+    !(defined(_WIN32) || defined(__CYGWIN__))
         {"cusp_gcsr", read_matrix_from_data<cusp_gcsr>},
         {"cusp_gcsr2", read_matrix_from_data<cusp_gcsr2>},
         {"cusp_gcoo", read_matrix_from_data<cusp_gcoo>},
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) &&
+        // !(defined(_WIN32) || defined(__CYGWIN__))
 #endif  // HAS_CUDA
 #ifdef HAS_HIP
         {"hipsp_csr", read_matrix_from_data<hipsp_csr>},

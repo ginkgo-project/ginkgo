@@ -482,7 +482,8 @@ private:
 };
 
 
-#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
+#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) && \
+    !(defined(_WIN32) || defined(__CYGWIN__))
 
 
 template <typename ValueType>
@@ -677,7 +678,8 @@ private:
 };
 
 
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) &&
+        // !(defined(_WIN32) || defined(__CYGWIN__))
 
 
 }  // namespace detail
@@ -690,7 +692,8 @@ using cusp_csrmp = detail::CuspCsrmp<>;
 using cusp_csrmm = detail::CuspCsrmm<>;
 
 
-#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
+#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) && \
+    !(defined(_WIN32) || defined(__CYGWIN__))
 
 
 using cusp_gcsr = detail::CuspGenericCsr<>;
@@ -699,7 +702,8 @@ using cusp_gcsr2 =
 using cusp_gcoo = detail::CuspGenericCoo<>;
 
 
-#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010)
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) &&
+        // !(defined(_WIN32) || defined(__CYGWIN__))
 
 
 using cusp_coo =
