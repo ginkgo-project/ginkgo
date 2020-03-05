@@ -9,12 +9,23 @@ set(GINKGO_INSTALL_CONFIG_DIR "lib/cmake/Ginkgo")
 set(GINKGO_INSTALL_MODULE_DIR "lib/cmake/Ginkgo/Modules")
 
 function(ginkgo_install_library name subdir)
-    # install .so and .a files
-    install(TARGETS "${name}"
-        EXPORT Ginkgo
-        LIBRARY DESTINATION ${GINKGO_INSTALL_LIBRARY_DIR}
-        ARCHIVE DESTINATION ${GINKGO_INSTALL_LIBRARY_DIR}
+    
+    if (WIN32 OR CYGWIN)
+        # dll is considered as runtime
+        install(TARGETS "${name}"
+            EXPORT Ginkgo
+            LIBRARY DESTINATION ${GINKGO_INSTALL_LIBRARY_DIR}
+            ARCHIVE DESTINATION ${GINKGO_INSTALL_LIBRARY_DIR}
+            RUNTIME DESTINATION ${GINKGO_INSTALL_LIBRARY_DIR}
+            )
+    else ()
+        # install .so and .a files
+        install(TARGETS "${name}"
+            EXPORT Ginkgo
+            LIBRARY DESTINATION ${GINKGO_INSTALL_LIBRARY_DIR}
+            ARCHIVE DESTINATION ${GINKGO_INSTALL_LIBRARY_DIR}
         )
+    endif ()
 endfunction()
 
 function(ginkgo_install)
