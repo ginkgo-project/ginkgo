@@ -55,9 +55,11 @@ namespace {
 
 class Dense : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
-    using Arr = gko::Array<int>;
-    using ComplexMtx = gko::matrix::Dense<std::complex<double>>;
+    using itype = int;
+    using vtype = double;
+    using Mtx = gko::matrix::Dense<vtype>;
+    using Arr = gko::Array<itype>;
+    using ComplexMtx = gko::matrix::Dense<std::complex<vtype>>;
 
     Dense() : rand_engine(15) {}
 
@@ -125,11 +127,11 @@ protected:
         dbeta = Mtx::create(cuda);
         dbeta->copy_from(beta.get());
 
-        std::vector<int> tmp(x->get_size()[0], 0);
+        std::vector<itype> tmp(x->get_size()[0], 0);
         auto rng = std::default_random_engine{};
         std::iota(tmp.begin(), tmp.end(), 0);
         std::shuffle(tmp.begin(), tmp.end(), rng);
-        std::vector<int> tmp2(x->get_size()[1], 0);
+        std::vector<itype> tmp2(x->get_size()[1], 0);
         std::iota(tmp2.begin(), tmp2.end(), 0);
         std::shuffle(tmp2.begin(), tmp2.end(), rng);
         rpermute_idxs =
