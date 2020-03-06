@@ -30,6 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+// prevent compilation failure related to disappearing assert(...) statements
+#include <hip/hip_runtime.h>
+
+
 #include <ginkgo/core/base/executor.hpp>
 
 
@@ -38,11 +42,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <gtest/gtest.h>
-#include <hip/hip_runtime.h>
 
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+
+
+#include "hip/test/utils.hip.hpp"
 
 
 namespace {

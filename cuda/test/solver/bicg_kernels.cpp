@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/solver/bicg_kernels.hpp"
-#include "core/test/utils.hpp"
+#include "cuda/test/utils.hpp"
 #include "matrices/config.hpp"
 
 

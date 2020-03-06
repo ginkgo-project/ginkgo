@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/matrix/ell_kernels.hpp"
+#include "hip/test/utils.hip.hpp"
 
 
 namespace {

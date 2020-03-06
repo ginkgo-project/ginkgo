@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "cuda/base/config.hpp"
+#include "cuda/test/utils.hpp"
 
 
 namespace {
