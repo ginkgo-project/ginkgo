@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_TEST_NORESET_HIP_HPP_
-#define GKO_HIP_TEST_NORESET_HIP_HPP_
+#ifndef GKO_HIP_TEST_UTILS_HIP_HPP_
+#define GKO_HIP_TEST_UTILS_HIP_HPP_
 
 
 #include <ginkgo/core/base/executor.hpp>
@@ -51,4 +51,4 @@ auto no_reset_exec =
 }  // namespace
 
 
-#endif  // GKO_HIP_TEST_NORESET_HIP_HPP_
+#endif  // GKO_HIP_TEST_UTILS_HIP_HPP_
