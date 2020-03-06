@@ -1,0 +1,32 @@
+name: OSX-build
+
+on: [push]
+
+jobs:
+  osx-clang-omp:
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {shared: "ON", build_type: "Debug", name: "omp/debug/shared"}
+        - {shared: "OFF", build_type: "Release", name: "omp/release/static"}
+    name: ${{ matrix.config.name }}
+    runs-on: [macos-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: setup
+      run: brew install libomp
+    - name: info
+      run: |
+        g++ -v
+        cmake --version
+    - name: configure
+      run: |
+        mkdir build
+        cd build
+        cmake .. -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }}
+        make -j8 
+        ctest -j10
+        make install
+        make test_install
