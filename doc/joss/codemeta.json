@@ -1,0 +1,58 @@
+{
+  "@context": "https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld",
+  "@type": "Code",
+  "author": [
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "terry.cojean@kit.edu",
+      "name": "Terry Cojean",
+      "affiliation": "Karlsruhe Institute of Technology"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "pratik.nayak@kit.edu",
+      "name": "Pratik Nayak",
+      "affiliation": "Karlsruhe Insitute of Technology"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "thomas.gruetzmacher@kit.edu",
+      "name": "Thomas Grützmacher",
+      "affiliation": "Karlsruhe Institute of Technology"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "ribizel@kit.edu",
+      "name": "Tobias Ribizel",
+      "affiliation": "Karlsruhe Insitute of Technology"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "yu-hsiang.tsai@kit.edu",
+      "name": "Yuhsiang M. Tsai",
+      "affiliation": "Karlsruhe Insitute of Technology"
+    },
+    {
+      "@id": "",
+      "@type": "Person",
+      "email": "hartwig.anzt@kit.edu",
+      "name": "Hartwig Anzt",
+      "affiliation": "Karlsruhe Insitute of Technology"
+    }
+  ],
+  "identifier": "",
+  "codeRepository": "https://github.com/ginkgo-project/ginkgo",
+  "datePublished": "2020-03-06",
+  "dateModified": "2020-03-06",
+  "dateCreated": "2020-03-06",
+  "description": "A high performance numerical linear algebra library.",
+  "keywords": "hpc,linear-algebra,cuda,hip,modern-c++,spmv",
+  "license": "BSD 3-Clause",
+  "title": "Ginkgo",
+  "version": "v1.1.1"
+}
