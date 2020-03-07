@@ -33,7 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/reorder/rcm_kernels.hpp"
 
 
-#include <bits/stdc++.h>
 #include <algorithm>
 #include <iterator>
 #include <memory>
