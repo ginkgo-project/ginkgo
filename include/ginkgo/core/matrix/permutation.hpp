@@ -60,7 +60,7 @@ static constexpr mask_type column_permute = mask_type{1 << 2};
 static constexpr mask_type inverse_permute = mask_type{1 << 3};
 
 /**
- * Permutation is a matrix format which stores the row and column permutation
+ * Permutation is a matrix "format" which stores the row and column permutation
  * arrays which can be used for re-ordering the rows and columns a matrix.
  *
  * @tparam IndexType  precision of permutation array indices.
@@ -68,7 +68,8 @@ static constexpr mask_type inverse_permute = mask_type{1 << 3};
  * @note This format is used mainly to allow for an abstraction of the
  * permutation/re-ordering and provides the user with an apply method which
  * calls the respective LinOp's permute operation if the respective LinOp
- * implements the Permutable interface.
+ * implements the Permutable interface. As such it only stores an array of the
+ * permutation indices.
  *
  * @ingroup permutation
  * @ingroup mat_formats
@@ -114,6 +115,23 @@ public:
         return permutation_.get_num_elems();
     }
 
+    /**
+     * Get the permute masks
+     *
+     * @return  permute_mask the permute masks
+     */
+    mask_type get_permute_mask() const { return enabled_permute_; }
+
+    /**
+     * Set the permute masks
+     *
+     * @param permute_mask the permute masks
+     */
+    void set_permute_mask(mask_type permute_mask)
+    {
+        enabled_permute_ = permute_mask;
+    }
+
 
 protected:
     /**
@@ -130,13 +148,15 @@ protected:
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the permutable matrix
+     * @param enabled_permute  mask for the type of permutation to apply.
      */
-    Permutation(std::shared_ptr<const Executor> exec, const dim<2> &size)
+    Permutation(std::shared_ptr<const Executor> exec, const dim<2> &size,
+                const mask_type &enabled_permute = row_permute)
         : EnableLinOp<Permutation>(exec, size),
           permutation_(exec, size[0]),
           row_size_(size[0]),
           col_size_(size[1]),
-          enabled_permute_(row_permute)
+          enabled_permute_(enabled_permute)
     {}
 
     /**
@@ -148,6 +168,7 @@ protected:
      * @param exec  Executor associated to the matrix
      * @param size  size of the permutation array.
      * @param permutation_indices array of permutation array
+     * @param enabled_permute  mask for the type of permutation to apply.
      *
      * @note If `permutation_indices` is not an rvalue, not an array of
      * IndexType, or is on the wrong executor, an internal copy will be created,

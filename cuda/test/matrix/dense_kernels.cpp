@@ -55,8 +55,11 @@ namespace {
 
 class Dense : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
-    using ComplexMtx = gko::matrix::Dense<std::complex<double>>;
+    using itype = int;
+    using vtype = double;
+    using Mtx = gko::matrix::Dense<vtype>;
+    using Arr = gko::Array<itype>;
+    using ComplexMtx = gko::matrix::Dense<std::complex<vtype>>;
 
     Dense() : rand_engine(15) {}
 
@@ -123,6 +126,22 @@ protected:
         dalpha->copy_from(alpha.get());
         dbeta = Mtx::create(cuda);
         dbeta->copy_from(beta.get());
+
+        std::vector<itype> tmp(x->get_size()[0], 0);
+        auto rng = std::default_random_engine{};
+        std::iota(tmp.begin(), tmp.end(), 0);
+        std::shuffle(tmp.begin(), tmp.end(), rng);
+        std::vector<itype> tmp2(x->get_size()[1], 0);
+        std::iota(tmp2.begin(), tmp2.end(), 0);
+        std::shuffle(tmp2.begin(), tmp2.end(), rng);
+        rpermute_idxs =
+            std::unique_ptr<Arr>(new Arr{ref, tmp.begin(), tmp.end()});
+        drpermute_idxs =
+            std::unique_ptr<Arr>(new Arr{cuda, tmp.begin(), tmp.end()});
+        cpermute_idxs =
+            std::unique_ptr<Arr>(new Arr{ref, tmp2.begin(), tmp2.end()});
+        dcpermute_idxs =
+            std::unique_ptr<Arr>(new Arr{cuda, tmp2.begin(), tmp2.end()});
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -142,6 +161,10 @@ protected:
     std::unique_ptr<Mtx> dy;
     std::unique_ptr<Mtx> dalpha;
     std::unique_ptr<Mtx> dbeta;
+    std::unique_ptr<Arr> rpermute_idxs;
+    std::unique_ptr<Arr> drpermute_idxs;
+    std::unique_ptr<Arr> cpermute_idxs;
+    std::unique_ptr<Arr> dcpermute_idxs;
 };
 
 
@@ -460,6 +483,54 @@ TEST_F(Dense, CalculateTotalColsIsEquivalentToRef)
         cuda, dx.get(), &dtotal_cols, 2, gko::matrix::default_slice_size);
 
     ASSERT_EQ(total_cols, dtotal_cols);
+}
+
+
+TEST_F(Dense, IsRowPermutable)
+{
+    set_up_apply_data();
+
+    auto r_permute = x->row_permute(rpermute_idxs.get());
+    auto dr_permute = dx->row_permute(drpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(r_permute.get()),
+                        static_cast<Mtx *>(dr_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsColPermutable)
+{
+    set_up_apply_data();
+
+    auto c_permute = x->column_permute(cpermute_idxs.get());
+    auto dc_permute = dx->column_permute(dcpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(c_permute.get()),
+                        static_cast<Mtx *>(dc_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsInverseRowPermutable)
+{
+    set_up_apply_data();
+
+    auto inverse_r_permute = x->inverse_row_permute(rpermute_idxs.get());
+    auto d_inverse_r_permute = dx->inverse_row_permute(drpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(inverse_r_permute.get()),
+                        static_cast<Mtx *>(d_inverse_r_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsInverseColPermutable)
+{
+    set_up_apply_data();
+
+    auto inverse_c_permute = x->inverse_column_permute(cpermute_idxs.get());
+    auto d_inverse_c_permute = dx->inverse_column_permute(dcpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(inverse_c_permute.get()),
+                        static_cast<Mtx *>(d_inverse_c_permute.get()), 0);
 }
 
 
