@@ -64,11 +64,11 @@ kernels for a wide variety of parameters.
 # Performance and Benchmarking
 
 A unique feature of Ginkgo is the availability of the performance data from various high performance
-systems on a git repository `[@gko-data]` and its corresponding visualization on an interactive
-webpage `[@gpe]`. We have also put in some effort in making benchmarking easier, within the 
-Ginkgo repository using the `rapidjson` `[@rapidjson]` and  `gflags` `[@gflags]` libraries. 
+systems on a git repository [@gko-data] and its corresponding visualization on an interactive
+webpage [@gpe]. We have also put in some effort in making benchmarking easier, within the 
+Ginkgo repository using the `rapidjson` [@rapidjson] and  `gflags` [@gflags] libraries. 
 
-Various papers on the performance Ginkgo have been published.`[@gko:spmv; ]`
+Various papers on the performance of Ginkgo have been published.[@old_spmv; ]
 
 
 # Acknowledgements
