@@ -58,7 +58,7 @@ var sectionId = 'dynsection-0';
 <!-- Node1 -->
 <g id="node1" class="node">
 <title>Node1</title>
-<g id="a_node1"><a xlink:title="Permutation is a matrix format which stores the row and column permutation arrays which can be used f...">
+<g id="a_node1"><a xlink:title="Permutation is a matrix &quot;format&quot; which stores the row and column permutation arrays which can be used...">
 <polygon fill="#bfbfbf" stroke="#000000" points="2127,-82.5 2127,-112.5 2266,-112.5 2266,-82.5 2127,-82.5"/>
 <text text-anchor="start" x="2135" y="-100.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Permutation</text>
 <text text-anchor="middle" x="2196.5" y="-89.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; IndexType &gt;</text>
