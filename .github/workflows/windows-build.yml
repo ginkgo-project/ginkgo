@@ -38,6 +38,7 @@ jobs:
     - name: shared_env
       if: matrix.config.shared == 'ON'
       run: |
+        echo "::set-env name=origin_path::$env:PATH"
         echo "::add-path::$pwd\build\windows_shared_library"
     - name: debug_env
       if: matrix.config.build_type == 'Debug'
@@ -50,6 +51,22 @@ jobs:
         cmake -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_OMP=OFF ..
         cmake --build . -j8 --config ${{ matrix.config.build_type }}
         ctest . -C ${{ matrix.config.build_type }}
+        cmake --install . --config ${{ matrix.config.build_type }}
+    - name: test_install (allowed failed)
+      run: |
+        cd build
+        cmake --build . --target test_install
+      continue-on-error: true
+    - name: install_shared_env
+      if: matrix.config.shared == 'ON'
+      run: |
+        echo "::set-env name=PATH::C:\Program Files (x86)\Ginkgo\lib;$env:origin_path"
+        echo $env:PATH
+    - name: test_install
+      run: |
+        cd build/test_install
+        cmake --build . --config ${{ matrix.config.build_type }}
+        .\${{ matrix.config.build_type }}\test_install.exe
 
   windows_mingw:
     strategy:
@@ -93,28 +110,44 @@ jobs:
     name: cygwin/${{ matrix.config.name }}
     runs-on: [windows-latest]
     steps:
+    - run: git config --global core.autocrlf input
     - uses: actions/checkout@v2
     - name: setup
       run: |
         choco install cygwin -y
         choco install cyg-get -y
         cyg-get cmake make gcc-g++ git
-    - name: shared_env
-      if: matrix.config.shared == 'ON'
+    - name: add_env
       run: |
-        echo "::add-path::$pwd\build\windows_shared_library"
+        echo "::set-env name=shared_ON_path::;$pwd\build\windows_shared_library"
+        echo "::set-env name=shared_OFF_path::"
     - name: debug_env
       if: matrix.config.build_type == 'Debug'
       run: |
         echo "::set-env name=CXXFLAGS::-Wa,-mbig-obj"
     - name: configure
       run: |
-        path C:\tools\cygwin\bin
+        path C:\tools\cygwin\bin%shared_${{ matrix.config.shared }}_path%
+        echo %PATH%
         mkdir build
         cd build
-        cmake  -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} ..
-        make -j8
-        make test
-        make install
-        make test_install
+        bash -c "cmake -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} .."
+        bash -c "make -j8"
+        bash -c "make test"
+        bash -c "make install"
+        bash -c "./omp/test/factorization/par_ilu_kernels.exe"
+      shell: cmd
+    - name: test_install_shared
+      if: matrix.config.shared == 'ON'
+      run: |
+        path C:\tools\cygwin\bin
+        cd build
+        bash -c "export PATH=/usr/local/lib:$PATH && make test_install"
+      shell: cmd
+    - name: test_install_static
+      if: matrix.config.shared == 'OFF'
+      run: |
+        path C:\tools\cygwin\bin
+        cd build
+        bash -c "make test_install"
       shell: cmd
