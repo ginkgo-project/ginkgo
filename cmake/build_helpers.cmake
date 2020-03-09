@@ -78,3 +78,10 @@ function(ginkgo_check_shared_library name)
             "Please add ${GINKGO_WINDOWS_SHARED_LIBRARY_PATH} into the environment variable PATH.")
     endif()
 endfunction()
+
+macro(ginkgo_modify_flags name)
+    # add escape before "
+    # the result var is ${name}_MODIFY
+    string(REPLACE "\"" "\\\"" ${name}_MODIFY "${${name}}")
+    message("MODIFY ${${name}} ${${name}_MODIFY}")
+endmacro()
