@@ -230,6 +230,10 @@ endif()
 configure_file(${Ginkgo_SOURCE_DIR}/cmake/ginkgo.pc.in
     ${Ginkgo_BINARY_DIR}/ginkgo.pc @ONLY)
 
+# WINDOWS NVCC has " inside the string, add escape charater to avoid config problem.
+ginkgo_modify_flags(CMAKE_CUDA_FLAGS)
+ginkgo_modify_flags(CMAKE_CUDA_FLAGS_DEBUG)
+ginkgo_modify_flags(CMAKE_CUDA_FLAGS_RELEASE)
 ginkgo_install()
 
 if (MSVC)
