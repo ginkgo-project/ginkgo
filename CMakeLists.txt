@@ -150,6 +150,7 @@ configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
 include(cmake/build_helpers.cmake)
 include(cmake/hip_helpers.cmake)
 include(cmake/install_helpers.cmake)
+include(cmake/windows_helpers.cmake)
 
 # This is modified from https://gitlab.kitware.com/cmake/community/wikis/FAQ#dynamic-replace
 if(MSVC)
@@ -231,16 +232,26 @@ configure_file(${Ginkgo_SOURCE_DIR}/cmake/ginkgo.pc.in
 
 ginkgo_install()
 
-set(GINKGO_TEST_INSTALL_COMMAND "${Ginkgo_BINARY_DIR}/test_install/test_install")
-if (GINKGO_BUILD_CUDA)
-    set(GINKGO_TEST_INSTALL_COMMAND "${GINKGO_TEST_INSTALL_COMMAND}" && "${Ginkgo_BINARY_DIR}/test_install/test_install_cuda")
-endif()
+if (MSVC)
+    # Set path/command with $<CONFIG>
+    set(GINKGO_TEST_INSTALL_COMMAND "${Ginkgo_BINARY_DIR}/test_install/$<CONFIG>/test_install")
+    if (GINKGO_BUILD_CUDA)
+        set(GINKGO_TEST_INSTALL_COMMAND "${GINKGO_TEST_INSTALL_COMMAND}" "${Ginkgo_BINARY_DIR}/test_install/$<CONFIG>/test_install_cuda")
+    endif ()
+    set(GINKGO_BUILD_TEST_INSTALL_COMMAND COMMAND ${CMAKE_COMMAND} --build ${Ginkgo_BINARY_DIR}/test_install --config $<CONFIG>)
+else ()
+    set(GINKGO_TEST_INSTALL_COMMAND "${Ginkgo_BINARY_DIR}/test_install/test_install")
+    if (GINKGO_BUILD_CUDA)
+        set(GINKGO_TEST_INSTALL_COMMAND "${GINKGO_TEST_INSTALL_COMMAND}" "${Ginkgo_BINARY_DIR}/test_install/test_install_cuda")
+    endif ()
+    set(GINKGO_BUILD_TEST_INSTALL_COMMAND COMMAND ${CMAKE_COMMAND} --build ${Ginkgo_BINARY_DIR}/test_install)
+endif ()
 add_custom_target(test_install
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} -H${Ginkgo_SOURCE_DIR}/test_install
         -B${Ginkgo_BINARY_DIR}/test_install
         -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_CONFIG_DIR}
-        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
-    COMMAND ${CMAKE_COMMAND} --build ${Ginkgo_BINARY_DIR}/test_install
+        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+    COMMAND ${GINKGO_BUILD_TEST_INSTALL_COMMAND}
     COMMAND ${GINKGO_TEST_INSTALL_COMMAND}
     COMMENT "Running a test on the installed binaries. This requires running `(sudo) make install` first.")
 
