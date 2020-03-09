@@ -7,6 +7,85 @@ title = {Overcoming Load Imbalance for Irregular Sparse Matrices},
 doi = {10.1145/3149704.3149767}
 }
 
+@article{parilut,
+  title={ParILUT - A Parallel Threshold ILU for GPUs},
+  author={Hartwig Anzt and Tobias Ribizel and Goran Flegar and Edmond Chow and Jack Dongarra},
+  journal={2019 IEEE International Parallel and Distributed Processing Symposium (IPDPS)},
+  year={2019},
+  pages={231-241}
+}
+
+
+@article{adaptive-bj,
+author = {Anzt, Hartwig and Dongarra, Jack and Flegar, Goran and Higham, Nicholas J. and Quintana-Ortí, Enrique S.},
+title = {Adaptive precision in block-Jacobi preconditioning for iterative sparse linear system solvers},
+journal = {Concurrency and Computation: Practice and Experience},
+volume = {31},
+number = {6},
+pages = {e4460},
+keywords = {adaptive precision, block-Jacobi preconditioning, communication reduction, energy efficiency, Krylov subspace methods, sparse linear systems},
+doi = {10.1002/cpe.4460},
+url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/cpe.4460},
+eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/cpe.4460},
+note = {e4460 cpe.4460},
+abstract = {Summary We propose an adaptive scheme to reduce communication overhead caused by data movement by selectively storing the diagonal blocks of a block-Jacobi preconditioner in different precision formats (half, single, or double). This specialized preconditioner can then be combined with any Krylov subspace method for the solution of sparse linear systems to perform all arithmetic in double precision. We assess the effects of the adaptive precision preconditioner on the iteration count and data transfer cost of a preconditioned conjugate gradient solver. A preconditioned conjugate gradient method is, in general, a memory bandwidth-bound algorithm, and therefore its execution time and energy consumption are largely dominated by the costs of accessing the problem's data in memory. Given this observation, we propose a model that quantifies the time and energy savings of our approach based on the assumption that these two costs depend linearly on the bit length of a floating point number. Furthermore, we use a number of test problems from the SuiteSparse matrix collection to estimate the potential benefits of the adaptive block-Jacobi preconditioning scheme.},
+year = {2019}
+}
+
+
+@article{dealii,
+        title   = {The \texttt{deal.II} Library, Version 9.1},
+        author  = {D. Arndt and W. Bangerth and T. C. Clevenger and D. Davydov and
+                   M. Fehling and D. Garcia-Sanchez and G. Harper and T. Heister and
+                   L. Heltai and M. Kronbichler and R. M. Kynch and M. Maier and
+                   J.-P. Pelteret and B. Turcksin and D. Wells},
+        journal = {Journal of Numerical Mathematics},
+        note    = {accepted},
+        year    = {2019},
+        DOI     = {10.1515/jnma-2019-0064},
+        url     = {https://dealii.org/deal91-preprint.pdf}
+      }
+
+@ARTICLE{mfem,
+       author = {{Anderson}, Robert and {Andrej}, Julian and {Barker}, Andrew and
+         {Bramwell}, Jamie and {Camier}, Jean-Sylvain and {Cerveny}, Jakub and
+         {Dobrev}, Veselin and {Dudouit}, Yohann and {Fisher}, Aaron and
+         {Kolev}, Tzanio and {Pazner}, Will and {Stowell}, Mark and
+         {Tomov}, Vladimir and {Dahm}, Johann and {Medina}, David and
+         {Zampini}, Stefano},
+        title = "{MFEM: a modular finite element methods library}",
+      journal = {arXiv e-prints},
+     keywords = {Computer Science - Mathematical Software, Mathematics - Numerical Analysis},
+         year = 2019,
+        month = nov,
+          eid = {arXiv:1911.09220},
+        pages = {arXiv:1911.09220},
+archivePrefix = {arXiv},
+       eprint = {1911.09220},
+ primaryClass = {cs.MS},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2019arXiv191109220A},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
+
+@InProceedings{papi,
+author="Terpstra, Dan
+and Jagode, Heike
+and You, Haihang
+and Dongarra, Jack",
+editor="M{\"u}ller, Matthias S.
+and Resch, Michael M.
+and Schulz, Alexander
+and Nagel, Wolfgang E.",
+title="Collecting Performance Data with PAPI-C",
+booktitle="Tools for High Performance Computing 2009",
+year="2010",
+publisher="Springer Berlin Heidelberg",
+address="Berlin, Heidelberg",
+pages="157--173",
+abstract="Modern high performance computer systems continue to increase in size and complexity. Tools to measure application performance in these increasingly complex environments must also increase the richness of their measurements to provide insights into the increasingly intricate ways in which software and hardware interact. PAPI (the Performance API) has provided consistent platform and operating system independent access to CPU hardware performance counters for nearly a decade. Recent trends toward massively parallel multi-core systems with often heterogeneous architectures present new challenges for the measurement of hardware performance information, which is now available not only on the CPU core itself, but scattered across the chip and system. We discuss the evolution of PAPI into Component PAPI, or PAPI-C, in which multiple sources of performance data can be measured simultaneously via a common software interface. Several examples of components and component data measurements are discussed. We explore the challenges to hardware performance measurement in existing multi-core architectures. We conclude with an exploration of future directions for the PAPI interface.",
+isbn="978-3-642-11261-4"
+}
+
 
 @misc{gko-data,
   title = {Ginkgo Performance data},
@@ -20,6 +99,12 @@ doi = {10.1145/3149704.3149767}
   title = {Ginkgo Performance Explorer},
   year = {2020},
   url = {https://ginkgo-project.github.io/gpe/}
+}
+
+@misc{xsdk,
+  title = {xSDK: Extreme-scale Scientific Software Development Kit},
+  year = {2020},
+  url = {https://xsdk.info/}
 }
 
 @misc{rapidjson,
@@ -36,4 +121,20 @@ doi = {10.1145/3149704.3149767}
   publisher = {​GitHub},
   journal = {​GitHub repository},
   url = {https://github.com/gflags/gflags}
+}
+
+@misc{gtest,
+  title = {Googletest - Google Testing and Mocking Framework.},
+  year = {2020},
+  publisher = {​GitHub},
+  journal = {​GitHub repository},
+  url = {https://github.com/google/googletest}
+}
+
+@misc{sonarcloud,
+  title = {Sonarcloud - A source code analyzer.},
+  year = {2020},
+  publisher = {​GitHub},
+  journal = {​GitHub repository},
+  url = {https://sonarcloud.io/}
 }
