@@ -283,6 +283,8 @@ void solve_system(const std::string &solver_name,
                           rapidjson::Value(rapidjson::kArrayType), allocator);
         add_or_set_member(solver_json, "true_residuals",
                           rapidjson::Value(rapidjson::kArrayType), allocator);
+        add_or_set_member(solver_json, "iteration_timestamps",
+                          rapidjson::Value(rapidjson::kArrayType), allocator);
         if (FLAGS_nrhs == 1 && !FLAGS_overhead) {
             auto rhs_norm = compute_norm2(lend(b));
             add_or_set_member(solver_json, "rhs_norm", rhs_norm, allocator);
@@ -355,7 +357,8 @@ void solve_system(const std::string &solver_name,
                 auto res_logger = std::make_shared<ResidualLogger<etype>>(
                     exec, lend(system_matrix), b,
                     solver_json["recurrent_residuals"],
-                    solver_json["true_residuals"], allocator);
+                    solver_json["true_residuals"],
+                    solver_json["iteration_timestamps"], allocator);
                 solver->add_logger(res_logger);
                 solver->apply(lend(b), lend(x_clone));
             }

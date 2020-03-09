@@ -198,6 +198,11 @@ struct ResidualLogger : gko::log::Logger {
                                const gko::LinOp *solution,
                                const gko::LinOp *residual_norm) const override
     {
+        timestamps.PushBack(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::steady_clock::now() - start)
+                .count(),
+            alloc);
         if (residual_norm) {
             rec_res_norms.PushBack(
                 get_norm(gko::as<vec<ValueType>>(residual_norm)), alloc);
@@ -219,20 +224,25 @@ struct ResidualLogger : gko::log::Logger {
                    const gko::LinOp *matrix, const vec<ValueType> *b,
                    rapidjson::Value &rec_res_norms,
                    rapidjson::Value &true_res_norms,
+                   rapidjson::Value &timestamps,
                    rapidjson::MemoryPoolAllocator<> &alloc)
         : gko::log::Logger(exec, gko::log::Logger::iteration_complete_mask),
           matrix{matrix},
           b{b},
+          start{std::chrono::steady_clock::now()},
           rec_res_norms{rec_res_norms},
           true_res_norms{true_res_norms},
+          timestamps{timestamps},
           alloc{alloc}
     {}
 
 private:
     const gko::LinOp *matrix;
     const vec<ValueType> *b;
+    std::chrono::steady_clock::time_point start;
     rapidjson::Value &rec_res_norms;
     rapidjson::Value &true_res_norms;
+    rapidjson::Value &timestamps;
     rapidjson::MemoryPoolAllocator<> &alloc;
 };
 
