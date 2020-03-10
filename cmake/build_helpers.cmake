@@ -83,5 +83,4 @@ macro(ginkgo_modify_flags name)
     # add escape before "
     # the result var is ${name}_MODIFY
     string(REPLACE "\"" "\\\"" ${name}_MODIFY "${${name}}")
-    message("MODIFY ${${name}} ${${name}_MODIFY}")
 endmacro()
