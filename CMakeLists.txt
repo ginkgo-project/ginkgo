@@ -75,7 +75,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
 endif()
 
-if (BUILD_SHARED_LIBS)
+if(BUILD_SHARED_LIBS)
     set(GINKGO_STATIC_OR_SHARED SHARED)
 else()
     set(GINKGO_STATIC_OR_SHARED STATIC)
@@ -99,11 +99,11 @@ if(GINKGO_BUILD_TESTS)
     include(CTest)
 endif()
 
-if (GINKGO_WITH_CLANG_TIDY)
+if(GINKGO_WITH_CLANG_TIDY)
   find_program(GINKGO_CLANG_TIDY_PATH clang-tidy)
 endif()
 
-if (GINKGO_WITH_IWYU)
+if(GINKGO_WITH_IWYU)
   find_program(GINKGO_IWYU_PATH iwyu)
 endif()
 
@@ -117,14 +117,14 @@ check_include_file_cxx(cxxabi.h GKO_HAVE_CXXABI_H)
 # Automatically find PAPI and search for the required 'sde' component
 set(GINKGO_HAVE_PAPI_SDE 0)
 find_package(PAPI OPTIONAL_COMPONENTS sde)
-if (PAPI_sde_FOUND)
+if(PAPI_sde_FOUND)
     set(GINKGO_HAVE_PAPI_SDE 1)
 endif()
 
 set(GINKGO_HIP_PLATFORM_NVCC 0)
 set(GINKGO_HIP_PLATFORM_HCC 0)
 
-if (GINKGO_BUILD_HIP)
+if(GINKGO_BUILD_HIP)
     # GINKGO_HIPCONFIG_PATH and HIP_PATH are set in cmake/hip_path.cmake
     if(GINKGO_HIPCONFIG_PATH)
         execute_process(COMMAND ${GINKGO_HIPCONFIG_PATH} --platform OUTPUT_VARIABLE GINKGO_HIP_PLATFORM)
@@ -236,20 +236,20 @@ ginkgo_modify_flags(CMAKE_CUDA_FLAGS_DEBUG)
 ginkgo_modify_flags(CMAKE_CUDA_FLAGS_RELEASE)
 ginkgo_install()
 
-if (MSVC)
+if(MSVC)
     # Set path/command with $<CONFIG>
     set(GINKGO_TEST_INSTALL_COMMAND "${Ginkgo_BINARY_DIR}/test_install/$<CONFIG>/test_install")
-    if (GINKGO_BUILD_CUDA)
+    if(GINKGO_BUILD_CUDA)
         set(GINKGO_TEST_INSTALL_COMMAND "${GINKGO_TEST_INSTALL_COMMAND}" "${Ginkgo_BINARY_DIR}/test_install/$<CONFIG>/test_install_cuda")
-    endif ()
+    endif()
     set(GINKGO_BUILD_TEST_INSTALL_COMMAND COMMAND ${CMAKE_COMMAND} --build ${Ginkgo_BINARY_DIR}/test_install --config $<CONFIG>)
-else ()
+else()
     set(GINKGO_TEST_INSTALL_COMMAND "${Ginkgo_BINARY_DIR}/test_install/test_install")
-    if (GINKGO_BUILD_CUDA)
+    if(GINKGO_BUILD_CUDA)
         set(GINKGO_TEST_INSTALL_COMMAND "${GINKGO_TEST_INSTALL_COMMAND}" "${Ginkgo_BINARY_DIR}/test_install/test_install_cuda")
-    endif ()
+    endif()
     set(GINKGO_BUILD_TEST_INSTALL_COMMAND COMMAND ${CMAKE_COMMAND} --build ${Ginkgo_BINARY_DIR}/test_install)
-endif ()
+endif()
 add_custom_target(test_install
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} -H${Ginkgo_SOURCE_DIR}/test_install
         -B${Ginkgo_BINARY_DIR}/test_install
