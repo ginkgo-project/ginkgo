@@ -14,6 +14,8 @@ authors:
   - name: Terry Cojean
     orcid: 0000-0002-1560-921X
     affiliation: 1 
+  - name: Goran Flegar
+    orcid: 0000-0002-4154-0420
   - name: Thomas Gr\"{u}tzmacher 
     affiliation: 1 
   - name: Pratik Nayak 
@@ -123,7 +125,9 @@ easier, within the Ginkgo repository using the `rapidjson` [@rapidjson] and
 of Ginkgo features.
 
 # Acknowledgements
-TODO: Update this:
-This project was supported by the Helmholtz Institute []  and the US - DOE funding.
+Research and software development in Ginkgo received support from the Helmholtz 
+association (Impuls und Vernetzungsfond VH-NG-1241), and the US Exascale Computing 
+Project (17-SC-20-SC), a collaborative effort of the U.S. Department of Energy Office 
+of Science and the National Nuclear Security Administration.
 
 # References
