@@ -125,6 +125,12 @@ INCLUDE_REGEX="^#include.*"
 INCLUDE_INC="\.inc"
 MAIN_PART_MATCH=""
 
+# FORCE_TOP_ON/OFF is only valid before other #include
+FORCE_TOP_ON="// force-top: on"
+FORCE_TOP_OFF="// force-top: off"
+FORCE_TOP="force_top"
+DURING_FORCE_TOP="false"
+
 get_include_regex $1 MAIN_PART_MATCH
 HEADER_DEF=$(get_header_def $1)
 
@@ -150,8 +156,14 @@ while IFS='' read -r line || [ -n "$line" ]; do
         if [ "${line}" = "${GINKGO_LICENSE_BEACON}*/" ]; then
             DURING_LICENSE="false"
         fi
+    elif [ "${SKIP}" = "true" ] && ([ "$line" = "${FORCE_TOP_ON}" ] || [ "${DURING_FORCE_TOP}" = "true" ]); then
+        DURING_FORCE_TOP="true"
+        if [ "$line" = "${FORCE_TOP_OFF}" ]; then
+            DURING_FORCE_TOP="false"
+        fi
+        echo "$line" >> "${FORCE_TOP}"
     elif [ -z "${line}" ] && [ "${SKIP}" = "true" ]; then
-    # Ignore all empty lines beteen LICENSE and Header
+    # Ignore all empty lines between LICENSE and Header
         :
     else
         if [ -z "${line}" ]; then
@@ -216,6 +228,13 @@ if [ ! -z "${DEFINE}" ]; then
     echo "" >> $1
 fi
 
+if [ -f "${FORCE_TOP}" ]; then
+    cat "${FORCE_TOP}" >> $1
+    echo "" >> $1
+    echo "" >> $1
+    rm "${FORCE_TOP}"
+fi
+
 if [ -f "${BEFORE}" ]; then
     # sort or remove the duplication
     clang-format -i ${BEFORE}
@@ -227,7 +246,7 @@ if [ -f "${BEFORE}" ]; then
         echo "" >> $1
         echo "" >> $1
     fi
-    rm ${BEFORE}
+    rm "${BEFORE}"
 fi
 
 if [ -f "${CONTENT}" ]; then
@@ -246,9 +265,9 @@ if [ -f "${CONTENT}" ]; then
             cat temp > ${CONTENT}
         fi
     else
-        cat temp > ${CONTENT}
+        cat temp > "${CONTENT}"
     fi
-    clang-format -i ${CONTENT}
+    clang-format -i "${CONTENT}"
     rm temp
     remove_regroup
     PREV_INC=0
@@ -268,6 +287,6 @@ if [ -f "${CONTENT}" ]; then
             fi
         fi
         echo "${line}" >> $1
-    done < ${CONTENT}
-    rm ${CONTENT}
+    done < "${CONTENT}"
+    rm "${CONTENT}"
 fi

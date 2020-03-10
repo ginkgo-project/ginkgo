@@ -30,8 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+// force-top: on
 // prevent compilation failure related to disappearing assert(...) statements
 #include <hip/hip_runtime.h>
+// force-top: off
 
 
 #include <ginkgo/core/base/math.hpp>
