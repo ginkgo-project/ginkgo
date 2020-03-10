@@ -14,22 +14,31 @@ authors:
   - name: Terry Cojean
     orcid: 0000-0002-1560-921X
     affiliation: 1 
+  - name: Yen-Chen Chen 
+    affiliation: 4 
   - name: Goran Flegar
     orcid: 0000-0002-4154-0420
-  - name: Thomas Gr\"{u}tzmacher 
+    affiliation: 3 
+  - name: Fritz G{\"o}bel
     affiliation: 1 
+  - name: Thomas Gr{\"u}tzmacher 
+    affiliation: 1
   - name: Pratik Nayak 
     orcid: 0000-0002-7961-1159
     affiliation: 1 
   - name: Tobias Ribizel 
     affiliation: 1 
-  - name: Yu-hsiang Tsai 
+  - name: Yu-Hsiang Tsai 
     affiliation: 1 
 affiliations:
  - name: Karlsruhe Institute of Technology
    index: 1
  - name: Innovative Computing Laboratory, University of Tennessee, Knoxville 
    index: 2
+ - name: University of Jaume I 
+   index: 3
+ - name: University of Tokyo 
+   index: 4
 date: 6th March, 2020.
 bibliography: paper.bib
 
