@@ -30,8 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+// force-top: on
 // TODO remove when the HIP includes are fixed
 #include <hip/hip_runtime.h>
+// force-top: off
 
 
 #include "hip/components/searching.hip.hpp"
