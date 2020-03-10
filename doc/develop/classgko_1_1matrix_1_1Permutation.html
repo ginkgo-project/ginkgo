@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/124469354 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/123926986 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -79,7 +79,7 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 
-<p><a class="el" href="classgko_1_1matrix_1_1Permutation.html" title="Permutation is a matrix &quot;format&quot; which stores the row and column permutation arrays which can be used...">Permutation</a> is a matrix "format" which stores the row and column permutation arrays which can be used for re-ordering the rows and columns a matrix.  
+<p><a class="el" href="classgko_1_1matrix_1_1Permutation.html" title="Permutation is a matrix format which stores the row and column permutation arrays which can be used f...">Permutation</a> is a matrix format which stores the row and column permutation arrays which can be used for re-ordering the rows and columns a matrix.  
  <a href="classgko_1_1matrix_1_1Permutation.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="permutation_8hpp_source.html">ginkgo/core/matrix/permutation.hpp</a>&gt;</code></p>
@@ -115,12 +115,6 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a576d006fe37902ff0b47050ecb87b416"><td class="memItemLeft" align="right" valign="top"><a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Permutation.html#a576d006fe37902ff0b47050ecb87b416">get_permutation_size</a> () const noexcept</td></tr>
 <tr class="memdesc:a576d006fe37902ff0b47050ecb87b416"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of elements explicitly stored in the permutation array.  <a href="classgko_1_1matrix_1_1Permutation.html#a576d006fe37902ff0b47050ecb87b416">More...</a><br /></td></tr>
 <tr class="separator:a576d006fe37902ff0b47050ecb87b416"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a29fc6728ed79dda46178790bc3b32503"><td class="memItemLeft" align="right" valign="top">mask_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Permutation.html#a29fc6728ed79dda46178790bc3b32503">get_permute_mask</a> () const</td></tr>
-<tr class="memdesc:a29fc6728ed79dda46178790bc3b32503"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the permute masks.  <a href="classgko_1_1matrix_1_1Permutation.html#a29fc6728ed79dda46178790bc3b32503">More...</a><br /></td></tr>
-<tr class="separator:a29fc6728ed79dda46178790bc3b32503"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad1fbbe30f0c282aa02558163a6820434"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Permutation.html#ad1fbbe30f0c282aa02558163a6820434">set_permute_mask</a> (mask_type permute_mask)</td></tr>
-<tr class="memdesc:ad1fbbe30f0c282aa02558163a6820434"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the permute masks.  <a href="classgko_1_1matrix_1_1Permutation.html#ad1fbbe30f0c282aa02558163a6820434">More...</a><br /></td></tr>
-<tr class="separator:ad1fbbe30f0c282aa02558163a6820434"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_classgko_1_1EnableLinOp"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classgko_1_1EnableLinOp')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classgko_1_1EnableLinOp.html">gko::EnableLinOp&lt; Permutation&lt; IndexType &gt; &gt;</a></td></tr>
 <tr class="memitem:a28a3c32ed2934695b46969533db050da inherit pub_methods_classgko_1_1EnableLinOp"><td class="memItemLeft" align="right" valign="top"><a id="a28a3c32ed2934695b46969533db050da"></a>
 const Permutation&lt; IndexType &gt; *&#160;</td><td class="memItemRight" valign="bottom"><b>apply</b> (const <a class="el" href="classgko_1_1LinOp.html">LinOp</a> *b, <a class="el" href="classgko_1_1LinOp.html">LinOp</a> *x) const</td></tr>
@@ -257,14 +251,14 @@ static std::unique_ptr&lt; Permutation&lt; IndexType &gt; &gt;&#160;</td><td cla
 <div class="textblock"><h3>template&lt;typename IndexType = int32&gt;<br />
 class gko::matrix::Permutation&lt; IndexType &gt;</h3>
 
-<p><a class="el" href="classgko_1_1matrix_1_1Permutation.html" title="Permutation is a matrix &quot;format&quot; which stores the row and column permutation arrays which can be used...">Permutation</a> is a matrix "format" which stores the row and column permutation arrays which can be used for re-ordering the rows and columns a matrix. </p>
+<p><a class="el" href="classgko_1_1matrix_1_1Permutation.html" title="Permutation is a matrix format which stores the row and column permutation arrays which can be used f...">Permutation</a> is a matrix format which stores the row and column permutation arrays which can be used for re-ordering the rows and columns a matrix. </p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
     <tr><td class="paramname">IndexType</td><td>precision of permutation array indices.</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section note"><dt>Note</dt><dd>This format is used mainly to allow for an abstraction of the permutation/re-ordering and provides the user with an apply method which calls the respective <a class="el" href="classgko_1_1LinOp.html">LinOp</a>'s permute operation if the respective <a class="el" href="classgko_1_1LinOp.html">LinOp</a> implements the <a class="el" href="classgko_1_1Permutable.html" title="Linear operators which support permutation should implement the Permutable interface.">Permutable</a> interface. As such it only stores an array of the permutation indices. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>This format is used mainly to allow for an abstraction of the permutation/re-ordering and provides the user with an apply method which calls the respective <a class="el" href="classgko_1_1LinOp.html">LinOp</a>'s permute operation if the respective <a class="el" href="classgko_1_1LinOp.html">LinOp</a> implements the <a class="el" href="classgko_1_1Permutable.html" title="Linear operators which support permutation should implement the Permutable interface.">Permutable</a> interface. </dd></dl>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="afade97c61c352cd4fbe25ed8a4b77a90"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#afade97c61c352cd4fbe25ed8a4b77a90">&#9670;&nbsp;</a></span>get_const_permutation()</h2>
@@ -363,74 +357,8 @@ template&lt;typename IndexType  = int32&gt; </div>
 
 </div>
 </div>
-<a id="a29fc6728ed79dda46178790bc3b32503"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a29fc6728ed79dda46178790bc3b32503">&#9670;&nbsp;</a></span>get_permute_mask()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;typename IndexType  = int32&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">mask_type <a class="el" href="classgko_1_1matrix_1_1Permutation.html">gko::matrix::Permutation</a>&lt; IndexType &gt;::get_permute_mask </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Get the permute masks. </p>
-<dl class="section return"><dt>Returns</dt><dd>permute_mask the permute masks </dd></dl>
-
-</div>
-</div>
-<a id="ad1fbbe30f0c282aa02558163a6820434"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad1fbbe30f0c282aa02558163a6820434">&#9670;&nbsp;</a></span>set_permute_mask()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;typename IndexType  = int32&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">void <a class="el" href="classgko_1_1matrix_1_1Permutation.html">gko::matrix::Permutation</a>&lt; IndexType &gt;::set_permute_mask </td>
-          <td>(</td>
-          <td class="paramtype">mask_type&#160;</td>
-          <td class="paramname"><em>permute_mask</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Set the permute masks. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">permute_mask</td><td>the permute masks </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/matrix/<a class="el" href="permutation_8hpp_source.html">permutation.hpp (edf646ee2)</a></li>
+<li>ginkgo/core/matrix/<a class="el" href="permutation_8hpp_source.html">permutation.hpp (29444d385)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

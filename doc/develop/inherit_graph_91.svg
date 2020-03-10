@@ -1347,7 +1347,7 @@
 <!-- Node178 -->
 <g id="node87" class="node">
 <title>Node178</title>
-<g id="a_node87"><a xlink:href="classgko_1_1matrix_1_1Permutation.html" target="_top" xlink:title="Permutation is a matrix &quot;format&quot; which stores the row and column permutation arrays which can be used...">
+<g id="a_node87"><a xlink:href="classgko_1_1matrix_1_1Permutation.html" target="_top" xlink:title="Permutation is a matrix format which stores the row and column permutation arrays which can be used f...">
 <polygon fill="#ffffff" stroke="#000000" points="1713.5,-342 1713.5,-372 1852.5,-372 1852.5,-342 1713.5,-342"/>
 <text text-anchor="start" x="1721.5" y="-360" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Permutation</text>
 <text text-anchor="middle" x="1783" y="-349" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; IndexType &gt;</text>
