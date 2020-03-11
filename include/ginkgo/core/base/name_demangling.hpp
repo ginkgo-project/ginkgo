@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/config.hpp>
 
+
 #ifdef GKO_HAVE_CXXABI_H
 #include <cxxabi.h>
 #endif  // GKO_HAVE_CXXABI_H

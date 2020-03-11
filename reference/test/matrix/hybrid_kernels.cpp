@@ -31,6 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include "core/matrix/hybrid_kernels.hpp"
+#include <ginkgo/core/matrix/hybrid.hpp>
 
 
 #include <memory>

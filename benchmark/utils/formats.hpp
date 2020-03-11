@@ -45,10 +45,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #ifdef HAS_CUDA
-#include "cuda_linops.hpp"
+#include "benchmark/utils/cuda_linops.hpp"
 #endif  // HAS_CUDA
 #ifdef HAS_HIP
-#include "hip_linops.hip.hpp"
+#include "benchmark/utils/hip_linops.hip.hpp"
 #endif  // HAS_HIP
 
 
