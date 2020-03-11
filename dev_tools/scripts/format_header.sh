@@ -272,7 +272,15 @@ if [ -f "${CONTENT}" ]; then
     remove_regroup
     PREV_INC=0
     IN_IF="false"
+    SKIP="true"
     while IFS='' read -r line; do
+        # Skip the empty line in the beginning
+        if [ "${SKIP}" = "true" ] && [[ -z "${line}" ]]; then
+            continue
+        else
+            SKIP="false"
+        fi
+        # Insert content with correct number empty lines
         if [[ ${line} =~ ${INCLUDE_REGEX} ]] && [[ ! ${line} =~ ${INCLUDE_INC} ]]; then
             if [[ ${PREV_INC} == 1 ]]; then
                 echo "" >> $1
