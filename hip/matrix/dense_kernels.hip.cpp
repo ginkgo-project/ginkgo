@@ -247,8 +247,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const HipExecutor> exec,
-                    matrix::Coo<ValueType, IndexType> *result,
-                    const matrix::Dense<ValueType> *source)
+                    const matrix::Dense<ValueType> *source,
+                    matrix::Coo<ValueType, IndexType> *result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -281,8 +281,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
-                    matrix::Csr<ValueType, IndexType> *result,
-                    const matrix::Dense<ValueType> *source)
+                    const matrix::Dense<ValueType> *source,
+                    matrix::Csr<ValueType, IndexType> *result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -317,8 +317,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_ell(std::shared_ptr<const HipExecutor> exec,
-                    matrix::Ell<ValueType, IndexType> *result,
-                    const matrix::Dense<ValueType> *source)
+                    const matrix::Dense<ValueType> *source,
+                    matrix::Ell<ValueType, IndexType> *result)
 {
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
@@ -344,8 +344,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const HipExecutor> exec,
-                       matrix::Hybrid<ValueType, IndexType> *result,
-                       const matrix::Dense<ValueType> *source)
+                       const matrix::Dense<ValueType> *source,
+                       matrix::Hybrid<ValueType, IndexType> *result)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -354,8 +354,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const HipExecutor> exec,
-                      matrix::Sellp<ValueType, IndexType> *result,
-                      const matrix::Dense<ValueType> *source)
+                      const matrix::Dense<ValueType> *source,
+                      matrix::Sellp<ValueType, IndexType> *result)
 {
     const auto stride = source->get_stride();
     const auto num_rows = result->get_size()[0];
@@ -401,8 +401,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_sparsity_csr(std::shared_ptr<const HipExecutor> exec,
-                             matrix::SparsityCsr<ValueType, IndexType> *result,
-                             const matrix::Dense<ValueType> *source)
+                             const matrix::Dense<ValueType> *source,
+                             matrix::SparsityCsr<ValueType, IndexType> *result)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -532,8 +532,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void transpose(std::shared_ptr<const HipExecutor> exec,
-               matrix::Dense<ValueType> *trans,
-               const matrix::Dense<ValueType> *orig)
+               const matrix::Dense<ValueType> *orig,
+               matrix::Dense<ValueType> *trans)
 {
     if (hipblas::is_supported<ValueType>::value) {
         auto handle = exec->get_hipblas_handle();
@@ -557,8 +557,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_TRANSPOSE_KERNEL);
 
 template <typename ValueType>
 void conj_transpose(std::shared_ptr<const HipExecutor> exec,
-                    matrix::Dense<ValueType> *trans,
-                    const matrix::Dense<ValueType> *orig)
+                    const matrix::Dense<ValueType> *orig,
+                    matrix::Dense<ValueType> *trans)
 {
     if (hipblas::is_supported<ValueType>::value) {
         auto handle = exec->get_hipblas_handle();
@@ -583,8 +583,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONJ_TRANSPOSE_KERNEL);
 template <typename ValueType, typename IndexType>
 void row_permute(std::shared_ptr<const HipExecutor> exec,
                  const Array<IndexType> *permutation_indices,
-                 matrix::Dense<ValueType> *row_permuted,
-                 const matrix::Dense<ValueType> *orig)
+                 const matrix::Dense<ValueType> *orig,
+                 matrix::Dense<ValueType> *row_permuted)
 {
     constexpr auto block_size = default_block_size;
     const dim3 grid_dim =
@@ -604,8 +604,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ROW_PERMUTE_KERNEL);
 template <typename ValueType, typename IndexType>
 void column_permute(std::shared_ptr<const HipExecutor> exec,
                     const Array<IndexType> *permutation_indices,
-                    matrix::Dense<ValueType> *column_permuted,
-                    const matrix::Dense<ValueType> *orig)
+                    const matrix::Dense<ValueType> *orig,
+                    matrix::Dense<ValueType> *column_permuted)
 {
     constexpr auto block_size = default_block_size;
     const dim3 grid_dim =
@@ -627,8 +627,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void inverse_row_permute(std::shared_ptr<const HipExecutor> exec,
                          const Array<IndexType> *permutation_indices,
-                         matrix::Dense<ValueType> *row_permuted,
-                         const matrix::Dense<ValueType> *orig)
+                         const matrix::Dense<ValueType> *orig,
+                         matrix::Dense<ValueType> *row_permuted)
 {
     constexpr auto block_size = default_block_size;
     const dim3 grid_dim =
@@ -649,8 +649,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void inverse_column_permute(std::shared_ptr<const HipExecutor> exec,
                             const Array<IndexType> *permutation_indices,
-                            matrix::Dense<ValueType> *column_permuted,
-                            const matrix::Dense<ValueType> *orig)
+                            const matrix::Dense<ValueType> *orig,
+                            matrix::Dense<ValueType> *column_permuted)
 {
     constexpr auto block_size = default_block_size;
     const dim3 grid_dim =

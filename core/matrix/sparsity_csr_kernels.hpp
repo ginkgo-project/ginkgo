@@ -60,8 +60,8 @@ namespace kernels {
                                                                  IndexType) \
     void remove_diagonal_elements(                                          \
         std::shared_ptr<const DefaultExecutor> exec,                        \
-        matrix::SparsityCsr<ValueType, IndexType> *matrix,                  \
-        const IndexType *row_ptrs, const IndexType *col_idxs)
+        const IndexType *row_ptrs, const IndexType *col_idxs,               \
+        matrix::SparsityCsr<ValueType, IndexType> *matrix)
 
 #define GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL(ValueType, \
                                                                     IndexType) \
@@ -70,10 +70,10 @@ namespace kernels {
         const matrix::SparsityCsr<ValueType, IndexType> *matrix,               \
         size_type *num_diagonal_elements)
 
-#define GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL(ValueType, IndexType) \
-    void transpose(std::shared_ptr<const DefaultExecutor> exec,         \
-                   matrix::SparsityCsr<ValueType, IndexType> *trans,    \
-                   const matrix::SparsityCsr<ValueType, IndexType> *orig)
+#define GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL(ValueType, IndexType)   \
+    void transpose(std::shared_ptr<const DefaultExecutor> exec,           \
+                   const matrix::SparsityCsr<ValueType, IndexType> *orig, \
+                   matrix::SparsityCsr<ValueType, IndexType> *trans)
 
 #define GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType) \
     void sort_by_column_index(                                              \

@@ -181,8 +181,8 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     // Since the transposed version has the exact same non-zero positions
     // as `u_factor`, we can both skip the allocation and the `make_srow()`
     // call from CSR, leaving just the `transpose()` kernel call
-    exec->run(par_ilu_factorization::make_csr_transpose(u_factor.get(),
-                                                        u_factor_transpose));
+    exec->run(par_ilu_factorization::make_csr_transpose(u_factor_transpose,
+                                                        u_factor.get()));
 
     return Composition<ValueType>::create(std::move(l_factor),
                                           std::move(u_factor));

@@ -213,8 +213,8 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                         x->get_values(), hip_solve_struct->policy,
                         hip_solve_struct->factor_work_vec);
                 } else {
-                    dense::transpose(exec, trans_b, b);
-                    dense::transpose(exec, trans_x, x);
+                    dense::transpose(exec, b, trans_b);
+                    dense::transpose(exec, x, trans_x);
                     for (IndexType i = 0; i < trans_b->get_size()[0]; i++) {
                         hipsparse::csrsv2_solve(
                             handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,
@@ -230,7 +230,7 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                             hip_solve_struct->policy,
                             hip_solve_struct->factor_work_vec);
                     }
-                    dense::transpose(exec, x, trans_x);
+                    dense::transpose(exec, trans_x, x);
                 }
             }
         } else {

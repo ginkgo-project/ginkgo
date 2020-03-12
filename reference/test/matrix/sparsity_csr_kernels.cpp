@@ -334,8 +334,8 @@ TYPED_TEST(SparsityCsr, RemovesDiagonalElementsForFullRankMatrix)
     tmp_mtx->copy_from(mtx2.get());
 
     gko::kernels::reference::sparsity_csr::remove_diagonal_elements(
-        this->exec, tmp_mtx.get(), mtx2->get_const_row_ptrs(),
-        mtx2->get_const_col_idxs());
+        this->exec, mtx2->get_const_row_ptrs(), mtx2->get_const_col_idxs(),
+        tmp_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(tmp_mtx.get(), mtx_s.get(), 0.0);
 }
@@ -357,8 +357,8 @@ TYPED_TEST(SparsityCsr, RemovesDiagonalElementsForIncompleteRankMatrix)
     tmp_mtx->copy_from(mtx2.get());
 
     gko::kernels::reference::sparsity_csr::remove_diagonal_elements(
-        this->exec, tmp_mtx.get(), mtx2->get_const_row_ptrs(),
-        mtx2->get_const_col_idxs());
+        this->exec, mtx2->get_const_row_ptrs(), mtx2->get_const_col_idxs(),
+        tmp_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(tmp_mtx.get(), mtx_s.get(), 0.0);
 }

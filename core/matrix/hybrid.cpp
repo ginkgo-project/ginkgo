@@ -114,7 +114,7 @@ void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(hybrid::make_convert_to_dense(tmp.get(), this));
+    exec->run(hybrid::make_convert_to_dense(this, tmp.get()));
     tmp->move_to(result);
 }
 
@@ -137,7 +137,7 @@ void Hybrid<ValueType, IndexType>::convert_to(
 
     auto tmp = Csr<ValueType, IndexType>::create(
         exec, this->get_size(), num_stored_elements, result->get_strategy());
-    exec->run(hybrid::make_convert_to_csr(tmp.get(), this));
+    exec->run(hybrid::make_convert_to_csr(this, tmp.get()));
 
     tmp->make_srow();
     tmp->move_to(result);

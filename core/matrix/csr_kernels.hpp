@@ -77,30 +77,30 @@ namespace kernels {
                          const matrix::Csr<ValueType, IndexType> *d,  \
                          matrix::Csr<ValueType, IndexType> *c)
 
-#define GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)  \
-    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
-                          matrix::Dense<ValueType> *result,            \
-                          const matrix::Csr<ValueType, IndexType> *source)
+#define GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)      \
+    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,     \
+                          const matrix::Csr<ValueType, IndexType> *source, \
+                          matrix::Dense<ValueType> *result)
 
-#define GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL(ValueType, IndexType)  \
-    void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec, \
-                        matrix::Coo<ValueType, IndexType> *result,   \
-                        const matrix::Csr<ValueType, IndexType> *source)
+#define GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL(ValueType, IndexType)      \
+    void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,     \
+                        const matrix::Csr<ValueType, IndexType> *source, \
+                        matrix::Coo<ValueType, IndexType> *result)
 
-#define GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL(ValueType, IndexType)  \
-    void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec, \
-                        matrix::Ell<ValueType, IndexType> *result,   \
-                        const matrix::Csr<ValueType, IndexType> *source)
+#define GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL(ValueType, IndexType)      \
+    void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,     \
+                        const matrix::Csr<ValueType, IndexType> *source, \
+                        matrix::Ell<ValueType, IndexType> *result)
 
-#define GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL(ValueType, IndexType)   \
-    void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,  \
-                           matrix::Hybrid<ValueType, IndexType> *result, \
-                           const matrix::Csr<ValueType, IndexType> *source)
+#define GKO_DECLARE_CSR_CONVERT_TO_HYBRID_KERNEL(ValueType, IndexType)      \
+    void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,     \
+                           const matrix::Csr<ValueType, IndexType> *source, \
+                           matrix::Hybrid<ValueType, IndexType> *result)
 
-#define GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType)  \
-    void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec, \
-                          matrix::Sellp<ValueType, IndexType> *result, \
-                          const matrix::Csr<ValueType, IndexType> *source)
+#define GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType)      \
+    void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,     \
+                          const matrix::Csr<ValueType, IndexType> *source, \
+                          matrix::Sellp<ValueType, IndexType> *result)
 
 #define GKO_DECLARE_CSR_CALCULATE_TOTAL_COLS_KERNEL(ValueType, IndexType)      \
     void calculate_total_cols(std::shared_ptr<const DefaultExecutor> exec,     \
@@ -108,40 +108,40 @@ namespace kernels {
                               size_type *result, size_type stride_factor,      \
                               size_type slice_size)
 
-#define GKO_DECLARE_CSR_TRANSPOSE_KERNEL(ValueType, IndexType)  \
-    void transpose(std::shared_ptr<const DefaultExecutor> exec, \
-                   matrix::Csr<ValueType, IndexType> *trans,    \
-                   const matrix::Csr<ValueType, IndexType> *orig)
+#define GKO_DECLARE_CSR_TRANSPOSE_KERNEL(ValueType, IndexType)    \
+    void transpose(std::shared_ptr<const DefaultExecutor> exec,   \
+                   const matrix::Csr<ValueType, IndexType> *orig, \
+                   matrix::Csr<ValueType, IndexType> *trans)
 
-#define GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)  \
-    void conj_transpose(std::shared_ptr<const DefaultExecutor> exec, \
-                        matrix::Csr<ValueType, IndexType> *trans,    \
-                        const matrix::Csr<ValueType, IndexType> *orig)
+#define GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)    \
+    void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,   \
+                        const matrix::Csr<ValueType, IndexType> *orig, \
+                        matrix::Csr<ValueType, IndexType> *trans)
 
-#define GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL(ValueType, IndexType)      \
-    void row_permute(std::shared_ptr<const DefaultExecutor> exec,     \
-                     const Array<IndexType> *permutation_indices,     \
-                     matrix::Csr<ValueType, IndexType> *row_permuted, \
-                     const matrix::Csr<ValueType, IndexType> *orig)
+#define GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL(ValueType, IndexType)    \
+    void row_permute(std::shared_ptr<const DefaultExecutor> exec,   \
+                     const Array<IndexType> *permutation_indices,   \
+                     const matrix::Csr<ValueType, IndexType> *orig, \
+                     matrix::Csr<ValueType, IndexType> *row_permuted)
 
-#define GKO_DECLARE_CSR_COLUMN_PERMUTE_KERNEL(ValueType, IndexType)         \
-    void column_permute(std::shared_ptr<const DefaultExecutor> exec,        \
-                        const Array<IndexType> *permutation_indices,        \
-                        matrix::Csr<ValueType, IndexType> *column_permuted, \
-                        const matrix::Csr<ValueType, IndexType> *orig)
+#define GKO_DECLARE_CSR_COLUMN_PERMUTE_KERNEL(ValueType, IndexType)    \
+    void column_permute(std::shared_ptr<const DefaultExecutor> exec,   \
+                        const Array<IndexType> *permutation_indices,   \
+                        const matrix::Csr<ValueType, IndexType> *orig, \
+                        matrix::Csr<ValueType, IndexType> *column_permuted)
 
-#define GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL(ValueType, IndexType)      \
-    void inverse_row_permute(std::shared_ptr<const DefaultExecutor> exec,     \
-                             const Array<IndexType> *permutation_indices,     \
-                             matrix::Csr<ValueType, IndexType> *row_permuted, \
-                             const matrix::Csr<ValueType, IndexType> *orig)
+#define GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL(ValueType, IndexType)    \
+    void inverse_row_permute(std::shared_ptr<const DefaultExecutor> exec,   \
+                             const Array<IndexType> *permutation_indices,   \
+                             const matrix::Csr<ValueType, IndexType> *orig, \
+                             matrix::Csr<ValueType, IndexType> *row_permuted)
 
 #define GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType) \
     void inverse_column_permute(                                            \
         std::shared_ptr<const DefaultExecutor> exec,                        \
         const Array<IndexType> *permutation_indices,                        \
-        matrix::Csr<ValueType, IndexType> *column_permuted,                 \
-        const matrix::Csr<ValueType, IndexType> *orig)
+        const matrix::Csr<ValueType, IndexType> *orig,                      \
+        matrix::Csr<ValueType, IndexType> *column_permuted)
 
 #define GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType, IndexType) \
     void calculate_max_nnz_per_row(                                            \
