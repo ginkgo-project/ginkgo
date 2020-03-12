@@ -33,9 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/time.hpp>
 
 
-#include <gtest/gtest.h>
 #include <chrono>
 #include <thread>
+
+
+#include <gtest/gtest.h>
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
 #endif

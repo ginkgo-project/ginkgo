@@ -33,13 +33,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/combined.hpp>
 
 
-#include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/time.hpp>
+#include <chrono>
+#include <thread>
 
 
 #include <gtest/gtest.h>
-#include <chrono>
-#include <thread>
+
+
+#include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/time.hpp>
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
 #endif
