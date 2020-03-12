@@ -30,16 +30,16 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_EXCEPTION_HELPERS_HPP_
-#define GKO_CORE_EXCEPTION_HELPERS_HPP_
+#ifndef GKO_CORE_BASE_EXCEPTION_HELPERS_HPP_
+#define GKO_CORE_BASE_EXCEPTION_HELPERS_HPP_
+
+
+#include <typeinfo>
 
 
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
-
-
-#include <typeinfo>
 
 
 namespace gko {
@@ -486,4 +486,4 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
 }  // namespace gko
 
 
-#endif  // GKO_CORE_EXCEPTION_HELPERS_HPP_
+#endif  // GKO_CORE_BASE_EXCEPTION_HELPERS_HPP_

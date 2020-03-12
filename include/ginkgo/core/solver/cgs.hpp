@@ -149,4 +149,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_CGS_HPP
+#endif  // GKO_CORE_SOLVER_CGS_HPP_

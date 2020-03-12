@@ -34,18 +34,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_MATRIX_DATA_HPP_
 
 
+#include <algorithm>
+#include <numeric>
+#include <tuple>
+#include <vector>
+
+
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
-
-
-#include <algorithm>
-#include <numeric>
-#include <tuple>
-#include <vector>
 
 
 namespace gko {

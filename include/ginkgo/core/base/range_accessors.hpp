@@ -34,10 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_RANGE_ACCESSORS_HPP_
 
 
-#include <ginkgo/core/base/range.hpp>
-
-
 #include <array>
+
+
+#include <ginkgo/core/base/range.hpp>
 
 
 namespace gko {

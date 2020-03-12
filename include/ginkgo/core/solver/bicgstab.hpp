@@ -157,4 +157,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_BICGSTAB_HPP
+#endif  // GKO_CORE_SOLVER_BICGSTAB_HPP_
