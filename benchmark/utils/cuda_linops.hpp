@@ -37,10 +37,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/ginkgo.hpp>
 
 
+#include <memory>
+
+
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <cusparse.h>
-#include <memory>
 
 
 #include "cuda/base/cusparse_bindings.hpp"
