@@ -1,3 +1,5 @@
+- "test_install|benchmark"
+    - FixInclude: "ginkgo/ginkgo.hpp"
 - "executor"
     - FixInclude: "ginkgo/core/base/executor.hpp"
 - "hip/base/config.hip.hpp"
