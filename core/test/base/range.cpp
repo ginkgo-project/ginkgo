@@ -33,10 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/range.hpp>
 
 
-#include <gtest/gtest.h>
-
-
 #include <array>
+
+
+#include <gtest/gtest.h>
 
 
 namespace {

@@ -34,8 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_MATRIX_DENSE_KERNELS_HPP_
 
 
-#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {

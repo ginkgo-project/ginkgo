@@ -30,7 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <core/solver/gmres.cpp>
 #include <ginkgo/core/solver/gmres.hpp>
 
 
@@ -47,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
 
 
+#include "core/solver/gmres.cpp"
 #include "core/test/utils.hpp"
 
 

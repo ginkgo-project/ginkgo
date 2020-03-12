@@ -33,12 +33,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/combined.hpp>
 
 
-#include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/time.hpp>
+#include <thread>
 
 
 #include <gtest/gtest.h>
-#include <thread>
+
+
+#include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/time.hpp>
 
 
 namespace {
