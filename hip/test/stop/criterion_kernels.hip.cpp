@@ -31,13 +31,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/stop/criterion.hpp>
-#include <ginkgo/core/stop/iteration.hpp>
 
 
 #include <gtest/gtest.h>
 
 
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 
 #include "hip/test/utils.hip.hpp"

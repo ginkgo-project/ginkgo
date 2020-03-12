@@ -45,7 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/lower_trs.hpp>
 
 
-#include "core/solver/lower_trs_kernels.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"

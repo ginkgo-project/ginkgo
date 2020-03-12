@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_COMPONENTS_SORTING_CUH_
-#define GKO_HIP_COMPONENTS_SORTING_CUH_
+#ifndef GKO_HIP_COMPONENTS_SORTING_HIP_HPP_
+#define GKO_HIP_COMPONENTS_SORTING_HIP_HPP_
 
 
 #include "hip/base/config.hip.hpp"
@@ -51,4 +51,4 @@ namespace hip {
 }  // namespace gko
 
 
-#endif  // GKO_HIP_COMPONENTS_SORTING_CUH_
+#endif  // GKO_HIP_COMPONENTS_SORTING_HIP_HPP_
