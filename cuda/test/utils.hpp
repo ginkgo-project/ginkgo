@@ -34,10 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_TEST_UTILS_HPP_
 
 
-#include <ginkgo/core/base/executor.hpp>
-
-
 #include "core/test/utils.hpp"
+
+
+#include <ginkgo/core/base/executor.hpp>
 
 
 namespace {
