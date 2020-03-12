@@ -96,6 +96,7 @@ __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
     const ValueType *__restrict__ residual_norm,
     ValueType *__restrict__ residual_norm_collection,
     ValueType *__restrict__ krylov_bases, size_type stride_krylov,
+    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
     size_type *__restrict__ final_iter_nums)
 {
     const auto global_id = thread::get_thread_id_flat();
@@ -108,9 +109,10 @@ __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
     }
 
     if (row_idx < num_rows && col_idx < num_rhs) {
-        krylov_bases[row_idx * stride_krylov + col_idx] =
-            residual[row_idx * stride_residual + col_idx] /
-            residual_norm[col_idx];
+        auto value = residual[row_idx * stride_residual + col_idx] /
+                     residual_norm[col_idx];
+        krylov_bases[row_idx * stride_krylov + col_idx] = value;
+        next_krylov_basis[row_idx * stride_next_krylov + col_idx] = value;
     }
 }
 
