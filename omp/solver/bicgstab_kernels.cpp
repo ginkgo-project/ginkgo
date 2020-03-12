@@ -33,10 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/bicgstab_kernels.hpp"
 
 
-#include <omp.h>
-
-
 #include <algorithm>
+
+
+#include <omp.h>
 
 
 #include <ginkgo/core/base/array.hpp>
