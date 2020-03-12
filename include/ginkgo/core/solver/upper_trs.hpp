@@ -162,4 +162,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_UPPER_TRS_HPP
+#endif  // GKO_CORE_SOLVER_UPPER_TRS_HPP_

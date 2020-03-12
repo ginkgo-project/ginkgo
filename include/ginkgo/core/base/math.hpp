@@ -34,15 +34,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_MATH_HPP_
 
 
+#include <cmath>
+#include <complex>
+#include <cstdlib>
+
+
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
-
-
-#include <cmath>
-#include <complex>
-#include <cstdlib>
 
 
 namespace gko {

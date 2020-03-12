@@ -30,15 +30,15 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_EXCEPTION_HPP_
-#define GKO_CORE_EXCEPTION_HPP_
-
-
-#include <ginkgo/core/base/types.hpp>
+#ifndef GKO_CORE_BASE_EXCEPTION_HPP_
+#define GKO_CORE_BASE_EXCEPTION_HPP_
 
 
 #include <exception>
 #include <string>
+
+
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
@@ -488,4 +488,4 @@ public:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_EXCEPTION_HPP_
+#endif  // GKO_CORE_BASE_EXCEPTION_HPP_

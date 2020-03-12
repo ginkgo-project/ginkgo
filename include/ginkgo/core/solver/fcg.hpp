@@ -157,4 +157,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_FCG_HPP
+#endif  // GKO_CORE_SOLVER_FCG_HPP_

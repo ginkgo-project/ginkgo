@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_SYNTHESIZER_CONTAINERS_
-#define GKO_CORE_SYNTHESIZER_CONTAINERS_
+#ifndef GKO_CORE_SYNTHESIZER_CONTAINERS_HPP_
+#define GKO_CORE_SYNTHESIZER_CONTAINERS_HPP_
 
 
 namespace gko {
@@ -115,4 +115,4 @@ using as_list = typename detail::as_list_impl<T>::type;
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SYNTHESIZER_CONTAINERS_
+#endif  // GKO_CORE_SYNTHESIZER_CONTAINERS_HPP_

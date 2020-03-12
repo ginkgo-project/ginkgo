@@ -34,13 +34,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_STOP_RESIDUAL_NORM_REDUCTION_HPP_
 
 
+#include <type_traits>
+
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
-
-
-#include <type_traits>
 
 
 namespace gko {

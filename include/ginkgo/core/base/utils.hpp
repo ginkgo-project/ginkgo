@@ -34,15 +34,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_UTILS_HPP_
 
 
+#include <functional>
+#include <memory>
+#include <type_traits>
+
+
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
-
-
-#include <functional>
-#include <memory>
-#include <type_traits>
 
 
 #ifndef NDEBUG

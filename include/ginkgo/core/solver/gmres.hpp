@@ -170,4 +170,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_GMRES_HPP
+#endif  // GKO_CORE_SOLVER_GMRES_HPP_
