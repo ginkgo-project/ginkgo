@@ -33,9 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/log/stream.hpp>
 
 
-#include <gtest/gtest.h>
 #include <iomanip>
 #include <sstream>
+
+
+#include <gtest/gtest.h>
 
 
 #include <ginkgo/core/base/executor.hpp>

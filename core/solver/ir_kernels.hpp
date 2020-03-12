@@ -99,4 +99,4 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_IR_KERNELS_HPP
+#endif  // GKO_CORE_SOLVER_IR_KERNELS_HPP_
