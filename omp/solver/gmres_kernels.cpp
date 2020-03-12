@@ -293,6 +293,7 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
                   matrix::Dense<ValueType> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
                   matrix::Dense<ValueType> *krylov_bases,
+                  matrix::Dense<ValueType> *next_krylov_basis,
                   Array<size_type> *final_iter_nums, size_type krylov_dim)
 {
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
@@ -318,8 +319,9 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
 
 #pragma omp parallel for
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
-            krylov_bases->at(i, j) =
-                residual->at(i, j) / residual_norm->at(0, j);
+            auto value = residual->at(i, j) / residual_norm->at(0, j);
+            krylov_bases->at(i, j) = value;
+            next_krylov_basis->at(i, j) = value;
         }
         final_iter_nums->get_data()[j] = 0;
     }

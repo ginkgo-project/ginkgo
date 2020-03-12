@@ -63,35 +63,6 @@ GKO_REGISTER_OPERATION(step_2, gmres::step_2);
 }  // namespace gmres
 
 
-namespace {
-
-
-template <typename ValueType>
-void apply_preconditioner(
-    const LinOp *preconditioner, matrix::Dense<ValueType> *krylov_bases,
-    std::shared_ptr<matrix::Dense<ValueType>> &preconditioned_vector,
-    const size_type iter)
-{
-    std::shared_ptr<matrix::Dense<ValueType>> target_basis =
-        krylov_bases->create_submatrix(
-            span{0, krylov_bases->get_size()[0]},
-            span{iter * preconditioned_vector->get_size()[1],
-                 (iter + 1) * preconditioned_vector->get_size()[1]});
-
-    // Apply preconditioner
-    auto identity_pointer =
-        dynamic_cast<const matrix::Identity<ValueType> *>(preconditioner);
-    if (identity_pointer) {
-        preconditioned_vector = target_basis;
-    } else {
-        preconditioner->apply(target_basis.get(), preconditioned_vector.get());
-    }
-}
-
-
-}  // namespace
-
-
 template <typename ValueType>
 void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
@@ -147,10 +118,12 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     exec->run(gmres::make_initialize_2(
         residual.get(), residual_norm.get(), residual_norm_collection.get(),
-        krylov_bases.get(), &final_iter_nums, krylov_dim_));
+        krylov_bases.get(), next_krylov_basis.get(), &final_iter_nums,
+        krylov_dim_));
     // residual_norm = norm(residual)
     // residual_norm_collection = {residual_norm, 0, ..., 0}
     // krylov_bases(:, 1) = residual / residual_norm
+    //
     // final_iter_nums = {0, ..., 0}
 
     auto stop_criterion = stop_criterion_factory_->generate(
@@ -200,7 +173,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             exec->run(gmres::make_initialize_2(
                 residual.get(), residual_norm.get(),
                 residual_norm_collection.get(), krylov_bases.get(),
-                &final_iter_nums, krylov_dim_));
+                next_krylov_basis.get(), &final_iter_nums, krylov_dim_));
             // residual_norm = norm(residual)
             // residual_norm_collection = {residual_norm, 0, ..., 0}
             // krylov_bases(:, 1) = residual / residual_norm
@@ -208,8 +181,8 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             restart_iter = 0;
         }
 
-        apply_preconditioner(get_preconditioner().get(), krylov_bases.get(),
-                             preconditioned_vector, restart_iter);
+        get_preconditioner()->apply(next_krylov_basis.get(),
+                                    preconditioned_vector.get());
         // preconditioned_vector = get_preconditioner() *
         //                         krylov_bases(:, restart_iter)
 
