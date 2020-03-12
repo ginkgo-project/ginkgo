@@ -1,5 +1,5 @@
 <map id="gko::matrix::Permutation&lt; IndexType &gt;" name="gko::matrix::Permutation&lt; IndexType &gt;">
-<area shape="rect" id="node1" title="Permutation is a matrix format which stores the row and column permutation arrays which can be used f..." alt="" coords="2841,289,3027,330"/>
+<area shape="rect" id="node1" title="Permutation is a matrix &quot;format&quot; which stores the row and column permutation arrays which can be used..." alt="" coords="2841,289,3027,330"/>
 <area shape="rect" id="node2" href="$classgko_1_1EnableLinOp.html" title=" " alt="" coords="2561,243,2792,285"/>
 <area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="2081,108,2303,164"/>
 <area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="1778,27,2018,83"/>

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['jacobi_948',['Jacobi',['../classgko_1_1preconditioner_1_1Jacobi.html',1,'gko::preconditioner']]]
+  ['jacobi_950',['Jacobi',['../classgko_1_1preconditioner_1_1Jacobi.html',1,'gko::preconditioner']]]
 ];
