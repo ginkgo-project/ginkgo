@@ -140,14 +140,17 @@ IFNDEF_REGEX="^#ifndef GKO_"
 DEFINE_REGEX="^#define GKO_"
 HEADER_REGEX="\.(hpp|cuh)"
 SKIP="true"
-IF_REX="^#if"
+START_BLOCK_REX="^(#if| *\/\*)"
+END_BLOCK_REX="^#endif|\*\/$"
 ENDIF_REX="^#endif"
-IN_IF="false"
+IN_BLOCK=0
 KEEP_LINES=0
 LAST_NONEMPTY=""
 ALARM=""
-COMMENT_REGEX="^ *(\/\/|\/\*)"
+COMMENT_REGEX="^ *\/\/"
+CONSIDER_REGEX="${START_BLOCK_REX}|${END_BLOCK_REX}|${COMMENT_REGEX}|${INCLUDE_REGEX}"
 
+# This part capture the main header and give the possible fail arrangement information
 while IFS='' read -r line || [ -n "$line" ]; do
     if [ "${line}" = '#include "hip/hip_runtime.h"' ] && [ "${SKIP}" = "true" ]; then
         HAS_HIP_RUNTIME="true"
@@ -161,11 +164,17 @@ while IFS='' read -r line || [ -n "$line" ]; do
         if [ "$line" = "${FORCE_TOP_OFF}" ]; then
             DURING_FORCE_TOP="false"
         fi
+        if [[ "${line}" =~ $INCLUDE_REGEX ]]; then
+            line="$(convert_header ${line})"
+        fi
         echo "$line" >> "${FORCE_TOP}"
     elif [ -z "${line}" ] && [ "${SKIP}" = "true" ]; then
     # Ignore all empty lines between LICENSE and Header
         :
     else
+        if [[ "${line}" =~ $INCLUDE_REGEX ]]; then
+            line="$(convert_header ${line})"
+        fi
         if [ -z "${line}" ]; then
             KEEP_LINES=$((KEEP_LINES+1))
         else
@@ -176,41 +185,42 @@ while IFS='' read -r line || [ -n "$line" ]; do
             IFNDEF="${line}"
         elif [[ $1 =~ ${HEADER_REGEX} ]] && [[ "${line}" =~ ${DEFINE_REGEX} ]] && [ "${SKIP}" = "true" ] && [ ! -z "${IFNDEF}" ]; then
             DEFINE="${line}"
-        elif [[ "${line}" =~ $IF_REX ]] || [ "$IN_IF" = "true" ]; then
-            # make sure that the header in #if is not extracted
+        elif [ -z "${MAIN_PART_MATCH}" ] || [[ ! "${line}" =~ ${MAIN_PART_MATCH} ]] || [[ "${IN_BLOCK}" -gt 0 ]]; then
             echo "${line}" >> "${CONTENT}"
-            IN_IF="true"
-            if [[ "${line}" =~ $ENDIF_REX ]]; then
-                IN_IF="false"
-            fi
             SKIP="false"
-            if [ -z "${ALARM}" ]; then
-                ALARM="set"
-            fi
-        elif [ ! -z "${MAIN_PART_MATCH}" ] && [[ "${line}" =~ ${MAIN_PART_MATCH} ]]; then
-            line="$(convert_header ${line})"
-            echo "${line}" >> ${BEFORE}
-        else 
-            if [ -z "${ALARM}" ] && [[ "${line}" =~ $COMMENT_REGEX ]]; then
-                ALARM="set"
-            elif [[ "${line}" =~ $INCLUDE_REGEX ]]; then
-                line="$(convert_header ${line})"
-                if [[ ! "${line}" =~ $INCLUDE_INC ]] && [ "${ALARM}" = "set" ]; then
-                    ALARM="true"
+            if [[ "${line}" =~ $START_BLOCK_REX ]]; then
+                # keep everythin in #if block and /* block
+                IN_BLOCK=$((IN_BLOCK+1))
+                if [ -z "${ALARM}" ]; then
+                    ALARM="set"
                 fi
             fi
-            echo "${line}" >> "${CONTENT}"
-            SKIP="false"
+            if [[ "${IN_BLOCK}" = "0" ]] && [ ! -z "${line}" ] && [[ ! "${line}" =~ ${CONSIDER_REGEX} ]]; then
+                if [ "${ALARM}" = "set" ]; then
+                    ALARM="true"
+                elif [ -z "${ALARM}" ]; then
+                    ALARM="false"
+                fi
+            fi
+            if [[ "${line}" =~ $END_BLOCK_REX ]]; then
+                IN_BLOCK=$((IN_BLOCK-1))
+            fi
+        else
+            echo "${line}" >> ${BEFORE}
         fi
     fi
 done < $1
 if [ "${ALARM}" = "true" ]; then
     echo "Warning $1: sorting maybe is not correct"
 fi
+
+# Wrtie license
 echo "/*${GINKGO_LICENSE_BEACON}" > $1
 cat LICENSE >> $1
 echo "${GINKGO_LICENSE_BEACON}*/" >> $1
 echo "" >> $1
+
+# Wrtie the definition of header according to path
 if [ ! -z "${IFNDEF}" ] && [ ! -z "${DEFINE}" ]; then
     IFNDEF="#ifndef ${HEADER_DEF}"
     DEFINE="#define ${HEADER_DEF}"
@@ -228,6 +238,7 @@ if [ ! -z "${DEFINE}" ]; then
     echo "" >> $1
 fi
 
+# Write the force-top header
 if [ -f "${FORCE_TOP}" ]; then
     cat "${FORCE_TOP}" >> $1
     echo "" >> $1
@@ -235,6 +246,7 @@ if [ -f "${FORCE_TOP}" ]; then
     rm "${FORCE_TOP}"
 fi
 
+# Write the main header and give warnning if there are multiple matches
 if [ -f "${BEFORE}" ]; then
     # sort or remove the duplication
     clang-format -i ${BEFORE}
@@ -249,6 +261,7 @@ if [ -f "${BEFORE}" ]; then
     rm "${BEFORE}"
 fi
 
+# Arrange the remain files and give 
 if [ -f "${CONTENT}" ]; then
     add_regroup
     if [ "${HAS_HIP_RUNTIME}" = "true" ]; then
