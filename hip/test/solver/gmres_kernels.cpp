@@ -220,7 +220,7 @@ TEST_F(Gmres, HipGmresInitialize2IsEquivalentToRef)
     gko::kernels::hip::gmres::initialize_2(
         hip, d_residual.get(), d_residual_norm.get(),
         d_residual_norm_collection.get(), d_krylov_bases.get(),
-        next_krylov_basis.get(), d_final_iter_nums.get(),
+        d_next_krylov_basis.get(), d_final_iter_nums.get(),
         gko::solver::default_krylov_dim);
 
     GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
