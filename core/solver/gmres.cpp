@@ -123,7 +123,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // residual_norm = norm(residual)
     // residual_norm_collection = {residual_norm, 0, ..., 0}
     // krylov_bases(:, 1) = residual / residual_norm
-    //
+    // next_krylov_basis = residual / residual_norm
     // final_iter_nums = {0, ..., 0}
 
     auto stop_criterion = stop_criterion_factory_->generate(
@@ -177,14 +177,14 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             // residual_norm = norm(residual)
             // residual_norm_collection = {residual_norm, 0, ..., 0}
             // krylov_bases(:, 1) = residual / residual_norm
+            // next_krylov_basis = residual / residual_norm
             // final_iter_nums = {0, ..., 0}
             restart_iter = 0;
         }
 
         get_preconditioner()->apply(next_krylov_basis.get(),
                                     preconditioned_vector.get());
-        // preconditioned_vector = get_preconditioner() *
-        //                         krylov_bases(:, restart_iter)
+        // preconditioned_vector = get_preconditioner() * next_krylov_basis
 
         // Do Arnoldi and givens rotation
         auto hessenberg_iter = hessenberg->create_submatrix(
