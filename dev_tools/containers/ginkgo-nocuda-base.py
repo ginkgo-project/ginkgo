@@ -25,6 +25,9 @@ import os
 Stage0.baseimage('ubuntu:18.04')
 release_name = 'bionic'
 
+add_metis = USERARG.get('metis', 'False')
+add_mpi = USERARG.get('mpi', 'False')
+
 # Setup extra tools
 Stage0 += python()
 Stage0 += cmake(eula=True)
@@ -35,6 +38,10 @@ Stage0 += apt_get(ospackages=['hwloc', 'libhwloc-dev', 'pkg-config'])
 Stage0 += apt_get(ospackages=['gpg-agent'])
 Stage0 += apt_get(ospackages=['ca-certificates']) # weird github certificates problem
 Stage0 += apt_get(ospackages=['bison', 'flex'])
+if add_metis == 'True':
+    Stage0 += apt_get(ospackages=['libmetis-dev'])
+if add_mpi == 'True':
+    Stage0 += apt_get(ospackages=['libopenmpi-dev'])
 
 # GNU compilers
 gnu_version = USERARG.get('gnu', '9')
