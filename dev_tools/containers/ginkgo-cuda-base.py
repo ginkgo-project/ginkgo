@@ -20,8 +20,18 @@ import os
 
 cuda_version = USERARG.get('cuda', '10.0')
 
-release_name = 'xenial'
-image = 'nvidia/cuda:{}-devel-ubuntu16.04'.format(cuda_version)
+# UBSAN requires Ubuntu 18.04 to work properly.
+# But older Intel versions only work with Ubuntu 16.04
+# and some CUDA versions want 18.04 (<9.2).
+# The only working compromise is 10.1 and associated
+# Intel 2019 compiler with Ubuntu 18.04.
+if float(cuda_version) >= float(10.1):
+	release_name = 'bionic'
+	image = 'nvidia/cuda:{}-devel-ubuntu18.04'.format(cuda_version)
+else:
+	release_name = 'xenial'
+	image = 'nvidia/cuda:{}-devel-ubuntu16.04'.format(cuda_version)
+
 Stage0.baseimage(image)
 
 
@@ -64,7 +74,6 @@ Stage0 += apt_get(ospackages=[clang_ver, 'libomp-dev'], repositories=repo_ver, k
 clang_update = 'update-alternatives --install /usr/bin/clang clang /usr/bin/clang-{} 90'.format(llvm_version)
 clangpp_update = 'update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang-{} 90'.format(llvm_version)
 Stage0 += shell(commands=[clang_update, clangpp_update])
-
 
 # clang-tidy
 clangtidy = ['clang-tidy-{}'.format(llvm_version)]
@@ -114,8 +123,13 @@ Stage0 += shell(commands=['cd /var/tmp',
 Stage0 += shell(commands=['cd /var/tmp/HIP', 'mkdir build', 'cd build',
                           'cmake ..', 'make install'])
 Stage0 += shell(commands=['rm -rf /var/tmp/HIP'])
-Stage0 += shell(commands=['cd /var/tmp',
-                          'git clone https://github.com/tcojean/hipBLAS.git'])
+if float(cuda_version) >= float(9.2):
+    Stage0 += shell(commands=['cd /var/tmp',
+                              'git clone https://github.com/tcojean/hipBLAS.git'])
+else:
+    Stage0 += shell(commands=['cd /var/tmp',
+                              'git clone https://github.com/tcojean/hipBLAS.git --branch master-rocm-2.10'])
+
 Stage0 += shell(commands=['cd /var/tmp/hipBLAS', 'mkdir build', 'cd build',
                           'cmake ..', 'make install'])
 Stage0 += shell(commands=['rm -rf /var/tmp/hipBLAS'])
