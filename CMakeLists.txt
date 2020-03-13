@@ -242,20 +242,20 @@ if(MSVC)
     if(GINKGO_BUILD_CUDA)
         set(GINKGO_TEST_INSTALL_COMMAND "${GINKGO_TEST_INSTALL_COMMAND}" "${Ginkgo_BINARY_DIR}/test_install/$<CONFIG>/test_install_cuda")
     endif()
-    set(GINKGO_BUILD_TEST_INSTALL_COMMAND COMMAND ${CMAKE_COMMAND} --build ${Ginkgo_BINARY_DIR}/test_install --config $<CONFIG>)
 else()
     set(GINKGO_TEST_INSTALL_COMMAND "${Ginkgo_BINARY_DIR}/test_install/test_install")
     if(GINKGO_BUILD_CUDA)
         set(GINKGO_TEST_INSTALL_COMMAND "${GINKGO_TEST_INSTALL_COMMAND}" "${Ginkgo_BINARY_DIR}/test_install/test_install_cuda")
     endif()
-    set(GINKGO_BUILD_TEST_INSTALL_COMMAND COMMAND ${CMAKE_COMMAND} --build ${Ginkgo_BINARY_DIR}/test_install)
 endif()
 add_custom_target(test_install
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} -H${Ginkgo_SOURCE_DIR}/test_install
         -B${Ginkgo_BINARY_DIR}/test_install
         -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_CONFIG_DIR}
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-    COMMAND ${GINKGO_BUILD_TEST_INSTALL_COMMAND}
+    # `--config cfg` is ignored by single-configuration generator.
+    # `$<CONFIG>` is always be the same as `CMAKE_BUILD_TYPE` in single-configuration generator.
+    COMMAND ${CMAKE_COMMAND} --build ${Ginkgo_BINARY_DIR}/test_install --config $<CONFIG>
     COMMAND ${GINKGO_TEST_INSTALL_COMMAND}
     COMMENT "Running a test on the installed binaries. This requires running `(sudo) make install` first.")
 
