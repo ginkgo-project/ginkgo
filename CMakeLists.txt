@@ -217,8 +217,8 @@ if(NOT "${BASH}" STREQUAL "BASH-NOTFOUND" AND GINKGO_DEVEL_TOOLS)
     find_program(GIT git)
     if(NOT "${GIT}" STREQUAL "GIT-NOTFOUND")
         add_custom_target(format_header
-            COMMAND echo "format header on staged code files except build/examples/third_party/ginkgo.hpp"
-            COMMAND bash -c "git diff --name-only --cached | \
+            COMMAND echo "format header on the modified code files except build/examples/third_party/ginkgo.hpp"
+            COMMAND bash -c "git diff --name-only origin/develop...HEAD | \
                 grep -Ev 'build|examples|third_party|ginkgo.hpp' | \
                 grep -E '(\.hip)?\.(cu|hpp|cuh|cpp)$' | \
                 xargs -r -n1 ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/format_header.sh"
