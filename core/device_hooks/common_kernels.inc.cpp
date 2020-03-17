@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/hybrid_kernels.hpp"
 #include "core/matrix/sellp_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
+#include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/solver/bicg_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
@@ -761,6 +762,25 @@ GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 
 
 }  // namespace jacobi
+
+
+namespace isai {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_ISAI_GENERATE_L_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_GENERATE_L_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_ISAI_GENERATE_U_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_GENERATE_U_KERNEL);
+
+
+}  // namespace isai
 
 
 namespace factorization {
