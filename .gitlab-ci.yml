@@ -575,7 +575,7 @@ sonarqube_cov:
       -Dsonar.cfamily.build-wrapper-output=build/bw-output
       -Dsonar.cfamily.gcov.reportsPath=build/Testing/CoverageInfo
       -Dsonar.branch.name=${CI_COMMIT_REF_NAME}
-#    - bash <(curl -s https://codecov.io/bash) -X gcov -X xcode -f "!*test*" -f "!*examples*" -f "!*third_party*" -f "!*c\\+\\+*" -f "!*benchmark*"
+    - bash <(curl -s https://codecov.io/bash) -f "\!*examples*" -f "\!*third_party*" -f "\!*c\\+\\+*" -f "\!*benchmark*"
   dependencies: []
   only:
     refs:
