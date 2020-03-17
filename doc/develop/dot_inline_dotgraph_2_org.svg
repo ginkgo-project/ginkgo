@@ -9,76 +9,34 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 133)">
 <title>ExamplesDescription</title>
 <polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-133 708.5,-133 708.5,4 -4,4"/>
-<!-- preconditioners -->
-<g id="node1" class="node">
-<title>preconditioners</title>
-<polygon fill="#dc143c" stroke="#000000" points="549.5,-101 531.5,-101 531.5,-83 549.5,-83 549.5,-101"/>
-</g>
-<!-- fake_preconditioners -->
-<g id="node2" class="node">
-<title>fake_preconditioners</title>
-<polygon fill="#ffffff" stroke="transparent" points="586.5,-19 494.5,-19 494.5,0 586.5,0 586.5,-19"/>
-<text text-anchor="middle" x="540.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Preconditioners</text>
-</g>
-<!-- preconditioners&#45;&#45;fake_preconditioners -->
-<g id="edge1" class="edge">
-<title>preconditioners&#45;&#45;fake_preconditioners</title>
-<path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M540.5,-82.8558C540.5,-67.1655 540.5,-35.2562 540.5,-19.195"/>
-</g>
-<!-- unfinished -->
-<g id="node9" class="node">
-<title>unfinished</title>
-<polygon fill="none" stroke="#000000" stroke-dasharray="5,2" points="624.5,-101 606.5,-101 606.5,-83 624.5,-83 624.5,-101"/>
-</g>
-<!-- preconditioners&#45;&#45;unfinished -->
-<g id="edge11" class="edge">
-<title>preconditioners&#45;&#45;unfinished</title>
-<path fill="none" stroke="#000000" d="M549.582,-92C568.5506,-92 587.5192,-92 606.4878,-92"/>
-</g>
-<!-- stopping_criteria -->
-<g id="node3" class="node">
-<title>stopping_criteria</title>
-<polygon fill="#00bfff" stroke="#000000" points="436.5,-101 418.5,-101 418.5,-83 436.5,-83 436.5,-101"/>
-</g>
-<!-- stopping_criteria&#45;&#45;preconditioners -->
-<g id="edge10" class="edge">
-<title>stopping_criteria&#45;&#45;preconditioners</title>
-<path fill="none" stroke="#000000" d="M436.7695,-92C468.2398,-92 499.7102,-92 531.1805,-92"/>
-</g>
-<!-- fake_stopping_criteria -->
-<g id="node4" class="node">
-<title>fake_stopping_criteria</title>
-<polygon fill="#ffffff" stroke="transparent" points="476,-19 379,-19 379,0 476,0 476,-19"/>
-<text text-anchor="middle" x="427.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Stopping criteria</text>
-</g>
-<!-- stopping_criteria&#45;&#45;fake_stopping_criteria -->
-<g id="edge2" class="edge">
-<title>stopping_criteria&#45;&#45;fake_stopping_criteria</title>
-<path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M427.5,-82.8558C427.5,-67.1655 427.5,-35.2562 427.5,-19.195"/>
-</g>
 <!-- logging -->
-<g id="node5" class="node">
+<g id="node1" class="node">
 <title>logging</title>
 <polygon fill="#ffd700" stroke="#000000" points="317.5,-101 299.5,-101 299.5,-83 317.5,-83 317.5,-101"/>
+</g>
+<!-- fake_logging -->
+<g id="node2" class="node">
+<title>fake_logging</title>
+<polygon fill="#ffffff" stroke="transparent" points="360.5,-19 256.5,-19 256.5,0 360.5,0 360.5,-19"/>
+<text text-anchor="middle" x="308.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Logging in Ginkgo</text>
+</g>
+<!-- logging&#45;&#45;fake_logging -->
+<g id="edge1" class="edge">
+<title>logging&#45;&#45;fake_logging</title>
+<path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M308.5,-82.8558C308.5,-67.1655 308.5,-35.2562 308.5,-19.195"/>
+</g>
+<!-- stopping_criteria -->
+<g id="node7" class="node">
+<title>stopping_criteria</title>
+<polygon fill="#00bfff" stroke="#000000" points="436.5,-101 418.5,-101 418.5,-83 436.5,-83 436.5,-101"/>
 </g>
 <!-- logging&#45;&#45;stopping_criteria -->
 <g id="edge9" class="edge">
 <title>logging&#45;&#45;stopping_criteria</title>
 <path fill="none" stroke="#000000" d="M317.7969,-92C351.222,-92 384.6472,-92 418.0724,-92"/>
 </g>
-<!-- fake_logging -->
-<g id="node6" class="node">
-<title>fake_logging</title>
-<polygon fill="#ffffff" stroke="transparent" points="360.5,-19 256.5,-19 256.5,0 360.5,0 360.5,-19"/>
-<text text-anchor="middle" x="308.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Logging in Ginkgo</text>
-</g>
-<!-- logging&#45;&#45;fake_logging -->
-<g id="edge3" class="edge">
-<title>logging&#45;&#45;fake_logging</title>
-<path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M308.5,-82.8558C308.5,-67.1655 308.5,-35.2562 308.5,-19.195"/>
-</g>
 <!-- techniques -->
-<g id="node7" class="node">
+<g id="node3" class="node">
 <title>techniques</title>
 <polygon fill="#ff7f50" stroke="#000000" points="190,-104.5 165,-104.5 165,-79.5 190,-79.5 190,-104.5"/>
 </g>
@@ -88,29 +46,55 @@
 <path fill="none" stroke="#000000" d="M190.0371,-92C226.4398,-92 262.8424,-92 299.2451,-92"/>
 </g>
 <!-- fake_techniques -->
-<g id="node8" class="node">
+<g id="node4" class="node">
 <title>fake_techniques</title>
 <polygon fill="#ffffff" stroke="transparent" points="238,-19 117,-19 117,0 238,0 238,-19"/>
 <text text-anchor="middle" x="177.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Advanced techniques</text>
 </g>
 <!-- techniques&#45;&#45;fake_techniques -->
-<g id="edge4" class="edge">
+<g id="edge2" class="edge">
 <title>techniques&#45;&#45;fake_techniques</title>
 <path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M177.5,-79.47C177.5,-62.8819 177.5,-33.9926 177.5,-19.0545"/>
 </g>
+<!-- unfinished -->
+<g id="node5" class="node">
+<title>unfinished</title>
+<polygon fill="none" stroke="#000000" stroke-dasharray="5,2" points="624.5,-101 606.5,-101 606.5,-83 624.5,-83 624.5,-101"/>
+</g>
 <!-- fake_unfinished -->
-<g id="node10" class="node">
+<g id="node6" class="node">
 <title>fake_unfinished</title>
 <polygon fill="#ffffff" stroke="transparent" points="704.5,-19 604.5,-19 604.5,0 704.5,0 704.5,-19"/>
 <text text-anchor="middle" x="654.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Unfinished codes</text>
 </g>
 <!-- unfinished&#45;&#45;fake_unfinished -->
-<g id="edge5" class="edge">
+<g id="edge3" class="edge">
 <title>unfinished&#45;&#45;fake_unfinished</title>
 <path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M619.8227,-82.8558C627.24,-67.1655 642.3243,-35.2562 649.9169,-19.195"/>
 </g>
-<!-- basic -->
+<!-- fake_stopping_criteria -->
+<g id="node8" class="node">
+<title>fake_stopping_criteria</title>
+<polygon fill="#ffffff" stroke="transparent" points="476,-19 379,-19 379,0 476,0 476,-19"/>
+<text text-anchor="middle" x="427.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Stopping criteria</text>
+</g>
+<!-- stopping_criteria&#45;&#45;fake_stopping_criteria -->
+<g id="edge4" class="edge">
+<title>stopping_criteria&#45;&#45;fake_stopping_criteria</title>
+<path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M427.5,-82.8558C427.5,-67.1655 427.5,-35.2562 427.5,-19.195"/>
+</g>
+<!-- preconditioners -->
 <g id="node11" class="node">
+<title>preconditioners</title>
+<polygon fill="#dc143c" stroke="#000000" points="549.5,-101 531.5,-101 531.5,-83 549.5,-83 549.5,-101"/>
+</g>
+<!-- stopping_criteria&#45;&#45;preconditioners -->
+<g id="edge10" class="edge">
+<title>stopping_criteria&#45;&#45;preconditioners</title>
+<path fill="none" stroke="#000000" d="M436.7695,-92C468.2398,-92 499.7102,-92 531.1805,-92"/>
+</g>
+<!-- basic -->
+<g id="node9" class="node">
 <title>basic</title>
 <polygon fill="#228b22" stroke="#000000" points="108.5,-79.9878 108.5,-104.0122 91.5122,-121 67.4878,-121 50.5,-104.0122 50.5,-79.9878 67.4878,-63 91.5122,-63 108.5,-79.9878"/>
 <polygon fill="none" stroke="#000000" points="112.5,-78.331 112.5,-105.669 93.169,-125 65.831,-125 46.5,-105.669 46.5,-78.331 65.831,-59 93.169,-59 112.5,-78.331"/>
@@ -122,15 +106,31 @@
 <path fill="none" stroke="#000000" d="M116.6328,-92C132.6422,-92 148.6515,-92 164.6608,-92"/>
 </g>
 <!-- fake_basic -->
-<g id="node12" class="node">
+<g id="node10" class="node">
 <title>fake_basic</title>
 <polygon fill="#ffffff" stroke="transparent" points="99,-19 0,-19 0,0 99,0 99,-19"/>
 <text text-anchor="middle" x="49.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Basic techniques</text>
 </g>
 <!-- basic&#45;&#45;fake_basic -->
-<g id="edge6" class="edge">
+<g id="edge5" class="edge">
 <title>basic&#45;&#45;fake_basic</title>
 <path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M65.9044,-54.6122C61.1294,-41.481 56.163,-27.8232 52.9634,-19.0242"/>
+</g>
+<!-- preconditioners&#45;&#45;unfinished -->
+<g id="edge11" class="edge">
+<title>preconditioners&#45;&#45;unfinished</title>
+<path fill="none" stroke="#000000" d="M549.582,-92C568.5506,-92 587.5192,-92 606.4878,-92"/>
+</g>
+<!-- fake_preconditioners -->
+<g id="node12" class="node">
+<title>fake_preconditioners</title>
+<polygon fill="#ffffff" stroke="transparent" points="586.5,-19 494.5,-19 494.5,0 586.5,0 586.5,-19"/>
+<text text-anchor="middle" x="540.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Preconditioners</text>
+</g>
+<!-- preconditioners&#45;&#45;fake_preconditioners -->
+<g id="edge6" class="edge">
+<title>preconditioners&#45;&#45;fake_preconditioners</title>
+<path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M540.5,-82.8558C540.5,-67.1655 540.5,-35.2562 540.5,-19.195"/>
 </g>
 </g>
 </svg>

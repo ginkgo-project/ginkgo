@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/125549867 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/127082760 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -101,7 +101,7 @@ Building</h2>
 </ul>
 </li>
 <li><code>-DCMAKE_INSTALL_PREFIX=path</code> sets the installation path for <code>make install</code>. The default value is usually something like <code>/usr/local</code>.</li>
-<li><code>-DCMAKE_BUILD_TYPE=type</code> specifies which configuration will be used for this build of Ginkgo. The default is <code>RELEASE</code>. Supported values are CMake's standard build types such as <code>DEBUG</code> and <code>RELEASE</code> and the Ginkgo specific <code>COVERAGE</code>, <code>ASAN</code> (AddressSanitizer) and <code>TSAN</code> (ThreadSanitizer) types.</li>
+<li><code>-DCMAKE_BUILD_TYPE=type</code> specifies which configuration will be used for this build of Ginkgo. The default is <code>RELEASE</code>. Supported values are CMake's standard build types such as <code>DEBUG</code> and <code>RELEASE</code> and the Ginkgo specific <code>COVERAGE</code>, <code>ASAN</code> (AddressSanitizer), <code>LSAN</code> (LeakSanitizer), <code>TSAN</code> (ThreadSanitizer) and <code>UBSAN</code> (undefined behavior sanitizer) types.</li>
 <li><code>-DBUILD_SHARED_LIBS={ON, OFF}</code> builds ginkgo as shared libraries (<code>OFF</code>) or as dynamic libraries (<code>ON</code>), default is <code>ON</code>.</li>
 <li><code>-DGINKGO_JACOBI_FULL_OPTIMIZATIONS={ON, OFF}</code> use all the optimizations for the CUDA Jacobi algorithm. <code>OFF</code> by default. Setting this option to <code>ON</code> may lead to very slow compile time (&gt;20 minutes) for the <code>jacobi_generate_kernels.cu</code> file and high memory usage.</li>
 <li><code>-DCMAKE_CUDA_HOST_COMPILER=path</code> instructs the build system to explicitly set CUDA's host compiler to the path given as argument. By default, CUDA uses its toolchain's host compiler. Setting this option may help if you're experiencing linking errors due to ABI incompatibilities. This option is supported since <a href="https://github.com/Kitware/CMake/commit/489c52ce680df6439f9c1e553cd2925ca8944cb1">CMake 3.8</a> but <a href="https://cmake.org/cmake/help/v3.10/variable/CMAKE_CUDA_HOST_COMPILER.html">documented starting from 3.10</a>.</li>
