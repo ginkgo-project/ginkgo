@@ -7,6 +7,7 @@ set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 # Determine which executors can be compiled
 include(cmake/hip_path.cmake)
 include(cmake/autodetect_executors.cmake)
+include(cmake/build_type_helpers.cmake)
 
 # Ginkgo configuration options
 option(GINKGO_DEVEL_TOOLS "Add development tools to the build system" OFF)
@@ -147,7 +148,6 @@ configure_file(${Ginkgo_SOURCE_DIR}/include/ginkgo/config.hpp.in
 
 # Load CMake helpers
 include(cmake/build_helpers.cmake)
-include(cmake/build_type_helpers.cmake)
 include(cmake/hip_helpers.cmake)
 include(cmake/install_helpers.cmake)
 

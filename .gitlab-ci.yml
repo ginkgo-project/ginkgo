@@ -575,7 +575,7 @@ sonarqube_cov:
       -Dsonar.cfamily.build-wrapper-output=build/bw-output
       -Dsonar.cfamily.gcov.reportsPath=build/Testing/CoverageInfo
       -Dsonar.branch.name=${CI_COMMIT_REF_NAME}
-#    - bash <(curl -s https://codecov.io/bash) -X gcov -X xcode -f "!*test*" -f "!*examples*" -f "!*third_party*" -f "!*c\\+\\+*" -f "!*benchmark*"
+    - bash <(curl -s https://codecov.io/bash) -f "\!*examples*" -f "\!*third_party*" -f "\!*c\\+\\+*" -f "\!*benchmark*"
   dependencies: []
   only:
     refs:
@@ -643,8 +643,27 @@ threadsanitizer:
   image: localhost:5000/gko-cuda101-gnu8-llvm70
   before_script: *default_before_script
   script:
-    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=TSAN
-      -DCTEST_MEMORYCHECK_TYPE=ThreadSanitizer
+    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=TSAN -DCTEST_MEMORYCHECK_TYPE=ThreadSanitizer
+  dependencies: []
+  only:
+    refs:
+      - master
+      - develop
+      - tags
+    variables:
+      - $PUBLIC_CI_TAG
+  tags:
+    - private_ci
+    - cuda
+    - gpu
+
+leaksanitizer:
+  stage: QoS_tools
+  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  before_script: *default_before_script
+  script:
+    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=LSAN
+      -DCTEST_MEMORYCHECK_TYPE=LeakSanitizer
   dependencies: []
   only:
     refs:
@@ -678,12 +697,35 @@ addresssanitizer:
     - cuda
     - gpu
 
-valgrind:
+leaksanitizer:
   stage: QoS_tools
   image: localhost:5000/gko-cuda101-gnu8-llvm70
   before_script: *default_before_script
   script:
-    - ctest -V -S cmake/CTestScript.cmake -DCTEST_MEMORYCHECK_TYPE=Valgrind
+    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=LSAN
+      -DCTEST_MEMORYCHECK_TYPE=LeakSanitizer
+  dependencies: []
+  only:
+    refs:
+      - master
+      - develop
+      - tags
+    variables:
+      - $PUBLIC_CI_TAG
+  tags:
+    - private_ci
+    - cuda
+    - gpu
+
+undefinedsanitizer:
+  stage: QoS_tools
+  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  before_script: *default_before_script
+  script:
+    # the Gold linker is required because of a linker flag issues given by UBsan
+    # in the Ubuntu setup we are using.
+    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=UBSAN
+      -DCTEST_MEMORYCHECK_TYPE=UndefinedBehaviorSanitizer
   dependencies: []
   only:
     refs:

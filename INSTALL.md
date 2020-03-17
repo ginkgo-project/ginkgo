@@ -60,8 +60,9 @@ Ginkgo adds the following additional switches to control what is being built:
     The default value is usually something like `/usr/local`.
 *   `-DCMAKE_BUILD_TYPE=type` specifies which configuration will be used for
     this build of Ginkgo. The default is `RELEASE`. Supported values are CMake's
-    standard build types such as `DEBUG` and `RELEASE` and the Ginkgo specific 
-	`COVERAGE`, `ASAN` (AddressSanitizer) and `TSAN` (ThreadSanitizer) types.
+    standard build types such as `DEBUG` and `RELEASE` and the Ginkgo specific
+    `COVERAGE`, `ASAN` (AddressSanitizer), `LSAN` (LeakSanitizer), `TSAN`
+    (ThreadSanitizer) and `UBSAN` (undefined behavior sanitizer) types. 
 *   `-DBUILD_SHARED_LIBS={ON, OFF}` builds ginkgo as shared libraries (`OFF`)
     or as dynamic libraries (`ON`), default is `ON`.
 *   `-DGINKGO_JACOBI_FULL_OPTIMIZATIONS={ON, OFF}` use all the optimizations
