@@ -28,5 +28,8 @@ jobs:
         cmake .. -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }}
         make -j8 
         ctest -j10
+    - name: install
+      run: |
+        cd build
         make install
         make test_install
