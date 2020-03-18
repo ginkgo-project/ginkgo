@@ -112,6 +112,7 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
                   matrix::Dense<ValueType> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
                   matrix::Dense<ValueType> *krylov_bases,
+                  matrix::Dense<ValueType> *next_krylov_basis,
                   Array<size_type> *final_iter_nums, size_type krylov_dim)
 {
     const auto num_rows = residual->get_size()[0];
@@ -140,6 +141,8 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
         as_hip_type(residual_norm->get_const_values()),
         as_hip_type(residual_norm_collection->get_values()),
         as_hip_type(krylov_bases->get_values()), krylov_bases->get_stride(),
+        as_hip_type(next_krylov_basis->get_values()),
+        next_krylov_basis->get_stride(),
         as_hip_type(final_iter_nums->get_data()));
 }
 

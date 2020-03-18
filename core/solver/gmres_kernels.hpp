@@ -60,6 +60,7 @@ namespace gmres {
                       matrix::Dense<_type> *residual_norm,            \
                       matrix::Dense<_type> *residual_norm_collection, \
                       matrix::Dense<_type> *krylov_bases,             \
+                      matrix::Dense<_type> *next_krylov_basis,        \
                       Array<size_type> *final_iter_nums, size_type krylov_dim)
 
 

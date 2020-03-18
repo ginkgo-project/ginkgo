@@ -215,16 +215,19 @@ TEST_F(Gmres, HipGmresInitialize2IsEquivalentToRef)
     gko::kernels::reference::gmres::initialize_2(
         ref, residual.get(), residual_norm.get(),
         residual_norm_collection.get(), krylov_bases.get(),
-        final_iter_nums.get(), gko::solver::default_krylov_dim);
+        next_krylov_basis.get(), final_iter_nums.get(),
+        gko::solver::default_krylov_dim);
     gko::kernels::hip::gmres::initialize_2(
         hip, d_residual.get(), d_residual_norm.get(),
         d_residual_norm_collection.get(), d_krylov_bases.get(),
-        d_final_iter_nums.get(), gko::solver::default_krylov_dim);
+        d_next_krylov_basis.get(), d_final_iter_nums.get(),
+        gko::solver::default_krylov_dim);
 
     GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
                         1e-14);
     GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_next_krylov_basis, next_krylov_basis, 1e-14);
     GKO_ASSERT_ARRAY_EQ(d_final_iter_nums, final_iter_nums);
 }
 
