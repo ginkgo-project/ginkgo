@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <cstring>
 #include <iterator>
 #include <memory>
 #include <utility>
@@ -93,7 +94,8 @@ public:
      * the executor of the source Array.
      */
     Array() noexcept
-        : num_elems_(0),
+        : num_elems_{0},
+          allocated_num_elems_{0},
           data_(nullptr, default_deleter{nullptr}),
           exec_(nullptr)
     {}
@@ -104,7 +106,31 @@ public:
      * @param exec  the Executor where the array data is allocated
      */
     Array(std::shared_ptr<const Executor> exec) noexcept
-        : num_elems_(0),
+        : num_elems_{0},
+          allocated_num_elems_{0},
+          data_(nullptr, default_deleter{exec}),
+          exec_(std::move(exec))
+    {}
+
+    /**
+     * Creates an empty Array tied to the specified Executor with
+     * overallocation properties.
+     *
+     * @param exec  the Executor where the array data is allocated
+     * @param overalloc_factor  over allocation factor (`f`) used for resizing
+     *                          when reserving for `n`, it allocates for `f * n`
+     * @param shrink_factor  factor (`f`) used to determine when to shrink the
+     *                       allocation. Let `a` be the number of elements
+     *                       allocated: The memory will be re-allocated when
+     *                       the new `num_elems < f * a`. Therefore, it should
+     *                       be smaller than `1 / overalloc_factor`
+     */
+    Array(std::shared_ptr<const Executor> exec, double overalloc_factor,
+          double shrink_factor) noexcept
+        : overallocate_factor_{overalloc_factor},
+          shrink_limit_factor_{shrink_factor},
+          num_elems_{0},
+          allocated_num_elems_{0},
           data_(nullptr, default_deleter{exec}),
           exec_(std::move(exec))
     {}
@@ -117,12 +143,41 @@ public:
      *                   `value_type` elements) allocated on the Executor
      */
     Array(std::shared_ptr<const Executor> exec, size_type num_elems)
-        : num_elems_(num_elems),
+        : num_elems_{num_elems},
+          allocated_num_elems_{get_alloc_size(num_elems_)},
           data_(nullptr, default_deleter{exec}),
           exec_(std::move(exec))
     {
-        if (num_elems > 0) {
-            data_.reset(exec_->alloc<value_type>(num_elems));
+        if (num_elems_ > 0) {
+            data_.reset(exec_->alloc<value_type>(allocated_num_elems_));
+        }
+    }
+
+    /**
+     * Creates an Array on the specified Executor.
+     *
+     * @param exec  the Executor where the array data will be allocated
+     * @param num_elems  the amount of memory (expressed as the number of
+     *                   `value_type` elements) allocated on the Executor
+     * @param overalloc_factor  over allocation factor (`f`) used for resizing
+     *                          when reserving for `n`, it allocates for `f * n`
+     * @param shrink_factor  factor (`f`) used to determine when to shrink the
+     *                       allocation. Let `a` be the number of elements
+     *                       allocated: The memory will be re-allocated when
+     *                       the new `num_elems < f * a`. Therefore, it should
+     *                       be smaller than `1 / overalloc_factor`
+     */
+    Array(std::shared_ptr<const Executor> exec, size_type num_elems,
+          double overalloc_factor, double shrink_factor)
+        : overallocate_factor_{overalloc_factor},
+          shrink_limit_factor_{shrink_factor},
+          num_elems_{num_elems},
+          allocated_num_elems_{get_alloc_size(num_elems_)},
+          data_(nullptr, default_deleter{exec}),
+          exec_(std::move(exec))
+    {
+        if (num_elems_ > 0) {
+            data_.reset(exec_->alloc<value_type>(allocated_num_elems_));
         }
     }
 
@@ -147,7 +202,10 @@ public:
     template <typename DeleterType>
     Array(std::shared_ptr<const Executor> exec, size_type num_elems,
           value_type *data, DeleterType deleter)
-        : num_elems_{num_elems}, data_(data, deleter), exec_{exec}
+        : num_elems_{num_elems},
+          allocated_num_elems_{num_elems_},
+          data_(data, deleter),
+          exec_{exec}
     {}
 
     /**
@@ -287,11 +345,13 @@ public:
             return *this;
         }
         if (exec_ == nullptr) {
+            num_elems_ = 0;
+            allocated_num_elems_ = 0;
             exec_ = other.get_executor();
             data_ = data_manager{nullptr, other.data_.get_deleter()};
         }
         if (other.get_executor() == nullptr) {
-            this->resize_and_reset(0);
+            this->clear();
             return *this;
         }
         this->resize_and_reset(other.get_num_elems());
@@ -319,11 +379,13 @@ public:
             return *this;
         }
         if (exec_ == nullptr) {
+            num_elems_ = 0;
+            allocated_num_elems_ = 0;
             exec_ = other.get_executor();
             data_ = data_manager{nullptr, other.data_.get_deleter()};
         }
         if (other.get_executor() == nullptr) {
-            this->resize_and_reset(0);
+            this->clear();
             return *this;
         }
         if (exec_ == other.get_executor() &&
@@ -332,6 +394,7 @@ public:
             using std::swap;
             swap(data_, other.data_);
             swap(num_elems_, other.num_elems_);
+            swap(allocated_num_elems_, other.allocated_num_elems_);
         } else {
             // different device or a view, copy the data
             *this = other;
@@ -348,6 +411,7 @@ public:
      */
     void clear() noexcept
     {
+        allocated_num_elems_ = 0;
         num_elems_ = 0;
         data_.reset(nullptr);
     }
@@ -372,12 +436,47 @@ public:
                                     "gko::Executor (nullptr)");
         }
         num_elems_ = num_elems;
-        if (num_elems > 0) {
-            data_.reset(exec_->alloc<value_type>(num_elems));
+        auto shrink_limit =
+            static_cast<size_type>(allocated_num_elems_ * shrink_limit_factor_);
+        if (num_elems_ < shrink_limit || allocated_num_elems_ < num_elems_) {
+            if (0 < num_elems_) {
+                allocated_num_elems_ = get_alloc_size(num_elems_);
+                data_.reset(exec_->alloc<value_type>(allocated_num_elems_));
+            } else {
+                this->clear();
+            }
+        }
+    }
+
+    /**
+     * Resizes the array so it is able to hold the specified number of elements.
+     *
+     * All data stored in the array will be lost.
+     *
+     * If the Array is not assigned an executor, an exception will be thrown.
+     *
+     */
+    // Not finished, so disabled for now
+    void resize_to_fit()
+    {
+        if (num_elems_ == allocated_num_elems_) {
+            return;
+        }
+        if (exec_ == nullptr) {
+            throw gko::NotSupported(__FILE__, __LINE__, __func__,
+                                    "gko::Executor (nullptr)");
+        }
+        if (num_elems_ > 0) {
+            Array<value_type> tmp(this->get_executor());
+            tmp = *this;
+            *this = std::move(tmp);
         } else {
+            num_elems_ = 0;
+            allocated_num_elems_ = 0;
             data_.reset(nullptr);
         }
     }
+    //*/
 
     /**
      * Returns the number of elements in the Array.
@@ -433,10 +532,19 @@ public:
     }
 
 private:
+    inline size_type get_alloc_size(size_type num_elems)
+    {
+        return static_cast<size_type>(
+            std::ceil(overallocate_factor_ * num_elems));
+    }
+
     using data_manager =
         std::unique_ptr<value_type[], std::function<void(value_type[])>>;
 
+    double overallocate_factor_{1.};
+    double shrink_limit_factor_{1.};
     size_type num_elems_;
+    size_type allocated_num_elems_;
     data_manager data_;
     std::shared_ptr<const Executor> exec_;
 };
