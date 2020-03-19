@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
@@ -57,7 +58,17 @@ template <typename ValueType, typename IndexType>
 std::shared_ptr<LinOp> Isai<ValueType, IndexType>::generate_l(
     const LinOp *to_invert_l)
 {
-    return {};
+    using Csr = matrix::Csr<ValueType, IndexType>;
+    auto exec = this->get_executor();
+    auto csr_l = copy_and_convert_to<Csr>(exec, to_invert_l);
+    auto csc_l_transp_up = csr_l->transpose();
+    auto csc_l = static_cast<Csr *>(csc_l_transp_up.get());
+    // TODO: make the creation of inv_l its own kernel!
+    auto inverted_csc_l =
+        Csr::create(exec, csc_l->get_size(), csc_l->get_num_stored_elements());
+    exec->run(isai::make_generate_l(csc_l, inverted_csc_l.get()));
+    std::shared_ptr<LinOp> inverted_l{std::move(inverted_csc_l)};
+    return inverted_l;
 }
 
 

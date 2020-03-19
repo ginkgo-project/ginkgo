@@ -68,7 +68,10 @@ namespace preconditioner {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Isai : public Composition<ValueType> {
+class Isai : public EnableLinOp<Isai<ValueType, IndexType>> {
+    friend class EnableLinOp<Isai>;
+    friend class EnablePolymorphicObject<Isai, LinOp>;
+
 public:
     using value_type = ValueType;
     using index_type = IndexType;
@@ -90,6 +93,10 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
+    explicit Isai(std::shared_ptr<const Executor> exec)
+        : EnableLinOp<Isai>(std::move(exec))
+    {}
+
     /**
      * Creates an Isai preconditioner from a matrix using an Isai::Factory.
      *
@@ -99,22 +106,34 @@ protected:
      */
     explicit Isai(const Factory *factory,
                   std::shared_ptr<const LinOp> system_matrices)
-        : Composition<value_type>(factory->get_executor()),
+        : EnableLinOp<Isai>(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
         // GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
-        auto factors = dynamic_cast<const Composition<value_type> *>(
-            system_matrices.get());
+        auto factors =
+            dynamic_cast<const Composition<ValueType> *>(system_matrices.get());
         if (!factors) {
             GKO_NOT_SUPPORTED(system_matrices);
         }
-        auto &l_factor = factors->get_operators()[0];
-        auto &u_factor = factors->get_operators()[1];
+        auto l_factor = factors->get_operators()[0];
+        auto u_factor = factors->get_operators()[1];
         GKO_ASSERT_IS_SQUARE_MATRIX(l_factor);
         GKO_ASSERT_IS_SQUARE_MATRIX(u_factor);
-        this->generate_l(l_factor.get());
-        this->generate_u(u_factor.get());
-        // maybe: ...->move_to(this);
+        auto inv_l = this->generate_l(l_factor.get());
+        auto inv_u = this->generate_u(u_factor.get());
+        factors_ =
+            Composition<ValueType>::create(std::move(inv_l), std::move(inv_u));
+    }
+
+    void apply_impl(const LinOp *b, LinOp *x) const override
+    {
+        factors_->apply(b, x);
+    }
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override
+    {
+        factors_->apply(alpha, b, beta, x);
     }
 
     /**
@@ -134,8 +153,7 @@ protected:
     std::shared_ptr<LinOp> generate_u(const LinOp *to_invert_u);
 
 private:
-    std::shared_ptr<LinOp> l_factor_;
-    std::shared_ptr<LinOp> u_factor_;
+    std::shared_ptr<Composition<ValueType>> factors_;
 };
 
 
