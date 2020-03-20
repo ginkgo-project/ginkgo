@@ -42,22 +42,35 @@ namespace gko {
 namespace kernels {
 
 
+#define GKO_DECLARE_ISAI_GENERATE_SPARSITY_L_KERNEL(ValueType, IndexType)    \
+    void generate_sparsity_l(std::shared_ptr<const DefaultExecutor> exec,    \
+                             const matrix::Csr<ValueType, IndexType> *l_csc, \
+                             matrix::Csr<ValueType, IndexType> *csc_sparsity)
+
 #define GKO_DECLARE_ISAI_GENERATE_L_KERNEL(ValueType, IndexType)    \
     void generate_l(std::shared_ptr<const DefaultExecutor> exec,    \
-                    const matrix::Csr<ValueType, IndexType> *l_mtx, \
+                    const matrix::Csr<ValueType, IndexType> *l_csc, \
                     matrix::Csr<ValueType, IndexType> *inverse_l)
 
+#define GKO_DECLARE_ISAI_GENERATE_SPARSITY_U_KERNEL(ValueType, IndexType)    \
+    void generate_sparsity_u(std::shared_ptr<const DefaultExecutor> exec,    \
+                             const matrix::Csr<ValueType, IndexType> *u_csc, \
+                             matrix::Csr<ValueType, IndexType> *csc_sparsity)
 
 #define GKO_DECLARE_ISAI_GENERATE_U_KERNEL(ValueType, IndexType)    \
     void generate_u(std::shared_ptr<const DefaultExecutor> exec,    \
-                    const matrix::Csr<ValueType, IndexType> *u_mtx, \
+                    const matrix::Csr<ValueType, IndexType> *u_csc, \
                     matrix::Csr<ValueType, IndexType> *inverse_u)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                          \
-    template <typename ValueType, typename IndexType>         \
-    GKO_DECLARE_ISAI_GENERATE_L_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>         \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                   \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_ISAI_GENERATE_SPARSITY_L_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_ISAI_GENERATE_L_KERNEL(ValueType, IndexType);          \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_ISAI_GENERATE_SPARSITY_U_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                  \
     GKO_DECLARE_ISAI_GENERATE_U_KERNEL(ValueType, IndexType)
 
 
