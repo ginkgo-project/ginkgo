@@ -47,7 +47,9 @@ namespace preconditioner {
 namespace isai {
 
 
+GKO_REGISTER_OPERATION(generate_sparsity_l, isai::generate_sparsity_l);
 GKO_REGISTER_OPERATION(generate_l, isai::generate_l);
+GKO_REGISTER_OPERATION(generate_sparsity_u, isai::generate_sparsity_u);
 GKO_REGISTER_OPERATION(generate_u, isai::generate_u);
 
 
@@ -64,10 +66,11 @@ std::shared_ptr<LinOp> Isai<ValueType, IndexType>::generate_l(
     auto csc_l_transp_up = csr_l->transpose();
     auto csc_l = static_cast<Csr *>(csc_l_transp_up.get());
     // TODO: make the creation of inv_l its own kernel!
-    auto inverted_csc_l =
-        Csr::create(exec, csc_l->get_size(), csc_l->get_num_stored_elements());
+    auto inverted_csc_l = Csr::create(exec, csc_l->get_size());
+    exec->run(isai::make_generate_sparsity_l(csc_l, inverted_csc_l.get()));
     exec->run(isai::make_generate_l(csc_l, inverted_csc_l.get()));
     std::shared_ptr<LinOp> inverted_l{std::move(inverted_csc_l)};
+    // TODO: maybe, we need to call make_srow here
     return inverted_l;
 }
 

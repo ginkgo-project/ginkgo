@@ -34,17 +34,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <memory>
 #include <type_traits>
 
 
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/test/utils.hpp"
+#include "reference/preconditioner/isai_kernels.cpp"
 
 
 namespace {
@@ -59,23 +62,102 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Isai_type = gko::preconditioner::Isai<value_type, index_type>;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
-    using Vec = gko::matrix::Dense<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
+    using Csr = gko::matrix::Csr<value_type, index_type>;
 
-    Isai() : exec(gko::ReferenceExecutor::create())
+    Isai()
+        : exec{gko::ReferenceExecutor::create()},
+          l_dense{gko::initialize<Dense>(
+              {{2., 0., 0.}, {1., -2., 0.}, {-1., 1., -1.}}, exec)},
+          l_dense_inv{gko::initialize<Dense>(
+              {{.5, 0., 0.}, {.25, -.5, 0.}, {-.25, -.5, -1.}}, exec)},
+          l_csr{Csr::create(exec)},
+          l_csr_inv{Csr::create(exec)},
+          l_sparse{Csr::create(exec, gko::dim<2>(4, 4),
+                               I<value_type>{-1., 2., 4., 5., -4., 8., -8.},
+                               I<index_type>{0, 0, 1, 1, 2, 2, 3},
+                               I<index_type>{0, 1, 3, 5, 7})},
+          l_sparse_inv{Csr::create(
+              exec, gko::dim<2>(4, 4),
+              I<value_type>{-1., .5, .25, .3125, -.25, -.25, -.125},
+              I<index_type>{0, 0, 1, 1, 2, 2, 3}, I<index_type>{0, 1, 3, 5, 7})}
     {
         isai_factory = Isai_type::build().on(exec);
+        l_dense->convert_to(gko::lend(l_csr));
+        l_dense_inv->convert_to(gko::lend(l_csr_inv));
     }
 
-    std::shared_ptr<const gko::Executor> exec;
+    std::unique_ptr<Csr> init_sparsity_csc(const Csr *csc_mtx)
+    {
+        /*
+        auto sparsity = Csr::create(exec, csc_mtx->get_size());
+        gko::kernels::reference::isai::generate_sparsity_l(this->exec, csc_mtx,
+        gko::lend(sparsity));
+        /*/
+        auto sparsity = csc_mtx->clone();
+        auto start_values = sparsity->get_values();
+        auto end_values =
+            sparsity->get_values() + sparsity->get_num_stored_elements();
+        std::fill(start_values, end_values, gko::zero<value_type>());
+        //*/
+        return sparsity;
+    }
+
+    template <typename To, typename From>
+    static std::unique_ptr<To> unique_static_cast(std::unique_ptr<From> from)
+    {
+        return std::unique_ptr<To>{static_cast<To *>(from.release())};
+    }
+
+
+    std::unique_ptr<Csr> transpose(const Csr *mtx)
+    {
+        return unique_static_cast<Csr>(mtx->transpose());
+    }
+
+
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<typename Isai_type::Factory> isai_factory;
     std::shared_ptr<gko::matrix::Csr<value_type, index_type>> mtx;
+    std::unique_ptr<Dense> l_dense;
+    std::unique_ptr<Dense> l_dense_inv;
+    std::unique_ptr<Csr> l_csr;
+    std::unique_ptr<Csr> l_csr_inv;
+    std::unique_ptr<Csr> l_sparse;
+    std::unique_ptr<Csr> l_sparse_inv;
 };
 
 TYPED_TEST_CASE(Isai, gko::test::ValueIndexTypes);
 
 
-TYPED_TEST(Isai, CanBeGenerated)
-GKO_NOT_IMPLEMENTED;
+TYPED_TEST(Isai, KernelGenerateL)
+{
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    auto trans_expected = this->transpose(gko::lend(this->l_csr_inv));
+    auto l_trans = this->transpose(gko::lend(this->l_csr));
+    auto result = this->init_sparsity_csc(gko::lend(l_trans));
+
+    gko::kernels::reference::isai::generate_l(this->exec, gko::lend(l_trans),
+                                              gko::lend(result));
+
+    GKO_ASSERT_MTX_NEAR(result, trans_expected, r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, KernelGenerateLsparse)
+{
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    auto trans_expected = this->transpose(gko::lend(this->l_sparse_inv));
+    auto l_trans = this->transpose(gko::lend(this->l_sparse));
+    auto result = this->init_sparsity_csc(gko::lend(l_trans));
+
+    gko::kernels::reference::isai::generate_l(this->exec, gko::lend(l_trans),
+                                              gko::lend(result));
+
+    GKO_ASSERT_MTX_NEAR(result, trans_expected, r<value_type>::value);
+}
 
 
 }  // namespace
