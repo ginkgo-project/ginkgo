@@ -526,7 +526,7 @@ __global__ __launch_bounds__(default_block_size) void spgeam_nnz(
 }
 
 
-template <int subwarp_size, typename IndexType, typename ValueType>
+template <int subwarp_size, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void spgeam(
     ValueType alpha, const IndexType *a_row_ptrs, const IndexType *a_col_idxs,
     const ValueType *a_vals, ValueType beta, const IndexType *b_row_ptrs,
