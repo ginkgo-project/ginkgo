@@ -501,7 +501,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL);
 
 
-template <typename IndexType, typename ValueType, typename UnaryOperator>
+template <typename ValueType, typename IndexType, typename UnaryOperator>
 inline void convert_csr_to_csc(size_type num_rows, const IndexType *row_ptrs,
                                const IndexType *col_idxs,
                                const ValueType *csr_vals, IndexType *row_idxs,

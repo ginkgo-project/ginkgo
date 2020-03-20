@@ -189,7 +189,7 @@ GKO_BIND_HIPSPARSE32_SPMV(ValueType, detail::not_implemented);
 #undef GKO_BIND_HIPSPARSE32_SPMV
 
 
-template <typename IndexType, typename ValueType>
+template <typename ValueType, typename IndexType>
 void spgemm_buffer_size(
     hipsparseHandle_t handle, IndexType m, IndexType n, IndexType k,
     const ValueType *alpha, const hipsparseMatDescr_t descrA, IndexType nnzA,
@@ -202,7 +202,7 @@ void spgemm_buffer_size(
 
 #define GKO_BIND_HIPSPARSE_SPGEMM_BUFFER_SIZE(ValueType, HipsparseName)        \
     template <>                                                                \
-    inline void spgemm_buffer_size<int32, ValueType>(                          \
+    inline void spgemm_buffer_size<ValueType, int32>(                          \
         hipsparseHandle_t handle, int32 m, int32 n, int32 k,                   \
         const ValueType *alpha, const hipsparseMatDescr_t descrA, int32 nnzA,  \
         const int32 *csrRowPtrA, const int32 *csrColIndA,                      \
@@ -265,7 +265,7 @@ inline void spgemm_nnz<int32>(
 }
 
 
-template <typename IndexType, typename ValueType>
+template <typename ValueType, typename IndexType>
 void spgemm(hipsparseHandle_t handle, IndexType m, IndexType n, IndexType k,
             const ValueType *alpha, const hipsparseMatDescr_t descrA,
             IndexType nnzA, const ValueType *csrValA,
@@ -282,7 +282,7 @@ void spgemm(hipsparseHandle_t handle, IndexType m, IndexType n, IndexType k,
 
 #define GKO_BIND_HIPSPARSE_SPGEMM(ValueType, HipsparseName)                    \
     template <>                                                                \
-    inline void spgemm<int32, ValueType>(                                      \
+    inline void spgemm<ValueType, int32>(                                      \
         hipsparseHandle_t handle, int32 m, int32 n, int32 k,                   \
         const ValueType *alpha, const hipsparseMatDescr_t descrA, int32 nnzA,  \
         const ValueType *csrValA, const int32 *csrRowPtrA,                     \
@@ -664,13 +664,13 @@ inline void csrsort<int32>(hipsparseHandle_t handle, int32 m, int32 n,
 }
 
 
-template <typename IndexType, typename ValueType>
+template <typename ValueType, typename IndexType>
 void gather(hipsparseHandle_t handle, IndexType nnz, const ValueType *in,
             ValueType *out, const IndexType *permutation) GKO_NOT_IMPLEMENTED;
 
 #define GKO_BIND_HIPSPARSE_GATHER(ValueType, HipsparseName)                   \
     template <>                                                               \
-    inline void gather<int32, ValueType>(hipsparseHandle_t handle, int32 nnz, \
+    inline void gather<ValueType, int32>(hipsparseHandle_t handle, int32 nnz, \
                                          const ValueType *in, ValueType *out, \
                                          const int32 *permutation)            \
     {                                                                         \

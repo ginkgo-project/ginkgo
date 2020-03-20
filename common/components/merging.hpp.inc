@@ -142,7 +142,7 @@ __forceinline__ __device__ detail::merge_result<ValueType> group_merge_step(
  *                  It must return `false` on all threads of the group iff the
  *                  merge shouldn't be continued.
  */
-template <int group_size, typename IndexType, typename ValueType,
+template <int group_size, typename ValueType, typename IndexType,
           typename Group, typename Callback>
 __forceinline__ __device__ void group_merge(const ValueType *__restrict__ a,
                                             IndexType a_size,
@@ -254,7 +254,7 @@ __forceinline__ __device__ void group_match(const ValueType *__restrict__ a,
  *                  the values from a/b being compared in step `c_idx`.
  *                  It must return `false` iff the merge should stop.
  */
-template <typename IndexType, typename ValueType, typename Callback>
+template <typename ValueType, typename IndexType, typename Callback>
 __forceinline__ __device__ void sequential_merge(
     const ValueType *__restrict__ a, IndexType a_size,
     const ValueType *__restrict__ b, IndexType b_size, Callback merge_fn)
