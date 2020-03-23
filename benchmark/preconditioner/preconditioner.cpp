@@ -54,7 +54,7 @@ DEFINE_uint32(max_block_size, 32,
 
 DEFINE_string(preconditioners, "jacobi",
               "A comma-separated list of solvers to run."
-              "Supported values are: jacobi");
+              "Supported values are: jacobi, ilu, sparselib-ilu");
 
 DEFINE_string(storage_optimization, "0,0",
               "Defines the kind of storage optimization to perform on "
@@ -90,12 +90,28 @@ gko::precision_reduction parse_storage_optimization(const std::string &flag)
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                                 std::shared_ptr<const gko::Executor> exec)>>
     precond_factory{
-        {"jacobi", [](std::shared_ptr<const gko::Executor> exec) {
+        {"jacobi",
+         [](std::shared_ptr<const gko::Executor> exec) {
              return gko::preconditioner::Jacobi<etype>::build()
                  .with_max_block_size(FLAGS_max_block_size)
                  .with_storage_optimization(
                      parse_storage_optimization(FLAGS_storage_optimization))
                  .with_accuracy(FLAGS_accuracy)
+                 .on(exec);
+         }},
+        {"ilu",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto ilu_fact = std::shared_ptr<gko::LinOpFactory>(
+                 gko::factorization::ParIlu<etype>::build().on(exec));
+             return gko::preconditioner::Ilu<>::build()
+                 .with_factorization_factory(ilu_fact)
+                 .on(exec);
+         }},
+        {"sparselib-ilu", [](std::shared_ptr<const gko::Executor> exec) {
+             auto ilu_fact = std::shared_ptr<gko::LinOpFactory>(
+                 gko::factorization::Ilu<etype>::build().on(exec));
+             return gko::preconditioner::Ilu<>::build()
+                 .with_factorization_factory(ilu_fact)
                  .on(exec);
          }}};
 
@@ -105,12 +121,15 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
 std::string encode_parameters(const char *precond_name)
 {
     static std::map<std::string, std::string (*)()> encoder{
-        {"jacobi", [] {
+        {"jacobi",
+         [] {
              std::ostringstream oss;
              oss << "jacobi-" << FLAGS_max_block_size << "-"
                  << FLAGS_storage_optimization;
              return oss.str();
-         }}};
+         }},
+        {"ilu", [] { return std::string{"ilu"}; }},
+        {"sparselib-ilu", [] { return std::string{"sparselib-ilu"}; }}};
     return encoder[precond_name]();
 }
 
