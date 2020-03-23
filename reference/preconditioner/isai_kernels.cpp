@@ -58,40 +58,14 @@ namespace isai {
 
 
 template <typename ValueType, typename IndexType>
-void generate_sparsity_l(std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType> *l_csc,
-                         matrix::Csr<ValueType, IndexType> *csc_sparsity)
-{
-    auto num_elems = l_csc->get_num_stored_elements();
-    Array<IndexType> rows_array{exec, num_elems};
-    Array<ValueType> vals_array{exec, num_elems};  // no need to initialize it
-
-    const auto l_rows = l_csc->get_const_col_idxs();
-    auto new_rows = rows_array.get_data();
-    std::copy(l_rows, l_rows + num_elems, new_rows);
-
-    const auto l_cols = l_csc->get_const_row_ptrs();
-    auto new_cols = csc_sparsity->get_row_ptrs();  // was already allocated
-    const auto num_cols = l_csc->get_size()[0];
-    std::copy(l_cols, l_cols + num_cols, new_cols);
-
-    matrix::CsrBuilder<ValueType, IndexType> builder{csc_sparsity};
-    builder.get_col_idx_array() = std::move(rows_array);
-    builder.get_value_array() = std::move(vals_array);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ISAI_GENERATE_SPARSITY_L_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void generate_l(std::shared_ptr<const DefaultExecutor> exec,
                 const matrix::Csr<ValueType, IndexType> *l_csc,
                 matrix::Csr<ValueType, IndexType> *inverse_l)
 {
     // Note: both matrices are in CSC format and not in CSR
     //       (basically a stored transposed CSR format)
-    auto size = l_csc->get_size();
+    const auto size = l_csc->get_size();
+    const auto num_elems = l_csc->get_num_stored_elements();
     const auto l_col_ptrs = l_csc->get_const_row_ptrs();
     const auto l_rows = l_csc->get_const_col_idxs();
     const auto l_vals = l_csc->get_const_values();
@@ -99,21 +73,19 @@ void generate_l(std::shared_ptr<const DefaultExecutor> exec,
     auto inv_rows = inverse_l->get_col_idxs();
     auto inv_vals = inverse_l->get_values();
 
-    /*
-    // TODO: Make this its own kernel!
-    // Copy sparsity pattern of original L into the inverse of L
-    inv_col_ptrs[0] = l_col_ptrs[0];
-    for (IndexType col = 0; col < size[0]; ++col) {
+    // Copy sparsity pattern of original into the inverse of L
+    for (IndexType col = 0; col < size[1] + 1; ++col) {
         inv_col_ptrs[col] = l_col_ptrs[col];
-        inv_rows[col] = l_rows[col];
     }
-    */
+    for (IndexType i = 0; i < num_elems; ++i) {
+        inv_rows[i] = l_rows[i];
+    }
 
     std::vector<ValueType> rhs;  // RHS for local trisystem
     // memory for dense trisystem in column major:
     std::vector<ValueType> trisystem;
 
-    for (IndexType col = 0; col < size[0]; ++col) {
+    for (IndexType col = 0; col < size[1]; ++col) {
         const auto inv_col_begin = inv_col_ptrs[col];
         const auto inv_col_end = inv_col_ptrs[col + 1];
         const auto inv_col_elems = inv_col_end - inv_col_begin;
@@ -189,20 +161,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void generate_sparsity_u(std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType> *u_csc,
-                         matrix::Csr<ValueType, IndexType> *csc_sparsity)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ISAI_GENERATE_SPARSITY_U_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void generate_u(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Csr<ValueType, IndexType> *u_csc,
+                const matrix::Csr<ValueType, IndexType> *u_csr,
                 matrix::Csr<ValueType, IndexType> *inverse_u)
+{
+    // consider: vU := inverse_u; U := u_csr
+    /*
+    I(i) := Sparsity pattern of column i of U (Set of non-zero columns)
+    D(i) := U[I(i), I(i)]
+    vU[i, :] * D(i) = e(i)^T
+    <=> D(i)^T * vU[i, :]^T = e(i)    =: Trs
+    Solve Trs, fill in vU row by row without transposing U
+
+    Try similar tactic with calculation of L. This would require to solve
+    the dense systems from bottem to top (since it would be a upper matrix),
+    but should work without the need to transpose.
+    */
     GKO_NOT_IMPLEMENTED;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_GENERATE_U_KERNEL);

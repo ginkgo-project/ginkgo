@@ -62,16 +62,6 @@ namespace {
 
 
 template <typename ValueType, typename IndexType>
-void generate_sparsity_l(std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType> *l_csc,
-                         matrix::Csr<ValueType, IndexType> *csc_sparsity)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ISAI_GENERATE_SPARSITY_L_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void generate_l(std::shared_ptr<const DefaultExecutor> exec,
                 const matrix::Csr<ValueType, IndexType> *l_csc,
                 matrix::Csr<ValueType, IndexType> *inverse_l)
@@ -79,16 +69,6 @@ void generate_l(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_GENERATE_L_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void generate_sparsity_u(std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType> *u_csc,
-                         matrix::Csr<ValueType, IndexType> *csc_sparsity)
-    GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ISAI_GENERATE_SPARSITY_U_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
