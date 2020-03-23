@@ -455,6 +455,25 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
 
 
 /**
+ * Ensures that two dimensions have compatible bounds, in particular before a
+ * copy operation. This means the target should have at least as much elements
+ * as the source.
+ *
+ * @param _source  the source of the expected copy operation
+ * @param _target  the destination of the expected copy operation
+ *
+ * @throw OutOfBoundsError  if `_source > _target`
+ */
+#define GKO_ENSURE_COMPATIBLE_BOUNDS(_source, _target)                       \
+    if (_source > _target) {                                                 \
+        throw ::gko::OutOfBoundsError(__FILE__, __LINE__, _source, _target); \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+/**
  * Creates a StreamError exception.
  * This macro sets the correct information about the location of the error
  * and fills the exception with data about the stream, and the reason for the
