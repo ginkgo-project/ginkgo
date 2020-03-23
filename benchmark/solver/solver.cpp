@@ -61,9 +61,10 @@ DEFINE_string(solvers, "cg",
               "A comma-separated list of solvers to run."
               "Supported values are: bicgstab, cg, cgs, fcg, gmres");
 
-DEFINE_string(preconditioners, "none",
-              "A comma-separated list of preconditioners to use."
-              "Supported values are: none, jacobi, adaptive-jacobi");
+DEFINE_string(
+    preconditioners, "none",
+    "A comma-separated list of preconditioners to use."
+    "Supported values are: none, jacobi, adaptive-jacobi, ilu, sparselib-ilu");
 
 DEFINE_uint32(
     nrhs, 1,
@@ -166,11 +167,33 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
              return std::unique_ptr<ReferenceFactoryWrapper>(
                  new ReferenceFactoryWrapper(f));
          }},
-        {"adaptive-jacobi", [](std::shared_ptr<const gko::Executor> exec) {
+        {"adaptive-jacobi",
+         [](std::shared_ptr<const gko::Executor> exec) {
              std::shared_ptr<const gko::LinOpFactory> f =
                  gko::preconditioner::Jacobi<>::build()
                      .with_storage_optimization(
                          gko::precision_reduction::autodetect())
+                     .on(exec);
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(f));
+         }},
+        {"ilu",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto fact = std::shared_ptr<gko::LinOpFactory>(
+                 gko::factorization::ParIlu<>::build().on(exec));
+             std::shared_ptr<const gko::LinOpFactory> f =
+                 gko::preconditioner::Ilu<>::build()
+                     .with_factorization_factory(fact)
+                     .on(exec);
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(f));
+         }},
+        {"sparselib-ilu", [](std::shared_ptr<const gko::Executor> exec) {
+             auto fact = std::shared_ptr<gko::LinOpFactory>(
+                 gko::factorization::Ilu<>::build().on(exec));
+             std::shared_ptr<const gko::LinOpFactory> f =
+                 gko::preconditioner::Ilu<>::build()
+                     .with_factorization_factory(fact)
                      .on(exec);
              return std::unique_ptr<ReferenceFactoryWrapper>(
                  new ReferenceFactoryWrapper(f));
