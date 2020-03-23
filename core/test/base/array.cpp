@@ -284,6 +284,17 @@ TYPED_TEST(Array, CanBeResized)
 }
 
 
+TYPED_TEST(Array, VewCanBeResetNotResized)
+{
+    TypeParam data[] = {1, 2, 3};
+    auto view = gko::Array<TypeParam>::view(this->exec, 3, data);
+    view.resize_and_reset(1);
+
+    EXPECT_EQ(view.get_const_data(), nullptr);
+    ASSERT_EQ(view.get_num_elems(), 1);
+}
+
+
 TYPED_TEST(Array, CanBeAssignedAnExecutor)
 {
     gko::Array<TypeParam> a;
@@ -304,16 +315,168 @@ TYPED_TEST(Array, ChangesExecutors)
 }
 
 
-TYPED_TEST(Array, CanCreateView)
+TYPED_TEST(Array, ViewModifiesOriginalData)
 {
     TypeParam data[] = {1, 2, 3};
-
     auto view = gko::Array<TypeParam>::view(this->exec, 3, data);
-    view = gko::Array<TypeParam>{this->exec, {5, 4, 2}};
+
+    TypeParam new_data[] = {5, 4, 2};
+    std::copy(new_data, new_data + 3, view.get_data());
 
     EXPECT_EQ(data[0], TypeParam{5});
     EXPECT_EQ(data[1], TypeParam{4});
     EXPECT_EQ(data[2], TypeParam{2});
+    ASSERT_EQ(view.get_num_elems(), 3);
+}
+
+
+TYPED_TEST(Array, CopyArrayToArray)
+{
+    gko::Array<TypeParam> array(this->exec, {1, 2, 3});
+    gko::Array<TypeParam> array2(this->exec, {5, 4, 2, 1});
+
+    array = array2;
+
+    EXPECT_EQ(array.get_data()[0], TypeParam{5});
+    EXPECT_EQ(array.get_data()[1], TypeParam{4});
+    EXPECT_EQ(array.get_data()[2], TypeParam{2});
+    EXPECT_EQ(array.get_data()[3], TypeParam{1});
+    EXPECT_EQ(array.get_num_elems(), 4);
+    ASSERT_EQ(array2.get_num_elems(), 4);
+}
+
+
+TYPED_TEST(Array, CopyViewToView)
+{
+    TypeParam data[] = {1, 2, 3};
+    auto view = gko::Array<TypeParam>::view(this->exec, 3, data);
+    TypeParam data2[] = {5, 4, 2};
+    auto view2 = gko::Array<TypeParam>::view(this->exec, 3, data2);
+    TypeParam data_size4[] = {5, 4, 2, 1};
+    auto view_size4 = gko::Array<TypeParam>::view(this->exec, 4, data_size4);
+
+    view = view2;
+    view2.get_data()[0] = 2;
+
+    EXPECT_EQ(data[0], TypeParam{5});
+    EXPECT_EQ(data[1], TypeParam{4});
+    EXPECT_EQ(data[2], TypeParam{2});
+    EXPECT_EQ(view.get_num_elems(), 3);
+    EXPECT_EQ(view2.get_num_elems(), 3);
+    ASSERT_THROW(view2 = view_size4, gko::OutOfBoundsError);
+}
+
+
+TYPED_TEST(Array, CopyViewToArray)
+{
+    TypeParam data[] = {1, 2, 3, 4};
+    auto view = gko::Array<TypeParam>::view(this->exec, 4, data);
+    gko::Array<TypeParam> array(this->exec, {5, 4, 2});
+
+    array = view;
+    view.get_data()[0] = 2;
+
+    EXPECT_EQ(array.get_data()[0], TypeParam{1});
+    EXPECT_EQ(array.get_data()[1], TypeParam{2});
+    EXPECT_EQ(array.get_data()[2], TypeParam{3});
+    EXPECT_EQ(array.get_data()[3], TypeParam{4});
+    EXPECT_EQ(array.get_num_elems(), 4);
+    ASSERT_EQ(view.get_num_elems(), 4);
+}
+
+
+TYPED_TEST(Array, CopyArrayToView)
+{
+    TypeParam data[] = {1, 2, 3};
+    auto view = gko::Array<TypeParam>::view(this->exec, 3, data);
+    gko::Array<TypeParam> array_size2(this->exec, {5, 4});
+    gko::Array<TypeParam> array_size4(this->exec, {5, 4, 2, 1});
+
+    view = array_size2;
+
+    EXPECT_EQ(data[0], TypeParam{5});
+    EXPECT_EQ(data[1], TypeParam{4});
+    EXPECT_EQ(data[2], TypeParam{3});
+    EXPECT_EQ(view.get_num_elems(), 3);
+    EXPECT_EQ(array_size2.get_num_elems(), 2);
+    ASSERT_THROW(view = array_size4, gko::OutOfBoundsError);
+}
+
+
+TYPED_TEST(Array, MoveArrayToArray)
+{
+    gko::Array<TypeParam> array(this->exec, {1, 2, 3});
+    gko::Array<TypeParam> array2(this->exec, {5, 4, 2, 1});
+
+    array = std::move(array2);
+
+    EXPECT_EQ(array.get_data()[0], TypeParam{5});
+    EXPECT_EQ(array.get_data()[1], TypeParam{4});
+    EXPECT_EQ(array.get_data()[2], TypeParam{2});
+    EXPECT_EQ(array.get_data()[3], TypeParam{1});
+    EXPECT_EQ(array.get_num_elems(), 4);
+    EXPECT_EQ(array2.get_data(), nullptr);
+    ASSERT_EQ(array2.get_num_elems(), 0);
+}
+
+
+TYPED_TEST(Array, MoveViewToView)
+{
+    TypeParam data[] = {1, 2, 3, 4};
+    auto view = gko::Array<TypeParam>::view(this->exec, 4, data);
+    TypeParam data2[] = {5, 4, 2};
+    auto view2 = gko::Array<TypeParam>::view(this->exec, 3, data2);
+
+    view = std::move(view2);
+
+    EXPECT_EQ(view.get_data(), data2);
+    EXPECT_EQ(view.get_data()[0], TypeParam{5});
+    EXPECT_EQ(view.get_data()[1], TypeParam{4});
+    EXPECT_EQ(view.get_data()[2], TypeParam{2});
+    EXPECT_EQ(view.get_num_elems(), 3);
+    EXPECT_EQ(view2.get_data(), nullptr);
+    ASSERT_EQ(view2.get_num_elems(), 0);
+}
+
+
+TYPED_TEST(Array, MoveViewToArray)
+{
+    TypeParam data[] = {1, 2, 3, 4};
+    gko::Array<TypeParam> array(this->exec, {5, 4, 2});
+    auto view = gko::Array<TypeParam>::view(this->exec, 4, data);
+
+    array = std::move(view);
+
+    EXPECT_EQ(array.get_data(), data);
+    EXPECT_EQ(array.get_data()[0], TypeParam{1});
+    EXPECT_EQ(array.get_data()[1], TypeParam{2});
+    EXPECT_EQ(array.get_data()[2], TypeParam{3});
+    EXPECT_EQ(array.get_data()[3], TypeParam{4});
+    EXPECT_EQ(array.get_num_elems(), 4);
+    EXPECT_EQ(data[0], TypeParam{1});
+    EXPECT_EQ(data[1], TypeParam{2});
+    EXPECT_EQ(data[2], TypeParam{3});
+    EXPECT_EQ(data[3], TypeParam{4});
+    EXPECT_EQ(view.get_data(), nullptr);
+    ASSERT_EQ(view.get_num_elems(), 0);
+}
+
+
+TYPED_TEST(Array, MoveArrayToView)
+{
+    TypeParam data[] = {1, 2, 3};
+    auto view = gko::Array<TypeParam>::view(this->exec, 3, data);
+    gko::Array<TypeParam> array_size2(this->exec, {5, 4});
+    gko::Array<TypeParam> array_size4(this->exec, {5, 4, 2, 1});
+
+    view = std::move(array_size2);
+
+    EXPECT_EQ(view.get_data()[0], TypeParam{5});
+    EXPECT_EQ(view.get_data()[1], TypeParam{4});
+    EXPECT_EQ(view.get_num_elems(), 2);
+    EXPECT_NO_THROW(view = array_size4);
+    EXPECT_EQ(array_size2.get_data(), nullptr);
+    ASSERT_EQ(array_size2.get_num_elems(), 0);
 }
 
 

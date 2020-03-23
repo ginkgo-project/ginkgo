@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -269,7 +270,10 @@ public:
     }
 
     /**
-     * Copies data from another array.
+     * Copies data from another array or view. In the case of an array target,
+     * the array is resized to match the source's size. In the case of a view
+     * target, if the dimensions are not compatible a gko::OutOfBoundsError is
+     * thrown.
      *
      * This does not invoke the constructors of the elements, instead they are
      * copied as POD types.
@@ -294,14 +298,36 @@ public:
             this->resize_and_reset(0);
             return *this;
         }
-        this->resize_and_reset(other.get_num_elems());
-        exec_->copy_from(other.get_executor().get(), num_elems_,
+        // We allow resizing only if we are an array, we cannot resize a view!
+        // If we are a view, we do bound checking to ensure the data can be
+        // copied over.
+        if (data_.get_deleter().target_type() != typeid(view_deleter)) {
+            this->resize_and_reset(other.get_num_elems());
+        } else {
+            GKO_ENSURE_COMPATIBLE_BOUNDS(other.get_num_elems(),
+                                         this->num_elems_);
+        }
+        exec_->copy_from(other.get_executor().get(), other.get_num_elems(),
                          other.get_const_data(), this->get_data());
         return *this;
     }
 
     /**
-     * Moves data from another array.
+     * Moves data from another array or view. Only the pointer and deleter type
+     * change, a copy only happens when targeting another executor's data. This
+     * means that in the following situation:
+     * ```cpp
+     *   gko::Array<int> a; // an existing array or view
+     *   gko::Array<int> b; // an existing array or view
+     *   b = std::move(a);
+     * ```
+     * Depending on whether `a` and `b` are array or view, this happens:
+     * + `a` and `b` are view, `b` becomes the only valid view of `a`
+     * + `a` and `b` are array, `b` becomes the only valid array of `a`
+     * + `a` is `a` view and `b` is an array, `b` frees its data and becomes the
+     *    only valid view of `a`
+     * + `a` is an array and `b` is `a` view, `b` becomes the only valid array
+     *    of `a`
      *
      * This does not invoke the constructors of the elements, instead they are
      * copied as POD types.
@@ -326,14 +352,14 @@ public:
             this->resize_and_reset(0);
             return *this;
         }
-        if (exec_ == other.get_executor() &&
-            data_.get_deleter().target_type() != typeid(view_deleter)) {
-            // same device and not a view, only move the pointer
+        if (exec_ == other.get_executor()) {
+            // same device, only move the pointer
             using std::swap;
             swap(data_, other.data_);
             swap(num_elems_, other.num_elems_);
+            other.resize_and_reset(0);
         } else {
-            // different device or a view, copy the data
+            // different device, copy the data
             *this = other;
         }
         return *this;
@@ -354,6 +380,8 @@ public:
 
     /**
      * Resizes the array so it is able to hold the specified number of elements.
+     * To a view, this only resets the pointer. Afterwards, the  only way to use
+     * a view in such a state is to `std::move` another view.
      *
      * All data stored in the array will be lost.
      *
@@ -371,8 +399,12 @@ public:
             throw gko::NotSupported(__FILE__, __LINE__, __func__,
                                     "gko::Executor (nullptr)");
         }
+
         num_elems_ = num_elems;
-        if (num_elems > 0) {
+        // For views, we should never allocate any data, all we can do is unset
+        // the pointer.
+        if (num_elems > 0 &&
+            data_.get_deleter().target_type() != typeid(view_deleter)) {
             data_.reset(exec_->alloc<value_type>(num_elems));
         } else {
             data_.reset(nullptr);
