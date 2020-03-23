@@ -87,19 +87,24 @@ protected:
         l_dense_inv->convert_to(gko::lend(l_csr_inv));
     }
 
-    std::unique_ptr<Csr> init_sparsity_csc(const Csr *csc_mtx)
+    std::unique_ptr<Csr> clone_allocations(const Csr *csr_mtx)
     {
-        /*
-        auto sparsity = Csr::create(exec, csc_mtx->get_size());
-        gko::kernels::reference::isai::generate_sparsity_l(this->exec, csc_mtx,
-        gko::lend(sparsity));
-        /*/
-        auto sparsity = csc_mtx->clone();
-        auto start_values = sparsity->get_values();
-        auto end_values =
-            sparsity->get_values() + sparsity->get_num_stored_elements();
-        std::fill(start_values, end_values, gko::zero<value_type>());
-        //*/
+        auto size = csr_mtx->get_size();
+        const auto num_elems = csr_mtx->get_num_stored_elements();
+        auto sparsity = Csr::create(exec, size, num_elems);
+
+        // All arrays are now filled with invalid data to catch potential errors
+        auto begin_values = sparsity->get_values();
+        auto end_values = begin_values + num_elems;
+        std::fill(begin_values, end_values, -gko::one<value_type>());
+
+        auto begin_cols = sparsity->get_col_idxs();
+        auto end_cols = begin_cols + num_elems;
+        std::fill(begin_cols, end_cols, -gko::one<index_type>());
+
+        auto begin_rows = sparsity->get_row_ptrs();
+        auto end_rows = begin_rows + size[0] + 1;
+        std::fill(begin_rows, end_rows, -gko::one<index_type>());
         return sparsity;
     }
 
@@ -136,11 +141,12 @@ TYPED_TEST(Isai, KernelGenerateL)
     using value_type = typename TestFixture::value_type;
     auto trans_expected = this->transpose(gko::lend(this->l_csr_inv));
     auto l_trans = this->transpose(gko::lend(this->l_csr));
-    auto result = this->init_sparsity_csc(gko::lend(l_trans));
+    auto result = this->clone_allocations(gko::lend(l_trans));
 
     gko::kernels::reference::isai::generate_l(this->exec, gko::lend(l_trans),
                                               gko::lend(result));
 
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, trans_expected);
     GKO_ASSERT_MTX_NEAR(result, trans_expected, r<value_type>::value);
 }
 
@@ -151,11 +157,12 @@ TYPED_TEST(Isai, KernelGenerateLsparse)
     using value_type = typename TestFixture::value_type;
     auto trans_expected = this->transpose(gko::lend(this->l_sparse_inv));
     auto l_trans = this->transpose(gko::lend(this->l_sparse));
-    auto result = this->init_sparsity_csc(gko::lend(l_trans));
+    auto result = this->clone_allocations(gko::lend(l_trans));
 
     gko::kernels::reference::isai::generate_l(this->exec, gko::lend(l_trans),
                                               gko::lend(result));
 
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, trans_expected);
     GKO_ASSERT_MTX_NEAR(result, trans_expected, r<value_type>::value);
 }
 
