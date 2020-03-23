@@ -88,6 +88,34 @@ namespace gko {
                   "semi-colon warnings")
 
 
+namespace detail {
+
+
+template <typename T, typename T2 = void>
+struct dynamic_type_helper {
+    static const std::type_info &get(const T &obj) { return typeid(obj); }
+};
+
+template <typename T>
+struct dynamic_type_helper<T,
+                           typename std::enable_if<std::is_pointer<T>::value ||
+                                                   have_ownership<T>()>::type> {
+    static const std::type_info &get(const T &obj)
+    {
+        return obj ? typeid(*obj) : typeid(nullptr);
+    }
+};
+
+template <typename T>
+const std::type_info &get_dynamic_type(const T &obj)
+{
+    return dynamic_type_helper<T>::get(obj);
+}
+
+
+}  // namespace detail
+
+
 /**
  * Throws a NotSupported exception.
  * This macro sets the correct information about the location of the error
@@ -95,14 +123,14 @@ namespace gko {
  *
  * @param _obj  the object referenced by NotSupported exception
  */
-#define GKO_NOT_SUPPORTED(_obj)                                              \
-    {                                                                        \
-        throw ::gko::NotSupported(                                           \
-            __FILE__, __LINE__, __func__,                                    \
-            ::gko::name_demangling::get_type_name(typeid(_obj)));            \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
+#define GKO_NOT_SUPPORTED(_obj)                                                \
+    {                                                                          \
+        throw ::gko::NotSupported(__FILE__, __LINE__, __func__,                \
+                                  ::gko::name_demangling::get_type_name(       \
+                                      ::gko::detail::get_dynamic_type(_obj))); \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
 
