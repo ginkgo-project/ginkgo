@@ -291,8 +291,10 @@ inline typename std::decay<T>::type *as(U *obj)
     if (auto p = dynamic_cast<typename std::decay<T>::type *>(obj)) {
         return p;
     } else {
-        throw NotSupported(__FILE__, __LINE__, __func__,
-                           name_demangling::get_type_name(typeid(obj)));
+        throw NotSupported(__FILE__, __LINE__,
+                           std::string{"gko::as<"} +
+                               name_demangling::get_type_name(typeid(T)) + ">",
+                           name_demangling::get_type_name(typeid(*obj)));
     }
 }
 
@@ -315,8 +317,10 @@ inline const typename std::decay<T>::type *as(const U *obj)
     if (auto p = dynamic_cast<const typename std::decay<T>::type *>(obj)) {
         return p;
     } else {
-        throw NotSupported(__FILE__, __LINE__, __func__,
-                           name_demangling::get_type_name(typeid(obj)));
+        throw NotSupported(__FILE__, __LINE__,
+                           std::string{"gko::as<"} +
+                               name_demangling::get_type_name(typeid(T)) + ">",
+                           name_demangling::get_type_name(typeid(*obj)));
     }
 }
 

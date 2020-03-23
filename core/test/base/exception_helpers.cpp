@@ -55,7 +55,7 @@ TEST(NotCompiled, ThrowsWhenUsed)
 }
 
 
-void does_not_support_int() { GKO_NOT_SUPPORTED(int); }
+void does_not_support_int() { GKO_NOT_SUPPORTED(int{}); }
 
 TEST(NotSupported, ReturnsNotSupportedException)
 {
