@@ -55,11 +55,48 @@ TEST(NotCompiled, ThrowsWhenUsed)
 }
 
 
-void does_not_support_int() { GKO_NOT_SUPPORTED(int); }
-
-TEST(NotSupported, ReturnsNotSupportedException)
+template <typename Expected, typename T>
+void test_not_supported_impl(const T &obj)
 {
-    ASSERT_THROW(does_not_support_int(), gko::NotSupported);
+    try {
+        GKO_NOT_SUPPORTED(obj);
+        FAIL();
+    } catch (gko::NotSupported &m) {
+        // check for equal suffix
+        std::string msg{m.what()};
+        auto expected = gko::name_demangling::get_type_name(typeid(Expected));
+        ASSERT_TRUE(
+            std::equal(expected.rbegin(), expected.rend(), msg.rbegin()));
+    }
+}
+
+
+TEST(NotSupported, ReturnsIntNotSupportedException)
+{
+    test_not_supported_impl<int>(int{});
+}
+
+
+struct Base {
+    virtual ~Base() = default;
+};
+
+struct Derived : Base {};
+
+
+TEST(NotSupported, ReturnsPtrNotSupportedException)
+{
+    Derived d;
+    Base *b = &d;
+    test_not_supported_impl<Derived>(b);
+}
+
+
+TEST(NotSupported, ReturnsRefNotSupportedException)
+{
+    Derived d;
+    Base &b = d;
+    test_not_supported_impl<Derived>(b);
 }
 
 
