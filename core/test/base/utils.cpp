@@ -248,7 +248,15 @@ TEST(As, FailsToConvertIfNotRelated)
     Derived d;
     Base *b = &d;
 
-    ASSERT_THROW(gko::as<NonRelated>(b), gko::NotSupported);
+    try {
+        gko::as<NonRelated>(b);
+        FAIL();
+    } catch (gko::NotSupported &m) {
+        std::string msg{m.what()};
+        auto expected = gko::name_demangling::get_type_name(typeid(Derived));
+        ASSERT_TRUE(
+            std::equal(expected.rbegin(), expected.rend(), msg.rbegin()));
+    }
 }
 
 
@@ -266,7 +274,15 @@ TEST(As, FailsToConvertConstantIfNotRelated)
     Derived d;
     const Base *b = &d;
 
-    ASSERT_THROW(gko::as<NonRelated>(b), gko::NotSupported);
+    try {
+        gko::as<NonRelated>(b);
+        FAIL();
+    } catch (gko::NotSupported &m) {
+        std::string msg{m.what()};
+        auto expected = gko::name_demangling::get_type_name(typeid(Derived));
+        ASSERT_TRUE(
+            std::equal(expected.rbegin(), expected.rend(), msg.rbegin()));
+    }
 }
 
 
