@@ -61,15 +61,14 @@ std::shared_ptr<LinOp> Isai<ValueType, IndexType>::generate_l(
     using Csr = matrix::Csr<ValueType, IndexType>;
     auto exec = this->get_executor();
     auto csr_l = copy_and_convert_to<Csr>(exec, to_invert_l);
-    auto csc_l_transp_up = csr_l->transpose();
-    auto csc_l = static_cast<Csr *>(csc_l_transp_up.get());
-    const auto num_elems = csc_l->get_num_stored_elements();
+    const auto num_elems = csr_l->get_num_stored_elements();
 
-    auto inverted_csc_l = Csr::create(exec, csc_l->get_size(), num_elems);
-    exec->run(isai::make_generate_l(csc_l, inverted_csc_l.get()));
-    std::shared_ptr<LinOp> inverted_l{std::move(inverted_csc_l)};
-    // TODO: maybe, we need to call make_srow here
-    //       Check if it is part of `transpose`
+    auto inverted_l =
+        Csr::create(exec, csr_l->get_size(), num_elems, csr_l->get_strategy());
+    exec->run(isai::make_generate_l(csr_l.get(), inverted_l.get()));
+
+    // call make_srow
+    inverted_l->set_strategy(inverted_l->get_strategy());
     return inverted_l;
 }
 
@@ -78,7 +77,17 @@ template <typename ValueType, typename IndexType>
 std::shared_ptr<LinOp> Isai<ValueType, IndexType>::generate_u(
     const LinOp *to_invert_u)
 {
-    return {};
+    using Csr = matrix::Csr<ValueType, IndexType>;
+    auto exec = this->get_executor();
+    auto csr_u = copy_and_convert_to<Csr>(exec, to_invert_u);
+    const auto num_elems = csr_u->get_num_stored_elements();
+
+    auto inverted_u =
+        Csr::create(exec, csr_u->get_size(), num_elems, csr_u->get_strategy());
+    exec->run(isai::make_generate_l(csr_u.get(), inverted_u.get()));
+    // call make_srow
+    inverted_u->set_strategy(inverted_u->get_strategy());
+    return inverted_u;
 }
 
 

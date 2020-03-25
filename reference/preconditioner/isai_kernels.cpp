@@ -57,103 +57,127 @@ namespace reference {
 namespace isai {
 
 
-template <typename ValueType, typename IndexType>
-void generate_l(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Csr<ValueType, IndexType> *l_csc,
-                matrix::Csr<ValueType, IndexType> *inverse_l)
+template <typename ValueType, typename IndexType, typename Callable>
+void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Csr<ValueType, IndexType> *mtx,
+                      matrix::Csr<ValueType, IndexType> *inverse_mtx,
+                      Callable trs_solve)
 {
-    // Note: both matrices are in CSC format and not in CSR
-    //       (basically a stored transposed CSR format)
-    const auto size = l_csc->get_size();
-    const auto num_elems = l_csc->get_num_stored_elements();
-    const auto l_col_ptrs = l_csc->get_const_row_ptrs();
-    const auto l_rows = l_csc->get_const_col_idxs();
-    const auto l_vals = l_csc->get_const_values();
-    auto inv_col_ptrs = inverse_l->get_row_ptrs();
-    auto inv_rows = inverse_l->get_col_idxs();
-    auto inv_vals = inverse_l->get_values();
+    /*
+    Consider: aiM := inverse_mtx; M := mtx
+    I := Identity matrix
+    e(i) := unit vector i (containing all zeros except for row i, which is one)
+    S := Sparsity pattern of the desired aiM
+    S(i) := Sparsity pattern of row i of aiM (Set of non-zero columns)
+    D(i) := L[S(i), S(i)]
+    aiM := approximate inverse of M
 
+    Target: Solving (aiM * M = I)_{S} (aiM * M = I for the sparsity pattern S)
+    aiM[i, :] * D(i) = e(i)^T
+    <=> D(i)^T * vL[i, :]^T = e(i)   =^ Triangular system (Trs)
+    Solve Trs, fill in aiM row by row (coalesced access)
+    */
+    const auto size = mtx->get_size();
+    const auto m_row_ptrs = mtx->get_const_row_ptrs();
+    const auto m_cols = mtx->get_const_col_idxs();
+    const auto m_vals = mtx->get_const_values();
+    auto i_row_ptrs = inverse_mtx->get_row_ptrs();
+    auto i_cols = inverse_mtx->get_col_idxs();
+    auto i_vals = inverse_mtx->get_values();
+
+    // expect mtx and inverse_mtx to have the same number of elems
+    const auto num_elems = mtx->get_num_stored_elements();
     // Copy sparsity pattern of original into the inverse of L
     for (IndexType col = 0; col < size[1] + 1; ++col) {
-        inv_col_ptrs[col] = l_col_ptrs[col];
+        i_row_ptrs[col] = m_row_ptrs[col];
     }
     for (IndexType i = 0; i < num_elems; ++i) {
-        inv_rows[i] = l_rows[i];
+        i_cols[i] = m_cols[i];
     }
 
     std::vector<ValueType> rhs;  // RHS for local trisystem
     // memory for dense trisystem in column major:
     std::vector<ValueType> trisystem;
 
-    for (IndexType col = 0; col < size[1]; ++col) {
-        const auto inv_col_begin = inv_col_ptrs[col];
-        const auto inv_col_end = inv_col_ptrs[col + 1];
-        const auto inv_col_elems = inv_col_end - inv_col_begin;
+    for (IndexType row = 0; row < size[0]; ++row) {
+        const auto i_row_begin = i_row_ptrs[row];
+        const auto i_row_end = i_row_ptrs[row + 1];
+        const auto i_row_elems = i_row_end - i_row_begin;
 
         trisystem.clear();
-        trisystem.reserve(inv_col_elems * inv_col_elems);
-        for (IndexType i = 0; i < inv_col_elems * inv_col_elems; ++i) {
+        trisystem.reserve(i_row_elems * i_row_elems);
+        for (IndexType i = 0; i < i_row_elems * i_row_elems; ++i) {
             trisystem.push_back(zero<ValueType>());
         }
 
-        // generate the triangular system:
-        // Go over inv of the current row to get the sparsity pattern S to look
-        // for. Search for the same columns as S in the rows S^T and store them
-        // in the triangular System dense matrix (which is stored column major
-        // for coalescend writes)
-        for (IndexType i = 0; i < inv_col_elems; ++i) {
-            const auto row = inv_rows[inv_col_begin + i];
-            const auto l_col_end = l_col_ptrs[row + 1];
-            auto l_col_ptr = l_col_ptrs[row];
-            auto inv_col_ptr = inv_col_begin;
-            auto idx = i * inv_col_elems;  // idx for triagsystem to write to
-            while (l_col_ptr < l_col_end &&
-                   inv_col_ptr <
-                       inv_col_end) {  // stop once this column is done
-                const auto sparsity_row = inv_rows[inv_col_ptr];
-                const auto l_row = l_rows[l_col_ptr];
-                if (sparsity_row == l_row) {  // match found
-                    trisystem[idx] = l_vals[l_col_ptr];
-                    ++l_col_ptr;
-                    ++inv_col_ptr;
+        for (IndexType i = 0; i < i_row_elems; ++i) {
+            const auto col = i_cols[i_row_begin + i];
+            const auto m_row_end = m_row_ptrs[col + 1];
+            auto m_row_ptr = m_row_ptrs[col];
+            auto i_row_ptr = i_row_begin;
+            // Values in `trisystem` will be stored in transposed order
+            // to prevent the need for an explicit transpose.
+            // Since `trisystem` stores in column major, this is equivalent
+            // to storing it in row-major and reading in column major.
+            auto idx = i * i_row_elems;
+            while (m_row_ptr < m_row_end && i_row_ptr < i_row_end) {
+                const auto sparsity_col = i_cols[i_row_ptr];
+                const auto m_col = m_cols[m_row_ptr];
+                if (sparsity_col == m_col) {
+                    trisystem[idx] = m_vals[m_row_ptr];
+                    ++m_row_ptr;
+                    ++i_row_ptr;
                     ++idx;
-                } else if (l_row < sparsity_row) {
-                    // Check next element in L
-                    ++l_col_ptr;
-                } else {
-                    // element does not exist, i.e. inv_col_ptr <
-                    // l_cols[l_col_ptr]
-                    ++inv_col_ptr;  // check next elment in the sparsity pattern
-                    ++idx;          // leave this element equal zero
+                } else if (m_col < sparsity_col) {
+                    ++m_row_ptr;
+                } else {  // element not present -> leave value at 0
+                    ++i_row_ptr;
+                    ++idx;
                 }
             }
         }
 
-        // second: solve the triangular systems
-        // Triangular solve. The dense matrix is in colmajor.
         rhs.clear();
-        rhs.reserve(inv_col_elems);
-        for (IndexType d_row = 0; d_row < inv_col_elems; ++d_row) {
-            // RHS is identity: 1 first value, 0 the rest
-            rhs.push_back(d_row == 0 ? one<ValueType>() : zero<ValueType>());
-        }
+        rhs.reserve(i_row_elems);
 
-        for (IndexType d_col = 0; d_col < inv_col_elems;
-             ++d_col) {  // go over dense cols
-            const auto diag = trisystem[d_col * inv_col_elems + d_col];
-            const auto top = rhs[d_col] / diag;
-            rhs[d_col] = top;
-            for (IndexType d_row = d_col + 1; d_row < inv_col_elems;
-                 ++d_row) {  // go over all dense rows
-                rhs[d_row] -= top * trisystem[d_col * inv_col_elems + d_row];
-            }
-        }
+        trs_solve(i_row_elems, trisystem, rhs);
 
-        // Drop B to dev memory - in ISAI preconditioner M
-        for (IndexType i = 0; i < inv_col_elems; ++i) {
-            inv_vals[inv_col_begin + i] = rhs[i];
+        // Drop RHS as a row to memory (since that is the computed inverse)
+        for (IndexType i = 0; i < i_row_elems; ++i) {
+            i_vals[i_row_begin + i] = rhs[i];
         }
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+void generate_l(std::shared_ptr<const DefaultExecutor> exec,
+                const matrix::Csr<ValueType, IndexType> *l_csr,
+                matrix::Csr<ValueType, IndexType> *inverse_l)
+{
+    auto trs_solve = [](IndexType size, std::vector<ValueType> &trisystem,
+                        std::vector<ValueType> &rhs) {
+        // RHS is the identity: zero everywhere except for the last entry
+        // since that is the row we are searching the inverse for
+        for (IndexType d_row = 0; d_row < size - 1; ++d_row) {
+            rhs.push_back(zero<ValueType>());
+        }
+        rhs.push_back(one<ValueType>());
+
+        // Note: `trisystem` is an upper triangular matrix here (stored in
+        //       colum major)
+        for (IndexType d_col = size - 1; d_col >= 0; --d_col) {
+            const auto diag = trisystem[d_col * size + d_col];
+            const auto bot = rhs[d_col] / diag;
+            rhs[d_col] = bot;
+            // do a backwards substitution
+            for (IndexType d_row = d_col - 1; d_row >= 0; --d_row) {
+                rhs[d_row] -= bot * trisystem[d_col * size + d_row];
+            }
+        }
+    };
+
+    generic_generate(exec, l_csr, inverse_l, trs_solve);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -165,97 +189,28 @@ void generate_u(std::shared_ptr<const DefaultExecutor> exec,
                 const matrix::Csr<ValueType, IndexType> *u_csr,
                 matrix::Csr<ValueType, IndexType> *inverse_u)
 {
-    /*
-    Consider: vU := inverse_u; U := u_csr
-    I(i) := Sparsity pattern of column i of U (Set of non-zero columns)
-    D(i) := U[I(i), I(i)]
-    vU[i, :] * D(i) = e(i)^T
-    <=> D(i)^T * vU[i, :]^T = e(i)    =^ Triangular system (Trs)
-    Solve Trs, fill in vU row by row without transposing U
-    */
-    const auto size = u_csr->get_size();
-    const auto num_elems = u_csr->get_num_stored_elements();
-    const auto u_row_ptrs = u_csr->get_const_row_ptrs();
-    const auto u_cols = u_csr->get_const_col_idxs();
-    const auto u_vals = u_csr->get_const_values();
-    auto inv_row_ptrs = inverse_u->get_row_ptrs();
-    auto inv_cols = inverse_u->get_col_idxs();
-    auto inv_vals = inverse_u->get_values();
-
-    // Copy sparsity pattern of original into the inverse of L
-    for (IndexType col = 0; col < size[1] + 1; ++col) {
-        inv_row_ptrs[col] = u_row_ptrs[col];
-    }
-    for (IndexType i = 0; i < num_elems; ++i) {
-        inv_cols[i] = u_cols[i];
-    }
-
-    std::vector<ValueType> rhs;  // RHS for local trisystem
-    // memory for dense trisystem in column major:
-    std::vector<ValueType> trisystem;
-
-    for (IndexType row = 0; row < size[0]; ++row) {
-        const auto inv_row_begin = inv_row_ptrs[row];
-        const auto inv_row_end = inv_row_ptrs[row + 1];
-        const auto inv_row_elems = inv_row_end - inv_row_begin;
-
-        trisystem.clear();
-        trisystem.reserve(inv_row_elems * inv_row_elems);
-        for (IndexType i = 0; i < inv_row_elems * inv_row_elems; ++i) {
-            trisystem.push_back(zero<ValueType>());
+    auto trs_solve = [](IndexType size, std::vector<ValueType> &trisystem,
+                        std::vector<ValueType> &rhs) {
+        // RHS is the identity: zero everywhere except for the first entry
+        // since that is the row we are searching the inverse for
+        rhs.push_back(one<ValueType>());
+        for (IndexType d_row = 1; d_row < size; ++d_row) {
+            rhs.push_back(zero<ValueType>());
         }
 
-        for (IndexType i = 0; i < inv_row_elems; ++i) {
-            const auto col = inv_cols[inv_row_begin + i];
-            const auto u_row_end = u_row_ptrs[col + 1];
-            auto u_row_ptr = u_row_ptrs[col];
-            auto inv_row_ptr = inv_row_begin;
-            // Values in `trisystem` will be stored in transposed order
-            // to prevent the need for an explicit transpose.
-            // Since `trisystem` stores in column major, this is equivalent
-            // to storing it in row-major and reading in column major.
-            auto idx = i * inv_row_elems;
-            while (u_row_ptr < u_row_end && inv_row_ptr < inv_row_end) {
-                const auto sparsity_col = inv_cols[inv_row_ptr];
-                const auto u_col = u_cols[u_row_ptr];
-                if (sparsity_col == u_col) {
-                    trisystem[idx] = u_vals[u_row_ptr];
-                    ++u_row_ptr;
-                    ++inv_row_ptr;
-                    ++idx;
-                } else if (u_col < sparsity_col) {
-                    ++u_row_ptr;
-                } else {  // element not present -> leave value at 0
-                    ++inv_row_ptr;
-                    ++idx;
-                }
-            }
-        }
-
-        // Triangular solve. The dense matrix is in colmajor and a lower TRS.
-        rhs.clear();
-        rhs.reserve(inv_row_elems);
-        for (IndexType d_row = 0; d_row < inv_row_elems; ++d_row) {
-            // RHS is identity: 1 first value, 0 the rest
-            rhs.push_back(d_row == 0 ? one<ValueType>() : zero<ValueType>());
-        }
-
-        // go over the dense columns
-        for (IndexType d_col = 0; d_col < inv_row_elems; ++d_col) {
-            const auto diag = trisystem[d_col * inv_row_elems + d_col];
+        // Note: `trisystem` is a lower triangular matrix here (stored in
+        //       colum major)
+        for (IndexType d_col = 0; d_col < size; ++d_col) {
+            const auto diag = trisystem[d_col * size + d_col];
             const auto top = rhs[d_col] / diag;
             rhs[d_col] = top;
             // do a forward substitution
-            for (IndexType d_row = d_col + 1; d_row < inv_row_elems; ++d_row) {
-                rhs[d_row] -= top * trisystem[d_col * inv_row_elems + d_row];
+            for (IndexType d_row = d_col + 1; d_row < size; ++d_row) {
+                rhs[d_row] -= top * trisystem[d_col * size + d_row];
             }
         }
-
-        // Drop RHS as a row to memory (since that is the computed inverse)
-        for (IndexType i = 0; i < inv_row_elems; ++i) {
-            inv_vals[inv_row_begin + i] = rhs[i];
-        }
-    }
+    };
+    generic_generate(exec, u_csr, inverse_u, trs_solve);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
