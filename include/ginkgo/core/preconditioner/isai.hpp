@@ -44,10 +44,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 /** TODO:
- * - finish the Constructor & start with kernels
  * - implement only_l and only_u, or remove it
- * - should Isai inherit from Composition?
  * - Should it be possible to create a preconditioner exclusively for L or U?
+ * - Write documentation for Isai class (referencing Hartwig's paper and
+ *   mention left vs. right preconditioning)!
  */
 
 
