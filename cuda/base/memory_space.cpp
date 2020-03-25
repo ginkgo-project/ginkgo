@@ -145,7 +145,7 @@ void CudaUVMSpace::raw_copy_to(const HipMemorySpace *dest, size_type num_bytes,
                                                  num_bytes));
     }
 #else
-    GKO_NOT_SUPPORTED(CudaUVMSpace);
+    GKO_NOT_SUPPORTED(this);
 #endif
 }
 
