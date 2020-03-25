@@ -50,7 +50,7 @@ jobs:
         cd build
         cmake -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_OMP=OFF ..
         cmake --build . -j8 --config ${{ matrix.config.build_type }}
-        ctest . -C ${{ matrix.config.build_type }}
+        ctest . -C ${{ matrix.config.build_type }} --output-on-failure
     - name: install_shared_env
       if: matrix.config.shared == 'ON'
       run: |
@@ -90,7 +90,7 @@ jobs:
         cd build
         cmake -G "MinGW Makefiles" -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} ..
         cmake --build . -j8
-        ctest .
+        ctest . --output-on-failure
       shell: cmd
     - name: install_shared_env
       if: matrix.config.shared == 'ON'
@@ -137,7 +137,7 @@ jobs:
         cd build
         bash -c "cmake -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} .."
         bash -c "make -j8"
-        bash -c "make test"
+        bash -c "ctest . --output-on-failure"
       shell: cmd
     - name: install_shared
       if: matrix.config.shared == 'ON'
