@@ -29,6 +29,7 @@ authors:
   - name: Tobias Ribizel 
     affiliation: 1 
   - name: Yu-Hsiang Tsai 
+    orcid: 0000-0001-5229-3739
     affiliation: 1 
 affiliations:
  - name: Karlsruhe Institute of Technology
@@ -37,7 +38,7 @@ affiliations:
    index: 2
  - name: University of Jaume I 
    index: 3
- - name: University of Tokyo 
+ - name: The University of Tokyo 
    index: 4
 date: 6th March, 2020.
 bibliography: paper.bib
