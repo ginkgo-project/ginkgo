@@ -71,20 +71,39 @@ protected:
               {{2., 0., 0.}, {1., -2., 0.}, {-1., 1., -1.}}, exec)},
           l_dense_inv{gko::initialize<Dense>(
               {{.5, 0., 0.}, {.25, -.5, 0.}, {-.25, -.5, -1.}}, exec)},
+          u_dense{gko::initialize<Dense>(
+              {{4., 1., -1.}, {0., -2., 4.}, {0., 0., 8.}}, exec)},
+          u_dense_inv{gko::initialize<Dense>(
+              {{.25, .125, -0.03125}, {0., -.5, .25}, {0., 0., .125}}, exec)},
           l_csr{Csr::create(exec)},
           l_csr_inv{Csr::create(exec)},
+          u_csr{Csr::create(exec)},
+          u_csr_inv{Csr::create(exec)},
           l_sparse{Csr::create(exec, gko::dim<2>(4, 4),
                                I<value_type>{-1., 2., 4., 5., -4., 8., -8.},
                                I<index_type>{0, 0, 1, 1, 2, 2, 3},
                                I<index_type>{0, 1, 3, 5, 7})},
-          l_sparse_inv{Csr::create(
+          l_sparse_inv{
+              Csr::create(exec, gko::dim<2>(4, 4),
+                          I<value_type>{-1., .5, .25, .3125, -.25, -.25, -.125},
+                          I<index_type>{0, 0, 1, 1, 2, 2, 3},
+                          I<index_type>{0, 1, 3, 5, 7})},
+          u_sparse{
+              Csr::create(exec, gko::dim<2>(4, 4),
+                          I<value_type>{-2., 1., -1., 1., 4., 1., -2., 1., 2.},
+                          I<index_type>{0, 1, 2, 3, 1, 2, 2, 3, 3},
+                          I<index_type>{0, 4, 6, 8, 9})},
+          u_sparse_inv{Csr::create(
               exec, gko::dim<2>(4, 4),
-              I<value_type>{-1., .5, .25, .3125, -.25, -.25, -.125},
-              I<index_type>{0, 0, 1, 1, 2, 2, 3}, I<index_type>{0, 1, 3, 5, 7})}
+              I<value_type>{-.5, .125, .3125, .09375, .25, .125, -.5, .25, .5},
+              I<index_type>{0, 1, 2, 3, 1, 2, 2, 3, 3},
+              I<index_type>{0, 4, 6, 8, 9})}
     {
         isai_factory = Isai_type::build().on(exec);
         l_dense->convert_to(gko::lend(l_csr));
         l_dense_inv->convert_to(gko::lend(l_csr_inv));
+        u_dense->convert_to(gko::lend(u_csr));
+        u_dense_inv->convert_to(gko::lend(u_csr_inv));
     }
 
     std::unique_ptr<Csr> clone_allocations(const Csr *csr_mtx)
@@ -126,10 +145,16 @@ protected:
     std::shared_ptr<gko::matrix::Csr<value_type, index_type>> mtx;
     std::unique_ptr<Dense> l_dense;
     std::unique_ptr<Dense> l_dense_inv;
+    std::unique_ptr<Dense> u_dense;
+    std::unique_ptr<Dense> u_dense_inv;
     std::unique_ptr<Csr> l_csr;
     std::unique_ptr<Csr> l_csr_inv;
+    std::unique_ptr<Csr> u_csr;
+    std::unique_ptr<Csr> u_csr_inv;
     std::unique_ptr<Csr> l_sparse;
     std::unique_ptr<Csr> l_sparse_inv;
+    std::unique_ptr<Csr> u_sparse;
+    std::unique_ptr<Csr> u_sparse_inv;
 };
 
 TYPED_TEST_CASE(Isai, gko::test::ValueIndexTypes);
@@ -165,6 +190,70 @@ TYPED_TEST(Isai, KernelGenerateLsparse)
     GKO_ASSERT_MTX_EQ_SPARSITY(result, trans_expected);
     GKO_ASSERT_MTX_NEAR(result, trans_expected, r<value_type>::value);
 }
+
+
+TYPED_TEST(Isai, KernelGenerateU1)
+{
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    auto trans_expected = this->transpose(gko::lend(this->l_csr_inv));
+    auto u_trans = this->transpose(gko::lend(this->l_csr));
+    auto result = this->clone_allocations(gko::lend(u_trans));
+
+    gko::kernels::reference::isai::generate_l(this->exec, gko::lend(u_trans),
+                                              gko::lend(result));
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, trans_expected);
+    GKO_ASSERT_MTX_NEAR(result, trans_expected, r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, KernelGenerateU2)
+{
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    auto result = this->clone_allocations(gko::lend(this->u_csr));
+
+    gko::kernels::reference::isai::generate_l(
+        this->exec, gko::lend(this->u_csr), gko::lend(result));
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_csr_inv);
+    GKO_ASSERT_MTX_NEAR(result, this->u_csr_inv, r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, KernelGenerateUsparse1)
+{
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    auto trans_expected = this->transpose(gko::lend(this->l_sparse_inv));
+    auto u_trans = this->transpose(gko::lend(this->l_sparse));
+    auto result = this->clone_allocations(gko::lend(u_trans));
+
+    gko::kernels::reference::isai::generate_u(this->exec, gko::lend(u_trans),
+                                              gko::lend(result));
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, trans_expected);
+    GKO_ASSERT_MTX_NEAR(result, trans_expected, r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, KernelGenerateUsparse2)
+{
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    auto result = this->clone_allocations(gko::lend(this->u_sparse));
+
+    gko::kernels::reference::isai::generate_l(
+        this->exec, gko::lend(this->u_sparse), gko::lend(result));
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_sparse_inv);
+    GKO_ASSERT_MTX_NEAR(result, this->u_sparse_inv, r<value_type>::value);
+}
+
+
+// TODO: Write throwing test in case mtx is not convertable to CSR
+// TODO: Write test for the full preconditioner, including one in `core`
 
 
 }  // namespace
