@@ -255,7 +255,8 @@ public:
      * Creates an Array from existing memory.
      *
      * The Array does not take ownership of the memory, and will not deallocate
-     * it once it goes out of scope.
+     * it once it goes out of scope. This array type cannot use the function
+     * `resize_and_reset` since it does not own the data it should resize.
      *
      * @param exec  executor where `data` is located
      * @param num_elems  number of elements in `data`
@@ -295,13 +296,11 @@ public:
             data_ = data_manager{nullptr, other.data_.get_deleter()};
         }
         if (other.get_executor() == nullptr) {
-            this->resize_and_reset(0);
+            this->clear();
             return *this;
         }
-        // We allow resizing only if we are an array, we cannot resize a view!
-        // If we are a view, we do bound checking to ensure the data can be
-        // copied over.
-        if (data_.get_deleter().target_type() != typeid(view_deleter)) {
+
+        if (this->is_owning()) {
             this->resize_and_reset(other.get_num_elems());
         } else {
             GKO_ENSURE_COMPATIBLE_BOUNDS(other.get_num_elems(),
@@ -322,12 +321,14 @@ public:
      *   b = std::move(a);
      * ```
      * Depending on whether `a` and `b` are array or view, this happens:
-     * + `a` and `b` are view, `b` becomes the only valid view of `a`
-     * + `a` and `b` are array, `b` becomes the only valid array of `a`
-     * + `a` is `a` view and `b` is an array, `b` frees its data and becomes the
-     *    only valid view of `a`
-     * + `a` is an array and `b` is `a` view, `b` becomes the only valid array
-     *    of `a`
+     * + `a` and `b` are views, `b` becomes the only valid view of `a`;
+     * + `a` and `b` are arrays, `b` becomes the only valid array of `a`;
+     * + `a` is a view and `b` is an array, `b` frees its data and becomes the
+     *    only valid view of `a` ();
+     * + `a` is an array and `b` is a view, `b` becomes the only valid array
+     *    of `a`.
+     *
+     * In all the previous cases, `a` becomes invalid (e.g., a `nullptr`).
      *
      * This does not invoke the constructors of the elements, instead they are
      * copied as POD types.
@@ -349,7 +350,7 @@ public:
             data_ = data_manager{nullptr, other.data_.get_deleter()};
         }
         if (other.get_executor() == nullptr) {
-            this->resize_and_reset(0);
+            this->clear();
             return *this;
         }
         if (exec_ == other.get_executor()) {
@@ -357,7 +358,7 @@ public:
             using std::swap;
             swap(data_, other.data_);
             swap(num_elems_, other.num_elems_);
-            other.resize_and_reset(0);
+            other.clear();
         } else {
             // different device, copy the data
             *this = other;
@@ -380,8 +381,8 @@ public:
 
     /**
      * Resizes the array so it is able to hold the specified number of elements.
-     * To a view, this only resets the pointer. Afterwards, the  only way to use
-     * a view in such a state is to `std::move` another view.
+     * For a view and other non-owning Array types, this throws an exception
+     * since these types cannot be resized.
      *
      * All data stored in the array will be lost.
      *
@@ -399,15 +400,16 @@ public:
             throw gko::NotSupported(__FILE__, __LINE__, __func__,
                                     "gko::Executor (nullptr)");
         }
+        if (!this->is_owning()) {
+            throw gko::NotSupported(__FILE__, __LINE__, __func__,
+                                    "Non owning gko::Array cannot be resized.");
+        }
 
-        num_elems_ = num_elems;
-        // For views, we should never allocate any data, all we can do is unset
-        // the pointer.
-        if (num_elems > 0 &&
-            data_.get_deleter().target_type() != typeid(view_deleter)) {
+        if (num_elems > 0 && this->is_owning()) {
+            num_elems_ = num_elems;
             data_.reset(exec_->alloc<value_type>(num_elems));
         } else {
-            data_.reset(nullptr);
+            this->clear();
         }
     }
 
@@ -463,6 +465,23 @@ public:
         exec_ = std::move(tmp.exec_);
         data_ = std::move(tmp.data_);
     }
+
+    /**
+     * Tells whether this Array owns its data or not.
+     *
+     * Views do not own their data and this has multiple implications. They
+     * cannot be resized since the data is not owned by the Array which stores a
+     * view. It is also unclear whether custom deleter types are owning types as
+     * they could be a user-created view-type, therefore only proper Array which
+     * use the `default_deleter` are considered owning types.
+     *
+     * @return whether this Array can be resized or not.
+     */
+    bool is_owning()
+    {
+        return data_.get_deleter().target_type() == typeid(default_deleter);
+    }
+
 
 private:
     using data_manager =
