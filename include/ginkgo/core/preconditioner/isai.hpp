@@ -41,16 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
-
-
-/** TODO:
- * - implement only_l and only_u, or remove it
- * - Should it be possible to create a preconditioner exclusively for L or U?
- * - Write documentation for Isai class (referencing Hartwig's paper and
- *   mention left vs. right preconditioning)!
- * - Clean up OpenMP and CUDA tests
- * - rebase with only important files in it (in a new branch)
- */
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -63,7 +55,24 @@ namespace preconditioner {
 
 
 /**
- * Incomplete Sparse Approximate Inverse (ISAI)
+ * The Incomplete Sparse Approximate Inverse (ISAI) Preconditioner generates
+ * approximate inverse matrices for a given lower triangular matrix L and upper
+ * triangular matrix U. Using the precionditioner computes $aiU * aiL * x$
+ * for a given vector x (may have multiple right hand sides). aiU and aiL
+ * are the approximate inverses for U and L respectively.
+ *
+ * The sparsity pattern used for the approximate inverses is the same as
+ * the sparsity pattern of the respective triangular matrix.
+ * The L and U matrices need to be in a Composition<ValueType> object in the
+ * order: L, U.
+ *
+ * For more details on the algorithm, see the paper
+ * <a href="https://doi.org/10.1016/j.parco.2017.10.003">
+ * Incomplete Sparse Approximate Inverses for Parallel Preconditioning</a>,
+ * which is the basis for this work.
+ *
+ * @tparam ValueType  precision of matrix elements
+ * @tparam IndexType  precision of matrix indexes
  *
  * @ingroup isai
  * @ingroup precond
@@ -77,6 +86,21 @@ class Isai : public EnableLinOp<Isai<ValueType, IndexType>> {
 public:
     using value_type = ValueType;
     using index_type = IndexType;
+    using Csr = matrix::Csr<ValueType, IndexType>;
+
+    /**
+     * Returns the approximate inverse of L.
+     *
+     * @returns the approximate inverse of L
+     */
+    std::shared_ptr<const Csr> get_approx_inverse_l() const { return l_inv_; }
+
+    /**
+     * Returns the approximate inverse of U.
+     *
+     * @returns the approximate inverse of U
+     */
+    std::shared_ptr<const Csr> get_approx_inverse_u() const { return u_inv_; }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};
 
@@ -99,31 +123,38 @@ protected:
         : EnableLinOp<Isai>(factory->get_executor(), factors->get_size()),
           parameters_{factory->get_parameters()}
     {
-        // GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
         auto comp = dynamic_cast<const Composition<ValueType> *>(factors.get());
         if (!comp) {
             GKO_NOT_SUPPORTED(factors);
         }
-        auto l_factor = comp->get_operators()[0];
-        auto u_factor = comp->get_operators()[1];
+        const auto num_operators = comp->get_operators().size();
+        if (num_operators != 2) {
+            GKO_NOT_SUPPORTED(comp);
+        }
+        const auto l_factor = comp->get_operators()[0];
+        const auto u_factor = comp->get_operators()[1];
 
         GKO_ASSERT_IS_SQUARE_MATRIX(l_factor);
         GKO_ASSERT_IS_SQUARE_MATRIX(u_factor);
         GKO_ASSERT_EQUAL_DIMENSIONS(l_factor, u_factor);
 
-        factors_ = Composition<ValueType>::create(
-            this->generate_u(u_factor.get()), this->generate_l(l_factor.get()));
+        l_inv_ = this->generate_l(l_factor.get());
+        u_inv_ = this->generate_u(u_factor.get());
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override
     {
-        factors_->apply(b, x);
+        cache_.prepare(l_inv_.get(), b);
+        l_inv_->apply(b, cache_.intermediate.get());
+        u_inv_->apply(cache_.intermediate.get(), x);
     }
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override
     {
-        factors_->apply(alpha, b, beta, x);
+        cache_.prepare(l_inv_.get(), b);
+        l_inv_->apply(b, cache_.intermediate.get());
+        u_inv_->apply(alpha, cache_.intermediate.get(), beta, x);
     }
 
     /**
@@ -132,7 +163,7 @@ protected:
      * @param to_invert_l  the source lower triangular matrix used to generate
      *                     the approximate inverse
      */
-    std::shared_ptr<LinOp> generate_l(const LinOp *to_invert_l);
+    std::shared_ptr<Csr> generate_l(const LinOp *to_invert_l);
 
     /**
      * Generates the approximate inverse.
@@ -140,11 +171,32 @@ protected:
      * @param to_invert_u  the source upper triangular matrix used to generate
      *                     the approximate inverse
      */
-    std::shared_ptr<LinOp> generate_u(const LinOp *to_invert_u);
+    std::shared_ptr<Csr> generate_u(const LinOp *to_invert_u);
 
 private:
     // shared_ptr, so it is easily copyable
-    std::shared_ptr<Composition<ValueType>> factors_;
+    std::shared_ptr<Csr> l_inv_;
+    std::shared_ptr<Csr> u_inv_;
+
+    mutable struct cache_struct {
+        using Dense = matrix::Dense<ValueType>;
+        cache_struct() = default;
+        ~cache_struct() = default;
+        cache_struct(const cache_struct &) {}
+        cache_struct &operator=(const cache_struct &) { return *this; }
+
+        void prepare(const LinOp *left_factor, const LinOp *right_factor)
+        {
+            auto new_size =
+                dim<2>{left_factor->get_size()[0], right_factor->get_size()[1]};
+            if (intermediate == nullptr ||
+                intermediate->get_size() != new_size) {
+                intermediate =
+                    Dense::create(left_factor->get_executor(), new_size);
+            }
+        }
+        std::unique_ptr<Dense> intermediate;
+    } cache_;
 };
 
 

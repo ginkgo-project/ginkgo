@@ -55,8 +55,8 @@ GKO_REGISTER_OPERATION(generate_u, isai::generate_u);
 
 
 template <typename ValueType, typename IndexType>
-std::shared_ptr<LinOp> Isai<ValueType, IndexType>::generate_l(
-    const LinOp *to_invert_l)
+std::shared_ptr<matrix::Csr<ValueType, IndexType>>
+Isai<ValueType, IndexType>::generate_l(const LinOp *to_invert_l)
 {
     using Csr = matrix::Csr<ValueType, IndexType>;
     auto exec = this->get_executor();
@@ -74,8 +74,8 @@ std::shared_ptr<LinOp> Isai<ValueType, IndexType>::generate_l(
 
 
 template <typename ValueType, typename IndexType>
-std::shared_ptr<LinOp> Isai<ValueType, IndexType>::generate_u(
-    const LinOp *to_invert_u)
+std::shared_ptr<matrix::Csr<ValueType, IndexType>>
+Isai<ValueType, IndexType>::generate_u(const LinOp *to_invert_u)
 {
     using Csr = matrix::Csr<ValueType, IndexType>;
     auto exec = this->get_executor();
@@ -84,7 +84,7 @@ std::shared_ptr<LinOp> Isai<ValueType, IndexType>::generate_u(
 
     std::shared_ptr<Csr> inverted_u =
         Csr::create(exec, csr_u->get_size(), num_elems, csr_u->get_strategy());
-    exec->run(isai::make_generate_l(csr_u.get(), inverted_u.get()));
+    exec->run(isai::make_generate_u(csr_u.get(), inverted_u.get()));
     // call make_srow
     inverted_u->set_strategy(inverted_u->get_strategy());
     return inverted_u;
