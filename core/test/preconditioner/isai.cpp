@@ -97,6 +97,18 @@ TYPED_TEST(IsaiFactory, KnowsItsExecutor)
 TYPED_TEST(IsaiFactory, ThrowsWrongInput)
 {
     using Dense = typename TestFixture::Dense;
+    using Comp = typename TestFixture::Comp;
+    auto mtx = Dense::create(this->exec, gko::dim<2>{2, 2});
+    auto comp = Comp::create(std::move(mtx));
+
+    ASSERT_THROW(this->isai_factory->generate(gko::share(comp)),
+                 gko::NotSupported);
+}
+
+
+TYPED_TEST(IsaiFactory, ThrowsWrongComposition)
+{
+    using Dense = typename TestFixture::Dense;
     auto mtx = Dense::create(this->exec, gko::dim<2>{1, 1});
 
     ASSERT_THROW(this->isai_factory->generate(gko::share(mtx)),
