@@ -63,13 +63,13 @@ std::shared_ptr<LinOp> Isai<ValueType, IndexType>::generate_l(
     auto csr_l = copy_and_convert_to<Csr>(exec, to_invert_l);
     const auto num_elems = csr_l->get_num_stored_elements();
 
-    auto inverted_l =
+    std::shared_ptr<Csr> inverted_l =
         Csr::create(exec, csr_l->get_size(), num_elems, csr_l->get_strategy());
     exec->run(isai::make_generate_l(csr_l.get(), inverted_l.get()));
 
     // call make_srow
     inverted_l->set_strategy(inverted_l->get_strategy());
-    return inverted_l;
+    return {std::move(inverted_l)};
 }
 
 
@@ -82,7 +82,7 @@ std::shared_ptr<LinOp> Isai<ValueType, IndexType>::generate_u(
     auto csr_u = copy_and_convert_to<Csr>(exec, to_invert_u);
     const auto num_elems = csr_u->get_num_stored_elements();
 
-    auto inverted_u =
+    std::shared_ptr<Csr> inverted_u =
         Csr::create(exec, csr_u->get_size(), num_elems, csr_u->get_strategy());
     exec->run(isai::make_generate_l(csr_u.get(), inverted_u.get()));
     // call make_srow

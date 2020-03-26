@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -64,6 +65,7 @@ protected:
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
+    using Composition = gko::Composition<value_type>;
 
     Isai()
         : exec{gko::ReferenceExecutor::create()},
@@ -357,8 +359,24 @@ TYPED_TEST(Isai, KernelGenerateUsparse3)
 }
 
 
-// TODO: Write throwing test in case mtx is not convertable to CSR
-// TODO: Write test for the full preconditioner, including one in `core`
+TYPED_TEST(Isai, Apply)
+{
+    using Dense = typename TestFixture::Dense;
+    using Composition = typename TestFixture::Composition;
+    using value_type = typename TestFixture::value_type;
+    auto identity =
+        gko::initialize<Dense>({{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}, this->exec);
+    auto x = Dense::create(this->exec, identity->get_size());
+    auto result = Dense::create_with_config_of(gko::lend(x));
+    this->l_dense->apply(gko::lend(this->u_dense), gko::lend(x));
+    auto comp = gko::share(Composition::create(gko::share(this->l_dense),
+                                               gko::share(this->u_dense)));
+
+    auto isai = this->isai_factory->generate(comp);
+    isai->apply(gko::lend(x), gko::lend(result));
+
+    GKO_ASSERT_MTX_NEAR(result, identity, r<value_type>::value);
+}
 
 
 }  // namespace
