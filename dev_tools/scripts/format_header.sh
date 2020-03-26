@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 convert_header () {
     local regex="^(#include )(<|\")(.*)(\"|>)$"
@@ -117,8 +117,8 @@ get_include_regex () {
 
 GINKGO_LICENSE_BEACON="******************************<GINKGO LICENSE>******************************"
 
-CONTENT="content" # Store the residual part (start from namespace)
-BEFORE="before" # Store the main header and the #ifdef/#define of header file
+CONTENT="content.cpp" # Store the residual part (start from namespace)
+BEFORE="before.cpp" # Store the main header and the #ifdef/#define of header file
 HAS_HIP_RUNTIME="false"
 DURING_LICENSE="false"
 INCLUDE_REGEX="^#include.*"
@@ -249,7 +249,7 @@ fi
 # Write the main header and give warnning if there are multiple matches
 if [ -f "${BEFORE}" ]; then
     # sort or remove the duplication
-    clang-format -i ${BEFORE}
+    clang-format -i -style=file ${BEFORE}
     if [ $(wc -l < ${BEFORE}) -gt "1" ]; then
         echo "Warning $1: there are multiple main header matched"
     fi
@@ -280,7 +280,7 @@ if [ -f "${CONTENT}" ]; then
     else
         cat temp > "${CONTENT}"
     fi
-    clang-format -i "${CONTENT}"
+    clang-format -i -style=file "${CONTENT}"
     rm temp
     remove_regroup
     PREV_INC=0

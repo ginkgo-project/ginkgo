@@ -33,10 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
-#include <gtest/gtest.h>
 #include <hip/hip_runtime.h>
 #include <hipblas.h>
 #include <hipsparse.h>
+
+
+#include <gtest/gtest.h>
 
 
 namespace {
