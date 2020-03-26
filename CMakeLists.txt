@@ -207,8 +207,8 @@ if(GINKGO_DEVEL_TOOLS)
     add_dependencies(format add_license)
 endif()
 
-# Generate the global `ginkgo/ginkgo.hpp` header with every call of make
-# when bash is present and the developer tools are enabled
+# MacOS needs to install bash, gnu-sed, findutils and coreutils
+# format_header needs clang-format 6.0.0+
 find_program(BASH bash)
 if(NOT "${BASH}" STREQUAL "BASH-NOTFOUND" AND GINKGO_DEVEL_TOOLS)
     add_custom_target(generate_ginkgo_header ALL
