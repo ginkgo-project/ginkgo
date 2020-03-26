@@ -33,16 +33,36 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/preconditioner/isai.hpp>
 
 
+#include <memory>
+
+
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/base/composition.hpp>
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/test/utils.hpp"
 
 
 namespace {
+
+
+struct DummyOperator : public gko::EnableLinOp<DummyOperator>,
+                       gko::EnableCreateMethod<DummyOperator> {
+    DummyOperator(std::shared_ptr<const gko::Executor> exec,
+                  gko::dim<2> size = {})
+        : gko::EnableLinOp<DummyOperator>(exec, size)
+    {}
+
+    void apply_impl(const LinOp *b, LinOp *x) const override {}
+
+    void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
+                    LinOp *x) const override
+    {}
+};
 
 
 template <typename ValueIndexType>
@@ -53,6 +73,8 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Isai = gko::preconditioner::Isai<value_type, index_type>;
+    using Comp = gko::Composition<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
 
     IsaiFactory()
         : exec(gko::ReferenceExecutor::create()),
@@ -69,6 +91,80 @@ TYPED_TEST_CASE(IsaiFactory, gko::test::ValueIndexTypes);
 TYPED_TEST(IsaiFactory, KnowsItsExecutor)
 {
     ASSERT_EQ(this->isai_factory->get_executor(), this->exec);
+}
+
+
+TYPED_TEST(IsaiFactory, ThrowsWrongInput)
+{
+    using Dense = typename TestFixture::Dense;
+    auto mtx = Dense::create(this->exec, gko::dim<2>{1, 1});
+
+    ASSERT_THROW(this->isai_factory->generate(gko::share(mtx)),
+                 gko::NotSupported);
+}
+
+
+TYPED_TEST(IsaiFactory, ThrowsWrongDimension)
+{
+    using Dense = typename TestFixture::Dense;
+    using Comp = typename TestFixture::Comp;
+    auto mtx1 = Dense::create(this->exec, gko::dim<2>{1, 2});
+    auto mtx2 = Dense::create(this->exec, gko::dim<2>{2, 1});
+    auto comp = Comp::create(std::move(mtx1), std::move(mtx2));
+
+    ASSERT_THROW(this->isai_factory->generate(gko::share(comp)),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(IsaiFactory, ThrowsWrongDimension2)
+{
+    using Dense = typename TestFixture::Dense;
+    using Comp = typename TestFixture::Comp;
+    auto mtx1 = Dense::create(this->exec, gko::dim<2>{2, 2});
+    auto mtx2 = Dense::create(this->exec, gko::dim<2>{2, 3});
+    auto comp = Comp::create(std::move(mtx1), std::move(mtx2));
+
+    ASSERT_THROW(this->isai_factory->generate(gko::share(comp)),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(IsaiFactory, ThrowsNoConversionCsr)
+{
+    using Dense = typename TestFixture::Dense;
+    using Comp = typename TestFixture::Comp;
+    auto mtx1 = DummyOperator::create(this->exec, gko::dim<2>{2, 2});
+    auto mtx2 = Dense::create(this->exec, gko::dim<2>{2, 2});
+    auto comp = Comp::create(std::move(mtx1), std::move(mtx2));
+
+    ASSERT_THROW(this->isai_factory->generate(gko::share(comp)),
+                 gko::NotSupported);
+}
+
+
+TYPED_TEST(IsaiFactory, ThrowsNoConversionCsr2)
+{
+    using Dense = typename TestFixture::Dense;
+    using Comp = typename TestFixture::Comp;
+    auto mtx1 = Dense::create(this->exec, gko::dim<2>{2, 2});
+    auto mtx2 = DummyOperator::create(this->exec, gko::dim<2>{2, 2});
+    auto comp = Comp::create(std::move(mtx1), std::move(mtx2));
+
+    ASSERT_THROW(this->isai_factory->generate(gko::share(comp)),
+                 gko::NotSupported);
+}
+
+
+TYPED_TEST(IsaiFactory, NoThrowCorrectInput)
+{
+    using Dense = typename TestFixture::Dense;
+    using Comp = typename TestFixture::Comp;
+    auto mtx1 = Dense::create(this->exec, gko::dim<2>{1, 1});
+    auto mtx2 = Dense::create(this->exec, gko::dim<2>{1, 1});
+    auto comp = Comp::create(std::move(mtx1), std::move(mtx2));
+
+    ASSERT_NO_THROW(this->isai_factory->generate(gko::share(comp)));
 }
 
 

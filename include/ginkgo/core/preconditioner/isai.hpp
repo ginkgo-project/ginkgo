@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 
-#include <ginkgo/core/base/composition.hpp>  // TODO: check if still needed
+#include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
@@ -48,6 +48,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * - Should it be possible to create a preconditioner exclusively for L or U?
  * - Write documentation for Isai class (referencing Hartwig's paper and
  *   mention left vs. right preconditioning)!
+ * - Clean up OpenMP and CUDA tests
+ * - rebase with only important files in it (in a new branch)
  */
 
 
@@ -76,18 +78,7 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
 
-    template <typename... Args>
-    static std::unique_ptr<Composition<ValueType>> create(Args &&... args) =
-        delete;
-
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
-        // std::shared_ptr<LinOpFactory> GKO_FACTORY_PARAMETER(lu_factory,
-        // nullptr);
-        // TODO figure out if it makes sense and implement properly
-        bool GKO_FACTORY_PARAMETER(only_l, false);
-        bool GKO_FACTORY_PARAMETER(only_u, false);
-    };
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};
 
     GKO_ENABLE_LIN_OP_FACTORY(Isai, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -101,28 +92,27 @@ protected:
      * Creates an Isai preconditioner from a matrix using an Isai::Factory.
      *
      * @param factory  the factory to use to create the preconditoner
-     * @param system_matrix  the matrix this preconditioner should be created
-     *                       from
+     * @param factors  Composition<ValueType> of a lower triangular and an
+     *                 upper triangular matrix (L and U)
      */
-    explicit Isai(const Factory *factory,
-                  std::shared_ptr<const LinOp> system_matrices)
-        : EnableLinOp<Isai>(factory->get_executor()),
+    explicit Isai(const Factory *factory, std::shared_ptr<const LinOp> factors)
+        : EnableLinOp<Isai>(factory->get_executor(), factors->get_size()),
           parameters_{factory->get_parameters()}
     {
         // GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
-        auto factors =
-            dynamic_cast<const Composition<ValueType> *>(system_matrices.get());
-        if (!factors) {
-            GKO_NOT_SUPPORTED(system_matrices);
+        auto comp = dynamic_cast<const Composition<ValueType> *>(factors.get());
+        if (!comp) {
+            GKO_NOT_SUPPORTED(factors);
         }
-        auto l_factor = factors->get_operators()[0];
-        auto u_factor = factors->get_operators()[1];
+        auto l_factor = comp->get_operators()[0];
+        auto u_factor = comp->get_operators()[1];
+
         GKO_ASSERT_IS_SQUARE_MATRIX(l_factor);
         GKO_ASSERT_IS_SQUARE_MATRIX(u_factor);
-        auto inv_l = this->generate_l(l_factor.get());
-        auto inv_u = this->generate_u(u_factor.get());
-        factors_ =
-            Composition<ValueType>::create(std::move(inv_l), std::move(inv_u));
+        GKO_ASSERT_EQUAL_DIMENSIONS(l_factor, u_factor);
+
+        factors_ = Composition<ValueType>::create(
+            this->generate_u(u_factor.get()), this->generate_l(l_factor.get()));
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override
@@ -153,6 +143,7 @@ protected:
     std::shared_ptr<LinOp> generate_u(const LinOp *to_invert_u);
 
 private:
+    // shared_ptr, so it is easily copyable
     std::shared_ptr<Composition<ValueType>> factors_;
 };
 
