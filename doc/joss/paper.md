@@ -144,15 +144,16 @@ Ginkgo provides comprehensive logging facilities both in-house and with interfac
 to external libraries such as PAPI [@papi]. This allows for detailed analysis of
 the kernels while reducing the intellectual overhead of optimizing the applications.
 
-To enhance reproducibility from a performance perspective, we provide the performance 
-results of our kernel implementations in an open source git repository [@gko-data].
-
-A unique feature of Ginkgo is the availability of an interactive webtool, the Ginkgo
-Performance explorer [@gpe], which can plot results from the aforementioned data 
-repository. Additionally, we have also put in some effort in making benchmarking
-easier, within the Ginkgo repository using the `rapidjson` [@rapidjson] and 
-`gflags` [@gflags] libraries to run and generate benchmarking results for a variety 
-of Ginkgo features.
+To enhance reproducibility from a performance perspective, the Ginkgo project
+aims at providing Continuous Benchmarking on top of its extensive Continuous
+Integration setup [@gko_cb]. To this end, we provide the performance results of
+our kernel implementations in an open source git repository [@gko-data]. 
+A unique feature of Ginkgo is the availability of an interactive webtool, the
+Ginkgo Performance explorer [@gpe], which can plot results from the
+aforementioned data repository. Additionally, we have also put in some effort in
+making benchmarking easier, within the Ginkgo repository using the `rapidjson`
+[@rapidjson] and `gflags` [@gflags] libraries to run and generate benchmarking
+results for a variety of Ginkgo features.
 
 # Acknowledgements
 Research and software development in Ginkgo received support from the Helmholtz 
