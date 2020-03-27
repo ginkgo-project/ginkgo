@@ -292,7 +292,7 @@ private:
 
         Reference operator*() const { return {parent_, arr_index_}; }
 
-        Reference operator[](size_t idx) const
+        Reference operator[](difference_type idx) const
         {
             return {parent_, arr_index_ + idx};
         }
