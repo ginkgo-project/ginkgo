@@ -1,6 +1,9 @@
 name: JOSS-build
 
-on: [push]
+on:
+  push:
+    paths:
+    - 'doc/joss/**'
 
 jobs:
   joss-generate:
