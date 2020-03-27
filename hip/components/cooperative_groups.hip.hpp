@@ -169,7 +169,7 @@ namespace detail {
  * `any` and `all` are only supported when the size is config::warp_size
  *
  */
-template <size_type Size>
+template <unsigned Size>
 class thread_block_tile {
     /**
      * Mask with Size consecutive ones starting at the least significant bit.
@@ -193,10 +193,7 @@ public:
         return data_.rank;
     }
 
-    __device__ __forceinline__ unsigned size() const noexcept
-    {
-        return data_.size;
-    }
+    __device__ __forceinline__ unsigned size() const noexcept { return Size; }
 
     __device__ __forceinline__ void sync() const noexcept
     {
