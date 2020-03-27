@@ -44,11 +44,11 @@ __device__ __forceinline__ bool validate_precision_reduction_feasibility(
     if (group.thread_rank() < block_size) {
 #pragma unroll
         for (auto i = 0u; i < max_block_size; ++i) {
-            if (i >= block_size) {
-                break;
+            if (i < block_size) {
+                work[i * stride + group.thread_rank()] = row[i];
+                row[i] =
+                    static_cast<ValueType>(static_cast<ReducedType>(row[i]));
             }
-            work[i * stride + group.thread_rank()] = row[i];
-            row[i] = static_cast<ValueType>(static_cast<ReducedType>(row[i]));
         }
     }
 
@@ -66,10 +66,9 @@ __device__ __forceinline__ bool validate_precision_reduction_feasibility(
     if (group.thread_rank() < block_size) {
 #pragma unroll
         for (auto i = 0u; i < max_block_size; ++i) {
-            if (i >= block_size) {
-                break;
+            if (i < block_size) {
+                row[i] = work[i * stride + group.thread_rank()];
             }
-            row[i] = work[i * stride + group.thread_rank()];
         }
     }
 
