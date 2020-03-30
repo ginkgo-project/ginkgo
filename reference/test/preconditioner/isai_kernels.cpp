@@ -124,17 +124,11 @@ protected:
         auto sparsity = Csr::create(exec, size, num_elems);
 
         // All arrays are now filled with invalid data to catch potential errors
-        auto begin_values = sparsity->get_values();
-        auto end_values = begin_values + num_elems;
-        std::fill(begin_values, end_values, -gko::one<value_type>());
-
-        auto begin_cols = sparsity->get_col_idxs();
-        auto end_cols = begin_cols + num_elems;
-        std::fill(begin_cols, end_cols, -gko::one<index_type>());
-
-        auto begin_rows = sparsity->get_row_ptrs();
-        auto end_rows = begin_rows + size[0] + 1;
-        std::fill(begin_rows, end_rows, -gko::one<index_type>());
+        std::fill_n(sparsity->get_values(), num_elems, -gko::one<value_type>());
+        std::fill_n(sparsity->get_col_idxs(), num_elems,
+                    -gko::one<index_type>());
+        std::fill_n(sparsity->get_row_ptrs(), size[0] + 1,
+                    -gko::one<index_type>());
         return sparsity;
     }
 
@@ -145,17 +139,11 @@ protected:
         auto sparsity = Csr::create(exec, size, num_elems);
 
         // All arrays are now filled with invalid data to catch potential errors
-        auto begin_values = sparsity->get_values();
-        auto end_values = begin_values + num_elems;
-        std::fill(begin_values, end_values, -gko::one<value_type>());
-
-        auto begin_cols = sparsity->get_col_idxs();
-        auto end_cols = begin_cols + num_elems;
-        std::fill(begin_cols, end_cols, -gko::one<index_type>());
-
-        auto begin_rows = sparsity->get_row_ptrs();
-        auto end_rows = begin_rows + size[0] + 1;
-        std::fill(begin_rows, end_rows, -gko::one<index_type>());
+        std::fill_n(sparsity->get_values(), num_elems, -gko::one<value_type>());
+        std::fill_n(sparsity->get_col_idxs(), num_elems,
+                    -gko::one<index_type>());
+        std::fill_n(sparsity->get_row_ptrs(), size[0] + 1,
+                    -gko::one<index_type>());
         return sparsity;
     }
 
