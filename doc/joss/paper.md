@@ -132,9 +132,10 @@ device specific kernels and the core framework of the library.
 The Ginkgo software is tailored for High Performance Computing and provides high
 performance implementations on modern manycore architectures. In particular,
 Ginkgo is competitive with hardware vendor libraries such as hipSPARSE and
-cuSPARSE [@2019spmvhip]. The two following figures highlight this fact through
-the examples of relative Hybrid and CSR spmv results against either cuSPARSE or
-hipSPARSE. In both cases, Ginkgo has better or similar performance to the two vendor libraries.
+cuSPARSE [@2019spmvhip]. The two following figures highlight this fact by comparing
+the performance of Ginkgo's Hybrid and CSR SpMV kernels against the counterparts
+from the vendor libraries AMD hipSPARSE and NVIDIA cuSPARSE for all matrices
+available in the Suite Sparse Matrix Collection.
 
 ![Ginkgo Hybrid spmv provides better performance than (left) cuSPARSE and
 (right) hipSPARSE](figures/ginkgo-hybrid.png) 
