@@ -74,8 +74,8 @@ the features of Ginkgo.
 
 As sparse linear algebra is one of the main focus of Ginkgo, we provide a variety of 
 sparse matrix formats such as COO, CSR, ELL, HYBRID and SELLP along with highly tuned
-Sparse Matrix Vector product (SpMV) kernels. The SpMV kernel is a key building 
-blocks of vitually all iterative solvers and typically accounts for a significant 
+Sparse Matrix Vector product (SpMV) kernels [@topc-smpv]. The SpMV kernel is a key building 
+block of virtually all iterative solvers and typically accounts for a significant 
 fraction of the application runtime. Additionally, we also provide high performance 
 conversion routines between the different formats enhancing their flexibility.
 
@@ -130,7 +130,7 @@ device specific kernels and the core framework of the library.
 # Performance and Benchmarking
 
 The Ginkgo software is tailored for High Performance Computing and provides high
-performance implementation on modern manycore architectures. In particular,
+performance implementations on modern manycore architectures. In particular,
 Ginkgo is competitive with hardware vendor libraries such as hipSPARSE and
 cuSPARSE [@2019spmvhip]. The two following figures highlight this fact through
 the examples of relative Hybrid and CSR spmv results against either cuSPARSE or
