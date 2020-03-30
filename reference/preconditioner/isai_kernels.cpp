@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <memory>
-#include <vector>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -88,27 +87,21 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
     // expect mtx and inverse_mtx to have the same number of elems
     const auto num_elems = mtx->get_num_stored_elements();
     // Copy sparsity pattern of original into the inverse of L
-    for (IndexType col = 0; col < size[1] + 1; ++col) {
-        i_row_ptrs[col] = m_row_ptrs[col];
-    }
-    for (IndexType i = 0; i < num_elems; ++i) {
-        i_cols[i] = m_cols[i];
-    }
+    std::copy_n(m_row_ptrs, size[1] + 1, i_row_ptrs);
+    std::copy_n(m_cols, num_elems, i_cols);
 
-    std::vector<ValueType> rhs;  // RHS for local trisystem
+    gko::Array<ValueType> rhs_array{exec};  // RHS for local trisystem
     // memory for dense trisystem in column major:
-    std::vector<ValueType> trisystem;
+    gko::Array<ValueType> trisystem_array{exec};
 
     for (IndexType row = 0; row < size[0]; ++row) {
         const auto i_row_begin = i_row_ptrs[row];
         const auto i_row_end = i_row_ptrs[row + 1];
         const auto i_row_elems = i_row_end - i_row_begin;
 
-        trisystem.clear();
-        trisystem.reserve(i_row_elems * i_row_elems);
-        for (IndexType i = 0; i < i_row_elems * i_row_elems; ++i) {
-            trisystem.push_back(zero<ValueType>());
-        }
+        trisystem_array.resize_and_reset(i_row_elems * i_row_elems);
+        auto trisystem = trisystem_array.get_data();
+        std::fill_n(trisystem, i_row_elems * i_row_elems, zero<ValueType>());
 
         for (IndexType i = 0; i < i_row_elems; ++i) {
             const auto col = i_cols[i_row_begin + i];
@@ -137,8 +130,8 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
             }
         }
 
-        rhs.clear();
-        rhs.reserve(i_row_elems);
+        rhs_array.resize_and_reset(i_row_elems);
+        auto rhs = rhs_array.get_data();
 
         trs_solve(i_row_elems, trisystem, rhs);
 
@@ -158,14 +151,14 @@ void generate_l(std::shared_ptr<const DefaultExecutor> exec,
                 const matrix::Csr<ValueType, IndexType> *l_csr,
                 matrix::Csr<ValueType, IndexType> *inverse_l)
 {
-    auto trs_solve = [](IndexType size, std::vector<ValueType> &trisystem,
-                        std::vector<ValueType> &rhs) {
+    auto trs_solve = [](IndexType size, ValueType *trisystem, ValueType *rhs) {
+        if (size <= 0) {
+            return;
+        }
         // RHS is the identity: zero everywhere except for the last entry
         // since that is the row we are searching the inverse for
-        for (IndexType d_row = 0; d_row < size - 1; ++d_row) {
-            rhs.push_back(zero<ValueType>());
-        }
-        rhs.push_back(one<ValueType>());
+        std::fill_n(rhs, size - 1, zero<ValueType>());
+        rhs[size - 1] = one<ValueType>();
 
         // Note: `trisystem` is an upper triangular matrix here (stored in
         //       colum major)
@@ -192,14 +185,14 @@ void generate_u(std::shared_ptr<const DefaultExecutor> exec,
                 const matrix::Csr<ValueType, IndexType> *u_csr,
                 matrix::Csr<ValueType, IndexType> *inverse_u)
 {
-    auto trs_solve = [](IndexType size, std::vector<ValueType> &trisystem,
-                        std::vector<ValueType> &rhs) {
+    auto trs_solve = [](IndexType size, ValueType *trisystem, ValueType *rhs) {
+        if (size <= 0) {
+            return;
+        }
         // RHS is the identity: zero everywhere except for the first entry
         // since that is the row we are searching the inverse for
-        rhs.push_back(one<ValueType>());
-        for (IndexType d_row = 1; d_row < size; ++d_row) {
-            rhs.push_back(zero<ValueType>());
-        }
+        std::fill_n(rhs, size, zero<ValueType>());
+        rhs[0] = one<ValueType>();
 
         // Note: `trisystem` is a lower triangular matrix here (stored in
         //       colum major)
