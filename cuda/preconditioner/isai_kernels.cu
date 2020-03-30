@@ -34,10 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 
 
 #include "cuda/base/config.hpp"
-#include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 
 
@@ -50,8 +50,6 @@ namespace cuda {
  * @ingroup isai
  */
 namespace isai {
-
-
 namespace {
 
 
@@ -63,7 +61,7 @@ namespace {
 
 template <typename ValueType, typename IndexType>
 void generate_l(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Csr<ValueType, IndexType> *l_csc,
+                const matrix::Csr<ValueType, IndexType> *l_csr,
                 matrix::Csr<ValueType, IndexType> *inverse_l)
     GKO_NOT_IMPLEMENTED;
 
@@ -73,7 +71,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void generate_u(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Csr<ValueType, IndexType> *u_csc,
+                const matrix::Csr<ValueType, IndexType> *u_csr,
                 matrix::Csr<ValueType, IndexType> *inverse_u)
     GKO_NOT_IMPLEMENTED;
 

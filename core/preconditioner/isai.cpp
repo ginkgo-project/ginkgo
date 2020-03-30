@@ -55,10 +55,10 @@ GKO_REGISTER_OPERATION(generate_u, isai::generate_u);
 
 
 template <typename ValueType, typename IndexType>
-std::shared_ptr<matrix::Csr<ValueType, IndexType>>
-Isai<ValueType, IndexType>::generate_l(const LinOp *to_invert_l)
+void Isai<ValueType, IndexType>::generate_l(const LinOp *to_invert_l)
 {
     using Csr = matrix::Csr<ValueType, IndexType>;
+    GKO_ASSERT_IS_SQUARE_MATRIX(to_invert_l);
     auto exec = this->get_executor();
     auto csr_l = copy_and_convert_to<Csr>(exec, to_invert_l);
     const auto num_elems = csr_l->get_num_stored_elements();
@@ -67,17 +67,15 @@ Isai<ValueType, IndexType>::generate_l(const LinOp *to_invert_l)
         Csr::create(exec, csr_l->get_size(), num_elems, csr_l->get_strategy());
     exec->run(isai::make_generate_l(csr_l.get(), inverted_l.get()));
 
-    // call make_srow
-    inverted_l->set_strategy(inverted_l->get_strategy());
-    return {std::move(inverted_l)};
+    l_inv_ = std::move(inverted_l);
 }
 
 
 template <typename ValueType, typename IndexType>
-std::shared_ptr<matrix::Csr<ValueType, IndexType>>
-Isai<ValueType, IndexType>::generate_u(const LinOp *to_invert_u)
+void Isai<ValueType, IndexType>::generate_u(const LinOp *to_invert_u)
 {
     using Csr = matrix::Csr<ValueType, IndexType>;
+    GKO_ASSERT_IS_SQUARE_MATRIX(to_invert_u);
     auto exec = this->get_executor();
     auto csr_u = copy_and_convert_to<Csr>(exec, to_invert_u);
     const auto num_elems = csr_u->get_num_stored_elements();
@@ -85,9 +83,8 @@ Isai<ValueType, IndexType>::generate_u(const LinOp *to_invert_u)
     std::shared_ptr<Csr> inverted_u =
         Csr::create(exec, csr_u->get_size(), num_elems, csr_u->get_strategy());
     exec->run(isai::make_generate_u(csr_u.get(), inverted_u.get()));
-    // call make_srow
-    inverted_u->set_strategy(inverted_u->get_strategy());
-    return inverted_u;
+
+    u_inv_ = std::move(inverted_u);
 }
 
 
