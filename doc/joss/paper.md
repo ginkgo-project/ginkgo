@@ -21,7 +21,8 @@ authors:
     affiliation: 3 
   - name: Fritz G{\"o}bel
     affiliation: 1 
-  - name: Thomas Gr{\"u}tzmacher 
+  - name: Thomas Gr{\"u}tzmacher
+    orcid: 0000-0001-9346-2981
     affiliation: 1
   - name: Pratik Nayak 
     orcid: 0000-0002-7961-1159
