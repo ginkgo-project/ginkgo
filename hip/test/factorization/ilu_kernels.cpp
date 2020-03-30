@@ -104,11 +104,12 @@ TEST_F(Ilu, ComputeILUIsEquivalentToRef)
 
 TEST_F(Ilu, SetsCorrectStrategy)
 {
-    // workaround for NVCC disabled with_* functions
-    auto hip_fact_fact = gko::factorization::Ilu<>::build();
-    hip_fact_fact.l_strategy = std::make_shared<Csr::merge_path>();
-    hip_fact_fact.u_strategy = std::make_shared<Csr::load_balance>(hip);
-    auto hip_fact = hip_fact_fact.on(hip)->generate(csr_hip);
+    auto hip_fact =
+        gko::factorization::Ilu<>::build()
+            .with_l_strategy(std::make_shared<Csr::merge_path>())
+            .with_u_strategy(std::make_shared<Csr::load_balance>(hip))
+            .on(hip)
+            ->generate(csr_hip);
 
     ASSERT_EQ(hip_fact->get_l_factor()->get_strategy()->get_name(),
               "merge_path");
