@@ -380,8 +380,7 @@ TYPED_TEST(Isai, ApplyMultipleRhs)
 {
     using Dense = typename TestFixture::Dense;
     using Composition = typename TestFixture::Composition;
-    using value_type = typename TestFixture::value_type;
-    using T = value_type;
+    using T = typename TestFixture::value_type;
     auto x = Dense::create(this->exec, gko::dim<2>{3, 3});
     auto result = Dense::create_with_config_of(gko::lend(x));
     this->l_dense->apply(gko::lend(this->u_dense), gko::lend(x));
@@ -392,9 +391,8 @@ TYPED_TEST(Isai, ApplyMultipleRhs)
     isai->apply(gko::lend(x), gko::lend(result));
 
     // Testing for: U^-1 * L^-1 * L * U == I
-    GKO_ASSERT_MTX_NEAR(result,
-                        l({I<T>{1, 0, 0}, I<T>{0, 1, 0}, I<T>{0, 0, 1}}),
-                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(
+        result, l({I<T>{1, 0, 0}, I<T>{0, 1, 0}, I<T>{0, 0, 1}}), r<T>::value);
 }
 
 
@@ -402,8 +400,7 @@ TYPED_TEST(Isai, ApplyWithCacheReset)
 {
     using Dense = typename TestFixture::Dense;
     using Composition = typename TestFixture::Composition;
-    using value_type = typename TestFixture::value_type;
-    using T = value_type;
+    using T = typename TestFixture::value_type;
     const auto vec1 = gko::initialize<Dense>({128, -64, 32}, this->exec);
     const auto vec2 = gko::initialize<Dense>(
         {I<T>{16, 64}, I<T>{32, 8}, I<T>{-16, 128}}, this->exec);
@@ -427,20 +424,203 @@ TYPED_TEST(Isai, AdvancedApply)
 {
     using Dense = typename TestFixture::Dense;
     using Composition = typename TestFixture::Composition;
-    using value_type = typename TestFixture::value_type;
-    using T = value_type;
+    using T = typename TestFixture::value_type;
     const auto vec = gko::initialize<Dense>({16, 128, 32, 64}, this->exec);
     const auto alpha = gko::initialize<Dense>({2.}, this->exec);
     const auto beta = gko::initialize<Dense>({-3}, this->exec);
     auto res = gko::initialize<Dense>({1, 2, 3, 4}, this->exec);
     const auto comp = gko::share(Composition::create(
         gko::share(this->l_sparse), gko::share(this->u_sparse)));
-    auto isai = this->isai_factory->generate(comp);
+    const auto isai = this->isai_factory->generate(comp);
 
     isai->apply(gko::lend(alpha), gko::lend(vec), gko::lend(beta),
                 gko::lend(res));
 
     GKO_ASSERT_MTX_NEAR(res, l(I<T>{40, 22, -49, -28}), r<T>::value);
+}
+
+
+TYPED_TEST(Isai, GenerateWithExclusiveLComp1)
+{
+    using Isai = typename TestFixture::Isai_type;
+    using Composition = typename TestFixture::Composition;
+    using T = typename TestFixture::value_type;
+    const auto comp =
+        gko::share(Composition::create(gko::share(this->l_dense)));
+
+    const auto isai_factory =
+        Isai::build().with_exclusive_factor_l(true).on(this->exec);
+    const auto isai = isai_factory->generate(comp);
+    auto l_inv = isai->get_approx_inverse_l();
+    auto u_inv = isai->get_approx_inverse_u();
+
+    GKO_ASSERT_MTX_NEAR(l_inv, this->l_dense_inv, r<T>::value);
+    ASSERT_EQ(u_inv, nullptr);
+}
+
+
+TYPED_TEST(Isai, GenerateWithExclusiveUComp1)
+{
+    using Isai = typename TestFixture::Isai_type;
+    using Composition = typename TestFixture::Composition;
+    using T = typename TestFixture::value_type;
+    const auto comp =
+        gko::share(Composition::create(gko::share(this->u_dense)));
+
+    const auto isai_factory =
+        Isai::build().with_exclusive_factor_u(true).on(this->exec);
+    const auto isai = isai_factory->generate(comp);
+    auto l_inv = isai->get_approx_inverse_l();
+    auto u_inv = isai->get_approx_inverse_u();
+
+    ASSERT_EQ(l_inv, nullptr);
+    GKO_ASSERT_MTX_NEAR(u_inv, this->u_dense_inv, r<T>::value);
+}
+
+
+TYPED_TEST(Isai, GenerateWithExclusiveLComp2)
+{
+    using Isai = typename TestFixture::Isai_type;
+    using Composition = typename TestFixture::Composition;
+    using T = typename TestFixture::value_type;
+    const auto comp = gko::share(Composition::create(
+        gko::share(this->l_dense), gko::share(this->u_dense)));
+
+    const auto isai_factory =
+        Isai::build().with_exclusive_factor_l(true).on(this->exec);
+    const auto isai = isai_factory->generate(comp);
+    auto l_inv = isai->get_approx_inverse_l();
+    auto u_inv = isai->get_approx_inverse_u();
+
+    GKO_ASSERT_MTX_NEAR(l_inv, this->l_dense_inv, r<T>::value);
+    ASSERT_EQ(u_inv, nullptr);
+}
+
+
+TYPED_TEST(Isai, GenerateWithExclusiveUComp2)
+{
+    using Isai = typename TestFixture::Isai_type;
+    using Composition = typename TestFixture::Composition;
+    using T = typename TestFixture::value_type;
+    const auto comp = gko::share(Composition::create(
+        gko::share(this->l_dense), gko::share(this->u_dense)));
+
+    const auto isai_factory =
+        Isai::build().with_exclusive_factor_u(true).on(this->exec);
+    const auto isai = isai_factory->generate(comp);
+    auto l_inv = isai->get_approx_inverse_l();
+    auto u_inv = isai->get_approx_inverse_u();
+
+    ASSERT_EQ(l_inv, nullptr);
+    GKO_ASSERT_MTX_NEAR(u_inv, this->u_dense_inv, r<T>::value);
+}
+
+
+TYPED_TEST(Isai, GenerateWithExclusiveLMtx)
+{
+    using Isai = typename TestFixture::Isai_type;
+    using Composition = typename TestFixture::Composition;
+    using T = typename TestFixture::value_type;
+
+    const auto isai_factory =
+        Isai::build().with_exclusive_factor_l(true).on(this->exec);
+    const auto isai = isai_factory->generate(gko::share(this->l_dense));
+    auto l_inv = isai->get_approx_inverse_l();
+    auto u_inv = isai->get_approx_inverse_u();
+
+    GKO_ASSERT_MTX_NEAR(l_inv, this->l_dense_inv, r<T>::value);
+    ASSERT_EQ(u_inv, nullptr);
+}
+
+
+TYPED_TEST(Isai, GenerateWithExclusiveUMtx)
+{
+    using Isai = typename TestFixture::Isai_type;
+    using Composition = typename TestFixture::Composition;
+    using T = typename TestFixture::value_type;
+
+    const auto isai_factory =
+        Isai::build().with_exclusive_factor_u(true).on(this->exec);
+    const auto isai = isai_factory->generate(gko::share(this->u_dense));
+    auto l_inv = isai->get_approx_inverse_l();
+    auto u_inv = isai->get_approx_inverse_u();
+
+    ASSERT_EQ(l_inv, nullptr);
+    GKO_ASSERT_MTX_NEAR(u_inv, this->u_dense_inv, r<T>::value);
+}
+
+
+TYPED_TEST(Isai, ApplyWithExclusiveLMtx)
+{
+    using Isai = typename TestFixture::Isai_type;
+    using Dense = typename TestFixture::Dense;
+    using T = typename TestFixture::value_type;
+    const auto vec = gko::initialize<Dense>({18., 16., 12.}, this->exec);
+    auto result = Dense::create_with_config_of(gko::lend(vec));
+    const auto isai_factory =
+        Isai::build().with_exclusive_factor_l(true).on(this->exec);
+    const auto isai = isai_factory->generate(gko::share(this->l_dense));
+
+    isai->apply(gko::lend(vec), gko::lend(result));
+
+    GKO_ASSERT_MTX_NEAR(result, l(I<T>{9., -3.5, -24.5}), r<T>::value);
+}
+
+
+TYPED_TEST(Isai, ApplyWithExclusiveUMtx)
+{
+    using Isai = typename TestFixture::Isai_type;
+    using Dense = typename TestFixture::Dense;
+    using T = typename TestFixture::value_type;
+    const auto vec = gko::initialize<Dense>({18., 16., 12.}, this->exec);
+    auto result = Dense::create_with_config_of(gko::lend(vec));
+    const auto isai_factory =
+        Isai::build().with_exclusive_factor_u(true).on(this->exec);
+    const auto isai = isai_factory->generate(gko::share(this->u_dense));
+
+    isai->apply(gko::lend(vec), gko::lend(result));
+
+    GKO_ASSERT_MTX_NEAR(result, l(I<T>{6.125, -5., 1.5}), r<T>::value);
+}
+
+
+TYPED_TEST(Isai, AdvancedApplyWithExclusiveLMtx)
+{
+    using Isai = typename TestFixture::Isai_type;
+    using Dense = typename TestFixture::Dense;
+    using T = typename TestFixture::value_type;
+    const auto alpha = gko::initialize<Dense>({3.}, this->exec);
+    const auto beta = gko::initialize<Dense>({-4.}, this->exec);
+    const auto vec = gko::initialize<Dense>({18., 16., 12}, this->exec);
+    auto result = gko::initialize<Dense>({2., -3., 1.}, this->exec);
+    const auto isai_factory =
+        Isai::build().with_exclusive_factor_l(true).on(this->exec);
+    const auto isai = isai_factory->generate(gko::share(this->l_dense));
+
+    isai->apply(gko::lend(alpha), gko::lend(vec), gko::lend(beta),
+                gko::lend(result));
+
+    GKO_ASSERT_MTX_NEAR(result, l(I<T>{19., 1.5, -77.5}), r<T>::value);
+}
+
+
+TYPED_TEST(Isai, AdvancedApplyWithExclusiveUMtx)
+{
+    using Isai = typename TestFixture::Isai_type;
+    using Dense = typename TestFixture::Dense;
+    using T = typename TestFixture::value_type;
+    const auto alpha = gko::initialize<Dense>({3.}, this->exec);
+    const auto beta = gko::initialize<Dense>({-4.}, this->exec);
+    const auto vec = gko::initialize<Dense>({18., 16., 12}, this->exec);
+    auto result = gko::initialize<Dense>({2., -3., 1.}, this->exec);
+    const auto isai_factory =
+        Isai::build().with_exclusive_factor_u(true).on(this->exec);
+    const auto isai = isai_factory->generate(gko::share(this->u_dense));
+
+    isai->apply(gko::lend(alpha), gko::lend(vec), gko::lend(beta),
+                gko::lend(result));
+
+    GKO_ASSERT_MTX_NEAR(result, l(I<T>{10.375, -3., 0.5}), r<T>::value);
 }
 
 

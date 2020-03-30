@@ -44,12 +44,12 @@ namespace kernels {
 
 #define GKO_DECLARE_ISAI_GENERATE_L_KERNEL(ValueType, IndexType)    \
     void generate_l(std::shared_ptr<const DefaultExecutor> exec,    \
-                    const matrix::Csr<ValueType, IndexType> *l_csc, \
+                    const matrix::Csr<ValueType, IndexType> *l_csr, \
                     matrix::Csr<ValueType, IndexType> *inverse_l)
 
 #define GKO_DECLARE_ISAI_GENERATE_U_KERNEL(ValueType, IndexType)    \
     void generate_u(std::shared_ptr<const DefaultExecutor> exec,    \
-                    const matrix::Csr<ValueType, IndexType> *u_csc, \
+                    const matrix::Csr<ValueType, IndexType> *u_csr, \
                     matrix::Csr<ValueType, IndexType> *inverse_u)
 
 

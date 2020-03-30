@@ -102,7 +102,30 @@ public:
      */
     std::shared_ptr<const Csr> get_approx_inverse_u() const { return u_inv_; }
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
+    {
+        /**
+         * When set to true, the Isai preconditioner expects a lower triangular
+         * factor (only, so no U factor), and will only generate the
+         * approximate inverse for that L factor.
+         *
+         * @note: Setting both exclusive_factor_l and exclusive_factor_u
+         *        results in an exception being thrown when generating the
+         *        preconditioner.
+         */
+        bool GKO_FACTORY_PARAMETER(exclusive_factor_l, false);
+
+        /**
+         * When set to true, the Isai preconditioner expects an upper triangular
+         * factor (only, so no L factor), and will only generate the
+         * approximate inverse for that U factor.
+         *
+         * @note: Setting both exclusive_factor_l and exclusive_factor_u
+         *        results in an exception being thrown when generating the
+         *        preconditioner.
+         */
+        bool GKO_FACTORY_PARAMETER(exclusive_factor_u, false);
+    };
 
     GKO_ENABLE_LIN_OP_FACTORY(Isai, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -123,47 +146,79 @@ protected:
         : EnableLinOp<Isai>(factory->get_executor(), factors->get_size()),
           parameters_{factory->get_parameters()}
     {
+        if (parameters_.exclusive_factor_l && parameters_.exclusive_factor_u) {
+            GKO_NOT_SUPPORTED(parameters_);
+        }
         auto comp = dynamic_cast<const Composition<ValueType> *>(factors.get());
         if (!comp) {
-            GKO_NOT_SUPPORTED(factors);
-        }
-        const auto num_operators = comp->get_operators().size();
-        if (num_operators != 2) {
-            GKO_NOT_SUPPORTED(comp);
-        }
-        const auto l_factor = comp->get_operators()[0];
-        const auto u_factor = comp->get_operators()[1];
+            if (parameters_.exclusive_factor_l) {
+                generate_l(factors.get());
+            } else if (parameters_.exclusive_factor_u) {
+                generate_u(factors.get());
+            } else {
+                GKO_NOT_SUPPORTED(factors);
+            }
+        } else {
+            const auto num_operators = comp->get_operators().size();
+            if (num_operators == 1 && parameters_.exclusive_factor_l) {
+                generate_l(comp->get_operators()[0].get());
+            } else if (num_operators == 1 && parameters_.exclusive_factor_u) {
+                generate_u(comp->get_operators()[0].get());
+            } else if (num_operators == 2) {
+                const auto l_factor = comp->get_operators()[0];
+                const auto u_factor = comp->get_operators()[1];
 
-        GKO_ASSERT_IS_SQUARE_MATRIX(l_factor);
-        GKO_ASSERT_IS_SQUARE_MATRIX(u_factor);
-        GKO_ASSERT_EQUAL_DIMENSIONS(l_factor, u_factor);
+                if (parameters_.exclusive_factor_l) {
+                    generate_l(l_factor.get());
+                } else if (parameters_.exclusive_factor_u) {
+                    generate_u(u_factor.get());
+                } else {
+                    GKO_ASSERT_EQUAL_DIMENSIONS(l_factor, u_factor);
 
-        l_inv_ = this->generate_l(l_factor.get());
-        u_inv_ = this->generate_u(u_factor.get());
+                    generate_l(l_factor.get());
+                    generate_u(u_factor.get());
+                }
+            } else {
+                GKO_NOT_SUPPORTED(comp);
+            }
+        }
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override
     {
-        cache_.prepare(l_inv_.get(), b);
-        l_inv_->apply(b, cache_.intermediate.get());
-        u_inv_->apply(cache_.intermediate.get(), x);
+        if (l_inv_ && !u_inv_) {
+            l_inv_->apply(b, x);
+        } else if (!l_inv_ && u_inv_) {
+            u_inv_->apply(b, x);
+        } else {
+            cache_.prepare(l_inv_.get(), b);
+            l_inv_->apply(b, cache_.intermediate.get());
+            u_inv_->apply(cache_.intermediate.get(), x);
+        }
     }
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override
     {
-        cache_.prepare(l_inv_.get(), b);
-        l_inv_->apply(b, cache_.intermediate.get());
-        u_inv_->apply(alpha, cache_.intermediate.get(), beta, x);
+        if (l_inv_ && !u_inv_) {
+            l_inv_->apply(alpha, b, beta, x);
+        } else if (!l_inv_ && u_inv_) {
+            u_inv_->apply(alpha, b, beta, x);
+        } else {
+            cache_.prepare(l_inv_.get(), b);
+            l_inv_->apply(b, cache_.intermediate.get());
+            u_inv_->apply(alpha, cache_.intermediate.get(), beta, x);
+        }
     }
 
+private:
     /**
      * Generates the approximate inverse of a lower triangular matrix
      *
      * @param to_invert_l  the source lower triangular matrix used to generate
      *                     the approximate inverse
      */
-    std::shared_ptr<Csr> generate_l(const LinOp *to_invert_l);
+    void generate_l(const LinOp *to_invert_l);
 
     /**
      * Generates the approximate inverse.
@@ -171,12 +226,7 @@ protected:
      * @param to_invert_u  the source upper triangular matrix used to generate
      *                     the approximate inverse
      */
-    std::shared_ptr<Csr> generate_u(const LinOp *to_invert_u);
-
-private:
-    // shared_ptr, so it is easily copyable
-    std::shared_ptr<Csr> l_inv_;
-    std::shared_ptr<Csr> u_inv_;
+    void generate_u(const LinOp *to_invert_u);
 
     mutable struct cache_struct {
         using Dense = matrix::Dense<ValueType>;
@@ -197,6 +247,10 @@ private:
         }
         std::unique_ptr<Dense> intermediate;
     } cache_;
+
+    // shared_ptr, so it is easily copyable
+    std::shared_ptr<Csr> l_inv_;
+    std::shared_ptr<Csr> u_inv_;
 };
 
 

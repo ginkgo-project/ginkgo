@@ -147,6 +147,9 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
             i_vals[i_row_begin + i] = rhs[i];
         }
     }
+
+    // Call make_srow
+    (void)matrix::CsrBuilder<ValueType, IndexType>{inverse_mtx};
 }
 
 

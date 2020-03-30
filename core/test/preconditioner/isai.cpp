@@ -106,6 +106,24 @@ TYPED_TEST(IsaiFactory, ThrowsWrongInput)
 }
 
 
+TYPED_TEST(IsaiFactory, ThrowsWrongExclusive)
+{
+    using Dense = typename TestFixture::Dense;
+    using Comp = typename TestFixture::Comp;
+    using Isai = typename TestFixture::Isai;
+    auto mtx1 = Dense::create(this->exec, gko::dim<2>{2, 2});
+    auto mtx2 = Dense::create(this->exec, gko::dim<2>{2, 2});
+    auto comp = Comp::create(std::move(mtx1), std::move(mtx2));
+
+    auto factory = Isai::build()
+                       .with_exclusive_factor_l(true)
+                       .with_exclusive_factor_u(true)
+                       .on(this->exec);
+
+    ASSERT_THROW(factory->generate(gko::share(comp)), gko::NotSupported);
+}
+
+
 TYPED_TEST(IsaiFactory, ThrowsWrongComposition)
 {
     using Dense = typename TestFixture::Dense;
