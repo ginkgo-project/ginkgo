@@ -33,6 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/preconditioner/isai.hpp>
 
 
+#include <functional>
+#include <memory>
+#include <type_traits>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -54,13 +59,52 @@ GKO_REGISTER_OPERATION(generate_u, isai::generate_u);
 }  // namespace isai
 
 
+/**
+ * Helper function that converts the given matrix to the (const) CSR format with
+ * additional sorting.
+ *
+ * If the given matrix was already sorted, is on the same executor and with a
+ * dynamic type of `const Csr`, the same pointer is returned with an empty
+ * deleter.
+ * In all other cases, a new matrix is created, which stores the converted Csr
+ * matrix.
+ * If `skip_sorting` is false, the matrix will be sorted by column index,
+ * otherwise, it will not be sorted.
+ */
+template <typename Csr>
+std::unique_ptr<const Csr, std::function<void(const Csr *)>>
+convert_to_csr_and_sort(std::shared_ptr<const Executor> &exec, const LinOp *mtx,
+                        bool skip_sorting)
+{
+    static_assert(
+        std::is_same<Csr, matrix::Csr<typename Csr::value_type,
+                                      typename Csr::index_type>>::value,
+        "The given `Csr` type must be of type `matrix::Csr`!");
+    if (skip_sorting && exec == mtx->get_executor()) {
+        auto csr_mtx = dynamic_cast<const Csr *>(mtx);
+        if (csr_mtx) {
+            return {csr_mtx, [](const Csr *) {}};
+        }
+    }
+    auto copy = Csr::create(exec);
+    as<ConvertibleTo<Csr>>(mtx)->convert_to(copy.get());
+    // Here, we assume that a sorted matrix converted to CSR will also be
+    // sorted
+    if (!skip_sorting) {
+        copy->sort_by_column_index();
+    }
+    return {copy.release(), std::default_delete<const Csr>{}};
+}
+
+
 template <typename ValueType, typename IndexType>
-void Isai<ValueType, IndexType>::generate_l(const LinOp *to_invert_l)
+void Isai<ValueType, IndexType>::generate_l(const LinOp *to_invert_l,
+                                            bool skip_sorting)
 {
     using Csr = matrix::Csr<ValueType, IndexType>;
     GKO_ASSERT_IS_SQUARE_MATRIX(to_invert_l);
     auto exec = this->get_executor();
-    auto csr_l = copy_and_convert_to<Csr>(exec, to_invert_l);
+    auto csr_l = convert_to_csr_and_sort<Csr>(exec, to_invert_l, skip_sorting);
     const auto num_elems = csr_l->get_num_stored_elements();
 
     std::shared_ptr<Csr> inverted_l =
@@ -72,12 +116,13 @@ void Isai<ValueType, IndexType>::generate_l(const LinOp *to_invert_l)
 
 
 template <typename ValueType, typename IndexType>
-void Isai<ValueType, IndexType>::generate_u(const LinOp *to_invert_u)
+void Isai<ValueType, IndexType>::generate_u(const LinOp *to_invert_u,
+                                            bool skip_sorting)
 {
     using Csr = matrix::Csr<ValueType, IndexType>;
     GKO_ASSERT_IS_SQUARE_MATRIX(to_invert_u);
     auto exec = this->get_executor();
-    auto csr_u = copy_and_convert_to<Csr>(exec, to_invert_u);
+    auto csr_u = convert_to_csr_and_sort<Csr>(exec, to_invert_u, skip_sorting);
     const auto num_elems = csr_u->get_num_stored_elements();
 
     std::shared_ptr<Csr> inverted_u =
