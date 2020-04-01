@@ -94,7 +94,7 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
     // memory for dense trisystem in column major:
     gko::Array<ValueType> trisystem_array{exec};
 
-    for (IndexType row = 0; row < size[0]; ++row) {
+    for (size_type row = 0; row < size[0]; ++row) {
         const auto i_row_begin = i_row_ptrs[row];
         const auto i_row_end = i_row_ptrs[row + 1];
         const auto i_row_elems = i_row_end - i_row_begin;
@@ -103,7 +103,7 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
         auto trisystem = trisystem_array.get_data();
         std::fill_n(trisystem, i_row_elems * i_row_elems, zero<ValueType>());
 
-        for (IndexType i = 0; i < i_row_elems; ++i) {
+        for (size_type i = 0; i < i_row_elems; ++i) {
             const auto col = i_cols[i_row_begin + i];
             const auto m_row_end = m_row_ptrs[col + 1];
             auto m_row_ptr = m_row_ptrs[col];
@@ -136,13 +136,11 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
         trs_solve(i_row_elems, trisystem, rhs);
 
         // Drop RHS as a row to memory (since that is the computed inverse)
-        for (IndexType i = 0; i < i_row_elems; ++i) {
-            i_vals[i_row_begin + i] = rhs[i];
-        }
+        std::copy_n(rhs, i_row_elems, i_vals + i_row_begin);
     }
 
     // Call make_srow
-    (void)matrix::CsrBuilder<ValueType, IndexType>{inverse_mtx};
+    matrix::CsrBuilder<ValueType, IndexType>{inverse_mtx};
 }
 
 

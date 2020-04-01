@@ -125,6 +125,16 @@ public:
          *        preconditioner.
          */
         bool GKO_FACTORY_PARAMETER(exclusive_factor_u, false);
+
+        /**
+         * @brief Optimization parameter that skips the sorting if the input
+         *        matrix/matrices (required by the algorithm).
+         *
+         * The algorithm to create the approximate inverses requires the
+         * input matrix/matrices to be sorted. If they are, this parameter
+         * can be set to `true` to skip the sorting for better performance.
+         */
+        bool GKO_FACTORY_PARAMETER(skip_sorting, false);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Isai, parameters, Factory);
@@ -150,33 +160,34 @@ protected:
             GKO_NOT_SUPPORTED(parameters_);
         }
         auto comp = dynamic_cast<const Composition<ValueType> *>(factors.get());
+        const auto skip_sorting = parameters_.skip_sorting;
         if (!comp) {
             if (parameters_.exclusive_factor_l) {
-                generate_l(factors.get());
+                generate_l(factors.get(), skip_sorting);
             } else if (parameters_.exclusive_factor_u) {
-                generate_u(factors.get());
+                generate_u(factors.get(), skip_sorting);
             } else {
                 GKO_NOT_SUPPORTED(factors);
             }
         } else {
             const auto num_operators = comp->get_operators().size();
             if (num_operators == 1 && parameters_.exclusive_factor_l) {
-                generate_l(comp->get_operators()[0].get());
+                generate_l(comp->get_operators()[0].get(), skip_sorting);
             } else if (num_operators == 1 && parameters_.exclusive_factor_u) {
-                generate_u(comp->get_operators()[0].get());
+                generate_u(comp->get_operators()[0].get(), skip_sorting);
             } else if (num_operators == 2) {
                 const auto l_factor = comp->get_operators()[0];
                 const auto u_factor = comp->get_operators()[1];
 
                 if (parameters_.exclusive_factor_l) {
-                    generate_l(l_factor.get());
+                    generate_l(l_factor.get(), skip_sorting);
                 } else if (parameters_.exclusive_factor_u) {
-                    generate_u(u_factor.get());
+                    generate_u(u_factor.get(), skip_sorting);
                 } else {
                     GKO_ASSERT_EQUAL_DIMENSIONS(l_factor, u_factor);
 
-                    generate_l(l_factor.get());
-                    generate_u(u_factor.get());
+                    generate_l(l_factor.get(), skip_sorting);
+                    generate_u(u_factor.get(), skip_sorting);
                 }
             } else {
                 GKO_NOT_SUPPORTED(comp);
@@ -217,16 +228,22 @@ private:
      *
      * @param to_invert_l  the source lower triangular matrix used to generate
      *                     the approximate inverse
+     *
+     * @param skip_sorting  dictaktes if the sorting of the input matrix should
+     *                      be skipped.
      */
-    void generate_l(const LinOp *to_invert_l);
+    void generate_l(const LinOp *to_invert_l, bool skip_sorting);
 
     /**
      * Generates the approximate inverse.
      *
      * @param to_invert_u  the source upper triangular matrix used to generate
      *                     the approximate inverse
+     *
+     * @param skip_sorting  dictaktes if the sorting of the input matrix should
+     *                      be skipped.
      */
-    void generate_u(const LinOp *to_invert_u);
+    void generate_u(const LinOp *to_invert_u, bool skip_sorting);
 
     mutable struct cache_struct {
         using Dense = matrix::Dense<ValueType>;

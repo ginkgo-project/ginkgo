@@ -85,6 +85,10 @@ protected:
                                I<value_type>{-1., 2., 4., 5., -4., 8., -8.},
                                I<index_type>{0, 0, 1, 1, 2, 2, 3},
                                I<index_type>{0, 1, 3, 5, 7})},
+          l_s_unsorted{Csr::create(exec, gko::dim<2>(4, 4),
+                                   I<value_type>{-1., 4., 2., 5., -4., -8., 8.},
+                                   I<index_type>{0, 1, 0, 1, 2, 3, 2},
+                                   I<index_type>{0, 1, 3, 5, 7})},
           l_sparse_inv{
               Csr::create(exec, gko::dim<2>(4, 4),
                           I<value_type>{-1., .5, .25, .3125, -.25, -.25, -.125},
@@ -103,6 +107,11 @@ protected:
               Csr::create(exec, gko::dim<2>(4, 4),
                           I<value_type>{-2., 1., -1., 1., 4., 1., -2., 1., 2.},
                           I<index_type>{0, 1, 2, 3, 1, 2, 2, 3, 3},
+                          I<index_type>{0, 4, 6, 8, 9})},
+          u_s_unsorted{
+              Csr::create(exec, gko::dim<2>(4, 4),
+                          I<value_type>{-2., -1., 1., 1., 1., 4., -2., 1., 2.},
+                          I<index_type>{0, 2, 1, 3, 2, 1, 2, 3, 3},
                           I<index_type>{0, 4, 6, 8, 9})},
           u_sparse_inv{Csr::create(
               exec, gko::dim<2>(4, 4),
@@ -172,10 +181,12 @@ protected:
     std::unique_ptr<Csr> u_csr;
     std::unique_ptr<Csr> u_csr_inv;
     std::unique_ptr<Csr> l_sparse;
+    std::unique_ptr<Csr> l_s_unsorted;
     std::unique_ptr<Csr> l_sparse_inv;
     std::unique_ptr<Csr> l_sparse2;
     std::unique_ptr<Csr> l_sparse2_inv;
     std::unique_ptr<Csr> u_sparse;
+    std::unique_ptr<Csr> u_s_unsorted;
     std::unique_ptr<Csr> u_sparse_inv;
 };
 
@@ -356,6 +367,23 @@ TYPED_TEST(Isai, ReturnsCorrectInverses)
         gko::share(this->l_sparse), gko::share(this->u_sparse)));
     const auto isai = this->isai_factory->generate(comp);
 
+    auto l_inv = isai->get_approx_inverse_l();
+    auto u_inv = isai->get_approx_inverse_u();
+
+    GKO_ASSERT_MTX_NEAR(l_inv, this->l_sparse_inv, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(u_inv, this->u_sparse_inv, r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, GeneratesWithUnsortedCsr)
+{
+    using Csr = typename TestFixture::Csr;
+    using Composition = typename TestFixture::Composition;
+    using value_type = typename TestFixture::value_type;
+    const auto comp = gko::share(Composition::create(
+        gko::share(this->l_s_unsorted), gko::share(this->u_s_unsorted)));
+
+    const auto isai = this->isai_factory->generate(comp);
     auto l_inv = isai->get_approx_inverse_l();
     auto u_inv = isai->get_approx_inverse_u();
 
