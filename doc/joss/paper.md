@@ -49,7 +49,7 @@ bibliography: paper.bib
 
 # Summary
 
-Ginkgo is a production-ready sparse linear (operator) algebra library for high
+Ginkgo is a production-ready sparse linear algebra library for high
 performance computing on GPU-centric architectures with a high level of
 performance portability and focuses on software sustainability. 
 
@@ -57,7 +57,7 @@ The library focuses on solving sparse linear systems and accommodates a large va
 of matrix formats, state-of-the-art iterative (Krylov) solvers and preconditioners, 
 which make the library suitable for a variety of scientific applications. Ginkgo
 supports many architectures such as multi-threaded CPU, NVIDIA GPUs, and AMD GPUs.
-The heavy use of modern C++ 11 features simplifies the addition of new executor
+The heavy use of modern C++ features simplifies the addition of new executor
 paradigms and algorithmic functionality without introducing significant
 performance overhead.
 
@@ -74,22 +74,22 @@ the features of Ginkgo.
 
 As sparse linear algebra is one of the main focus of Ginkgo, we provide a variety of 
 sparse matrix formats such as COO, CSR, ELL, HYBRID and SELLP along with highly tuned
-Sparse Matrix Vector product (SpMV) kernels [@topc-smpv]. The SpMV kernel is a key building 
+Sparse Matrix Vector product (SpMV) kernels [@topc-spmv]. The SpMV kernel is a key building 
 block of virtually all iterative solvers and typically accounts for a significant 
 fraction of the application runtime. Additionally, we also provide high performance 
 conversion routines between the different formats enhancing their flexibility.
 
 Ginkgo provides multiple iterative solvers such as the Krylov subspace
-methods: Conjugate gradient (CG), Flexible Conjugate Gradient (FCG), Bi-Conjugate
+methods: Conjugate Gradient (CG), Flexible Conjugate Gradient (FCG), Bi-Conjugate
 Gradient (BiCG) and its stabilized version (Bi-CGSTAB), Generalized Minimal
-residual method (GMRES) and more generic methods such as Iterative Refinement,
+Residual Method (GMRES) and more generic methods such as Iterative Refinement (IR),
 which forms the basis of many relaxation methods. Ginkgo also features support for 
 direct and iterative triangular solves within incomplete factorization preconditioners.
 
-Ginkgo features some of the best preconditioners such as the general-purpose Block Jacobi
+Ginkgo features some state-of-the-art general-purpose preconditioners such as the Block Jacobi
 preconditioner with support for a version which reduces pressure on the memory bandwidth 
 by dynamically adapting the memory precision to the numerical requirements.
-This [@adaptive-bj] has been shown to be very efficient for problems with a block 
+This approach [@adaptive-bj] has been shown to be very efficient for problems with a block 
 structure.
 Ginkgo also features highly-parallel incomplete factorization preconditioners such as 
 the ParILU and the ParILUT preconditioners [@parilut].
@@ -141,7 +141,7 @@ available in the Suite Sparse Matrix Collection.
 (right) hipSPARSE](figures/ginkgo-hybrid.png) 
 
 
-![Ginkgo CSR spmv performance is competitive against (left) cuSPARSE and (b)
+![Ginkgo CSR spmv performance is competitive against (left) cuSPARSE and (right)
 hipSPARSE](figures/ginkgo-csr.png) 
 
 Ginkgo provides comprehensive logging facilities both in-house and with interfaces
