@@ -79,7 +79,7 @@ public:
             new MFEMVectorWrapper(exec, size, mfem_vec, on_device, ownership));
     }
 
-    mfem::Vector &get_mfem_vec_ref() { return *(this->mfem_vec_.get()); }
+    mfem::Vector &get_mfem_vec_ref() const { return *(this->mfem_vec_.get()); }
     const mfem::Vector &get_mfem_vec_const_ref() const
     {
         return const_cast<const mfem::Vector &>(*(this->mfem_vec_.get()));
@@ -100,6 +100,91 @@ public:
             this->mfem_vec_.get()->UseDevice(), true);
     }
 
+    // Override base PolymorphicObject implementation
+    virtual std::unique_ptr<gko::PolymorphicObject> create_default_impl(
+        std::shared_ptr<const gko::Executor> exec) const override
+    {
+        bool on_device = false;
+        mfem::MemoryType mt = mfem::MemoryType::HOST;
+        if (exec->get_master() != exec) {
+            on_device = true;
+            mt = mfem::MemoryType::CUDA;
+        }
+        mfem::Vector *mfem_vec = new mfem::Vector(1, mt);
+        return MFEMVectorWrapper::create(exec, 1, mfem_vec, on_device, true);
+    }
+
+    virtual gko::PolymorphicObject *copy_from_impl(
+        const gko::PolymorphicObject *other) override
+    {
+        // Create new MFEM Vec by copying
+        auto mfem_other = gko::as<MFEMVectorWrapper>(other);
+        mfem::Vector *mfem_vec_cpy =
+            new mfem::Vector(mfem_other->get_mfem_vec_ref());
+
+        bool on_device = false;
+        if (other->get_executor()->get_master() != other->get_executor()) {
+            on_device = true;
+        }
+
+        // Resize LinOp
+        gko::size_type size = mfem_vec_cpy->Size();
+        this->resize(size);
+
+        // Set mfem_vec_ pointer to new copied Vector
+        using deleter = mfem_destroy<mfem::Vector>;
+        this->mfem_vec_ =
+            std::unique_ptr<mfem::Vector, std::function<void(mfem::Vector *)>>(
+                mfem_vec_cpy, deleter{});
+
+
+        // Reset the data of this vector to point to the new copied Vector's
+        // data
+        this->reset_values(gko::Array<double>::view(
+            this->get_executor(), size,
+            this->mfem_vec_.get()->ReadWrite(on_device)));
+
+        return this;
+    }
+
+    virtual gko::PolymorphicObject *copy_from_impl(
+        std::unique_ptr<gko::PolymorphicObject> other) override
+    {
+        // Create new MFEM Vec by copying
+        auto mfem_other = gko::as<MFEMVectorWrapper>(other.get());
+        mfem::Vector *mfem_vec_cpy =
+            new mfem::Vector(mfem_other->get_mfem_vec_ref());
+
+        bool on_device = false;
+        if (mfem_other->get_executor()->get_master() !=
+            mfem_other->get_executor()) {
+            on_device = true;
+        }
+
+        // Resize LinOp
+        gko::size_type size = mfem_vec_cpy->Size();
+        this->resize(size);
+
+        // Set mfem_vec_ pointer to new copied Vector
+        using deleter = mfem_destroy<mfem::Vector>;
+        this->mfem_vec_ =
+            std::unique_ptr<mfem::Vector, std::function<void(mfem::Vector *)>>(
+                mfem_vec_cpy, deleter{});
+
+
+        // Reset the data of this vector to point to the new copied Vector's
+        // data
+        this->reset_values(gko::Array<double>::view(
+            this->get_executor(), size,
+            this->mfem_vec_.get()->ReadWrite(on_device)));
+
+        return this;
+    }
+
+    void resize(gko::size_type new_size)
+    {
+        this->set_size(gko::dim<2>{new_size, 1});
+    }
 
 protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override;

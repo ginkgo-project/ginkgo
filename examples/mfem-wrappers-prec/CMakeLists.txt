@@ -2,7 +2,7 @@ if(GINKGO_BUILD_MFEM_WRAP_EXAMPLE)
 # This is just an example of the CMakeLists.txt file that can be used after the
 # correct version of MFEM has been installed.
 cmake_minimum_required(VERSION 3.8)
-project(mfem-wrappers LANGUAGES CXX)
+project(mfem-prec LANGUAGES CXX)
 
 find_package(MPI REQUIRED)
 
@@ -14,8 +14,8 @@ find_package(MFEM 4.0 REQUIRED
 
 #set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-add_executable(${PROJECT_NAME} test_mfem.cpp)
-target_sources(${PROJECT_NAME} PRIVATE test_mfem.cpp mfem_wrapper.cpp)
+add_executable(${PROJECT_NAME} test_mfem_prec.cpp)
+target_sources(${PROJECT_NAME} PRIVATE test_mfem_prec.cpp ginkgo_wrapper.cpp)
 target_compile_options(${PROJECT_NAME} PRIVATE -g -Wall -fopenmp)
 
 target_link_libraries(${PROJECT_NAME}

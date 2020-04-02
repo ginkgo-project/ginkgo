@@ -532,6 +532,12 @@ protected:
                                idx % this->get_size()[1]);
     }
 
+    //** TEST
+    void reset_values(Array<value_type> new_values)
+    {
+        this->values_ = new_values;
+    }
+    //**
 private:
     Array<value_type> values_;
     size_type stride_;

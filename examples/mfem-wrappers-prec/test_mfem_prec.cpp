@@ -1,5 +1,20 @@
-//                                MFEM Example 1, modified
+//                          MFEM Example 1, modified
 //
+// This code has been modified from `ex1.cpp` provided in the examples of
+// MFEM.  The sections not marked as related to Ginkgo are largely unchanged
+// from the version provided by MFEM.
+//
+// The default mesh option is "beam-hex.mesh", provided by MFEM.
+// Important non-default options:
+//  -m [file] : Mesh file.
+//  -no-pa, --no-partial-assembly : Don't use partial assembly, build a full
+//                                  SparseMatrix for the system
+//  -pc, --preconditioner : Use preconditioning.
+//  -d "cuda" : Use the MFEM cuda backend and Ginkgo CudaExecutor.
+//
+//  NOTE: Currently the combination of "-no-pa -pc -d cuda" is not allowed.
+//
+// MFEM's provided information about `ex1.cpp`:
 // Description:  This example code demonstrates the use of MFEM to define a
 //               simple finite element discretization of the Laplace problem
 //               -Delta u = 1 with homogeneous Dirichlet boundary conditions.
@@ -17,8 +32,7 @@
 
 #include "mfem.hpp"
 
-//#include "mfem_wrapper.hpp"
-#include "logger_mod.hpp"
+#include "ginkgo_wrapper.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -31,11 +45,12 @@ int main(int argc, char *argv[])
     // 1. Parse command-line options.
     const char *mesh_file = "beam-hex.mesh";
     int order = 2;
+    const char *basis_type = "G";  // Gauss-Lobatto
     bool static_cond = false;
     bool pa = true;
     const char *device_config = "cpu";
     bool visualization = true;
-    const char *pc = "mj";
+    bool pc = false;
 
     OptionsParser args(argc, argv);
     args.AddOption(&mesh_file, "-m", "--mesh", "Mesh file to use.");
@@ -51,9 +66,8 @@ int main(int argc, char *argv[])
     args.AddOption(&visualization, "-vis", "--visualization", "-no-vis",
                    "--no-visualization",
                    "Enable or disable GLVis visualization.");
-    args.AddOption(&pc, "-pc", "--preconditioner",
-                   "Preconditioner: mj - MFEM Jacobi, ",
-                   "gj - Ginkgo Block Jacobi, gilu - Ginkgo ILU(0), none.");
+    args.AddOption(&pc, "-pc", "--preconditioner", "-no-pc",
+                   "--no-preconditioner", "Enable lor preconditioner");
     args.Parse();
     if (!args.Good()) {
         args.PrintUsage(cout);
@@ -61,25 +75,20 @@ int main(int argc, char *argv[])
     }
     args.PrintOptions(cout);
 
-    enum PCType { NONE, MFEM_JACOBI, GINKGO_BLOCK_JACOBI, GINKGO_ILU };
-    PCType pc_choice;
-    if (!strcmp(pc, "mj")) {
-        pc_choice = MFEM_JACOBI;
-    } else if (!strcmp(pc, "gj")) {
-        pc_choice = GINKGO_BLOCK_JACOBI;
-    } else if (!strcmp(pc, "gilu")) {
-        pc_choice = GINKGO_ILU;
-    } else if (!strcmp(pc, "none")) {
-        pc_choice = NONE;
-    } else {
-        mfem_error("Invalid Preconditioner specified");
-        return 3;
-    }
+    // ---------------------------------------------------------------
+    // -------------------- Start Ginkgo set-up ----------------------
 
-    // Ginkgo set-up
-    // Ginkgo executor
-    auto omp_executor = gko::OmpExecutor::create();
+    // Create Ginkgo executor.
+
+    // This will point to the selected executor default executor
     std::shared_ptr<gko::Executor> executor;
+
+    // We will always need an OpenMP executor.
+    auto omp_executor = gko::OmpExecutor::create();
+
+    // If the user has requested to use CUDA, then build a
+    // CudaExecutor and set `executor` to it; otherwise,
+    // use the OmpExecutor
     bool on_device = false;
     if (!strcmp(device_config, "cuda")) {
         auto cuda_executor =
@@ -89,7 +98,13 @@ int main(int argc, char *argv[])
     } else {
         executor = omp_executor;
     }
-    // --------------------------------------------------------
+
+    // --------------------- End Ginkgo set-up -----------------------
+    // ---------------------------------------------------------------
+
+    // See class BasisType in fem/fe_coll.hpp for available basis types
+    int basis = BasisType::GetType(basis_type[0]);
+    cout << "Using " << BasisType::Name(basis) << " basis ..." << endl;
 
     // 2. Enable hardware devices such as GPUs, and programming models such as
     //    CUDA, OCCA, RAJA and OpenMP based on command line options.
@@ -119,16 +134,31 @@ int main(int argc, char *argv[])
     //    instead use an isoparametric/isogeometric space.
     FiniteElementCollection *fec;
     if (order > 0) {
-        fec = new H1_FECollection(order, dim);
+        fec = new H1_FECollection(order, dim, basis);
     } else if (mesh->GetNodes()) {
         fec = mesh->GetNodes()->OwnFEC();
         cout << "Using isoparametric FEs: " << fec->Name() << endl;
     } else {
-        fec = new H1_FECollection(order = 1, dim);
+        fec = new H1_FECollection(order = 1, dim, basis);
     }
     FiniteElementSpace *fespace = new FiniteElementSpace(mesh, fec);
     cout << "Number of finite element unknowns: " << fespace->GetTrueVSize()
          << endl;
+
+    // Create the LOR mesh and finite element space. In the settings of this
+    // example, we can transfer between HO and LOR with the identity operator.
+    Mesh *mesh_lor = NULL;
+    FiniteElementCollection *fec_lor = NULL;
+    FiniteElementSpace *fespace_lor = NULL;
+    if (pc) {
+        int basis_lor = basis;
+        if (basis == BasisType::Positive) {
+            basis_lor = BasisType::ClosedUniform;
+        }
+        mesh_lor = new Mesh(mesh, order, basis_lor);
+        fec_lor = new H1_FECollection(1, dim);
+        fespace_lor = new FiniteElementSpace(mesh_lor, fec_lor);
+    }
 
     // 6. Determine the list of true (i.e. conforming) essential boundary dofs.
     //    In this example, the boundary conditions are defined by marking all
@@ -161,6 +191,10 @@ int main(int argc, char *argv[])
     //    corresponding to the Laplacian operator -Delta, by adding the
     //    Diffusion domain integrator.
     BilinearForm *a = new BilinearForm(fespace);
+    BilinearForm *a_pc = NULL;
+    if (pc) {
+        a_pc = new BilinearForm(fespace_lor);
+    }
     if (pa) {
         a->SetAssemblyLevel(AssemblyLevel::PARTIAL);
     }
@@ -178,89 +212,25 @@ int main(int argc, char *argv[])
     OperatorPtr A;
     Vector B, X;
 
-    // TODO: is this addition needed now?
-    //    X.UseDevice(true);
-
     a->FormLinearSystem(ess_tdof_list, x, *b, A, X, B);
 
     // 11. Solve the linear system A X = B.
 
-    // ---------------------------------------------------------------
-    // -------------------- Start Ginkgo section ---------------------
+    SparseMatrix A_pc;
+    if (pc) {
+        a_pc->AddDomainIntegrator(new DiffusionIntegrator(one));
+        a_pc->UsePrecomputedSparsity();
+        a_pc->Assemble();
+        a_pc->FormSystemMatrix(ess_tdof_list, A_pc);
 
-    // MFEM Vector wrappers
-    // The "true" here is now for on_device (ownership is default = false)
-    auto gko_rhs = MFEMVectorWrapper::create(executor, B.Size(), &B, on_device);
-    auto gko_x = MFEMVectorWrapper::create(executor, X.Size(), &X, on_device);
+        // Create Ginkgo ILU preconditioner
+        GinkgoIluPreconditioner M(executor, on_device, A_pc);
 
-    // MFEM Operator Wrapper
-    // Note we must set this to false or else the operator might be accidentally
-    // deleted when doing a shallow copy to set mfem_oper_ in the
-    // MFEMOperatorWrapper object.  The ownership
-    //  only seems to be transferred for the PA case (and not full assembly)?
-    A.SetOperatorOwner(false);
-    auto oper_wrapper = MFEMOperatorWrapper::create(executor, B.Size(), A);
-
-    // Create Ginkgo solver
-    using cg = gko::solver::Cg<double>;
-
-    auto residual_logger = std::make_shared<ResidualLogger<>>(
-        executor, gko::lend(oper_wrapper), gko::lend(gko_rhs));
-
-    if (pc_choice == NONE) {  // No preconditioner
-        // Generate solver
-        auto solver_gen =
-            cg::build()
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(X.Size()).on(
-                        executor),
-                    gko::stop::ResidualNormReduction<>::build().on(executor))
-                .on(executor);
-        auto solver = solver_gen->generate(gko::give(oper_wrapper));
-
-        solver->add_logger(residual_logger);
-
-        // Solve system
-        solver->apply(gko::lend(gko_rhs), gko::lend(gko_x));
+        // Use preconditioned CG
+        PCG(*A, M, B, X, 1, 500, 1e-12, 0.0);
     } else {
-        if (pc_choice == MFEM_JACOBI) {
-            OperatorPtr M_ptr;
-
-            // Create MFEM preconditioner
-            if (!pa) {
-                GSSmoother *M =
-                    new GSSmoother(*(dynamic_cast<SparseMatrix *>(A.Ptr())));
-                M_ptr.Reset(M, false);
-            } else {
-                OperatorJacobiSmoother *M =
-                    new OperatorJacobiSmoother(*a, ess_tdof_list);
-                M_ptr.Reset(M, false);
-            }
-            auto prec_wrap =
-                MFEMOperatorWrapper::create(executor, B.Size(), M_ptr);
-
-            // Generate solver
-            auto solver_gen =
-                cg::build()
-                    .with_criteria(
-                        gko::stop::Iteration::build()
-                            .with_max_iters(X.Size())
-                            .on(executor),
-                        gko::stop::ResidualNormReduction<>::build().on(
-                            executor))
-                    .with_generated_preconditioner(gko::share(prec_wrap))
-                    .on(executor);
-            auto solver = solver_gen->generate(gko::give(oper_wrapper));
-
-            solver->add_logger(residual_logger);
-
-            // Solve system
-            solver->apply(gko::lend(gko_rhs), gko::lend(gko_x));
-        }
+        CG(*A, B, X, 1, 500, 1e-12, 0.0);
     }
-
-    // --------------------- End Ginkgo section ----------------------
-    // ---------------------------------------------------------------
 
     // 12. Recover the solution as a finite element grid function.
     a->RecoverFEMSolution(X, *b, x);
@@ -284,9 +254,6 @@ int main(int argc, char *argv[])
         sol_sock << "solution\n" << *mesh << x << flush;
     }
 
-    //** TEST
-    // gko_x.release();
-
     // 15. Free the used memory.
     delete a;
     delete b;
@@ -295,8 +262,4 @@ int main(int argc, char *argv[])
         delete fec;
     }
     delete mesh;
-
-    std::cout << "about to return 0 " << std::endl;
-
-    return 0;
 }

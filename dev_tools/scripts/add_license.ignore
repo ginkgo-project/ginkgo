@@ -1,3 +1,5 @@
 build/
 third_party/
 external-lib-interfacing.cpp
+test_mfem.cpp
+test_mfem_prec.cpp
