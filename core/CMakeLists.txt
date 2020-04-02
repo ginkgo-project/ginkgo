@@ -13,6 +13,7 @@ target_sources(ginkgo
         base/version.cpp
         factorization/ilu.cpp
         factorization/par_ilu.cpp
+        factorization/par_ict.cpp
         factorization/par_ilut.cpp
         log/convergence.cpp
         log/logger.cpp
