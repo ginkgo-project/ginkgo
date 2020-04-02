@@ -20,9 +20,10 @@ var searchData=
   ['is_5fcomplex_459',['is_complex',['../namespacegko.html#a9b3e79911bb6145d7ba865dbe436b915',1,'gko']]],
   ['is_5fcomplex_5fs_460',['is_complex_s',['../namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88',1,'gko']]],
   ['is_5ffinalized_461',['is_finalized',['../classgko_1_1stopping__status.html#a7c8b094d37449098ca4ddb1f4bbf10bd',1,'gko::stopping_status']]],
-  ['is_5fvalid_462',['is_valid',['../structgko_1_1span.html#a32a87f434708e6857820858503f9b133',1,'gko::span']]],
-  ['isfinite_463',['isfinite',['../namespacegko.html#afb0f20b5d373f9439702e723d48548fa',1,'gko']]],
-  ['iteration_464',['Iteration',['../classgko_1_1stop_1_1Iteration.html',1,'gko::stop']]],
-  ['iteration_5fcomplete_5fdata_465',['iteration_complete_data',['../structgko_1_1log_1_1iteration__complete__data.html',1,'gko::log']]],
-  ['iterations_466',['iterations',['../structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#acf87db3479a61d53d301101b51e419c6',1,'gko::factorization::ParIlu::parameters_type']]]
+  ['is_5fowning_462',['is_owning',['../classgko_1_1Array.html#a18164d25e9e87bdc6b8af7ce9956199a',1,'gko::Array']]],
+  ['is_5fvalid_463',['is_valid',['../structgko_1_1span.html#a32a87f434708e6857820858503f9b133',1,'gko::span']]],
+  ['isfinite_464',['isfinite',['../namespacegko.html#afb0f20b5d373f9439702e723d48548fa',1,'gko']]],
+  ['iteration_465',['Iteration',['../classgko_1_1stop_1_1Iteration.html',1,'gko::stop']]],
+  ['iteration_5fcomplete_5fdata_466',['iteration_complete_data',['../structgko_1_1log_1_1iteration__complete__data.html',1,'gko::log']]],
+  ['iterations_467',['iterations',['../structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#acf87db3479a61d53d301101b51e419c6',1,'gko::factorization::ParIlu::parameters_type']]]
 ];

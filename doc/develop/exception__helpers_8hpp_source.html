@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/base/exception_helpers.hpp (ccf35426a) Source File</title>
+<title>Ginkgo: ginkgo/core/base/exception_helpers.hpp (a8862f554) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/132169824 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/132261746 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -381,23 +381,32 @@ $(function() {
 <div class="line"><a name="l00454"></a><span class="lineno">  454</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
 <div class="line"><a name="l00455"></a><span class="lineno">  455</span>&#160; </div>
 <div class="line"><a name="l00456"></a><span class="lineno">  456</span>&#160; </div>
-<div class="line"><a name="l00467"></a><span class="lineno">  467</span>&#160;<span class="preprocessor">#define GKO_STREAM_ERROR(_message) \</span></div>
-<div class="line"><a name="l00468"></a><span class="lineno">  468</span>&#160;<span class="preprocessor">    ::gko::StreamError(__FILE__, __LINE__, __func__, _message)</span></div>
-<div class="line"><a name="l00469"></a><span class="lineno">  469</span>&#160; </div>
-<div class="line"><a name="l00470"></a><span class="lineno">  470</span>&#160; </div>
-<div class="line"><a name="l00477"></a><span class="lineno">  477</span>&#160;<span class="preprocessor">#define GKO_KERNEL_NOT_FOUND                                                 \</span></div>
-<div class="line"><a name="l00478"></a><span class="lineno">  478</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
-<div class="line"><a name="l00479"></a><span class="lineno">  479</span>&#160;<span class="preprocessor">        throw ::gko::KernelNotFound(__FILE__, __LINE__, __func__);           \</span></div>
-<div class="line"><a name="l00480"></a><span class="lineno">  480</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
-<div class="line"><a name="l00481"></a><span class="lineno">  481</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
-<div class="line"><a name="l00482"></a><span class="lineno">  482</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
-<div class="line"><a name="l00483"></a><span class="lineno">  483</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
-<div class="line"><a name="l00484"></a><span class="lineno">  484</span>&#160; </div>
-<div class="line"><a name="l00485"></a><span class="lineno">  485</span>&#160; </div>
-<div class="line"><a name="l00486"></a><span class="lineno">  486</span>&#160;}  <span class="comment">// namespace gko</span></div>
-<div class="line"><a name="l00487"></a><span class="lineno">  487</span>&#160; </div>
+<div class="line"><a name="l00467"></a><span class="lineno">  467</span>&#160;<span class="preprocessor">#define GKO_ENSURE_COMPATIBLE_BOUNDS(_source, _target)                       \</span></div>
+<div class="line"><a name="l00468"></a><span class="lineno">  468</span>&#160;<span class="preprocessor">    if (_source &gt; _target) {                                                 \</span></div>
+<div class="line"><a name="l00469"></a><span class="lineno">  469</span>&#160;<span class="preprocessor">        throw ::gko::OutOfBoundsError(__FILE__, __LINE__, _source, _target); \</span></div>
+<div class="line"><a name="l00470"></a><span class="lineno">  470</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
+<div class="line"><a name="l00471"></a><span class="lineno">  471</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
+<div class="line"><a name="l00472"></a><span class="lineno">  472</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
+<div class="line"><a name="l00473"></a><span class="lineno">  473</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
+<div class="line"><a name="l00474"></a><span class="lineno">  474</span>&#160; </div>
+<div class="line"><a name="l00475"></a><span class="lineno">  475</span>&#160; </div>
+<div class="line"><a name="l00486"></a><span class="lineno">  486</span>&#160;<span class="preprocessor">#define GKO_STREAM_ERROR(_message) \</span></div>
+<div class="line"><a name="l00487"></a><span class="lineno">  487</span>&#160;<span class="preprocessor">    ::gko::StreamError(__FILE__, __LINE__, __func__, _message)</span></div>
 <div class="line"><a name="l00488"></a><span class="lineno">  488</span>&#160; </div>
-<div class="line"><a name="l00489"></a><span class="lineno">  489</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_BASE_EXCEPTION_HELPERS_HPP_</span></div>
+<div class="line"><a name="l00489"></a><span class="lineno">  489</span>&#160; </div>
+<div class="line"><a name="l00496"></a><span class="lineno">  496</span>&#160;<span class="preprocessor">#define GKO_KERNEL_NOT_FOUND                                                 \</span></div>
+<div class="line"><a name="l00497"></a><span class="lineno">  497</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
+<div class="line"><a name="l00498"></a><span class="lineno">  498</span>&#160;<span class="preprocessor">        throw ::gko::KernelNotFound(__FILE__, __LINE__, __func__);           \</span></div>
+<div class="line"><a name="l00499"></a><span class="lineno">  499</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
+<div class="line"><a name="l00500"></a><span class="lineno">  500</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
+<div class="line"><a name="l00501"></a><span class="lineno">  501</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
+<div class="line"><a name="l00502"></a><span class="lineno">  502</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
+<div class="line"><a name="l00503"></a><span class="lineno">  503</span>&#160; </div>
+<div class="line"><a name="l00504"></a><span class="lineno">  504</span>&#160; </div>
+<div class="line"><a name="l00505"></a><span class="lineno">  505</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00506"></a><span class="lineno">  506</span>&#160; </div>
+<div class="line"><a name="l00507"></a><span class="lineno">  507</span>&#160; </div>
+<div class="line"><a name="l00508"></a><span class="lineno">  508</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_BASE_EXCEPTION_HELPERS_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="anamespacegko_html_a6e5c95df0ae4e47aab2f604a22d98ee7"><div class="ttname"><a href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a></div><div class="ttdeci">std::size_t size_type</div><div class="ttdoc">Integral type used for allocation quantities.</div><div class="ttdef"><b>Definition:</b> types.hpp:100</div></div>
 <div class="ttc" id="anamespacegko_html"><div class="ttname"><a href="namespacegko.html">gko</a></div><div class="ttdoc">The Ginkgo namespace.</div><div class="ttdef"><b>Definition:</b> abstract_factory.hpp:45</div></div>
