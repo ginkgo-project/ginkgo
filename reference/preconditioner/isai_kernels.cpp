@@ -136,7 +136,19 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
         trs_solve(i_row_elems, trisystem, rhs);
 
         // Drop RHS as a row to memory (since that is the computed inverse)
-        std::copy_n(rhs, i_row_elems, i_vals + i_row_begin);
+        for (size_type i = 0; i < i_row_elems; ++i) {
+            const auto new_val = rhs[i];
+            auto idx = i_row_begin + i;
+            // Check for non-finite elements which should not be copied over
+            if (isfinite(new_val)) {
+                i_vals[idx] = new_val;
+            } else {
+                // The diagonal elements should be set to 1, so the
+                // preconditioner does not prevent convergence
+                i_vals[idx] =
+                    i_cols[idx] == row ? one<ValueType>() : zero<ValueType>();
+            }
+        }
     }
 
     // Call make_srow
