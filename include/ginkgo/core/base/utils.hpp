@@ -352,6 +352,56 @@ inline std::unique_ptr<typename std::decay<T>::type> as(
 
 
 /**
+ * Performs polymorphic type conversion of a shared_ptr.
+ *
+ * @tparam T  requested result type
+ * @tparam U  static type of the passed object
+ *
+ * @param obj  the shared_ptr to the object which should be converted.
+ *
+ * @return If successful, returns a shared_ptr to the subtype, otherwise throws
+ *         NotSupported. This pointer shares ownership with the input pointer.
+ */
+template <typename T, typename U>
+inline std::shared_ptr<typename std::decay<T>::type> as(std::shared_ptr<U> obj)
+{
+    if (dynamic_cast<typename std::decay<T>::type *>(obj.get())) {
+        return std::static_pointer_cast<typename std::decay<T>::type>(obj);
+    } else {
+        throw NotSupported(__FILE__, __LINE__, __func__,
+                           name_demangling::get_type_name(typeid(obj.get())));
+    }
+}
+
+
+/**
+ * Performs polymorphic type conversion of a shared_ptr.
+ *
+ * This is the constant version of the function.
+ *
+ * @tparam T  requested result type
+ * @tparam U  static type of the passed object
+ *
+ * @param obj  the shared_ptr to the object which should be converted.
+ *
+ * @return If successful, returns a shared_ptr to the subtype, otherwise throws
+ *         NotSupported. This pointer shares ownership with the input pointer.
+ */
+template <typename T, typename U>
+inline std::shared_ptr<const typename std::decay<T>::type> as(
+    std::shared_ptr<const U> obj)
+{
+    if (dynamic_cast<const typename std::decay<T>::type *>(obj.get())) {
+        return std::static_pointer_cast<const typename std::decay<T>::type>(
+            obj);
+    } else {
+        throw NotSupported(__FILE__, __LINE__, __func__,
+                           name_demangling::get_type_name(typeid(obj.get())));
+    }
+}
+
+
+/**
  * This is a deleter that does not delete the object.
  *
  * It is useful where the object has been allocated elsewhere and will be
