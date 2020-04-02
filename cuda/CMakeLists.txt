@@ -65,6 +65,7 @@ target_sources(ginkgo_cuda
         components/prefix_sum.cu
         components/zero_array_kernels.cu
         factorization/ilu_kernels.cu
+        factorization/factorization_kernels.cu
         factorization/par_ilu_kernels.cu
         matrix/coo_kernels.cu
         matrix/csr_kernels.cu

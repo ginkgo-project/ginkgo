@@ -48,23 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 
-
-#define GKO_DECLARE_PAR_ILU_ADD_DIAGONAL_ELEMENTS_KERNEL(ValueType, IndexType) \
-    void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,    \
-                               matrix::Csr<ValueType, IndexType> *mtx,         \
-                               bool is_sorted)
-#define GKO_DECLARE_PAR_ILU_INITIALIZE_ROW_PTRS_L_U_KERNEL(ValueType, \
-                                                           IndexType) \
-    void initialize_row_ptrs_l_u(                                     \
-        std::shared_ptr<const DefaultExecutor> exec,                  \
-        const matrix::Csr<ValueType, IndexType> *system_matrix,       \
-        IndexType *l_row_ptrs, IndexType *u_row_ptrs)
-#define GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL(ValueType, IndexType) \
-    void initialize_l_u(                                                \
-        std::shared_ptr<const DefaultExecutor> exec,                    \
-        const matrix::Csr<ValueType, IndexType> *system_matrix,         \
-        matrix::Csr<ValueType, IndexType> *l_factor,                    \
-        matrix::Csr<ValueType, IndexType> *u_factor)
 #define GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL(ValueType, IndexType) \
     void compute_l_u_factors(                                                \
         std::shared_ptr<const DefaultExecutor> exec, size_type iterations,   \
@@ -73,14 +56,8 @@ namespace kernels {
         matrix::Csr<ValueType, IndexType> *u_factor)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                          \
-    template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_PAR_ILU_ADD_DIAGONAL_ELEMENTS_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_PAR_ILU_INITIALIZE_ROW_PTRS_L_U_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>                         \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
+    template <typename ValueType, typename IndexType> \
     GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL(ValueType, IndexType)
 
 

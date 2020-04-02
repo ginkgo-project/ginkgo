@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/factorization/factorization_kernels.hpp"
 #include "cuda/test/utils.hpp"
 #include "matrices/config.hpp"
 
@@ -91,9 +92,9 @@ protected:
         auto csr_cuda_temp = Csr::create(cuda);
         csr_cuda_temp->copy_from(gko::lend(csr_ref_temp));
         // Make sure there are diagonal elements present
-        gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        gko::kernels::reference::factorization::add_diagonal_elements(
             ref, gko::lend(csr_ref_temp), false);
-        gko::kernels::cuda::par_ilu_factorization::add_diagonal_elements(
+        gko::kernels::cuda::factorization::add_diagonal_elements(
             cuda, gko::lend(csr_cuda_temp), false);
         csr_ref = gko::give(csr_ref_temp);
         csr_cuda = gko::give(csr_cuda_temp);
@@ -139,9 +140,9 @@ protected:
                              index_type *l_row_ptrs_cuda,
                              index_type *u_row_ptrs_cuda)
     {
-        gko::kernels::reference::par_ilu_factorization::initialize_row_ptrs_l_u(
+        gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
             ref, gko::lend(csr_ref), l_row_ptrs_ref, u_row_ptrs_ref);
-        gko::kernels::cuda::par_ilu_factorization::initialize_row_ptrs_l_u(
+        gko::kernels::cuda::factorization::initialize_row_ptrs_l_u(
             cuda, gko::lend(csr_cuda), l_row_ptrs_cuda, u_row_ptrs_cuda);
     }
 
@@ -177,9 +178,9 @@ protected:
         cuda->copy_from(gko::lend(cuda), num_row_ptrs,
                         u_row_ptrs_cuda.get_data(), (*u_cuda)->get_row_ptrs());
 
-        gko::kernels::reference::par_ilu_factorization::initialize_l_u(
+        gko::kernels::reference::factorization::initialize_l_u(
             ref, gko::lend(csr_ref), gko::lend(*l_ref), gko::lend(*u_ref));
-        gko::kernels::cuda::par_ilu_factorization::initialize_l_u(
+        gko::kernels::cuda::factorization::initialize_l_u(
             cuda, gko::lend(csr_cuda), gko::lend(*l_cuda), gko::lend(*u_cuda));
     }
 
@@ -228,9 +229,9 @@ TEST_F(ParIlu, CudaKernelAddDiagonalElementsSortedEquivalentToRef)
     auto mtx_cuda = Csr::create(cuda);
     mtx_cuda->copy_from(gko::lend(mtx_ref));
 
-    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::reference::factorization::add_diagonal_elements(
         ref, gko::lend(mtx_ref), true);
-    gko::kernels::cuda::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::cuda::factorization::add_diagonal_elements(
         cuda, gko::lend(mtx_cuda), true);
 
     ASSERT_TRUE(mtx_ref->is_sorted_by_column_index());
@@ -247,9 +248,9 @@ TEST_F(ParIlu, CudaKernelAddDiagonalElementsUnsortedEquivalentToRef)
     auto mtx_cuda = Csr::create(cuda);
     mtx_cuda->copy_from(gko::lend(mtx_ref));
 
-    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::reference::factorization::add_diagonal_elements(
         ref, gko::lend(mtx_ref), false);
-    gko::kernels::cuda::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::cuda::factorization::add_diagonal_elements(
         cuda, gko::lend(mtx_cuda), false);
 
     ASSERT_FALSE(mtx_ref->is_sorted_by_column_index());
@@ -266,9 +267,9 @@ TEST_F(ParIlu, CudaKernelAddDiagonalElementsNonSquareEquivalentToRef)
     auto mtx_cuda = Csr::create(cuda);
     mtx_cuda->copy_from(gko::lend(mtx_ref));
 
-    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::reference::factorization::add_diagonal_elements(
         ref, gko::lend(mtx_ref), true);
-    gko::kernels::cuda::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::cuda::factorization::add_diagonal_elements(
         cuda, gko::lend(mtx_cuda), true);
 
     ASSERT_TRUE(mtx_ref->is_sorted_by_column_index());

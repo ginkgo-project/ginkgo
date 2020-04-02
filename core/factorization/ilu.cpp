@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 
@@ -48,12 +49,13 @@ namespace gko {
 namespace factorization {
 namespace ilu_factorization {
 
+
 GKO_REGISTER_OPERATION(compute_ilu, ilu_factorization::compute_lu);
 GKO_REGISTER_OPERATION(add_diagonal_elements,
-                       par_ilu_factorization::add_diagonal_elements);
+                       factorization::add_diagonal_elements);
 GKO_REGISTER_OPERATION(initialize_row_ptrs_l_u,
-                       par_ilu_factorization::initialize_row_ptrs_l_u);
-GKO_REGISTER_OPERATION(initialize_l_u, par_ilu_factorization::initialize_l_u);
+                       factorization::initialize_row_ptrs_l_u);
+GKO_REGISTER_OPERATION(initialize_l_u, factorization::initialize_l_u);
 
 
 }  // namespace ilu_factorization
@@ -63,17 +65,15 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
     const std::shared_ptr<const LinOp> &system_matrix) const
 {
-    using CsrMatrix = matrix::Csr<ValueType, IndexType>;
-
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
 
     const auto exec = this->get_executor();
     const auto host_exec = exec->get_master();
 
-    // Only copies the matrix if it is not on the same executor or was not in
-    // the right format. Throws an exception if it is not convertible.
-    auto local_system_matrix = CsrMatrix::create(exec);
-    as<ConvertibleTo<CsrMatrix>>(system_matrix.get())
+    // Converts the system matrix to CSR.
+    // Throws an exception if it is not convertible.
+    auto local_system_matrix = matrix_type::create(exec);
+    as<ConvertibleTo<matrix_type>>(system_matrix.get())
         ->convert_to(local_system_matrix.get());
 
     // Add explicit diagonal zero elements if they are missing
@@ -105,12 +105,12 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
     // Init arrays
     Array<IndexType> l_col_idxs{exec, l_nnz};
     Array<ValueType> l_vals{exec, l_nnz};
-    std::shared_ptr<CsrMatrix> l_factor = matrix_type::create(
+    std::shared_ptr<matrix_type> l_factor = matrix_type::create(
         exec, matrix_size, std::move(l_vals), std::move(l_col_idxs),
         std::move(l_row_ptrs), parameters_.l_strategy);
     Array<IndexType> u_col_idxs{exec, u_nnz};
     Array<ValueType> u_vals{exec, u_nnz};
-    std::shared_ptr<CsrMatrix> u_factor = matrix_type::create(
+    std::shared_ptr<matrix_type> u_factor = matrix_type::create(
         exec, matrix_size, std::move(u_vals), std::move(u_col_idxs),
         std::move(u_row_ptrs), parameters_.u_strategy);
 

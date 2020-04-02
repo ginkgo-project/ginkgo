@@ -191,7 +191,7 @@ protected:
      * while the dynamic type of U is u_matrix_type.
      *
      * @param system_matrix  the source matrix used to generate the factors.
-     *                       @note: system_matrix must be convertable to a Csr
+     *                       @note: system_matrix must be convertible to a Csr
      *                              Matrix, otherwise, an exception is thrown.
      * @param skip_sorting  if set to `true`, the sorting will be skipped.
      *                      @note: If the matrix is not sorted, the

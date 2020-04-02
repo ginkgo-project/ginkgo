@@ -136,7 +136,7 @@ protected:
      * while the dynamic type of U is u_matrix_type.
      *
      * @param system_matrix  the source matrix used to generate the factors.
-     *                       @note: system_matrix must be convertable to a Csr
+     *                       @note: system_matrix must be convertible to a Csr
      *                              Matrix, otherwise, an exception is thrown.
      * @return  A Composition, containing the incomplete LU factors for the
      *          given system_matrix (first element is L, then U)

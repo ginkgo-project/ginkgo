@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/test/utils.hpp"
 
@@ -226,7 +227,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsEmpty)
                     std::initializer_list<index_type>{0, 1, 2, 3});
     auto empty_mtx = this->empty_csr->clone();
 
-    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, gko::lend(empty_mtx), true);
 
     GKO_ASSERT_MTX_NEAR(empty_mtx, expected_mtx, 0.);
@@ -246,7 +247,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquare)
         Csr::create(this->ref, matrix->get_size(), std::move(exp_values),
                     std::move(exp_col_idxs), std::move(exp_row_ptrs));
 
-    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, gko::lend(matrix), true);
 
     GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
@@ -265,7 +266,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquare2)
         Csr::create(this->ref, matrix->get_size(), std::move(exp_values),
                     std::move(exp_col_idxs), std::move(exp_row_ptrs));
 
-    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, gko::lend(matrix), true);
 
     GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
@@ -294,7 +295,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsUnsorted)
         Csr::create(this->ref, size, std::move(exp_values),
                     std::move(exp_col_idxs), std::move(exp_row_ptrs));
 
-    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, gko::lend(matrix), false);
 
     GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
@@ -316,7 +317,7 @@ TYPED_TEST(ParIlu, KernelInitializeRowPtrsLU)
     auto l_row_ptrs = l_row_ptrs_vector.data();
     auto u_row_ptrs = u_row_ptrs_vector.data();
 
-    gko::kernels::reference::par_ilu_factorization::initialize_row_ptrs_l_u(
+    gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
         this->ref, gko::lend(this->mtx_csr_small), l_row_ptrs, u_row_ptrs);
 
     ASSERT_TRUE(std::equal(l_row_ptrs, l_row_ptrs + num_row_ptrs,
@@ -331,7 +332,7 @@ TYPED_TEST(ParIlu, KernelInitializeRowPtrsLUZeroMatrix)
     using index_type = typename TestFixture::index_type;
     using Csr = typename TestFixture::Csr;
     auto empty_mtx = this->empty_csr->clone();
-    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, gko::lend(empty_mtx), true);
     auto empty_mtx_l_expected = Csr::create(this->ref);
     this->identity->convert_to(gko::lend(empty_mtx_l_expected));
@@ -343,7 +344,7 @@ TYPED_TEST(ParIlu, KernelInitializeRowPtrsLUZeroMatrix)
     auto l_row_ptrs = l_row_ptrs_vector.data();
     auto u_row_ptrs = u_row_ptrs_vector.data();
 
-    gko::kernels::reference::par_ilu_factorization::initialize_row_ptrs_l_u(
+    gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
         this->ref, gko::lend(empty_mtx), l_row_ptrs, u_row_ptrs);
 
     ASSERT_TRUE(std::equal(l_row_ptrs, l_row_ptrs + num_row_ptrs,
@@ -378,7 +379,7 @@ TYPED_TEST(ParIlu, KernelInitializeLU)
     std::copy(l_row_ptrs.begin(), l_row_ptrs.end(), actual_l->get_row_ptrs());
     std::copy(u_row_ptrs.begin(), u_row_ptrs.end(), actual_u->get_row_ptrs());
 
-    gko::kernels::reference::par_ilu_factorization::initialize_l_u(
+    gko::kernels::reference::factorization::initialize_l_u(
         this->ref, gko::lend(this->mtx_csr_small), gko::lend(actual_l),
         gko::lend(actual_u));
 
@@ -396,7 +397,7 @@ TYPED_TEST(ParIlu, KernelInitializeLUZeroMatrix)
     actual_l->copy_from(gko::lend(this->identity));
     actual_u->copy_from(gko::lend(this->identity));
 
-    gko::kernels::reference::par_ilu_factorization::initialize_l_u(
+    gko::kernels::reference::factorization::initialize_l_u(
         this->ref, gko::lend(this->empty_csr), gko::lend(actual_l),
         gko::lend(actual_u));
 
