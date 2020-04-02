@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -254,7 +255,8 @@ public:
      * Creates an Array from existing memory.
      *
      * The Array does not take ownership of the memory, and will not deallocate
-     * it once it goes out of scope.
+     * it once it goes out of scope. This array type cannot use the function
+     * `resize_and_reset` since it does not own the data it should resize.
      *
      * @param exec  executor where `data` is located
      * @param num_elems  number of elements in `data`
@@ -269,7 +271,10 @@ public:
     }
 
     /**
-     * Copies data from another array.
+     * Copies data from another array or view. In the case of an array target,
+     * the array is resized to match the source's size. In the case of a view
+     * target, if the dimensions are not compatible a gko::OutOfBoundsError is
+     * thrown.
      *
      * This does not invoke the constructors of the elements, instead they are
      * copied as POD types.
@@ -291,17 +296,39 @@ public:
             data_ = data_manager{nullptr, other.data_.get_deleter()};
         }
         if (other.get_executor() == nullptr) {
-            this->resize_and_reset(0);
+            this->clear();
             return *this;
         }
-        this->resize_and_reset(other.get_num_elems());
-        exec_->copy_from(other.get_executor().get(), num_elems_,
+
+        if (this->is_owning()) {
+            this->resize_and_reset(other.get_num_elems());
+        } else {
+            GKO_ENSURE_COMPATIBLE_BOUNDS(other.get_num_elems(),
+                                         this->num_elems_);
+        }
+        exec_->copy_from(other.get_executor().get(), other.get_num_elems(),
                          other.get_const_data(), this->get_data());
         return *this;
     }
 
     /**
-     * Moves data from another array.
+     * Moves data from another array or view. Only the pointer and deleter type
+     * change, a copy only happens when targeting another executor's data. This
+     * means that in the following situation:
+     * ```cpp
+     *   gko::Array<int> a; // an existing array or view
+     *   gko::Array<int> b; // an existing array or view
+     *   b = std::move(a);
+     * ```
+     * Depending on whether `a` and `b` are array or view, this happens:
+     * + `a` and `b` are views, `b` becomes the only valid view of `a`;
+     * + `a` and `b` are arrays, `b` becomes the only valid array of `a`;
+     * + `a` is a view and `b` is an array, `b` frees its data and becomes the
+     *    only valid view of `a` ();
+     * + `a` is an array and `b` is a view, `b` becomes the only valid array
+     *    of `a`.
+     *
+     * In all the previous cases, `a` becomes invalid (e.g., a `nullptr`).
      *
      * This does not invoke the constructors of the elements, instead they are
      * copied as POD types.
@@ -323,17 +350,17 @@ public:
             data_ = data_manager{nullptr, other.data_.get_deleter()};
         }
         if (other.get_executor() == nullptr) {
-            this->resize_and_reset(0);
+            this->clear();
             return *this;
         }
-        if (exec_ == other.get_executor() &&
-            data_.get_deleter().target_type() != typeid(view_deleter)) {
-            // same device and not a view, only move the pointer
+        if (exec_ == other.get_executor()) {
+            // same device, only move the pointer
             using std::swap;
             swap(data_, other.data_);
             swap(num_elems_, other.num_elems_);
+            other.clear();
         } else {
-            // different device or a view, copy the data
+            // different device, copy the data
             *this = other;
         }
         return *this;
@@ -354,6 +381,8 @@ public:
 
     /**
      * Resizes the array so it is able to hold the specified number of elements.
+     * For a view and other non-owning Array types, this throws an exception
+     * since these types cannot be resized.
      *
      * All data stored in the array will be lost.
      *
@@ -371,11 +400,16 @@ public:
             throw gko::NotSupported(__FILE__, __LINE__, __func__,
                                     "gko::Executor (nullptr)");
         }
-        num_elems_ = num_elems;
-        if (num_elems > 0) {
+        if (!this->is_owning()) {
+            throw gko::NotSupported(__FILE__, __LINE__, __func__,
+                                    "Non owning gko::Array cannot be resized.");
+        }
+
+        if (num_elems > 0 && this->is_owning()) {
+            num_elems_ = num_elems;
             data_.reset(exec_->alloc<value_type>(num_elems));
         } else {
-            data_.reset(nullptr);
+            this->clear();
         }
     }
 
@@ -431,6 +465,23 @@ public:
         exec_ = std::move(tmp.exec_);
         data_ = std::move(tmp.data_);
     }
+
+    /**
+     * Tells whether this Array owns its data or not.
+     *
+     * Views do not own their data and this has multiple implications. They
+     * cannot be resized since the data is not owned by the Array which stores a
+     * view. It is also unclear whether custom deleter types are owning types as
+     * they could be a user-created view-type, therefore only proper Array which
+     * use the `default_deleter` are considered owning types.
+     *
+     * @return whether this Array can be resized or not.
+     */
+    bool is_owning()
+    {
+        return data_.get_deleter().target_type() == typeid(default_deleter);
+    }
+
 
 private:
     using data_manager =
