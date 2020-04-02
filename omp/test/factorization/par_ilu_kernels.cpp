@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/factorization/factorization_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "matrices/config.hpp"
 
@@ -95,9 +96,9 @@ protected:
         auto csr_omp_temp = Csr::create(omp);
         csr_omp_temp->copy_from(gko::lend(csr_ref_temp));
         // Make sure there are diagonal elements present
-        gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        gko::kernels::reference::factorization::add_diagonal_elements(
             ref, gko::lend(csr_ref_temp), false);
-        gko::kernels::omp::par_ilu_factorization::add_diagonal_elements(
+        gko::kernels::omp::factorization::add_diagonal_elements(
             omp, gko::lend(csr_omp_temp), false);
         csr_ref = gko::give(csr_ref_temp);
         csr_omp = gko::give(csr_omp_temp);
@@ -144,9 +145,9 @@ protected:
                              index_type *l_row_ptrs_omp,
                              index_type *u_row_ptrs_omp)
     {
-        gko::kernels::reference::par_ilu_factorization::initialize_row_ptrs_l_u(
+        gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
             ref, gko::lend(csr_ref), l_row_ptrs_ref, u_row_ptrs_ref);
-        gko::kernels::omp::par_ilu_factorization::initialize_row_ptrs_l_u(
+        gko::kernels::omp::factorization::initialize_row_ptrs_l_u(
             omp, gko::lend(csr_omp), l_row_ptrs_omp, u_row_ptrs_omp);
     }
 
@@ -181,9 +182,9 @@ protected:
         omp->copy_from(gko::lend(omp), num_row_ptrs, u_row_ptrs_omp.get_data(),
                        (*u_omp)->get_row_ptrs());
 
-        gko::kernels::reference::par_ilu_factorization::initialize_l_u(
+        gko::kernels::reference::factorization::initialize_l_u(
             ref, gko::lend(csr_ref), gko::lend(*l_ref), gko::lend(*u_ref));
-        gko::kernels::omp::par_ilu_factorization::initialize_l_u(
+        gko::kernels::omp::factorization::initialize_l_u(
             omp, gko::lend(csr_omp), gko::lend(*l_omp), gko::lend(*u_omp));
     }
 
@@ -236,9 +237,9 @@ TYPED_TEST(ParIlu, OmpKernelAddDiagonalElementsSortedEquivalentToRef)
     auto mtx_omp = Csr::create(this->omp);
     mtx_omp->copy_from(gko::lend(mtx_ref));
 
-    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, gko::lend(mtx_ref), true);
-    gko::kernels::omp::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::omp::factorization::add_diagonal_elements(
         this->omp, gko::lend(mtx_omp), true);
 
     ASSERT_TRUE(mtx_ref->is_sorted_by_column_index());
@@ -257,9 +258,9 @@ TYPED_TEST(ParIlu, OmpKernelAddDiagonalElementsUnsortedEquivalentToRef)
     auto mtx_omp = Csr::create(this->omp);
     mtx_omp->copy_from(gko::lend(mtx_ref));
 
-    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, gko::lend(mtx_ref), false);
-    gko::kernels::omp::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::omp::factorization::add_diagonal_elements(
         this->omp, gko::lend(mtx_omp), false);
 
     ASSERT_FALSE(mtx_ref->is_sorted_by_column_index());
@@ -278,9 +279,9 @@ TYPED_TEST(ParIlu, OmpKernelAddDiagonalElementsNonSquareEquivalentToRef)
     auto mtx_omp = Csr::create(this->omp);
     mtx_omp->copy_from(gko::lend(mtx_ref));
 
-    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::reference::factorization::add_diagonal_elements(
         this->ref, gko::lend(mtx_ref), true);
-    gko::kernels::omp::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::omp::factorization::add_diagonal_elements(
         this->omp, gko::lend(mtx_omp), true);
 
     ASSERT_TRUE(mtx_ref->is_sorted_by_column_index());

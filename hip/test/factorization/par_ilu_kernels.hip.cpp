@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/factorization/factorization_kernels.hpp"
 #include "hip/test/utils.hip.hpp"
 #include "matrices/config.hpp"
 
@@ -91,9 +92,9 @@ protected:
         auto csr_hip_temp = Csr::create(hip);
         csr_hip_temp->copy_from(gko::lend(csr_ref_temp));
         // Make sure there are diagonal elements present
-        gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+        gko::kernels::reference::factorization::add_diagonal_elements(
             ref, gko::lend(csr_ref_temp), false);
-        gko::kernels::hip::par_ilu_factorization::add_diagonal_elements(
+        gko::kernels::hip::factorization::add_diagonal_elements(
             hip, gko::lend(csr_hip_temp), false);
         csr_ref = gko::give(csr_ref_temp);
         csr_hip = gko::give(csr_hip_temp);
@@ -139,9 +140,9 @@ protected:
                              index_type *l_row_ptrs_hip,
                              index_type *u_row_ptrs_hip)
     {
-        gko::kernels::reference::par_ilu_factorization::initialize_row_ptrs_l_u(
+        gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
             ref, gko::lend(csr_ref), l_row_ptrs_ref, u_row_ptrs_ref);
-        gko::kernels::hip::par_ilu_factorization::initialize_row_ptrs_l_u(
+        gko::kernels::hip::factorization::initialize_row_ptrs_l_u(
             hip, gko::lend(csr_hip), l_row_ptrs_hip, u_row_ptrs_hip);
     }
 
@@ -176,9 +177,9 @@ protected:
         hip->copy_from(gko::lend(hip), num_row_ptrs, u_row_ptrs_hip.get_data(),
                        (*u_hip)->get_row_ptrs());
 
-        gko::kernels::reference::par_ilu_factorization::initialize_l_u(
+        gko::kernels::reference::factorization::initialize_l_u(
             ref, gko::lend(csr_ref), gko::lend(*l_ref), gko::lend(*u_ref));
-        gko::kernels::hip::par_ilu_factorization::initialize_l_u(
+        gko::kernels::hip::factorization::initialize_l_u(
             hip, gko::lend(csr_hip), gko::lend(*l_hip), gko::lend(*u_hip));
     }
 
@@ -227,9 +228,9 @@ TEST_F(ParIlu, HipKernelAddDiagonalElementsSortedEquivalentToRef)
     auto mtx_hip = Csr::create(hip);
     mtx_hip->copy_from(gko::lend(mtx_ref));
 
-    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::reference::factorization::add_diagonal_elements(
         ref, gko::lend(mtx_ref), true);
-    gko::kernels::hip::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::hip::factorization::add_diagonal_elements(
         hip, gko::lend(mtx_hip), true);
     hip->synchronize();
 
@@ -247,9 +248,9 @@ TEST_F(ParIlu, HipKernelAddDiagonalElementsUnsortedEquivalentToRef)
     auto mtx_hip = Csr::create(hip);
     mtx_hip->copy_from(gko::lend(mtx_ref));
 
-    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::reference::factorization::add_diagonal_elements(
         ref, gko::lend(mtx_ref), false);
-    gko::kernels::hip::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::hip::factorization::add_diagonal_elements(
         hip, gko::lend(mtx_hip), false);
     hip->synchronize();
 
@@ -267,9 +268,9 @@ TEST_F(ParIlu, HipKernelAddDiagonalElementsNonSquareEquivalentToRef)
     auto mtx_hip = Csr::create(hip);
     mtx_hip->copy_from(gko::lend(mtx_ref));
 
-    gko::kernels::reference::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::reference::factorization::add_diagonal_elements(
         ref, gko::lend(mtx_ref), true);
-    gko::kernels::hip::par_ilu_factorization::add_diagonal_elements(
+    gko::kernels::hip::factorization::add_diagonal_elements(
         hip, gko::lend(mtx_hip), true);
     hip->synchronize();
 
