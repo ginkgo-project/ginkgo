@@ -51,7 +51,7 @@ remove_regroup () {
 #   - RemoveTest: "false/true"                  (default "test")
 #   - FixInclude: "the specific main header"    (default "")
 # Only "file_regex" without any setting is fine, and it means find the same name with header suffix
-# For exmaple, /path/to/file.cpp will /path/to/file.hpp
+# For example, /path/to/file.cpp will change to /path/to/file.hpp
 # file_regex : selecting which file apply this rule
 # CoreSuffix : remove the pattern which passes the "core_suffix_regex" of file
 # PathPrefix : adds "path_prefix_regex" before path, and the position depends on PathIgnore
@@ -211,7 +211,7 @@ while IFS='' read -r line || [ -n "$line" ]; do
     fi
 done < $1
 if [ "${ALARM}" = "true" ]; then
-    echo "Warning $1: sorting maybe is not correct"
+    echo "Warning $1: sorting is probably incorrect"
 fi
 
 # Wrtie license
@@ -251,7 +251,7 @@ if [ -f "${BEFORE}" ]; then
     # sort or remove the duplication
     clang-format -i -style=file ${BEFORE}
     if [ $(wc -l < ${BEFORE}) -gt "1" ]; then
-        echo "Warning $1: there are multiple main header matched"
+        echo "Warning $1: there are multiple main header matchings"
     fi
     cat ${BEFORE} >> $1
     if [ -f "${CONTENT}" ]; then
@@ -274,7 +274,7 @@ if [ -f "${CONTENT}" ]; then
             head -n -1 temp > ${CONTENT}
             echo "#endif  // $HEADER_DEF" >> ${CONTENT}
         else 
-            echo "Warning $1: Found the begin header_def but do not find the end of header_def"
+            echo "Warning $1: Found the begin header_def but did not find the end of header_def"
             cat temp > ${CONTENT}
         fi
     else
