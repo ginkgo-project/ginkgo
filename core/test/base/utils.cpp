@@ -286,6 +286,24 @@ TEST(As, FailsToConvertConstantIfNotRelated)
 }
 
 
+TEST(As, ConvertsPolymorphicTypeUniquePtr)
+{
+    auto expected = new Derived{};
+
+    ASSERT_EQ(gko::as<Derived>(std::unique_ptr<Base>{expected}).get(),
+              expected);
+}
+
+
+TEST(As, FailsToConvertUniquePtrIfNotRelated)
+{
+    auto expected = new Derived{};
+
+    ASSERT_THROW(gko::as<NonRelated>(std::unique_ptr<Base>{expected}),
+                 gko::NotSupported);
+}
+
+
 struct DummyObject : gko::EnablePolymorphicObject<DummyObject>,
                      gko::EnablePolymorphicAssignment<DummyObject>,
                      gko::EnableCreateMethod<DummyObject> {
