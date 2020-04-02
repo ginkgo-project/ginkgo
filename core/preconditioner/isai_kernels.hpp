@@ -42,22 +42,22 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_ISAI_GENERATE_L_KERNEL(ValueType, IndexType)    \
-    void generate_l(std::shared_ptr<const DefaultExecutor> exec,    \
-                    const matrix::Csr<ValueType, IndexType> *l_csr, \
-                    matrix::Csr<ValueType, IndexType> *inverse_l)
+#define GKO_DECLARE_ISAI_GENERATE_L_INVERSE_KERNEL(ValueType, IndexType)    \
+    void generate_l_inverse(std::shared_ptr<const DefaultExecutor> exec,    \
+                            const matrix::Csr<ValueType, IndexType> *l_csr, \
+                            matrix::Csr<ValueType, IndexType> *inverse_l)
 
-#define GKO_DECLARE_ISAI_GENERATE_U_KERNEL(ValueType, IndexType)    \
-    void generate_u(std::shared_ptr<const DefaultExecutor> exec,    \
-                    const matrix::Csr<ValueType, IndexType> *u_csr, \
-                    matrix::Csr<ValueType, IndexType> *inverse_u)
+#define GKO_DECLARE_ISAI_GENERATE_U_INVERSE_KERNEL(ValueType, IndexType)    \
+    void generate_u_inverse(std::shared_ptr<const DefaultExecutor> exec,    \
+                            const matrix::Csr<ValueType, IndexType> *u_csr, \
+                            matrix::Csr<ValueType, IndexType> *inverse_u)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                          \
-    template <typename ValueType, typename IndexType>         \
-    GKO_DECLARE_ISAI_GENERATE_L_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>         \
-    GKO_DECLARE_ISAI_GENERATE_U_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_ISAI_GENERATE_L_INVERSE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_ISAI_GENERATE_U_INVERSE_KERNEL(ValueType, IndexType)
 
 
 namespace omp {

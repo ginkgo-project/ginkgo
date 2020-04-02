@@ -52,8 +52,8 @@ namespace preconditioner {
 namespace isai {
 
 
-GKO_REGISTER_OPERATION(generate_l, isai::generate_l);
-GKO_REGISTER_OPERATION(generate_u, isai::generate_u);
+GKO_REGISTER_OPERATION(generate_l_inverse, isai::generate_l_inverse);
+GKO_REGISTER_OPERATION(generate_u_inverse, isai::generate_u_inverse);
 
 
 }  // namespace isai
@@ -98,8 +98,8 @@ convert_to_csr_and_sort(std::shared_ptr<const Executor> &exec, const LinOp *mtx,
 
 
 template <typename ValueType, typename IndexType>
-void Isai<ValueType, IndexType>::generate_l(const LinOp *to_invert_l,
-                                            bool skip_sorting)
+void Isai<ValueType, IndexType>::generate_l_inverse(const LinOp *to_invert_l,
+                                                    bool skip_sorting)
 {
     using Csr = matrix::Csr<ValueType, IndexType>;
     GKO_ASSERT_IS_SQUARE_MATRIX(to_invert_l);
@@ -109,15 +109,15 @@ void Isai<ValueType, IndexType>::generate_l(const LinOp *to_invert_l,
 
     std::shared_ptr<Csr> inverted_l =
         Csr::create(exec, csr_l->get_size(), num_elems, csr_l->get_strategy());
-    exec->run(isai::make_generate_l(csr_l.get(), inverted_l.get()));
+    exec->run(isai::make_generate_l_inverse(csr_l.get(), inverted_l.get()));
 
     l_inv_ = std::move(inverted_l);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Isai<ValueType, IndexType>::generate_u(const LinOp *to_invert_u,
-                                            bool skip_sorting)
+void Isai<ValueType, IndexType>::generate_u_inverse(const LinOp *to_invert_u,
+                                                    bool skip_sorting)
 {
     using Csr = matrix::Csr<ValueType, IndexType>;
     GKO_ASSERT_IS_SQUARE_MATRIX(to_invert_u);
@@ -127,7 +127,7 @@ void Isai<ValueType, IndexType>::generate_u(const LinOp *to_invert_u,
 
     std::shared_ptr<Csr> inverted_u =
         Csr::create(exec, csr_u->get_size(), num_elems, csr_u->get_strategy());
-    exec->run(isai::make_generate_u(csr_u.get(), inverted_u.get()));
+    exec->run(isai::make_generate_u_inverse(csr_u.get(), inverted_u.get()));
 
     u_inv_ = std::move(inverted_u);
 }

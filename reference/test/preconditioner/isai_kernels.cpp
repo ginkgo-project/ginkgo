@@ -141,33 +141,16 @@ protected:
         return sparsity;
     }
 
-    std::unique_ptr<Csr> generate_full_tri_csr(const Csr *csr_mtx)
-    {
-        auto size = csr_mtx->get_size();
-        const auto num_elems = size[0] * (size[0] + 1) / 2;
-        auto sparsity = Csr::create(exec, size, num_elems);
-
-        // All arrays are now filled with invalid data to catch potential errors
-        std::fill_n(sparsity->get_values(), num_elems, -gko::one<value_type>());
-        std::fill_n(sparsity->get_col_idxs(), num_elems,
-                    -gko::one<index_type>());
-        std::fill_n(sparsity->get_row_ptrs(), size[0] + 1,
-                    -gko::one<index_type>());
-        return sparsity;
-    }
-
     template <typename To, typename From>
     static std::unique_ptr<To> unique_static_cast(std::unique_ptr<From> from)
     {
         return std::unique_ptr<To>{static_cast<To *>(from.release())};
     }
 
-
     std::unique_ptr<Csr> transpose(const Csr *mtx)
     {
         return unique_static_cast<Csr>(mtx->transpose());
     }
-
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<typename Isai_type::Factory> isai_factory;
@@ -199,7 +182,7 @@ TYPED_TEST(Isai, KernelGenerateL1)
     using value_type = typename TestFixture::value_type;
     auto result = this->clone_allocations(gko::lend(this->l_csr));
 
-    gko::kernels::reference::isai::generate_l(
+    gko::kernels::reference::isai::generate_l_inverse(
         this->exec, gko::lend(this->l_csr), gko::lend(result));
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_csr_inv);
@@ -214,8 +197,8 @@ TYPED_TEST(Isai, KernelGenerateL2)
     const auto l_mtx = this->transpose(gko::lend(this->u_csr));
     auto result = this->clone_allocations(gko::lend(l_mtx));
 
-    gko::kernels::reference::isai::generate_l(this->exec, gko::lend(l_mtx),
-                                              gko::lend(result));
+    gko::kernels::reference::isai::generate_l_inverse(
+        this->exec, gko::lend(l_mtx), gko::lend(result));
 
     const auto expected = this->transpose(gko::lend(this->u_csr_inv));
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
@@ -229,7 +212,7 @@ TYPED_TEST(Isai, KernelGenerateLsparse1)
     using value_type = typename TestFixture::value_type;
     auto result = this->clone_allocations(gko::lend(this->l_sparse));
 
-    gko::kernels::reference::isai::generate_l(
+    gko::kernels::reference::isai::generate_l_inverse(
         this->exec, gko::lend(this->l_sparse), gko::lend(result));
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_sparse_inv);
@@ -244,7 +227,7 @@ TYPED_TEST(Isai, KernelGenerateLsparse2)
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(gko::lend(this->l_sparse2));
 
-    gko::kernels::reference::isai::generate_l(
+    gko::kernels::reference::isai::generate_l_inverse(
         this->exec, gko::lend(this->l_sparse2), gko::lend(result));
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_sparse2_inv);
@@ -260,8 +243,8 @@ TYPED_TEST(Isai, KernelGenerateLsparse3)
     const auto l_mtx = this->transpose(gko::lend(this->u_sparse));
     auto result = this->clone_allocations(gko::lend(l_mtx));
 
-    gko::kernels::reference::isai::generate_l(this->exec, gko::lend(l_mtx),
-                                              gko::lend(result));
+    gko::kernels::reference::isai::generate_l_inverse(
+        this->exec, gko::lend(l_mtx), gko::lend(result));
 
     // Results in a slightly different version than u_sparse_inv->transpose()
     // because a different row-sparsity pattern is used in u_sparse vs. l_mtx
@@ -282,8 +265,8 @@ TYPED_TEST(Isai, KernelGenerateU1)
     const auto u_mtx = this->transpose(gko::lend(this->l_csr));
     auto result = this->clone_allocations(gko::lend(u_mtx));
 
-    gko::kernels::reference::isai::generate_u(this->exec, gko::lend(u_mtx),
-                                              gko::lend(result));
+    gko::kernels::reference::isai::generate_u_inverse(
+        this->exec, gko::lend(u_mtx), gko::lend(result));
 
     auto expected = this->transpose(gko::lend(this->l_csr_inv));
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
@@ -297,7 +280,7 @@ TYPED_TEST(Isai, KernelGenerateU2)
     using value_type = typename TestFixture::value_type;
     auto result = this->clone_allocations(gko::lend(this->u_csr));
 
-    gko::kernels::reference::isai::generate_u(
+    gko::kernels::reference::isai::generate_u_inverse(
         this->exec, gko::lend(this->u_csr), gko::lend(result));
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_csr_inv);
@@ -312,8 +295,8 @@ TYPED_TEST(Isai, KernelGenerateUsparse1)
     const auto u_mtx = this->transpose(gko::lend(this->l_sparse));
     auto result = this->clone_allocations(gko::lend(u_mtx));
 
-    gko::kernels::reference::isai::generate_u(this->exec, gko::lend(u_mtx),
-                                              gko::lend(result));
+    gko::kernels::reference::isai::generate_u_inverse(
+        this->exec, gko::lend(u_mtx), gko::lend(result));
 
     const auto expected = this->transpose(gko::lend(this->l_sparse_inv));
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
@@ -329,8 +312,8 @@ TYPED_TEST(Isai, KernelGenerateUsparse2)
     const auto u_mtx = this->transpose(this->l_sparse2.get());
     auto result = this->clone_allocations(gko::lend(u_mtx));
 
-    gko::kernels::reference::isai::generate_u(this->exec, gko::lend(u_mtx),
-                                              gko::lend(result));
+    gko::kernels::reference::isai::generate_u_inverse(
+        this->exec, gko::lend(u_mtx), gko::lend(result));
 
     // Results in a slightly different version than l_sparse2_inv->transpose()
     // because a different row-sparsity pattern is used in l_sparse2 vs. u_mtx
@@ -350,7 +333,7 @@ TYPED_TEST(Isai, KernelGenerateUsparse3)
     using value_type = typename TestFixture::value_type;
     auto result = this->clone_allocations(gko::lend(this->u_sparse));
 
-    gko::kernels::reference::isai::generate_u(
+    gko::kernels::reference::isai::generate_u_inverse(
         this->exec, gko::lend(this->u_sparse), gko::lend(result));
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_sparse_inv);
