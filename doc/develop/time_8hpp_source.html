@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/stop/time.hpp (be506a3fe) Source File</title>
+<title>Ginkgo: ginkgo/core/stop/time.hpp (ccf35426a) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/130473384 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/132169824 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -109,10 +109,10 @@ $(function() {
 <div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;<span class="preprocessor">#define GKO_CORE_STOP_TIME_HPP_</span></div>
 <div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160; </div>
 <div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160; </div>
-<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/stop/criterion.hpp&gt;</span></div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;<span class="preprocessor">#include &lt;chrono&gt;</span></div>
 <div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160; </div>
 <div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160; </div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;<span class="preprocessor">#include &lt;chrono&gt;</span></div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/stop/criterion.hpp&gt;</span></div>
 <div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160; </div>
 <div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160; </div>
 <div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespacegko.html">gko</a> {</div>
@@ -164,14 +164,14 @@ $(function() {
 <div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_STOP_TIME_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="anamespacegko_html_a3950fc3732811a8563484e5098c31531"><div class="ttname"><a href="namespacegko.html#a3950fc3732811a8563484e5098c31531">gko::uint8</a></div><div class="ttdeci">std::uint8_t uint8</div><div class="ttdoc">8-bit unsigned integral type.</div><div class="ttdef"><b>Definition:</b> types.hpp:129</div></div>
-<div class="ttc" id="agroup__LinOp_html_gaa037309884bbd0562b897cee95dd91c8"><div class="ttname"><a href="group__LinOp.html#gaa037309884bbd0562b897cee95dd91c8">GKO_FACTORY_PARAMETER</a></div><div class="ttdeci">#define GKO_FACTORY_PARAMETER(_name,...)</div><div class="ttdoc">Creates a factory parameter in the factory parameters structure.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:859</div></div>
+<div class="ttc" id="agroup__LinOp_html_gaa037309884bbd0562b897cee95dd91c8"><div class="ttname"><a href="group__LinOp.html#gaa037309884bbd0562b897cee95dd91c8">GKO_FACTORY_PARAMETER</a></div><div class="ttdeci">#define GKO_FACTORY_PARAMETER(_name,...)</div><div class="ttdoc">Creates a factory parameter in the factory parameters structure.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:860</div></div>
 <div class="ttc" id="anamespacegko_html"><div class="ttname"><a href="namespacegko.html">gko</a></div><div class="ttdoc">The Ginkgo namespace.</div><div class="ttdef"><b>Definition:</b> abstract_factory.hpp:45</div></div>
 <div class="ttc" id="aclassgko_1_1stop_1_1Time_html"><div class="ttname"><a href="classgko_1_1stop_1_1Time.html">gko::stop::Time</a></div><div class="ttdoc">The Time class is a stopping criterion which stops the iteration process after a certain amout of tim...</div><div class="ttdef"><b>Definition:</b> time.hpp:52</div></div>
 <div class="ttc" id="aclassgko_1_1Array_html"><div class="ttname"><a href="classgko_1_1Array.html">gko::Array</a></div><div class="ttdoc">An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...</div><div class="ttdef"><b>Definition:</b> array.hpp:65</div></div>
 <div class="ttc" id="aclassgko_1_1stop_1_1Time_1_1Factory_html"><div class="ttname"><a href="classgko_1_1stop_1_1Time_1_1Factory.html">gko::stop::Time::Factory</a></div><div class="ttdef"><b>Definition:</b> time.hpp:66</div></div>
 <div class="ttc" id="aclassgko_1_1stop_1_1Criterion_html"><div class="ttname"><a href="classgko_1_1stop_1_1Criterion.html">gko::stop::Criterion</a></div><div class="ttdoc">The Criterion class is a base class for all stopping criteria.</div><div class="ttdef"><b>Definition:</b> criterion.hpp:64</div></div>
-<div class="ttc" id="agroup__LinOp_html_ga521f65604cc4cf427dcb2ecfa49b757c"><div class="ttname"><a href="group__LinOp.html#ga521f65604cc4cf427dcb2ecfa49b757c">GKO_ENABLE_BUILD_METHOD</a></div><div class="ttdeci">#define GKO_ENABLE_BUILD_METHOD(_factory_name)</div><div class="ttdoc">Defines a build method for the factory, simplifying its construction by removing the repetitive typin...</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:838</div></div>
-<div class="ttc" id="agroup__LinOp_html_ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358"><div class="ttname"><a href="group__LinOp.html#ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358">GKO_CREATE_FACTORY_PARAMETERS</a></div><div class="ttdeci">#define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name)</div><div class="ttdoc">This Macro will generate a new type containing the parameters for the factory _factory_name.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:711</div></div>
+<div class="ttc" id="agroup__LinOp_html_ga521f65604cc4cf427dcb2ecfa49b757c"><div class="ttname"><a href="group__LinOp.html#ga521f65604cc4cf427dcb2ecfa49b757c">GKO_ENABLE_BUILD_METHOD</a></div><div class="ttdeci">#define GKO_ENABLE_BUILD_METHOD(_factory_name)</div><div class="ttdoc">Defines a build method for the factory, simplifying its construction by removing the repetitive typin...</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:839</div></div>
+<div class="ttc" id="agroup__LinOp_html_ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358"><div class="ttname"><a href="group__LinOp.html#ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358">GKO_CREATE_FACTORY_PARAMETERS</a></div><div class="ttdeci">#define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name)</div><div class="ttdoc">This Macro will generate a new type containing the parameters for the factory _factory_name.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:712</div></div>
 <div class="ttc" id="aclassgko_1_1EnablePolymorphicObject_html"><div class="ttname"><a href="classgko_1_1EnablePolymorphicObject.html">gko::EnablePolymorphicObject</a></div><div class="ttdoc">This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne...</div><div class="ttdef"><b>Definition:</b> polymorphic_object.hpp:569</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

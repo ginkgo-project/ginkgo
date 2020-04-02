@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/log/stream.hpp (29444d385) Source File</title>
+<title>Ginkgo: ginkgo/core/log/stream.hpp (ccf35426a) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/130473384 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/132169824 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -109,11 +109,11 @@ $(function() {
 <div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;<span class="preprocessor">#define GKO_CORE_LOG_STREAM_HPP_</span></div>
 <div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160; </div>
 <div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160; </div>
-<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/log/logger.hpp&gt;</span></div>
-<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160; </div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;<span class="preprocessor">#include &lt;fstream&gt;</span></div>
+<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;<span class="preprocessor">#include &lt;iostream&gt;</span></div>
 <div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160; </div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;<span class="preprocessor">#include &lt;fstream&gt;</span></div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;<span class="preprocessor">#include &lt;iostream&gt;</span></div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160; </div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/log/logger.hpp&gt;</span></div>
 <div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160; </div>
 <div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160; </div>
 <div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespacegko.html">gko</a> {</div>
@@ -254,7 +254,7 @@ $(function() {
 <div class="ttc" id="aclassgko_1_1log_1_1Stream_html_a71f96d3f1cd7c03875476cd8db98145b"><div class="ttname"><a href="classgko_1_1log_1_1Stream.html#a71f96d3f1cd7c03875476cd8db98145b">gko::log::Stream::create</a></div><div class="ttdeci">static std::unique_ptr&lt; Stream &gt; create(std::shared_ptr&lt; const Executor &gt; exec, const Logger::mask_type &amp;enabled_events=Logger::all_events_mask, std::ostream &amp;os=std::cout, bool verbose=false)</div><div class="ttdoc">Creates a Stream logger.</div><div class="ttdef"><b>Definition:</b> stream.hpp:174</div></div>
 <div class="ttc" id="aclassgko_1_1log_1_1Stream_html"><div class="ttname"><a href="classgko_1_1log_1_1Stream.html">gko::log::Stream</a></div><div class="ttdoc">Stream is a Logger which logs every event to a stream.</div><div class="ttdef"><b>Definition:</b> stream.hpp:59</div></div>
 <div class="ttc" id="aclassgko_1_1log_1_1Stream_html_a9e13f363f4318fcc1269eb9b05dd3597"><div class="ttname"><a href="classgko_1_1log_1_1Stream.html#a9e13f363f4318fcc1269eb9b05dd3597">gko::log::Stream::on_criterion_check_completed</a></div><div class="ttdeci">void on_criterion_check_completed(const stop::Criterion *criterion, const size_type &amp;num_iterations, const LinOp *residual, const LinOp *residual_norm, const LinOp *solutino, const uint8 &amp;stopping_id, const bool &amp;set_finalized, const Array&lt; stopping_status &gt; *status, const bool &amp;one_changed, const bool &amp;all_converged) const override</div><div class="ttdoc">stop::Criterion's check completed event.</div></div>
-<div class="ttc" id="aclassgko_1_1LinOp_html"><div class="ttname"><a href="classgko_1_1LinOp.html">gko::LinOp</a></div><div class="ttdef"><b>Definition:</b> lin_op.hpp:134</div></div>
+<div class="ttc" id="aclassgko_1_1LinOp_html"><div class="ttname"><a href="classgko_1_1LinOp.html">gko::LinOp</a></div><div class="ttdef"><b>Definition:</b> lin_op.hpp:135</div></div>
 <div class="ttc" id="aclassgko_1_1PolymorphicObject_html"><div class="ttname"><a href="classgko_1_1PolymorphicObject.html">gko::PolymorphicObject</a></div><div class="ttdoc">A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall...</div><div class="ttdef"><b>Definition:</b> polymorphic_object.hpp:70</div></div>
 <div class="ttc" id="aclassgko_1_1log_1_1Stream_html_ae34836c174c73068ef26a61c6597ef86"><div class="ttname"><a href="classgko_1_1log_1_1Stream.html#ae34836c174c73068ef26a61c6597ef86">gko::log::Stream::on_allocation_completed</a></div><div class="ttdeci">void on_allocation_completed(const Executor *exec, const size_type &amp;num_bytes, const uintptr &amp;location) const override</div><div class="ttdoc">Executor's allocation completed event.</div></div>
 <div class="ttc" id="aclassgko_1_1log_1_1Stream_html_a66372936ad843609a057f9135c92bf3d"><div class="ttname"><a href="classgko_1_1log_1_1Stream.html#a66372936ad843609a057f9135c92bf3d">gko::log::Stream::on_copy_completed</a></div><div class="ttdeci">void on_copy_completed(const Executor *from, const Executor *to, const uintptr &amp;location_from, const uintptr &amp;location_to, const size_type &amp;num_bytes) const override</div><div class="ttdoc">Executor's copy completed event.</div></div>
@@ -282,7 +282,7 @@ $(function() {
 <div class="ttc" id="aclassgko_1_1log_1_1Stream_html_afa60da90a69a07a79ac8c8837aeb02cd"><div class="ttname"><a href="classgko_1_1log_1_1Stream.html#afa60da90a69a07a79ac8c8837aeb02cd">gko::log::Stream::on_linop_factory_generate_started</a></div><div class="ttdeci">void on_linop_factory_generate_started(const LinOpFactory *factory, const LinOp *input) const override</div><div class="ttdoc">LinOp Factory's generate started event.</div></div>
 <div class="ttc" id="aclassgko_1_1log_1_1Stream_html_a2eac89ee661a046813374f1103ebd32e"><div class="ttname"><a href="classgko_1_1log_1_1Stream.html#a2eac89ee661a046813374f1103ebd32e">gko::log::Stream::on_linop_advanced_apply_completed</a></div><div class="ttdeci">void on_linop_advanced_apply_completed(const LinOp *A, const LinOp *alpha, const LinOp *b, const LinOp *beta, const LinOp *x) const override</div><div class="ttdoc">LinOp's advanced apply completed event.</div></div>
 <div class="ttc" id="aclassgko_1_1log_1_1Stream_html_aedc38a16e05ae312d133803a50c6a938"><div class="ttname"><a href="classgko_1_1log_1_1Stream.html#aedc38a16e05ae312d133803a50c6a938">gko::log::Stream::on_linop_factory_generate_completed</a></div><div class="ttdeci">void on_linop_factory_generate_completed(const LinOpFactory *factory, const LinOp *input, const LinOp *output) const override</div><div class="ttdoc">LinOp Factory's generate completed event.</div></div>
-<div class="ttc" id="aclassgko_1_1LinOpFactory_html"><div class="ttname"><a href="classgko_1_1LinOpFactory.html">gko::LinOpFactory</a></div><div class="ttdoc">A LinOpFactory represents a higher order mapping which transforms one linear operator into another.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:356</div></div>
+<div class="ttc" id="aclassgko_1_1LinOpFactory_html"><div class="ttname"><a href="classgko_1_1LinOpFactory.html">gko::LinOpFactory</a></div><div class="ttdoc">A LinOpFactory represents a higher order mapping which transforms one linear operator into another.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:357</div></div>
 <div class="ttc" id="aclassgko_1_1Operation_html"><div class="ttname"><a href="classgko_1_1Operation.html">gko::Operation</a></div><div class="ttdoc">Operations can be used to define functionalities whose implementations differ among devices.</div><div class="ttdef"><b>Definition:</b> executor.hpp:186</div></div>
 <div class="ttc" id="aclassgko_1_1log_1_1Stream_html_a53ec3188b8113d894b09310867047605"><div class="ttname"><a href="classgko_1_1log_1_1Stream.html#a53ec3188b8113d894b09310867047605">gko::log::Stream::on_linop_apply_started</a></div><div class="ttdeci">void on_linop_apply_started(const LinOp *A, const LinOp *b, const LinOp *x) const override</div><div class="ttdoc">LinOp's apply started event.</div></div>
 <!-- start footer part -->
