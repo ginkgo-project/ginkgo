@@ -34,13 +34,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_LOWER_TRS_KERNELS_HPP_
 
 
+#include <ginkgo/core/solver/lower_trs.hpp>
+
+
 #include <memory>
 
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/solver/lower_trs.hpp>
 
 
 namespace gko {
@@ -128,4 +130,4 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_LOWER_TRS_KERNELS_HPP
+#endif  // GKO_CORE_SOLVER_LOWER_TRS_KERNELS_HPP_

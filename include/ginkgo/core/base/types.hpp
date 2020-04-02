@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_TYPES_HPP_
-#define GKO_CORE_TYPES_HPP_
+#ifndef GKO_CORE_BASE_TYPES_HPP_
+#define GKO_CORE_BASE_TYPES_HPP_
 
 
 #include <cassert>
@@ -445,4 +445,4 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 }  // namespace gko
 
 
-#endif  // GKO_CORE_TYPES_HPP_
+#endif  // GKO_CORE_BASE_TYPES_HPP_

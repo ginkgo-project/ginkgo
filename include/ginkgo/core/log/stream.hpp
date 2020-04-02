@@ -34,11 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_LOG_STREAM_HPP_
 
 
-#include <ginkgo/core/log/logger.hpp>
-
-
 #include <fstream>
 #include <iostream>
+
+
+#include <ginkgo/core/log/logger.hpp>
 
 
 namespace gko {

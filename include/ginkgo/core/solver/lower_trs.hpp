@@ -168,4 +168,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_LOWER_TRS_HPP
+#endif  // GKO_CORE_SOLVER_LOWER_TRS_HPP_

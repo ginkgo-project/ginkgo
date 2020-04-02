@@ -354,4 +354,4 @@ void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
 }  // namespace gko
 
 
-#endif
+#endif  // GKO_CUDA_SOLVER_COMMON_TRS_KERNELS_CUH_

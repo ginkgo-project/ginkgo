@@ -34,10 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_STOP_COMBINED_HPP_
 
 
-#include <ginkgo/core/stop/criterion.hpp>
-
-
 #include <vector>
+
+
+#include <ginkgo/core/stop/criterion.hpp>
 
 
 namespace gko {

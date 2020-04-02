@@ -31,12 +31,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/log/logger.hpp>
-#include <ginkgo/core/log/record.hpp>
-#include <ginkgo/core/log/stream.hpp>
+
+
+#include <memory>
 
 
 #include <gtest/gtest.h>
-#include <memory>
+
+
+#include <ginkgo/core/log/record.hpp>
+#include <ginkgo/core/log/stream.hpp>
 
 
 namespace {

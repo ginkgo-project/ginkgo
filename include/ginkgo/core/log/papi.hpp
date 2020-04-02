@@ -46,12 +46,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 
 
+#include <papi.h>
+
+
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/log/logger.hpp>
+
+
 #include "third_party/papi_sde/papi_sde_interface.h"
-
-
-#include <papi.h>
 
 
 namespace gko {
@@ -316,4 +318,4 @@ private:
 
 
 #endif  // GKO_HAVE_PAPI_SDE
-#endif  // GKO_CORE_LOG_OSTREAM_HPP_
+#endif  // GKO_CORE_LOG_PAPI_HPP_

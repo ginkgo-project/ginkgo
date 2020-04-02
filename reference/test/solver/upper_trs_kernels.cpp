@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/time.hpp>
 
 
-#include <core/solver/upper_trs_kernels.hpp>
+#include "core/solver/upper_trs_kernels.hpp"
 #include "core/test/utils.hpp"
 
 

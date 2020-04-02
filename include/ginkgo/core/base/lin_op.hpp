@@ -33,6 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_BASE_LIN_OP_HPP_
 #define GKO_CORE_BASE_LIN_OP_HPP_
 
+
+#include <memory>
+#include <utility>
+
+
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -42,10 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/log/logger.hpp>
-
-
-#include <memory>
-#include <utility>
 
 
 namespace gko {

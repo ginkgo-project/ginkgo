@@ -34,14 +34,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_COMPONENTS_WARP_BLAS_CUH_
 
 
+#include <cassert>
+
+
 #include <ginkgo/config.hpp>
 
 
 #include "cuda/base/math.hpp"
 #include "cuda/components/reduction.cuh"
-
-
-#include <cassert>
 
 
 namespace gko {

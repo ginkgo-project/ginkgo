@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_EXECUTOR_HPP_
-#define GKO_CORE_EXECUTOR_HPP_
+#ifndef GKO_CORE_BASE_EXECUTOR_HPP_
+#define GKO_CORE_BASE_EXECUTOR_HPP_
 
 
 #include <memory>
@@ -1165,4 +1165,4 @@ using DefaultExecutor = HipExecutor;
 }  // namespace gko
 
 
-#endif  // GKO_CORE_EXECUTOR_HPP_
+#endif  // GKO_CORE_BASE_EXECUTOR_HPP_

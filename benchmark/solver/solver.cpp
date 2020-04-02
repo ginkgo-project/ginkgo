@@ -71,7 +71,8 @@ DEFINE_uint32(
 
 
 // input validation
-[[noreturn]] void print_config_error_and_exit() {
+[[noreturn]] void print_config_error_and_exit()
+{
     std::cerr << "Input has to be a JSON array of matrix configurations:\n"
               << "  [\n"
               << "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "

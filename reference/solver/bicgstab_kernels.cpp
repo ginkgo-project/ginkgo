@@ -32,11 +32,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/bicgstab_kernels.hpp"
 
+
+#include <algorithm>
+
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-
-#include <algorithm>
 
 
 namespace gko {

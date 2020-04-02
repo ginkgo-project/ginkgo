@@ -248,4 +248,4 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
 }  // namespace gko
 
 
-#endif
+#endif  // GKO_HIP_SOLVER_COMMON_TRS_KERNELS_HIP_HPP_

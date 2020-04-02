@@ -33,13 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/ir.hpp>
 
 
-#include <gtest/gtest.h>
-
-
 #include <random>
 
 
-#include <core/solver/ir_kernels.hpp>
+#include <gtest/gtest.h>
+
+
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -47,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/iteration.hpp>
 
 
+#include "core/solver/ir_kernels.hpp"
 #include "hip/test/utils.hip.hpp"
 
 

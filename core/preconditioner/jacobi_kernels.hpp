@@ -34,8 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_PRECONDITIONER_JACOBI_KERNELS_HPP_
 
 
-#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+
+
+#include <ginkgo/core/matrix/csr.hpp>
 
 
 namespace gko {

@@ -72,6 +72,7 @@ std::string input_format =
 }  // namespace
 
 
+// clang-format off
 // input validation
 [[noreturn]] void print_config_error_and_exit(int code = 1)
 {
@@ -79,6 +80,7 @@ std::string input_format =
               << input_format << std::endl;
     std::exit(code);
 }
+// clang-format on
 
 
 void validate_option_object(const rapidjson::Value &value)
