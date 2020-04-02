@@ -336,7 +336,7 @@ public:
                                          this->num_elems_);
         }
         exec_->get_mem_space()->copy_from(
-            other->get_mem_space().get_executor().get(), other.get_num_elems(),
+            other.get_executor()->get_mem_space().get(), other.get_num_elems(),
             other.get_const_data(), this->get_data());
         return *this;
     }
