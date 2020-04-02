@@ -196,6 +196,56 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void initialize_row_ptrs_l(
+    std::shared_ptr<const CudaExecutor> exec,
+    const matrix::Csr<ValueType, IndexType> *system_matrix,
+    IndexType *l_row_ptrs)
+{
+    const size_type num_rows{system_matrix->get_size()[0]};
+
+    const dim3 block_size{default_block_size, 1, 1};
+    const uint32 number_blocks =
+        ceildiv(num_rows, static_cast<size_type>(block_size.x));
+    const dim3 grid_dim{number_blocks, 1, 1};
+
+    kernel::count_nnz_per_l_row<<<grid_dim, block_size, 0, 0>>>(
+        num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
+        as_cuda_type(system_matrix->get_const_col_idxs()),
+        as_cuda_type(system_matrix->get_const_values()),
+        as_cuda_type(l_row_ptrs));
+
+    components::prefix_sum(exec, l_row_ptrs, num_rows + 1);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void initialize_l(std::shared_ptr<const CudaExecutor> exec,
+                  const matrix::Csr<ValueType, IndexType> *system_matrix,
+                  matrix::Csr<ValueType, IndexType> *csr_l, bool diag_sqrt)
+{
+    const size_type num_rows{system_matrix->get_size()[0]};
+    const dim3 block_size{default_block_size, 1, 1};
+    const dim3 grid_dim{static_cast<uint32>(ceildiv(
+                            num_rows, static_cast<size_type>(block_size.x))),
+                        1, 1};
+
+    kernel::initialize_l<<<grid_dim, block_size, 0, 0>>>(
+        num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
+        as_cuda_type(system_matrix->get_const_col_idxs()),
+        as_cuda_type(system_matrix->get_const_values()),
+        as_cuda_type(csr_l->get_const_row_ptrs()),
+        as_cuda_type(csr_l->get_col_idxs()), as_cuda_type(csr_l->get_values()),
+        diag_sqrt);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL);
+
+
 }  // namespace factorization
 }  // namespace cuda
 }  // namespace kernels

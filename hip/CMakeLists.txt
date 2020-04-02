@@ -106,6 +106,7 @@ set(GINKGO_HIP_SOURCES
     components/zero_array_kernels.hip.cpp
     factorization/ilu_kernels.hip.cpp
     factorization/factorization_kernels.hip.cpp
+    factorization/par_ict_kernels.hip.cpp
     factorization/par_ilu_kernels.hip.cpp
     factorization/par_ilut_select_kernel.hip.cpp
     factorization/par_ilut_select_common.hip.cpp

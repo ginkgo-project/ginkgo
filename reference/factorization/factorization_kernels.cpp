@@ -256,6 +256,87 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void initialize_row_ptrs_l(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const matrix::Csr<ValueType, IndexType> *system_matrix,
+    IndexType *l_row_ptrs)
+{
+    auto row_ptrs = system_matrix->get_const_row_ptrs();
+    auto col_idxs = system_matrix->get_const_col_idxs();
+    size_type l_nnz{};
+
+    l_row_ptrs[0] = 0;
+    for (size_type row = 0; row < system_matrix->get_size()[0]; ++row) {
+        bool has_diagonal{};
+        for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
+            size_type col = col_idxs[el];
+            if (col <= row) {
+                ++l_nnz;
+            }
+            has_diagonal |= col == row;
+        }
+        l_nnz += !has_diagonal;
+        l_row_ptrs[row + 1] = l_nnz;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void initialize_l(std::shared_ptr<const ReferenceExecutor> exec,
+                  const matrix::Csr<ValueType, IndexType> *system_matrix,
+                  matrix::Csr<ValueType, IndexType> *csr_l, bool diag_sqrt)
+{
+    const auto row_ptrs = system_matrix->get_const_row_ptrs();
+    const auto col_idxs = system_matrix->get_const_col_idxs();
+    const auto vals = system_matrix->get_const_values();
+
+    const auto row_ptrs_l = csr_l->get_const_row_ptrs();
+    auto col_idxs_l = csr_l->get_col_idxs();
+    auto vals_l = csr_l->get_values();
+
+    for (size_type row = 0; row < system_matrix->get_size()[0]; ++row) {
+        size_type current_index_l = row_ptrs_l[row];
+        bool has_diagonal{};
+        ValueType diag_val{};
+        for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
+            const auto col = col_idxs[el];
+            const auto val = vals[el];
+            if (col < row) {
+                col_idxs_l[current_index_l] = col;
+                vals_l[current_index_l] = val;
+                ++current_index_l;
+            } else if (col == row) {
+                // save diagonal value
+                has_diagonal = true;
+                diag_val = val;
+            }
+        }
+        // if there was no diagonal entry, set it to one
+        if (!has_diagonal) {
+            diag_val = one<ValueType>();
+        }
+        // store diagonal values separately
+        auto l_diag_idx = row_ptrs_l[row + 1] - 1;
+        col_idxs_l[l_diag_idx] = row;
+        // compute square root with sentinel
+        if (diag_sqrt) {
+            diag_val = sqrt(diag_val);
+            if (!is_finite(diag_val)) {
+                diag_val = one<ValueType>();
+            }
+        }
+        vals_l[l_diag_idx] = diag_val;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL);
+
+
 }  // namespace factorization
 }  // namespace reference
 }  // namespace kernels
