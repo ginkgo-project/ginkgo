@@ -52,23 +52,23 @@ namespace isai {
 
 
 template <typename ValueType, typename IndexType>
-void generate_l(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Csr<ValueType, IndexType> *l_csr,
-                matrix::Csr<ValueType, IndexType> *inverse_l)
+void generate_l_inverse(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Csr<ValueType, IndexType> *l_csr,
+                        matrix::Csr<ValueType, IndexType> *inverse_l)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ISAI_GENERATE_L_KERNEL);
+    GKO_DECLARE_ISAI_GENERATE_L_INVERSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void generate_u(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Csr<ValueType, IndexType> *u_csr,
-                matrix::Csr<ValueType, IndexType> *inverse_u)
+void generate_u_inverse(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Csr<ValueType, IndexType> *u_csr,
+                        matrix::Csr<ValueType, IndexType> *inverse_u)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ISAI_GENERATE_U_KERNEL);
+    GKO_DECLARE_ISAI_GENERATE_U_INVERSE_KERNEL);
 
 
 }  // namespace isai

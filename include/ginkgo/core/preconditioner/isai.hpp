@@ -57,7 +57,7 @@ namespace preconditioner {
 /**
  * The Incomplete Sparse Approximate Inverse (ISAI) Preconditioner generates
  * approximate inverse matrices for a given lower triangular matrix L and upper
- * triangular matrix U. Using the precionditioner computes $aiU * aiL * x$
+ * triangular matrix U. Using the preconditioner computes $aiU * aiL * x$
  * for a given vector x (may have multiple right hand sides). aiU and aiL
  * are the approximate inverses for U and L respectively.
  *
@@ -163,31 +163,33 @@ protected:
         const auto skip_sorting = parameters_.skip_sorting;
         if (!comp) {
             if (parameters_.exclusive_factor_l) {
-                generate_l(factors.get(), skip_sorting);
+                generate_l_inverse(factors.get(), skip_sorting);
             } else if (parameters_.exclusive_factor_u) {
-                generate_u(factors.get(), skip_sorting);
+                generate_u_inverse(factors.get(), skip_sorting);
             } else {
                 GKO_NOT_SUPPORTED(factors);
             }
         } else {
             const auto num_operators = comp->get_operators().size();
             if (num_operators == 1 && parameters_.exclusive_factor_l) {
-                generate_l(comp->get_operators()[0].get(), skip_sorting);
+                generate_l_inverse(comp->get_operators()[0].get(),
+                                   skip_sorting);
             } else if (num_operators == 1 && parameters_.exclusive_factor_u) {
-                generate_u(comp->get_operators()[0].get(), skip_sorting);
+                generate_u_inverse(comp->get_operators()[0].get(),
+                                   skip_sorting);
             } else if (num_operators == 2) {
                 const auto l_factor = comp->get_operators()[0];
                 const auto u_factor = comp->get_operators()[1];
 
                 if (parameters_.exclusive_factor_l) {
-                    generate_l(l_factor.get(), skip_sorting);
+                    generate_l_inverse(l_factor.get(), skip_sorting);
                 } else if (parameters_.exclusive_factor_u) {
-                    generate_u(u_factor.get(), skip_sorting);
+                    generate_u_inverse(u_factor.get(), skip_sorting);
                 } else {
                     GKO_ASSERT_EQUAL_DIMENSIONS(l_factor, u_factor);
 
-                    generate_l(l_factor.get(), skip_sorting);
-                    generate_u(u_factor.get(), skip_sorting);
+                    generate_l_inverse(l_factor.get(), skip_sorting);
+                    generate_u_inverse(u_factor.get(), skip_sorting);
                 }
             } else {
                 GKO_NOT_SUPPORTED(comp);
@@ -229,10 +231,10 @@ private:
      * @param to_invert_l  the source lower triangular matrix used to generate
      *                     the approximate inverse
      *
-     * @param skip_sorting  dictaktes if the sorting of the input matrix should
+     * @param skip_sorting  dictates if the sorting of the input matrix should
      *                      be skipped.
      */
-    void generate_l(const LinOp *to_invert_l, bool skip_sorting);
+    void generate_l_inverse(const LinOp *to_invert_l, bool skip_sorting);
 
     /**
      * Generates the approximate inverse.
@@ -240,10 +242,10 @@ private:
      * @param to_invert_u  the source upper triangular matrix used to generate
      *                     the approximate inverse
      *
-     * @param skip_sorting  dictaktes if the sorting of the input matrix should
+     * @param skip_sorting  dictates if the sorting of the input matrix should
      *                      be skipped.
      */
-    void generate_u(const LinOp *to_invert_u, bool skip_sorting);
+    void generate_u_inverse(const LinOp *to_invert_u, bool skip_sorting);
 
     mutable struct cache_struct {
         using Dense = matrix::Dense<ValueType>;

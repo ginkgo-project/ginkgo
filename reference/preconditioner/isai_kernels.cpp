@@ -87,7 +87,7 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
     // expect mtx and inverse_mtx to have the same number of elems
     const auto num_elems = mtx->get_num_stored_elements();
     // Copy sparsity pattern of original into the inverse of L
-    std::copy_n(m_row_ptrs, size[1] + 1, i_row_ptrs);
+    std::copy_n(m_row_ptrs, size[0] + 1, i_row_ptrs);
     std::copy_n(m_cols, num_elems, i_cols);
 
     gko::Array<ValueType> rhs_array{exec};  // RHS for local trisystem
@@ -145,9 +145,9 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void generate_l(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Csr<ValueType, IndexType> *l_csr,
-                matrix::Csr<ValueType, IndexType> *inverse_l)
+void generate_l_inverse(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Csr<ValueType, IndexType> *l_csr,
+                        matrix::Csr<ValueType, IndexType> *inverse_l)
 {
     auto trs_solve = [](IndexType size, ValueType *trisystem, ValueType *rhs) {
         if (size <= 0) {
@@ -175,13 +175,13 @@ void generate_l(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ISAI_GENERATE_L_KERNEL);
+    GKO_DECLARE_ISAI_GENERATE_L_INVERSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void generate_u(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Csr<ValueType, IndexType> *u_csr,
-                matrix::Csr<ValueType, IndexType> *inverse_u)
+void generate_u_inverse(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Csr<ValueType, IndexType> *u_csr,
+                        matrix::Csr<ValueType, IndexType> *inverse_u)
 {
     auto trs_solve = [](IndexType size, ValueType *trisystem, ValueType *rhs) {
         if (size <= 0) {
@@ -208,7 +208,7 @@ void generate_u(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ISAI_GENERATE_U_KERNEL);
+    GKO_DECLARE_ISAI_GENERATE_U_INVERSE_KERNEL);
 
 
 }  // namespace isai
