@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/base/utils.hpp (ccf35426a) Source File</title>
+<title>Ginkgo: ginkgo/core/base/utils.hpp (06c9be3cf) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/132261746 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/132512223 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -303,118 +303,158 @@ $(function() {
 <div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160;}</div>
 <div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160; </div>
 <div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160; </div>
-<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a name="l00335"></a><span class="lineno"><a class="line" href="classgko_1_1null__deleter.html">  335</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1null__deleter.html">null_deleter</a> {</div>
-<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;    <span class="keyword">using</span> pointer = T *;</div>
-<div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160; </div>
-<div class="line"><a name="l00344"></a><span class="lineno"><a class="line" href="classgko_1_1null__deleter.html#a09fc153e500a30edaa572f2c6cb674ab">  344</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classgko_1_1null__deleter.html#a09fc153e500a30edaa572f2c6cb674ab">operator()</a>(pointer) <span class="keyword">const</span> noexcept {}</div>
-<div class="line"><a name="l00345"></a><span class="lineno">  345</span>&#160;};</div>
-<div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160; </div>
-<div class="line"><a name="l00347"></a><span class="lineno">  347</span>&#160;<span class="comment">// a specialization for arrays</span></div>
-<div class="line"><a name="l00348"></a><span class="lineno">  348</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a name="l00349"></a><span class="lineno"><a class="line" href="classgko_1_1null__deleter_3_01T_0f_0e_4.html">  349</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1null__deleter.html">null_deleter</a>&lt;T[]&gt; {</div>
-<div class="line"><a name="l00350"></a><span class="lineno">  350</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160;    <span class="keyword">using</span> pointer = T[];</div>
+<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T, <span class="keyword">typename</span> U&gt;</div>
+<div class="line"><a name="l00341"></a><span class="lineno"><a class="line" href="namespacegko.html#a1f1d94c42e7fd9103e256100d004f28a">  341</a></span>&#160;<span class="keyword">inline</span> std::unique_ptr&lt;typename std::decay&lt;T&gt;::type&gt; <a class="code" href="namespacegko.html#a73ce7e87aec389b5210630bb617b4baa">as</a>(</div>
+<div class="line"><a name="l00342"></a><span class="lineno">  342</span>&#160;    std::unique_ptr&lt;U&gt; &amp;&amp;obj)</div>
+<div class="line"><a name="l00343"></a><span class="lineno">  343</span>&#160;{</div>
+<div class="line"><a name="l00344"></a><span class="lineno">  344</span>&#160;    <span class="keywordflow">if</span> (<span class="keyword">auto</span> p = <span class="keyword">dynamic_cast&lt;</span>typename std::decay&lt;T&gt;::type *<span class="keyword">&gt;</span>(obj.get())) {</div>
+<div class="line"><a name="l00345"></a><span class="lineno">  345</span>&#160;        obj.release();</div>
+<div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160;        <span class="keywordflow">return</span> std::unique_ptr&lt;typename std::decay&lt;T&gt;::type&gt;{p};</div>
+<div class="line"><a name="l00347"></a><span class="lineno">  347</span>&#160;    } <span class="keywordflow">else</span> {</div>
+<div class="line"><a name="l00348"></a><span class="lineno">  348</span>&#160;        <span class="keywordflow">throw</span> <a class="code" href="classgko_1_1NotSupported.html">NotSupported</a>(__FILE__, __LINE__, __func__,</div>
+<div class="line"><a name="l00349"></a><span class="lineno">  349</span>&#160;                           name_demangling::get_type_name(<span class="keyword">typeid</span>(obj.get())));</div>
+<div class="line"><a name="l00350"></a><span class="lineno">  350</span>&#160;    }</div>
+<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160;}</div>
 <div class="line"><a name="l00352"></a><span class="lineno">  352</span>&#160; </div>
-<div class="line"><a name="l00353"></a><span class="lineno">  353</span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classgko_1_1null__deleter.html#a09fc153e500a30edaa572f2c6cb674ab">operator()</a>(pointer) <span class="keyword">const</span> noexcept {}</div>
-<div class="line"><a name="l00354"></a><span class="lineno">  354</span>&#160;};</div>
-<div class="line"><a name="l00355"></a><span class="lineno">  355</span>&#160; </div>
-<div class="line"><a name="l00356"></a><span class="lineno">  356</span>&#160; </div>
-<div class="line"><a name="l00371"></a><span class="lineno">  371</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a name="l00372"></a><span class="lineno"><a class="line" href="classgko_1_1copy__back__deleter.html">  372</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1copy__back__deleter.html">copy_back_deleter</a> {</div>
-<div class="line"><a name="l00373"></a><span class="lineno">  373</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00374"></a><span class="lineno">  374</span>&#160;    <span class="keyword">using</span> pointer = T *;</div>
+<div class="line"><a name="l00353"></a><span class="lineno">  353</span>&#160; </div>
+<div class="line"><a name="l00365"></a><span class="lineno">  365</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T, <span class="keyword">typename</span> U&gt;</div>
+<div class="line"><a name="l00366"></a><span class="lineno"><a class="line" href="namespacegko.html#a67f747ca6333526fbca64180417dc28a">  366</a></span>&#160;<span class="keyword">inline</span> std::shared_ptr&lt;typename std::decay&lt;T&gt;::type&gt; <a class="code" href="namespacegko.html#a73ce7e87aec389b5210630bb617b4baa">as</a>(std::shared_ptr&lt;U&gt; obj)</div>
+<div class="line"><a name="l00367"></a><span class="lineno">  367</span>&#160;{</div>
+<div class="line"><a name="l00368"></a><span class="lineno">  368</span>&#160;    <span class="keywordflow">if</span> (<span class="keyword">dynamic_cast&lt;</span>typename std::decay&lt;T&gt;::type *<span class="keyword">&gt;</span>(obj.get())) {</div>
+<div class="line"><a name="l00369"></a><span class="lineno">  369</span>&#160;        <span class="keywordflow">return</span> std::static_pointer_cast&lt;<span class="keyword">typename</span> std::decay&lt;T&gt;::type&gt;(obj);</div>
+<div class="line"><a name="l00370"></a><span class="lineno">  370</span>&#160;    } <span class="keywordflow">else</span> {</div>
+<div class="line"><a name="l00371"></a><span class="lineno">  371</span>&#160;        <span class="keywordflow">throw</span> <a class="code" href="classgko_1_1NotSupported.html">NotSupported</a>(__FILE__, __LINE__, __func__,</div>
+<div class="line"><a name="l00372"></a><span class="lineno">  372</span>&#160;                           name_demangling::get_type_name(<span class="keyword">typeid</span>(obj.get())));</div>
+<div class="line"><a name="l00373"></a><span class="lineno">  373</span>&#160;    }</div>
+<div class="line"><a name="l00374"></a><span class="lineno">  374</span>&#160;}</div>
 <div class="line"><a name="l00375"></a><span class="lineno">  375</span>&#160; </div>
-<div class="line"><a name="l00382"></a><span class="lineno"><a class="line" href="classgko_1_1copy__back__deleter.html#affa618330dcb3a4e3aeaffb69c39df5f">  382</a></span>&#160;    <a class="code" href="classgko_1_1copy__back__deleter.html#affa618330dcb3a4e3aeaffb69c39df5f">copy_back_deleter</a>(pointer original) : original_{original} {}</div>
-<div class="line"><a name="l00383"></a><span class="lineno">  383</span>&#160; </div>
-<div class="line"><a name="l00389"></a><span class="lineno"><a class="line" href="classgko_1_1copy__back__deleter.html#a34bba76c78c23dccd814969e98c78b1b">  389</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classgko_1_1copy__back__deleter.html#a34bba76c78c23dccd814969e98c78b1b">operator()</a>(pointer ptr)<span class="keyword"> const</span></div>
-<div class="line"><a name="l00390"></a><span class="lineno">  390</span>&#160;<span class="keyword">    </span>{</div>
-<div class="line"><a name="l00391"></a><span class="lineno">  391</span>&#160;        original_-&gt;copy_from(ptr);</div>
-<div class="line"><a name="l00392"></a><span class="lineno">  392</span>&#160;        <span class="keyword">delete</span> ptr;</div>
-<div class="line"><a name="l00393"></a><span class="lineno">  393</span>&#160;    }</div>
-<div class="line"><a name="l00394"></a><span class="lineno">  394</span>&#160; </div>
-<div class="line"><a name="l00395"></a><span class="lineno">  395</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00396"></a><span class="lineno">  396</span>&#160;    pointer original_;</div>
-<div class="line"><a name="l00397"></a><span class="lineno">  397</span>&#160;};</div>
-<div class="line"><a name="l00398"></a><span class="lineno">  398</span>&#160; </div>
-<div class="line"><a name="l00399"></a><span class="lineno">  399</span>&#160; </div>
-<div class="line"><a name="l00400"></a><span class="lineno">  400</span>&#160;<span class="comment">// specialization for constant objects, no need to copy back something that</span></div>
-<div class="line"><a name="l00401"></a><span class="lineno">  401</span>&#160;<span class="comment">// cannot change</span></div>
-<div class="line"><a name="l00402"></a><span class="lineno">  402</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a name="l00403"></a><span class="lineno"><a class="line" href="classgko_1_1copy__back__deleter_3_01const_01T_01_4.html">  403</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1copy__back__deleter.html">copy_back_deleter</a>&lt;const T&gt; {</div>
-<div class="line"><a name="l00404"></a><span class="lineno">  404</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00405"></a><span class="lineno">  405</span>&#160;    <span class="keyword">using</span> pointer = <span class="keyword">const</span> T *;</div>
-<div class="line"><a name="l00406"></a><span class="lineno">  406</span>&#160;    <a class="code" href="classgko_1_1copy__back__deleter.html#affa618330dcb3a4e3aeaffb69c39df5f">copy_back_deleter</a>(pointer original) : original_{original} {}</div>
-<div class="line"><a name="l00407"></a><span class="lineno">  407</span>&#160; </div>
-<div class="line"><a name="l00408"></a><span class="lineno">  408</span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classgko_1_1copy__back__deleter.html#a34bba76c78c23dccd814969e98c78b1b">operator()</a>(pointer ptr)<span class="keyword"> const </span>{ <span class="keyword">delete</span> ptr; }</div>
-<div class="line"><a name="l00409"></a><span class="lineno">  409</span>&#160; </div>
-<div class="line"><a name="l00410"></a><span class="lineno">  410</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00411"></a><span class="lineno">  411</span>&#160;    pointer original_;</div>
-<div class="line"><a name="l00412"></a><span class="lineno">  412</span>&#160;};</div>
-<div class="line"><a name="l00413"></a><span class="lineno">  413</span>&#160; </div>
+<div class="line"><a name="l00376"></a><span class="lineno">  376</span>&#160; </div>
+<div class="line"><a name="l00390"></a><span class="lineno">  390</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T, <span class="keyword">typename</span> U&gt;</div>
+<div class="line"><a name="l00391"></a><span class="lineno"><a class="line" href="namespacegko.html#a78a5f4822744132cfc4a21439f19a67a">  391</a></span>&#160;<span class="keyword">inline</span> std::shared_ptr&lt;const typename std::decay&lt;T&gt;::type&gt; <a class="code" href="namespacegko.html#a73ce7e87aec389b5210630bb617b4baa">as</a>(</div>
+<div class="line"><a name="l00392"></a><span class="lineno">  392</span>&#160;    std::shared_ptr&lt;const U&gt; obj)</div>
+<div class="line"><a name="l00393"></a><span class="lineno">  393</span>&#160;{</div>
+<div class="line"><a name="l00394"></a><span class="lineno">  394</span>&#160;    <span class="keywordflow">if</span> (<span class="keyword">dynamic_cast&lt;</span><span class="keyword">const </span>typename std::decay&lt;T&gt;::type *<span class="keyword">&gt;</span>(obj.get())) {</div>
+<div class="line"><a name="l00395"></a><span class="lineno">  395</span>&#160;        <span class="keywordflow">return</span> std::static_pointer_cast&lt;<span class="keyword">const</span> <span class="keyword">typename</span> std::decay&lt;T&gt;::type&gt;(</div>
+<div class="line"><a name="l00396"></a><span class="lineno">  396</span>&#160;            obj);</div>
+<div class="line"><a name="l00397"></a><span class="lineno">  397</span>&#160;    } <span class="keywordflow">else</span> {</div>
+<div class="line"><a name="l00398"></a><span class="lineno">  398</span>&#160;        <span class="keywordflow">throw</span> <a class="code" href="classgko_1_1NotSupported.html">NotSupported</a>(__FILE__, __LINE__, __func__,</div>
+<div class="line"><a name="l00399"></a><span class="lineno">  399</span>&#160;                           name_demangling::get_type_name(<span class="keyword">typeid</span>(obj.get())));</div>
+<div class="line"><a name="l00400"></a><span class="lineno">  400</span>&#160;    }</div>
+<div class="line"><a name="l00401"></a><span class="lineno">  401</span>&#160;}</div>
+<div class="line"><a name="l00402"></a><span class="lineno">  402</span>&#160; </div>
+<div class="line"><a name="l00403"></a><span class="lineno">  403</span>&#160; </div>
+<div class="line"><a name="l00410"></a><span class="lineno">  410</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a name="l00411"></a><span class="lineno"><a class="line" href="classgko_1_1null__deleter.html">  411</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1null__deleter.html">null_deleter</a> {</div>
+<div class="line"><a name="l00412"></a><span class="lineno">  412</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00413"></a><span class="lineno">  413</span>&#160;    <span class="keyword">using</span> pointer = T *;</div>
 <div class="line"><a name="l00414"></a><span class="lineno">  414</span>&#160; </div>
-<div class="line"><a name="l00426"></a><span class="lineno">  426</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a name="l00427"></a><span class="lineno"><a class="line" href="classgko_1_1temporary__clone.html">  427</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1temporary__clone.html">temporary_clone</a> {</div>
-<div class="line"><a name="l00428"></a><span class="lineno">  428</span>&#160;<span class="keyword">public</span>:</div>
-<div class="line"><a name="l00429"></a><span class="lineno">  429</span>&#160;    <span class="keyword">using</span> value_type = T;</div>
-<div class="line"><a name="l00430"></a><span class="lineno">  430</span>&#160;    <span class="keyword">using</span> pointer = T *;</div>
+<div class="line"><a name="l00420"></a><span class="lineno"><a class="line" href="classgko_1_1null__deleter.html#a09fc153e500a30edaa572f2c6cb674ab">  420</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classgko_1_1null__deleter.html#a09fc153e500a30edaa572f2c6cb674ab">operator()</a>(pointer) <span class="keyword">const</span> noexcept {}</div>
+<div class="line"><a name="l00421"></a><span class="lineno">  421</span>&#160;};</div>
+<div class="line"><a name="l00422"></a><span class="lineno">  422</span>&#160; </div>
+<div class="line"><a name="l00423"></a><span class="lineno">  423</span>&#160;<span class="comment">// a specialization for arrays</span></div>
+<div class="line"><a name="l00424"></a><span class="lineno">  424</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a name="l00425"></a><span class="lineno"><a class="line" href="classgko_1_1null__deleter_3_01T_0f_0e_4.html">  425</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1null__deleter.html">null_deleter</a>&lt;T[]&gt; {</div>
+<div class="line"><a name="l00426"></a><span class="lineno">  426</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00427"></a><span class="lineno">  427</span>&#160;    <span class="keyword">using</span> pointer = T[];</div>
+<div class="line"><a name="l00428"></a><span class="lineno">  428</span>&#160; </div>
+<div class="line"><a name="l00429"></a><span class="lineno">  429</span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classgko_1_1null__deleter.html#a09fc153e500a30edaa572f2c6cb674ab">operator()</a>(pointer) <span class="keyword">const</span> noexcept {}</div>
+<div class="line"><a name="l00430"></a><span class="lineno">  430</span>&#160;};</div>
 <div class="line"><a name="l00431"></a><span class="lineno">  431</span>&#160; </div>
-<div class="line"><a name="l00438"></a><span class="lineno"><a class="line" href="classgko_1_1temporary__clone.html#a73b2e7db31555df95b827625f85da4be">  438</a></span>&#160;    <span class="keyword">explicit</span> <a class="code" href="classgko_1_1temporary__clone.html#a73b2e7db31555df95b827625f85da4be">temporary_clone</a>(std::shared_ptr&lt;const Executor&gt; exec, pointer ptr)</div>
-<div class="line"><a name="l00439"></a><span class="lineno">  439</span>&#160;    {</div>
-<div class="line"><a name="l00440"></a><span class="lineno">  440</span>&#160;        <span class="keywordflow">if</span> (ptr-&gt;get_executor() == exec) {</div>
-<div class="line"><a name="l00441"></a><span class="lineno">  441</span>&#160;            <span class="comment">// just use the object we already have</span></div>
-<div class="line"><a name="l00442"></a><span class="lineno">  442</span>&#160;            handle_ = handle_type(ptr, [](pointer) {});</div>
-<div class="line"><a name="l00443"></a><span class="lineno">  443</span>&#160;        } <span class="keywordflow">else</span> {</div>
-<div class="line"><a name="l00444"></a><span class="lineno">  444</span>&#160;            <span class="comment">// clone the object to the new executor and make sure it&#39;s copied</span></div>
-<div class="line"><a name="l00445"></a><span class="lineno">  445</span>&#160;            <span class="comment">// back before we delete it</span></div>
-<div class="line"><a name="l00446"></a><span class="lineno">  446</span>&#160;            handle_ = handle_type(<a class="code" href="namespacegko.html#a1beb80750459e4201aa9d882d2d074c3">gko::clone</a>(std::move(exec), ptr).release(),</div>
-<div class="line"><a name="l00447"></a><span class="lineno">  447</span>&#160;                                  <a class="code" href="classgko_1_1copy__back__deleter.html">copy_back_deleter&lt;T&gt;</a>(ptr));</div>
-<div class="line"><a name="l00448"></a><span class="lineno">  448</span>&#160;        }</div>
-<div class="line"><a name="l00449"></a><span class="lineno">  449</span>&#160;    }</div>
-<div class="line"><a name="l00450"></a><span class="lineno">  450</span>&#160; </div>
-<div class="line"><a name="l00456"></a><span class="lineno"><a class="line" href="classgko_1_1temporary__clone.html#a38042e39a039070cc97e225435d5ed9e">  456</a></span>&#160;    T *<a class="code" href="classgko_1_1temporary__clone.html#a38042e39a039070cc97e225435d5ed9e">get</a>()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> handle_.get(); }</div>
-<div class="line"><a name="l00457"></a><span class="lineno">  457</span>&#160; </div>
-<div class="line"><a name="l00463"></a><span class="lineno"><a class="line" href="classgko_1_1temporary__clone.html#a007bc247a9a250dcec8cdadb54710106">  463</a></span>&#160;    T *<a class="code" href="classgko_1_1temporary__clone.html#a007bc247a9a250dcec8cdadb54710106">operator-&gt;</a>()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> handle_.get(); }</div>
-<div class="line"><a name="l00464"></a><span class="lineno">  464</span>&#160; </div>
-<div class="line"><a name="l00465"></a><span class="lineno">  465</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00466"></a><span class="lineno">  466</span>&#160;    <span class="comment">// std::function deleter allows to decide the (type of) deleter at runtime</span></div>
-<div class="line"><a name="l00467"></a><span class="lineno">  467</span>&#160;    <span class="keyword">using</span> handle_type = std::unique_ptr&lt;T, std::function&lt;void(T *)&gt;&gt;;</div>
-<div class="line"><a name="l00468"></a><span class="lineno">  468</span>&#160; </div>
-<div class="line"><a name="l00469"></a><span class="lineno">  469</span>&#160;    handle_type handle_;</div>
-<div class="line"><a name="l00470"></a><span class="lineno">  470</span>&#160;};</div>
-<div class="line"><a name="l00471"></a><span class="lineno">  471</span>&#160; </div>
-<div class="line"><a name="l00472"></a><span class="lineno">  472</span>&#160; </div>
-<div class="line"><a name="l00483"></a><span class="lineno">  483</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a name="l00484"></a><span class="lineno"><a class="line" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">  484</a></span>&#160;<a class="code" href="classgko_1_1temporary__clone.html">temporary_clone&lt;T&gt;</a> <a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(std::shared_ptr&lt;const Executor&gt; exec,</div>
-<div class="line"><a name="l00485"></a><span class="lineno">  485</span>&#160;                                        T *ptr)</div>
-<div class="line"><a name="l00486"></a><span class="lineno">  486</span>&#160;{</div>
-<div class="line"><a name="l00487"></a><span class="lineno">  487</span>&#160;    <span class="keywordflow">return</span> <a class="code" href="classgko_1_1temporary__clone.html">temporary_clone&lt;T&gt;</a>(std::move(exec), ptr);</div>
-<div class="line"><a name="l00488"></a><span class="lineno">  488</span>&#160;}</div>
+<div class="line"><a name="l00432"></a><span class="lineno">  432</span>&#160; </div>
+<div class="line"><a name="l00447"></a><span class="lineno">  447</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a name="l00448"></a><span class="lineno"><a class="line" href="classgko_1_1copy__back__deleter.html">  448</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1copy__back__deleter.html">copy_back_deleter</a> {</div>
+<div class="line"><a name="l00449"></a><span class="lineno">  449</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00450"></a><span class="lineno">  450</span>&#160;    <span class="keyword">using</span> pointer = T *;</div>
+<div class="line"><a name="l00451"></a><span class="lineno">  451</span>&#160; </div>
+<div class="line"><a name="l00458"></a><span class="lineno"><a class="line" href="classgko_1_1copy__back__deleter.html#affa618330dcb3a4e3aeaffb69c39df5f">  458</a></span>&#160;    <a class="code" href="classgko_1_1copy__back__deleter.html#affa618330dcb3a4e3aeaffb69c39df5f">copy_back_deleter</a>(pointer original) : original_{original} {}</div>
+<div class="line"><a name="l00459"></a><span class="lineno">  459</span>&#160; </div>
+<div class="line"><a name="l00465"></a><span class="lineno"><a class="line" href="classgko_1_1copy__back__deleter.html#a34bba76c78c23dccd814969e98c78b1b">  465</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classgko_1_1copy__back__deleter.html#a34bba76c78c23dccd814969e98c78b1b">operator()</a>(pointer ptr)<span class="keyword"> const</span></div>
+<div class="line"><a name="l00466"></a><span class="lineno">  466</span>&#160;<span class="keyword">    </span>{</div>
+<div class="line"><a name="l00467"></a><span class="lineno">  467</span>&#160;        original_-&gt;copy_from(ptr);</div>
+<div class="line"><a name="l00468"></a><span class="lineno">  468</span>&#160;        <span class="keyword">delete</span> ptr;</div>
+<div class="line"><a name="l00469"></a><span class="lineno">  469</span>&#160;    }</div>
+<div class="line"><a name="l00470"></a><span class="lineno">  470</span>&#160; </div>
+<div class="line"><a name="l00471"></a><span class="lineno">  471</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00472"></a><span class="lineno">  472</span>&#160;    pointer original_;</div>
+<div class="line"><a name="l00473"></a><span class="lineno">  473</span>&#160;};</div>
+<div class="line"><a name="l00474"></a><span class="lineno">  474</span>&#160; </div>
+<div class="line"><a name="l00475"></a><span class="lineno">  475</span>&#160; </div>
+<div class="line"><a name="l00476"></a><span class="lineno">  476</span>&#160;<span class="comment">// specialization for constant objects, no need to copy back something that</span></div>
+<div class="line"><a name="l00477"></a><span class="lineno">  477</span>&#160;<span class="comment">// cannot change</span></div>
+<div class="line"><a name="l00478"></a><span class="lineno">  478</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a name="l00479"></a><span class="lineno"><a class="line" href="classgko_1_1copy__back__deleter_3_01const_01T_01_4.html">  479</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1copy__back__deleter.html">copy_back_deleter</a>&lt;const T&gt; {</div>
+<div class="line"><a name="l00480"></a><span class="lineno">  480</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00481"></a><span class="lineno">  481</span>&#160;    <span class="keyword">using</span> pointer = <span class="keyword">const</span> T *;</div>
+<div class="line"><a name="l00482"></a><span class="lineno">  482</span>&#160;    <a class="code" href="classgko_1_1copy__back__deleter.html#affa618330dcb3a4e3aeaffb69c39df5f">copy_back_deleter</a>(pointer original) : original_{original} {}</div>
+<div class="line"><a name="l00483"></a><span class="lineno">  483</span>&#160; </div>
+<div class="line"><a name="l00484"></a><span class="lineno">  484</span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classgko_1_1copy__back__deleter.html#a34bba76c78c23dccd814969e98c78b1b">operator()</a>(pointer ptr)<span class="keyword"> const </span>{ <span class="keyword">delete</span> ptr; }</div>
+<div class="line"><a name="l00485"></a><span class="lineno">  485</span>&#160; </div>
+<div class="line"><a name="l00486"></a><span class="lineno">  486</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00487"></a><span class="lineno">  487</span>&#160;    pointer original_;</div>
+<div class="line"><a name="l00488"></a><span class="lineno">  488</span>&#160;};</div>
 <div class="line"><a name="l00489"></a><span class="lineno">  489</span>&#160; </div>
 <div class="line"><a name="l00490"></a><span class="lineno">  490</span>&#160; </div>
-<div class="line"><a name="l00491"></a><span class="lineno">  491</span>&#160;}  <span class="comment">// namespace gko</span></div>
-<div class="line"><a name="l00492"></a><span class="lineno">  492</span>&#160; </div>
-<div class="line"><a name="l00493"></a><span class="lineno">  493</span>&#160; </div>
-<div class="line"><a name="l00494"></a><span class="lineno">  494</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_BASE_UTILS_HPP_</span></div>
+<div class="line"><a name="l00502"></a><span class="lineno">  502</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a name="l00503"></a><span class="lineno"><a class="line" href="classgko_1_1temporary__clone.html">  503</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1temporary__clone.html">temporary_clone</a> {</div>
+<div class="line"><a name="l00504"></a><span class="lineno">  504</span>&#160;<span class="keyword">public</span>:</div>
+<div class="line"><a name="l00505"></a><span class="lineno">  505</span>&#160;    <span class="keyword">using</span> value_type = T;</div>
+<div class="line"><a name="l00506"></a><span class="lineno">  506</span>&#160;    <span class="keyword">using</span> pointer = T *;</div>
+<div class="line"><a name="l00507"></a><span class="lineno">  507</span>&#160; </div>
+<div class="line"><a name="l00514"></a><span class="lineno"><a class="line" href="classgko_1_1temporary__clone.html#a73b2e7db31555df95b827625f85da4be">  514</a></span>&#160;    <span class="keyword">explicit</span> <a class="code" href="classgko_1_1temporary__clone.html#a73b2e7db31555df95b827625f85da4be">temporary_clone</a>(std::shared_ptr&lt;const Executor&gt; exec, pointer ptr)</div>
+<div class="line"><a name="l00515"></a><span class="lineno">  515</span>&#160;    {</div>
+<div class="line"><a name="l00516"></a><span class="lineno">  516</span>&#160;        <span class="keywordflow">if</span> (ptr-&gt;get_executor() == exec) {</div>
+<div class="line"><a name="l00517"></a><span class="lineno">  517</span>&#160;            <span class="comment">// just use the object we already have</span></div>
+<div class="line"><a name="l00518"></a><span class="lineno">  518</span>&#160;            handle_ = handle_type(ptr, [](pointer) {});</div>
+<div class="line"><a name="l00519"></a><span class="lineno">  519</span>&#160;        } <span class="keywordflow">else</span> {</div>
+<div class="line"><a name="l00520"></a><span class="lineno">  520</span>&#160;            <span class="comment">// clone the object to the new executor and make sure it&#39;s copied</span></div>
+<div class="line"><a name="l00521"></a><span class="lineno">  521</span>&#160;            <span class="comment">// back before we delete it</span></div>
+<div class="line"><a name="l00522"></a><span class="lineno">  522</span>&#160;            handle_ = handle_type(<a class="code" href="namespacegko.html#a1beb80750459e4201aa9d882d2d074c3">gko::clone</a>(std::move(exec), ptr).release(),</div>
+<div class="line"><a name="l00523"></a><span class="lineno">  523</span>&#160;                                  <a class="code" href="classgko_1_1copy__back__deleter.html">copy_back_deleter&lt;T&gt;</a>(ptr));</div>
+<div class="line"><a name="l00524"></a><span class="lineno">  524</span>&#160;        }</div>
+<div class="line"><a name="l00525"></a><span class="lineno">  525</span>&#160;    }</div>
+<div class="line"><a name="l00526"></a><span class="lineno">  526</span>&#160; </div>
+<div class="line"><a name="l00532"></a><span class="lineno"><a class="line" href="classgko_1_1temporary__clone.html#a38042e39a039070cc97e225435d5ed9e">  532</a></span>&#160;    T *<a class="code" href="classgko_1_1temporary__clone.html#a38042e39a039070cc97e225435d5ed9e">get</a>()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> handle_.get(); }</div>
+<div class="line"><a name="l00533"></a><span class="lineno">  533</span>&#160; </div>
+<div class="line"><a name="l00539"></a><span class="lineno"><a class="line" href="classgko_1_1temporary__clone.html#a007bc247a9a250dcec8cdadb54710106">  539</a></span>&#160;    T *<a class="code" href="classgko_1_1temporary__clone.html#a007bc247a9a250dcec8cdadb54710106">operator-&gt;</a>()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> handle_.get(); }</div>
+<div class="line"><a name="l00540"></a><span class="lineno">  540</span>&#160; </div>
+<div class="line"><a name="l00541"></a><span class="lineno">  541</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00542"></a><span class="lineno">  542</span>&#160;    <span class="comment">// std::function deleter allows to decide the (type of) deleter at runtime</span></div>
+<div class="line"><a name="l00543"></a><span class="lineno">  543</span>&#160;    <span class="keyword">using</span> handle_type = std::unique_ptr&lt;T, std::function&lt;void(T *)&gt;&gt;;</div>
+<div class="line"><a name="l00544"></a><span class="lineno">  544</span>&#160; </div>
+<div class="line"><a name="l00545"></a><span class="lineno">  545</span>&#160;    handle_type handle_;</div>
+<div class="line"><a name="l00546"></a><span class="lineno">  546</span>&#160;};</div>
+<div class="line"><a name="l00547"></a><span class="lineno">  547</span>&#160; </div>
+<div class="line"><a name="l00548"></a><span class="lineno">  548</span>&#160; </div>
+<div class="line"><a name="l00559"></a><span class="lineno">  559</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a name="l00560"></a><span class="lineno"><a class="line" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">  560</a></span>&#160;<a class="code" href="classgko_1_1temporary__clone.html">temporary_clone&lt;T&gt;</a> <a class="code" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a>(std::shared_ptr&lt;const Executor&gt; exec,</div>
+<div class="line"><a name="l00561"></a><span class="lineno">  561</span>&#160;                                        T *ptr)</div>
+<div class="line"><a name="l00562"></a><span class="lineno">  562</span>&#160;{</div>
+<div class="line"><a name="l00563"></a><span class="lineno">  563</span>&#160;    <span class="keywordflow">return</span> <a class="code" href="classgko_1_1temporary__clone.html">temporary_clone&lt;T&gt;</a>(std::move(exec), ptr);</div>
+<div class="line"><a name="l00564"></a><span class="lineno">  564</span>&#160;}</div>
+<div class="line"><a name="l00565"></a><span class="lineno">  565</span>&#160; </div>
+<div class="line"><a name="l00566"></a><span class="lineno">  566</span>&#160; </div>
+<div class="line"><a name="l00567"></a><span class="lineno">  567</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00568"></a><span class="lineno">  568</span>&#160; </div>
+<div class="line"><a name="l00569"></a><span class="lineno">  569</span>&#160; </div>
+<div class="line"><a name="l00570"></a><span class="lineno">  570</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_BASE_UTILS_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
-<div class="ttc" id="aclassgko_1_1temporary__clone_html"><div class="ttname"><a href="classgko_1_1temporary__clone.html">gko::temporary_clone</a></div><div class="ttdoc">A temporary_clone is a special smart pointer-like object that is designed to hold an object temporari...</div><div class="ttdef"><b>Definition:</b> utils.hpp:427</div></div>
-<div class="ttc" id="aclassgko_1_1temporary__clone_html_a38042e39a039070cc97e225435d5ed9e"><div class="ttname"><a href="classgko_1_1temporary__clone.html#a38042e39a039070cc97e225435d5ed9e">gko::temporary_clone::get</a></div><div class="ttdeci">T * get() const</div><div class="ttdoc">Returns the object held by temporary_clone.</div><div class="ttdef"><b>Definition:</b> utils.hpp:456</div></div>
+<div class="ttc" id="aclassgko_1_1temporary__clone_html"><div class="ttname"><a href="classgko_1_1temporary__clone.html">gko::temporary_clone</a></div><div class="ttdoc">A temporary_clone is a special smart pointer-like object that is designed to hold an object temporari...</div><div class="ttdef"><b>Definition:</b> utils.hpp:503</div></div>
+<div class="ttc" id="aclassgko_1_1temporary__clone_html_a38042e39a039070cc97e225435d5ed9e"><div class="ttname"><a href="classgko_1_1temporary__clone.html#a38042e39a039070cc97e225435d5ed9e">gko::temporary_clone::get</a></div><div class="ttdeci">T * get() const</div><div class="ttdoc">Returns the object held by temporary_clone.</div><div class="ttdef"><b>Definition:</b> utils.hpp:532</div></div>
 <div class="ttc" id="anamespacegko_html_acbd3fd6d07e498892881e8e2ab0b4167"><div class="ttname"><a href="namespacegko.html#acbd3fd6d07e498892881e8e2ab0b4167">gko::give</a></div><div class="ttdeci">std::remove_reference&lt; OwningPointer &gt;::type &amp;&amp; give(OwningPointer &amp;&amp;p)</div><div class="ttdoc">Marks that the object pointed to by p can be given to the callee.</div><div class="ttdef"><b>Definition:</b> utils.hpp:231</div></div>
-<div class="ttc" id="aclassgko_1_1null__deleter_html"><div class="ttname"><a href="classgko_1_1null__deleter.html">gko::null_deleter</a></div><div class="ttdoc">This is a deleter that does not delete the object.</div><div class="ttdef"><b>Definition:</b> utils.hpp:335</div></div>
-<div class="ttc" id="aclassgko_1_1temporary__clone_html_a73b2e7db31555df95b827625f85da4be"><div class="ttname"><a href="classgko_1_1temporary__clone.html#a73b2e7db31555df95b827625f85da4be">gko::temporary_clone::temporary_clone</a></div><div class="ttdeci">temporary_clone(std::shared_ptr&lt; const Executor &gt; exec, pointer ptr)</div><div class="ttdoc">Creates a temporary_clone.</div><div class="ttdef"><b>Definition:</b> utils.hpp:438</div></div>
-<div class="ttc" id="aclassgko_1_1null__deleter_html_a09fc153e500a30edaa572f2c6cb674ab"><div class="ttname"><a href="classgko_1_1null__deleter.html#a09fc153e500a30edaa572f2c6cb674ab">gko::null_deleter::operator()</a></div><div class="ttdeci">void operator()(pointer) const noexcept</div><div class="ttdoc">Deletes the object.</div><div class="ttdef"><b>Definition:</b> utils.hpp:344</div></div>
+<div class="ttc" id="aclassgko_1_1null__deleter_html"><div class="ttname"><a href="classgko_1_1null__deleter.html">gko::null_deleter</a></div><div class="ttdoc">This is a deleter that does not delete the object.</div><div class="ttdef"><b>Definition:</b> utils.hpp:411</div></div>
+<div class="ttc" id="aclassgko_1_1temporary__clone_html_a73b2e7db31555df95b827625f85da4be"><div class="ttname"><a href="classgko_1_1temporary__clone.html#a73b2e7db31555df95b827625f85da4be">gko::temporary_clone::temporary_clone</a></div><div class="ttdeci">temporary_clone(std::shared_ptr&lt; const Executor &gt; exec, pointer ptr)</div><div class="ttdoc">Creates a temporary_clone.</div><div class="ttdef"><b>Definition:</b> utils.hpp:514</div></div>
+<div class="ttc" id="aclassgko_1_1null__deleter_html_a09fc153e500a30edaa572f2c6cb674ab"><div class="ttname"><a href="classgko_1_1null__deleter.html#a09fc153e500a30edaa572f2c6cb674ab">gko::null_deleter::operator()</a></div><div class="ttdeci">void operator()(pointer) const noexcept</div><div class="ttdoc">Deletes the object.</div><div class="ttdef"><b>Definition:</b> utils.hpp:420</div></div>
 <div class="ttc" id="aclassgko_1_1NotSupported_html"><div class="ttname"><a href="classgko_1_1NotSupported.html">gko::NotSupported</a></div><div class="ttdoc">NotSupported is thrown in case it is not possible to perform the requested operation on the given obj...</div><div class="ttdef"><b>Definition:</b> exception.hpp:156</div></div>
 <div class="ttc" id="anamespacegko_html_a1beb80750459e4201aa9d882d2d074c3"><div class="ttname"><a href="namespacegko.html#a1beb80750459e4201aa9d882d2d074c3">gko::clone</a></div><div class="ttdeci">detail::cloned_type&lt; Pointer &gt; clone(const Pointer &amp;p)</div><div class="ttdoc">Creates a unique clone of the object pointed to by p.</div><div class="ttdef"><b>Definition:</b> utils.hpp:160</div></div>
 <div class="ttc" id="anamespacegko_html"><div class="ttname"><a href="namespacegko.html">gko</a></div><div class="ttdoc">The Ginkgo namespace.</div><div class="ttdef"><b>Definition:</b> abstract_factory.hpp:45</div></div>
 <div class="ttc" id="anamespacegko_html_a73ce7e87aec389b5210630bb617b4baa"><div class="ttname"><a href="namespacegko.html#a73ce7e87aec389b5210630bb617b4baa">gko::as</a></div><div class="ttdeci">std::decay&lt; T &gt;::type * as(U *obj)</div><div class="ttdoc">Performs polymorphic type conversion.</div><div class="ttdef"><b>Definition:</b> utils.hpp:289</div></div>
-<div class="ttc" id="aclassgko_1_1temporary__clone_html_a007bc247a9a250dcec8cdadb54710106"><div class="ttname"><a href="classgko_1_1temporary__clone.html#a007bc247a9a250dcec8cdadb54710106">gko::temporary_clone::operator-&gt;</a></div><div class="ttdeci">T * operator-&gt;() const</div><div class="ttdoc">Calls a method on the underlying object.</div><div class="ttdef"><b>Definition:</b> utils.hpp:463</div></div>
+<div class="ttc" id="aclassgko_1_1temporary__clone_html_a007bc247a9a250dcec8cdadb54710106"><div class="ttname"><a href="classgko_1_1temporary__clone.html#a007bc247a9a250dcec8cdadb54710106">gko::temporary_clone::operator-&gt;</a></div><div class="ttdeci">T * operator-&gt;() const</div><div class="ttdoc">Calls a method on the underlying object.</div><div class="ttdef"><b>Definition:</b> utils.hpp:539</div></div>
 <div class="ttc" id="anamespacegko_html_a4edc2273b5627ec552ea423b60493be3"><div class="ttname"><a href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">gko::lend</a></div><div class="ttdeci">std::enable_if&lt; detail::have_ownership_s&lt; Pointer &gt;::value, detail::pointee&lt; Pointer &gt; * &gt;::type lend(const Pointer &amp;p)</div><div class="ttdoc">Returns a non-owning (plain) pointer to the object pointed to by p.</div><div class="ttdef"><b>Definition:</b> utils.hpp:253</div></div>
-<div class="ttc" id="aclassgko_1_1copy__back__deleter_html"><div class="ttname"><a href="classgko_1_1copy__back__deleter.html">gko::copy_back_deleter</a></div><div class="ttdoc">A copy_back_deleter is a type of deleter that copies the data to an internally referenced object befo...</div><div class="ttdef"><b>Definition:</b> utils.hpp:372</div></div>
+<div class="ttc" id="aclassgko_1_1copy__back__deleter_html"><div class="ttname"><a href="classgko_1_1copy__back__deleter.html">gko::copy_back_deleter</a></div><div class="ttdoc">A copy_back_deleter is a type of deleter that copies the data to an internally referenced object befo...</div><div class="ttdef"><b>Definition:</b> utils.hpp:448</div></div>
 <div class="ttc" id="anamespacegko_html_a3ce296f73db0ff398bdea6009a3a5c58"><div class="ttname"><a href="namespacegko.html#a3ce296f73db0ff398bdea6009a3a5c58">gko::share</a></div><div class="ttdeci">detail::shared_type&lt; OwningPointer &gt; share(OwningPointer &amp;&amp;p)</div><div class="ttdoc">Marks the object pointed to by p as shared.</div><div class="ttdef"><b>Definition:</b> utils.hpp:210</div></div>
-<div class="ttc" id="aclassgko_1_1copy__back__deleter_html_a34bba76c78c23dccd814969e98c78b1b"><div class="ttname"><a href="classgko_1_1copy__back__deleter.html#a34bba76c78c23dccd814969e98c78b1b">gko::copy_back_deleter::operator()</a></div><div class="ttdeci">void operator()(pointer ptr) const</div><div class="ttdoc">Deletes the object.</div><div class="ttdef"><b>Definition:</b> utils.hpp:389</div></div>
-<div class="ttc" id="aclassgko_1_1copy__back__deleter_html_affa618330dcb3a4e3aeaffb69c39df5f"><div class="ttname"><a href="classgko_1_1copy__back__deleter.html#affa618330dcb3a4e3aeaffb69c39df5f">gko::copy_back_deleter::copy_back_deleter</a></div><div class="ttdeci">copy_back_deleter(pointer original)</div><div class="ttdoc">Creates a new deleter object.</div><div class="ttdef"><b>Definition:</b> utils.hpp:382</div></div>
-<div class="ttc" id="anamespacegko_html_aa9c0782fb35cc18cb404716d9b6f2c0e"><div class="ttname"><a href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">gko::make_temporary_clone</a></div><div class="ttdeci">temporary_clone&lt; T &gt; make_temporary_clone(std::shared_ptr&lt; const Executor &gt; exec, T *ptr)</div><div class="ttdoc">Creates a temporary_clone.</div><div class="ttdef"><b>Definition:</b> utils.hpp:484</div></div>
+<div class="ttc" id="aclassgko_1_1copy__back__deleter_html_a34bba76c78c23dccd814969e98c78b1b"><div class="ttname"><a href="classgko_1_1copy__back__deleter.html#a34bba76c78c23dccd814969e98c78b1b">gko::copy_back_deleter::operator()</a></div><div class="ttdeci">void operator()(pointer ptr) const</div><div class="ttdoc">Deletes the object.</div><div class="ttdef"><b>Definition:</b> utils.hpp:465</div></div>
+<div class="ttc" id="aclassgko_1_1copy__back__deleter_html_affa618330dcb3a4e3aeaffb69c39df5f"><div class="ttname"><a href="classgko_1_1copy__back__deleter.html#affa618330dcb3a4e3aeaffb69c39df5f">gko::copy_back_deleter::copy_back_deleter</a></div><div class="ttdeci">copy_back_deleter(pointer original)</div><div class="ttdoc">Creates a new deleter object.</div><div class="ttdef"><b>Definition:</b> utils.hpp:458</div></div>
+<div class="ttc" id="anamespacegko_html_aa9c0782fb35cc18cb404716d9b6f2c0e"><div class="ttname"><a href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">gko::make_temporary_clone</a></div><div class="ttdeci">temporary_clone&lt; T &gt; make_temporary_clone(std::shared_ptr&lt; const Executor &gt; exec, T *ptr)</div><div class="ttdoc">Creates a temporary_clone.</div><div class="ttdef"><b>Definition:</b> utils.hpp:560</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by &#160;<a href="http://www.doxygen.org/index.html">

@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/132261746 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/132512223 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -968,6 +968,18 @@ template&lt;typename FirstOperand , typename SecondAccessor &gt; </td></tr>
 <tr class="memitem:a289e84ef5dea2f579dd12f27140a1470"><td class="memTemplItemLeft" align="right" valign="top">const std::decay&lt; T &gt;::type *&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a289e84ef5dea2f579dd12f27140a1470">as</a> (const U *obj)</td></tr>
 <tr class="memdesc:a289e84ef5dea2f579dd12f27140a1470"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performs polymorphic type conversion.  <a href="namespacegko.html#a289e84ef5dea2f579dd12f27140a1470">More...</a><br /></td></tr>
 <tr class="separator:a289e84ef5dea2f579dd12f27140a1470"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1f1d94c42e7fd9103e256100d004f28a"><td class="memTemplParams" colspan="2">template&lt;typename T , typename U &gt; </td></tr>
+<tr class="memitem:a1f1d94c42e7fd9103e256100d004f28a"><td class="memTemplItemLeft" align="right" valign="top">std::unique_ptr&lt; typename std::decay&lt; T &gt;::type &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a1f1d94c42e7fd9103e256100d004f28a">as</a> (std::unique_ptr&lt; U &gt; &amp;&amp;obj)</td></tr>
+<tr class="memdesc:a1f1d94c42e7fd9103e256100d004f28a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performs polymorphic type conversion of a unique_ptr.  <a href="namespacegko.html#a1f1d94c42e7fd9103e256100d004f28a">More...</a><br /></td></tr>
+<tr class="separator:a1f1d94c42e7fd9103e256100d004f28a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a67f747ca6333526fbca64180417dc28a"><td class="memTemplParams" colspan="2">template&lt;typename T , typename U &gt; </td></tr>
+<tr class="memitem:a67f747ca6333526fbca64180417dc28a"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; typename std::decay&lt; T &gt;::type &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a67f747ca6333526fbca64180417dc28a">as</a> (std::shared_ptr&lt; U &gt; obj)</td></tr>
+<tr class="memdesc:a67f747ca6333526fbca64180417dc28a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performs polymorphic type conversion of a shared_ptr.  <a href="namespacegko.html#a67f747ca6333526fbca64180417dc28a">More...</a><br /></td></tr>
+<tr class="separator:a67f747ca6333526fbca64180417dc28a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a78a5f4822744132cfc4a21439f19a67a"><td class="memTemplParams" colspan="2">template&lt;typename T , typename U &gt; </td></tr>
+<tr class="memitem:a78a5f4822744132cfc4a21439f19a67a"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; const typename std::decay&lt; T &gt;::type &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a78a5f4822744132cfc4a21439f19a67a">as</a> (std::shared_ptr&lt; const U &gt; obj)</td></tr>
+<tr class="memdesc:a78a5f4822744132cfc4a21439f19a67a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performs polymorphic type conversion of a shared_ptr.  <a href="namespacegko.html#a78a5f4822744132cfc4a21439f19a67a">More...</a><br /></td></tr>
+<tr class="separator:a78a5f4822744132cfc4a21439f19a67a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa9c0782fb35cc18cb404716d9b6f2c0e"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
 <tr class="memitem:aa9c0782fb35cc18cb404716d9b6f2c0e"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classgko_1_1temporary__clone.html">temporary_clone</a>&lt; T &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec, T *ptr)</td></tr>
 <tr class="memdesc:aa9c0782fb35cc18cb404716d9b6f2c0e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a <a class="el" href="classgko_1_1temporary__clone.html" title="A temporary_clone is a special smart pointer-like object that is designed to hold an object temporari...">temporary_clone</a>.  <a href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">More...</a><br /></td></tr>
@@ -1130,7 +1142,7 @@ template&lt;typename T &gt; </div>
 </div>
 </div>
 <a id="a289e84ef5dea2f579dd12f27140a1470"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a289e84ef5dea2f579dd12f27140a1470">&#9670;&nbsp;</a></span>as() <span class="overload">[1/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a289e84ef5dea2f579dd12f27140a1470">&#9670;&nbsp;</a></span>as() <span class="overload">[1/5]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1174,8 +1186,141 @@ template&lt;typename T , typename U &gt; </div>
 
 </div>
 </div>
+<a id="a78a5f4822744132cfc4a21439f19a67a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a78a5f4822744132cfc4a21439f19a67a">&#9670;&nbsp;</a></span>as() <span class="overload">[2/5]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T , typename U &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::shared_ptr&lt;const typename std::decay&lt;T&gt;::type&gt; gko::as </td>
+          <td>(</td>
+          <td class="paramtype">std::shared_ptr&lt; const U &gt;&#160;</td>
+          <td class="paramname"><em>obj</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Performs polymorphic type conversion of a shared_ptr. </p>
+<p>This is the constant version of the function.</p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">T</td><td>requested result type </td></tr>
+    <tr><td class="paramname">U</td><td>static type of the passed object</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">obj</td><td>the shared_ptr to the object which should be converted.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>If successful, returns a shared_ptr to the subtype, otherwise throws <a class="el" href="classgko_1_1NotSupported.html" title="NotSupported is thrown in case it is not possible to perform the requested operation on the given obj...">NotSupported</a>. This pointer shares ownership with the input pointer. </dd></dl>
+
+</div>
+</div>
+<a id="a67f747ca6333526fbca64180417dc28a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a67f747ca6333526fbca64180417dc28a">&#9670;&nbsp;</a></span>as() <span class="overload">[3/5]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T , typename U &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::shared_ptr&lt;typename std::decay&lt;T&gt;::type&gt; gko::as </td>
+          <td>(</td>
+          <td class="paramtype">std::shared_ptr&lt; U &gt;&#160;</td>
+          <td class="paramname"><em>obj</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Performs polymorphic type conversion of a shared_ptr. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">T</td><td>requested result type </td></tr>
+    <tr><td class="paramname">U</td><td>static type of the passed object</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">obj</td><td>the shared_ptr to the object which should be converted.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>If successful, returns a shared_ptr to the subtype, otherwise throws <a class="el" href="classgko_1_1NotSupported.html" title="NotSupported is thrown in case it is not possible to perform the requested operation on the given obj...">NotSupported</a>. This pointer shares ownership with the input pointer. </dd></dl>
+
+</div>
+</div>
+<a id="a1f1d94c42e7fd9103e256100d004f28a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1f1d94c42e7fd9103e256100d004f28a">&#9670;&nbsp;</a></span>as() <span class="overload">[4/5]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T , typename U &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;typename std::decay&lt;T&gt;::type&gt; gko::as </td>
+          <td>(</td>
+          <td class="paramtype">std::unique_ptr&lt; U &gt; &amp;&amp;&#160;</td>
+          <td class="paramname"><em>obj</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Performs polymorphic type conversion of a unique_ptr. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">T</td><td>requested result type </td></tr>
+    <tr><td class="paramname">U</td><td>static type of the passed object</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">obj</td><td>the unique_ptr to the object which should be converted. If successful, it will be reset to a nullptr.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>If successful, returns a unique_ptr to the subtype, otherwise throws <a class="el" href="classgko_1_1NotSupported.html" title="NotSupported is thrown in case it is not possible to perform the requested operation on the given obj...">NotSupported</a>. </dd></dl>
+
+</div>
+</div>
 <a id="a73ce7e87aec389b5210630bb617b4baa"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a73ce7e87aec389b5210630bb617b4baa">&#9670;&nbsp;</a></span>as() <span class="overload">[2/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a73ce7e87aec389b5210630bb617b4baa">&#9670;&nbsp;</a></span>as() <span class="overload">[5/5]</span></h2>
 
 <div class="memitem">
 <div class="memproto">

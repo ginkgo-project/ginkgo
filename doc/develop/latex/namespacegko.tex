@@ -627,6 +627,12 @@ constexpr bool \mbox{\hyperlink{namespacegko_a61d408b4cd77aae6cac7a40c8307fddb}{
 \begin{DoxyCompactList}\small\item\em Performs polymorphic type conversion. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T , typename U $>$ }\\const std\+::decay$<$ T $>$\+::type $\ast$ \mbox{\hyperlink{namespacegko_a289e84ef5dea2f579dd12f27140a1470}{as}} (const U $\ast$obj)
 \begin{DoxyCompactList}\small\item\em Performs polymorphic type conversion. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T , typename U $>$ }\\std\+::unique\+\_\+ptr$<$ typename std\+::decay$<$ T $>$\+::type $>$ \mbox{\hyperlink{namespacegko_a1f1d94c42e7fd9103e256100d004f28a}{as}} (std\+::unique\+\_\+ptr$<$ U $>$ \&\&obj)
+\begin{DoxyCompactList}\small\item\em Performs polymorphic type conversion of a unique\+\_\+ptr. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T , typename U $>$ }\\std\+::shared\+\_\+ptr$<$ typename std\+::decay$<$ T $>$\+::type $>$ \mbox{\hyperlink{namespacegko_a67f747ca6333526fbca64180417dc28a}{as}} (std\+::shared\+\_\+ptr$<$ U $>$ obj)
+\begin{DoxyCompactList}\small\item\em Performs polymorphic type conversion of a shared\+\_\+ptr. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T , typename U $>$ }\\std\+::shared\+\_\+ptr$<$ const typename std\+::decay$<$ T $>$\+::type $>$ \mbox{\hyperlink{namespacegko_a78a5f4822744132cfc4a21439f19a67a}{as}} (std\+::shared\+\_\+ptr$<$ const U $>$ obj)
+\begin{DoxyCompactList}\small\item\em Performs polymorphic type conversion of a shared\+\_\+ptr. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\\mbox{\hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}}$<$ T $>$ \mbox{\hyperlink{namespacegko_aa9c0782fb35cc18cb404716d9b6f2c0e}{make\+\_\+temporary\+\_\+clone}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec, T $\ast$ptr)
 \begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1temporary__clone}{temporary\+\_\+clone}}. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{namespacegko_aeeaafa7179e5dbc1f1c02197598664fb}\label{namespacegko_aeeaafa7179e5dbc1f1c02197598664fb}} 
@@ -746,7 +752,7 @@ x $>$= \mbox{\hyperlink{namespacegko_a70dbe01ff95c7b953d3d737424c6feb5}{zero$<$\
 \mbox{\Hypertarget{namespacegko_a289e84ef5dea2f579dd12f27140a1470}\label{namespacegko_a289e84ef5dea2f579dd12f27140a1470}} 
 \index{gko@{gko}!as@{as}}
 \index{as@{as}!gko@{gko}}
-\doxysubsubsection{\texorpdfstring{as()}{as()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+\doxysubsubsection{\texorpdfstring{as()}{as()}\hspace{0.1cm}{\footnotesize\ttfamily [1/5]}}
 {\footnotesize\ttfamily template$<$typename T , typename U $>$ \\
 const std\+::decay$<$T$>$\+::type$\ast$ gko\+::as (\begin{DoxyParamCaption}\item[{const U $\ast$}]{obj }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
@@ -771,10 +777,90 @@ This is the constant version of the function.
 \begin{DoxyReturn}{Returns}
 If successful, returns a pointer to the subtype, otherwise throws \mbox{\hyperlink{classgko_1_1NotSupported}{Not\+Supported}}. 
 \end{DoxyReturn}
+\mbox{\Hypertarget{namespacegko_a78a5f4822744132cfc4a21439f19a67a}\label{namespacegko_a78a5f4822744132cfc4a21439f19a67a}} 
+\index{gko@{gko}!as@{as}}
+\index{as@{as}!gko@{gko}}
+\doxysubsubsection{\texorpdfstring{as()}{as()}\hspace{0.1cm}{\footnotesize\ttfamily [2/5]}}
+{\footnotesize\ttfamily template$<$typename T , typename U $>$ \\
+std\+::shared\+\_\+ptr$<$const typename std\+::decay$<$T$>$\+::type$>$ gko\+::as (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const U $>$}]{obj }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Performs polymorphic type conversion of a shared\+\_\+ptr. 
+
+This is the constant version of the function.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & requested result type \\
+\hline
+{\em U} & static type of the passed object\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em obj} & the shared\+\_\+ptr to the object which should be converted.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+If successful, returns a shared\+\_\+ptr to the subtype, otherwise throws \mbox{\hyperlink{classgko_1_1NotSupported}{Not\+Supported}}. This pointer shares ownership with the input pointer. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{namespacegko_a67f747ca6333526fbca64180417dc28a}\label{namespacegko_a67f747ca6333526fbca64180417dc28a}} 
+\index{gko@{gko}!as@{as}}
+\index{as@{as}!gko@{gko}}
+\doxysubsubsection{\texorpdfstring{as()}{as()}\hspace{0.1cm}{\footnotesize\ttfamily [3/5]}}
+{\footnotesize\ttfamily template$<$typename T , typename U $>$ \\
+std\+::shared\+\_\+ptr$<$typename std\+::decay$<$T$>$\+::type$>$ gko\+::as (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ U $>$}]{obj }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Performs polymorphic type conversion of a shared\+\_\+ptr. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & requested result type \\
+\hline
+{\em U} & static type of the passed object\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em obj} & the shared\+\_\+ptr to the object which should be converted.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+If successful, returns a shared\+\_\+ptr to the subtype, otherwise throws \mbox{\hyperlink{classgko_1_1NotSupported}{Not\+Supported}}. This pointer shares ownership with the input pointer. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{namespacegko_a1f1d94c42e7fd9103e256100d004f28a}\label{namespacegko_a1f1d94c42e7fd9103e256100d004f28a}} 
+\index{gko@{gko}!as@{as}}
+\index{as@{as}!gko@{gko}}
+\doxysubsubsection{\texorpdfstring{as()}{as()}\hspace{0.1cm}{\footnotesize\ttfamily [4/5]}}
+{\footnotesize\ttfamily template$<$typename T , typename U $>$ \\
+std\+::unique\+\_\+ptr$<$typename std\+::decay$<$T$>$\+::type$>$ gko\+::as (\begin{DoxyParamCaption}\item[{std\+::unique\+\_\+ptr$<$ U $>$ \&\&}]{obj }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Performs polymorphic type conversion of a unique\+\_\+ptr. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & requested result type \\
+\hline
+{\em U} & static type of the passed object\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em obj} & the unique\+\_\+ptr to the object which should be converted. If successful, it will be reset to a nullptr.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+If successful, returns a unique\+\_\+ptr to the subtype, otherwise throws \mbox{\hyperlink{classgko_1_1NotSupported}{Not\+Supported}}. 
+\end{DoxyReturn}
 \mbox{\Hypertarget{namespacegko_a73ce7e87aec389b5210630bb617b4baa}\label{namespacegko_a73ce7e87aec389b5210630bb617b4baa}} 
 \index{gko@{gko}!as@{as}}
 \index{as@{as}!gko@{gko}}
-\doxysubsubsection{\texorpdfstring{as()}{as()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+\doxysubsubsection{\texorpdfstring{as()}{as()}\hspace{0.1cm}{\footnotesize\ttfamily [5/5]}}
 {\footnotesize\ttfamily template$<$typename T , typename U $>$ \\
 std\+::decay$<$T$>$\+::type$\ast$ gko\+::as (\begin{DoxyParamCaption}\item[{U $\ast$}]{obj }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
