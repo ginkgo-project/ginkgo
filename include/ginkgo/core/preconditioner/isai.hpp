@@ -127,8 +127,9 @@ public:
         bool GKO_FACTORY_PARAMETER(exclusive_factor_u, false);
 
         /**
-         * @brief Optimization parameter that skips the sorting if the input
-         *        matrix/matrices (required by the algorithm).
+         * @brief Optimization parameter that skips the sorting of the input
+         *        matrix/matrices (only skip if it is known that they are
+         *        already sorted).
          *
          * The algorithm to create the approximate inverses requires the
          * input matrix/matrices to be sorted. If they are, this parameter
