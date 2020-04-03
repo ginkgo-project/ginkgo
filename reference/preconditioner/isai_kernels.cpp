@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
@@ -68,12 +69,12 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
     e(i) := unit vector i (containing all zeros except for row i, which is one)
     S := Sparsity pattern of the desired aiM
     S(i) := Sparsity pattern of row i of aiM (Set of non-zero columns)
-    D(i) := L[S(i), S(i)]
+    D(i) := M[S(i), S(i)]
     aiM := approximate inverse of M
 
     Target: Solving (aiM * M = I)_{S} (aiM * M = I for the sparsity pattern S)
     aiM[i, :] * D(i) = e(i)^T
-    <=> D(i)^T * vL[i, :]^T = e(i)   =^ Triangular system (Trs)
+    <=> D(i)^T * aiM[i, :]^T = e(i)   =^ Triangular system (Trs)
     Solve Trs, fill in aiM row by row (coalesced access)
     */
     const auto num_rows = mtx->get_size()[0];
@@ -140,7 +141,7 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
             const auto new_val = rhs[i];
             auto idx = i_row_begin + i;
             // Check for non-finite elements which should not be copied over
-            if (isfinite(new_val)) {
+            if (gko::isfinite(new_val)) {
                 i_vals[idx] = new_val;
             } else {
                 // The diagonal elements should be set to 1, so the

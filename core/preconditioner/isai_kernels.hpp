@@ -52,7 +52,6 @@ namespace kernels {
                             const matrix::Csr<ValueType, IndexType> *u_csr, \
                             matrix::Csr<ValueType, IndexType> *inverse_u)
 
-
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_ISAI_GENERATE_L_INVERSE_KERNEL(ValueType, IndexType); \
