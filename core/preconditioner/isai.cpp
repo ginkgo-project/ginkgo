@@ -83,6 +83,8 @@ convert_to_csr_and_sort(std::shared_ptr<const Executor> &exec, const LinOp *mtx,
     if (skip_sorting && exec == mtx->get_executor()) {
         auto csr_mtx = dynamic_cast<const Csr *>(mtx);
         if (csr_mtx) {
+            // Here, we can just forward the pointer with an empty deleter
+            // since it is already sorted and in the correct format
             return {csr_mtx, [](const Csr *) {}};
         }
     }
@@ -101,7 +103,6 @@ template <typename ValueType, typename IndexType>
 void Isai<ValueType, IndexType>::generate_l_inverse(const LinOp *to_invert_l,
                                                     bool skip_sorting)
 {
-    using Csr = matrix::Csr<ValueType, IndexType>;
     GKO_ASSERT_IS_SQUARE_MATRIX(to_invert_l);
     auto exec = this->get_executor();
     auto csr_l = convert_to_csr_and_sort<Csr>(exec, to_invert_l, skip_sorting);
@@ -119,7 +120,6 @@ template <typename ValueType, typename IndexType>
 void Isai<ValueType, IndexType>::generate_u_inverse(const LinOp *to_invert_u,
                                                     bool skip_sorting)
 {
-    using Csr = matrix::Csr<ValueType, IndexType>;
     GKO_ASSERT_IS_SQUARE_MATRIX(to_invert_u);
     auto exec = this->get_executor();
     auto csr_u = convert_to_csr_and_sort<Csr>(exec, to_invert_u, skip_sorting);
