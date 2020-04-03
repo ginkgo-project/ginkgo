@@ -50,9 +50,7 @@ struct Base {
 struct Derived : Base {};
 
 
-struct NonRelated {
-    virtual ~NonRelated() = default;
-};
+struct NonRelated : Base {};
 
 
 struct ClonableDerived : Base {
@@ -283,6 +281,60 @@ TEST(As, FailsToConvertConstantIfNotRelated)
         ASSERT_TRUE(
             std::equal(expected.rbegin(), expected.rend(), msg.rbegin()));
     }
+}
+
+
+TEST(As, ConvertsPolymorphicTypeUniquePtr)
+{
+    auto expected = new Derived{};
+
+    ASSERT_EQ(gko::as<Derived>(std::unique_ptr<Base>{expected}).get(),
+              expected);
+}
+
+
+TEST(As, FailsToConvertUniquePtrIfNotRelated)
+{
+    auto expected = new Derived{};
+
+    ASSERT_THROW(gko::as<NonRelated>(std::unique_ptr<Base>{expected}),
+                 gko::NotSupported);
+}
+
+
+TEST(As, ConvertsPolymorphicTypeSharedPtr)
+{
+    auto expected = new Derived{};
+
+    ASSERT_EQ(gko::as<Derived>(std::shared_ptr<Base>{expected}).get(),
+              expected);
+}
+
+
+TEST(As, FailsToConvertSharedPtrIfNotRelated)
+{
+    auto expected = new Derived{};
+
+    ASSERT_THROW(gko::as<NonRelated>(std::shared_ptr<Base>{expected}),
+                 gko::NotSupported);
+}
+
+
+TEST(As, ConvertsConstPolymorphicTypeSharedPtr)
+{
+    auto expected = new Derived{};
+
+    ASSERT_EQ(gko::as<Derived>(std::shared_ptr<const Base>{expected}).get(),
+              expected);
+}
+
+
+TEST(As, FailsToConvertConstSharedPtrIfNotRelated)
+{
+    auto expected = new Derived{};
+
+    ASSERT_THROW(gko::as<NonRelated>(std::shared_ptr<const Base>{expected}),
+                 gko::NotSupported);
 }
 
 
