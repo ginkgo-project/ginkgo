@@ -76,7 +76,7 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
     <=> D(i)^T * vL[i, :]^T = e(i)   =^ Triangular system (Trs)
     Solve Trs, fill in aiM row by row (coalesced access)
     */
-    const auto size = mtx->get_size();
+    const auto num_rows = mtx->get_size()[0];
     const auto m_row_ptrs = mtx->get_const_row_ptrs();
     const auto m_cols = mtx->get_const_col_idxs();
     const auto m_vals = mtx->get_const_values();
@@ -87,14 +87,14 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
     // expect mtx and inverse_mtx to have the same number of elems
     const auto num_elems = mtx->get_num_stored_elements();
     // Copy sparsity pattern of original into the inverse of L
-    std::copy_n(m_row_ptrs, size[0] + 1, i_row_ptrs);
+    std::copy_n(m_row_ptrs, num_rows + 1, i_row_ptrs);
     std::copy_n(m_cols, num_elems, i_cols);
 
     gko::Array<ValueType> rhs_array{exec};  // RHS for local trisystem
     // memory for dense trisystem in column major:
     gko::Array<ValueType> trisystem_array{exec};
 
-    for (size_type row = 0; row < size[0]; ++row) {
+    for (size_type row = 0; row < num_rows; ++row) {
         const auto i_row_begin = i_row_ptrs[row];
         const auto i_row_end = i_row_ptrs[row + 1];
         const auto i_row_elems = i_row_end - i_row_begin;
