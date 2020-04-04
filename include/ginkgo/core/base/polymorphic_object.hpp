@@ -290,24 +290,24 @@ private:
  * @see EnablePolymorphicObject for creating a concrete subclass of
  *      PolymorphicObject.
  */
-template <typename AbstactObject, typename PolymorphicBase = PolymorphicObject>
+template <typename AbstractObject, typename PolymorphicBase = PolymorphicObject>
 class EnableAbstractPolymorphicObject : public PolymorphicBase {
 public:
     using PolymorphicBase::PolymorphicBase;
 
-    std::unique_ptr<AbstactObject> create_default(
+    std::unique_ptr<AbstractObject> create_default(
         std::shared_ptr<const Executor> exec) const
     {
-        return std::unique_ptr<AbstactObject>{static_cast<AbstactObject *>(
+        return std::unique_ptr<AbstractObject>{static_cast<AbstractObject *>(
             this->create_default_impl(std::move(exec)).release())};
     }
 
-    std::unique_ptr<AbstactObject> create_default() const
+    std::unique_ptr<AbstractObject> create_default() const
     {
         return this->create_default(this->get_executor());
     }
 
-    std::unique_ptr<AbstactObject> clone(
+    std::unique_ptr<AbstractObject> clone(
         std::shared_ptr<const Executor> exec) const
     {
         auto new_op = this->create_default(exec);
@@ -315,25 +315,25 @@ public:
         return new_op;
     }
 
-    std::unique_ptr<AbstactObject> clone() const
+    std::unique_ptr<AbstractObject> clone() const
     {
         return this->clone(this->get_executor());
     }
 
-    AbstactObject *copy_from(const PolymorphicObject *other)
+    AbstractObject *copy_from(const PolymorphicObject *other)
     {
-        return static_cast<AbstactObject *>(this->copy_from_impl(other));
+        return static_cast<AbstractObject *>(this->copy_from_impl(other));
     }
 
-    AbstactObject *copy_from(std::unique_ptr<PolymorphicObject> other)
+    AbstractObject *copy_from(std::unique_ptr<PolymorphicObject> other)
     {
-        return static_cast<AbstactObject *>(
+        return static_cast<AbstractObject *>(
             this->copy_from_impl(std::move(other)));
     }
 
-    AbstactObject *clear()
+    AbstractObject *clear()
     {
-        return static_cast<AbstactObject *>(this->clear_impl());
+        return static_cast<AbstractObject *>(this->clear_impl());
     }
 };
 
