@@ -85,7 +85,7 @@ convert_to_csr_and_sort(std::shared_ptr<const Executor> &exec, const LinOp *mtx,
         if (csr_mtx) {
             // Here, we can just forward the pointer with an empty deleter
             // since it is already sorted and in the correct format
-            return {csr_mtx, [](const Csr *) {}};
+            return {csr_mtx, null_deleter<const Csr>{}};
         }
     }
     auto copy = Csr::create(exec);

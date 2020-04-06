@@ -362,7 +362,7 @@ TYPED_TEST(Isai, GeneratesWithUnsortedCsr)
 {
     using Csr = typename TestFixture::Csr;
     using Composition = typename TestFixture::Composition;
-    using value_type = typename TestFixture::value_type;
+    using T = typename TestFixture::value_type;
     const auto comp = gko::share(Composition::create(
         gko::share(this->l_s_unsorted), gko::share(this->u_s_unsorted)));
 
@@ -370,8 +370,8 @@ TYPED_TEST(Isai, GeneratesWithUnsortedCsr)
     auto l_inv = isai->get_approx_inverse_l();
     auto u_inv = isai->get_approx_inverse_u();
 
-    GKO_ASSERT_MTX_NEAR(l_inv, this->l_sparse_inv, r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(u_inv, this->u_sparse_inv, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(l_inv, this->l_sparse_inv, r<T>::value);
+    GKO_ASSERT_MTX_NEAR(u_inv, this->u_sparse_inv, r<T>::value);
 }
 
 
@@ -390,8 +390,8 @@ TYPED_TEST(Isai, ApplyMultipleRhs)
     isai->apply(gko::lend(x), gko::lend(result));
 
     // Testing for: U^-1 * L^-1 * L * U == I
-    GKO_ASSERT_MTX_NEAR(
-        result, l({I<T>{1, 0, 0}, I<T>{0, 1, 0}, I<T>{0, 0, 1}}), r<T>::value);
+    GKO_ASSERT_MTX_NEAR(result, l({{1., 0., 0.}, {0., 1., 0.}, {0., 0., 1.}}),
+                        r<T>::value);
 }
 
 
@@ -412,7 +412,7 @@ TYPED_TEST(Isai, ApplyWithCacheReset)
     isai->apply(gko::lend(vec1), gko::lend(res1));
     isai->apply(gko::lend(vec2), gko::lend(res2));
 
-    GKO_ASSERT_MTX_NEAR(res1, l(I<T>{25, -40, -4}), r<T>::value);
+    GKO_ASSERT_MTX_NEAR(res1, l({25., -40., -4.}), r<T>::value);
     GKO_ASSERT_MTX_NEAR(res2,
                         l({I<T>{.625, 14.125}, I<T>{5, -43}, I<T>{-.5, -18.5}}),
                         r<T>::value);
@@ -435,7 +435,7 @@ TYPED_TEST(Isai, AdvancedApply)
     isai->apply(gko::lend(alpha), gko::lend(vec), gko::lend(beta),
                 gko::lend(res));
 
-    GKO_ASSERT_MTX_NEAR(res, l(I<T>{40, 22, -49, -28}), r<T>::value);
+    GKO_ASSERT_MTX_NEAR(res, l({40., 22., -49., -28.}), r<T>::value);
 }
 
 
@@ -562,7 +562,7 @@ TYPED_TEST(Isai, ApplyWithExclusiveLMtx)
 
     isai->apply(gko::lend(vec), gko::lend(result));
 
-    GKO_ASSERT_MTX_NEAR(result, l(I<T>{9., -3.5, -24.5}), r<T>::value);
+    GKO_ASSERT_MTX_NEAR(result, l({9., -3.5, -24.5}), r<T>::value);
 }
 
 
@@ -579,7 +579,7 @@ TYPED_TEST(Isai, ApplyWithExclusiveUMtx)
 
     isai->apply(gko::lend(vec), gko::lend(result));
 
-    GKO_ASSERT_MTX_NEAR(result, l(I<T>{6.125, -5., 1.5}), r<T>::value);
+    GKO_ASSERT_MTX_NEAR(result, l({6.125, -5., 1.5}), r<T>::value);
 }
 
 
@@ -599,7 +599,7 @@ TYPED_TEST(Isai, AdvancedApplyWithExclusiveLMtx)
     isai->apply(gko::lend(alpha), gko::lend(vec), gko::lend(beta),
                 gko::lend(result));
 
-    GKO_ASSERT_MTX_NEAR(result, l(I<T>{19., 1.5, -77.5}), r<T>::value);
+    GKO_ASSERT_MTX_NEAR(result, l({19., 1.5, -77.5}), r<T>::value);
 }
 
 
@@ -619,7 +619,7 @@ TYPED_TEST(Isai, AdvancedApplyWithExclusiveUMtx)
     isai->apply(gko::lend(alpha), gko::lend(vec), gko::lend(beta),
                 gko::lend(result));
 
-    GKO_ASSERT_MTX_NEAR(result, l(I<T>{10.375, -3., 0.5}), r<T>::value);
+    GKO_ASSERT_MTX_NEAR(result, l({10.375, -3., 0.5}), r<T>::value);
 }
 
 
