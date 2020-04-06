@@ -30,68 +30,69 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/factorization/par_ilu_kernels.hpp"
+#include "core/factorization/ilu_kernels.hpp"
 
 
-#include <ginkgo/core/base/std_extensions.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
+#include <hip/hip_runtime.h>
 
 
-#include "cuda/base/math.hpp"
-#include "cuda/base/types.hpp"
-#include "cuda/components/thread_ids.cuh"
+#include <ginkgo/core/base/array.hpp>
+
+
+#include "hip/base/device_guard.hip.hpp"
+#include "hip/base/hipsparse_bindings.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
+namespace hip {
 /**
- * @brief The parallel ilu factorization namespace.
+ * @brief The ilu factorization namespace.
  *
  * @ingroup factor
  */
-namespace par_ilu_factorization {
-
-
-constexpr int default_block_size{512};
-
-
-#include "common/factorization/par_ilu_kernels.hpp.inc"
+namespace ilu_factorization {
 
 
 template <typename ValueType, typename IndexType>
-void compute_l_u_factors(std::shared_ptr<const CudaExecutor> exec,
-                         size_type iterations,
-                         const matrix::Coo<ValueType, IndexType> *system_matrix,
-                         matrix::Csr<ValueType, IndexType> *l_factor,
-                         matrix::Csr<ValueType, IndexType> *u_factor)
+void compute_lu(std::shared_ptr<const DefaultExecutor> exec,
+                matrix::Csr<ValueType, IndexType> *m)
 {
-    iterations = (iterations == 0) ? 10 : iterations;
-    const auto num_elements = system_matrix->get_num_stored_elements();
-    const dim3 block_size{default_block_size, 1, 1};
-    const dim3 grid_dim{
-        static_cast<uint32>(
-            ceildiv(num_elements, static_cast<size_type>(block_size.x))),
-        1, 1};
-    for (size_type i = 0; i < iterations; ++i) {
-        kernel::compute_l_u_factors<<<grid_dim, block_size, 0, 0>>>(
-            num_elements, as_cuda_type(system_matrix->get_const_row_idxs()),
-            as_cuda_type(system_matrix->get_const_col_idxs()),
-            as_cuda_type(system_matrix->get_const_values()),
-            as_cuda_type(l_factor->get_const_row_ptrs()),
-            as_cuda_type(l_factor->get_const_col_idxs()),
-            as_cuda_type(l_factor->get_values()),
-            as_cuda_type(u_factor->get_const_row_ptrs()),
-            as_cuda_type(u_factor->get_const_col_idxs()),
-            as_cuda_type(u_factor->get_values()));
-    }
+    const auto id = exec->get_device_id();
+    auto handle = exec->get_hipsparse_handle();
+    gko::hip::device_guard g{id};
+    auto desc = hipsparse::create_mat_descr();
+    auto info = hipsparse::create_ilu0_info();
+
+    // get buffer size for ILU
+    IndexType num_rows = m->get_size()[0];
+    IndexType nnz = m->get_num_stored_elements();
+    size_type buffer_size{};
+    hipsparse::ilu0_buffer_size(handle, num_rows, nnz, desc,
+                                m->get_const_values(), m->get_const_row_ptrs(),
+                                m->get_const_col_idxs(), info, buffer_size);
+
+    Array<char> buffer{exec, buffer_size};
+
+    // set up ILU(0)
+    hipsparse::ilu0_analysis(handle, num_rows, nnz, desc, m->get_const_values(),
+                             m->get_const_row_ptrs(), m->get_const_col_idxs(),
+                             info, HIPSPARSE_SOLVE_POLICY_USE_LEVEL,
+                             buffer.get_data());
+
+    hipsparse::ilu0(handle, num_rows, nnz, desc, m->get_values(),
+                    m->get_const_row_ptrs(), m->get_const_col_idxs(), info,
+                    HIPSPARSE_SOLVE_POLICY_USE_LEVEL, buffer.get_data());
+
+    hipsparse::destroy_ilu0_info(info);
+    hipsparse::destroy(desc);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL);
+    GKO_DECLARE_ILU_COMPUTE_LU_KERNEL);
 
 
-}  // namespace par_ilu_factorization
-}  // namespace cuda
+}  // namespace ilu_factorization
+}  // namespace hip
 }  // namespace kernels
 }  // namespace gko

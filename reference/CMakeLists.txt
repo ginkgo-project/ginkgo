@@ -3,6 +3,8 @@ target_sources(ginkgo_reference
     PRIVATE
         base/version.cpp
         components/prefix_sum.cpp
+        factorization/ilu_kernels.cpp
+        factorization/factorization_kernels.cpp
         factorization/par_ilu_kernels.cpp
         matrix/coo_kernels.cpp
         matrix/csr_kernels.cpp

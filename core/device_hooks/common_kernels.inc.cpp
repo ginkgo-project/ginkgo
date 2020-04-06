@@ -33,6 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "core/factorization/factorization_kernels.hpp"
+#include "core/factorization/ilu_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
@@ -761,26 +763,46 @@ GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 }  // namespace jacobi
 
 
+namespace factorization {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_ELEMENTS_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_ELEMENTS_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_U_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_U_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL);
+
+
+}  // namespace factorization
+
+
+namespace ilu_factorization {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_ILU_COMPUTE_LU_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ILU_COMPUTE_LU_KERNEL);
+
+
+}  // namespace ilu_factorization
+
+
 namespace par_ilu_factorization {
 
-
-template <typename ValueType, typename IndexType>
-GKO_DECLARE_PAR_ILU_ADD_DIAGONAL_ELEMENTS_KERNEL(ValueType, IndexType)
-GKO_NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_PAR_ILU_ADD_DIAGONAL_ELEMENTS_KERNEL);
-
-template <typename ValueType, typename IndexType>
-GKO_DECLARE_PAR_ILU_INITIALIZE_ROW_PTRS_L_U_KERNEL(ValueType, IndexType)
-GKO_NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_PAR_ILU_INITIALIZE_ROW_PTRS_L_U_KERNEL);
-
-template <typename ValueType, typename IndexType>
-GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL(ValueType, IndexType)
-GKO_NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL);
 
 template <typename ValueType, typename IndexType>
 GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL(ValueType, IndexType)

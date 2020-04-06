@@ -109,9 +109,9 @@ namespace preconditioner {
  */
 template <typename LSolverType = solver::LowerTrs<>,
           typename USolverType = solver::UpperTrs<>, bool ReverseApply = false,
-          typename IndexTypeParIlu = int32>
+          typename IndexType = int32>
 class Ilu : public EnableLinOp<
-                Ilu<LSolverType, USolverType, ReverseApply, IndexTypeParIlu>> {
+                Ilu<LSolverType, USolverType, ReverseApply, IndexType>> {
     friend class EnableLinOp<Ilu>;
     friend class EnablePolymorphicObject<Ilu, LinOp>;
 
@@ -124,7 +124,7 @@ public:
     using l_solver_type = LSolverType;
     using u_solver_type = USolverType;
     static constexpr bool performs_reverse_apply = ReverseApply;
-    using index_type_par_ilu = IndexTypeParIlu;
+    using index_type = IndexType;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -139,6 +139,12 @@ public:
          */
         std::shared_ptr<typename u_solver_type::Factory> GKO_FACTORY_PARAMETER(
             u_solver_factory, nullptr);
+
+        /**
+         * Factory for the factorization
+         */
+        std::shared_ptr<LinOpFactory> GKO_FACTORY_PARAMETER(
+            factorization_factory, nullptr);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Ilu, parameters, Factory);
@@ -198,24 +204,33 @@ protected:
         : EnableLinOp<Ilu>(factory->get_executor(), lin_op->get_size()),
           parameters_{factory->get_parameters()}
     {
-        auto comp_cast =
-            dynamic_cast<const Composition<value_type> *>(lin_op.get());
+        auto comp =
+            std::dynamic_pointer_cast<const Composition<value_type>>(lin_op);
         std::shared_ptr<const LinOp> l_factor;
         std::shared_ptr<const LinOp> u_factor;
 
-        if (comp_cast == nullptr) {
+        // build factorization if we weren't passed a composition
+        if (!comp) {
             auto exec = lin_op->get_executor();
-            auto par_ilu =
-                factorization::ParIlu<value_type, index_type_par_ilu>::build()
-                    .on(exec)
-                    ->generate(lin_op);
-            l_factor = par_ilu->get_l_factor();
-            u_factor = par_ilu->get_u_factor();
-        } else if (comp_cast->get_operators().size() == 2) {
-            l_factor = comp_cast->get_operators()[0];
-            u_factor = comp_cast->get_operators()[1];
+            if (!parameters_.factorization_factory) {
+                parameters_.factorization_factory =
+                    factorization::ParIlu<value_type, index_type>::build().on(
+                        exec);
+            }
+            auto fact = std::shared_ptr<const LinOp>(
+                parameters_.factorization_factory->generate(lin_op));
+            // ensure that the result is a composition
+            comp =
+                std::dynamic_pointer_cast<const Composition<value_type>>(fact);
+            if (!comp) {
+                GKO_NOT_SUPPORTED(comp);
+            }
+        }
+        if (comp->get_operators().size() == 2) {
+            l_factor = comp->get_operators()[0];
+            u_factor = comp->get_operators()[1];
         } else {
-            GKO_NOT_SUPPORTED(comp_cast);
+            GKO_NOT_SUPPORTED(comp);
         }
         GKO_ASSERT_EQUAL_DIMENSIONS(l_factor, u_factor);
 

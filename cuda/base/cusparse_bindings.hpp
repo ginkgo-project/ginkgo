@@ -633,6 +633,59 @@ inline void destroy(csrgemm2Info_t info)
 #if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
 
 
+inline csrsm2Info_t create_solve_info()
+{
+    csrsm2Info_t info{};
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateCsrsm2Info(&info));
+    return info;
+}
+
+
+inline void destroy(csrsm2Info_t info)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyCsrsm2Info(info));
+}
+
+
+// CUDA_VERSION<=9.1 do not support csrsm2.
+#elif (defined(CUDA_VERSION) && (CUDA_VERSION < 9020))
+
+
+inline cusparseSolveAnalysisInfo_t create_solve_info()
+{
+    cusparseSolveAnalysisInfo_t info{};
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateSolveAnalysisInfo(&info));
+    return info;
+}
+
+
+inline void destroy(cusparseSolveAnalysisInfo_t info)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroySolveAnalysisInfo(info));
+}
+
+
+#endif
+
+
+inline csrilu02Info_t create_ilu0_info()
+{
+    csrilu02Info_t info{};
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateCsrilu02Info(&info));
+    return info;
+}
+
+
+inline void destroy(csrilu02Info_t info)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroyCsrilu02Info(info));
+}
+
+
+// CUDA versions 9.2 and above have csrsm2.
+#if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
+
+
 #define GKO_BIND_CUSPARSE32_BUFFERSIZEEXT(ValueType, CusparseName)            \
     inline void buffer_size_ext(                                              \
         cusparseHandle_t handle, int algo, cusparseOperation_t trans1,        \
@@ -960,6 +1013,106 @@ GKO_BIND_CUSPARSE_GATHER(std::complex<float>, cusparseCgthr);
 GKO_BIND_CUSPARSE_GATHER(std::complex<double>, cusparseZgthr);
 
 #undef GKO_BIND_CUSPARSE_GATHER
+
+
+template <typename ValueType, typename IndexType>
+void ilu0_buffer_size(cusparseHandle_t handle, IndexType m, IndexType nnz,
+                      const cusparseMatDescr_t descr, const ValueType *vals,
+                      const IndexType *row_ptrs, const IndexType *col_idxs,
+                      csrilu02Info_t info,
+                      size_type &buffer_size) GKO_NOT_IMPLEMENTED;
+
+#define GKO_BIND_CUSPARSE_ILU0_BUFFER_SIZE(ValueType, CusparseName)          \
+    template <>                                                              \
+    inline void ilu0_buffer_size<ValueType, int32>(                          \
+        cusparseHandle_t handle, int32 m, int32 nnz,                         \
+        const cusparseMatDescr_t descr, const ValueType *vals,               \
+        const int32 *row_ptrs, const int32 *col_idxs, csrilu02Info_t info,   \
+        size_type &buffer_size)                                              \
+    {                                                                        \
+        int tmp_buffer_size{};                                               \
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                       \
+            CusparseName(handle, m, nnz, descr,                              \
+                         as_culibs_type(const_cast<ValueType *>(vals)),      \
+                         row_ptrs, col_idxs, info, &tmp_buffer_size));       \
+        buffer_size = tmp_buffer_size;                                       \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_CUSPARSE_ILU0_BUFFER_SIZE(float, cusparseScsrilu02_bufferSize);
+GKO_BIND_CUSPARSE_ILU0_BUFFER_SIZE(double, cusparseDcsrilu02_bufferSize);
+GKO_BIND_CUSPARSE_ILU0_BUFFER_SIZE(std::complex<float>,
+                                   cusparseCcsrilu02_bufferSize);
+GKO_BIND_CUSPARSE_ILU0_BUFFER_SIZE(std::complex<double>,
+                                   cusparseZcsrilu02_bufferSize);
+
+#undef GKO_BIND_CUSPARSE_ILU0_BUFFER_SIZE
+
+
+template <typename ValueType, typename IndexType>
+void ilu0_analysis(cusparseHandle_t handle, IndexType m, IndexType nnz,
+                   const cusparseMatDescr_t descr, const ValueType *vals,
+                   const IndexType *row_ptrs, const IndexType *col_idxs,
+                   csrilu02Info_t info, cusparseSolvePolicy_t policy,
+                   void *buffer) GKO_NOT_IMPLEMENTED;
+
+#define GKO_BIND_CUSPARSE_ILU0_ANALYSIS(ValueType, CusparseName)             \
+    template <>                                                              \
+    inline void ilu0_analysis<ValueType, int32>(                             \
+        cusparseHandle_t handle, int32 m, int32 nnz,                         \
+        const cusparseMatDescr_t descr, const ValueType *vals,               \
+        const int32 *row_ptrs, const int32 *col_idxs, csrilu02Info_t info,   \
+        cusparseSolvePolicy_t policy, void *buffer)                          \
+    {                                                                        \
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                       \
+            CusparseName(handle, m, nnz, descr, as_culibs_type(vals),        \
+                         row_ptrs, col_idxs, info, policy, buffer));         \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_CUSPARSE_ILU0_ANALYSIS(float, cusparseScsrilu02_analysis);
+GKO_BIND_CUSPARSE_ILU0_ANALYSIS(double, cusparseDcsrilu02_analysis);
+GKO_BIND_CUSPARSE_ILU0_ANALYSIS(std::complex<float>,
+                                cusparseCcsrilu02_analysis);
+GKO_BIND_CUSPARSE_ILU0_ANALYSIS(std::complex<double>,
+                                cusparseZcsrilu02_analysis);
+
+#undef GKO_BIND_CUSPARSE_ILU0_ANALYSIS
+
+
+template <typename ValueType, typename IndexType>
+void ilu0(cusparseHandle_t handle, IndexType m, IndexType nnz,
+          const cusparseMatDescr_t descr, ValueType *vals,
+          const IndexType *row_ptrs, const IndexType *col_idxs,
+          csrilu02Info_t info, cusparseSolvePolicy_t policy,
+          void *buffer) GKO_NOT_IMPLEMENTED;
+
+#define GKO_BIND_CUSPARSE_ILU0(ValueType, CusparseName)                      \
+    template <>                                                              \
+    inline void ilu0<ValueType, int32>(                                      \
+        cusparseHandle_t handle, int32 m, int32 nnz,                         \
+        const cusparseMatDescr_t descr, ValueType *vals,                     \
+        const int32 *row_ptrs, const int32 *col_idxs, csrilu02Info_t info,   \
+        cusparseSolvePolicy_t policy, void *buffer)                          \
+    {                                                                        \
+        GKO_ASSERT_NO_CUSPARSE_ERRORS(                                       \
+            CusparseName(handle, m, nnz, descr, as_culibs_type(vals),        \
+                         row_ptrs, col_idxs, info, policy, buffer));         \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_CUSPARSE_ILU0(float, cusparseScsrilu02);
+GKO_BIND_CUSPARSE_ILU0(double, cusparseDcsrilu02);
+GKO_BIND_CUSPARSE_ILU0(std::complex<float>, cusparseCcsrilu02);
+GKO_BIND_CUSPARSE_ILU0(std::complex<double>, cusparseZcsrilu02);
+
+#undef GKO_BIND_CUSPARSE_ILU0
 
 
 }  // namespace cusparse
