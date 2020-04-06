@@ -54,7 +54,7 @@ DEFINE_uint32(max_block_size, 32,
 
 DEFINE_string(preconditioners, "jacobi",
               "A comma-separated list of solvers to run."
-              "Supported values are: jacobi, ilu, sparselib-ilu");
+              "Supported values are: jacobi, parilu, ilu");
 
 DEFINE_string(storage_optimization, "0,0",
               "Defines the kind of storage optimization to perform on "
