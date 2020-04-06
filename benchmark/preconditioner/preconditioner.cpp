@@ -99,7 +99,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_accuracy(FLAGS_accuracy)
                  .on(exec);
          }},
-        {"ilu",
+        {"parilu",
          [](std::shared_ptr<const gko::Executor> exec) {
              auto ilu_fact = std::shared_ptr<gko::LinOpFactory>(
                  gko::factorization::ParIlu<etype>::build().on(exec));
@@ -107,7 +107,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_factorization_factory(ilu_fact)
                  .on(exec);
          }},
-        {"sparselib-ilu", [](std::shared_ptr<const gko::Executor> exec) {
+        {"ilu", [](std::shared_ptr<const gko::Executor> exec) {
              auto ilu_fact = std::shared_ptr<gko::LinOpFactory>(
                  gko::factorization::Ilu<etype>::build().on(exec));
              return gko::preconditioner::Ilu<>::build()
@@ -128,8 +128,8 @@ std::string encode_parameters(const char *precond_name)
                  << FLAGS_storage_optimization;
              return oss.str();
          }},
-        {"ilu", [] { return std::string{"ilu"}; }},
-        {"sparselib-ilu", [] { return std::string{"sparselib-ilu"}; }}};
+        {"parilu", [] { return std::string{"parilu"}; }},
+        {"ilu", [] { return std::string{"ilu"}; }}};
     return encoder[precond_name]();
 }
 
