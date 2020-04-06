@@ -344,7 +344,7 @@ build/cuda101/intel/cuda/debug/static:
 # HIP AMD
 build/amd/gcc/hip/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/gko-amd-gnu7-llvm60
+  image: localhost:5000/hip_updated
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -357,7 +357,7 @@ build/amd/gcc/hip/debug/shared:
 
 build/amd/clang/hip/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/gko-amd-gnu7-llvm60
+  image: localhost:5000/hip_updated
   variables:
     <<: *default_variables
     C_COMPILER: clang
