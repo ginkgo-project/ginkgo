@@ -97,7 +97,8 @@ struct dim {
     constexpr GKO_ATTRIBUTES const dimension_type &operator[](
         const size_type &dimension) const noexcept
     {
-        return GKO_ASSERT(dimension < dimensionality), *(&first_ + dimension);
+        return GKO_ASSERT(dimension < dimensionality),
+               dimension == 0 ? first_ : rest_[dimension - 1];
     }
 
     /**
@@ -106,7 +107,8 @@ struct dim {
     GKO_ATTRIBUTES dimension_type &operator[](
         const size_type &dimension) noexcept
     {
-        return GKO_ASSERT(dimension < dimensionality), *(&first_ + dimension);
+        return GKO_ASSERT(dimension < dimensionality),
+               dimension == 0 ? first_ : rest_[dimension - 1];
     }
 
     /**
@@ -173,12 +175,12 @@ struct dim<1u, DimensionType> {
     constexpr GKO_ATTRIBUTES const dimension_type &operator[](
         const size_type &dimension) const noexcept
     {
-        return *(&first_ + dimension);
+        return GKO_ASSERT(dimension == 0), first_;
     }
 
     GKO_ATTRIBUTES dimension_type &operator[](const size_type &dimension)
     {
-        return *(&first_ + dimension);
+        return GKO_ASSERT(dimension == 0), first_;
     }
 
     constexpr GKO_ATTRIBUTES operator bool() const
