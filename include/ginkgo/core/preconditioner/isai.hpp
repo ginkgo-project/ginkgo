@@ -91,12 +91,18 @@ public:
     /**
      * Returns the approximate inverse of L.
      *
+     * @note If exclusivity for U was specified, it will return a managed
+     *       nullptr.
+     *
      * @returns the approximate inverse of L
      */
     std::shared_ptr<const Csr> get_approx_inverse_l() const { return l_inv_; }
 
     /**
      * Returns the approximate inverse of U.
+     *
+     * @note If exclusivity for L was specified, it will return a managed
+     *       nullptr.
      *
      * @returns the approximate inverse of U
      */
@@ -227,7 +233,8 @@ protected:
 
 private:
     /**
-     * Generates the approximate inverse of a lower triangular matrix
+     * Generates the approximate inverse for a lower triangular matrix and
+     * stores the result in `l_inv_`.
      *
      * @param to_invert_l  the source lower triangular matrix used to generate
      *                     the approximate inverse
@@ -238,7 +245,8 @@ private:
     void generate_l_inverse(const LinOp *to_invert_l, bool skip_sorting);
 
     /**
-     * Generates the approximate inverse.
+     * Generates the approximate inverse for an upper triangular matrix and
+     * stores the result in `u_inv_`.
      *
      * @param to_invert_u  the source upper triangular matrix used to generate
      *                     the approximate inverse
