@@ -51,12 +51,14 @@ namespace kernels {
     void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec, \
                                matrix::Csr<ValueType, IndexType> *mtx,      \
                                bool is_sorted)
+
 #define GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_U_KERNEL(ValueType, \
                                                                  IndexType) \
     void initialize_row_ptrs_l_u(                                           \
         std::shared_ptr<const DefaultExecutor> exec,                        \
         const matrix::Csr<ValueType, IndexType> *system_matrix,             \
         IndexType *l_row_ptrs, IndexType *u_row_ptrs)
+
 #define GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL(ValueType, IndexType) \
     void initialize_l_u(                                                      \
         std::shared_ptr<const DefaultExecutor> exec,                          \
