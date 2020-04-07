@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/base/polymorphic_object.hpp (29444d385) Source File</title>
+<title>Ginkgo: ginkgo/core/base/polymorphic_object.hpp (3190c3e0f) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/133441259 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/133662018 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -218,24 +218,24 @@ $(function() {
 <div class="line"><a name="l00272"></a><span class="lineno">  272</span>&#160;};</div>
 <div class="line"><a name="l00273"></a><span class="lineno">  273</span>&#160; </div>
 <div class="line"><a name="l00274"></a><span class="lineno">  274</span>&#160; </div>
-<div class="line"><a name="l00293"></a><span class="lineno">  293</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> AbstactObject, <span class="keyword">typename</span> PolymorphicBase = PolymorphicObject&gt;</div>
+<div class="line"><a name="l00293"></a><span class="lineno">  293</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> AbstractObject, <span class="keyword">typename</span> PolymorphicBase = PolymorphicObject&gt;</div>
 <div class="line"><a name="l00294"></a><span class="lineno"><a class="line" href="classgko_1_1EnableAbstractPolymorphicObject.html">  294</a></span>&#160;<span class="keyword">class </span><a class="code" href="classgko_1_1EnableAbstractPolymorphicObject.html">EnableAbstractPolymorphicObject</a> : <span class="keyword">public</span> PolymorphicBase {</div>
 <div class="line"><a name="l00295"></a><span class="lineno">  295</span>&#160;<span class="keyword">public</span>:</div>
 <div class="line"><a name="l00296"></a><span class="lineno">  296</span>&#160;    <span class="keyword">using</span> PolymorphicBase::PolymorphicBase;</div>
 <div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160; </div>
-<div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160;    std::unique_ptr&lt;AbstactObject&gt; create_default(</div>
+<div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160;    std::unique_ptr&lt;AbstractObject&gt; create_default(</div>
 <div class="line"><a name="l00299"></a><span class="lineno">  299</span>&#160;        std::shared_ptr&lt;const Executor&gt; exec)<span class="keyword"> const</span></div>
 <div class="line"><a name="l00300"></a><span class="lineno">  300</span>&#160;<span class="keyword">    </span>{</div>
-<div class="line"><a name="l00301"></a><span class="lineno">  301</span>&#160;        <span class="keywordflow">return</span> std::unique_ptr&lt;AbstactObject&gt;{static_cast&lt;AbstactObject *&gt;(</div>
+<div class="line"><a name="l00301"></a><span class="lineno">  301</span>&#160;        <span class="keywordflow">return</span> std::unique_ptr&lt;AbstractObject&gt;{static_cast&lt;AbstractObject *&gt;(</div>
 <div class="line"><a name="l00302"></a><span class="lineno">  302</span>&#160;            this-&gt;create_default_impl(std::move(exec)).release())};</div>
 <div class="line"><a name="l00303"></a><span class="lineno">  303</span>&#160;    }</div>
 <div class="line"><a name="l00304"></a><span class="lineno">  304</span>&#160; </div>
-<div class="line"><a name="l00305"></a><span class="lineno">  305</span>&#160;    std::unique_ptr&lt;AbstactObject&gt; create_default()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00305"></a><span class="lineno">  305</span>&#160;    std::unique_ptr&lt;AbstractObject&gt; create_default()<span class="keyword"> const</span></div>
 <div class="line"><a name="l00306"></a><span class="lineno">  306</span>&#160;<span class="keyword">    </span>{</div>
 <div class="line"><a name="l00307"></a><span class="lineno">  307</span>&#160;        <span class="keywordflow">return</span> this-&gt;create_default(this-&gt;get_executor());</div>
 <div class="line"><a name="l00308"></a><span class="lineno">  308</span>&#160;    }</div>
 <div class="line"><a name="l00309"></a><span class="lineno">  309</span>&#160; </div>
-<div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160;    std::unique_ptr&lt;AbstactObject&gt; <a class="code" href="namespacegko.html#a1beb80750459e4201aa9d882d2d074c3">clone</a>(</div>
+<div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160;    std::unique_ptr&lt;AbstractObject&gt; <a class="code" href="namespacegko.html#a1beb80750459e4201aa9d882d2d074c3">clone</a>(</div>
 <div class="line"><a name="l00311"></a><span class="lineno">  311</span>&#160;        std::shared_ptr&lt;const Executor&gt; exec)<span class="keyword"> const</span></div>
 <div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160;<span class="keyword">    </span>{</div>
 <div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160;        <span class="keyword">auto</span> new_op = this-&gt;create_default(exec);</div>
@@ -243,25 +243,25 @@ $(function() {
 <div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160;        <span class="keywordflow">return</span> new_op;</div>
 <div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160;    }</div>
 <div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160; </div>
-<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160;    std::unique_ptr&lt;AbstactObject&gt; <a class="code" href="namespacegko.html#a1beb80750459e4201aa9d882d2d074c3">clone</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160;    std::unique_ptr&lt;AbstractObject&gt; <a class="code" href="namespacegko.html#a1beb80750459e4201aa9d882d2d074c3">clone</a>()<span class="keyword"> const</span></div>
 <div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;<span class="keyword">    </span>{</div>
 <div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160;        <span class="keywordflow">return</span> this-&gt;<a class="code" href="namespacegko.html#a1beb80750459e4201aa9d882d2d074c3">clone</a>(this-&gt;get_executor());</div>
 <div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160;    }</div>
 <div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160; </div>
-<div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160;    AbstactObject *copy_from(<span class="keyword">const</span> <a class="code" href="classgko_1_1PolymorphicObject.html">PolymorphicObject</a> *other)</div>
+<div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160;    AbstractObject *copy_from(<span class="keyword">const</span> <a class="code" href="classgko_1_1PolymorphicObject.html">PolymorphicObject</a> *other)</div>
 <div class="line"><a name="l00324"></a><span class="lineno">  324</span>&#160;    {</div>
-<div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160;        <span class="keywordflow">return</span> static_cast&lt;AbstactObject *&gt;(this-&gt;copy_from_impl(other));</div>
+<div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160;        <span class="keywordflow">return</span> static_cast&lt;AbstractObject *&gt;(this-&gt;copy_from_impl(other));</div>
 <div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160;    }</div>
 <div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160; </div>
-<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160;    AbstactObject *copy_from(std::unique_ptr&lt;PolymorphicObject&gt; other)</div>
+<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160;    AbstractObject *copy_from(std::unique_ptr&lt;PolymorphicObject&gt; other)</div>
 <div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160;    {</div>
-<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;        <span class="keywordflow">return</span> static_cast&lt;AbstactObject *&gt;(</div>
+<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;        <span class="keywordflow">return</span> static_cast&lt;AbstractObject *&gt;(</div>
 <div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160;            this-&gt;copy_from_impl(std::move(other)));</div>
 <div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160;    }</div>
 <div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160; </div>
-<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;    AbstactObject *clear()</div>
+<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;    AbstractObject *clear()</div>
 <div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160;    {</div>
-<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;        <span class="keywordflow">return</span> static_cast&lt;AbstactObject *&gt;(this-&gt;clear_impl());</div>
+<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;        <span class="keywordflow">return</span> static_cast&lt;AbstractObject *&gt;(this-&gt;clear_impl());</div>
 <div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;    }</div>
 <div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160;};</div>
 <div class="line"><a name="l00339"></a><span class="lineno">  339</span>&#160; </div>

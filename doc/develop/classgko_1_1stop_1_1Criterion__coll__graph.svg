@@ -46,7 +46,7 @@ if (edges && edges.length) {
         </defs>
 
 <script type="text/javascript">
-var viewWidth = 1277;
+var viewWidth = 1281;
 var viewHeight = 94;
 var sectionId = 'dynsection-0';
 </script>
@@ -54,13 +54,13 @@ var sectionId = 'dynsection-0';
 <svg id="graph" class="graph">
 <g id="viewport">
 <title>gko::stop::Criterion</title>
-<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-89.5 1273,-89.5 1273,4 -4,4"/>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-89.5 1277,-89.5 1277,4 -4,4"/>
 <!-- Node1 -->
 <g id="node1" class="node">
 <title>Node1</title>
 <g id="a_node1"><a xlink:title="The Criterion class is a base class for all stopping criteria.">
-<polygon fill="#bfbfbf" stroke="#000000" points="1159,-35.5 1159,-54.5 1269,-54.5 1269,-35.5 1159,-35.5"/>
-<text text-anchor="middle" x="1214" y="-42.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::stop::Criterion</text>
+<polygon fill="#bfbfbf" stroke="#000000" points="1163,-35.5 1163,-54.5 1273,-54.5 1273,-35.5 1163,-35.5"/>
+<text text-anchor="middle" x="1218" y="-42.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::stop::Criterion</text>
 </a>
 </g>
 </g>
@@ -68,32 +68,32 @@ var sectionId = 'dynsection-0';
 <g id="node2" class="node">
 <title>Node2</title>
 <g id="a_node2"><a xlink:href="classgko_1_1EnableAbstractPolymorphicObject.html" target="_top" xlink:title=" ">
-<polygon fill="#ffffff" stroke="#000000" points="947,-30 947,-60 1122,-60 1122,-30 947,-30"/>
-<text text-anchor="start" x="955" y="-48" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableAbstractPolymorphic</text>
-<text text-anchor="middle" x="1034.5" y="-37" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Object&lt; Criterion &gt;</text>
+<polygon fill="#ffffff" stroke="#000000" points="951,-30 951,-60 1126,-60 1126,-30 951,-30"/>
+<text text-anchor="start" x="959" y="-48" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableAbstractPolymorphic</text>
+<text text-anchor="middle" x="1038.5" y="-37" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Object&lt; Criterion &gt;</text>
 </a>
 </g>
 </g>
 <!-- Node2&#45;&gt;Node1 -->
 <g id="edge1" class="edge">
 <title>Node2&#45;&gt;Node1</title>
-<path fill="none" stroke="#191970" d="M1132.3596,-45C1141.3812,-45 1150.2927,-45 1158.7253,-45"/>
-<polygon fill="#191970" stroke="#191970" points="1132.1467,-41.5001 1122.1467,-45 1132.1466,-48.5001 1132.1467,-41.5001"/>
+<path fill="none" stroke="#191970" d="M1136.3596,-45C1145.3812,-45 1154.2927,-45 1162.7253,-45"/>
+<polygon fill="#191970" stroke="#191970" points="1136.1467,-41.5001 1126.1467,-45 1136.1466,-48.5001 1136.1467,-41.5001"/>
 </g>
 <!-- Node3 -->
 <g id="node3" class="node">
 <title>Node3</title>
 <g id="a_node3"><a xlink:href="classgko_1_1PolymorphicObject.html" target="_top" xlink:title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall...">
-<polygon fill="#ffffff" stroke="#000000" points="679.5,-60.5 679.5,-79.5 812.5,-79.5 812.5,-60.5 679.5,-60.5"/>
-<text text-anchor="middle" x="746" y="-67.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::PolymorphicObject</text>
+<polygon fill="#ffffff" stroke="#000000" points="681.5,-60.5 681.5,-79.5 814.5,-79.5 814.5,-60.5 681.5,-60.5"/>
+<text text-anchor="middle" x="748" y="-67.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::PolymorphicObject</text>
 </a>
 </g>
 </g>
 <!-- Node3&#45;&gt;Node2 -->
 <g id="edge2" class="edge">
 <title>Node3&#45;&gt;Node2</title>
-<path fill="none" stroke="#191970" d="M822.5964,-63.3625C860.8442,-60.0482 907.2959,-56.0229 946.9493,-52.5867"/>
-<polygon fill="#191970" stroke="#191970" points="822.2104,-59.8828 812.55,-64.2331 822.8148,-66.8566 822.2104,-59.8828"/>
+<path fill="none" stroke="#191970" d="M824.826,-63.3885C863.5911,-60.0524 910.7842,-55.991 950.9488,-52.5345"/>
+<polygon fill="#191970" stroke="#191970" points="824.3096,-59.9199 814.6466,-64.2645 824.9099,-66.8941 824.3096,-59.9199"/>
 </g>
 <!-- Node4 -->
 <g id="node4" class="node">
@@ -108,8 +108,8 @@ var sectionId = 'dynsection-0';
 <!-- Node4&#45;&gt;Node3 -->
 <g id="edge3" class="edge">
 <title>Node4&#45;&gt;Node3</title>
-<path fill="none" stroke="#191970" d="M622.5087,-70C641.193,-70 661.0171,-70 679.1863,-70"/>
-<polygon fill="#191970" stroke="#191970" points="622.2636,-66.5001 612.2636,-70 622.2636,-73.5001 622.2636,-66.5001"/>
+<path fill="none" stroke="#191970" d="M622.1452,-70C641.6376,-70 662.4252,-70 681.3734,-70"/>
+<polygon fill="#191970" stroke="#191970" points="622.0866,-66.5001 612.0865,-70 622.0865,-73.5001 622.0866,-66.5001"/>
 </g>
 <!-- Node5 -->
 <g id="node5" class="node">
@@ -154,19 +154,19 @@ var sectionId = 'dynsection-0';
 <g id="node7" class="node">
 <title>Node7</title>
 <g id="a_node7"><a xlink:href="classgko_1_1EnableAbstractPolymorphicObject.html" target="_top" xlink:title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne...">
-<polygon fill="#ffffff" stroke="#000000" points="649,-.5 649,-41.5 843,-41.5 843,-.5 649,-.5"/>
+<polygon fill="#ffffff" stroke="#000000" points="649,-.5 649,-41.5 847,-41.5 847,-.5 649,-.5"/>
 <text text-anchor="start" x="657" y="-29.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableAbstractPolymorphic</text>
-<text text-anchor="start" x="657" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Object&lt; AbstactObject, Polymorphic</text>
-<text text-anchor="middle" x="746" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Base &gt;</text>
+<text text-anchor="start" x="657" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Object&lt; AbstractObject, Polymorphic</text>
+<text text-anchor="middle" x="748" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Base &gt;</text>
 </a>
 </g>
 </g>
 <!-- Node7&#45;&gt;Node2 -->
 <g id="edge7" class="edge">
 <title>Node7&#45;&gt;Node2</title>
-<path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M853.5971,-29.9509C884.3418,-32.5085 917.4655,-35.264 946.8612,-37.7094"/>
-<polygon fill="#ffa500" stroke="#ffa500" points="853.5265,-26.433 843.2707,-29.0918 852.9461,-33.4089 853.5265,-26.433"/>
-<text text-anchor="middle" x="895" y="-39" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; Criterion &gt;</text>
+<path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M857.1306,-30.016C888.1138,-32.5757 921.4383,-35.3288 950.9634,-37.7681"/>
+<polygon fill="#ffa500" stroke="#ffa500" points="857.4154,-26.5276 847.1611,-29.1923 856.839,-33.5039 857.4154,-26.5276"/>
+<text text-anchor="middle" x="899" y="-39" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; Criterion &gt;</text>
 </g>
 <!-- Node8 -->
 <g id="node8" class="node">
@@ -180,8 +180,8 @@ var sectionId = 'dynsection-0';
 <!-- Node8&#45;&gt;Node7 -->
 <g id="edge8" class="edge">
 <title>Node8&#45;&gt;Node7</title>
-<path fill="none" stroke="#191970" d="M606.1844,-21C619.6965,-21 634.3508,-21 648.916,-21"/>
-<polygon fill="#191970" stroke="#191970" points="606.0947,-17.5001 596.0946,-21 606.0946,-24.5001 606.0947,-17.5001"/>
+<path fill="none" stroke="#191970" d="M606.1202,-21C619.5722,-21 634.1713,-21 648.7162,-21"/>
+<polygon fill="#191970" stroke="#191970" points="606.077,-17.5001 596.0769,-21 606.0769,-24.5001 606.077,-17.5001"/>
 </g>
 </g>
 </svg>

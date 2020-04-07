@@ -436,9 +436,9 @@
 <g id="node31" class="node">
 <title>Node77</title>
 <g id="a_node31"><a xlink:href="classgko_1_1EnableAbstractPolymorphicObject.html" target="_top" xlink:title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne...">
-<polygon fill="#ffffff" stroke="#000000" points="140.5,-192.5 140.5,-233.5 334.5,-233.5 334.5,-192.5 140.5,-192.5"/>
-<text text-anchor="start" x="148.5" y="-221.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableAbstractPolymorphic</text>
-<text text-anchor="start" x="148.5" y="-210.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Object&lt; AbstactObject, Polymorphic</text>
+<polygon fill="#ffffff" stroke="#000000" points="138.5,-192.5 138.5,-233.5 336.5,-233.5 336.5,-192.5 138.5,-192.5"/>
+<text text-anchor="start" x="146.5" y="-221.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableAbstractPolymorphic</text>
+<text text-anchor="start" x="146.5" y="-210.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Object&lt; AbstractObject, Polymorphic</text>
 <text text-anchor="middle" x="237.5" y="-199.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Base &gt;</text>
 </a>
 </g>

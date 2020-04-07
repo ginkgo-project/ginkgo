@@ -1,13 +1,13 @@
 <map id="gko::matrix::IdentityFactory&lt; ValueType &gt;" name="gko::matrix::IdentityFactory&lt; ValueType &gt;">
-<area shape="rect" id="node1" title="This factory is a utility which can be used to generate Identity operators." alt="" coords="2616,223,2819,264"/>
-<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="2345,215,2567,271"/>
-<area shape="rect" id="node3" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="2063,166,2296,222"/>
-<area shape="rect" id="node4" href="$classgko_1_1LinOpFactory.html" title="A LinOpFactory represents a higher order mapping which transforms one linear operator into another." alt="" coords="1683,115,1821,142"/>
-<area shape="rect" id="node5" title=" " alt="" coords="1181,85,1349,141"/>
-<area shape="rect" id="node6" title=" " alt="" coords="723,5,956,76"/>
-<area shape="rect" id="node7" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="189,181,448,237"/>
-<area shape="rect" id="node11" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="705,231,973,287"/>
+<area shape="rect" id="node1" title="This factory is a utility which can be used to generate Identity operators." alt="" coords="2621,223,2824,264"/>
+<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="2351,215,2572,271"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="2068,166,2301,222"/>
+<area shape="rect" id="node4" href="$classgko_1_1LinOpFactory.html" title="A LinOpFactory represents a higher order mapping which transforms one linear operator into another." alt="" coords="1688,115,1827,142"/>
+<area shape="rect" id="node5" title=" " alt="" coords="1186,85,1354,141"/>
+<area shape="rect" id="node6" title=" " alt="" coords="728,5,961,76"/>
+<area shape="rect" id="node7" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="189,181,453,237"/>
+<area shape="rect" id="node11" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="711,231,979,287"/>
 <area shape="rect" id="node8" title=" " alt="" coords="5,258,140,285"/>
-<area shape="rect" id="node9" href="$classgko_1_1AbstractFactory.html" title="The AbstractFactory is a generic interface template that enables easy implementation of the abstract ..." alt="" coords="752,101,927,157"/>
-<area shape="rect" id="node10" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="1385,239,1659,280"/>
+<area shape="rect" id="node9" href="$classgko_1_1AbstractFactory.html" title="The AbstractFactory is a generic interface template that enables easy implementation of the abstract ..." alt="" coords="757,101,932,157"/>
+<area shape="rect" id="node10" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="1391,239,1664,280"/>
 </map>
