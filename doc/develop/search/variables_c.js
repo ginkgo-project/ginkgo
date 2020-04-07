@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['omp_5fversion_1347',['omp_version',['../classgko_1_1version__info.html#a795e1a6f8bdb0a4157b2d52b92e7b44e',1,'gko::version_info']]],
-  ['operation_5fevents_5fmask_1348',['operation_events_mask',['../classgko_1_1log_1_1Logger.html#a179f3d3ac86782922cbc63e33272840a',1,'gko::log::Logger']]]
+  ['nonzeros_1347',['nonzeros',['../structgko_1_1matrix__data.html#a4f6be92270fa96bccdc502c83d248dc0',1,'gko::matrix_data']]],
+  ['num_5frhs_1348',['num_rhs',['../structgko_1_1solver_1_1LowerTrs_1_1parameters__type.html#a2221c5c06cfb041ad41e5a5bdf9968f2',1,'gko::solver::LowerTrs::parameters_type::num_rhs()'],['../structgko_1_1solver_1_1UpperTrs_1_1parameters__type.html#a17d51d403340309c592e593020c3c007',1,'gko::solver::UpperTrs::parameters_type::num_rhs()']]]
 ];

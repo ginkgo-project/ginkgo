@@ -1,5 +1,8 @@
 var searchData=
 [
-  ['nonzeros_1345',['nonzeros',['../structgko_1_1matrix__data.html#a4f6be92270fa96bccdc502c83d248dc0',1,'gko::matrix_data']]],
-  ['num_5frhs_1346',['num_rhs',['../structgko_1_1solver_1_1LowerTrs_1_1parameters__type.html#a2221c5c06cfb041ad41e5a5bdf9968f2',1,'gko::solver::LowerTrs::parameters_type::num_rhs()'],['../structgko_1_1solver_1_1UpperTrs_1_1parameters__type.html#a17d51d403340309c592e593020c3c007',1,'gko::solver::UpperTrs::parameters_type::num_rhs()']]]
+  ['major_1342',['major',['../structgko_1_1version.html#a019ce1d31714612e0c77c8ef5eb4cfde',1,'gko::version']]],
+  ['max_5fblock_5fsize_1343',['max_block_size',['../structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a7d11d10b347b25b64b5b916e6a74364e',1,'gko::preconditioner::Jacobi::parameters_type']]],
+  ['max_5fblock_5fstride_1344',['max_block_stride',['../structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a042df68c54ea721101c4b064ed450a1f',1,'gko::preconditioner::Jacobi::parameters_type']]],
+  ['max_5fiters_1345',['max_iters',['../structgko_1_1stop_1_1Iteration_1_1parameters__type.html#a7daf7ecb5cf107b9e7444b0898f691c4',1,'gko::stop::Iteration::parameters_type']]],
+  ['minor_1346',['minor',['../structgko_1_1version.html#abb548e6dca39e0a3718ecf13cafbba36',1,'gko::version']]]
 ];

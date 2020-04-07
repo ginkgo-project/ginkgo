@@ -1,0 +1,83 @@
+\hypertarget{classgko_1_1factorization_1_1Ilu}{}\doxysection{gko\+::factorization\+::Ilu$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1factorization_1_1Ilu}\index{gko::factorization::Ilu$<$ ValueType, IndexType $>$@{gko::factorization::Ilu$<$ ValueType, IndexType $>$}}
+
+
+Represents an incomplete LU factorization -- I\+L\+U(0) -- of a sparse matrix.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/factorization/ilu.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::factorization\+::Ilu$<$ Value\+Type, Index\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1factorization_1_1Ilu__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1factorization_1_1Ilu_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1factorization_1_1Ilu_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1Ilu_adaf0180009f0eaca7f127942df70ba8b}\label{classgko_1_1factorization_1_1Ilu_adaf0180009f0eaca7f127942df70ba8b}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1Ilu_a880350d5fd201dd5dfde38b7b739287d}\label{classgko_1_1factorization_1_1Ilu_a880350d5fd201dd5dfde38b7b739287d}} 
+using {\bfseries index\+\_\+type} = Index\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1Ilu_a29b50ed9d50ad89b153d8ac1338f87da}\label{classgko_1_1factorization_1_1Ilu_a29b50ed9d50ad89b153d8ac1338f87da}} 
+using {\bfseries matrix\+\_\+type} = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1Ilu_a70d530cfbc6799b474f544852803b76c}\label{classgko_1_1factorization_1_1Ilu_a70d530cfbc6799b474f544852803b76c}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+\_\+type}} $>$ {\bfseries get\+\_\+l\+\_\+factor} () const
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1Ilu_a3aea93e8621b60c296a09f9d60bcf8b2}\label{classgko_1_1factorization_1_1Ilu_a3aea93e8621b60c296a09f9d60bcf8b2}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+\_\+type}} $>$ {\bfseries get\+\_\+u\+\_\+factor} () const
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1Ilu_a944879ad95dddd4d08506acbfffd8771}\label{classgko_1_1factorization_1_1Ilu_a944879ad95dddd4d08506acbfffd8771}} 
+const \mbox{\hyperlink{structgko_1_1factorization_1_1Ilu_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1Ilu_a5181c111c542ba7dc179566161fd6f6d}\label{classgko_1_1factorization_1_1Ilu_a5181c111c542ba7dc179566161fd6f6d}} 
+{\footnotesize template$<$typename... Args$>$ }\\static std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Composition}{Composition}}$<$ Value\+Type $>$ $>$ {\bfseries create} (Args \&\&... args)=delete
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1Ilu_a728c48c2ad6daf8a1a2d23295043f94a}\label{classgko_1_1factorization_1_1Ilu_a728c48c2ad6daf8a1a2d23295043f94a}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1factorization_1_1Ilu_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = gko\+::default\+\_\+precision, typename Index\+Type = gko\+::int32$>$\newline
+class gko\+::factorization\+::\+Ilu$<$ Value\+Type, Index\+Type $>$}
+
+Represents an incomplete LU factorization -- I\+L\+U(0) -- of a sparse matrix. 
+
+More specifically, it consists of a lower unitriangular factor $L$ and an upper triangular factor $U$ with sparsity pattern $\mathcal S(L + U)$ = $\mathcal S(A)$ fulfilling $LU = A$ at every non-\/zero location of $A$.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & Type of the values of all matrices used in this class \\
+\hline
+{\em Index\+Type} & Type of the indices of all matrices used in this class \\
+\hline
+\end{DoxyTemplParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/factorization/ilu.\+hpp (5915acbab)\end{DoxyCompactItemize}

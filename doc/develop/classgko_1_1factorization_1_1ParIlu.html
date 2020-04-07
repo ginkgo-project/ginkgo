@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/133319819 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/133441259 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -275,10 +275,10 @@ static std::unique_ptr&lt; <a class="el" href="classgko_1_1Composition.html">Com
 class gko::factorization::ParIlu&lt; ValueType, IndexType &gt;</h3>
 
 <p>ParILU is an incomplete LU factorization which is computed in parallel. </p>
-<p><img class="formulaInl" alt="$L$" src="form_9.png"/> is a lower unitriangular, while <img class="formulaInl" alt="$U$" src="form_15.png"/> is an upper triangular matrix, which approximate a given matrix <img class="formulaInl" alt="$A$" src="form_0.png"/> with <img class="formulaInl" alt="$A \approx LU$" src="form_16.png"/>. Here, <img class="formulaInl" alt="$L$" src="form_9.png"/> and <img class="formulaInl" alt="$U$" src="form_15.png"/> have the same sparsity pattern as <img class="formulaInl" alt="$A$" src="form_0.png"/>, which is also called ILU(0).</p>
+<p><img class="formulaInl" alt="$L$" src="form_9.png"/> is a lower unitriangular, while <img class="formulaInl" alt="$U$" src="form_15.png"/> is an upper triangular matrix, which approximate a given matrix <img class="formulaInl" alt="$A$" src="form_0.png"/> with <img class="formulaInl" alt="$A \approx LU$" src="form_19.png"/>. Here, <img class="formulaInl" alt="$L$" src="form_9.png"/> and <img class="formulaInl" alt="$U$" src="form_15.png"/> have the same sparsity pattern as <img class="formulaInl" alt="$A$" src="form_0.png"/>, which is also called ILU(0).</p>
 <p>The ParILU algorithm generates the incomplete factors iteratively, using a fixed-point iteration of the form</p>
-<p><img class="formulaInl" alt="$ F(L, U) = \begin{cases} \frac{1}{u_{jj}} \left(a_{ij}-\sum_{k=1}^{j-1}l_{ik}u_{kj}\right), \quad &amp; i&gt;j \\ a_{ij}-\sum_{k=1}^{i-1}l_{ik}u_{kj}, \quad &amp; i\leq j \end{cases} $" src="form_17.png"/></p>
-<p>In general, the entries of <img class="formulaInl" alt="$L$" src="form_9.png"/> and <img class="formulaInl" alt="$U$" src="form_15.png"/> can be iterated in parallel and in asynchronous fashion, the algorithm asymptotically converges to the incomplete factors <img class="formulaInl" alt="$L$" src="form_9.png"/> and <img class="formulaInl" alt="$U$" src="form_15.png"/> fulfilling <img class="formulaInl" alt="$\left(R = A - L \cdot U\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$" src="form_18.png"/> where <img class="formulaInl" alt="$\mathcal{S}$" src="form_19.png"/> is the pre-defined sparsity pattern (in case of ILU(0) the sparsity pattern of the system matrix <img class="formulaInl" alt="$A$" src="form_0.png"/>). The number of ParILU sweeps needed for convergence depends on the parallelism level: For sequential execution, a single sweep is sufficient, for fine-grained parallelism, 3 sweeps are typically generating a good approximation.</p>
+<p><img class="formulaInl" alt="$ F(L, U) = \begin{cases} \frac{1}{u_{jj}} \left(a_{ij}-\sum_{k=1}^{j-1}l_{ik}u_{kj}\right), \quad &amp; i&gt;j \\ a_{ij}-\sum_{k=1}^{i-1}l_{ik}u_{kj}, \quad &amp; i\leq j \end{cases} $" src="form_20.png"/></p>
+<p>In general, the entries of <img class="formulaInl" alt="$L$" src="form_9.png"/> and <img class="formulaInl" alt="$U$" src="form_15.png"/> can be iterated in parallel and in asynchronous fashion, the algorithm asymptotically converges to the incomplete factors <img class="formulaInl" alt="$L$" src="form_9.png"/> and <img class="formulaInl" alt="$U$" src="form_15.png"/> fulfilling <img class="formulaInl" alt="$\left(R = A - L \cdot U\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$" src="form_21.png"/> where <img class="formulaInl" alt="$\mathcal{S}$" src="form_22.png"/> is the pre-defined sparsity pattern (in case of ILU(0) the sparsity pattern of the system matrix <img class="formulaInl" alt="$A$" src="form_0.png"/>). The number of ParILU sweeps needed for convergence depends on the parallelism level: For sequential execution, a single sweep is sufficient, for fine-grained parallelism, 3 sweeps are typically generating a good approximation.</p>
 <p>The ParILU algorithm in Ginkgo follows the design of E. Chow and A. Patel, Fine-grained Parallel Incomplete LU Factorization, SIAM Journal on Scientific Computing, 37, C169-C193 (2015).</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
@@ -288,7 +288,7 @@ class gko::factorization::ParIlu&lt; ValueType, IndexType &gt;</h3>
   </dd>
 </dl>
 </div><hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/factorization/<a class="el" href="par__ilu_8hpp_source.html">par_ilu.hpp (29444d385)</a></li>
+<li>ginkgo/core/factorization/<a class="el" href="par__ilu_8hpp_source.html">par_ilu.hpp (6db3bca98)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

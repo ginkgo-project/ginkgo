@@ -1,4 +1,4 @@
-<map id="gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexTypeParIlu &gt;::Factory" name="gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexTypeParIlu &gt;::Factory">
+<map id="gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;::Factory" name="gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;::Factory">
 <area shape="rect" id="node1" title=" " alt="" coords="2243,102,2451,173"/>
 <area shape="rect" id="node2" href="$classgko_1_1EnableDefaultFactory.html" title="This mixin provides a default implementation of a concrete factory." alt="" coords="1951,117,2193,158"/>
 <area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="1623,84,1901,125"/>

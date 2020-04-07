@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/133319819 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/133441259 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -125,6 +125,9 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Perturbation.html">gko::Perturbation&lt; ValueType &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1Perturbation.html" title="The Perturbation class can be used to construct a LinOp to represent the operation (identity + scalar...">Perturbation</a> class can be used to construct a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> to represent the operation <code>(identity + scalar * basis * projector)</code>.  <a href="classgko_1_1Perturbation.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1factorization_1_1Ilu.html">gko::factorization::Ilu&lt; ValueType, IndexType &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents an incomplete LU factorization &ndash; ILU(0) &ndash; of a sparse matrix.  <a href="classgko_1_1factorization_1_1Ilu.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1factorization_1_1ParIlu.html">gko::factorization::ParIlu&lt; ValueType, IndexType &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">ParILU is an incomplete LU factorization which is computed in parallel.  <a href="classgko_1_1factorization_1_1ParIlu.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -158,8 +161,8 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1SparsityCsr.html">gko::matrix::SparsityCsr&lt; ValueType, IndexType &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1matrix_1_1SparsityCsr.html" title="SparsityCsr is a matrix format which stores only the sparsity pattern of a sparse matrix by compressi...">SparsityCsr</a> is a matrix format which stores only the sparsity pattern of a sparse matrix by compressing each row of the matrix (compressed sparse row format).  <a href="classgko_1_1matrix_1_1SparsityCsr.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Ilu.html">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexTypeParIlu &gt;</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The Incomplete LU (ILU) preconditioner solves the equation <img class="formulaInl" alt="$LUx = b$" src="form_20.png"/> for a given lower triangular matrix L, an upper triangular matrix U and the right hand side b (can contain multiple right hand sides).  <a href="classgko_1_1preconditioner_1_1Ilu.html#details">More...</a><br /></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Ilu.html">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The Incomplete LU (ILU) preconditioner solves the equation <img class="formulaInl" alt="$LUx = b$" src="form_23.png"/> for a given lower triangular matrix L, an upper triangular matrix U and the right hand side b (can contain multiple right hand sides).  <a href="classgko_1_1preconditioner_1_1Ilu.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A block-Jacobi preconditioner is a block-diagonal linear operator, obtained by inverting the diagonal blocks of the source operator.  <a href="classgko_1_1preconditioner_1_1Jacobi.html#details">More...</a><br /></td></tr>

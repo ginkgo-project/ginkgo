@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['iterations_1333',['iterations',['../structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#acf87db3479a61d53d301101b51e419c6',1,'gko::factorization::ParIlu::parameters_type']]]
+  ['header_5fversion_1333',['header_version',['../classgko_1_1version__info.html#a5b8240b191920dc3688ccfbbd8ae3378',1,'gko::version_info']]],
+  ['hip_5fversion_1334',['hip_version',['../classgko_1_1version__info.html#a8934c0aa9c7d62f8168eaa3e91281182',1,'gko::version_info']]]
 ];

@@ -1,8 +1,9 @@
-<map id="gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexTypeParIlu &gt;::parameters_type" name="gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexTypeParIlu &gt;::parameters_type">
-<area shape="rect" id="node1" title=" " alt="" coords="799,73,1061,143"/>
-<area shape="rect" id="node2" href="$structgko_1_1enable__parameters__type.html" title=" " alt="" coords="443,7,631,63"/>
+<map id="gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;::parameters_type" name="gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;::parameters_type">
+<area shape="rect" id="node1" title=" " alt="" coords="831,106,1057,177"/>
+<area shape="rect" id="node2" href="$structgko_1_1enable__parameters__type.html" title=" " alt="" coords="449,7,637,63"/>
 <area shape="rect" id="node3" href="$structgko_1_1enable__parameters__type.html" title="The enable_parameters_type mixin is used to create a base implementation of the factory parameters st..." alt="" coords="5,7,244,63"/>
-<area shape="rect" id="node4" title=" " alt="" coords="437,87,637,129"/>
-<area shape="rect" id="node5" title="STL class." alt="" coords="46,128,203,155"/>
-<area shape="rect" id="node6" title=" " alt="" coords="437,153,637,194"/>
+<area shape="rect" id="node4" title=" " alt="" coords="443,87,643,129"/>
+<area shape="rect" id="node5" title="STL class." alt="" coords="46,160,203,187"/>
+<area shape="rect" id="node6" title=" " alt="" coords="443,153,643,194"/>
+<area shape="rect" id="node7" title=" " alt="" coords="463,218,622,259"/>
 </map>
