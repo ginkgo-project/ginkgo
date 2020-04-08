@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2020, the Ginkgo authors
+Copyright (c) 2017-2019, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,22 +30,56 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_MATRICES_CONFIG_HPP_
-#define GKO_MATRICES_CONFIG_HPP_
+#include <ginkgo/core/reorder/rcm.hpp>
+
+
+#include <memory>
+
+
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
+
+
+#include "core/matrix/csr_kernels.hpp"
+#include "core/reorder/rcm_kernels.hpp"
 
 
 namespace gko {
-namespace matrices {
+namespace reorder {
+namespace rcm {
 
 
-const char *location_ani1_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani1.mtx";
-const char *location_ani4_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani4.mtx";
-const char *location_isai_mtxs = "@Ginkgo_BINARY_DIR@/matrices/test/";
-const char *location_1138_bus_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/1138_bus.mtx";
+GKO_REGISTER_OPERATION(get_permutation, rcm::get_permutation);
+GKO_REGISTER_OPERATION(get_degree_of_nodes, rcm::get_degree_of_nodes);
 
 
-}  // namespace matrices
+}  // namespace rcm
+
+
+template <typename ValueType, typename IndexType>
+void Rcm<ValueType, IndexType>::generate() const
+{
+    IndexType num_rows = adjacency_matrix_->get_size()[0];
+    const auto exec = this->get_executor();
+    // RCM is only valid for symmetric matrices. Need to add an expensive check
+    // for symmetricity here ?
+    exec->run(rcm::make_get_degree_of_nodes(adjacency_matrix_, node_degrees_));
+    exec->run(rcm::make_get_permutation(num_rows, adjacency_matrix_,
+                                        node_degrees_, permutation_,
+                                        inv_permutation_));
+}
+
+
+#define GKO_DECLARE_RCM(ValueType, IndexType) class Rcm<ValueType, IndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RCM);
+
+
+}  // namespace reorder
 }  // namespace gko
-
-
-#endif  // GKO_MATRICES_CONFIG_HPP_
