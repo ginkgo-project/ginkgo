@@ -67,9 +67,9 @@ enum struct isai_type { lower, upper };
  * an approximate inverse matrix for a given lower triangular matrix L or upper
  * triangular matrix U.
  *
- * Using the preconditioner computes $aiU * aiL * x$
- * for a given vector x (may have multiple right hand sides). aiU and aiL
- * are the approximate inverses for U and L respectively.
+ * Using the preconditioner computes $aiU * x$ or $aiL * x$ (depending on the
+ * type of the Isai) for a given vector x (may have multiple right hand sides).
+ * aiU and aiL are the approximate inverses for U and L respectively.
  *
  * The sparsity pattern used for the approximate inverse is the same as
  * the sparsity pattern of the respective triangular matrix.

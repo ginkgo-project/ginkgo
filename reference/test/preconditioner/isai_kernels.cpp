@@ -41,10 +41,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/preconditioner/ilu.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -440,6 +440,29 @@ TYPED_TEST(Isai, AdvancedApplyUMtx)
                   gko::lend(result));
 
     GKO_ASSERT_MTX_NEAR(result, l({10.375, -3., 0.5}), r<T>::value);
+}
+
+
+TYPED_TEST(Isai, UseWithIluPreconditioner)
+{
+    using Dense = typename TestFixture::Dense;
+    using index_type = typename TestFixture::index_type;
+    using T = typename TestFixture::value_type;
+    using LowerIsai = typename TestFixture::LowerIsai;
+    using UpperIsai = typename TestFixture::UpperIsai;
+    const auto vec = gko::initialize<Dense>({128, -64, 32}, this->exec);
+    auto result = Dense::create(this->exec, vec->get_size());
+    auto mtx =
+        gko::share(Dense::create_with_config_of(gko::lend(this->l_dense)));
+    this->l_dense->apply(gko::lend(this->u_dense), gko::lend(mtx));
+    auto ilu_factory = gko::preconditioner::Ilu<LowerIsai, UpperIsai, false,
+                                                index_type>::build()
+                           .on(this->exec);
+    auto ilu = ilu_factory->generate(mtx);
+
+    ilu->apply(gko::lend(vec), gko::lend(result));
+
+    GKO_ASSERT_MTX_NEAR(result, l({25., -40., -4.}), r<T>::value);
 }
 
 
