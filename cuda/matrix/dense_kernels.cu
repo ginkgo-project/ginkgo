@@ -168,7 +168,8 @@ void add_scaled(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
 
-
+// Read: ValueType * 2 * x->get_size()[0] * x->get_size()[1]
+// Write: ValueType * x->get_size()[1]
 template <typename ValueType>
 void add_scaled_diag(std::shared_ptr<const CudaExecutor> exec,
                      const matrix::Dense<ValueType> *alpha,

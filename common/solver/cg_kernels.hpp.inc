@@ -30,6 +30,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+// Read: ValueType * num_rows * stride
+// Write: 2 * ValueType * num_cols + 1 * num_cols + 4 * ValueType * num_rows *
+// stride
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void initialize_kernel(
     size_type num_rows, size_type num_cols, size_type stride,
@@ -39,13 +42,14 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
     ValueType *__restrict__ rho, stopping_status *__restrict__ stop_status)
 {
     const auto tidx = thread::get_thread_id_flat();
-
+    // Write: 2 * ValueType * num_cols + 1 * num_cols
     if (tidx < num_cols) {
         rho[tidx] = zero<ValueType>();
         prev_rho[tidx] = one<ValueType>();
         stop_status[tidx].reset();
     }
-
+    // Read: ValueType * num_rows * stride
+    // Write: 4 * ValueType * num_rows * stride
     if (tidx < num_rows * stride) {
         r[tidx] = b[tidx];
         z[tidx] = zero<ValueType>();
@@ -55,6 +59,8 @@ __global__ __launch_bounds__(default_block_size) void initialize_kernel(
 }
 
 
+// Read: 4 * ValueType * num_rows * stride
+// Write: ValueType * num_rows * stride
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void step_1_kernel(
     size_type num_rows, size_type num_cols, size_type stride,
@@ -68,12 +74,17 @@ __global__ __launch_bounds__(default_block_size) void step_1_kernel(
         stop_status[col].has_stopped()) {
         return;
     }
+    // Read: 2 * ValueType * num_rows * stride
     const auto tmp = rho[col] / prev_rho[col];
+    // Write: ValueType * num_rows * stride
+    // Read: 2 * ValueType * num_rows * stride
     p[tidx] =
         prev_rho[col] == zero<ValueType>() ? z[tidx] : z[tidx] + tmp * p[tidx];
 }
 
 
+// Read: ValueType * 5 * num_rows * num_cols
+// Write: 2 * ValueType * num_rows * num_cols
 template <typename ValueType>
 __global__ __launch_bounds__(default_block_size) void step_2_kernel(
     size_type num_rows, size_type num_cols, size_type stride,
@@ -90,6 +101,8 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
         stop_status[col].has_stopped()) {
         return;
     }
+    // Read: ValueType * 5 * num_rows * num_cols
+    // Write: 2 * ValueType * num_rows * num_cols
     if (beta[col] != zero<ValueType>()) {
         const auto tmp = rho[col] / beta[col];
         x[row * x_stride + col] += tmp * p[tidx];
