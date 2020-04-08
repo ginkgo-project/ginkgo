@@ -84,6 +84,10 @@ std::unique_ptr<LinOp> Bicgstab<ValueType>::conj_transpose() const
 }
 
 
+// Read: 4*ValueType*n + nnz*(2*IndexType + 3*ValueType) +
+// loops * (29*ValueType*n + 2*nnz*(2*IndexType + 2*ValueType))
+// Write: 2*ValueType*n + ValueType*(8*n + 6) +
+// loops * (4*ValueType + 6*ValueType*n + ValueType*(2*n + 1))
 template <typename ValueType>
 void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
@@ -120,6 +124,8 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                        dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
+    // Read: n * ValueType
+    // Write: (8 * n + 6) * ValueType
     exec->run(bicgstab::make_initialize(
         dense_b, r.get(), rr.get(), y.get(), s.get(), t.get(), z.get(), v.get(),
         p.get(), prev_rho.get(), rho.get(), alpha.get(), beta.get(),
@@ -128,11 +134,14 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // prev_rho = rho = omega = alpha = beta = gamma = 1.0
     // rr = v = s = t = z = y = p = 0
     // stop_status = 0x00
-
+    // Read: (3 * ValueType + 2 * IndexType)*nnz + 2 * n * ValueType
+    // Write: n * ValueType
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, r.get());
+    // Read: n * ValueType
+    // Write: n * ValueType
     rr->copy_from(r.get());
 
     int iter = -1;
@@ -147,18 +156,27 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
-
+        // Read: 2 * n * ValueType
+        // Write: ValueType
         rr->compute_dot(r.get(), rho.get());
-
+        // Read: 7 * n * ValueType
+        // Write: n * ValueType
         exec->run(bicgstab::make_step_1(r.get(), p.get(), v.get(), rho.get(),
                                         prev_rho.get(), alpha.get(),
                                         omega.get(), &stop_status));
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
-
+        // Read: n * ValueType
+        // Write: n * ValueType
         get_preconditioner()->apply(p.get(), y.get());
+        // Read: (2 * ValueType + 2 * IndexType)*nnz
+        // Write: n * ValueType
         system_matrix_->apply(y.get(), v.get());
+        // Read: 2 * n * ValueType
+        // Write: ValueType
         rr->compute_dot(v.get(), beta.get());
+        // Read: 4 * n * ValueType
+        // Write: n * ValueType
         exec->run(bicgstab::make_step_2(r.get(), s.get(), v.get(), rho.get(),
                                         alpha.get(), beta.get(), &stop_status));
         // alpha = rho / beta
@@ -180,11 +198,20 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         if (all_converged) {
             break;
         }
-
+        // Read: n * ValueType
+        // Write: n * ValueType
         get_preconditioner()->apply(s.get(), z.get());
+        // Read: (2 * ValueType + 2 * IndexType)*nnz
+        // Write: n * ValueType
         system_matrix_->apply(z.get(), t.get());
+        // Read: 2 * n * ValueType
+        // Write: ValueType
         s->compute_dot(t.get(), gamma.get());
+        // Read: 2 * n * ValueType
+        // Write: ValueType
         t->compute_dot(t.get(), beta.get());
+        // Read: 8 * n * ValueType
+        // Write: (2 * n + 1) * ValueType
         exec->run(bicgstab::make_step_3(
             dense_x, r.get(), s.get(), t.get(), y.get(), z.get(), alpha.get(),
             beta.get(), gamma.get(), omega.get(), &stop_status));
