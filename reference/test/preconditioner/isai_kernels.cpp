@@ -348,7 +348,7 @@ TYPED_TEST(Isai, ReturnsCorrectInverseL)
     using value_type = typename TestFixture::value_type;
     const auto isai = this->lower_isai_factory->generate(this->l_sparse);
 
-    auto l_inv = isai->get_system_matrix();
+    auto l_inv = isai->get_approximate_inverse();
 
     GKO_ASSERT_MTX_NEAR(l_inv, this->l_sparse_inv, r<value_type>::value);
 }
@@ -360,7 +360,7 @@ TYPED_TEST(Isai, ReturnsCorrectInverseU)
     using value_type = typename TestFixture::value_type;
     const auto isai = this->upper_isai_factory->generate(this->u_sparse);
 
-    auto u_inv = isai->get_system_matrix();
+    auto u_inv = isai->get_approximate_inverse();
 
     GKO_ASSERT_MTX_NEAR(u_inv, this->u_sparse_inv, r<value_type>::value);
 }
@@ -373,8 +373,8 @@ TYPED_TEST(Isai, GeneratesWithUnsortedCsr)
 
     const auto l_isai = this->lower_isai_factory->generate(this->l_s_unsorted);
     const auto u_isai = this->upper_isai_factory->generate(this->u_s_unsorted);
-    auto l_inv = l_isai->get_system_matrix();
-    auto u_inv = u_isai->get_system_matrix();
+    auto l_inv = l_isai->get_approximate_inverse();
+    auto u_inv = u_isai->get_approximate_inverse();
 
     GKO_ASSERT_MTX_NEAR(l_inv, this->l_sparse_inv, r<T>::value);
     GKO_ASSERT_MTX_NEAR(u_inv, this->u_sparse_inv, r<T>::value);

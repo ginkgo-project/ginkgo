@@ -105,9 +105,9 @@ public:
      *
      * @returns the generated approximate inverse
      */
-    std::shared_ptr<const Csr> get_system_matrix() const
+    std::shared_ptr<const Csr> get_approximate_inverse() const
     {
-        return system_matrix_;
+        return approximate_inverse_;
     }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -153,19 +153,19 @@ protected:
 
     void apply_impl(const LinOp *b, LinOp *x) const override
     {
-        system_matrix_->apply(b, x);
+        approximate_inverse_->apply(b, x);
     }
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override
     {
-        system_matrix_->apply(alpha, b, beta, x);
+        approximate_inverse_->apply(alpha, b, beta, x);
     }
 
 private:
     /**
      * Generates the approximate inverse for a lower triangular matrix and
-     * stores the result in `system_matrix_`.
+     * stores the result in `approximate_inverse_`.
      *
      * @param to_invert_l  the source lower triangular matrix used to generate
      *                     the approximate inverse
@@ -177,7 +177,7 @@ private:
 
     /**
      * Generates the approximate inverse for an upper triangular matrix and
-     * stores the result in `system_matrix_`.
+     * stores the result in `approximate_inverse_`.
      *
      * @param to_invert_u  the source upper triangular matrix used to generate
      *                     the approximate inverse
@@ -188,7 +188,7 @@ private:
     void generate_u_inverse(const LinOp *to_invert_u, bool skip_sorting);
 
 private:
-    std::shared_ptr<Csr> system_matrix_;
+    std::shared_ptr<Csr> approximate_inverse_;
 };
 
 

@@ -60,6 +60,8 @@ GKO_REGISTER_OPERATION(generate_u_inverse, isai::generate_u_inverse);
 
 
 /**
+ * @internal
+ *
  * Helper function that converts the given matrix to the (const) CSR format with
  * additional sorting.
  *
@@ -112,7 +114,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_l_inverse(
         Csr::create(exec, csr_l->get_size(), num_elems, csr_l->get_strategy());
     exec->run(isai::make_generate_l_inverse(csr_l.get(), inverted_l.get()));
 
-    system_matrix_ = std::move(inverted_l);
+    approximate_inverse_ = std::move(inverted_l);
 }
 
 
@@ -129,7 +131,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_u_inverse(
         Csr::create(exec, csr_u->get_size(), num_elems, csr_u->get_strategy());
     exec->run(isai::make_generate_u_inverse(csr_u.get(), inverted_u.get()));
 
-    system_matrix_ = std::move(inverted_u);
+    approximate_inverse_ = std::move(inverted_u);
 }
 
 
