@@ -39,7 +39,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
@@ -72,17 +71,19 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Isai = gko::preconditioner::Isai<value_type, index_type>;
-    using Comp = gko::Composition<value_type>;
+    using LowerIsai = gko::preconditioner::LowerIsai<value_type, index_type>;
+    using UpperIsai = gko::preconditioner::UpperIsai<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
 
     IsaiFactory()
         : exec(gko::ReferenceExecutor::create()),
-          isai_factory(Isai::build().on(exec))
+          lower_isai_factory(LowerIsai::build().on(exec)),
+          upper_isai_factory(UpperIsai::build().on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<typename Isai::Factory> isai_factory;
+    std::unique_ptr<typename LowerIsai::Factory> lower_isai_factory;
+    std::unique_ptr<typename UpperIsai::Factory> upper_isai_factory;
 };
 
 TYPED_TEST_CASE(IsaiFactory, gko::test::ValueIndexTypes);
@@ -90,100 +91,48 @@ TYPED_TEST_CASE(IsaiFactory, gko::test::ValueIndexTypes);
 
 TYPED_TEST(IsaiFactory, KnowsItsExecutor)
 {
-    ASSERT_EQ(this->isai_factory->get_executor(), this->exec);
+    ASSERT_EQ(this->lower_isai_factory->get_executor(), this->exec);
+    ASSERT_EQ(this->upper_isai_factory->get_executor(), this->exec);
 }
 
 
-TYPED_TEST(IsaiFactory, ThrowsWrongInput)
+TYPED_TEST(IsaiFactory, ThrowsWrongDimensionL)
 {
     using Csr = typename TestFixture::Csr;
-    using Comp = typename TestFixture::Comp;
-    auto mtx = Csr::create(this->exec, gko::dim<2>{2, 2}, 1);
-    auto comp = Comp::create(std::move(mtx));
+    auto mtx = Csr::create(this->exec, gko::dim<2>{1, 2}, 1);
 
-    ASSERT_THROW(this->isai_factory->generate(gko::share(comp)),
-                 gko::NotSupported);
-}
-
-
-TYPED_TEST(IsaiFactory, ThrowsWrongExclusive)
-{
-    using Csr = typename TestFixture::Csr;
-    using Comp = typename TestFixture::Comp;
-    using Isai = typename TestFixture::Isai;
-    auto mtx1 = Csr::create(this->exec, gko::dim<2>{2, 2}, 1);
-    auto mtx2 = Csr::create(this->exec, gko::dim<2>{2, 2}, 1);
-    auto comp = Comp::create(std::move(mtx1), std::move(mtx2));
-
-    auto factory = Isai::build()
-                       .with_exclusive_factor_l(true)
-                       .with_exclusive_factor_u(true)
-                       .on(this->exec);
-
-    ASSERT_THROW(factory->generate(gko::share(comp)), gko::NotSupported);
-}
-
-
-TYPED_TEST(IsaiFactory, ThrowsWrongComposition)
-{
-    using Csr = typename TestFixture::Csr;
-    auto mtx = Csr::create(this->exec, gko::dim<2>{1, 1}, 1);
-
-    ASSERT_THROW(this->isai_factory->generate(gko::share(mtx)),
-                 gko::NotSupported);
-}
-
-
-TYPED_TEST(IsaiFactory, ThrowsWrongDimension)
-{
-    using Csr = typename TestFixture::Csr;
-    using Comp = typename TestFixture::Comp;
-    auto mtx1 = Csr::create(this->exec, gko::dim<2>{1, 2}, 1);
-    auto mtx2 = Csr::create(this->exec, gko::dim<2>{2, 1}, 1);
-    auto comp = Comp::create(std::move(mtx1), std::move(mtx2));
-
-    ASSERT_THROW(this->isai_factory->generate(gko::share(comp)),
+    ASSERT_THROW(this->lower_isai_factory->generate(gko::share(mtx)),
                  gko::DimensionMismatch);
 }
 
 
-TYPED_TEST(IsaiFactory, ThrowsWrongDimension2)
+TYPED_TEST(IsaiFactory, ThrowsWrongDimensionU)
 {
     using Csr = typename TestFixture::Csr;
-    using Comp = typename TestFixture::Comp;
-    auto mtx1 = Csr::create(this->exec, gko::dim<2>{2, 2}, 1);
-    auto mtx2 = Csr::create(this->exec, gko::dim<2>{2, 3}, 1);
-    auto comp = Comp::create(std::move(mtx1), std::move(mtx2));
+    auto mtx = Csr::create(this->exec, gko::dim<2>{1, 2}, 1);
 
-    ASSERT_THROW(this->isai_factory->generate(gko::share(comp)),
+    ASSERT_THROW(this->upper_isai_factory->generate(gko::share(mtx)),
                  gko::DimensionMismatch);
 }
 
 
-TYPED_TEST(IsaiFactory, ThrowsNoConversionCsr)
+TYPED_TEST(IsaiFactory, ThrowsNoConversionCsrL)
 {
     using Csr = typename TestFixture::Csr;
-    using Comp = typename TestFixture::Comp;
-    auto mtx1 = DummyOperator::create(this->exec, gko::dim<2>{2, 2});
-    auto mtx2 = Csr::create(this->exec, gko::dim<2>{2, 2}, 1);
-    auto comp = Comp::create(std::move(mtx1), std::move(mtx2));
+    auto mtx = DummyOperator::create(this->exec, gko::dim<2>{2, 2});
 
-    ASSERT_THROW(this->isai_factory->generate(gko::share(comp)),
+    ASSERT_THROW(this->lower_isai_factory->generate(gko::share(mtx)),
                  gko::NotSupported);
 }
 
 
-TYPED_TEST(IsaiFactory, ThrowsNoConversionCsr2)
+TYPED_TEST(IsaiFactory, ThrowsNoConversionCsrU)
 {
     using Csr = typename TestFixture::Csr;
-    using Comp = typename TestFixture::Comp;
-    using Isai = typename TestFixture::Isai;
-    auto mtx1 = Csr::create(this->exec, gko::dim<2>{2, 2}, 1);
-    auto mtx2 = DummyOperator::create(this->exec, gko::dim<2>{2, 2});
-    auto comp = Comp::create(std::move(mtx1), std::move(mtx2));
-    auto factory = Isai::build().with_exclusive_factor_u(true).on(this->exec);
+    auto mtx = DummyOperator::create(this->exec, gko::dim<2>{2, 2});
 
-    ASSERT_THROW(factory->generate(gko::share(comp)), gko::NotSupported);
+    ASSERT_THROW(this->upper_isai_factory->generate(gko::share(mtx)),
+                 gko::NotSupported);
 }
 
 

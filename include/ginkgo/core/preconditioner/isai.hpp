@@ -55,22 +55,32 @@ namespace preconditioner {
 
 
 /**
+ * This enum lists the types of the ISAI preconditioner.
+ *
+ * ISAI can either generate a lower triangular matrix, or an upper triangular
+ * matrix.
+ */
+enum struct isai_type { lower, upper };
+
+/**
  * The Incomplete Sparse Approximate Inverse (ISAI) Preconditioner generates
- * approximate inverse matrices for a given lower triangular matrix L and upper
- * triangular matrix U. Using the preconditioner computes $aiU * aiL * x$
+ * an approximate inverse matrix for a given lower triangular matrix L or upper
+ * triangular matrix U.
+ *
+ * Using the preconditioner computes $aiU * aiL * x$
  * for a given vector x (may have multiple right hand sides). aiU and aiL
  * are the approximate inverses for U and L respectively.
  *
- * The sparsity pattern used for the approximate inverses is the same as
+ * The sparsity pattern used for the approximate inverse is the same as
  * the sparsity pattern of the respective triangular matrix.
- * The L and U matrices need to be in a Composition<ValueType> object in the
- * order: L, U.
  *
  * For more details on the algorithm, see the paper
  * <a href="https://doi.org/10.1016/j.parco.2017.10.003">
  * Incomplete Sparse Approximate Inverses for Parallel Preconditioning</a>,
  * which is the basis for this work.
  *
+ * @tparam IsaiType  determines if the ISAI is generated for a lower triangular
+ *                   matrix or an upper triangular matrix
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
@@ -78,8 +88,8 @@ namespace preconditioner {
  * @ingroup precond
  * @ingroup LinOp
  */
-template <typename ValueType = default_precision, typename IndexType = int32>
-class Isai : public EnableLinOp<Isai<ValueType, IndexType>> {
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+class Isai : public EnableLinOp<Isai<IsaiType, ValueType, IndexType>> {
     friend class EnableLinOp<Isai>;
     friend class EnablePolymorphicObject<Isai, LinOp>;
 
@@ -87,59 +97,28 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using Csr = matrix::Csr<ValueType, IndexType>;
+    static constexpr isai_type type{IsaiType};
 
     /**
-     * Returns the approximate inverse of L.
+     * Returns the approximate inverse of the given matrix (either L or U,
+     * depending on the template parameter IsaiType).
      *
-     * @note If exclusivity for U was specified, it will return a managed
-     *       nullptr.
-     *
-     * @returns the approximate inverse of L
+     * @returns the generated approximate inverse
      */
-    std::shared_ptr<const Csr> get_approx_inverse_l() const { return l_inv_; }
-
-    /**
-     * Returns the approximate inverse of U.
-     *
-     * @note If exclusivity for L was specified, it will return a managed
-     *       nullptr.
-     *
-     * @returns the approximate inverse of U
-     */
-    std::shared_ptr<const Csr> get_approx_inverse_u() const { return u_inv_; }
+    std::shared_ptr<const Csr> get_system_matrix() const
+    {
+        return system_matrix_;
+    }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * When set to true, the Isai preconditioner expects a lower triangular
-         * factor (only, so no U factor), and will only generate the
-         * approximate inverse for that L factor.
-         *
-         * @note: Setting both exclusive_factor_l and exclusive_factor_u
-         *        results in an exception being thrown when generating the
-         *        preconditioner.
-         */
-        bool GKO_FACTORY_PARAMETER(exclusive_factor_l, false);
-
-        /**
-         * When set to true, the Isai preconditioner expects an upper triangular
-         * factor (only, so no L factor), and will only generate the
-         * approximate inverse for that U factor.
-         *
-         * @note: Setting both exclusive_factor_l and exclusive_factor_u
-         *        results in an exception being thrown when generating the
-         *        preconditioner.
-         */
-        bool GKO_FACTORY_PARAMETER(exclusive_factor_u, false);
-
-        /**
          * @brief Optimization parameter that skips the sorting of the input
-         *        matrix/matrices (only skip if it is known that they are
-         *        already sorted).
+         *        matrix (only skip if it is known that it is already sorted).
          *
          * The algorithm to create the approximate inverses requires the
-         * input matrix/matrices to be sorted. If they are, this parameter
-         * can be set to `true` to skip the sorting for better performance.
+         * input matrix to be sorted. If it is, this parameter can be set to
+         * `true` to skip the sorting for better performance.
          */
         bool GKO_FACTORY_PARAMETER(skip_sorting, false);
     };
@@ -159,82 +138,34 @@ protected:
      * @param factors  Composition<ValueType> of a lower triangular and an
      *                 upper triangular matrix (L and U)
      */
-    explicit Isai(const Factory *factory, std::shared_ptr<const LinOp> factors)
-        : EnableLinOp<Isai>(factory->get_executor(), factors->get_size()),
+    explicit Isai(const Factory *factory,
+                  std::shared_ptr<const LinOp> system_matrix)
+        : EnableLinOp<Isai>(factory->get_executor(), system_matrix->get_size()),
           parameters_{factory->get_parameters()}
     {
-        if (parameters_.exclusive_factor_l && parameters_.exclusive_factor_u) {
-            GKO_NOT_SUPPORTED(parameters_);
-        }
-        auto comp = dynamic_cast<const Composition<ValueType> *>(factors.get());
         const auto skip_sorting = parameters_.skip_sorting;
-        if (!comp) {
-            if (parameters_.exclusive_factor_l) {
-                generate_l_inverse(factors.get(), skip_sorting);
-            } else if (parameters_.exclusive_factor_u) {
-                generate_u_inverse(factors.get(), skip_sorting);
-            } else {
-                GKO_NOT_SUPPORTED(factors);
-            }
+        if (IsaiType == isai_type::lower) {
+            generate_l_inverse(system_matrix.get(), skip_sorting);
         } else {
-            const auto num_operators = comp->get_operators().size();
-            if (num_operators == 1 && parameters_.exclusive_factor_l) {
-                generate_l_inverse(comp->get_operators()[0].get(),
-                                   skip_sorting);
-            } else if (num_operators == 1 && parameters_.exclusive_factor_u) {
-                generate_u_inverse(comp->get_operators()[0].get(),
-                                   skip_sorting);
-            } else if (num_operators == 2) {
-                const auto l_factor = comp->get_operators()[0];
-                const auto u_factor = comp->get_operators()[1];
-
-                if (parameters_.exclusive_factor_l) {
-                    generate_l_inverse(l_factor.get(), skip_sorting);
-                } else if (parameters_.exclusive_factor_u) {
-                    generate_u_inverse(u_factor.get(), skip_sorting);
-                } else {
-                    GKO_ASSERT_EQUAL_DIMENSIONS(l_factor, u_factor);
-
-                    generate_l_inverse(l_factor.get(), skip_sorting);
-                    generate_u_inverse(u_factor.get(), skip_sorting);
-                }
-            } else {
-                GKO_NOT_SUPPORTED(comp);
-            }
+            generate_u_inverse(system_matrix.get(), skip_sorting);
         }
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override
     {
-        if (l_inv_ && !u_inv_) {
-            l_inv_->apply(b, x);
-        } else if (!l_inv_ && u_inv_) {
-            u_inv_->apply(b, x);
-        } else {
-            cache_.prepare(l_inv_.get(), b);
-            l_inv_->apply(b, cache_.intermediate.get());
-            u_inv_->apply(cache_.intermediate.get(), x);
-        }
+        system_matrix_->apply(b, x);
     }
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override
     {
-        if (l_inv_ && !u_inv_) {
-            l_inv_->apply(alpha, b, beta, x);
-        } else if (!l_inv_ && u_inv_) {
-            u_inv_->apply(alpha, b, beta, x);
-        } else {
-            cache_.prepare(l_inv_.get(), b);
-            l_inv_->apply(b, cache_.intermediate.get());
-            u_inv_->apply(alpha, cache_.intermediate.get(), beta, x);
-        }
+        system_matrix_->apply(alpha, b, beta, x);
     }
 
 private:
     /**
      * Generates the approximate inverse for a lower triangular matrix and
-     * stores the result in `l_inv_`.
+     * stores the result in `system_matrix_`.
      *
      * @param to_invert_l  the source lower triangular matrix used to generate
      *                     the approximate inverse
@@ -246,7 +177,7 @@ private:
 
     /**
      * Generates the approximate inverse for an upper triangular matrix and
-     * stores the result in `u_inv_`.
+     * stores the result in `system_matrix_`.
      *
      * @param to_invert_u  the source upper triangular matrix used to generate
      *                     the approximate inverse
@@ -256,30 +187,16 @@ private:
      */
     void generate_u_inverse(const LinOp *to_invert_u, bool skip_sorting);
 
-    mutable struct cache_struct {
-        using Dense = matrix::Dense<ValueType>;
-        cache_struct() = default;
-        ~cache_struct() = default;
-        cache_struct(const cache_struct &) {}
-        cache_struct &operator=(const cache_struct &) { return *this; }
-
-        void prepare(const LinOp *left_factor, const LinOp *right_factor)
-        {
-            auto new_size =
-                dim<2>{left_factor->get_size()[0], right_factor->get_size()[1]};
-            if (intermediate == nullptr ||
-                intermediate->get_size() != new_size) {
-                intermediate =
-                    Dense::create(left_factor->get_executor(), new_size);
-            }
-        }
-        std::unique_ptr<Dense> intermediate;
-    } cache_;
-
-    // shared_ptr, so it is easily copyable
-    std::shared_ptr<Csr> l_inv_;
-    std::shared_ptr<Csr> u_inv_;
+private:
+    std::shared_ptr<Csr> system_matrix_;
 };
+
+
+template <typename ValueType = default_precision, typename IndexType = int32>
+using LowerIsai = Isai<isai_type::lower, ValueType, IndexType>;
+
+template <typename ValueType = default_precision, typename IndexType = int32>
+using UpperIsai = Isai<isai_type::upper, ValueType, IndexType>;
 
 
 }  // namespace preconditioner
