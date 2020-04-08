@@ -85,27 +85,8 @@ std::unique_ptr<LinOp> Cg<ValueType>::conj_transpose() const
 }
 
 
-// Read: ValueType * dense_b->get_size()[0] * dense_b->get_stride() + nnz *
-// (ValueType + 2 * IndexType) +
-//       loops * (ValueType * 2 * r->get_size()[0] * r->get_size()[1] + 4 *
-//       ValueType * p->get_size()[0] * p->get_stride() + nnz * (ValueType + 2 *
-//       IndexType) + ValueType * 2 * p->get_size()[0] * p->get_size()[1] +
-//       ValueType * 5 * p->get_size()[0] * p->get_size()[1])
-// Write: 2 * ValueType * dense_b->get_size()[1] + 1 * dense_b->get_size()[1] +
-// 4 * ValueType * dense_b->get_size()[0] * dense_b->get_stride() +
-//        loops * (ValueType * r->get_size()[1] + ValueType * p->get_size()[0] *
-//        p->get_stride() + ValueType * p->get_size()[1] + 2 * ValueType *
-//        p->get_size()[0] * p->get_size()[1])
-
-// Conclusion: n*n matrix (nnz) one rhs
-// Read: ValueType*n + nnz*(2*IndexType + ValueType) + loops*(13*ValueType*n +
-// nnz*(2*IndexType + ValueType))
-// Write: 2*ValueType + loops*(2*ValueType +
-// 3*ValueType*n) + 4*ValueType*n + 1
-
-// ValueType: 8 IndexType: 4
-// Read: 8*n + 16*nnz + loops*(104*n + 16*nnz)
-// Write: 32*n + loops*(24*n + 16) + 17
+// Read: 3*ValueType*n + nnz*(2*IndexType + 3*ValueType) + loops*(15*ValueType*n + nnz*(2*IndexType + 2*ValueType))
+// Write: loops*(2*ValueType + 5*ValueType*n) + ValueType*n + ValueType*(4*n + 2)
 template <typename ValueType>
 void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
@@ -135,11 +116,9 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     Array<stopping_status> stop_status(alpha->get_executor(),
                                        dense_b->get_size()[1]);
 
-    // Read: ValueType * dense_b->get_size()[0] * dense_b->get_stride()
-    // Write: 2 * ValueType * dense_b->get_size()[1] + 1 *
-    // dense_b->get_size()[1] + 4 * ValueType * dense_b->get_size()[0] *
-    // dense_b->get_stride()
     // TODO: replace this with automatic merged kernel generator
+    // Read: n * ValueType
+    // Write: (4 * n + 2) * ValueType
     exec->run(cg::make_initialize(dense_b, r.get(), z.get(), p.get(), q.get(),
                                   prev_rho.get(), rho.get(), &stop_status));
     // r = dense_b
@@ -147,7 +126,8 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // prev_rho = 1.0
     // z = p = q = 0
 
-    // COO: nnz * (ValueType + 2 * IndexType)
+    // Read: (3 * ValueType + 2 * IndexType)*nnz + 2 * n * ValueType
+    // Write: n * ValueType
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
@@ -155,10 +135,12 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     int iter = -1;
     while (true) {
+        // Read: n * ValueType
+        // Write: n * ValueType
         get_preconditioner()->apply(r.get(), z.get());
 
-        // Read: ValueType * 2 * r->get_size()[0] * r->get_size()[1]
-        // Write: ValueType * r->get_size()[1]
+        // Read: 2 * n * ValueType
+        // Write: ValueType
         r->compute_dot(z.get(), rho.get());
 
         ++iter;
@@ -171,20 +153,20 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
-        // Read: 4 * ValueType * p->get_size()[0] * p->get_stride()
-        // Write: ValueType * p->get_size()[0] * p->get_stride()
+        // Read: 4 * n * ValueType
+        // Write: n * ValueType
         exec->run(cg::make_step_1(p.get(), z.get(), rho.get(), prev_rho.get(),
                                   &stop_status));
         // tmp = rho / prev_rho
         // p = z + tmp * p
-        // COO: nnz * (ValueType + 2 * IndexType)
+        // Read: (2 * ValueType + 2 * IndexType)*nnz
+        // Write: n * ValueType
         system_matrix_->apply(p.get(), q.get());
-        // Read: ValueType * 2 * p->get_size()[0] * p->get_size()[1]
-        // Write: ValueType * p->get_size()[1]
+        // Read: 2 * n * ValueType
+        // Write: ValueType
         p->compute_dot(q.get(), beta.get());
-
-        // Read: ValueType * 5 * p->get_size()[0] * p->get_size()[1]
-        // Write: 2 * ValueType * p->get_size()[0] * p->get_size()[1]
+        // Read: 6 * n * ValueType
+        // Write: 2 * n * ValueType
         exec->run(cg::make_step_2(dense_x, r.get(), p.get(), q.get(),
                                   beta.get(), rho.get(), &stop_status));
         // tmp = rho / beta

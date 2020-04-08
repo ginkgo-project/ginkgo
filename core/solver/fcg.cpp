@@ -55,6 +55,7 @@ GKO_REGISTER_OPERATION(step_2, fcg::step_2);
 
 }  // namespace fcg
 
+
 template <typename ValueType>
 std::unique_ptr<LinOp> Fcg<ValueType>::transpose() const
 {
@@ -82,7 +83,7 @@ std::unique_ptr<LinOp> Fcg<ValueType>::conj_transpose() const
 
 
 // Read: 3*ValueType*n + nnz*(2*IndexType + 3*ValueType) + loops*(18*ValueType*n + nnz*(2*IndexType + 2*ValueType))
-// Write: ValueType*n + ValueType*(5*n + 3) + 9*ValueType*loops*n
+// Write: loops*(3*ValueType + 6*ValueType*n) + ValueType*n + ValueType*(5*n + 3)
 template <typename ValueType>
 void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
@@ -140,10 +141,10 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // Write: n * ValueType
         get_preconditioner()->apply(r.get(), z.get());
         // Read: 2 * n * ValueType
-        // Write: n * ValueType
+        // Write: ValueType
         r->compute_dot(z.get(), rho.get());
         // Read: 2 * n * ValueType
-        // Write: n * ValueType
+        // Write: ValueType
         t->compute_dot(z.get(), rho_t.get());
 
         ++iter;
@@ -167,7 +168,7 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // Write: n * ValueType
         system_matrix_->apply(p.get(), q.get());
         // Read: 2 * n * ValueType
-        // Write: n * ValueType
+        // Write: ValueType
         p->compute_dot(q.get(), beta.get());
         // Read: 6 * n * ValueType
         // Write: 3 * n * ValueType

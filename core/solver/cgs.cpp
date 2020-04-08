@@ -87,7 +87,7 @@ std::unique_ptr<LinOp> Cgs<ValueType>::conj_transpose() const
 
 // Read: 4*ValueType*n + nnz*(2*IndexType + 3*ValueType) +
 //       loops*(20*ValueType*n + 2*nnz*(2*IndexType + 2*ValueType))
-// Write: 2*ValueType*n + ValueType*(8*n + 2) + 12*ValueType*loops*n
+// Write: loops*(2*ValueType + 10*ValueType*n) + 2*ValueType*n + ValueType*(8*n + 2)
 template <typename ValueType>
 void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
@@ -149,7 +149,7 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     int iter = 0;
     while (true) {
         // Read: 2 * n * ValueType
-        // Write: n * ValueType
+        // Write: ValueType
         r->compute_dot(r_tld.get(), rho.get());
         // Read: 5 * n * ValueType
         // Write: 2 * n * ValueType
@@ -167,7 +167,7 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // Write: n * ValueType
         system_matrix_->apply(t.get(), v_hat.get());
         // Read: 2 * n * ValueType
-        // Write: n * ValueType
+        // Write: ValueType
         r_tld->compute_dot(v_hat.get(), gamma.get());
         // Read: 4 * n * ValueType
         // Write: 2 * n * ValueType
