@@ -85,6 +85,9 @@ std::unique_ptr<LinOp> Cgs<ValueType>::conj_transpose() const
 }
 
 
+// Read: 4*ValueType*n + nnz*(2*IndexType + 3*ValueType) +
+//       loops*(20*ValueType*n + 2*nnz*(2*IndexType + 2*ValueType))
+// Write: 2*ValueType*n + ValueType*(8*n + 2) + 12*ValueType*loops*n
 template <typename ValueType>
 void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
@@ -121,6 +124,8 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                        dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
+    // Read: ValueType * n
+    // Write: (8 * n + 2 )* ValueType
     exec->run(cgs::make_initialize(
         dense_b, r.get(), r_tld.get(), p.get(), q.get(), u.get(), u_hat.get(),
         v_hat.get(), t.get(), alpha.get(), beta.get(), gamma.get(),
@@ -131,24 +136,41 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // rho_prev = 1.0
     // p = q = u = u_hat = v_hat = t = 0
 
+    // Read: (3 * ValueType + 2 * IndexType)*nnz + 2 * n * ValueType
+    // Write: n * ValueType
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
         x, r.get());
+    // Read: n * ValueType
+    // Write: n * ValueType
     r_tld->copy_from(r.get());
 
     int iter = 0;
     while (true) {
+        // Read: 2 * n * ValueType
+        // Write: n * ValueType
         r->compute_dot(r_tld.get(), rho.get());
+        // Read: 5 * n * ValueType
+        // Write: 2 * n * ValueType
         exec->run(cgs::make_step_1(r.get(), u.get(), p.get(), q.get(),
                                    beta.get(), rho.get(), rho_prev.get(),
                                    &stop_status));
         // beta = rho / rho_prev
         // u = r + beta * q;
         // p = u + beta * ( q + beta * p );
+
+        // Read: n * ValueType
+        // Write: n * ValueType
         get_preconditioner()->apply(p.get(), t.get());
+        // Read: (2 * ValueType + 2 * IndexType)*nnz
+        // Write: n * ValueType
         system_matrix_->apply(t.get(), v_hat.get());
+        // Read: 2 * n * ValueType
+        // Write: n * ValueType
         r_tld->compute_dot(v_hat.get(), gamma.get());
+        // Read: 4 * n * ValueType
+        // Write: 2 * n * ValueType
         exec->run(cgs::make_step_2(u.get(), v_hat.get(), q.get(), t.get(),
                                    alpha.get(), rho.get(), gamma.get(),
                                    &stop_status));
@@ -160,8 +182,14 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // alpha = rho / gamma
         // q = u - alpha * v_hat
         // t = u + q
+        // Read: n * ValueType
+        // Write: n * ValueType
         get_preconditioner()->apply(t.get(), u_hat.get());
+        // Read: (2 * ValueType + 2 * IndexType)*nnz
+        // Write: n * ValueType
         system_matrix_->apply(u_hat.get(), t.get());
+        // Read: 5 * n * ValueType
+        // Write: 2 * n * ValueType
         exec->run(cgs::make_step_3(t.get(), u_hat.get(), r.get(), dense_x,
                                    alpha.get(), &stop_status));
         // r = r -alpha * t
