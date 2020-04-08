@@ -215,7 +215,11 @@ __device__ __forceinline__ void copy_matrix(
     size_type stride)
 {
     GKO_ASSERT(problem_size <= max_problem_size);
+#if !defined(__NVCC__)
+#pragma unroll 1
+#else
 #pragma unroll
+#endif  // !defined(__NVCC__)
     for (int32 i = 0; i < max_problem_size; ++i) {
         if (i < problem_size) {
             const auto idx = group.shfl(col_perm, i);
