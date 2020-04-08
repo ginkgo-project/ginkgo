@@ -99,9 +99,9 @@ convert_to_csr_and_sort(std::shared_ptr<const Executor> &exec, const LinOp *mtx,
 }
 
 
-template <typename ValueType, typename IndexType>
-void Isai<ValueType, IndexType>::generate_l_inverse(const LinOp *to_invert_l,
-                                                    bool skip_sorting)
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+void Isai<IsaiType, ValueType, IndexType>::generate_l_inverse(
+    const LinOp *to_invert_l, bool skip_sorting)
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(to_invert_l);
     auto exec = this->get_executor();
@@ -112,13 +112,13 @@ void Isai<ValueType, IndexType>::generate_l_inverse(const LinOp *to_invert_l,
         Csr::create(exec, csr_l->get_size(), num_elems, csr_l->get_strategy());
     exec->run(isai::make_generate_l_inverse(csr_l.get(), inverted_l.get()));
 
-    l_inv_ = std::move(inverted_l);
+    system_matrix_ = std::move(inverted_l);
 }
 
 
-template <typename ValueType, typename IndexType>
-void Isai<ValueType, IndexType>::generate_u_inverse(const LinOp *to_invert_u,
-                                                    bool skip_sorting)
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+void Isai<IsaiType, ValueType, IndexType>::generate_u_inverse(
+    const LinOp *to_invert_u, bool skip_sorting)
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(to_invert_u);
     auto exec = this->get_executor();
@@ -129,12 +129,17 @@ void Isai<ValueType, IndexType>::generate_u_inverse(const LinOp *to_invert_u,
         Csr::create(exec, csr_u->get_size(), num_elems, csr_u->get_strategy());
     exec->run(isai::make_generate_u_inverse(csr_u.get(), inverted_u.get()));
 
-    u_inv_ = std::move(inverted_u);
+    system_matrix_ = std::move(inverted_u);
 }
 
 
-#define GKO_DECLARE_ISAI(ValueType, IndexType) class Isai<ValueType, IndexType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ISAI);
+#define GKO_DECLARE_LOWER_ISAI(ValueType, IndexType) \
+    class Isai<isai_type::lower, ValueType, IndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_ISAI);
+
+#define GKO_DECLARE_UPPER_ISAI(ValueType, IndexType) \
+    class Isai<isai_type::upper, ValueType, IndexType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UPPER_ISAI);
 
 
 }  // namespace preconditioner
