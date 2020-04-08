@@ -58,7 +58,9 @@ constexpr int default_block_size = 512;
 
 #include "common/solver/cg_kernels.hpp.inc"
 
-
+// Read: ValueType * b->get_size()[0] * b->get_stride()
+// Write: 2 * ValueType * b->get_size()[1] + 1 * b->get_size()[1] + 4 *
+// ValueType * b->get_size()[0] * b->get_stride()
 template <typename ValueType>
 void initialize(std::shared_ptr<const CudaExecutor> exec,
                 const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
@@ -82,6 +84,8 @@ void initialize(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_INITIALIZE_KERNEL);
 
 
+// Read: 4 * ValueType * p->get_size()[0] * p->get_stride()
+// Write: ValueType * p->get_size()[0] * p->get_stride()
 template <typename ValueType>
 void step_1(std::shared_ptr<const CudaExecutor> exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
@@ -104,6 +108,8 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
 
 
+// Read: ValueType * 5 * p->get_size()[0] * p->get_size()[1]
+// Write: 2 * ValueType * p->get_size()[0] * p->get_size()[1]
 template <typename ValueType>
 void step_2(std::shared_ptr<const CudaExecutor> exec,
             matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
