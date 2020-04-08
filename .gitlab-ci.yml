@@ -175,26 +175,11 @@ build/cuda91/clang/all/release/shared:
     - cuda
     - gpu
 
-build/cuda91/intel/cuda/debug/shared:
-  <<: *default_build_with_test
-  image: localhost:5000/gko-cuda91-gnu6-llvm40
-  variables:
-    <<: *default_variables
-    C_COMPILER: icc
-    CXX_COMPILER: icpc
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: Debug
-    EXTRA_CMAKE_FLAGS: *cuda_flags
-  tags:
-    - private_ci
-    - cuda
-    - gpu
 
 # cuda 9.2 and friends
 build/cuda92/gcc/all/release/shared:
   <<: *default_build_with_test
-  image: localhost:5000/gko-cuda92-gnu7-llvm50
+  image: localhost:5000/gko-cuda92-gnu7-llvm50-intel2017
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -209,7 +194,7 @@ build/cuda92/gcc/all/release/shared:
 
 build/cuda92/clang/all/debug/static:
   <<: *default_build_with_test
-  image: localhost:5000/gko-cuda92-gnu7-llvm50
+  image: localhost:5000/gko-cuda92-gnu7-llvm50-intel2017
   variables:
     <<: *default_variables
     C_COMPILER: clang
@@ -227,7 +212,7 @@ build/cuda92/clang/all/debug/static:
 
 build/cuda92/intel/cuda/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/gko-cuda92-gnu7-llvm50
+  image: localhost:5000/gko-cuda92-gnu7-llvm50-intel2017
   variables:
     <<: *default_variables
     C_COMPILER: icc
@@ -245,7 +230,7 @@ build/cuda92/intel/cuda/release/static:
 # cuda 10.0 and friends
 build/cuda100/gcc/all/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  image: localhost:5000/gko-cuda100-gnu7-llvm60-intel2018
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -260,7 +245,7 @@ build/cuda100/gcc/all/debug/shared:
 
 build/cuda100/clang/all/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  image: localhost:5000/gko-cuda100-gnu7-llvm60-intel2018
   variables:
     <<: *default_variables
     C_COMPILER: clang
@@ -278,7 +263,7 @@ build/cuda100/clang/all/release/static:
 
 build/cuda100/intel/cuda/release/shared:
   <<: *default_build_with_test
-  image: localhost:5000/gko-cuda100-gnu7-llvm60
+  image: localhost:5000/gko-cuda100-gnu7-llvm60-intel2018
   variables:
     <<: *default_variables
     C_COMPILER: icc
@@ -295,7 +280,7 @@ build/cuda100/intel/cuda/release/shared:
 # cuda 10.1 and friends
 build/cuda101/gcc/all/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -310,7 +295,7 @@ build/cuda101/gcc/all/debug/shared:
 
 build/cuda101/clang/all/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     C_COMPILER: clang
@@ -327,7 +312,7 @@ build/cuda101/clang/all/release/static:
 
 build/cuda101/intel/cuda/debug/static:
   <<: *default_build_with_test
-  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     C_COMPILER: icc
@@ -399,7 +384,7 @@ build/nocuda/clang/core/release/shared:
 
 build/nocuda/intel/core/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     C_COMPILER: icc
@@ -408,6 +393,7 @@ build/nocuda/intel/core/debug/shared:
     BUILD_TYPE: Debug
   tags:
     - private_ci
+    - cuda
     - cpu
 
 build/nocuda/gcc/omp/release/shared:
@@ -437,7 +423,7 @@ build/nocuda/clang/omp/debug/static:
 
 build/nocuda/intel/omp/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/gko-nocuda-gnu8-llvm70
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     C_COMPILER: icc
@@ -447,6 +433,7 @@ build/nocuda/intel/omp/release/static:
     BUILD_SHARED_LIBS: "OFF"
   tags:
     - private_ci
+    - cuda
     - cpu
 
 
@@ -454,7 +441,7 @@ build/nocuda/intel/omp/release/static:
 warnings:
   <<: *default_build
   stage: code_quality
-  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -472,7 +459,7 @@ warnings:
 no-circular-deps:
   <<: *default_build
   stage: code_quality
-  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -490,7 +477,7 @@ no-circular-deps:
 clang-tidy:
   <<: *default_build
   stage: code_quality
-  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -507,7 +494,7 @@ clang-tidy:
 iwyu:
   <<: *default_build
   stage: code_quality
-  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -525,7 +512,7 @@ iwyu:
 # For short living branches or PRs, try to detect an open PR
 sonarqube_cov_:
   stage: code_quality
-  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   before_script: *default_before_script
   script:
     - PR_ID=$(curl "https://api.github.com/search/issues?q=sha:${CI_COMMIT_SHA}"
@@ -566,7 +553,7 @@ sonarqube_cov_:
 # (the one that was merged).
 sonarqube_cov:
   stage: code_quality
-  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   before_script: *default_before_script
   script:
     - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
@@ -640,7 +627,7 @@ gh-pages:
 
 threadsanitizer:
   stage: QoS_tools
-  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   before_script: *default_before_script
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=TSAN -DCTEST_MEMORYCHECK_TYPE=ThreadSanitizer
@@ -659,7 +646,7 @@ threadsanitizer:
 
 leaksanitizer:
   stage: QoS_tools
-  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   before_script: *default_before_script
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=LSAN
@@ -679,7 +666,7 @@ leaksanitizer:
 
 addresssanitizer:
   stage: QoS_tools
-  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   before_script: *default_before_script
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=ASAN
@@ -699,7 +686,7 @@ addresssanitizer:
 
 leaksanitizer:
   stage: QoS_tools
-  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   before_script: *default_before_script
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=LSAN
@@ -719,7 +706,7 @@ leaksanitizer:
 
 undefinedsanitizer:
   stage: QoS_tools
-  image: localhost:5000/gko-cuda101-gnu8-llvm70
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   before_script: *default_before_script
   script:
     # the Gold linker is required because of a linker flag issues given by UBsan
@@ -802,6 +789,8 @@ fineci-benchmark-build:
 #    - master
   tags:
     - private_ci
+    - cpu
+    - cuda
 
 
 # Benchmark runs
@@ -851,6 +840,8 @@ fineci-benchmark-cuda:
   <<: *default_benchmark
   tags:
     - private_ci
+    - cpu
+    - cuda
 
 # fineci-benchmark-omp:
 #   stage: benchmark-omp
