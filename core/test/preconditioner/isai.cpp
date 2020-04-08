@@ -96,6 +96,28 @@ TYPED_TEST(IsaiFactory, KnowsItsExecutor)
 }
 
 
+TYPED_TEST(IsaiFactory, SetsDefaultSkipSortingCorrectly)
+{
+    using LowerIsai = typename TestFixture::LowerIsai;
+    using UpperIsai = typename TestFixture::UpperIsai;
+
+    auto l_isai_factory =
+        LowerIsai::build().with_skip_sorting(true).on(this->exec);
+    auto u_isai_factory =
+        UpperIsai::build().with_skip_sorting(true).on(this->exec);
+
+    ASSERT_EQ(l_isai_factory->get_parameters().skip_sorting, true);
+    ASSERT_EQ(u_isai_factory->get_parameters().skip_sorting, true);
+}
+
+
+TYPED_TEST(IsaiFactory, SetskipSortingCorrectly)
+{
+    ASSERT_EQ(this->lower_isai_factory->get_parameters().skip_sorting, false);
+    ASSERT_EQ(this->upper_isai_factory->get_parameters().skip_sorting, false);
+}
+
+
 TYPED_TEST(IsaiFactory, ThrowsWrongDimensionL)
 {
     using Csr = typename TestFixture::Csr;
