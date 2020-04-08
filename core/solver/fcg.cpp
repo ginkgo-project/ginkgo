@@ -55,7 +55,6 @@ GKO_REGISTER_OPERATION(step_2, fcg::step_2);
 
 }  // namespace fcg
 
-
 template <typename ValueType>
 std::unique_ptr<LinOp> Fcg<ValueType>::transpose() const
 {
@@ -82,6 +81,8 @@ std::unique_ptr<LinOp> Fcg<ValueType>::conj_transpose() const
 }
 
 
+// Read: 3*ValueType*n + nnz*(2*IndexType + 3*ValueType) + loops*(18*ValueType*n + nnz*(2*IndexType + 2*ValueType))
+// Write: ValueType*n + ValueType*(5*n + 3) + 9*ValueType*loops*n
 template <typename ValueType>
 void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
@@ -114,6 +115,8 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                        dense_b->get_size()[1]);
 
     // TODO: replace this with automatic merged kernel generator
+    // Read: n * ValueType
+    // Write: (5 * n + 3) * ValueType
     exec->run(fcg::make_initialize(dense_b, r.get(), z.get(), p.get(), q.get(),
                                    t.get(), prev_rho.get(), rho.get(),
                                    rho_t.get(), &stop_status));
@@ -124,6 +127,8 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // rho_t = 1.0
     // z = p = q = 0
 
+    // Read: (3 * ValueType + 2 * IndexType)*nnz + 2 * n * ValueType
+    // Write: n * ValueType
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
         system_matrix_, std::shared_ptr<const LinOp>(b, [](const LinOp *) {}),
@@ -131,8 +136,14 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     int iter = -1;
     while (true) {
+        // Read: 2 * n * ValueType
+        // Write: n * ValueType
         get_preconditioner()->apply(r.get(), z.get());
+        // Read: 2 * n * ValueType
+        // Write: n * ValueType
         r->compute_dot(z.get(), rho.get());
+        // Read: 2 * n * ValueType
+        // Write: n * ValueType
         t->compute_dot(z.get(), rho_t.get());
 
         ++iter;
@@ -146,12 +157,20 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             break;
         }
 
+        // Read: 4 * n * ValueType
+        // Write: n * ValueType
         exec->run(fcg::make_step_1(p.get(), z.get(), rho_t.get(),
                                    prev_rho.get(), &stop_status));
         // tmp = rho_t / prev_rho
         // p = z + tmp * p
+        // Read: (2 * ValueType + 2 * IndexType)*nnz
+        // Write: n * ValueType
         system_matrix_->apply(p.get(), q.get());
+        // Read: 2 * n * ValueType
+        // Write: n * ValueType
         p->compute_dot(q.get(), beta.get());
+        // Read: 6 * n * ValueType
+        // Write: 3 * n * ValueType
         exec->run(fcg::make_step_2(dense_x, r.get(), t.get(), p.get(), q.get(),
                                    beta.get(), rho.get(), &stop_status));
         // tmp = rho / beta
