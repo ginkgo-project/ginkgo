@@ -85,9 +85,8 @@ std::unique_ptr<LinOp> Cgs<ValueType>::conj_transpose() const
 }
 
 
-// Read: 4*ValueType*n + nnz*(2*IndexType + 3*ValueType) +
-//       loops*(20*ValueType*n + 2*nnz*(2*IndexType + 2*ValueType))
-// Write: loops*(2*ValueType + 10*ValueType*n) + 2*ValueType*n + ValueType*(8*n + 2)
+// Read: (5 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType + loops * ((20 * n + 4 * nnz) * ValueType + 4 * nnz * IndexType)
+// Write: (10 * n + 2) * ValueType + loops * ((10 * n + 3) * ValueType)
 template <typename ValueType>
 void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
@@ -136,7 +135,7 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // rho_prev = 1.0
     // p = q = u = u_hat = v_hat = t = 0
 
-    // Read: (3 * ValueType + 2 * IndexType)*nnz + 2 * n * ValueType
+    // Read: (2 * ValueType + 2 * IndexType)*nnz + 3 * n * ValueType
     // Write: n * ValueType
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
@@ -152,7 +151,7 @@ void Cgs<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // Write: ValueType
         r->compute_dot(r_tld.get(), rho.get());
         // Read: 5 * n * ValueType
-        // Write: 2 * n * ValueType
+        // Write: (2 * n + 1)* ValueType
         exec->run(cgs::make_step_1(r.get(), u.get(), p.get(), q.get(),
                                    beta.get(), rho.get(), rho_prev.get(),
                                    &stop_status));

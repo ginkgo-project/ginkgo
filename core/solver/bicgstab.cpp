@@ -84,10 +84,8 @@ std::unique_ptr<LinOp> Bicgstab<ValueType>::conj_transpose() const
 }
 
 
-// Read: 4*ValueType*n + nnz*(2*IndexType + 3*ValueType) +
-// loops * (29*ValueType*n + 2*nnz*(2*IndexType + 2*ValueType))
-// Write: 2*ValueType*n + ValueType*(8*n + 6) +
-// loops * (4*ValueType + 6*ValueType*n + ValueType*(2*n + 1))
+// Read: (5 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType + loops * ((29 * n + 4 * nnz) * ValueType + 4 * nnz * IndexType)
+// Write: (10 * n + 6) * ValueType + loops * ((8 * n + 5) * ValueType)
 template <typename ValueType>
 void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
@@ -134,7 +132,7 @@ void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // prev_rho = rho = omega = alpha = beta = gamma = 1.0
     // rr = v = s = t = z = y = p = 0
     // stop_status = 0x00
-    // Read: (3 * ValueType + 2 * IndexType)*nnz + 2 * n * ValueType
+    // Read: (2 * ValueType + 2 * IndexType)*nnz + 3 * n * ValueType
     // Write: n * ValueType
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(

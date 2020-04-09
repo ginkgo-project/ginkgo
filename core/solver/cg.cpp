@@ -85,8 +85,8 @@ std::unique_ptr<LinOp> Cg<ValueType>::conj_transpose() const
 }
 
 
-// Read: 3*ValueType*n + nnz*(2*IndexType + 3*ValueType) + loops*(15*ValueType*n + nnz*(2*IndexType + 2*ValueType))
-// Write: loops*(2*ValueType + 5*ValueType*n) + ValueType*n + ValueType*(4*n + 2)
+// Read: (4 * n + 2 * nnz) * ValueType  + 2 * nnz * IndexType + loops * ((15 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType)
+// Write: (5 * n + 2) * ValueType + loops * ((5 * n + 2) * ValueType)
 template <typename ValueType>
 void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
@@ -126,7 +126,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // prev_rho = 1.0
     // z = p = q = 0
 
-    // Read: (3 * ValueType + 2 * IndexType)*nnz + 2 * n * ValueType
+    // Read: (2 * ValueType + 2 * IndexType)*nnz + 3 * n * ValueType
     // Write: n * ValueType
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
@@ -159,6 +159,7 @@ void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                   &stop_status));
         // tmp = rho / prev_rho
         // p = z + tmp * p
+
         // Read: (2 * ValueType + 2 * IndexType)*nnz
         // Write: n * ValueType
         system_matrix_->apply(p.get(), q.get());
