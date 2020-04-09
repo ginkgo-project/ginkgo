@@ -55,8 +55,8 @@ GKO_REGISTER_OPERATION(step_2, fcg::step_2);
 
 }  // namespace fcg
 
-// Read: 3*ValueType*n + nnz*(2*IndexType + 3*ValueType) + loops*(18*ValueType*n + nnz*(2*IndexType + 2*ValueType))
-// Write: loops*(3*ValueType + 6*ValueType*n) + ValueType*n + ValueType*(5*n + 3)
+// Read: (4 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType + loops * ((17 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType)
+// Write: (6 * n + 3) * ValueType + loops * ((6 * n + 3) * ValueType)
 template <typename ValueType>
 std::unique_ptr<LinOp> Fcg<ValueType>::transpose() const
 {
@@ -127,7 +127,7 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     // rho_t = 1.0
     // z = p = q = 0
 
-    // Read: (3 * ValueType + 2 * IndexType)*nnz + 2 * n * ValueType
+    // Read: (2 * ValueType + 2 * IndexType)*nnz + 3 * n * ValueType
     // Write: n * ValueType
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
@@ -136,7 +136,7 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     int iter = -1;
     while (true) {
-        // Read: 2 * n * ValueType
+        // Read: n * ValueType
         // Write: n * ValueType
         get_preconditioner()->apply(r.get(), z.get());
         // Read: 2 * n * ValueType
