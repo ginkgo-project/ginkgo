@@ -150,7 +150,7 @@ target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_CO
 ginkgo_compile_features(ginkgo_cuda)
 target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
-target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_LIBS} ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE})
+target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE})
 
 # Need to link against ginkgo_hip for the `raw_copy_to(HipExecutor ...)` method
 target_link_libraries(ginkgo_cuda PUBLIC ginkgo_hip)
