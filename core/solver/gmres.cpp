@@ -105,8 +105,9 @@ std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
 // loops * (ValueType*(4*n + 3*r + n*r + 7)) +
 // ValueType*(2*n + r)
 
-// Notes: loops * r should be 0 + 1 + ... + r - 1 = (r-1)* r/ 2 (loops_r)
-// Notes: loops_k is the floor(loops/r) i.e. how many does restart step activate
+// Notes: loops * r should be loops_k*(0 + 1 + ... + k - 1) + 0 + 1 + ... + r-1
+//        = floor(loops/k) * (k - 1) * k / 2 + (r - 1) * r/ 2 (loops_r)
+// Notes: loops_k is the floor(loops/k) i.e. how many does restart step activate
 // Refined:
 // Read: ((r^2 + 3 * r) / 2 + 9 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType
 // + floor(loops/k) * ((k^2 / 2 + 3 * k / 2 + 2 * nnz + 9 * n) * ValueType + 2 * nnz * IndexType)
