@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -71,9 +71,9 @@ void Rcm<ValueType, IndexType>::generate() const
     // RCM is only valid for symmetric matrices. Need to add an expensive check
     // for symmetricity here ?
     exec->run(rcm::make_get_degree_of_nodes(adjacency_matrix_, node_degrees_));
-    exec->run(rcm::make_get_permutation(num_rows, adjacency_matrix_,
-                                        node_degrees_, permutation_,
-                                        inv_permutation_));
+    exec->run(rcm::make_get_permutation(
+        num_rows, adjacency_matrix_, node_degrees_, permutation_,
+        inv_permutation_, parameters_.starting_strategy));
 }
 
 

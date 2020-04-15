@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -59,6 +59,8 @@ namespace gko {
  */
 namespace reorder {
 
+enum class starting_strategy { minimum_degree, pseudo_peripheral };
+
 
 /**
  * Rcm is the reordering algorithm which uses METIS to compute a
@@ -71,6 +73,8 @@ namespace reorder {
  * objective of this class is to generate a reordering/permutation vector (in
  * the form of the Permutation matrix), which can be used to apply to reorder a
  * matrix as required.
+ *
+ * <Explanation starting strategy here>
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrices used in this class
@@ -126,6 +130,13 @@ public:
          * constructed along with the normal permutation matrix.
          */
         bool GKO_FACTORY_PARAMETER(construct_inverse_permutation, false);
+
+        /**
+         * This parameter controls the strategy used to determine a starting
+         * vertex.
+         */
+        starting_strategy GKO_FACTORY_PARAMETER(
+            starting_strategy, starting_strategy::pseudo_peripheral);
     };
     GKO_ENABLE_REORDERING_BASE_FACTORY(Rcm, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -159,20 +170,21 @@ protected:
             // the diagonal elements and outputs an adjacency matrix.
             adjacency_matrix_ = tmp->to_adjacency_matrix();
         }
+        auto const dim = adjacency_matrix_->get_size();
         node_degrees_ = std::shared_ptr<Array<IndexType>>(
-            new Array<IndexType>(exec, adjacency_matrix_->get_size()[0]));
-        permutation_ =
-            PermutationMatrix::create(exec, adjacency_matrix_->get_size());
-        inv_permutation_ =
-            PermutationMatrix::create(exec, adjacency_matrix_->get_size());
+            new Array<IndexType>(exec, dim[0]));
+        permutation_ = PermutationMatrix::create(exec, dim);
+        if (parameters_.construct_inverse_permutation) {
+            inv_permutation_ = PermutationMatrix::create(exec, dim);
+        }
 
         this->generate();
     }
 
 private:
     std::shared_ptr<SparsityMatrix> adjacency_matrix_{};
-    std::shared_ptr<Array<IndexType>> node_degrees_{};
     std::shared_ptr<PermutationMatrix> permutation_{};
+    std::shared_ptr<Array<IndexType>> node_degrees_{};
     std::shared_ptr<PermutationMatrix> inv_permutation_{};
 };
 
