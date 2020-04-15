@@ -72,6 +72,10 @@ DEFINE_uint32(
     nrhs, 1,
     "The number of right hand sides. Record the residual only when nrhs == 1.");
 
+// This allows to benchmark the overhead of a solver by using the following
+// data: A=[1.0], x=[0.0], b=[nan]. This data can be used to benchmark normal
+// solvers or using the argument --solvers=overhead, a minimal solver will be
+// launched which contains only a few kernel calls.
 DEFINE_bool(overhead, false,
             "If set, uses dummy data to benchmark Ginkgo overhead");
 
