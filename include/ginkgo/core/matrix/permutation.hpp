@@ -221,7 +221,8 @@ protected:
                 }
             }
         }
-        out->copy_from(std::move(tmp));
+        // out->copy_from(std::move(tmp));
+        out->copy_from(tmp.get());
     }
 
 
