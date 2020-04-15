@@ -28,11 +28,14 @@ namespace overhead {
     }
 
 
-#define GKO_DECLARE_ALL                                 \
-    GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(ValueType, 1) \
-    GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(ValueType, 2) \
-    GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(ValueType, 3) \
-    GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(ValueType, 4)
+#define GKO_DECLARE_ALL                                                      \
+    GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(ValueType, 1)                      \
+    GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(ValueType, 2)                      \
+    GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(ValueType, 3)                      \
+    GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(ValueType, 4)                      \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
 
 
 }  // namespace overhead
