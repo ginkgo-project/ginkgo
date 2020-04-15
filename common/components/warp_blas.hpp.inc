@@ -215,17 +215,16 @@ __device__ __forceinline__ void copy_matrix(
     size_type stride)
 {
     GKO_ASSERT(problem_size <= max_problem_size);
-#if !defined(__NVCC__)
-#pragma unroll 1
-#else
 #pragma unroll
-#endif  // !defined(__NVCC__)
     for (int32 i = 0; i < max_problem_size; ++i) {
         if (i < problem_size) {
             const auto idx = group.shfl(col_perm, i);
             if (group.thread_rank() < problem_size) {
+                // Need to assign a variable for the source_row, or hip
+                // will use a lot of VGPRs in unroll. This might lead a problem.
+                const auto val = source_row[i * increment];
                 destination[get_row_major_index<mod>(idx, row_perm, stride)] =
-                    static_cast<ResultValueType>(source_row[i * increment]);
+                    static_cast<ResultValueType>(val);
             }
         }
     }
