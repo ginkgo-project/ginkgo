@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -98,7 +98,8 @@ void get_permutation(
     std::shared_ptr<matrix::SparsityCsr<ValueType, IndexType>> adjacency_matrix,
     std::shared_ptr<Array<IndexType>> node_degrees,
     std::shared_ptr<matrix::Permutation<IndexType>> permutation_mat,
-    std::shared_ptr<matrix::Permutation<IndexType>> inv_permutation_mat)
+    std::shared_ptr<matrix::Permutation<IndexType>> inv_permutation_mat,
+    const gko::reorder::starting_strategy strategy)
 {
     IndexType num_vtxs = static_cast<IndexType>(num_vertices);
     auto adj_ptrs = adjacency_matrix->get_row_ptrs();
