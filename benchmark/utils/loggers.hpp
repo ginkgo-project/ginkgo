@@ -229,4 +229,29 @@ private:
 };
 
 
+// Logs the number of iteration executed
+struct IterationLogger : gko::log::Logger {
+    void on_iteration_complete(const gko::LinOp *,
+                               const gko::size_type &num_iterations,
+                               const gko::LinOp *, const gko::LinOp *,
+                               const gko::LinOp *) const override
+    {
+        this->num_iters = num_iterations;
+    }
+
+    IterationLogger(std::shared_ptr<const gko::Executor> exec)
+        : gko::log::Logger(exec, gko::log::Logger::iteration_complete_mask)
+    {}
+
+    void write_data(rapidjson::Value &output,
+                    rapidjson::MemoryPoolAllocator<> &allocator)
+    {
+        add_or_set_member(output, "iterations", this->num_iters, allocator);
+    }
+
+private:
+    mutable gko::size_type num_iters{0};
+};
+
+
 #endif  // GKO_BENCHMARK_UTILS_LOGGERS_HPP_
