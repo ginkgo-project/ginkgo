@@ -294,13 +294,19 @@ void solve_system(const std::string &solver_name,
         }
 
         // warm run
+        auto it_logger = std::make_shared<IterationLogger>(exec);
         for (unsigned int i = 0; i < FLAGS_warmup; i++) {
             auto x_clone = clone(x);
             auto precond = precond_factory.at(precond_name)(exec);
             auto solver = solver_factory.at(solver_name)(exec, give(precond))
                               ->generate(system_matrix);
+            solver->add_logger(it_logger);
             solver->apply(lend(b), lend(x_clone));
             exec->synchronize();
+            solver->remove_logger(gko::lend(it_logger));
+        }
+        if (FLAGS_warmup > 0) {
+            it_logger->write_data(solver_json["apply"], allocator);
         }
 
         // detail run
