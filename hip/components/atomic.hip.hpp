@@ -52,8 +52,8 @@ __forceinline__ __device__ thrust::complex<float> atomic_add(
 {
     hipComplex *addr = reinterpret_cast<hipComplex *>(address);
     // Separate to real part and imag part
-    auto real = atomic_add(&(addr->x), val.real());
-    auto imag = atomic_add(&(addr->y), val.imag());
+    auto real = atomic_add(static_cast<float *>(&(addr->x)), val.real());
+    auto imag = atomic_add(static_cast<float *>(&(addr->y)), val.imag());
     return {real, imag};
 }
 
@@ -68,8 +68,8 @@ __forceinline__ __device__ thrust::complex<double> atomic_add(
 {
     hipDoubleComplex *addr = reinterpret_cast<hipDoubleComplex *>(address);
     // Separate to real part and imag part
-    auto real = atomic_add(&(addr->x), val.real());
-    auto imag = atomic_add(&(addr->y), val.imag());
+    auto real = atomic_add(static_cast<double *>(&(addr->x)), val.real());
+    auto imag = atomic_add(static_cast<double *>(&(addr->y)), val.imag());
     return {real, imag};
 }
 
