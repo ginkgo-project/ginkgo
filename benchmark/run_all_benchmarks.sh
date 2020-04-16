@@ -40,6 +40,20 @@ if [ ! "${DEVICE_ID}" ]; then
     DEVICE_ID="0"
 fi
 
+# This allows using a matrix list file for benchmarking.
+# The file should contains a suitesparse matrix on each line.
+# The allowed formats to target suitesparse matrix is:
+#   id or group/name or name.
+# Example:
+# 1903
+# Freescale/circuit5M
+# thermal2
+if [ ! "${MATRIX_LIST_FILE}" ]; then
+    use_matrix_list_file=0
+else
+    use_matrix_list_file=1
+fi
+
 
 ################################################################################
 # Utilities
@@ -173,9 +187,41 @@ generate_suite_sparse_input() {
 EOT
 }
 
+parse_matrix_list() {
+    local source_list_file=$1
+    local benchmark_list=""
+    local id=0
+    for mtx in $(cat ${source_list_file}); do
+        if [[ ! "$mtx" =~ ^[0-9]+$ ]]; then
+            if [[ "$mtx" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+                id=$(${SSGET} -s "[ @name == $mtx ]")
+            elif [[ "$mtx" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+$ ]]; then
+                local group=$(echo $mtx | cut -d"/" -f1)
+                local name=$(echo $mtx | cut -d"/" -f2)
+                id=$(${SSGET} -s "[ @name == $name ] && [ @group == $group ]")
+            else
+                echo -e "Could not recognize entry $mtx."
+            fi
+        else
+            id=$mtx
+        fi
+        benchmark_list="$benchmark_list $id"
+    done
+}
+
+if [ $use_matrix_list_file -eq 1 ]; then
+    MATRIX_LIST=($(parse_matrix_list $MATRIX_LIST_FILE))
+    NUM_PROBLEMS=${#MATRIX_LIST[@]}
+fi
+
 LOOP_START=$((1 + (${NUM_PROBLEMS}) * (${SEGMENT_ID} - 1) / ${SEGMENTS}))
 LOOP_END=$((1 + (${NUM_PROBLEMS}) * (${SEGMENT_ID}) / ${SEGMENTS}))
-for (( i=${LOOP_START}; i < ${LOOP_END}; ++i )); do
+for (( p=${LOOP_START}; p < ${LOOP_END}; ++p )); do
+    if [ $use_matrix_list_file -eq 1 ]; then
+        i=${MATRIX_LIST[$p]}
+    else
+        i=$p
+    fi
     if [ "${BENCHMARK}" == "preconditioner" ]; then
         break
     fi
