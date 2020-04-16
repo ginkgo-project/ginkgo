@@ -261,6 +261,12 @@ int main(int, char **)
         auto test = gko::preconditioner::Ilu<>::build().on(refExec);
     }
 
+    // core/preconditioner/isai.hpp
+    {
+        auto test_l = gko::preconditioner::LowerIsai<>::build().on(refExec);
+        auto test_u = gko::preconditioner::UpperIsai<>::build().on(refExec);
+    }
+
     // core/preconditioner/jacobi.hpp
     {
         using Bj = gko::preconditioner::Jacobi<>;
