@@ -162,7 +162,8 @@ void generate_l_inverse(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, IndexType> *l_csr,
                         matrix::Csr<ValueType, IndexType> *inverse_l)
 {
-    auto trs_solve = [](IndexType size, ValueType *trisystem, ValueType *rhs) {
+    auto trs_solve = [](IndexType size, const ValueType *trisystem,
+                        ValueType *rhs) {
         if (size <= 0) {
             return;
         }
@@ -196,7 +197,8 @@ void generate_u_inverse(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, IndexType> *u_csr,
                         matrix::Csr<ValueType, IndexType> *inverse_u)
 {
-    auto trs_solve = [](IndexType size, ValueType *trisystem, ValueType *rhs) {
+    auto trs_solve = [](IndexType size, const ValueType *trisystem,
+                        ValueType *rhs) {
         if (size <= 0) {
             return;
         }
