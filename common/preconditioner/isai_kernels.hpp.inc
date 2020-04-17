@@ -48,14 +48,12 @@ extern __device__ __shared__ char shared_memory[];
  */
 template <int SubwarpSize, typename ValueType, typename IndexType,
           typename Callable>
-__device__ void generic_generate(IndexType num_rows,
-                                 const IndexType *__restrict__ m_row_ptrs,
-                                 const IndexType *__restrict__ m_col_idxs,
-                                 const ValueType *__restrict__ m_values,
-                                 IndexType *__restrict__ i_row_ptrs,
-                                 IndexType *__restrict__ i_col_idxs,
-                                 ValueType *__restrict__ i_values,
-                                 Callable trs_solve)
+__forceinline__ __device__ void generic_generate(
+    IndexType num_rows, const IndexType *__restrict__ m_row_ptrs,
+    const IndexType *__restrict__ m_col_idxs,
+    const ValueType *__restrict__ m_values, IndexType *__restrict__ i_row_ptrs,
+    IndexType *__restrict__ i_col_idxs, ValueType *__restrict__ i_values,
+    Callable trs_solve)
 {
     static_assert((SubwarpSize & (SubwarpSize - 1)) == 0,
                   "SubwarpSize must be a power of 2");
@@ -118,28 +116,18 @@ __device__ void generic_generate(IndexType num_rows,
 
     this_block.sync();
 
-    // Now, read a full row of `trisystem` with the help of local registers, so
-    // the shared memory is always called in a coalescend manner, and transpose
-    // it (needed by the algorithm). Both times, it should be column major, so
-    // all accesses are coalesced
-    ValueType local_row[SubwarpSize];  // row elements before transpose
-    for (int i = 0; i < SubwarpSize; ++i) {
-        local_row[i] =
-            trisystem[trisystem_start + subwarp_id + i * SubwarpSize];
-    }
-    this_block.sync();
-    const auto trisystem_new_col_start =
-        trisystem_start + subwarp_id * SubwarpSize;
+    // Now, read a full col of `trisystem` into local registers, which will be
+    // row elements after this (implicit) transpose
+    ValueType local_row[SubwarpSize];
+    const auto trisystem_col_start = trisystem_start + subwarp_id * SubwarpSize;
     for (int i = 0; i < SubwarpSize; ++i) {
         const auto intermediate_idx = subwarp_id + i;
         const auto coalesced_idx = intermediate_idx % SubwarpSize;
-        trisystem[trisystem_new_col_start + coalesced_idx] =
-            local_row[coalesced_idx];
+        local_row[coalesced_idx] =
+            trisystem[trisystem_col_start + coalesced_idx];
     }
-    this_block.sync();
 
-    const auto rhs =
-        trs_solve(num_row_elems, trisystem, trisystem_start, subwarp);
+    const auto rhs = trs_solve(num_row_elems, local_row, subwarp);
 
     // Write back:
     if (subwarp_id < num_row_elems) {
@@ -162,8 +150,7 @@ __global__ __launch_bounds__(default_block_size) void generate_l_inverse(
     IndexType *__restrict__ i_col_idxs, ValueType *__restrict__ i_values)
 {
     auto trs_solve = [](IndexType num_elems,
-                        const ValueType *__restrict__ trisystem,
-                        int trisystem_start,
+                        const ValueType *__restrict__ local_row,
                         group::thread_block_tile<SubwarpSize> &subwarp) {
         const int subwarp_id = subwarp.thread_rank();
         ValueType rhs =
@@ -171,9 +158,7 @@ __global__ __launch_bounds__(default_block_size) void generate_l_inverse(
         // Solve Triangular system
         // Must be the full SubwarpSize, so shuffles work properly
         for (int d_col = SubwarpSize - 1; d_col >= 0; --d_col) {
-            const int trisystem_idx =
-                trisystem_start + d_col * SubwarpSize + subwarp_id;
-            const auto elem = trisystem[trisystem_idx];
+            const auto elem = local_row[d_col];
             if (d_col == subwarp_id) {
                 // make sure rhs is not NaN when subwarp is out of range
                 rhs = subwarp_id < num_elems ? rhs / elem : zero<ValueType>();
@@ -200,17 +185,14 @@ __global__ __launch_bounds__(default_block_size) void generate_u_inverse(
     IndexType *__restrict__ i_col_idxs, ValueType *__restrict__ i_values)
 {
     auto trs_solve = [](IndexType num_elems,
-                        const ValueType *__restrict__ trisystem,
-                        int trisystem_start,
+                        const ValueType *__restrict__ local_row,
                         group::thread_block_tile<SubwarpSize> &subwarp) {
         const int subwarp_id = subwarp.thread_rank();
         ValueType rhs = subwarp_id == 0 ? one<ValueType>() : zero<ValueType>();
         // Solve Triangular system
         // Must be the full SubwarpSize, so shuffles work properly
         for (int d_col = 0; d_col < SubwarpSize; ++d_col) {
-            const int trisystem_idx =
-                trisystem_start + d_col * SubwarpSize + subwarp_id;
-            const auto elem = trisystem[trisystem_idx];
+            const auto elem = local_row[d_col];
             if (d_col == subwarp_id) {
                 // make sure rhs is not NaN when subwarp is out of range
                 rhs = subwarp_id < num_elems ? rhs / elem : zero<ValueType>();
