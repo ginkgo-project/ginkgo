@@ -45,8 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/preconditioner/isai_kernels.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/test/utils.hpp"
+#include "core/test/utils.hpp"
 
 
 namespace {
@@ -62,15 +61,14 @@ protected:
 
     void SetUp()
     {
-        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        cuda = gko::CudaExecutor::create(0, ref);
+        omp = gko::OmpExecutor::create();
     }
 
     void TearDown()
     {
-        if (cuda != nullptr) {
-            ASSERT_NO_THROW(cuda->synchronize());
+        if (omp != nullptr) {
+            ASSERT_NO_THROW(omp->synchronize());
         }
     }
 
@@ -100,13 +98,9 @@ protected:
 
     void initialize_data(matrix_type type)
     {
-        constexpr int n = 513;
+        constexpr int n = 97;
         const bool for_lower_tm = type == matrix_type::lower;
-        // Currently, at most warp_size elements per row are supported for CUDA
-        constexpr index_type max_row_elems{
-            gko::kernels::cuda::config::warp_size - 1};
-        auto nz_dist =
-            std::uniform_int_distribution<index_type>(1, max_row_elems);
+        auto nz_dist = std::uniform_int_distribution<index_type>(1, n);
         auto val_dist = std::uniform_real_distribution<value_type>(-1., 1.);
         mtx = Csr::create(ref);
         mtx = gko::test::generate_random_triangular_matrix<Csr>(
@@ -114,15 +108,15 @@ protected:
             gko::dim<2>{n, n});
         inverse = clone_allocations(mtx.get());
 
-        d_mtx = Csr::create(cuda);
+        d_mtx = Csr::create(omp);
         d_mtx->copy_from(mtx.get());
-        d_inverse = Csr::create(cuda);
+        d_inverse = Csr::create(omp);
         d_inverse->copy_from(inverse.get());
     }
 
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> cuda;
+    std::shared_ptr<const gko::OmpExecutor> omp;
 
     std::default_random_engine rand_engine;
 
@@ -134,28 +128,28 @@ protected:
 };
 
 
-TEST_F(Isai, CudaIsaiGenerateLinverseIsEquivalentToRef)
+TEST_F(Isai, OmpIsaiGenerateLinverseIsEquivalentToRef)
 {
     initialize_data(matrix_type::lower);
 
     gko::kernels::reference::isai::generate_l_inverse(ref, mtx.get(),
                                                       inverse.get());
-    gko::kernels::cuda::isai::generate_l_inverse(cuda, d_mtx.get(),
-                                                 d_inverse.get());
+    gko::kernels::omp::isai::generate_l_inverse(omp, d_mtx.get(),
+                                                d_inverse.get());
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, r<value_type>::value);
 }
 
 
-TEST_F(Isai, CudaIsaiGenerateUinverseIsEquivalentToRef)
+TEST_F(Isai, OmpIsaiGenerateUinverseIsEquivalentToRef)
 {
     initialize_data(matrix_type::upper);
 
     gko::kernels::reference::isai::generate_u_inverse(ref, mtx.get(),
                                                       inverse.get());
-    gko::kernels::cuda::isai::generate_u_inverse(cuda, d_mtx.get(),
-                                                 d_inverse.get());
+    gko::kernels::omp::isai::generate_u_inverse(omp, d_mtx.get(),
+                                                d_inverse.get());
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, r<value_type>::value);
