@@ -109,10 +109,12 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
             const auto m_row_end = m_row_ptrs[col + 1];
             auto m_row_ptr = m_row_ptrs[col];
             auto i_row_ptr = i_row_begin;
-            // Values in `trisystem` will be stored in transposed order
-            // to prevent the need for an explicit transpose.
-            // Since `trisystem` stores in column major, this is equivalent
-            // to storing it in row-major and reading in column major.
+            // Instead of transposing `trisystem` after filling it
+            // (which the algorithm dictates), we simply store the values
+            // transposed, so we skip the explicit transpose.
+            // Since `trisystem` is stored in column major, we can write to
+            // it as if it was stored in row major (therefore, skipping the
+            // explicit transpose afterwards)
             auto idx = i * i_row_elems;
             while (m_row_ptr < m_row_end && i_row_ptr < i_row_end) {
                 const auto sparsity_col = i_cols[i_row_ptr];
