@@ -45,8 +45,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/preconditioner/isai_kernels.hpp"
-#include "cuda/base/config.hpp"
-#include "cuda/test/utils.hpp"
+#include "hip/base/config.hip.hpp"
+#include "hip/test/utils.hpp"
 
 
 namespace {
@@ -62,15 +62,15 @@ protected:
 
     void SetUp()
     {
-        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
+        ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        cuda = gko::CudaExecutor::create(0, ref);
+        hip = gko::HipExecutor::create(0, ref);
     }
 
     void TearDown()
     {
-        if (cuda != nullptr) {
-            ASSERT_NO_THROW(cuda->synchronize());
+        if (hip != nullptr) {
+            ASSERT_NO_THROW(hip->synchronize());
         }
     }
 
@@ -102,9 +102,9 @@ protected:
     {
         constexpr int n = 513;
         const bool for_lower_tm = type == matrix_type::lower;
-        // Currently, at most warp_size elements per row are supported for CUDA
+        // Currently, at most warp_size elements per row are supported for HIP
         constexpr index_type max_row_elems{
-            gko::kernels::cuda::config::warp_size - 1};
+            gko::kernels::hip::config::warp_size - 1};
         auto nz_dist =
             std::uniform_int_distribution<index_type>(1, max_row_elems);
         auto val_dist = std::uniform_real_distribution<value_type>(-1., 1.);
@@ -114,15 +114,15 @@ protected:
             gko::dim<2>{n, n});
         inverse = clone_allocations(mtx.get());
 
-        d_mtx = Csr::create(cuda);
+        d_mtx = Csr::create(hip);
         d_mtx->copy_from(mtx.get());
-        d_inverse = Csr::create(cuda);
+        d_inverse = Csr::create(hip);
         d_inverse->copy_from(inverse.get());
     }
 
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::CudaExecutor> cuda;
+    std::shared_ptr<const gko::HipExecutor> hip;
 
     std::default_random_engine rand_engine;
 
@@ -134,28 +134,28 @@ protected:
 };
 
 
-TEST_F(Isai, CudaIsaiGenerateLinverseIsEquivalentToRef)
+TEST_F(Isai, HipIsaiGenerateLinverseIsEquivalentToRef)
 {
     initialize_data(matrix_type::lower);
 
     gko::kernels::reference::isai::generate_l_inverse(ref, mtx.get(),
                                                       inverse.get());
-    gko::kernels::cuda::isai::generate_l_inverse(cuda, d_mtx.get(),
-                                                 d_inverse.get());
+    gko::kernels::hip::isai::generate_l_inverse(hip, d_mtx.get(),
+                                                d_inverse.get());
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, r<value_type>::value);
 }
 
 
-TEST_F(Isai, CudaIsaiGenerateUinverseIsEquivalentToRef)
+TEST_F(Isai, HipIsaiGenerateUinverseIsEquivalentToRef)
 {
     initialize_data(matrix_type::upper);
 
     gko::kernels::reference::isai::generate_u_inverse(ref, mtx.get(),
                                                       inverse.get());
-    gko::kernels::cuda::isai::generate_u_inverse(cuda, d_mtx.get(),
-                                                 d_inverse.get());
+    gko::kernels::hip::isai::generate_u_inverse(hip, d_mtx.get(),
+                                                d_inverse.get());
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, r<value_type>::value);

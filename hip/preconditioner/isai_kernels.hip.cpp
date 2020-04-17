@@ -37,11 +37,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/matrix/csr_builder.hpp"
 #include "hip/base/config.hip.hpp"
+#include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
 
 
 namespace gko {
@@ -56,6 +61,10 @@ namespace isai {
 namespace {
 
 
+constexpr int subwarp_size{config::warp_size};
+constexpr int subwarps_per_block{1};
+constexpr int default_block_size{subwarps_per_block * subwarp_size};
+
 #include "common/preconditioner/isai_kernels.hpp.inc"
 
 
@@ -66,7 +75,29 @@ template <typename ValueType, typename IndexType>
 void generate_l_inverse(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, IndexType> *l_csr,
                         matrix::Csr<ValueType, IndexType> *inverse_l)
-    GKO_NOT_IMPLEMENTED;
+{
+    constexpr int shared_memory_size =
+        default_block_size * subwarp_size * sizeof(ValueType);
+    const auto nnz = l_csr->get_num_stored_elements();
+    const auto num_rows = l_csr->get_size()[0];
+
+    exec->copy_from(exec.get(), nnz, l_csr->get_const_col_idxs(),
+                    inverse_l->get_col_idxs());
+    exec->copy_from(exec.get(), num_rows + 1, l_csr->get_const_row_ptrs(),
+                    inverse_l->get_row_ptrs());
+
+
+    const dim3 block(default_block_size, 1, 1);
+    const dim3 grid(ceildiv(num_rows, block.x / config::warp_size), 1, 1);
+    hipLaunchKernelGGL(
+        HIP_KERNEL_NAME(kernel::generate_l_inverse<subwarp_size>), grid, block,
+        shared_memory_size, 0, static_cast<IndexType>(num_rows),
+        l_csr->get_const_row_ptrs(), l_csr->get_const_col_idxs(),
+        as_hip_type(l_csr->get_const_values()), inverse_l->get_row_ptrs(),
+        inverse_l->get_col_idxs(), as_hip_type(inverse_l->get_values()));
+    // Call make_srow()
+    matrix::CsrBuilder<ValueType, IndexType> builder(inverse_l);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_GENERATE_L_INVERSE_KERNEL);
@@ -76,7 +107,30 @@ template <typename ValueType, typename IndexType>
 void generate_u_inverse(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, IndexType> *u_csr,
                         matrix::Csr<ValueType, IndexType> *inverse_u)
-    GKO_NOT_IMPLEMENTED;
+{
+    constexpr int shared_memory_size =
+        default_block_size * subwarp_size * sizeof(ValueType);
+    const auto nnz = u_csr->get_num_stored_elements();
+    const auto num_rows = u_csr->get_size()[0];
+
+    exec->copy_from(exec.get(), nnz, u_csr->get_const_col_idxs(),
+                    inverse_u->get_col_idxs());
+    exec->copy_from(exec.get(), num_rows + 1, u_csr->get_const_row_ptrs(),
+                    inverse_u->get_row_ptrs());
+
+
+    const dim3 block(default_block_size, 1, 1);
+    const dim3 grid(ceildiv(num_rows, block.x / config::warp_size), 1, 1);
+    hipLaunchKernelGGL(kernel::generate_l_inverse<subwarp_size>, grid, block,
+                       shared_memory_size, 0, static_cast<IndexType>(num_rows),
+                       u_csr->get_const_row_ptrs(), u_csr->get_const_col_idxs(),
+                       as_hip_type(u_csr->get_const_values()),
+                       inverse_u->get_row_ptrs(), inverse_u->get_col_idxs(),
+                       as_hip_type(inverse_u->get_values()));
+    // Call make_srow()
+    matrix::CsrBuilder<ValueType, IndexType> builder(inverse_u);
+}
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_GENERATE_U_INVERSE_KERNEL);
