@@ -104,9 +104,10 @@ std::pair<IndexType, size_type> rls_contender_and_height(
     }
 
     // This stores the level structure, starting with the root node.
-    std::vector<IndexType> rls;
-    rls.reserve(num_vertices);
-    rls.push_back(root);
+    Array<IndexType> rls(exec, num_vertices);
+    auto rls_p = rls.get_data();
+    rls_p[0] = root;
+    auto rls_offset = 1;
     visited_local_p[root] = true;
 
     auto rls_index = 0;
@@ -119,25 +120,28 @@ std::pair<IndexType, size_type> rls_contender_and_height(
     // The last levels size is required to compute the contender.
     auto last_level_size = 0;
 
-    while (rls_index < rls.size()) {
-        auto parent = rls[rls_index];
+    // While there are still nodes who's neighbours haven't been inspected.
+    while (rls_index < rls_offset) {
+        auto parent = rls_p[rls_index];
         --current_level_countdown;
 
-
-        // Iterate through the parents neighbors.
+        // Iterate through parents neighbors.
         auto row_start = adj_ptrs[parent];
         auto row_end = adj_ptrs[parent + 1];
         for (auto neighbor_idx = row_start; neighbor_idx < row_end;
              ++neighbor_idx) {
             auto neighbor = adj_idxs[neighbor_idx];
 
+            // If this is a new node, add it to the rls and mark it as visited.
             if (!visited_local_p[neighbor]) {
                 visited_local_p[neighbor] = true;
                 ++next_level_countup;
-                rls.push_back(neighbor);
+                rls_p[rls_offset] = neighbor;
+                ++rls_offset;
             }
         }
 
+        // Machinery for computing the last levels length.
         if (current_level_countdown == 0) {
             if (next_level_countup > 0) {
                 last_level_size = next_level_countup;
@@ -153,17 +157,17 @@ std::pair<IndexType, size_type> rls_contender_and_height(
 
     // Choose the contender.
     // It's the node of minimum degree in the last level.
-    auto rls_size = rls.size();
+    auto rls_size = rls_offset;
     auto min_degree = std::numeric_limits<IndexType>::max();
     auto contender = rls_size - last_level_size;
     for (auto i = rls_size - last_level_size; i < rls_size; ++i) {
-        if (degrees[rls[i]] < min_degree) {
+        if (degrees[rls_p[i]] < min_degree) {
             contender = i;
-            min_degree = degrees[rls[i]];
+            min_degree = degrees[rls_p[i]];
         }
     }
 
-    return std::pair<IndexType, size_type>(rls[contender], height);
+    return std::pair<IndexType, size_type>(rls_p[contender], height);
 }
 
 template <typename IndexType, typename ValueType>
