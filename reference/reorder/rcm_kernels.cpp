@@ -66,15 +66,14 @@ namespace rcm {
 template <typename ValueType, typename IndexType>
 void get_degree_of_nodes(
     std::shared_ptr<const ReferenceExecutor> exec,
-    std::shared_ptr<matrix::SparsityCsr<ValueType, IndexType>> adjacency_matrix,
-    std::shared_ptr<gko::Array<IndexType>> node_degrees)
+    const matrix::SparsityCsr<ValueType, IndexType> *const adjacency_matrix,
+    IndexType *const degrees)
 {
     auto num_rows = adjacency_matrix->get_size()[0];
-    auto adj_ptrs = adjacency_matrix->get_row_ptrs();
-    auto node_deg = node_degrees->get_data();
+    auto adj_ptrs = adjacency_matrix->get_const_row_ptrs();
 
     for (auto i = 0; i < num_rows; ++i) {
-        node_deg[i] = adj_ptrs[i + 1] - adj_ptrs[i];
+        degrees[i] = adj_ptrs[i + 1] - adj_ptrs[i];
     }
 }
 
@@ -89,18 +88,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
  */
 template <typename IndexType, typename ValueType>
 std::pair<IndexType, size_type> rls_contender_and_height(
-    std::shared_ptr<const ReferenceExecutor> exec, IndexType root,
-    std::shared_ptr<matrix::SparsityCsr<ValueType, IndexType>> adjacency_matrix,
-    std::shared_ptr<Array<IndexType>> node_degrees, size_type num_vertices)
+    std::shared_ptr<const ReferenceExecutor> exec, const size_type num_vertices,
+    IndexType root,
+    const matrix::SparsityCsr<ValueType, IndexType> *const adjacency_matrix,
+    const IndexType *const degrees)
 {
-    auto adj_ptrs = adjacency_matrix->get_row_ptrs();
-    auto adj_idxs = adjacency_matrix->get_col_idxs();
-    auto node_degrees_p = node_degrees->get_data();
+    auto adj_ptrs = adjacency_matrix->get_const_row_ptrs();
+    auto adj_idxs = adjacency_matrix->get_const_col_idxs();
 
     // This could actually be allocated in the calling scope, then reused.
-    auto visited_local =
-        std::unique_ptr<Array<bool>>(new Array<bool>(exec, num_vertices));
-    auto visited_local_p = visited_local->get_data();
+    Array<bool> visited_local(exec, num_vertices);
+    auto visited_local_p = visited_local.get_data();
     for (auto i = 0; i < num_vertices; ++i) {
         visited_local_p[i] = false;
     }
@@ -154,13 +152,14 @@ std::pair<IndexType, size_type> rls_contender_and_height(
     }
 
     // Choose the contender.
+    // It's the node of minimum degree in the last level.
     auto rls_size = rls.size();
     auto min_degree = std::numeric_limits<IndexType>::max();
     auto contender = rls_size - last_level_size;
     for (auto i = rls_size - last_level_size; i < rls_size; ++i) {
-        if (node_degrees_p[rls[i]] < min_degree) {
+        if (degrees[rls[i]] < min_degree) {
             contender = i;
-            min_degree = node_degrees_p[rls[i]];
+            min_degree = degrees[rls[i]];
         }
     }
 
@@ -169,11 +168,10 @@ std::pair<IndexType, size_type> rls_contender_and_height(
 
 template <typename IndexType, typename ValueType>
 IndexType find_starting_node(
-    std::shared_ptr<const ReferenceExecutor> exec,
-    std::shared_ptr<matrix::SparsityCsr<ValueType, IndexType>> adjacency_matrix,
-    std::shared_ptr<Array<IndexType>> node_degrees,
-    std::shared_ptr<Array<bool>> visited, size_type num_vertices,
-    gko::reorder::starting_strategy strategy)
+    std::shared_ptr<const ReferenceExecutor> exec, const size_type num_vertices,
+    const matrix::SparsityCsr<ValueType, IndexType> *const adjacency_matrix,
+    const IndexType *const degrees, const bool *visited,
+    const gko::reorder::starting_strategy strategy)
 {
     using strategies = gko::reorder::starting_strategy;
 
@@ -181,17 +179,14 @@ IndexType find_starting_node(
     GKO_ASSERT(strategy == strategies::minimum_degree ||
                startegy == strategies::pseudo_peripheral);
 
-    auto node_degrees_p = node_degrees->get_data();
-    auto visited_p = visited->get_data();
-
     // There must always be at least one unvisited node left.
     auto index_min_node = 0;
     auto min_node_degree = std::numeric_limits<IndexType>::max();
     for (auto i = 0; i < num_vertices; ++i) {
-        if (!visited_p[i]) {
-            if (node_degrees_p[i] < min_node_degree) {
+        if (!visited[i]) {
+            if (degrees[i] < min_node_degree) {
                 index_min_node = i;
-                min_node_degree = node_degrees_p[i];
+                min_node_degree = degrees[i];
             }
         }
     }
@@ -204,7 +199,7 @@ IndexType find_starting_node(
     // Find a pseudo-peripheral node, starting from an node of minimum degree.
     auto current = index_min_node;
 
-    // Isolated nodes are by definition perioheral.
+    // Isolated nodes are by definition peripheral.
     if (min_node_degree == 0) {
         return index_min_node;
     }
@@ -213,12 +208,12 @@ IndexType find_starting_node(
     // http://heath.cs.illinois.edu/courses/cs598mh/george_liu.pdf, p. 70
     // onwards.
     auto contender_and_height = rls_contender_and_height<IndexType, ValueType>(
-        exec, current, adjacency_matrix, node_degrees, num_vertices);
+        exec, num_vertices, current, adjacency_matrix, degrees);
     while (true) {
         auto contender_and_height_contender =
             rls_contender_and_height<IndexType, ValueType>(
-                exec, contender_and_height.first, adjacency_matrix,
-                node_degrees, num_vertices);
+                exec, num_vertices, contender_and_height.first,
+                adjacency_matrix, degrees);
 
         if (contender_and_height_contender.second >
             contender_and_height.second) {
@@ -236,34 +231,25 @@ IndexType find_starting_node(
  */
 template <typename ValueType, typename IndexType>
 void get_permutation(
-    std::shared_ptr<const ReferenceExecutor> exec, size_type num_vertices,
-    std::shared_ptr<matrix::SparsityCsr<ValueType, IndexType>> adjacency_matrix,
-    std::shared_ptr<Array<IndexType>> node_degrees,
-    std::shared_ptr<matrix::Permutation<IndexType>> permutation_mat,
-    std::shared_ptr<matrix::Permutation<IndexType>> inv_permutation_mat,
+    std::shared_ptr<const DefaultExecutor> exec, const size_type num_vertices,
+    const matrix::SparsityCsr<ValueType, IndexType> *const adjacency_matrix,
+    const IndexType *const degrees, IndexType *const permutation,
+    IndexType *const inv_permutation,
     const gko::reorder::starting_strategy strategy)
 {
     IndexType num_vtxs = static_cast<IndexType>(num_vertices);
-    auto adj_ptrs = adjacency_matrix->get_row_ptrs();
-    auto adj_idxs = adjacency_matrix->get_col_idxs();
-
-    auto permutation = permutation_mat->get_permutation();
-    auto permutation_inv = inv_permutation_mat.get()
-                               ? inv_permutation_mat->get_permutation()
-                               : nullptr;
-
-    IndexType *degrees = node_degrees->get_data();
+    auto adj_ptrs = adjacency_matrix->get_const_row_ptrs();
+    auto adj_idxs = adjacency_matrix->get_const_col_idxs();
 
     // Storing vertices left to proceess.
-    auto linear_queue = std::unique_ptr<Array<IndexType>>(
-        new Array<IndexType>(exec, num_vertices));
-    auto linear_queue_p = linear_queue->get_data();
+    Array<IndexType> linear_queue(exec, num_vertices);
+    auto linear_queue_p = linear_queue.get_data();
     auto head_offset = 0;
     auto tail_offset = 0;
 
     // Storing which vertices have already been visited.
-    auto visited = std::make_shared<Array<bool>>(exec, num_vertices);
-    auto visited_p = visited->get_data();
+    Array<bool> visited(exec, num_vertices);
+    auto visited_p = visited.get_data();
     for (auto i = 0; i < num_vertices; ++i) {
         visited_p[i] = false;
     }
@@ -275,7 +261,7 @@ void get_permutation(
             // Choose a new starting vertex, new componenet needs to be
             // discovered.
             next_vertex = find_starting_node<IndexType, ValueType>(
-                exec, adjacency_matrix, node_degrees, visited, num_vertices,
+                exec, num_vertices, adjacency_matrix, degrees, visited_p,
                 strategy);
             visited_p[next_vertex] = true;
         } else {
@@ -304,7 +290,6 @@ void get_permutation(
             }
         }
 
-        auto count_added = head_offset - prev_head_offset;
         std::sort(linear_queue_p + prev_head_offset,
                   linear_queue_p + head_offset,
                   [&degrees](IndexType i, IndexType j) {
@@ -314,9 +299,9 @@ void get_permutation(
         permutation[perm_index] = next_vertex;
     }
 
-    if (permutation_inv) {
+    if (inv_permutation) {
         for (auto i = 0; i < num_vertices; ++i) {
-            permutation_inv[permutation[i]] = i;
+            inv_permutation[permutation[i]] = i;
         }
     }
 }
