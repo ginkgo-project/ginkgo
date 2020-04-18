@@ -52,23 +52,22 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL(ValueType, IndexType)         \
-    void get_permutation(                                                    \
-        std::shared_ptr<const DefaultExecutor> exec, size_type num_vertices, \
-        std::shared_ptr<matrix::SparsityCsr<ValueType, IndexType>>           \
-            adjacency_matrix,                                                \
-        std::shared_ptr<Array<IndexType>> node_degrees,                      \
-        std::shared_ptr<matrix::Permutation<IndexType>> permutation_mat,     \
-        std::shared_ptr<matrix::Permutation<IndexType>> inv_permutation_mat, \
-        const gko::reorder::starting_strategy strategy)
+#define GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL(ValueType, IndexType)     \
+    void get_permutation(std::shared_ptr<const DefaultExecutor> exec,    \
+                         const size_type num_vertices,                   \
+                         const matrix::SparsityCsr<ValueType, IndexType> \
+                             *const adjacency_matrix,                    \
+                         const IndexType *const degrees,                 \
+                         IndexType *const permutation,                   \
+                         IndexType *const inv_permutation,               \
+                         const gko::reorder::starting_strategy strategy)
 
 
-#define GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL(ValueType, IndexType) \
-    void get_degree_of_nodes(                                            \
-        std::shared_ptr<const DefaultExecutor> exec,                     \
-        std::shared_ptr<matrix::SparsityCsr<ValueType, IndexType>>       \
-            adjacency_matrix,                                            \
-        std::shared_ptr<gko::Array<IndexType>> node_degrees)
+#define GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL(ValueType, IndexType)     \
+    void get_degree_of_nodes(std::shared_ptr<const DefaultExecutor> exec,    \
+                             const matrix::SparsityCsr<ValueType, IndexType> \
+                                 *const adjacency_matrix,                    \
+                             IndexType *const degrees)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
     template <typename ValueType, typename IndexType>                 \

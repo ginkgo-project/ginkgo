@@ -171,7 +171,7 @@ protected:
             adjacency_matrix_ = tmp->to_adjacency_matrix();
         }
         auto const dim = adjacency_matrix_->get_size();
-        node_degrees_ = std::shared_ptr<Array<IndexType>>(
+        degrees_ = std::unique_ptr<Array<IndexType>>(
             new Array<IndexType>(exec, dim[0]));
         permutation_ = PermutationMatrix::create(exec, dim);
         if (parameters_.construct_inverse_permutation) {
@@ -184,7 +184,7 @@ protected:
 private:
     std::shared_ptr<SparsityMatrix> adjacency_matrix_{};
     std::shared_ptr<PermutationMatrix> permutation_{};
-    std::shared_ptr<Array<IndexType>> node_degrees_{};
+    std::unique_ptr<Array<IndexType>> degrees_{};
     std::shared_ptr<PermutationMatrix> inv_permutation_{};
 };
 
