@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <exception>
 #include <fstream>
@@ -45,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
+#include "benchmark/utils/overhead_linop.hpp"
 
 
 // some Ginkgo shortcuts
@@ -58,21 +60,29 @@ DEFINE_uint32(max_iters, 1000,
 DEFINE_double(rel_res_goal, 1e-6, "The relative residual goal of the solver");
 
 DEFINE_string(solvers, "cg",
-              "A comma-separated list of solvers to run."
-              "Supported values are: bicgstab, cg, cgs, fcg, gmres");
+              "A comma-separated list of solvers to run. "
+              "Supported values are: bicgstab, cg, cgs, fcg, gmres, overhead");
 
-DEFINE_string(
-    preconditioners, "none",
-    "A comma-separated list of preconditioners to use."
-    "Supported values are: none, jacobi, adaptive-jacobi, parilu, ilu");
+DEFINE_string(preconditioners, "none",
+              "A comma-separated list of preconditioners to use. "
+              "Supported values are: none, jacobi, adaptive-jacobi, parilu, "
+              "ilu, overhead");
 
 DEFINE_uint32(
     nrhs, 1,
     "The number of right hand sides. Record the residual only when nrhs == 1.");
 
+// This allows to benchmark the overhead of a solver by using the following
+// data: A=[1.0], x=[0.0], b=[nan]. This data can be used to benchmark normal
+// solvers or using the argument --solvers=overhead, a minimal solver will be
+// launched which contains only a few kernel calls.
+DEFINE_bool(overhead, false,
+            "If set, uses dummy data to benchmark Ginkgo overhead");
+
 
 // input validation
-[[noreturn]] void print_config_error_and_exit() {
+[[noreturn]] void print_config_error_and_exit()
+{
     std::cerr << "Input has to be a JSON array of matrix configurations:\n"
               << "  [\n"
               << "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
@@ -120,7 +130,8 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                    {"cg", create_solver<gko::solver::Cg<>>},
                    {"cgs", create_solver<gko::solver::Cgs<>>},
                    {"fcg", create_solver<gko::solver::Fcg<>>},
-                   {"gmres", create_solver<gko::solver::Gmres<>>}};
+                   {"gmres", create_solver<gko::solver::Gmres<>>},
+                   {"overhead", create_solver<gko::Overhead<>>}};
 
 
 // TODO: Workaround until GPU matrix conversions are implemented
@@ -186,13 +197,20 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                          return std::unique_ptr<ReferenceFactoryWrapper>(
                              new ReferenceFactoryWrapper(f));
                      }},
-                    {"ilu", [](std::shared_ptr<const gko::Executor> exec) {
+                    {"ilu",
+                     [](std::shared_ptr<const gko::Executor> exec) {
                          auto fact = std::shared_ptr<gko::LinOpFactory>(
                              gko::factorization::Ilu<>::build().on(exec));
                          std::shared_ptr<const gko::LinOpFactory> f =
                              gko::preconditioner::Ilu<>::build()
                                  .with_factorization_factory(fact)
                                  .on(exec);
+                         return std::unique_ptr<ReferenceFactoryWrapper>(
+                             new ReferenceFactoryWrapper(f));
+                     }},
+                    {"overhead", [](std::shared_ptr<const gko::Executor> exec) {
+                         std::shared_ptr<const gko::LinOpFactory> f =
+                             gko::Overhead<>::build().on(exec);
                          return std::unique_ptr<ReferenceFactoryWrapper>(
                              new ReferenceFactoryWrapper(f));
                      }}};
@@ -266,7 +284,7 @@ void solve_system(const std::string &solver_name,
                           rapidjson::Value(rapidjson::kArrayType), allocator);
         add_or_set_member(solver_json, "true_residuals",
                           rapidjson::Value(rapidjson::kArrayType), allocator);
-        if (FLAGS_nrhs == 1) {
+        if (FLAGS_nrhs == 1 && !FLAGS_overhead) {
             auto rhs_norm = compute_norm2(lend(b));
             add_or_set_member(solver_json, "rhs_norm", rhs_norm, allocator);
         }
@@ -280,17 +298,23 @@ void solve_system(const std::string &solver_name,
         }
 
         // warm run
+        auto it_logger = std::make_shared<IterationLogger>(exec);
         for (unsigned int i = 0; i < FLAGS_warmup; i++) {
             auto x_clone = clone(x);
             auto precond = precond_factory.at(precond_name)(exec);
             auto solver = solver_factory.at(solver_name)(exec, give(precond))
                               ->generate(system_matrix);
+            solver->add_logger(it_logger);
             solver->apply(lend(b), lend(x_clone));
             exec->synchronize();
+            solver->remove_logger(gko::lend(it_logger));
+        }
+        if (FLAGS_warmup > 0) {
+            it_logger->write_data(solver_json["apply"], allocator);
         }
 
         // detail run
-        if (FLAGS_detailed) {
+        if (FLAGS_detailed && !FLAGS_overhead) {
             // slow run, get the time of each functions
             auto x_clone = clone(x);
 
@@ -366,7 +390,8 @@ void solve_system(const std::string &solver_name,
             apply_time += std::chrono::duration_cast<std::chrono::nanoseconds>(
                 a_tac - a_tic);
 
-            if (FLAGS_nrhs == 1 && i == FLAGS_repetitions - 1) {
+            if (FLAGS_nrhs == 1 && i == FLAGS_repetitions - 1 &&
+                !FLAGS_overhead) {
                 auto residual = compute_residual_norm(lend(system_matrix),
                                                       lend(b), lend(x_clone));
                 add_or_set_member(solver_json, "residual_norm", residual,
@@ -428,9 +453,18 @@ int main(int argc, char *argv[])
         }
     }
 
-    rapidjson::IStreamWrapper jcin(std::cin);
     rapidjson::Document test_cases;
-    test_cases.ParseStream(jcin);
+    if (!FLAGS_overhead) {
+        rapidjson::IStreamWrapper jcin(std::cin);
+        test_cases.ParseStream(jcin);
+    } else {
+        // Fake test case to run once
+        auto overhead_json = std::string() +
+                             " [{\"filename\": \"overhead.mtx\", \"optimal\": "
+                             "{ \"spmv\": \"csr\"}}]";
+        test_cases.Parse(overhead_json.c_str());
+    }
+
     if (!test_cases.IsArray()) {
         print_config_error_and_exit();
     }
@@ -457,15 +491,26 @@ int main(int argc, char *argv[])
             }
             std::clog << "Running test case: " << test_case << std::endl;
             std::ifstream mtx_fd(test_case["filename"].GetString());
-            auto data = gko::read_raw<etype>(mtx_fd);
 
-            auto system_matrix = share(formats::matrix_factory.at(
-                test_case["optimal"]["spmv"].GetString())(exec, data));
-            auto b = create_matrix<etype>(
-                exec, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
-                engine);
-            auto x = create_matrix<etype>(
-                exec, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs});
+            using Vec = gko::matrix::Dense<>;
+            std::shared_ptr<gko::LinOp> system_matrix;
+            std::unique_ptr<Vec> b;
+            std::unique_ptr<Vec> x;
+            if (FLAGS_overhead) {
+                system_matrix = gko::initialize<Vec>({1.0}, exec);
+                b = gko::initialize<Vec>({std::nan("")}, exec);
+                x = gko::initialize<Vec>({0.0}, exec);
+            } else {
+                auto data = gko::read_raw<etype>(mtx_fd);
+                system_matrix = share(formats::matrix_factory.at(
+                    test_case["optimal"]["spmv"].GetString())(exec, data));
+                b = create_matrix<etype>(
+                    exec, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
+                    engine);
+                x = create_matrix<etype>(
+                    exec,
+                    gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs});
+            }
 
             std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
                       << ", " << system_matrix->get_size()[1] << ")"
