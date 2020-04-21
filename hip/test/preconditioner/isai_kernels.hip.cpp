@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/preconditioner/isai_kernels.hpp"
 #include "hip/base/config.hip.hpp"
-#include "hip/test/utils.hpp"
+#include "hip/test/utils.hip.hpp"
 
 
 namespace {
