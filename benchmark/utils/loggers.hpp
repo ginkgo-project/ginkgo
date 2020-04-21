@@ -127,7 +127,7 @@ private:
         auto nested_name = nested.empty() || !use_nested_name
                                ? name
                                : nested.back().first + "::" + name;
-        nested.emplace_back(nested_name, 0);
+        nested.emplace_back(nested_name, std::chrono::steady_clock::duration{});
         start[nested_name] = std::chrono::steady_clock::now();
     }
 
