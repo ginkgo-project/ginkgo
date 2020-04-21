@@ -62,7 +62,7 @@ fi
 
 # Control whether to run detailed benchmarks or not.
 # Default setting is detailed=false. To activate, set DETAILED=1.
-if  [ "${DETAILED}" -eq 0 ]; then
+if  [ ! "${DETAILED}" ] || [ "${DETAILED}" -eq 0 ]; then
     DETAILED_STR="--detailed=false"
 else
     DETAILED_STR="--detailed=true"
@@ -80,6 +80,9 @@ if [ ! "${MATRIX_LIST_FILE}" ]; then
     use_matrix_list_file=0
 elif [ -f "${MATRIX_LIST_FILE}" ]; then
     use_matrix_list_file=1
+else
+    echo -e "A matrix list file was set to ${MATRIX_LIST_FILE} but it cannot be found."
+    exit 1
 fi
 
 
@@ -223,9 +226,9 @@ parse_matrix_list() {
         if [[ ! "$mtx" =~ ^[0-9]+$ ]]; then
             if [[ "$mtx" =~ ^[a-zA-Z0-9_-]+$ ]]; then
                 id=$(${SSGET} -s "[ @name == $mtx ]")
-            elif [[ "$mtx" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9_-]+$ ]]; then
-                local group=$(echo $mtx | cut -d"/" -f1)
-                local name=$(echo $mtx | cut -d"/" -f2)
+            elif [[ "$mtx" =~ ^([a-zA-Z0-9_-]+)\/([a-zA-Z0-9_-]+)$ ]]; then
+                local group="${BASH_REMATCH[1]}"
+                local name="${BASH_REMATCH[2]}"
                 id=$(${SSGET} -s "[ @name == $name ] && [ @group == $group ]")
             else
                 >&2 echo -e "Could not recognize entry $mtx."
