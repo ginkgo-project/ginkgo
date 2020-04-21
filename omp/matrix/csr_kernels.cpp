@@ -34,9 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
-#include <map>
 #include <numeric>
-#include <unordered_set>
 #include <utility>
 
 
@@ -51,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/hybrid.hpp>
 
 
+#include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_builder.hpp"
@@ -131,7 +130,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void spgemm_insert_row(std::unordered_set<IndexType> &cols,
+void spgemm_insert_row(unordered_set<IndexType> &cols,
                        const matrix::Csr<ValueType, IndexType> *c,
                        size_type row)
 {
@@ -142,7 +141,7 @@ void spgemm_insert_row(std::unordered_set<IndexType> &cols,
 
 
 template <typename ValueType, typename IndexType>
-void spgemm_insert_row2(std::unordered_set<IndexType> &cols,
+void spgemm_insert_row2(unordered_set<IndexType> &cols,
                         const matrix::Csr<ValueType, IndexType> *a,
                         const matrix::Csr<ValueType, IndexType> *b,
                         size_type row)
@@ -162,7 +161,7 @@ void spgemm_insert_row2(std::unordered_set<IndexType> &cols,
 
 
 template <typename ValueType, typename IndexType>
-void spgemm_accumulate_row(std::map<IndexType, ValueType> &cols,
+void spgemm_accumulate_row(map<IndexType, ValueType> &cols,
                            const matrix::Csr<ValueType, IndexType> *c,
                            ValueType scale, size_type row)
 {
@@ -179,7 +178,7 @@ void spgemm_accumulate_row(std::map<IndexType, ValueType> &cols,
 
 
 template <typename ValueType, typename IndexType>
-void spgemm_accumulate_row2(std::map<IndexType, ValueType> &cols,
+void spgemm_accumulate_row2(map<IndexType, ValueType> &cols,
                             const matrix::Csr<ValueType, IndexType> *a,
                             const matrix::Csr<ValueType, IndexType> *b,
                             ValueType scale, size_type row)
@@ -216,7 +215,7 @@ void spgemm(std::shared_ptr<const OmpExecutor> exec,
     // first sweep: count nnz for each row
     auto c_row_ptrs = c->get_row_ptrs();
 
-    std::unordered_set<IndexType> local_col_idxs;
+    unordered_set<IndexType> local_col_idxs(exec);
 #pragma omp parallel for firstprivate(local_col_idxs)
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_col_idxs.clear();
@@ -237,7 +236,7 @@ void spgemm(std::shared_ptr<const OmpExecutor> exec,
     auto c_col_idxs = c_col_idxs_array.get_data();
     auto c_vals = c_vals_array.get_data();
 
-    std::map<IndexType, ValueType> local_row_nzs;
+    map<IndexType, ValueType> local_row_nzs(exec);
 #pragma omp parallel for firstprivate(local_row_nzs)
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_row_nzs.clear();
@@ -271,7 +270,7 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
     // first sweep: count nnz for each row
     auto c_row_ptrs = c->get_row_ptrs();
 
-    std::unordered_set<IndexType> local_col_idxs;
+    unordered_set<IndexType> local_col_idxs(exec);
 #pragma omp parallel for firstprivate(local_col_idxs)
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_col_idxs.clear();
@@ -297,7 +296,7 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
     auto c_col_idxs = c_col_idxs_array.get_data();
     auto c_vals = c_vals_array.get_data();
 
-    std::map<IndexType, ValueType> local_row_nzs;
+    map<IndexType, ValueType> local_row_nzs(exec);
 #pragma omp parallel for firstprivate(local_row_nzs)
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_row_nzs.clear();
@@ -559,7 +558,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void row_permute_impl(const Array<IndexType> *permutation_indices,
+void row_permute_impl(std::shared_ptr<const OmpExecutor> exec,
+                      const Array<IndexType> *permutation_indices,
                       const matrix::Csr<ValueType, IndexType> *orig,
                       matrix::Csr<ValueType, IndexType> *row_permuted)
 {
@@ -575,7 +575,7 @@ void row_permute_impl(const Array<IndexType> *permutation_indices,
 
     size_type cur_ptr = 0;
     rp_row_ptrs[0] = cur_ptr;
-    std::vector<size_type> orig_num_nnz_per_row(num_rows, 0);
+    vector<size_type> orig_num_nnz_per_row(num_rows, 0, exec);
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
         orig_num_nnz_per_row[row] = orig_row_ptrs[row + 1] - orig_row_ptrs[row];
@@ -605,7 +605,7 @@ void row_permute(std::shared_ptr<const OmpExecutor> exec,
                  const matrix::Csr<ValueType, IndexType> *orig,
                  matrix::Csr<ValueType, IndexType> *row_permuted)
 {
-    row_permute_impl(permutation_indices, orig, row_permuted);
+    row_permute_impl(exec, permutation_indices, orig, row_permuted);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -626,7 +626,7 @@ void inverse_row_permute(std::shared_ptr<const OmpExecutor> exec,
         iperm[perm[ind]] = ind;
     }
 
-    row_permute_impl(&inv_perm, orig, row_permuted);
+    row_permute_impl(exec, &inv_perm, orig, row_permuted);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
