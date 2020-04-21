@@ -67,13 +67,6 @@ protected:
         hip = gko::HipExecutor::create(0, ref);
     }
 
-    void TearDown()
-    {
-        if (hip != nullptr) {
-            ASSERT_NO_THROW(hip->synchronize());
-        }
-    }
-
     std::unique_ptr<Csr> clone_allocations(const Csr *csr_mtx)
     {
         if (csr_mtx->get_executor() != ref) {

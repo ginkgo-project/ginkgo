@@ -33,21 +33,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace kernel {
 
 
-// Can not be put into the function because it would be a redefinition of
-// `shared_memory` with different types (for each `ValueType`)
-extern __device__ __shared__ char shared_memory[];
-
-
 /**
  * @internal
  *
- * This kernel supports at most `SubwarpSize` (< `warp_size`) elements per row.
+ * This kernel supports at most `subwarp_size` (< `warp_size`) elements per row.
  * If there are more elements, they are simply ignored. Only the first
- * `SubwarpSize` elements are considered both for the values and for the
+ * `subwarp_size` elements are considered both for the values and for the
  * sparsity pattern.
  */
-template <int SubwarpSize, typename ValueType, typename IndexType,
-          typename Callable>
+template <int subwarp_size, int subwarps_per_block, typename ValueType,
+          typename IndexType, typename Callable>
 __forceinline__ __device__ void generic_generate(
     IndexType num_rows, const IndexType *__restrict__ m_row_ptrs,
     const IndexType *__restrict__ m_col_idxs,
@@ -55,25 +50,33 @@ __forceinline__ __device__ void generic_generate(
     IndexType *__restrict__ i_col_idxs, ValueType *__restrict__ i_values,
     Callable trs_solve)
 {
-    static_assert((SubwarpSize & (SubwarpSize - 1)) == 0,
-                  "SubwarpSize must be a power of 2");
+    static_assert((subwarp_size & (subwarp_size - 1)) == 0,
+                  "subwarp_size must be a power of 2");
 
     const IndexType gidx = thread::get_thread_id_flat<IndexType>();
-    const IndexType row = gidx / SubwarpSize;
+    const IndexType row = gidx / subwarp_size;
     const int tidx = threadIdx.x;
 
     auto this_block = group::this_thread_block();
-    auto subwarp = group::tiled_partition<SubwarpSize>(this_block);
+    auto subwarp = group::tiled_partition<subwarp_size>(this_block);
     const int subwarp_id = subwarp.thread_rank();
 
+    // Here, we use an intermediate shared memory block with a primitive
+    // datatype to produce no warning in case of complex types.
+    // The issue with thrust::complex is that it has a non-empty default
+    // constructor, which apparently does not work with non-dynamic shared
+    // memory
+    __shared__ char shared_memory[sizeof(ValueType) * subwarp_size *
+                                  subwarp_size * subwarps_per_block];
     auto trisystem = reinterpret_cast<ValueType *>(shared_memory);
-    const int end_trisystem = blockDim.x * SubwarpSize;
-    const int trisystem_start =
-        (tidx / SubwarpSize) * SubwarpSize * SubwarpSize;
 
-    // Allow at most SubwarpSize * SubwarpSize elements in a subwarp trisystem
-    for (int i = 0; i < SubwarpSize; ++i) {
-        trisystem[trisystem_start + subwarp_id + i * SubwarpSize] =
+    const int end_trisystem = blockDim.x * subwarp_size;
+    const int trisystem_start =
+        (tidx / subwarp_size) * subwarp_size * subwarp_size;
+
+    // Allow at most subwarp_size * subwarp_size elements in a subwarp trisystem
+    for (int i = 0; i < subwarp_size; ++i) {
+        trisystem[trisystem_start + subwarp_id + i * subwarp_size] =
             zero<ValueType>();
     }
     this_block.sync();
@@ -83,9 +86,9 @@ __forceinline__ __device__ void generic_generate(
     }
 
     const auto i_row_begin = i_row_ptrs[row];
-    const auto i_row_end = i_row_ptrs[row + 1] - i_row_begin < SubwarpSize
+    const auto i_row_end = i_row_ptrs[row + 1] - i_row_begin < subwarp_size
                                ? i_row_ptrs[row + 1]
-                               : i_row_begin + SubwarpSize;
+                               : i_row_begin + subwarp_size;
     const auto num_row_elems = i_row_end - i_row_begin;
 
     if (subwarp_id < num_row_elems) {
@@ -102,14 +105,14 @@ __forceinline__ __device__ void generic_generate(
             const auto m_col = m_col_idxs[m_row_ptr];
             if (sparsity_col == m_col) {
                 trisystem[idx] = m_values[m_row_ptr];
-                idx += SubwarpSize;
+                idx += subwarp_size;
                 ++m_row_ptr;
                 ++i_row_ptr;
             } else if (m_col < sparsity_col) {
                 ++m_row_ptr;
             } else {
                 ++i_row_ptr;
-                idx += SubwarpSize;
+                idx += subwarp_size;
             }
         }
     }
@@ -118,11 +121,12 @@ __forceinline__ __device__ void generic_generate(
 
     // Now, read a full col of `trisystem` into local registers, which will be
     // row elements after this (implicit) transpose
-    ValueType local_row[SubwarpSize];
-    const auto trisystem_col_start = trisystem_start + subwarp_id * SubwarpSize;
-    for (int i = 0; i < SubwarpSize; ++i) {
+    ValueType local_row[subwarp_size];
+    const auto trisystem_col_start =
+        trisystem_start + subwarp_id * subwarp_size;
+    for (int i = 0; i < subwarp_size; ++i) {
         const auto intermediate_idx = subwarp_id + i;
-        const auto coalesced_idx = intermediate_idx % SubwarpSize;
+        const auto coalesced_idx = intermediate_idx % subwarp_size;
         local_row[coalesced_idx] =
             trisystem[trisystem_col_start + coalesced_idx];
     }
@@ -142,8 +146,10 @@ __forceinline__ __device__ void generic_generate(
 }
 
 
-template <int SubwarpSize, typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void generate_l_inverse(
+template <int subwarp_size, int subwarps_per_block, typename ValueType,
+          typename IndexType>
+__global__
+__launch_bounds__(subwarp_size *subwarps_per_block) void generate_l_inverse(
     IndexType num_rows, const IndexType *__restrict__ m_row_ptrs,
     const IndexType *__restrict__ m_col_idxs,
     const ValueType *__restrict__ m_values, IndexType *__restrict__ i_row_ptrs,
@@ -151,17 +157,15 @@ __global__ __launch_bounds__(default_block_size) void generate_l_inverse(
 {
     auto trs_solve = [](IndexType num_elems,
                         const ValueType *__restrict__ local_row,
-                        group::thread_block_tile<SubwarpSize> &subwarp) {
+                        group::thread_block_tile<subwarp_size> &subwarp) {
         const int subwarp_id = subwarp.thread_rank();
         ValueType rhs =
             subwarp_id == num_elems - 1 ? one<ValueType>() : zero<ValueType>();
         // Solve Triangular system
-        // Must be the full SubwarpSize, so shuffles work properly
-        for (int d_col = SubwarpSize - 1; d_col >= 0; --d_col) {
+        for (int d_col = num_elems - 1; d_col >= 0; --d_col) {
             const auto elem = local_row[d_col];
             if (d_col == subwarp_id) {
-                // make sure rhs is not NaN when subwarp is out of range
-                rhs = subwarp_id < num_elems ? rhs / elem : zero<ValueType>();
+                rhs /= elem;
             }
 
             const ValueType bot = subwarp.shfl(rhs, d_col);
@@ -172,13 +176,16 @@ __global__ __launch_bounds__(default_block_size) void generate_l_inverse(
 
         return rhs;
     };
-    generic_generate<SubwarpSize>(num_rows, m_row_ptrs, m_col_idxs, m_values,
-                                  i_row_ptrs, i_col_idxs, i_values, trs_solve);
+    generic_generate<subwarp_size, subwarps_per_block>(
+        num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs, i_col_idxs,
+        i_values, trs_solve);
 }
 
 
-template <int SubwarpSize, typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void generate_u_inverse(
+template <int subwarp_size, int subwarps_per_block, typename ValueType,
+          typename IndexType>
+__global__
+__launch_bounds__(subwarp_size *subwarps_per_block) void generate_u_inverse(
     IndexType num_rows, const IndexType *__restrict__ m_row_ptrs,
     const IndexType *__restrict__ m_col_idxs,
     const ValueType *__restrict__ m_values, IndexType *__restrict__ i_row_ptrs,
@@ -186,16 +193,14 @@ __global__ __launch_bounds__(default_block_size) void generate_u_inverse(
 {
     auto trs_solve = [](IndexType num_elems,
                         const ValueType *__restrict__ local_row,
-                        group::thread_block_tile<SubwarpSize> &subwarp) {
+                        group::thread_block_tile<subwarp_size> &subwarp) {
         const int subwarp_id = subwarp.thread_rank();
         ValueType rhs = subwarp_id == 0 ? one<ValueType>() : zero<ValueType>();
         // Solve Triangular system
-        // Must be the full SubwarpSize, so shuffles work properly
-        for (int d_col = 0; d_col < SubwarpSize; ++d_col) {
+        for (int d_col = 0; d_col < num_elems; ++d_col) {
             const auto elem = local_row[d_col];
             if (d_col == subwarp_id) {
-                // make sure rhs is not NaN when subwarp is out of range
-                rhs = subwarp_id < num_elems ? rhs / elem : zero<ValueType>();
+                rhs /= elem;
             }
 
             const ValueType top = subwarp.shfl(rhs, d_col);
@@ -206,8 +211,9 @@ __global__ __launch_bounds__(default_block_size) void generate_u_inverse(
 
         return rhs;
     };
-    generic_generate<SubwarpSize>(num_rows, m_row_ptrs, m_col_idxs, m_values,
-                                  i_row_ptrs, i_col_idxs, i_values, trs_solve);
+    generic_generate<subwarp_size, subwarps_per_block>(
+        num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs, i_col_idxs,
+        i_values, trs_solve);
 }
 
 

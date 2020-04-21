@@ -97,14 +97,17 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
     gko::Array<ValueType> rhs_array{exec};  // RHS for local trisystem
     // memory for dense trisystem in column major:
     gko::Array<ValueType> trisystem_array{exec};
+    IndexType buffer_size{};
 
-#pragma omp parallel for firstprivate(trisystem_array, rhs_array)
+#pragma omp parallel for firstprivate(trisystem_array, rhs_array, buffer_size)
     for (size_type row = 0; row < num_rows; ++row) {
         const auto i_row_begin = i_row_ptrs[row];
         const auto i_row_end = i_row_ptrs[row + 1];
         const auto i_row_elems = i_row_end - i_row_begin;
 
-        trisystem_array.resize_and_reset(i_row_elems * i_row_elems);
+        if (buffer_size < i_row_elems) {
+            trisystem_array.resize_and_reset(i_row_elems * i_row_elems);
+        }
         auto trisystem = trisystem_array.get_data();
         std::fill_n(trisystem, i_row_elems * i_row_elems, zero<ValueType>());
 
@@ -135,7 +138,9 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
             }
         }
 
-        rhs_array.resize_and_reset(i_row_elems);
+        if (buffer_size < i_row_elems) {
+            rhs_array.resize_and_reset(i_row_elems);
+        }
         auto rhs = rhs_array.get_data();
 
         trs_solve(i_row_elems, trisystem, rhs);

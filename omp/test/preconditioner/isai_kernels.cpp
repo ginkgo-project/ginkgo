@@ -65,13 +65,6 @@ protected:
         omp = gko::OmpExecutor::create();
     }
 
-    void TearDown()
-    {
-        if (omp != nullptr) {
-            ASSERT_NO_THROW(omp->synchronize());
-        }
-    }
-
     std::unique_ptr<Csr> clone_allocations(const Csr *csr_mtx)
     {
         if (csr_mtx->get_executor() != ref) {
