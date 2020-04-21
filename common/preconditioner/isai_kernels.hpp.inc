@@ -61,14 +61,9 @@ __forceinline__ __device__ void generic_generate(
     auto subwarp = group::tiled_partition<subwarp_size>(this_block);
     const int subwarp_id = subwarp.thread_rank();
 
-    // Here, we use an intermediate shared memory block with a primitive
-    // datatype to produce no warning in case of complex types.
-    // The issue with thrust::complex is that it has a non-empty default
-    // constructor, which apparently does not work with non-dynamic shared
-    // memory
-    __shared__ char shared_memory[sizeof(ValueType) * subwarp_size *
-                                  subwarp_size * subwarps_per_block];
-    auto trisystem = reinterpret_cast<ValueType *>(shared_memory);
+    __shared__ UninitializedArray<ValueType, subwarp_size * subwarp_size *
+                                                 subwarps_per_block>
+        trisystem;
 
     const int end_trisystem = blockDim.x * subwarp_size;
     const int trisystem_start =
