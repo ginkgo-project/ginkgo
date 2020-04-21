@@ -115,37 +115,45 @@ struct OperationLogger : gko::log::Logger {
         }
     }
 
-    OperationLogger(std::shared_ptr<const gko::Executor> exec)
-        : gko::log::Logger(exec)
+    OperationLogger(std::shared_ptr<const gko::Executor> exec, bool nested_name)
+        : gko::log::Logger(exec), use_nested_name{nested_name}
     {}
 
 private:
     void start_operation(const gko::Executor *exec,
                          const std::string &name) const
     {
-        nested.emplace_back(0);
         exec->synchronize();
-        start[name] = std::chrono::steady_clock::now();
+        auto nested_name = nested.empty() || !use_nested_name
+                               ? name
+                               : nested.back().first + "::" + name;
+        nested.emplace_back(nested_name, 0);
+        start[nested_name] = std::chrono::steady_clock::now();
     }
 
     void end_operation(const gko::Executor *exec, const std::string &name) const
     {
+        // if operations are properly nested, nested_name now ends with name
+        auto nested_name = nested.back().first;
         exec->synchronize();
         const auto end = std::chrono::steady_clock::now();
-        const auto diff = end - start[name];
+        const auto diff = end - start[nested_name];
         // make sure timings for nested operations are not counted twice
-        total[name] += diff - nested.back();
+        total[nested_name] += diff - nested.back().second;
         nested.pop_back();
-        if (nested.size() > 0) {
-            nested.back() += diff;
+        if (!nested.empty()) {
+            nested.back().second += diff;
         }
     }
 
+    bool use_nested_name;
     mutable std::map<std::string, std::chrono::steady_clock::time_point> start;
     mutable std::map<std::string, std::chrono::steady_clock::duration> total;
     // the position i of this vector holds the total time spend on child
     // operations on nesting level i
-    mutable std::vector<std::chrono::steady_clock::duration> nested;
+    mutable std::vector<
+        std::pair<std::string, std::chrono::steady_clock::duration>>
+        nested;
 };
 
 

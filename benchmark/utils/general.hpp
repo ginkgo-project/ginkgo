@@ -80,6 +80,8 @@ DEFINE_string(double_buffer, "",
 DEFINE_bool(detailed, true,
             "If set, performs several runs to obtain more detailed results");
 
+DEFINE_bool(nested_names, false, "If set, separately logs nested operations");
+
 DEFINE_uint32(seed, 42, "Seed used for the random number generator");
 
 DEFINE_uint32(warmup, 2, "Warm-up repetitions");

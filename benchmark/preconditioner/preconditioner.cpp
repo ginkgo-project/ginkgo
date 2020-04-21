@@ -215,7 +215,8 @@ void run_preconditioner(const char *precond_name,
             auto x_clone = clone(x);
             auto precond = precond_factory.at(precond_name)(exec);
 
-            auto gen_logger = std::make_shared<OperationLogger>(exec);
+            auto gen_logger =
+                std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(gen_logger);
             std::unique_ptr<gko::LinOp> precond_op;
             for (auto i = 0u; i < FLAGS_repetitions; ++i) {
@@ -226,7 +227,8 @@ void run_preconditioner(const char *precond_name,
             gen_logger->write_data(this_precond_data["generate"]["components"],
                                    allocator, FLAGS_repetitions);
 
-            auto apply_logger = std::make_shared<OperationLogger>(exec);
+            auto apply_logger =
+                std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(apply_logger);
             for (auto i = 0u; i < FLAGS_repetitions; ++i) {
                 precond_op->apply(lend(b), lend(x_clone));
