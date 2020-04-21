@@ -27,10 +27,10 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {shared: "ON", build_type: "Debug", name: "reference/debug/shared", cflags: "/bigobj"}
-        - {shared: "OFF", build_type: "Release", name: "reference/release/static", cflags: ""}
+        - {shared: "ON", build_type: "Debug", name: "reference/debug/shared"}
+        - {shared: "OFF", build_type: "Release", name: "reference/release/static"}
         # Debug static needs too much storage
-        # - {shared: "OFF", build_type: "Debug", name: "reference/debug/static", cflags: "/bigobj"}
+        # - {shared: "OFF", build_type: "Debug", name: "reference/debug/static"}
     name: msvc/${{ matrix.config.name }}
     runs-on: [windows-latest]
     steps:
@@ -40,11 +40,15 @@ jobs:
       run: |
         echo "::set-env name=origin_path::$env:PATH"
         echo "::add-path::$pwd\build\windows_shared_library"
+    - name: debug_env
+      if: matrix.config.build_type == 'Debug'
+      run: |
+        echo "::set-env name=CXXFLAGS::/bigobj"
     - name: configure
       run: |
         mkdir build
         cd build
-        cmake -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DGINKGO_COMPILER_FLAGS=${{ matrix.config.cflags }} -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_OMP=OFF ..
+        cmake -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_OMP=OFF ..
         cmake --build . -j8 --config ${{ matrix.config.build_type }}
         ctest . -C ${{ matrix.config.build_type }} --output-on-failure
     - name: install_shared_env
@@ -62,7 +66,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {shared: "ON", build_type: "Debug", name: "omp/debug/shared", cflags: "-O1 -Wa -mbig-obj"}
+        - {shared: "ON", build_type: "Debug", name: "omp/debug/shared", cflags: "-O1"}
         - {shared: "OFF", build_type: "Release", name: "omp/release/static", cflags: ""}
     name: mingw/${{ matrix.config.name }}
     runs-on: [windows-latest]
@@ -73,6 +77,10 @@ jobs:
       run: |
         echo "::set-env name=origin_path::$env:PATH"
         echo "::add-path::$pwd\build\windows_shared_library"
+    - name: debug_env
+      if: matrix.config.build_type == 'Debug'
+      run: |
+        echo "::set-env name=CXXFLAGS::-Wa,-mbig-obj"
     - name: configure
     # Use cmd to remove the path easily
       run: |
@@ -102,7 +110,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {shared: "ON", build_type: "Debug", name: "omp/debug/shared", cflags: "-O1 -Wa -mbig-obj"}
+        - {shared: "ON", build_type: "Debug", name: "omp/debug/shared", cflags: "-O1"}
         - {shared: "OFF", build_type: "Release", name: "omp/release/static", cflags: ""}
     name: cygwin/${{ matrix.config.name }}
     runs-on: [windows-latest]
@@ -118,6 +126,10 @@ jobs:
       run: |
         echo "::set-env name=shared_ON_path::;$pwd\build\windows_shared_library"
         echo "::set-env name=shared_OFF_path::"
+    - name: debug_env
+      if: matrix.config.build_type == 'Debug'
+      run: |
+        echo "::set-env name=CXXFLAGS::-Wa,-mbig-obj"
     - name: configure
       run: |
         path C:\tools\cygwin\bin%shared_${{ matrix.config.shared }}_path%
