@@ -50,6 +50,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/components/prefix_sum.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace omp {
@@ -224,14 +227,27 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
     auto row_idxs = result->get_row_idxs();
     auto col_idxs = result->get_col_idxs();
     auto values = result->get_values();
+    Array<IndexType> row_ptrs_array(exec, num_rows);
+    auto row_ptrs = row_ptrs_array.get_data();
 
-    size_type idxs = 0;
-    for (size_type row = 0; row < num_rows; ++row) {
 #pragma omp parallel for
+    for (size_type row = 0; row < num_rows; ++row) {
+        IndexType row_count{};
+        for (size_type col = 0; col < num_cols; ++col) {
+            auto val = source->at(row, col);
+            row_count += val != zero<ValueType>();
+        }
+        row_ptrs[row] = row_count;
+    }
+
+    prefix_sum(exec, row_ptrs, num_rows);
+
+#pragma omp parallel for
+    for (size_type row = 0; row < num_rows; ++row) {
+        auto idxs = row_ptrs[row];
         for (size_type col = 0; col < num_cols; ++col) {
             auto val = source->at(row, col);
             if (val != zero<ValueType>()) {
-#pragma omp critical
                 {
                     row_idxs[idxs] = row;
                     col_idxs[idxs] = col;
@@ -260,22 +276,29 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
     auto col_idxs = result->get_col_idxs();
     auto values = result->get_values();
 
-    size_type cur_ptr = 0;
-    row_ptrs[0] = cur_ptr;
-    for (size_type row = 0; row < num_rows; ++row) {
 #pragma omp parallel for
+    for (size_type row = 0; row < num_rows; ++row) {
+        IndexType row_nnz{};
+        for (size_type col = 0; col < num_cols; ++col) {
+            auto val = source->at(row, col);
+            row_nnz += val != zero<ValueType>();
+        }
+        row_ptrs[row] = row_nnz;
+    }
+
+    prefix_sum(exec, row_ptrs, num_rows + 1);
+
+#pragma omp parallel for
+    for (size_type row = 0; row < num_rows; ++row) {
+        auto cur_ptr = row_ptrs[row];
         for (size_type col = 0; col < num_cols; ++col) {
             auto val = source->at(row, col);
             if (val != zero<ValueType>()) {
-#pragma omp critical
-                {
-                    col_idxs[cur_ptr] = col;
-                    values[cur_ptr] = val;
-                    ++cur_ptr;
-                }
+                col_idxs[cur_ptr] = col;
+                values[cur_ptr] = val;
+                ++cur_ptr;
             }
         }
-        row_ptrs[row + 1] = cur_ptr;
     }
 }
 
@@ -325,12 +348,13 @@ void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
     auto num_cols = result->get_size()[1];
     auto strategy = result->get_strategy();
     auto ell_lim = strategy->get_ell_num_stored_elements_per_row();
-    auto coo_lim = strategy->get_coo_nnz();
     auto coo_val = result->get_coo_values();
     auto coo_col = result->get_coo_col_idxs();
     auto coo_row = result->get_coo_row_idxs();
+    Array<IndexType> coo_row_ptrs_array(exec, num_rows);
+    auto coo_row_ptrs = coo_row_ptrs_array.get_data();
 
-#pragma omp parallel for
+#pragma omp parallel for collapse(2)
     for (size_type i = 0; i < result->get_ell_num_stored_elements_per_row();
          i++) {
         for (size_type j = 0; j < result->get_ell_stride(); j++) {
@@ -344,39 +368,39 @@ void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
         coo_col[i] = 0;
         coo_row[i] = 0;
     }
-
-    size_type coo_idx = 0;
-    // FIXME: This parallelization may cause the COO part to not being sorted by
-    //        row idx
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; row++) {
-        size_type col_idx = 0;
-        size_type col = 0;
-        while (col < num_cols && col_idx < ell_lim) {
+        size_type total_row_nnz{};
+        for (size_type col = 0; col < num_cols; col++) {
             auto val = source->at(row, col);
-            if (val != zero<ValueType>()) {
-                result->ell_val_at(row, col_idx) = val;
-                result->ell_col_at(row, col_idx) = col;
-                col_idx++;
-            }
-            col++;
+            total_row_nnz += val != zero<ValueType>();
         }
-        while (col < num_cols) {
+        coo_row_ptrs[row] = std::max(ell_lim, total_row_nnz) - ell_lim;
+    }
+
+    prefix_sum(exec, coo_row_ptrs, num_rows);
+
+#pragma omp parallel for
+    for (size_type row = 0; row < num_rows; row++) {
+        size_type ell_count = 0;
+        size_type col = 0;
+        for (; col < num_cols && ell_count < ell_lim; col++) {
             auto val = source->at(row, col);
             if (val != zero<ValueType>()) {
-                size_type current_coo_idx;
-                // Use the critical section for accessing the coo_idx only, the
-                // rest can be performed in parallel since the index is unique
-#pragma omp critical
-                {
-                    current_coo_idx = coo_idx;
-                    ++coo_idx;
-                }
-                coo_val[current_coo_idx] = val;
-                coo_col[current_coo_idx] = col;
-                coo_row[current_coo_idx] = row;
+                result->ell_val_at(row, ell_count) = val;
+                result->ell_col_at(row, ell_count) = col;
+                ell_count++;
             }
-            col++;
+        }
+        auto coo_idx = coo_row_ptrs[row];
+        for (; col < num_cols; col++) {
+            auto val = source->at(row, col);
+            if (val != zero<ValueType>()) {
+                coo_val[coo_idx] = val;
+                coo_col[coo_idx] = col;
+                coo_row[coo_idx] = row;
+                coo_idx++;
+            }
         }
     }
 }
@@ -470,21 +494,28 @@ void convert_to_sparsity_csr(std::shared_ptr<const OmpExecutor> exec,
     auto value = result->get_value();
     value[0] = one<ValueType>();
 
-    size_type cur_ptr = 0;
-    row_ptrs[0] = cur_ptr;
-    for (size_type row = 0; row < num_rows; ++row) {
 #pragma omp parallel for
+    for (size_type row = 0; row < num_rows; ++row) {
+        IndexType row_nnz{};
+        for (size_type col = 0; col < num_cols; ++col) {
+            auto val = source->at(row, col);
+            row_nnz += val != zero<ValueType>();
+        }
+        row_ptrs[row] = row_nnz;
+    }
+
+    prefix_sum(exec, row_ptrs, num_rows + 1);
+
+#pragma omp parallel for
+    for (size_type row = 0; row < num_rows; ++row) {
+        auto cur_ptr = row_ptrs[row];
         for (size_type col = 0; col < num_cols; ++col) {
             auto val = source->at(row, col);
             if (val != zero<ValueType>()) {
-#pragma omp critical
-                {
-                    col_idxs[cur_ptr] = col;
-                    ++cur_ptr;
-                }
+                col_idxs[cur_ptr] = col;
+                ++cur_ptr;
             }
         }
-        row_ptrs[row + 1] = cur_ptr;
     }
 }
 

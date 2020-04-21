@@ -357,12 +357,11 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
     auto col_idxs = source->get_const_col_idxs();
     auto vals = source->get_const_values();
 
-    for (size_type row = 0; row < num_rows; ++row) {
 #pragma omp parallel for
+    for (size_type row = 0; row < num_rows; ++row) {
         for (size_type col = 0; col < num_cols; ++col) {
             result->at(row, col) = zero<ValueType>();
         }
-#pragma omp parallel for
         for (size_type i = row_ptrs[row];
              i < static_cast<size_type>(row_ptrs[row + 1]); ++i) {
             result->at(row, col_idxs[i]) = vals[i];
