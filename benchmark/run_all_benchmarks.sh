@@ -32,7 +32,7 @@ fi
 
 if [ ! "${FORMATS}" ]; then
     echo "FORMATS    environment variable not set - assuming \"csr,coo,ell,hybrid,sellp\"" 1>&2
-    FORAMTS="csr,coo,ell,hybrid,sellp"
+    FORMATS="csr,coo,ell,hybrid,sellp"
 fi
 
 if [ ! "${SOLVERS}" ]; then
