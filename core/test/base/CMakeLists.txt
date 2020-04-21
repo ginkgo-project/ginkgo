@@ -1,4 +1,5 @@
 ginkgo_create_test(abstract_factory)
+ginkgo_create_test(allocator)
 ginkgo_create_test(array)
 ginkgo_create_test(combination)
 ginkgo_create_test(composition)
