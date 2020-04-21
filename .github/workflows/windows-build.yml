@@ -66,8 +66,8 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {shared: "ON", build_type: "Debug", name: "omp/debug/shared"}
-        - {shared: "OFF", build_type: "Release", name: "omp/release/static"}
+        - {shared: "ON", build_type: "Debug", name: "omp/debug/shared", cflags: "-O1"}
+        - {shared: "OFF", build_type: "Release", name: "omp/release/static", cflags: ""}
     name: mingw/${{ matrix.config.name }}
     runs-on: [windows-latest]
     steps:
@@ -88,7 +88,7 @@ jobs:
         set PATH=%PATH:C:\Program Files\Git\usr\bin;=%
         mkdir build
         cd build
-        cmake -G "MinGW Makefiles" -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} ..
+        cmake -G "MinGW Makefiles" -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_COMPILER_FLAGS=${{ matrix.config.cflags }} ..
         cmake --build . -j8
         ctest . --output-on-failure
       shell: cmd
@@ -110,8 +110,8 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - {shared: "ON", build_type: "Debug", name: "omp/debug/shared"}
-        - {shared: "OFF", build_type: "Release", name: "omp/release/static"}
+        - {shared: "ON", build_type: "Debug", name: "omp/debug/shared", cflags: "-O1"}
+        - {shared: "OFF", build_type: "Release", name: "omp/release/static", cflags: ""}
     name: cygwin/${{ matrix.config.name }}
     runs-on: [windows-latest]
     steps:
@@ -135,7 +135,7 @@ jobs:
         path C:\tools\cygwin\bin%shared_${{ matrix.config.shared }}_path%
         mkdir build
         cd build
-        bash -c "cmake -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} .."
+        bash -c "cmake -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_COMPILER_FLAGS=${{ matrix.config.cflags }} .."
         bash -c "make -j8"
         bash -c "ctest . --output-on-failure"
       shell: cmd
