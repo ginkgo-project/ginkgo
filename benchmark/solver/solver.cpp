@@ -81,8 +81,7 @@ DEFINE_bool(overhead, false,
 
 
 // input validation
-[[noreturn]] void print_config_error_and_exit()
-{
+[[noreturn]] void print_config_error_and_exit() {
     std::cerr << "Input has to be a JSON array of matrix configurations:\n"
               << "  [\n"
               << "    { \"filename\": \"my_file.mtx\",  \"optimal\": { "
@@ -318,7 +317,8 @@ void solve_system(const std::string &solver_name,
             // slow run, get the time of each functions
             auto x_clone = clone(x);
 
-            auto gen_logger = std::make_shared<OperationLogger>(exec);
+            auto gen_logger =
+                std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(gen_logger);
 
             auto precond = precond_factory.at(precond_name)(exec);
@@ -339,7 +339,8 @@ void solve_system(const std::string &solver_name,
                                    solver_json["preconditioner"], allocator);
             }
 
-            auto apply_logger = std::make_shared<OperationLogger>(exec);
+            auto apply_logger =
+                std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(apply_logger);
 
             solver->apply(lend(b), lend(x_clone));
