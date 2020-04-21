@@ -156,8 +156,8 @@ void count_nonzeros(std::shared_ptr<const OmpExecutor> exec,
     const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
     const auto stride = source->get_stride();
 
+#pragma omp parallel for collapse(2) reduction(+ : nonzeros)
     for (size_type row = 0; row < num_rows; row++) {
-#pragma omp parallel for reduction(+ : nonzeros)
         for (size_type i = 0; i < max_nnz_per_row; i++) {
             nonzeros += (source->val_at(row, i) != zero<ValueType>());
         }
