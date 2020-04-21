@@ -37,7 +37,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cmath>
 #include <iterator>
 #include <numeric>
-#include <vector>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -46,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/allocator.hpp"
 #include "core/base/extended_float.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "reference/components/matrix_operations.hpp"
@@ -291,13 +291,13 @@ inline bool invert_block(IndexType block_size, IndexType *perm,
 
 
 template <typename ReducedType, typename ValueType, typename IndexType>
-inline bool validate_precision_reduction_feasibility(IndexType block_size,
-                                                     const ValueType *block,
-                                                     size_type stride)
+inline bool validate_precision_reduction_feasibility(
+    std::shared_ptr<const ReferenceExecutor> exec, IndexType block_size,
+    const ValueType *block, size_type stride)
 {
     using gko::detail::float_traits;
-    std::vector<ValueType> tmp(block_size * block_size);
-    std::vector<IndexType> perm(block_size);
+    vector<ValueType> tmp(block_size * block_size, {}, exec);
+    vector<IndexType> perm(block_size, {}, exec);
     std::iota(begin(perm), end(perm), IndexType{0});
     for (IndexType i = 0; i < block_size; ++i) {
         for (IndexType j = 0; j < block_size; ++j) {
@@ -337,9 +337,9 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
     const auto group_size = storage_scheme.get_group_size();
     const auto cond = conditioning.get_data();
     for (size_type g = 0; g < num_blocks; g += group_size) {
-        std::vector<Array<ValueType>> block(group_size);
-        std::vector<Array<IndexType>> perm(group_size);
-        std::vector<uint32> pr_descriptors(group_size, uint32{} - 1);
+        vector<Array<ValueType>> block(group_size, {}, exec);
+        vector<Array<IndexType>> perm(group_size, {}, exec);
+        vector<uint32> pr_descriptors(group_size, uint32{} - 1, exec);
         // extract group of blocks, invert them, figure out storage precision
         for (size_type b = 0; b < group_size; ++b) {
             if (b + g >= num_blocks) {
@@ -369,16 +369,18 @@ void generate(std::shared_ptr<const ReferenceExecutor> exec,
                 using preconditioner::detail::get_supported_storage_reductions;
                 pr_descriptors[b] = get_supported_storage_reductions<ValueType>(
                     accuracy, cond[g + b],
-                    [&block_size, &block, &b] {
+                    [&exec, &block_size, &block, &b] {
                         using target = reduce_precision<ValueType>;
                         return validate_precision_reduction_feasibility<target>(
-                            block_size, block[b].get_const_data(), block_size);
+                            exec, block_size, block[b].get_const_data(),
+                            block_size);
                     },
-                    [&block_size, &block, &b] {
+                    [&exec, &block_size, &block, &b] {
                         using target =
                             reduce_precision<reduce_precision<ValueType>>;
                         return validate_precision_reduction_feasibility<target>(
-                            block_size, block[b].get_const_data(), block_size);
+                            exec, block_size, block[b].get_const_data(),
+                            block_size);
                     });
             } else {
                 pr_descriptors[b] = preconditioner::detail::

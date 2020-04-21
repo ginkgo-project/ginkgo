@@ -61,7 +61,7 @@ TEST(ExecutorAllocator, WorksWithStdlib)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto alloc = gko::ExecutorAllocator<int>(exec);
-    auto vec = std::vector<int, gko::ExecutorAllocator<int>>(10, {exec});
+    auto vec = std::vector<int, gko::ExecutorAllocator<int>>(10, 0, exec);
 
     // This test can only fail with sanitizers
     vec[0] = 0;

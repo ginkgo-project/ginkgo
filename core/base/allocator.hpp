@@ -34,10 +34,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_ALLOCATOR_HPP_
 
 
-#include <ginkgo/core/base/executor.hpp>
+#include <map>
 #include <memory>
+#include <set>
 #include <type_traits>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
+
+
+#include <ginkgo/core/base/executor.hpp>
 
 
 namespace gko {
@@ -137,9 +143,31 @@ private:
 };
 
 
-// Convenience type alias
+// Convenience type aliases
+/** std::vector using an ExecutorAllocator. */
 template <typename T>
 using vector = std::vector<T, ExecutorAllocator<T>>;
+
+/** std::set using an ExecutorAllocator. */
+template <typename Key>
+using set = std::set<Key, std::less<Key>, gko::ExecutorAllocator<Key>>;
+
+/** std::map using an ExecutorAllocator. */
+template <typename Key, typename Value>
+using map = std::map<Key, Value, std::less<Key>,
+                     gko::ExecutorAllocator<std::pair<const Key, Value>>>;
+
+/** std::unordered_set using an ExecutorAllocator. */
+template <typename Key>
+using unordered_set =
+    std::unordered_set<Key, std::hash<Key>, std::equal_to<Key>,
+                       gko::ExecutorAllocator<Key>>;
+
+/** std::unordered_map using an ExecutorAllocator. */
+template <typename Key, typename Value>
+using unordered_map =
+    std::unordered_map<Key, Value, std::hash<Key>, std::equal_to<Key>,
+                       gko::ExecutorAllocator<std::pair<const Key, Value>>>;
 
 
 }  // namespace gko
