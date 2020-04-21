@@ -67,13 +67,6 @@ protected:
         cuda = gko::CudaExecutor::create(0, ref);
     }
 
-    void TearDown()
-    {
-        if (cuda != nullptr) {
-            ASSERT_NO_THROW(cuda->synchronize());
-        }
-    }
-
     std::unique_ptr<Csr> clone_allocations(const Csr *csr_mtx)
     {
         if (csr_mtx->get_executor() != ref) {

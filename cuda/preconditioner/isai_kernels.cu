@@ -58,14 +58,15 @@ namespace isai {
 namespace {
 
 
-constexpr int subwarp_size{config::warp_size};
-constexpr int subwarps_per_block{2};
-constexpr int default_block_size{subwarps_per_block * subwarp_size};
-
 #include "common/preconditioner/isai_kernels.hpp.inc"
 
 
 }  // namespace
+
+
+constexpr int subwarp_size{config::warp_size};
+constexpr int subwarps_per_block{2};
+constexpr int default_block_size{subwarps_per_block * subwarp_size};
 
 
 template <typename ValueType, typename IndexType>
@@ -73,8 +74,6 @@ void generate_l_inverse(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, IndexType> *l_csr,
                         matrix::Csr<ValueType, IndexType> *inverse_l)
 {
-    constexpr int shared_memory_size =
-        default_block_size * subwarp_size * sizeof(ValueType);
     const auto nnz = l_csr->get_num_stored_elements();
     const auto num_rows = l_csr->get_size()[0];
 
@@ -86,8 +85,8 @@ void generate_l_inverse(std::shared_ptr<const DefaultExecutor> exec,
 
     const dim3 block(default_block_size, 1, 1);
     const dim3 grid(ceildiv(num_rows, block.x / config::warp_size), 1, 1);
-    kernel::generate_l_inverse<subwarp_size>
-        <<<grid, block, shared_memory_size>>>(
+    kernel::generate_l_inverse<subwarp_size, subwarps_per_block>
+        <<<grid, block>>>(
             static_cast<IndexType>(num_rows), l_csr->get_const_row_ptrs(),
             l_csr->get_const_col_idxs(),
             as_cuda_type(l_csr->get_const_values()), inverse_l->get_row_ptrs(),
@@ -105,8 +104,6 @@ void generate_u_inverse(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, IndexType> *u_csr,
                         matrix::Csr<ValueType, IndexType> *inverse_u)
 {
-    constexpr int shared_memory_size =
-        default_block_size * subwarp_size * sizeof(ValueType);
     const auto nnz = u_csr->get_num_stored_elements();
     const auto num_rows = u_csr->get_size()[0];
 
@@ -118,8 +115,8 @@ void generate_u_inverse(std::shared_ptr<const DefaultExecutor> exec,
 
     const dim3 block(default_block_size, 1, 1);
     const dim3 grid(ceildiv(num_rows, block.x / config::warp_size), 1, 1);
-    kernel::generate_u_inverse<subwarp_size>
-        <<<grid, block, shared_memory_size>>>(
+    kernel::generate_u_inverse<subwarp_size, subwarps_per_block>
+        <<<grid, block>>>(
             static_cast<IndexType>(num_rows), u_csr->get_const_row_ptrs(),
             u_csr->get_const_col_idxs(),
             as_cuda_type(u_csr->get_const_values()), inverse_u->get_row_ptrs(),
