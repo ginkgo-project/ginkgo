@@ -1,1 +1,2 @@
+ginkgo_create_hip_test_special_linkage(ilu_kernels)
 ginkgo_create_hip_test(par_ilu_kernels)

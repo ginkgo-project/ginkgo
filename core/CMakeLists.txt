@@ -11,6 +11,7 @@ target_sources(ginkgo
         base/perturbation.cpp
         base/version.cpp
         factorization/par_ilu.cpp
+        factorization/ilu.cpp
         log/convergence.cpp
         log/logger.cpp
         log/record.cpp
@@ -24,6 +25,7 @@ target_sources(ginkgo
         matrix/permutation.cpp
         matrix/sellp.cpp
         matrix/sparsity_csr.cpp
+        preconditioner/isai.cpp
         preconditioner/jacobi.cpp
         solver/bicg.cpp
         solver/bicgstab.cpp

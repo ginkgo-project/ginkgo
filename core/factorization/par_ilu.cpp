@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 
@@ -54,10 +55,10 @@ namespace par_ilu_factorization {
 
 
 GKO_REGISTER_OPERATION(add_diagonal_elements,
-                       par_ilu_factorization::add_diagonal_elements);
+                       factorization::add_diagonal_elements);
 GKO_REGISTER_OPERATION(initialize_row_ptrs_l_u,
-                       par_ilu_factorization::initialize_row_ptrs_l_u);
-GKO_REGISTER_OPERATION(initialize_l_u, par_ilu_factorization::initialize_l_u);
+                       factorization::initialize_row_ptrs_l_u);
+GKO_REGISTER_OPERATION(initialize_l_u, factorization::initialize_l_u);
 GKO_REGISTER_OPERATION(compute_l_u_factors,
                        par_ilu_factorization::compute_l_u_factors);
 GKO_REGISTER_OPERATION(csr_transpose, csr::transpose);
@@ -81,29 +82,15 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     const auto exec = this->get_executor();
     const auto host_exec = exec->get_master();
 
-    // Only copies the matrix if it is not on the same executor or was not in
-    // the right format. Throws an exception if it is not convertable.
-    std::unique_ptr<CsrMatrix> csr_system_matrix_unique_ptr{};
-    auto csr_system_matrix_const =
-        dynamic_cast<const CsrMatrix *>(system_matrix.get());
-    CsrMatrix *csr_system_matrix{};
-    if (csr_system_matrix_const == nullptr ||
-        csr_system_matrix_const->get_executor() != exec) {
-        csr_system_matrix_unique_ptr = CsrMatrix::create(exec);
-        as<ConvertibleTo<CsrMatrix>>(system_matrix.get())
-            ->convert_to(csr_system_matrix_unique_ptr.get());
-    } else {
-        csr_system_matrix_unique_ptr = csr_system_matrix_const->clone();
-    }
-    csr_system_matrix = csr_system_matrix_unique_ptr.get();
-    // If it needs to be sorted, copy it if necessary and sort it
+    // Converts the system matrix to CSR.
+    // Throws an exception if it is not convertible.
+    auto csr_system_matrix_unique_ptr = CsrMatrix::create(exec);
+    as<ConvertibleTo<CsrMatrix>>(system_matrix.get())
+        ->convert_to(csr_system_matrix_unique_ptr.get());
+    auto csr_system_matrix = csr_system_matrix_unique_ptr.get();
+    // If necessary, sort it
     if (!skip_sorting) {
-        if (csr_system_matrix_unique_ptr == nullptr) {
-            csr_system_matrix_unique_ptr = CsrMatrix::create(exec);
-            csr_system_matrix_unique_ptr->copy_from(csr_system_matrix);
-        }
-        csr_system_matrix_unique_ptr->sort_by_column_index();
-        csr_system_matrix = csr_system_matrix_unique_ptr.get();
+        csr_system_matrix->sort_by_column_index();
     }
 
     // Add explicit diagonal zero elements if they are missing

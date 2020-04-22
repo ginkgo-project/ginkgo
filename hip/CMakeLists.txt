@@ -103,6 +103,8 @@ set(GINKGO_HIP_SOURCES
     base/version.hip.cpp
     components/prefix_sum.hip.cpp
     components/zero_array_kernels.hip.cpp
+    factorization/ilu_kernels.hip.cpp
+    factorization/factorization_kernels.hip.cpp
     factorization/par_ilu_kernels.hip.cpp
     matrix/coo_kernels.hip.cpp
     matrix/csr_kernels.hip.cpp
@@ -111,6 +113,7 @@ set(GINKGO_HIP_SOURCES
     matrix/hybrid_kernels.hip.cpp
     matrix/sellp_kernels.hip.cpp
     matrix/sparsity_csr_kernels.hip.cpp
+    preconditioner/isai_kernels.hip.cpp
     preconditioner/jacobi_advanced_apply_kernel.hip.cpp
     preconditioner/jacobi_generate_kernel.hip.cpp
     preconditioner/jacobi_kernels.hip.cpp

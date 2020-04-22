@@ -3,6 +3,8 @@ target_sources(ginkgo_reference
     PRIVATE
         base/version.cpp
         components/prefix_sum.cpp
+        factorization/ilu_kernels.cpp
+        factorization/factorization_kernels.cpp
         factorization/par_ilu_kernels.cpp
         matrix/coo_kernels.cpp
         matrix/csr_kernels.cpp
@@ -11,6 +13,7 @@ target_sources(ginkgo_reference
         matrix/hybrid_kernels.cpp
         matrix/sellp_kernels.cpp
         matrix/sparsity_csr_kernels.cpp
+        preconditioner/isai_kernels.cpp
         preconditioner/jacobi_kernels.cpp
         solver/bicg_kernels.cpp
         solver/bicgstab_kernels.cpp

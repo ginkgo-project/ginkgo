@@ -59,6 +59,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/version.hpp>
 
+#include <ginkgo/core/factorization/ilu.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
 
 #include <ginkgo/core/log/convergence.hpp>
@@ -78,6 +79,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include <ginkgo/core/preconditioner/ilu.hpp>
+#include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
 #include <ginkgo/core/solver/bicg.hpp>
