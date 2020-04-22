@@ -164,6 +164,8 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
     // Call make_srow
     matrix::CsrBuilder<ValueType, IndexType>{inverse_mtx};
 }
+
+
 template <typename ValueType, typename IndexType>
 void generate_l_inverse(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, IndexType> *l_csr,
