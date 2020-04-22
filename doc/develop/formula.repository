@@ -22,11 +22,13 @@
 \form#21:$\left(R = A - L \cdot U\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$
 \form#22:$\mathcal{S}$
 \form#23:$LUx = b$
-\form#24:$ u : [0, 1] \rightarrow R\\ u'' = f\\ u(0) = u0\\ u(1) = u1 $
-\form#25:$ u(x + h) = u(x) - u'(x)h + 1/2 u''(x)h^2 + O(h^3)\\ u(x - h) = u(x) + u'(x)h + 1/2 u''(x)h^2 + O(h^3) / +\\ ---------------------- \\ -u(x - h) + 2u(x) + -u(x + h) = -f(x)h^2 + O(h^3) $
-\form#26:$x1, ..., xk, $
-\form#27:$ h = 1 / (K + 1)$
-\form#28:$ 2u_1 - u_2 = -f_1 h^2 + u0\\ -u_(k-1) + 2u_k - u_(k+1) = -f_k h^2, k = 2, ..., K - 1\\ -u_(K-1) + 2u_K = -f_K h^2 + u1\\ $
-\form#29:$`f` $
-\form#30:$`f(x) = 6x`$
-\form#31:$`u(x) = x^3`$
+\form#24:$aiU * x$
+\form#25:$aiL * x$
+\form#26:$ u : [0, 1] \rightarrow R\\ u'' = f\\ u(0) = u0\\ u(1) = u1 $
+\form#27:$ u(x + h) = u(x) - u'(x)h + 1/2 u''(x)h^2 + O(h^3)\\ u(x - h) = u(x) + u'(x)h + 1/2 u''(x)h^2 + O(h^3) / +\\ ---------------------- \\ -u(x - h) + 2u(x) + -u(x + h) = -f(x)h^2 + O(h^3) $
+\form#28:$x1, ..., xk, $
+\form#29:$ h = 1 / (K + 1)$
+\form#30:$ 2u_1 - u_2 = -f_1 h^2 + u0\\ -u_(k-1) + 2u_k - u_(k+1) = -f_k h^2, k = 2, ..., K - 1\\ -u_(K-1) + 2u_K = -f_K h^2 + u1\\ $
+\form#31:$`f` $
+\form#32:$`f(x) = 6x`$
+\form#33:$`u(x) = x^3`$

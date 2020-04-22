@@ -1,0 +1,43 @@
+\hypertarget{structgko_1_1preconditioner_1_1Isai_1_1parameters__type}{}\doxysection{gko\+::preconditioner\+::Isai$<$ Isai\+Type, Value\+Type, Index\+Type $>$\+::parameters\+\_\+type Struct Reference}
+\label{structgko_1_1preconditioner_1_1Isai_1_1parameters__type}\index{gko::preconditioner::Isai$<$ IsaiType, ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Isai$<$ IsaiType, ValueType, IndexType $>$::parameters\_type}}
+
+
+Collaboration diagram for gko\+::preconditioner\+::Isai$<$ Isai\+Type, Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=271pt]{structgko_1_1preconditioner_1_1Isai_1_1parameters__type__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1preconditioner_1_1Isai_1_1parameters__type_a11cf2737d32375059fc05a8b9c92334c}\label{structgko_1_1preconditioner_1_1Isai_1_1parameters__type_a11cf2737d32375059fc05a8b9c92334c}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+skip\+\_\+sorting} (Args \&\&... \+\_\+value) const -\/$>$ const \+::gko\+::xstd\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+bool \mbox{\hyperlink{structgko_1_1preconditioner_1_1Isai_1_1parameters__type_a0f94fd144a00a6294ac4e2b430b1d5d1}{skip\+\_\+sorting}} \{ false \}
+\begin{DoxyCompactList}\small\item\em Optimization parameter that skips the sorting of the input matrix (only skip if it is known that it is already sorted). \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structgko_1_1preconditioner_1_1Isai_1_1parameters__type_a0f94fd144a00a6294ac4e2b430b1d5d1}\label{structgko_1_1preconditioner_1_1Isai_1_1parameters__type_a0f94fd144a00a6294ac4e2b430b1d5d1}} 
+\index{gko::preconditioner::Isai$<$ IsaiType, ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Isai$<$ IsaiType, ValueType, IndexType $>$::parameters\_type}!skip\_sorting@{skip\_sorting}}
+\index{skip\_sorting@{skip\_sorting}!gko::preconditioner::Isai$<$ IsaiType, ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Isai$<$ IsaiType, ValueType, IndexType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{skip\_sorting}{skip\_sorting}}
+{\footnotesize\ttfamily template$<$isai\+\_\+type Isai\+Type, typename Value\+Type , typename Index\+Type $>$ \\
+bool \mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko\+::preconditioner\+::\+Isai}}$<$ Isai\+Type, Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::skip\+\_\+sorting \{ false \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+Optimization parameter that skips the sorting of the input matrix (only skip if it is known that it is already sorted). 
+
+The algorithm to create the approximate inverses requires the input matrix to be sorted. If it is, this parameter can be set to {\ttfamily true} to skip the sorting for better performance. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/preconditioner/isai.\+hpp (19fdc57d9)\end{DoxyCompactItemize}
