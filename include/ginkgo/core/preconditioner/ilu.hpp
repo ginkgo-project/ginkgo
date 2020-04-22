@@ -176,9 +176,11 @@ protected:
         set_cache_to(b);
         if (!ReverseApply) {
             l_solver_->apply(b, cache_.intermediate.get());
+            x->copy_from(cache_.intermediate.get());
             u_solver_->apply(cache_.intermediate.get(), x);
         } else {
             u_solver_->apply(b, cache_.intermediate.get());
+            x->copy_from(cache_.intermediate.get());
             l_solver_->apply(cache_.intermediate.get(), x);
         }
     }
