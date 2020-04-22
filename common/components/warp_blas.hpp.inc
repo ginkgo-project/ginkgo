@@ -221,7 +221,8 @@ __device__ __forceinline__ void copy_matrix(
             const auto idx = group.shfl(col_perm, i);
             if (group.thread_rank() < problem_size) {
                 // Need to assign a variable for the source_row, or hip
-                // will use a lot of VGPRs in unroll. This might lead a problem.
+                // will use a lot of VGPRs in unroll. This might lead to
+                // problems.
                 const auto val = source_row[i * increment];
                 destination[get_row_major_index<mod>(idx, row_perm, stride)] =
                     static_cast<ResultValueType>(val);
