@@ -53,13 +53,13 @@ __forceinline__ __device__ void generic_generate(
     static_assert((subwarp_size & (subwarp_size - 1)) == 0,
                   "subwarp_size must be a power of 2");
 
-    const IndexType gidx = thread::get_thread_id_flat<IndexType>();
-    const IndexType row = gidx / subwarp_size;
+    const auto gidx = thread::get_thread_id_flat<IndexType>();
+    const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
     const int tidx = threadIdx.x;
 
     auto this_block = group::this_thread_block();
     auto subwarp = group::tiled_partition<subwarp_size>(this_block);
-    const int subwarp_id = subwarp.thread_rank();
+    const int local_id = subwarp.thread_rank();
 
     __shared__ UninitializedArray<ValueType, subwarp_size * subwarp_size *
                                                  subwarps_per_block>
@@ -71,7 +71,7 @@ __forceinline__ __device__ void generic_generate(
 
     // Allow at most subwarp_size * subwarp_size elements in a subwarp trisystem
     for (int i = 0; i < subwarp_size; ++i) {
-        trisystem[trisystem_start + subwarp_id + i * subwarp_size] =
+        trisystem[trisystem_start + local_id + i * subwarp_size] =
             zero<ValueType>();
     }
     this_block.sync();
@@ -86,13 +86,12 @@ __forceinline__ __device__ void generic_generate(
                                : i_row_begin + subwarp_size;
     const auto num_row_elems = i_row_end - i_row_begin;
 
-    if (subwarp_id < num_row_elems) {
-        const auto col = i_col_idxs[i_row_begin + subwarp_id];
+    if (local_id < num_row_elems) {
+        const auto col = i_col_idxs[i_row_begin + local_id];
         const auto m_row_end = m_row_ptrs[col + 1];
         auto m_row_ptr = m_row_ptrs[col];
         auto i_row_ptr = i_row_begin;
-        int idx{trisystem_start +
-                subwarp_id};  // write to trisystem in row major
+        int idx{trisystem_start + local_id};  // write to trisystem in row major
 
         while (m_row_ptr < m_row_end && i_row_ptr < i_row_end &&
                idx < end_trisystem) {
@@ -117,10 +116,9 @@ __forceinline__ __device__ void generic_generate(
     // Now, read a full col of `trisystem` into local registers, which will be
     // row elements after this (implicit) transpose
     ValueType local_row[subwarp_size];
-    const auto trisystem_col_start =
-        trisystem_start + subwarp_id * subwarp_size;
+    const auto trisystem_col_start = trisystem_start + local_id * subwarp_size;
     for (int i = 0; i < subwarp_size; ++i) {
-        const auto intermediate_idx = subwarp_id + i;
+        const auto intermediate_idx = local_id + i;
         const auto coalesced_idx = intermediate_idx % subwarp_size;
         local_row[coalesced_idx] =
             trisystem[trisystem_col_start + coalesced_idx];
@@ -129,8 +127,8 @@ __forceinline__ __device__ void generic_generate(
     const auto rhs = trs_solve(num_row_elems, local_row, subwarp);
 
     // Write back:
-    if (subwarp_id < num_row_elems) {
-        const auto idx = i_row_begin + subwarp_id;
+    if (local_id < num_row_elems) {
+        const auto idx = i_row_begin + local_id;
         if (gko::isfinite(rhs)) {
             i_values[idx] = rhs;
         } else {
@@ -153,18 +151,18 @@ __launch_bounds__(subwarp_size *subwarps_per_block) void generate_l_inverse(
     auto trs_solve = [](IndexType num_elems,
                         const ValueType *__restrict__ local_row,
                         group::thread_block_tile<subwarp_size> &subwarp) {
-        const int subwarp_id = subwarp.thread_rank();
+        const int local_id = subwarp.thread_rank();
         ValueType rhs =
-            subwarp_id == num_elems - 1 ? one<ValueType>() : zero<ValueType>();
+            local_id == num_elems - 1 ? one<ValueType>() : zero<ValueType>();
         // Solve Triangular system
         for (int d_col = num_elems - 1; d_col >= 0; --d_col) {
             const auto elem = local_row[d_col];
-            if (d_col == subwarp_id) {
+            if (d_col == local_id) {
                 rhs /= elem;
             }
 
             const ValueType bot = subwarp.shfl(rhs, d_col);
-            if (subwarp_id < d_col) {
+            if (local_id < d_col) {
                 rhs -= bot * elem;
             }
         }
@@ -189,17 +187,17 @@ __launch_bounds__(subwarp_size *subwarps_per_block) void generate_u_inverse(
     auto trs_solve = [](IndexType num_elems,
                         const ValueType *__restrict__ local_row,
                         group::thread_block_tile<subwarp_size> &subwarp) {
-        const int subwarp_id = subwarp.thread_rank();
-        ValueType rhs = subwarp_id == 0 ? one<ValueType>() : zero<ValueType>();
+        const int local_id = subwarp.thread_rank();
+        ValueType rhs = local_id == 0 ? one<ValueType>() : zero<ValueType>();
         // Solve Triangular system
         for (int d_col = 0; d_col < num_elems; ++d_col) {
             const auto elem = local_row[d_col];
-            if (d_col == subwarp_id) {
+            if (d_col == local_id) {
                 rhs /= elem;
             }
 
             const ValueType top = subwarp.shfl(rhs, d_col);
-            if (d_col < subwarp_id) {
+            if (d_col < local_id) {
                 rhs -= top * elem;
             }
         }
