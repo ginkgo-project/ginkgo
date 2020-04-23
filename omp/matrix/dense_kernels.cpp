@@ -354,10 +354,11 @@ void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
     Array<IndexType> coo_row_ptrs_array(exec, num_rows);
     auto coo_row_ptrs = coo_row_ptrs_array.get_data();
 
+    auto ell_nnz_row = result->get_ell_num_stored_elements_per_row();
+    auto ell_stride = result->get_ell_stride();
 #pragma omp parallel for collapse(2)
-    for (size_type i = 0; i < result->get_ell_num_stored_elements_per_row();
-         i++) {
-        for (size_type j = 0; j < result->get_ell_stride(); j++) {
+    for (size_type i = 0; i < ell_nnz_row; i++) {
+        for (size_type j = 0; j < ell_stride; j++) {
             result->ell_val_at(j, i) = zero<ValueType>();
             result->ell_col_at(j, i) = 0;
         }
