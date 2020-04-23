@@ -80,26 +80,31 @@ var viewHeight = 137;
 <title>stopping_criteria&#45;&#45;preconditioners</title>
 <path fill="none" stroke="#000000" d="M436.7695,-92C468.2398,-92 499.7102,-92 531.1805,-92"/>
 </g>
-<!-- logging -->
+<!-- techniques -->
 <g id="node3" class="node">
+<title>techniques</title>
+<polygon fill="#ff7f50" stroke="#000000" points="190,-104.5 165,-104.5 165,-79.5 190,-79.5 190,-104.5"/>
+</g>
+<!-- fake_techniques -->
+<g id="node4" class="node">
+<title>fake_techniques</title>
+<polygon fill="#ffffff" stroke="transparent" points="238,-19 117,-19 117,0 238,0 238,-19"/>
+<text text-anchor="middle" x="177.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Advanced techniques</text>
+</g>
+<!-- techniques&#45;&#45;fake_techniques -->
+<g id="edge2" class="edge">
+<title>techniques&#45;&#45;fake_techniques</title>
+<path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M177.5,-79.47C177.5,-62.8819 177.5,-33.9926 177.5,-19.0545"/>
+</g>
+<!-- logging -->
+<g id="node9" class="node">
 <title>logging</title>
 <polygon fill="#ffd700" stroke="#000000" points="317.5,-101 299.5,-101 299.5,-83 317.5,-83 317.5,-101"/>
 </g>
-<!-- logging&#45;&#45;stopping_criteria -->
-<g id="edge9" class="edge">
-<title>logging&#45;&#45;stopping_criteria</title>
-<path fill="none" stroke="#000000" d="M317.7969,-92C351.222,-92 384.6472,-92 418.0724,-92"/>
-</g>
-<!-- fake_logging -->
-<g id="node4" class="node">
-<title>fake_logging</title>
-<polygon fill="#ffffff" stroke="transparent" points="360.5,-19 256.5,-19 256.5,0 360.5,0 360.5,-19"/>
-<text text-anchor="middle" x="308.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Logging in Ginkgo</text>
-</g>
-<!-- logging&#45;&#45;fake_logging -->
-<g id="edge2" class="edge">
-<title>logging&#45;&#45;fake_logging</title>
-<path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M308.5,-82.8558C308.5,-67.1655 308.5,-35.2562 308.5,-19.195"/>
+<!-- techniques&#45;&#45;logging -->
+<g id="edge8" class="edge">
+<title>techniques&#45;&#45;logging</title>
+<path fill="none" stroke="#000000" d="M190.0371,-92C226.4398,-92 262.8424,-92 299.2451,-92"/>
 </g>
 <!-- unfinished -->
 <g id="node5" class="node">
@@ -133,26 +138,21 @@ var viewHeight = 137;
 <title>preconditioners&#45;&#45;fake_preconditioners</title>
 <path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M540.5,-82.8558C540.5,-67.1655 540.5,-35.2562 540.5,-19.195"/>
 </g>
-<!-- techniques -->
-<g id="node9" class="node">
-<title>techniques</title>
-<polygon fill="#ff7f50" stroke="#000000" points="190,-104.5 165,-104.5 165,-79.5 190,-79.5 190,-104.5"/>
+<!-- logging&#45;&#45;stopping_criteria -->
+<g id="edge9" class="edge">
+<title>logging&#45;&#45;stopping_criteria</title>
+<path fill="none" stroke="#000000" d="M317.7969,-92C351.222,-92 384.6472,-92 418.0724,-92"/>
 </g>
-<!-- techniques&#45;&#45;logging -->
-<g id="edge8" class="edge">
-<title>techniques&#45;&#45;logging</title>
-<path fill="none" stroke="#000000" d="M190.0371,-92C226.4398,-92 262.8424,-92 299.2451,-92"/>
-</g>
-<!-- fake_techniques -->
+<!-- fake_logging -->
 <g id="node10" class="node">
-<title>fake_techniques</title>
-<polygon fill="#ffffff" stroke="transparent" points="238,-19 117,-19 117,0 238,0 238,-19"/>
-<text text-anchor="middle" x="177.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Advanced techniques</text>
+<title>fake_logging</title>
+<polygon fill="#ffffff" stroke="transparent" points="360.5,-19 256.5,-19 256.5,0 360.5,0 360.5,-19"/>
+<text text-anchor="middle" x="308.5" y="-7" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Logging in Ginkgo</text>
 </g>
-<!-- techniques&#45;&#45;fake_techniques -->
+<!-- logging&#45;&#45;fake_logging -->
 <g id="edge5" class="edge">
-<title>techniques&#45;&#45;fake_techniques</title>
-<path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M177.5,-79.47C177.5,-62.8819 177.5,-33.9926 177.5,-19.0545"/>
+<title>logging&#45;&#45;fake_logging</title>
+<path fill="none" stroke="#000000" stroke-dasharray="1,5" d="M308.5,-82.8558C308.5,-67.1655 308.5,-35.2562 308.5,-19.195"/>
 </g>
 <!-- basic -->
 <g id="node11" class="node">
