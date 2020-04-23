@@ -43,10 +43,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int main(int argc, char *argv[])
 {
     // Some shortcuts
-    using vec = gko::matrix::Dense<>;
-    using mtx = gko::matrix::Csr<>;
-    using cg = gko::solver::Cg<>;
-    using bj = gko::preconditioner::Jacobi<>;
+    using ValueType = double;
+    using IndexType = int;
+    using vec = gko::matrix::Dense<ValueType>;
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
+    using cg = gko::solver::Cg<ValueType>;
+    using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
@@ -72,8 +74,8 @@ int main(int argc, char *argv[])
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
 
     gko::size_type size = A->get_size()[0];
-    auto x = gko::matrix::Dense<>::create(exec, gko::dim<2>(size, 1));
-    auto b = gko::matrix::Dense<>::create(exec, gko::dim<2>(size, 1));
+    auto x = gko::matrix::Dense<ValueType>::create(exec, gko::dim<2>(size, 1));
+    auto b = gko::matrix::Dense<ValueType>::create(exec, gko::dim<2>(size, 1));
     for (auto i = 0; i < size; i++) {
         x->at(i, 0) = 1.;
         b->at(i, 0) = 1.;
@@ -88,12 +90,12 @@ int main(int argc, char *argv[])
 
     auto iter_stop =
         gko::stop::Iteration::build().with_max_iters(10000u).on(exec);
-    auto tol_stop = gko::stop::ResidualNormReduction<>::build()
-                        .with_reduction_factor(1e-12)
+    auto tol_stop = gko::stop::ResidualNormReduction<ValueType>::build()
+                        .with_reduction_factor(static_cast<ValueType>(1e-12))
                         .on(exec);
 
-    std::shared_ptr<const gko::log::Convergence<>> logger =
-        gko::log::Convergence<>::create(exec);
+    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
+        gko::log::Convergence<ValueType>::create(exec);
     iter_stop->add_logger(logger);
     tol_stop->add_logger(logger);
 
