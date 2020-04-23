@@ -343,8 +343,9 @@ int main(int argc, char *argv[])
     // Parametrize the benchmark here
     // Pick a value type
     using vtype = double;
+    using itype = int;
     // Pick a matrix format
-    using mtx = gko::matrix::Csr<vtype>;
+    using mtx = gko::matrix::Csr<vtype, itype>;
     // Pick a solver
     using solver = gko::solver::Cg<vtype>;
     // Pick a preconditioner type
