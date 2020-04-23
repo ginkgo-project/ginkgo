@@ -96,7 +96,7 @@ TYPED_TEST(IsaiFactory, KnowsItsExecutor)
 }
 
 
-TYPED_TEST(IsaiFactory, SetsDefaultSkipSortingCorrectly)
+TYPED_TEST(IsaiFactory, SetsSkipSortingCorrectly)
 {
     using LowerIsai = typename TestFixture::LowerIsai;
     using UpperIsai = typename TestFixture::UpperIsai;
@@ -111,10 +111,32 @@ TYPED_TEST(IsaiFactory, SetsDefaultSkipSortingCorrectly)
 }
 
 
-TYPED_TEST(IsaiFactory, SetskipSortingCorrectly)
+TYPED_TEST(IsaiFactory, SetsDefaultSkipSortingCorrectly)
 {
     ASSERT_EQ(this->lower_isai_factory->get_parameters().skip_sorting, false);
     ASSERT_EQ(this->upper_isai_factory->get_parameters().skip_sorting, false);
+}
+
+
+TYPED_TEST(IsaiFactory, SetsSparsityPowerCorrectly)
+{
+    using LowerIsai = typename TestFixture::LowerIsai;
+    using UpperIsai = typename TestFixture::UpperIsai;
+
+    auto l_isai_factory =
+        LowerIsai::build().with_sparsity_power(2).on(this->exec);
+    auto u_isai_factory =
+        UpperIsai::build().with_sparsity_power(2).on(this->exec);
+
+    ASSERT_EQ(l_isai_factory->get_parameters().sparsity_power, 2);
+    ASSERT_EQ(u_isai_factory->get_parameters().sparsity_power, 2);
+}
+
+
+TYPED_TEST(IsaiFactory, SetsDefaultSparsityPowerCorrectly)
+{
+    ASSERT_EQ(this->lower_isai_factory->get_parameters().sparsity_power, 1);
+    ASSERT_EQ(this->upper_isai_factory->get_parameters().sparsity_power, 1);
 }
 
 
