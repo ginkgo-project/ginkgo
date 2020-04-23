@@ -79,6 +79,11 @@ enum struct isai_type { lower, upper };
  * Incomplete Sparse Approximate Inverses for Parallel Preconditioning</a>,
  * which is the basis for this work.
  *
+ * @note GPU implementations can only handle the vector unit width `width`
+ *       (warp size for CUDA) as number of elements per row in the sparse
+ *       matrix. If there are more than `width` elements per row, the remaining
+ *       elements will be ignored.
+ *
  * @tparam IsaiType  determines if the ISAI is generated for a lower triangular
  *                   matrix or an upper triangular matrix
  * @tparam ValueType  precision of matrix elements
