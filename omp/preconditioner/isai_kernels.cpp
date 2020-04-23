@@ -107,6 +107,8 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
 
         if (buffer_size < i_row_elems) {
             trisystem_array.resize_and_reset(i_row_elems * i_row_elems);
+            rhs_array.resize_and_reset(i_row_elems);
+            buffer_size = i_row_elems;
         }
         auto trisystem = trisystem_array.get_data();
         std::fill_n(trisystem, i_row_elems * i_row_elems, zero<ValueType>());
@@ -138,9 +140,6 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
             }
         }
 
-        if (buffer_size < i_row_elems) {
-            rhs_array.resize_and_reset(i_row_elems);
-        }
         auto rhs = rhs_array.get_data();
 
         trs_solve(i_row_elems, trisystem, rhs);
