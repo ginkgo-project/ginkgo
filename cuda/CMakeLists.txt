@@ -9,9 +9,11 @@ endif()
 if(MSVC)
     # MSVC can not find CUDA automatically
     # Use CUDA_COMPILER PATH to define the CUDA TOOLKIT ROOT DIR
+    string(REPLACE "/bin/nvcc.exe" "" CMAKE_CUDA_ROOT_DIR ${CMAKE_CUDA_COMPILER})
     if("${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}" STREQUAL "")
-        string(REPLACE "/bin/nvcc.exe" "" CMAKE_CUDA_ROOT_DIR ${CMAKE_CUDA_COMPILER})
         set(CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES "${CMAKE_CUDA_ROOT_DIR}/include")
+    endif()
+    if("${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES}" STREQUAL "")
         set(CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES "${CMAKE_CUDA_ROOT_DIR}/lib/x64")
     endif()
 
