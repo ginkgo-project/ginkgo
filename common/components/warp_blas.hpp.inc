@@ -132,19 +132,18 @@ __device__ __forceinline__ bool invert_block(const Group &__restrict__ group,
 #pragma unroll 1
 #endif
     for (int32 i = 0; i < max_problem_size; ++i) {
-        if (i >= problem_size) {
-            break;
+        if (i < problem_size) {
+            const auto piv = choose_pivot(group, row[i], pivoted);
+            if (group.thread_rank() == piv) {
+                perm = i;
+                pivoted = true;
+            }
+            if (group.thread_rank() == i) {
+                trans_perm = piv;
+            }
+            apply_gauss_jordan_transform<max_problem_size>(group, piv, i, row,
+                                                           status);
         }
-        const auto piv = choose_pivot(group, row[i], pivoted);
-        if (group.thread_rank() == piv) {
-            perm = i;
-            pivoted = true;
-        }
-        if (group.thread_rank() == i) {
-            trans_perm = piv;
-        }
-        apply_gauss_jordan_transform<max_problem_size>(group, piv, i, row,
-                                                       status);
     }
     return status;
 }
@@ -218,13 +217,16 @@ __device__ __forceinline__ void copy_matrix(
     GKO_ASSERT(problem_size <= max_problem_size);
 #pragma unroll
     for (int32 i = 0; i < max_problem_size; ++i) {
-        if (i >= problem_size) {
-            break;
-        }
-        const auto idx = group.shfl(col_perm, i);
-        if (group.thread_rank() < problem_size) {
-            destination[get_row_major_index<mod>(idx, row_perm, stride)] =
-                static_cast<ResultValueType>(source_row[i * increment]);
+        if (i < problem_size) {
+            const auto idx = group.shfl(col_perm, i);
+            if (group.thread_rank() < problem_size) {
+                // Need to assign a variable for the source_row, or hip
+                // will use a lot of VGPRs in unroll. This might lead to
+                // problems.
+                const auto val = source_row[i * increment];
+                destination[get_row_major_index<mod>(idx, row_perm, stride)] =
+                    static_cast<ResultValueType>(val);
+            }
         }
     }
 }
@@ -269,17 +271,17 @@ __device__ __forceinline__ void multiply_transposed_vec(
     auto mtx_elem = zero<VectorValueType>();
 #pragma unroll
     for (int32 i = 0; i < max_problem_size; ++i) {
-        if (i >= problem_size) {
-            break;
-        }
-        if (group.thread_rank() < problem_size) {
-            mtx_elem = static_cast<VectorValueType>(mtx_row[i * mtx_increment]);
-        }
-        const auto out =
-            reduce(group, mtx_elem * vec,
-                   [](VectorValueType x, VectorValueType y) { return x + y; });
-        if (group.thread_rank() == 0) {
-            res[i * res_increment] = out;
+        if (i < problem_size) {
+            if (group.thread_rank() < problem_size) {
+                mtx_elem =
+                    static_cast<VectorValueType>(mtx_row[i * mtx_increment]);
+            }
+            const auto out = reduce(
+                group, mtx_elem * vec,
+                [](VectorValueType x, VectorValueType y) { return x + y; });
+            if (group.thread_rank() == 0) {
+                res[i * res_increment] = out;
+            }
         }
     }
 }
@@ -330,13 +332,13 @@ __device__ __forceinline__ void multiply_vec(
     auto out = zero<VectorValueType>();
 #pragma unroll
     for (int32 i = 0; i < max_problem_size; ++i) {
-        if (i >= problem_size) {
-            break;
+        if (i < problem_size) {
+            if (group.thread_rank() < problem_size) {
+                mtx_elem =
+                    static_cast<VectorValueType>(mtx_row[i * mtx_increment]);
+            }
+            out += mtx_elem * group.shfl(vec, i);
         }
-        if (group.thread_rank() < problem_size) {
-            mtx_elem = static_cast<VectorValueType>(mtx_row[i * mtx_increment]);
-        }
-        out += mtx_elem * group.shfl(vec, i);
     }
     if (group.thread_rank() < problem_size) {
         closure_op(res[group.thread_rank() * res_increment], out);
@@ -379,10 +381,9 @@ __device__ __forceinline__ remove_complex<ValueType> compute_infinity_norm(
 #pragma unroll 1
 #endif
         for (uint32 i = 0; i < max_problem_size; ++i) {
-            if (i >= num_cols) {
-                break;
+            if (i < num_cols) {
+                sum += abs(row[i]);
             }
-            sum += abs(row[i]);
         }
     }
     return reduce(group, sum,
