@@ -93,9 +93,12 @@ void run_solver(volatile bool *stop_iteration_process,
                 std::shared_ptr<gko::Executor> exec)
 {
     // Some shortcuts
-    using mtx = gko::matrix::Csr<>;
-    using vec = gko::matrix::Dense<>;
-    using bicg = gko::solver::Bicgstab<>;
+    using ValueType = double;
+    using IndexType = int;
+
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
+    using vec = gko::matrix::Dense<ValueType>;
+    using bicg = gko::solver::Bicgstab<ValueType>;
 
     // Read Data
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));

@@ -43,9 +43,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int main(int argc, char *argv[])
 {
     // Some shortcuts
-    using vec = gko::matrix::Dense<>;
-    using mtx = gko::matrix::Csr<>;
-    using gmres = gko::solver::Gmres<>;
+    using ValueType = double;
+    using IndexType = int;
+
+    using vec = gko::matrix::Dense<ValueType>;
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
+    using gmres = gko::solver::Gmres<ValueType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
@@ -73,15 +76,17 @@ int main(int argc, char *argv[])
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
     // Generate incomplete factors using ParILU
-    auto par_ilu_fact = gko::factorization::ParIlu<>::build().on(exec);
+    auto par_ilu_fact =
+        gko::factorization::ParIlu<ValueType, IndexType>::build().on(exec);
     // Generate concrete factorization for input matrix
     auto par_ilu = par_ilu_fact->generate(A);
 
     // Generate an ILU preconditioner factory by setting lower and upper
     // triangular solver - in this case the exact triangular solves
     auto ilu_pre_factory =
-        gko::preconditioner::Ilu<gko::solver::LowerTrs<>,
-                                 gko::solver::UpperTrs<>, false>::build()
+        gko::preconditioner::Ilu<gko::solver::LowerTrs<ValueType, IndexType>,
+                                 gko::solver::UpperTrs<ValueType, IndexType>,
+                                 false>::build()
             .on(exec);
 
     // Use incomplete factors to generate ILU preconditioner
@@ -95,7 +100,7 @@ int main(int argc, char *argv[])
         gko::solver::Gmres<>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1000u).on(exec),
-                gko::stop::ResidualNormReduction<>::build()
+                gko::stop::ResidualNormReduction<ValueType>::build()
                     .with_reduction_factor(1e-15)
                     .on(exec))
             .with_generated_preconditioner(gko::share(ilu_preconditioner))

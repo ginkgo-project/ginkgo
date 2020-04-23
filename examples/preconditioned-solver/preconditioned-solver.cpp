@@ -42,10 +42,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int main(int argc, char *argv[])
 {
     // Some shortcuts
-    using vec = gko::matrix::Dense<>;
-    using mtx = gko::matrix::Csr<>;
-    using cg = gko::solver::Cg<>;
-    using bj = gko::preconditioner::Jacobi<>;
+    using ValueType = double;
+    using IndexType = int;
+
+    using vec = gko::matrix::Dense<ValueType>;
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
+    using cg = gko::solver::Cg<ValueType>;
+    using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
@@ -77,7 +80,7 @@ int main(int argc, char *argv[])
         cg::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(20u).on(exec),
-                gko::stop::ResidualNormReduction<>::build()
+                gko::stop::ResidualNormReduction<ValueType>::build()
                     .with_reduction_factor(1e-20)
                     .on(exec))
             // Add preconditioner, these 2 lines are the only

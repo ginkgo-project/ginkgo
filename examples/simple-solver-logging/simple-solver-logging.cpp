@@ -42,7 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-void print_vector(const std::string &name, const gko::matrix::Dense<> *vec)
+template <typename ValueType>
+void print_vector(const std::string &name,
+                  const gko::matrix::Dense<ValueType> *vec)
 {
     std::cout << name << " = [" << std::endl;
     for (int i = 0; i < vec->get_size()[0]; ++i) {
@@ -58,9 +60,12 @@ void print_vector(const std::string &name, const gko::matrix::Dense<> *vec)
 int main(int argc, char *argv[])
 {
     // Some shortcuts
-    using vec = gko::matrix::Dense<>;
-    using mtx = gko::matrix::Csr<>;
-    using cg = gko::solver::Cg<>;
+    using ValueType = double;
+    using IndexType = int;
+
+    using vec = gko::matrix::Dense<ValueType>;
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
+    using cg = gko::solver::Cg<ValueType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
@@ -91,8 +96,8 @@ int main(int argc, char *argv[])
     // file. We log all events except for all linop factory and polymorphic
     // object events. Events masks are group of events which are provided
     // for convenience.
-    std::shared_ptr<gko::log::Stream<>> stream_logger =
-        gko::log::Stream<>::create(
+    std::shared_ptr<gko::log::Stream<ValueType>> stream_logger =
+        gko::log::Stream<ValueType>::create(
             exec,
             gko::log::Logger::all_events_mask ^
                 gko::log::Logger::linop_factory_events_mask ^
@@ -106,7 +111,7 @@ int main(int argc, char *argv[])
     // Note that the logger will get automatically propagated to every criterion
     // generated from this factory.
     using ResidualCriterionFactory =
-        gko::stop::ResidualNormReduction<>::Factory;
+        gko::stop::ResidualNormReduction<ValueType>::Factory;
     std::shared_ptr<ResidualCriterionFactory> residual_criterion =
         ResidualCriterionFactory::create().with_reduction_factor(1e-20).on(
             exec);
@@ -127,7 +132,7 @@ int main(int argc, char *argv[])
     // gko::log::Logger::iteration_complete_mask. See the documentation of
     // Logger class for more information.
     std::ofstream filestream("my_file.txt");
-    solver->add_logger(gko::log::Stream<>::create(
+    solver->add_logger(gko::log::Stream<ValueType>::create(
         exec, gko::log::Logger::all_events_mask, filestream));
     solver->add_logger(stream_logger);
 
@@ -156,7 +161,7 @@ int main(int argc, char *argv[])
     // convergence happened)
     auto residual =
         record_logger->get().criterion_check_completed.back()->residual.get();
-    auto residual_d = gko::as<gko::matrix::Dense<>>(residual);
+    auto residual_d = gko::as<vec>(residual);
     print_vector("Residual", residual_d);
 
     // Print solution

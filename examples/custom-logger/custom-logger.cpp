@@ -188,14 +188,16 @@ int main(int argc, char *argv[])
     // with one column/one row. The advantage of this concept is that using
     // multiple vectors is a now a natural extension of adding columns/rows are
     // necessary.
-    using vec = gko::matrix::Dense<>;
+    using ValueType = double;
+    using IndexType = int;
+    using vec = gko::matrix::Dense<ValueType>;
     // The gko::matrix::Csr class is used here, but any other matrix class such
     // as gko::matrix::Coo, gko::matrix::Hybrid, gko::matrix::Ell or
     // gko::matrix::Sellp could also be used.
-    using mtx = gko::matrix::Csr<>;
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
     // The gko::solver::Cg is used here, but any other solver class can also be
     // used.
-    using cg = gko::solver::Cg<>;
+    using cg = gko::solver::Cg<ValueType>;
 
     // Print the ginkgo version information.
     std::cout << gko::version_info::get() << std::endl;
@@ -251,14 +253,14 @@ int main(int argc, char *argv[])
         cg::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(20u).on(exec),
-                gko::stop::ResidualNormReduction<>::build()
+                gko::stop::ResidualNormReduction<ValueType>::build()
                     .with_reduction_factor(1e-15)
                     .on(exec))
             .on(exec);
 
     // Instantiate a ResidualLogger logger.
-    auto logger = std::make_shared<ResidualLogger<double>>(exec, gko::lend(A),
-                                                           gko::lend(b));
+    auto logger = std::make_shared<ResidualLogger<ValueType>>(
+        exec, gko::lend(A), gko::lend(b));
 
     // Add the previously created logger to the solver factory. The logger will
     // be automatically propagated to all solvers created from this factory.

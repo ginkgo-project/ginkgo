@@ -126,9 +126,12 @@ void print_papi_counters(int eventset)
 int main(int argc, char *argv[])
 {
     // Some shortcuts
-    using vec = gko::matrix::Dense<>;
-    using mtx = gko::matrix::Csr<>;
-    using cg = gko::solver::Cg<>;
+    using ValueType = double;
+    using IndexType = int;
+
+    using vec = gko::matrix::Dense<ValueType>;
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
+    using cg = gko::solver::Cg<ValueType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
@@ -160,7 +163,7 @@ int main(int argc, char *argv[])
         cg::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(20u).on(exec),
-                gko::stop::ResidualNormReduction<>::build()
+                gko::stop::ResidualNormReduction<ValueType>::build()
                     .with_reduction_factor(1e-20)
                     .on(exec))
             .on(exec);
@@ -175,7 +178,7 @@ int main(int argc, char *argv[])
 
 
     // Create a PAPI logger and add it to relevant LinOps
-    auto logger = gko::log::Papi<>::create(
+    auto logger = gko::log::Papi<ValueType>::create(
         exec, gko::log::Logger::linop_apply_completed_mask |
                   gko::log::Logger::linop_advanced_apply_completed_mask);
     solver->add_logger(logger);
