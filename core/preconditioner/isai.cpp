@@ -98,7 +98,7 @@ std::shared_ptr<const Csr> convert_to_csr_and_sort(
     if (!skip_sorting) {
         copy->sort_by_column_index();
     }
-    return copy;
+    return {std::move(copy)};
 }
 
 
@@ -132,7 +132,7 @@ std::shared_ptr<const Csr> extend_sparsity(
     }
     // finally compute id^(n-1) * mtx
     id_power->apply(mtx.get(), tmp.get());
-    return tmp;
+    return {std::move(tmp)};
 }
 
 
