@@ -134,7 +134,7 @@ void identity_triangle(std::shared_ptr<const DefaultExecutor> exec,
     auto num_blocks = ceildiv(num_rows, default_block_size);
     kernel::identity_triangle<<<num_blocks, default_block_size>>>(
         static_cast<IndexType>(num_rows), mtx->get_const_row_ptrs(),
-        mtx->get_values(), lower);
+        as_cuda_type(mtx->get_values()), lower);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
