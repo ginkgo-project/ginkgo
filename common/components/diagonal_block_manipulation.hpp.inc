@@ -58,38 +58,36 @@ __device__ __forceinline__ void extract_transposed_diag_blocks(
     IndexType bsize = 0;
 #pragma unroll
     for (int b = 0; b < processed_blocks; ++b, ++bid) {
-        if (bid >= num_blocks) {
-            break;
-        }
-        bstart += bsize;
-        bsize = block_ptrs[bid + 1] - bstart;
+        if (bid < num_blocks) {
+            bstart += bsize;
+            bsize = block_ptrs[bid + 1] - bstart;
 #pragma unroll
-        for (int i = 0; i < max_block_size; ++i) {
-            if (i >= bsize) {
-                break;
-            }
-            if (threadIdx.y == b && threadIdx.x < max_block_size) {
-                workspace[threadIdx.x] = zero<ValueType>();
-            }
-            warp.sync();
-            const auto row = bstart + i;
-            const auto rstart = row_ptrs[row] + tid;
-            const auto rend = row_ptrs[row + 1];
-            // use the entire warp to ensure coalesced memory access
-            for (auto j = rstart; j < rend; j += config::warp_size) {
-                const auto col = col_idxs[j] - bstart;
-                if (col >= bsize) {
-                    break;
+            for (int i = 0; i < max_block_size; ++i) {
+                if (i < bsize) {
+                    if (threadIdx.y == b && threadIdx.x < max_block_size) {
+                        workspace[threadIdx.x] = zero<ValueType>();
+                    }
+                    warp.sync();
+                    const auto row = bstart + i;
+                    const auto rstart = row_ptrs[row] + tid;
+                    const auto rend = row_ptrs[row + 1];
+                    // use the entire warp to ensure coalesced memory access
+                    for (auto j = rstart; j < rend; j += config::warp_size) {
+                        const auto col = col_idxs[j] - bstart;
+                        if (col >= bsize) {
+                            break;
+                        }
+                        if (col >= 0) {
+                            workspace[col] = values[j];
+                        }
+                    }
+                    warp.sync();
+                    if (threadIdx.y == b && threadIdx.x < bsize) {
+                        block_row[i * increment] = workspace[threadIdx.x];
+                    }
+                    warp.sync();
                 }
-                if (col >= 0) {
-                    workspace[col] = values[j];
-                }
             }
-            warp.sync();
-            if (threadIdx.y == b && threadIdx.x < bsize) {
-                block_row[i * increment] = workspace[threadIdx.x];
-            }
-            warp.sync();
         }
     }
 }

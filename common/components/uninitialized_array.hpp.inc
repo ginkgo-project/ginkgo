@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /**
  * Stores an array with uninitialized contents.
  *
+ * This class needed for datatypes that do have a non-empty constructor when`
+ * using them as shared memory, for example `thrust::complex<float>`.
+ *
  * @tparam ValueType the type of values
  * @tparam size the size of the array
  */
