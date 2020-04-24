@@ -109,7 +109,7 @@ std::shared_ptr<const Csr> convert_to_csr_and_sort(
  * without changing its values.
  *
  * The input matrix must be sorted and on the correct executor for this to work.
- * If `power` is 1, the matrix will be returned unchanged. *
+ * If `power` is 1, the matrix will be returned unchanged.
  */
 template <typename Csr>
 std::shared_ptr<const Csr> extend_sparsity(
