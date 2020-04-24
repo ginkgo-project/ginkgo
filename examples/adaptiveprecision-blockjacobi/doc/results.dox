@@ -27,7 +27,7 @@ Solution (x):
 Residual norm sqrt(r^T r): 
 %%MatrixMarket matrix array real general
 1 1
-9.08137e-16
+2.8994e-11
 
 @endcode
 
