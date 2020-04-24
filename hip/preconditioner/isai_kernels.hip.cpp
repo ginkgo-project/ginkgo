@@ -135,10 +135,10 @@ void identity_triangle(std::shared_ptr<const DefaultExecutor> exec,
 {
     auto num_rows = mtx->get_size()[0];
     auto num_blocks = ceildiv(num_rows, default_block_size);
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::identity_triangle),
-                       dim3(num_blocks), dim3(default_block_size), 0, 0,
-                       static_cast<IndexType>(num_rows),
-                       mtx->get_const_row_ptrs(), mtx->get_values(), lower);
+    hipLaunchKernelGGL(
+        HIP_KERNEL_NAME(kernel::identity_triangle), dim3(num_blocks),
+        dim3(default_block_size), 0, 0, static_cast<IndexType>(num_rows),
+        mtx->get_const_row_ptrs(), as_hip_type(mtx->get_values()), lower);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
