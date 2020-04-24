@@ -56,18 +56,14 @@ namespace cuda {
  * @ingroup isai
  */
 namespace isai {
-namespace {
-
-
-#include "common/preconditioner/isai_kernels.hpp.inc"
-
-
-}  // namespace
 
 
 constexpr int subwarp_size{config::warp_size};
 constexpr int subwarps_per_block{2};
 constexpr int default_block_size{subwarps_per_block * subwarp_size};
+
+
+#include "common/preconditioner/isai_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>
@@ -132,8 +128,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void identity_triangle(std::shared_ptr<const DefaultExecutor> exec,
-                       matrix::Csr<ValueType, IndexType> *mtx,
-                       bool lower) GKO_NOT_IMPLEMENTED;
+                       matrix::Csr<ValueType, IndexType> *mtx, bool lower)
+{
+    auto num_rows = mtx->get_size()[0];
+    auto num_blocks = ceildiv(num_rows, default_block_size);
+    kernel::identity_triangle<<<num_blocks, default_block_size>>>(
+        static_cast<IndexType>(num_rows), mtx->get_const_row_ptrs(),
+        mtx->get_values(), lower);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_IDENTITY_TRIANGLE_KERNEL);
