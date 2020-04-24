@@ -30,6 +30,26 @@ if [ ! "${PRECONDS}" ]; then
     PRECONDS="none"
 fi
 
+if [ ! "${FORMATS}" ]; then
+    echo "FORMATS    environment variable not set - assuming \"csr,coo,ell,hybrid,sellp\"" 1>&2
+    FORMATS="csr,coo,ell,hybrid,sellp"
+fi
+
+if [ ! "${SOLVERS}" ]; then
+    echo "SOLVERS    environment variable not set - assuming \"bicgstab,cg,cgs,fcg,gmres\"" 1>&2
+    SOLVERS="bicgstab,cg,cgs,fcg,gmres"
+fi
+
+if [ ! "${SOLVERS_PRECISION}" ]; then
+    echo "SOLVERS_PRECISION    environment variable not set - assuming \"1e-6\"" 1>&2
+    SOLVERS_PRECISION=1e-6
+fi
+
+if [ ! "${SOLVERS_MAX_ITERATIONS}" ]; then
+    echo "SOLVERS_MAX_ITERATIONS    environment variable not set - assuming \"10000\"" 1>&2
+    SOLVERS_MAX_ITERATIONS=10000
+fi
+
 if [ ! "${SYSTEM_NAME}" ]; then
     echo "SYSTEM_MANE environment variable not set - assuming \"unknown\"" 1>&2
     SYSTEM_NAME="unknown"
@@ -38,6 +58,31 @@ fi
 if [ ! "${DEVICE_ID}" ]; then
     echo "DEVICE_ID environment variable not set - assuming \"0\"" 1>&2
     DEVICE_ID="0"
+fi
+
+# Control whether to run detailed benchmarks or not.
+# Default setting is detailed=false. To activate, set DETAILED=1.
+if  [ ! "${DETAILED}" ] || [ "${DETAILED}" -eq 0 ]; then
+    DETAILED_STR="--detailed=false"
+else
+    DETAILED_STR="--detailed=true"
+fi
+
+# This allows using a matrix list file for benchmarking.
+# The file should contains a suitesparse matrix on each line.
+# The allowed formats to target suitesparse matrix is:
+#   id or group/name or name.
+# Example:
+# 1903
+# Freescale/circuit5M
+# thermal2
+if [ ! "${MATRIX_LIST_FILE}" ]; then
+    use_matrix_list_file=0
+elif [ -f "${MATRIX_LIST_FILE}" ]; then
+    use_matrix_list_file=1
+else
+    echo -e "A matrix list file was set to ${MATRIX_LIST_FILE} but it cannot be found."
+    exit 1
 fi
 
 
@@ -87,7 +132,7 @@ run_conversion_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     ./conversions/conversions --backup="$1.bkp" --double_buffer="$1.bkp2" \
-                --executor="${EXECUTOR}" --formats="csr,coo,hybrid,sellp,ell" \
+                --executor="${EXECUTOR}" --formats="${FORMATS}" \
                 --device_id="${DEVICE_ID}" \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
@@ -103,7 +148,7 @@ run_spmv_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     ./spmv/spmv --backup="$1.bkp" --double_buffer="$1.bkp2" \
-                --executor="${EXECUTOR}" --formats="csr,coo,hybrid,sellp,ell" \
+                --executor="${EXECUTOR}" --formats="${FORMATS}" \
                 --device_id="${DEVICE_ID}" \
                 <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
@@ -119,10 +164,10 @@ run_solver_benchmarks() {
     [ "${DRY_RUN}" == "true" ] && return
     cp "$1" "$1.imd" # make sure we're not loosing the original input
     ./solver/solver --backup="$1.bkp" --double_buffer="$1.bkp2" \
-                    --executor="${EXECUTOR}" --solvers="cg,bicgstab,cgs,fcg" \
+                    --executor="${EXECUTOR}" --solvers="${SOLVERS}" \
                     --preconditioners="${PRECONDS}" \
-                    --max_iters=10000 --rel_res_goal=1e-6 \
-                    --device_id="${DEVICE_ID}" \
+                    --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
+                    ${DETAILED_STR} --device_id="${DEVICE_ID}" \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
@@ -173,9 +218,42 @@ generate_suite_sparse_input() {
 EOT
 }
 
+parse_matrix_list() {
+    local source_list_file=$1
+    local benchmark_list=""
+    local id=0
+    for mtx in $(cat ${source_list_file}); do
+        if [[ ! "$mtx" =~ ^[0-9]+$ ]]; then
+            if [[ "$mtx" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+                id=$(${SSGET} -s "[ @name == $mtx ]")
+            elif [[ "$mtx" =~ ^([a-zA-Z0-9_-]+)\/([a-zA-Z0-9_-]+)$ ]]; then
+                local group="${BASH_REMATCH[1]}"
+                local name="${BASH_REMATCH[2]}"
+                id=$(${SSGET} -s "[ @name == $name ] && [ @group == $group ]")
+            else
+                >&2 echo -e "Could not recognize entry $mtx."
+            fi
+        else
+            id=$mtx
+        fi
+        benchmark_list="$benchmark_list $id"
+    done
+    echo "$benchmark_list"
+}
+
+if [ $use_matrix_list_file -eq 1 ]; then
+    MATRIX_LIST=($(parse_matrix_list $MATRIX_LIST_FILE))
+    NUM_PROBLEMS=${#MATRIX_LIST[@]}
+fi
+
 LOOP_START=$((1 + (${NUM_PROBLEMS}) * (${SEGMENT_ID} - 1) / ${SEGMENTS}))
 LOOP_END=$((1 + (${NUM_PROBLEMS}) * (${SEGMENT_ID}) / ${SEGMENTS}))
-for (( i=${LOOP_START}; i < ${LOOP_END}; ++i )); do
+for (( p=${LOOP_START}; p < ${LOOP_END}; ++p )); do
+    if [ $use_matrix_list_file -eq 1 ]; then
+        i=${MATRIX_LIST[$((p-1))]}
+    else
+        i=$p
+    fi
     if [ "${BENCHMARK}" == "preconditioner" ]; then
         break
     fi
