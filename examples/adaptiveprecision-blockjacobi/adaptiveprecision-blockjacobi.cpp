@@ -84,12 +84,15 @@ int main(int argc, char *argv[])
     x->copy_from(host_x.get());
     b->copy_from(host_x.get());
 
-    // Calculate initial residual
+    // Calculate initial residual by overwriting b
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
     auto initres = gko::initialize<vec>({0.0}, exec);
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
     b->compute_norm2(lend(initres));
+
+    // copy b again
+    b->copy_from(host_x.get());
 
     auto iter_stop =
         gko::stop::Iteration::build().with_max_iters(10000u).on(exec);
