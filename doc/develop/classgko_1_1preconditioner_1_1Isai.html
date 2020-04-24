@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/139225626 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/139476573 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -273,6 +273,7 @@ class gko::preconditioner::Isai&lt; IsaiType, ValueType, IndexType &gt;</h3>
 <p>Using the preconditioner computes <img class="formulaInl" alt="$aiU * x$" src="form_24.png"/> or <img class="formulaInl" alt="$aiL * x$" src="form_25.png"/> (depending on the type of the <a class="el" href="classgko_1_1preconditioner_1_1Isai.html" title="The Incomplete Sparse Approximate Inverse (ISAI) Preconditioner generates an approximate inverse matr...">Isai</a>) for a given vector x (may have multiple right hand sides). aiU and aiL are the approximate inverses for U and L respectively.</p>
 <p>The sparsity pattern used for the approximate inverse is the same as the sparsity pattern of the respective triangular matrix.</p>
 <p>For more details on the algorithm, see the paper <a href="https://doi.org/10.1016/j.parco.2017.10.003">Incomplete Sparse Approximate Inverses for Parallel Preconditioning</a>, which is the basis for this work.</p>
+<dl class="section note"><dt>Note</dt><dd>GPU implementations can only handle the vector unit width <code>width</code> (warp size for CUDA) as number of elements per row in the sparse matrix. If there are more than <code>width</code> elements per row, the remaining elements will be ignored.</dd></dl>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
     <tr><td class="paramname">IsaiType</td><td>determines if the ISAI is generated for a lower triangular matrix or an upper triangular matrix </td></tr>
@@ -313,7 +314,7 @@ template&lt;isai_type IsaiType, typename ValueType , typename IndexType &gt; </d
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/preconditioner/<a class="el" href="isai_8hpp_source.html">isai.hpp (19fdc57d9)</a></li>
+<li>ginkgo/core/preconditioner/<a class="el" href="isai_8hpp_source.html">isai.hpp (845853d9d)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
