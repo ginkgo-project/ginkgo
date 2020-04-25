@@ -872,7 +872,7 @@ __global__ __launch_bounds__(default_block_size) void check_unsorted(
     }
     block.sync();
 
-    auto row = threadIdx.x + blockDim.x * static_cast<IndexType>(blockIdx.x);
+    auto row = thread::get_thread_id_flat<IndexType>();
     if (row >= num_rows) {
         return;
     }
