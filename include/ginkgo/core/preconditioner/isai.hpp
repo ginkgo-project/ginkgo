@@ -126,6 +126,16 @@ public:
          * `true` to skip the sorting for better performance.
          */
         bool GKO_FACTORY_PARAMETER(skip_sorting, false);
+
+        /**
+         * @brief Which power of the input matrix should be used for the
+         *        sparsity pattern.
+         *
+         * The algorithm symbolically computes M^n and uses this sparsity
+         * pattern for the sparse inverse.
+         * Must be at least 1, default value 1.
+         */
+        int GKO_FACTORY_PARAMETER(sparsity_power, 1);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Isai, parameters, Factory);
@@ -149,10 +159,11 @@ protected:
           parameters_{factory->get_parameters()}
     {
         const auto skip_sorting = parameters_.skip_sorting;
+        const auto power = parameters_.sparsity_power;
         if (IsaiType == isai_type::lower) {
-            generate_l_inverse(system_matrix.get(), skip_sorting);
+            generate_l_inverse(system_matrix, skip_sorting, power);
         } else {
-            generate_u_inverse(system_matrix.get(), skip_sorting);
+            generate_u_inverse(system_matrix, skip_sorting, power);
         }
     }
 
@@ -178,7 +189,8 @@ private:
      * @param skip_sorting  dictates if the sorting of the input matrix should
      *                      be skipped.
      */
-    void generate_l_inverse(const LinOp *to_invert_l, bool skip_sorting);
+    void generate_l_inverse(std::shared_ptr<const LinOp> to_invert_l,
+                            bool skip_sorting, int power);
 
     /**
      * Generates the approximate inverse for an upper triangular matrix and
@@ -190,7 +202,8 @@ private:
      * @param skip_sorting  dictates if the sorting of the input matrix should
      *                      be skipped.
      */
-    void generate_u_inverse(const LinOp *to_invert_u, bool skip_sorting);
+    void generate_u_inverse(std::shared_ptr<const LinOp> to_invert_u,
+                            bool skip_sorting, int power);
 
 private:
     std::shared_ptr<Csr> approximate_inverse_;

@@ -365,8 +365,9 @@ inline std::unique_ptr<typename std::decay<T>::type> as(
 template <typename T, typename U>
 inline std::shared_ptr<typename std::decay<T>::type> as(std::shared_ptr<U> obj)
 {
-    if (dynamic_cast<typename std::decay<T>::type *>(obj.get())) {
-        return std::static_pointer_cast<typename std::decay<T>::type>(obj);
+    auto ptr = std::dynamic_pointer_cast<typename std::decay<T>::type>(obj);
+    if (ptr) {
+        return ptr;
     } else {
         throw NotSupported(__FILE__, __LINE__, __func__,
                            name_demangling::get_type_name(typeid(obj.get())));
@@ -391,9 +392,10 @@ template <typename T, typename U>
 inline std::shared_ptr<const typename std::decay<T>::type> as(
     std::shared_ptr<const U> obj)
 {
-    if (dynamic_cast<const typename std::decay<T>::type *>(obj.get())) {
-        return std::static_pointer_cast<const typename std::decay<T>::type>(
-            obj);
+    auto ptr =
+        std::dynamic_pointer_cast<const typename std::decay<T>::type>(obj);
+    if (ptr) {
+        return ptr;
     } else {
         throw NotSupported(__FILE__, __LINE__, __func__,
                            name_demangling::get_type_name(typeid(obj.get())));

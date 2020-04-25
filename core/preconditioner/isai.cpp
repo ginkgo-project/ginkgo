@@ -52,6 +52,7 @@ namespace preconditioner {
 namespace isai {
 
 
+GKO_REGISTER_OPERATION(identity_triangle, isai::identity_triangle);
 GKO_REGISTER_OPERATION(generate_l_inverse, isai::generate_l_inverse);
 GKO_REGISTER_OPERATION(generate_u_inverse, isai::generate_u_inverse);
 
@@ -74,20 +75,20 @@ GKO_REGISTER_OPERATION(generate_u_inverse, isai::generate_u_inverse);
  * otherwise, it will not be sorted.
  */
 template <typename Csr>
-std::unique_ptr<const Csr, std::function<void(const Csr *)>>
-convert_to_csr_and_sort(std::shared_ptr<const Executor> &exec, const LinOp *mtx,
-                        bool skip_sorting)
+std::shared_ptr<const Csr> convert_to_csr_and_sort(
+    std::shared_ptr<const Executor> &exec, std::shared_ptr<const LinOp> mtx,
+    bool skip_sorting)
 {
     static_assert(
         std::is_same<Csr, matrix::Csr<typename Csr::value_type,
                                       typename Csr::index_type>>::value,
         "The given `Csr` type must be of type `matrix::Csr`!");
     if (skip_sorting && exec == mtx->get_executor()) {
-        auto csr_mtx = dynamic_cast<const Csr *>(mtx);
+        auto csr_mtx = std::dynamic_pointer_cast<const Csr>(mtx);
         if (csr_mtx) {
             // Here, we can just forward the pointer with an empty deleter
             // since it is already sorted and in the correct format
-            return {csr_mtx, null_deleter<const Csr>{}};
+            return csr_mtx;
         }
     }
     auto copy = Csr::create(exec);
@@ -97,22 +98,59 @@ convert_to_csr_and_sort(std::shared_ptr<const Executor> &exec, const LinOp *mtx,
     if (!skip_sorting) {
         copy->sort_by_column_index();
     }
-    return {copy.release(), std::default_delete<const Csr>{}};
+    return {std::move(copy)};
+}
+
+
+/**
+ * @internal
+ *
+ * Helper function that extends the sparsity pattern of the matrix M to M^n
+ * without changing its values.
+ *
+ * The input matrix must be sorted and on the correct executor for this to work.
+ * If `power` is 1, the matrix will be returned unchanged.
+ */
+template <typename Csr>
+std::shared_ptr<const Csr> extend_sparsity(
+    std::shared_ptr<const Executor> &exec, std::shared_ptr<const Csr> mtx,
+    int power, bool lower)
+{
+    GKO_ASSERT_EQ(power >= 1, true);
+    if (power == 1) {
+        return mtx;
+    }
+    auto id = mtx->clone();
+    exec->run(isai::make_identity_triangle(id.get(), lower));
+    auto id_power = id->clone();
+    auto tmp = Csr::create(exec, mtx->get_size());
+    // compute id^(n-1) and then multiply it with mtx
+    // TODO replace this by a square-and-multiply algorithm
+    for (int i = 1; i < power - 1; ++i) {
+        id->apply(id_power.get(), tmp.get());
+        std::swap(id_power, tmp);
+    }
+    // finally compute id^(n-1) * mtx
+    id_power->apply(mtx.get(), tmp.get());
+    return {std::move(tmp)};
 }
 
 
 template <isai_type IsaiType, typename ValueType, typename IndexType>
 void Isai<IsaiType, ValueType, IndexType>::generate_l_inverse(
-    const LinOp *to_invert_l, bool skip_sorting)
+    std::shared_ptr<const LinOp> to_invert_l, bool skip_sorting, int power)
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(to_invert_l);
     auto exec = this->get_executor();
     auto csr_l = convert_to_csr_and_sort<Csr>(exec, to_invert_l, skip_sorting);
-    const auto num_elems = csr_l->get_num_stored_elements();
+    auto strategy = csr_l->get_strategy();
+    auto csr_extended_l = extend_sparsity(exec, csr_l, power, true);
+    const auto num_elems = csr_extended_l->get_num_stored_elements();
 
     std::shared_ptr<Csr> inverted_l =
-        Csr::create(exec, csr_l->get_size(), num_elems, csr_l->get_strategy());
-    exec->run(isai::make_generate_l_inverse(csr_l.get(), inverted_l.get()));
+        Csr::create(exec, csr_extended_l->get_size(), num_elems, strategy);
+    exec->run(
+        isai::make_generate_l_inverse(csr_extended_l.get(), inverted_l.get()));
 
     approximate_inverse_ = std::move(inverted_l);
 }
@@ -120,16 +158,19 @@ void Isai<IsaiType, ValueType, IndexType>::generate_l_inverse(
 
 template <isai_type IsaiType, typename ValueType, typename IndexType>
 void Isai<IsaiType, ValueType, IndexType>::generate_u_inverse(
-    const LinOp *to_invert_u, bool skip_sorting)
+    std::shared_ptr<const LinOp> to_invert_u, bool skip_sorting, int power)
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(to_invert_u);
     auto exec = this->get_executor();
     auto csr_u = convert_to_csr_and_sort<Csr>(exec, to_invert_u, skip_sorting);
-    const auto num_elems = csr_u->get_num_stored_elements();
+    auto strategy = csr_u->get_strategy();
+    auto csr_extended_u = extend_sparsity(exec, csr_u, power, false);
+    const auto num_elems = csr_extended_u->get_num_stored_elements();
 
     std::shared_ptr<Csr> inverted_u =
-        Csr::create(exec, csr_u->get_size(), num_elems, csr_u->get_strategy());
-    exec->run(isai::make_generate_u_inverse(csr_u.get(), inverted_u.get()));
+        Csr::create(exec, csr_extended_u->get_size(), num_elems, strategy);
+    exec->run(
+        isai::make_generate_u_inverse(csr_extended_u.get(), inverted_u.get()));
 
     approximate_inverse_ = std::move(inverted_u);
 }

@@ -89,11 +89,26 @@ protected:
                                    I<value_type>{-1., 4., 2., 5., -4., -8., 8.},
                                    I<index_type>{0, 1, 0, 1, 2, 3, 2},
                                    I<index_type>{0, 1, 3, 5, 7})},
+          l_sparse_id{Csr::create(exec, gko::dim<2>(4, 4),
+                                  I<value_type>{1., 0., 1., 0., 1., 0., 1.},
+                                  I<index_type>{0, 0, 1, 1, 2, 2, 3},
+                                  I<index_type>{0, 1, 3, 5, 7})},
           l_sparse_inv{
               Csr::create(exec, gko::dim<2>(4, 4),
                           I<value_type>{-1., .5, .25, .3125, -.25, -.25, -.125},
                           I<index_type>{0, 0, 1, 1, 2, 2, 3},
                           I<index_type>{0, 1, 3, 5, 7})},
+          l_sparse_inv2{Csr::create(exec, gko::dim<2>(4, 4),
+                                    I<value_type>{-1., .5, .25, .625, .3125,
+                                                  -.25, .3125, -.25, -.125},
+                                    I<index_type>{0, 0, 1, 0, 1, 2, 1, 2, 3},
+                                    I<index_type>{0, 1, 3, 6, 9})},
+          l_sparse_inv3{
+              Csr::create(exec, gko::dim<2>(4, 4),
+                          I<value_type>{-1., .5, .25, .625, .3125, -.25, .625,
+                                        .3125, -.25, -.125},
+                          I<index_type>{0, 0, 1, 0, 1, 2, 0, 1, 2, 3},
+                          I<index_type>{0, 1, 3, 6, 10})},
           l_sparse2{Csr::create(exec, gko::dim<2>(4, 4),
                                 I<value_type>{-2, 1, 4, 1, -2, 1, -1, 1, 2},
                                 I<index_type>{0, 0, 1, 1, 2, 0, 1, 2, 3},
@@ -103,6 +118,11 @@ protected:
                                                   .28125, .0625, 0.25, 0.5},
                                     I<index_type>{0, 0, 1, 1, 2, 0, 1, 2, 3},
                                     I<index_type>{0, 1, 3, 5, 9})},
+          u_sparse_id{
+              Csr::create(exec, gko::dim<2>(4, 4),
+                          I<value_type>{1., 0., 0., 0., 1., 0., 1., 0., 1.},
+                          I<index_type>{0, 1, 2, 3, 1, 2, 2, 3, 3},
+                          I<index_type>{0, 4, 6, 8, 9})},
           u_sparse{
               Csr::create(exec, gko::dim<2>(4, 4),
                           I<value_type>{-2., 1., -1., 1., 4., 1., -2., 1., 2.},
@@ -117,7 +137,12 @@ protected:
               exec, gko::dim<2>(4, 4),
               I<value_type>{-.5, .125, .3125, .09375, .25, .125, -.5, .25, .5},
               I<index_type>{0, 1, 2, 3, 1, 2, 2, 3, 3},
-              I<index_type>{0, 4, 6, 8, 9})}
+              I<index_type>{0, 4, 6, 8, 9})},
+          u_sparse_inv2{Csr::create(exec, gko::dim<2>(4, 4),
+                                    I<value_type>{-.5, .125, .3125, .09375, .25,
+                                                  .125, -.0625, -.5, .25, .5},
+                                    I<index_type>{0, 1, 2, 3, 1, 2, 3, 2, 3, 3},
+                                    I<index_type>{0, 4, 7, 9, 10})}
     {
         lower_isai_factory = LowerIsai::build().on(exec);
         upper_isai_factory = UpperIsai::build().on(exec);
@@ -164,14 +189,19 @@ protected:
     std::shared_ptr<Csr> l_csr_inv;
     std::shared_ptr<Csr> u_csr;
     std::shared_ptr<Csr> u_csr_inv;
+    std::shared_ptr<Csr> l_sparse_id;
     std::shared_ptr<Csr> l_sparse;
     std::shared_ptr<Csr> l_s_unsorted;
     std::shared_ptr<Csr> l_sparse_inv;
+    std::shared_ptr<Csr> l_sparse_inv2;
+    std::shared_ptr<Csr> l_sparse_inv3;
     std::shared_ptr<Csr> l_sparse2;
     std::shared_ptr<Csr> l_sparse2_inv;
+    std::shared_ptr<Csr> u_sparse_id;
     std::shared_ptr<Csr> u_sparse;
     std::shared_ptr<Csr> u_s_unsorted;
     std::shared_ptr<Csr> u_sparse_inv;
+    std::shared_ptr<Csr> u_sparse_inv2;
 };
 
 TYPED_TEST_CASE(Isai, gko::test::ValueIndexTypes);
@@ -342,6 +372,26 @@ TYPED_TEST(Isai, KernelGenerateUsparse3)
 }
 
 
+TYPED_TEST(Isai, KernelIdentityTriangleL)
+{
+    gko::kernels::reference::isai::identity_triangle(
+        this->exec, gko::lend(this->u_sparse), true);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(this->u_sparse, this->u_sparse_id);
+    GKO_ASSERT_MTX_NEAR(this->u_sparse, this->u_sparse_id, 0);
+}
+
+
+TYPED_TEST(Isai, KernelIdentityTriangleU)
+{
+    gko::kernels::reference::isai::identity_triangle(
+        this->exec, gko::lend(this->u_sparse), true);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(this->u_sparse, this->u_sparse_id);
+    GKO_ASSERT_MTX_NEAR(this->u_sparse, this->u_sparse_id, 0);
+}
+
+
 TYPED_TEST(Isai, ReturnsCorrectInverseL)
 {
     using Csr = typename TestFixture::Csr;
@@ -350,6 +400,7 @@ TYPED_TEST(Isai, ReturnsCorrectInverseL)
 
     auto l_inv = isai->get_approximate_inverse();
 
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_inv, this->l_sparse_inv);
     GKO_ASSERT_MTX_NEAR(l_inv, this->l_sparse_inv, r<value_type>::value);
 }
 
@@ -362,7 +413,68 @@ TYPED_TEST(Isai, ReturnsCorrectInverseU)
 
     auto u_inv = isai->get_approximate_inverse();
 
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_inv, this->u_sparse_inv);
     GKO_ASSERT_MTX_NEAR(u_inv, this->u_sparse_inv, r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, ReturnsCorrectInverseLWithL2)
+{
+    using value_type = typename TestFixture::value_type;
+    const auto isai = TestFixture::LowerIsai::build()
+                          .with_sparsity_power(2)
+                          .on(this->exec)
+                          ->generate(this->l_sparse);
+
+    auto l_inv = isai->get_approximate_inverse();
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_inv, this->l_sparse_inv2);
+    GKO_ASSERT_MTX_NEAR(l_inv, this->l_sparse_inv2, r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, ReturnsCorrectInverseUWithU2)
+{
+    using value_type = typename TestFixture::value_type;
+    const auto isai = TestFixture::UpperIsai::build()
+                          .with_sparsity_power(2)
+                          .on(this->exec)
+                          ->generate(this->u_sparse);
+
+    auto u_inv = isai->get_approximate_inverse();
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_inv, this->u_sparse_inv2);
+    GKO_ASSERT_MTX_NEAR(u_inv, this->u_sparse_inv2, r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, ReturnsCorrectInverseLWithL3)
+{
+    using value_type = typename TestFixture::value_type;
+    const auto isai = TestFixture::LowerIsai::build()
+                          .with_sparsity_power(3)
+                          .on(this->exec)
+                          ->generate(this->l_sparse);
+
+    auto l_inv = isai->get_approximate_inverse();
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_inv, this->l_sparse_inv3);
+    GKO_ASSERT_MTX_NEAR(l_inv, this->l_sparse_inv3, r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, ReturnsCorrectInverseUWithU3)
+{
+    using value_type = typename TestFixture::value_type;
+    const auto isai = TestFixture::UpperIsai::build()
+                          .with_sparsity_power(3)
+                          .on(this->exec)
+                          ->generate(this->u_sparse);
+
+    auto u_inv = isai->get_approximate_inverse();
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_inv, this->u_sparse_inv2);
+    GKO_ASSERT_MTX_NEAR(u_inv, this->u_sparse_inv2, r<value_type>::value);
 }
 
 

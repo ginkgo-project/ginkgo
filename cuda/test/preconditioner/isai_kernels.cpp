@@ -155,4 +155,28 @@ TEST_F(Isai, CudaIsaiGenerateUinverseIsEquivalentToRef)
 }
 
 
+TEST_F(Isai, CudaIsaiIdentityTriangleLowerIsEquivalentToRef)
+{
+    initialize_data(matrix_type::lower);
+
+    gko::kernels::reference::isai::identity_triangle(ref, mtx.get(), true);
+    gko::kernels::cuda::isai::identity_triangle(cuda, d_mtx.get(), true);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(mtx, d_mtx);
+    GKO_ASSERT_MTX_NEAR(mtx, d_mtx, 0);
+}
+
+
+TEST_F(Isai, CudaIsaiIdentityTriangleUpperIsEquivalentToRef)
+{
+    initialize_data(matrix_type::upper);
+
+    gko::kernels::reference::isai::identity_triangle(ref, mtx.get(), false);
+    gko::kernels::cuda::isai::identity_triangle(cuda, d_mtx.get(), false);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(mtx, d_mtx);
+    GKO_ASSERT_MTX_NEAR(mtx, d_mtx, 0);
+}
+
+
 }  // namespace
