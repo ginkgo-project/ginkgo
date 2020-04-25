@@ -15,12 +15,17 @@ Collaboration diagram for gko\+::preconditioner\+::Isai$<$ Isai\+Type, Value\+Ty
 \item 
 \mbox{\Hypertarget{structgko_1_1preconditioner_1_1Isai_1_1parameters__type_a11cf2737d32375059fc05a8b9c92334c}\label{structgko_1_1preconditioner_1_1Isai_1_1parameters__type_a11cf2737d32375059fc05a8b9c92334c}} 
 {\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+skip\+\_\+sorting} (Args \&\&... \+\_\+value) const -\/$>$ const \+::gko\+::xstd\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
+\mbox{\Hypertarget{structgko_1_1preconditioner_1_1Isai_1_1parameters__type_ad79ada16496fc9ece9fa6c99f04c0921}\label{structgko_1_1preconditioner_1_1Isai_1_1parameters__type_ad79ada16496fc9ece9fa6c99f04c0921}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+sparsity\+\_\+power} (Args \&\&... \+\_\+value) const -\/$>$ const \+::gko\+::xstd\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
 \end{DoxyCompactItemize}
 \doxysubsection*{Public Attributes}
 \begin{DoxyCompactItemize}
 \item 
 bool \mbox{\hyperlink{structgko_1_1preconditioner_1_1Isai_1_1parameters__type_a0f94fd144a00a6294ac4e2b430b1d5d1}{skip\+\_\+sorting}} \{ false \}
-\begin{DoxyCompactList}\small\item\em Optimization parameter that skips the sorting of the input matrix (only skip if it is known that it is already sorted). \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Optimization parameter that skips the sorting of the input matrix (only skip if it is known that it is already sorted). \end{DoxyCompactList}\item 
+int \mbox{\hyperlink{structgko_1_1preconditioner_1_1Isai_1_1parameters__type_a24629edfcca9106e2bb310bdbca2c28c}{sparsity\+\_\+power}} \{ 1 \}
+\begin{DoxyCompactList}\small\item\em Which power of the input matrix should be used for the sparsity pattern. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Additional Inherited Members}
 
 
@@ -36,8 +41,19 @@ bool \mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko\+::preconditioner\
 
 Optimization parameter that skips the sorting of the input matrix (only skip if it is known that it is already sorted). 
 
-The algorithm to create the approximate inverses requires the input matrix to be sorted. If it is, this parameter can be set to {\ttfamily true} to skip the sorting for better performance. 
+The algorithm to create the approximate inverses requires the input matrix to be sorted. If it is, this parameter can be set to {\ttfamily true} to skip the sorting for better performance. \mbox{\Hypertarget{structgko_1_1preconditioner_1_1Isai_1_1parameters__type_a24629edfcca9106e2bb310bdbca2c28c}\label{structgko_1_1preconditioner_1_1Isai_1_1parameters__type_a24629edfcca9106e2bb310bdbca2c28c}} 
+\index{gko::preconditioner::Isai$<$ IsaiType, ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Isai$<$ IsaiType, ValueType, IndexType $>$::parameters\_type}!sparsity\_power@{sparsity\_power}}
+\index{sparsity\_power@{sparsity\_power}!gko::preconditioner::Isai$<$ IsaiType, ValueType, IndexType $>$::parameters\_type@{gko::preconditioner::Isai$<$ IsaiType, ValueType, IndexType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{sparsity\_power}{sparsity\_power}}
+{\footnotesize\ttfamily template$<$isai\+\_\+type Isai\+Type, typename Value\+Type , typename Index\+Type $>$ \\
+int \mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko\+::preconditioner\+::\+Isai}}$<$ Isai\+Type, Value\+Type, Index\+Type $>$\+::parameters\+\_\+type\+::sparsity\+\_\+power \{ 1 \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+Which power of the input matrix should be used for the sparsity pattern. 
+
+The algorithm symbolically computes M$^\wedge$n and uses this sparsity pattern for the sparse inverse. Must be at least 1, default value 1. 
 
 The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/preconditioner/isai.\+hpp (845853d9d)\end{DoxyCompactItemize}
+ginkgo/core/preconditioner/isai.\+hpp (6e8d03c02)\end{DoxyCompactItemize}
