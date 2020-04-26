@@ -43,8 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // CUDA executor. Unfortunately, NVCC has serious problems interpreting some
 // parts of Ginkgo's code, so the kernel has to be compiled separately.
 template <typename ValueType>
-extern void stencil_kernel(std::size_t size, const ValueType *coefs,
-                           const ValueType *b, ValueType *x);
+void stencil_kernel(std::size_t size, const ValueType *coefs,
+                    const ValueType *b, ValueType *x);
 
 
 // A stencil matrix class representing the 3pt stencil linear operator.
