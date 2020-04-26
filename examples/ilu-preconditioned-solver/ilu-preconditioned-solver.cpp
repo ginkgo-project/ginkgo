@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
     // if there are several very similar systems to solve, and the same
     // solver+preconditioner combination is expected to be effective.
     auto ilu_gmres_factory =
-        gko::solver::Gmres<>::build()
+        gmres::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1000u).on(exec),
                 gko::stop::ResidualNormReduction<ValueType>::build()
