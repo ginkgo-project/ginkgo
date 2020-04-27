@@ -147,7 +147,7 @@ template <typename ValueType, typename IndexType>
 void solve_system(const std::string &executor_string,
                   IndexType discretization_points, IndexType *row_ptrs,
                   IndexType *col_idxs, ValueType *values, ValueType *rhs,
-                  ValueType *u, ValueType accuracy)
+                  ValueType *u, ValueType reduction_factor)
 {
     // Some shortcuts
     using vec = gko::matrix::Dense<ValueType>;
@@ -206,7 +206,7 @@ void solve_system(const std::string &executor_string,
                                .with_max_iters(gko::size_type(dp))
                                .on(exec),
                            gko::stop::ResidualNormReduction<ValueType>::build()
-                               .with_reduction_factor(accuracy)
+                               .with_reduction_factor(reduction_factor)
                                .on(exec))
             .with_preconditioner(bj::build().on(exec))
             .on(exec);
@@ -246,6 +246,7 @@ int main(int argc, char *argv[])
     std::vector<ValueType> rhs(discretization_points);
     // solution
     std::vector<ValueType> u(discretization_points, 0.0);
+    ValueType reduction_factor = 1e-7;
 
     generate_stencil_matrix(discretization_points, row_ptrs.data(),
                             col_idxs.data(), values.data());
@@ -253,7 +254,8 @@ int main(int argc, char *argv[])
     generate_rhs(discretization_points, f, u0, u1, rhs.data());
 
     solve_system(executor_string, discretization_points, row_ptrs.data(),
-                 col_idxs.data(), values.data(), rhs.data(), u.data(), 1e-12);
+                 col_idxs.data(), values.data(), rhs.data(), u.data(),
+                 reduction_factor);
 
     print_solution<ValueType, IndexType>(discretization_points, 0, 1, u.data());
     std::cout << "The average relative error is "

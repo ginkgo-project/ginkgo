@@ -239,6 +239,7 @@ int main(int argc, char *argv[])
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
+    ValueType reduction_factor = 1e-7;
 
     // @sect3{Creating the solver}
     // Generate the gko::solver factory. Ginkgo uses the concept of Factories to
@@ -254,7 +255,7 @@ int main(int argc, char *argv[])
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(20u).on(exec),
                 gko::stop::ResidualNormReduction<ValueType>::build()
-                    .with_reduction_factor(1e-15)
+                    .with_reduction_factor(reduction_factor)
                     .on(exec))
             .on(exec);
 

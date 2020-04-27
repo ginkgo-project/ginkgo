@@ -110,12 +110,13 @@ int main(int argc, char *argv[])
     // criteria(gko::stop) are also generated from factories using their build
     // methods. You need to specify the executors which each of the object needs
     // to be built on.
+    ValueType reduction_factor = 1e-7;
     auto solver_gen =
         cg::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(20u).on(exec),
                 gko::stop::ResidualNormReduction<ValueType>::build()
-                    .with_reduction_factor(1e-15)
+                    .with_reduction_factor(reduction_factor)
                     .on(exec))
             .on(exec);
     // Generate the solver from the matrix. The solver factory built in the

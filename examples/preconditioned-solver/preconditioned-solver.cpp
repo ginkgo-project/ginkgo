@@ -75,13 +75,14 @@ int main(int argc, char *argv[])
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
+    ValueType reduction_factor = 1e-7;
     // Create solver factory
     auto solver_gen =
         cg::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(20u).on(exec),
                 gko::stop::ResidualNormReduction<ValueType>::build()
-                    .with_reduction_factor(1e-20)
+                    .with_reduction_factor(reduction_factor)
                     .on(exec))
             // Add preconditioner, these 2 lines are the only
             // difference from the simple solver example
