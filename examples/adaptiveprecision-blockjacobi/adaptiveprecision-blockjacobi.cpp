@@ -74,13 +74,12 @@ int main(int argc, char *argv[])
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     // Create RHS and initial guess as 1
     gko::size_type size = A->get_size()[0];
-    auto host_x = gko::matrix::Dense<ValueType>::create(exec->get_master(),
-                                                        gko::dim<2>(size, 1));
+    auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));
     for (auto i = 0; i < size; i++) {
         host_x->at(i, 0) = 1.;
     }
-    auto x = gko::matrix::Dense<>::create(exec);
-    auto b = gko::matrix::Dense<>::create(exec);
+    auto x = vec::create(exec);
+    auto b = vec::create(exec);
     x->copy_from(host_x.get());
     b->copy_from(host_x.get());
 
