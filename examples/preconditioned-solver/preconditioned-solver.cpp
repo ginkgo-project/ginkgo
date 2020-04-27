@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
-    ValueType reduction_factor = 1e-7;
+    const ValueType reduction_factor = 1e-7;
     // Create solver factory
     auto solver_gen =
         cg::build()

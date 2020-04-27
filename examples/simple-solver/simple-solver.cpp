@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
     // criteria(gko::stop) are also generated from factories using their build
     // methods. You need to specify the executors which each of the object needs
     // to be built on.
-    ValueType reduction_factor = 1e-7;
+    const ValueType reduction_factor = 1e-7;
     auto solver_gen =
         cg::build()
             .with_criteria(

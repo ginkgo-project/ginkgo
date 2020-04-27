@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
     // Generating a solver factory tied to a specific preconditioner makes sense
     // if there are several very similar systems to solve, and the same
     // solver+preconditioner combination is expected to be effective.
-    ValueType reduction_factor = 1e-7;
+    const ValueType reduction_factor = 1e-7;
     auto ilu_gmres_factory =
         gmres::build()
             .with_criteria(

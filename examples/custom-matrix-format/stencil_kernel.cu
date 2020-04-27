@@ -33,7 +33,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib>
 
 
-#include "stencil_kernel.hpp"
+#define INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro) \
+    template _macro(float);                     \
+    template _macro(double);
+
+
+#define STENCIL_KERNEL(_type)                                                 \
+    void stencil_kernel(std::size_t size, const _type *coefs, const _type *b, \
+                        _type *x);
 
 
 namespace {

@@ -329,7 +329,7 @@ int main(int argc, char *argv[])
     // looking for solution u = x^3: f = 6x, u(0) = 0, u(1) = 1
     generate_rhs(dp, f, correct_u, rhs.data(), coefs.data());
 
-    ValueType reduction_factor = 1e-7;
+    const ValueType reduction_factor = 1e-7;
 
     auto start_time = std::chrono::steady_clock::now();
     solve_system(executor_string, dp, row_ptrs.data(), col_idxs.data(),

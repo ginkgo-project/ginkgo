@@ -99,9 +99,6 @@ void generate_stencil_matrix(IndexType dp, IndexType *row_ptrs,
                              ValueType *coefs)
 {
     IndexType pos = 0;
-    size_t dp_2 = dp * dp;
-
-
     row_ptrs[0] = pos;
     for (int64_t z = 0; z < dp; ++z) {
         for (int64_t y = 0; y < dp; ++y) {
@@ -134,7 +131,6 @@ template <typename Closure, typename ClosureT, typename ValueType,
 void generate_rhs(IndexType dp, Closure f, ClosureT u, ValueType *rhs,
                   ValueType *coefs)
 {
-    const size_t dp_2 = dp * dp;
     const auto h = 1.0 / (dp + 1.0);
     for (size_t k = 0; k < dp; ++k) {
         const auto zi = (k + 1) * h;
@@ -275,7 +271,6 @@ void solve_system(const std::string &executor_string,
     using val_array = gko::Array<ValueType>;
     using idx_array = gko::Array<IndexType>;
     const auto &dp = discretization_points;
-    const size_t dp_2 = dp * dp;
     const size_t dp_3 = dp * dp * dp;
 
     // Figure out where to run the code
@@ -401,7 +396,7 @@ int main(int argc, char *argv[])
     generate_rhs(dp, f, correct_u, rhs.data(), coefs.data());
 
 
-    ValueType reduction_factor = 1e-7;
+    const ValueType reduction_factor = 1e-7;
 
     auto start_time = std::chrono::steady_clock::now();
     solve_system(executor_string, dp, row_ptrs.data(), col_idxs.data(),
