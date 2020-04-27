@@ -171,7 +171,7 @@ void generate_rhs(IndexType dp, Closure f, ClosureT u, ValueType *rhs,
         }
     }
 
-    // To avoid ValueType counting we have to check if our previous calculations
+    // To avoid double counting we have to check if our previous calculations
     // included this case
     for (size_t i = 0; i < dp; ++i) {
         for (size_t k = 0; k < dp; ++k) {

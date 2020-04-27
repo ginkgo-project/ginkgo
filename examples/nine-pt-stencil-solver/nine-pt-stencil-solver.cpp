@@ -221,7 +221,7 @@ void solve_system(const std::string &executor_string,
     using val_array = gko::Array<ValueType>;
     using idx_array = gko::Array<IndexType>;
     const auto &dp = discretization_points;
-    const size_t dp_2 = dp * dp;
+    const gko::size_type dp_2 = dp * dp;
 
     // Figure out where to run the code
     const auto omp = gko::OmpExecutor::create();
@@ -335,7 +335,7 @@ int main(int argc, char *argv[])
     solve_system(executor_string, dp, row_ptrs.data(), col_idxs.data(),
                  values.data(), rhs.data(), u.data(), reduction_factor);
     auto stop_time = std::chrono::steady_clock::now();
-    ValueType runtime_duration =
+    auto runtime_duration =
         std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time -
                                                              start_time)
             .count() *
