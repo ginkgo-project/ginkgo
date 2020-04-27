@@ -211,7 +211,7 @@ template <typename ValueType, typename IndexType>
 void solve_system(const std::string &executor_string,
                   unsigned int discretization_points, IndexType *row_ptrs,
                   IndexType *col_idxs, ValueType *values, ValueType *rhs,
-                  ValueType *u, ValueType accuracy)
+                  ValueType *u, ValueType reduction_factor)
 {
     // Some shortcuts
     using vec = gko::matrix::Dense<ValueType>;
@@ -270,8 +270,8 @@ void solve_system(const std::string &executor_string,
         cg::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(dp_2).on(exec),
-                gko::stop::ResidualNormReduction<>::build()
-                    .with_reduction_factor(accuracy)
+                gko::stop::ResidualNormReduction<ValueType>::build()
+                    .with_reduction_factor(reduction_factor)
                     .on(exec))
             .with_preconditioner(bj::build().on(exec))
             .on(exec);
@@ -329,11 +329,11 @@ int main(int argc, char *argv[])
     // looking for solution u = x^3: f = 6x, u(0) = 0, u(1) = 1
     generate_rhs(dp, f, correct_u, rhs.data(), coefs.data());
 
+    ValueType reduction_factor = 1e-7;
+
     auto start_time = std::chrono::steady_clock::now();
-
     solve_system(executor_string, dp, row_ptrs.data(), col_idxs.data(),
-                 values.data(), rhs.data(), u.data(), 1e-12);
-
+                 values.data(), rhs.data(), u.data(), reduction_factor);
     auto stop_time = std::chrono::steady_clock::now();
     ValueType runtime_duration =
         std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time -

@@ -324,7 +324,8 @@ void print_usage(const char *filename)
 }
 
 
-void print_vector(const gko::matrix::Dense<> *vec)
+template <typename ValueType>
+void print_vector(const gko::matrix::Dense<ValueType> *vec)
 {
     auto elements_to_print = std::min(gko::size_type(10), vec->get_size()[0]);
     std::cout << "[" << std::endl;
@@ -342,16 +343,16 @@ int main(int argc, char *argv[])
 {
     // Parametrize the benchmark here
     // Pick a value type
-    using vtype = double;
-    using itype = int;
+    using ValueType = double;
+    using IndexType = int;
     // Pick a matrix format
-    using mtx = gko::matrix::Csr<vtype, itype>;
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
     // Pick a solver
-    using solver = gko::solver::Cg<vtype>;
+    using solver = gko::solver::Cg<ValueType>;
     // Pick a preconditioner type
-    using preconditioner = gko::matrix::IdentityFactory<vtype>;
+    using preconditioner = gko::matrix::IdentityFactory<ValueType>;
     // Pick a residual norm reduction value
-    auto reduction_factor = 1e-8;
+    ValueType reduction_factor = 1e-8;
     // Pick a maximum iteration count
     auto max_iters = 2000u;
     // Pick an output file name
@@ -359,7 +360,7 @@ int main(int argc, char *argv[])
 
 
     // Simple shortcut
-    using vec = gko::matrix::Dense<vtype>;
+    using vec = gko::matrix::Dense<ValueType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
@@ -394,15 +395,15 @@ int main(int argc, char *argv[])
     exec->remove_logger(gko::lend(storage_logger));
 
     // Generate b and x vectors
-    auto b = utils::create_vector<vtype>(exec, A->get_size()[0], 1.0);
-    auto x = utils::create_vector<vtype>(exec, A->get_size()[0], 0.0);
+    auto b = utils::create_vector<ValueType>(exec, A->get_size()[0], 1.0);
+    auto x = utils::create_vector<ValueType>(exec, A->get_size()[0], 0.0);
 
     // Declare the solver factory. The preconditioner's arguments should be
     // adapted if needed.
     auto solver_factory =
         solver::build()
             .with_criteria(
-                gko::stop::ResidualNormReduction<vtype>::build()
+                gko::stop::ResidualNormReduction<ValueType>::build()
                     .with_reduction_factor(reduction_factor)
                     .on(exec),
                 gko::stop::Iteration::build().with_max_iters(max_iters).on(
@@ -481,7 +482,7 @@ int main(int argc, char *argv[])
         auto apply_logger = std::make_shared<loggers::OperationLogger>(exec);
         exec->add_logger(apply_logger);
         // Create a ResidualLogger to log the recurent residual
-        auto res_logger = std::make_shared<loggers::ResidualLogger<vtype>>(
+        auto res_logger = std::make_shared<loggers::ResidualLogger<ValueType>>(
             exec, gko::lend(A), gko::lend(b));
         generated_solver->add_logger(res_logger);
         // Solve the system

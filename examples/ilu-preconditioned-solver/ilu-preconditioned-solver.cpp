@@ -96,12 +96,13 @@ int main(int argc, char *argv[])
     // Generating a solver factory tied to a specific preconditioner makes sense
     // if there are several very similar systems to solve, and the same
     // solver+preconditioner combination is expected to be effective.
+    ValueType reduction_factor = 1e-7;
     auto ilu_gmres_factory =
         gmres::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(1000u).on(exec),
                 gko::stop::ResidualNormReduction<ValueType>::build()
-                    .with_reduction_factor(1e-15)
+                    .with_reduction_factor(reduction_factor)
                     .on(exec))
             .with_generated_preconditioner(gko::share(ilu_preconditioner))
             .on(exec);

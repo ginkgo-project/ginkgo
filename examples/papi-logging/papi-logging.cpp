@@ -159,12 +159,13 @@ int main(int argc, char *argv[])
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
     // Generate solver
+    ValueType reduction_factor = 1e-7;
     auto solver_gen =
         cg::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(20u).on(exec),
                 gko::stop::ResidualNormReduction<ValueType>::build()
-                    .with_reduction_factor(1e-20)
+                    .with_reduction_factor(reduction_factor)
                     .on(exec))
             .on(exec);
     auto solver = solver_gen->generate(A);
