@@ -38,6 +38,7 @@ target_sources(ginkgo
     solver/cgs.cpp
     solver/fcg.cpp
     solver/gmres.cpp
+    solver/gmres_mixed.cpp
     solver/ir.cpp
     solver/lower_trs.cpp
     solver/upper_trs.cpp
