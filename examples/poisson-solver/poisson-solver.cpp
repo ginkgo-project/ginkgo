@@ -70,7 +70,7 @@ void generate_rhs(Closure f, ValueType u0, ValueType u1,
     const auto discretization_points = rhs->get_size()[0];
     auto values = rhs->get_values();
     const auto h = 1.0 / (discretization_points + 1);
-    for (size_type i = 0; i < discretization_points; ++i) {
+    for (gko::size_type i = 0; i < discretization_points; ++i) {
         const auto xi = (i + 1) * h;
         values[i] = -f(xi) * h * h;
     }
