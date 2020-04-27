@@ -81,6 +81,9 @@ The sparsity pattern used for the approximate inverse is the same as the sparsit
 
 For more details on the algorithm, see the paper \href{https://doi.org/10.1016/j.parco.2017.10.003}{\texttt{ Incomplete Sparse Approximate Inverses for Parallel Preconditioning}}, which is the basis for this work.
 
+\begin{DoxyNote}{Note}
+G\+PU implementations can only handle the vector unit width {\ttfamily width} (warp size for C\+U\+DA) as number of elements per row in the sparse matrix. If there are more than {\ttfamily width} elements per row, the remaining elements will be ignored.
+\end{DoxyNote}
 
 \begin{DoxyTemplParams}{Template Parameters}
 {\em Isai\+Type} & determines if the I\+S\+AI is generated for a lower triangular matrix or an upper triangular matrix \\
@@ -111,4 +114,4 @@ the generated approximate inverse
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/preconditioner/isai.\+hpp (19fdc57d9)\end{DoxyCompactItemize}
+ginkgo/core/preconditioner/isai.\+hpp (6e8d03c02)\end{DoxyCompactItemize}
