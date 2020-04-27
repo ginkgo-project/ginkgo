@@ -76,8 +76,8 @@ __global__ __launch_bounds__(block_size) void initialize_2_1_kernel(
     const auto global_id = thread::get_thread_id_flat();
     const auto row_idx = global_id / stride_krylov;
     const auto col_idx = global_id % stride_krylov;
-
-    if (row_idx < num_rows && col_idx < (krylov_dim + 1) * num_rhs) {
+    const auto krylov_bases_nrows = (krylov_dim + 1) * num_rows;
+    if (row_idx < krylov_bases_nrows && col_idx < num_rhs) {
         krylov_bases[row_idx * stride_krylov + col_idx] = zero<ValueType>();
     }
 
@@ -153,12 +153,11 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
     ValueType *__restrict__ reduction_helper = reduction_helper_array;
 
     ValueType local_res = zero<ValueType>();
-    const auto krylov_col = k * num_cols + col_idx;
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
         for (size_type i = start_row + tidy; i < end_row;
              i += default_dot_dim) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
-            const auto krylov_idx = i * stride_krylov + krylov_col;
+            const auto krylov_idx = i * stride_krylov + col_idx;
             local_res +=
                 next_krylov_basis[next_krylov_idx] * krylov_bases[krylov_idx];
         }
@@ -197,8 +196,7 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
     if (row_idx < num_rows && col_idx < num_cols &&
         !stop_status[col_idx].has_stopped()) {
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
-        const auto krylov_idx =
-            row_idx * stride_krylov + k * num_cols + col_idx;
+        const auto krylov_idx = row_idx * stride_krylov + col_idx;
         const auto hessenberg_idx = k * stride_hessenberg + col_idx;
 
         next_krylov_basis[next_krylov_idx] -=
@@ -267,8 +265,7 @@ __global__ __launch_bounds__(block_size) void update_krylov_next_krylov_kernel(
     if (row_idx < num_rows && col_idx < num_cols &&
         !stop_status[col_idx].has_stopped()) {
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
-        const auto krylov_idx =
-            row_idx * stride_krylov + num_cols * (iter + 1) + col_idx;
+        const auto krylov_idx = row_idx * stride_krylov + col_idx;
 
         const auto next_krylov_value =
             next_krylov_basis[next_krylov_idx] / hessenberg;
@@ -449,11 +446,13 @@ __global__ __launch_bounds__(block_size) void calculate_Qy_kernel(
     const auto col_id = global_id % stride_preconditioner;
 
     if (row_id < num_rows && col_id < num_cols) {
-        before_preconditioner[global_id] = zero<ValueType>();
+        ValueType temp = zero<ValueType>();
+
         for (size_type j = 0; j < final_iter_nums[col_id]; ++j) {
-            before_preconditioner[global_id] +=
-                krylov_bases[row_id * stride_krylov + j * num_rhs + col_id] *
+            temp +=
+                krylov_bases[(row_id + j * num_rows) * stride_krylov + col_id] *
                 y[j * stride_y + col_id];
         }
+        before_preconditioner[global_id] = temp;
     }
 }
