@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "cuda/base/config.hpp"
+#include "cuda/base/executor.cuh"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/intrinsics.cuh"
@@ -157,11 +158,12 @@ void initialize_row_ptrs_l_u(
         ceildiv(num_rows, static_cast<size_type>(block_size.x));
     const dim3 grid_dim{number_blocks, 1, 1};
 
-    kernel::count_nnz_per_l_u_row<<<grid_dim, block_size, 0, 0>>>(
-        num_rows, as_cuda_type(system_matrix->get_const_row_ptrs()),
-        as_cuda_type(system_matrix->get_const_col_idxs()),
-        as_cuda_type(system_matrix->get_const_values()),
-        as_cuda_type(l_row_ptrs), as_cuda_type(u_row_ptrs));
+    exec->run_gpu(
+        "", kernel::count_nnz_per_l_u_row<cuda_type<ValueType>, IndexType>,
+        number_blocks, default_block_size, num_rows,
+        system_matrix->get_const_row_ptrs(),
+        system_matrix->get_const_col_idxs(), system_matrix->get_const_values(),
+        l_row_ptrs, u_row_ptrs);
 
     prefix_sum(exec, l_row_ptrs, num_rows + 1);
     prefix_sum(exec, u_row_ptrs, num_rows + 1);

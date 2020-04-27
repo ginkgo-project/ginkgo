@@ -403,6 +403,32 @@ public:                                                              \
                               const LinOp *x = nullptr,
                               const LinOp *tau = nullptr)
 
+    /**
+     * Register the `gpu_kernel_launch` event which logs every launched GPU
+     * kernel.
+     *
+     * @param exec  the executor
+     * @param name  the kernel name
+     * @param num_blocks  the number of blocks
+     * @param block_size  the block size
+     */
+    GKO_LOGGER_REGISTER_EVENT(22, gpu_kernel_launch, const Executor *exec,
+                              const char *name, size_type num_blocks,
+                              size_type block_size)
+
+    /**
+     * Register the `gpu_kernel_finish` event which logs every finished GPU
+     * kernel.
+     *
+     * @param exec  the executor
+     * @param name  the kernel name
+     * @param num_blocks  the number of blocks
+     * @param block_size  the block size
+     */
+    GKO_LOGGER_REGISTER_EVENT(23, gpu_kernel_finish, const Executor *exec,
+                              const char *name, size_type num_blocks,
+                              size_type block_size)
+
 
 #undef GKO_LOGGER_REGISTER_EVENT
 

@@ -867,6 +867,13 @@ public:
     void run(const Operation &op) const override;
 
     /**
+     * Executes the given GPU kernel with the given arguments on this executor.
+     */
+    template <typename Kernel, typename... Args>
+    void run_gpu(const char *kernel_name, Kernel kernel, size_type num_blocks,
+                 size_type block_size, Args... args) const;
+
+    /**
      * Get the CUDA device id of the device associated to this executor.
      */
     int get_device_id() const noexcept { return device_id_; }
@@ -1027,6 +1034,13 @@ public:
     void synchronize() const override;
 
     void run(const Operation &op) const override;
+
+    /**
+     * Executes the given GPU kernel with the given arguments on this executor.
+     */
+    template <typename Kernel, typename... Args>
+    void run_gpu(const char *kernel_name, Kernel kernel, size_type num_blocks,
+                 size_type block_size, Args... args) const;
 
     /**
      * Get the HIP device id of the device associated to this executor.

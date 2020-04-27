@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_builder.hpp"
+#include "hip/base/executor.hip.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/intrinsics.hip.hpp"
@@ -162,12 +163,12 @@ void initialize_row_ptrs_l_u(
         ceildiv(num_rows, static_cast<size_type>(block_size.x));
     const dim3 grid_dim{number_blocks, 1, 1};
 
-    hipLaunchKernelGGL(kernel::count_nnz_per_l_u_row, dim3(grid_dim),
-                       dim3(block_size), 0, 0, num_rows,
-                       as_hip_type(system_matrix->get_const_row_ptrs()),
-                       as_hip_type(system_matrix->get_const_col_idxs()),
-                       as_hip_type(system_matrix->get_const_values()),
-                       as_hip_type(l_row_ptrs), as_hip_type(u_row_ptrs));
+    exec->run_gpu("",
+                  kernel::count_nnz_per_l_u_row<hip_type<ValueType>, IndexType>,
+                  number_blocks, default_block_size, num_rows,
+                  system_matrix->get_const_row_ptrs(),
+                  system_matrix->get_const_col_idxs(),
+                  system_matrix->get_const_values(), l_row_ptrs, u_row_ptrs);
 
     prefix_sum(exec, l_row_ptrs, num_rows + 1);
     prefix_sum(exec, u_row_ptrs, num_rows + 1);
