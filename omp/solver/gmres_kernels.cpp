@@ -63,7 +63,8 @@ void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
                     matrix::Dense<ValueType> *hessenberg_iter, size_type iter,
                     const stopping_status *stop_status)
 {
-#pragma omp declare reduction(add : ValueType : omp_out = omp_out + omp_in)
+    const auto krylov_bases_rowoffset = next_krylov_basis->get_size()[0];
+#pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)
 
     for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
         if (stop_status[i].has_stopped()) {
@@ -76,8 +77,7 @@ void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 hessenberg_iter_entry +=
                     next_krylov_basis->at(j, i) *
-                    krylov_bases->at(j,
-                                     next_krylov_basis->get_size()[1] * k + i);
+                    krylov_bases->at(j + k * krylov_bases_rowoffset, i);
             }
             hessenberg_iter->at(k, i) = hessenberg_iter_entry;
 
@@ -85,8 +85,7 @@ void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 next_krylov_basis->at(j, i) -=
                     hessenberg_iter->at(k, i) *
-                    krylov_bases->at(j,
-                                     next_krylov_basis->get_size()[1] * k + i);
+                    krylov_bases->at(j + k * krylov_bases_rowoffset, i);
             }
         }
         // for i in 1:iter
@@ -106,8 +105,8 @@ void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
 #pragma omp parallel for
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             next_krylov_basis->at(j, i) /= hessenberg_iter->at(iter + 1, i);
-            krylov_bases->at(j, next_krylov_basis->get_size()[1] * (iter + 1) +
-                                    i) = next_krylov_basis->at(j, i);
+            krylov_bases->at(j + (iter + 1) * krylov_bases_rowoffset, i) =
+                next_krylov_basis->at(j, i);
         }
         // next_krylov_basis /= hessenberg(iter, iter + 1)
         // krylov_bases(:, iter + 1) = next_krylov_basis
@@ -231,14 +230,14 @@ void calculate_qy(const matrix::Dense<ValueType> *krylov_bases,
                   matrix::Dense<ValueType> *before_preconditioner,
                   const size_type *final_iter_nums)
 {
+    const auto krylov_bases_rowoffset = before_preconditioner->get_size()[0];
 #pragma omp parallel for
     for (size_type i = 0; i < before_preconditioner->get_size()[0]; ++i) {
         for (size_type k = 0; k < before_preconditioner->get_size()[1]; ++k) {
             before_preconditioner->at(i, k) = zero<ValueType>();
             for (size_type j = 0; j < final_iter_nums[k]; ++j) {
                 before_preconditioner->at(i, k) +=
-                    krylov_bases->at(
-                        i, j * before_preconditioner->get_size()[1] + k) *
+                    krylov_bases->at(i + j * krylov_bases_rowoffset, k) *
                     y->at(j, k);
             }
         }
@@ -262,7 +261,7 @@ void initialize_1(std::shared_ptr<const OmpExecutor> exec,
         // Calculate b norm
         ValueType norm = zero<ValueType>();
 
-#pragma omp declare reduction(add : ValueType : omp_out = omp_out + omp_in)
+#pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)
 
 #pragma omp parallel for reduction(add : norm)
         for (size_type i = 0; i < b->get_size()[0]; ++i) {
@@ -300,7 +299,7 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
         // Calculate residual norm
         ValueType res_norm = zero<ValueType>();
 
-#pragma omp declare reduction(add : ValueType : omp_out = omp_out + omp_in)
+#pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)
 
 #pragma omp parallel for reduction(add : res_norm)
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
@@ -327,9 +326,9 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
     }
 
 #pragma omp parallel for
-    for (size_type i = 0; i < krylov_bases->get_size()[0]; ++i) {
-        for (size_type j = residual->get_size()[1];
-             j < krylov_bases->get_size()[1]; ++j) {
+    for (size_type i = residual->get_size()[0]; i < krylov_bases->get_size()[0];
+         ++i) {
+        for (size_type j = 0; j < krylov_bases->get_size()[1]; ++j) {
             krylov_bases->at(i, j) = zero<ValueType>();
         }
     }

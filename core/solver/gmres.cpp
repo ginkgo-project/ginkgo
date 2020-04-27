@@ -81,8 +81,8 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto dense_x = as<Vector>(x);
     auto residual = Vector::create_with_config_of(dense_b);
     auto krylov_bases = Vector::create(
-        exec, dim<2>{system_matrix_->get_size()[1],
-                     (krylov_dim_ + 1) * dense_b->get_size()[1]});
+        exec, dim<2>{system_matrix_->get_size()[1] * (krylov_dim_ + 1),
+                     dense_b->get_size()[1]});
     auto next_krylov_basis = Vector::create_with_config_of(dense_b);
     std::shared_ptr<matrix::Dense<ValueType>> preconditioned_vector =
         Vector::create_with_config_of(dense_b);
@@ -204,8 +204,9 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             restart_iter, &final_iter_nums, &stop_status));
         // for i in 0:restart_iter
         //     hessenberg(restart_iter, i) = next_krylov_basis' *
-        //     krylov_bases(:, i) next_krylov_basis  -= hessenberg(restart_iter,
-        //     i) * krylov_bases(:, i)
+        //         krylov_bases(:, i)
+        //     next_krylov_basis  -= hessenberg(restart_iter, i) *
+        //         krylov_bases(:, i)
         // end
         // hessenberg(restart_iter, restart_iter + 1) = norm(next_krylov_basis)
         // next_krylov_basis /= hessenberg(restart_iter, restart_iter + 1)
@@ -231,8 +232,8 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
     // Solve x
     auto krylov_bases_small = krylov_bases->create_submatrix(
-        span{0, system_matrix_->get_size()[0]},
-        span{0, dense_b->get_size()[1] * (restart_iter + 1)});
+        span{0, system_matrix_->get_size()[0] * (restart_iter + 1)},
+        span{0, dense_b->get_size()[1]});
     auto hessenberg_small = hessenberg->create_submatrix(
         span{0, restart_iter},
         span{0, dense_b->get_size()[1] * (restart_iter)});
