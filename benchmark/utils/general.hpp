@@ -168,7 +168,10 @@ std::ranlux24 &get_engine()
 std::ostream &operator<<(std::ostream &os, const rapidjson::Value &value)
 {
     rapidjson::OStreamWrapper jos(os);
-    rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(jos);
+    rapidjson::PrettyWriter<rapidjson::OStreamWrapper, rapidjson::UTF8<>,
+                            rapidjson::UTF8<>, rapidjson::CrtAllocator,
+                            rapidjson::kWriteNanAndInfFlag>
+        writer(jos);
     value.Accept(writer);
     return os;
 }
