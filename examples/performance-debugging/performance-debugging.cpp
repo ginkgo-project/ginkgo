@@ -352,11 +352,11 @@ int main(int argc, char *argv[])
     // Pick a preconditioner type
     using preconditioner = gko::matrix::IdentityFactory<ValueType>;
     // Pick a residual norm reduction value
-    ValueType reduction_factor = 1e-8;
+    const ValueType reduction_factor = 1e-8;
     // Pick a maximum iteration count
-    auto max_iters = 2000u;
+    const auto max_iters = 2000u;
     // Pick an output file name
-    auto of_name = "log.txt";
+    const auto of_name = "log.txt";
 
 
     // Simple shortcut

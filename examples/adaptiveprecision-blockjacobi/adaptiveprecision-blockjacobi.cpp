@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
 
     // copy b again
     b->copy_from(host_x.get());
-    ValueType reduction_factor = 1e-7;
+    const ValueType reduction_factor = 1e-7;
     auto iter_stop =
         gko::stop::Iteration::build().with_max_iters(10000u).on(exec);
     auto tol_stop = gko::stop::ResidualNormReduction<ValueType>::build()
