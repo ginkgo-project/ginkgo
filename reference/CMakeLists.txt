@@ -30,6 +30,7 @@ target_sources(ginkgo_reference
     solver/cgs_kernels.cpp
     solver/fcg_kernels.cpp
     solver/gmres_kernels.cpp
+    solver/gmres_mixed_kernels.cpp
     solver/idr_kernels.cpp
     solver/ir_kernels.cpp
     solver/lower_trs_kernels.cpp
