@@ -126,7 +126,7 @@ void print_papi_counters(int eventset)
 int main(int argc, char *argv[])
 {
     // Some shortcuts
-    using ValueType = std::complex<double>;
+    using ValueType = double;
     using IndexType = int;
 
     using vec = gko::matrix::Dense<ValueType>;

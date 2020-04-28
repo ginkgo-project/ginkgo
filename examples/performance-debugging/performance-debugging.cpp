@@ -344,7 +344,7 @@ int main(int argc, char *argv[])
 {
     // Parametrize the benchmark here
     // Pick a value type
-    using ValueType = std::complex<double>;
+    using ValueType = double;
     using IndexType = int;
     // Pick a matrix format
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
@@ -353,9 +353,7 @@ int main(int argc, char *argv[])
     // Pick a preconditioner type
     using preconditioner = gko::matrix::IdentityFactory<ValueType>;
     // Pick a residual norm reduction value
-    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
-    // Pick a maximum iteration count
-    const auto max_iters = 2000u;
+    const gko::remove_complex<ValueType> reduction_factor = 1e-12;
     // Pick an output file name
     const auto of_name = "log.txt";
 
@@ -395,6 +393,8 @@ int main(int argc, char *argv[])
     // Remove the storage logger
     exec->remove_logger(gko::lend(storage_logger));
 
+    // Pick a maximum iteration count
+    const auto max_iters = A->get_size()[0];
     // Generate b and x vectors
     auto b = utils::create_vector<ValueType>(exec, A->get_size()[0], 1.0);
     auto x = utils::create_vector<ValueType>(exec, A->get_size()[0], 0.0);
@@ -464,9 +464,6 @@ int main(int argc, char *argv[])
 
     // Log the internal operations using the OperationLogger without timing
     {
-        // Clone x to not overwrite the original one
-        auto x_clone = gko::clone(x);
-
         // Create an OperationLogger to analyze the generate step
         auto gen_logger = std::make_shared<loggers::OperationLogger>(exec);
         // Add the generate logger to the executor
@@ -487,7 +484,7 @@ int main(int argc, char *argv[])
             exec, gko::lend(A), gko::lend(b));
         generated_solver->add_logger(res_logger);
         // Solve the system
-        generated_solver->apply(gko::lend(b), gko::lend(x_clone));
+        generated_solver->apply(gko::lend(b), gko::lend(x));
         exec->remove_logger(gko::lend(apply_logger));
         // Write the data to the output file
         output_file << "Apply operations times (ns):" << std::endl;

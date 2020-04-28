@@ -114,7 +114,7 @@ gko::remove_complex<ValueType> calculate_error(
 int main(int argc, char *argv[])
 {
     // Some shortcuts
-    using ValueType = std::complex<double>;
+    using ValueType = double;
     using IndexType = int;
 
     using vec = gko::matrix::Dense<ValueType>;

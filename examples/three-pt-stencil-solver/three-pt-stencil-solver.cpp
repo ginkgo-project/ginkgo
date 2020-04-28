@@ -220,7 +220,7 @@ void solve_system(const std::string &executor_string,
 
 int main(int argc, char *argv[])
 {
-    using ValueType = std::complex<double>;
+    using ValueType = double;
     using IndexType = int;
 
     if (argc < 2) {

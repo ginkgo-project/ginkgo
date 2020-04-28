@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int main(int argc, char *argv[])
 {
     // Some shortcuts
-    using ValueType = std::complex<double>;
+    using ValueType = double;
     using IndexType = int;
 
     using vec = gko::matrix::Dense<ValueType>;
