@@ -51,18 +51,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Utility function which gets the scalar value of a Ginkgo gko::matrix::Dense
 // matrix representing the norm of a vector.
 template <typename ValueType>
-double get_norm(const gko::matrix::Dense<ValueType> *norm)
+gko::remove_complex<ValueType> get_norm(
+    const gko::matrix::Dense<ValueType> *norm)
 {
     // Put the value on CPU thanks to the master executor
     auto cpu_norm = clone(norm->get_executor()->get_master(), norm);
     // Return the scalar value contained at position (0, 0)
-    return cpu_norm->at(0, 0);
+    return std::real(cpu_norm->at(0, 0));
 }
 
 // Utility function which computes the norm of a Ginkgo gko::matrix::Dense
 // vector.
 template <typename ValueType>
-double compute_norm(const gko::matrix::Dense<ValueType> *b)
+gko::remove_complex<ValueType> compute_norm(
+    const gko::matrix::Dense<ValueType> *b)
 {
     // Get the executor of the vector
     auto exec = b->get_executor();
@@ -83,10 +85,10 @@ struct ResidualLogger : gko::log::Logger {
     void write() const
     {
         // Print a header for the table
-        std::cout << "Recurrent vs real residual norm:" << std::endl;
+        std::cout << "Recurrent vs true residual norm:" << std::endl;
         std::cout << '|' << std::setw(10) << "Iteration" << '|' << std::setw(25)
                   << "Recurrent Residual Norm" << '|' << std::setw(25)
-                  << "Real Residual Norm" << '|' << std::endl;
+                  << "True Residual Norm" << '|' << std::endl;
         // Print a separation line. Note that for creating `10` characters
         // `std::setw()` should be set to `11`.
         std::cout << '|' << std::setfill('-') << std::setw(11) << '|'
@@ -188,7 +190,7 @@ int main(int argc, char *argv[])
     // with one column/one row. The advantage of this concept is that using
     // multiple vectors is a now a natural extension of adding columns/rows are
     // necessary.
-    using ValueType = double;
+    using ValueType = std::complex<double>;
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
     // The gko::matrix::Csr class is used here, but any other matrix class such
@@ -239,7 +241,7 @@ int main(int argc, char *argv[])
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
-    const ValueType reduction_factor = 1e-7;
+    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
 
     // @sect3{Creating the solver}
     // Generate the gko::solver factory. Ginkgo uses the concept of Factories to

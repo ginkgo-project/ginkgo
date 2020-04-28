@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int main(int argc, char *argv[])
 {
     // Some shortcuts
-    using ValueType = double;
+    using ValueType = std::complex<double>;
     using IndexType = int;
 
     using vec = gko::matrix::Dense<ValueType>;
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
-    const ValueType reduction_factor = 1e-7;
+    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
     // Create solver factory
     auto solver_gen =
         cg::build()

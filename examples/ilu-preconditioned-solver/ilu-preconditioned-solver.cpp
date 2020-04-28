@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int main(int argc, char *argv[])
 {
     // Some shortcuts
-    using ValueType = double;
+    using ValueType = std::complex<double>;
     using IndexType = int;
 
     using vec = gko::matrix::Dense<ValueType>;
@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
     // Generating a solver factory tied to a specific preconditioner makes sense
     // if there are several very similar systems to solve, and the same
     // solver+preconditioner combination is expected to be effective.
-    const ValueType reduction_factor = 1e-7;
+    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
     auto ilu_gmres_factory =
         gmres::build()
             .with_criteria(

@@ -126,7 +126,7 @@ void print_papi_counters(int eventset)
 int main(int argc, char *argv[])
 {
     // Some shortcuts
-    using ValueType = double;
+    using ValueType = std::complex<double>;
     using IndexType = int;
 
     using vec = gko::matrix::Dense<ValueType>;
@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
 
     // Generate solver
-    const ValueType reduction_factor = 1e-7;
+    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
     auto solver_gen =
         cg::build()
             .with_criteria(

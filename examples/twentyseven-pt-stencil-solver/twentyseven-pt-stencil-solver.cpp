@@ -131,13 +131,13 @@ template <typename Closure, typename ClosureT, typename ValueType,
 void generate_rhs(IndexType dp, Closure f, ClosureT u, ValueType *rhs,
                   ValueType *coefs)
 {
-    const auto h = 1.0 / (dp + 1.0);
+    const ValueType h = 1.0 / (dp + 1.0);
     for (size_t k = 0; k < dp; ++k) {
-        const auto zi = (k + 1) * h;
+        const auto zi = ValueType(k + 1) * h;
         for (size_t j = 0; j < dp; ++j) {
-            const auto yi = (j + 1) * h;
+            const auto yi = ValueType(j + 1) * h;
             for (size_t i = 0; i < dp; ++i) {
-                const auto xi = (i + 1) * h;
+                const auto xi = ValueType(i + 1) * h;
                 const auto index = i + dp * (j + dp * k);
                 rhs[index] = -f(xi, yi, zi) * h * h;
             }
@@ -150,17 +150,18 @@ void generate_rhs(IndexType dp, Closure f, ClosureT u, ValueType *rhs,
     // z - ortho to front, back
     for (size_t j = 0; j < dp; ++j) {
         for (size_t k = 0; k < dp; ++k) {
-            const auto yi = (j + 1) * h;
-            const auto zi = (k + 1) * h;
+            const auto yi = ValueType(j + 1) * h;
+            const auto zi = ValueType(k + 1) * h;
             const auto index_left = dp * j + dp * dp * k;
             const auto index_right = dp * j + dp * dp * k + (dp - 1);
 
             for (IndexType b = -1; b <= 1; ++b) {
                 for (IndexType c = -1; c <= 1; ++c) {
-                    rhs[index_left] -= u(0.0, yi + b * h, zi + c * h) *
-                                       coefs[3 * (b + 1) + 3 * 3 * (c + 1)];
+                    rhs[index_left] -=
+                        u(0.0, yi + ValueType(b) * h, zi + ValueType(c) * h) *
+                        coefs[3 * (b + 1) + 3 * 3 * (c + 1)];
                     rhs[index_right] -=
-                        u(1.0, yi + b * h, zi + c * h) *
+                        u(1.0, yi + ValueType(b) * h, zi + ValueType(c) * h) *
                         coefs[3 * (b + 1) + 3 * 3 * (c + 1) + 2];
                 }
             }
@@ -171,18 +172,20 @@ void generate_rhs(IndexType dp, Closure f, ClosureT u, ValueType *rhs,
     // included this case
     for (size_t i = 0; i < dp; ++i) {
         for (size_t k = 0; k < dp; ++k) {
-            const auto xi = (i + 1) * h;
-            const auto zi = (k + 1) * h;
+            const auto xi = ValueType(i + 1) * h;
+            const auto zi = ValueType(k + 1) * h;
             const auto index_top = i + dp * dp * k;
             const auto index_bot = i + dp * dp * k + dp * (dp - 1);
 
             for (IndexType a = -1; a <= 1; ++a) {
                 if ((i < (dp - 1) || a < 1) && (i > 0 || a > -1)) {
                     for (IndexType c = -1; c <= 1; ++c) {
-                        rhs[index_top] -= u(xi + a * h, 0.0, zi + c * h) *
+                        rhs[index_top] -= u(xi + ValueType(a) * h, 0.0,
+                                            zi + ValueType(c) * h) *
                                           coefs[(a + 1) + 3 * 3 * (c + 1)];
                         rhs[index_bot] -=
-                            u(xi + a * h, 1.0, zi + c * h) *
+                            u(xi + ValueType(a) * h, 1.0,
+                              zi + ValueType(c) * h) *
                             coefs[(a + 1) + 3 * 3 * (c + 1) + 3 * 2];
                     }
                 }
@@ -193,8 +196,8 @@ void generate_rhs(IndexType dp, Closure f, ClosureT u, ValueType *rhs,
     // Now every side has to be checked
     for (size_t i = 0; i < dp; ++i) {
         for (size_t j = 0; j < dp; ++j) {
-            const auto xi = (i + 1) * h;
-            const auto yi = (j + 1) * h;
+            const auto xi = ValueType(i + 1) * h;
+            const auto yi = ValueType(j + 1) * h;
             const auto index_front = i + dp * j;
             const auto index_back = i + dp * j + dp * dp * (dp - 1);
 
@@ -202,10 +205,12 @@ void generate_rhs(IndexType dp, Closure f, ClosureT u, ValueType *rhs,
                 if ((i < (dp - 1) || a < 1) && (i > 0 || a > -1)) {
                     for (IndexType b = -1; b <= 1; ++b) {
                         if ((j < (dp - 1) || b < 1) && (j > 0 || j > -1)) {
-                            rhs[index_front] -= u(xi + a * h, yi + b * h, 0.0) *
+                            rhs[index_front] -= u(xi + ValueType(a) * h,
+                                                  yi + ValueType(b) * h, 0.0) *
                                                 coefs[(a + 1) + 3 * (b + 1)];
                             rhs[index_back] -=
-                                u(xi + a * h, yi + b * h, 1.0) *
+                                u(xi + ValueType(a) * h, yi + ValueType(b) * h,
+                                  1.0) *
                                 coefs[(a + 1) + 3 * (b + 1) + 3 * 3 * 2];
                         }
                     }
@@ -236,17 +241,18 @@ void print_solution(IndexType dp, const ValueType *u)
 // Computes the 1-norm of the error given the computed `u` and the correct
 // solution function `correct_u`.
 template <typename Closure, typename ValueType, typename IndexType>
-ValueType calculate_error(IndexType dp, const ValueType *u, Closure correct_u)
+gko::remove_complex<ValueType> calculate_error(IndexType dp, const ValueType *u,
+                                               Closure correct_u)
 {
     using std::abs;
     const auto h = 1.0 / (dp + 1);
-    auto error = 0.0;
+    gko::remove_complex<ValueType> error = 0.0;
     for (IndexType k = 0; k < dp; ++k) {
-        const auto zi = (k + 1) * h;
+        const auto zi = ValueType(k + 1) * h;
         for (IndexType j = 0; j < dp; ++j) {
-            const auto yi = (j + 1) * h;
+            const auto yi = ValueType(j + 1) * h;
             for (IndexType i = 0; i < dp; ++i) {
-                const auto xi = (i + 1) * h;
+                const auto xi = ValueType(i + 1) * h;
                 error +=
                     abs(u[k * dp * dp + i * dp + j] - correct_u(xi, yi, zi)) /
                     abs(correct_u(xi, yi, zi));
@@ -261,7 +267,7 @@ template <typename ValueType, typename IndexType>
 void solve_system(const std::string &executor_string,
                   IndexType discretization_points, IndexType *row_ptrs,
                   IndexType *col_idxs, ValueType *values, ValueType *rhs,
-                  ValueType *u, ValueType reduction_factor)
+                  ValueType *u, gko::remove_complex<ValueType> reduction_factor)
 {
     // Some shortcuts
     using vec = gko::matrix::Dense<ValueType>;
@@ -335,7 +341,7 @@ void solve_system(const std::string &executor_string,
 
 int main(int argc, char *argv[])
 {
-    using ValueType = double;
+    using ValueType = std::complex<double>;
     using IndexType = int;
     if (argc < 2) {
         std::cerr
@@ -378,7 +384,7 @@ int main(int argc, char *argv[])
         return x * x * x + y * y * y + z * z * z;
     };
     auto f = [](ValueType x, ValueType y, ValueType z) {
-        return 6 * x + 6 * y + 6 * z;
+        return ValueType(6) * x + ValueType(6) * y + ValueType(6) * z;
     };
 
     // matrix
@@ -396,14 +402,14 @@ int main(int argc, char *argv[])
     generate_rhs(dp, f, correct_u, rhs.data(), coefs.data());
 
 
-    const ValueType reduction_factor = 1e-7;
+    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
 
     auto start_time = std::chrono::steady_clock::now();
     solve_system(executor_string, dp, row_ptrs.data(), col_idxs.data(),
                  values.data(), rhs.data(), u.data(), reduction_factor);
     auto stop_time = std::chrono::steady_clock::now();
 
-    ValueType runtime_duration =
+    const auto runtime_duration =
         std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time -
                                                              start_time)
             .count() *

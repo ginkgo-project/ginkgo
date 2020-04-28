@@ -70,14 +70,14 @@ std::unique_ptr<vec<ValueType>> create_vector(
 
 // utilities for computing norms and residuals
 template <typename ValueType>
-double get_norm(const vec<ValueType> *norm)
+gko::remove_complex<ValueType> get_norm(const vec<ValueType> *norm)
 {
-    return clone(norm->get_executor()->get_master(), norm)->at(0, 0);
+    return std::real(clone(norm->get_executor()->get_master(), norm)->at(0, 0));
 }
 
 
 template <typename ValueType>
-double compute_norm(const vec<ValueType> *b)
+gko::remove_complex<ValueType> compute_norm(const vec<ValueType> *b)
 {
     auto exec = b->get_executor();
     auto b_norm = gko::initialize<vec<ValueType>>({0.0}, exec);
@@ -87,8 +87,9 @@ double compute_norm(const vec<ValueType> *b)
 
 
 template <typename ValueType>
-double compute_residual_norm(const gko::LinOp *system_matrix,
-                             const vec<ValueType> *b, const vec<ValueType> *x)
+gko::remove_complex<ValueType> compute_residual_norm(
+    const gko::LinOp *system_matrix, const vec<ValueType> *b,
+    const vec<ValueType> *x)
 {
     auto exec = system_matrix->get_executor();
     auto one = gko::initialize<vec<ValueType>>({1.0}, exec);
@@ -343,7 +344,7 @@ int main(int argc, char *argv[])
 {
     // Parametrize the benchmark here
     // Pick a value type
-    using ValueType = double;
+    using ValueType = std::complex<double>;
     using IndexType = int;
     // Pick a matrix format
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
@@ -352,7 +353,7 @@ int main(int argc, char *argv[])
     // Pick a preconditioner type
     using preconditioner = gko::matrix::IdentityFactory<ValueType>;
     // Pick a residual norm reduction value
-    const ValueType reduction_factor = 1e-8;
+    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
     // Pick a maximum iteration count
     const auto max_iters = 2000u;
     // Pick an output file name

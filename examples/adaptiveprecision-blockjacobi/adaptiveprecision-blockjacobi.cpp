@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int main(int argc, char *argv[])
 {
     // Some shortcuts
-    using ValueType = double;
+    using ValueType = std::complex<double>;
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
 
     // copy b again
     b->copy_from(host_x.get());
-    const ValueType reduction_factor = 1e-7;
+    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
     auto iter_stop =
         gko::stop::Iteration::build().with_max_iters(10000u).on(exec);
     auto tol_stop = gko::stop::ResidualNormReduction<ValueType>::build()
