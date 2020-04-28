@@ -68,7 +68,6 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
 
     const auto exec = this->get_executor();
-    const auto host_exec = exec->get_master();
 
     // Converts the system matrix to CSR.
     // Throws an exception if it is not convertible.
@@ -92,15 +91,11 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
         local_system_matrix.get(), l_row_ptrs.get_data(),
         u_row_ptrs.get_data()));
 
-    IndexType l_nnz_it{};
-    IndexType u_nnz_it{};
     // Get nnz from device memory
-    host_exec->copy_from(exec.get(), 1, l_row_ptrs.get_data() + num_rows,
-                         &l_nnz_it);
-    host_exec->copy_from(exec.get(), 1, u_row_ptrs.get_data() + num_rows,
-                         &u_nnz_it);
-    auto l_nnz = static_cast<size_type>(l_nnz_it);
-    auto u_nnz = static_cast<size_type>(u_nnz_it);
+    auto l_nnz = static_cast<size_type>(
+        exec->copy_val_to_host(l_row_ptrs.get_data() + num_rows));
+    auto u_nnz = static_cast<size_type>(
+        exec->copy_val_to_host(u_row_ptrs.get_data() + num_rows));
 
     // Init arrays
     Array<IndexType> l_col_idxs{exec, l_nnz};
