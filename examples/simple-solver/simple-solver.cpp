@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
     // with one column/one row. The advantage of this concept is that using
     // multiple vectors is a now a natural extension of adding columns/rows are
     // necessary.
-    using ValueType = std::complex<double>;
+    using ValueType = double;
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
     // The gko::matrix::Csr class is used here, but any other matrix class such

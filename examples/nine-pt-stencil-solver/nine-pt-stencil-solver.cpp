@@ -291,7 +291,7 @@ int main(int argc, char *argv[])
                   << std::endl;
         std::exit(-1);
     }
-    using ValueType = std::complex<double>;
+    using ValueType = double;
     using IndexType = int;
 
     const int discretization_points = argc >= 2 ? std::atoi(argv[1]) : 100;
