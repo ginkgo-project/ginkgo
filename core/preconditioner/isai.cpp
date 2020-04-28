@@ -112,13 +112,14 @@ std::shared_ptr<const Csr> convert_to_csr_and_sort(
  * If `power` is 1, the matrix will be returned unchanged.
  */
 template <typename Csr>
-std::shared_ptr<const Csr> extend_sparsity(
-    std::shared_ptr<const Executor> &exec, std::shared_ptr<const Csr> mtx,
-    int power, bool lower)
+std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor> &exec,
+                                     std::shared_ptr<const Csr> mtx, int power,
+                                     bool lower)
 {
     GKO_ASSERT_EQ(power >= 1, true);
     if (power == 1) {
-        return mtx;
+        // copy the matrix, as it will be used to store the inverse
+        return {std::move(mtx->clone())};
     }
     auto id = mtx->clone();
     exec->run(isai::make_identity_triangle(id.get(), lower));
@@ -143,14 +144,9 @@ void Isai<IsaiType, ValueType, IndexType>::generate_l_inverse(
     GKO_ASSERT_IS_SQUARE_MATRIX(to_invert_l);
     auto exec = this->get_executor();
     auto csr_l = convert_to_csr_and_sort<Csr>(exec, to_invert_l, skip_sorting);
-    auto strategy = csr_l->get_strategy();
-    auto csr_extended_l = extend_sparsity(exec, csr_l, power, true);
-    const auto num_elems = csr_extended_l->get_num_stored_elements();
+    auto inverted_l = extend_sparsity(exec, csr_l, power, true);
 
-    std::shared_ptr<Csr> inverted_l =
-        Csr::create(exec, csr_extended_l->get_size(), num_elems, strategy);
-    exec->run(
-        isai::make_generate_l_inverse(csr_extended_l.get(), inverted_l.get()));
+    exec->run(isai::make_generate_l_inverse(csr_l.get(), inverted_l.get()));
 
     approximate_inverse_ = std::move(inverted_l);
 }
@@ -163,14 +159,9 @@ void Isai<IsaiType, ValueType, IndexType>::generate_u_inverse(
     GKO_ASSERT_IS_SQUARE_MATRIX(to_invert_u);
     auto exec = this->get_executor();
     auto csr_u = convert_to_csr_and_sort<Csr>(exec, to_invert_u, skip_sorting);
-    auto strategy = csr_u->get_strategy();
-    auto csr_extended_u = extend_sparsity(exec, csr_u, power, false);
-    const auto num_elems = csr_extended_u->get_num_stored_elements();
+    auto inverted_u = extend_sparsity(exec, csr_u, power, false);
 
-    std::shared_ptr<Csr> inverted_u =
-        Csr::create(exec, csr_extended_u->get_size(), num_elems, strategy);
-    exec->run(
-        isai::make_generate_u_inverse(csr_extended_u.get(), inverted_u.get()));
+    exec->run(isai::make_generate_u_inverse(csr_u.get(), inverted_u.get()));
 
     approximate_inverse_ = std::move(inverted_u);
 }
