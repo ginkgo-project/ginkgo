@@ -556,8 +556,7 @@ void spgeam(syn::value_list<int, subwarp_size>,
 
     // accumulate non-zeros for alpha * A + beta * B
     matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    IndexType c_nnz{};
-    exec->get_master()->copy_from(exec.get(), 1, c_row_ptrs + m, &c_nnz);
+    auto c_nnz = exec->copy_val_to_host(c_row_ptrs + m);
     c_builder.get_col_idx_array().resize_and_reset(c_nnz);
     c_builder.get_value_array().resize_and_reset(c_nnz);
     auto c_col_idxs = c->get_col_idxs();
@@ -650,12 +649,8 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
         hipsparse::destroy(b_descr);
         hipsparse::destroy(a_descr);
 
-        ValueType valpha{};
-        ValueType vbeta{};
-        exec->get_master()->copy_from(exec.get(), 1, alpha->get_const_values(),
-                                      &valpha);
-        exec->get_master()->copy_from(exec.get(), 1, beta->get_const_values(),
-                                      &vbeta);
+        auto valpha = exec->copy_val_to_host(alpha->get_const_values());
+        auto vbeta = exec->copy_val_to_host(beta->get_const_values());
         auto total_nnz = c_nnz + d->get_num_stored_elements();
         auto nnz_per_row = total_nnz / m;
         select_spgeam(spgeam_kernels(),
@@ -870,8 +865,7 @@ void calculate_total_cols(std::shared_ptr<const HipExecutor> exec,
                        as_hip_type(block_results.get_const_data()),
                        as_hip_type(d_result.get_data()));
 
-    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
-                                  result);
+    *result = exec->copy_val_to_host(d_result.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1006,8 +1000,7 @@ void calculate_max_nnz_per_row(std::shared_ptr<const HipExecutor> exec,
                        as_hip_type(block_results.get_const_data()),
                        as_hip_type(d_result.get_data()));
 
-    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
-                                  result);
+    *result = exec->copy_val_to_host(d_result.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1094,7 +1087,7 @@ void sort_by_column_index(std::shared_ptr<const HipExecutor> exec,
 
         // copy values
         Array<ValueType> tmp_vals_array(exec, nnz);
-        exec->copy_from(exec.get(), nnz, vals, tmp_vals_array.get_data());
+        exec->copy(nnz, vals, tmp_vals_array.get_data());
         auto tmp_vals = tmp_vals_array.get_const_data();
 
         // init identity permutation
