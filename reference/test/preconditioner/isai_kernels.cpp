@@ -154,28 +154,17 @@ protected:
 
     std::unique_ptr<Csr> clone_allocations(const Csr *csr_mtx)
     {
-        auto size = csr_mtx->get_size();
         const auto num_elems = csr_mtx->get_num_stored_elements();
-        auto sparsity = Csr::create(exec, size, num_elems);
+        auto sparsity = csr_mtx->clone();
 
-        // All arrays are now filled with invalid data to catch potential errors
+        // values are now filled with invalid data to catch potential errors
         std::fill_n(sparsity->get_values(), num_elems, -gko::one<value_type>());
-        std::fill_n(sparsity->get_col_idxs(), num_elems,
-                    -gko::one<index_type>());
-        std::fill_n(sparsity->get_row_ptrs(), size[0] + 1,
-                    -gko::one<index_type>());
         return sparsity;
-    }
-
-    template <typename To, typename From>
-    static std::unique_ptr<To> unique_static_cast(std::unique_ptr<From> from)
-    {
-        return std::unique_ptr<To>{static_cast<To *>(from.release())};
     }
 
     std::unique_ptr<Csr> transpose(const Csr *mtx)
     {
-        return unique_static_cast<Csr>(mtx->transpose());
+        return gko::as<Csr>(mtx->transpose());
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;

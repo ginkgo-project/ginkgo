@@ -46,8 +46,9 @@ template <int subwarp_size, int subwarps_per_block, typename ValueType,
 __forceinline__ __device__ void generic_generate(
     IndexType num_rows, const IndexType *__restrict__ m_row_ptrs,
     const IndexType *__restrict__ m_col_idxs,
-    const ValueType *__restrict__ m_values, IndexType *__restrict__ i_row_ptrs,
-    IndexType *__restrict__ i_col_idxs, ValueType *__restrict__ i_values,
+    const ValueType *__restrict__ m_values,
+    const IndexType *__restrict__ i_row_ptrs,
+    const IndexType *__restrict__ i_col_idxs, ValueType *__restrict__ i_values,
     Callable trs_solve)
 {
     static_assert((subwarp_size & (subwarp_size - 1)) == 0,

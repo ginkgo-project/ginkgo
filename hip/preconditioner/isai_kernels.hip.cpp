@@ -74,12 +74,7 @@ void generate_l_inverse(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, IndexType> *l_csr,
                         matrix::Csr<ValueType, IndexType> *inverse_l)
 {
-    const auto nnz = l_csr->get_num_stored_elements();
     const auto num_rows = l_csr->get_size()[0];
-
-    exec->copy(nnz, l_csr->get_const_col_idxs(), inverse_l->get_col_idxs());
-    exec->copy(num_rows + 1, l_csr->get_const_row_ptrs(),
-               inverse_l->get_row_ptrs());
 
     const dim3 block(default_block_size, 1, 1);
     const dim3 grid(ceildiv(num_rows, block.x / config::warp_size), 1, 1);

@@ -70,22 +70,13 @@ protected:
         if (csr_mtx->get_executor() != ref) {
             return {nullptr};
         }
-        auto size = csr_mtx->get_size();
         const auto num_elems = csr_mtx->get_num_stored_elements();
-        auto sparsity = Csr::create(ref, size, num_elems);
+        auto sparsity = csr_mtx->clone();
 
-        // All arrays are now filled with invalid data to catch potential errors
+        // values are now filled with invalid data to catch potential errors
         auto begin_values = sparsity->get_values();
         auto end_values = begin_values + num_elems;
         std::fill(begin_values, end_values, -gko::one<value_type>());
-
-        auto begin_cols = sparsity->get_col_idxs();
-        auto end_cols = begin_cols + num_elems;
-        std::fill(begin_cols, end_cols, -gko::one<index_type>());
-
-        auto begin_rows = sparsity->get_row_ptrs();
-        auto end_rows = begin_rows + size[0] + 1;
-        std::fill(begin_rows, end_rows, -gko::one<index_type>());
         return sparsity;
     }
 
