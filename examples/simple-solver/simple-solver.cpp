@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
     // with one column/one row. The advantage of this concept is that using
     // multiple vectors is a now a natural extension of adding columns/rows are
     // necessary.
-    using ValueType = double;
+    using ValueType = std::complex<double>;
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
     // The gko::matrix::Csr class is used here, but any other matrix class such
@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
     // criteria(gko::stop) are also generated from factories using their build
     // methods. You need to specify the executors which each of the object needs
     // to be built on.
-    const ValueType reduction_factor = 1e-7;
+    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
     auto solver_gen =
         cg::build()
             .with_criteria(

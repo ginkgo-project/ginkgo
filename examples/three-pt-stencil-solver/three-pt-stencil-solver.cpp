@@ -104,9 +104,9 @@ template <typename Closure, typename ValueType, typename IndexType>
 void generate_rhs(IndexType discretization_points, Closure f, ValueType u0,
                   ValueType u1, ValueType *rhs)
 {
-    const auto h = 1.0 / (discretization_points + 1);
+    const ValueType h = 1.0 / (discretization_points + 1);
     for (IndexType i = 0; i < discretization_points; ++i) {
-        const auto xi = (i + 1) * h;
+        const ValueType xi = ValueType(i + 1) * h;
         rhs[i] = -f(xi) * h * h;
     }
     rhs[0] += u0;
@@ -130,14 +130,15 @@ void print_solution(IndexType discretization_points, ValueType u0, ValueType u1,
 // Computes the 1-norm of the error given the computed `u` and the correct
 // solution function `correct_u`.
 template <typename Closure, typename ValueType, typename IndexType>
-ValueType calculate_error(IndexType discretization_points, const ValueType *u,
-                          Closure correct_u)
+gko::remove_complex<ValueType> calculate_error(IndexType discretization_points,
+                                               const ValueType *u,
+                                               Closure correct_u)
 {
-    const auto h = 1.0 / (discretization_points + 1);
-    auto error = 0.0;
+    const ValueType h = 1.0 / (discretization_points + 1);
+    gko::remove_complex<ValueType> error = 0.0;
     for (IndexType i = 0; i < discretization_points; ++i) {
         using std::abs;
-        const auto xi = (i + 1) * h;
+        const ValueType xi = ValueType(i + 1) * h;
         error += abs(u[i] - correct_u(xi)) / abs(correct_u(xi));
     }
     return error;
@@ -147,7 +148,7 @@ template <typename ValueType, typename IndexType>
 void solve_system(const std::string &executor_string,
                   IndexType discretization_points, IndexType *row_ptrs,
                   IndexType *col_idxs, ValueType *values, ValueType *rhs,
-                  ValueType *u, ValueType reduction_factor)
+                  ValueType *u, gko::remove_complex<ValueType> reduction_factor)
 {
     // Some shortcuts
     using vec = gko::matrix::Dense<ValueType>;
@@ -219,7 +220,7 @@ void solve_system(const std::string &executor_string,
 
 int main(int argc, char *argv[])
 {
-    using ValueType = double;
+    using ValueType = std::complex<double>;
     using IndexType = int;
 
     if (argc < 2) {
@@ -234,7 +235,7 @@ int main(int argc, char *argv[])
 
     // problem:
     auto correct_u = [](ValueType x) { return x * x * x; };
-    auto f = [](ValueType x) { return 6 * x; };
+    auto f = [](ValueType x) { return ValueType(6) * x; };
     auto u0 = correct_u(0);
     auto u1 = correct_u(1);
 
@@ -246,7 +247,7 @@ int main(int argc, char *argv[])
     std::vector<ValueType> rhs(discretization_points);
     // solution
     std::vector<ValueType> u(discretization_points, 0.0);
-    ValueType reduction_factor = 1e-7;
+    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
 
     generate_stencil_matrix(discretization_points, row_ptrs.data(),
                             col_idxs.data(), values.data());

@@ -126,11 +126,11 @@ void generate_rhs(IndexType dp, Closure f, ClosureT u, ValueType *rhs,
                   ValueType *coefs)
 {
     const size_t dp_2 = dp * dp;
-    const auto h = 1.0 / (dp + 1.0);
+    const ValueType h = 1.0 / (dp + 1.0);
     for (IndexType i = 0; i < dp; ++i) {
-        const auto yi = (i + 1) * h;
+        const auto yi = ValueType(i + 1) * h;
         for (IndexType j = 0; j < dp; ++j) {
-            const auto xi = (j + 1) * h;
+            const auto xi = ValueType(j + 1) * h;
             const auto index = i * dp + j;
             rhs[index] = -f(xi, yi) * h * h;
         }
@@ -139,7 +139,7 @@ void generate_rhs(IndexType dp, Closure f, ClosureT u, ValueType *rhs,
     // Iterating over the edges to add boundary values
     // and adding the overlapping 3x1 to the rhs
     for (size_t i = 0; i < dp; ++i) {
-        const auto xi = (i + 1) * h;
+        const auto xi = ValueType(i + 1) * h;
         const auto index_top = i;
         const auto index_bot = i + dp * (dp - 1);
 
@@ -152,7 +152,7 @@ void generate_rhs(IndexType dp, Closure f, ClosureT u, ValueType *rhs,
         rhs[index_bot] -= u(xi + h, 1.0) * coefs[8];
     }
     for (size_t i = 0; i < dp; ++i) {
-        const auto yi = (i + 1) * h;
+        const auto yi = ValueType(i + 1) * h;
         const auto index_left = i * dp;
         const auto index_right = i * dp + (dp - 1);
 
@@ -190,15 +190,16 @@ void print_solution(IndexType dp, const ValueType *u)
 // Computes the 1-norm of the error given the computed `u` and the correct
 // solution function `correct_u`.
 template <typename Closure, typename ValueType, typename IndexType>
-ValueType calculate_error(IndexType dp, const ValueType *u, Closure correct_u)
+gko::remove_complex<ValueType> calculate_error(IndexType dp, const ValueType *u,
+                                               Closure correct_u)
 {
-    const auto h = 1.0 / (dp + 1);
-    auto error = 0.0;
+    const ValueType h = 1.0 / (dp + 1);
+    gko::remove_complex<ValueType> error = 0.0;
     for (IndexType j = 0; j < dp; ++j) {
-        const auto xi = (j + 1) * h;
+        const auto xi = ValueType(j + 1) * h;
         for (IndexType i = 0; i < dp; ++i) {
             using std::abs;
-            const auto yi = (i + 1) * h;
+            const auto yi = ValueType(i + 1) * h;
             error +=
                 abs(u[i * dp + j] - correct_u(xi, yi)) / abs(correct_u(xi, yi));
         }
@@ -211,7 +212,7 @@ template <typename ValueType, typename IndexType>
 void solve_system(const std::string &executor_string,
                   unsigned int discretization_points, IndexType *row_ptrs,
                   IndexType *col_idxs, ValueType *values, ValueType *rhs,
-                  ValueType *u, ValueType reduction_factor)
+                  ValueType *u, gko::remove_complex<ValueType> reduction_factor)
 {
     // Some shortcuts
     using vec = gko::matrix::Dense<ValueType>;
@@ -290,7 +291,7 @@ int main(int argc, char *argv[])
                   << std::endl;
         std::exit(-1);
     }
-    using ValueType = double;
+    using ValueType = std::complex<double>;
     using IndexType = int;
 
     const int discretization_points = argc >= 2 ? std::atoi(argv[1]) : 100;
@@ -313,7 +314,9 @@ int main(int argc, char *argv[])
     auto correct_u = [](ValueType x, ValueType y) {
         return x * x * x + y * y * y;
     };
-    auto f = [](ValueType x, ValueType y) { return 6 * x + 6 * y; };
+    auto f = [](ValueType x, ValueType y) {
+        return ValueType(6) * x + ValueType(6) * y;
+    };
 
     // matrix
     std::vector<IndexType> row_ptrs(dp_2 + 1);
@@ -329,7 +332,7 @@ int main(int argc, char *argv[])
     // looking for solution u = x^3: f = 6x, u(0) = 0, u(1) = 1
     generate_rhs(dp, f, correct_u, rhs.data(), coefs.data());
 
-    const ValueType reduction_factor = 1e-7;
+    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
 
     auto start_time = std::chrono::steady_clock::now();
     solve_system(executor_string, dp, row_ptrs.data(), col_idxs.data(),

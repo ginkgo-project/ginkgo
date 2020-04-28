@@ -60,7 +60,7 @@ void print_vector(const std::string &name,
 int main(int argc, char *argv[])
 {
     // Some shortcuts
-    using ValueType = double;
+    using ValueType = std::complex<double>;
     using IndexType = int;
 
     using vec = gko::matrix::Dense<ValueType>;
@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
     // Add stream_logger only to the ResidualNormReduction criterion Factory
     // Note that the logger will get automatically propagated to every criterion
     // generated from this factory.
-    const ValueType reduction_factor = 1e-7;
+    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
     using ResidualCriterionFactory =
         gko::stop::ResidualNormReduction<ValueType>::Factory;
     std::shared_ptr<ResidualCriterionFactory> residual_criterion =

@@ -32,6 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdlib>
 
+#include <ginkgo/ginkgo.hpp>
+
 
 #define INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro) \
     template _macro(float);                     \

@@ -69,9 +69,9 @@ void generate_rhs(Closure f, ValueType u0, ValueType u1,
 {
     const auto discretization_points = rhs->get_size()[0];
     auto values = rhs->get_values();
-    const auto h = 1.0 / (discretization_points + 1);
+    const ValueType h = 1.0 / (discretization_points + 1);
     for (gko::size_type i = 0; i < discretization_points; ++i) {
-        const auto xi = (i + 1) * h;
+        const auto xi = ValueType(i + 1) * h;
         values[i] = -f(xi) * h * h;
     }
     values[0] += u0;
@@ -95,15 +95,15 @@ void print_solution(ValueType u0, ValueType u1,
 // Computes the 1-norm of the error given the computed `u` and the correct
 // solution function `correct_u`.
 template <typename Closure, typename ValueType>
-double calculate_error(int discretization_points,
-                       const gko::matrix::Dense<ValueType> *u,
-                       Closure correct_u)
+gko::remove_complex<ValueType> calculate_error(
+    int discretization_points, const gko::matrix::Dense<ValueType> *u,
+    Closure correct_u)
 {
-    const auto h = 1.0 / (discretization_points + 1);
+    const ValueType h = 1.0 / (discretization_points + 1);
     auto error = 0.0;
     for (int i = 0; i < discretization_points; ++i) {
         using std::abs;
-        const auto xi = (i + 1) * h;
+        const auto xi = ValueType(i + 1) * h;
         error +=
             abs(u->get_const_values()[i] - correct_u(xi)) / abs(correct_u(xi));
     }
@@ -114,7 +114,7 @@ double calculate_error(int discretization_points,
 int main(int argc, char *argv[])
 {
     // Some shortcuts
-    using ValueType = double;
+    using ValueType = std::complex<double>;
     using IndexType = int;
 
     using vec = gko::matrix::Dense<ValueType>;
@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
 
     // problem:
     auto correct_u = [](ValueType x) { return x * x * x; };
-    auto f = [](ValueType x) { return 6 * x; };
+    auto f = [](ValueType x) { return ValueType(6) * x; };
     auto u0 = correct_u(0);
     auto u1 = correct_u(1);
 
@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
         u->get_values()[i] = 0.0;
     }
 
-    const ValueType reduction_factor = 1e-7;
+    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
     // Generate solver and solve the system
     cg::build()
         .with_criteria(gko::stop::Iteration::build()
