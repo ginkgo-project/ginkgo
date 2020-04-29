@@ -60,21 +60,19 @@ namespace gmres {
                       matrix::Dense<_type> *residual_norm,            \
                       matrix::Dense<_type> *residual_norm_collection, \
                       matrix::Dense<_type> *krylov_bases,             \
-                      matrix::Dense<_type> *next_krylov_basis,        \
                       Array<size_type> *final_iter_nums, size_type krylov_dim)
 
 
-#define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type)                      \
-    void step_1(std::shared_ptr<const DefaultExecutor> exec,        \
-                matrix::Dense<_type> *next_krylov_basis,            \
-                matrix::Dense<_type> *givens_sin,                   \
-                matrix::Dense<_type> *givens_cos,                   \
-                matrix::Dense<_type> *residual_norm,                \
-                matrix::Dense<_type> *residual_norm_collection,     \
-                matrix::Dense<_type> *krylov_bases,                 \
-                matrix::Dense<_type> *hessenberg_iter,              \
-                const matrix::Dense<_type> *b_norm, size_type iter, \
-                Array<size_type> *final_iter_nums,                  \
+#define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type)                        \
+    void step_1(std::shared_ptr<const DefaultExecutor> exec,          \
+                size_type num_rows, matrix::Dense<_type> *givens_sin, \
+                matrix::Dense<_type> *givens_cos,                     \
+                matrix::Dense<_type> *residual_norm,                  \
+                matrix::Dense<_type> *residual_norm_collection,       \
+                matrix::Dense<_type> *krylov_bases,                   \
+                matrix::Dense<_type> *hessenberg_iter,                \
+                const matrix::Dense<_type> *b_norm, size_type iter,   \
+                Array<size_type> *final_iter_nums,                    \
                 const Array<stopping_status> *stop_status)
 
 
