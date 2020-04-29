@@ -1,5 +1,6 @@
 ginkgo_create_cuda_test(cooperative_groups_kernels)
 ginkgo_create_cuda_test(merging_kernels)
+ginkgo_create_cuda_test(precision_conversion)
 ginkgo_create_cuda_test(prefix_sum)
 ginkgo_create_cuda_test(searching_kernels)
 ginkgo_create_cuda_test(sorting_kernels)
