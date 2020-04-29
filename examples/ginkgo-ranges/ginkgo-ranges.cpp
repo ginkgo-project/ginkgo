@@ -82,13 +82,16 @@ void print_lu(const gko::range<Accessor> &A)
 
 int main(int argc, char *argv[])
 {
+    using ValueType = double;
+    using IndexType = int;
+
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
 
     // Create some test data, add some padding just to demonstrate how to use it
     // with ranges.
     // clang-format off
-    double data[] = {
+    ValueType data[] = {
         2.,  4.,  5., -1.0,
         4., 11., 12., -1.0,
         6., 24., 24., -1.0
@@ -97,7 +100,8 @@ int main(int argc, char *argv[])
 
     // Create a 3-by-3 range, with a 2D row-major accessor using data as the
     // underlying storage. Set the stride (a.k.a. "LDA") to 4.
-    auto A = gko::range<gko::accessor::row_major<double, 2>>(data, 3u, 3u, 4u);
+    auto A =
+        gko::range<gko::accessor::row_major<ValueType, 2>>(data, 3u, 3u, 4u);
 
     // use the LU factorization routine defined above to factorize the matrix
     factorize(A);

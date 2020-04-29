@@ -93,9 +93,12 @@ void run_solver(volatile bool *stop_iteration_process,
                 std::shared_ptr<gko::Executor> exec)
 {
     // Some shortcuts
-    using mtx = gko::matrix::Csr<>;
-    using vec = gko::matrix::Dense<>;
-    using bicg = gko::solver::Bicgstab<>;
+    using ValueType = double;
+    using IndexType = int;
+
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
+    using vec = gko::matrix::Dense<ValueType>;
+    using bicg = gko::solver::Bicgstab<ValueType>;
 
     // Read Data
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
@@ -110,7 +113,7 @@ void run_solver(volatile bool *stop_iteration_process,
                                          .on(exec))
                       .on(exec)
                       ->generate(A);
-    solver->add_logger(gko::log::Stream<>::create(
+    solver->add_logger(gko::log::Stream<ValueType>::create(
         exec, gko::log::Logger::iteration_complete_mask, std::cout, true));
     solver->apply(lend(b), lend(x));
 

@@ -78,13 +78,15 @@ use Ginkgo, and the only part where Ginkgo is introduced is inside the
 
 // Creates a stencil matrix in CSR format for the given number of discretization
 // points.
-void generate_stencil_matrix(int discretization_points, int *row_ptrs,
-                             int *col_idxs, double *values)
+template <typename ValueType, typename IndexType>
+void generate_stencil_matrix(IndexType discretization_points,
+                             IndexType *row_ptrs, IndexType *col_idxs,
+                             ValueType *values)
 {
-    int pos = 0;
-    const double coefs[] = {-1, 2, -1};
+    IndexType pos = 0;
+    const ValueType coefs[] = {-1, 2, -1};
     row_ptrs[0] = pos;
-    for (int i = 0; i < discretization_points; ++i) {
+    for (IndexType i = 0; i < discretization_points; ++i) {
         for (auto ofs : {-1, 0, 1}) {
             if (0 <= i + ofs && i + ofs < discretization_points) {
                 values[pos] = coefs[ofs + 1];
@@ -98,13 +100,13 @@ void generate_stencil_matrix(int discretization_points, int *row_ptrs,
 
 
 // Generates the RHS vector given `f` and the boundary conditions.
-template <typename Closure>
-void generate_rhs(int discretization_points, Closure f, double u0, double u1,
-                  double *rhs)
+template <typename Closure, typename ValueType, typename IndexType>
+void generate_rhs(IndexType discretization_points, Closure f, ValueType u0,
+                  ValueType u1, ValueType *rhs)
 {
-    const auto h = 1.0 / (discretization_points + 1);
-    for (int i = 0; i < discretization_points; ++i) {
-        const auto xi = (i + 1) * h;
+    const ValueType h = 1.0 / (discretization_points + 1);
+    for (IndexType i = 0; i < discretization_points; ++i) {
+        const ValueType xi = ValueType(i + 1) * h;
         rhs[i] = -f(xi) * h * h;
     }
     rhs[0] += u0;
@@ -113,11 +115,12 @@ void generate_rhs(int discretization_points, Closure f, double u0, double u1,
 
 
 // Prints the solution `u`.
-void print_solution(int discretization_points, double u0, double u1,
-                    const double *u)
+template <typename ValueType, typename IndexType>
+void print_solution(IndexType discretization_points, ValueType u0, ValueType u1,
+                    const ValueType *u)
 {
     std::cout << u0 << '\n';
-    for (int i = 0; i < discretization_points; ++i) {
+    for (IndexType i = 0; i < discretization_points; ++i) {
         std::cout << u[i] << '\n';
     }
     std::cout << u1 << std::endl;
@@ -126,33 +129,34 @@ void print_solution(int discretization_points, double u0, double u1,
 
 // Computes the 1-norm of the error given the computed `u` and the correct
 // solution function `correct_u`.
-template <typename Closure>
-double calculate_error(int discretization_points, const double *u,
-                       Closure correct_u)
+template <typename Closure, typename ValueType, typename IndexType>
+gko::remove_complex<ValueType> calculate_error(IndexType discretization_points,
+                                               const ValueType *u,
+                                               Closure correct_u)
 {
-    const auto h = 1.0 / (discretization_points + 1);
-    auto error = 0.0;
-    for (int i = 0; i < discretization_points; ++i) {
+    const ValueType h = 1.0 / (discretization_points + 1);
+    gko::remove_complex<ValueType> error = 0.0;
+    for (IndexType i = 0; i < discretization_points; ++i) {
         using std::abs;
-        const auto xi = (i + 1) * h;
+        const ValueType xi = ValueType(i + 1) * h;
         error += abs(u[i] - correct_u(xi)) / abs(correct_u(xi));
     }
     return error;
 }
 
-
+template <typename ValueType, typename IndexType>
 void solve_system(const std::string &executor_string,
-                  unsigned int discretization_points, int *row_ptrs,
-                  int *col_idxs, double *values, double *rhs, double *u,
-                  double accuracy)
+                  IndexType discretization_points, IndexType *row_ptrs,
+                  IndexType *col_idxs, ValueType *values, ValueType *rhs,
+                  ValueType *u, gko::remove_complex<ValueType> reduction_factor)
 {
     // Some shortcuts
-    using vec = gko::matrix::Dense<double>;
-    using mtx = gko::matrix::Csr<double, int>;
-    using cg = gko::solver::Cg<double>;
-    using bj = gko::preconditioner::Jacobi<double, int>;
-    using val_array = gko::Array<double>;
-    using idx_array = gko::Array<int>;
+    using vec = gko::matrix::Dense<ValueType>;
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
+    using cg = gko::solver::Cg<ValueType>;
+    using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
+    using val_array = gko::Array<ValueType>;
+    using idx_array = gko::Array<IndexType>;
     const auto &dp = discretization_points;
 
     // Figure out where to run the code
@@ -199,11 +203,12 @@ void solve_system(const std::string &executor_string,
     // Generate solver
     auto solver_gen =
         cg::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(dp).on(exec),
-                gko::stop::ResidualNormReduction<>::build()
-                    .with_reduction_factor(accuracy)
-                    .on(exec))
+            .with_criteria(gko::stop::Iteration::build()
+                               .with_max_iters(gko::size_type(dp))
+                               .on(exec),
+                           gko::stop::ResidualNormReduction<ValueType>::build()
+                               .with_reduction_factor(reduction_factor)
+                               .on(exec))
             .with_preconditioner(bj::build().on(exec))
             .on(exec);
     auto solver = solver_gen->generate(gko::give(matrix));
@@ -215,29 +220,34 @@ void solve_system(const std::string &executor_string,
 
 int main(int argc, char *argv[])
 {
+    using ValueType = double;
+    using IndexType = int;
+
     if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
                   << std::endl;
         std::exit(-1);
     }
 
-    const int discretization_points = argc >= 2 ? std::atoi(argv[1]) : 100;
+    const IndexType discretization_points =
+        argc >= 2 ? std::atoi(argv[1]) : 100;
     const auto executor_string = argc >= 3 ? argv[2] : "reference";
 
     // problem:
-    auto correct_u = [](double x) { return x * x * x; };
-    auto f = [](double x) { return 6 * x; };
+    auto correct_u = [](ValueType x) { return x * x * x; };
+    auto f = [](ValueType x) { return ValueType(6) * x; };
     auto u0 = correct_u(0);
     auto u1 = correct_u(1);
 
     // matrix
-    std::vector<int> row_ptrs(discretization_points + 1);
-    std::vector<int> col_idxs(3 * discretization_points - 2);
-    std::vector<double> values(3 * discretization_points - 2);
+    std::vector<IndexType> row_ptrs(discretization_points + 1);
+    std::vector<IndexType> col_idxs(3 * discretization_points - 2);
+    std::vector<ValueType> values(3 * discretization_points - 2);
     // right hand side
-    std::vector<double> rhs(discretization_points);
+    std::vector<ValueType> rhs(discretization_points);
     // solution
-    std::vector<double> u(discretization_points, 0.0);
+    std::vector<ValueType> u(discretization_points, 0.0);
+    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
 
     generate_stencil_matrix(discretization_points, row_ptrs.data(),
                             col_idxs.data(), values.data());
@@ -245,9 +255,10 @@ int main(int argc, char *argv[])
     generate_rhs(discretization_points, f, u0, u1, rhs.data());
 
     solve_system(executor_string, discretization_points, row_ptrs.data(),
-                 col_idxs.data(), values.data(), rhs.data(), u.data(), 1e-12);
+                 col_idxs.data(), values.data(), rhs.data(), u.data(),
+                 reduction_factor);
 
-    print_solution(discretization_points, 0, 1, u.data());
+    print_solution<ValueType, IndexType>(discretization_points, 0, 1, u.data());
     std::cout << "The average relative error is "
               << calculate_error(discretization_points, u.data(), correct_u) /
                      discretization_points

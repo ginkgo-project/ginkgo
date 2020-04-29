@@ -38,8 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 
-[[noreturn]] void print_usage_and_exit(const char *name)
-{
+[[noreturn]] void print_usage_and_exit(const char *name) {
     std::cerr << "Usage: " << name << " [NUM_ITERS]" << std::endl;
     std::exit(-1);
 }
@@ -47,9 +46,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 int main(int argc, char *argv[])
 {
-    using vec = gko::matrix::Dense<>;
-    using mtx = gko::matrix::Dense<>;
-    using cg = gko::solver::Cg<>;
+    using ValueType = double;
+    using IndexType = int;
+
+    using vec = gko::matrix::Dense<ValueType>;
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
+    using cg = gko::solver::Cg<ValueType>;
 
     long unsigned num_iters = 1000000;
     if (argc > 2) {

@@ -7,5 +7,5 @@ if (GINKGO_BUILD_CUDA AND GINKGO_BUILD_OMP)
         stencil_kernel.cu)
     target_link_libraries(custom-matrix-format ginkgo)
     target_include_directories(custom-matrix-format PRIVATE
-        ${PROJECT_SOURCE_DIR})
+        ${PROJECT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
