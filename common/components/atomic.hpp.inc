@@ -81,6 +81,7 @@ __forceinline__ __device__ ResultType reinterpret(ValueType val)
 
 // Support 64-bit ATOMIC_ADD
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned long long int);
+// GKO_BIND_ATOMIC_HELPER_STRUCTURE(size_type);
 // Support 32-bit ATOMIC_ADD
 GKO_BIND_ATOMIC_HELPER_STRUCTURE(unsigned int);
 
@@ -115,6 +116,7 @@ GKO_BIND_ATOMIC_ADD(unsigned int);
 GKO_BIND_ATOMIC_ADD(unsigned long long int);
 GKO_BIND_ATOMIC_ADD(float);
 
+// GKO_BIND_ATOMIC_ADD(size_type);
 
 #if !defined(__HIPCC__) || \
     (defined(__HIP_DEVICE_COMPILE__) && GINKGO_HIP_PLATFORM_NVCC)
