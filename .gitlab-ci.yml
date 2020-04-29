@@ -25,8 +25,7 @@ stages:
   EXTRA_CMAKE_FLAGS: ""
 
 .before_script_template: &default_before_script
-  - export NUM_CORES=$(grep -E "^processor" /proc/cpuinfo | sort -u | wc -l)
-  - export NUM_CORES=$((NUM_CORES/10))
+  - export NUM_CORES=4
   - export OMP_NUM_THREADS=${NUM_CORES}
   - export CUDA_VISIBLE_DEVICES=0
 
@@ -788,7 +787,7 @@ fineci-benchmark-build:
                   -DGINKGO_BUILD_HIP=${BUILD_HIP} \\
                   -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_EXAMPLES=OFF \\
                   -DGINKGO_BUILD_BENCHMARKS=ON
-        make -j$(grep -E "^processor" /proc/cpuinfo | sort -u | wc -l)
+        make -j4
       EOT
   dependencies: []
   only:
