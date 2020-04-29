@@ -89,10 +89,6 @@ protected:
                                    I<value_type>{-1., 4., 2., 5., -4., -8., 8.},
                                    I<index_type>{0, 1, 0, 1, 2, 3, 2},
                                    I<index_type>{0, 1, 3, 5, 7})},
-          l_sparse_id{Csr::create(exec, gko::dim<2>(4, 4),
-                                  I<value_type>{1., 0., 1., 0., 1., 0., 1.},
-                                  I<index_type>{0, 0, 1, 1, 2, 2, 3},
-                                  I<index_type>{0, 1, 3, 5, 7})},
           l_sparse_inv{
               Csr::create(exec, gko::dim<2>(4, 4),
                           I<value_type>{-1., .5, .25, .3125, -.25, -.25, -.125},
@@ -118,11 +114,6 @@ protected:
                                                   .28125, .0625, 0.25, 0.5},
                                     I<index_type>{0, 0, 1, 1, 2, 0, 1, 2, 3},
                                     I<index_type>{0, 1, 3, 5, 9})},
-          u_sparse_id{
-              Csr::create(exec, gko::dim<2>(4, 4),
-                          I<value_type>{1., 0., 0., 0., 1., 0., 1., 0., 1.},
-                          I<index_type>{0, 1, 2, 3, 1, 2, 2, 3, 3},
-                          I<index_type>{0, 4, 6, 8, 9})},
           u_sparse{
               Csr::create(exec, gko::dim<2>(4, 4),
                           I<value_type>{-2., 1., -1., 1., 4., 1., -2., 1., 2.},
@@ -178,7 +169,6 @@ protected:
     std::shared_ptr<Csr> l_csr_inv;
     std::shared_ptr<Csr> u_csr;
     std::shared_ptr<Csr> u_csr_inv;
-    std::shared_ptr<Csr> l_sparse_id;
     std::shared_ptr<Csr> l_sparse;
     std::shared_ptr<Csr> l_s_unsorted;
     std::shared_ptr<Csr> l_sparse_inv;
@@ -186,7 +176,6 @@ protected:
     std::shared_ptr<Csr> l_sparse_inv3;
     std::shared_ptr<Csr> l_sparse2;
     std::shared_ptr<Csr> l_sparse2_inv;
-    std::shared_ptr<Csr> u_sparse_id;
     std::shared_ptr<Csr> u_sparse;
     std::shared_ptr<Csr> u_s_unsorted;
     std::shared_ptr<Csr> u_sparse_inv;
@@ -358,26 +347,6 @@ TYPED_TEST(Isai, KernelGenerateUsparse3)
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_sparse_inv);
     GKO_ASSERT_MTX_NEAR(result, this->u_sparse_inv, r<value_type>::value);
-}
-
-
-TYPED_TEST(Isai, KernelIdentityTriangleL)
-{
-    gko::kernels::reference::isai::identity_triangle(
-        this->exec, gko::lend(this->u_sparse), true);
-
-    GKO_ASSERT_MTX_EQ_SPARSITY(this->u_sparse, this->u_sparse_id);
-    GKO_ASSERT_MTX_NEAR(this->u_sparse, this->u_sparse_id, 0);
-}
-
-
-TYPED_TEST(Isai, KernelIdentityTriangleU)
-{
-    gko::kernels::reference::isai::identity_triangle(
-        this->exec, gko::lend(this->u_sparse), true);
-
-    GKO_ASSERT_MTX_EQ_SPARSITY(this->u_sparse, this->u_sparse_id);
-    GKO_ASSERT_MTX_NEAR(this->u_sparse, this->u_sparse_id, 0);
 }
 
 

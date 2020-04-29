@@ -198,20 +198,4 @@ __launch_bounds__(subwarp_size *subwarps_per_block) void generate_u_inverse(
 }
 
 
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void identity_triangle(
-    IndexType num_rows, const IndexType *__restrict__ row_ptrs,
-    ValueType *__restrict__ vals, bool lower)
-{
-    auto row = thread::get_thread_id_flat<IndexType>();
-    if (row >= num_rows) {
-        return;
-    }
-    auto diagonal_nz = lower ? row_ptrs[row + 1] - 1 : row_ptrs[row];
-    for (auto nz = row_ptrs[row]; nz < row_ptrs[row + 1]; ++nz) {
-        vals[nz] = nz == diagonal_nz ? one<ValueType>() : zero<ValueType>();
-    }
-}
-
-
 }  // namespace kernel
