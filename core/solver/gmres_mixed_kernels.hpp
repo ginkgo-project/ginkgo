@@ -65,20 +65,21 @@ namespace gmres_mixed {
 
 
 // #define GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL(_type1, _type2, _bool1, _bool2)
-#define GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL(_type1, _type2)        \
-    void step_1(std::shared_ptr<const DefaultExecutor> exec,         \
-                matrix::Dense<_type1> *next_krylov_basis,            \
-                matrix::Dense<_type1> *givens_sin,                   \
-                matrix::Dense<_type1> *givens_cos,                   \
-                matrix::Dense<_type1> *residual_norm,                \
-                matrix::Dense<_type1> *residual_norm_collection,     \
-                matrix::Dense<_type2> *krylov_bases,                 \
-                matrix::Dense<_type1> *hessenberg_iter,              \
-                matrix::Dense<_type1> *buffer_iter,                  \
-                const matrix::Dense<_type1> *b_norm,                 \
-                matrix::Dense<_type1> *arnoldi_norm, size_type iter, \
-                Array<size_type> *final_iter_nums,                   \
-                const Array<stopping_status> *stop_status)
+#define GKO_DECLARE_GMRES_MIXED_STEP_1_KERNEL(_type1, _type2)                 \
+    void step_1(                                                              \
+        std::shared_ptr<const DefaultExecutor> exec,                          \
+        matrix::Dense<_type1> *next_krylov_basis,                             \
+        matrix::Dense<_type1> *givens_sin, matrix::Dense<_type1> *givens_cos, \
+        matrix::Dense<_type1> *residual_norm,                                 \
+        matrix::Dense<_type1> *residual_norm_collection,                      \
+        matrix::Dense<_type2> *krylov_bases,                                  \
+        matrix::Dense<_type1> *hessenberg_iter,                               \
+        matrix::Dense<_type1> *buffer_iter,                                   \
+        const matrix::Dense<_type1> *b_norm,                                  \
+        matrix::Dense<_type1> *arnoldi_norm, size_type iter,                  \
+        Array<size_type> *final_iter_nums,                                    \
+        const Array<stopping_status> *stop_status,                            \
+        Array<stopping_status> *reorth_status, Array<size_type> *num_reorth)
 
 
 #define GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL(_type1, _type2)          \

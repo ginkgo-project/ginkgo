@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 
 
+#include <iostream>
+
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -157,6 +160,9 @@ void finish_arnoldi_reorth(matrix::Dense<ValueType> *next_krylov_basis,
             }
             if (hessenberg_iter->at(k, i) * hessenberg_iter->at(k, i) >
                 arnoldi_norm->at(0, i)) {
+                std::cout << "K = " << k;
+                std::cout << " , HI = " << hessenberg_iter->at(k, i);
+                std::cout << " , AN = " << arnoldi_norm->at(0, i) << std::endl;
                 ValueType reorth = zero<ValueType>();
 #pragma omp parallel for reduction(add : reorth)
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
@@ -566,8 +572,10 @@ void step_1(std::shared_ptr<const OmpExecutor> exec,
             const matrix::Dense<ValueType> *b_norm,
             matrix::Dense<ValueType> *arnoldi_norm, size_type iter,
             Array<size_type> *final_iter_nums,
-            const Array<stopping_status> *stop_status)
+            const Array<stopping_status> *stop_status,
+            Array<stopping_status> *reorth_status, Array<size_type> *num_reorth)
 {
+    std::cout << "ITER = " << iter << std::endl;
 #pragma omp parallel for
     for (size_type i = 0; i < final_iter_nums->get_num_elems(); ++i) {
         final_iter_nums->get_data()[i] +=
@@ -575,12 +583,11 @@ void step_1(std::shared_ptr<const OmpExecutor> exec,
     }
     //    finish_arnoldi(next_krylov_basis, krylov_bases, hessenberg_iter, iter,
     //                   stop_status->get_const_data());
-    //    finish_arnoldi_reorth(next_krylov_basis, krylov_bases,
-    //                        hessenberg_iter, arnoldi_norm, iter,
-    //                          stop_status->get_const_data());
-    finish_arnoldi_CGS(next_krylov_basis, krylov_bases, hessenberg_iter,
-                       buffer_iter, arnoldi_norm, iter,
-                       stop_status->get_const_data());
+    finish_arnoldi_reorth(next_krylov_basis, krylov_bases, hessenberg_iter,
+                          arnoldi_norm, iter, stop_status->get_const_data());
+    // finish_arnoldi_CGS(next_krylov_basis, krylov_bases, hessenberg_iter,
+    //                    buffer_iter, arnoldi_norm, iter,
+    //                    stop_status->get_const_data());
     givens_rotation(next_krylov_basis, givens_sin, givens_cos, hessenberg_iter,
                     iter, stop_status->get_const_data());
     calculate_next_residual_norm(givens_sin, givens_cos, residual_norm,

@@ -117,6 +117,10 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     bool one_changed{};
     Array<stopping_status> stop_status(this->get_executor(),
                                        dense_b->get_size()[1]);
+    Array<stopping_status> reorth_status(this->get_executor(),
+                                         dense_b->get_size()[1]);
+    //                                         krylov_dim_mixed_ + 1);
+    Array<size_type> num_reorth(this->get_executor(), 1);
 
     // Initialization
     exec->run(gmres_mixed::make_initialize_1(
@@ -217,7 +221,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
             residual_norm.get(), residual_norm_collection.get(),
             krylov_bases.get(), hessenberg_iter.get(), buffer_iter.get(),
             b_norm.get(), arnoldi_norm.get(), restart_iter, &final_iter_nums,
-            &stop_status));
+            &stop_status, &reorth_status, &num_reorth));
         // for i in 0:restart_iter
         //     hessenberg(restart_iter, i) = next_krylov_basis' *
         //     krylov_bases(:, i) next_krylov_basis  -= hessenberg(restart_iter,
