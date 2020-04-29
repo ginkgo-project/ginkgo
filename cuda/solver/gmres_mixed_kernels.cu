@@ -287,7 +287,10 @@ void finish_arnoldi_reorth(std::shared_ptr<const CudaExecutor> exec,
         //        if (num_reorth > 0) {
         //        if (2 > 1) {
         if (numReorth > 0) {
+            //        if (numReorth < 0) {
             std::cout << "REORTHOGONALIZATION" << std::endl;
+            std::cout << dim_size[0] << " - " << dim_size[1] << " - "
+                      << stride_buffer << std::endl;
             components::fill_array(
                 exec, buffer_iter->get_values() + k * stride_buffer,
                 dim_size[1], zero<ValueType>());
@@ -433,8 +436,8 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
     exec->get_master()->copy_from(exec.get(), 1, num_reorth->get_const_data(),
                                   &numReorth);
     std::cout << " numReorth => " << numReorth << std::endl;
-    for (size_type l = 1; (l < 3); l++) {
-        //    for (size_type l = 1; (numReorth>0) && (l < 3); l++) {
+    // for (size_type l = 1; (l < 3); l++) {
+    for (size_type l = 1; (numReorth > 0) && (l < 3); l++) {
         //    for (size_type l = 1; (num_reorth->get_data[0]>0) && (l < 3); l++)
         //    { for (size_type l = 1; (num_reorth->get_values[0]>0) && (l < 3);
         //    l++) {
@@ -590,14 +593,11 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
                               as_cuda_type(stop_status->get_const_data()),
                               final_iter_nums->get_num_elems());
     //    finish_arnoldi(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
-    //    iter,
-    //                   stop_status->get_const_data());
+    //                   iter, stop_status->get_const_data());
     //    finish_arnoldi_reorth(exec, next_krylov_basis, krylov_bases,
-    //    hessenberg_iter,
-    //                          buffer_iter, arnoldi_norm, iter,
-    //                          stop_status->get_const_data(),
+    //                          hessenberg_iter, buffer_iter, arnoldi_norm,
+    //                          iter, stop_status->get_const_data(),
     //                          reorth_status->get_data(), num_reorth);
-    //                          reorth_status->get_data());
     finish_arnoldi_CGS(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                        buffer_iter, arnoldi_norm, iter,
                        stop_status->get_const_data(), reorth_status->get_data(),

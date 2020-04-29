@@ -583,11 +583,13 @@ void step_1(std::shared_ptr<const OmpExecutor> exec,
     }
     //    finish_arnoldi(next_krylov_basis, krylov_bases, hessenberg_iter, iter,
     //                   stop_status->get_const_data());
-    finish_arnoldi_reorth(next_krylov_basis, krylov_bases, hessenberg_iter,
-                          arnoldi_norm, iter, stop_status->get_const_data());
-    // finish_arnoldi_CGS(next_krylov_basis, krylov_bases, hessenberg_iter,
-    //                    buffer_iter, arnoldi_norm, iter,
-    //                    stop_status->get_const_data());
+    //    finish_arnoldi_reorth(next_krylov_basis, krylov_bases,
+    //    hessenberg_iter,
+    //                          arnoldi_norm, iter,
+    //                          stop_status->get_const_data());
+    finish_arnoldi_CGS(next_krylov_basis, krylov_bases, hessenberg_iter,
+                       buffer_iter, arnoldi_norm, iter,
+                       stop_status->get_const_data());
     givens_rotation(next_krylov_basis, givens_sin, givens_cos, hessenberg_iter,
                     iter, stop_status->get_const_data());
     calculate_next_residual_norm(givens_sin, givens_cos, residual_norm,

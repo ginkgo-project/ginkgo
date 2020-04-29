@@ -247,6 +247,7 @@ __global__
             if ((hessenberg_iter[hessenberg_idx] *
                  hessenberg_iter[hessenberg_idx]) >
                 (0.99 * sqrt(arnoldi_norm[arnoldi_idx]))) {
+                //                reorth_status[reorth_idx].stop(1);
                 reorth_status[reorth_idx].reset();
                 //                reorth_status[k].reset();
                 printf("K = %d , HI = %f , AN = %f\n", k,
@@ -259,6 +260,7 @@ __global__
                 //                    printf ("BAD in %d\n", arnoldi_idx);
                 atomic_add(num_reorth, (size_type)1);
             } else {
+                //                reorth_status[reorth_idx].reset();
                 reorth_status[reorth_idx].stop(1);
                 //                if (reorth_status[arnoldi_idx].has_stopped())
                 //                    printf ("OK in %d\n", arnoldi_idx);
@@ -289,7 +291,7 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel_and_add(
 
     if (row_idx < num_rows && col_idx < num_cols &&
         !stop_status[col_idx].has_stopped() &&
-        reorth_status[col_idx].has_stopped()) {
+        !reorth_status[col_idx].has_stopped()) {
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
         const auto krylov_idx =
             row_idx * stride_krylov + k * num_cols + col_idx;
@@ -297,7 +299,7 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel_and_add(
         const auto buffer_idx = k * stride_buffer + col_idx;
         next_krylov_basis[next_krylov_idx] -=
             buffer_iter[buffer_idx] * krylov_bases[krylov_idx];
-        if ((row_idx == 0) && reorth_status[col_idx].has_stopped()) {
+        if ((row_idx == 0) && !reorth_status[col_idx].has_stopped()) {
             printf(" Add(%d) = %10.5e\n", k, buffer_iter[buffer_idx]);
             hessenberg_iter[hessenberg_idx] += buffer_iter[buffer_idx];
         }
@@ -330,7 +332,8 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms(
         //        {
         printf(" Reorth(%d) = %10.5e,%10.5e)\n", global_id, num0, num1);
         if (num1 < num0) {
-            reorth_status[global_id].stop(1);
+            //            reorth_status[global_id].stop(1);
+            reorth_status[global_id].reset();
             atomic_add(num_reorth, (size_type)1);
             //            num_reorth[0] = 1;
             //            printf (" Reorth(%10.5e,%10.5e)\n",
@@ -338,7 +341,8 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms(
             //                     arnoldi_norm1[global_id]);
         } else {
             //            num_reorth[0] = 0;
-            reorth_status[global_id].reset();
+            //            reorth_status[global_id].reset();
+            reorth_status[global_id].stop(1);
         }
     }
 }

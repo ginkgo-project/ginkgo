@@ -30,14 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <core/solver/gmres_mixed.cpp>
 #include <ginkgo/core/solver/gmres_mixed.hpp>
-
 
 #include <typeinfo>
 
-
 #include <gtest/gtest.h>
-
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -45,24 +43,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
 
-
-#include "core/test/utils.hpp"
-
-
 namespace {
 
-
-template <typename T1, typename T2>
 class GmresMixed : public ::testing::Test {
 protected:
-    using value_type = T1;
-    using krylov_type = T2;
-    using Mtx = gko::matrix::Dense<value_type>;
-    using Solver = gko::solver::GmresMixed<value_type, krylov_type>;
+    using Mtx = gko::matrix::Dense<>;
+    using Solver = gko::solver::GmresMixed<>;
+    //    using Solver = gko::solver::GmresMixed<double,double>;
     using Big_solver = gko::solver::GmresMixed<double>;
-
-    static constexpr gko::remove_complex<T1> reduction_factor =
-        gko::remove_complex<T1>(1e-6);
 
     GmresMixed()
         : exec(gko::ReferenceExecutor::create()),
@@ -72,8 +60,8 @@ protected:
               Solver::build()
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(3u).on(exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
-                          .with_reduction_factor(reduction_factor)
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-6)
                           .on(exec))
                   .on(exec)),
           solver(gmres_mixed_factory->generate(mtx)),
@@ -82,8 +70,8 @@ protected:
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(128u).on(
                           exec),
-                      gko::stop::ResidualNormReduction<value_type>::build()
-                          .with_reduction_factor(reduction_factor)
+                      gko::stop::ResidualNormReduction<>::build()
+                          .with_reduction_factor(1e-6)
                           .on(exec))
                   .on(exec)),
           big_solver(gmres_mixed_big_factory->generate(mtx))
@@ -91,7 +79,7 @@ protected:
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<typename Solver::Factory> gmres_mixed_factory;
+    std::unique_ptr<Solver::Factory> gmres_mixed_factory;
     std::unique_ptr<gko::LinOp> solver;
     std::unique_ptr<Big_solver::Factory> gmres_mixed_big_factory;
     std::unique_ptr<gko::LinOp> big_solver;
@@ -108,200 +96,160 @@ protected:
     }
 };
 
-template <typename T1>
-constexpr gko::remove_complex<T1>
-    GmresMixed<T1, T1>::reduction_factor;  // JIAE??
-
-TYPED_TEST_CASE(GmresMixed, gko::test::ValueTypes);
-
-
-TYPED_TEST(GmresMixed, GmresMixedFactoryKnowsItsExecutor)
+TEST_F(GmresMixed, GmresMixedFactoryKnowsItsExecutor)
 {
-    ASSERT_EQ(this->gmres_mixed_factory->get_executor(), this->exec);
+    ASSERT_EQ(gmres_mixed_factory->get_executor(), exec);
 }
 
-
-TYPED_TEST(GmresMixed, GmresMixedFactoryCreatesCorrectSolver)
+TEST_F(GmresMixed, GmresMixedFactoryCreatesCorrectSolver)
 {
-    using Solver = typename TestFixture::Solver;
-    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(3, 3));
-    auto gmres_mixed_solver = static_cast<Solver *>(this->solver.get());
+    ASSERT_EQ(solver->get_size(), gko::dim<2>(3, 3));
+    auto gmres_mixed_solver = static_cast<Solver *>(solver.get());
     ASSERT_NE(gmres_mixed_solver->get_system_matrix(), nullptr);
-    ASSERT_EQ(gmres_mixed_solver->get_system_matrix(), this->mtx);
+    ASSERT_EQ(gmres_mixed_solver->get_system_matrix(), mtx);
 }
 
-
-TYPED_TEST(GmresMixed, CanBeCopied)
+TEST_F(GmresMixed, CanBeCopied)
 {
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    auto copy = this->gmres_mixed_factory->generate(Mtx::create(this->exec));
+    auto copy = gmres_mixed_factory->generate(Mtx::create(exec));
 
-    copy->copy_from(this->solver.get());
+    copy->copy_from(solver.get());
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
-                               this->mtx.get());
+    assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
 }
 
-
-TYPED_TEST(GmresMixed, CanBeMoved)
+TEST_F(GmresMixed, CanBeMoved)
 {
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    auto copy = this->gmres_mixed_factory->generate(Mtx::create(this->exec));
+    auto copy = gmres_mixed_factory->generate(Mtx::create(exec));
 
-    copy->copy_from(std::move(this->solver));
+    copy->copy_from(std::move(solver));
 
     ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
     auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
-                               this->mtx.get());
+    assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()), mtx.get());
 }
 
-
-TYPED_TEST(GmresMixed, CanBeCloned)
+TEST_F(GmresMixed, CanBeCloned)
 {
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    auto clone = this->solver->clone();
+    auto clone = solver->clone();
 
     ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
     auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
-    this->assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()),
-                               this->mtx.get());
+    assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()), mtx.get());
 }
 
-
-TYPED_TEST(GmresMixed, CanBeCleared)
+TEST_F(GmresMixed, CanBeCleared)
 {
-    using Solver = typename TestFixture::Solver;
-    this->solver->clear();
+    solver->clear();
 
-    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
-    auto solver_mtx =
-        static_cast<Solver *>(this->solver.get())->get_system_matrix();
+    ASSERT_EQ(solver->get_size(), gko::dim<2>(0, 0));
+    auto solver_mtx = static_cast<Solver *>(solver.get())->get_system_matrix();
     ASSERT_EQ(solver_mtx, nullptr);
 }
 
-
-TYPED_TEST(GmresMixed, CanSetPreconditionerGenerator)
+TEST_F(GmresMixed, CanSetPreconditionerGenerator)
 {
-    using Solver = typename TestFixture::Solver;
-    using value_type = typename TestFixture::value_type;
     auto gmres_mixed_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
-                gko::stop::ResidualNormReduction<value_type>::build()
-                    .with_reduction_factor(TestFixture::reduction_factor)
-                    .on(this->exec))
-            .with_preconditioner(Solver::build().on(this->exec))
-            .on(this->exec);
-    auto solver = gmres_mixed_factory->generate(this->mtx);
-    auto precond = dynamic_cast<const gko::solver::GmresMixed<value_type> *>(
-        static_cast<gko::solver::GmresMixed<value_type> *>(solver.get())
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-6)
+                    .on(exec))
+            .with_preconditioner(Solver::build().on(exec))
+            .on(exec);
+    auto solver = gmres_mixed_factory->generate(mtx);
+    auto precond = dynamic_cast<const gko::solver::GmresMixed<> *>(
+        static_cast<gko::solver::GmresMixed<> *>(solver.get())
             ->get_preconditioner()
             .get());
 
     ASSERT_NE(precond, nullptr);
     ASSERT_EQ(precond->get_size(), gko::dim<2>(3, 3));
-    ASSERT_EQ(precond->get_system_matrix(), this->mtx);
+    ASSERT_EQ(precond->get_system_matrix(), mtx);
 }
 
-
-TYPED_TEST(GmresMixed, CanSetKrylovDim)
+TEST_F(GmresMixed, CanSetKrylovDim)
 {
-    using Solver = typename TestFixture::Solver;
-    using value_type = typename TestFixture::value_type;
     auto gmres_mixed_factory =
         Solver::build()
             .with_krylov_dim_mixed(4u)
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(this->exec),
-                gko::stop::ResidualNormReduction<value_type>::build()
-                    .with_reduction_factor(TestFixture::reduction_factor)
-                    .on(this->exec))
-            .on(this->exec);
-    auto solver = gmres_mixed_factory->generate(this->mtx);
+                gko::stop::Iteration::build().with_max_iters(4u).on(exec),
+                gko::stop::ResidualNormReduction<>::build()
+                    .with_reduction_factor(1e-6)
+                    .on(exec))
+            .on(exec);
+    auto solver = gmres_mixed_factory->generate(mtx);
     auto krylov_dim_mixed = solver->get_krylov_dim_mixed();
 
     ASSERT_EQ(krylov_dim_mixed, 4);
 }
 
-
-TYPED_TEST(GmresMixed, CanSetPreconditionerInFactory)
+TEST_F(GmresMixed, CanSetPreconditionerInFactory)
 {
-    using Solver = typename TestFixture::Solver;
     std::shared_ptr<Solver> gmres_mixed_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
-            .on(this->exec)
-            ->generate(this->mtx);
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(mtx);
 
     auto gmres_mixed_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
             .with_generated_preconditioner(gmres_mixed_precond)
-            .on(this->exec);
-    auto solver = gmres_mixed_factory->generate(this->mtx);
+            .on(exec);
+    auto solver = gmres_mixed_factory->generate(mtx);
     auto precond = solver->get_preconditioner();
 
     ASSERT_NE(precond.get(), nullptr);
     ASSERT_EQ(precond.get(), gmres_mixed_precond.get());
 }
 
-
-TYPED_TEST(GmresMixed, ThrowsOnWrongPreconditionerInFactory)
+TEST_F(GmresMixed, ThrowsOnWrongPreconditionerInFactory)
 {
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    std::shared_ptr<Mtx> wrong_sized_mtx =
-        Mtx::create(this->exec, gko::dim<2>{1, 3});
+    std::shared_ptr<Mtx> wrong_sized_mtx = Mtx::create(exec, gko::dim<2>{1, 3});
     std::shared_ptr<Solver> gmres_mixed_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
-            .on(this->exec)
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
             ->generate(wrong_sized_mtx);
 
     auto gmres_mixed_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
             .with_generated_preconditioner(gmres_mixed_precond)
-            .on(this->exec);
+            .on(exec);
 
-    ASSERT_THROW(gmres_mixed_factory->generate(this->mtx),
-                 gko::DimensionMismatch);
+    ASSERT_THROW(gmres_mixed_factory->generate(mtx), gko::DimensionMismatch);
 }
 
-
-TYPED_TEST(GmresMixed, CanSetPreconditioner)
+TEST_F(GmresMixed, CanSetPreconditioner)
 {
-    using Solver = typename TestFixture::Solver;
     std::shared_ptr<Solver> gmres_mixed_precond =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
-            .on(this->exec)
-            ->generate(this->mtx);
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec)
+            ->generate(mtx);
 
     auto gmres_mixed_factory =
         Solver::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
-            .on(this->exec);
-    auto solver = gmres_mixed_factory->generate(this->mtx);
+                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
+            .on(exec);
+    auto solver = gmres_mixed_factory->generate(mtx);
     solver->set_preconditioner(gmres_mixed_precond);
     auto precond = solver->get_preconditioner();
 
     ASSERT_NE(precond.get(), nullptr);
     ASSERT_EQ(precond.get(), gmres_mixed_precond.get());
 }
-
 
 }  // namespace
