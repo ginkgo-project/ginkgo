@@ -143,7 +143,7 @@ void finish_arnoldi_reorth(matrix::Dense<ValueType> *next_krylov_basis,
                     krylov_bases->at(j,
                                      next_krylov_basis->get_size()[1] * k + i);
             }
-            if (hessenberg_iter->at(k, i) * hessenberg_iter->at(k, i) >
+            if ((hessenberg_iter->at(k, i) * hessenberg_iter->at(k, i)) >
                 arnoldi_norm->at(0, i)) {
                 std::cout << "K = " << k;
                 std::cout << " , HI = " << hessenberg_iter->at(k, i);
