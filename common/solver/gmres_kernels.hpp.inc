@@ -96,7 +96,6 @@ __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
     const ValueType *__restrict__ residual_norm,
     ValueType *__restrict__ residual_norm_collection,
     ValueType *__restrict__ krylov_bases, size_type stride_krylov,
-    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
     size_type *__restrict__ final_iter_nums)
 {
     const auto global_id = thread::get_thread_id_flat();
@@ -112,7 +111,6 @@ __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
         auto value = residual[row_idx * stride_residual + col_idx] /
                      residual_norm[col_idx];
         krylov_bases[row_idx * stride_krylov + col_idx] = value;
-        next_krylov_basis[row_idx * stride_next_krylov + col_idx] = value;
     }
 }
 
@@ -133,9 +131,8 @@ template <typename ValueType>
 __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
     size_type k, size_type num_rows, size_type num_cols,
     const ValueType *__restrict__ next_krylov_basis,
-    size_type stride_next_krylov, const ValueType *__restrict__ krylov_bases,
-    size_type stride_krylov, ValueType *__restrict__ hessenberg_iter,
-    size_type stride_hessenberg,
+    const ValueType *__restrict__ krylov_bases, size_type stride_krylov,
+    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
     const auto tidx = threadIdx.x;
@@ -156,10 +153,9 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
         for (size_type i = start_row + tidy; i < end_row;
              i += default_dot_dim) {
-            const auto next_krylov_idx = i * stride_next_krylov + col_idx;
             const auto krylov_idx = i * stride_krylov + col_idx;
             local_res +=
-                next_krylov_basis[next_krylov_idx] * krylov_bases[krylov_idx];
+                next_krylov_basis[krylov_idx] * krylov_bases[krylov_idx];
         }
     }
     reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
@@ -184,18 +180,18 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
 template <int block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
     size_type k, size_type num_rows, size_type num_cols,
-    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
+    ValueType *__restrict__ next_krylov_basis,
     const ValueType *__restrict__ krylov_bases, size_type stride_krylov,
     const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
-    const auto row_idx = global_id / stride_next_krylov;
-    const auto col_idx = global_id % stride_next_krylov;
+    const auto row_idx = global_id / stride_krylov;
+    const auto col_idx = global_id % stride_krylov;
 
     if (row_idx < num_rows && col_idx < num_cols &&
         !stop_status[col_idx].has_stopped()) {
-        const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
+        const auto next_krylov_idx = row_idx * stride_krylov + col_idx;
         const auto krylov_idx = row_idx * stride_krylov + col_idx;
         const auto hessenberg_idx = k * stride_hessenberg + col_idx;
 
@@ -246,32 +242,26 @@ __global__ __launch_bounds__(block_size) void update_hessenberg_2_kernel(
 }
 
 
-// Must be called with at least `num_rows * stride_next_krylov` threads in
+// Must be called with at least `num_rows * stride_krylov` threads in
 // total.
 template <int block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void update_krylov_next_krylov_kernel(
+__global__ __launch_bounds__(block_size) void update_krylov_kernel(
     size_type iter, size_type num_rows, size_type num_cols,
-    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
     ValueType *__restrict__ krylov_bases, size_type stride_krylov,
     const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
-    const auto row_idx = global_id / stride_next_krylov;
-    const auto col_idx = global_id % stride_next_krylov;
+    const auto row_idx = global_id / stride_krylov;
+    const auto col_idx = global_id % stride_krylov;
     const auto hessenberg =
         hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx];
 
     if (row_idx < num_rows && col_idx < num_cols &&
         !stop_status[col_idx].has_stopped()) {
-        const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
         const auto krylov_idx = row_idx * stride_krylov + col_idx;
 
-        const auto next_krylov_value =
-            next_krylov_basis[next_krylov_idx] / hessenberg;
-
-        next_krylov_basis[next_krylov_idx] = next_krylov_value;
-        krylov_bases[krylov_idx] = next_krylov_value;
+        krylov_bases[krylov_idx] /= hessenberg;
     }
 }
 
@@ -347,16 +337,13 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
                 hessenberg_iter[i * stride_hessenberg + col_idx] +
             givens_sin[i * stride_sin + col_idx] *
                 hessenberg_iter[(i + 1) * stride_hessenberg + col_idx];
-        // current_thread_block.sync();
         hessenberg_iter[(i + 1) * stride_hessenberg + col_idx] =
             givens_cos[i * stride_cos + col_idx] *
                 hessenberg_iter[(i + 1) * stride_hessenberg + col_idx] -
             givens_sin[i * stride_sin + col_idx] *
                 hessenberg_iter[i * stride_hessenberg + col_idx];
         hessenberg_iter[i * stride_hessenberg + col_idx] = tmp;
-        // current_thread_block.sync();
     }
-    // current_thread_block.sync();
     // for j in 1:iter - 1
     //     temp             =  cos(j)*hessenberg(j) +
     //                         sin(j)*hessenberg(j+1)
