@@ -101,6 +101,7 @@ set(GINKGO_HIP_SOURCES
     base/exception.hip.cpp
     base/executor.hip.cpp
     base/version.hip.cpp
+    components/precision_conversion.hip.cpp
     components/prefix_sum.hip.cpp
     components/zero_array_kernels.hip.cpp
     factorization/ilu_kernels.hip.cpp

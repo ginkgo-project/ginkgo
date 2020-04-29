@@ -64,6 +64,7 @@ target_sources(ginkgo_cuda
         base/exception.cpp
         base/executor.cpp
         base/version.cpp
+        components/precision_conversion.cu
         components/prefix_sum.cu
         components/zero_array_kernels.cu
         factorization/ilu_kernels.cu
