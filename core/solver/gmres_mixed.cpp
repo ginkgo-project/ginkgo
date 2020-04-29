@@ -120,7 +120,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     Array<stopping_status> reorth_status(this->get_executor(),
                                          dense_b->get_size()[1]);
     //                                         krylov_dim_mixed_ + 1);
-    Array<size_type> num_reorth(this->get_executor(), 1);
+    Array<size_type> num_reorth(this->get_executor(), dense_b->get_size()[1]);
 
     // Initialization
     exec->run(gmres_mixed::make_initialize_1(
