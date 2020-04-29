@@ -248,12 +248,10 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
         for (size_type col = 0; col < num_cols; ++col) {
             auto val = source->at(row, col);
             if (val != zero<ValueType>()) {
-                {
-                    row_idxs[idxs] = row;
-                    col_idxs[idxs] = col;
-                    values[idxs] = val;
-                    ++idxs;
-                }
+                row_idxs[idxs] = row;
+                col_idxs[idxs] = col;
+                values[idxs] = val;
+                ++idxs;
             }
         }
     }
