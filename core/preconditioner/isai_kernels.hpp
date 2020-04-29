@@ -52,17 +52,11 @@ namespace kernels {
                             const matrix::Csr<ValueType, IndexType> *u_csr, \
                             matrix::Csr<ValueType, IndexType> *inverse_u)
 
-#define GKO_DECLARE_ISAI_IDENTITY_TRIANGLE_KERNEL(ValueType, IndexType) \
-    void identity_triangle(std::shared_ptr<const DefaultExecutor> exec, \
-                           matrix::Csr<ValueType, IndexType> *mtx, bool lower)
-
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_ISAI_GENERATE_L_INVERSE_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_ISAI_GENERATE_U_INVERSE_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_ISAI_IDENTITY_TRIANGLE_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_ISAI_GENERATE_U_INVERSE_KERNEL(ValueType, IndexType)
 
 
 namespace omp {

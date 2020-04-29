@@ -119,21 +119,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_GENERATE_U_INVERSE_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void identity_triangle(std::shared_ptr<const DefaultExecutor> exec,
-                       matrix::Csr<ValueType, IndexType> *mtx, bool lower)
-{
-    auto num_rows = mtx->get_size()[0];
-    auto num_blocks = ceildiv(num_rows, default_block_size);
-    kernel::identity_triangle<<<num_blocks, default_block_size>>>(
-        static_cast<IndexType>(num_rows), mtx->get_const_row_ptrs(),
-        as_cuda_type(mtx->get_values()), lower);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ISAI_IDENTITY_TRIANGLE_KERNEL);
-
-
 }  // namespace isai
 }  // namespace cuda
 }  // namespace kernels

@@ -52,7 +52,6 @@ namespace preconditioner {
 namespace isai {
 
 
-GKO_REGISTER_OPERATION(identity_triangle, isai::identity_triangle);
 GKO_REGISTER_OPERATION(generate_l_inverse, isai::generate_l_inverse);
 GKO_REGISTER_OPERATION(generate_u_inverse, isai::generate_u_inverse);
 
@@ -122,7 +121,6 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor> &exec,
         return {std::move(mtx->clone())};
     }
     auto id = mtx->clone();
-    exec->run(isai::make_identity_triangle(id.get(), lower));
     auto id_power = id->clone();
     auto tmp = Csr::create(exec, mtx->get_size());
     // compute id^(n-1) and then multiply it with mtx
