@@ -365,6 +365,7 @@ TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
+    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
 }
 
 
@@ -379,6 +380,7 @@ TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
+    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
 }
 
 
@@ -609,6 +611,32 @@ TEST_F(Csr, MoveToHybridIsEquivalentToRef)
     dmtx->move_to(dhybrid_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(hybrid_mtx.get(), dhybrid_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, RecognizeSortedMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>());
+    bool is_sorted_cuda{};
+    bool is_sorted_ref{};
+
+    is_sorted_ref = mtx->is_sorted_by_column_index();
+    is_sorted_cuda = dmtx->is_sorted_by_column_index();
+
+    ASSERT_EQ(is_sorted_ref, is_sorted_cuda);
+}
+
+
+TEST_F(Csr, RecognizeUnsortedMatrixIsEquivalentToRef)
+{
+    auto uns_mtx = gen_unsorted_mtx();
+    bool is_sorted_cuda{};
+    bool is_sorted_ref{};
+
+    is_sorted_ref = uns_mtx.ref->is_sorted_by_column_index();
+    is_sorted_cuda = uns_mtx.cuda->is_sorted_by_column_index();
+
+    ASSERT_EQ(is_sorted_ref, is_sorted_cuda);
 }
 
 

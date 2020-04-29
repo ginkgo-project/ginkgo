@@ -238,6 +238,7 @@ TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
+    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
 }
 
 
@@ -252,6 +253,7 @@ TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
+    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
 }
 
 

@@ -1018,8 +1018,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const CudaExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *to_check,
-    bool *is_sorted) GKO_NOT_IMPLEMENTED;
+    const matrix::Csr<ValueType, IndexType> *to_check, bool *is_sorted)
+{
+    *is_sorted = true;
+    auto cpu_array = Array<bool>::view(exec->get_master(), 1, is_sorted);
+    auto gpu_array = Array<bool>{exec, cpu_array};
+    auto block_size = default_block_size;
+    auto num_rows = static_cast<IndexType>(to_check->get_size()[0]);
+    auto num_blocks = ceildiv(num_rows, block_size);
+    kernel::check_unsorted<<<num_blocks, block_size>>>(
+        to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
+        num_rows, gpu_array.get_data());
+    cpu_array = gpu_array;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX);

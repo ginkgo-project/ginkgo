@@ -228,6 +228,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_GENERATE_U_INVERSE_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void identity_triangle(std::shared_ptr<const DefaultExecutor> exec,
+                       matrix::Csr<ValueType, IndexType> *mtx, bool lower)
+{
+    auto num_rows = mtx->get_size()[0];
+    auto row_ptrs = mtx->get_const_row_ptrs();
+    auto col_idxs = mtx->get_const_col_idxs();
+    auto vals = mtx->get_values();
+    for (size_type row = 0; row < num_rows; ++row) {
+        for (size_type nz = row_ptrs[row]; nz < row_ptrs[row + 1]; ++nz) {
+            vals[nz] =
+                col_idxs[nz] == row ? one<ValueType>() : zero<ValueType>();
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_IDENTITY_TRIANGLE_KERNEL);
+
+
 }  // namespace isai
 }  // namespace reference
 }  // namespace kernels

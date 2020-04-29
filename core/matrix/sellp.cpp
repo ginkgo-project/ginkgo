@@ -33,9 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
-#include <vector>
-
-
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -44,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/allocator.hpp"
 #include "core/matrix/sellp_kernels.hpp"
 
 
@@ -69,7 +67,7 @@ template <typename ValueType, typename IndexType>
 size_type calculate_total_cols(const matrix_data<ValueType, IndexType> &data,
                                const size_type slice_size,
                                const size_type stride_factor,
-                               std::vector<size_type> &slice_lengths)
+                               vector<size_type> &slice_lengths)
 {
     size_type nonzeros_per_row = 0;
     IndexType current_row = 0;
@@ -175,7 +173,7 @@ void Sellp<ValueType, IndexType>::read(const mat_data &data)
     // Allocate space for slice_cols.
     size_type slice_num =
         static_cast<index_type>((data.size[0] + slice_size - 1) / slice_size);
-    std::vector<size_type> slice_lengths(slice_num, 0);
+    vector<size_type> slice_lengths(slice_num, 0, {this->get_executor()});
 
     // Get the number of maximum columns for every slice.
     auto total_cols =

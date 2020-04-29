@@ -53,6 +53,14 @@ struct Derived : Base {};
 struct NonRelated : Base {};
 
 
+struct Base2 {
+    virtual ~Base2() = default;
+};
+
+
+struct MultipleDerived : Base, Base2 {};
+
+
 struct ClonableDerived : Base {
     ClonableDerived(std::shared_ptr<const gko::Executor> exec = nullptr)
         : executor(exec)
@@ -335,6 +343,35 @@ TEST(As, FailsToConvertConstSharedPtrIfNotRelated)
 
     ASSERT_THROW(gko::as<NonRelated>(std::shared_ptr<const Base>{expected}),
                  gko::NotSupported);
+}
+
+
+TEST(As, CanCrossCastUniquePtr)
+{
+    auto obj = std::unique_ptr<MultipleDerived>(new MultipleDerived{});
+    auto ptr = obj.get();
+    auto base = gko::as<Base>(std::move(obj));
+
+    ASSERT_EQ(gko::as<MultipleDerived>(gko::as<Base2>(std::move(base))).get(),
+              ptr);
+}
+
+
+TEST(As, CanCrossCastSharedPtr)
+{
+    auto obj = std::make_shared<MultipleDerived>();
+    auto base = gko::as<Base>(obj);
+
+    ASSERT_EQ(gko::as<MultipleDerived>(gko::as<Base2>(base)), base);
+}
+
+
+TEST(As, CanCrossCastConstSharedPtr)
+{
+    auto obj = std::make_shared<const MultipleDerived>();
+    auto base = gko::as<const Base>(obj);
+
+    ASSERT_EQ(gko::as<const MultipleDerived>(gko::as<const Base2>(base)), base);
 }
 
 
