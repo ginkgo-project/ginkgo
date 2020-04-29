@@ -51,84 +51,71 @@ __forceinline__ __device__ void generic_generate(
     const IndexType *__restrict__ i_col_idxs, ValueType *__restrict__ i_values,
     Callable trs_solve)
 {
-    static_assert((subwarp_size & (subwarp_size - 1)) == 0,
-                  "subwarp_size must be a power of 2");
-
-    const auto gidx = thread::get_thread_id_flat<IndexType>();
     const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
-    const int tidx = threadIdx.x;
-
-    auto this_block = group::this_thread_block();
-    auto subwarp = group::tiled_partition<subwarp_size>(this_block);
-    const int local_id = subwarp.thread_rank();
-
-    __shared__ UninitializedArray<ValueType, subwarp_size * subwarp_size *
-                                                 subwarps_per_block>
-        trisystem;
-
-    const int end_trisystem = blockDim.x * subwarp_size;
-    const int trisystem_start =
-        (tidx / subwarp_size) * subwarp_size * subwarp_size;
-
-    // Allow at most subwarp_size * subwarp_size elements in a subwarp trisystem
-    for (int i = 0; i < subwarp_size; ++i) {
-        trisystem[trisystem_start + local_id + i * subwarp_size] =
-            zero<ValueType>();
-    }
-    this_block.sync();
 
     if (row >= num_rows) {
         return;
     }
 
     const auto i_row_begin = i_row_ptrs[row];
-    const auto i_row_end = i_row_ptrs[row + 1] - i_row_begin < subwarp_size
-                               ? i_row_ptrs[row + 1]
-                               : i_row_begin + subwarp_size;
-    const auto num_row_elems = i_row_end - i_row_begin;
+    const auto i_row_size = i_row_ptrs[row + 1] - i_row_begin;
 
-    if (local_id < num_row_elems) {
-        const auto col = i_col_idxs[i_row_begin + local_id];
-        const auto m_row_end = m_row_ptrs[col + 1];
-        auto m_row_ptr = m_row_ptrs[col];
-        auto i_row_ptr = i_row_begin;
-        int idx{trisystem_start + local_id};  // write to trisystem in row major
-
-        while (m_row_ptr < m_row_end && i_row_ptr < i_row_end &&
-               idx < end_trisystem) {
-            const auto sparsity_col = i_col_idxs[i_row_ptr];
-            const auto m_col = m_col_idxs[m_row_ptr];
-            if (sparsity_col == m_col) {
-                trisystem[idx] = m_values[m_row_ptr];
-                idx += subwarp_size;
-                ++m_row_ptr;
-                ++i_row_ptr;
-            } else if (m_col < sparsity_col) {
-                ++m_row_ptr;
-            } else {
-                ++i_row_ptr;
-                idx += subwarp_size;
-            }
-        }
+    if (i_row_size > subwarp_size) {
+        return;
     }
 
-    this_block.sync();
+    auto this_block = group::this_thread_block();
+    auto subwarp =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const int local_id = subwarp.thread_rank();
+
+    // subwarp_size^2 storage per subwarp
+    __shared__ UninitializedArray<ValueType, subwarp_size * subwarp_size *
+                                                 subwarps_per_block>
+        storage;
+
+    auto trisystem_ptr =
+        storage + (threadIdx.x / subwarp_size) * subwarp_size * subwarp_size;
+    // row-major accessor
+    auto trisystem = [&](IndexType row, IndexType col) -> ValueType & {
+        return trisystem_ptr[row * subwarp_size + col];
+    };
+
+#pragma unroll
+    for (int i = 0; i < subwarp_size; ++i) {
+        trisystem(i, local_id) = zero<ValueType>();
+    }
+
+    subwarp.sync();
+
+    if (local_id < i_row_size) {
+        const auto col = i_col_idxs[i_row_begin + local_id];
+        auto m_row_begin = m_row_ptrs[col];
+        auto m_row_size = m_row_ptrs[col + 1] - m_row_begin;
+
+        sequential_match(
+            m_col_idxs + m_row_begin, m_row_size, i_col_idxs + i_row_begin,
+            i_row_size, [&](IndexType, IndexType m_idx, IndexType i_idx) {
+                trisystem(i_idx, local_id) = m_values[m_row_begin + m_idx];
+            });
+    }
+
+    subwarp.sync();
 
     // Now, read a full col of `trisystem` into local registers, which will be
     // row elements after this (implicit) transpose
     ValueType local_row[subwarp_size];
-    const auto trisystem_col_start = trisystem_start + local_id * subwarp_size;
+#pragma unroll
     for (int i = 0; i < subwarp_size; ++i) {
         const auto intermediate_idx = local_id + i;
         const auto coalesced_idx = intermediate_idx % subwarp_size;
-        local_row[coalesced_idx] =
-            trisystem[trisystem_col_start + coalesced_idx];
+        local_row[coalesced_idx] = trisystem(local_id, coalesced_idx);
     }
 
-    const auto rhs = trs_solve(num_row_elems, local_row, subwarp);
+    const auto rhs = trs_solve(i_row_size, local_row, subwarp);
 
     // Write back:
-    if (local_id < num_row_elems) {
+    if (local_id < i_row_size) {
         const auto idx = i_row_begin + local_id;
         if (gko::isfinite(rhs)) {
             i_values[idx] = rhs;

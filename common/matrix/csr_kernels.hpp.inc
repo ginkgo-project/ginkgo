@@ -517,6 +517,7 @@ __global__ __launch_bounds__(default_block_size) void spgeam_nnz(
         [&](IndexType, IndexType a_col, IndexType, IndexType b_col, IndexType,
             bool valid) {
             count += popcnt(subwarp.ballot(a_col != b_col && valid));
+            return true;
         });
 
     if (subwarp.thread_rank() == 0) {
@@ -580,6 +581,7 @@ __global__ __launch_bounds__(default_block_size) void spgeam(
             // would only be false somwhere in the last iteration, where
             // we don't need the value of c_begin afterwards, anyways.
             c_begin += popcnt(~prev_equal_mask & lanemask_full);
+            return true;
         });
 }
 
