@@ -181,6 +181,7 @@ __global__ void test_merge(const gko::int32 *a, const gko::int32 *b, int size,
                                        if (valid) {
                                            c[i] = min(a_val, b_val);
                                        }
+                                       return true;
                                    });
 }
 
@@ -206,6 +207,7 @@ __global__ void test_sequential_merge(const gko::int32 *a, const gko::int32 *b,
         a, size, b, size,
         [&](int a_idx, gko::int32 a_val, int b_idx, gko::int32 b_val, int i) {
             c[i] = min(a_val, b_val);
+            return true;
         });
 }
 
@@ -237,6 +239,7 @@ __global__ void test_merge_idxs(const gko::int32 *a, const gko::int32 *b,
                              refaidxs[i] = a_idx;
                              refbidxs[i] = b_idx;
                              refcidxs[i] = i;
+                             return true;
                          });
     }
     auto warp = tiled_partition<config::warp_size>(this_thread_block());
@@ -249,6 +252,7 @@ __global__ void test_merge_idxs(const gko::int32 *a, const gko::int32 *b,
                                            cidxs[i] = i;
                                            c[i] = min(a_val, b_val);
                                        }
+                                       return true;
                                    });
 }
 
