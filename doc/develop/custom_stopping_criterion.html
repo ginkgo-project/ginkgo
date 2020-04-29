@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/141159205 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/141208230 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -156,9 +156,12 @@ $(function() {
 <div class="line">                std::shared_ptr&lt;gko::Executor&gt; exec)</div>
 <div class="line">{</div>
 </div><!-- fragment --><p>Some shortcuts</p>
-<div class="fragment"><div class="line"><span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;&gt;</a>;</div>
-<div class="line"><span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;&gt;</a>;</div>
-<div class="line"><span class="keyword">using</span> bicg = <a class="code" href="classgko_1_1solver_1_1Bicgstab.html">gko::solver::Bicgstab&lt;&gt;</a>;</div>
+<div class="fragment"><div class="line"><span class="keyword">using</span> ValueType = double;</div>
+<div class="line"><span class="keyword">using</span> IndexType = int;</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;ValueType, IndexType&gt;</a>;</div>
+<div class="line"><span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
+<div class="line"><span class="keyword">using</span> bicg = <a class="code" href="classgko_1_1solver_1_1Bicgstab.html">gko::solver::Bicgstab&lt;ValueType&gt;</a>;</div>
 </div><!-- fragment --><p>Read Data</p>
 <div class="fragment"><div class="line"><span class="keyword">auto</span> A = <a class="code" href="namespacegko.html#a3ce296f73db0ff398bdea6009a3a5c58">share</a>(gko::read&lt;mtx&gt;(std::ifstream(<span class="stringliteral">&quot;data/A.mtx&quot;</span>), exec));</div>
 <div class="line"><span class="keyword">auto</span> b = gko::read&lt;vec&gt;(std::ifstream(<span class="stringliteral">&quot;data/b.mtx&quot;</span>), exec);</div>
@@ -171,7 +174,7 @@ $(function() {
 <div class="line">                                     .on(exec))</div>
 <div class="line">                  .on(exec)</div>
 <div class="line">                  -&gt;generate(A);</div>
-<div class="line">solver-&gt;add_logger(<a class="code" href="classgko_1_1log_1_1Stream.html">gko::log::Stream&lt;&gt;::create</a>(</div>
+<div class="line">solver-&gt;add_logger(<a class="code" href="classgko_1_1log_1_1Stream.html">gko::log::Stream&lt;ValueType&gt;::create</a>(</div>
 <div class="line">    exec, gko::log::Logger::iteration_complete_mask, std::cout, <span class="keyword">true</span>));</div>
 <div class="line">solver-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x));</div>
 <div class="line"> </div>
@@ -401,9 +404,12 @@ $(function() {
 <div class="line"><span class="keywordtype">void</span> run_solver(<span class="keyword">volatile</span> <span class="keywordtype">bool</span> *stop_iteration_process,</div>
 <div class="line">                std::shared_ptr&lt;gko::Executor&gt; exec)</div>
 <div class="line">{</div>
-<div class="line">    <span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;&gt;</a>;</div>
-<div class="line">    <span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;&gt;</a>;</div>
-<div class="line">    <span class="keyword">using</span> bicg = <a class="code" href="classgko_1_1solver_1_1Bicgstab.html">gko::solver::Bicgstab&lt;&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> ValueType = double;</div>
+<div class="line">    <span class="keyword">using</span> IndexType = int;</div>
+<div class="line"> </div>
+<div class="line">    <span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;ValueType, IndexType&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> bicg = <a class="code" href="classgko_1_1solver_1_1Bicgstab.html">gko::solver::Bicgstab&lt;ValueType&gt;</a>;</div>
 <div class="line"> </div>
 <div class="line">    <span class="keyword">auto</span> A = <a class="code" href="namespacegko.html#a3ce296f73db0ff398bdea6009a3a5c58">share</a>(gko::read&lt;mtx&gt;(std::ifstream(<span class="stringliteral">&quot;data/A.mtx&quot;</span>), exec));</div>
 <div class="line">    <span class="keyword">auto</span> b = gko::read&lt;vec&gt;(std::ifstream(<span class="stringliteral">&quot;data/b.mtx&quot;</span>), exec);</div>
@@ -416,7 +422,7 @@ $(function() {
 <div class="line">                                         .on(exec))</div>
 <div class="line">                      .on(exec)</div>
 <div class="line">                      -&gt;generate(A);</div>
-<div class="line">    solver-&gt;add_logger(<a class="code" href="classgko_1_1log_1_1Stream.html">gko::log::Stream&lt;&gt;::create</a>(</div>
+<div class="line">    solver-&gt;add_logger(<a class="code" href="classgko_1_1log_1_1Stream.html">gko::log::Stream&lt;ValueType&gt;::create</a>(</div>
 <div class="line">        exec, gko::log::Logger::iteration_complete_mask, std::cout, <span class="keyword">true</span>));</div>
 <div class="line">    solver-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x));</div>
 <div class="line"> </div>

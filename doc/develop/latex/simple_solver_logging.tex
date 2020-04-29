@@ -26,7 +26,9 @@ This example depends on simple-\/solver, minimal-\/cuda-\/solver.
 \DoxyCodeLine{\textcolor{keyword}{namespace }\{}
 \DoxyCodeLine{}
 \DoxyCodeLine{}
-\DoxyCodeLine{\textcolor{keywordtype}{void} print\_vector(\textcolor{keyword}{const} std::string \&name, \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}} *vec)}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType>}
+\DoxyCodeLine{\textcolor{keywordtype}{void} print\_vector(\textcolor{keyword}{const} std::string \&name,}
+\DoxyCodeLine{                  \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}} *vec)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    std::cout << name << \textcolor{stringliteral}{" = ["} << std::endl;}
 \DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < vec-\/>\mbox{\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}}()[0]; ++i) \{}
@@ -48,9 +50,12 @@ Some shortcuts
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
-\DoxyCodeLine{\textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}};}
-\DoxyCodeLine{\textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{\textcolor{keyword}{using} IndexType = int;}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<ValueType>}};}
 \end{DoxyCode}
 
 
@@ -98,8 +103,8 @@ Let\textquotesingle{}s declare a logger which prints to std\+::cout instead of p
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{std::shared\_ptr<gko::log::Stream<>> stream\_logger =}
-\DoxyCodeLine{    \mbox{\hyperlink{classgko_1_1log_1_1Stream_a71f96d3f1cd7c03875476cd8db98145b}{gko::log::Stream<>::create}}(}
+\DoxyCodeLine{std::shared\_ptr<gko::log::Stream<ValueType>> stream\_logger =}
+\DoxyCodeLine{    \mbox{\hyperlink{classgko_1_1log_1_1Stream_a71f96d3f1cd7c03875476cd8db98145b}{gko::log::Stream<ValueType>::create}}(}
 \DoxyCodeLine{        exec,}
 \DoxyCodeLine{        \mbox{\hyperlink{classgko_1_1log_1_1Logger_a02534863a2d2f92dfeb2c39038365532}{gko::log::Logger::all\_events\_mask}} \string^}
 \DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1log_1_1Logger_ad6fb77d4d5610bc7299087f7149a7f16}{gko::log::Logger::linop\_factory\_events\_mask}} \string^}
@@ -120,11 +125,13 @@ Add stream\+\_\+logger only to the Residual\+Norm\+Reduction criterion Factory N
 
 
 \begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
 \DoxyCodeLine{\textcolor{keyword}{using} ResidualCriterionFactory =}
-\DoxyCodeLine{    \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction_1_1Factory}{gko::stop::ResidualNormReduction<>::Factory}};}
+\DoxyCodeLine{    \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction_1_1Factory}{gko::stop::ResidualNormReduction<ValueType>::Factory}};}
 \DoxyCodeLine{std::shared\_ptr<ResidualCriterionFactory> residual\_criterion =}
-\DoxyCodeLine{    ResidualCriterionFactory::create().with\_reduction\_factor(1e-\/20).on(}
-\DoxyCodeLine{        exec);}
+\DoxyCodeLine{    ResidualCriterionFactory::create()}
+\DoxyCodeLine{        .with\_reduction\_factor(reduction\_factor)}
+\DoxyCodeLine{        .on(exec);}
 \DoxyCodeLine{residual\_criterion-\/>add\_logger(stream\_logger);}
 \end{DoxyCode}
 
@@ -148,7 +155,7 @@ First we add facilities to only print to a file. It\textquotesingle{}s possible 
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{std::ofstream filestream(\textcolor{stringliteral}{"my\_file.txt"});}
-\DoxyCodeLine{solver-\/>add\_logger(\mbox{\hyperlink{classgko_1_1log_1_1Stream}{gko::log::Stream<>::create}}(}
+\DoxyCodeLine{solver-\/>add\_logger(\mbox{\hyperlink{classgko_1_1log_1_1Stream}{gko::log::Stream<ValueType>::create}}(}
 \DoxyCodeLine{    exec, \mbox{\hyperlink{classgko_1_1log_1_1Logger_a02534863a2d2f92dfeb2c39038365532}{gko::log::Logger::all\_events\_mask}}, filestream));}
 \DoxyCodeLine{solver-\/>add\_logger(stream\_logger);}
 \end{DoxyCode}
@@ -194,7 +201,7 @@ Also print the residual of the last criterion check event (where convergence hap
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keyword}{auto} residual =}
 \DoxyCodeLine{    record\_logger-\/>get().criterion\_check\_completed.back()-\/>residual.get();}
-\DoxyCodeLine{\textcolor{keyword}{auto} residual\_d = gko::as<gko::matrix::Dense<>>(residual);}
+\DoxyCodeLine{\textcolor{keyword}{auto} residual\_d = gko::as<vec>(residual);}
 \DoxyCodeLine{print\_vector(\textcolor{stringliteral}{"Residual"}, residual\_d);}
 \end{DoxyCode}
 
@@ -451,7 +458,9 @@ This is the expected output\+:
 \DoxyCodeLine{\textcolor{keyword}{namespace }\{}
 \DoxyCodeLine{}
 \DoxyCodeLine{}
-\DoxyCodeLine{\textcolor{keywordtype}{void} print\_vector(\textcolor{keyword}{const} std::string \&name, \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}} *vec)}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType>}
+\DoxyCodeLine{\textcolor{keywordtype}{void} print\_vector(\textcolor{keyword}{const} std::string \&name,}
+\DoxyCodeLine{                  \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}} *vec)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    std::cout << name << \textcolor{stringliteral}{" = ["} << std::endl;}
 \DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < vec-\/>\mbox{\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}}()[0]; ++i) \{}
@@ -466,9 +475,12 @@ This is the expected output\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
 \DoxyCodeLine{\{}
-\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
-\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}};}
-\DoxyCodeLine{    \textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<ValueType>}};}
 \DoxyCodeLine{}
 \DoxyCodeLine{    std::cout << \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}}() << std::endl;}
 \DoxyCodeLine{}
@@ -492,8 +504,8 @@ This is the expected output\+:
 \DoxyCodeLine{    \textcolor{keyword}{auto} b = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/b.mtx"}), exec);}
 \DoxyCodeLine{    \textcolor{keyword}{auto} x = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/x0.mtx"}), exec);}
 \DoxyCodeLine{}
-\DoxyCodeLine{    std::shared\_ptr<gko::log::Stream<>> stream\_logger =}
-\DoxyCodeLine{        \mbox{\hyperlink{classgko_1_1log_1_1Stream_a71f96d3f1cd7c03875476cd8db98145b}{gko::log::Stream<>::create}}(}
+\DoxyCodeLine{    std::shared\_ptr<gko::log::Stream<ValueType>> stream\_logger =}
+\DoxyCodeLine{        \mbox{\hyperlink{classgko_1_1log_1_1Stream_a71f96d3f1cd7c03875476cd8db98145b}{gko::log::Stream<ValueType>::create}}(}
 \DoxyCodeLine{            exec,}
 \DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1log_1_1Logger_a02534863a2d2f92dfeb2c39038365532}{gko::log::Logger::all\_events\_mask}} \string^}
 \DoxyCodeLine{                \mbox{\hyperlink{classgko_1_1log_1_1Logger_ad6fb77d4d5610bc7299087f7149a7f16}{gko::log::Logger::linop\_factory\_events\_mask}} \string^}
@@ -502,11 +514,13 @@ This is the expected output\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{    exec-\/>add\_logger(stream\_logger);}
 \DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
 \DoxyCodeLine{    \textcolor{keyword}{using} ResidualCriterionFactory =}
-\DoxyCodeLine{        \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction_1_1Factory}{gko::stop::ResidualNormReduction<>::Factory}};}
+\DoxyCodeLine{        \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction_1_1Factory}{gko::stop::ResidualNormReduction<ValueType>::Factory}};}
 \DoxyCodeLine{    std::shared\_ptr<ResidualCriterionFactory> residual\_criterion =}
-\DoxyCodeLine{        ResidualCriterionFactory::create().with\_reduction\_factor(1e-\/20).on(}
-\DoxyCodeLine{            exec);}
+\DoxyCodeLine{        ResidualCriterionFactory::create()}
+\DoxyCodeLine{            .with\_reduction\_factor(reduction\_factor)}
+\DoxyCodeLine{            .on(exec);}
 \DoxyCodeLine{    residual\_criterion-\/>add\_logger(stream\_logger);}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} solver\_gen =}
@@ -519,7 +533,7 @@ This is the expected output\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{}
 \DoxyCodeLine{    std::ofstream filestream(\textcolor{stringliteral}{"my\_file.txt"});}
-\DoxyCodeLine{    solver-\/>add\_logger(\mbox{\hyperlink{classgko_1_1log_1_1Stream}{gko::log::Stream<>::create}}(}
+\DoxyCodeLine{    solver-\/>add\_logger(\mbox{\hyperlink{classgko_1_1log_1_1Stream}{gko::log::Stream<ValueType>::create}}(}
 \DoxyCodeLine{        exec, \mbox{\hyperlink{classgko_1_1log_1_1Logger_a02534863a2d2f92dfeb2c39038365532}{gko::log::Logger::all\_events\_mask}}, filestream));}
 \DoxyCodeLine{    solver-\/>add\_logger(stream\_logger);}
 \DoxyCodeLine{}
@@ -540,7 +554,7 @@ This is the expected output\+:
 \DoxyCodeLine{              << std::get<1>(*last\_copy).location << std::dec << std::endl;}
 \DoxyCodeLine{    \textcolor{keyword}{auto} residual =}
 \DoxyCodeLine{        record\_logger-\/>get().criterion\_check\_completed.back()-\/>residual.get();}
-\DoxyCodeLine{    \textcolor{keyword}{auto} residual\_d = gko::as<gko::matrix::Dense<>>(residual);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} residual\_d = gko::as<vec>(residual);}
 \DoxyCodeLine{    print\_vector(\textcolor{stringliteral}{"Residual"}, residual\_d);}
 \DoxyCodeLine{}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Solution (x): \(\backslash\)n"};}

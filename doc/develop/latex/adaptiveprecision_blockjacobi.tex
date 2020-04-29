@@ -82,13 +82,12 @@ Create R\+HS and initial guess as 1
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{gko::size\_type}} size = A-\/>get\_size()[0];}
-\DoxyCodeLine{\textcolor{keyword}{auto} host\_x = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>::create}}(exec-\/>get\_master(),}
-\DoxyCodeLine{                                                    \mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}(size, 1));}
+\DoxyCodeLine{\textcolor{keyword}{auto} host\_x = vec::create(exec-\/>get\_master(), \mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}(size, 1));}
 \DoxyCodeLine{\textcolor{keywordflow}{for} (\textcolor{keyword}{auto} i = 0; i < size; i++) \{}
-\DoxyCodeLine{    host\_x-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_af0f1af68853537807ca271a296de3cd0}{at}}(i, 0) = 1.;}
+\DoxyCodeLine{    host\_x-\/>at(i, 0) = 1.;}
 \DoxyCodeLine{\}}
-\DoxyCodeLine{\textcolor{keyword}{auto} x = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>::create}}(exec);}
-\DoxyCodeLine{\textcolor{keyword}{auto} b = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>::create}}(exec);}
+\DoxyCodeLine{\textcolor{keyword}{auto} x = vec::create(exec);}
+\DoxyCodeLine{\textcolor{keyword}{auto} b = vec::create(exec);}
 \DoxyCodeLine{x-\/>copy\_from(host\_x.get());}
 \DoxyCodeLine{b-\/>copy\_from(host\_x.get());}
 \end{DoxyCode}
@@ -111,11 +110,11 @@ copy b again
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{b-\/>copy\_from(host\_x.get());}
-\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
 \DoxyCodeLine{\textcolor{keyword}{auto} iter\_stop =}
 \DoxyCodeLine{    gko::stop::Iteration::build().with\_max\_iters(10000u).on(exec);}
 \DoxyCodeLine{\textcolor{keyword}{auto} tol\_stop = \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<ValueType>::build}}()}
-\DoxyCodeLine{                    .with\_reduction\_factor(static\_cast<ValueType>(1e-\/12))}
+\DoxyCodeLine{                    .with\_reduction\_factor(reduction\_factor)}
 \DoxyCodeLine{                    .on(exec);}
 \DoxyCodeLine{}
 \DoxyCodeLine{std::shared\_ptr<const gko::log::Convergence<ValueType>> logger =}
@@ -293,13 +292,12 @@ This is the expected output\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} A = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));}
 \DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{gko::size\_type}} size = A-\/>get\_size()[0];}
-\DoxyCodeLine{    \textcolor{keyword}{auto} host\_x = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>::create}}(exec-\/>get\_master(),}
-\DoxyCodeLine{                                                        \mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}(size, 1));}
+\DoxyCodeLine{    \textcolor{keyword}{auto} host\_x = vec::create(exec-\/>get\_master(), \mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}(size, 1));}
 \DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} i = 0; i < size; i++) \{}
-\DoxyCodeLine{        host\_x-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_af0f1af68853537807ca271a296de3cd0}{at}}(i, 0) = 1.;}
+\DoxyCodeLine{        host\_x-\/>at(i, 0) = 1.;}
 \DoxyCodeLine{    \}}
-\DoxyCodeLine{    \textcolor{keyword}{auto} x = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>::create}}(exec);}
-\DoxyCodeLine{    \textcolor{keyword}{auto} b = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>::create}}(exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} x = vec::create(exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} b = vec::create(exec);}
 \DoxyCodeLine{    x-\/>copy\_from(host\_x.get());}
 \DoxyCodeLine{    b-\/>copy\_from(host\_x.get());}
 \DoxyCodeLine{}
@@ -310,11 +308,11 @@ This is the expected output\+:
 \DoxyCodeLine{    b-\/>compute\_norm2(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(initres));}
 \DoxyCodeLine{}
 \DoxyCodeLine{    b-\/>copy\_from(host\_x.get());}
-\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
 \DoxyCodeLine{    \textcolor{keyword}{auto} iter\_stop =}
 \DoxyCodeLine{        gko::stop::Iteration::build().with\_max\_iters(10000u).on(exec);}
 \DoxyCodeLine{    \textcolor{keyword}{auto} tol\_stop = \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<ValueType>::build}}()}
-\DoxyCodeLine{                        .with\_reduction\_factor(static\_cast<ValueType>(1e-\/12))}
+\DoxyCodeLine{                        .with\_reduction\_factor(reduction\_factor)}
 \DoxyCodeLine{                        .on(exec);}
 \DoxyCodeLine{}
 \DoxyCodeLine{    std::shared\_ptr<const gko::log::Convergence<ValueType>> logger =}

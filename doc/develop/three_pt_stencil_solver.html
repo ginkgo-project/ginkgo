@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/141159205 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/141208230 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -146,13 +146,15 @@ $(function() {
 <div class="line"><span class="stringliteral">#include &lt;string&gt;</span></div>
 <div class="line"><span class="stringliteral">#include &lt;vector&gt;</span></div>
 </div><!-- fragment --><p>Creates a stencil matrix in CSR format for the given number of discretization points.</p>
-<div class="fragment"><div class="line"><span class="keywordtype">void</span> generate_stencil_matrix(<span class="keywordtype">int</span> discretization_points, <span class="keywordtype">int</span> *row_ptrs,</div>
-<div class="line">                             <span class="keywordtype">int</span> *col_idxs, <span class="keywordtype">double</span> *values)</div>
+<div class="fragment"><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType, <span class="keyword">typename</span> IndexType&gt;</div>
+<div class="line"><span class="keywordtype">void</span> generate_stencil_matrix(IndexType discretization_points,</div>
+<div class="line">                             IndexType *row_ptrs, IndexType *col_idxs,</div>
+<div class="line">                             ValueType *values)</div>
 <div class="line">{</div>
-<div class="line">    <span class="keywordtype">int</span> pos = 0;</div>
-<div class="line">    <span class="keyword">const</span> <span class="keywordtype">double</span> coefs[] = {-1, 2, -1};</div>
+<div class="line">    IndexType pos = 0;</div>
+<div class="line">    <span class="keyword">const</span> ValueType coefs[] = {-1, 2, -1};</div>
 <div class="line">    row_ptrs[0] = pos;</div>
-<div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; discretization_points; ++i) {</div>
+<div class="line">    <span class="keywordflow">for</span> (IndexType i = 0; i &lt; discretization_points; ++i) {</div>
 <div class="line">        <span class="keywordflow">for</span> (<span class="keyword">auto</span> ofs : {-1, 0, 1}) {</div>
 <div class="line">            <span class="keywordflow">if</span> (0 &lt;= i + ofs &amp;&amp; i + ofs &lt; discretization_points) {</div>
 <div class="line">                values[pos] = coefs[ofs + 1];</div>
@@ -164,56 +166,58 @@ $(function() {
 <div class="line">    }</div>
 <div class="line">}</div>
 </div><!-- fragment --><p>Generates the RHS vector given <code>f</code> and the boundary conditions.</p>
-<div class="fragment"><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Closure&gt;</div>
-<div class="line"><span class="keywordtype">void</span> generate_rhs(<span class="keywordtype">int</span> discretization_points, Closure f, <span class="keywordtype">double</span> u0, <span class="keywordtype">double</span> u1,</div>
-<div class="line">                  <span class="keywordtype">double</span> *rhs)</div>
+<div class="fragment"><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Closure, <span class="keyword">typename</span> ValueType, <span class="keyword">typename</span> IndexType&gt;</div>
+<div class="line"><span class="keywordtype">void</span> generate_rhs(IndexType discretization_points, Closure f, ValueType u0,</div>
+<div class="line">                  ValueType u1, ValueType *rhs)</div>
 <div class="line">{</div>
-<div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> h = 1.0 / (discretization_points + 1);</div>
-<div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; discretization_points; ++i) {</div>
-<div class="line">        <span class="keyword">const</span> <span class="keyword">auto</span> xi = (i + 1) * h;</div>
+<div class="line">    <span class="keyword">const</span> ValueType h = 1.0 / (discretization_points + 1);</div>
+<div class="line">    <span class="keywordflow">for</span> (IndexType i = 0; i &lt; discretization_points; ++i) {</div>
+<div class="line">        <span class="keyword">const</span> ValueType xi = ValueType(i + 1) * h;</div>
 <div class="line">        rhs[i] = -f(xi) * h * h;</div>
 <div class="line">    }</div>
 <div class="line">    rhs[0] += u0;</div>
 <div class="line">    rhs[discretization_points - 1] += u1;</div>
 <div class="line">}</div>
 </div><!-- fragment --><p>Prints the solution <code>u</code>.</p>
-<div class="fragment"><div class="line"><span class="keywordtype">void</span> print_solution(<span class="keywordtype">int</span> discretization_points, <span class="keywordtype">double</span> u0, <span class="keywordtype">double</span> u1,</div>
-<div class="line">                    <span class="keyword">const</span> <span class="keywordtype">double</span> *u)</div>
+<div class="fragment"><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType, <span class="keyword">typename</span> IndexType&gt;</div>
+<div class="line"><span class="keywordtype">void</span> print_solution(IndexType discretization_points, ValueType u0, ValueType u1,</div>
+<div class="line">                    <span class="keyword">const</span> ValueType *u)</div>
 <div class="line">{</div>
 <div class="line">    std::cout &lt;&lt; u0 &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;</div>
-<div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; discretization_points; ++i) {</div>
+<div class="line">    <span class="keywordflow">for</span> (IndexType i = 0; i &lt; discretization_points; ++i) {</div>
 <div class="line">        std::cout &lt;&lt; u[i] &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;</div>
 <div class="line">    }</div>
 <div class="line">    std::cout &lt;&lt; u1 &lt;&lt; std::endl;</div>
 <div class="line">}</div>
 </div><!-- fragment --><p>Computes the 1-norm of the error given the computed <code>u</code> and the correct solution function <code>correct_u</code>.</p>
-<div class="fragment"><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Closure&gt;</div>
-<div class="line"><span class="keywordtype">double</span> calculate_error(<span class="keywordtype">int</span> discretization_points, <span class="keyword">const</span> <span class="keywordtype">double</span> *u,</div>
-<div class="line">                       Closure correct_u)</div>
+<div class="fragment"><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Closure, <span class="keyword">typename</span> ValueType, <span class="keyword">typename</span> IndexType&gt;</div>
+<div class="line"><a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> calculate_error(IndexType discretization_points,</div>
+<div class="line">                                               <span class="keyword">const</span> ValueType *u,</div>
+<div class="line">                                               Closure correct_u)</div>
 <div class="line">{</div>
-<div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> h = 1.0 / (discretization_points + 1);</div>
-<div class="line">    <span class="keyword">auto</span> error = 0.0;</div>
-<div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; discretization_points; ++i) {</div>
+<div class="line">    <span class="keyword">const</span> ValueType h = 1.0 / (discretization_points + 1);</div>
+<div class="line">    <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> error = 0.0;</div>
+<div class="line">    <span class="keywordflow">for</span> (IndexType i = 0; i &lt; discretization_points; ++i) {</div>
 <div class="line">        <span class="keyword">using</span> std::abs;</div>
-<div class="line">        <span class="keyword">const</span> <span class="keyword">auto</span> xi = (i + 1) * h;</div>
+<div class="line">        <span class="keyword">const</span> ValueType xi = ValueType(i + 1) * h;</div>
 <div class="line">        error += <a class="code" href="namespacegko.html#a57797fc0a00fd4b7ff34ca4bfc84bc51">abs</a>(u[i] - correct_u(xi)) / <a class="code" href="namespacegko.html#a57797fc0a00fd4b7ff34ca4bfc84bc51">abs</a>(correct_u(xi));</div>
 <div class="line">    }</div>
 <div class="line">    <span class="keywordflow">return</span> error;</div>
 <div class="line">}</div>
 <div class="line"> </div>
-<div class="line"> </div>
+<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType, <span class="keyword">typename</span> IndexType&gt;</div>
 <div class="line"><span class="keywordtype">void</span> solve_system(<span class="keyword">const</span> std::string &amp;executor_string,</div>
-<div class="line">                  <span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> discretization_points, <span class="keywordtype">int</span> *row_ptrs,</div>
-<div class="line">                  <span class="keywordtype">int</span> *col_idxs, <span class="keywordtype">double</span> *values, <span class="keywordtype">double</span> *rhs, <span class="keywordtype">double</span> *u,</div>
-<div class="line">                  <span class="keywordtype">double</span> accuracy)</div>
+<div class="line">                  IndexType discretization_points, IndexType *row_ptrs,</div>
+<div class="line">                  IndexType *col_idxs, ValueType *values, ValueType *rhs,</div>
+<div class="line">                  ValueType *u, <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> reduction_factor)</div>
 <div class="line">{</div>
 </div><!-- fragment --><p>Some shortcuts</p>
-<div class="fragment"><div class="line"><span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;double&gt;</a>;</div>
-<div class="line"><span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;double, int&gt;</a>;</div>
-<div class="line"><span class="keyword">using</span> cg = <a class="code" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg&lt;double&gt;</a>;</div>
-<div class="line"><span class="keyword">using</span> bj = <a class="code" href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi&lt;double, int&gt;</a>;</div>
-<div class="line"><span class="keyword">using</span> val_array = <a class="code" href="classgko_1_1Array.html">gko::Array&lt;double&gt;</a>;</div>
-<div class="line"><span class="keyword">using</span> idx_array = <a class="code" href="classgko_1_1Array.html">gko::Array&lt;int&gt;</a>;</div>
+<div class="fragment"><div class="line"><span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
+<div class="line"><span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;ValueType, IndexType&gt;</a>;</div>
+<div class="line"><span class="keyword">using</span> cg = <a class="code" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg&lt;ValueType&gt;</a>;</div>
+<div class="line"><span class="keyword">using</span> bj = <a class="code" href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi&lt;ValueType, IndexType&gt;</a>;</div>
+<div class="line"><span class="keyword">using</span> val_array = <a class="code" href="classgko_1_1Array.html">gko::Array&lt;ValueType&gt;</a>;</div>
+<div class="line"><span class="keyword">using</span> idx_array = <a class="code" href="classgko_1_1Array.html">gko::Array&lt;IndexType&gt;</a>;</div>
 <div class="line"><span class="keyword">const</span> <span class="keyword">auto</span> &amp;dp = discretization_points;</div>
 </div><!-- fragment --><p>Figure out where to run the code</p>
 <div class="fragment"><div class="line"><span class="keyword">const</span> <span class="keyword">auto</span> omp = <a class="code" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a>();</div>
@@ -244,11 +248,12 @@ $(function() {
 </div><!-- fragment --><p>Generate solver</p>
 <div class="fragment"><div class="line"><span class="keyword">auto</span> solver_gen =</div>
 <div class="line">    cg::build()</div>
-<div class="line">        .with_criteria(</div>
-<div class="line">            gko::stop::Iteration::build().with_max_iters(dp).on(exec),</div>
-<div class="line">            <a class="code" href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction&lt;&gt;::build</a>()</div>
-<div class="line">                .with_reduction_factor(accuracy)</div>
-<div class="line">                .on(exec))</div>
+<div class="line">        .with_criteria(gko::stop::Iteration::build()</div>
+<div class="line">                           .with_max_iters(<a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a>(dp))</div>
+<div class="line">                           .on(exec),</div>
+<div class="line">                       <a class="code" href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction&lt;ValueType&gt;::build</a>()</div>
+<div class="line">                           .with_reduction_factor(reduction_factor)</div>
+<div class="line">                           .on(exec))</div>
 <div class="line">        .with_preconditioner(bj::build().on(exec))</div>
 <div class="line">        .on(exec);</div>
 <div class="line"><span class="keyword">auto</span> solver = solver_gen-&gt;generate(<a class="code" href="namespacegko.html#acbd3fd6d07e498892881e8e2ab0b4167">gko::give</a>(matrix));</div>
@@ -259,27 +264,32 @@ $(function() {
 <div class="line"> </div>
 <div class="line"><span class="keywordtype">int</span> main(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span> *argv[])</div>
 <div class="line">{</div>
+<div class="line">    <span class="keyword">using</span> ValueType = double;</div>
+<div class="line">    <span class="keyword">using</span> IndexType = int;</div>
+<div class="line"> </div>
 <div class="line">    <span class="keywordflow">if</span> (argc &lt; 2) {</div>
 <div class="line">        std::cerr &lt;&lt; <span class="stringliteral">&quot;Usage: &quot;</span> &lt;&lt; argv[0] &lt;&lt; <span class="stringliteral">&quot; DISCRETIZATION_POINTS [executor]&quot;</span></div>
 <div class="line">                  &lt;&lt; std::endl;</div>
 <div class="line">        std::exit(-1);</div>
 <div class="line">    }</div>
 <div class="line"> </div>
-<div class="line">    <span class="keyword">const</span> <span class="keywordtype">int</span> discretization_points = argc &gt;= 2 ? std::atoi(argv[1]) : 100;</div>
+<div class="line">    <span class="keyword">const</span> IndexType discretization_points =</div>
+<div class="line">        argc &gt;= 2 ? std::atoi(argv[1]) : 100;</div>
 <div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> executor_string = argc &gt;= 3 ? argv[2] : <span class="stringliteral">&quot;reference&quot;</span>;</div>
 </div><!-- fragment --><p>problem:</p>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> correct_u = [](<span class="keywordtype">double</span> x) { <span class="keywordflow">return</span> x * x * x; };</div>
-<div class="line"><span class="keyword">auto</span> f = [](<span class="keywordtype">double</span> x) { <span class="keywordflow">return</span> 6 * x; };</div>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> correct_u = [](ValueType x) { <span class="keywordflow">return</span> x * x * x; };</div>
+<div class="line"><span class="keyword">auto</span> f = [](ValueType x) { <span class="keywordflow">return</span> ValueType(6) * x; };</div>
 <div class="line"><span class="keyword">auto</span> u0 = correct_u(0);</div>
 <div class="line"><span class="keyword">auto</span> u1 = correct_u(1);</div>
 </div><!-- fragment --><p>matrix</p>
-<div class="fragment"><div class="line">std::vector&lt;int&gt; row_ptrs(discretization_points + 1);</div>
-<div class="line">std::vector&lt;int&gt; col_idxs(3 * discretization_points - 2);</div>
-<div class="line">std::vector&lt;double&gt; values(3 * discretization_points - 2);</div>
+<div class="fragment"><div class="line">std::vector&lt;IndexType&gt; row_ptrs(discretization_points + 1);</div>
+<div class="line">std::vector&lt;IndexType&gt; col_idxs(3 * discretization_points - 2);</div>
+<div class="line">std::vector&lt;ValueType&gt; values(3 * discretization_points - 2);</div>
 </div><!-- fragment --><p>right hand side</p>
-<div class="fragment"><div class="line">std::vector&lt;double&gt; rhs(discretization_points);</div>
+<div class="fragment"><div class="line">std::vector&lt;ValueType&gt; rhs(discretization_points);</div>
 </div><!-- fragment --><p>solution</p>
-<div class="fragment"><div class="line">std::vector&lt;double&gt; u(discretization_points, 0.0);</div>
+<div class="fragment"><div class="line">std::vector&lt;ValueType&gt; u(discretization_points, 0.0);</div>
+<div class="line"><span class="keyword">const</span> <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> reduction_factor = 1e-7;</div>
 <div class="line"> </div>
 <div class="line">generate_stencil_matrix(discretization_points, row_ptrs.data(),</div>
 <div class="line">                        col_idxs.data(), values.data());</div>
@@ -287,9 +297,10 @@ $(function() {
 <div class="fragment"><div class="line">    generate_rhs(discretization_points, f, u0, u1, rhs.data());</div>
 <div class="line"> </div>
 <div class="line">    solve_system(executor_string, discretization_points, row_ptrs.data(),</div>
-<div class="line">                 col_idxs.data(), values.data(), rhs.data(), u.data(), 1e-12);</div>
+<div class="line">                 col_idxs.data(), values.data(), rhs.data(), u.data(),</div>
+<div class="line">                 reduction_factor);</div>
 <div class="line"> </div>
-<div class="line">    print_solution(discretization_points, 0, 1, u.data());</div>
+<div class="line">    print_solution&lt;ValueType, IndexType&gt;(discretization_points, 0, 1, u.data());</div>
 <div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;The average relative error is &quot;</span></div>
 <div class="line">              &lt;&lt; calculate_error(discretization_points, u.data(), correct_u) /</div>
 <div class="line">                     discretization_points</div>
@@ -400,13 +411,15 @@ $(function() {
 <div class="line"><span class="preprocessor">#include &lt;vector&gt;</span></div>
 <div class="line"> </div>
 <div class="line"> </div>
-<div class="line"><span class="keywordtype">void</span> generate_stencil_matrix(<span class="keywordtype">int</span> discretization_points, <span class="keywordtype">int</span> *row_ptrs,</div>
-<div class="line">                             <span class="keywordtype">int</span> *col_idxs, <span class="keywordtype">double</span> *values)</div>
+<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType, <span class="keyword">typename</span> IndexType&gt;</div>
+<div class="line"><span class="keywordtype">void</span> generate_stencil_matrix(IndexType discretization_points,</div>
+<div class="line">                             IndexType *row_ptrs, IndexType *col_idxs,</div>
+<div class="line">                             ValueType *values)</div>
 <div class="line">{</div>
-<div class="line">    <span class="keywordtype">int</span> pos = 0;</div>
-<div class="line">    <span class="keyword">const</span> <span class="keywordtype">double</span> coefs[] = {-1, 2, -1};</div>
+<div class="line">    IndexType pos = 0;</div>
+<div class="line">    <span class="keyword">const</span> ValueType coefs[] = {-1, 2, -1};</div>
 <div class="line">    row_ptrs[0] = pos;</div>
-<div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; discretization_points; ++i) {</div>
+<div class="line">    <span class="keywordflow">for</span> (IndexType i = 0; i &lt; discretization_points; ++i) {</div>
 <div class="line">        <span class="keywordflow">for</span> (<span class="keyword">auto</span> ofs : {-1, 0, 1}) {</div>
 <div class="line">            <span class="keywordflow">if</span> (0 &lt;= i + ofs &amp;&amp; i + ofs &lt; discretization_points) {</div>
 <div class="line">                values[pos] = coefs[ofs + 1];</div>
@@ -419,13 +432,13 @@ $(function() {
 <div class="line">}</div>
 <div class="line"> </div>
 <div class="line"> </div>
-<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Closure&gt;</div>
-<div class="line"><span class="keywordtype">void</span> generate_rhs(<span class="keywordtype">int</span> discretization_points, Closure f, <span class="keywordtype">double</span> u0, <span class="keywordtype">double</span> u1,</div>
-<div class="line">                  <span class="keywordtype">double</span> *rhs)</div>
+<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Closure, <span class="keyword">typename</span> ValueType, <span class="keyword">typename</span> IndexType&gt;</div>
+<div class="line"><span class="keywordtype">void</span> generate_rhs(IndexType discretization_points, Closure f, ValueType u0,</div>
+<div class="line">                  ValueType u1, ValueType *rhs)</div>
 <div class="line">{</div>
-<div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> h = 1.0 / (discretization_points + 1);</div>
-<div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; discretization_points; ++i) {</div>
-<div class="line">        <span class="keyword">const</span> <span class="keyword">auto</span> xi = (i + 1) * h;</div>
+<div class="line">    <span class="keyword">const</span> ValueType h = 1.0 / (discretization_points + 1);</div>
+<div class="line">    <span class="keywordflow">for</span> (IndexType i = 0; i &lt; discretization_points; ++i) {</div>
+<div class="line">        <span class="keyword">const</span> ValueType xi = ValueType(i + 1) * h;</div>
 <div class="line">        rhs[i] = -f(xi) * h * h;</div>
 <div class="line">    }</div>
 <div class="line">    rhs[0] += u0;</div>
@@ -433,43 +446,45 @@ $(function() {
 <div class="line">}</div>
 <div class="line"> </div>
 <div class="line"> </div>
-<div class="line"><span class="keywordtype">void</span> print_solution(<span class="keywordtype">int</span> discretization_points, <span class="keywordtype">double</span> u0, <span class="keywordtype">double</span> u1,</div>
-<div class="line">                    <span class="keyword">const</span> <span class="keywordtype">double</span> *u)</div>
+<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType, <span class="keyword">typename</span> IndexType&gt;</div>
+<div class="line"><span class="keywordtype">void</span> print_solution(IndexType discretization_points, ValueType u0, ValueType u1,</div>
+<div class="line">                    <span class="keyword">const</span> ValueType *u)</div>
 <div class="line">{</div>
 <div class="line">    std::cout &lt;&lt; u0 &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;</div>
-<div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; discretization_points; ++i) {</div>
+<div class="line">    <span class="keywordflow">for</span> (IndexType i = 0; i &lt; discretization_points; ++i) {</div>
 <div class="line">        std::cout &lt;&lt; u[i] &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;</div>
 <div class="line">    }</div>
 <div class="line">    std::cout &lt;&lt; u1 &lt;&lt; std::endl;</div>
 <div class="line">}</div>
 <div class="line"> </div>
 <div class="line"> </div>
-<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Closure&gt;</div>
-<div class="line"><span class="keywordtype">double</span> calculate_error(<span class="keywordtype">int</span> discretization_points, <span class="keyword">const</span> <span class="keywordtype">double</span> *u,</div>
-<div class="line">                       Closure correct_u)</div>
+<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Closure, <span class="keyword">typename</span> ValueType, <span class="keyword">typename</span> IndexType&gt;</div>
+<div class="line"><a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> calculate_error(IndexType discretization_points,</div>
+<div class="line">                                               <span class="keyword">const</span> ValueType *u,</div>
+<div class="line">                                               Closure correct_u)</div>
 <div class="line">{</div>
-<div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> h = 1.0 / (discretization_points + 1);</div>
-<div class="line">    <span class="keyword">auto</span> error = 0.0;</div>
-<div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; discretization_points; ++i) {</div>
+<div class="line">    <span class="keyword">const</span> ValueType h = 1.0 / (discretization_points + 1);</div>
+<div class="line">    <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> error = 0.0;</div>
+<div class="line">    <span class="keywordflow">for</span> (IndexType i = 0; i &lt; discretization_points; ++i) {</div>
 <div class="line">        <span class="keyword">using</span> std::abs;</div>
-<div class="line">        <span class="keyword">const</span> <span class="keyword">auto</span> xi = (i + 1) * h;</div>
+<div class="line">        <span class="keyword">const</span> ValueType xi = ValueType(i + 1) * h;</div>
 <div class="line">        error += <a class="code" href="namespacegko.html#a57797fc0a00fd4b7ff34ca4bfc84bc51">abs</a>(u[i] - correct_u(xi)) / <a class="code" href="namespacegko.html#a57797fc0a00fd4b7ff34ca4bfc84bc51">abs</a>(correct_u(xi));</div>
 <div class="line">    }</div>
 <div class="line">    <span class="keywordflow">return</span> error;</div>
 <div class="line">}</div>
 <div class="line"> </div>
-<div class="line"> </div>
+<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType, <span class="keyword">typename</span> IndexType&gt;</div>
 <div class="line"><span class="keywordtype">void</span> solve_system(<span class="keyword">const</span> std::string &amp;executor_string,</div>
-<div class="line">                  <span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> discretization_points, <span class="keywordtype">int</span> *row_ptrs,</div>
-<div class="line">                  <span class="keywordtype">int</span> *col_idxs, <span class="keywordtype">double</span> *values, <span class="keywordtype">double</span> *rhs, <span class="keywordtype">double</span> *u,</div>
-<div class="line">                  <span class="keywordtype">double</span> accuracy)</div>
+<div class="line">                  IndexType discretization_points, IndexType *row_ptrs,</div>
+<div class="line">                  IndexType *col_idxs, ValueType *values, ValueType *rhs,</div>
+<div class="line">                  ValueType *u, <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> reduction_factor)</div>
 <div class="line">{</div>
-<div class="line">    <span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;double&gt;</a>;</div>
-<div class="line">    <span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;double, int&gt;</a>;</div>
-<div class="line">    <span class="keyword">using</span> cg = <a class="code" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg&lt;double&gt;</a>;</div>
-<div class="line">    <span class="keyword">using</span> bj = <a class="code" href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi&lt;double, int&gt;</a>;</div>
-<div class="line">    <span class="keyword">using</span> val_array = <a class="code" href="classgko_1_1Array.html">gko::Array&lt;double&gt;</a>;</div>
-<div class="line">    <span class="keyword">using</span> idx_array = <a class="code" href="classgko_1_1Array.html">gko::Array&lt;int&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;ValueType, IndexType&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> cg = <a class="code" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg&lt;ValueType&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> bj = <a class="code" href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi&lt;ValueType, IndexType&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> val_array = <a class="code" href="classgko_1_1Array.html">gko::Array&lt;ValueType&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> idx_array = <a class="code" href="classgko_1_1Array.html">gko::Array&lt;IndexType&gt;</a>;</div>
 <div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> &amp;dp = discretization_points;</div>
 <div class="line"> </div>
 <div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> omp = <a class="code" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a>();</div>
@@ -495,11 +510,12 @@ $(function() {
 <div class="line"> </div>
 <div class="line">    <span class="keyword">auto</span> solver_gen =</div>
 <div class="line">        cg::build()</div>
-<div class="line">            .with_criteria(</div>
-<div class="line">                gko::stop::Iteration::build().with_max_iters(dp).on(exec),</div>
-<div class="line">                <a class="code" href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction&lt;&gt;::build</a>()</div>
-<div class="line">                    .with_reduction_factor(accuracy)</div>
-<div class="line">                    .on(exec))</div>
+<div class="line">            .with_criteria(gko::stop::Iteration::build()</div>
+<div class="line">                               .with_max_iters(<a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a>(dp))</div>
+<div class="line">                               .on(exec),</div>
+<div class="line">                           <a class="code" href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction&lt;ValueType&gt;::build</a>()</div>
+<div class="line">                               .with_reduction_factor(reduction_factor)</div>
+<div class="line">                               .on(exec))</div>
 <div class="line">            .with_preconditioner(bj::build().on(exec))</div>
 <div class="line">            .on(exec);</div>
 <div class="line">    <span class="keyword">auto</span> solver = solver_gen-&gt;generate(<a class="code" href="namespacegko.html#acbd3fd6d07e498892881e8e2ab0b4167">gko::give</a>(matrix));</div>
@@ -510,34 +526,40 @@ $(function() {
 <div class="line"> </div>
 <div class="line"><span class="keywordtype">int</span> main(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span> *argv[])</div>
 <div class="line">{</div>
+<div class="line">    <span class="keyword">using</span> ValueType = double;</div>
+<div class="line">    <span class="keyword">using</span> IndexType = int;</div>
+<div class="line"> </div>
 <div class="line">    <span class="keywordflow">if</span> (argc &lt; 2) {</div>
 <div class="line">        std::cerr &lt;&lt; <span class="stringliteral">&quot;Usage: &quot;</span> &lt;&lt; argv[0] &lt;&lt; <span class="stringliteral">&quot; DISCRETIZATION_POINTS [executor]&quot;</span></div>
 <div class="line">                  &lt;&lt; std::endl;</div>
 <div class="line">        std::exit(-1);</div>
 <div class="line">    }</div>
 <div class="line"> </div>
-<div class="line">    <span class="keyword">const</span> <span class="keywordtype">int</span> discretization_points = argc &gt;= 2 ? std::atoi(argv[1]) : 100;</div>
+<div class="line">    <span class="keyword">const</span> IndexType discretization_points =</div>
+<div class="line">        argc &gt;= 2 ? std::atoi(argv[1]) : 100;</div>
 <div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> executor_string = argc &gt;= 3 ? argv[2] : <span class="stringliteral">&quot;reference&quot;</span>;</div>
 <div class="line"> </div>
-<div class="line">    <span class="keyword">auto</span> correct_u = [](<span class="keywordtype">double</span> x) { <span class="keywordflow">return</span> x * x * x; };</div>
-<div class="line">    <span class="keyword">auto</span> f = [](<span class="keywordtype">double</span> x) { <span class="keywordflow">return</span> 6 * x; };</div>
+<div class="line">    <span class="keyword">auto</span> correct_u = [](ValueType x) { <span class="keywordflow">return</span> x * x * x; };</div>
+<div class="line">    <span class="keyword">auto</span> f = [](ValueType x) { <span class="keywordflow">return</span> ValueType(6) * x; };</div>
 <div class="line">    <span class="keyword">auto</span> u0 = correct_u(0);</div>
 <div class="line">    <span class="keyword">auto</span> u1 = correct_u(1);</div>
 <div class="line"> </div>
-<div class="line">    std::vector&lt;int&gt; row_ptrs(discretization_points + 1);</div>
-<div class="line">    std::vector&lt;int&gt; col_idxs(3 * discretization_points - 2);</div>
-<div class="line">    std::vector&lt;double&gt; values(3 * discretization_points - 2);</div>
-<div class="line">    std::vector&lt;double&gt; rhs(discretization_points);</div>
-<div class="line">    std::vector&lt;double&gt; u(discretization_points, 0.0);</div>
+<div class="line">    std::vector&lt;IndexType&gt; row_ptrs(discretization_points + 1);</div>
+<div class="line">    std::vector&lt;IndexType&gt; col_idxs(3 * discretization_points - 2);</div>
+<div class="line">    std::vector&lt;ValueType&gt; values(3 * discretization_points - 2);</div>
+<div class="line">    std::vector&lt;ValueType&gt; rhs(discretization_points);</div>
+<div class="line">    std::vector&lt;ValueType&gt; u(discretization_points, 0.0);</div>
+<div class="line">    <span class="keyword">const</span> <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> reduction_factor = 1e-7;</div>
 <div class="line"> </div>
 <div class="line">    generate_stencil_matrix(discretization_points, row_ptrs.data(),</div>
 <div class="line">                            col_idxs.data(), values.data());</div>
 <div class="line">    generate_rhs(discretization_points, f, u0, u1, rhs.data());</div>
 <div class="line"> </div>
 <div class="line">    solve_system(executor_string, discretization_points, row_ptrs.data(),</div>
-<div class="line">                 col_idxs.data(), values.data(), rhs.data(), u.data(), 1e-12);</div>
+<div class="line">                 col_idxs.data(), values.data(), rhs.data(), u.data(),</div>
+<div class="line">                 reduction_factor);</div>
 <div class="line"> </div>
-<div class="line">    print_solution(discretization_points, 0, 1, u.data());</div>
+<div class="line">    print_solution&lt;ValueType, IndexType&gt;(discretization_points, 0, 1, u.data());</div>
 <div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;The average relative error is &quot;</span></div>
 <div class="line">              &lt;&lt; calculate_error(discretization_points, u.data(), correct_u) /</div>
 <div class="line">                     discretization_points</div>
@@ -552,7 +574,9 @@ $(function() {
 <div class="ttc" id="aclassgko_1_1matrix_1_1Dense_html"><div class="ttname"><a href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense</a></div><div class="ttdoc">Dense is a matrix format which explicitly stores all values of the matrix.</div><div class="ttdef"><b>Definition:</b> coo.hpp:55</div></div>
 <div class="ttc" id="aclassgko_1_1CudaExecutor_html_a2718a92034350650ef406ffdb60db090"><div class="ttname"><a href="classgko_1_1CudaExecutor.html#a2718a92034350650ef406ffdb60db090">gko::CudaExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; CudaExecutor &gt; create(int device_id, std::shared_ptr&lt; Executor &gt; master)</div><div class="ttdoc">Creates a new CudaExecutor.</div></div>
 <div class="ttc" id="aclassgko_1_1OmpExecutor_html_a33ca05fdd0fc928ee262fc9425304874"><div class="ttname"><a href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; OmpExecutor &gt; create()</div><div class="ttdoc">Creates a new OmpExecutor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:775</div></div>
+<div class="ttc" id="anamespacegko_html_a6e5c95df0ae4e47aab2f604a22d98ee7"><div class="ttname"><a href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a></div><div class="ttdeci">std::size_t size_type</div><div class="ttdoc">Integral type used for allocation quantities.</div><div class="ttdef"><b>Definition:</b> types.hpp:100</div></div>
 <div class="ttc" id="aclassgko_1_1stop_1_1ResidualNormReduction_html"><div class="ttname"><a href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction</a></div><div class="ttdoc">The ResidualNormReduction class is a stopping criterion which stops the iteration process when the re...</div><div class="ttdef"><b>Definition:</b> residual_norm_reduction.hpp:64</div></div>
+<div class="ttc" id="anamespacegko_html_adfcb75c44f6b6c701989419c166f6e7e"><div class="ttname"><a href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex</a></div><div class="ttdeci">typename detail::remove_complex_impl&lt; T &gt;::type remove_complex</div><div class="ttdoc">Obtains a real counterpart of a std::complex type, and leaves the type unchanged if it is not a compl...</div><div class="ttdef"><b>Definition:</b> math.hpp:174</div></div>
 <div class="ttc" id="aclassgko_1_1preconditioner_1_1Jacobi_html"><div class="ttname"><a href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi</a></div><div class="ttdoc">A block-Jacobi preconditioner is a block-diagonal linear operator, obtained by inverting the diagonal...</div><div class="ttdef"><b>Definition:</b> jacobi.hpp:207</div></div>
 <div class="ttc" id="anamespacegko_html_a4edc2273b5627ec552ea423b60493be3"><div class="ttname"><a href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">gko::lend</a></div><div class="ttdeci">std::enable_if&lt; detail::have_ownership_s&lt; Pointer &gt;::value, detail::pointee&lt; Pointer &gt; * &gt;::type lend(const Pointer &amp;p)</div><div class="ttdoc">Returns a non-owning (plain) pointer to the object pointed to by p.</div><div class="ttdef"><b>Definition:</b> utils.hpp:253</div></div>
 <div class="ttc" id="astructgko_1_1dim_html"><div class="ttname"><a href="structgko_1_1dim.html">gko::dim&lt; 2 &gt;</a></div></div>

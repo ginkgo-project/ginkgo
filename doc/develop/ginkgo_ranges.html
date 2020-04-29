@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/141159205 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/141208230 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -135,17 +135,20 @@ $(function() {
 <div class="line"> </div>
 <div class="line"><span class="keywordtype">int</span> main(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span> *argv[])</div>
 <div class="line">{</div>
+<div class="line">    <span class="keyword">using</span> ValueType = double;</div>
+<div class="line">    <span class="keyword">using</span> IndexType = int;</div>
 </div><!-- fragment --><p>Print version information</p>
 <div class="fragment"><div class="line">std::cout &lt;&lt; <a class="code" href="classgko_1_1version__info.html#a6daeb8a087cfb57fa055526fc133d8eb">gko::version_info::get</a>() &lt;&lt; std::endl;</div>
 </div><!-- fragment --><p>Create some test data, add some padding just to demonstrate how to use it with ranges. clang-format off</p>
-<div class="fragment"><div class="line"><span class="keywordtype">double</span> data[] = {</div>
+<div class="fragment"><div class="line">ValueType data[] = {</div>
 <div class="line">    2.,  4.,  5., -1.0,</div>
 <div class="line">    4., 11., 12., -1.0,</div>
 <div class="line">    6., 24., 24., -1.0</div>
 <div class="line">};</div>
 </div><!-- fragment --><p>clang-format on</p>
 <p>Create a 3-by-3 range, with a 2D row-major accessor using data as the underlying storage. Set the stride (a.k.a. "LDA") to 4.</p>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> A = <a class="code" href="classgko_1_1range.html">gko::range&lt;gko::accessor::row_major&lt;double, 2&gt;</a>&gt;(data, 3u, 3u, 4u);</div>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> A =</div>
+<div class="line">    <a class="code" href="classgko_1_1range.html">gko::range&lt;gko::accessor::row_major&lt;ValueType, 2&gt;</a>&gt;(data, 3u, 3u, 4u);</div>
 </div><!-- fragment --><p>use the LU factorization routine defined above to factorize the matrix</p>
 <div class="fragment"><div class="line">factorize(A);</div>
 </div><!-- fragment --><p>print the factorization on screen</p>
@@ -240,15 +243,19 @@ $(function() {
 <div class="line"> </div>
 <div class="line"><span class="keywordtype">int</span> main(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span> *argv[])</div>
 <div class="line">{</div>
+<div class="line">    <span class="keyword">using</span> ValueType = double;</div>
+<div class="line">    <span class="keyword">using</span> IndexType = int;</div>
+<div class="line"> </div>
 <div class="line">    std::cout &lt;&lt; <a class="code" href="classgko_1_1version__info.html#a6daeb8a087cfb57fa055526fc133d8eb">gko::version_info::get</a>() &lt;&lt; std::endl;</div>
 <div class="line"> </div>
-<div class="line">    <span class="keywordtype">double</span> data[] = {</div>
+<div class="line">    ValueType data[] = {</div>
 <div class="line">        2.,  4.,  5., -1.0,</div>
 <div class="line">        4., 11., 12., -1.0,</div>
 <div class="line">        6., 24., 24., -1.0</div>
 <div class="line">    };</div>
 <div class="line"> </div>
-<div class="line">    <span class="keyword">auto</span> A = <a class="code" href="classgko_1_1range.html">gko::range&lt;gko::accessor::row_major&lt;double, 2&gt;</a>&gt;(data, 3u, 3u, 4u);</div>
+<div class="line">    <span class="keyword">auto</span> A =</div>
+<div class="line">        <a class="code" href="classgko_1_1range.html">gko::range&lt;gko::accessor::row_major&lt;ValueType, 2&gt;</a>&gt;(data, 3u, 3u, 4u);</div>
 <div class="line"> </div>
 <div class="line">    factorize(A);</div>
 <div class="line"> </div>

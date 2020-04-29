@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/141159205 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/141208230 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -132,13 +132,12 @@ $(function() {
 <div class="fragment"><div class="line"><span class="keyword">auto</span> A = <a class="code" href="namespacegko.html#a3ce296f73db0ff398bdea6009a3a5c58">share</a>(gko::read&lt;mtx&gt;(std::ifstream(<span class="stringliteral">&quot;data/A.mtx&quot;</span>), exec));</div>
 </div><!-- fragment --><p>Create RHS and initial guess as 1</p>
 <div class="fragment"><div class="line"><a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a> size = A-&gt;get_size()[0];</div>
-<div class="line"><span class="keyword">auto</span> host_x = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;::create</a>(exec-&gt;get_master(),</div>
-<div class="line">                                                    <a class="code" href="structgko_1_1dim.html">gko::dim&lt;2&gt;</a>(size, 1));</div>
+<div class="line"><span class="keyword">auto</span> host_x = vec::create(exec-&gt;get_master(), <a class="code" href="structgko_1_1dim.html">gko::dim&lt;2&gt;</a>(size, 1));</div>
 <div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span> i = 0; i &lt; size; i++) {</div>
-<div class="line">    host_x-&gt;<a class="code" href="classgko_1_1matrix_1_1Dense.html#af0f1af68853537807ca271a296de3cd0">at</a>(i, 0) = 1.;</div>
+<div class="line">    host_x-&gt;at(i, 0) = 1.;</div>
 <div class="line">}</div>
-<div class="line"><span class="keyword">auto</span> x = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;&gt;::create</a>(exec);</div>
-<div class="line"><span class="keyword">auto</span> b = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;&gt;::create</a>(exec);</div>
+<div class="line"><span class="keyword">auto</span> x = vec::create(exec);</div>
+<div class="line"><span class="keyword">auto</span> b = vec::create(exec);</div>
 <div class="line">x-&gt;copy_from(host_x.get());</div>
 <div class="line">b-&gt;copy_from(host_x.get());</div>
 </div><!-- fragment --><p>Calculate initial residual by overwriting b</p>
@@ -149,11 +148,11 @@ $(function() {
 <div class="line">b-&gt;compute_norm2(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(initres));</div>
 </div><!-- fragment --><p>copy b again</p>
 <div class="fragment"><div class="line">b-&gt;copy_from(host_x.get());</div>
-<div class="line"> </div>
+<div class="line"><span class="keyword">const</span> <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> reduction_factor = 1e-7;</div>
 <div class="line"><span class="keyword">auto</span> iter_stop =</div>
 <div class="line">    gko::stop::Iteration::build().with_max_iters(10000u).on(exec);</div>
 <div class="line"><span class="keyword">auto</span> tol_stop = <a class="code" href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction&lt;ValueType&gt;::build</a>()</div>
-<div class="line">                    .with_reduction_factor(static_cast&lt;ValueType&gt;(1e-12))</div>
+<div class="line">                    .with_reduction_factor(reduction_factor)</div>
 <div class="line">                    .on(exec);</div>
 <div class="line"> </div>
 <div class="line">std::shared_ptr&lt;const gko::log::Convergence&lt;ValueType&gt;&gt; logger =</div>
@@ -280,13 +279,12 @@ $(function() {
 <div class="line"> </div>
 <div class="line">    <span class="keyword">auto</span> A = <a class="code" href="namespacegko.html#a3ce296f73db0ff398bdea6009a3a5c58">share</a>(gko::read&lt;mtx&gt;(std::ifstream(<span class="stringliteral">&quot;data/A.mtx&quot;</span>), exec));</div>
 <div class="line">    <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a> size = A-&gt;get_size()[0];</div>
-<div class="line">    <span class="keyword">auto</span> host_x = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;::create</a>(exec-&gt;get_master(),</div>
-<div class="line">                                                        <a class="code" href="structgko_1_1dim.html">gko::dim&lt;2&gt;</a>(size, 1));</div>
+<div class="line">    <span class="keyword">auto</span> host_x = vec::create(exec-&gt;get_master(), <a class="code" href="structgko_1_1dim.html">gko::dim&lt;2&gt;</a>(size, 1));</div>
 <div class="line">    <span class="keywordflow">for</span> (<span class="keyword">auto</span> i = 0; i &lt; size; i++) {</div>
-<div class="line">        host_x-&gt;<a class="code" href="classgko_1_1matrix_1_1Dense.html#af0f1af68853537807ca271a296de3cd0">at</a>(i, 0) = 1.;</div>
+<div class="line">        host_x-&gt;at(i, 0) = 1.;</div>
 <div class="line">    }</div>
-<div class="line">    <span class="keyword">auto</span> x = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;&gt;::create</a>(exec);</div>
-<div class="line">    <span class="keyword">auto</span> b = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;&gt;::create</a>(exec);</div>
+<div class="line">    <span class="keyword">auto</span> x = vec::create(exec);</div>
+<div class="line">    <span class="keyword">auto</span> b = vec::create(exec);</div>
 <div class="line">    x-&gt;copy_from(host_x.get());</div>
 <div class="line">    b-&gt;copy_from(host_x.get());</div>
 <div class="line"> </div>
@@ -297,11 +295,11 @@ $(function() {
 <div class="line">    b-&gt;compute_norm2(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(initres));</div>
 <div class="line"> </div>
 <div class="line">    b-&gt;copy_from(host_x.get());</div>
-<div class="line"> </div>
+<div class="line">    <span class="keyword">const</span> <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> reduction_factor = 1e-7;</div>
 <div class="line">    <span class="keyword">auto</span> iter_stop =</div>
 <div class="line">        gko::stop::Iteration::build().with_max_iters(10000u).on(exec);</div>
 <div class="line">    <span class="keyword">auto</span> tol_stop = <a class="code" href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction&lt;ValueType&gt;::build</a>()</div>
-<div class="line">                        .with_reduction_factor(static_cast&lt;ValueType&gt;(1e-12))</div>
+<div class="line">                        .with_reduction_factor(reduction_factor)</div>
 <div class="line">                        .on(exec);</div>
 <div class="line"> </div>
 <div class="line">    std::shared_ptr&lt;const gko::log::Convergence&lt;ValueType&gt;&gt; logger =</div>
@@ -356,8 +354,8 @@ $(function() {
 <div class="ttc" id="aclassgko_1_1OmpExecutor_html_a33ca05fdd0fc928ee262fc9425304874"><div class="ttname"><a href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; OmpExecutor &gt; create()</div><div class="ttdoc">Creates a new OmpExecutor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:775</div></div>
 <div class="ttc" id="anamespacegko_html_a6e5c95df0ae4e47aab2f604a22d98ee7"><div class="ttname"><a href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a></div><div class="ttdeci">std::size_t size_type</div><div class="ttdoc">Integral type used for allocation quantities.</div><div class="ttdef"><b>Definition:</b> types.hpp:100</div></div>
 <div class="ttc" id="aclassgko_1_1stop_1_1ResidualNormReduction_html"><div class="ttname"><a href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction</a></div><div class="ttdoc">The ResidualNormReduction class is a stopping criterion which stops the iteration process when the re...</div><div class="ttdef"><b>Definition:</b> residual_norm_reduction.hpp:64</div></div>
-<div class="ttc" id="aclassgko_1_1matrix_1_1Dense_html_af0f1af68853537807ca271a296de3cd0"><div class="ttname"><a href="classgko_1_1matrix_1_1Dense.html#af0f1af68853537807ca271a296de3cd0">gko::matrix::Dense::at</a></div><div class="ttdeci">value_type &amp; at(size_type row, size_type col) noexcept</div><div class="ttdoc">Returns a single element of the matrix.</div><div class="ttdef"><b>Definition:</b> dense.hpp:280</div></div>
 <div class="ttc" id="anamespacegko_html_a859dc47a462721d83728d91ab7fa2148"><div class="ttname"><a href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148">gko::write</a></div><div class="ttdeci">void write(StreamType &amp;&amp;os, MatrixType *matrix, layout_type layout=layout_type::array)</div><div class="ttdoc">Reads a matrix stored in matrix market format from an input stream.</div><div class="ttdef"><b>Definition:</b> mtx_io.hpp:134</div></div>
+<div class="ttc" id="anamespacegko_html_adfcb75c44f6b6c701989419c166f6e7e"><div class="ttname"><a href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex</a></div><div class="ttdeci">typename detail::remove_complex_impl&lt; T &gt;::type remove_complex</div><div class="ttdoc">Obtains a real counterpart of a std::complex type, and leaves the type unchanged if it is not a compl...</div><div class="ttdef"><b>Definition:</b> math.hpp:174</div></div>
 <div class="ttc" id="aclassgko_1_1version__info_html_a6daeb8a087cfb57fa055526fc133d8eb"><div class="ttname"><a href="classgko_1_1version__info.html#a6daeb8a087cfb57fa055526fc133d8eb">gko::version_info::get</a></div><div class="ttdeci">static const version_info &amp; get()</div><div class="ttdoc">Returns an instance of version_info.</div><div class="ttdef"><b>Definition:</b> version.hpp:168</div></div>
 <div class="ttc" id="aclassgko_1_1preconditioner_1_1Jacobi_html"><div class="ttname"><a href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi</a></div><div class="ttdoc">A block-Jacobi preconditioner is a block-diagonal linear operator, obtained by inverting the diagonal...</div><div class="ttdef"><b>Definition:</b> jacobi.hpp:207</div></div>
 <div class="ttc" id="anamespacegko_html_a4edc2273b5627ec552ea423b60493be3"><div class="ttname"><a href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">gko::lend</a></div><div class="ttdeci">std::enable_if&lt; detail::have_ownership_s&lt; Pointer &gt;::value, detail::pointee&lt; Pointer &gt; * &gt;::type lend(const Pointer &amp;p)</div><div class="ttdoc">Returns a non-owning (plain) pointer to the object pointed to by p.</div><div class="ttdef"><b>Definition:</b> utils.hpp:253</div></div>

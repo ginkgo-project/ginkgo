@@ -83,9 +83,12 @@ Some shortcuts
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}};}
-\DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
-\DoxyCodeLine{\textcolor{keyword}{using} bicg = \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab}{gko::solver::Bicgstab<>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{\textcolor{keyword}{using} IndexType = int;}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} bicg = \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab}{gko::solver::Bicgstab<ValueType>}};}
 \end{DoxyCode}
 
 
@@ -110,7 +113,7 @@ Create solver factory and solve system
 \DoxyCodeLine{                                     .on(exec))}
 \DoxyCodeLine{                  .on(exec)}
 \DoxyCodeLine{                  -\/>generate(A);}
-\DoxyCodeLine{solver-\/>add\_logger(\mbox{\hyperlink{classgko_1_1log_1_1Stream}{gko::log::Stream<>::create}}(}
+\DoxyCodeLine{solver-\/>add\_logger(\mbox{\hyperlink{classgko_1_1log_1_1Stream}{gko::log::Stream<ValueType>::create}}(}
 \DoxyCodeLine{    exec, gko::log::Logger::iteration\_complete\_mask, std::cout, \textcolor{keyword}{true}));}
 \DoxyCodeLine{solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
 \DoxyCodeLine{}
@@ -397,9 +400,12 @@ This is the expected output\+:
 \DoxyCodeLine{\textcolor{keywordtype}{void} run\_solver(\textcolor{keyword}{volatile} \textcolor{keywordtype}{bool} *stop\_iteration\_process,}
 \DoxyCodeLine{                std::shared\_ptr<gko::Executor> exec)}
 \DoxyCodeLine{\{}
-\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}};}
-\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
-\DoxyCodeLine{    \textcolor{keyword}{using} bicg = \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab}{gko::solver::Bicgstab<>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} bicg = \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab}{gko::solver::Bicgstab<ValueType>}};}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} A = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{share}}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));}
 \DoxyCodeLine{    \textcolor{keyword}{auto} b = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/b.mtx"}), exec);}
@@ -412,7 +418,7 @@ This is the expected output\+:
 \DoxyCodeLine{                                         .on(exec))}
 \DoxyCodeLine{                      .on(exec)}
 \DoxyCodeLine{                      -\/>generate(A);}
-\DoxyCodeLine{    solver-\/>add\_logger(\mbox{\hyperlink{classgko_1_1log_1_1Stream}{gko::log::Stream<>::create}}(}
+\DoxyCodeLine{    solver-\/>add\_logger(\mbox{\hyperlink{classgko_1_1log_1_1Stream}{gko::log::Stream<ValueType>::create}}(}
 \DoxyCodeLine{        exec, gko::log::Logger::iteration\_complete\_mask, std::cout, \textcolor{keyword}{true}));}
 \DoxyCodeLine{    solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
 \DoxyCodeLine{}

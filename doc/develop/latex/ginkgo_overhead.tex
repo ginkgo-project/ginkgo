@@ -20,8 +20,7 @@ The ginkgo overhead measurement example..
 \DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
 \DoxyCodeLine{}
 \DoxyCodeLine{}
-\DoxyCodeLine{[[noreturn]] \textcolor{keywordtype}{void} print\_usage\_and\_exit(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name)}
-\DoxyCodeLine{\{}
+\DoxyCodeLine{[[noreturn]] \textcolor{keywordtype}{void} print\_usage\_and\_exit(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name) \{}
 \DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: "} << name << \textcolor{stringliteral}{" [NUM\_ITERS]"} << std::endl;}
 \DoxyCodeLine{    std::exit(-\/1);}
 \DoxyCodeLine{\}}
@@ -29,9 +28,12 @@ The ginkgo overhead measurement example..
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
 \DoxyCodeLine{\{}
-\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
-\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
-\DoxyCodeLine{    \textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<ValueType>}};}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keywordtype}{long} \textcolor{keywordtype}{unsigned} num\_iters = 1000000;}
 \DoxyCodeLine{    \textcolor{keywordflow}{if} (argc > 2) \{}
@@ -135,8 +137,7 @@ This is the expected output\+:
 \DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
 \DoxyCodeLine{}
 \DoxyCodeLine{}
-\DoxyCodeLine{[[noreturn]] \textcolor{keywordtype}{void} print\_usage\_and\_exit(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name)}
-\DoxyCodeLine{\{}
+\DoxyCodeLine{[[noreturn]] \textcolor{keywordtype}{void} print\_usage\_and\_exit(\textcolor{keyword}{const} \textcolor{keywordtype}{char} *name) \{}
 \DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: "} << name << \textcolor{stringliteral}{" [NUM\_ITERS]"} << std::endl;}
 \DoxyCodeLine{    std::exit(-\/1);}
 \DoxyCodeLine{\}}
@@ -144,9 +145,12 @@ This is the expected output\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
 \DoxyCodeLine{\{}
-\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
-\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
-\DoxyCodeLine{    \textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<ValueType>}};}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keywordtype}{long} \textcolor{keywordtype}{unsigned} num\_iters = 1000000;}
 \DoxyCodeLine{    \textcolor{keywordflow}{if} (argc > 2) \{}
