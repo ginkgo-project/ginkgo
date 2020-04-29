@@ -88,15 +88,17 @@ __forceinline__ __device__ void generic_generate(
 
     subwarp.sync();
 
-    if (local_id < i_row_size) {
-        const auto col = i_col_idxs[i_row_begin + local_id];
+    for (IndexType nz = 0; nz < i_row_size; ++nz) {
+        auto col = i_col_idxs[i_row_begin + nz];
         auto m_row_begin = m_row_ptrs[col];
         auto m_row_size = m_row_ptrs[col + 1] - m_row_begin;
-
-        sequential_match(
+        // extract the dense submatrix consisting of the entries whose
+        // columns/rows match column indices from this row
+        group_match<subwarp_size>(
             m_col_idxs + m_row_begin, m_row_size, i_col_idxs + i_row_begin,
-            i_row_size, [&](IndexType, IndexType m_idx, IndexType i_idx) {
-                trisystem(i_idx, local_id) = m_values[m_row_begin + m_idx];
+            i_row_size, subwarp,
+            [&](IndexType, IndexType m_idx, IndexType i_idx) {
+                trisystem(nz, i_idx) = m_values[m_row_begin + m_idx];
             });
     }
 
@@ -107,9 +109,7 @@ __forceinline__ __device__ void generic_generate(
     ValueType local_row[subwarp_size];
 #pragma unroll
     for (int i = 0; i < subwarp_size; ++i) {
-        const auto intermediate_idx = local_id + i;
-        const auto coalesced_idx = intermediate_idx % subwarp_size;
-        local_row[coalesced_idx] = trisystem(local_id, coalesced_idx);
+        local_row[i] = trisystem(i, local_id);
     }
 
     const auto rhs = trs_solve(i_row_size, local_row, subwarp);
