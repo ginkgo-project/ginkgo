@@ -79,8 +79,8 @@ int main(int argc, char *argv[])
     for (auto i = 0; i < size; i++) {
         host_x->at(i, 0) = 1.;
     }
-    auto x = gko::matrix::Dense<>::create(exec);
-    auto b = gko::matrix::Dense<>::create(exec);
+    auto x = gko::matrix::Dense<ValueType>::create(exec);
+    auto b = gko::matrix::Dense<ValueType>::create(exec);
     x->copy_from(host_x.get());
     b->copy_from(host_x.get());
 
@@ -93,11 +93,12 @@ int main(int argc, char *argv[])
 
     // copy b again
     b->copy_from(host_x.get());
-
+    gko::size_type max_iters= 10000u; 
+    gko::remove_complex<ValueType> outer_reduction_factor = 1e-12;
     auto iter_stop =
-        gko::stop::Iteration::build().with_max_iters(10000u).on(exec);
+        gko::stop::Iteration::build().with_max_iters(max_iters).on(exec);
     auto tol_stop = gko::stop::ResidualNormReduction<ValueType>::build()
-                        .with_reduction_factor(static_cast<ValueType>(1e-12))
+                        .with_reduction_factor(outer_reduction_factor)
                         .on(exec);
 
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
@@ -106,13 +107,14 @@ int main(int argc, char *argv[])
     tol_stop->add_logger(logger);
 
     // Create solver factory
+    gko::remove_complex<ValueType> inner_reduction_factor = 1e-2;
     auto solver_gen =
         ir::build()
             .with_solver(
                 cg::build()
                     .with_criteria(
                         gko::stop::ResidualNormReduction<ValueType>::build()
-                            .with_reduction_factor(static_cast<ValueType>(1e-2))
+                            .with_reduction_factor(inner_reduction_factor)
                             .on(exec))
                     .on(exec))
             .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
