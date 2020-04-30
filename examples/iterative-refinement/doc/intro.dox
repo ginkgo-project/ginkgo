@@ -1,4 +1,4 @@
-<a name="Adaptive Precision block-Jacobi"></a>
+<a name="Iterative Refinement"></a>
 <h1>This example shows how to use the iterative refinement solver.</h1>
 
 <h3> In this example, we first read in a matrix from file, then generate a
