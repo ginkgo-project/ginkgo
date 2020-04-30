@@ -1,0 +1,8 @@
+<a name="Adaptive Precision block-Jacobi"></a>
+<h1>This example shows how to use the iterative refinement solver.</h1>
+
+<h3> In this example, we first read in a matrix from file, then generate a
+right-hand side and an initial guess. An inaccurate CG solver is used as the
+inner solver to an iterative refinement (IR) method which solves a linear
+system. The example features the iteration count and runtime of the IR solver.
+</h3>
