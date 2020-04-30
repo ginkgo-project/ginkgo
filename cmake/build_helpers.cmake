@@ -17,6 +17,9 @@ function(ginkgo_compile_features name)
     if(GINKGO_WITH_IWYU AND GINKGO_IWYU_PATH)
         set_property(TARGET "${name}" PROPERTY CXX_INCLUDE_WHAT_YOU_USE ${GINKGO_IWYU_PATH})
     endif()
+    # Set an appropriate SONAME
+    set_property(TARGET "${name}" PROPERTY
+        SOVERSION "${Ginkgo_VERSION}")
     if(GINKGO_CHANGED_SHARED_LIBRARY)
         # Put all shared libraries and corresponding imported libraries into the specified path
         set_property(TARGET "${name}" PROPERTY
