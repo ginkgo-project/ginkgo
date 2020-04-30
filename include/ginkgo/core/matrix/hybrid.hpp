@@ -68,12 +68,14 @@ class Csr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Hybrid : public EnableLinOp<Hybrid<ValueType, IndexType>>,
-               public EnableCreateMethod<Hybrid<ValueType, IndexType>>,
-               public ConvertibleTo<Dense<ValueType>>,
-               public ConvertibleTo<Csr<ValueType, IndexType>>,
-               public ReadableFromMatrixData<ValueType, IndexType>,
-               public WritableToMatrixData<ValueType, IndexType> {
+class Hybrid
+    : public EnableLinOp<Hybrid<ValueType, IndexType>>,
+      public EnableCreateMethod<Hybrid<ValueType, IndexType>>,
+      public ConvertibleTo<Hybrid<next_precision<ValueType>, IndexType>>,
+      public ConvertibleTo<Dense<ValueType>>,
+      public ConvertibleTo<Csr<ValueType, IndexType>>,
+      public ReadableFromMatrixData<ValueType, IndexType>,
+      public WritableToMatrixData<ValueType, IndexType> {
     friend class EnableCreateMethod<Hybrid>;
     friend class EnablePolymorphicObject<Hybrid, LinOp>;
     friend class Dense<ValueType>;
@@ -329,6 +331,13 @@ public:
     private:
         imbalance_bounded_limit strategy_;
     };
+
+    friend class Hybrid<next_precision<ValueType>, IndexType>;
+
+    void convert_to(
+        Hybrid<next_precision<ValueType>, IndexType> *result) const override;
+
+    void move_to(Hybrid<next_precision<ValueType>, IndexType> *result) override;
 
     void convert_to(Dense<ValueType> *other) const override;
 

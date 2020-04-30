@@ -308,6 +308,46 @@ TYPED_TEST(Dense, ComputDotFailsOnWrongResultSize)
 }
 
 
+TYPED_TEST(Dense, ConvertsToPrecision)
+{
+    using Dense = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using OtherT = typename gko::next_precision<T>;
+    using OtherDense = typename gko::matrix::Dense<OtherT>;
+    auto tmp = OtherDense::create(this->exec);
+    auto res = Dense::create(this->exec);
+    // If OtherT is more precise: 0, otherwise r
+    auto residual = r<OtherT>::value < r<T>::value
+                        ? gko::remove_complex<T>{0}
+                        : gko::remove_complex<T>{r<OtherT>::value};
+
+    this->mtx1->convert_to(tmp.get());
+    tmp->convert_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx1, res, residual);
+}
+
+
+TYPED_TEST(Dense, MovesToPrecision)
+{
+    using Dense = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using OtherT = typename gko::next_precision<T>;
+    using OtherDense = typename gko::matrix::Dense<OtherT>;
+    auto tmp = OtherDense::create(this->exec);
+    auto res = Dense::create(this->exec);
+    // If OtherT is more precise: 0, otherwise r
+    auto residual = r<OtherT>::value < r<T>::value
+                        ? gko::remove_complex<T>{0}
+                        : gko::remove_complex<T>{r<OtherT>::value};
+
+    this->mtx1->move_to(tmp.get());
+    tmp->move_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx1, res, residual);
+}
+
+
 TYPED_TEST(Dense, ConvertsToCoo32)
 {
     using T = typename TestFixture::value_type;
