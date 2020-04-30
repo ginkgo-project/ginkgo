@@ -92,9 +92,16 @@ void Ir<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             break;
         }
 
+        // Use the inner solver to solve
+        // A * inner_solution = residual
+        // with residual as initial guess.
         inner_solution->copy_from(residual.get());
         solver_->apply(lend(residual), lend(inner_solution));
+
+        // x = x + inner_solution
         dense_x->add_scaled(lend(one_op), lend(inner_solution));
+
+        // residual = b - A * x
         residual->copy_from(dense_b);
         system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
                               lend(residual));
