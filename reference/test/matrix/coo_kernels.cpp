@@ -98,6 +98,48 @@ protected:
 TYPED_TEST_CASE(Coo, gko::test::ValueIndexTypes);
 
 
+TYPED_TEST(Coo, ConvertsToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Coo = typename TestFixture::Mtx;
+    using OtherCoo = gko::matrix::Coo<OtherType, IndexType>;
+    auto tmp = OtherCoo::create(this->exec);
+    auto res = Coo::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<OtherType>{r<OtherType>::value};
+
+    this->mtx->convert_to(tmp.get());
+    tmp->convert_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx, res, residual);
+}
+
+
+TYPED_TEST(Coo, MovesToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Coo = typename TestFixture::Mtx;
+    using OtherCoo = gko::matrix::Coo<OtherType, IndexType>;
+    auto tmp = OtherCoo::create(this->exec);
+    auto res = Coo::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<OtherType>{r<OtherType>::value};
+
+    this->mtx->move_to(tmp.get());
+    tmp->move_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx, res, residual);
+}
+
+
 TYPED_TEST(Coo, ConvertsToCsr)
 {
     using value_type = typename TestFixture::value_type;

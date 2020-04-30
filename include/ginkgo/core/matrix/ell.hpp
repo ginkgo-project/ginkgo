@@ -70,6 +70,7 @@ class Csr;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
             public EnableCreateMethod<Ell<ValueType, IndexType>>,
+            public ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
@@ -86,6 +87,13 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
+
+    friend class Ell<next_precision<ValueType>, IndexType>;
+
+    void convert_to(
+        Ell<next_precision<ValueType>, IndexType> *result) const override;
+
+    void move_to(Ell<next_precision<ValueType>, IndexType> *result) override;
 
     void convert_to(Dense<ValueType> *other) const override;
 
