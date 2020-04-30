@@ -77,10 +77,9 @@ void generate_l_inverse(std::shared_ptr<const DefaultExecutor> exec,
     const auto nnz = l_csr->get_num_stored_elements();
     const auto num_rows = l_csr->get_size()[0];
 
-    exec->copy_from(exec.get(), nnz, l_csr->get_const_col_idxs(),
-                    inverse_l->get_col_idxs());
-    exec->copy_from(exec.get(), num_rows + 1, l_csr->get_const_row_ptrs(),
-                    inverse_l->get_row_ptrs());
+    exec->copy(nnz, l_csr->get_const_col_idxs(), inverse_l->get_col_idxs());
+    exec->copy(num_rows + 1, l_csr->get_const_row_ptrs(),
+               inverse_l->get_row_ptrs());
 
     const dim3 block(default_block_size, 1, 1);
     const dim3 grid(ceildiv(num_rows, block.x / config::warp_size), 1, 1);
@@ -107,10 +106,9 @@ void generate_u_inverse(std::shared_ptr<const DefaultExecutor> exec,
     const auto nnz = u_csr->get_num_stored_elements();
     const auto num_rows = u_csr->get_size()[0];
 
-    exec->copy_from(exec.get(), nnz, u_csr->get_const_col_idxs(),
-                    inverse_u->get_col_idxs());
-    exec->copy_from(exec.get(), num_rows + 1, u_csr->get_const_row_ptrs(),
-                    inverse_u->get_row_ptrs());
+    exec->copy(nnz, u_csr->get_const_col_idxs(), inverse_u->get_col_idxs());
+    exec->copy(num_rows + 1, u_csr->get_const_row_ptrs(),
+               inverse_u->get_row_ptrs());
 
     const dim3 block(default_block_size, 1, 1);
     const dim3 grid(ceildiv(num_rows, block.x / config::warp_size), 1, 1);

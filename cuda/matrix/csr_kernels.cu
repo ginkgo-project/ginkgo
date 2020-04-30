@@ -516,9 +516,7 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
         auto d_descr = cusparse::create_mat_descr();
         auto info = cusparse::create_spgemm_info();
 
-        ValueType valpha{};
-        exec->get_master()->copy_from(exec.get(), 1, alpha->get_const_values(),
-                                      &valpha);
+        auto valpha = exec->copy_val_to_host(alpha->get_const_values());
         auto a_nnz = IndexType(a->get_num_stored_elements());
         auto a_vals = a->get_const_values();
         auto a_row_ptrs = a->get_const_row_ptrs();
@@ -527,9 +525,7 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
         auto b_vals = b->get_const_values();
         auto b_row_ptrs = b->get_const_row_ptrs();
         auto b_col_idxs = b->get_const_col_idxs();
-        ValueType vbeta{};
-        exec->get_master()->copy_from(exec.get(), 1, beta->get_const_values(),
-                                      &vbeta);
+        auto vbeta = exec->copy_val_to_host(beta->get_const_values());
         auto d_nnz = IndexType(d->get_num_stored_elements());
         auto d_vals = d->get_const_values();
         auto d_row_ptrs = d->get_const_row_ptrs();
@@ -767,8 +763,7 @@ void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
         grid_dim, as_cuda_type(block_results.get_const_data()),
         as_cuda_type(d_result.get_data()));
 
-    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
-                                  result);
+    *result = exec->copy_val_to_host(d_result.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -900,8 +895,7 @@ void calculate_max_nnz_per_row(std::shared_ptr<const CudaExecutor> exec,
         reduce_dim, as_cuda_type(block_results.get_const_data()),
         as_cuda_type(d_result.get_data()));
 
-    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
-                                  result);
+    *result = exec->copy_val_to_host(d_result.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -983,7 +977,7 @@ void sort_by_column_index(std::shared_ptr<const CudaExecutor> exec,
 
         // copy values
         Array<ValueType> tmp_vals_array(exec, nnz);
-        exec->copy_from(exec.get(), nnz, vals, tmp_vals_array.get_data());
+        exec->copy(nnz, vals, tmp_vals_array.get_data());
         auto tmp_vals = tmp_vals_array.get_const_data();
 
         // init identity permutation

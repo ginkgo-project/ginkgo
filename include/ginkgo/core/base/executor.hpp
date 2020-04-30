@@ -537,6 +537,40 @@ public:
     }
 
     /**
+     * Copies data within this Executor.
+     *
+     * @tparam T  datatype to copy
+     *
+     * @param num_elems  number of elements of type T to copy
+     * @param src_ptr  pointer to a block of memory containing the data to be
+     *                 copied
+     * @param dest_ptr  pointer to an allocated block of memory
+     *                  where the data will be copied to
+     */
+    template <typename T>
+    void copy(size_type num_elems, const T *src_ptr, T *dest_ptr) const
+    {
+        this->copy_from(this, num_elems, src_ptr, dest_ptr);
+    }
+
+    /**
+     * Retrieves a single element at the given location from executor memory.
+     *
+     * @tparam T  datatype to copy
+     *
+     * @param ptr  the pointer to the element to be copied
+     *
+     * @return the value stored at ptr
+     */
+    template <typename T>
+    T copy_val_to_host(const T *ptr) const
+    {
+        T out{};
+        this->get_master()->copy_from(this, 1, ptr, &out);
+        return out;
+    }
+
+    /**
      * Returns the master OmpExecutor of this Executor.
      * @return the master OmpExecutor of this Executor.
      */

@@ -112,11 +112,8 @@ void residual_norm_reduction(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(device_storage->get_data()));
 
     /* Represents all_converged, one_changed */
-    bool tmp[2] = {true, false};
-    exec->get_master()->copy_from(exec.get(), 2,
-                                  device_storage->get_const_data(), tmp);
-    *all_converged = tmp[0];
-    *one_changed = tmp[1];
+    *all_converged = exec->copy_val_to_host(device_storage->get_const_data());
+    *one_changed = exec->copy_val_to_host(device_storage->get_const_data() + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL);

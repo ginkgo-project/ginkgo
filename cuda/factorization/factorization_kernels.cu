@@ -113,9 +113,8 @@ void add_diagonal_elements(std::shared_ptr<const CudaExecutor> exec,
     prefix_sum(exec, cuda_row_ptrs_add, row_ptrs_size);
     exec->synchronize();
 
-    IndexType total_additions{};
-    exec->get_master()->copy_from(
-        exec.get(), 1, cuda_row_ptrs_add + row_ptrs_size - 1, &total_additions);
+    auto total_additions =
+        exec->copy_val_to_host(cuda_row_ptrs_add + row_ptrs_size - 1);
     size_type new_num_elems = static_cast<size_type>(total_additions) +
                               mtx->get_num_stored_elements();
 
