@@ -75,8 +75,8 @@ template <typename ValueType = default_precision,
           bool MGS_CGS = true>
 */
 template <typename ValueType = default_precision,
-          typename ValueTypeKrylovBases = float>
-//          typename ValueTypeKrylovBases = default_precision>
+          typename ValueTypeKrylovBases = default_precision>
+//          typename ValueTypeKrylovBases = float>
 class GmresMixed :
     //		public EnableLinOp<GmresMixed<ValueType,
     // ValueTypeKrylovBases,Reorthogonalization, MGS_CGS>>,
