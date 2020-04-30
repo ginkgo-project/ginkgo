@@ -284,6 +284,23 @@ void Dense<ValueType>::compute_norm2_impl(LinOp *result) const
 
 
 template <typename ValueType>
+void Dense<ValueType>::convert_to(
+    Dense<next_precision<ValueType>> *result) const
+{
+    result->values_ = this->values_;
+    result->stride_ = this->stride_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Dense<next_precision<ValueType>> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::convert_to(Coo<ValueType, int32> *result) const
 {
     conversion_helper(
