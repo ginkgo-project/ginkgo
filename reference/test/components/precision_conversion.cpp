@@ -60,7 +60,7 @@ protected:
           vals(ref, total_size),
           cvals(ref, total_size)
     {
-        auto maxval = std::numeric_limits<float>::max();
+        auto maxval = 1e10f;
         std::uniform_real_distribution<float> dist(-maxval, maxval);
         for (gko::size_type i = 0; i < total_size; ++i) {
             vals.get_data()[i] = dist(rand);
