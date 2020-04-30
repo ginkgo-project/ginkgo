@@ -160,9 +160,6 @@ void finish_arnoldi_reorth(matrix::Dense<ValueType> *next_krylov_basis,
             }
             if (hessenberg_iter->at(k, i) * hessenberg_iter->at(k, i) >
                 arnoldi_norm->at(0, i)) {
-                std::cout << "K = " << k;
-                std::cout << " , HI = " << hessenberg_iter->at(k, i);
-                std::cout << " , AN = " << arnoldi_norm->at(0, i) << std::endl;
                 ValueType reorth = zero<ValueType>();
 #pragma omp parallel for reduction(add : reorth)
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
@@ -575,7 +572,6 @@ void step_1(std::shared_ptr<const OmpExecutor> exec,
             const Array<stopping_status> *stop_status,
             Array<stopping_status> *reorth_status, Array<size_type> *num_reorth)
 {
-    std::cout << "ITER = " << iter << std::endl;
 #pragma omp parallel for
     for (size_type i = 0; i < final_iter_nums->get_num_elems(); ++i) {
         final_iter_nums->get_data()[i] +=

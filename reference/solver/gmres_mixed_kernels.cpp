@@ -145,16 +145,9 @@ void finish_arnoldi_reorth(matrix::Dense<ValueType> *next_krylov_basis,
             }
             if ((hessenberg_iter->at(k, i) * hessenberg_iter->at(k, i)) >
                 arnoldi_norm->at(0, i)) {
-                std::cout << "K = " << k;
-                std::cout << " , HI = " << hessenberg_iter->at(k, i);
-                std::cout << " , AN = " << arnoldi_norm->at(0, i) << std::endl;
-                // if (hessenberg_iter->at(k, i) * hessenberg_iter->at(k, i) >
-                // nrm) {
                 arnoldi_norm->at(1, i) = 0;
-                // reorth = 0;
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
                      ++j) {
-                    // reorth += next_krylov_basis->at(j, i) *
                     arnoldi_norm->at(1, i) +=
                         next_krylov_basis->at(j, i) *
                         krylov_bases->at(
@@ -166,12 +159,8 @@ void finish_arnoldi_reorth(matrix::Dense<ValueType> *next_krylov_basis,
                         arnoldi_norm->at(1, i) *
                         krylov_bases->at(
                             j, next_krylov_basis->get_size()[1] * k + i);
-                    // reorth *
                 }
                 hessenberg_iter->at(k, i) += arnoldi_norm->at(1, i);
-                std::cout << " Add(" << k << ") = " << arnoldi_norm->at(1, i)
-                          << std::endl;
-                //                hessenberg_iter->at(k, i) += reorth;
             }
         }
         // for i in 1:iter
@@ -238,8 +227,6 @@ void finish_arnoldi_CGS(matrix::Dense<ValueType> *next_krylov_basis,
                     krylov_bases->at(j,
                                      next_krylov_basis->get_size()[1] * k + i);
             }
-            //            std::cout << "  " << k << " => " <<
-            //            hessenberg_iter->at(k, i) << std::endl;
         }
         // for i in 1:iter
         //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
@@ -256,28 +243,15 @@ void finish_arnoldi_CGS(matrix::Dense<ValueType> *next_krylov_basis,
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
         arnoldi_norm->at(1, i) = 0;
-        // nrmN = 0;
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             arnoldi_norm->at(1, i) +=
                 next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
-            // nrmN += next_krylov_basis->at(j, i) * next_krylov_basis->at(j,
-            // i);
         }
         arnoldi_norm->at(1, i) = sqrt(arnoldi_norm->at(1, i));
-        // nrmN = sqrt(nrmN);
-        // nrmN = arnoldi_norm->at(1, i)(next_krylov_basis)
-        printf("Reorth(%10.5e,%10.5e)\n",
-               arnoldi_norm->at(0, i) * arnoldi_norm->at(0, i),
-               arnoldi_norm->at(1, i) * arnoldi_norm->at(1, i));
+        // nrmN = norm(next_krylov_basis)
         for (size_type l = 1;
              arnoldi_norm->at(1, i) < arnoldi_norm->at(0, i) && l < 3; l++) {
-            // for (size_type l = 1; arnoldi_norm->at(1, i) < eta *
-            // arnoldi_norm->at(0, i) && l < 3; l++) { for (size_type l = 1;
-            // nrmN < eta * nrmP && l < 3; l++) {
-            //            std::cout << l << " => " << nrmN << " - " << eta << "
-            //            - " << nrmP << std::endl;
             arnoldi_norm->at(0, i) = eta * arnoldi_norm->at(1, i);
-            // nrmP = nrmN;
             for (size_type k = 0; k < iter + 1; ++k) {
                 buffer_iter->at(k, i) = 0;
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
@@ -299,9 +273,6 @@ void finish_arnoldi_CGS(matrix::Dense<ValueType> *next_krylov_basis,
                         krylov_bases->at(
                             j, next_krylov_basis->get_size()[1] * k + i);
                 }
-                //                std::cout << "  " << k << " => " <<
-                //                hessenberg_iter->at(k, i); std::cout << " - "
-                //                << buffer_iter->at(k, i) << std::endl;
                 hessenberg_iter->at(k, i) += buffer_iter->at(k, i);
             }
             // for i in 1:iter
@@ -309,21 +280,13 @@ void finish_arnoldi_CGS(matrix::Dense<ValueType> *next_krylov_basis,
             //     hessenberg(iter, i) += buffer(iter, i)
             // end
             arnoldi_norm->at(1, i) = 0;
-            // nrmN = 0;
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 arnoldi_norm->at(1, i) +=
-                    // nrmN +=
                     next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
             }
             arnoldi_norm->at(1, i) = sqrt(arnoldi_norm->at(1, i));
-            // nrmN = sqrt(nrmN);
             // nrmN = norm(next_krylov_basis)
-            printf("XX Reorth(%10.5e,%10.5e)\n",
-                   arnoldi_norm->at(0, i) * arnoldi_norm->at(0, i),
-                   arnoldi_norm->at(1, i) * arnoldi_norm->at(1, i));
         }
-        //        std::cout << nrmN << " - " << eta << " - " << nrmP <<
-        //        std::endl;
         // reorthogonalization
         hessenberg_iter->at(iter + 1, i) = 0;
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
@@ -332,7 +295,6 @@ void finish_arnoldi_CGS(matrix::Dense<ValueType> *next_krylov_basis,
         }
         hessenberg_iter->at(iter + 1, i) =
             sqrt(hessenberg_iter->at(iter + 1, i));
-        //        std::cout << hessenberg_iter->at(iter + 1, i) << std::endl;
         // hessenberg(iter, iter + 1) = norm(next_krylov_basis)
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             next_krylov_basis->at(j, i) /= hessenberg_iter->at(iter + 1, i);
@@ -576,7 +538,6 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
         if (MGS_CGS) std::cout << "Modified Gram-Schmidt";
         else  std::cout << "Classical Gram-Schmidt";
     */
-    std::cout << "ITER = " << iter << std::endl;
     for (size_type i = 0; i < final_iter_nums->get_num_elems(); ++i) {
         final_iter_nums->get_data()[i] +=
             (1 - stop_status->get_const_data()[i].has_stopped());
