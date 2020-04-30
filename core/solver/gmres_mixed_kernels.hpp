@@ -104,8 +104,7 @@ namespace gmres_mixed {
 /*
     template <typename ValueType, typename ValueTypeKrylovBases, \
               bool Reorthogonalization, bool MGS_CGS>                     \
-    GKO_DECLARE_GMRES_MIXED_BOOL_STEP_1_KERNEL(ValueType, ValueTypeKrylovBases,
-   \
+    GKO_DECLARE_GMRES_MIXED_BOOL_STEP_1_KERNEL(ValueType, ValueTypeKrylovBases,\
                                           Reorthogonalization, MGS_CGS);       \
 */
 
