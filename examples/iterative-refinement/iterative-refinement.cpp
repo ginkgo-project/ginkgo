@@ -70,8 +70,6 @@ int main(int argc, char *argv[])
         std::exit(-1);
     }
 
-    auto tol = atof(argv[2]);
-
     // Read data
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     // Create RHS and initial guess as 1
@@ -114,7 +112,7 @@ int main(int argc, char *argv[])
                 cg::build()
                     .with_criteria(
                         gko::stop::ResidualNormReduction<ValueType>::build()
-                            .with_reduction_factor(static_cast<ValueType>(tol))
+                            .with_reduction_factor(static_cast<ValueType>(1e-2))
                             .on(exec))
                     .on(exec))
             .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
@@ -142,8 +140,8 @@ int main(int argc, char *argv[])
     write(std::cout, lend(res));
 
     // Print solver statistics
-    std::cout << "CG iteration count:     " << logger->get_num_iterations()
+    std::cout << "IR iteration count:     " << logger->get_num_iterations()
               << std::endl;
-    std::cout << "CG execution time [ms]: "
+    std::cout << "IR execution time [ms]: "
               << static_cast<double>(time.count()) / 1000000.0 << std::endl;
 }
