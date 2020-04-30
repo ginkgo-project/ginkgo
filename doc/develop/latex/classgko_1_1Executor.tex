@@ -44,6 +44,10 @@ void \mbox{\hyperlink{classgko_1_1Executor_a0befe43d21c93e199d1620eaae4ccc0c}{fr
 \begin{DoxyCompactList}\small\item\em Frees memory previously allocated with \mbox{\hyperlink{classgko_1_1Executor_a5a216c2b1f7ceb8a0190c08941c1c687}{Executor\+::alloc()}}. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\void \mbox{\hyperlink{classgko_1_1Executor_adf7573e4a7e267fcb821eb9049a1054f}{copy\+\_\+from}} (const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $\ast$src\+\_\+exec, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} num\+\_\+elems, const T $\ast$src\+\_\+ptr, T $\ast$dest\+\_\+ptr) const
 \begin{DoxyCompactList}\small\item\em Copies data from another \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\void \mbox{\hyperlink{classgko_1_1Executor_a45377b6ee4c1d1852ec299ce2133eabb}{copy}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} num\+\_\+elems, const T $\ast$src\+\_\+ptr, T $\ast$dest\+\_\+ptr) const
+\begin{DoxyCompactList}\small\item\em Copies data within this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\T \mbox{\hyperlink{classgko_1_1Executor_ab5ee27c7997a4e109831e27c42242073}{copy\+\_\+val\+\_\+to\+\_\+host}} (const T $\ast$ptr) const
+\begin{DoxyCompactList}\small\item\em Retrieves a single element at the given location from executor memory. \end{DoxyCompactList}\item 
 virtual std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ \mbox{\hyperlink{classgko_1_1Executor_acaec4f999d52fc71e5e5a3d3ad93609c}{get\+\_\+master}} () noexcept=0
 \begin{DoxyCompactList}\small\item\em Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
 virtual std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ \mbox{\hyperlink{classgko_1_1Executor_a261386e439c8daa6e0d95dc331b9bfeb}{get\+\_\+master}} () const noexcept=0
@@ -132,6 +136,35 @@ Allocates memory in this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}.
 \begin{DoxyReturn}{Returns}
 pointer to allocated memory 
 \end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1Executor_a45377b6ee4c1d1852ec299ce2133eabb}\label{classgko_1_1Executor_a45377b6ee4c1d1852ec299ce2133eabb}} 
+\index{gko::Executor@{gko::Executor}!copy@{copy}}
+\index{copy@{copy}!gko::Executor@{gko::Executor}}
+\doxysubsubsection{\texorpdfstring{copy()}{copy()}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+void gko\+::\+Executor\+::copy (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{num\+\_\+elems,  }\item[{const T $\ast$}]{src\+\_\+ptr,  }\item[{T $\ast$}]{dest\+\_\+ptr }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Copies data within this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & datatype to copy\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em num\+\_\+elems} & number of elements of type T to copy \\
+\hline
+{\em src\+\_\+ptr} & pointer to a block of memory containing the data to be copied \\
+\hline
+{\em dest\+\_\+ptr} & pointer to an allocated block of memory where the data will be copied to \\
+\hline
+\end{DoxyParams}
+
+
+References copy\+\_\+from().
+
 \mbox{\Hypertarget{classgko_1_1Executor_adf7573e4a7e267fcb821eb9049a1054f}\label{classgko_1_1Executor_adf7573e4a7e267fcb821eb9049a1054f}} 
 \index{gko::Executor@{gko::Executor}!copy\_from@{copy\_from}}
 \index{copy\_from@{copy\_from}!gko::Executor@{gko::Executor}}
@@ -159,6 +192,38 @@ Copies data from another \mbox{\hyperlink{classgko_1_1Executor}{Executor}}.
 {\em dest\+\_\+ptr} & pointer to an allocated block of memory where the data will be copied to \\
 \hline
 \end{DoxyParams}
+
+
+Referenced by copy().
+
+\mbox{\Hypertarget{classgko_1_1Executor_ab5ee27c7997a4e109831e27c42242073}\label{classgko_1_1Executor_ab5ee27c7997a4e109831e27c42242073}} 
+\index{gko::Executor@{gko::Executor}!copy\_val\_to\_host@{copy\_val\_to\_host}}
+\index{copy\_val\_to\_host@{copy\_val\_to\_host}!gko::Executor@{gko::Executor}}
+\doxysubsubsection{\texorpdfstring{copy\_val\_to\_host()}{copy\_val\_to\_host()}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+T gko\+::\+Executor\+::copy\+\_\+val\+\_\+to\+\_\+host (\begin{DoxyParamCaption}\item[{const T $\ast$}]{ptr }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Retrieves a single element at the given location from executor memory. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & datatype to copy\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em ptr} & the pointer to the element to be copied\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the value stored at ptr 
+\end{DoxyReturn}
+
+
+References get\+\_\+master().
+
 \mbox{\Hypertarget{classgko_1_1Executor_a0befe43d21c93e199d1620eaae4ccc0c}\label{classgko_1_1Executor_a0befe43d21c93e199d1620eaae4ccc0c}} 
 \index{gko::Executor@{gko::Executor}!free@{free}}
 \index{free@{free}!gko::Executor@{gko::Executor}}
@@ -209,6 +274,10 @@ the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mb
 
 
 Implemented in \mbox{\hyperlink{classgko_1_1HipExecutor_aad8e01fc70095ad5df48a02da9555400}{gko\+::\+Hip\+Executor}}, \mbox{\hyperlink{classgko_1_1CudaExecutor_a59a618e0d48b42fe699e9d4cf347b491}{gko\+::\+Cuda\+Executor}}, and \mbox{\hyperlink{classgko_1_1OmpExecutor_a5b83349e601d473cf8768c0bdbcaca8c}{gko\+::\+Omp\+Executor}}.
+
+
+
+Referenced by copy\+\_\+val\+\_\+to\+\_\+host().
 
 \mbox{\Hypertarget{classgko_1_1Executor_ad93eba3ccfa2d9ed5a5f33e34d2a51cc}\label{classgko_1_1Executor_ad93eba3ccfa2d9ed5a5f33e34d2a51cc}} 
 \index{gko::Executor@{gko::Executor}!run@{run}}
@@ -270,4 +339,4 @@ Referenced by run().
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/executor.\+hpp (ccf35426a)\end{DoxyCompactItemize}
+ginkgo/core/base/executor.\+hpp (8e9aa9083)\end{DoxyCompactItemize}
