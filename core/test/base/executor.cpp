@@ -218,6 +218,18 @@ TEST(ReferenceExecutor, CopiesData)
 }
 
 
+TEST(ReferenceExecutor, CopiesSingleValue)
+{
+    exec_ptr ref = gko::ReferenceExecutor::create();
+    int *el = ref->alloc<int>(1);
+    el[0] = 83683;
+
+    EXPECT_EQ(83683, ref->copy_val_to_host(el));
+
+    ref->free(el);
+}
+
+
 TEST(ReferenceExecutor, CopiesDataFromOmp)
 {
     int orig[] = {3, 8};
