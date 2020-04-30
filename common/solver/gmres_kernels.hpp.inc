@@ -293,17 +293,16 @@ __device__ void calculate_sin_and_cos_kernel(
 template <typename ValueType>
 __device__ void calculate_residual_norm_kernel(
     size_type col_idx, size_type num_cols, size_type iter,
-    const ValueType *givens_sin, size_type stride_sin,
-    const ValueType *givens_cos, size_type stride_cos, ValueType *residual_norm,
-    ValueType *residual_norm_collection,
+    const ValueType &register_sin, const ValueType &register_cos,
+    ValueType *residual_norm, ValueType *residual_norm_collection,
     size_type stride_residual_norm_collection, const ValueType *b_norm)
 {
     const auto this_rnc =
         residual_norm_collection[iter * stride_residual_norm_collection +
                                  col_idx];
-    const auto next_rnc = -givens_sin[iter * stride_sin + col_idx] * this_rnc;
+    const auto next_rnc = -register_sin * this_rnc;
     residual_norm_collection[iter * stride_residual_norm_collection + col_idx] =
-        givens_cos[iter * stride_cos + col_idx] * this_rnc;
+        register_cos * this_rnc;
     residual_norm[col_idx] = abs(next_rnc) / b_norm[col_idx];
     residual_norm_collection[(iter + 1) * stride_residual_norm_collection +
                              col_idx] = next_rnc;
@@ -369,10 +368,9 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     //                      sin(iter)*hessenberg(iter)
     // hessenberg(iter+1) = 0
 
-    calculate_residual_norm_kernel(col_idx, num_cols, iter, givens_sin,
-                                   stride_sin, givens_cos, stride_cos,
-                                   residual_norm, residual_norm_collection,
-                                   stride_residual_norm_collection, b_norm);
+    calculate_residual_norm_kernel(
+        col_idx, num_cols, iter, register_sin, register_cos, residual_norm,
+        residual_norm_collection, stride_residual_norm_collection, b_norm);
     // Calculate residual norm
 }
 

@@ -157,14 +157,14 @@ void finish_arnoldi(std::shared_ptr<const HipExecutor> exec, size_type num_rows,
         krylov_bases->get_values() +
         (iter + 1) * num_rows * hessenberg_iter->get_size()[1];
     for (size_type k = 0; k < iter + 1; ++k) {
-        zero_array(hessenberg_iter->get_size()[1],
-                   hessenberg_iter->get_values() + k * stride_hessenberg);
         const auto k_krylov_bases =
             krylov_bases->get_const_values() +
             k * num_rows * hessenberg_iter->get_size()[1];
         if (hessenberg_iter->get_size()[1] > 1) {
             // TODO: single rhs will use vendor's dot, otherwise, use our own
             // multidot_kernel which parallelize multiple rhs.
+            zero_array(hessenberg_iter->get_size()[1],
+                       hessenberg_iter->get_values() + k * stride_hessenberg);
             hipLaunchKernelGGL(
                 multidot_kernel, dim3(grid_size), dim3(block_size), 0, 0, k,
                 num_rows, hessenberg_iter->get_size()[1],

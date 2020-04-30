@@ -118,7 +118,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         residual.get(), residual_norm.get(), residual_norm_collection.get(),
         krylov_bases.get(), &final_iter_nums, krylov_dim_));
     // residual_norm = norm(residual)
-    // residual_norm_collection = {residual_norm, 0, ..., 0}
+    // residual_norm_collection = {residual_norm, unchanged}
     // krylov_bases(:, 1) = residual / residual_norm
     // final_iter_nums = {0, ..., 0}
 
@@ -173,7 +173,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 residual_norm_collection.get(), krylov_bases.get(),
                 &final_iter_nums, krylov_dim_));
             // residual_norm = norm(residual)
-            // residual_norm_collection = {residual_norm, 0, ..., 0}
+            // residual_norm_collection = {residual_norm, unchanged}
             // krylov_bases(:, 1) = residual / residual_norm
             // final_iter_nums = {0, ..., 0}
             restart_iter = 0;
@@ -189,7 +189,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             span{0, dense_b->get_size()[1]});
         get_preconditioner()->apply(this_krylov.get(),
                                     preconditioned_vector.get());
-        // preconditioned_vector = get_preconditioner() * next_krylov_basis
+        // preconditioned_vector = get_preconditioner() * this_krylov
 
         // Do Arnoldi and givens rotation
         auto hessenberg_iter = hessenberg->create_submatrix(
@@ -199,13 +199,15 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         // Start of arnoldi
         system_matrix_->apply(preconditioned_vector.get(), next_krylov.get());
-        // next_krylov_basis = A * preconditioned_vector
+        // next_krylov = A * preconditioned_vector
 
         exec->run(gmres::make_step_1(
             dense_b->get_size()[0], givens_sin.get(), givens_cos.get(),
             residual_norm.get(), residual_norm_collection.get(),
             krylov_bases.get(), hessenberg_iter.get(), b_norm.get(),
             restart_iter, &final_iter_nums, &stop_status));
+        // final_iter_nums += 1 (unconverged)
+        // next_krylov_basis is alias for (restart_iter + 1)-th krylov_bases
         // for i in 0:restart_iter
         //     hessenberg(restart_iter, i) = next_krylov_basis' *
         //         krylov_bases(:, i)
@@ -224,12 +226,22 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         //     hessenberg(j)    =  temp;
         // end
         // Calculate sin and cos
+        // this_hess = hessenberg(restart_iter)
+        // next_hess = hessenberg(restart_iter+1)
+        // hypotenuse = sqrt(this_hess * this_hess + next_hess * next_hess);
+        // cos = abs(this_hess) / hypotenuse;
+        // sin = cos * next_hess / this_hess
         // hessenberg(restart_iter)   =
-        // cos(restart_iter)*hessenberg(restart_iter) +
-        //                      sin(restart_iter)*hessenberg(restart_iter)
+        //      cos(restart_iter)*hessenberg(restart_iter) +
+        //      sin(restart_iter)*hessenberg(restart_iter)
         // hessenberg(restart_iter+1) = 0
         // End apply givens rotation
         // Calculate residual norm
+        // this_rnc = residual_norm_collection(restart_iter)
+        // next_rnc = -sin(restart_iter) * this_rnc
+        // residual_norm_collection(restart_iter) = cos(restart_iter) * this_rnc
+        // residual = abs(next_rnc)/b_norm
+        // residual_norm_collection(restart_iter + 1) = next_rnc
 
         restart_iter++;
     }
