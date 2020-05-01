@@ -96,27 +96,27 @@ std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
 
 // r = loops%krylov
 // k = krylov
-// Read: 5*ValueType*n + nnz*(2*IndexType + 2*ValueType) +
-// loops_k * (ValueType*k + 9*ValueType*n + nnz*(2*IndexType + 2*ValueType) + (ValueType*k*(k + 1))/2) +
-// loops * (ValueType*(2*n + 4*r + (4*n + 1)*(r + 1) + 7) + ValueType*n + nnz*(2*IndexType + 2*ValueType))
-// (ValueType*(r^2 + 3*r + 8*n))/2
-// Write: 2*ValueType + 3*ValueType*k + 4*ValueType*n + 8 +
-// loops_k * (ValueType + 2*ValueType*k + 6*ValueType*n + 8) +
-// loops * (ValueType*(4*n + 3*r + n*r + 7)) +
-// ValueType*(2*n + r)
+// Read: 5*ValueType*n + nnz*(2*IndexType + 2*ValueType) + ValueType*(2*n + 1) +
+// loops_k * (ValueType + 2*IndexType*nnz + (5*ValueType*k)/2 + 10*ValueType*n + 2*ValueType*nnz + (ValueType*k^2)/2 + ValueType*k*n) +
+// loops * (ValueType*(2*n + 3*r + (4*n + 1)*(r + 1) + 4) + ValueType*n + nnz*(2*IndexType + 2*ValueType) + 8) +
+// (ValueType*(8*n + 5*r + 2*n*r + r^2))/2
+// Write: 3*ValueType + 2*ValueType*k + 3*ValueType*n + 8 +
+// loops_k * (2*ValueType + ValueType*k + 6*ValueType*n + 8) +
+// loops * (2*ValueType*n + ValueType*(n + r + (n + 1)*(r + 1) + 7) + 8) +
+// ValueType*(3*n + r)
 
 // Notes: loops * r should be loops_k*(0 + 1 + ... + k - 1) + 0 + 1 + ... + r-1
 //        = floor(loops/k) * (k - 1) * k / 2 + (r - 1) * r/ 2 (loops_r)
 // Notes: loops_k is the floor(loops/k) i.e. how many does restart step activate
 // Refined:
-// Read: ((r^2 + 3 * r) / 2 + 9 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType
-// + floor(loops/k) * ((k^2 / 2 + 3 * k / 2 + 2 * nnz + 9 * n) * ValueType + 2 * nnz * IndexType)
-// + loops * ((7 * n + 8 + 2 * nnz) * ValueType + 2 * nnz * IndexType)
-// + loops_r * ((4 * n + 5) * ValueType)
-// Write: (2 + 3 * k + 6 * n + r) * ValueType + 8
-// + floor(loops/k) * ((2 * k + 6 * n + 1) * ValueType + 8)
-// + loops * ((4 * n + 7) * ValueType)
-// + loops_r * ((n + 3) * ValueType)
+// Read: (11 * n + 2 * nnz + 5/2 * r + n * r + r^2/2 + 1) * ValueType + 2 * nnz * IndexType +
+// + floor(loops/k) * ((1 + 5/2 * k + 10 * n + 2 * nnz + k^2/2 + k * n) * ValueType + 2 * nnz * IndexType)
+// + loops * ((7 * n + 5 + 2 * nnz) * ValueType + 2 * nnz * IndexType + 8)
+// + loops_r * ((4 * n + 4) * ValueType)
+// Write: (6 * n + r + 2 * k + 3) * ValueType + 8
+// + floor(loops/k) * ((k + 6 * n + 2) * ValueType + 8)
+// + loops * ((4 * n + 8) * ValueType + 8)
+// + loops_r * ((n + 2) * ValueType)
 template <typename ValueType>
 void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
@@ -157,9 +157,9 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                        dense_b->get_size()[1]);
 
     // Initialization
-    exec->run(gmres::make_initialize_1(dense_b, residual.get(),
-    // Read: n * ValueType
+    // Read: 2 * n * ValueType
     // Write: (2 * k + n + 1) * ValueType
+    exec->run(gmres::make_initialize_1(dense_b, residual.get(),
                                        givens_sin.get(), givens_cos.get(),
                                        &stop_status, krylov_dim_));
     // residual = dense_b
@@ -169,12 +169,13 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                           residual.get());
     // residual = residual - Ax
-    // Read: n * ValueType
-    // Write: (1 + k + 2 * n) * ValueType + 8
+    // Read: (2 * n + 1) * ValueType
+    // Write: (2 + n) * ValueType + 8
     exec->run(gmres::make_initialize_2(
         residual.get(), residual_norm.get(), residual_norm_collection.get(),
         krylov_bases.get(), &final_iter_nums, krylov_dim_));
     // residual_norm = norm(residual)
+    // ----
     // residual_norm_collection = {residual_norm, unchanged}
     // krylov_bases(:, 1) = residual / residual_norm
     // final_iter_nums = {0, ..., 0}
@@ -207,14 +208,15 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 
         if (restart_iter == krylov_dim_) {
             // Restart
-            // Read: ((k + 1) * k /2 )* ValueType + k * ValueType
-            // Write: k * ValueType
+            // Read: ((k + 1) * k /2 )* ValueType + k * ValueType + (k + n * k) * ValueType
+            // Write: k * ValueType + n * ValueType
             exec->run(gmres::make_step_2(residual_norm_collection.get(),
                                          krylov_bases.get(), hessenberg.get(),
                                          y.get(), before_preconditioner.get(),
                                          &final_iter_nums));
             // Solve upper triangular.
             // y = hessenberg \ residual_norm_collection
+            // ---
             // before_preconditioner = krylov_bases * y
 
             // Read: n * ValueType
@@ -235,13 +237,14 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
                                   residual.get());
             // residual = residual - Ax
-            // Read: n * ValueType
-            // Write: (1 + k + 2 * n) * ValueType + 8
+            // Read: (2 * n + 1) * ValueType
+            // Write: (2 + n) * ValueType + 8
             exec->run(gmres::make_initialize_2(
                 residual.get(), residual_norm.get(),
                 residual_norm_collection.get(), krylov_bases.get(),
                 &final_iter_nums, krylov_dim_));
             // residual_norm = norm(residual)
+            // ---
             // residual_norm_collection = {residual_norm, unchanged}
             // krylov_bases(:, 1) = residual / residual_norm
             // final_iter_nums = {0, ..., 0}
@@ -274,28 +277,33 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // Write: n * ValueType
         system_matrix_->apply(preconditioned_vector.get(), next_krylov.get());
         // next_krylov = A * preconditioned_vector
-        // Read: ((4 * n + 1) * (r + 1) + 2 * n + 4 * r + 3+4) * ValueType
-        // Write: ((r + 1) * (1 + n) + 1 + n+2*r + 2+3) * ValueType
+        // Read: (2*n + 3*r + (4*n + 1)*(r + 1) + 4) * ValueType + 8
+        // Write: (n + r + (n + 1)*(r + 1) + 7) * ValueType + 8
         exec->run(gmres::make_step_1(
             dense_b->get_size()[0], givens_sin.get(), givens_cos.get(),
             residual_norm.get(), residual_norm_collection.get(),
             krylov_bases.get(), hessenberg_iter.get(), restart_iter,
             &final_iter_nums, &stop_status));
+        // R: 8 byte
+        // W: 8 byte
         // final_iter_nums += 1 (unconverged)
-        // R: (4 * n + 1) * (r + 1) + 2 * n
+        // R: (4 * n + 1) * (r + 1) + 2 * n + 1
         // W: (r + 1) * (1 + n) + 1 + n
         // next_krylov_basis is alias for (restart_iter + 1)-th krylov_bases
         // for i in 0:restart_iter(include)
         //     hessenberg(restart_iter, i) = next_krylov_basis' *
         //         krylov_bases(:, i)
+        //     ---
         //     next_krylov_basis  -= hessenberg(restart_iter, i) *
         //         krylov_bases(:, i)
         // end
+        // ---
         // hessenberg(restart_iter+1, restart_iter) = norm(next_krylov_basis)
+        // ---
         // next_krylov_basis /= hessenberg(restart_iter + 1, restart_iter)
         // End of arnoldi
-        // R: 4*r + 3
-        // W: 2*r + 2
+        // R: 3 * r + 3
+        // W: r + 6
         // Start apply givens rotation
         // for j in 0:restart_iter(exclude)
         //     temp             =  cos(j)*hessenberg(j) +
@@ -315,8 +323,6 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         //      sin(restart_iter)*hessenberg(restart_iter)
         // hessenberg(restart_iter+1) = 0
         // End apply givens rotation
-        // R: 4
-        // W: 3
         // Calculate residual norm
         // this_rnc = residual_norm_collection(restart_iter)
         // next_rnc = -conj(sin(restart_iter)) * this_rnc
@@ -336,14 +342,15 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         span{0, restart_iter},
         span{0, dense_b->get_size()[1] * (restart_iter)});
 
-    // Read: (r + 1) * r /2 * ValueType + r * ValueType
-    // Write: r * ValueType
+    // Read: ((r + 1) * r /2 )* ValueType + r * ValueType + (r + n * r) * ValueType
+    // Write: r * ValueType + n * ValueType
     exec->run(gmres::make_step_2(
         residual_norm_collection.get(), krylov_bases_small.get(),
         hessenberg_small.get(), y.get(), before_preconditioner.get(),
         &final_iter_nums));
     // Solve upper triangular.
     // y = hessenberg \ residual_norm_collection
+    // ---
     // before_preconditioner = krylov_bases * y
     // Read: n * ValueType
     // Write: n * ValueType
