@@ -214,7 +214,7 @@ void spgemm(std::shared_ptr<const ReferenceExecutor> exec,
     // first sweep: count nnz for each row
     auto c_row_ptrs = c->get_row_ptrs();
 
-    unordered_set<IndexType> local_col_idxs(exec);
+    unordered_set<IndexType> local_col_idxs(exec->get_mem_space());
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_col_idxs.clear();
         spgemm_insert_row2(local_col_idxs, a, b, a_row);
@@ -234,7 +234,7 @@ void spgemm(std::shared_ptr<const ReferenceExecutor> exec,
     auto c_col_idxs = c_col_idxs_array.get_data();
     auto c_vals = c_vals_array.get_data();
 
-    map<IndexType, ValueType> local_row_nzs(exec);
+    map<IndexType, ValueType> local_row_nzs(exec->get_mem_space());
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_row_nzs.clear();
         spgemm_accumulate_row2(local_row_nzs, a, b, one<ValueType>(), a_row);
@@ -267,7 +267,7 @@ void advanced_spgemm(std::shared_ptr<const ReferenceExecutor> exec,
     // first sweep: count nnz for each row
     auto c_row_ptrs = c->get_row_ptrs();
 
-    unordered_set<IndexType> local_col_idxs(exec);
+    unordered_set<IndexType> local_col_idxs(exec->get_mem_space());
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_col_idxs.clear();
         spgemm_insert_row(local_col_idxs, d, a_row);
@@ -288,7 +288,7 @@ void advanced_spgemm(std::shared_ptr<const ReferenceExecutor> exec,
     auto c_col_idxs = c_col_idxs_array.get_data();
     auto c_vals = c_vals_array.get_data();
 
-    map<IndexType, ValueType> local_row_nzs(exec);
+    map<IndexType, ValueType> local_row_nzs(exec->get_mem_space());
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_row_nzs.clear();
         spgemm_accumulate_row(local_row_nzs, d, vbeta, a_row);
@@ -707,7 +707,7 @@ void row_permute_impl(std::shared_ptr<const ReferenceExecutor> exec,
 
     size_type cur_ptr = 0;
     rp_row_ptrs[0] = cur_ptr;
-    vector<size_type> orig_num_nnz_per_row(num_rows, 0, exec);
+    vector<size_type> orig_num_nnz_per_row(num_rows, 0, exec->get_mem_space());
     for (size_type row = 0; row < num_rows; ++row) {
         orig_num_nnz_per_row[row] = orig_row_ptrs[row + 1] - orig_row_ptrs[row];
     }

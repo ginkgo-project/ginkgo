@@ -42,10 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-TEST(ExecutorAllocator, Works)
+TEST(MemorySpaceAllocator, Works)
 {
-    auto exec = gko::ReferenceExecutor::create();
-    auto alloc = gko::ExecutorAllocator<int>(exec);
+    auto mem_space = gko::HostMemorySpace::create();
+    auto alloc = gko::MemorySpaceAllocator<int>(mem_space);
 
     int *ptr{};
     ASSERT_NO_THROW(ptr = alloc.allocate(10));
@@ -57,11 +57,12 @@ TEST(ExecutorAllocator, Works)
 }
 
 
-TEST(ExecutorAllocator, WorksWithStdlib)
+TEST(MemorySpaceAllocator, WorksWithStdlib)
 {
-    auto exec = gko::ReferenceExecutor::create();
-    auto alloc = gko::ExecutorAllocator<int>(exec);
-    auto vec = std::vector<int, gko::ExecutorAllocator<int>>(10, 0, exec);
+    auto mem_space = gko::HostMemorySpace::create();
+    auto alloc = gko::MemorySpaceAllocator<int>(mem_space);
+    auto vec =
+        std::vector<int, gko::MemorySpaceAllocator<int>>(10, 0, mem_space);
 
     // This test can only fail with sanitizers
     vec[0] = 0;
@@ -69,22 +70,22 @@ TEST(ExecutorAllocator, WorksWithStdlib)
 }
 
 
-TEST(ExecutorAllocator, ComparesEqual)
+TEST(MemorySpaceAllocator, ComparesEqual)
 {
-    auto exec = gko::ReferenceExecutor::create();
-    auto alloc1 = gko::ExecutorAllocator<int>(exec);
-    auto alloc2 = gko::ExecutorAllocator<float>(exec);
+    auto mem_space = gko::HostMemorySpace::create();
+    auto alloc1 = gko::MemorySpaceAllocator<int>(mem_space);
+    auto alloc2 = gko::MemorySpaceAllocator<float>(mem_space);
 
     ASSERT_TRUE(alloc1 == alloc2);
 }
 
 
-TEST(ExecutorAllocator, ComparesNotEqual)
+TEST(MemorySpaceAllocator, ComparesNotEqual)
 {
-    auto exec1 = gko::ReferenceExecutor::create();
-    auto exec2 = gko::OmpExecutor::create();
-    auto alloc1 = gko::ExecutorAllocator<int>(exec1);
-    auto alloc2 = gko::ExecutorAllocator<float>(exec2);
+    auto mem_space1 = gko::HostMemorySpace::create();
+    auto mem_space2 = gko::HostMemorySpace::create();
+    auto alloc1 = gko::MemorySpaceAllocator<int>(mem_space1);
+    auto alloc2 = gko::MemorySpaceAllocator<float>(mem_space2);
 
     ASSERT_TRUE(alloc1 != alloc2);
 }

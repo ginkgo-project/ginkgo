@@ -331,8 +331,8 @@ inline bool validate_precision_reduction_feasibility(
     const ValueType *block, size_type stride)
 {
     using gko::detail::float_traits;
-    vector<ValueType> tmp(block_size * block_size, {}, exec);
-    vector<IndexType> perm(block_size, {}, exec);
+    vector<ValueType> tmp(block_size * block_size, {}, exec->get_mem_space());
+    vector<IndexType> perm(block_size, {}, exec->get_mem_space());
     std::iota(begin(perm), end(perm), IndexType{0});
     for (IndexType i = 0; i < block_size; ++i) {
         for (IndexType j = 0; j < block_size; ++j) {
@@ -373,9 +373,10 @@ void generate(std::shared_ptr<const OmpExecutor> exec,
     const auto cond = conditioning.get_data();
 #pragma omp parallel for
     for (size_type g = 0; g < num_blocks; g += group_size) {
-        vector<Array<ValueType>> block(group_size, {}, exec);
-        vector<Array<IndexType>> perm(group_size, {}, exec);
-        vector<uint32> pr_descriptors(group_size, uint32{} - 1, exec);
+        vector<Array<ValueType>> block(group_size, {}, exec->get_mem_space());
+        vector<Array<IndexType>> perm(group_size, {}, exec->get_mem_space());
+        vector<uint32> pr_descriptors(group_size, uint32{} - 1,
+                                      exec->get_mem_space());
         // extract group of blocks, invert them, figure out storage precision
         for (size_type b = 0; b < group_size; ++b) {
             if (b + g >= num_blocks) {

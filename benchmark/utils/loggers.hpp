@@ -125,10 +125,10 @@ struct OperationLogger : gko::log::Logger {
     {}
 
 private:
-    template <typename Event>
-    void start_operation(const Event *event, const std::string &name) const
+    template <typename LogObject>
+    void start_operation(const LogObject *obj, const std::string &name) const
     {
-        exec->synchronize();
+        obj->synchronize();
         const std::lock_guard<std::mutex> lock(mutex);
         auto nested_name = nested.empty() || !use_nested_name
                                ? name
@@ -139,8 +139,8 @@ private:
 
     // Helper to compute the end time and store the operation's time at its
     // end. Also time nested operations.
-    template <typename Event>
-    void end_operation(const Event *event, const std::string &name) const
+    template <typename LogObject>
+    void end_operation(const LogObject *obj, const std::string &name) const
     {
         exec->synchronize();
         const std::lock_guard<std::mutex> lock(mutex);
@@ -274,7 +274,8 @@ struct IterationLogger : gko::log::Logger {
     }
 
     IterationLogger(std::shared_ptr<const gko::Executor> exec)
-        : gko::log::Logger(exec, gko::log::Logger::iteration_complete_mask)
+        : gko::log::Logger(exec, exec->get_mem_space(),
+                           gko::log::Logger::iteration_complete_mask)
     {}
 
     void write_data(rapidjson::Value &output,
