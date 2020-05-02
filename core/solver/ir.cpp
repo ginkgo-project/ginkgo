@@ -63,6 +63,7 @@ void Ir<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
     auto residual = Vector::create_with_config_of(dense_b);
+    auto inner_solution = Vector::create_with_config_of(dense_b);
 
     bool one_changed{};
     Array<stopping_status> stop_status(exec, dense_b->get_size()[1]);
@@ -91,7 +92,16 @@ void Ir<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             break;
         }
 
-        solver_->apply(lend(one_op), lend(residual), lend(one_op), dense_x);
+        // Use the inner solver to solve
+        // A * inner_solution = residual
+        // with residual as initial guess.
+        inner_solution->copy_from(residual.get());
+        solver_->apply(lend(residual), lend(inner_solution));
+
+        // x = x + inner_solution
+        dense_x->add_scaled(lend(one_op), lend(inner_solution));
+
+        // residual = b - A * x
         residual->copy_from(dense_b);
         system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
                               lend(residual));
