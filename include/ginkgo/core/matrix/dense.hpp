@@ -35,7 +35,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <initializer_list>
-#include <type_traits>
 
 
 #include <ginkgo/core/base/array.hpp>

@@ -317,7 +317,7 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
     size_type grid_dim = ceildiv(num_rows + 1, default_block_size);
     auto add_values = Array<IndexType>(exec, grid_dim);
 
-    prefix_sum(exec, row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, row_ptrs, num_rows + 1);
 
     hipLaunchKernelGGL(
         kernel::fill_in_csr, dim3(grid_dim), dim3(default_block_size), 0, 0,

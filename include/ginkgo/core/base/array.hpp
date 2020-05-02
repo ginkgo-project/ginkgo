@@ -419,7 +419,7 @@ public:
             GKO_ENSURE_COMPATIBLE_BOUNDS(other.get_num_elems(),
                                          this->num_elems_);
         }
-        Array<OtherValueType> tmp;
+        Array<OtherValueType> tmp{this->exec_};
         const OtherValueType *source = other.get_const_data();
         // if we are on different executors: copy, then convert
         if (this->exec_ != other.get_executor()) {

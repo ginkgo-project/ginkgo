@@ -552,7 +552,7 @@ void spgeam(syn::value_list<int, subwarp_size>,
                        c_row_ptrs);
 
     // build row pointers
-    prefix_sum(exec, c_row_ptrs, m + 1);
+    components::prefix_sum(exec, c_row_ptrs, m + 1);
 
     // accumulate non-zeros for alpha * A + beta * B
     matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
@@ -771,7 +771,7 @@ void convert_to_sellp(std::shared_ptr<const HipExecutor> exec,
                        stride_factor, as_hip_type(nnz_per_row.get_const_data()),
                        as_hip_type(slice_lengths), as_hip_type(slice_sets));
 
-    prefix_sum(exec, slice_sets, slice_num + 1);
+    components::prefix_sum(exec, slice_sets, slice_num + 1);
 
     grid_dim = ceildiv(num_rows, default_block_size);
     hipLaunchKernelGGL(kernel::fill_in_sellp, dim3(grid_dim),
@@ -1035,7 +1035,7 @@ void convert_to_hybrid(std::shared_ptr<const HipExecutor> exec,
                        as_hip_type(source->get_const_row_ptrs()),
                        as_hip_type(coo_offset.get_data()));
 
-    prefix_sum(exec, coo_offset.get_data(), num_rows);
+    components::prefix_sum(exec, coo_offset.get_data(), num_rows);
 
     grid_dim = ceildiv(num_rows * config::warp_size, default_block_size);
     hipLaunchKernelGGL(kernel::fill_in_hybrid, dim3(grid_dim),

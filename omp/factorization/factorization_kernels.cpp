@@ -187,7 +187,7 @@ void add_diagonal_elements(std::shared_ptr<const OmpExecutor> exec,
     }
 
     row_ptrs_addition.get_data()[row_ptrs_size - 1] = 0;
-    prefix_sum(exec, row_ptrs_addition.get_data(), row_ptrs_size);
+    components::prefix_sum(exec, row_ptrs_addition.get_data(), row_ptrs_size);
 
     size_type new_num_elems = mtx->get_num_stored_elements() +
                               row_ptrs_addition.get_data()[row_ptrs_size - 1];
@@ -242,8 +242,8 @@ void initialize_row_ptrs_l_u(
     }
 
     // Now, compute the prefix-sum, to get proper row_ptrs for L and U
-    prefix_sum(exec, l_row_ptrs, num_rows + 1);
-    prefix_sum(exec, u_row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, l_row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, u_row_ptrs, num_rows + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

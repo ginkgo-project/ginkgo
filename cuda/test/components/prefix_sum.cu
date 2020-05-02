@@ -70,8 +70,10 @@ protected:
 
     void test(gko::size_type size)
     {
-        gko::kernels::reference::prefix_sum(ref, vals.get_data(), size);
-        gko::kernels::cuda::prefix_sum(exec, dvals.get_data(), size);
+        gko::kernels::reference::components::prefix_sum(ref, vals.get_data(),
+                                                        size);
+        gko::kernels::cuda::components::prefix_sum(exec, dvals.get_data(),
+                                                   size);
 
         gko::Array<index_type> dresult(ref, dvals);
         auto dptr = dresult.get_const_data();

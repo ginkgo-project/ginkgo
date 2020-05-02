@@ -176,7 +176,7 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
     grid_dim = ceildiv(num_rows + 1, default_block_size);
     auto add_values = Array<IndexType>(exec, grid_dim);
 
-    prefix_sum(exec, result_row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, result_row_ptrs, num_rows + 1);
 
     grid_dim = ceildiv(num_rows, default_block_size);
 

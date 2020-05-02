@@ -58,30 +58,38 @@ namespace kernels {
 
 
 namespace omp {
+namespace components {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
+}  // namespace components
 }  // namespace omp
 
 
 namespace cuda {
+namespace components {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
+}  // namespace components
 }  // namespace cuda
 
 
 namespace reference {
+namespace components {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
+}  // namespace components
 }  // namespace reference
 
 
 namespace hip {
+namespace components {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
+}  // namespace components
 }  // namespace hip
 
 

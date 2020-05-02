@@ -252,7 +252,7 @@ void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,
     auto nnz_prefix_sum = Array<size_type>(exec, num_rows);
     calculate_nonzeros_per_row(exec, source, &nnz_prefix_sum);
 
-    prefix_sum(exec, nnz_prefix_sum.get_data(), num_rows);
+    components::prefix_sum(exec, nnz_prefix_sum.get_data(), num_rows);
 
     size_type grid_dim = ceildiv(num_rows, default_block_size);
 
@@ -288,7 +288,7 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
         num_rows, num_cols, stride, as_cuda_type(source->get_const_values()),
         as_cuda_type(row_ptrs));
 
-    prefix_sum(exec, row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, row_ptrs, num_rows + 1);
 
     size_type grid_dim = ceildiv(num_rows, default_block_size);
 
@@ -369,7 +369,7 @@ void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(nnz_per_row.get_const_data()), as_cuda_type(slice_lengths),
         as_cuda_type(slice_sets));
 
-    prefix_sum(exec, slice_sets, slice_num + 1);
+    components::prefix_sum(exec, slice_sets, slice_num + 1);
 
     grid_dim = ceildiv(num_rows, default_block_size);
     kernel::fill_in_sellp<<<grid_dim, default_block_size>>>(

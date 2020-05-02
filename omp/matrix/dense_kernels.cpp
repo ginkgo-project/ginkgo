@@ -240,7 +240,7 @@ void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
         row_ptrs[row] = row_count;
     }
 
-    prefix_sum(exec, row_ptrs, num_rows);
+    components::prefix_sum(exec, row_ptrs, num_rows);
 
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
@@ -284,7 +284,7 @@ void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
         row_ptrs[row] = row_nnz;
     }
 
-    prefix_sum(exec, row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, row_ptrs, num_rows + 1);
 
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
@@ -377,7 +377,7 @@ void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
         coo_row_ptrs[row] = std::max(ell_lim, total_row_nnz) - ell_lim;
     }
 
-    prefix_sum(exec, coo_row_ptrs, num_rows);
+    components::prefix_sum(exec, coo_row_ptrs, num_rows);
 
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; row++) {
@@ -503,7 +503,7 @@ void convert_to_sparsity_csr(std::shared_ptr<const OmpExecutor> exec,
         row_ptrs[row] = row_nnz;
     }
 
-    prefix_sum(exec, row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, row_ptrs, num_rows + 1);
 
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
