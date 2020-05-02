@@ -114,7 +114,7 @@ void add_diagonal_elements(std::shared_ptr<const HipExecutor> exec,
         return;
     }
 
-    prefix_sum(exec, hip_row_ptrs_add, row_ptrs_size);
+    components::prefix_sum(exec, hip_row_ptrs_add, row_ptrs_size);
     exec->synchronize();
 
     auto total_additions =
@@ -168,8 +168,8 @@ void initialize_row_ptrs_l_u(
                        as_hip_type(system_matrix->get_const_values()),
                        as_hip_type(l_row_ptrs), as_hip_type(u_row_ptrs));
 
-    prefix_sum(exec, l_row_ptrs, num_rows + 1);
-    prefix_sum(exec, u_row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, l_row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, u_row_ptrs, num_rows + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

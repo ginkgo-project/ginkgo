@@ -43,7 +43,7 @@ namespace gko {
 namespace conversion {
 
 
-GKO_REGISTER_OPERATION(convert, convert_precision);
+GKO_REGISTER_OPERATION(convert, components::convert_precision);
 
 
 }  // namespace conversion

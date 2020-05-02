@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace omp {
+namespace components {
 
 
 template <typename SourceType, typename TargetType>
@@ -51,6 +52,7 @@ void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);
 
 
+}  // namespace components
 }  // namespace omp
 }  // namespace kernels
 }  // namespace gko

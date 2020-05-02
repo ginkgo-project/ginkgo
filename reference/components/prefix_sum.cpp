@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace reference {
+namespace components {
 
 
 template <typename IndexType>
@@ -52,13 +53,11 @@ void prefix_sum(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
 
-// explicitly instantiate for size_type as well, as this is used in the SellP
-// format
-template void prefix_sum<size_type>(
-    std::shared_ptr<const ReferenceExecutor> exec, size_type *counts,
-    size_type num_entries);
+// instantiate for size_type as well, as this is used in the Sellp format
+template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
 
 
+}  // namespace components
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko

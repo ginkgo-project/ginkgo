@@ -224,7 +224,7 @@ void spgemm(std::shared_ptr<const OmpExecutor> exec,
     }
 
     // build row pointers
-    prefix_sum(exec, c_row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
 
     // second sweep: accumulate non-zeros
     auto new_nnz = c_row_ptrs[num_rows];
@@ -284,7 +284,7 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
     }
 
     // build row pointers
-    prefix_sum(exec, c_row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
 
     // second sweep: accumulate non-zeros
     auto new_nnz = c_row_ptrs[num_rows];

@@ -30,9 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/prefix_sum.hpp"
-
-
+#include <cstring>
 #include <limits>
 #include <memory>
 #include <random>
@@ -58,7 +56,10 @@ protected:
           rand(293),
           total_size(42793),
           vals(ref, total_size),
-          cvals(ref, total_size)
+          cvals(ref, total_size),
+          vals2(ref, 1),
+          expected_float(ref, 1),
+          expected_double(ref, 1)
     {
         auto maxval = 1e10f;
         std::uniform_real_distribution<float> dist(-maxval, maxval);
@@ -66,12 +67,21 @@ protected:
             vals.get_data()[i] = dist(rand);
             cvals.get_data()[i] = {dist(rand), dist(rand)};
         }
+        gko::uint64 rawdouble = 0x4218888000889111ULL;
+        gko::uint32 rawfloat = 0x50c44400ULL;
+        gko::uint64 rawrounded = 0x4218888000000000ULL;
+        std::memcpy(vals2.get_data(), &rawdouble, sizeof(double));
+        std::memcpy(expected_float.get_data(), &rawfloat, sizeof(float));
+        std::memcpy(expected_double.get_data(), &rawrounded, sizeof(double));
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::default_random_engine rand;
     gko::size_type total_size;
     gko::Array<float> vals;
+    gko::Array<double> vals2;
+    gko::Array<float> expected_float;
+    gko::Array<double> expected_double;
     gko::Array<std::complex<float>> cvals;
 };
 
@@ -85,6 +95,19 @@ TEST_F(PrecisionConversion, ConvertsReal)
     out = tmp;
 
     GKO_ASSERT_ARRAY_EQ(&vals, &out);
+}
+
+
+TEST_F(PrecisionConversion, ConversionRounds)
+{
+    gko::Array<float> tmp;
+    gko::Array<double> out;
+
+    tmp = vals2;
+    out = tmp;
+
+    GKO_ASSERT_ARRAY_EQ(&tmp, &expected_float);
+    GKO_ASSERT_ARRAY_EQ(&out, &expected_double);
 }
 
 
