@@ -79,6 +79,16 @@ constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 
 template <typename ValueType>
+void zero_matrix(size_type m, size_type n, size_type stride, ValueType *array)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
+    zero_matrix_kernel<<<grid_size, block_size, 0, 0>>>(m, n, stride,
+                                                        as_cuda_type(array));
+}
+
+
+template <typename ValueType>
 void initialize_1(std::shared_ptr<const CudaExecutor> exec,
                   const matrix::Dense<ValueType> *b,
                   matrix::Dense<ValueType> *b_norm,
@@ -482,6 +492,195 @@ void finish_arnoldi_CGS(std::shared_ptr<const CudaExecutor> exec,
 }
 /**/
 
+
+template <typename ValueType, typename ValueTypeKrylovBases>
+void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
+                         matrix::Dense<ValueType> *next_krylov_basis,
+                         matrix::Dense<ValueTypeKrylovBases> *krylov_bases,
+                         matrix::Dense<ValueType> *hessenberg_iter,
+                         matrix::Dense<ValueType> *buffer_iter,
+                         matrix::Dense<ValueType> *arnoldi_norm, size_type iter,
+                         const stopping_status *stop_status,
+                         stopping_status *reorth_status,
+                         Array<size_type> *num_reorth)
+{
+    const auto stride_next_krylov = next_krylov_basis->get_stride();
+    const auto stride_krylov = krylov_bases->get_stride();
+    const auto stride_hessenberg = hessenberg_iter->get_stride();
+    const auto stride_buffer = buffer_iter->get_stride();
+    const auto stride_arnoldi = arnoldi_norm->get_stride();
+    const auto dim_size = next_krylov_basis->get_size();
+    auto cublas_handle = exec->get_cublas_handle();
+    const dim3 grid_size(ceildiv(dim_size[1], default_dot_dim),
+                         exec->get_num_multiprocessor() * 2);
+    const dim3 block_size(default_dot_dim, default_dot_dim);
+    size_type numReorth;
+
+    components::fill_array(exec, arnoldi_norm->get_values(), dim_size[1],
+                           zero<ValueType>());
+    multidot_kernel<<<grid_size, block_size>>>(
+        0, dim_size[0], dim_size[1],
+        as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
+        as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
+        as_cuda_type(arnoldi_norm->get_values()), 0, as_cuda_type(stop_status));
+    // nrmP = norm(next_krylov_basis
+    /*
+        for (size_type k = 0; k < iter + 1; ++k) {
+            components::fill_array(exec, hessenberg_iter->get_values() + k *
+       stride_hessenberg, dim_size[1], zero<ValueType>());
+            multidot_kernel<<<grid_size, block_size>>>(
+                k, dim_size[0], dim_size[1],
+                as_cuda_type(next_krylov_basis->get_const_values()),
+                stride_next_krylov,
+       as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
+       as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
+       as_cuda_type(stop_status));
+        }
+    */
+    /*
+    for (size_type k = 0; k < iter + 1; ++k) {
+        components::fill_array(exec,
+            hessenberg_iter->get_values() + k * stride_hessenberg, dim_size[1],
+            zero<ValueType>());
+    }
+    */
+    zero_matrix(iter + 1, dim_size[1], stride_hessenberg,
+                hessenberg_iter->get_values());
+    multidot_kernel_num_iters<<<grid_size, block_size>>>(
+        iter + 1, dim_size[0], dim_size[1],
+        as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
+        as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
+        as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
+        as_cuda_type(stop_status));
+    // for i in 1:iter
+    //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
+    // end
+    for (size_type k = 0; k < iter + 1; ++k) {
+        update_next_krylov_kernel<default_block_size>
+            <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
+               default_block_size>>>(
+                k, dim_size[0], dim_size[1],
+                as_cuda_type(next_krylov_basis->get_values()),
+                stride_next_krylov,
+                as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
+                as_cuda_type(hessenberg_iter->get_const_values()),
+                stride_hessenberg, as_cuda_type(stop_status));
+    }
+    // for i in 1:iter
+    //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
+    // end
+    components::fill_array(exec, arnoldi_norm->get_values() + dim_size[1],
+                           dim_size[1], zero<ValueType>());
+    multidot_kernel<<<grid_size, block_size>>>(
+        0, dim_size[0], dim_size[1],
+        as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
+        as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
+        as_cuda_type(arnoldi_norm->get_values() + dim_size[1]), 0,
+        as_cuda_type(stop_status));
+    // nrmN = norm(next_krylov_basis)
+    components::fill_array(exec, num_reorth->get_data(), 1, zero<size_type>());
+    check_arnoldi_norms<default_block_size>
+        <<<ceildiv(dim_size[1], default_block_size), default_block_size>>>(
+            as_cuda_type(arnoldi_norm->get_const_values()), stride_arnoldi,
+            as_cuda_type(arnoldi_norm->get_const_values() + stride_arnoldi),
+            stride_arnoldi, as_cuda_type(stop_status),
+            as_cuda_type(reorth_status), as_cuda_type(num_reorth->get_data()));
+    numReorth = 0;
+    exec->get_master()->copy_from(exec.get(), 1, num_reorth->get_const_data(),
+                                  &numReorth);
+    // numReorth <= number of next_krylov vector to be reorthogonalization
+    for (size_type l = 1; (numReorth > 0) && (l < 3); l++) {
+        /*
+        for (size_type k = 0; k < iter + 1; ++k) {
+            components::fill_array(exec,
+                                   buffer_iter->get_values() + k *
+        stride_buffer, dim_size[1], zero<ValueType>());
+            multidot_kernel<<<grid_size, block_size>>>(
+                k, dim_size[0], dim_size[1],
+                as_cuda_type(next_krylov_basis->get_const_values()),
+                stride_next_krylov,
+                as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
+                as_cuda_type(buffer_iter->get_values()), stride_buffer,
+                as_cuda_type(stop_status));
+        }
+        */
+        zero_matrix(iter + 1, dim_size[1], stride_buffer,
+                    buffer_iter->get_values());
+        multidot_kernel_num_iters<<<grid_size, block_size>>>(
+            iter + 1, dim_size[0], dim_size[1],
+            as_cuda_type(next_krylov_basis->get_const_values()),
+            stride_next_krylov, as_cuda_type(krylov_bases->get_const_values()),
+            stride_krylov, as_cuda_type(buffer_iter->get_values()),
+            stride_buffer, as_cuda_type(stop_status));
+        // for i in 1:iter
+        //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
+        // end
+        for (size_type k = 0; k < iter + 1; ++k) {
+            update_next_krylov_kernel_and_add<default_block_size><<<
+                ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
+                default_block_size>>>(
+                k, dim_size[0], dim_size[1],
+                as_cuda_type(next_krylov_basis->get_values()),
+                stride_next_krylov,
+                as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
+                as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
+                as_cuda_type(buffer_iter->get_const_values()), stride_buffer,
+                as_cuda_type(stop_status), as_cuda_type(reorth_status));
+        }
+        // for i in 1:iter
+        //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
+        // end
+        components::fill_array(
+            exec, arnoldi_norm->get_values() + dim_size[1] * (l - 1),
+            dim_size[1], zero<ValueType>());
+        multidot_kernel<<<grid_size, block_size>>>(
+            0, dim_size[0], dim_size[1],
+            as_cuda_type(next_krylov_basis->get_const_values()),
+            stride_next_krylov,
+            as_cuda_type(next_krylov_basis->get_const_values()),
+            stride_next_krylov,
+            as_cuda_type(arnoldi_norm->get_values() + dim_size[1] * (l - 1)), 0,
+            as_cuda_type(stop_status));
+        // nrmN = norm(next_krylov_basis)
+        components::fill_array(exec, num_reorth->get_data(), 1,
+                               zero<size_type>());
+        check_arnoldi_norms<default_block_size>
+            <<<ceildiv(dim_size[1], default_block_size), default_block_size>>>(
+                as_cuda_type(arnoldi_norm->get_const_values() +
+                             stride_arnoldi * (2 - l)),
+                stride_arnoldi,
+                as_cuda_type(arnoldi_norm->get_const_values() +
+                             stride_arnoldi * (l - 1)),
+                stride_arnoldi, as_cuda_type(stop_status),
+                as_cuda_type(reorth_status),
+                as_cuda_type(num_reorth->get_data()));
+        numReorth = 0;
+        exec->get_master()->copy_from(exec.get(), 1,
+                                      num_reorth->get_const_data(), &numReorth);
+        // numReorth <= number of next_krylov vector to be reorthogonalization
+    }
+
+
+    update_hessenberg_2_kernel<default_block_size>
+        <<<dim_size[1], default_block_size>>>(
+            iter, dim_size[0], dim_size[1],
+            as_cuda_type(next_krylov_basis->get_const_values()),
+            stride_next_krylov, as_cuda_type(hessenberg_iter->get_values()),
+            stride_hessenberg, as_cuda_type(stop_status));
+    update_krylov_next_krylov_kernel<default_block_size>
+        <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
+           default_block_size>>>(
+            iter, dim_size[0], dim_size[1],
+            as_cuda_type(next_krylov_basis->get_values()), stride_next_krylov,
+            as_cuda_type(krylov_bases->get_values()), stride_krylov,
+            as_cuda_type(hessenberg_iter->get_const_values()),
+            stride_hessenberg, as_cuda_type(stop_status));
+    // next_krylov_basis /= hessenberg(iter, iter + 1)
+    // krylov_bases(:, iter + 1) = next_krylov_basis
+    // End of arnoldi
+}
+/**/
+
 template <typename ValueType>
 void givens_rotation(std::shared_ptr<const CudaExecutor> exec,
                      matrix::Dense<ValueType> *givens_sin,
@@ -540,10 +739,15 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
     //                          hessenberg_iter, buffer_iter, arnoldi_norm,
     //                          iter, stop_status->get_const_data(),
     //                          reorth_status->get_data(), num_reorth);
-    finish_arnoldi_CGS(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
-                       buffer_iter, arnoldi_norm, iter,
-                       stop_status->get_const_data(), reorth_status->get_data(),
-                       num_reorth);
+    //    finish_arnoldi_CGS(exec, next_krylov_basis, krylov_bases,
+    //    hessenberg_iter,
+    //                       buffer_iter, arnoldi_norm, iter,
+    //                       stop_status->get_const_data(),
+    //                       reorth_status->get_data(), num_reorth);
+    finish_arnoldi_CGS2(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
+                        buffer_iter, arnoldi_norm, iter,
+                        stop_status->get_const_data(),
+                        reorth_status->get_data(), num_reorth);
     givens_rotation(exec, givens_sin, givens_cos, hessenberg_iter,
                     residual_norm, residual_norm_collection, b_norm, iter,
                     stop_status);

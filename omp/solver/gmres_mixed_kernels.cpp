@@ -332,6 +332,127 @@ void finish_arnoldi_CGS(matrix::Dense<ValueType> *next_krylov_basis,
 }
 
 
+template <typename ValueType, typename ValueTypeKrylovBases>
+void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
+                         matrix::Dense<ValueTypeKrylovBases> *krylov_bases,
+                         matrix::Dense<ValueType> *hessenberg_iter,
+                         matrix::Dense<ValueType> *buffer_iter,
+                         matrix::Dense<ValueType> *arnoldi_norm, size_type iter,
+                         const stopping_status *stop_status)
+{
+    const ValueType eta = 1.0 / sqrt(2.0);
+#pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)
+
+    for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
+        if (stop_status[i].has_stopped()) {
+            continue;
+        }
+
+        ValueType nrm = zero<ValueType>();
+#pragma omp parallel for reduction(add : nrm)
+        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+            nrm += next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
+        }
+        arnoldi_norm->at(0, i) = nrm * eta;
+        // nrmP = norm(next_krylov_basis)
+#pragma omp parallel for
+        for (size_type k = 0; k < iter + 1; ++k) {
+            ValueType hessenberg_iter_entry = zero<ValueType>();
+            for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+                hessenberg_iter_entry +=
+                    next_krylov_basis->at(j, i) *
+                    krylov_bases->at(j,
+                                     next_krylov_basis->get_size()[1] * k + i);
+            }
+            hessenberg_iter->at(k, i) = hessenberg_iter_entry;
+        }
+        // for i in 1:iter
+        //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
+        // end
+        for (size_type k = 0; k < iter + 1; ++k) {
+#pragma omp parallel for
+            for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+                next_krylov_basis->at(j, i) -=
+                    hessenberg_iter->at(k, i) *
+                    krylov_bases->at(j,
+                                     next_krylov_basis->get_size()[1] * k + i);
+            }
+        }
+        // for i in 1:iter
+        //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
+        // end
+        // ValueType nrm = zero<ValueType>();
+        nrm = zero<ValueType>();
+#pragma omp parallel for reduction(add : nrm)
+        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+            nrm += next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
+        }
+        arnoldi_norm->at(1, i) = nrm;
+        // nrmN = norm(next_krylov_basis)
+        for (size_type l = 1;
+             arnoldi_norm->at(1, i) < arnoldi_norm->at(0, i) && l < 3; l++) {
+            arnoldi_norm->at(0, i) = arnoldi_norm->at(1, i) * eta;
+            // nrmP = nrmN
+#pragma omp parallel for
+            for (size_type k = 0; k < iter + 1; ++k) {
+                ValueType hessenberg_iter_entry = zero<ValueType>();
+                for (size_type j = 0; j < next_krylov_basis->get_size()[0];
+                     ++j) {
+                    hessenberg_iter_entry +=
+                        next_krylov_basis->at(j, i) *
+                        krylov_bases->at(
+                            j, next_krylov_basis->get_size()[1] * k + i);
+                }
+                buffer_iter->at(k, i) = hessenberg_iter_entry;
+            }
+            // for i in 1:iter
+            //     buffer(iter, i) = next_krylov_basis' * krylov_bases(:, i)
+            // end
+            for (size_type k = 0; k < iter + 1; ++k) {
+#pragma omp parallel for
+                for (size_type j = 0; j < next_krylov_basis->get_size()[0];
+                     ++j) {
+                    next_krylov_basis->at(j, i) -=
+                        buffer_iter->at(k, i) *
+                        krylov_bases->at(
+                            j, next_krylov_basis->get_size()[1] * k + i);
+                }
+            }
+            // for i in 1:iter
+            //     next_krylov_basis  -= buffer(iter, i) * krylov_bases(:, i)
+            // end
+            ValueType nrm = zero<ValueType>();
+#pragma omp parallel for reduction(add : nrm)
+            for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+                nrm +=
+                    next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
+            }
+            arnoldi_norm->at(1, i) = nrm;
+            // nrmN = norm(next_krylov_basis)
+        }
+        // reorthogonalization
+
+        ValueType hessenberg_iter_entry = zero<ValueType>();
+#pragma omp parallel for reduction(add : hessenberg_iter_entry)
+        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+            hessenberg_iter_entry +=
+                next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
+        }
+        hessenberg_iter->at(iter + 1, i) = sqrt(hessenberg_iter_entry);
+        // hessenberg(iter, iter + 1) = norm(next_krylov_basis)
+#pragma omp parallel for
+        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+            next_krylov_basis->at(j, i) /= hessenberg_iter->at(iter + 1, i);
+            krylov_bases->at(j, next_krylov_basis->get_size()[1] * (iter + 1) +
+                                    i) = next_krylov_basis->at(j, i);
+        }
+        // next_krylov_basis /= hessenberg(iter, iter + 1)
+        // krylov_bases(:, iter + 1) = next_krylov_basis
+        // End of arnoldi
+    }
+}
+
+
 template <typename ValueType>
 void calculate_sin_and_cos(matrix::Dense<ValueType> *givens_sin,
                            matrix::Dense<ValueType> *givens_cos,
@@ -583,9 +704,12 @@ void step_1(std::shared_ptr<const OmpExecutor> exec,
     //    hessenberg_iter,
     //                          arnoldi_norm, iter,
     //                          stop_status->get_const_data());
-    finish_arnoldi_CGS(next_krylov_basis, krylov_bases, hessenberg_iter,
-                       buffer_iter, arnoldi_norm, iter,
-                       stop_status->get_const_data());
+    //    finish_arnoldi_CGS(next_krylov_basis, krylov_bases, hessenberg_iter,
+    //                       buffer_iter, arnoldi_norm, iter,
+    //                       stop_status->get_const_data());
+    finish_arnoldi_CGS2(next_krylov_basis, krylov_bases, hessenberg_iter,
+                        buffer_iter, arnoldi_norm, iter,
+                        stop_status->get_const_data());
     givens_rotation(next_krylov_basis, givens_sin, givens_cos, hessenberg_iter,
                     iter, stop_status->get_const_data());
     calculate_next_residual_norm(givens_sin, givens_cos, residual_norm,
