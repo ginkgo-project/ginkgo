@@ -269,18 +269,15 @@ __global__ __launch_bounds__(block_size) void update_krylov_kernel(
 template <typename ValueType>
 __device__ void calculate_sin_and_cos_kernel(
     size_type col_idx, size_type num_cols, size_type iter,
-    const ValueType *hessenberg_iter, size_type stride_hessenberg,
+    const ValueType &this_hess, const ValueType &next_hess,
     ValueType *givens_sin, size_type stride_sin, ValueType *givens_cos,
     size_type stride_cos, ValueType &register_sin, ValueType &register_cos)
 {
-    const auto this_hess = hessenberg_iter[iter * stride_hessenberg + col_idx];
     if (this_hess == zero<ValueType>()) {
         register_cos = zero<ValueType>();
         register_sin = one<ValueType>();
 
     } else {
-        const auto next_hess =
-            hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx];
         auto hypotenuse = sqrt(this_hess * this_hess + next_hess * next_hess);
         register_cos = abs(this_hess) / hypotenuse;
         register_sin = register_cos * next_hess / this_hess;
@@ -329,18 +326,15 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     }
 
     // const auto current_thread_block = group::this_thread_block();
-
+    auto this_hess = hessenberg_iter[col_idx];
+    auto next_hess = hessenberg_iter[stride_hessenberg + col_idx];
     for (size_type i = 0; i < iter; ++i) {
-        const auto tmp =
-            givens_cos[i * stride_cos + col_idx] *
-                hessenberg_iter[i * stride_hessenberg + col_idx] +
-            givens_sin[i * stride_sin + col_idx] *
-                hessenberg_iter[(i + 1) * stride_hessenberg + col_idx];
-        hessenberg_iter[(i + 1) * stride_hessenberg + col_idx] =
-            givens_cos[i * stride_cos + col_idx] *
-                hessenberg_iter[(i + 1) * stride_hessenberg + col_idx] -
-            givens_sin[i * stride_sin + col_idx] *
-                hessenberg_iter[i * stride_hessenberg + col_idx];
+        const auto cos = givens_cos[i * stride_cos + col_idx];
+        const auto sin = givens_sin[i * stride_sin + col_idx];
+        const auto tmp = cos * this_hess + sin * next_hess;
+        this_hess = cos * next_hess - sin * this_hess;
+        hessenberg_iter[(i + 1) * stride_hessenberg + col_idx] = this_hess;
+        next_hess = hessenberg_iter[(i + 2) * stride_hessenberg + col_idx];
         hessenberg_iter[i * stride_hessenberg + col_idx] = tmp;
     }
     // for j in 1:iter - 1
@@ -353,15 +347,13 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
 
     ValueType register_sin;
     ValueType register_cos;
-    calculate_sin_and_cos_kernel(
-        col_idx, num_cols, iter, hessenberg_iter, stride_hessenberg, givens_sin,
-        stride_sin, givens_cos, stride_cos, register_sin, register_cos);
-    // Calculate sin and cos
+    calculate_sin_and_cos_kernel(col_idx, num_cols, iter, this_hess, next_hess,
+                                 givens_sin, stride_sin, givens_cos, stride_cos,
+                                 register_sin, register_cos);
+    // Calculate sin and cos on hessenberg(iter) and hessenberg(iter+1)
 
     hessenberg_iter[iter * stride_hessenberg + col_idx] =
-        register_cos * hessenberg_iter[iter * stride_hessenberg + col_idx] +
-        register_sin *
-            hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx];
+        register_cos * this_hess + register_sin * next_hess;
     hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx] =
         zero<ValueType>();
     // hessenberg(iter)   = cos(iter)*hessenberg(iter) +
