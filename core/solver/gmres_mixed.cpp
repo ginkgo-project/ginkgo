@@ -44,7 +44,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/identity.hpp>
 
 
+#include <iostream>
+
+
 #include "core/solver/gmres_mixed_kernels.hpp"
+
+
+using double_seconds = std::chrono::duration<double>;
 
 
 namespace gko {
@@ -155,6 +161,8 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     auto after_preconditioner =
         matrix::Dense<ValueType>::create_with_config_of(dense_x);
 
+    auto start = std::chrono::steady_clock::now();
+
     while (true) {
         ++total_iter;
         this->template log<log::Logger::iteration_complete>(
@@ -169,6 +177,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
         }
 
         if (restart_iter == krylov_dim_mixed_) {
+            // std::cout << "Restart" << std::endl;
             // Restart
             exec->run(gmres_mixed::make_step_2(
                 residual_norm_collection.get(), krylov_bases.get(),
@@ -269,6 +278,13 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     dense_x->add_scaled(one_op.get(), after_preconditioner.get());
     // Solve x
     // x = x + get_preconditioner() * krylov_bases * y
+
+    auto time = std::chrono::steady_clock::now() - start;
+    std::cout << "total_iter = " << total_iter << std::endl;
+    std::cout << "time = "
+              << std::chrono::duration_cast<double_seconds>(time).count()
+              << std::endl;
+    write(std::cout, lend(residual_norm));
 }
 
 
