@@ -32,7 +32,7 @@ if [ -z "${CXX}" ]; then
 fi
 
 # build
-${CXX} -std=c++11 -o ${THIS_DIR}/ilu-preconditioned-solver \
-    ${THIS_DIR}/ilu-preconditioned-solver.cpp \
+${CXX} -std=c++11 -o ${THIS_DIR}/ilu-preconditioned-solver-iterative-trisolves \
+    ${THIS_DIR}/ilu-preconditioned-solver-iterative-trisolves.cpp \
     -I${THIS_DIR}/../../include -I${BUILD_DIR}/include \
     -L${THIS_DIR} ${LINK_FLAGS}
