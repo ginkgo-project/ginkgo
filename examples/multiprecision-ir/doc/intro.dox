@@ -1,0 +1,8 @@
+<a name="Multiprecision Iterative Refinement"></a>
+<h1>This example manually implements a multiprecision iterative refinement solver.</h1>
+
+<h3> In this example, we first read in a matrix from file, then generate a
+right-hand side and an initial guess. An inaccurate CG solver in single precision
+is used as the inner solver to an iterative refinement (IR) in double precision
+method which solves a linear system.
+</h3>
