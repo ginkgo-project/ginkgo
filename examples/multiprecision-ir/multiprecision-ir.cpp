@@ -52,7 +52,8 @@ int main(int argc, char *argv[])
     using solver_mtx = gko::matrix::Csr<SolverType, IndexType>;
     using cg = gko::solver::Cg<SolverType>;
 
-    gko::size_type max_iters = 10000u;
+    gko::size_type max_outer_iters = 100u;
+    gko::size_type max_inner_iters = 100u;
     gko::remove_complex<ValueType> outer_reduction_factor = 1e-12;
     gko::remove_complex<SolverType> inner_reduction_factor = 1e-2;
 
@@ -112,6 +113,9 @@ int main(int argc, char *argv[])
         cg::build()
             .with_criteria(gko::stop::ResidualNormReduction<SolverType>::build()
                                .with_reduction_factor(inner_reduction_factor)
+                               .on(exec),
+                           gko::stop::Iteration::build()
+                               .with_max_iters(max_inner_iters)
                                .on(exec))
             .on(exec)
             ->generate(give(solver_A));
@@ -134,7 +138,7 @@ int main(int argc, char *argv[])
         auto res = exec->copy_val_to_host(res_vec->get_const_values());
 
         // break if we exceed the number of iterations or have converged
-        if (iter > max_iters || res / initres < outer_reduction_factor) {
+        if (iter > max_outer_iters || res / initres < outer_reduction_factor) {
             break;
         }
 
