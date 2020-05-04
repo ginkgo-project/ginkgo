@@ -3,16 +3,16 @@ This is the expected output:
 
 @code{.cpp}
 
-Initial residual norm sqrt(r^T r):
+Initial residual norm sqrt(r^T r): 
 %%MatrixMarket matrix array real general
 1 1
 194.679
-Final residual norm sqrt(r^T r):
+Final residual norm sqrt(r^T r): 
 %%MatrixMarket matrix array real general
 1 1
-4.23821e-11
-IR iteration count:     24
-IR execution time [ms]: 18.0692
+1.22728e-10
+MPIR iteration count:     25
+MPIR execution time [ms]: 18.0933
 
 @endcode
 
