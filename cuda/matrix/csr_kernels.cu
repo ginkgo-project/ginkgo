@@ -676,7 +676,7 @@ void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(nnz_per_row.get_const_data()), as_cuda_type(slice_lengths),
         as_cuda_type(slice_sets));
 
-    prefix_sum(exec, slice_sets, slice_num + 1);
+    components::prefix_sum(exec, slice_sets, slice_num + 1);
 
     grid_dim = ceildiv(num_rows, default_block_size);
     kernel::fill_in_sellp<<<grid_dim, default_block_size>>>(
@@ -927,7 +927,7 @@ void convert_to_hybrid(std::shared_ptr<const CudaExecutor> exec,
         num_rows, max_nnz_per_row, as_cuda_type(source->get_const_row_ptrs()),
         as_cuda_type(coo_offset.get_data()));
 
-    prefix_sum(exec, coo_offset.get_data(), num_rows);
+    components::prefix_sum(exec, coo_offset.get_data(), num_rows);
 
     grid_dim = ceildiv(num_rows * config::warp_size, default_block_size);
     kernel::fill_in_hybrid<<<grid_dim, default_block_size>>>(

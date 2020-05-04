@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace cuda {
+namespace components {
 
 
 constexpr int prefix_sum_block_size = 512;
@@ -61,12 +62,11 @@ void prefix_sum(std::shared_ptr<const CudaExecutor> exec, IndexType *counts,
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
 
-// explicitly instantiate for size_type as well, as this is used in the SellP
-// format
-template void prefix_sum<size_type>(std::shared_ptr<const CudaExecutor> exec,
-                                    size_type *counts, size_type num_entries);
+// instantiate for size_type as well, as this is used in the Sellp format
+template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
 
 
+}  // namespace components
 }  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

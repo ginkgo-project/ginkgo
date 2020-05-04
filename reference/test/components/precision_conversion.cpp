@@ -30,9 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/prefix_sum.hpp"
-
-
+#include <cstring>
+#include <limits>
 #include <memory>
 #include <random>
 #include <vector>
@@ -44,55 +43,108 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 
 
-#include "hip/test/utils.hip.hpp"
+#include "core/test/utils.hpp"
 
 
 namespace {
 
 
-class PrefixSum : public ::testing::Test {
+class PrecisionConversion : public ::testing::Test {
 protected:
-    using index_type = gko::int32;
-    PrefixSum()
+    PrecisionConversion()
         : ref(gko::ReferenceExecutor::create()),
-          exec(gko::HipExecutor::create(0, ref)),
           rand(293),
           total_size(42793),
           vals(ref, total_size),
-          dvals(exec)
+          cvals(ref, total_size),
+          vals2(ref, 1),
+          expected_float(ref, 1),
+          expected_double(ref, 1)
     {
-        std::uniform_int_distribution<index_type> dist(0, 1000);
+        auto maxval = 1e10f;
+        std::uniform_real_distribution<float> dist(-maxval, maxval);
         for (gko::size_type i = 0; i < total_size; ++i) {
             vals.get_data()[i] = dist(rand);
+            cvals.get_data()[i] = {dist(rand), dist(rand)};
         }
-        dvals = vals;
-    }
-
-    void test(gko::size_type size)
-    {
-        gko::kernels::reference::components::prefix_sum(ref, vals.get_data(),
-                                                        size);
-        gko::kernels::hip::components::prefix_sum(exec, dvals.get_data(), size);
-
-        gko::Array<index_type> dresult(ref, dvals);
-        auto dptr = dresult.get_const_data();
-        auto ptr = vals.get_const_data();
-        ASSERT_TRUE(std::equal(ptr, ptr + size, dptr));
+        gko::uint64 rawdouble{0x4218888000889111ULL};
+        gko::uint32 rawfloat{0x50c44400UL};
+        gko::uint64 rawrounded{0x4218888000000000ULL};
+        std::memcpy(vals2.get_data(), &rawdouble, sizeof(double));
+        std::memcpy(expected_float.get_data(), &rawfloat, sizeof(float));
+        std::memcpy(expected_double.get_data(), &rawrounded, sizeof(double));
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::HipExecutor> exec;
     std::default_random_engine rand;
     gko::size_type total_size;
-    gko::Array<index_type> vals;
-    gko::Array<index_type> dvals;
+    gko::Array<float> vals;
+    gko::Array<double> vals2;
+    gko::Array<float> expected_float;
+    gko::Array<double> expected_double;
+    gko::Array<std::complex<float>> cvals;
 };
 
 
-TEST_F(PrefixSum, SmallEqualsReference) { test(100); }
+TEST_F(PrecisionConversion, ConvertsReal)
+{
+    gko::Array<double> tmp;
+    gko::Array<float> out;
+
+    tmp = vals;
+    out = tmp;
+
+    GKO_ASSERT_ARRAY_EQ(&vals, &out);
+}
 
 
-TEST_F(PrefixSum, BigEqualsReference) { test(total_size); }
+TEST_F(PrecisionConversion, ConversionRounds)
+{
+    gko::Array<float> tmp;
+    gko::Array<double> out;
+
+    tmp = vals2;
+    out = tmp;
+
+    GKO_ASSERT_ARRAY_EQ(&tmp, &expected_float);
+    GKO_ASSERT_ARRAY_EQ(&out, &expected_double);
+}
+
+
+TEST_F(PrecisionConversion, ConvertsRealWithSetExecutor)
+{
+    gko::Array<double> tmp{ref};
+    gko::Array<float> out{ref};
+
+    tmp = vals;
+    out = tmp;
+
+    GKO_ASSERT_ARRAY_EQ(&vals, &out);
+}
+
+
+TEST_F(PrecisionConversion, ConvertsRealFromView)
+{
+    gko::Array<double> tmp{ref};
+    gko::Array<float> out{ref};
+
+    tmp = gko::Array<float>::view(ref, vals.get_num_elems(), vals.get_data());
+    out = tmp;
+
+    GKO_ASSERT_ARRAY_EQ(&vals, &out);
+}
+
+
+TEST_F(PrecisionConversion, ConvertsComplex)
+{
+    gko::Array<std::complex<double>> tmp;
+    gko::Array<std::complex<float>> out;
+
+    tmp = cvals;
+    out = tmp;
+
+    GKO_ASSERT_ARRAY_EQ(&cvals, &out);
+}
 
 
 }  // namespace

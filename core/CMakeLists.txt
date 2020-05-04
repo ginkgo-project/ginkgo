@@ -4,6 +4,7 @@ add_subdirectory(device_hooks)  # placeholders for disabled modules
 add_library(ginkgo "")
 target_sources(ginkgo
     PRIVATE
+        base/array.cpp
         base/combination.cpp
         base/composition.cpp
         base/executor.cpp

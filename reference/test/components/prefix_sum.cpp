@@ -67,8 +67,8 @@ TYPED_TEST_CASE(PrefixSum, gko::test::IndexTypes);
 
 TYPED_TEST(PrefixSum, Works)
 {
-    gko::kernels::reference::prefix_sum(this->exec, this->vals.data(),
-                                        this->vals.size());
+    gko::kernels::reference::components::prefix_sum(
+        this->exec, this->vals.data(), this->vals.size());
 
     ASSERT_EQ(this->vals, this->expected);
 }

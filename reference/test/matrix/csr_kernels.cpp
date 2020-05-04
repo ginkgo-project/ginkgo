@@ -601,6 +601,54 @@ TYPED_TEST(Csr, ApplyFailsOnWrongNumberOfCols)
 }
 
 
+TYPED_TEST(Csr, ConvertsToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Csr = typename TestFixture::Mtx;
+    using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
+    auto tmp = OtherCsr::create(this->exec);
+    auto res = Csr::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    // use mtx2 as mtx's strategy would involve creating a CudaExecutor
+    this->mtx2->convert_to(tmp.get());
+    tmp->convert_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx2, res, residual);
+    ASSERT_EQ(typeid(*this->mtx2->get_strategy()),
+              typeid(*res->get_strategy()));
+}
+
+
+TYPED_TEST(Csr, MovesToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Csr = typename TestFixture::Mtx;
+    using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
+    auto tmp = OtherCsr::create(this->exec);
+    auto res = Csr::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    // use mtx2 as mtx's strategy would involve creating a CudaExecutor
+    this->mtx2->move_to(tmp.get());
+    tmp->move_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx2, res, residual);
+    ASSERT_EQ(typeid(*this->mtx2->get_strategy()),
+              typeid(*res->get_strategy()));
+}
+
+
 TYPED_TEST(Csr, ConvertsToDense)
 {
     using Dense = typename TestFixture::Vec;

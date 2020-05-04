@@ -67,6 +67,7 @@ class Csr;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
               public EnableCreateMethod<Sellp<ValueType, IndexType>>,
+              public ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>,
               public ConvertibleTo<Dense<ValueType>>,
               public ConvertibleTo<Csr<ValueType, IndexType>>,
               public ReadableFromMatrixData<ValueType, IndexType>,
@@ -83,6 +84,13 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
+
+    friend class Sellp<next_precision<ValueType>, IndexType>;
+
+    void convert_to(
+        Sellp<next_precision<ValueType>, IndexType> *result) const override;
+
+    void move_to(Sellp<next_precision<ValueType>, IndexType> *result) override;
 
     void convert_to(Dense<ValueType> *other) const override;
 

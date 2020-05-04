@@ -442,6 +442,22 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(std::complex<double>, int64)
 
 
+/**
+ * Instantiates a template for each value type conversion pair compiled by
+ * Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments `src` and `dst`, which
+ *                are replaced by the source and destination value type.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)       \
+    template _macro(float, double);                             \
+    template _macro(double, float);                             \
+    template _macro(std::complex<float>, std::complex<double>); \
+    template _macro(std::complex<double>, std::complex<float>)
+
+
 }  // namespace gko
 
 

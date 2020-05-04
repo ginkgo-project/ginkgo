@@ -30,34 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/prefix_sum.hpp"
-
-
-namespace gko {
-namespace kernels {
-namespace omp {
-namespace components {
-
-
-template <typename IndexType>
-void prefix_sum(std::shared_ptr<const OmpExecutor> exec, IndexType *counts,
-                size_type num_entries)
+template <typename SourceType, typename TargetType>
+__global__ void convert_precision(size_type size, const SourceType *in,
+                                  TargetType *out)
 {
-    IndexType partial_sum{};
-    for (IndexType i = 0; i < num_entries; ++i) {
-        auto nnz = counts[i];
-        counts[i] = partial_sum;
-        partial_sum += nnz;
+    auto tnum = thread::get_thread_num_flat();
+    for (auto i = thread::get_thread_id_flat(); i < size; i += tnum) {
+        out[i] = in[i];
     }
 }
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
-
-// instantiate for size_type as well, as this is used in the Sellp format
-template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
-
-
-}  // namespace components
-}  // namespace omp
-}  // namespace kernels
-}  // namespace gko

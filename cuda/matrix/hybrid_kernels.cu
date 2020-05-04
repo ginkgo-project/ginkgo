@@ -129,7 +129,7 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
         num_rows, as_cuda_type(row_ptrs),
         as_cuda_type(coo_row_ptrs.get_const_data()));
 
-    prefix_sum(exec, row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, row_ptrs, num_rows + 1);
 
     // Fill the value
     grid_num = ceildiv(num_rows, default_block_size);

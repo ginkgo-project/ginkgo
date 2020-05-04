@@ -30,34 +30,42 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/prefix_sum.hpp"
+#include <ginkgo/core/base/array.hpp>
+
+
+#include <ginkgo/core/base/math.hpp>
+
+
+#include "core/components/precision_conversion.hpp"
 
 
 namespace gko {
-namespace kernels {
-namespace omp {
-namespace components {
+namespace conversion {
 
 
-template <typename IndexType>
-void prefix_sum(std::shared_ptr<const OmpExecutor> exec, IndexType *counts,
-                size_type num_entries)
+GKO_REGISTER_OPERATION(convert, components::convert_precision);
+
+
+}  // namespace conversion
+
+
+namespace detail {
+
+
+template <typename SourceType, typename TargetType>
+void convert_data(std::shared_ptr<const Executor> exec, size_type size,
+                  const SourceType *src, TargetType *dst)
 {
-    IndexType partial_sum{};
-    for (IndexType i = 0; i < num_entries; ++i) {
-        auto nnz = counts[i];
-        counts[i] = partial_sum;
-        partial_sum += nnz;
-    }
+    exec->run(conversion::make_convert(size, src, dst));
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
 
-// instantiate for size_type as well, as this is used in the Sellp format
-template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
+#define GKO_DECLARE_ARRAY_CONVERSION(From, To)                              \
+    void convert_data<From, To>(std::shared_ptr<const Executor>, size_type, \
+                                const From *, To *)
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_ARRAY_CONVERSION);
 
 
-}  // namespace components
-}  // namespace omp
-}  // namespace kernels
+}  // namespace detail
 }  // namespace gko

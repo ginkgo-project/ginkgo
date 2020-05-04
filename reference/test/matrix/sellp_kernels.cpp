@@ -187,6 +187,48 @@ TYPED_TEST(Sellp, ApplyFailsOnWrongNumberOfCols)
 }
 
 
+TYPED_TEST(Sellp, ConvertsToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Sellp = typename TestFixture::Mtx;
+    using OtherSellp = gko::matrix::Sellp<OtherType, IndexType>;
+    auto tmp = OtherSellp::create(this->exec);
+    auto res = Sellp::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    this->mtx1->convert_to(tmp.get());
+    tmp->convert_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx1, res, residual);
+}
+
+
+TYPED_TEST(Sellp, MovesToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Sellp = typename TestFixture::Mtx;
+    using OtherSellp = gko::matrix::Sellp<OtherType, IndexType>;
+    auto tmp = OtherSellp::create(this->exec);
+    auto res = Sellp::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    this->mtx1->move_to(tmp.get());
+    tmp->move_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx1, res, residual);
+}
+
+
 TYPED_TEST(Sellp, ConvertsToDense)
 {
     using Vec = typename TestFixture::Vec;

@@ -30,34 +30,39 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/precision_conversion.hpp"
+
+
+#include "hip/base/types.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace omp {
+namespace hip {
 namespace components {
 
 
-template <typename IndexType>
-void prefix_sum(std::shared_ptr<const OmpExecutor> exec, IndexType *counts,
-                size_type num_entries)
+constexpr int default_block_size = 512;
+
+
+#include "common/components/precision_conversion.hpp.inc"
+
+
+template <typename SourceType, typename TargetType>
+void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
+                       size_type size, const SourceType *in, TargetType *out)
 {
-    IndexType partial_sum{};
-    for (IndexType i = 0; i < num_entries; ++i) {
-        auto nnz = counts[i];
-        counts[i] = partial_sum;
-        partial_sum += nnz;
-    }
+    auto num_blocks = ceildiv(size, default_block_size);
+    hipLaunchKernelGGL(HIP_KERNEL_NAME(convert_precision), num_blocks,
+                       default_block_size, 0, 0, size, as_hip_type(in),
+                       as_hip_type(out));
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
-
-// instantiate for size_type as well, as this is used in the Sellp format
-template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
+GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);
 
 
 }  // namespace components
-}  // namespace omp
+}  // namespace hip
 }  // namespace kernels
 }  // namespace gko

@@ -122,6 +122,68 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::convert_to(
+    Csr<next_precision<ValueType>, IndexType> *result) const
+{
+    result->values_ = this->values_;
+    result->col_idxs_ = this->col_idxs_;
+    result->row_ptrs_ = this->row_ptrs_;
+    result->set_size(this->get_size());
+    auto strat = this->get_strategy().get();
+    using Other = Csr<next_precision<ValueType>, IndexType>;
+    std::shared_ptr<typename Other::strategy_type> new_strat;
+    // TODO clean this up as soon as we improve strategy_type
+    if (dynamic_cast<classical *>(strat)) {
+        new_strat = std::make_shared<typename Other::classical>();
+    } else if (dynamic_cast<merge_path *>(strat)) {
+        new_strat = std::make_shared<typename Other::merge_path>();
+    } else if (dynamic_cast<cusparse *>(strat)) {
+        new_strat = std::make_shared<typename Other::cusparse>();
+    } else if (dynamic_cast<sparselib *>(strat)) {
+        new_strat = std::make_shared<typename Other::sparselib>();
+    } else {
+        auto rexec = result->get_executor();
+        auto cuda_exec = std::dynamic_pointer_cast<const CudaExecutor>(rexec);
+        auto hip_exec = std::dynamic_pointer_cast<const HipExecutor>(rexec);
+        auto lb = dynamic_cast<load_balance *>(strat);
+        if (cuda_exec) {
+            if (lb) {
+                new_strat =
+                    std::make_shared<typename Other::load_balance>(cuda_exec);
+            } else {
+                new_strat =
+                    std::make_shared<typename Other::automatical>(cuda_exec);
+            }
+        } else if (hip_exec) {
+            if (lb) {
+                new_strat =
+                    std::make_shared<typename Other::load_balance>(hip_exec);
+            } else {
+                new_strat =
+                    std::make_shared<typename Other::automatical>(hip_exec);
+            }
+        } else {
+            // FIXME this creates a long delay
+            if (lb) {
+                new_strat = std::make_shared<typename Other::load_balance>();
+            } else {
+                new_strat = std::make_shared<typename Other::automatical>();
+            }
+        }
+    }
+    result->set_strategy(new_strat);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::move_to(
+    Csr<next_precision<ValueType>, IndexType> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::convert_to(
     Coo<ValueType, IndexType> *result) const
 {
     auto exec = this->get_executor();
