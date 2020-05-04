@@ -43,10 +43,10 @@ namespace cuda {
 namespace components {
 
 
-#include "common/components/precision_conversion.hpp.inc"
-
-
 constexpr int default_block_size = 512;
+
+
+#include "common/components/precision_conversion.hpp.inc"
 
 
 template <typename SourceType, typename TargetType>

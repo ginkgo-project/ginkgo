@@ -73,9 +73,9 @@ protected:
         }
         dvals = vals;
         dcvals = cvals;
-        gko::uint64 rawdouble = 0x4218888000889111ULL;
-        gko::uint32 rawfloat = 0x50c44400ULL;
-        gko::uint64 rawrounded = 0x4218888000000000ULL;
+        gko::uint64 rawdouble{0x4218888000889111ULL};
+        gko::uint32 rawfloat{0x50c44400UL};
+        gko::uint64 rawrounded{0x4218888000000000ULL};
         std::memcpy(vals2.get_data(), &rawdouble, sizeof(double));
         std::memcpy(expected_float.get_data(), &rawfloat, sizeof(float));
         std::memcpy(expected_double.get_data(), &rawrounded, sizeof(double));
