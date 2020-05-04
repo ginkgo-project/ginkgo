@@ -32,7 +32,7 @@ if [ -z "${CXX}" ]; then
 fi
 
 # build
-${CXX} -std=c++11 -o ${THIS_DIR}/iterative-refinement \
-    ${THIS_DIR}/iterative-refinement.cpp \
+${CXX} -std=c++11 -o ${THIS_DIR}/mixed-precision-ir \
+    ${THIS_DIR}/mixed-precision-ir.cpp \
     -I${THIS_DIR}/../../include -I${BUILD_DIR}/include \
     -L${THIS_DIR} ${LINK_FLAGS}
