@@ -169,6 +169,9 @@ class \mbox{\hyperlink{classgko_1_1WritableToMatrixData}{Writable\+To\+Matrix\+D
 \begin{DoxyCompactList}\small\item\em Obtains a real counterpart of a std\+::complex type, and leaves the type unchanged if it is not a complex type. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\using \mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}} = detail\+::is\+\_\+complex\+\_\+impl$<$ T $>$
 \begin{DoxyCompactList}\small\item\em Allows to check if T is a complex value during compile time by accessing the {\ttfamily value} attribute of this struct. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{namespacegko_a6362f751c7753cf4fa0a4771d56e8ede}\label{namespacegko_a6362f751c7753cf4fa0a4771d56e8ede}} 
+{\footnotesize template$<$typename T $>$ }\\using \mbox{\hyperlink{namespacegko_a6362f751c7753cf4fa0a4771d56e8ede}{next\+\_\+precision}} = typename detail\+::next\+\_\+precision\+\_\+impl$<$ T $>$\+::type
+\begin{DoxyCompactList}\small\item\em Obtains the next type in the singly-\/linked precision list. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{namespacegko_ab5d71c1f4bd1b654df1e561ea7a811f2}\label{namespacegko_ab5d71c1f4bd1b654df1e561ea7a811f2}} 
 {\footnotesize template$<$typename T $>$ }\\using \mbox{\hyperlink{namespacegko_ab5d71c1f4bd1b654df1e561ea7a811f2}{reduce\+\_\+precision}} = typename detail\+::reduce\+\_\+precision\+\_\+impl$<$ T $>$\+::type
 \begin{DoxyCompactList}\small\item\em Obtains the next type in the hierarchy with lower precision than T. \end{DoxyCompactList}\item 

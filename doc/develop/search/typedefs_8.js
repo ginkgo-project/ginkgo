@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['truncate_5ftype_1409',['truncate_type',['../namespacegko.html#abf540a6830b3ac4cd6b193133510f4d7',1,'gko']]],
-  ['type_1410',['type',['../structgko_1_1cpx__real__type.html#a6fec5b28321901b6da393b424afb144b',1,'gko::cpx_real_type']]]
+  ['size_5ftype_1421',['size_type',['../namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7',1,'gko']]],
+  ['storage_5ftype_1422',['storage_type',['../classgko_1_1precision__reduction.html#a2a1a94a27fa69b4cc321136b56e7b7d9',1,'gko::precision_reduction']]]
 ];

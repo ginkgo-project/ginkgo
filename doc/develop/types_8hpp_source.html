@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/base/types.hpp (ccf35426a) Source File</title>
+<title>Ginkgo: ginkgo/core/base/types.hpp (41d6f0031) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/142007298 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/142429756 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -329,10 +329,17 @@ $(function() {
 <div class="line"><a name="l00442"></a><span class="lineno">  442</span>&#160;<span class="preprocessor">    template _macro(std::complex&lt;double&gt;, int64)</span></div>
 <div class="line"><a name="l00443"></a><span class="lineno">  443</span>&#160; </div>
 <div class="line"><a name="l00444"></a><span class="lineno">  444</span>&#160; </div>
-<div class="line"><a name="l00445"></a><span class="lineno">  445</span>&#160;}  <span class="comment">// namespace gko</span></div>
-<div class="line"><a name="l00446"></a><span class="lineno">  446</span>&#160; </div>
-<div class="line"><a name="l00447"></a><span class="lineno">  447</span>&#160; </div>
-<div class="line"><a name="l00448"></a><span class="lineno">  448</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_BASE_TYPES_HPP_</span></div>
+<div class="line"><a name="l00454"></a><span class="lineno">  454</span>&#160;<span class="preprocessor">#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)       \</span></div>
+<div class="line"><a name="l00455"></a><span class="lineno">  455</span>&#160;<span class="preprocessor">    template _macro(float, double);                             \</span></div>
+<div class="line"><a name="l00456"></a><span class="lineno">  456</span>&#160;<span class="preprocessor">    template _macro(double, float);                             \</span></div>
+<div class="line"><a name="l00457"></a><span class="lineno">  457</span>&#160;<span class="preprocessor">    template _macro(std::complex&lt;float&gt;, std::complex&lt;double&gt;); \</span></div>
+<div class="line"><a name="l00458"></a><span class="lineno">  458</span>&#160;<span class="preprocessor">    template _macro(std::complex&lt;double&gt;, std::complex&lt;float&gt;)</span></div>
+<div class="line"><a name="l00459"></a><span class="lineno">  459</span>&#160; </div>
+<div class="line"><a name="l00460"></a><span class="lineno">  460</span>&#160; </div>
+<div class="line"><a name="l00461"></a><span class="lineno">  461</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00462"></a><span class="lineno">  462</span>&#160; </div>
+<div class="line"><a name="l00463"></a><span class="lineno">  463</span>&#160; </div>
+<div class="line"><a name="l00464"></a><span class="lineno">  464</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_BASE_TYPES_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="anamespacegko_html_a3950fc3732811a8563484e5098c31531"><div class="ttname"><a href="namespacegko.html#a3950fc3732811a8563484e5098c31531">gko::uint8</a></div><div class="ttdeci">std::uint8_t uint8</div><div class="ttdoc">8-bit unsigned integral type.</div><div class="ttdef"><b>Definition:</b> types.hpp:129</div></div>
 <div class="ttc" id="aclassgko_1_1precision__reduction_html"><div class="ttname"><a href="classgko_1_1precision__reduction.html">gko::precision_reduction</a></div><div class="ttdoc">This class is used to encode storage precisions of low precision algorithms.</div><div class="ttdef"><b>Definition:</b> types.hpp:234</div></div>

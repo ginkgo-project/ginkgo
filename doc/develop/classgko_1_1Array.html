@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/142007298 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/142429756 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -73,6 +73,7 @@ $(function() {
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-static-methods">Static Public Member Functions</a> &#124;
+<a href="#friends">Friends</a> &#124;
 <a href="classgko_1_1Array-members.html">List of all members</a>  </div>
   <div class="headertitle">
 <div class="title">gko::Array&lt; ValueType &gt; Class Template Reference</div>  </div>
@@ -143,6 +144,10 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a62d5346849e3943a5fcac962e344ab58"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classgko_1_1Array.html">Array</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Array.html#a62d5346849e3943a5fcac962e344ab58">operator=</a> (<a class="el" href="classgko_1_1Array.html">Array</a> &amp;&amp;other)</td></tr>
 <tr class="memdesc:a62d5346849e3943a5fcac962e344ab58"><td class="mdescLeft">&#160;</td><td class="mdescRight">Moves data from another array or view.  <a href="classgko_1_1Array.html#a62d5346849e3943a5fcac962e344ab58">More...</a><br /></td></tr>
 <tr class="separator:a62d5346849e3943a5fcac962e344ab58"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad27c8f6831d9a360d8f11b25ce274acc"><td class="memTemplParams" colspan="2">template&lt;typename OtherValueType &gt; </td></tr>
+<tr class="memitem:ad27c8f6831d9a360d8f11b25ce274acc"><td class="memTemplItemLeft" align="right" valign="top">xstd::enable_if_t&lt;!std::is_same&lt; ValueType, OtherValueType &gt;::value, <a class="el" href="classgko_1_1Array.html">Array</a> &gt; &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classgko_1_1Array.html#ad27c8f6831d9a360d8f11b25ce274acc">operator=</a> (const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; OtherValueType &gt; &amp;other)</td></tr>
+<tr class="memdesc:ad27c8f6831d9a360d8f11b25ce274acc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copies and converts data from another array with another data type.  <a href="classgko_1_1Array.html#ad27c8f6831d9a360d8f11b25ce274acc">More...</a><br /></td></tr>
+<tr class="separator:ad27c8f6831d9a360d8f11b25ce274acc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a64f7e9f19c4e8cff8adb402da70476c3"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Array.html#a64f7e9f19c4e8cff8adb402da70476c3">clear</a> () noexcept</td></tr>
 <tr class="memdesc:a64f7e9f19c4e8cff8adb402da70476c3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deallocates all data used by the <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a>.  <a href="classgko_1_1Array.html#a64f7e9f19c4e8cff8adb402da70476c3">More...</a><br /></td></tr>
 <tr class="separator:a64f7e9f19c4e8cff8adb402da70476c3"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -173,6 +178,13 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memitem:ae8e2b4841e60741227daf3367de6ecde"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="classgko_1_1Array.html">Array</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Array.html#ae8e2b4841e60741227daf3367de6ecde">view</a> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec, <a class="el" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> num_elems, <a class="el" href="classgko_1_1Array.html#ad40c95e429262175cae51bcabd291a5b">value_type</a> *data)</td></tr>
 <tr class="memdesc:ae8e2b4841e60741227daf3367de6ecde"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates an <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a> from existing memory.  <a href="classgko_1_1Array.html#ae8e2b4841e60741227daf3367de6ecde">More...</a><br /></td></tr>
 <tr class="separator:ae8e2b4841e60741227daf3367de6ecde"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="friends"></a>
+Friends</h2></td></tr>
+<tr class="memitem:ab1a595168ea1870ce436dfd2d8e69b6d"><td class="memTemplParams" colspan="2"><a id="ab1a595168ea1870ce436dfd2d8e69b6d"></a>
+template&lt;typename OtherValueType &gt; </td></tr>
+<tr class="memitem:ab1a595168ea1870ce436dfd2d8e69b6d"><td class="memTemplItemLeft" align="right" valign="top">class&#160;</td><td class="memTemplItemRight" valign="bottom"><b>Array</b></td></tr>
+<tr class="separator:ab1a595168ea1870ce436dfd2d8e69b6d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><h3>template&lt;typename ValueType&gt;<br />
@@ -777,7 +789,7 @@ template&lt;typename ValueType&gt; </div>
 <p>Returns a constant pointer to the block of memory used to store the elements of the <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a>. </p>
 <dl class="section return"><dt>Returns</dt><dd>a constant pointer to the block of memory used to store the elements of the <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a> </dd></dl>
 
-<p class="reference">Referenced by <a class="el" href="classgko_1_1matrix_1_1Dense.html#ae0b30c42359a03805dee41a5cbf87b26">gko::matrix::Dense&lt; ValueType &gt;::at()</a>, <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#a1f3104ff10b00ff5faaf17a164400663">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;::get_blocks()</a>, <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#ad4cef85a520076fefc0e911ab205cf12">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;::get_conditioning()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#a6b5417bd6f2c876925ce732c7526b562">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::get_const_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1Ell.html#addb3c84f52b090c75f519833fb379cef">gko::matrix::Ell&lt; ValueType, IndexType &gt;::get_const_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1SparsityCsr.html#a18c26b1eafb17d8de60669371a61dcdb">gko::matrix::SparsityCsr&lt; ValueType, IndexType &gt;::get_const_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#ae4afdbf2dc5a5a42a197f3a479febc75">gko::matrix::Coo&lt; ValueType, IndexType &gt;::get_const_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#ac9d640d26449e0ee46c7cb2b80100d65">gko::matrix::Csr&lt; ValueType, IndexType &gt;::get_const_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1Permutation.html#afade97c61c352cd4fbe25ed8a4b77a90">gko::matrix::Permutation&lt; IndexType &gt;::get_const_permutation()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#a0fe0f33bf492bf2f9134927c7ee90e81">gko::matrix::Coo&lt; ValueType, IndexType &gt;::get_const_row_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1SparsityCsr.html#a231bff77de5d41dbe9317b7d069ff853">gko::matrix::SparsityCsr&lt; ValueType, IndexType &gt;::get_const_row_ptrs()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#a50c9ce521649450d7ae5ff488e42c190">gko::matrix::Csr&lt; ValueType, IndexType &gt;::get_const_row_ptrs()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#adf13bb4a4f8660b4ae27fe2ae6a874aa">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::get_const_slice_lengths()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#a1b5bcac41afe4dee75994ad05c1ffc81">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::get_const_slice_sets()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#ac046f27c47848bf31c9234567661ef48">gko::matrix::Csr&lt; ValueType, IndexType &gt;::get_const_srow()</a>, <a class="el" href="classgko_1_1matrix_1_1SparsityCsr.html#a4528b463ee2b0d271accd6f44711768a">gko::matrix::SparsityCsr&lt; ValueType, IndexType &gt;::get_const_value()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#a8a3c4738049b7e6819806bb51e1a5523">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::get_const_values()</a>, <a class="el" href="classgko_1_1matrix_1_1Ell.html#a5bc4d3c67b328b353409e76eb9f70803">gko::matrix::Ell&lt; ValueType, IndexType &gt;::get_const_values()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#af0f6fe19d81bc4207aad66376f9c87c5">gko::matrix::Coo&lt; ValueType, IndexType &gt;::get_const_values()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#ab83c739c1b11abaecc3bfd89506f6c9c">gko::matrix::Dense&lt; ValueType &gt;::get_const_values()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#a1801347665214bbefc837b44ba0695ff">gko::matrix::Csr&lt; ValueType, IndexType &gt;::get_const_values()</a>, <a class="el" href="classgko_1_1Array.html#a841412d7a03b8210ba39e77b3bd05ce3">gko::Array&lt; index_type &gt;::operator=()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1classical.html#a2844a228c3a3f827c8ad9cab5c0e453f">gko::matrix::Csr&lt; ValueType, IndexType &gt;::classical::process()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1load__balance.html#aba6c8c9169c1068c30ac9df19ec862ff">gko::matrix::Csr&lt; ValueType, IndexType &gt;::load_balance::process()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1automatical.html#aefa241047539f2ee7784a54cf5051720">gko::matrix::Csr&lt; ValueType, IndexType &gt;::automatical::process()</a>, <a class="el" href="classgko_1_1matrix_1_1Ell.html#a3591fa0ab2ec09b43a15b0f0649d8ea3">gko::matrix::Ell&lt; ValueType, IndexType &gt;::val_at()</a>, and <a class="el" href="classgko_1_1matrix_1_1Sellp.html#ad4bb228252469da6e57eb38edd66fb8e">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::val_at()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="classgko_1_1matrix_1_1Dense.html#ae0b30c42359a03805dee41a5cbf87b26">gko::matrix::Dense&lt; ValueType &gt;::at()</a>, <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#a1f3104ff10b00ff5faaf17a164400663">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;::get_blocks()</a>, <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#ad4cef85a520076fefc0e911ab205cf12">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;::get_conditioning()</a>, <a class="el" href="classgko_1_1matrix_1_1SparsityCsr.html#a18c26b1eafb17d8de60669371a61dcdb">gko::matrix::SparsityCsr&lt; ValueType, IndexType &gt;::get_const_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#a6b5417bd6f2c876925ce732c7526b562">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::get_const_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1Ell.html#addb3c84f52b090c75f519833fb379cef">gko::matrix::Ell&lt; ValueType, IndexType &gt;::get_const_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#ae4afdbf2dc5a5a42a197f3a479febc75">gko::matrix::Coo&lt; ValueType, IndexType &gt;::get_const_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#ac9d640d26449e0ee46c7cb2b80100d65">gko::matrix::Csr&lt; ValueType, IndexType &gt;::get_const_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1Permutation.html#afade97c61c352cd4fbe25ed8a4b77a90">gko::matrix::Permutation&lt; IndexType &gt;::get_const_permutation()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#a0fe0f33bf492bf2f9134927c7ee90e81">gko::matrix::Coo&lt; ValueType, IndexType &gt;::get_const_row_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1SparsityCsr.html#a231bff77de5d41dbe9317b7d069ff853">gko::matrix::SparsityCsr&lt; ValueType, IndexType &gt;::get_const_row_ptrs()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#a50c9ce521649450d7ae5ff488e42c190">gko::matrix::Csr&lt; ValueType, IndexType &gt;::get_const_row_ptrs()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#adf13bb4a4f8660b4ae27fe2ae6a874aa">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::get_const_slice_lengths()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#a1b5bcac41afe4dee75994ad05c1ffc81">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::get_const_slice_sets()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#ac046f27c47848bf31c9234567661ef48">gko::matrix::Csr&lt; ValueType, IndexType &gt;::get_const_srow()</a>, <a class="el" href="classgko_1_1matrix_1_1SparsityCsr.html#a4528b463ee2b0d271accd6f44711768a">gko::matrix::SparsityCsr&lt; ValueType, IndexType &gt;::get_const_value()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#a8a3c4738049b7e6819806bb51e1a5523">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::get_const_values()</a>, <a class="el" href="classgko_1_1matrix_1_1Ell.html#a5bc4d3c67b328b353409e76eb9f70803">gko::matrix::Ell&lt; ValueType, IndexType &gt;::get_const_values()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#af0f6fe19d81bc4207aad66376f9c87c5">gko::matrix::Coo&lt; ValueType, IndexType &gt;::get_const_values()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#ab83c739c1b11abaecc3bfd89506f6c9c">gko::matrix::Dense&lt; ValueType &gt;::get_const_values()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#a1801347665214bbefc837b44ba0695ff">gko::matrix::Csr&lt; ValueType, IndexType &gt;::get_const_values()</a>, <a class="el" href="classgko_1_1Array.html#a841412d7a03b8210ba39e77b3bd05ce3">gko::Array&lt; index_type &gt;::operator=()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1classical.html#a2844a228c3a3f827c8ad9cab5c0e453f">gko::matrix::Csr&lt; ValueType, IndexType &gt;::classical::process()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1load__balance.html#aba6c8c9169c1068c30ac9df19ec862ff">gko::matrix::Csr&lt; ValueType, IndexType &gt;::load_balance::process()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1automatical.html#aefa241047539f2ee7784a54cf5051720">gko::matrix::Csr&lt; ValueType, IndexType &gt;::automatical::process()</a>, <a class="el" href="classgko_1_1matrix_1_1Ell.html#a3591fa0ab2ec09b43a15b0f0649d8ea3">gko::matrix::Ell&lt; ValueType, IndexType &gt;::val_at()</a>, and <a class="el" href="classgko_1_1matrix_1_1Sellp.html#ad4bb228252469da6e57eb38edd66fb8e">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::val_at()</a>.</p>
 
 </div>
 </div>
@@ -809,7 +821,7 @@ template&lt;typename ValueType&gt; </div>
 <p>Returns a pointer to the block of memory used to store the elements of the <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a>. </p>
 <dl class="section return"><dt>Returns</dt><dd>a pointer to the block of memory used to store the elements of the <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a> </dd></dl>
 
-<p class="reference">Referenced by <a class="el" href="classgko_1_1matrix_1_1Dense.html#af0f1af68853537807ca271a296de3cd0">gko::matrix::Dense&lt; ValueType &gt;::at()</a>, <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html#aa95250e2c38d516dbd2fbf5bdfa67e72">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::imbalance_limit::compute_ell_num_stored_elements_per_row()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#abb770ef6fed094f707c96219a8b69d11">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::get_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1SparsityCsr.html#a78d3704791382333822267304e159668">gko::matrix::SparsityCsr&lt; ValueType, IndexType &gt;::get_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1Ell.html#ac80ca9482997e97d88425214fd1b8aef">gko::matrix::Ell&lt; ValueType, IndexType &gt;::get_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#a1b619cf23c7c87cb4109432c8e8db66d">gko::matrix::Coo&lt; ValueType, IndexType &gt;::get_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#a81c6294177a1be4873804c8a85a9fc64">gko::matrix::Csr&lt; ValueType, IndexType &gt;::get_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1Permutation.html#ad632f0f6b6305ef7a74d7abf260556cf">gko::matrix::Permutation&lt; IndexType &gt;::get_permutation()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#a57aa0f7b701020c4322a3aed63d8a25d">gko::matrix::Coo&lt; ValueType, IndexType &gt;::get_row_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1SparsityCsr.html#abb602ed95865506ae965458e4ffe8e37">gko::matrix::SparsityCsr&lt; ValueType, IndexType &gt;::get_row_ptrs()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#a068e5158cf282fa977f0a137f8cd7f03">gko::matrix::Csr&lt; ValueType, IndexType &gt;::get_row_ptrs()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#ab22f4de41d95db19e96433dc4583f512">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::get_slice_lengths()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#afecef07cef594f1d23c735e66ee90ec6">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::get_slice_sets()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#a919fb1efdcbde6fba7eb18bdc39ba46a">gko::matrix::Csr&lt; ValueType, IndexType &gt;::get_srow()</a>, <a class="el" href="classgko_1_1matrix_1_1SparsityCsr.html#abedb37b3376606db2bfbc2639a923426">gko::matrix::SparsityCsr&lt; ValueType, IndexType &gt;::get_value()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#ac9afd5f8000da345844ccb22b599acf7">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::get_values()</a>, <a class="el" href="classgko_1_1matrix_1_1Ell.html#a4028e9629a7d96a7a483e6ea4a686a1d">gko::matrix::Ell&lt; ValueType, IndexType &gt;::get_values()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#a1ce59517b8d6a8eeaacfed2b19d4057a">gko::matrix::Coo&lt; ValueType, IndexType &gt;::get_values()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#a3bc458e02fab8e4c9f60f70bd4d5a4f9">gko::matrix::Dense&lt; ValueType &gt;::get_values()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#a929b0a194e6aeb1252b8e6781d162e83">gko::matrix::Csr&lt; ValueType, IndexType &gt;::get_values()</a>, <a class="el" href="classgko_1_1Array.html#a841412d7a03b8210ba39e77b3bd05ce3">gko::Array&lt; index_type &gt;::operator=()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1load__balance.html#aba6c8c9169c1068c30ac9df19ec862ff">gko::matrix::Csr&lt; ValueType, IndexType &gt;::load_balance::process()</a>, <a class="el" href="classgko_1_1matrix_1_1Ell.html#a0d2365837e44dc1889fc16000ff3b0a9">gko::matrix::Ell&lt; ValueType, IndexType &gt;::val_at()</a>, and <a class="el" href="classgko_1_1matrix_1_1Sellp.html#a0654ed1e0f066c8b9a15aaaeeea34030">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::val_at()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="classgko_1_1matrix_1_1Dense.html#af0f1af68853537807ca271a296de3cd0">gko::matrix::Dense&lt; ValueType &gt;::at()</a>, <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit.html#aa95250e2c38d516dbd2fbf5bdfa67e72">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::imbalance_limit::compute_ell_num_stored_elements_per_row()</a>, <a class="el" href="classgko_1_1matrix_1_1SparsityCsr.html#a78d3704791382333822267304e159668">gko::matrix::SparsityCsr&lt; ValueType, IndexType &gt;::get_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#abb770ef6fed094f707c96219a8b69d11">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::get_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1Ell.html#ac80ca9482997e97d88425214fd1b8aef">gko::matrix::Ell&lt; ValueType, IndexType &gt;::get_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#a1b619cf23c7c87cb4109432c8e8db66d">gko::matrix::Coo&lt; ValueType, IndexType &gt;::get_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#a81c6294177a1be4873804c8a85a9fc64">gko::matrix::Csr&lt; ValueType, IndexType &gt;::get_col_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1Permutation.html#ad632f0f6b6305ef7a74d7abf260556cf">gko::matrix::Permutation&lt; IndexType &gt;::get_permutation()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#a57aa0f7b701020c4322a3aed63d8a25d">gko::matrix::Coo&lt; ValueType, IndexType &gt;::get_row_idxs()</a>, <a class="el" href="classgko_1_1matrix_1_1SparsityCsr.html#abb602ed95865506ae965458e4ffe8e37">gko::matrix::SparsityCsr&lt; ValueType, IndexType &gt;::get_row_ptrs()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#a068e5158cf282fa977f0a137f8cd7f03">gko::matrix::Csr&lt; ValueType, IndexType &gt;::get_row_ptrs()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#ab22f4de41d95db19e96433dc4583f512">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::get_slice_lengths()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#afecef07cef594f1d23c735e66ee90ec6">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::get_slice_sets()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#a919fb1efdcbde6fba7eb18bdc39ba46a">gko::matrix::Csr&lt; ValueType, IndexType &gt;::get_srow()</a>, <a class="el" href="classgko_1_1matrix_1_1SparsityCsr.html#abedb37b3376606db2bfbc2639a923426">gko::matrix::SparsityCsr&lt; ValueType, IndexType &gt;::get_value()</a>, <a class="el" href="classgko_1_1matrix_1_1Sellp.html#ac9afd5f8000da345844ccb22b599acf7">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::get_values()</a>, <a class="el" href="classgko_1_1matrix_1_1Ell.html#a4028e9629a7d96a7a483e6ea4a686a1d">gko::matrix::Ell&lt; ValueType, IndexType &gt;::get_values()</a>, <a class="el" href="classgko_1_1matrix_1_1Coo.html#a1ce59517b8d6a8eeaacfed2b19d4057a">gko::matrix::Coo&lt; ValueType, IndexType &gt;::get_values()</a>, <a class="el" href="classgko_1_1matrix_1_1Dense.html#a3bc458e02fab8e4c9f60f70bd4d5a4f9">gko::matrix::Dense&lt; ValueType &gt;::get_values()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr.html#a929b0a194e6aeb1252b8e6781d162e83">gko::matrix::Csr&lt; ValueType, IndexType &gt;::get_values()</a>, <a class="el" href="classgko_1_1Array.html#a841412d7a03b8210ba39e77b3bd05ce3">gko::Array&lt; index_type &gt;::operator=()</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1load__balance.html#aba6c8c9169c1068c30ac9df19ec862ff">gko::matrix::Csr&lt; ValueType, IndexType &gt;::load_balance::process()</a>, <a class="el" href="classgko_1_1matrix_1_1Ell.html#a0d2365837e44dc1889fc16000ff3b0a9">gko::matrix::Ell&lt; ValueType, IndexType &gt;::val_at()</a>, and <a class="el" href="classgko_1_1matrix_1_1Sellp.html#a0654ed1e0f066c8b9a15aaaeeea34030">gko::matrix::Sellp&lt; ValueType, IndexType &gt;::val_at()</a>.</p>
 
 </div>
 </div>
@@ -911,7 +923,7 @@ template&lt;typename ValueType&gt; </div>
 </div>
 </div>
 <a id="a62d5346849e3943a5fcac962e344ab58"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a62d5346849e3943a5fcac962e344ab58">&#9670;&nbsp;</a></span>operator=() <span class="overload">[1/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a62d5346849e3943a5fcac962e344ab58">&#9670;&nbsp;</a></span>operator=() <span class="overload">[1/3]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -960,7 +972,7 @@ template&lt;typename ValueType&gt; </div>
 </div>
 </div>
 <a id="a841412d7a03b8210ba39e77b3bd05ce3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a841412d7a03b8210ba39e77b3bd05ce3">&#9670;&nbsp;</a></span>operator=() <span class="overload">[2/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a841412d7a03b8210ba39e77b3bd05ce3">&#9670;&nbsp;</a></span>operator=() <span class="overload">[2/3]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -992,6 +1004,54 @@ template&lt;typename ValueType&gt; </div>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">other</td><td>the <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a> to copy from</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>this </dd></dl>
+
+</div>
+</div>
+<a id="ad27c8f6831d9a360d8f11b25ce274acc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad27c8f6831d9a360d8f11b25ce274acc">&#9670;&nbsp;</a></span>operator=() <span class="overload">[3/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType&gt; </div>
+<div class="memtemplate">
+template&lt;typename OtherValueType &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">xstd::enable_if_t&lt;!std::is_same&lt;ValueType, OtherValueType&gt;::value, <a class="el" href="classgko_1_1Array.html">Array</a>&gt;&amp; <a class="el" href="classgko_1_1Array.html">gko::Array</a>&lt; ValueType &gt;::operator= </td>
+          <td>(</td>
+          <td class="paramtype">const <a class="el" href="classgko_1_1Array.html">Array</a>&lt; OtherValueType &gt; &amp;&#160;</td>
+          <td class="paramname"><em>other</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Copies and converts data from another array with another data type. </p>
+<p>In the case of an array target, the array is resized to match the source's size. In the case of a view target, if the dimensions are not compatible a <a class="el" href="classgko_1_1OutOfBoundsError.html" title="OutOfBoundsError is thrown if a memory access is detected to be out-of-bounds.">gko::OutOfBoundsError</a> is thrown.</p>
+<p>This does not invoke the constructors of the elements, instead they are copied as POD types.</p>
+<p>The executor of this is preserved. In case this does not have an assigned executor, it will inherit the executor of other.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">other</td><td>the <a class="el" href="classgko_1_1Array.html" title="An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...">Array</a> to copy from </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">OtherValueType</td><td>the value type of <code>other</code></td></tr>
   </table>
   </dd>
 </dl>
@@ -1135,10 +1195,10 @@ template&lt;typename ValueType&gt; </div>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/base/<a class="el" href="array_8hpp_source.html">array.hpp (a8862f554)</a></li>
+<li>ginkgo/core/base/<a class="el" href="array_8hpp_source.html">array.hpp (a51b2818c)</a></li>
 </ul>
 </div><!-- contents -->
-<div class="ttc" id="aclassgko_1_1Array_html"><div class="ttname"><a href="classgko_1_1Array.html">gko::Array</a></div><div class="ttdoc">An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...</div><div class="ttdef"><b>Definition:</b> array.hpp:66</div></div>
+<div class="ttc" id="aclassgko_1_1Array_html"><div class="ttname"><a href="classgko_1_1Array.html">gko::Array</a></div><div class="ttdoc">An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...</div><div class="ttdef"><b>Definition:</b> array.hpp:83</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by &#160;<a href="http://www.doxygen.org/index.html">

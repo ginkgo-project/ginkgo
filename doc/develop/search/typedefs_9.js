@@ -1,7 +1,5 @@
 var searchData=
 [
-  ['uint16_1411',['uint16',['../namespacegko.html#afdb8517627d37e0c4ff4f39a5303a795',1,'gko']]],
-  ['uint32_1412',['uint32',['../namespacegko.html#a318c831e3fe269ba04c6ed8bf5a71073',1,'gko']]],
-  ['uint64_1413',['uint64',['../namespacegko.html#ad54a79afecd57aabbb04b1dc611ae55e',1,'gko']]],
-  ['uint8_1414',['uint8',['../namespacegko.html#a3950fc3732811a8563484e5098c31531',1,'gko']]]
+  ['truncate_5ftype_1423',['truncate_type',['../namespacegko.html#abf540a6830b3ac4cd6b193133510f4d7',1,'gko']]],
+  ['type_1424',['type',['../structgko_1_1cpx__real__type.html#a6fec5b28321901b6da393b424afb144b',1,'gko::cpx_real_type']]]
 ];

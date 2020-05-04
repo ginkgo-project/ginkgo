@@ -50,6 +50,8 @@ using \mbox{\hyperlink{classgko_1_1Array_af870dd6ab4ad4f7e0e20471cb17f4ad1}{view
 \begin{DoxyCompactList}\small\item\em Copies data from another array or view. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{classgko_1_1Array}{Array}} \& \mbox{\hyperlink{classgko_1_1Array_a62d5346849e3943a5fcac962e344ab58}{operator=}} (\mbox{\hyperlink{classgko_1_1Array}{Array}} \&\&other)
 \begin{DoxyCompactList}\small\item\em Moves data from another array or view. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename Other\+Value\+Type $>$ }\\xstd\+::enable\+\_\+if\+\_\+t$<$!std\+::is\+\_\+same$<$ Value\+Type, Other\+Value\+Type $>$\+::value, \mbox{\hyperlink{classgko_1_1Array}{Array}} $>$ \& \mbox{\hyperlink{classgko_1_1Array_ad27c8f6831d9a360d8f11b25ce274acc}{operator=}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ Other\+Value\+Type $>$ \&other)
+\begin{DoxyCompactList}\small\item\em Copies and converts data from another array with another data type. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classgko_1_1Array_a64f7e9f19c4e8cff8adb402da70476c3}{clear}} () noexcept
 \begin{DoxyCompactList}\small\item\em Deallocates all data used by the \mbox{\hyperlink{classgko_1_1Array}{Array}}. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classgko_1_1Array_ab42114c635a05ecff66e1ab5e5074d14}{resize\+\_\+and\+\_\+reset}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} num\+\_\+elems)
@@ -71,6 +73,12 @@ bool \mbox{\hyperlink{classgko_1_1Array_a18164d25e9e87bdc6b8af7ce9956199a}{is\+\
 \item 
 static \mbox{\hyperlink{classgko_1_1Array}{Array}} \mbox{\hyperlink{classgko_1_1Array_ae8e2b4841e60741227daf3367de6ecde}{view}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} num\+\_\+elems, \mbox{\hyperlink{classgko_1_1Array_ad40c95e429262175cae51bcabd291a5b}{value\+\_\+type}} $\ast$data)
 \begin{DoxyCompactList}\small\item\em Creates an \mbox{\hyperlink{classgko_1_1Array}{Array}} from existing memory. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1Array_ab1a595168ea1870ce436dfd2d8e69b6d}\label{classgko_1_1Array_ab1a595168ea1870ce436dfd2d8e69b6d}} 
+{\footnotesize template$<$typename Other\+Value\+Type $>$ }\\class {\bfseries Array}
+\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -353,7 +361,7 @@ a constant pointer to the block of memory used to store the elements of the \mbo
 \end{DoxyReturn}
 
 
-Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::at(), gko\+::preconditioner\+::\+Jacobi$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+blocks(), gko\+::preconditioner\+::\+Jacobi$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+conditioning(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Permutation$<$ Index\+Type $>$\+::get\+\_\+const\+\_\+permutation(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+row\+\_\+idxs(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+row\+\_\+ptrs(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+row\+\_\+ptrs(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+slice\+\_\+lengths(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+slice\+\_\+sets(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+srow(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+value(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+values(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+values(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+values(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+values(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+values(), gko\+::\+Array$<$ index\+\_\+type $>$\+::operator=(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::classical\+::process(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+::process(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::automatical\+::process(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::val\+\_\+at(), and gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::val\+\_\+at().
+Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::at(), gko\+::preconditioner\+::\+Jacobi$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+blocks(), gko\+::preconditioner\+::\+Jacobi$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+conditioning(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Permutation$<$ Index\+Type $>$\+::get\+\_\+const\+\_\+permutation(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+row\+\_\+idxs(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+row\+\_\+ptrs(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+row\+\_\+ptrs(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+slice\+\_\+lengths(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+slice\+\_\+sets(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+srow(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+value(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+values(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+values(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+values(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+values(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+values(), gko\+::\+Array$<$ index\+\_\+type $>$\+::operator=(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::classical\+::process(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+::process(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::automatical\+::process(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::val\+\_\+at(), and gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::val\+\_\+at().
 
 \mbox{\Hypertarget{classgko_1_1Array_a9acf29878703bb8767e3cea2ba499dae}\label{classgko_1_1Array_a9acf29878703bb8767e3cea2ba499dae}} 
 \index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!get\_data@{get\_data}}
@@ -371,7 +379,7 @@ a pointer to the block of memory used to store the elements of the \mbox{\hyperl
 \end{DoxyReturn}
 
 
-Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::at(), gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+limit\+::compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Permutation$<$ Index\+Type $>$\+::get\+\_\+permutation(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+row\+\_\+idxs(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+row\+\_\+ptrs(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+row\+\_\+ptrs(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+slice\+\_\+lengths(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+slice\+\_\+sets(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+srow(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+value(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+values(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+values(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+values(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::get\+\_\+values(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+values(), gko\+::\+Array$<$ index\+\_\+type $>$\+::operator=(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+::process(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::val\+\_\+at(), and gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::val\+\_\+at().
+Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::at(), gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+limit\+::compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Permutation$<$ Index\+Type $>$\+::get\+\_\+permutation(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+row\+\_\+idxs(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+row\+\_\+ptrs(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+row\+\_\+ptrs(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+slice\+\_\+lengths(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+slice\+\_\+sets(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+srow(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+value(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+values(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+values(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+values(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::get\+\_\+values(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+values(), gko\+::\+Array$<$ index\+\_\+type $>$\+::operator=(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+::process(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::val\+\_\+at(), and gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::val\+\_\+at().
 
 \mbox{\Hypertarget{classgko_1_1Array_a820e5930cb5072acc7673fdb2d11efcd}\label{classgko_1_1Array_a820e5930cb5072acc7673fdb2d11efcd}} 
 \index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!get\_executor@{get\_executor}}
@@ -432,7 +440,7 @@ Referenced by gko\+::\+Array$<$ index\+\_\+type $>$\+::operator=(), and gko\+::\
 \mbox{\Hypertarget{classgko_1_1Array_a62d5346849e3943a5fcac962e344ab58}\label{classgko_1_1Array_a62d5346849e3943a5fcac962e344ab58}} 
 \index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!operator=@{operator=}}
 \index{operator=@{operator=}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
-\doxysubsubsection{\texorpdfstring{operator=()}{operator=()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+\doxysubsubsection{\texorpdfstring{operator=()}{operator=()}\hspace{0.1cm}{\footnotesize\ttfamily [1/3]}}
 {\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
 \mbox{\hyperlink{classgko_1_1Array}{Array}}\& \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::operator= (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ Value\+Type $>$ \&\&}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
@@ -471,7 +479,7 @@ this
 \mbox{\Hypertarget{classgko_1_1Array_a841412d7a03b8210ba39e77b3bd05ce3}\label{classgko_1_1Array_a841412d7a03b8210ba39e77b3bd05ce3}} 
 \index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!operator=@{operator=}}
 \index{operator=@{operator=}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
-\doxysubsubsection{\texorpdfstring{operator=()}{operator=()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+\doxysubsubsection{\texorpdfstring{operator=()}{operator=()}\hspace{0.1cm}{\footnotesize\ttfamily [2/3]}}
 {\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
 \mbox{\hyperlink{classgko_1_1Array}{Array}}\& \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::operator= (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ Value\+Type $>$ \&}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
@@ -490,6 +498,37 @@ The executor of this is preserved. In case this does not have an assigned execut
 {\em other} & the \mbox{\hyperlink{classgko_1_1Array}{Array}} to copy from\\
 \hline
 \end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+this 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1Array_ad27c8f6831d9a360d8f11b25ce274acc}\label{classgko_1_1Array_ad27c8f6831d9a360d8f11b25ce274acc}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!operator=@{operator=}}
+\index{operator=@{operator=}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{operator=()}{operator=()}\hspace{0.1cm}{\footnotesize\ttfamily [3/3]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+template$<$typename Other\+Value\+Type $>$ \\
+xstd\+::enable\+\_\+if\+\_\+t$<$!std\+::is\+\_\+same$<$Value\+Type, Other\+Value\+Type$>$\+::value, \mbox{\hyperlink{classgko_1_1Array}{Array}}$>$\& \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::operator= (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ Other\+Value\+Type $>$ \&}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Copies and converts data from another array with another data type. 
+
+In the case of an array target, the array is resized to match the source\textquotesingle{}s size. In the case of a view target, if the dimensions are not compatible a \mbox{\hyperlink{classgko_1_1OutOfBoundsError}{gko\+::\+Out\+Of\+Bounds\+Error}} is thrown.
+
+This does not invoke the constructors of the elements, instead they are copied as P\+OD types.
+
+The executor of this is preserved. In case this does not have an assigned executor, it will inherit the executor of other.
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the \mbox{\hyperlink{classgko_1_1Array}{Array}} to copy from \\
+\hline
+\end{DoxyParams}
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Other\+Value\+Type} & the value type of {\ttfamily other}\\
+\hline
+\end{DoxyTemplParams}
 \begin{DoxyReturn}{Returns}
 this 
 \end{DoxyReturn}
@@ -568,4 +607,4 @@ Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+submatr
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/array.\+hpp (a8862f554)\end{DoxyCompactItemize}
+ginkgo/core/base/array.\+hpp (a51b2818c)\end{DoxyCompactItemize}

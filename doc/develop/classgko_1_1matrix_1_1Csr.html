@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/142007298 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/142429756 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -133,6 +133,10 @@ using&#160;</td><td class="memItemRight" valign="bottom"><b>result_type</b> = Cs
 <tr class="memitem:a96d1c9f59700620c31fca1062f57de92 inherit pub_types_classgko_1_1ConvertibleTo"><td class="memItemLeft" align="right" valign="top"><a id="a96d1c9f59700620c31fca1062f57de92"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>result_type</b> = Csr&lt; ValueType, IndexType &gt;</td></tr>
 <tr class="separator:a96d1c9f59700620c31fca1062f57de92 inherit pub_types_classgko_1_1ConvertibleTo"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_types_classgko_1_1ConvertibleTo"><td colspan="2" onclick="javascript:toggleInherit('pub_types_classgko_1_1ConvertibleTo')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="classgko_1_1ConvertibleTo.html">gko::ConvertibleTo&lt; Csr&lt; next_precision&lt; ValueType &gt;, IndexType &gt; &gt;</a></td></tr>
+<tr class="memitem:a96d1c9f59700620c31fca1062f57de92 inherit pub_types_classgko_1_1ConvertibleTo"><td class="memItemLeft" align="right" valign="top"><a id="a96d1c9f59700620c31fca1062f57de92"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>result_type</b> = Csr&lt; <a class="el" href="namespacegko.html#a6362f751c7753cf4fa0a4771d56e8ede">next_precision</a>&lt; ValueType &gt;, IndexType &gt;</td></tr>
+<tr class="separator:a96d1c9f59700620c31fca1062f57de92 inherit pub_types_classgko_1_1ConvertibleTo"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_types_classgko_1_1ConvertibleTo"><td colspan="2" onclick="javascript:toggleInherit('pub_types_classgko_1_1ConvertibleTo')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="classgko_1_1ConvertibleTo.html">gko::ConvertibleTo&lt; Dense&lt; ValueType &gt; &gt;</a></td></tr>
 <tr class="memitem:a96d1c9f59700620c31fca1062f57de92 inherit pub_types_classgko_1_1ConvertibleTo"><td class="memItemLeft" align="right" valign="top"><a id="a96d1c9f59700620c31fca1062f57de92"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>result_type</b> = Dense&lt; ValueType &gt;</td></tr>
@@ -166,6 +170,12 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>convert_to</b> (<a cl
 <tr class="memitem:a72f5ce50217c2e962800fe5f000a1ed6"><td class="memItemLeft" align="right" valign="top"><a id="a72f5ce50217c2e962800fe5f000a1ed6"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>move_to</b> (<a class="el" href="classgko_1_1matrix_1_1Csr.html">Csr</a>&lt; ValueType, IndexType &gt; *result) override</td></tr>
 <tr class="separator:a72f5ce50217c2e962800fe5f000a1ed6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4aeeff85e9228109fca34a397141a6f6"><td class="memItemLeft" align="right" valign="top"><a id="a4aeeff85e9228109fca34a397141a6f6"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>convert_to</b> (<a class="el" href="classgko_1_1matrix_1_1Csr.html">Csr</a>&lt; <a class="el" href="namespacegko.html#a6362f751c7753cf4fa0a4771d56e8ede">next_precision</a>&lt; ValueType &gt;, IndexType &gt; *result) const override</td></tr>
+<tr class="separator:a4aeeff85e9228109fca34a397141a6f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3325e2d3e18a149f729690cce4f12454"><td class="memItemLeft" align="right" valign="top"><a id="a3325e2d3e18a149f729690cce4f12454"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>move_to</b> (<a class="el" href="classgko_1_1matrix_1_1Csr.html">Csr</a>&lt; <a class="el" href="namespacegko.html#a6362f751c7753cf4fa0a4771d56e8ede">next_precision</a>&lt; ValueType &gt;, IndexType &gt; *result) override</td></tr>
+<tr class="separator:a3325e2d3e18a149f729690cce4f12454"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a610dfb71907ee0e79ca6470571cb1d10"><td class="memItemLeft" align="right" valign="top"><a id="a610dfb71907ee0e79ca6470571cb1d10"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>convert_to</b> (<a class="el" href="classgko_1_1matrix_1_1Dense.html">Dense</a>&lt; ValueType &gt; *other) const override</td></tr>
 <tr class="separator:a610dfb71907ee0e79ca6470571cb1d10"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -384,6 +394,13 @@ std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#
 <tr class="memitem:a0a4cf244139e7761d6a91c61e029810e inherit pub_methods_classgko_1_1EnablePolymorphicAssignment"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><b>move_to</b> (result_type *result) override</td></tr>
 <tr class="memdesc:a0a4cf244139e7761d6a91c61e029810e inherit pub_methods_classgko_1_1EnablePolymorphicAssignment"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts the implementer to an object of type result_type by moving data from this object.  <a href="classgko_1_1EnablePolymorphicAssignment.html#a0a4cf244139e7761d6a91c61e029810e">More...</a><br /></td></tr>
 <tr class="separator:a0a4cf244139e7761d6a91c61e029810e inherit pub_methods_classgko_1_1EnablePolymorphicAssignment"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_methods_classgko_1_1ConvertibleTo"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classgko_1_1ConvertibleTo')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classgko_1_1ConvertibleTo.html">gko::ConvertibleTo&lt; Csr&lt; next_precision&lt; ValueType &gt;, IndexType &gt; &gt;</a></td></tr>
+<tr class="memitem:aa7f3420babcbed39ee15bc020bed4f7e inherit pub_methods_classgko_1_1ConvertibleTo"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1ConvertibleTo.html#aa7f3420babcbed39ee15bc020bed4f7e">convert_to</a> (result_type *result) const=0</td></tr>
+<tr class="memdesc:aa7f3420babcbed39ee15bc020bed4f7e inherit pub_methods_classgko_1_1ConvertibleTo"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts the implementer to an object of type result_type.  <a href="classgko_1_1ConvertibleTo.html#aa7f3420babcbed39ee15bc020bed4f7e">More...</a><br /></td></tr>
+<tr class="separator:aa7f3420babcbed39ee15bc020bed4f7e inherit pub_methods_classgko_1_1ConvertibleTo"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab9047c7c49e0f83c79b54c0034d6197b inherit pub_methods_classgko_1_1ConvertibleTo"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1ConvertibleTo.html#ab9047c7c49e0f83c79b54c0034d6197b">move_to</a> (result_type *result)=0</td></tr>
+<tr class="memdesc:ab9047c7c49e0f83c79b54c0034d6197b inherit pub_methods_classgko_1_1ConvertibleTo"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts the implementer to an object of type result_type by moving data from this object.  <a href="classgko_1_1ConvertibleTo.html#ab9047c7c49e0f83c79b54c0034d6197b">More...</a><br /></td></tr>
+<tr class="separator:ab9047c7c49e0f83c79b54c0034d6197b inherit pub_methods_classgko_1_1ConvertibleTo"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_classgko_1_1ConvertibleTo"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classgko_1_1ConvertibleTo')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classgko_1_1ConvertibleTo.html">gko::ConvertibleTo&lt; Dense&lt; ValueType &gt; &gt;</a></td></tr>
 <tr class="memitem:aa7f3420babcbed39ee15bc020bed4f7e inherit pub_methods_classgko_1_1ConvertibleTo"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1ConvertibleTo.html#aa7f3420babcbed39ee15bc020bed4f7e">convert_to</a> (result_type *result) const=0</td></tr>
 <tr class="memdesc:aa7f3420babcbed39ee15bc020bed4f7e inherit pub_methods_classgko_1_1ConvertibleTo"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts the implementer to an object of type result_type.  <a href="classgko_1_1ConvertibleTo.html#aa7f3420babcbed39ee15bc020bed4f7e">More...</a><br /></td></tr>
@@ -456,6 +473,9 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>SparsityCsr&lt; Valu
 <tr class="memitem:a2525e707ed335481ff58d5917213de8e"><td class="memItemLeft" align="right" valign="top"><a id="a2525e707ed335481ff58d5917213de8e"></a>
 class&#160;</td><td class="memItemRight" valign="bottom"><b>CsrBuilder&lt; ValueType, IndexType &gt;</b></td></tr>
 <tr class="separator:a2525e707ed335481ff58d5917213de8e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a04da9bd59b36eaeea2d29de371db98c7"><td class="memItemLeft" align="right" valign="top"><a id="a04da9bd59b36eaeea2d29de371db98c7"></a>
+class&#160;</td><td class="memItemRight" valign="bottom"><b>Csr&lt; next_precision&lt; ValueType &gt;, IndexType &gt;</b></td></tr>
+<tr class="separator:a04da9bd59b36eaeea2d29de371db98c7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="inherited"></a>
 Additional Inherited Members</h2></td></tr>
@@ -1165,8 +1185,8 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>ginkgo/core/matrix/<a class="el" href="coo_8hpp_source.html">coo.hpp (164403ea0)</a></li>
-<li>ginkgo/core/matrix/<a class="el" href="csr_8hpp_source.html">csr.hpp (164403ea0)</a></li>
+<li>ginkgo/core/matrix/<a class="el" href="coo_8hpp_source.html">coo.hpp (8a86dad58)</a></li>
+<li>ginkgo/core/matrix/<a class="el" href="csr_8hpp_source.html">csr.hpp (8a86dad58)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

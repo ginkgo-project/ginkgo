@@ -9,9 +9,9 @@
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 948)">
 <title>Graphical Class Hierarchy</title>
 <polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-948 1043,-948 1043,4 -4,4"/>
-<!-- Node396 -->
+<!-- Node402 -->
 <g id="node1" class="node">
-<title>Node396</title>
+<title>Node402</title>
 <g id="a_node1"><a xlink:href="classgko_1_1ConvertibleTo.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="178.5,-457 178.5,-487 296.5,-487 296.5,-457 178.5,-457"/>
 <text text-anchor="start" x="186.5" y="-475" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::ConvertibleTo</text>
@@ -19,9 +19,9 @@
 </a>
 </g>
 </g>
-<!-- Node397 -->
+<!-- Node403 -->
 <g id="node2" class="node">
-<title>Node397</title>
+<title>Node403</title>
 <g id="a_node2"><a xlink:href="classgko_1_1EnablePolymorphicAssignment.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="382.5,-455 382.5,-485 574.5,-485 574.5,-455 382.5,-455"/>
 <text text-anchor="start" x="390.5" y="-473" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnablePolymorphicAssignment</text>
@@ -29,9 +29,9 @@
 </a>
 </g>
 </g>
-<!-- Node396&#45;&gt;Node397 -->
+<!-- Node402&#45;&gt;Node403 -->
 <g id="edge1" class="edge">
-<title>Node396&#45;&gt;Node397</title>
+<title>Node402&#45;&gt;Node403</title>
 <path fill="none" stroke="#191970" d="M306.9738,-471.4235C330.4758,-471.2284 357.1541,-471.007 382.3502,-470.7979"/>
 <polygon fill="#191970" stroke="#191970" points="306.7345,-467.9252 296.7639,-471.5082 306.7926,-474.925 306.7345,-467.9252"/>
 </g>
@@ -46,9 +46,9 @@
 </a>
 </g>
 </g>
-<!-- Node397&#45;&gt;Node2 -->
+<!-- Node403&#45;&gt;Node2 -->
 <g id="edge2" class="edge">
-<title>Node397&#45;&gt;Node2</title>
+<title>Node403&#45;&gt;Node2</title>
 <path fill="none" stroke="#191970" d="M584.8695,-458.5006C596.127,-457.2836 607.5489,-456.0488 618.7336,-454.8396"/>
 <polygon fill="#191970" stroke="#191970" points="584.1547,-455.0574 574.5888,-459.612 584.9071,-462.0168 584.1547,-455.0574"/>
 </g>
@@ -347,9 +347,9 @@
 <path fill="none" stroke="#191970" d="M746.3652,-415.9606C769.7916,-390.153 802.3022,-349.6638 819,-308 842.2558,-249.9727 812.492,-74.8374 855,-29 861.7649,-21.7053 870.5294,-16.8082 879.9566,-13.5803"/>
 <polygon fill="#191970" stroke="#191970" points="743.6299,-413.7636 739.4142,-423.4836 748.7713,-418.5141 743.6299,-413.7636"/>
 </g>
-<!-- Node394 -->
+<!-- Node400 -->
 <g id="node22" class="node">
-<title>Node394</title>
+<title>Node400</title>
 <g id="a_node22"><a xlink:href="classgko_1_1ConvertibleTo.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="182.5,-167 182.5,-197 292.5,-197 292.5,-167 182.5,-167"/>
 <text text-anchor="start" x="190.5" y="-185" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::ConvertibleTo</text>
@@ -357,9 +357,9 @@
 </a>
 </g>
 </g>
-<!-- Node395 -->
+<!-- Node401 -->
 <g id="node23" class="node">
-<title>Node395</title>
+<title>Node401</title>
 <g id="a_node23"><a xlink:href="classgko_1_1EnablePolymorphicAssignment.html" target="_top" xlink:title=" ">
 <polygon fill="#ffffff" stroke="#000000" points="382.5,-200 382.5,-230 574.5,-230 574.5,-200 382.5,-200"/>
 <text text-anchor="start" x="390.5" y="-218" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnablePolymorphicAssignment</text>
@@ -367,9 +367,9 @@
 </a>
 </g>
 </g>
-<!-- Node394&#45;&gt;Node395 -->
+<!-- Node400&#45;&gt;Node401 -->
 <g id="edge21" class="edge">
-<title>Node394&#45;&gt;Node395</title>
+<title>Node400&#45;&gt;Node401</title>
 <path fill="none" stroke="#191970" d="M303.011,-190.9704C327.4452,-194.3161 355.7195,-198.1877 382.34,-201.8329"/>
 <polygon fill="#191970" stroke="#191970" points="303.1727,-187.4599 292.7903,-189.5709 302.223,-194.3952 303.1727,-187.4599"/>
 </g>
@@ -383,9 +383,9 @@
 </a>
 </g>
 </g>
-<!-- Node395&#45;&gt;Node75 -->
+<!-- Node401&#45;&gt;Node75 -->
 <g id="edge22" class="edge">
-<title>Node395&#45;&gt;Node75</title>
+<title>Node401&#45;&gt;Node75</title>
 <path fill="none" stroke="#191970" d="M540.6687,-232.8363C579.7402,-244.0461 629.5785,-258.3448 666.6303,-268.975"/>
 <polygon fill="#191970" stroke="#191970" points="541.559,-229.4506 530.9816,-230.0571 539.6285,-236.1792 541.559,-229.4506"/>
 </g>
