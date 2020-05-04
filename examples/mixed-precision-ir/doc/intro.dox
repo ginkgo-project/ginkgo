@@ -1,5 +1,5 @@
-<a name="Multiprecision Iterative Refinement"></a>
-<h1>This example manually implements a multiprecision iterative refinement solver.</h1>
+<a name="Mixed Precision Iterative Refinement (MPIR)"></a>
+<h1>This example manually implements a Mixed Precision Iterative Refinement (MPIR) solver.</h1>
 
 <h3> In this example, we first read in a matrix from file, then generate a
 right-hand side and an initial guess. An inaccurate CG solver in single precision
