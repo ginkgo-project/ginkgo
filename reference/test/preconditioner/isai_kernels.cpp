@@ -137,10 +137,10 @@ protected:
     {
         lower_isai_factory = LowerIsai::build().on(exec);
         upper_isai_factory = UpperIsai::build().on(exec);
-        l_dense->convert_to(gko::lend(l_csr));
-        l_dense_inv->convert_to(gko::lend(l_csr_inv));
-        u_dense->convert_to(gko::lend(u_csr));
-        u_dense_inv->convert_to(gko::lend(u_csr_inv));
+        l_dense->convert_to(lend(l_csr));
+        l_dense_inv->convert_to(lend(l_csr_inv));
+        u_dense->convert_to(lend(u_csr));
+        u_dense_inv->convert_to(lend(u_csr_inv));
     }
 
     std::unique_ptr<Csr> clone_allocations(const Csr *csr_mtx)
@@ -189,10 +189,12 @@ TYPED_TEST(Isai, KernelGenerateL1)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
-    auto result = this->clone_allocations(gko::lend(this->l_csr));
+    using index_type = typename TestFixture::index_type;
+    auto result = this->clone_allocations(lend(this->l_csr));
+    auto nullidx = static_cast<index_type *>(nullptr);
 
-    gko::kernels::reference::isai::generate_l_inverse(
-        this->exec, gko::lend(this->l_csr), gko::lend(result));
+    gko::kernels::reference::isai::generate_tri_inverse(
+        this->exec, lend(this->l_csr), lend(result), nullidx, nullidx, true);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_csr_inv);
     GKO_ASSERT_MTX_NEAR(result, this->l_csr_inv, r<value_type>::value);
@@ -203,13 +205,15 @@ TYPED_TEST(Isai, KernelGenerateL2)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
-    const auto l_mtx = this->transpose(gko::lend(this->u_csr));
-    auto result = this->clone_allocations(gko::lend(l_mtx));
+    using index_type = typename TestFixture::index_type;
+    const auto l_mtx = this->transpose(lend(this->u_csr));
+    auto result = this->clone_allocations(lend(l_mtx));
+    auto nullidx = static_cast<index_type *>(nullptr);
 
-    gko::kernels::reference::isai::generate_l_inverse(
-        this->exec, gko::lend(l_mtx), gko::lend(result));
+    gko::kernels::reference::isai::generate_tri_inverse(
+        this->exec, lend(l_mtx), lend(result), nullidx, nullidx, true);
 
-    const auto expected = this->transpose(gko::lend(this->u_csr_inv));
+    const auto expected = this->transpose(lend(this->u_csr_inv));
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
 }
@@ -219,10 +223,12 @@ TYPED_TEST(Isai, KernelGenerateLsparse1)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
-    auto result = this->clone_allocations(gko::lend(this->l_sparse));
+    using index_type = typename TestFixture::index_type;
+    auto result = this->clone_allocations(lend(this->l_sparse));
+    auto nullidx = static_cast<index_type *>(nullptr);
 
-    gko::kernels::reference::isai::generate_l_inverse(
-        this->exec, gko::lend(this->l_sparse), gko::lend(result));
+    gko::kernels::reference::isai::generate_tri_inverse(
+        this->exec, lend(this->l_sparse), lend(result), nullidx, nullidx, true);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_sparse_inv);
     GKO_ASSERT_MTX_NEAR(result, this->l_sparse_inv, r<value_type>::value);
@@ -234,10 +240,12 @@ TYPED_TEST(Isai, KernelGenerateLsparse2)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto result = this->clone_allocations(gko::lend(this->l_sparse2));
+    auto result = this->clone_allocations(lend(this->l_sparse2));
+    auto nullidx = static_cast<index_type *>(nullptr);
 
-    gko::kernels::reference::isai::generate_l_inverse(
-        this->exec, gko::lend(this->l_sparse2), gko::lend(result));
+    gko::kernels::reference::isai::generate_tri_inverse(
+        this->exec, lend(this->l_sparse2), lend(result), nullidx, nullidx,
+        true);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_sparse2_inv);
     GKO_ASSERT_MTX_NEAR(result, this->l_sparse2_inv, r<value_type>::value);
@@ -249,11 +257,12 @@ TYPED_TEST(Isai, KernelGenerateLsparse3)
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    const auto l_mtx = this->transpose(gko::lend(this->u_sparse));
-    auto result = this->clone_allocations(gko::lend(l_mtx));
+    const auto l_mtx = this->transpose(lend(this->u_sparse));
+    auto result = this->clone_allocations(lend(l_mtx));
+    auto nullidx = static_cast<index_type *>(nullptr);
 
-    gko::kernels::reference::isai::generate_l_inverse(
-        this->exec, gko::lend(l_mtx), gko::lend(result));
+    gko::kernels::reference::isai::generate_tri_inverse(
+        this->exec, lend(l_mtx), lend(result), nullidx, nullidx, true);
 
     // Results in a slightly different version than u_sparse_inv->transpose()
     // because a different row-sparsity pattern is used in u_sparse vs. l_mtx
@@ -271,13 +280,15 @@ TYPED_TEST(Isai, KernelGenerateU1)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
-    const auto u_mtx = this->transpose(gko::lend(this->l_csr));
-    auto result = this->clone_allocations(gko::lend(u_mtx));
+    using index_type = typename TestFixture::index_type;
+    const auto u_mtx = this->transpose(lend(this->l_csr));
+    auto result = this->clone_allocations(lend(u_mtx));
+    auto nullidx = static_cast<index_type *>(nullptr);
 
-    gko::kernels::reference::isai::generate_u_inverse(
-        this->exec, gko::lend(u_mtx), gko::lend(result));
+    gko::kernels::reference::isai::generate_tri_inverse(
+        this->exec, lend(u_mtx), lend(result), nullidx, nullidx, false);
 
-    auto expected = this->transpose(gko::lend(this->l_csr_inv));
+    auto expected = this->transpose(lend(this->l_csr_inv));
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
 }
@@ -287,10 +298,12 @@ TYPED_TEST(Isai, KernelGenerateU2)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
-    auto result = this->clone_allocations(gko::lend(this->u_csr));
+    using index_type = typename TestFixture::index_type;
+    auto result = this->clone_allocations(lend(this->u_csr));
+    auto nullidx = static_cast<index_type *>(nullptr);
 
-    gko::kernels::reference::isai::generate_u_inverse(
-        this->exec, gko::lend(this->u_csr), gko::lend(result));
+    gko::kernels::reference::isai::generate_tri_inverse(
+        this->exec, lend(this->u_csr), lend(result), nullidx, nullidx, false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_csr_inv);
     GKO_ASSERT_MTX_NEAR(result, this->u_csr_inv, r<value_type>::value);
@@ -301,13 +314,15 @@ TYPED_TEST(Isai, KernelGenerateUsparse1)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
-    const auto u_mtx = this->transpose(gko::lend(this->l_sparse));
-    auto result = this->clone_allocations(gko::lend(u_mtx));
+    using index_type = typename TestFixture::index_type;
+    const auto u_mtx = this->transpose(lend(this->l_sparse));
+    auto result = this->clone_allocations(lend(u_mtx));
+    auto nullidx = static_cast<index_type *>(nullptr);
 
-    gko::kernels::reference::isai::generate_u_inverse(
-        this->exec, gko::lend(u_mtx), gko::lend(result));
+    gko::kernels::reference::isai::generate_tri_inverse(
+        this->exec, lend(u_mtx), lend(result), nullidx, nullidx, false);
 
-    const auto expected = this->transpose(gko::lend(this->l_sparse_inv));
+    const auto expected = this->transpose(lend(this->l_sparse_inv));
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
 }
@@ -319,10 +334,11 @@ TYPED_TEST(Isai, KernelGenerateUsparse2)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     const auto u_mtx = this->transpose(this->l_sparse2.get());
-    auto result = this->clone_allocations(gko::lend(u_mtx));
+    auto result = this->clone_allocations(lend(u_mtx));
+    auto nullidx = static_cast<index_type *>(nullptr);
 
-    gko::kernels::reference::isai::generate_u_inverse(
-        this->exec, gko::lend(u_mtx), gko::lend(result));
+    gko::kernels::reference::isai::generate_tri_inverse(
+        this->exec, lend(u_mtx), lend(result), nullidx, nullidx, false);
 
     // Results in a slightly different version than l_sparse2_inv->transpose()
     // because a different row-sparsity pattern is used in l_sparse2 vs. u_mtx
@@ -340,10 +356,13 @@ TYPED_TEST(Isai, KernelGenerateUsparse3)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
-    auto result = this->clone_allocations(gko::lend(this->u_sparse));
+    using index_type = typename TestFixture::index_type;
+    auto result = this->clone_allocations(lend(this->u_sparse));
+    auto nullidx = static_cast<index_type *>(nullptr);
 
-    gko::kernels::reference::isai::generate_u_inverse(
-        this->exec, gko::lend(this->u_sparse), gko::lend(result));
+    gko::kernels::reference::isai::generate_tri_inverse(
+        this->exec, lend(this->u_sparse), lend(result), nullidx, nullidx,
+        false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_sparse_inv);
     GKO_ASSERT_MTX_NEAR(result, this->u_sparse_inv, r<value_type>::value);
@@ -456,10 +475,10 @@ TYPED_TEST(Isai, ApplyWithLMtx)
     using Dense = typename TestFixture::Dense;
     using T = typename TestFixture::value_type;
     const auto vec = gko::initialize<Dense>({18., 16., 12.}, this->exec);
-    auto result = Dense::create_with_config_of(gko::lend(vec));
+    auto result = Dense::create_with_config_of(lend(vec));
     const auto l_isai = this->lower_isai_factory->generate(this->l_dense);
 
-    l_isai->apply(gko::lend(vec), gko::lend(result));
+    l_isai->apply(lend(vec), lend(result));
 
     GKO_ASSERT_MTX_NEAR(result, l({9., -3.5, -24.5}), r<T>::value);
 }
@@ -470,10 +489,10 @@ TYPED_TEST(Isai, ApplyWithUMtx)
     using Dense = typename TestFixture::Dense;
     using T = typename TestFixture::value_type;
     const auto vec = gko::initialize<Dense>({18., 16., 12.}, this->exec);
-    auto result = Dense::create_with_config_of(gko::lend(vec));
+    auto result = Dense::create_with_config_of(lend(vec));
     const auto u_isai = this->upper_isai_factory->generate(this->u_dense);
 
-    u_isai->apply(gko::lend(vec), gko::lend(result));
+    u_isai->apply(lend(vec), lend(result));
 
     GKO_ASSERT_MTX_NEAR(result, l({6.125, -5., 1.5}), r<T>::value);
 }
@@ -489,8 +508,7 @@ TYPED_TEST(Isai, AdvancedApplyLMtx)
     auto result = gko::initialize<Dense>({2., -3., 1.}, this->exec);
     const auto l_isai = this->lower_isai_factory->generate(this->l_dense);
 
-    l_isai->apply(gko::lend(alpha), gko::lend(vec), gko::lend(beta),
-                  gko::lend(result));
+    l_isai->apply(lend(alpha), lend(vec), lend(beta), lend(result));
 
     GKO_ASSERT_MTX_NEAR(result, l({19., 1.5, -77.5}), r<T>::value);
 }
@@ -506,8 +524,7 @@ TYPED_TEST(Isai, AdvancedApplyUMtx)
     auto result = gko::initialize<Dense>({2., -3., 1.}, this->exec);
     const auto u_isai = this->upper_isai_factory->generate(this->u_dense);
 
-    u_isai->apply(gko::lend(alpha), gko::lend(vec), gko::lend(beta),
-                  gko::lend(result));
+    u_isai->apply(lend(alpha), lend(vec), lend(beta), lend(result));
 
     GKO_ASSERT_MTX_NEAR(result, l({10.375, -3., 0.5}), r<T>::value);
 }
@@ -522,15 +539,14 @@ TYPED_TEST(Isai, UseWithIluPreconditioner)
     using UpperIsai = typename TestFixture::UpperIsai;
     const auto vec = gko::initialize<Dense>({128, -64, 32}, this->exec);
     auto result = Dense::create(this->exec, vec->get_size());
-    auto mtx =
-        gko::share(Dense::create_with_config_of(gko::lend(this->l_dense)));
-    this->l_dense->apply(gko::lend(this->u_dense), gko::lend(mtx));
+    auto mtx = gko::share(Dense::create_with_config_of(lend(this->l_dense)));
+    this->l_dense->apply(lend(this->u_dense), lend(mtx));
     auto ilu_factory = gko::preconditioner::Ilu<LowerIsai, UpperIsai, false,
                                                 index_type>::build()
                            .on(this->exec);
     auto ilu = ilu_factory->generate(mtx);
 
-    ilu->apply(gko::lend(vec), gko::lend(result));
+    ilu->apply(lend(vec), lend(result));
 
     GKO_ASSERT_MTX_NEAR(result, l({25., -40., -4.}), r<T>::value);
 }

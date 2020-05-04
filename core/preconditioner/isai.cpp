@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/solver/lower_trs.hpp>
+#include <ginkgo/core/solver/upper_trs.hpp>
 
 
 #include "core/preconditioner/isai_kernels.hpp"
@@ -52,8 +54,9 @@ namespace preconditioner {
 namespace isai {
 
 
-GKO_REGISTER_OPERATION(generate_l_inverse, isai::generate_l_inverse);
-GKO_REGISTER_OPERATION(generate_u_inverse, isai::generate_u_inverse);
+GKO_REGISTER_OPERATION(generate_tri_inverse, isai::generate_tri_inverse);
+GKO_REGISTER_OPERATION(generate_excess_system, isai::generate_excess_system);
+GKO_REGISTER_OPERATION(scatter_excess_solution, isai::scatter_excess_solution);
 
 
 }  // namespace isai
@@ -136,34 +139,63 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor> &exec,
 
 
 template <isai_type IsaiType, typename ValueType, typename IndexType>
-void Isai<IsaiType, ValueType, IndexType>::generate_l_inverse(
-    std::shared_ptr<const LinOp> to_invert_l, bool skip_sorting, int power)
+void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
+    std::shared_ptr<const LinOp> input, bool skip_sorting, int power)
 {
-    GKO_ASSERT_IS_SQUARE_MATRIX(to_invert_l);
+    using Dense = matrix::Dense<ValueType>;
+    using LowerTrs = solver::LowerTrs<ValueType, IndexType>;
+    using UpperTrs = solver::UpperTrs<ValueType, IndexType>;
+    GKO_ASSERT_IS_SQUARE_MATRIX(input);
     auto exec = this->get_executor();
-    auto csr_l = convert_to_csr_and_sort<Csr>(exec, to_invert_l, skip_sorting);
-    auto inverted_l = extend_sparsity(exec, csr_l, power, true);
+    auto to_invert = convert_to_csr_and_sort<Csr>(exec, input, skip_sorting);
+    auto inverted = extend_sparsity(exec, to_invert, power, true);
+    auto num_rows = inverted->get_size()[0];
+    auto nnz = inverted->get_num_stored_elements();
+    auto is_lower = IsaiType == isai_type::lower;
 
-    exec->run(isai::make_generate_l_inverse(csr_l.get(), inverted_l.get()));
+    // This stores the beginning of the RHS for the sparse block associated with
+    // each row of inverted_l
+    Array<IndexType> excess_block_ptrs{exec, num_rows + 1};
+    // This stores the beginning of the non-zeros belonging to each row in the
+    // system of excess blocks
+    Array<IndexType> excess_row_ptrs_full{exec, num_rows + 1};
 
-    approximate_inverse_ = std::move(inverted_l);
+    exec->run(isai::make_generate_tri_inverse(
+        lend(to_invert), lend(inverted), excess_block_ptrs.get_data(),
+        excess_row_ptrs_full.get_data(), is_lower));
+
+    auto excess_dim =
+        exec->copy_val_to_host(excess_block_ptrs.get_const_data() + num_rows);
+    // if we had long rows:
+    if (excess_dim > 0) {
+        // build the excess sparse triangular system
+        auto excess_nnz = exec->copy_val_to_host(
+            excess_row_ptrs_full.get_const_data() + num_rows);
+        auto excess_system =
+            Csr::create(exec, dim<2>(excess_dim, excess_dim), excess_nnz);
+        auto excess_rhs = Dense::create(exec, dim<2>(excess_dim, 1));
+        auto excess_solution = Dense::create(exec, dim<2>(excess_dim, 1));
+        exec->run(isai::make_generate_excess_system(
+            lend(to_invert), lend(inverted), excess_block_ptrs.get_const_data(),
+            excess_row_ptrs_full.get_const_data(), lend(excess_system),
+            lend(excess_rhs)));
+        // solve it
+        std::unique_ptr<LinOpFactory> trs_factory;
+        if (is_lower) {
+            trs_factory = LowerTrs::build().on(exec);
+        } else {
+            trs_factory = UpperTrs::build().on(exec);
+        }
+        trs_factory->generate(share(excess_system))
+            ->apply(lend(excess_rhs), lend(excess_solution));
+        // and copy the results back to the original ISAI
+        exec->run(isai::make_scatter_excess_solution(
+            excess_block_ptrs.get_const_data(), lend(excess_solution),
+            lend(inverted)));
+    }
+
+    approximate_inverse_ = std::move(inverted);
 }
-
-
-template <isai_type IsaiType, typename ValueType, typename IndexType>
-void Isai<IsaiType, ValueType, IndexType>::generate_u_inverse(
-    std::shared_ptr<const LinOp> to_invert_u, bool skip_sorting, int power)
-{
-    GKO_ASSERT_IS_SQUARE_MATRIX(to_invert_u);
-    auto exec = this->get_executor();
-    auto csr_u = convert_to_csr_and_sort<Csr>(exec, to_invert_u, skip_sorting);
-    auto inverted_u = extend_sparsity(exec, csr_u, power, false);
-
-    exec->run(isai::make_generate_u_inverse(csr_u.get(), inverted_u.get()));
-
-    approximate_inverse_ = std::move(inverted_u);
-}
-
 
 #define GKO_DECLARE_LOWER_ISAI(ValueType, IndexType) \
     class Isai<isai_type::lower, ValueType, IndexType>

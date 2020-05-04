@@ -49,7 +49,9 @@ __forceinline__ __device__ void generic_generate(
     const ValueType *__restrict__ m_values,
     const IndexType *__restrict__ i_row_ptrs,
     const IndexType *__restrict__ i_col_idxs, ValueType *__restrict__ i_values,
-    Callable trs_solve)
+    IndexType *__restrict__ excess_block_sizes,
+    IndexType *__restrict__ excess_indicator,
+    IndexType *__restrict__ excess_row_nnz, Callable trs_solve)
 {
     const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
 
@@ -60,68 +62,191 @@ __forceinline__ __device__ void generic_generate(
     const auto i_row_begin = i_row_ptrs[row];
     const auto i_row_size = i_row_ptrs[row + 1] - i_row_begin;
 
+    auto this_block = group::this_thread_block();
+    auto subwarp =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const int local_id = subwarp.thread_rank();
+
     if (i_row_size > subwarp_size) {
+        // defer long rows: store their nnz and number of matches
+        for (IndexType nz = 0; nz < i_row_size; ++nz) {
+            IndexType count{};
+            auto col = i_col_idxs[i_row_begin + nz];
+            auto m_row_begin = m_row_ptrs[col];
+            auto m_row_size = m_row_ptrs[col + 1] - m_row_begin;
+            // extract the sparse submatrix consisting of the entries whose
+            // columns/rows match column indices from this row
+            group_match<subwarp_size>(
+                m_col_idxs + m_row_begin, m_row_size, i_col_idxs + i_row_begin,
+                i_row_size, subwarp,
+                [&](IndexType, IndexType, IndexType) { count++; });
+            // store the number of non-zeros for this sparse block
+            count = reduce(subwarp, count,
+                           [](IndexType a, IndexType b) { return a + b; });
+            if (local_id == 0) {
+                // excess_row_nnz[i_row_begin + nz] = count;
+            }
+        }
+        // store the dim of this sparse block
+        if (local_id == 0) {
+            // excess_block_sizes[row] = i_row_size;
+            // excess_indicator[row] = 1;
+        }
+    } else {
+        // handle short rows directly: no excess
+        if (local_id == 0) {
+            // excess_block_sizes[row] = 0;
+            // excess_indicator[row] = 1;
+        }
+
+        // subwarp_size^2 storage per subwarp
+        __shared__ UninitializedArray<ValueType, subwarp_size * subwarp_size *
+                                                     subwarps_per_block>
+            storage;
+
+        auto trisystem_ptr = storage + (threadIdx.x / subwarp_size) *
+                                           subwarp_size * subwarp_size;
+        // row-major accessor
+        auto trisystem = [&](IndexType row, IndexType col) -> ValueType & {
+            return trisystem_ptr[row * subwarp_size + col];
+        };
+
+#pragma unroll
+        for (int i = 0; i < subwarp_size; ++i) {
+            trisystem(i, local_id) = zero<ValueType>();
+        }
+
+        subwarp.sync();
+
+        for (IndexType nz = 0; nz < i_row_size; ++nz) {
+            auto col = i_col_idxs[i_row_begin + nz];
+            auto m_row_begin = m_row_ptrs[col];
+            auto m_row_size = m_row_ptrs[col + 1] - m_row_begin;
+            // extract the dense submatrix consisting of the entries whose
+            // columns/rows match column indices from this row
+            group_match<subwarp_size>(
+                m_col_idxs + m_row_begin, m_row_size, i_col_idxs + i_row_begin,
+                i_row_size, subwarp,
+                [&](IndexType, IndexType m_idx, IndexType i_idx) {
+                    trisystem(nz, i_idx) = m_values[m_row_begin + m_idx];
+                });
+            // no excess to handle here either
+            if (local_id == 0) {
+                // excess_row_nnz[i_row_begin + nz] = 0;
+            }
+        }
+
+        subwarp.sync();
+
+        // Now, read a full col of `trisystem` into local registers, which will
+        // be row elements after this (implicit) transpose
+        ValueType local_row[subwarp_size];
+#pragma unroll
+        for (int i = 0; i < subwarp_size; ++i) {
+            local_row[i] = trisystem(i, local_id);
+        }
+
+        const auto rhs = trs_solve(i_row_size, local_row, subwarp);
+
+        // Write back:
+        if (local_id < i_row_size) {
+            const auto idx = i_row_begin + local_id;
+            if (gko::isfinite(rhs)) {
+                i_values[idx] = rhs;
+            } else {
+                i_values[idx] = i_col_idxs[idx] == row ? one<ValueType>()
+                                                       : zero<ValueType>();
+            }
+        }
+    }
+}
+
+
+template <int subwarp_size, typename ValueType, typename IndexType>
+__global__ void generate_excess_system(
+    IndexType num_rows, const IndexType *__restrict__ m_row_ptrs,
+    const IndexType *__restrict__ m_col_idxs,
+    const ValueType *__restrict__ m_values,
+    const IndexType *__restrict__ i_row_ptrs,
+    const IndexType *__restrict__ i_col_idxs,
+    const IndexType *__restrict__ excess_block_ptrs,
+    const IndexType *__restrict__ excess_row_ptrs,
+    IndexType *__restrict__ excess_col_idxs,
+    ValueType *__restrict__ excess_values, ValueType *__restrict__ excess_rhs)
+{
+    const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
+
+    if (row >= num_rows) {
         return;
     }
+
+    const auto i_row_begin = i_row_ptrs[row];
+    const auto i_row_size = i_row_ptrs[row + 1] - i_row_begin;
 
     auto this_block = group::this_thread_block();
     auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     const int local_id = subwarp.thread_rank();
 
-    // subwarp_size^2 storage per subwarp
-    __shared__ UninitializedArray<ValueType, subwarp_size * subwarp_size *
-                                                 subwarps_per_block>
-        storage;
-
-    auto trisystem_ptr =
-        storage + (threadIdx.x / subwarp_size) * subwarp_size * subwarp_size;
-    // row-major accessor
-    auto trisystem = [&](IndexType row, IndexType col) -> ValueType & {
-        return trisystem_ptr[row * subwarp_size + col];
-    };
-
-#pragma unroll
-    for (int i = 0; i < subwarp_size; ++i) {
-        trisystem(i, local_id) = zero<ValueType>();
+    if (i_row_size <= subwarp_size) {
+        return;
     }
 
-    subwarp.sync();
+    auto excess_rhs_begin = excess_block_ptrs[row];
 
+    // defer long rows: store their nnz and number of matches
     for (IndexType nz = 0; nz < i_row_size; ++nz) {
+        IndexType count{};
         auto col = i_col_idxs[i_row_begin + nz];
+        auto excess_row_begin = excess_row_ptrs[nz + i_row_begin];
         auto m_row_begin = m_row_ptrs[col];
         auto m_row_size = m_row_ptrs[col + 1] - m_row_begin;
-        // extract the dense submatrix consisting of the entries whose
+        // extract the sparse submatrix consisting of the entries whose
         // columns/rows match column indices from this row
         group_match<subwarp_size>(
             m_col_idxs + m_row_begin, m_row_size, i_col_idxs + i_row_begin,
             i_row_size, subwarp,
-            [&](IndexType, IndexType m_idx, IndexType i_idx) {
-                trisystem(nz, i_idx) = m_values[m_row_begin + m_idx];
+            [&](IndexType col, IndexType m_idx, IndexType i_idx) {
+                // trisystem(nz, i_idx) = m_values[m_row_begin + m_idx]
+                // only in sparse :)
+                auto excess_nz = excess_row_begin + i_idx;
+                excess_col_idxs[excess_nz] = excess_rhs_begin + i_idx;
+                excess_values[excess_nz] = m_values[m_row_begin + m_idx];
             });
+        if (local_id == 0) {
+            // build right-hand side: 1 for diagonal entry, 0 else
+            excess_rhs[excess_rhs_begin + nz] =
+                row == col ? one<ValueType>() : zero<ValueType>();
+        }
+    }
+}
+
+
+template <int subwarp_size, typename ValueType, typename IndexType>
+__global__ void copy_excess_solution(
+    IndexType num_rows, const IndexType *__restrict__ i_row_ptrs,
+    const IndexType *__restrict__ excess_block_ptrs,
+    const ValueType *__restrict__ excess_solution,
+    ValueType *__restrict__ i_values)
+{
+    const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
+
+    if (row >= num_rows) {
+        return;
     }
 
-    subwarp.sync();
+    auto local_id = threadIdx.x % subwarp_size;
 
-    // Now, read a full col of `trisystem` into local registers, which will be
-    // row elements after this (implicit) transpose
-    ValueType local_row[subwarp_size];
-#pragma unroll
-    for (int i = 0; i < subwarp_size; ++i) {
-        local_row[i] = trisystem(i, local_id);
-    }
+    const auto i_row_begin = i_row_ptrs[row];
 
-    const auto rhs = trs_solve(i_row_size, local_row, subwarp);
+    const auto excess_begin = excess_block_ptrs[row];
+    const auto excess_size = excess_block_ptrs[row + 1] - excess_begin;
 
-    // Write back:
-    if (local_id < i_row_size) {
-        const auto idx = i_row_begin + local_id;
-        if (gko::isfinite(rhs)) {
-            i_values[idx] = rhs;
-        } else {
-            i_values[idx] =
-                i_col_idxs[idx] == row ? one<ValueType>() : zero<ValueType>();
+    // if it was handled separately:
+    if (excess_size > 0) {
+        // copy the values for this row
+        for (IndexType nz = local_id; nz < excess_size; nz += subwarp_size) {
+            i_values[nz + i_row_begin] = excess_solution[nz + excess_begin];
         }
     }
 }
@@ -157,9 +282,10 @@ __launch_bounds__(subwarp_size *subwarps_per_block) void generate_l_inverse(
 
         return rhs;
     };
+    auto nullidx = static_cast<IndexType *>(nullptr);
     generic_generate<subwarp_size, subwarps_per_block>(
         num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs, i_col_idxs,
-        i_values, trs_solve);
+        i_values, nullidx, nullidx, nullidx, trs_solve);
 }
 
 
@@ -192,9 +318,10 @@ __launch_bounds__(subwarp_size *subwarps_per_block) void generate_u_inverse(
 
         return rhs;
     };
+    auto nullidx = static_cast<IndexType *>(nullptr);
     generic_generate<subwarp_size, subwarps_per_block>(
         num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs, i_col_idxs,
-        i_values, trs_solve);
+        i_values, nullidx, nullidx, nullidx, trs_solve);
 }
 
 

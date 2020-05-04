@@ -115,11 +115,12 @@ protected:
 TEST_F(Isai, OmpIsaiGenerateLinverseIsEquivalentToRef)
 {
     initialize_data(matrix_type::lower);
+    auto nullidx = static_cast<index_type *>(nullptr);
 
-    gko::kernels::reference::isai::generate_l_inverse(ref, mtx.get(),
-                                                      inverse.get());
-    gko::kernels::omp::isai::generate_l_inverse(omp, d_mtx.get(),
-                                                d_inverse.get());
+    gko::kernels::reference::isai::generate_tri_inverse(
+        ref, mtx.get(), inverse.get(), nullidx, nullidx, true);
+    gko::kernels::omp::isai::generate_tri_inverse(
+        omp, d_mtx.get(), d_inverse.get(), nullidx, nullidx, true);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, r<value_type>::value);
@@ -129,11 +130,12 @@ TEST_F(Isai, OmpIsaiGenerateLinverseIsEquivalentToRef)
 TEST_F(Isai, OmpIsaiGenerateUinverseIsEquivalentToRef)
 {
     initialize_data(matrix_type::upper);
+    auto nullidx = static_cast<index_type *>(nullptr);
 
-    gko::kernels::reference::isai::generate_u_inverse(ref, mtx.get(),
-                                                      inverse.get());
-    gko::kernels::omp::isai::generate_u_inverse(omp, d_mtx.get(),
-                                                d_inverse.get());
+    gko::kernels::reference::isai::generate_tri_inverse(
+        ref, mtx.get(), inverse.get(), nullidx, nullidx, false);
+    gko::kernels::omp::isai::generate_tri_inverse(
+        omp, d_mtx.get(), d_inverse.get(), nullidx, nullidx, false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, r<value_type>::value);

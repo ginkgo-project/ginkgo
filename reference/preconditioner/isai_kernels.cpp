@@ -154,72 +154,99 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void generate_l_inverse(std::shared_ptr<const DefaultExecutor> exec,
-                        const matrix::Csr<ValueType, IndexType> *l_csr,
-                        matrix::Csr<ValueType, IndexType> *inverse_l)
+void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
+                          const matrix::Csr<ValueType, IndexType> *mtx,
+                          matrix::Csr<ValueType, IndexType> *inverse_mtx,
+                          IndexType *excess_block_ptrs,
+                          IndexType *excess_row_ptrs_full, bool lower)
 {
-    auto trs_solve = [](IndexType size, const ValueType *trisystem,
-                        ValueType *rhs) {
-        if (size <= 0) {
-            return;
-        }
-        // RHS is the identity: zero everywhere except for the last entry
-        // since that is the row we are searching the inverse for
-        std::fill_n(rhs, size - 1, zero<ValueType>());
-        rhs[size - 1] = one<ValueType>();
+    const auto num_rows = mtx->get_size()[0];
+    const auto nnz = inverse_mtx->get_num_stored_elements();
+    if (excess_block_ptrs) {
+        std::fill_n(excess_block_ptrs, num_rows + 1, 0);
+    }
+    if (excess_row_ptrs_full) {
+        std::fill_n(excess_row_ptrs_full, nnz + 1, 0);
+    }
 
-        // Note: `trisystem` is an upper triangular matrix here (stored in
-        //       colum major)
-        for (IndexType d_col = size - 1; d_col >= 0; --d_col) {
-            const auto diag = trisystem[d_col * size + d_col];
-            const auto bot = rhs[d_col] / diag;
-            rhs[d_col] = bot;
-            // do a backwards substitution
-            for (IndexType d_row = d_col - 1; d_row >= 0; --d_row) {
-                rhs[d_row] -= bot * trisystem[d_col * size + d_row];
+    if (lower) {
+        auto trs_solve = [](IndexType size, const ValueType *trisystem,
+                            ValueType *rhs) {
+            if (size <= 0) {
+                return;
             }
-        }
-    };
+            // RHS is the identity: zero everywhere except for the last entry
+            // since that is the row we are searching the inverse for
+            std::fill_n(rhs, size - 1, zero<ValueType>());
+            rhs[size - 1] = one<ValueType>();
 
-    generic_generate(exec, l_csr, inverse_l, trs_solve);
+            // Note: `trisystem` is an upper triangular matrix here (stored in
+            //       colum major)
+            for (IndexType d_col = size - 1; d_col >= 0; --d_col) {
+                const auto diag = trisystem[d_col * size + d_col];
+                const auto bot = rhs[d_col] / diag;
+                rhs[d_col] = bot;
+                // do a backwards substitution
+                for (IndexType d_row = d_col - 1; d_row >= 0; --d_row) {
+                    rhs[d_row] -= bot * trisystem[d_col * size + d_row];
+                }
+            }
+        };
+
+        generic_generate(exec, mtx, inverse_mtx, trs_solve);
+    } else {
+        auto trs_solve = [](IndexType size, const ValueType *trisystem,
+                            ValueType *rhs) {
+            if (size <= 0) {
+                return;
+            }
+            // RHS is the identity: zero everywhere except for the first entry
+            // since that is the row we are searching the inverse for
+            std::fill_n(rhs, size, zero<ValueType>());
+            rhs[0] = one<ValueType>();
+
+            // Note: `trisystem` is a lower triangular matrix here (stored in
+            //       colum major)
+            for (IndexType d_col = 0; d_col < size; ++d_col) {
+                const auto diag = trisystem[d_col * size + d_col];
+                const auto top = rhs[d_col] / diag;
+                rhs[d_col] = top;
+                // do a forward substitution
+                for (IndexType d_row = d_col + 1; d_row < size; ++d_row) {
+                    rhs[d_row] -= top * trisystem[d_col * size + d_row];
+                }
+            }
+        };
+        generic_generate(exec, mtx, inverse_mtx, trs_solve);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ISAI_GENERATE_L_INVERSE_KERNEL);
+    GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void generate_u_inverse(std::shared_ptr<const DefaultExecutor> exec,
-                        const matrix::Csr<ValueType, IndexType> *u_csr,
-                        matrix::Csr<ValueType, IndexType> *inverse_u)
-{
-    auto trs_solve = [](IndexType size, const ValueType *trisystem,
-                        ValueType *rhs) {
-        if (size <= 0) {
-            return;
-        }
-        // RHS is the identity: zero everywhere except for the first entry
-        // since that is the row we are searching the inverse for
-        std::fill_n(rhs, size, zero<ValueType>());
-        rhs[0] = one<ValueType>();
-
-        // Note: `trisystem` is a lower triangular matrix here (stored in
-        //       colum major)
-        for (IndexType d_col = 0; d_col < size; ++d_col) {
-            const auto diag = trisystem[d_col * size + d_col];
-            const auto top = rhs[d_col] / diag;
-            rhs[d_col] = top;
-            // do a forward substitution
-            for (IndexType d_row = d_col + 1; d_row < size; ++d_row) {
-                rhs[d_row] -= top * trisystem[d_col * size + d_row];
-            }
-        }
-    };
-    generic_generate(exec, u_csr, inverse_u, trs_solve);
-}
+void generate_excess_system(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType> *input,
+    const matrix::Csr<ValueType, IndexType> *inverse,
+    const IndexType *excess_block_ptrs, const IndexType *excess_row_ptrs_full,
+    matrix::Csr<ValueType, IndexType> *excess_system,
+    matrix::Dense<ValueType> *excess_rhs) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ISAI_GENERATE_U_INVERSE_KERNEL);
+    GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void scatter_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
+                             const IndexType *excess_block_ptrs,
+                             const matrix::Dense<ValueType> *excess_solution,
+                             matrix::Csr<ValueType, IndexType> *inverse)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL);
 
 
 }  // namespace isai
