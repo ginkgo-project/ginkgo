@@ -130,8 +130,8 @@ __global__
 template <typename ValueType>
 __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
     size_type k, size_type num_rows, size_type num_cols,
-    const ValueType *__restrict__ next_krylov_basis,
-    const ValueType *__restrict__ krylov_bases, size_type stride_krylov,
+    const ValueType *__restrict__ krylov_bases,
+    const ValueType *__restrict__ next_krylov_basis, size_type stride_krylov,
     ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
@@ -155,7 +155,7 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
              i += default_dot_dim) {
             const auto krylov_idx = i * stride_krylov + col_idx;
             local_res +=
-                next_krylov_basis[krylov_idx] * krylov_bases[krylov_idx];
+                conj(krylov_bases[krylov_idx]) * next_krylov_basis[krylov_idx];
         }
     }
     reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
@@ -180,8 +180,8 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
 template <int block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
     size_type k, size_type num_rows, size_type num_cols,
-    ValueType *__restrict__ next_krylov_basis,
-    const ValueType *__restrict__ krylov_bases, size_type stride_krylov,
+    const ValueType *__restrict__ krylov_bases,
+    ValueType *__restrict__ next_krylov_basis, size_type stride_krylov,
     const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
@@ -276,11 +276,14 @@ __device__ void calculate_sin_and_cos_kernel(
     if (this_hess == zero<ValueType>()) {
         register_cos = zero<ValueType>();
         register_sin = one<ValueType>();
-
     } else {
-        auto hypotenuse = sqrt(this_hess * this_hess + next_hess * next_hess);
+        const auto scale = abs(this_hess) + abs(next_hess);
+        const auto hypotenuse =
+            scale * sqrt(abs(this_hess / scale) * abs(this_hess / scale) +
+                         abs(next_hess / scale) * abs(next_hess / scale));
         register_cos = abs(this_hess) / hypotenuse;
-        register_sin = register_cos * next_hess / this_hess;
+        register_sin =
+            this_hess / abs(this_hess) * conj(next_hess) / hypotenuse;
     }
     givens_cos[iter * stride_cos + col_idx] = register_cos;
     givens_sin[iter * stride_sin + col_idx] = register_sin;

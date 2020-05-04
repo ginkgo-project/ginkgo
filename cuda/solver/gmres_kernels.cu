@@ -162,15 +162,15 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
                        hessenberg_iter->get_values() + k * stride_hessenberg);
             multidot_kernel<<<grid_size, block_size>>>(
                 k, num_rows, hessenberg_iter->get_size()[1],
-                as_cuda_type(next_krylov_basis), as_cuda_type(k_krylov_bases),
+                as_cuda_type(k_krylov_bases), as_cuda_type(next_krylov_basis),
                 stride_krylov, as_cuda_type(hessenberg_iter->get_values()),
                 stride_hessenberg, as_cuda_type(stop_status));
         } else {
             for (size_type col = 0; col < hessenberg_iter->get_size()[1];
                  ++col) {
                 cublas::dot(exec->get_cublas_handle(), num_rows,
-                            next_krylov_basis + col, stride_krylov,
                             k_krylov_bases + col, stride_krylov,
+                            next_krylov_basis + col, stride_krylov,
                             hessenberg_iter->get_values() +
                                 k * stride_hessenberg + col);
             }
@@ -179,7 +179,7 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
             <<<ceildiv(num_rows * stride_krylov, default_block_size),
                default_block_size>>>(
                 k, num_rows, hessenberg_iter->get_size()[1],
-                as_cuda_type(next_krylov_basis), as_cuda_type(k_krylov_bases),
+                as_cuda_type(k_krylov_bases), as_cuda_type(next_krylov_basis),
                 stride_krylov,
                 as_cuda_type(hessenberg_iter->get_const_values()),
                 stride_hessenberg, as_cuda_type(stop_status));
