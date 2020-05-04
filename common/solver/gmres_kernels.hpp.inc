@@ -328,19 +328,17 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
         return;
     }
 
-    // const auto current_thread_block = group::this_thread_block();
     auto this_hess = hessenberg_iter[col_idx];
     auto next_hess = hessenberg_iter[stride_hessenberg + col_idx];
     for (size_type i = 0; i < iter; ++i) {
         const auto cos = givens_cos[i * stride_cos + col_idx];
         const auto sin = givens_sin[i * stride_sin + col_idx];
-        const auto tmp = cos * this_hess + sin * next_hess;
+        hessenberg_iter[i * stride_hessenberg + col_idx] =
+            cos * this_hess + sin * next_hess;
         this_hess = cos * next_hess - sin * this_hess;
-        hessenberg_iter[(i + 1) * stride_hessenberg + col_idx] = this_hess;
         next_hess = hessenberg_iter[(i + 2) * stride_hessenberg + col_idx];
-        hessenberg_iter[i * stride_hessenberg + col_idx] = tmp;
     }
-    // for j in 1:iter - 1
+    // for j in 0:iter - 1
     //     temp             =  cos(j)*hessenberg(j) +
     //                         sin(j)*hessenberg(j+1)
     //     hessenberg(j+1)  = -sin(j)*hessenberg(j) +
@@ -360,7 +358,7 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx] =
         zero<ValueType>();
     // hessenberg(iter)   = cos(iter)*hessenberg(iter) +
-    //                      sin(iter)*hessenberg(iter)
+    //                      sin(iter)*hessenberg(iter+1)
     // hessenberg(iter+1) = 0
 
     calculate_residual_norm_kernel(
