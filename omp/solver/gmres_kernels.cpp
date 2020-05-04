@@ -123,15 +123,15 @@ void calculate_sin_and_cos(matrix::Dense<ValueType> *givens_sin,
         givens_cos->at(iter, rhs) = zero<ValueType>();
         givens_sin->at(iter, rhs) = one<ValueType>();
     } else {
-        auto hypotenuse = sqrt(hessenberg_iter->at(iter, rhs) *
-                                   hessenberg_iter->at(iter, rhs) +
-                               hessenberg_iter->at(iter + 1, rhs) *
-                                   hessenberg_iter->at(iter + 1, rhs));
-        givens_cos->at(iter, rhs) =
-            abs(hessenberg_iter->at(iter, rhs)) / hypotenuse;
-        givens_sin->at(iter, rhs) = givens_cos->at(iter, rhs) *
-                                    hessenberg_iter->at(iter + 1, rhs) /
-                                    hessenberg_iter->at(iter, rhs);
+        auto this_hess = hessenberg_iter->at(iter, rhs);
+        auto next_hess = hessenberg_iter->at(iter + 1, rhs);
+        const auto scale = abs(this_hess) + abs(next_hess);
+        const auto hypotenuse =
+            scale * sqrt(abs(this_hess / scale) * abs(this_hess / scale) +
+                         abs(next_hess / scale) * abs(next_hess / scale));
+        givens_cos->at(iter, rhs) = abs(this_hess) / hypotenuse;
+        givens_sin->at(iter, rhs) =
+            this_hess / abs(this_hess) * conj(next_hess) / hypotenuse;
     }
 }
 

@@ -168,15 +168,15 @@ void finish_arnoldi(std::shared_ptr<const HipExecutor> exec, size_type num_rows,
             hipLaunchKernelGGL(
                 multidot_kernel, dim3(grid_size), dim3(block_size), 0, 0, k,
                 num_rows, hessenberg_iter->get_size()[1],
-                as_hip_type(next_krylov_basis), as_hip_type(k_krylov_bases),
+                as_hip_type(k_krylov_bases), as_hip_type(next_krylov_basis),
                 stride_krylov, as_hip_type(hessenberg_iter->get_values()),
                 stride_hessenberg, as_hip_type(stop_status));
         } else {
             for (size_type col = 0; col < hessenberg_iter->get_size()[1];
                  ++col) {
                 hipblas::dot(exec->get_hipblas_handle(), num_rows,
-                             next_krylov_basis + col, stride_krylov,
                              k_krylov_bases + col, stride_krylov,
+                             next_krylov_basis + col, stride_krylov,
                              hessenberg_iter->get_values() +
                                  k * stride_hessenberg + col);
             }
@@ -185,8 +185,8 @@ void finish_arnoldi(std::shared_ptr<const HipExecutor> exec, size_type num_rows,
             HIP_KERNEL_NAME(update_next_krylov_kernel<default_block_size>),
             dim3(ceildiv(num_rows * stride_krylov, default_block_size)),
             dim3(default_block_size), 0, 0, k, num_rows,
-            hessenberg_iter->get_size()[1], as_hip_type(next_krylov_basis),
-            as_hip_type(k_krylov_bases), stride_krylov,
+            hessenberg_iter->get_size()[1], as_hip_type(k_krylov_bases),
+            as_hip_type(next_krylov_basis), stride_krylov,
             as_hip_type(hessenberg_iter->get_const_values()), stride_hessenberg,
             as_hip_type(stop_status));
     }
