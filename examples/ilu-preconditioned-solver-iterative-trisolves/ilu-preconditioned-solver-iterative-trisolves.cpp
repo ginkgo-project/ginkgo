@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
     auto ilu_gmres = ilu_gmres_factory->generate(A);
 
     // Solve system
-    ilu_gmres->apply(gko::lend(b), gko::lend(x));
+    ilu_gmres->apply(lend(b), lend(x));
 
     // Print solution
     std::cout << "Solution (x): \n";
