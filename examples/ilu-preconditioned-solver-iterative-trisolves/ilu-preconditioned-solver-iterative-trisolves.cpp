@@ -86,13 +86,15 @@ int main(int argc, char *argv[])
     // Generate an iterative refinement factory to be used as triangular solver
     // in the preconditioner application. The generated method is equivalent
     // to doing five block-Jacobi sweeps with maximum block size 16.
+    auto bj_factory =
+        bj::build()
+            .with_max_block_size(16u)
+            .with_storage_optimization(gko::precision_reduction::autodetect())
+            .on(exec);
+
     auto trisolve_factory =
         ir::build()
-            .with_solver(bj::build()
-                             .with_max_block_size(16u)
-                             .with_storage_optimization(
-                                 gko::precision_reduction::autodetect())
-                             .on(exec))
+            .with_solver(share(bj_factory))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(5u).on(exec))
             .on(exec);
