@@ -207,10 +207,14 @@ __device__ void group_merge(const ValueType *__restrict__ a, IndexType a_size,
  * @param b_size  the size of the second range
  * @param group   the group that executes the merge
  * @param match_fn  the callback that is being called for each matching pair.
- *                  It takes four parameters:
- *                  `ValueType val, IndexType a_idx, IndexType b_idx`.
+ *                  It takes five parameters:
+ *                  `ValueType val, IndexType a_idx, IndexType b_idx,
+ *                   lane_mask_type match_mask, bool valid`.
  *                  `val` is the matching element, `*_idx` are the indices of
- *                  the matching values from a and b.
+ *                  the matching values from a and b, match_mask is a lane mask
+ *                  that is 1 for every subwarp lane that found a match.
+ *                  `valid` is true iff there is actually a match.
+ *                  (necessary for warp-synchronous operations)
  */
 template <int group_size, typename IndexType, typename ValueType,
           typename Group, typename Callback>
@@ -222,9 +226,8 @@ __device__ void group_match(const ValueType *__restrict__ a, IndexType a_size,
         a, a_size, b, b_size, group,
         [&](IndexType a_idx, ValueType a_val, IndexType b_idx, ValueType b_val,
             IndexType, bool valid) {
-            if (a_val == b_val && valid) {
-                match_fn(a_val, a_idx, b_idx);
-            }
+            auto matchmask = group.ballot(a_val == b_val && valid);
+            match_fn(a_val, a_idx, b_idx, matchmask, a_val == b_val && valid);
             return a_idx < a_size && b_idx < b_size;
         });
 }

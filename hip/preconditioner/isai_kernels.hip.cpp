@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/base/math.hip.hpp"
@@ -64,8 +65,8 @@ namespace hip {
 namespace isai {
 
 
-constexpr int subwarp_size{config::warp_size};
-constexpr int subwarps_per_block{1};
+constexpr int subwarp_size{row_size_limit};
+constexpr int subwarps_per_block{2};
 constexpr int default_block_size{subwarps_per_block * subwarp_size};
 
 
@@ -74,44 +75,36 @@ constexpr int default_block_size{subwarps_per_block * subwarp_size};
 
 template <typename ValueType, typename IndexType>
 void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
-                          const matrix::Csr<ValueType, IndexType> *mtx,
-                          matrix::Csr<ValueType, IndexType> *inverse_mtx,
-                          IndexType *excess_block_ptrs,
-                          IndexType *excess_row_ptrs_full, bool lower)
+                          const matrix::Csr<ValueType, IndexType> *input,
+                          matrix::Csr<ValueType, IndexType> *inverse,
+                          IndexType *excess_rhs_ptrs, IndexType *excess_nz_ptrs,
+                          bool lower)
 {
-    const auto num_rows = mtx->get_size()[0];
-    const auto nnz = inverse_mtx->get_num_stored_elements();
-
-    if (excess_block_ptrs) {
-        zero_array(num_rows + 1, excess_block_ptrs);
-    }
-    if (excess_row_ptrs_full) {
-        zero_array(nnz + 1, excess_row_ptrs_full);
-    }
+    const auto num_rows = input->get_size()[0];
 
     const dim3 block(default_block_size, 1, 1);
-    const dim3 grid(ceildiv(num_rows, block.x / config::warp_size), 1, 1);
+    const dim3 grid(ceildiv(num_rows, block.x / subwarp_size), 1, 1);
     if (lower) {
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(
                 kernel::generate_l_inverse<subwarp_size, subwarps_per_block>),
             grid, block, 0, 0, static_cast<IndexType>(num_rows),
-            mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-            as_hip_type(mtx->get_const_values()), inverse_mtx->get_row_ptrs(),
-            inverse_mtx->get_col_idxs(),
-            as_hip_type(inverse_mtx->get_values()));
+            input->get_const_row_ptrs(), input->get_const_col_idxs(),
+            as_hip_type(input->get_const_values()), inverse->get_row_ptrs(),
+            inverse->get_col_idxs(), as_hip_type(inverse->get_values()),
+            excess_rhs_ptrs, excess_nz_ptrs);
     } else {
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(
                 kernel::generate_u_inverse<subwarp_size, subwarps_per_block>),
             grid, block, 0, 0, static_cast<IndexType>(num_rows),
-            mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-            as_hip_type(mtx->get_const_values()), inverse_mtx->get_row_ptrs(),
-            inverse_mtx->get_col_idxs(),
-            as_hip_type(inverse_mtx->get_values()));
+            input->get_const_row_ptrs(), input->get_const_col_idxs(),
+            as_hip_type(input->get_const_values()), inverse->get_row_ptrs(),
+            inverse->get_col_idxs(), as_hip_type(inverse->get_values()),
+            excess_rhs_ptrs, excess_nz_ptrs);
     }
-    // Call make_srow()
-    matrix::CsrBuilder<ValueType, IndexType> builder(inverse_mtx);
+    components::prefix_sum(exec, excess_rhs_ptrs, num_rows + 1);
+    components::prefix_sum(exec, excess_nz_ptrs, num_rows + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -119,13 +112,28 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void generate_excess_system(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *input,
-    const matrix::Csr<ValueType, IndexType> *inverse,
-    const IndexType *excess_block_ptrs, const IndexType *excess_row_ptrs_full,
-    matrix::Csr<ValueType, IndexType> *excess_system,
-    matrix::Dense<ValueType> *excess_rhs) GKO_NOT_IMPLEMENTED;
+void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
+                            const matrix::Csr<ValueType, IndexType> *input,
+                            const matrix::Csr<ValueType, IndexType> *inverse,
+                            const IndexType *excess_rhs_ptrs,
+                            const IndexType *excess_nz_ptrs,
+                            matrix::Csr<ValueType, IndexType> *excess_system,
+                            matrix::Dense<ValueType> *excess_rhs)
+{
+    const auto num_rows = input->get_size()[0];
+
+    const dim3 block(default_block_size, 1, 1);
+    const dim3 grid(ceildiv(num_rows, block.x / subwarp_size), 1, 1);
+    hipLaunchKernelGGL(
+        HIP_KERNEL_NAME(kernel::generate_excess_system<subwarp_size>), grid,
+        block, 0, 0, static_cast<IndexType>(num_rows),
+        input->get_const_row_ptrs(), input->get_const_col_idxs(),
+        as_hip_type(input->get_const_values()), inverse->get_const_row_ptrs(),
+        inverse->get_const_col_idxs(), excess_rhs_ptrs, excess_nz_ptrs,
+        excess_system->get_row_ptrs(), excess_system->get_col_idxs(),
+        as_hip_type(excess_system->get_values()),
+        as_hip_type(excess_rhs->get_values()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL);
@@ -133,10 +141,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void scatter_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
-                             const IndexType *excess_block_ptrs,
+                             const IndexType *excess_rhs_ptrs,
                              const matrix::Dense<ValueType> *excess_solution,
                              matrix::Csr<ValueType, IndexType> *inverse)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto num_rows = inverse->get_size()[0];
+
+    const dim3 block(default_block_size, 1, 1);
+    const dim3 grid(ceildiv(num_rows, block.x / subwarp_size), 1, 1);
+    hipLaunchKernelGGL(
+        HIP_KERNEL_NAME(kernel::copy_excess_solution<subwarp_size>), grid,
+        block, 0, 0, static_cast<IndexType>(num_rows),
+        inverse->get_const_row_ptrs(), excess_rhs_ptrs,
+        as_hip_type(excess_solution->get_const_values()),
+        as_hip_type(inverse->get_values()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL);

@@ -30,10 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/preconditioner/isai.hpp>
+#include "reference/preconditioner/isai_kernels.cpp"
 
 
 #include <algorithm>
+#include <fstream>
 #include <memory>
 #include <type_traits>
 
@@ -42,13 +43,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
+#include <ginkgo/core/preconditioner/isai.hpp>
 
 
 #include "core/test/utils.hpp"
-#include "reference/preconditioner/isai_kernels.cpp"
+#include "matrices/config.hpp"
 
 
 namespace {
@@ -141,6 +144,32 @@ protected:
         l_dense_inv->convert_to(lend(l_csr_inv));
         u_dense->convert_to(lend(u_csr));
         u_dense_inv->convert_to(lend(u_csr_inv));
+        l_csr_longrow = read<Csr>("isai_l.mtx");
+        l_csr_longrow_e = read<Csr>("isai_l_excess.mtx");
+        l_csr_longrow_e_rhs = read<Dense>("isai_l_excess_rhs.mtx");
+        l_csr_longrow_inv_partial = read<Csr>("isai_l_inv_partial.mtx");
+        l_csr_longrow_inv = read<Csr>("isai_l_inv.mtx");
+        u_csr_longrow = read<Csr>("isai_u.mtx");
+        u_csr_longrow_e = read<Csr>("isai_u_excess.mtx");
+        u_csr_longrow_e_rhs = read<Dense>("isai_u_excess_rhs.mtx");
+        u_csr_longrow_inv_partial = read<Csr>("isai_u_inv_partial.mtx");
+        u_csr_longrow_inv = read<Csr>("isai_u_inv.mtx");
+    }
+
+    template <typename ReadMtx>
+    std::unique_ptr<ReadMtx> read(const char *name)
+    {
+        std::ifstream mtxstream{std::string{gko::matrices::location_isai_mtx} +
+                                name};
+        auto result = gko::read<ReadMtx>(mtxstream, exec);
+        // to avoid removing 0s, the matrices store 12345 instead
+        for (gko::size_type i = 0; i < result->get_num_stored_elements(); ++i) {
+            auto &val = result->get_values()[i];
+            if (val == static_cast<value_type>(12345.0)) {
+                val = 0;
+            }
+        }
+        return std::move(result);
     }
 
     std::unique_ptr<Csr> clone_allocations(const Csr *csr_mtx)
@@ -167,8 +196,18 @@ protected:
     std::shared_ptr<Dense> u_dense_inv;
     std::shared_ptr<Csr> l_csr;
     std::shared_ptr<Csr> l_csr_inv;
+    std::shared_ptr<Csr> l_csr_longrow;
+    std::shared_ptr<Csr> l_csr_longrow_e;
+    std::shared_ptr<Dense> l_csr_longrow_e_rhs;
+    std::shared_ptr<Csr> l_csr_longrow_inv_partial;
+    std::shared_ptr<Csr> l_csr_longrow_inv;
     std::shared_ptr<Csr> u_csr;
     std::shared_ptr<Csr> u_csr_inv;
+    std::shared_ptr<Csr> u_csr_longrow;
+    std::shared_ptr<Csr> u_csr_longrow_e;
+    std::shared_ptr<Dense> u_csr_longrow_e_rhs;
+    std::shared_ptr<Csr> u_csr_longrow_inv_partial;
+    std::shared_ptr<Csr> u_csr_longrow_inv;
     std::shared_ptr<Csr> l_sparse;
     std::shared_ptr<Csr> l_s_unsorted;
     std::shared_ptr<Csr> l_sparse_inv;
@@ -191,13 +230,22 @@ TYPED_TEST(Isai, KernelGenerateL1)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(lend(this->l_csr));
-    auto nullidx = static_cast<index_type *>(nullptr);
+    auto num_rows = result->get_size()[0];
+    gko::Array<index_type> a1(this->exec, num_rows + 1);
+    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    // zero-filled array
+    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, lend(this->l_csr), lend(result), nullidx, nullidx, true);
+        this->exec, lend(this->l_csr), lend(result), a1.get_data(),
+        a2.get_data(), true);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_csr_inv);
     GKO_ASSERT_MTX_NEAR(result, this->l_csr_inv, r<value_type>::value);
+    // no row above the size limit -> zero array
+    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
+    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
 }
 
 
@@ -208,14 +256,23 @@ TYPED_TEST(Isai, KernelGenerateL2)
     using index_type = typename TestFixture::index_type;
     const auto l_mtx = this->transpose(lend(this->u_csr));
     auto result = this->clone_allocations(lend(l_mtx));
-    auto nullidx = static_cast<index_type *>(nullptr);
+    auto num_rows = result->get_size()[0];
+    gko::Array<index_type> a1(this->exec, num_rows + 1);
+    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    // zero-filled array
+    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, lend(l_mtx), lend(result), nullidx, nullidx, true);
+        this->exec, lend(l_mtx), lend(result), a1.get_data(), a2.get_data(),
+        true);
 
     const auto expected = this->transpose(lend(this->u_csr_inv));
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
+    // no row above the size limit -> zero array
+    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
+    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
 }
 
 
@@ -225,13 +282,22 @@ TYPED_TEST(Isai, KernelGenerateLsparse1)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(lend(this->l_sparse));
-    auto nullidx = static_cast<index_type *>(nullptr);
+    auto num_rows = result->get_size()[0];
+    gko::Array<index_type> a1(this->exec, num_rows + 1);
+    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    // zero-filled array
+    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, lend(this->l_sparse), lend(result), nullidx, nullidx, true);
+        this->exec, lend(this->l_sparse), lend(result), a1.get_data(),
+        a2.get_data(), true);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_sparse_inv);
     GKO_ASSERT_MTX_NEAR(result, this->l_sparse_inv, r<value_type>::value);
+    // no row above the size limit -> zero array
+    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
+    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
 }
 
 
@@ -241,14 +307,22 @@ TYPED_TEST(Isai, KernelGenerateLsparse2)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(lend(this->l_sparse2));
-    auto nullidx = static_cast<index_type *>(nullptr);
+    auto num_rows = result->get_size()[0];
+    gko::Array<index_type> a1(this->exec, num_rows + 1);
+    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    // zero-filled array
+    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, lend(this->l_sparse2), lend(result), nullidx, nullidx,
-        true);
+        this->exec, lend(this->l_sparse2), lend(result), a1.get_data(),
+        a2.get_data(), true);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_sparse2_inv);
     GKO_ASSERT_MTX_NEAR(result, this->l_sparse2_inv, r<value_type>::value);
+    // no row above the size limit -> zero array
+    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
+    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
 }
 
 
@@ -259,10 +333,16 @@ TYPED_TEST(Isai, KernelGenerateLsparse3)
     using index_type = typename TestFixture::index_type;
     const auto l_mtx = this->transpose(lend(this->u_sparse));
     auto result = this->clone_allocations(lend(l_mtx));
-    auto nullidx = static_cast<index_type *>(nullptr);
+    auto num_rows = result->get_size()[0];
+    gko::Array<index_type> a1(this->exec, num_rows + 1);
+    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    // zero-filled array
+    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, lend(l_mtx), lend(result), nullidx, nullidx, true);
+        this->exec, lend(l_mtx), lend(result), a1.get_data(), a2.get_data(),
+        true);
 
     // Results in a slightly different version than u_sparse_inv->transpose()
     // because a different row-sparsity pattern is used in u_sparse vs. l_mtx
@@ -273,6 +353,76 @@ TYPED_TEST(Isai, KernelGenerateLsparse3)
         I<index_type>{0, 0, 1, 0, 1, 2, 0, 2, 3}, I<index_type>{0, 1, 3, 6, 9});
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
+    // no row above the size limit -> zero array
+    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
+    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
+}
+
+
+TYPED_TEST(Isai, KernelGenerateLLongrow)
+{
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto result = this->clone_allocations(lend(this->l_csr_longrow));
+    auto num_rows = result->get_size()[0];
+    gko::Array<index_type> a1(this->exec, num_rows + 1);
+    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    // zero-filled array
+    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    std::fill_n(zeros.get_data(), num_rows + 1, 0);
+    // only the 32nd row has some excess storage
+    auto a1_expect = zeros;
+    a1_expect.get_data()[33] = 33;
+    a1_expect.get_data()[34] = 33;
+    a1_expect.get_data()[35] = 66;
+    auto a2_expect = zeros;
+    a2_expect.get_data()[33] = 124;
+    a2_expect.get_data()[34] = 124;
+    a2_expect.get_data()[35] = 248;
+
+    gko::kernels::reference::isai::generate_tri_inverse(
+        this->exec, lend(this->l_csr_longrow), lend(result), a1.get_data(),
+        a2.get_data(), true);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_csr_longrow_inv_partial);
+    GKO_ASSERT_MTX_NEAR(result, this->l_csr_longrow_inv_partial,
+                        r<value_type>::value);
+    // no row above the size limit -> zero array
+    GKO_ASSERT_ARRAY_EQ(&a1, &a1_expect);
+    GKO_ASSERT_ARRAY_EQ(&a2, &a2_expect);
+}
+
+
+TYPED_TEST(Isai, KernelGenerateExcessLLongrow)
+{
+    using Csr = typename TestFixture::Csr;
+    using Dense = typename TestFixture::Dense;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto num_rows = this->l_csr_longrow->get_size()[0];
+    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    std::fill_n(zeros.get_data(), num_rows + 1, 0);
+    // only the 32nd row has some excess storage
+    auto a1 = zeros;
+    a1.get_data()[33] = 33;
+    a1.get_data()[34] = 33;
+    a1.get_data()[35] = 66;
+    auto a2 = zeros;
+    a2.get_data()[33] = 124;
+    a2.get_data()[34] = 124;
+    a2.get_data()[35] = 248;
+    auto result = Csr::create(this->exec, gko::dim<2>(66, 66), 248);
+    auto result_rhs = Dense::create(this->exec, gko::dim<2>(66, 1));
+
+    gko::kernels::reference::isai::generate_excess_system(
+        this->exec, lend(this->l_csr_longrow), lend(this->l_csr_longrow),
+        a1.get_const_data(), a2.get_const_data(), lend(result),
+        lend(result_rhs));
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_csr_longrow_e);
+    GKO_ASSERT_MTX_NEAR(result, this->l_csr_longrow_e, 0);
+    GKO_ASSERT_MTX_NEAR(result_rhs, this->l_csr_longrow_e_rhs, 0);
 }
 
 
@@ -283,14 +433,23 @@ TYPED_TEST(Isai, KernelGenerateU1)
     using index_type = typename TestFixture::index_type;
     const auto u_mtx = this->transpose(lend(this->l_csr));
     auto result = this->clone_allocations(lend(u_mtx));
-    auto nullidx = static_cast<index_type *>(nullptr);
+    auto num_rows = result->get_size()[0];
+    gko::Array<index_type> a1(this->exec, num_rows + 1);
+    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    // zero-filled array
+    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, lend(u_mtx), lend(result), nullidx, nullidx, false);
+        this->exec, lend(u_mtx), lend(result), a1.get_data(), a2.get_data(),
+        false);
 
     auto expected = this->transpose(lend(this->l_csr_inv));
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
+    // no row above the size limit -> zero array
+    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
+    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
 }
 
 
@@ -300,13 +459,22 @@ TYPED_TEST(Isai, KernelGenerateU2)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(lend(this->u_csr));
-    auto nullidx = static_cast<index_type *>(nullptr);
+    auto num_rows = result->get_size()[0];
+    gko::Array<index_type> a1(this->exec, num_rows + 1);
+    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    // zero-filled array
+    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, lend(this->u_csr), lend(result), nullidx, nullidx, false);
+        this->exec, lend(this->u_csr), lend(result), a1.get_data(),
+        a2.get_data(), false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_csr_inv);
     GKO_ASSERT_MTX_NEAR(result, this->u_csr_inv, r<value_type>::value);
+    // no row above the size limit -> zero array
+    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
+    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
 }
 
 
@@ -317,14 +485,23 @@ TYPED_TEST(Isai, KernelGenerateUsparse1)
     using index_type = typename TestFixture::index_type;
     const auto u_mtx = this->transpose(lend(this->l_sparse));
     auto result = this->clone_allocations(lend(u_mtx));
-    auto nullidx = static_cast<index_type *>(nullptr);
+    auto num_rows = result->get_size()[0];
+    gko::Array<index_type> a1(this->exec, num_rows + 1);
+    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    // zero-filled array
+    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, lend(u_mtx), lend(result), nullidx, nullidx, false);
+        this->exec, lend(u_mtx), lend(result), a1.get_data(), a2.get_data(),
+        false);
 
     const auto expected = this->transpose(lend(this->l_sparse_inv));
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
+    // no row above the size limit -> zero array
+    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
+    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
 }
 
 
@@ -335,10 +512,16 @@ TYPED_TEST(Isai, KernelGenerateUsparse2)
     using index_type = typename TestFixture::index_type;
     const auto u_mtx = this->transpose(this->l_sparse2.get());
     auto result = this->clone_allocations(lend(u_mtx));
-    auto nullidx = static_cast<index_type *>(nullptr);
+    auto num_rows = result->get_size()[0];
+    gko::Array<index_type> a1(this->exec, num_rows + 1);
+    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    // zero-filled array
+    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, lend(u_mtx), lend(result), nullidx, nullidx, false);
+        this->exec, lend(u_mtx), lend(result), a1.get_data(), a2.get_data(),
+        false);
 
     // Results in a slightly different version than l_sparse2_inv->transpose()
     // because a different row-sparsity pattern is used in l_sparse2 vs. u_mtx
@@ -349,6 +532,9 @@ TYPED_TEST(Isai, KernelGenerateUsparse2)
         I<index_type>{0, 1, 3, 1, 2, 3, 2, 3, 3}, I<index_type>{0, 3, 6, 8, 9});
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
+    // no row above the size limit -> zero array
+    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
+    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
 }
 
 
@@ -358,14 +544,107 @@ TYPED_TEST(Isai, KernelGenerateUsparse3)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto result = this->clone_allocations(lend(this->u_sparse));
-    auto nullidx = static_cast<index_type *>(nullptr);
+    auto num_rows = result->get_size()[0];
+    gko::Array<index_type> a1(this->exec, num_rows + 1);
+    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    // zero-filled array
+    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, lend(this->u_sparse), lend(result), nullidx, nullidx,
-        false);
+        this->exec, lend(this->u_sparse), lend(result), a1.get_data(),
+        a2.get_data(), false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_sparse_inv);
     GKO_ASSERT_MTX_NEAR(result, this->u_sparse_inv, r<value_type>::value);
+    // no row above the size limit -> zero array
+    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
+    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
+}
+
+
+TYPED_TEST(Isai, KernelGenerateULongrow)
+{
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto result = this->clone_allocations(lend(this->u_csr_longrow));
+    auto num_rows = result->get_size()[0];
+    gko::Array<index_type> a1(this->exec, num_rows + 1);
+    gko::Array<index_type> a2(this->exec, num_rows + 1);
+    // zero-filled array
+    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    std::fill_n(zeros.get_data(), num_rows + 1, 0);
+    // only the 32nd row has some excess storage
+    auto a1_expect = zeros;
+    std::fill_n(a1_expect.get_data() + 3, 33, 33);
+    auto a2_expect = zeros;
+    std::fill_n(a2_expect.get_data() + 3, 33, 153);
+
+    gko::kernels::reference::isai::generate_tri_inverse(
+        this->exec, lend(this->u_csr_longrow), lend(result), a1.get_data(),
+        a2.get_data(), false);
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_csr_longrow_inv_partial);
+    GKO_ASSERT_MTX_NEAR(result, this->u_csr_longrow_inv_partial,
+                        r<value_type>::value);
+    // no row above the size limit -> zero array
+    GKO_ASSERT_ARRAY_EQ(&a1, &a1_expect);
+    GKO_ASSERT_ARRAY_EQ(&a2, &a2_expect);
+}
+
+
+TYPED_TEST(Isai, KernelGenerateExcessULongrow)
+{
+    using Csr = typename TestFixture::Csr;
+    using Dense = typename TestFixture::Dense;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto num_rows = this->u_csr_longrow->get_size()[0];
+    gko::Array<index_type> zeros(this->exec, num_rows + 1);
+    std::fill_n(zeros.get_data(), num_rows + 1, 0);
+    // only the 32nd row has some excess storage
+    auto a1 = zeros;
+    std::fill_n(a1.get_data() + 3, 33, 33);
+    auto a2 = zeros;
+    std::fill_n(a2.get_data() + 3, 33, 153);
+    auto result = Csr::create(this->exec, gko::dim<2>(33, 33), 153);
+    auto result_rhs = Dense::create(this->exec, gko::dim<2>(33, 1));
+
+    gko::kernels::reference::isai::generate_excess_system(
+        this->exec, lend(this->u_csr_longrow), lend(this->u_csr_longrow),
+        a1.get_const_data(), a2.get_const_data(), lend(result),
+        lend(result_rhs));
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_csr_longrow_e);
+    GKO_ASSERT_MTX_NEAR(result, this->u_csr_longrow_e, 0);
+    GKO_ASSERT_MTX_NEAR(result_rhs, this->u_csr_longrow_e_rhs, 0);
+}
+
+
+TYPED_TEST(Isai, KernelScatterExcessSolution)
+{
+    using Csr = typename TestFixture::Csr;
+    using Dense = typename TestFixture::Dense;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    gko::Array<index_type> ptrs{this->exec, I<index_type>{0, 0, 2, 2, 5, 7, 7}};
+    auto mtx = Csr::create(this->exec, gko::dim<2>{6, 6},
+                           I<value_type>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+                           I<index_type>{0, 0, 1, 0, 0, 1, 2, 0, 1, 0},
+                           I<index_type>{0, 1, 3, 4, 7, 9, 10});
+    auto expect =
+        Csr::create(this->exec, gko::dim<2>{6, 6},
+                    I<value_type>{1, 11, 12, 4, 13, 14, 15, 16, 17, 10},
+                    I<index_type>{0, 0, 1, 0, 0, 1, 2, 0, 1, 0},
+                    I<index_type>{0, 1, 3, 4, 7, 9, 10});
+    auto sol = Dense::create(this->exec, gko::dim<2>(7, 1),
+                             I<value_type>{11, 12, 13, 14, 15, 16, 17}, 1);
+
+    gko::kernels::reference::isai::scatter_excess_solution(
+        this->exec, ptrs.get_const_data(), sol.get(), mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(mtx, expect, 0);
 }
 
 
@@ -382,6 +661,19 @@ TYPED_TEST(Isai, ReturnsCorrectInverseL)
 }
 
 
+TYPED_TEST(Isai, ReturnsCorrectInverseLLongrow)
+{
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    const auto isai = this->lower_isai_factory->generate(this->l_csr_longrow);
+
+    auto l_inv = isai->get_approximate_inverse();
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_inv, this->l_csr_longrow_inv);
+    GKO_ASSERT_MTX_NEAR(l_inv, this->l_csr_longrow_inv, r<value_type>::value);
+}
+
+
 TYPED_TEST(Isai, ReturnsCorrectInverseU)
 {
     using Csr = typename TestFixture::Csr;
@@ -392,6 +684,19 @@ TYPED_TEST(Isai, ReturnsCorrectInverseU)
 
     GKO_ASSERT_MTX_EQ_SPARSITY(u_inv, this->u_sparse_inv);
     GKO_ASSERT_MTX_NEAR(u_inv, this->u_sparse_inv, r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, ReturnsCorrectInverseULongrow)
+{
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    const auto isai = this->upper_isai_factory->generate(this->u_csr_longrow);
+
+    auto u_inv = isai->get_approximate_inverse();
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_inv, this->u_csr_longrow_inv);
+    GKO_ASSERT_MTX_NEAR(u_inv, this->u_csr_longrow_inv, r<value_type>::value);
 }
 
 
