@@ -114,6 +114,8 @@ public:
         std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER(
             generated_preconditioner, nullptr);
     };
+    GKO_ENABLE_SET_GET_PARAMETERS(
+        stop_criterion_factory, std::shared_ptr<const stop::CriterionFactory>);
     GKO_ENABLE_LIN_OP_FACTORY(Cg, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
