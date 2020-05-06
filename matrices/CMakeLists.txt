@@ -3,3 +3,13 @@ configure_file("${Ginkgo_SOURCE_DIR}/matrices/config.hpp.in"
 
 configure_file("test/ani1.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani1.mtx")
 configure_file("test/ani4.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/ani4.mtx")
+configure_file("test/isai_l.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_l.mtx")
+configure_file("test/isai_l_excess.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_l_excess.mtx")
+configure_file("test/isai_l_excess_rhs.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_l_excess_rhs.mtx")
+configure_file("test/isai_l_inv.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_l_inv.mtx")
+configure_file("test/isai_l_inv_partial.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_l_inv_partial.mtx")
+configure_file("test/isai_u.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_u.mtx")
+configure_file("test/isai_u_excess.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_u_excess.mtx")
+configure_file("test/isai_u_excess_rhs.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_u_excess_rhs.mtx")
+configure_file("test/isai_u_inv.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_u_inv.mtx")
+configure_file("test/isai_u_inv_partial.mtx" "${Ginkgo_BINARY_DIR}/matrices/test/isai_u_inv_partial.mtx")

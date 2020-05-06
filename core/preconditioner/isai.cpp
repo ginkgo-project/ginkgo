@@ -179,14 +179,14 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             lend(to_invert), lend(inverted), excess_block_ptrs.get_const_data(),
             excess_row_ptrs_full.get_const_data(), lend(excess_system),
             lend(excess_rhs)));
-        // solve it
+        // solve it after transposing
         std::unique_ptr<LinOpFactory> trs_factory;
         if (is_lower) {
-            trs_factory = LowerTrs::build().on(exec);
-        } else {
             trs_factory = UpperTrs::build().on(exec);
+        } else {
+            trs_factory = LowerTrs::build().on(exec);
         }
-        trs_factory->generate(share(excess_system))
+        trs_factory->generate(share(excess_system->transpose()))
             ->apply(lend(excess_rhs), lend(excess_solution));
         // and copy the results back to the original ISAI
         exec->run(isai::make_scatter_excess_solution(
