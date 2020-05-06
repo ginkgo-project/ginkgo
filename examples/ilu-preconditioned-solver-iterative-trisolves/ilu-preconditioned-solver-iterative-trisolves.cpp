@@ -55,20 +55,25 @@ int main(int argc, char *argv[])
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
 
-    // Figure out where to run the code
+    // Figure out where to run the code and how many block-Jacobi sweeps to use
     std::shared_ptr<gko::Executor> exec;
-    if (argc == 1 || std::string(argv[1]) == "reference") {
+    unsigned int sweeps;
+    if (argc == 2 || std::string(argv[2]) == "reference") {
         exec = gko::ReferenceExecutor::create();
-    } else if (argc == 2 && std::string(argv[1]) == "omp") {
+        sweeps = atoi(argv[1]);
+    } else if (argc == 3 && std::string(argv[2]) == "omp") {
         exec = gko::OmpExecutor::create();
-    } else if (argc == 2 && std::string(argv[1]) == "cuda" &&
+        sweeps = atoi(argv[1]);
+    } else if (argc == 3 && std::string(argv[2]) == "cuda" &&
                gko::CudaExecutor::get_num_devices() > 0) {
         exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
-    } else if (argc == 2 && std::string(argv[1]) == "hip" &&
+        sweeps = atoi(argv[1]);
+    } else if (argc == 3 && std::string(argv[2]) == "hip" &&
                gko::HipExecutor::get_num_devices() > 0) {
         exec = gko::HipExecutor::create(0, gko::OmpExecutor::create());
+        sweeps = atoi(argv[1]);
     } else {
-        std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " sweeps [executor]" << std::endl;
         std::exit(-1);
     }
 
@@ -96,7 +101,7 @@ int main(int argc, char *argv[])
         ir::build()
             .with_solver(share(bj_factory))
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(5u).on(exec))
+                gko::stop::Iteration::build().with_max_iters(sweeps).on(exec))
             .on(exec);
 
     // Generate an ILU preconditioner factory by setting lower and upper
@@ -131,6 +136,8 @@ int main(int argc, char *argv[])
 
     // Solve system
     ilu_gmres->apply(lend(b), lend(x));
+
+    std::cout << "Using " << sweeps << " block-Jacobi sweeps." << std::endl;
 
     // Print solution
     std::cout << "Solution (x): \n";
