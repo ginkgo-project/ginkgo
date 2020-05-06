@@ -253,7 +253,10 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         T GKO_FACTORY_PARAMETER(value, T{5});
+
+        gko::size_type GKO_FACTORY_PARAMETER(param, gko::size_type{2});
     };
+    GKO_ENABLE_SET_GET_PARAMETERS(param, gko::size_type);
     GKO_ENABLE_LIN_OP_FACTORY(DummyLinOpWithFactory, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
@@ -262,9 +265,12 @@ public:
         : gko::EnableLinOp<DummyLinOpWithFactory>(factory->get_executor()),
           parameters_{factory->get_parameters()},
           op_{op}
-    {}
+    {
+        param_ = parameters_.param;
+    }
 
     std::shared_ptr<const gko::LinOp> op_;
+    gko::size_type param_;
 
 protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
@@ -288,15 +294,18 @@ TEST_F(EnableLinOpFactory, CreatesDefaultFactory)
     auto factory = DummyLinOpWithFactory<>::build().on(ref);
 
     ASSERT_EQ(factory->get_parameters().value, 5);
+    ASSERT_EQ(factory->get_parameters().param, 2);
     ASSERT_EQ(factory->get_executor(), ref);
 }
 
 
 TEST_F(EnableLinOpFactory, CreatesFactoryWithParameters)
 {
-    auto factory = DummyLinOpWithFactory<>::build().with_value(7).on(ref);
+    auto factory =
+        DummyLinOpWithFactory<>::build().with_value(7).with_param(4u).on(ref);
 
     ASSERT_EQ(factory->get_parameters().value, 7);
+    ASSERT_EQ(factory->get_parameters().param, 4);
     ASSERT_EQ(factory->get_executor(), ref);
 }
 
@@ -304,12 +313,31 @@ TEST_F(EnableLinOpFactory, CreatesFactoryWithParameters)
 TEST_F(EnableLinOpFactory, PassesParametersToLinOp)
 {
     auto dummy = gko::share(DummyLinOp::create(ref, gko::dim<2>{3, 5}));
-    auto factory = DummyLinOpWithFactory<>::build().with_value(6).on(ref);
+    auto factory =
+        DummyLinOpWithFactory<>::build().with_value(6).with_param(7u).on(ref);
 
     auto op = factory->generate(dummy);
 
     ASSERT_EQ(op->get_executor(), ref);
     ASSERT_EQ(op->get_parameters().value, 6);
+    ASSERT_EQ(op->get_parameters().param, 7);
+    ASSERT_EQ(op->get_param(), 7);
+    ASSERT_EQ(op->op_.get(), dummy.get());
+}
+
+TEST_F(EnableLinOpFactory, CanSetParameterLater)
+{
+    auto dummy = gko::share(DummyLinOp::create(ref, gko::dim<2>{3, 5}));
+    auto factory = DummyLinOpWithFactory<>::build().with_value(6).on(ref);
+
+    auto op = factory->generate(dummy);
+    ASSERT_EQ(op->get_param(), 2);
+    gko::size_type p = 9u;
+    op->set_param(p);
+
+    ASSERT_EQ(op->get_executor(), ref);
+    ASSERT_EQ(op->get_parameters().value, 6);
+    ASSERT_EQ(op->get_param(), 9);
     ASSERT_EQ(op->op_.get(), dummy.get());
 }
 

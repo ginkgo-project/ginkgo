@@ -838,6 +838,31 @@ public:                                                                      \
 
 
 /**
+ * Defines setters and getters for the parameters of a class, simplifying its
+ * construction by removing the repetitive typing of boiler plate code.
+ *
+ * @param _concrete_parameter_name  the parameter whose setter and getter is to
+ * be defined
+ *
+ * @ingroup LinOp
+ */
+#define GKO_ENABLE_SET_GET_PARAMETERS(_concrete_parameter_name, _type)       \
+public:                                                                      \
+    void set_##_concrete_parameter_name(_type other)                         \
+    {                                                                        \
+        this->_concrete_parameter_name##_ = other;                           \
+    }                                                                        \
+                                                                             \
+    _type get_##_concrete_parameter_name() const                             \
+    {                                                                        \
+        return this->_concrete_parameter_name##_;                            \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+/**
  * Defines a build method for the factory, simplifying its construction by
  * removing the repetitive typing of factory's name.
  *
