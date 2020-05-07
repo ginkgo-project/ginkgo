@@ -103,7 +103,6 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
     const auto m_vals = mtx->get_const_values();
     const auto i_row_ptrs = inverse_mtx->get_const_row_ptrs();
     const auto i_cols = inverse_mtx->get_const_col_idxs();
-    const auto nnz = inverse_mtx->get_num_stored_elements();
     auto i_vals = inverse_mtx->get_values();
     // RHS for local trisystem
     gko::Array<ValueType> rhs_array{exec, row_size_limit};
@@ -166,9 +165,9 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
                 const auto m_begin = m_row_ptrs[col];
                 const auto m_size = m_row_ptrs[col + 1] - m_begin;
                 forall_matching(m_cols + m_begin, m_size, i_cols + i_begin,
-                                i_size,
-                                [&](IndexType, IndexType m_idx,
-                                    IndexType i_idx) { ++excess_nz_begin; });
+                                i_size, [&](IndexType, IndexType, IndexType) {
+                                    ++excess_nz_begin;
+                                });
                 ++excess_rhs_begin;
             }
         }
@@ -230,7 +229,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
+void generate_excess_system(std::shared_ptr<const DefaultExecutor>,
                             const matrix::Csr<ValueType, IndexType> *input,
                             const matrix::Csr<ValueType, IndexType> *inverse,
                             const IndexType *, const IndexType *,
@@ -290,7 +289,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void scatter_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
+void scatter_excess_solution(std::shared_ptr<const DefaultExecutor>,
                              const IndexType *excess_block_ptrs,
                              const matrix::Dense<ValueType> *excess_solution,
                              matrix::Csr<ValueType, IndexType> *inverse)
