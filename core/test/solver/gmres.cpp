@@ -215,6 +215,31 @@ TYPED_TEST(Gmres, CanSetPreconditionerGenerator)
 }
 
 
+TYPED_TEST(Gmres, CanSetCriteriaAgain)
+{
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<gko::stop::CriterionFactory> init_crit =
+        gko::stop::Iteration::build().with_max_iters(3u).on(this->exec);
+    auto gmres_factory =
+        Solver::build().with_criteria(init_crit).on(this->exec);
+
+    ASSERT_EQ((gmres_factory->get_parameters().criteria).back(), init_crit);
+
+    auto solver = gmres_factory->generate(this->mtx);
+    std::shared_ptr<gko::stop::CriterionFactory> new_crit =
+        gko::stop::Iteration::build().with_max_iters(5u).on(this->exec);
+
+    solver->set_stop_criterion_factory(new_crit);
+    auto new_crit_fac = solver->get_stop_criterion_factory();
+    auto niter =
+        static_cast<const gko::stop::Iteration::Factory *>(new_crit_fac.get())
+            ->get_parameters()
+            .max_iters;
+
+    ASSERT_EQ(niter, 5);
+}
+
+
 TYPED_TEST(Gmres, CanSetKrylovDim)
 {
     using Solver = typename TestFixture::Solver;
@@ -232,6 +257,25 @@ TYPED_TEST(Gmres, CanSetKrylovDim)
     auto krylov_dim = solver->get_krylov_dim();
 
     ASSERT_EQ(krylov_dim, 4);
+}
+
+
+TYPED_TEST(Gmres, CanSetKrylovDimAgain)
+{
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<gko::stop::CriterionFactory> init_crit =
+        gko::stop::Iteration::build().with_max_iters(3u).on(this->exec);
+    auto gmres_factory =
+        Solver::build().with_criteria(init_crit).with_krylov_dim(10u).on(
+            this->exec);
+
+    ASSERT_EQ(gmres_factory->get_parameters().krylov_dim, 10);
+
+    auto solver = gmres_factory->generate(this->mtx);
+
+    solver->set_krylov_dim(20);
+
+    ASSERT_EQ(solver->get_krylov_dim(), 20);
 }
 
 

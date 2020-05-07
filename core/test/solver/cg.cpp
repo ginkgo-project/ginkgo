@@ -230,15 +230,18 @@ TYPED_TEST(Cg, CanSetCriteriaAgain)
     auto cg_factory = Solver::build().with_criteria(init_crit).on(this->exec);
 
     ASSERT_EQ((cg_factory->get_parameters().criteria).back(), init_crit);
+
     auto solver = cg_factory->generate(this->mtx);
     std::shared_ptr<gko::stop::CriterionFactory> new_crit =
         gko::stop::Iteration::build().with_max_iters(5u).on(this->exec);
+
     solver->set_stop_criterion_factory(new_crit);
     auto new_crit_fac = solver->get_stop_criterion_factory();
     auto niter =
         static_cast<const gko::stop::Iteration::Factory *>(new_crit_fac.get())
             ->get_parameters()
             .max_iters;
+
     ASSERT_EQ(niter, 5);
 }
 
