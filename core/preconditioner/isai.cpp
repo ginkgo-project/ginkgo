@@ -122,17 +122,25 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor> &exec,
         // copy the matrix, as it will be used to store the inverse
         return {std::move(mtx->clone())};
     }
-    auto id = mtx->clone();
-    auto id_power = id->clone();
+    auto id_power = mtx->clone();
     auto tmp = Csr::create(exec, mtx->get_size());
-    // compute id^(n-1) and then multiply it with mtx
-    // TODO replace this by a square-and-multiply algorithm
-    for (int i = 1; i < power - 1; ++i) {
-        id->apply(id_power.get(), tmp.get());
+    // accumulates mtx * the remainder from odd powers
+    auto acc = mtx->clone();
+    // compute id^(n-1) using square-and-multiply
+    for (int i = power - 1; i > 1; i /= 2) {
+        if (i % 2 != 0) {
+            // store one power in acc:
+            // i^(2n+1) -> i*i^2n
+            id_power->apply(acc.get(), tmp.get());
+            std::swap(acc, tmp);
+            i--;
+        }
+        // square id_power: i^2n -> (i^2)^n
+        id_power->apply(id_power.get(), tmp.get());
         std::swap(id_power, tmp);
     }
-    // finally compute id^(n-1) * mtx
-    id_power->apply(mtx.get(), tmp.get());
+    // combine acc and id_power again
+    id_power->apply(acc.get(), tmp.get());
     return {std::move(tmp)};
 }
 
