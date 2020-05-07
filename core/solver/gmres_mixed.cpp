@@ -50,7 +50,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/gmres_mixed_kernels.hpp"
 
 
+// #define TIMING 1
+
+
+#ifdef TIMING
 using double_seconds = std::chrono::duration<double>;
+#endif
 
 
 namespace gko {
@@ -161,7 +166,11 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     auto after_preconditioner =
         matrix::Dense<ValueType>::create_with_config_of(dense_x);
 
+#ifdef TIMING
     auto start = std::chrono::steady_clock::now();
+    auto time_SPMV = start - start;
+    auto time_STEP1 = start - start;
+#endif
 
     while (true) {
         ++total_iter;
@@ -220,17 +229,29 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
         auto buffer_iter = buffer->create_submatrix(
             span{0, restart_iter + 2}, span{0, dense_b->get_size()[1]});
 
+#ifdef TIMING
+        auto t_aux_1 = std::chrono::steady_clock::now();
+#endif
         // Start of arnoldi
         system_matrix_->apply(preconditioned_vector.get(),
                               next_krylov_basis.get());
         // next_krylov_basis = A * preconditioned_vector
+#ifdef TIMING
+        time_SPMV += std::chrono::steady_clock::now() - t_aux_1;
+#endif
 
+#ifdef TIMING
+        auto t_aux_2 = std::chrono::steady_clock::now();
+#endif
         exec->run(gmres_mixed::make_step_1(
             next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
             residual_norm.get(), residual_norm_collection.get(),
             krylov_bases.get(), hessenberg_iter.get(), buffer_iter.get(),
             b_norm.get(), arnoldi_norm.get(), restart_iter, &final_iter_nums,
             &stop_status, &reorth_status, &num_reorth));
+#ifdef TIMING
+        time_STEP1 += std::chrono::steady_clock::now() - t_aux_2;
+#endif
         // for i in 0:restart_iter
         //     hessenberg(restart_iter, i) = next_krylov_basis' *
         //     krylov_bases(:, i) next_krylov_basis  -= hessenberg(restart_iter,
@@ -259,6 +280,9 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     }
 
     // Solve x
+#ifdef TIMING
+    auto t_aux_3 = std::chrono::steady_clock::now();
+#endif
     auto krylov_bases_small = krylov_bases->create_submatrix(
         span{0, system_matrix_->get_size()[0]},
         span{0, dense_b->get_size()[1] * (restart_iter + 1)});
@@ -270,21 +294,44 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
         residual_norm_collection.get(), krylov_bases_small.get(),
         hessenberg_small.get(), y.get(), before_preconditioner.get(),
         &final_iter_nums));
+#ifdef TIMING
+    auto time_STEP2 = std::chrono::steady_clock::now() - t_aux_3;
+#endif
     // Solve upper triangular.
     // y = hessenberg \ residual_norm_collection
 
+#ifdef TIMING
+    auto t_aux_4 = std::chrono::steady_clock::now();
+#endif
     get_preconditioner()->apply(before_preconditioner.get(),
                                 after_preconditioner.get());
     dense_x->add_scaled(one_op.get(), after_preconditioner.get());
+#ifdef TIMING
+    auto time_SOLVEX = std::chrono::steady_clock::now() - t_aux_4;
+#endif
     // Solve x
     // x = x + get_preconditioner() * krylov_bases * y
 
+#ifdef TIMING
     auto time = std::chrono::steady_clock::now() - start;
     std::cout << "total_iter = " << total_iter << std::endl;
     std::cout << "time = "
               << std::chrono::duration_cast<double_seconds>(time).count()
               << std::endl;
+    std::cout << "time_SPMV = "
+              << std::chrono::duration_cast<double_seconds>(time_SPMV).count()
+              << std::endl;
+    std::cout << "time_STEP1 = "
+              << std::chrono::duration_cast<double_seconds>(time_STEP1).count()
+              << std::endl;
+    std::cout << "time_STEP2 = "
+              << std::chrono::duration_cast<double_seconds>(time_STEP2).count()
+              << std::endl;
+    std::cout << "time_SOLVEX = "
+              << std::chrono::duration_cast<double_seconds>(time_SOLVEX).count()
+              << std::endl;
     write(std::cout, lend(residual_norm));
+#endif
 }
 
 
