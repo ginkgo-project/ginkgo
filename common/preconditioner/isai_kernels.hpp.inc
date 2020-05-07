@@ -146,7 +146,7 @@ __forceinline__ __device__ void generic_generate(
         // Write back:
         if (local_id < i_row_size) {
             const auto idx = i_row_begin + local_id;
-            if (gko::isfinite(rhs)) {
+            if (is_finite(rhs)) {
                 i_values[idx] = rhs;
             } else {
                 i_values[idx] = i_col_idxs[idx] == row ? one<ValueType>()
