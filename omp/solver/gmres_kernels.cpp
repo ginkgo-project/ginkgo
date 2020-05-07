@@ -87,8 +87,8 @@ void finish_arnoldi(size_type num_rows, matrix::Dense<ValueType> *krylov_bases,
             }
         }
         // for i in 1:iter
-        //     hessenberg(iter, i) = krylov_bases' * krylov_bases(:, i)
-        //     krylov_bases  -= hessenberg(iter, i) * krylov_bases(:, i)
+        //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
+        //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
 
         ValueType hessenberg_iter_entry = zero<ValueType>();
@@ -100,14 +100,13 @@ void finish_arnoldi(size_type num_rows, matrix::Dense<ValueType> *krylov_bases,
                 krylov_bases->at(j + next_krylov_rowoffset, i);
         }
         hessenberg_iter->at(iter + 1, i) = sqrt(hessenberg_iter_entry);
-// hessenberg(iter, iter + 1) = norm(krylov_bases)
+// hessenberg(iter + 1, iter) = norm(krylov_bases)
 #pragma omp parallel for
         for (size_type j = 0; j < num_rows; ++j) {
             krylov_bases->at(j + next_krylov_rowoffset, i) /=
                 hessenberg_iter->at(iter + 1, i);
         }
-        // krylov_bases /= hessenberg(iter, iter + 1)
-        // krylov_bases(:, iter + 1) = krylov_bases
+        // next_krylov_basis /= hessenberg(iter, iter + 1)
         // End of arnoldi
     }
 }
@@ -129,9 +128,8 @@ void calculate_sin_and_cos(matrix::Dense<ValueType> *givens_sin,
         const auto hypotenuse =
             scale * sqrt(abs(this_hess / scale) * abs(this_hess / scale) +
                          abs(next_hess / scale) * abs(next_hess / scale));
-        givens_cos->at(iter, rhs) = abs(this_hess) / hypotenuse;
-        givens_sin->at(iter, rhs) =
-            this_hess / abs(this_hess) * conj(next_hess) / hypotenuse;
+        givens_cos->at(iter, rhs) = conj(this_hess) / hypotenuse;
+        givens_sin->at(iter, rhs) = conj(next_hess) / hypotenuse;
     }
 }
 
@@ -151,13 +149,13 @@ void givens_rotation(matrix::Dense<ValueType> *givens_sin,
             auto temp = givens_cos->at(j, i) * hessenberg_iter->at(j, i) +
                         givens_sin->at(j, i) * hessenberg_iter->at(j + 1, i);
             hessenberg_iter->at(j + 1, i) =
-                -givens_sin->at(j, i) * hessenberg_iter->at(j, i) +
-                givens_cos->at(j, i) * hessenberg_iter->at(j + 1, i);
+                -conj(givens_sin->at(j, i)) * hessenberg_iter->at(j, i) +
+                conj(givens_cos->at(j, i)) * hessenberg_iter->at(j + 1, i);
             hessenberg_iter->at(j, i) = temp;
             // temp             =  cos(j)*hessenberg(j) +
             //                     sin(j)*hessenberg(j+1)
-            // hessenberg(j+1)  = -sin(j)*hessenberg(j) +
-            //                     cos(j)*hessenberg(j+1)
+            // hessenberg(j+1)  = -conj(sin(j))*hessenberg(j) +
+            //                     conj(cos(j))*hessenberg(j+1)
             // hessenberg(j)    =  temp;
         }
 
@@ -168,7 +166,7 @@ void givens_rotation(matrix::Dense<ValueType> *givens_sin,
             givens_sin->at(iter, i) * hessenberg_iter->at(iter + 1, i);
         hessenberg_iter->at(iter + 1, i) = zero<ValueType>();
         // hessenberg(iter)   = cos(iter)*hessenberg(iter) +
-        //                      sin(iter)*hessenberg(iter)
+        //                      sin(iter)*hessenberg(iter + 1)
         // hessenberg(iter+1) = 0
     }
 }
@@ -188,7 +186,8 @@ void calculate_next_residual_norm(
             continue;
         }
         residual_norm_collection->at(iter + 1, i) =
-            -givens_sin->at(iter, i) * residual_norm_collection->at(iter, i);
+            -conj(givens_sin)->at(iter, i) *
+            residual_norm_collection->at(iter, i);
         residual_norm_collection->at(iter, i) =
             givens_cos->at(iter, i) * residual_norm_collection->at(iter, i);
         residual_norm->at(0, i) =

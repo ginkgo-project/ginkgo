@@ -281,9 +281,8 @@ __device__ void calculate_sin_and_cos_kernel(
         const auto hypotenuse =
             scale * sqrt(abs(this_hess / scale) * abs(this_hess / scale) +
                          abs(next_hess / scale) * abs(next_hess / scale));
-        register_cos = abs(this_hess) / hypotenuse;
-        register_sin =
-            this_hess / abs(this_hess) * conj(next_hess) / hypotenuse;
+        register_cos = conj(this_hess) / hypotenuse;
+        register_sin = conj(next_hess) / hypotenuse;
     }
     givens_cos[iter * stride_cos + col_idx] = register_cos;
     givens_sin[iter * stride_sin + col_idx] = register_sin;
@@ -300,7 +299,7 @@ __device__ void calculate_residual_norm_kernel(
     const auto this_rnc =
         residual_norm_collection[iter * stride_residual_norm_collection +
                                  col_idx];
-    const auto next_rnc = -register_sin * this_rnc;
+    const auto next_rnc = -conj(register_sin) * this_rnc;
     residual_norm_collection[iter * stride_residual_norm_collection + col_idx] =
         register_cos * this_rnc;
     residual_norm[col_idx] = abs(next_rnc) / b_norm[col_idx];
@@ -335,7 +334,7 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
         const auto sin = givens_sin[i * stride_sin + col_idx];
         hessenberg_iter[i * stride_hessenberg + col_idx] =
             cos * this_hess + sin * next_hess;
-        this_hess = cos * next_hess - sin * this_hess;
+        this_hess = conj(cos) * next_hess - conj(sin) * this_hess;
         next_hess = hessenberg_iter[(i + 2) * stride_hessenberg + col_idx];
     }
     // for j in 0:iter - 1

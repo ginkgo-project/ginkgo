@@ -208,29 +208,29 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             restart_iter, &final_iter_nums, &stop_status));
         // final_iter_nums += 1 (unconverged)
         // next_krylov_basis is alias for (restart_iter + 1)-th krylov_bases
-        // for i in 0:restart_iter
+        // for i in 0:restart_iter(include)
         //     hessenberg(restart_iter, i) = next_krylov_basis' *
         //         krylov_bases(:, i)
         //     next_krylov_basis  -= hessenberg(restart_iter, i) *
         //         krylov_bases(:, i)
         // end
-        // hessenberg(restart_iter, restart_iter + 1) = norm(next_krylov_basis)
-        // next_krylov_basis /= hessenberg(restart_iter, restart_iter + 1)
+        // hessenberg(restart_iter+1, restart_iter) = norm(next_krylov_basis)
+        // next_krylov_basis /= hessenberg(restart_iter + 1, restart_iter)
         // End of arnoldi
         // Start apply givens rotation
-        // for j in 0:restart_iter
+        // for j in 0:restart_iter(exclude)
         //     temp             =  cos(j)*hessenberg(j) +
         //                         sin(j)*hessenberg(j+1)
-        //     hessenberg(j+1)  = -sin(j)*hessenberg(j) +
-        //                         cos(j)*hessenberg(j+1)
+        //     hessenberg(j+1)  = -conj(sin(j))*hessenberg(j) +
+        //                         conj(cos(j))*hessenberg(j+1)
         //     hessenberg(j)    =  temp;
         // end
         // Calculate sin and cos
         // this_hess = hessenberg(restart_iter)
         // next_hess = hessenberg(restart_iter+1)
         // hypotenuse = sqrt(this_hess * this_hess + next_hess * next_hess);
-        // cos = abs(this_hess) / hypotenuse;
-        // sin = cos * next_hess / this_hess
+        // cos(restart_iter) = conj(this_hess) / hypotenuse;
+        // sin(restart_iter) = conj(next_hess) / this_hess
         // hessenberg(restart_iter)   =
         //      cos(restart_iter)*hessenberg(restart_iter) +
         //      sin(restart_iter)*hessenberg(restart_iter)
@@ -238,9 +238,9 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // End apply givens rotation
         // Calculate residual norm
         // this_rnc = residual_norm_collection(restart_iter)
-        // next_rnc = -sin(restart_iter) * this_rnc
+        // next_rnc = -conj(sin(restart_iter)) * this_rnc
         // residual_norm_collection(restart_iter) = cos(restart_iter) * this_rnc
-        // residual = abs(next_rnc)/b_norm
+        // residual_norm = abs(next_rnc)/b_norm
         // residual_norm_collection(restart_iter + 1) = next_rnc
 
         restart_iter++;
