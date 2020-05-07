@@ -2,6 +2,7 @@
 This is the expected output:
 
 @code{.cpp}
+Using 5 block-Jacobi sweeps.
 Solution (x):
 %%MatrixMarket matrix array real general
 19 1
