@@ -46,6 +46,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/gmres_mixed.hpp>
 
 
+#include <iostream>
+
+
+// #define TIMING 1
+
+
+#ifdef TIMING 1
+using double_seconds = std::chrono::duration<double, std::milli>;
+#endif
+
+
 namespace gko {
 namespace kernels {
 namespace omp {
@@ -355,6 +366,9 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
         }
         arnoldi_norm->at(0, i) = nrm * eta;
         // nrmP = norm(next_krylov_basis)
+#ifdef TIMING 1
+        auto start_1 = std::chrono::steady_clock::now();
+#endif
 #pragma omp parallel for
         for (size_type k = 0; k < iter + 1; ++k) {
             ValueType hessenberg_iter_entry = zero<ValueType>();
@@ -366,9 +380,18 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
             }
             hessenberg_iter->at(k, i) = hessenberg_iter_entry;
         }
+#ifdef TIMING 1
+        auto time_1 = std::chrono::steady_clock::now() - start_1;
+        std::cout << "time_1(" << iter << ") = "
+                  << std::chrono::duration_cast<double_seconds>(time_1).count()
+                  << std::endl;
+#endif
         // for i in 1:iter
         //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
         // end
+#ifdef TIMING 1
+        auto start_2 = std::chrono::steady_clock::now();
+#endif
         for (size_type k = 0; k < iter + 1; ++k) {
 #pragma omp parallel for
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
@@ -378,6 +401,17 @@ void finish_arnoldi_CGS2(matrix::Dense<ValueType> *next_krylov_basis,
                                      next_krylov_basis->get_size()[1] * k + i);
             }
         }
+#ifdef TIMING 1
+        auto time_2 = std::chrono::steady_clock::now() - start_2;
+        std::cout << "time_2(" << iter << ") = "
+                  << std::chrono::duration_cast<double_seconds>(time_2).count()
+                  << std::endl;
+        std::cout
+            << "time_1 / time_2(" << iter << ") = "
+            << std::chrono::duration_cast<double_seconds>(time_1).count() /
+                   std::chrono::duration_cast<double_seconds>(time_2).count()
+            << std::endl;
+#endif
         // for i in 1:iter
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end

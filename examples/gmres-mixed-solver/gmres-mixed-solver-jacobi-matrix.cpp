@@ -57,8 +57,8 @@ int main(int argc, char *argv[])
     using mtx = gko::matrix::Csr<>;
     // The gko::solver::Cg is used here, but any other solver class can also be
     // used.
-    //    using gmres_mixed = gko::solver::GmresMixed<double, float>;
-    using gmres_mixed = gko::solver::GmresMixed<>;
+    using gmres_mixed = gko::solver::GmresMixed<double, float>;
+    //    using gmres_mixed = gko::solver::GmresMixed<>;
     using bj = gko::preconditioner::Jacobi<>;
 
     // Print the ginkgo version information.
@@ -115,7 +115,6 @@ int main(int argc, char *argv[])
                   << std::endl;
         std::exit(-1);
     }
-    std::cout << "index_matrix -> " << index_matrix << std::endl;
 
     // @sect3{Reading your data and transfer to the proper device.}
     // Read the matrix, right hand side and the initial solution using the @ref
@@ -129,95 +128,34 @@ int main(int argc, char *argv[])
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
     if (index_matrix > 0) {
-        double aux1, aux2;
-
-        std::cout << index_matrix << std::endl;
-        std::cout << index_matrix << " -> " << std::string(argv[index_matrix])
-                  << std::endl;
         A = share(gko::read<mtx>(std::ifstream(argv[index_matrix]), exec));
         auto sizesA = A->get_size();
-        std::cout << sizesA[0] << " - " << sizesA[1] << std::endl;
-        if (std::string(argv[1]) == "cuda") {
-            exec->get_master()->copy_from(exec.get(), 1, A->get_values(),
-                                          &aux1);
-            exec->get_master()->copy_from(
-                exec.get(), 1,
-                A->get_values() + A->get_num_stored_elements() - 1, &aux2);
-            std::cout << "A0 => " << aux1 << " - " << aux2 << std::endl;
-        } else {
-            std::cout << "A0 => " << A->get_values()[0];
-            std::cout << A->get_values()[A->get_num_stored_elements() - 1]
-                      << std::endl;
-        }
 
         double aux[sizesA[0]];
 
-        //        x = gko::read<vec>(std::ifstream("data/one.mtx"), exec);
         if (std::string(argv[1]) == "cuda") {
             x = gko::read<vec>(std::ifstream("data/one.mtx"), exec);
-            //            gko::kernels::cuda::zero_array(sizesA[1],
-            //            b->get_values()); for (int i = 0; i<sizesA[0]; i++)
-            //            aux[i] = 1.0; x->copy_from(aux);
-            exec->get_master()->copy_from(exec.get(), 1, x->get_values(),
-                                          &aux1);
-            exec->get_master()->copy_from(
-                exec.get(), 1, x->get_values() + sizesA[1] - 1, &aux2);
-            std::cout << "X0 => " << aux1 << " - " << aux2 << std::endl;
         } else {
             x = vec::create(exec, gko::dim<2>{sizesA[0], 1});
             for (int i = 0; i < sizesA[0]; i++) x->at(i) = 1.0;
-            std::cout << "X0 => " << x->at(0) << " - " << x->at(sizesA[0] - 1)
-                      << std::endl;
         }
         auto sizesx = x->get_size();
-        //        std::cout << "SIZEX -> " << sizesx[0] << " - " << sizesx[1] <<
-        //        std::endl;
 
-        //        b = gko::read<vec>(std::ifstream("data/zero.mtx"), exec);
         if (std::string(argv[1]) == "cuda") {
             b = gko::read<vec>(std::ifstream("data/zero.mtx"), exec);
-            exec->get_master()->copy_from(exec.get(), 1, b->get_values(),
-                                          &aux1);
-            exec->get_master()->copy_from(
-                exec.get(), 1, b->get_values() + sizesA[1] - 1, &aux2);
-            //            std::cout << "B0 => " << aux1 << " - " << aux2 <<
-            //            std::endl;
         } else {
             b = vec::create(exec, gko::dim<2>{sizesA[0], 1});
             for (int i = 0; i < sizesA[0]; i++) b->at(i) = 0.0;
-            //            std::cout << "B0 => " << b->at(0) << " - " <<
-            //            b->at(sizesA[0]-1) << std::endl;
         }
         auto sizesb = b->get_size();
-        //        std::cout << "SIZEB -> " << sizesb[0] << " - " << sizesb[1] <<
-        //        std::endl;
 
         A->apply(lend(x), lend(b));
-        if (std::string(argv[1]) == "cuda") {
-            exec->get_master()->copy_from(exec.get(), 1, b->get_values(),
-                                          &aux1);
-            exec->get_master()->copy_from(
-                exec.get(), 1, b->get_values() + sizesA[1] - 1, &aux2);
-            std::cout << "B1 => " << aux1 << " - " << aux2 << std::endl;
-        } else {
-            std::cout << "B1 => " << b->at(0) << " - " << b->at(sizesA[0] - 1)
-                      << std::endl;
-        }
 
-        //        x = gko::read<vec>(std::ifstream("data/zero.mtx"), exec);
         if (std::string(argv[1]) == "cuda") {
             x = gko::read<vec>(std::ifstream("data/zero.mtx"), exec);
-            exec->get_master()->copy_from(exec.get(), 1, x->get_values(),
-                                          &aux1);
-            exec->get_master()->copy_from(
-                exec.get(), 1, x->get_values() + sizesA[1] - 1, &aux2);
-            //            std::cout << "X0 => " << aux1 << " - " << aux2 <<
-            //            std::endl;
         } else {
             x = vec::create(exec, gko::dim<2>{sizesA[0], 1});
             for (int i = 0; i < sizesA[0]; i++) x->at(i) = 0.0;
-            //            std::cout << "X0 => " << x->at(0) << " - " <<
-            //            x->at(sizesA[0]-1) << std::endl;
         }
     }
     // @sect3{Creating the solver}
@@ -232,18 +170,19 @@ int main(int argc, char *argv[])
     auto solver_gen =
         gmres_mixed::build()
             .with_criteria(
-                //                gko::stop::Iteration::build().with_max_iters(20u).on(exec),
+                //    gko::stop::Iteration::build().with_max_iters(20u).on(exec),
                 gko::stop::Iteration::build()
                     .with_max_iters(A->get_size()[0])
                     .on(exec),
-                //                gko::stop::Iteration::build().with_max_iters(100000u).on(exec),
+                //    gko::stop::Iteration::build().with_max_iters(100000u).on(exec),
                 gko::stop::ResidualNormReduction<>::build()
-                    //                    .with_reduction_factor(1e-15)
-                    .with_reduction_factor(1e-12)
+                    //    .with_reduction_factor(1e-15)
+                    //    .with_reduction_factor(1e-12)
+                    .with_reduction_factor(1e-13)
                     .on(exec))
             // Add preconditioner, these 2 lines are the only
             // difference from the simple solver example
-            //            .with_preconditioner(bj::build().with_max_block_size(8u).on(exec))
+            //    .with_preconditioner(bj::build().with_max_block_size(8u).on(exec))
             .with_preconditioner(bj::build().with_max_block_size(1u).on(exec))
             .on(exec);
     // Generate the solver from the matrix. The solver factory built in the
