@@ -57,23 +57,24 @@ int main(int argc, char *argv[])
 
     // Figure out where to run the code and how many block-Jacobi sweeps to use
     std::shared_ptr<gko::Executor> exec;
-    unsigned int sweeps;
-    if (argc == 2 || std::string(argv[2]) == "reference") {
+    unsigned int sweeps = 5u;
+    if (argc == 1 || std::string(argv[1]) == "reference") {
         exec = gko::ReferenceExecutor::create();
-        sweeps = atoi(argv[1]);
-    } else if (argc == 3 && std::string(argv[2]) == "omp") {
+        sweeps = (argc == 3) ? atoi(argv[2]) : sweeps;
+    } else if ((argc == 2 || argc == 3) && std::string(argv[1]) == "omp") {
         exec = gko::OmpExecutor::create();
-        sweeps = atoi(argv[1]);
-    } else if (argc == 3 && std::string(argv[2]) == "cuda" &&
+        sweeps = (argc == 3) ? atoi(argv[2]) : sweeps;
+    } else if ((argc == 2 || argc == 3) && std::string(argv[1]) == "cuda" &&
                gko::CudaExecutor::get_num_devices() > 0) {
         exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
-        sweeps = atoi(argv[1]);
-    } else if (argc == 3 && std::string(argv[2]) == "hip" &&
+        sweeps = (argc == 3) ? atoi(argv[2]) : sweeps;
+    } else if ((argc == 2 || argc == 3) && std::string(argv[1]) == "hip" &&
                gko::HipExecutor::get_num_devices() > 0) {
         exec = gko::HipExecutor::create(0, gko::OmpExecutor::create());
-        sweeps = atoi(argv[1]);
+        sweeps = (argc == 3) ? atoi(argv[2]) : sweeps;
     } else {
-        std::cerr << "Usage: " << argv[0] << " sweeps [executor]" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " [executor] [sweeps]"
+                  << std::endl;
         std::exit(-1);
     }
 
