@@ -430,9 +430,16 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take one argument, which is replaced by the
  *                value type.
  */
+// #if defined(__CUDACC__) || defined(__HIPCC__)
+// #define GKO_INSTANTIATE_FOR_EACH_MIXED_TYPE(_macro) \
+//     template _macro(double, half);                  \
+//     template _macro(double, float);                 \
+//     template _macro(double, double)
+// #else
 #define GKO_INSTANTIATE_FOR_EACH_MIXED_TYPE(_macro) \
     template _macro(double, float);                 \
     template _macro(double, double)
+// #endif
 
 
 /**

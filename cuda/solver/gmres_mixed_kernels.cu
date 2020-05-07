@@ -57,6 +57,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 
+// #define TIMING 1
+
+
+#ifdef TIMING
+using double_seconds = std::chrono::duration<double, std::milli>;
+#endif
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {
@@ -524,17 +532,22 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
         as_cuda_type(arnoldi_norm->get_values()), 0, as_cuda_type(stop_status));
     // nrmP = norm(next_krylov_basis
+#ifdef TIMING
+    exec->synchronize();
+    auto start_1 = std::chrono::steady_clock::now();
+#endif
     /*
         for (size_type k = 0; k < iter + 1; ++k) {
-            components::fill_array(exec, hessenberg_iter->get_values() + k *
-       stride_hessenberg, dim_size[1], zero<ValueType>());
+            components::fill_array(
+                exec, hessenberg_iter->get_values() + k * stride_hessenberg,
+                dim_size[1], zero<ValueType>());
             multidot_kernel<<<grid_size, block_size>>>(
                 k, dim_size[0], dim_size[1],
                 as_cuda_type(next_krylov_basis->get_const_values()),
                 stride_next_krylov,
-       as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
-       as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
-       as_cuda_type(stop_status));
+                as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
+                as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
+                as_cuda_type(stop_status));
         }
     */
     /*
@@ -544,6 +557,7 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
             zero<ValueType>());
     }
     */
+    /* */
     zero_matrix(iter + 1, dim_size[1], stride_hessenberg,
                 hessenberg_iter->get_values());
     multidot_kernel_num_iters<<<grid_size, block_size>>>(
@@ -552,9 +566,22 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
         as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
         as_cuda_type(stop_status));
+    /* */
+#ifdef TIMING
+    exec->synchronize();
+    auto time_1 = std::chrono::steady_clock::now() - start_1;
+    std::cout << "time_1(" << iter << ") = "
+              << std::chrono::duration_cast<double_seconds>(time_1).count()
+              << std::endl;
+#endif
     // for i in 1:iter
     //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
     // end
+#ifdef TIMING
+    exec->synchronize();
+    auto start_2 = std::chrono::steady_clock::now();
+#endif
+    /*
     for (size_type k = 0; k < iter + 1; ++k) {
         update_next_krylov_kernel<default_block_size>
             <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
@@ -566,35 +593,88 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(hessenberg_iter->get_const_values()),
                 stride_hessenberg, as_cuda_type(stop_status));
     }
+    */
+    update_next_krylov_kernel_num_iters<default_block_size>
+        <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
+           default_block_size>>>(
+            iter + 1, dim_size[0], dim_size[1],
+            as_cuda_type(next_krylov_basis->get_values()), stride_next_krylov,
+            as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
+            as_cuda_type(hessenberg_iter->get_const_values()),
+            stride_hessenberg, as_cuda_type(stop_status));
+#ifdef TIMING
+    exec->synchronize();
+    auto time_2 = std::chrono::steady_clock::now() - start_2;
+    std::cout << "time_2(" << iter << ") = "
+              << std::chrono::duration_cast<double_seconds>(time_2).count()
+              << std::endl;
+    std::cout << "time_1 / time_2(" << iter << ") = "
+              << std::chrono::duration_cast<double_seconds>(time_1).count() /
+                     std::chrono::duration_cast<double_seconds>(time_2).count()
+              << std::endl;
+#endif
     // for i in 1:iter
     //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
     // end
     components::fill_array(exec, arnoldi_norm->get_values() + dim_size[1],
                            dim_size[1], zero<ValueType>());
+#ifdef TIMING
+    exec->synchronize();
+    auto start_3 = std::chrono::steady_clock::now();
+#endif
     multidot_kernel<<<grid_size, block_size>>>(
         0, dim_size[0], dim_size[1],
         as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
         as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
         as_cuda_type(arnoldi_norm->get_values() + dim_size[1]), 0,
         as_cuda_type(stop_status));
+#ifdef TIMING
+    exec->synchronize();
+    auto time_3 = std::chrono::steady_clock::now() - start_3;
+    std::cout << "time_3(" << iter << ") = "
+              << std::chrono::duration_cast<double_seconds>(time_3).count()
+              << std::endl;
+#endif
     // nrmN = norm(next_krylov_basis)
     components::fill_array(exec, num_reorth->get_data(), 1, zero<size_type>());
+#ifdef TIMING
+    exec->synchronize();
+    auto start_4 = std::chrono::steady_clock::now();
+#endif
     check_arnoldi_norms<default_block_size>
         <<<ceildiv(dim_size[1], default_block_size), default_block_size>>>(
             as_cuda_type(arnoldi_norm->get_const_values()), stride_arnoldi,
             as_cuda_type(arnoldi_norm->get_const_values() + stride_arnoldi),
             stride_arnoldi, as_cuda_type(stop_status),
             as_cuda_type(reorth_status), as_cuda_type(num_reorth->get_data()));
+#ifdef TIMING
+    exec->synchronize();
+    auto time_4 = std::chrono::steady_clock::now() - start_4;
+    std::cout << "time_4(" << iter << ") = "
+              << std::chrono::duration_cast<double_seconds>(time_4).count()
+              << std::endl;
+#endif
+#ifdef TIMING
+    exec->synchronize();
+    auto start_5 = std::chrono::steady_clock::now();
+#endif
     numReorth = 0;
     exec->get_master()->copy_from(exec.get(), 1, num_reorth->get_const_data(),
                                   &numReorth);
+#ifdef TIMING
+    exec->synchronize();
+    auto time_5 = std::chrono::steady_clock::now() - start_5;
+    std::cout << "time_5(" << iter << ") = "
+              << std::chrono::duration_cast<double_seconds>(time_5).count()
+              << std::endl;
+#endif
     // numReorth <= number of next_krylov vector to be reorthogonalization
     for (size_type l = 1; (numReorth > 0) && (l < 3); l++) {
         /*
         for (size_type k = 0; k < iter + 1; ++k) {
-            components::fill_array(exec,
-                                   buffer_iter->get_values() + k *
-        stride_buffer, dim_size[1], zero<ValueType>());
+            components::fill_array(
+                exec, buffer_iter->get_values() + k * stride_buffer,
+                dim_size[1], zero<ValueType>());
             multidot_kernel<<<grid_size, block_size>>>(
                 k, dim_size[0], dim_size[1],
                 as_cuda_type(next_krylov_basis->get_const_values()),
@@ -615,6 +695,7 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
         // for i in 1:iter
         //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
         // end
+        /*
         for (size_type k = 0; k < iter + 1; ++k) {
             update_next_krylov_kernel_and_add<default_block_size><<<
                 ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
@@ -627,6 +708,17 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(buffer_iter->get_const_values()), stride_buffer,
                 as_cuda_type(stop_status), as_cuda_type(reorth_status));
         }
+        */
+        update_next_krylov_kernel_num_iters_and_add<default_block_size>
+            <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
+               default_block_size>>>(
+                iter + 1, dim_size[0], dim_size[1],
+                as_cuda_type(next_krylov_basis->get_values()),
+                stride_next_krylov,
+                as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
+                as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
+                as_cuda_type(buffer_iter->get_const_values()), stride_buffer,
+                as_cuda_type(stop_status), as_cuda_type(reorth_status));
         // for i in 1:iter
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
@@ -660,7 +752,10 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
         // numReorth <= number of next_krylov vector to be reorthogonalization
     }
 
-
+#ifdef TIMING
+    exec->synchronize();
+    auto start_6 = std::chrono::steady_clock::now();
+#endif
     update_hessenberg_2_kernel<default_block_size>
         <<<dim_size[1], default_block_size>>>(
             iter, dim_size[0], dim_size[1],
@@ -675,6 +770,13 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
             as_cuda_type(krylov_bases->get_values()), stride_krylov,
             as_cuda_type(hessenberg_iter->get_const_values()),
             stride_hessenberg, as_cuda_type(stop_status));
+#ifdef TIMING
+    exec->synchronize();
+    auto time_6 = std::chrono::steady_clock::now() - start_6;
+    std::cout << "time_6(" << iter << ") = "
+              << std::chrono::duration_cast<double_seconds>(time_6).count()
+              << std::endl;
+#endif
     // next_krylov_basis /= hessenberg(iter, iter + 1)
     // krylov_bases(:, iter + 1) = next_krylov_basis
     // End of arnoldi
