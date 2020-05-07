@@ -55,7 +55,7 @@ namespace kernel {
 
 
 template <typename T, typename FuncType>
-__device__ bool test_real_isfinite_function(FuncType isfin)
+__device__ bool test_real_is_finite_function(FuncType isfin)
 {
     constexpr T inf = gko::device_numeric_limits<T>::inf;
     constexpr T quiet_nan = NAN;
@@ -71,7 +71,7 @@ __device__ bool test_real_isfinite_function(FuncType isfin)
 
 
 template <typename ComplexType, typename FuncType>
-__device__ bool test_complex_isfinite_function(FuncType isfin)
+__device__ bool test_complex_is_finite_function(FuncType isfin)
 {
     static_assert(gko::is_complex_s<ComplexType>::value,
                   "Template type must be a complex type.");
@@ -95,24 +95,18 @@ __device__ bool test_complex_isfinite_function(FuncType isfin)
 
 
 template <typename T>
-__global__ void test_real_isfinite(bool *result)
+__global__ void test_real_is_finite(bool *result)
 {
-    bool gko_isfinite = kernel::test_real_isfinite_function<T>(
-        [](T val) { return gko::isfinite(val); });
-    bool custom_isfinite = kernel::test_real_isfinite_function<T>(
-        [](T val) { return gko::detail::custom_isfinite(val); });
-    *result = gko_isfinite && custom_isfinite;
+    *result = kernel::test_real_is_finite_function<T>(
+        [](T val) { return gko::is_finite(val); });
 }
 
 
 template <typename ComplexType>
-__global__ void test_complex_isfinite(bool *result)
+__global__ void test_complex_is_finite(bool *result)
 {
-    bool gko_isfinite = kernel::test_complex_isfinite_function<ComplexType>(
-        [](ComplexType val) { return gko::isfinite(val); });
-    bool custom_isfinite = kernel::test_complex_isfinite_function<ComplexType>(
-        [](ComplexType val) { return gko::detail::custom_isfinite(val); });
-    *result = gko_isfinite && custom_isfinite;
+    *result = kernel::test_complex_is_finite_function<ComplexType>(
+        [](ComplexType val) { return gko::is_finite(val); });
 }
 
 
@@ -124,19 +118,19 @@ protected:
     {}
 
     template <typename T>
-    bool test_real_isfinite_kernel()
+    bool test_real_is_finite_kernel()
     {
         gko::Array<bool> result(cuda, 1);
-        test_real_isfinite<T><<<1, 1>>>(result.get_data());
+        test_real_is_finite<T><<<1, 1>>>(result.get_data());
         result.set_executor(ref);
         return *result.get_data();
     }
 
     template <typename T>
-    bool test_complex_isfinite_kernel()
+    bool test_complex_is_finite_kernel()
     {
         gko::Array<bool> result(cuda, 1);
-        test_complex_isfinite<T><<<1, 1>>>(result.get_data());
+        test_complex_is_finite<T><<<1, 1>>>(result.get_data());
         result.set_executor(ref);
         return *result.get_data();
     }
@@ -146,21 +140,21 @@ protected:
 };
 
 
-TEST_F(IsFinite, Float) { ASSERT_TRUE(test_real_isfinite_kernel<float>()); }
+TEST_F(IsFinite, Float) { ASSERT_TRUE(test_real_is_finite_kernel<float>()); }
 
 
-TEST_F(IsFinite, Double) { ASSERT_TRUE(test_real_isfinite_kernel<double>()); }
+TEST_F(IsFinite, Double) { ASSERT_TRUE(test_real_is_finite_kernel<double>()); }
 
 
 TEST_F(IsFinite, FloatComplex)
 {
-    ASSERT_TRUE(test_complex_isfinite_kernel<thrust::complex<float>>());
+    ASSERT_TRUE(test_complex_is_finite_kernel<thrust::complex<float>>());
 }
 
 
 TEST_F(IsFinite, DoubleComplex)
 {
-    ASSERT_TRUE(test_complex_isfinite_kernel<thrust::complex<double>>());
+    ASSERT_TRUE(test_complex_is_finite_kernel<thrust::complex<double>>());
 }
 
 

@@ -156,7 +156,7 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
                     const auto idx = i_begin + i;
                     // check for non-finite elements which should not be copied
                     // over
-                    if (gko::isfinite(new_val)) {
+                    if (is_finite(new_val)) {
                         i_vals[idx] = new_val;
                     } else {
                         // ensure the preconditioner does not prevent

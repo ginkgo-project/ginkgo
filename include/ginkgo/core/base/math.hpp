@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cmath>
 #include <complex>
 #include <cstdlib>
+#include <limits>
 
 
 #include <ginkgo/config.hpp>
@@ -261,6 +262,14 @@ struct increase_precision_impl<float> {
 template <>
 struct increase_precision_impl<half> {
     using type = float;
+};
+
+
+template <typename T>
+struct infinity_impl {
+    // CUDA doesn't allow us to call std::numeric_limits functions
+    // so we need to store the value instead.
+    static constexpr auto value = std::numeric_limits<T>::infinity();
 };
 
 
@@ -769,22 +778,24 @@ constexpr T get_superior_power(const T &base, const T &limit,
 }
 
 
-#if !(defined(__CUDA_ARCH__))
-
-
-// Since a lot of compiler in combination with CUDA seem to have difficulties
-// distinguishing between the CUDA `isfinite` and the `std::isfinite` when
-// it is put into the `gko` namespace, only enable `std::isfinite` when
-// compiling host code.
+/**
+ * Checks if a floating point number is finite, meaning it is
+ * neither +/- infinity nor NaN.
+ *
+ * @tparam T  type of the value to check
+ *
+ * @param value  value to check
+ *
+ * @return `true` if the value is finite, meaning it are neither
+ *         +/- infinity nor NaN.
+ */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<!is_complex_s<T>::value, bool>
-isfinite(const T &value)
+is_finite(const T &value)
 {
-    using std::isfinite;
-    return isfinite(value);
+    constexpr T infinity{detail::infinity_impl<T>::value};
+    return abs(value) < infinity;
 }
-
-#endif  // defined(__CUDA_ARCH__)
 
 
 /**
@@ -795,14 +806,14 @@ isfinite(const T &value)
  *
  * @param value  complex value to check
  *
- * returns `true` if both components of the given value are finite, meaning
+ * @return `true` if both components of the given value are finite, meaning
  *         they are neither +/- infinity nor NaN.
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<is_complex_s<T>::value, bool>
-isfinite(const T &value)
+is_finite(const T &value)
 {
-    return isfinite(value.real()) && isfinite(value.imag());
+    return is_finite(value.real()) && is_finite(value.imag());
 }
 
 
