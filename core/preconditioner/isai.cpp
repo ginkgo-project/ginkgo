@@ -115,8 +115,7 @@ std::shared_ptr<const Csr> convert_to_csr_and_sort(
  */
 template <typename Csr>
 std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor> &exec,
-                                     std::shared_ptr<const Csr> mtx, int power,
-                                     bool lower)
+                                     std::shared_ptr<const Csr> mtx, int power)
 {
     GKO_ASSERT_EQ(power >= 1, true);
     if (power == 1) {
@@ -148,9 +147,8 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     GKO_ASSERT_IS_SQUARE_MATRIX(input);
     auto exec = this->get_executor();
     auto to_invert = convert_to_csr_and_sort<Csr>(exec, input, skip_sorting);
-    auto inverted = extend_sparsity(exec, to_invert, power, true);
+    auto inverted = extend_sparsity(exec, to_invert, power);
     auto num_rows = inverted->get_size()[0];
-    auto nnz = inverted->get_num_stored_elements();
     auto is_lower = IsaiType == isai_type::lower;
 
     // This stores the beginning of the RHS for the sparse block associated with
