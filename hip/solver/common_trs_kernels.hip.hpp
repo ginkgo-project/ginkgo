@@ -159,10 +159,12 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
 
                 // allocate workspace
                 if (hip_solve_struct->factor_work_vec != nullptr) {
-                    exec->free(hip_solve_struct->factor_work_vec);
+                    exec->get_mem_space()->free(
+                        hip_solve_struct->factor_work_vec);
                 }
                 hip_solve_struct->factor_work_vec =
-                    exec->alloc<void *>(hip_solve_struct->factor_work_size);
+                    exec->get_mem_space()->alloc<void *>(
+                        hip_solve_struct->factor_work_size);
 
                 hipsparse::csrsv2_analysis(
                     handle, HIPSPARSE_OPERATION_NON_TRANSPOSE,

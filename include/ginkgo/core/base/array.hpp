@@ -419,7 +419,8 @@ public:
     {
         if (this->exec_ == nullptr) {
             this->exec_ = other.get_executor();
-            this->data_ = data_manager{nullptr, default_deleter{this->exec_}};
+            this->data_ = data_manager{
+                nullptr, default_deleter{this->exec_->get_mem_space()}};
         }
         if (other.get_executor() == nullptr) {
             this->clear();

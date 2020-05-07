@@ -491,7 +491,7 @@ public:
     template <typename T>
     void copy(size_type num_elems, const T *src_ptr, T *dest_ptr) const
     {
-        this->get_mem_space()->copy_from(this->get_mem_space(), num_elems,
+        this->get_mem_space()->copy_from(this->get_mem_space().get(), num_elems,
                                          src_ptr, dest_ptr);
     }
 
@@ -508,8 +508,8 @@ public:
     T copy_val_to_host(const T *ptr) const
     {
         T out{};
-        this->get_master()->get_mem_space()->copy_from(this->get_mem_space(), 1,
-                                                       ptr, &out);
+        this->get_master()->get_mem_space()->copy_from(
+            this->get_mem_space().get(), 1, ptr, &out);
         return out;
     }
 
@@ -990,7 +990,7 @@ protected:
                  std::shared_ptr<Executor> master)
         : device_id_(device_id),
           master_(master),
-          num_cores_per_sm_(0),
+          num_warps_per_sm_(0),
           num_multiprocessor_(0),
           major_(0),
           minor_(0),
