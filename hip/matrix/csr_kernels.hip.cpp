@@ -462,69 +462,107 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
             const matrix::Csr<ValueType, IndexType> *b,
             matrix::Csr<ValueType, IndexType> *c)
 {
-    if (hipsparse::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_hipsparse_handle();
-        hipsparse::pointer_mode_guard pm_guard(handle);
-        auto a_descr = hipsparse::create_mat_descr();
-        auto b_descr = hipsparse::create_mat_descr();
-        auto c_descr = hipsparse::create_mat_descr();
-        auto d_descr = hipsparse::create_mat_descr();
-        auto info = hipsparse::create_spgemm_info();
+    auto a_vals = a->get_const_values();
+    auto a_row_ptrs = a->get_const_row_ptrs();
+    auto a_col_idxs = a->get_const_col_idxs();
+    auto b_vals = b->get_const_values();
+    auto b_row_ptrs = b->get_const_row_ptrs();
+    auto b_col_idxs = b->get_const_col_idxs();
+    auto c_row_ptrs = c->get_row_ptrs();
+    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+    auto &c_col_idxs_array = c_builder.get_col_idx_array();
+    auto &c_vals_array = c_builder.get_value_array();
 
-        auto alpha = one<ValueType>();
-        auto a_nnz = static_cast<IndexType>(a->get_num_stored_elements());
-        auto a_vals = a->get_const_values();
-        auto a_row_ptrs = a->get_const_row_ptrs();
-        auto a_col_idxs = a->get_const_col_idxs();
-        auto b_nnz = static_cast<IndexType>(b->get_num_stored_elements());
-        auto b_vals = b->get_const_values();
-        auto b_row_ptrs = b->get_const_row_ptrs();
-        auto b_col_idxs = b->get_const_col_idxs();
-        auto null_value = static_cast<ValueType *>(nullptr);
-        auto null_index = static_cast<IndexType *>(nullptr);
-        auto zero_nnz = IndexType{};
-        auto m = static_cast<IndexType>(a->get_size()[0]);
-        auto n = static_cast<IndexType>(b->get_size()[1]);
-        auto k = static_cast<IndexType>(a->get_size()[1]);
-        auto c_row_ptrs = c->get_row_ptrs();
-        matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-        auto &c_col_idxs_array = c_builder.get_col_idx_array();
-        auto &c_vals_array = c_builder.get_value_array();
+    if (a->get_strategy()->get_name() == "sparselib" ||
+        a->get_strategy()->get_name() == "cusparse") {
+        if (hipsparse::is_supported<ValueType, IndexType>::value) {
+            auto handle = exec->get_hipsparse_handle();
+            hipsparse::pointer_mode_guard pm_guard(handle);
+            auto a_descr = hipsparse::create_mat_descr();
+            auto b_descr = hipsparse::create_mat_descr();
+            auto c_descr = hipsparse::create_mat_descr();
+            auto d_descr = hipsparse::create_mat_descr();
+            auto info = hipsparse::create_spgemm_info();
 
-        // allocate buffer
-        size_type buffer_size{};
-        hipsparse::spgemm_buffer_size(
-            handle, m, n, k, &alpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
-            b_descr, b_nnz, b_row_ptrs, b_col_idxs, null_value, d_descr,
-            zero_nnz, null_index, null_index, info, buffer_size);
-        Array<char> buffer_array(exec, buffer_size);
-        auto buffer = buffer_array.get_data();
+            auto alpha = one<ValueType>();
+            auto a_nnz = static_cast<IndexType>(a->get_num_stored_elements());
+            auto b_nnz = static_cast<IndexType>(b->get_num_stored_elements());
+            auto null_value = static_cast<ValueType *>(nullptr);
+            auto null_index = static_cast<IndexType *>(nullptr);
+            auto zero_nnz = IndexType{};
+            auto m = static_cast<IndexType>(a->get_size()[0]);
+            auto n = static_cast<IndexType>(b->get_size()[1]);
+            auto k = static_cast<IndexType>(a->get_size()[1]);
 
-        // count nnz
-        IndexType c_nnz{};
-        hipsparse::spgemm_nnz(
-            handle, m, n, k, a_descr, a_nnz, a_row_ptrs, a_col_idxs, b_descr,
-            b_nnz, b_row_ptrs, b_col_idxs, d_descr, zero_nnz, null_index,
-            null_index, c_descr, c_row_ptrs, &c_nnz, info, buffer);
+            // allocate buffer
+            size_type buffer_size{};
+            hipsparse::spgemm_buffer_size(
+                handle, m, n, k, &alpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
+                b_descr, b_nnz, b_row_ptrs, b_col_idxs, null_value, d_descr,
+                zero_nnz, null_index, null_index, info, buffer_size);
+            Array<char> buffer_array(exec, buffer_size);
+            auto buffer = buffer_array.get_data();
 
-        // accumulate non-zeros
+            // count nnz
+            IndexType c_nnz{};
+            hipsparse::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
+                                  a_col_idxs, b_descr, b_nnz, b_row_ptrs,
+                                  b_col_idxs, d_descr, zero_nnz, null_index,
+                                  null_index, c_descr, c_row_ptrs, &c_nnz, info,
+                                  buffer);
+
+            // accumulate non-zeros
+            c_col_idxs_array.resize_and_reset(c_nnz);
+            c_vals_array.resize_and_reset(c_nnz);
+            auto c_col_idxs = c_col_idxs_array.get_data();
+            auto c_vals = c_vals_array.get_data();
+            hipsparse::spgemm(handle, m, n, k, &alpha, a_descr, a_nnz, a_vals,
+                              a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
+                              b_row_ptrs, b_col_idxs, null_value, d_descr,
+                              zero_nnz, null_value, null_index, null_index,
+                              c_descr, c_vals, c_row_ptrs, c_col_idxs, info,
+                              buffer);
+
+            hipsparse::destroy_spgemm_info(info);
+            hipsparse::destroy(d_descr);
+            hipsparse::destroy(c_descr);
+            hipsparse::destroy(b_descr);
+            hipsparse::destroy(a_descr);
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
+    } else {
+        Array<IndexType> tmp_indices{exec, a->get_num_stored_elements() * 3};
+        Array<ValueType> tmp_values{exec, a->get_num_stored_elements()};
+        auto tmp1 = tmp_indices.get_data();
+        auto tmp2 = tmp1 + a->get_num_stored_elements();
+        auto tmp3 = tmp2 + a->get_num_stored_elements();
+        auto tmpv = tmp_values.get_data();
+        auto num_rows = a->get_size()[0];
+
+        auto num_blocks = ceildiv(num_rows, default_block_size);
+
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(sequential_spgemm_count), num_blocks,
+                           default_block_size, 0, 0, num_rows, a_row_ptrs,
+                           a_col_idxs, b_row_ptrs, b_col_idxs, tmp1, tmp2, tmp3,
+                           c_row_ptrs);
+
+        components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
+
+        auto c_nnz = static_cast<size_type>(
+            exec->copy_val_to_host(c_row_ptrs + num_rows));
+
         c_col_idxs_array.resize_and_reset(c_nnz);
         c_vals_array.resize_and_reset(c_nnz);
         auto c_col_idxs = c_col_idxs_array.get_data();
         auto c_vals = c_vals_array.get_data();
-        hipsparse::spgemm(handle, m, n, k, &alpha, a_descr, a_nnz, a_vals,
-                          a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
-                          b_row_ptrs, b_col_idxs, null_value, d_descr, zero_nnz,
-                          null_value, null_index, null_index, c_descr, c_vals,
-                          c_row_ptrs, c_col_idxs, info, buffer);
 
-        hipsparse::destroy_spgemm_info(info);
-        hipsparse::destroy(d_descr);
-        hipsparse::destroy(c_descr);
-        hipsparse::destroy(b_descr);
-        hipsparse::destroy(a_descr);
-    } else {
-        GKO_NOT_IMPLEMENTED;
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(sequential_spgemm), num_blocks,
+                           default_block_size, 0, 0, num_rows, a_row_ptrs,
+                           a_col_idxs, as_hip_type(a_vals), b_row_ptrs,
+                           b_col_idxs, as_hip_type(b_vals), tmp1, tmp2,
+                           as_hip_type(tmpv), tmp3, c_row_ptrs, c_col_idxs,
+                           as_hip_type(c_vals));
     }
 }
 

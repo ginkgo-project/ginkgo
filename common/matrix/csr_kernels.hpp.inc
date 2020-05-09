@@ -1089,3 +1089,181 @@ __global__ __launch_bounds__(default_block_size) void inv_symm_permute_kernel(
         out_vals[out_begin + i] = in_vals[in_begin + i];
     }
 }
+
+
+template <typename T>
+__device__ void swap(T &a, T &b)
+{
+    auto tmp = a;
+    a = b;
+    b = tmp;
+}
+
+
+template <typename IndexType>
+__device__ void sift_down(IndexType *begins, IndexType *cols, IndexType *ends,
+                          IndexType pos, IndexType size)
+{
+    while (2 * pos + 1 < size) {
+        const auto lchild = 2 * pos + 1;
+        const auto rchild = min(2 * pos + 2, size - 1);
+        const auto lcol = cols[lchild];
+        const auto rcol = cols[rchild];
+        if (min(lcol, rcol) >= cols[pos]) {
+            break;
+        }
+        const auto min_pos = rcol < lcol ? rchild : lchild;
+        swap(begins[min_pos], begins[pos]);
+        swap(cols[min_pos], cols[pos]);
+        swap(ends[min_pos], ends[pos]);
+        pos = min_pos;
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__device__ void sift_down(IndexType *begins, IndexType *cols, ValueType *vals,
+                          IndexType *ends, IndexType pos, IndexType size)
+{
+    while (2 * pos + 1 < size) {
+        const auto lchild = 2 * pos + 1;
+        const auto rchild = min(2 * pos + 2, size - 1);
+        const auto lcol = cols[lchild];
+        const auto rcol = cols[rchild];
+        if (min(lcol, rcol) >= cols[pos]) {
+            break;
+        }
+        const auto min_pos = rcol < lcol ? rchild : lchild;
+        swap(begins[min_pos], begins[pos]);
+        swap(cols[min_pos], cols[pos]);
+        swap(vals[min_pos], vals[pos]);
+        swap(ends[min_pos], ends[pos]);
+        pos = min_pos;
+    }
+}
+
+
+__global__ __launch_bounds__(default_block_size) void sequential_spgemm_count(
+    size_type num_rows, const IndexType *__restrict__ a_row_ptrs,
+    const IndexType *__restrict__ a_col_idxs,
+    const IndexType *__restrict__ b_row_ptrs,
+    const IndexType *__restrict__ b_col_idxs, IndexType *__restrict__ begin_tmp,
+    IndexType *__restrict__ col_tmp, IndexType *__restrict__ end_tmp,
+    IndexType *__restrict__ out_nnz)
+{
+    auto row = thread::get_thread_id_flat();
+    if (row >= num_rows) {
+        return;
+    }
+
+    const auto a_begin = a_row_ptrs[row];
+    const auto a_end = a_row_ptrs[row + 1];
+    const auto a_size = a_end - a_begin;
+    if (a_size == 0) {
+        out_nnz[row] = 0;
+        return;
+    }
+    const auto a_cols = a_col_idxs + a_begin;
+    constexpr auto sentinel = device_numeric_limits<IndexType>::max;
+    // fill the heap
+    auto heap_begin = begin_tmp + a_begin;
+    auto heap_col = col_tmp + a_begin;
+    auto heap_end = end_tmp + a_begin;
+    for (IndexType i{}; i < a_size; ++i) {
+        const auto b_row = a_cols[i];
+        const auto b_begin = b_row_ptrs[b_row];
+        const auto b_end = b_row_ptrs[b_row + 1];
+        heap_begin[i] = b_begin;
+        heap_col[i] = b_begin < b_end ? b_col_idxs[b_begin] : sentinel;
+        heap_end[i] = b_end;
+    }
+    // build the heap
+    for (auto i = (a_size - 1) / 2; i >= 0; --i) {
+        sift_down(heap_begin, heap_col, heap_end, i, a_size);
+    }
+    // pop until empty
+    auto c_col = sentinel;
+    IndexType c_nnz{};
+    IndexType b_col{};
+    while ((b_col = heap_col[0]) != sentinel) {
+        c_nnz += b_col != c_col;
+        c_col = b_col;
+        auto b_nz = ++heap_begin[0];
+        auto b_end = heap_end[0];
+        heap_col[0] = b_nz < b_end ? b_col_idxs[b_nz] : sentinel;
+        sift_down(heap_begin, heap_col, heap_end, IndexType{}, a_size);
+    }
+
+    out_nnz[row] = c_nnz;
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void sequential_spgemm(
+    size_type num_rows, const IndexType *__restrict__ a_row_ptrs,
+    const IndexType *__restrict__ a_col_idxs,
+    const ValueType *__restrict__ a_vals,
+    const IndexType *__restrict__ b_row_ptrs,
+    const IndexType *__restrict__ b_col_idxs,
+    const ValueType *__restrict__ b_vals, IndexType *__restrict__ begin_tmp,
+    IndexType *__restrict__ col_tmp, ValueType *__restrict__ val_tmp,
+    IndexType *__restrict__ end_tmp, const IndexType *__restrict__ c_row_ptrs,
+    IndexType *__restrict__ c_col_idxs, ValueType *__restrict__ c_vals)
+{
+    auto row = thread::get_thread_id_flat();
+    if (row >= num_rows) {
+        return;
+    }
+
+    const auto a_begin = a_row_ptrs[row];
+    const auto a_end = a_row_ptrs[row + 1];
+    const auto a_size = a_end - a_begin;
+    if (a_size == 0) {
+        return;
+    }
+    const auto a_cols = a_col_idxs + a_begin;
+    constexpr auto sentinel = device_numeric_limits<IndexType>::max;
+    // fill the heap
+    auto heap_begin = begin_tmp + a_begin;
+    auto heap_col = col_tmp + a_begin;
+    auto heap_val = val_tmp + a_begin;
+    auto heap_end = end_tmp + a_begin;
+    for (IndexType i{}; i < a_size; ++i) {
+        const auto b_row = a_cols[i];
+        const auto b_begin = b_row_ptrs[b_row];
+        const auto b_end = b_row_ptrs[b_row + 1];
+        heap_begin[i] = b_begin;
+        heap_col[i] = b_begin < b_end ? b_col_idxs[b_begin] : sentinel;
+        heap_val[i] = a_vals[a_begin + i];
+        heap_end[i] = b_end;
+    }
+    // build the heap
+    for (auto i = (a_size - 1) / 2; i >= 0; --i) {
+        sift_down(heap_begin, heap_col, heap_val, heap_end, i, a_size);
+    }
+    // pop until empty
+    IndexType b_col{};
+    auto c_col = heap_col[0];
+    auto c_nz = c_row_ptrs[row];
+    auto c_val = zero<ValueType>();
+    while ((b_col = heap_col[0]) != sentinel) {
+        auto a_val = heap_val[0];
+        auto b_nz = heap_begin[0];
+        auto b_end = heap_end[0];
+        if (b_col != c_col) {
+            c_col_idxs[c_nz] = c_col;
+            c_vals[c_nz] = c_val;
+            c_col = b_col;
+            ++c_nz;
+            c_val = zero<ValueType>();
+        }
+        c_val += a_val * b_vals[b_nz];
+        ++b_nz;
+        heap_begin[0] = b_nz;
+        heap_col[0] = b_nz < b_end ? b_col_idxs[b_nz] : sentinel;
+        sift_down(heap_begin, heap_col, heap_val, heap_end, IndexType{},
+                  a_size);
+    }
+    c_col_idxs[c_nz] = c_col;
+    c_vals[c_nz] = c_val;
+}
