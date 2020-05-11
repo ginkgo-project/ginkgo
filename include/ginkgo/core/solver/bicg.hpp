@@ -88,7 +88,7 @@ public:
     /**
      * Return true as iterative solvers use the data in x as an initial guess.
      */
-    virtual bool apply_uses_initial_guess() const { return true; }
+    bool apply_uses_initial_guess() const override { return true; }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
