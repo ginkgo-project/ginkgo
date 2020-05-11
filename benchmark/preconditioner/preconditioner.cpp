@@ -62,7 +62,7 @@ DEFINE_double(fill_limit, 2.0, "The fill-in limit used in ParILUT");
 
 DEFINE_string(preconditioners, "jacobi,parilu,parilut,ilu",
               "A comma-separated list of preconditioners to run."
-              "Supported values are: jacobi, parilu, parilut, ilu");
+              "Supported values are: jacobi, parict, parilu, parilut, ilu");
 
 DEFINE_string(storage_optimization, "0,0",
               "Defines the kind of storage optimization to perform on "
@@ -107,6 +107,18 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_accuracy(FLAGS_accuracy)
                  .on(exec);
          }},
+        {"parict",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto ict_fact = std::shared_ptr<gko::LinOpFactory>(
+                 gko::factorization::ParIct<etype>::build()
+                     .with_iterations(FLAGS_num_iterations)
+                     .with_approximate_select(FLAGS_approx_select)
+                     .with_fill_in_limit(FLAGS_fill_limit)
+                     .on(exec));
+             return gko::preconditioner::Ilu<>::build()
+                 .with_factorization_factory(ict_fact)
+                 .on(exec);
+         }},
         {"parilu",
          [](std::shared_ptr<const gko::Executor> exec) {
              auto ilu_fact = std::shared_ptr<gko::LinOpFactory>(
@@ -148,6 +160,13 @@ std::string encode_parameters(const char *precond_name)
              std::ostringstream oss;
              oss << "jacobi-" << FLAGS_max_block_size << "-"
                  << FLAGS_storage_optimization;
+             return oss.str();
+         }},
+        {"parict",
+         [] {
+             std::ostringstream oss;
+             oss << "parict-" << FLAGS_num_iterations << '-'
+                 << FLAGS_approx_select << '-' << FLAGS_fill_limit;
              return oss.str();
          }},
         {"parilu",
