@@ -96,7 +96,7 @@ void Ir<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             // Use the inner solver to solve
             // A * inner_solution = residual
             // with residual as initial guess.
-            inner_solution->copy_from(residual.get());
+            inner_solution->copy_from(lend(residual));
             solver_->apply(lend(residual), lend(inner_solution));
 
             // x = x + inner_solution
