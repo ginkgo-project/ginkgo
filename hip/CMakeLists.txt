@@ -107,7 +107,12 @@ set(GINKGO_HIP_SOURCES
     factorization/ilu_kernels.hip.cpp
     factorization/factorization_kernels.hip.cpp
     factorization/par_ilu_kernels.hip.cpp
-    factorization/par_ilut_kernels.hip.cpp
+    factorization/par_ilut_select_kernel.hip.cpp
+    factorization/par_ilut_select_common.hip.cpp
+    factorization/par_ilut_approx_filter_kernel.hip.cpp
+    factorization/par_ilut_filter_kernel.hip.cpp
+    factorization/par_ilut_spgeam_kernel.hip.cpp
+    factorization/par_ilut_sweep_kernel.hip.cpp
     matrix/coo_kernels.hip.cpp
     matrix/csr_kernels.hip.cpp
     matrix/dense_kernels.hip.cpp

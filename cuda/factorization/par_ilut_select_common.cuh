@@ -30,27 +30,46 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_COMPONENTS_MERGING_HIP_HPP_
-#define GKO_HIP_COMPONENTS_MERGING_HIP_HPP_
+#ifndef GKO_CUDA_FACTORIZATION_PAR_ILUT_SELECT_COMMON_CUH_
+#define GKO_CUDA_FACTORIZATION_PAR_ILUT_SELECT_COMMON_CUH_
 
-
-#include "core/base/utils.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/components/intrinsics.hip.hpp"
-#include "hip/components/searching.hip.hpp"
-
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace cuda {
+namespace par_ilut_factorization {
 
 
-#include "common/components/merging.hpp.inc"
+constexpr auto default_block_size = 512;
+constexpr auto items_per_thread = 16;
 
 
-}  // namespace hip
+template <typename ValueType, typename IndexType>
+void ssss_count(const ValueType *values, IndexType size,
+                remove_complex<ValueType> *tree, unsigned char *oracles,
+                IndexType *partial_counts, IndexType *total_counts);
+
+
+template <typename IndexType>
+struct ssss_bucket {
+    IndexType idx;
+    IndexType begin;
+    IndexType size;
+};
+
+
+template <typename IndexType>
+ssss_bucket<IndexType> ssss_find_bucket(
+    std::shared_ptr<const DefaultExecutor> exec, IndexType *prefix_sum,
+    IndexType rank);
+
+
+}  // namespace par_ilut_factorization
+}  // namespace cuda
 }  // namespace kernels
 }  // namespace gko
 
-
-#endif  // GKO_HIP_COMPONENTS_MERGING_HIP_HPP_
+#endif  // GKO_CUDA_FACTORIZATION_PAR_ILUT_SELECT_COMMON_CUH_
