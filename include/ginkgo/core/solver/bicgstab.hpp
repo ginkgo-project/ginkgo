@@ -91,6 +91,11 @@ public:
         return system_matrix_;
     }
 
+    /**
+     * Return true as iterative solvers use the data in x as an initial guess.
+     */
+    bool apply_uses_initial_guess() const { return true; }
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
