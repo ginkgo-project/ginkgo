@@ -530,7 +530,8 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType> *arnoldi_norm, size_type iter,
             Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status,
-            Array<stopping_status> *reorth_status, Array<size_type> *num_reorth)
+            Array<stopping_status> *reorth_status, Array<size_type> *num_reorth,
+            int *num_reorth_steps, int *num_reorth_vectors)
 {
     /*
         if (Reorthogonalization) std::cout << "Reorthogonalization";

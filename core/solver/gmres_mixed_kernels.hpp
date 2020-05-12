@@ -79,7 +79,8 @@ namespace gmres_mixed {
         matrix::Dense<_type1> *arnoldi_norm, size_type iter,                  \
         Array<size_type> *final_iter_nums,                                    \
         const Array<stopping_status> *stop_status,                            \
-        Array<stopping_status> *reorth_status, Array<size_type> *num_reorth)
+        Array<stopping_status> *reorth_status, Array<size_type> *num_reorth,  \
+        int *num_reorth_steps, int *num_reorth_vectors)
 
 
 #define GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL(_type1, _type2)          \
