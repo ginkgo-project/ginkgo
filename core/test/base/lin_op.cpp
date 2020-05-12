@@ -236,6 +236,12 @@ TEST_F(EnableLinOp, ExtendedApplyCopiesBackOnlyX)
 }
 
 
+TEST_F(EnableLinOp, ApplyUsesInitialGuessReturnsFalse)
+{
+    ASSERT_FALSE(op->apply_uses_initial_guess());
+}
+
+
 template <typename T = int>
 class DummyLinOpWithFactory
     : public gko::EnableLinOp<DummyLinOpWithFactory<T>> {

@@ -165,6 +165,12 @@ TYPED_TEST(Cgs, CanBeCleared)
 }
 
 
+TYPED_TEST(Cgs, ApplyUsesInitialGuessReturnsTrue)
+{
+    ASSERT_TRUE(this->solver->apply_uses_initial_guess());
+}
+
+
 TYPED_TEST(Cgs, CanSetPreconditionerGenerator)
 {
     using Mtx = typename TestFixture::Mtx;

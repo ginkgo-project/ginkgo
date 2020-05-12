@@ -166,6 +166,12 @@ TYPED_TEST(Cg, CanBeCleared)
 }
 
 
+TYPED_TEST(Cg, ApplyUsesInitialGuessReturnsTrue)
+{
+    ASSERT_TRUE(this->solver->apply_uses_initial_guess());
+}
+
+
 TYPED_TEST(Cg, CanSetPreconditionerGenerator)
 {
     using Solver = typename TestFixture::Solver;
