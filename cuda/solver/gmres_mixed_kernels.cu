@@ -510,7 +510,8 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
                          matrix::Dense<ValueType> *arnoldi_norm, size_type iter,
                          const stopping_status *stop_status,
                          stopping_status *reorth_status,
-                         Array<size_type> *num_reorth)
+                         Array<size_type> *num_reorth, int *num_reorth_steps,
+                         int *num_reorth_vectors)
 {
     const auto stride_next_krylov = next_krylov_basis->get_stride();
     const auto stride_krylov = krylov_bases->get_stride();
@@ -521,11 +522,17 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
     auto cublas_handle = exec->get_cublas_handle();
     const dim3 grid_size(ceildiv(dim_size[1], default_dot_dim),
                          exec->get_num_multiprocessor() * 2);
+    const dim3 grid_size_num_iters(
+        ceildiv(dim_size[1] * (iter + 1), default_dot_dim),
+        exec->get_num_multiprocessor() * 2);
     const dim3 block_size(default_dot_dim, default_dot_dim);
     size_type numReorth;
 
     components::fill_array(exec, arnoldi_norm->get_values(), dim_size[1],
                            zero<ValueType>());
+    // std::cout << dim_size[0] << " - " << dim_size[1] << std::endl;
+    // std::cout << krylov_bases->get_size()[0] << " - "
+    //           << krylov_bases->get_size()[1] << std::endl;
     multidot_kernel<<<grid_size, block_size>>>(
         0, dim_size[0], dim_size[1],
         as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
@@ -536,36 +543,28 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
     exec->synchronize();
     auto start_1 = std::chrono::steady_clock::now();
 #endif
-    /*
-        for (size_type k = 0; k < iter + 1; ++k) {
-            components::fill_array(
-                exec, hessenberg_iter->get_values() + k * stride_hessenberg,
-                dim_size[1], zero<ValueType>());
-            multidot_kernel<<<grid_size, block_size>>>(
-                k, dim_size[0], dim_size[1],
-                as_cuda_type(next_krylov_basis->get_const_values()),
-                stride_next_krylov,
-                as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
-                as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
-                as_cuda_type(stop_status));
-        }
-    */
-    /*
-    for (size_type k = 0; k < iter + 1; ++k) {
-        components::fill_array(exec,
-            hessenberg_iter->get_values() + k * stride_hessenberg, dim_size[1],
-            zero<ValueType>());
-    }
-    */
     /* */
     zero_matrix(iter + 1, dim_size[1], stride_hessenberg,
                 hessenberg_iter->get_values());
+    /*
     multidot_kernel_num_iters<<<grid_size, block_size>>>(
         iter + 1, dim_size[0], dim_size[1],
         as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
         as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
         as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
         as_cuda_type(stop_status));
+    */
+    /* */
+    //    write(std::cout, krylov_bases);
+    //    write(std::cout, next_krylov_basis);
+    multidot_kernel_num_iters_1<<<grid_size_num_iters, block_size>>>(
+        iter + 1, dim_size[0], dim_size[1],
+        as_cuda_type(next_krylov_basis->get_const_values()), stride_next_krylov,
+        as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
+        as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
+        as_cuda_type(stop_status));
+    // exec->synchronize();
+    // write(std::cout, hessenberg_iter);
     /* */
 #ifdef TIMING
     exec->synchronize();
@@ -581,19 +580,6 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
     exec->synchronize();
     auto start_2 = std::chrono::steady_clock::now();
 #endif
-    /*
-    for (size_type k = 0; k < iter + 1; ++k) {
-        update_next_krylov_kernel<default_block_size>
-            <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
-               default_block_size>>>(
-                k, dim_size[0], dim_size[1],
-                as_cuda_type(next_krylov_basis->get_values()),
-                stride_next_krylov,
-                as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
-                as_cuda_type(hessenberg_iter->get_const_values()),
-                stride_hessenberg, as_cuda_type(stop_status));
-    }
-    */
     update_next_krylov_kernel_num_iters<default_block_size>
         <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
            default_block_size>>>(
@@ -670,23 +656,19 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
 #endif
     // numReorth <= number of next_krylov vector to be reorthogonalization
     for (size_type l = 1; (numReorth > 0) && (l < 3); l++) {
-        /*
-        for (size_type k = 0; k < iter + 1; ++k) {
-            components::fill_array(
-                exec, buffer_iter->get_values() + k * stride_buffer,
-                dim_size[1], zero<ValueType>());
-            multidot_kernel<<<grid_size, block_size>>>(
-                k, dim_size[0], dim_size[1],
-                as_cuda_type(next_krylov_basis->get_const_values()),
-                stride_next_krylov,
-                as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
-                as_cuda_type(buffer_iter->get_values()), stride_buffer,
-                as_cuda_type(stop_status));
-        }
-        */
+        (*num_reorth_steps)++;
+        (*num_reorth_vectors) += iter;
         zero_matrix(iter + 1, dim_size[1], stride_buffer,
                     buffer_iter->get_values());
+        /*
         multidot_kernel_num_iters<<<grid_size, block_size>>>(
+            iter + 1, dim_size[0], dim_size[1],
+            as_cuda_type(next_krylov_basis->get_const_values()),
+            stride_next_krylov, as_cuda_type(krylov_bases->get_const_values()),
+            stride_krylov, as_cuda_type(buffer_iter->get_values()),
+            stride_buffer, as_cuda_type(stop_status));
+        */
+        multidot_kernel_num_iters_1<<<grid_size_num_iters, block_size>>>(
             iter + 1, dim_size[0], dim_size[1],
             as_cuda_type(next_krylov_basis->get_const_values()),
             stride_next_krylov, as_cuda_type(krylov_bases->get_const_values()),
@@ -695,20 +677,6 @@ void finish_arnoldi_CGS2(std::shared_ptr<const CudaExecutor> exec,
         // for i in 1:iter
         //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
         // end
-        /*
-        for (size_type k = 0; k < iter + 1; ++k) {
-            update_next_krylov_kernel_and_add<default_block_size><<<
-                ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
-                default_block_size>>>(
-                k, dim_size[0], dim_size[1],
-                as_cuda_type(next_krylov_basis->get_values()),
-                stride_next_krylov,
-                as_cuda_type(krylov_bases->get_const_values()), stride_krylov,
-                as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
-                as_cuda_type(buffer_iter->get_const_values()), stride_buffer,
-                as_cuda_type(stop_status), as_cuda_type(reorth_status));
-        }
-        */
         update_next_krylov_kernel_num_iters_and_add<default_block_size>
             <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
                default_block_size>>>(
@@ -827,7 +795,8 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
             matrix::Dense<ValueType> *arnoldi_norm, size_type iter,
             Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status,
-            Array<stopping_status> *reorth_status, Array<size_type> *num_reorth)
+            Array<stopping_status> *reorth_status, Array<size_type> *num_reorth,
+            int *num_reorth_steps, int *num_reorth_vectors)
 {
     increase_final_iteration_numbers_kernel<<<
         static_cast<unsigned int>(
@@ -849,7 +818,8 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
     finish_arnoldi_CGS2(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                         buffer_iter, arnoldi_norm, iter,
                         stop_status->get_const_data(),
-                        reorth_status->get_data(), num_reorth);
+                        reorth_status->get_data(), num_reorth, num_reorth_steps,
+                        num_reorth_vectors);
     givens_rotation(exec, givens_sin, givens_cos, hessenberg_iter,
                     residual_norm, residual_norm_collection, b_norm, iter,
                     stop_status);

@@ -50,11 +50,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/gmres_mixed_kernels.hpp"
 
 
-// #define TIMING 1
+#define TIMING 1
 
 
 #ifdef TIMING
 using double_seconds = std::chrono::duration<double>;
+#define TIMING_STEPS 1
 #endif
 
 
@@ -132,6 +133,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
                                          dense_b->get_size()[1]);
     //                                         krylov_dim_mixed_ + 1);
     Array<size_type> num_reorth(this->get_executor(), dense_b->get_size()[1]);
+    int num_restarts = 0, num_reorth_steps = 0, num_reorth_vectors = 0;
 
     // Initialization
     exec->run(gmres_mixed::make_initialize_1(
@@ -167,9 +169,13 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
         matrix::Dense<ValueType>::create_with_config_of(dense_x);
 
 #ifdef TIMING
+    exec->synchronize();
     auto start = std::chrono::steady_clock::now();
+#ifdef TIMING_STEPS
+    auto time_RSTRT = start - start;
     auto time_SPMV = start - start;
     auto time_STEP1 = start - start;
+#endif
 #endif
 
     while (true) {
@@ -186,7 +192,11 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
         }
 
         if (restart_iter == krylov_dim_mixed_) {
-            // std::cout << "Restart" << std::endl;
+#ifdef TIMING_STEPS
+            exec->synchronize();
+            auto t_aux_0 = std::chrono::steady_clock::now();
+#endif
+            num_restarts++;
             // Restart
             exec->run(gmres_mixed::make_step_2(
                 residual_norm_collection.get(), krylov_bases.get(),
@@ -215,6 +225,10 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
             // next_krylov_basis = residual / residual_norm
             // final_iter_nums = {0, ..., 0}
             restart_iter = 0;
+#ifdef TIMING_STEPS
+            exec->synchronize();
+            time_RSTRT += std::chrono::steady_clock::now() - t_aux_0;
+#endif
         }
 
         get_preconditioner()->apply(next_krylov_basis.get(),
@@ -229,18 +243,21 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
         auto buffer_iter = buffer->create_submatrix(
             span{0, restart_iter + 2}, span{0, dense_b->get_size()[1]});
 
-#ifdef TIMING
+#ifdef TIMING_STEPS
+        exec->synchronize();
         auto t_aux_1 = std::chrono::steady_clock::now();
 #endif
         // Start of arnoldi
         system_matrix_->apply(preconditioned_vector.get(),
                               next_krylov_basis.get());
         // next_krylov_basis = A * preconditioned_vector
-#ifdef TIMING
+#ifdef TIMING_STEPS
+        exec->synchronize();
         time_SPMV += std::chrono::steady_clock::now() - t_aux_1;
 #endif
 
-#ifdef TIMING
+#ifdef TIMING_STEPS
+        exec->synchronize();
         auto t_aux_2 = std::chrono::steady_clock::now();
 #endif
         exec->run(gmres_mixed::make_step_1(
@@ -248,8 +265,10 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
             residual_norm.get(), residual_norm_collection.get(),
             krylov_bases.get(), hessenberg_iter.get(), buffer_iter.get(),
             b_norm.get(), arnoldi_norm.get(), restart_iter, &final_iter_nums,
-            &stop_status, &reorth_status, &num_reorth));
-#ifdef TIMING
+            &stop_status, &reorth_status, &num_reorth, &num_reorth_steps,
+            &num_reorth_vectors));
+#ifdef TIMING_STEPS
+        exec->synchronize();
         time_STEP1 += std::chrono::steady_clock::now() - t_aux_2;
 #endif
         // for i in 0:restart_iter
@@ -280,7 +299,8 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     }
 
     // Solve x
-#ifdef TIMING
+#ifdef TIMING_STEPS
+    exec->synchronize();
     auto t_aux_3 = std::chrono::steady_clock::now();
 #endif
     auto krylov_bases_small = krylov_bases->create_submatrix(
@@ -294,29 +314,42 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
         residual_norm_collection.get(), krylov_bases_small.get(),
         hessenberg_small.get(), y.get(), before_preconditioner.get(),
         &final_iter_nums));
-#ifdef TIMING
+#ifdef TIMING_STEPS
+    exec->synchronize();
     auto time_STEP2 = std::chrono::steady_clock::now() - t_aux_3;
 #endif
     // Solve upper triangular.
     // y = hessenberg \ residual_norm_collection
 
-#ifdef TIMING
+#ifdef TIMING_STEPS
+    exec->synchronize();
     auto t_aux_4 = std::chrono::steady_clock::now();
 #endif
     get_preconditioner()->apply(before_preconditioner.get(),
                                 after_preconditioner.get());
     dense_x->add_scaled(one_op.get(), after_preconditioner.get());
-#ifdef TIMING
+#ifdef TIMING_STEPS
+    exec->synchronize();
     auto time_SOLVEX = std::chrono::steady_clock::now() - t_aux_4;
 #endif
     // Solve x
     // x = x + get_preconditioner() * krylov_bases * y
 
 #ifdef TIMING
+    exec->synchronize();
     auto time = std::chrono::steady_clock::now() - start;
+#endif
+#ifdef TIMING
     std::cout << "total_iter = " << total_iter << std::endl;
+    std::cout << "num_restarts = " << num_restarts << std::endl;
+    std::cout << "reorth_steps = " << num_reorth_steps << std::endl;
+    std::cout << "reorth_vectors = " << num_reorth_vectors << std::endl;
     std::cout << "time = "
               << std::chrono::duration_cast<double_seconds>(time).count()
+              << std::endl;
+#ifdef TIMING_STEPS
+    std::cout << "time_RSTRT = "
+              << std::chrono::duration_cast<double_seconds>(time_RSTRT).count()
               << std::endl;
     std::cout << "time_SPMV = "
               << std::chrono::duration_cast<double_seconds>(time_SPMV).count()
@@ -330,6 +363,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     std::cout << "time_SOLVEX = "
               << std::chrono::duration_cast<double_seconds>(time_SOLVEX).count()
               << std::endl;
+#endif
     write(std::cout, lend(residual_norm));
 #endif
 }

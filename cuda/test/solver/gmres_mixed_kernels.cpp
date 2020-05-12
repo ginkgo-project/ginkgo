@@ -258,19 +258,23 @@ TEST_F(GmresMixed, CudaGmresMixedStep1IsEquivalentToRef)
 {
     initialize_data();
     int iter = 5;
+    int num_reorth_steps = 0, num_reorth_vectors = 0;
+    int d_num_reorth_steps = 0, d_num_reorth_vectors = 0;
 
     gko::kernels::reference::gmres_mixed::step_1(
         ref, next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
         residual_norm.get(), residual_norm_collection.get(), krylov_bases.get(),
         hessenberg_iter.get(), buffer_iter.get(), b_norm.get(),
         arnoldi_norm.get(), iter, final_iter_nums.get(), stop_status.get(),
-        reorth_status.get(), num_reorth.get());
+        reorth_status.get(), num_reorth.get(), &num_reorth_steps,
+        &num_reorth_vectors);
     gko::kernels::cuda::gmres_mixed::step_1(
         cuda, d_next_krylov_basis.get(), d_givens_sin.get(), d_givens_cos.get(),
         d_residual_norm.get(), d_residual_norm_collection.get(),
         d_krylov_bases.get(), d_hessenberg_iter.get(), d_buffer_iter.get(),
         d_b_norm.get(), d_arnoldi_norm.get(), iter, d_final_iter_nums.get(),
-        d_stop_status.get(), d_reorth_status.get(), d_num_reorth.get());
+        d_stop_status.get(), d_reorth_status.get(), d_num_reorth.get(),
+        &num_reorth_steps, &num_reorth_vectors);
 
     GKO_ASSERT_MTX_NEAR(d_next_krylov_basis, next_krylov_basis, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
