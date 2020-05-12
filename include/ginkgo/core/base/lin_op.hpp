@@ -839,10 +839,18 @@ public:                                                                      \
 
 /**
  * Defines setters and getters for the parameters of a class, simplifying its
- * construction by removing the repetitive typing of boiler plate code.
+ * construction by removing the repetitive typing of boiler plate code. The
+ * setter and getter functions will be named set_parameter_name(...) and
+ * get_parameter_name().
+ *
+ * The passed in parameter should be a member variable of the class and not the
+ * factory parameter. These setters and getters can be used to re-set the member
+ * variables after the Factory has been generated. Hence, the generate step need
+ * not be called after using the setter.
  *
  * @param _concrete_parameter_name  the parameter whose setter and getter is to
  * be defined
+ * @param _type  the type of the parameter being passed in.
  *
  * @ingroup LinOp
  */
