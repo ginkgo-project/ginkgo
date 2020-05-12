@@ -146,6 +146,12 @@ TEST_F(Bicg, CanBeCleared)
 }
 
 
+TEST_F(Bicg, ApplyUsesInitialGuessReturnsTrue)
+{
+    ASSERT_TRUE(solver->apply_uses_initial_guess());
+}
+
+
 TEST_F(Bicg, CanSetPreconditionerGenerator)
 {
     auto bicg_factory =
