@@ -57,8 +57,8 @@ int main(int argc, char *argv[])
     using mtx = gko::matrix::Csr<>;
     // The gko::solver::Cg is used here, but any other solver class can also be
     // used.
-    using gmres_mixed = gko::solver::GmresMixed<double, float>;
-    //    using gmres_mixed = gko::solver::GmresMixed<>;
+    //    using gmres_mixed = gko::solver::GmresMixed<double, float>;
+    using gmres_mixed = gko::solver::GmresMixed<>;
     using bj = gko::preconditioner::Jacobi<>;
 
     // Print the ginkgo version information.
@@ -157,6 +157,14 @@ int main(int argc, char *argv[])
             x = vec::create(exec, gko::dim<2>{sizesA[0], 1});
             for (int i = 0; i < sizesA[0]; i++) x->at(i) = 0.0;
         }
+        /**/
+        if (std::string(argv[1]) == "cuda") {
+            b = gko::read<vec>(std::ifstream("data/one.mtx"), exec);
+        } else {
+            b = vec::create(exec, gko::dim<2>{sizesA[0], 1});
+            for (int i = 0; i < sizesA[0]; i++) b->at(i) = 1.0;
+        }
+        /**/
     }
     // @sect3{Creating the solver}
     // Generate the gko::solver factory. Ginkgo uses the concept of Factories to
@@ -172,13 +180,15 @@ int main(int argc, char *argv[])
             .with_criteria(
                 //    gko::stop::Iteration::build().with_max_iters(20u).on(exec),
                 gko::stop::Iteration::build()
-                    .with_max_iters(A->get_size()[0])
+                    //    .with_max_iters(A->get_size()[0])
+                    .with_max_iters(20000u)
                     .on(exec),
                 //    gko::stop::Iteration::build().with_max_iters(100000u).on(exec),
                 gko::stop::ResidualNormReduction<>::build()
                     //    .with_reduction_factor(1e-15)
                     //    .with_reduction_factor(1e-12)
-                    .with_reduction_factor(1e-13)
+                    //    .with_reduction_factor(1e-13)
+                    .with_reduction_factor(1e-9)
                     .on(exec))
             // Add preconditioner, these 2 lines are the only
             // difference from the simple solver example

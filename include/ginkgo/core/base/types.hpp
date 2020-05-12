@@ -431,6 +431,7 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                value type.
  */
 // #if defined(__CUDACC__) || defined(__HIPCC__)
+// #if defined(__CUDA_ARCH__)
 // #define GKO_INSTANTIATE_FOR_EACH_MIXED_TYPE(_macro) \
 //     template _macro(double, half);                  \
 //     template _macro(double, float);                 \
