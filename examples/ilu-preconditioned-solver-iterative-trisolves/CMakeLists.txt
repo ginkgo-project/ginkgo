@@ -1,6 +1,0 @@
-add_executable(ilu-preconditioned-solver-iterative-trisolves ilu-preconditioned-solver-iterative-trisolves.cpp)
-target_link_libraries(ilu-preconditioned-solver-iterative-trisolves ginkgo)
-target_include_directories(ilu-preconditioned-solver-iterative-trisolves PRIVATE ${PROJECT_SOURCE_DIR})
-configure_file(data/A.mtx data/A.mtx COPYONLY)
-configure_file(data/b.mtx data/b.mtx COPYONLY)
-configure_file(data/x0.mtx data/x0.mtx COPYONLY)

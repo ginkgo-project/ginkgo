@@ -57,26 +57,22 @@ int main(int argc, char *argv[])
 
     // Figure out where to run the code and how many block-Jacobi sweeps to use
     std::shared_ptr<gko::Executor> exec;
-    unsigned int sweeps = 5u;
     if (argc == 1 || std::string(argv[1]) == "reference") {
         exec = gko::ReferenceExecutor::create();
-        sweeps = (argc == 3) ? atoi(argv[2]) : sweeps;
     } else if ((argc == 2 || argc == 3) && std::string(argv[1]) == "omp") {
         exec = gko::OmpExecutor::create();
-        sweeps = (argc == 3) ? atoi(argv[2]) : sweeps;
     } else if ((argc == 2 || argc == 3) && std::string(argv[1]) == "cuda" &&
                gko::CudaExecutor::get_num_devices() > 0) {
         exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
-        sweeps = (argc == 3) ? atoi(argv[2]) : sweeps;
     } else if ((argc == 2 || argc == 3) && std::string(argv[1]) == "hip" &&
                gko::HipExecutor::get_num_devices() > 0) {
         exec = gko::HipExecutor::create(0, gko::OmpExecutor::create());
-        sweeps = (argc == 3) ? atoi(argv[2]) : sweeps;
     } else {
         std::cerr << "Usage: " << argv[0] << " [executor] [sweeps]"
                   << std::endl;
         std::exit(-1);
     }
+    unsigned int sweeps = (argc == 3) ? atoi(argv[2]) : 5u;
 
     // Read data
     auto A = gko::share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
@@ -89,9 +85,10 @@ int main(int argc, char *argv[])
     // Generate concrete factorization for input matrix
     auto par_ilu = par_ilu_fact->generate(A);
 
-    // Generate an iterative refinement factory to be used as triangular solver
-    // in the preconditioner application. The generated method is equivalent
-    // to doing five block-Jacobi sweeps with maximum block size 16.
+    // Generate an iterative refinement factory to be used as a triangular
+    // solver in the preconditioner application. The generated method is
+    // equivalent to doing five block-Jacobi sweeps with a maximum block size
+    // of 16.
     auto bj_factory =
         bj::build()
             .with_max_block_size(16u)
@@ -109,7 +106,7 @@ int main(int argc, char *argv[])
     // triangular solver - in this case the previously defined iterative
     // refinement method.
     auto ilu_pre_factory =
-        gko::preconditioner::Ilu<ir, ir, false>::build()
+        gko::preconditioner::Ilu<ir, ir>::build()
             .with_l_solver_factory(gko::clone(trisolve_factory))
             .with_u_solver_factory(gko::clone(trisolve_factory))
             .on(exec);
@@ -117,18 +114,26 @@ int main(int argc, char *argv[])
     // Use incomplete factors to generate ILU preconditioner
     auto ilu_preconditioner = ilu_pre_factory->generate(gko::share(par_ilu));
 
+    // Create stopping criteria for Gmres
+    const gko::remove_complex<ValueType> reduction_factor = 1e-12;
+    auto iter_stop =
+        gko::stop::Iteration::build().with_max_iters(1000u).on(exec);
+    auto tol_stop = gko::stop::ResidualNormReduction<ValueType>::build()
+                        .with_reduction_factor(reduction_factor)
+                        .on(exec);
+
+    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
+        gko::log::Convergence<ValueType>::create(exec);
+    iter_stop->add_logger(logger);
+    tol_stop->add_logger(logger);
+
     // Use preconditioner inside GMRES solver factory
     // Generating a solver factory tied to a specific preconditioner makes sense
     // if there are several very similar systems to solve, and the same
     // solver+preconditioner combination is expected to be effective.
-    const gko::remove_complex<ValueType> reduction_factor = 1e-12;
     auto ilu_gmres_factory =
         gmres::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1000u).on(exec),
-                gko::stop::ResidualNormReduction<ValueType>::build()
-                    .with_reduction_factor(reduction_factor)
-                    .on(exec))
+            .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
             .with_generated_preconditioner(gko::share(ilu_preconditioner))
             .on(exec);
 
@@ -136,9 +141,13 @@ int main(int argc, char *argv[])
     auto ilu_gmres = ilu_gmres_factory->generate(A);
 
     // Solve system
+    std::chrono::nanoseconds time(0);
+    auto tic = std::chrono::high_resolution_clock::now();
     ilu_gmres->apply(lend(b), lend(x));
+    auto toc = std::chrono::high_resolution_clock::now();
+    time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
 
-    std::cout << "Using " << sweeps << " block-Jacobi sweeps." << std::endl;
+    std::cout << "Using " << sweeps << " block-Jacobi sweeps. \n";
 
     // Print solution
     std::cout << "Solution (x): \n";
@@ -151,6 +160,10 @@ int main(int argc, char *argv[])
     A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
     b->compute_norm2(gko::lend(res));
 
+    std::cout << "GMRES iteration count:     " << logger->get_num_iterations()
+              << "\n";
+    std::cout << "GMRES execution time [ms]: "
+              << static_cast<double>(time.count()) / 1000000.0 << "\n";
     std::cout << "Residual norm sqrt(r^T r): \n";
     write(std::cout, gko::lend(res));
 }
