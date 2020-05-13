@@ -74,7 +74,7 @@ protected:
                           .with_time_limit(std::chrono::seconds(6))
                           .on(exec),
                       gko::stop::ResidualNormReduction<value_type>::build()
-                          .with_reduction_factor(1e-15)
+                          .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),
           mtx_big(gko::initialize<Mtx>(
@@ -91,7 +91,7 @@ protected:
                       gko::stop::Iteration::build().with_max_iters(100u).on(
                           exec),
                       gko::stop::ResidualNormReduction<value_type>::build()
-                          .with_reduction_factor(1e-15)
+                          .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec)),
           mtx_medium(
@@ -114,10 +114,10 @@ protected:
 
 using TestTypes =
     ::testing::Types<std::tuple<double, double>, std::tuple<double, float>,
-                     std::tuple<float, float>>;  //,
-// std::tuple<std::complex<double>, std::complex<double>>,
-// std::tuple<std::complex<double>, std::complex<float>>,
-// std::tuple<std::complex<float>, std::complex<float>>>;
+                     std::tuple<float, float>,
+                     std::tuple<std::complex<double>, std::complex<double>>,
+                     std::tuple<std::complex<double>, std::complex<float>>,
+                     std::tuple<std::complex<float>, std::complex<float>>>;
 
 
 TYPED_TEST_CASE(GmresMixed, TestTypes);
@@ -344,7 +344,7 @@ TYPED_TEST(GmresMixed, SolvesWithPreconditioner)
                 gko::stop::Iteration::build().with_max_iters(100u).on(
                     this->exec),
                 gko::stop::ResidualNormReduction<value_type>::build()
-                    .with_reduction_factor(1e-15)
+                    .with_reduction_factor(r<value_type>::value)
                     .on(this->exec))
             .with_preconditioner(
                 gko::preconditioner::Jacobi<value_type>::build()
