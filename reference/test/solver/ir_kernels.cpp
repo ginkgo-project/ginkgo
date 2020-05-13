@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
@@ -90,6 +91,36 @@ TYPED_TEST(Ir, SolvesTriangularSystem)
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
     solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
+}
+
+
+TYPED_TEST(Ir, SolvesTriangularSystemWithIterativeInnerSolver)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+
+    auto inner_solver_factory =
+        gko::solver::Gmres<value_type>::build()
+            .with_criteria(gko::stop::ResidualNormReduction<value_type>::build()
+                               .with_reduction_factor(1e-2)
+                               .on(this->exec))
+            .on(this->exec);
+
+    auto solver_factory =
+        gko::solver::Ir<value_type>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(30u).on(
+                               this->exec),
+                           gko::stop::ResidualNormReduction<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value)
+                               .on(this->exec))
+            .with_solver(gko::share(inner_solver_factory))
+            .on(this->exec);
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver_factory->generate(this->mtx)->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
 }
