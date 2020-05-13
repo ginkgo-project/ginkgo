@@ -85,17 +85,16 @@ template <size_type block_size, typename ValueType,
           typename ValueTypeKrylovBases>
 __global__ __launch_bounds__(block_size) void initialize_2_1_kernel(
     size_type num_rows, size_type num_rhs, size_type krylov_dim,
-    ValueTypeKrylovBases *__restrict__ krylov_bases, size_type stride_krylov,
+    Accessor2d<ValueTypeKrylovBases, ValueType> krylov_bases,
     ValueType *__restrict__ residual_norm_collection,
     size_type stride_residual_nc)
 {
     const auto global_id = thread::get_thread_id_flat();
-    const auto row_idx = global_id / stride_krylov;
-    const auto col_idx = global_id % stride_krylov;
+    const auto row_idx = global_id / krylov_bases.get_stride();
+    const auto col_idx = global_id % krylov_bases.get_stride();
 
     if (row_idx < num_rows && col_idx < (krylov_dim + 1) * num_rhs) {
-        krylov_bases[row_idx * stride_krylov + col_idx] =
-            zero<ValueTypeKrylovBases>();
+        krylov_bases.write(row_idx, col_idx, zero<ValueType>());
     }
 
     if (row_idx < krylov_dim + 1 && col_idx < num_rhs) {
@@ -113,7 +112,7 @@ __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
     const ValueType *__restrict__ residual, size_type stride_residual,
     const ValueType *__restrict__ residual_norm,
     ValueType *__restrict__ residual_norm_collection,
-    ValueTypeKrylovBases *__restrict__ krylov_bases, size_type stride_krylov,
+    Accessor2d<ValueTypeKrylovBases, ValueType> krylov_bases,
     ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
     size_type *__restrict__ final_iter_nums)
 {
@@ -129,7 +128,7 @@ __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
     if (row_idx < num_rows && col_idx < num_rhs) {
         auto value = residual[row_idx * stride_residual + col_idx] /
                      residual_norm[col_idx];
-        krylov_bases[row_idx * stride_krylov + col_idx] = value;
+        krylov_bases.write(row_idx, col_idx, value);
         next_krylov_basis[row_idx * stride_next_krylov + col_idx] = value;
     }
 }
@@ -152,9 +151,8 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
     size_type k, size_type num_rows, size_type num_cols,
     const ValueType *__restrict__ next_krylov_basis,
     size_type stride_next_krylov,
-    const ValueTypeKrylovBases *__restrict__ krylov_bases,
-    size_type stride_krylov, ValueType *__restrict__ hessenberg_iter,
-    size_type stride_hessenberg,
+    Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
     const auto tidx = threadIdx.x;
@@ -176,9 +174,8 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
         for (size_type i = start_row + tidy; i < end_row;
              i += default_dot_dim) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
-            const auto krylov_idx = i * stride_krylov + krylov_col;
-            local_res +=
-                next_krylov_basis[next_krylov_idx] * krylov_bases[krylov_idx];
+            local_res += next_krylov_basis[next_krylov_idx] *
+                         krylov_bases.read(i, krylov_col);
         }
     }
     reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
@@ -203,9 +200,8 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel_num_iters(
     size_type num_iters, size_type num_rows, size_type num_cols,
     const ValueType *__restrict__ next_krylov_basis,
     size_type stride_next_krylov,
-    const ValueTypeKrylovBases *__restrict__ krylov_bases,
-    size_type stride_krylov, ValueType *__restrict__ hessenberg_iter,
-    size_type stride_hessenberg,
+    Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
     const auto tidx = threadIdx.x;
@@ -229,9 +225,8 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel_num_iters(
             for (size_type i = start_row + tidy; i < end_row;
                  i += default_dot_dim) {
                 const auto next_krylov_idx = i * stride_next_krylov + col_idx;
-                const auto krylov_idx = i * stride_krylov + krylov_col;
                 local_res += next_krylov_basis[next_krylov_idx] *
-                             krylov_bases[krylov_idx];
+                             krylov_bases.read(i, krylov_col);
             }
         }
         reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
@@ -257,9 +252,8 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel_num_iters_1(
     size_type num_iters, size_type num_rows, size_type num_cols,
     const ValueType *__restrict__ next_krylov_basis,
     size_type stride_next_krylov,
-    const ValueTypeKrylovBases *__restrict__ krylov_bases,
-    size_type stride_krylov, ValueType *__restrict__ hessenberg_iter,
-    size_type stride_hessenberg,
+    Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
     const auto tidx = threadIdx.x;
@@ -286,9 +280,8 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel_num_iters_1(
         for (size_type i = start_row + tidy; i < end_row;
              i += default_dot_dim) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
-            const auto krylov_idx = i * stride_krylov + krylov_col;
-            local_res +=
-                next_krylov_basis[next_krylov_idx] * krylov_bases[krylov_idx];
+            local_res += next_krylov_basis[next_krylov_idx] *
+                         krylov_bases.read(i, krylov_col);
         }
     }
     reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
@@ -337,9 +330,8 @@ template <int block_size, typename ValueType, typename ValueTypeKrylovBases>
 __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
     size_type k, size_type num_rows, size_type num_cols,
     ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-    const ValueTypeKrylovBases *__restrict__ krylov_bases,
-    size_type stride_krylov, const ValueType *__restrict__ hessenberg_iter,
-    size_type stride_hessenberg,
+    Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+    const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
@@ -349,12 +341,13 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
     if (row_idx < num_rows && col_idx < num_cols &&
         !stop_status[col_idx].has_stopped()) {
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
-        const auto krylov_idx =
-            row_idx * stride_krylov + k * num_cols + col_idx;
+        // const auto krylov_idx =
+        //    row_idx * stride_krylov + k * num_cols + col_idx;
         const auto hessenberg_idx = k * stride_hessenberg + col_idx;
 
         next_krylov_basis[next_krylov_idx] -=
-            hessenberg_iter[hessenberg_idx] * krylov_bases[krylov_idx];
+            hessenberg_iter[hessenberg_idx] *
+            krylov_bases.read(row_idx, k * num_cols + col_idx);
     }
 }
 
@@ -366,8 +359,8 @@ __global__
     __launch_bounds__(block_size) void update_next_krylov_kernel_num_iters(
         size_type num_iters, size_type num_rows, size_type num_cols,
         ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-        const ValueTypeKrylovBases *__restrict__ krylov_bases,
-        size_type stride_krylov, const ValueType *__restrict__ hessenberg_iter,
+        Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+        const ValueType *__restrict__ hessenberg_iter,
         size_type stride_hessenberg,
         const stopping_status *__restrict__ stop_status)
 {
@@ -379,12 +372,13 @@ __global__
         !stop_status[col_idx].has_stopped()) {
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
         for (size_type k = 0; k < num_iters; ++k) {
-            const auto krylov_idx =
-                row_idx * stride_krylov + k * num_cols + col_idx;
+            // const auto krylov_idx =
+            //    row_idx * stride_krylov + k * num_cols + col_idx;
             const auto hessenberg_idx = k * stride_hessenberg + col_idx;
 
             next_krylov_basis[next_krylov_idx] -=
-                hessenberg_iter[hessenberg_idx] * krylov_bases[krylov_idx];
+                hessenberg_iter[hessenberg_idx] *
+                krylov_bases.read(row_idx, k * num_cols + col_idx);
         }
     }
 }
@@ -397,8 +391,8 @@ __global__
     __launch_bounds__(block_size) void update_next_krylov_kernel_and_check(
         size_type k, size_type num_rows, size_type num_cols,
         ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-        const ValueTypeKrylovBases *__restrict__ krylov_bases,
-        size_type stride_krylov, const ValueType *__restrict__ hessenberg_iter,
+        Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+        const ValueType *__restrict__ hessenberg_iter,
         size_type stride_hessenberg, const ValueType *__restrict__ arnoldi_norm,
         size_type stride_norm, const stopping_status *__restrict__ stop_status,
         stopping_status *__restrict__ reorth_status,
@@ -411,14 +405,15 @@ __global__
     if (row_idx < num_rows && col_idx < num_cols &&
         !stop_status[col_idx].has_stopped()) {
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
-        const auto krylov_idx =
-            row_idx * stride_krylov + k * num_cols + col_idx;
+        // const auto krylov_idx =
+        //    row_idx * stride_krylov + k * num_cols + col_idx;
         const auto hessenberg_idx = k * stride_hessenberg + col_idx;
         const auto arnoldi_idx = col_idx;
         const auto reorth_idx = col_idx;
 
         next_krylov_basis[next_krylov_idx] -=
-            hessenberg_iter[hessenberg_idx] * krylov_bases[krylov_idx];
+            hessenberg_iter[hessenberg_idx] *
+            krylov_bases.read(row_idx, k * num_cols + col_idx);
         if (row_idx == 0) {
             if ((hessenberg_iter[hessenberg_idx] *
                  hessenberg_iter[hessenberg_idx]) >
@@ -439,10 +434,10 @@ template <int block_size, typename ValueType, typename ValueTypeKrylovBases>
 __global__ __launch_bounds__(block_size) void update_next_krylov_kernel_and_add(
     size_type k, size_type num_rows, size_type num_cols,
     ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-    const ValueTypeKrylovBases *__restrict__ krylov_bases,
-    size_type stride_krylov, ValueType *__restrict__ hessenberg_iter,
-    size_type stride_hessenberg, const ValueType *__restrict__ buffer_iter,
-    size_type stride_buffer, const stopping_status *__restrict__ stop_status,
+    Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const ValueType *__restrict__ buffer_iter, size_type stride_buffer,
+    const stopping_status *__restrict__ stop_status,
     const stopping_status *__restrict__ reorth_status)
 {
     const auto global_id = thread::get_thread_id_flat();
@@ -453,12 +448,13 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel_and_add(
         !stop_status[col_idx].has_stopped() &&
         !reorth_status[col_idx].has_stopped()) {
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
-        const auto krylov_idx =
-            row_idx * stride_krylov + k * num_cols + col_idx;
+        // const auto krylov_idx =
+        //    row_idx * stride_krylov + k * num_cols + col_idx;
         const auto hessenberg_idx = k * stride_hessenberg + col_idx;
         const auto buffer_idx = k * stride_buffer + col_idx;
         next_krylov_basis[next_krylov_idx] -=
-            buffer_iter[buffer_idx] * krylov_bases[krylov_idx];
+            buffer_iter[buffer_idx] *
+            krylov_bases.read(row_idx, k * num_cols + col_idx);
         if ((row_idx == 0) && !reorth_status[col_idx].has_stopped()) {
             hessenberg_iter[hessenberg_idx] += buffer_iter[buffer_idx];
         }
@@ -473,10 +469,9 @@ __global__
     __launch_bounds__(block_size) void update_next_krylov_kernel_num_iters_and_add(
         size_type num_iters, size_type num_rows, size_type num_cols,
         ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-        const ValueTypeKrylovBases *__restrict__ krylov_bases,
-        size_type stride_krylov, ValueType *__restrict__ hessenberg_iter,
-        size_type stride_hessenberg, const ValueType *__restrict__ buffer_iter,
-        size_type stride_buffer,
+        Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+        ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
+        const ValueType *__restrict__ buffer_iter, size_type stride_buffer,
         const stopping_status *__restrict__ stop_status,
         const stopping_status *__restrict__ reorth_status)
 {
@@ -489,12 +484,13 @@ __global__
         !reorth_status[col_idx].has_stopped()) {
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
         for (size_type k = 0; k < num_iters; ++k) {
-            const auto krylov_idx =
-                row_idx * stride_krylov + k * num_cols + col_idx;
+            // const auto krylov_idx =
+            //    row_idx * stride_krylov + k * num_cols + col_idx;
             const auto hessenberg_idx = k * stride_hessenberg + col_idx;
             const auto buffer_idx = k * stride_buffer + col_idx;
             next_krylov_basis[next_krylov_idx] -=
-                buffer_iter[buffer_idx] * krylov_bases[krylov_idx];
+                buffer_iter[buffer_idx] *
+                krylov_bases.read(row_idx, k * num_cols + col_idx);
             if ((row_idx == 0) && !reorth_status[col_idx].has_stopped()) {
                 hessenberg_iter[hessenberg_idx] += buffer_iter[buffer_idx];
             }
@@ -577,7 +573,7 @@ template <int block_size, typename ValueType, typename ValueTypeKrylovBases>
 __global__ __launch_bounds__(block_size) void update_krylov_next_krylov_kernel(
     size_type iter, size_type num_rows, size_type num_cols,
     ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-    ValueTypeKrylovBases *__restrict__ krylov_bases, size_type stride_krylov,
+    Accessor2d<ValueTypeKrylovBases, ValueType> krylov_bases,
     const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
@@ -590,14 +586,15 @@ __global__ __launch_bounds__(block_size) void update_krylov_next_krylov_kernel(
     if (row_idx < num_rows && col_idx < num_cols &&
         !stop_status[col_idx].has_stopped()) {
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
-        const auto krylov_idx =
-            row_idx * stride_krylov + num_cols * (iter + 1) + col_idx;
+        // const auto krylov_idx =
+        //    row_idx * stride_krylov + num_cols * (iter + 1) + col_idx;
 
         const auto next_krylov_value =
             next_krylov_basis[next_krylov_idx] / hessenberg;
 
         next_krylov_basis[next_krylov_idx] = next_krylov_value;
-        krylov_bases[krylov_idx] = next_krylov_value;
+        krylov_bases.write(row_idx, num_cols * (iter + 1) + col_idx,
+                           next_krylov_value);
     }
 }
 
@@ -762,9 +759,9 @@ template <size_type block_size, typename ValueType,
           typename ValueTypeKrylovBases>
 __global__ __launch_bounds__(block_size) void calculate_Qy_kernel(
     size_type num_rows, size_type num_cols, size_type num_rhs,
-    const ValueTypeKrylovBases *__restrict__ krylov_bases,
-    size_type stride_krylov, const ValueType *__restrict__ y,
-    size_type stride_y, ValueType *__restrict__ before_preconditioner,
+    Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+    const ValueType *__restrict__ y, size_type stride_y,
+    ValueType *__restrict__ before_preconditioner,
     size_type stride_preconditioner,
     const size_type *__restrict__ final_iter_nums)
 {
@@ -776,7 +773,7 @@ __global__ __launch_bounds__(block_size) void calculate_Qy_kernel(
         before_preconditioner[global_id] = zero<ValueType>();
         for (size_type j = 0; j < final_iter_nums[col_id]; ++j) {
             before_preconditioner[global_id] +=
-                krylov_bases[row_id * stride_krylov + j * num_rhs + col_id] *
+                krylov_bases.read(row_id, j * num_rhs + col_id) *
                 y[j * stride_y + col_id];
         }
     }

@@ -444,50 +444,6 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 
 /**
- * Instantiates a template for each value type compiled by Ginkgo.
- *
- * @param _macro  A macro which expands the template instantiation
- *                (not including the leading `template` specifier).
- *                Should take one argument, which is replaced by the
- *                value type.
- */
-// #if defined(__CUDACC__) || defined(__HIPCC__)
-// #if defined(__CUDA_ARCH__)
-// #define GKO_INSTANTIATE_FOR_EACH_MIXED_TYPE(_macro) \
-//     template _macro(double, half);                  \
-//     template _macro(double, float);                 \
-//     template _macro(double, double)
-// #else
-#define GKO_INSTANTIATE_FOR_EACH_MIXED_TYPE(_macro) \
-    template _macro(double, float);                 \
-    template _macro(double, double)
-// #endif
-
-
-/**
- * Instantiates a template for each value type compiled by Ginkgo.
- *
- * @param _macro  A macro which expands the template instantiation
- *                (not including the leading `template` specifier).
- *                Should take one argument, which is replaced by the
- *                value type.
- */
-/*
-#define GKO_INSTANTIATE_FOR_EACH_MIXED_BOOL_TYPE(_macro) \
-    template _macro(double, float, bool, bool);                 \
-    template _macro(double, double, bool, bool)
-//    template _macro(double, float, (bool) true, (bool) true); \
-//    template _macro(double, float, (bool) true, (bool) false); \
-//    template _macro(double, float, (bool) false, (bool) true); \
-//    template _macro(double, float, (bool) false, (bool) false); \
-//    template _macro(double, double, (bool) true, (bool) true); \
-//    template _macro(double, double, (bool) true, (bool) false); \
-//    template _macro(double, double, (bool) false, (bool) true); \
-//    template _macro(double, double, (bool) false, (bool) false)
-*/
-
-
-/**
  * Instantiates a template for each index type compiled by Ginkgo.
  *
  * @param _macro  A macro which expands the template instantiation
