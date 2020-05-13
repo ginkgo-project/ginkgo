@@ -101,10 +101,11 @@ TYPED_TEST(Ir, SolvesTriangularSystemWithIterativeInnerSolver)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
 
+    const gko::remove_complex<value_type> inner_reduction_factor = 1e-2;
     auto inner_solver_factory =
         gko::solver::Gmres<value_type>::build()
             .with_criteria(gko::stop::ResidualNormReduction<value_type>::build()
-                               .with_reduction_factor(1e-2)
+                               .with_reduction_factor(inner_reduction_factor)
                                .on(this->exec))
             .on(this->exec);
 
