@@ -191,7 +191,6 @@ ParIlut<ValueType, IndexType>::generate_l_u(
     GKO_ASSERT_EQ(parameters_.fill_in_limit > 0.0, true);
 
     const auto exec = this->get_executor();
-    auto host_exec = exec->get_master();
 
     // convert and/or sort the matrix if necessary
     std::unique_ptr<CsrMatrix> csr_system_matrix_unique_ptr{};
@@ -222,12 +221,10 @@ ParIlut<ValueType, IndexType>::generate_l_u(
     exec->run(make_initialize_row_ptrs_l_u(csr_system_matrix, l_row_ptrs,
                                            u_row_ptrs));
 
-    IndexType l_nnz_it;
-    IndexType u_nnz_it;
-    host_exec->copy_from(exec.get(), 1, l_row_ptrs + num_rows, &l_nnz_it);
-    host_exec->copy_from(exec.get(), 1, u_row_ptrs + num_rows, &u_nnz_it);
-    auto l_nnz = static_cast<size_type>(l_nnz_it);
-    auto u_nnz = static_cast<size_type>(u_nnz_it);
+    auto l_nnz =
+        static_cast<size_type>(exec->copy_val_to_host(l_row_ptrs + num_rows));
+    auto u_nnz =
+        static_cast<size_type>(exec->copy_val_to_host(u_row_ptrs + num_rows));
 
     auto mtx_size = csr_system_matrix->get_size();
     auto l = CsrMatrix::create(exec, mtx_size, Array<ValueType>{exec, l_nnz},

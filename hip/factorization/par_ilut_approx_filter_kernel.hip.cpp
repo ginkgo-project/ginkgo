@@ -126,9 +126,8 @@ void threshold_filter_approx(syn::value_list<int, subwarp_size>,
     // determine bucket with correct rank
     auto bucket = static_cast<unsigned char>(
         ssss_find_bucket(exec, total_counts, rank).idx);
-    exec->get_master()->copy_from(exec.get(), 1,
-                                  tree + kernel::searchtree_inner_size + bucket,
-                                  threshold);
+    *threshold =
+        exec->copy_val_to_host(tree + kernel::searchtree_inner_size + bucket);
     // we implicitly set the first splitter to -inf, but 0 works as well
     if (bucket == 0) {
         *threshold = zero<AbsType>();
@@ -151,9 +150,7 @@ void threshold_filter_approx(syn::value_list<int, subwarp_size>,
     components::prefix_sum(exec, new_row_ptrs, num_rows + 1);
 
     // build matrix
-    IndexType new_nnz{};
-    exec->get_master()->copy_from(exec.get(), 1, new_row_ptrs + num_rows,
-                                  &new_nnz);
+    auto new_nnz = exec->copy_val_to_host(new_row_ptrs + num_rows);
     // resize arrays and update aliases
     matrix::CsrBuilder<ValueType, IndexType> builder{m_out};
     builder.get_col_idx_array().resize_and_reset(new_nnz);
