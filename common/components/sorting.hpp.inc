@@ -41,7 +41,8 @@ namespace detail {
  *                 descending order if `true`.
  */
 template <typename ValueType>
-__device__ void bitonic_cas(ValueType &a, ValueType &b, bool reverse)
+__forceinline__ __device__ void bitonic_cas(ValueType &a, ValueType &b,
+                                            bool reverse)
 {
     auto tmp = a;
     bool cmp = (a < b) != reverse;
@@ -65,7 +66,8 @@ struct bitonic_local {
                   "number of elements must be a power of two");
 
     // merges two bitonic sequences els[0, n / 2), els[n / 2, n)
-    __host__ __device__ static void merge(ValueType *els, bool reverse)
+    __forceinline__ __host__ __device__ static void merge(ValueType *els,
+                                                          bool reverse)
     {
         auto els_mid = els + (num_elements / 2);
         for (auto i = 0; i < num_elements / 2; ++i) {
@@ -76,7 +78,7 @@ struct bitonic_local {
     }
 
     // sorts an unsorted sequence els [0, n)
-    __device__ static void sort(ValueType *els, bool reverse)
+    __forceinline__ __device__ static void sort(ValueType *els, bool reverse)
     {
         auto els_mid = els + (num_elements / 2);
         // sort first half normally
@@ -91,8 +93,8 @@ struct bitonic_local {
 template <typename ValueType>
 struct bitonic_local<ValueType, 1> {
     // nothing to do for a single element
-    __device__ static void merge(ValueType *, bool) {}
-    __device__ static void sort(ValueType *, bool) {}
+    __forceinline__ __device__ static void merge(ValueType *, bool) {}
+    __forceinline__ __device__ static void sort(ValueType *, bool) {}
 };
 
 
@@ -119,12 +121,12 @@ struct bitonic_warp {
     // 1. for sorting, we have to reverse the sort order in the upper half
     // 2. for merging, we have to determine for the XOR shuffle if we are
     //    the "smaller" thread, as this thread gets the "smaller" element.
-    __device__ static bool upper_half()
+    __forceinline__ __device__ static bool upper_half()
     {
         return bool(threadIdx.x & (num_threads / 2));
     }
 
-    __device__ static void merge(ValueType *els, bool reverse)
+    __forceinline__ __device__ static void merge(ValueType *els, bool reverse)
     {
         auto tile = group::thread_block_tile<num_threads>{};
         auto new_reverse = reverse != upper_half();
@@ -135,7 +137,7 @@ struct bitonic_warp {
         half::merge(els, reverse);
     }
 
-    __device__ static void sort(ValueType *els, bool reverse)
+    __forceinline__ __device__ static void sort(ValueType *els, bool reverse)
     {
         auto new_reverse = reverse != upper_half();
         half::sort(els, new_reverse);
@@ -146,11 +148,11 @@ struct bitonic_warp {
 template <typename ValueType, int NumLocalElements>
 struct bitonic_warp<ValueType, NumLocalElements, 1> {
     using local = bitonic_local<ValueType, NumLocalElements>;
-    __device__ static void merge(ValueType *els, bool reverse)
+    __forceinline__ __device__ static void merge(ValueType *els, bool reverse)
     {
         local::merge(els, reverse);
     }
-    __device__ static void sort(ValueType *els, bool reverse)
+    __forceinline__ __device__ static void sort(ValueType *els, bool reverse)
     {
         local::sort(els, reverse);
     }
@@ -179,7 +181,7 @@ struct bitonic_global {
     static_assert(32 % num_groups == 0,
                   "num_groups must be a power of two <= 32");
 
-    __device__ static int shared_idx(int local)
+    __forceinline__ __device__ static int shared_idx(int local)
     {
         auto rank = group::this_thread_block().thread_rank();
         // use the same memory-bank to avoid bank conflicts
@@ -189,14 +191,15 @@ struct bitonic_global {
     // check if we are in the upper half of all groups in this block
     // this is important as for sorting, we have to reverse the sort order in
     // the upper half
-    __device__ static bool upper_half()
+    __forceinline__ __device__ static bool upper_half()
     {
         auto rank = group::this_thread_block().thread_rank();
         return bool(rank & (num_groups * num_threads / 2));
     }
 
-    __device__ static void merge(ValueType *local_els, ValueType *shared_els,
-                                 bool reverse)
+    __forceinline__ __device__ static void merge(ValueType *local_els,
+                                                 ValueType *shared_els,
+                                                 bool reverse)
     {
         group::this_thread_block().sync();
         auto upper_shared_els = shared_els + (num_groups * num_threads / 2);
@@ -210,8 +213,9 @@ struct bitonic_global {
         half::merge(local_els, shared_els, reverse);
     }
 
-    __device__ static void sort(ValueType *local_els, ValueType *shared_els,
-                                bool reverse)
+    __forceinline__ __device__ static void sort(ValueType *local_els,
+                                                ValueType *shared_els,
+                                                bool reverse)
     {
         auto new_reverse = reverse != upper_half();
         half::sort(local_els, shared_els, new_reverse);
@@ -224,15 +228,16 @@ template <typename ValueType, int num_local, int num_threads,
 struct bitonic_global<ValueType, num_local, num_threads, 1, num_total_threads> {
     using warp = bitonic_warp<ValueType, num_local, num_threads>;
 
-    __device__ static int shared_idx(int local)
+    __forceinline__ __device__ static int shared_idx(int local)
     {
         // use the indexing from the general struct
         return bitonic_global<ValueType, num_local, num_threads, 2,
                               num_total_threads>::shared_idx(local);
     }
 
-    __device__ static void merge(ValueType *local_els, ValueType *shared_els,
-                                 bool reverse)
+    __forceinline__ __device__ static void merge(ValueType *local_els,
+                                                 ValueType *shared_els,
+                                                 bool reverse)
     {
         group::this_thread_block().sync();
         for (auto i = 0; i < num_local; ++i) {
@@ -244,8 +249,9 @@ struct bitonic_global<ValueType, num_local, num_threads, 1, num_total_threads> {
         }
     }
 
-    __device__ static void sort(ValueType *local_els, ValueType *shared_els,
-                                bool reverse)
+    __forceinline__ __device__ static void sort(ValueType *local_els,
+                                                ValueType *shared_els,
+                                                bool reverse)
     {
         auto rank = group::this_thread_block().thread_rank();
         // This is the first step, so we don't need to load from shared memory
@@ -288,8 +294,8 @@ struct bitonic_global<ValueType, num_local, num_threads, 1, num_total_threads> {
  *                    the less-than operator!
  */
 template <int num_elements, int num_local, typename ValueType>
-__device__ void bitonic_sort(ValueType *local_elements,
-                             ValueType *shared_elements)
+__forceinline__ __device__ void bitonic_sort(ValueType *local_elements,
+                                             ValueType *shared_elements)
 {
     constexpr auto num_threads = num_elements / num_local;
     constexpr auto num_warps = num_threads / config::warp_size;

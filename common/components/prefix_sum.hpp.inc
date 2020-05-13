@@ -48,8 +48,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * scheduling, all threads of the subwarp have to execute it.
  */
 template <bool inclusive, typename ValueType, typename Group>
-__device__ void subwarp_prefix_sum(ValueType element, ValueType &prefix_sum,
-                                   ValueType &total_sum, Group subwarp)
+__forceinline__ __device__ void subwarp_prefix_sum(ValueType element,
+                                                   ValueType &prefix_sum,
+                                                   ValueType &total_sum,
+                                                   Group subwarp)
 {
     prefix_sum = inclusive ? element : zero<ValueType>();
     total_sum = element;
@@ -78,8 +80,9 @@ __device__ void subwarp_prefix_sum(ValueType element, ValueType &prefix_sum,
  *       (and not dead-lock on newer architectures).
  */
 template <bool inclusive, typename ValueType, typename Group>
-__device__ void subwarp_prefix_sum(ValueType element, ValueType &prefix_sum,
-                                   Group subwarp)
+__forceinline__ __device__ void subwarp_prefix_sum(ValueType element,
+                                                   ValueType &prefix_sum,
+                                                   Group subwarp)
 {
     ValueType tmp{};
     subwarp_prefix_sum<inclusive>(element, prefix_sum, tmp, subwarp);
