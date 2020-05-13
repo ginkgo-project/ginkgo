@@ -61,11 +61,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //     template _macro(double, float);                 \
 //     template _macro(double, double)
 // #else
-#define GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(_macro) \
-    template _macro(double, double);                      \
-    template _macro(double, float);                       \
-    template _macro(float, float)  //;                  \
-    template _macro(std::complex<double>, std::complex<double>);  \
+#define GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(_macro)        \
+    template _macro(double, double);                             \
+    template _macro(double, float);                              \
+    template _macro(float, float);                               \
+    template _macro(std::complex<double>, std::complex<double>); \
     template _macro(std::complex<double>, std::complex<float>);  \
     template _macro(std::complex<float>, std::complex<float>)
 // #endif

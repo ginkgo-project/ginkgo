@@ -415,9 +415,9 @@ __global__
             hessenberg_iter[hessenberg_idx] *
             krylov_bases.read(row_idx, k * num_cols + col_idx);
         if (row_idx == 0) {
-            if ((hessenberg_iter[hessenberg_idx] *
-                 hessenberg_iter[hessenberg_idx]) >
-                (0.99 * sqrt(arnoldi_norm[arnoldi_idx]))) {
+            // TODO remove abs() as soon as type of arnoldi_norm has changed
+            if (squared_norm(hessenberg_iter[hessenberg_idx]) >
+                abs(0.99 * sqrt(arnoldi_norm[arnoldi_idx]))) {
                 reorth_status[reorth_idx].reset();
                 atomic_add(num_reorth, (size_type)1);
             } else {
@@ -513,8 +513,9 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms(
     const auto global_id = thread::get_thread_id_flat();
 
     if (global_id < stride_norm0 && !stop_status[global_id].has_stopped()) {
-        const ValueType num0 = eta * arnoldi_norm0[global_id];
-        const ValueType num1 = arnoldi_norm1[global_id];
+        // TODO remove abs() as soon as type of arnoldi_norm has changed
+        const auto num0 = abs(eta * arnoldi_norm0[global_id]);
+        const auto num1 = abs(arnoldi_norm1[global_id]);
         if (num1 < num0) {
             reorth_status[global_id].reset();
             atomic_add(num_reorth, (size_type)1);

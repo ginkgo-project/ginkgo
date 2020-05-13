@@ -126,8 +126,7 @@ void finish_arnoldi_reorth(
         // nrm = 0;
         arnoldi_norm->at(0, i) = 0;
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
-            arnoldi_norm->at(0, i) +=
-                next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
+            arnoldi_norm->at(0, i) += squared_norm(next_krylov_basis->at(j, i));
             // nrm += next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
         }
         arnoldi_norm->at(0, i) = sqrt(arnoldi_norm->at(0, i)) * 0.99;
@@ -147,11 +146,14 @@ void finish_arnoldi_reorth(
                     krylov_bases.read(j,
                                       next_krylov_basis->get_size()[1] * k + i);
             }
-            if ((hessenberg_iter->at(k, i) * hessenberg_iter->at(k, i)) >
+            if (squared_norm(hessenberg_iter->at(k, i) *
+                             hessenberg_iter->at(k, i)) >
                 arnoldi_norm->at(0, i)) {
                 arnoldi_norm->at(1, i) = 0;
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
                      ++j) {
+                    // TODO find good alternative here, so the type of
+                    // arnoldi_norm can change to remove_complex<ValueType>!!!
                     arnoldi_norm->at(1, i) +=
                         next_krylov_basis->at(j, i) *
                         krylov_bases.read(
@@ -207,15 +209,14 @@ void finish_arnoldi_CGS(
     matrix::Dense<ValueType> *arnoldi_norm, size_type iter,
     const stopping_status *stop_status)
 {
-    const ValueType eta = 1.0 / sqrt(2.0);
+    const remove_complex<ValueType> eta = 1.0 / sqrt(2.0);
     //    ValueType nrmP = 0, nrmN = 0;
     ValueType nrmP = 0, nrmN = 0;
     for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
         arnoldi_norm->at(0, i) = 0;
         // nrmP = 0;
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
-            arnoldi_norm->at(0, i) +=
-                next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
+            arnoldi_norm->at(0, i) += squared_norm(next_krylov_basis->at(j, i));
             // nrmP += next_krylov_basis->at(j, i) * next_krylov_basis->at(j,
             // i);
         }
@@ -250,13 +251,16 @@ void finish_arnoldi_CGS(
         // end
         arnoldi_norm->at(1, i) = 0;
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
-            arnoldi_norm->at(1, i) +=
-                next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
+            arnoldi_norm->at(1, i) += squared_norm(next_krylov_basis->at(j, i));
         }
         arnoldi_norm->at(1, i) = sqrt(arnoldi_norm->at(1, i));
         // nrmN = norm(next_krylov_basis)
+
+        // TODO the abs() should be removed here as soon as the type of
+        // arnoldi_norm has changed!
         for (size_type l = 1;
-             arnoldi_norm->at(1, i) < arnoldi_norm->at(0, i) && l < 3; l++) {
+             abs(arnoldi_norm->at(1, i)) < abs(arnoldi_norm->at(0, i)) && l < 3;
+             l++) {
             arnoldi_norm->at(0, i) = eta * arnoldi_norm->at(1, i);
             for (size_type k = 0; k < iter + 1; ++k) {
                 buffer_iter->at(k, i) = 0;
@@ -288,7 +292,7 @@ void finish_arnoldi_CGS(
             arnoldi_norm->at(1, i) = 0;
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 arnoldi_norm->at(1, i) +=
-                    next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
+                    squared_norm(next_krylov_basis->at(j, i));
             }
             arnoldi_norm->at(1, i) = sqrt(arnoldi_norm->at(1, i));
             // nrmN = norm(next_krylov_basis)
@@ -510,11 +514,8 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
     }
 
     for (size_type j = residual->get_size()[1];
-         j < (krylov_dim + 1) *
-                 residual->get_size()[1] /*krylov_bases->get_size()[1]*/;
-         ++j) {
-        for (size_type i = 0;
-             i < residual->get_size()[0] /*krylov_bases->get_size()[0]*/; ++i) {
+         j < (krylov_dim + 1) * residual->get_size()[1]; ++j) {
+        for (size_type i = 0; i < residual->get_size()[0]; ++i) {
             krylov_bases.write(i, j, zero<ValueType>());
         }
     }
