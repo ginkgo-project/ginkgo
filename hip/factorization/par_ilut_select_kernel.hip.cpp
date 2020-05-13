@@ -173,7 +173,7 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
     hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::basecase_select), dim3(1),
                        dim3(kernel::basecase_block_size), 0, 0, tmp22,
                        bucket.size, rank, out_ptr);
-    exec->get_master()->copy_from(exec.get(), 1, out_ptr, &threshold);
+    threshold = exec->copy_val_to_host(out_ptr);
 }
 
 

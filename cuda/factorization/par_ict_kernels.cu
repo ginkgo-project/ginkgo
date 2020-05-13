@@ -89,7 +89,6 @@ void add_candidates(syn::value_list<int, subwarp_size>,
                     matrix::Csr<ValueType, IndexType> *l_new)
 {
     auto num_rows = static_cast<IndexType>(llt->get_size()[0]);
-    auto host_exec = exec->get_master();
     auto subwarps_per_block = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(num_rows, subwarps_per_block);
     matrix::CsrBuilder<ValueType, IndexType> l_new_builder(l_new);
@@ -113,8 +112,7 @@ void add_candidates(syn::value_list<int, subwarp_size>,
     components::prefix_sum(exec, l_new_row_ptrs, num_rows + 1);
 
     // resize output arrays
-    IndexType l_new_nnz{};
-    host_exec->copy_from(exec.get(), 1, l_new_row_ptrs + num_rows, &l_new_nnz);
+    auto l_new_nnz = exec->copy_val_to_host(l_new_row_ptrs + num_rows);
     l_new_builder.get_col_idx_array().resize_and_reset(l_new_nnz);
     l_new_builder.get_value_array().resize_and_reset(l_new_nnz);
 

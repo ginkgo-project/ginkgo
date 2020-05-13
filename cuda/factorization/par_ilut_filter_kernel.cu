@@ -103,9 +103,7 @@ void threshold_filter(syn::value_list<int, subwarp_size>,
     components::prefix_sum(exec, new_row_ptrs, num_rows + 1);
 
     // build matrix
-    IndexType new_nnz{};
-    exec->get_master()->copy_from(exec.get(), 1, new_row_ptrs + num_rows,
-                                  &new_nnz);
+    auto new_nnz = exec->copy_val_to_host(new_row_ptrs + num_rows);
     // resize arrays and update aliases
     matrix::CsrBuilder<ValueType, IndexType> builder{m_out};
     builder.get_col_idx_array().resize_and_reset(new_nnz);
