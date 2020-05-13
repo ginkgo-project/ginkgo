@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_SOLVER_AMGX_PGM_KERNELS_HPP_
-#define GKO_CORE_SOLVER_AMGX_PGM_KERNELS_HPP_
+#ifndef GKO_CORE_MULTIGRID_AMGX_PGM_KERNELS_HPP_
+#define GKO_CORE_MULTIGRID_AMGX_PGM_KERNELS_HPP_
 
 
 #include <ginkgo/core/multigrid/amgx_pgm.hpp>
@@ -57,7 +57,7 @@ namespace amgx_pgm {
 
 
 #define GKO_DECLARE_AMGX_PGM_PROLONGATE_APPLY_KERNEL(_vtype, _itype)           \
-    void prolongate_applyadd(                                                  \
+    void prolong_applyadd(                                                     \
         std::shared_ptr<const DefaultExecutor> exec, const Array<_itype> &agg, \
         const matrix::Dense<_vtype> *b, matrix::Dense<_vtype> *x)
 
@@ -177,4 +177,4 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_AMGX_PGM_KERNELS_HPP_
+#endif  // GKO_CORE_MULTIGRID_AMGX_PGM_KERNELS_HPP_

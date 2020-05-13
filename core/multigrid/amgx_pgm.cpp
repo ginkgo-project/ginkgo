@@ -53,7 +53,7 @@ namespace amgx_pgm {
 
 
 GKO_REGISTER_OPERATION(restrict_apply, amgx_pgm::restrict_apply);
-GKO_REGISTER_OPERATION(prolongate_applyadd, amgx_pgm::prolongate_applyadd);
+GKO_REGISTER_OPERATION(prolong_applyadd, amgx_pgm::prolong_applyadd);
 GKO_REGISTER_OPERATION(initial, amgx_pgm::initial);
 GKO_REGISTER_OPERATION(match_edge, amgx_pgm::match_edge);
 GKO_REGISTER_OPERATION(count_unagg, amgx_pgm::count_unagg);
@@ -154,13 +154,13 @@ void AmgxPgm<ValueType, IndexType>::restrict_apply_impl(const LinOp *b,
 
 
 template <typename ValueType, typename IndexType>
-void AmgxPgm<ValueType, IndexType>::prolongate_applyadd_impl(const LinOp *b,
-                                                             LinOp *x) const
+void AmgxPgm<ValueType, IndexType>::prolong_applyadd_impl(const LinOp *b,
+                                                          LinOp *x) const
 {
     auto exec = this->get_executor();
-    exec->run(amgx_pgm::make_prolongate_applyadd(
-        agg_, as<matrix::Dense<ValueType>>(b),
-        as<matrix::Dense<ValueType>>(x)));
+    exec->run(amgx_pgm::make_prolong_applyadd(agg_,
+                                              as<matrix::Dense<ValueType>>(b),
+                                              as<matrix::Dense<ValueType>>(x)));
 }
 
 

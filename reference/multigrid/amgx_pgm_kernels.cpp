@@ -42,10 +42,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/amgx_pgm.hpp>
-#include "core/components/prefix_sum.hpp"
 
 
 #include "core/base/allocator.hpp"
+#include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_builder.hpp"
 
 
@@ -87,10 +87,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void prolongate_applyadd(std::shared_ptr<const ReferenceExecutor> exec,
-                         const Array<IndexType> &agg,
-                         const matrix::Dense<ValueType> *b,
-                         matrix::Dense<ValueType> *x)
+void prolong_applyadd(std::shared_ptr<const ReferenceExecutor> exec,
+                      const Array<IndexType> &agg,
+                      const matrix::Dense<ValueType> *b,
+                      matrix::Dense<ValueType> *x)
 {
     auto x_vals = x->get_values();
     const auto x_stride = x->get_stride();

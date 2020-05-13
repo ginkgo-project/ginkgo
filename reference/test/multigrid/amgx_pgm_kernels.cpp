@@ -82,7 +82,7 @@ protected:
                                         exec)),
           restrict_ans((gko::initialize<Vec>(
               {I<T>({0.0, -1.0}), I<T>({2.0, 0.0})}, exec))),
-          prolongate_ans(gko::initialize<Vec>(
+          prolong_ans(gko::initialize<Vec>(
               {I<T>({0.0, -2.0}), I<T>({1.0, -2.0}), I<T>({1.0, -2.0}),
                I<T>({0.0, -1.0}), I<T>({2.0, 1.0})},
               exec)),
@@ -172,7 +172,7 @@ protected:
     std::shared_ptr<Vec> coarse_b;
     std::shared_ptr<Vec> fine_b;
     std::shared_ptr<Vec> restrict_ans;
-    std::shared_ptr<Vec> prolongate_ans;
+    std::shared_ptr<Vec> prolong_ans;
     std::shared_ptr<Vec> fine_x;
     std::unique_ptr<typename Multigrid::Factory> AmgxPgm_factory;
 };
@@ -191,13 +191,13 @@ TYPED_TEST(AmgxPgm, RestrictApply)
                         gko::remove_complex<value_type>{0});
 }
 
-TYPED_TEST(AmgxPgm, ProlongateApplyadd)
+TYPED_TEST(AmgxPgm, ProlongApplyadd)
 {
     using value_type = typename TestFixture::value_type;
     auto x = gko::clone(this->fine_x);
-    gko::kernels::reference::amgx_pgm::prolongate_applyadd(
+    gko::kernels::reference::amgx_pgm::prolong_applyadd(
         this->exec, this->agg, this->coarse_b.get(), x.get());
-    GKO_ASSERT_MTX_NEAR(x, this->prolongate_ans,
+    GKO_ASSERT_MTX_NEAR(x, this->prolong_ans,
                         gko::remove_complex<value_type>{0});
 }
 
@@ -283,7 +283,7 @@ TYPED_TEST(AmgxPgm, Generate)
 
 TYPED_TEST(AmgxPgm, CoarseFineRestrictApply)
 {
-    std::unique_ptr<gko::CoarseFine> amgx_pgm{
+    std::unique_ptr<gko::multigrid::RestrictProlong> amgx_pgm{
         this->AmgxPgm_factory->generate(this->mtx)};
 
     // fine->coarse
@@ -296,15 +296,15 @@ TYPED_TEST(AmgxPgm, CoarseFineRestrictApply)
 }
 
 
-TYPED_TEST(AmgxPgm, CoarseFineProlongateApplyadd)
+TYPED_TEST(AmgxPgm, CoarseFineProlongApplyadd)
 {
-    std::unique_ptr<gko::CoarseFine> amgx_pgm{
+    std::unique_ptr<gko::multigrid::RestrictProlong> amgx_pgm{
         this->AmgxPgm_factory->generate(this->mtx)};
 
     using value_type = typename TestFixture::value_type;
     auto x = gko::clone(this->fine_x);
-    amgx_pgm->prolongate_applyadd(this->coarse_b.get(), x.get());
-    GKO_ASSERT_MTX_NEAR(x, this->prolongate_ans,
+    amgx_pgm->prolong_applyadd(this->coarse_b.get(), x.get());
+    GKO_ASSERT_MTX_NEAR(x, this->prolong_ans,
                         gko::remove_complex<value_type>{0});
 }
 
