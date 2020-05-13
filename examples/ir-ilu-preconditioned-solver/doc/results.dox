@@ -25,6 +25,8 @@ Solution (x):
 0.0107016
 0.0121141
 0.0123025
+GMRES iteration count:     7
+GMRES execution time [ms]: 5.49966
 Residual norm sqrt(r^T r):
 %%MatrixMarket matrix array real general
 1 1
