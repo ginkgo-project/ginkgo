@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iomanip>
 #include <sstream>
+#include <string>
 
 
 #include <gtest/gtest.h>
@@ -715,7 +716,8 @@ TYPED_TEST(Stream, CatchesIterations)
     logger->template on<gko::log::Logger::iteration_complete>(
         solver.get(), num_iters, residual.get());
 
-    GKO_ASSERT_STR_CONTAINS(out.str(), "iteration " + num_iters);
+    GKO_ASSERT_STR_CONTAINS(out.str(),
+                            "iteration " + std::to_string(num_iters));
     GKO_ASSERT_STR_CONTAINS(out.str(), ptrstream_solver.str());
     GKO_ASSERT_STR_CONTAINS(out.str(), ptrstream_residual.str());
 }
