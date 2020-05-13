@@ -70,10 +70,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void prolongate_applyadd(std::shared_ptr<const OmpExecutor> exec,
-                         const Array<IndexType> &agg,
-                         const matrix::Dense<ValueType> *b,
-                         matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
+void prolong_applyadd(std::shared_ptr<const OmpExecutor> exec,
+                      const Array<IndexType> &agg,
+                      const matrix::Dense<ValueType> *b,
+                      matrix::Dense<ValueType> *x) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_AMGX_PGM_PROLONGATE_APPLY_KERNEL);

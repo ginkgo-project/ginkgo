@@ -37,11 +37,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 
-#include <ginkgo/core/base/coarse_fine.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/multigrid/restrict_prolong.hpp>
 
 
 namespace gko {
@@ -59,13 +59,13 @@ namespace multigrid {
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
- * @ingroup CoarseFine
+ * @ingroup RestrictProlong
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class AmgxPgm : public EnableCFOp<AmgxPgm<ValueType, IndexType>> {
-    friend class EnableCFOp<AmgxPgm>;
-    friend class EnablePolymorphicObject<AmgxPgm, CoarseFine>;
+class AmgxPgm : public EnableRestrictProlong<AmgxPgm<ValueType, IndexType>> {
+    friend class EnableRestrictProlong<AmgxPgm>;
+    friend class EnablePolymorphicObject<AmgxPgm, RestrictProlong>;
 
 public:
     using value_type = ValueType;
@@ -117,19 +117,19 @@ public:
          */
         bool GKO_FACTORY_PARAMETER(deterministic, false);
     };
-    GKO_ENABLE_CFOP_FACTORY(AmgxPgm, parameters, Factory);
+    GKO_ENABLE_RESTRICT_PROLONG_FACTORY(AmgxPgm, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
     void restrict_apply_impl(const LinOp *b, LinOp *x) const override;
 
-    void prolongate_applyadd_impl(const LinOp *b, LinOp *x) const override;
+    void prolong_applyadd_impl(const LinOp *b, LinOp *x) const override;
     explicit AmgxPgm(std::shared_ptr<const Executor> exec)
-        : EnableCFOp<AmgxPgm>(std::move(exec))
+        : EnableRestrictProlong<AmgxPgm>(std::move(exec))
     {}
     explicit AmgxPgm(const Factory *factory,
                      std::shared_ptr<const LinOp> system_matrix)
-        : EnableCFOp<AmgxPgm>(factory->get_executor()),
+        : EnableRestrictProlong<AmgxPgm>(factory->get_executor()),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)},
           agg_(factory->get_executor(), system_matrix_->get_size()[0])
