@@ -131,8 +131,6 @@ int main(int argc, char *argv[])
         A = share(gko::read<mtx>(std::ifstream(argv[index_matrix]), exec));
         auto sizesA = A->get_size();
 
-        double aux[sizesA[0]];
-
         if (std::string(argv[1]) == "cuda") {
             x = gko::read<vec>(std::ifstream("data/one.mtx"), exec);
         } else {

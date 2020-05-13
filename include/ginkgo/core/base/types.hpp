@@ -52,9 +52,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if defined(__CUDACC__) || defined(__HIPCC__)
 #define GKO_ATTRIBUTES __host__ __device__
 #define GKO_INLINE __forceinline__
+#define GKO_RESTRICT __restrict__
 #else
 #define GKO_ATTRIBUTES
 #define GKO_INLINE inline
+#define GKO_RESTRICT
 #endif  // defined(__CUDACC__) || defined(__HIPCC__)
 
 
@@ -420,50 +422,6 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro); \
     template _macro(std::complex<float>);                    \
     template _macro(std::complex<double>)
-
-
-/**
- * Instantiates a template for each value type compiled by Ginkgo.
- *
- * @param _macro  A macro which expands the template instantiation
- *                (not including the leading `template` specifier).
- *                Should take one argument, which is replaced by the
- *                value type.
- */
-// #if defined(__CUDACC__) || defined(__HIPCC__)
-// #if defined(__CUDA_ARCH__)
-// #define GKO_INSTANTIATE_FOR_EACH_MIXED_TYPE(_macro) \
-//     template _macro(double, half);                  \
-//     template _macro(double, float);                 \
-//     template _macro(double, double)
-// #else
-#define GKO_INSTANTIATE_FOR_EACH_MIXED_TYPE(_macro) \
-    template _macro(double, float);                 \
-    template _macro(double, double)
-// #endif
-
-
-/**
- * Instantiates a template for each value type compiled by Ginkgo.
- *
- * @param _macro  A macro which expands the template instantiation
- *                (not including the leading `template` specifier).
- *                Should take one argument, which is replaced by the
- *                value type.
- */
-/*
-#define GKO_INSTANTIATE_FOR_EACH_MIXED_BOOL_TYPE(_macro) \
-    template _macro(double, float, bool, bool);                 \
-    template _macro(double, double, bool, bool)
-//    template _macro(double, float, (bool) true, (bool) true); \
-//    template _macro(double, float, (bool) true, (bool) false); \
-//    template _macro(double, float, (bool) false, (bool) true); \
-//    template _macro(double, float, (bool) false, (bool) false); \
-//    template _macro(double, double, (bool) true, (bool) true); \
-//    template _macro(double, double, (bool) true, (bool) false); \
-//    template _macro(double, double, (bool) false, (bool) true); \
-//    template _macro(double, double, (bool) false, (bool) false)
-*/
 
 
 /**

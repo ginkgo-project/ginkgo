@@ -47,6 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 
+#include "core/components/accessor.hpp"
 #include "core/solver/gmres_mixed_kernels.hpp"
 
 
@@ -88,7 +89,9 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
 
     using Vector = matrix::Dense<ValueType>;
-    using Krylov = matrix::Dense<ValueTypeKrylovBases>;
+    using LowArray = Array<ValueTypeKrylovBases>;
+    using KrylovAccessor = Accessor2d<ValueTypeKrylovBases, ValueType>;
+
 
     constexpr uint8 RelativeStoppingId{1};
 
@@ -100,9 +103,13 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
     auto residual = Vector::create_with_config_of(dense_b);
-    auto krylov_bases = Krylov::create(
-        exec, dim<2>{system_matrix_->get_size()[1],
-                     (krylov_dim_mixed_ + 1) * dense_b->get_size()[1]});
+    const dim<2> krylov_bases_dim{
+        system_matrix_->get_size()[1],
+        (krylov_dim_mixed_ + 1) * dense_b->get_size()[1]};
+    const size_type krylov_bases_stride = krylov_bases_dim[1];
+    LowArray krylov_bases(exec, krylov_bases_dim[0] * krylov_bases_stride);
+    KrylovAccessor krylov_bases_accessor(krylov_bases.get_data(),
+                                         krylov_bases_stride);
     auto next_krylov_basis = Vector::create_with_config_of(dense_b);
     std::shared_ptr<matrix::Dense<ValueType>> preconditioned_vector =
         Vector::create_with_config_of(dense_b);
@@ -131,7 +138,6 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
                                        dense_b->get_size()[1]);
     Array<stopping_status> reorth_status(this->get_executor(),
                                          dense_b->get_size()[1]);
-    //                                         krylov_dim_mixed_ + 1);
     Array<size_type> num_reorth(this->get_executor(), dense_b->get_size()[1]);
     int num_restarts = 0, num_reorth_steps = 0, num_reorth_vectors = 0;
 
@@ -148,7 +154,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
 
     exec->run(gmres_mixed::make_initialize_2(
         residual.get(), residual_norm.get(), residual_norm_collection.get(),
-        krylov_bases.get(), next_krylov_basis.get(), &final_iter_nums,
+        krylov_bases_accessor, next_krylov_basis.get(), &final_iter_nums,
         krylov_dim_mixed_));
     // residual_norm = norm(residual)
     // residual_norm_collection = {residual_norm, 0, ..., 0}
@@ -199,9 +205,9 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
             num_restarts++;
             // Restart
             exec->run(gmres_mixed::make_step_2(
-                residual_norm_collection.get(), krylov_bases.get(),
-                hessenberg.get(), y.get(), before_preconditioner.get(),
-                &final_iter_nums));
+                residual_norm_collection.get(),
+                krylov_bases_accessor.to_const(), hessenberg.get(), y.get(),
+                before_preconditioner.get(), &final_iter_nums));
             // Solve upper triangular.
             // y = hessenberg \ residual_norm_collection
 
@@ -217,7 +223,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
             // residual = residual - Ax
             exec->run(gmres_mixed::make_initialize_2(
                 residual.get(), residual_norm.get(),
-                residual_norm_collection.get(), krylov_bases.get(),
+                residual_norm_collection.get(), krylov_bases_accessor,
                 next_krylov_basis.get(), &final_iter_nums, krylov_dim_mixed_));
             // residual_norm = norm(residual)
             // residual_norm_collection = {residual_norm, 0, ..., 0}
@@ -263,7 +269,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
         exec->run(gmres_mixed::make_step_1(
             next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
             residual_norm.get(), residual_norm_collection.get(),
-            krylov_bases.get(), hessenberg_iter.get(), buffer_iter.get(),
+            krylov_bases_accessor, hessenberg_iter.get(), buffer_iter.get(),
             b_norm.get(), arnoldi_norm.get(), restart_iter, &final_iter_nums,
             &stop_status, &reorth_status, &num_reorth, &num_reorth_steps,
             &num_reorth_vectors));
@@ -303,15 +309,26 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     exec->synchronize();
     auto t_aux_3 = std::chrono::steady_clock::now();
 #endif
+    /*
     auto krylov_bases_small = krylov_bases->create_submatrix(
         span{0, system_matrix_->get_size()[0]},
         span{0, dense_b->get_size()[1] * (restart_iter + 1)});
+    const dim<2> krylov_bases_dim{
+        system_matrix_->get_size()[1],
+        (krylov_dim_mixed_ + 1) * dense_b->get_size()[1]};
+    */
+    const dim<2> krylov_bases_small_dim{
+        system_matrix_->get_size()[0],
+        dense_b->get_size()[1] * (restart_iter + 1)};
+    KrylovAccessor krylov_bases_small_accessor{krylov_bases.get_data(),
+                                               krylov_bases_stride};
+
     auto hessenberg_small = hessenberg->create_submatrix(
         span{0, restart_iter},
         span{0, dense_b->get_size()[1] * (restart_iter)});
 
     exec->run(gmres_mixed::make_step_2(
-        residual_norm_collection.get(), krylov_bases_small.get(),
+        residual_norm_collection.get(), krylov_bases_small_accessor.to_const(),
         hessenberg_small.get(), y.get(), before_preconditioner.get(),
         &final_iter_nums));
 #ifdef TIMING_STEPS
@@ -395,7 +412,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(
 GKO_INSTANTIATE_FOR_EACH_MIXED_BOOL_TYPE(GKO_DECLARE_GMRES_MIXED_BOOL);
 */
 #define GKO_DECLARE_GMRES_MIXED(_type1, _type2) class GmresMixed<_type1, _type2>
-GKO_INSTANTIATE_FOR_EACH_MIXED_TYPE(GKO_DECLARE_GMRES_MIXED);
+GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(GKO_DECLARE_GMRES_MIXED);
 
 }  // namespace solver
 }  // namespace gko
