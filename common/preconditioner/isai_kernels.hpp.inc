@@ -62,7 +62,6 @@ __forceinline__ __device__ void generic_generate(
     const auto i_row_begin = i_row_ptrs[row];
     const auto i_row_size = i_row_ptrs[row + 1] - i_row_begin;
 
-    auto this_block = group::this_thread_block();
     auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     const int local_id = subwarp.thread_rank();
@@ -159,8 +158,7 @@ __forceinline__ __device__ void generic_generate(
 
 template <int subwarp_size, int subwarps_per_block, typename ValueType,
           typename IndexType>
-__global__
-__launch_bounds__(subwarp_size *subwarps_per_block) void generate_l_inverse(
+__global__ __launch_bounds__(default_block_size) void generate_l_inverse(
     IndexType num_rows, const IndexType *__restrict__ m_row_ptrs,
     const IndexType *__restrict__ m_col_idxs,
     const ValueType *__restrict__ m_values,
@@ -199,8 +197,7 @@ __launch_bounds__(subwarp_size *subwarps_per_block) void generate_l_inverse(
 
 template <int subwarp_size, int subwarps_per_block, typename ValueType,
           typename IndexType>
-__global__
-__launch_bounds__(subwarp_size *subwarps_per_block) void generate_u_inverse(
+__global__ __launch_bounds__(default_block_size) void generate_u_inverse(
     IndexType num_rows, const IndexType *__restrict__ m_row_ptrs,
     const IndexType *__restrict__ m_col_idxs,
     const ValueType *__restrict__ m_values,
@@ -237,7 +234,7 @@ __launch_bounds__(subwarp_size *subwarps_per_block) void generate_u_inverse(
 
 
 template <int subwarp_size, typename ValueType, typename IndexType>
-__global__ void generate_excess_system(
+__global__ __launch_bounds__(default_block_size) void generate_excess_system(
     IndexType num_rows, const IndexType *__restrict__ m_row_ptrs,
     const IndexType *__restrict__ m_col_idxs,
     const ValueType *__restrict__ m_values,
@@ -258,7 +255,6 @@ __global__ void generate_excess_system(
     const auto i_row_begin = i_row_ptrs[row];
     const auto i_row_size = i_row_ptrs[row + 1] - i_row_begin;
 
-    auto this_block = group::this_thread_block();
     auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     const int local_id = subwarp.thread_rank();
@@ -308,7 +304,7 @@ __global__ void generate_excess_system(
 
 
 template <int subwarp_size, typename ValueType, typename IndexType>
-__global__ void copy_excess_solution(
+__global__ __launch_bounds__(default_block_size) void copy_excess_solution(
     IndexType num_rows, const IndexType *__restrict__ i_row_ptrs,
     const IndexType *__restrict__ excess_rhs_ptrs,
     const ValueType *__restrict__ excess_solution,
