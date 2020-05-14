@@ -50,7 +50,8 @@
 # A string to describe the machine this is ran on. Default FineCI.
 #
 # ``CTEST_CMAKE_GENERATOR``
-# Which generator should be used for the build. Default `Unix Makefiles`
+# Which generator should be used for the build. Default `Ninja`, except
+# for COVERAGE builds where `Unix Makefiles` is used.
 #
 # ``CTEST_BUILD_CONFIGURATION``
 # Which configuration should Ginkgo be built with. Default `DEBUG`.
@@ -84,7 +85,11 @@ if (NOT DEFINED CTEST_SITE)
 endif()
 
 if (NOT DEFINED CTEST_CMAKE_GENERATOR)
-    set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+    if (CTEST_BUILD_CONFIGURATION STREQUAL "COVERAGE")
+        set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+    else()
+        set(CTEST_CMAKE_GENERATOR "Ninja")
+    endif()
 endif()
 
 # Supported: COVERAGE, ASAN, LSAN, TSAN, UBSAN, DEBUG and RELEASE
