@@ -156,7 +156,8 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
             krylov_bases->get_const_values() +
             k * num_rows * hessenberg_iter->get_size()[1];
         if (hessenberg_iter->get_size()[1] > 1) {
-            // TODO: single rhs will use vendor's dot, otherwise, use our own
+            // TODO: this condition should be tuned
+            // single rhs will use vendor's dot, otherwise, use our own
             // multidot_kernel which parallelize multiple rhs.
             zero_array(hessenberg_iter->get_size()[1],
                        hessenberg_iter->get_values() + k * stride_hessenberg);
@@ -166,14 +167,9 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
                 stride_krylov, as_cuda_type(hessenberg_iter->get_values()),
                 stride_hessenberg, as_cuda_type(stop_status));
         } else {
-            for (size_type col = 0; col < hessenberg_iter->get_size()[1];
-                 ++col) {
-                cublas::dot(exec->get_cublas_handle(), num_rows,
-                            k_krylov_bases + col, stride_krylov,
-                            next_krylov_basis + col, stride_krylov,
-                            hessenberg_iter->get_values() +
-                                k * stride_hessenberg + col);
-            }
+            cublas::dot(exec->get_cublas_handle(), num_rows, k_krylov_bases,
+                        stride_krylov, next_krylov_basis, stride_krylov,
+                        hessenberg_iter->get_values() + k * stride_hessenberg);
         }
         update_next_krylov_kernel<default_block_size>
             <<<ceildiv(num_rows * stride_krylov, default_block_size),
