@@ -166,7 +166,7 @@ TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
     solver->apply(lend(b), lend(x));
     d_solver->apply(lend(d_b), lend(d_x));
 
-    // Note: 1e-13 instead of 1e-14, as the difference in the inner gmres
+    // Note: 1e-12 instead of 1e-14, as the difference in the inner gmres
     // iteration gets amplified by the difference in IR.
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
 }
