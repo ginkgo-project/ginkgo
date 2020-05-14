@@ -94,11 +94,40 @@ public:
     bool apply_uses_initial_guess() const override { return true; }
 
     /**
-     * Returns the krylov dimension.
+     * Gets the krylov dimension of the solver
      *
      * @return the krylov dimension
      */
     size_type get_krylov_dim() const { return krylov_dim_; }
+
+    /**
+     * Sets the krylov dimension
+     *
+     * @param other  the new krylov dimension
+     */
+    void set_krylov_dim(const size_type &other) { krylov_dim_ = other; }
+
+    /**
+     * Gets the stopping criterion factory of the solver.
+     *
+     * @return the stopping criterion factory
+     */
+    std::shared_ptr<const stop::CriterionFactory> get_stop_criterion_factory()
+        const
+    {
+        return stop_criterion_factory_;
+    }
+
+    /**
+     * Sets the stopping criterion of the solver.
+     *
+     * @param other  the new stopping criterion factory
+     */
+    void set_stop_criterion_factory(
+        std::shared_ptr<const stop::CriterionFactory> other)
+    {
+        stop_criterion_factory_ = std::move(other);
+    }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -128,14 +157,6 @@ public:
     };
     GKO_ENABLE_LIN_OP_FACTORY(Gmres, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
-
-    // Enable setters and getters for the stop_criterion_factory member of this
-    // class.
-    GKO_ENABLE_SET_GET_PARAMETERS(
-        stop_criterion_factory, std::shared_ptr<const stop::CriterionFactory>);
-    // Enable setters and getters for the krylov_dim member of this
-    // class.
-    GKO_ENABLE_SET_GET_PARAMETERS(krylov_dim, size_type);
 
 protected:
     void apply_impl(const LinOp *b, LinOp *x) const override;
