@@ -128,8 +128,13 @@ public:
     };
     GKO_ENABLE_LIN_OP_FACTORY(Gmres, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    // Enable setters and getters for the stop_criterion_factory member of this
+    // class.
     GKO_ENABLE_SET_GET_PARAMETERS(
         stop_criterion_factory, std::shared_ptr<const stop::CriterionFactory>);
+    // Enable setters and getters for the krylov_dim member of this
+    // class.
     GKO_ENABLE_SET_GET_PARAMETERS(krylov_dim, size_type);
 
 protected:
