@@ -55,7 +55,7 @@ struct merge_result {
 
 
 template <typename ValueType, typename IndexType>
-__device__ ValueType
+__forceinline__ __device__ ValueType
 checked_load(const ValueType *p, IndexType i, IndexType size,
              ValueType sentinel = device_numeric_limits<ValueType>::max)
 {
@@ -85,9 +85,8 @@ checked_load(const ValueType *p, IndexType i, IndexType size,
  * @return  a structure containing the merge result distributed over the group.
  */
 template <int group_size, typename ValueType, typename Group>
-__device__ detail::merge_result<ValueType> group_merge_step(ValueType a,
-                                                            ValueType b,
-                                                            Group group)
+__forceinline__ __device__ detail::merge_result<ValueType> group_merge_step(
+    ValueType a, ValueType b, Group group)
 {
     // thread i takes care of ith element of the merged sequence
     auto i = int(group.thread_rank());
@@ -145,9 +144,11 @@ __device__ detail::merge_result<ValueType> group_merge_step(ValueType a,
  */
 template <int group_size, typename IndexType, typename ValueType,
           typename Group, typename Callback>
-__device__ void group_merge(const ValueType *__restrict__ a, IndexType a_size,
-                            const ValueType *__restrict__ b, IndexType b_size,
-                            Group group, Callback merge_fn)
+__forceinline__ __device__ void group_merge(const ValueType *__restrict__ a,
+                                            IndexType a_size,
+                                            const ValueType *__restrict__ b,
+                                            IndexType b_size, Group group,
+                                            Callback merge_fn)
 {
     auto c_size = a_size + b_size;
     IndexType a_begin{};
@@ -195,6 +196,7 @@ __device__ void group_merge(const ValueType *__restrict__ a, IndexType a_size,
     }
 }
 
+
 /**
  * @internal
  * Warp-parallel merge algorithm that reports matching elements from two sorted
@@ -218,9 +220,11 @@ __device__ void group_merge(const ValueType *__restrict__ a, IndexType a_size,
  */
 template <int group_size, typename IndexType, typename ValueType,
           typename Group, typename Callback>
-__device__ void group_match(const ValueType *__restrict__ a, IndexType a_size,
-                            const ValueType *__restrict__ b, IndexType b_size,
-                            Group group, Callback match_fn)
+__forceinline__ __device__ void group_match(const ValueType *__restrict__ a,
+                                            IndexType a_size,
+                                            const ValueType *__restrict__ b,
+                                            IndexType b_size, Group group,
+                                            Callback match_fn)
 {
     group_merge<group_size>(
         a, a_size, b, b_size, group,
@@ -251,10 +255,9 @@ __device__ void group_match(const ValueType *__restrict__ a, IndexType a_size,
  *                  It must return `false` iff the merge should stop.
  */
 template <typename IndexType, typename ValueType, typename Callback>
-__device__ void sequential_merge(const ValueType *__restrict__ a,
-                                 IndexType a_size,
-                                 const ValueType *__restrict__ b,
-                                 IndexType b_size, Callback merge_fn)
+__forceinline__ __device__ void sequential_merge(
+    const ValueType *__restrict__ a, IndexType a_size,
+    const ValueType *__restrict__ b, IndexType b_size, Callback merge_fn)
 {
     auto c_size = a_size + b_size;
     IndexType a_begin{};
@@ -280,6 +283,7 @@ __device__ void sequential_merge(const ValueType *__restrict__ a,
     }
 }
 
+
 /**
  * @internal
  * Sequential algorithm that finds matching elements in two sorted ranges of
@@ -297,9 +301,11 @@ __device__ void sequential_merge(const ValueType *__restrict__ a,
  *                  indices of the matching values from a and b.
  */
 template <typename IndexType, typename ValueType, typename Callback>
-__device__ void sequential_match(const ValueType *a, IndexType a_size,
-                                 const ValueType *b, IndexType b_size,
-                                 Callback match_fn)
+__forceinline__ __device__ void sequential_match(const ValueType *a,
+                                                 IndexType a_size,
+                                                 const ValueType *b,
+                                                 IndexType b_size,
+                                                 Callback match_fn)
 {
     sequential_merge(a, a_size, b, b_size,
                      [&](IndexType a_idx, ValueType a_val, IndexType b_idx,
