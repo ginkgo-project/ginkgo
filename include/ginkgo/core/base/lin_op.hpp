@@ -845,26 +845,27 @@ public:                                                                      \
  *
  * The passed in parameter should be a member variable of the class and not the
  * factory parameter. These setters and getters can be used to re-set the member
- * variables after the Factory has been generated. Hence, the generate step need
- * not be called after using the setter.
+ * variables after the Factory has been generated. Hence, the generate step does
+ * not need to be called after using the setter in most cases when the
+ * _parameter_name_ member is modified in the apply_impl() of the class. But in
+ * case the _parameter_name_ is being set in either the Factory constructor or
+ * in the generate step as for the storage_optimization for the Jacobi
+ * preconditioner class, these setters/getters should *not* be used.
  *
- * @param _concrete_parameter_name  the parameter whose setter and getter is to
+ * @param _parameter_name  the parameter whose setter and getter is to
  * be defined
  * @param _type  the type of the parameter being passed in.
  *
  * @ingroup LinOp
  */
-#define GKO_ENABLE_SET_GET_PARAMETERS(_concrete_parameter_name, _type)       \
+#define GKO_ENABLE_SET_GET_PARAMETERS(_parameter_name, _type)                \
 public:                                                                      \
-    void set_##_concrete_parameter_name(_type other)                         \
+    void set_##_parameter_name(_type other)                                  \
     {                                                                        \
-        this->_concrete_parameter_name##_ = other;                           \
+        this->_parameter_name##_ = other;                                    \
     }                                                                        \
                                                                              \
-    _type get_##_concrete_parameter_name() const                             \
-    {                                                                        \
-        return this->_concrete_parameter_name##_;                            \
-    }                                                                        \
+    _type get_##_parameter_name() const { return this->_parameter_name##_; } \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
