@@ -489,7 +489,7 @@ protected:
     explicit Jacobi(const Factory *factory,
                     std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Jacobi>(factory->get_executor(),
-                              transpose(system_matrix->get_size())),
+                              gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           storage_scheme_{this->compute_storage_scheme(
               parameters_.max_block_size, parameters_.max_block_stride)},

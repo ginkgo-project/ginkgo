@@ -64,6 +64,34 @@ GKO_REGISTER_OPERATION(step_2, gmres::step_2);
 
 
 template <typename ValueType>
+std::unique_ptr<LinOp> Gmres<ValueType>::transpose() const
+{
+    return build()
+        .with_generated_preconditioner(
+            share(as<Transposable>(this->get_preconditioner())->transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .with_krylov_dim(this->get_krylov_dim())
+        .on(this->get_executor())
+        ->generate(
+            share(as<Transposable>(this->get_system_matrix())->transpose()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
+{
+    return build()
+        .with_generated_preconditioner(share(
+            as<Transposable>(this->get_preconditioner())->conj_transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .with_krylov_dim(this->get_krylov_dim())
+        .on(this->get_executor())
+        ->generate(share(
+            as<Transposable>(this->get_system_matrix())->conj_transpose()));
+}
+
+
+template <typename ValueType>
 void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
