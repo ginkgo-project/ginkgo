@@ -94,13 +94,20 @@ enum struct isai_type { lower, upper };
  * @ingroup LinOp
  */
 template <isai_type IsaiType, typename ValueType, typename IndexType>
-class Isai : public EnableLinOp<Isai<IsaiType, ValueType, IndexType>> {
+class Isai : public EnableLinOp<Isai<IsaiType, ValueType, IndexType>>,
+             public Transposable {
     friend class EnableLinOp<Isai>;
     friend class EnablePolymorphicObject<Isai, LinOp>;
+    friend class Isai<IsaiType == isai_type::lower ? isai_type::upper
+                                                   : isai_type::lower,
+                      ValueType, IndexType>;
 
 public:
     using value_type = ValueType;
     using index_type = IndexType;
+    using transposed_type =
+        Isai<IsaiType == isai_type::lower ? isai_type::upper : isai_type::lower,
+             ValueType, IndexType>;
     using Csr = matrix::Csr<ValueType, IndexType>;
     static constexpr isai_type type{IsaiType};
 
@@ -140,6 +147,10 @@ public:
 
     GKO_ENABLE_LIN_OP_FACTORY(Isai, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
 protected:
     explicit Isai(std::shared_ptr<const Executor> exec)

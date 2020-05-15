@@ -58,6 +58,10 @@ namespace solver {
 struct SolveStruct;
 
 
+template <typename ValueType, typename IndexType>
+class UpperTrs;
+
+
 /**
  * LowerTrs is the triangular solver which solves the system L x = b, when L is
  * a lower triangular matrix. It works best when passing in a matrix in CSR
@@ -76,13 +80,16 @@ struct SolveStruct;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class LowerTrs : public EnableLinOp<LowerTrs<ValueType, IndexType>> {
+class LowerTrs : public EnableLinOp<LowerTrs<ValueType, IndexType>>,
+                 public Transposable {
     friend class EnableLinOp<LowerTrs>;
     friend class EnablePolymorphicObject<LowerTrs, LinOp>;
+    friend class UpperTrs<ValueType, IndexType>;
 
 public:
     using value_type = ValueType;
     using index_type = IndexType;
+    using transposed_type = UpperTrs<ValueType, IndexType>;
 
     /**
      * Gets the system operator (CSR matrix) of the linear system.
@@ -94,6 +101,10 @@ public:
     {
         return system_matrix_;
     }
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -138,7 +149,7 @@ protected:
     explicit LowerTrs(const Factory *factory,
                       std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<LowerTrs>(factory->get_executor(),
-                                transpose(system_matrix->get_size())),
+                                gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{}
     {

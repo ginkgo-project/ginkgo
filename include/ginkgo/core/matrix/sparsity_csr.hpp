@@ -84,7 +84,7 @@ public:
 
     using value_type = ValueType;
     using index_type = IndexType;
-
+    using transposed_type = SparsityCsr<IndexType, ValueType>;
     using mat_data = matrix_data<ValueType, IndexType>;
 
     void read(const mat_data &data) override;

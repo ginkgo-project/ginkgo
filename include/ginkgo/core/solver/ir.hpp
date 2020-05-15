@@ -94,12 +94,13 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Ir : public EnableLinOp<Ir<ValueType>> {
+class Ir : public EnableLinOp<Ir<ValueType>>, public Transposable {
     friend class EnableLinOp<Ir>;
     friend class EnablePolymorphicObject<Ir, LinOp>;
 
 public:
     using value_type = ValueType;
+    using transposed_type = Ir<ValueType>;
 
     /**
      * Returns the system operator (matrix) of the linear system.
@@ -110,6 +111,10 @@ public:
     {
         return system_matrix_;
     }
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Return true as iterative solvers use the data in x as an initial guess.
@@ -195,7 +200,7 @@ protected:
     explicit Ir(const Factory *factory,
                 std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Ir>(factory->get_executor(),
-                          transpose(system_matrix->get_size())),
+                          gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {

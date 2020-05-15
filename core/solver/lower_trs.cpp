@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/upper_trs.hpp>
 
 
 #include "core/solver/lower_trs_kernels.hpp"
@@ -59,6 +60,36 @@ GKO_REGISTER_OPERATION(solve, lower_trs::solve);
 
 
 }  // namespace lower_trs
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> LowerTrs<ValueType, IndexType>::transpose() const
+{
+    std::unique_ptr<transposed_type> transposed{
+        new transposed_type{this->get_executor()}};
+    transposed->set_size(gko::transpose(this->get_size()));
+    transposed->system_matrix_ = share(as<matrix::Csr<ValueType, IndexType>>(
+        this->get_system_matrix()->transpose()));
+    transposed->parameters_.num_rhs = this->parameters_.num_rhs;
+    transposed->init_trs_solve_struct();
+    transposed->generate();
+    return transposed;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> LowerTrs<ValueType, IndexType>::conj_transpose() const
+{
+    std::unique_ptr<transposed_type> transposed{
+        new transposed_type{this->get_executor()}};
+    transposed->set_size(gko::transpose(this->get_size()));
+    transposed->system_matrix_ = share(as<matrix::Csr<ValueType, IndexType>>(
+        this->get_system_matrix()->conj_transpose()));
+    transposed->parameters_.num_rhs = this->parameters_.num_rhs;
+    transposed->init_trs_solve_struct();
+    transposed->generate();
+    return transposed;
+}
 
 
 template <typename ValueType, typename IndexType>

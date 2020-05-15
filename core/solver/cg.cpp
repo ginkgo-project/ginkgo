@@ -60,6 +60,20 @@ GKO_REGISTER_OPERATION(step_2, cg::step_2);
 
 
 template <typename ValueType>
+std::unique_ptr<LinOp> Cg<ValueType>::transpose() const
+{
+    return this->clone();
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Cg<ValueType>::conj_transpose() const
+{
+    return this->clone();
+}
+
+
+template <typename ValueType>
 void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using std::swap;
