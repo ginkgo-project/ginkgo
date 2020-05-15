@@ -165,6 +165,12 @@ TYPED_TEST(Ir, CanBeCleared)
 }
 
 
+TYPED_TEST(Ir, ApplyUsesInitialGuessReturnsTrue)
+{
+    ASSERT_TRUE(this->solver->apply_uses_initial_guess());
+}
+
+
 TYPED_TEST(Ir, CanSetInnerSolverInFactory)
 {
     using Solver = typename TestFixture::Solver;

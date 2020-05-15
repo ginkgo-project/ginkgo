@@ -87,6 +87,13 @@ public:
     }
 
     /**
+     * Return true as iterative solvers use the data in x as an initial guess.
+     *
+     * @return true as iterative solvers use the data in x as an initial guess.
+     */
+    bool apply_uses_initial_guess() const override { return true; }
+
+    /**
      * Returns the krylov dimension.
      *
      * @return the krylov dimension

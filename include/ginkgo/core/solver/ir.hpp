@@ -111,6 +111,12 @@ public:
         return system_matrix_;
     }
 
+    /**
+     * Return true as iterative solvers use the data in x as an initial guess.
+     *
+     * @return true as iterative solvers use the data in x as an initial guess.
+     */
+    bool apply_uses_initial_guess() const override { return true; }
 
     /**
      * Returns the solver operator used as the inner solver.

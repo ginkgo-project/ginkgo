@@ -163,6 +163,12 @@ TYPED_TEST(Bicgstab, CanBeCleared)
 }
 
 
+TYPED_TEST(Bicgstab, ApplyUsesInitialGuessReturnsTrue)
+{
+    ASSERT_TRUE(this->solver->apply_uses_initial_guess());
+}
+
+
 TYPED_TEST(Bicgstab, CanSetPreconditionerGenerator)
 {
     using Solver = typename TestFixture::Solver;
