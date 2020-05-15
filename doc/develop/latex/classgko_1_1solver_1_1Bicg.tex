@@ -37,6 +37,8 @@ using {\bfseries value\+\_\+type} = Value\+Type
 \item 
 std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Bicg_aab3709991ffebeeb2edcd39c32426fab}{get\+\_\+system\+\_\+matrix}} () const
 \begin{DoxyCompactList}\small\item\em Gets the system operator (matrix) of the linear system. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classgko_1_1solver_1_1Bicg_a0d345566816a98175f332ce315f645e3}{apply\+\_\+uses\+\_\+initial\+\_\+guess}} () const override
+\begin{DoxyCompactList}\small\item\em Return true as iterative solvers use the data in x as an initial guess. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1solver_1_1Bicg_af42e7f5f3decccc2faeb521f90b3a598}\label{classgko_1_1solver_1_1Bicg_af42e7f5f3decccc2faeb521f90b3a598}} 
 const \mbox{\hyperlink{structgko_1_1solver_1_1Bicg_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
 \end{DoxyCompactItemize}
@@ -73,6 +75,24 @@ Being a generic solver, it is capable of solving general matrices, including non
 
 
 \doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Bicg_a0d345566816a98175f332ce315f645e3}\label{classgko_1_1solver_1_1Bicg_a0d345566816a98175f332ce315f645e3}} 
+\index{gko::solver::Bicg$<$ ValueType $>$@{gko::solver::Bicg$<$ ValueType $>$}!apply\_uses\_initial\_guess@{apply\_uses\_initial\_guess}}
+\index{apply\_uses\_initial\_guess@{apply\_uses\_initial\_guess}!gko::solver::Bicg$<$ ValueType $>$@{gko::solver::Bicg$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{apply\_uses\_initial\_guess()}{apply\_uses\_initial\_guess()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+bool \mbox{\hyperlink{classgko_1_1solver_1_1Bicg}{gko\+::solver\+::\+Bicg}}$<$ Value\+Type $>$\+::apply\+\_\+uses\+\_\+initial\+\_\+guess (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Return true as iterative solvers use the data in x as an initial guess. 
+
+\begin{DoxyReturn}{Returns}
+true as iterative solvers use the data in x as an initial guess. 
+\end{DoxyReturn}
+
+
+Reimplemented from \mbox{\hyperlink{classgko_1_1LinOp_a80967e89745c73e5df8640fe1c7e4aaa}{gko\+::\+Lin\+Op}}.
+
 \mbox{\Hypertarget{classgko_1_1solver_1_1Bicg_aab3709991ffebeeb2edcd39c32426fab}\label{classgko_1_1solver_1_1Bicg_aab3709991ffebeeb2edcd39c32426fab}} 
 \index{gko::solver::Bicg$<$ ValueType $>$@{gko::solver::Bicg$<$ ValueType $>$}!get\_system\_matrix@{get\_system\_matrix}}
 \index{get\_system\_matrix@{get\_system\_matrix}!gko::solver::Bicg$<$ ValueType $>$@{gko::solver::Bicg$<$ ValueType $>$}}
@@ -91,4 +111,4 @@ the system operator (matrix)
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/solver/bicg.\+hpp (ccf35426a)\end{DoxyCompactItemize}
+ginkgo/core/solver/bicg.\+hpp (526802aef)\end{DoxyCompactItemize}

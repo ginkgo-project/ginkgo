@@ -22,7 +22,9 @@ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$ \mbox{\hyperlink{clas
 const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$ \mbox{\hyperlink{classgko_1_1LinOp_a9bf4bf5dc6118e18f4c9ef1bc782b337}{apply}} (const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$alpha, const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$b, const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$beta, \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$x) const
 \begin{DoxyCompactList}\small\item\em Performs the operation x = alpha $\ast$ op(b) + beta $\ast$ x. \end{DoxyCompactList}\item 
 const \mbox{\hyperlink{structgko_1_1dim}{dim}}$<$ 2 $>$ \& \mbox{\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\+\_\+size}} () const noexcept
-\begin{DoxyCompactList}\small\item\em Returns the size of the operator. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Returns the size of the operator. \end{DoxyCompactList}\item 
+virtual bool \mbox{\hyperlink{classgko_1_1LinOp_a80967e89745c73e5df8640fe1c7e4aaa}{apply\+\_\+uses\+\_\+initial\+\_\+guess}} () const
+\begin{DoxyCompactList}\small\item\em Returns true if the linear operator uses the data given in x as an initial guess. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Member Function Documentation}
@@ -134,6 +136,25 @@ this
 
 References gko\+::\+Polymorphic\+Object\+::get\+\_\+executor(), and gko\+::make\+\_\+temporary\+\_\+clone().
 
+\mbox{\Hypertarget{classgko_1_1LinOp_a80967e89745c73e5df8640fe1c7e4aaa}\label{classgko_1_1LinOp_a80967e89745c73e5df8640fe1c7e4aaa}} 
+\index{gko::LinOp@{gko::LinOp}!apply\_uses\_initial\_guess@{apply\_uses\_initial\_guess}}
+\index{apply\_uses\_initial\_guess@{apply\_uses\_initial\_guess}!gko::LinOp@{gko::LinOp}}
+\doxysubsubsection{\texorpdfstring{apply\_uses\_initial\_guess()}{apply\_uses\_initial\_guess()}}
+{\footnotesize\ttfamily virtual bool gko\+::\+Lin\+Op\+::apply\+\_\+uses\+\_\+initial\+\_\+guess (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [virtual]}}
+
+
+
+Returns true if the linear operator uses the data given in x as an initial guess. 
+
+Returns false otherwise.
+
+\begin{DoxyReturn}{Returns}
+true if the linear operator uses the data given in x as an initial guess. Returns false otherwise. 
+\end{DoxyReturn}
+
+
+Reimplemented in \mbox{\hyperlink{classgko_1_1solver_1_1Ir_ad193f208b4bbd73ece1e9cb2003557c6}{gko\+::solver\+::\+Ir$<$ Value\+Type $>$}}, \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab_a96abb4c28be80401ff646e4b1009a630}{gko\+::solver\+::\+Bicgstab$<$ Value\+Type $>$}}, \mbox{\hyperlink{classgko_1_1solver_1_1Fcg_ae1caa80eed7b3e8761e577c7623518fc}{gko\+::solver\+::\+Fcg$<$ Value\+Type $>$}}, \mbox{\hyperlink{classgko_1_1solver_1_1Cg_afe55c303b6b99937bae9e1c36449997d}{gko\+::solver\+::\+Cg$<$ Value\+Type $>$}}, \mbox{\hyperlink{classgko_1_1solver_1_1Gmres_ab968c4bd9d71760b31842cb446b9f04e}{gko\+::solver\+::\+Gmres$<$ Value\+Type $>$}}, \mbox{\hyperlink{classgko_1_1solver_1_1Bicg_a0d345566816a98175f332ce315f645e3}{gko\+::solver\+::\+Bicg$<$ Value\+Type $>$}}, and \mbox{\hyperlink{classgko_1_1solver_1_1Cgs_a1a47640513b491a8984b4356add542ec}{gko\+::solver\+::\+Cgs$<$ Value\+Type $>$}}.
+
 \mbox{\Hypertarget{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}\label{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}} 
 \index{gko::LinOp@{gko::LinOp}!get\_size@{get\_size}}
 \index{get\_size@{get\_size}!gko::LinOp@{gko::LinOp}}
@@ -155,4 +176,4 @@ Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+submatr
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/lin\+\_\+op.\+hpp (ccf35426a)\end{DoxyCompactItemize}
+ginkgo/core/base/lin\+\_\+op.\+hpp (526802aef)\end{DoxyCompactItemize}

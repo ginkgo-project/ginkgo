@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/145904014 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/146288274 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -118,6 +118,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:aae8c67d27df239c18750845275605c87"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; const <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Fcg.html#aae8c67d27df239c18750845275605c87">get_system_matrix</a> () const</td></tr>
 <tr class="memdesc:aae8c67d27df239c18750845275605c87"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the system operator (matrix) of the linear system.  <a href="classgko_1_1solver_1_1Fcg.html#aae8c67d27df239c18750845275605c87">More...</a><br /></td></tr>
 <tr class="separator:aae8c67d27df239c18750845275605c87"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae1caa80eed7b3e8761e577c7623518fc"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Fcg.html#ae1caa80eed7b3e8761e577c7623518fc">apply_uses_initial_guess</a> () const override</td></tr>
+<tr class="memdesc:ae1caa80eed7b3e8761e577c7623518fc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return true as iterative solvers use the data in x as an initial guess.  <a href="classgko_1_1solver_1_1Fcg.html#ae1caa80eed7b3e8761e577c7623518fc">More...</a><br /></td></tr>
+<tr class="separator:ae1caa80eed7b3e8761e577c7623518fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1beba109f32b69b3de58ecdfc17c1505"><td class="memItemLeft" align="right" valign="top"><a id="a1beba109f32b69b3de58ecdfc17c1505"></a>
 const <a class="el" href="structgko_1_1solver_1_1Fcg_1_1parameters__type.html">parameters_type</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>get_parameters</b> () const</td></tr>
 <tr class="separator:a1beba109f32b69b3de58ecdfc17c1505"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -274,6 +277,38 @@ class gko::solver::Fcg&lt; ValueType &gt;</h3>
   </dd>
 </dl>
 </div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="ae1caa80eed7b3e8761e577c7623518fc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae1caa80eed7b3e8761e577c7623518fc">&#9670;&nbsp;</a></span>apply_uses_initial_guess()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool <a class="el" href="classgko_1_1solver_1_1Fcg.html">gko::solver::Fcg</a>&lt; ValueType &gt;::apply_uses_initial_guess </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return true as iterative solvers use the data in x as an initial guess. </p>
+<dl class="section return"><dt>Returns</dt><dd>true as iterative solvers use the data in x as an initial guess. </dd></dl>
+
+<p>Reimplemented from <a class="el" href="classgko_1_1LinOp.html#a80967e89745c73e5df8640fe1c7e4aaa">gko::LinOp</a>.</p>
+
+</div>
+</div>
 <a id="aae8c67d27df239c18750845275605c87"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aae8c67d27df239c18750845275605c87">&#9670;&nbsp;</a></span>get_system_matrix()</h2>
 
@@ -305,7 +340,7 @@ template&lt;typename ValueType  = default_precision&gt; </div>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/solver/<a class="el" href="fcg_8hpp_source.html">fcg.hpp (ccf35426a)</a></li>
+<li>ginkgo/core/solver/<a class="el" href="fcg_8hpp_source.html">fcg.hpp (526802aef)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

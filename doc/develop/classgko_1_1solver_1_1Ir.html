@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/145904014 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/146288274 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -118,6 +118,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a2095b57bb8d3c31e0cfe395c911dbf84"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; const <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Ir.html#a2095b57bb8d3c31e0cfe395c911dbf84">get_system_matrix</a> () const</td></tr>
 <tr class="memdesc:a2095b57bb8d3c31e0cfe395c911dbf84"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the system operator (matrix) of the linear system.  <a href="classgko_1_1solver_1_1Ir.html#a2095b57bb8d3c31e0cfe395c911dbf84">More...</a><br /></td></tr>
 <tr class="separator:a2095b57bb8d3c31e0cfe395c911dbf84"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad193f208b4bbd73ece1e9cb2003557c6"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Ir.html#ad193f208b4bbd73ece1e9cb2003557c6">apply_uses_initial_guess</a> () const override</td></tr>
+<tr class="memdesc:ad193f208b4bbd73ece1e9cb2003557c6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return true as iterative solvers use the data in x as an initial guess.  <a href="classgko_1_1solver_1_1Ir.html#ad193f208b4bbd73ece1e9cb2003557c6">More...</a><br /></td></tr>
+<tr class="separator:ad193f208b4bbd73ece1e9cb2003557c6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3996838d5c38740a9777b522317ce3f1"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; const <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Ir.html#a3996838d5c38740a9777b522317ce3f1">get_solver</a> () const</td></tr>
 <tr class="memdesc:a3996838d5c38740a9777b522317ce3f1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the solver operator used as the inner solver.  <a href="classgko_1_1solver_1_1Ir.html#a3996838d5c38740a9777b522317ce3f1">More...</a><br /></td></tr>
 <tr class="separator:a3996838d5c38740a9777b522317ce3f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -278,6 +281,38 @@ class gko::solver::Ir&lt; ValueType &gt;</h3>
   </dd>
 </dl>
 </div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="ad193f208b4bbd73ece1e9cb2003557c6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad193f208b4bbd73ece1e9cb2003557c6">&#9670;&nbsp;</a></span>apply_uses_initial_guess()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool <a class="el" href="classgko_1_1solver_1_1Ir.html">gko::solver::Ir</a>&lt; ValueType &gt;::apply_uses_initial_guess </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return true as iterative solvers use the data in x as an initial guess. </p>
+<dl class="section return"><dt>Returns</dt><dd>true as iterative solvers use the data in x as an initial guess. </dd></dl>
+
+<p>Reimplemented from <a class="el" href="classgko_1_1LinOp.html#a80967e89745c73e5df8640fe1c7e4aaa">gko::LinOp</a>.</p>
+
+</div>
+</div>
 <a id="a3996838d5c38740a9777b522317ce3f1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a3996838d5c38740a9777b522317ce3f1">&#9670;&nbsp;</a></span>get_solver()</h2>
 
@@ -375,7 +410,7 @@ template&lt;typename ValueType  = default_precision&gt; </div>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/solver/<a class="el" href="ir_8hpp_source.html">ir.hpp (29444d385)</a></li>
+<li>ginkgo/core/solver/<a class="el" href="ir_8hpp_source.html">ir.hpp (526802aef)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

@@ -37,6 +37,8 @@ using {\bfseries value\+\_\+type} = Value\+Type
 \item 
 std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Ir_a2095b57bb8d3c31e0cfe395c911dbf84}{get\+\_\+system\+\_\+matrix}} () const
 \begin{DoxyCompactList}\small\item\em Returns the system operator (matrix) of the linear system. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classgko_1_1solver_1_1Ir_ad193f208b4bbd73ece1e9cb2003557c6}{apply\+\_\+uses\+\_\+initial\+\_\+guess}} () const override
+\begin{DoxyCompactList}\small\item\em Return true as iterative solvers use the data in x as an initial guess. \end{DoxyCompactList}\item 
 std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Ir_a3996838d5c38740a9777b522317ce3f1}{get\+\_\+solver}} () const
 \begin{DoxyCompactList}\small\item\em Returns the solver operator used as the inner solver. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classgko_1_1solver_1_1Ir_a1eaca6f9b06ed821c1b4a91ddf796d30}{set\+\_\+solver}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ new\+\_\+solver)
@@ -91,6 +93,24 @@ Unless otherwise specified via the {\ttfamily solver} factory parameter, this im
 
 
 \doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Ir_ad193f208b4bbd73ece1e9cb2003557c6}\label{classgko_1_1solver_1_1Ir_ad193f208b4bbd73ece1e9cb2003557c6}} 
+\index{gko::solver::Ir$<$ ValueType $>$@{gko::solver::Ir$<$ ValueType $>$}!apply\_uses\_initial\_guess@{apply\_uses\_initial\_guess}}
+\index{apply\_uses\_initial\_guess@{apply\_uses\_initial\_guess}!gko::solver::Ir$<$ ValueType $>$@{gko::solver::Ir$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{apply\_uses\_initial\_guess()}{apply\_uses\_initial\_guess()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+bool \mbox{\hyperlink{classgko_1_1solver_1_1Ir}{gko\+::solver\+::\+Ir}}$<$ Value\+Type $>$\+::apply\+\_\+uses\+\_\+initial\+\_\+guess (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Return true as iterative solvers use the data in x as an initial guess. 
+
+\begin{DoxyReturn}{Returns}
+true as iterative solvers use the data in x as an initial guess. 
+\end{DoxyReturn}
+
+
+Reimplemented from \mbox{\hyperlink{classgko_1_1LinOp_a80967e89745c73e5df8640fe1c7e4aaa}{gko\+::\+Lin\+Op}}.
+
 \mbox{\Hypertarget{classgko_1_1solver_1_1Ir_a3996838d5c38740a9777b522317ce3f1}\label{classgko_1_1solver_1_1Ir_a3996838d5c38740a9777b522317ce3f1}} 
 \index{gko::solver::Ir$<$ ValueType $>$@{gko::solver::Ir$<$ ValueType $>$}!get\_solver@{get\_solver}}
 \index{get\_solver@{get\_solver}!gko::solver::Ir$<$ ValueType $>$@{gko::solver::Ir$<$ ValueType $>$}}
@@ -139,4 +159,4 @@ Sets the solver operator used as the inner solver.
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/solver/ir.\+hpp (29444d385)\end{DoxyCompactItemize}
+ginkgo/core/solver/ir.\+hpp (526802aef)\end{DoxyCompactItemize}
