@@ -224,6 +224,9 @@ public:
     /**
      * Returns true if the linear operator uses the data given in x as
      * an initial guess. Returns false otherwise.
+     *
+     * @return true if the linear operator uses the data given in x as
+     *         an initial guess. Returns false otherwise.
      */
     virtual bool apply_uses_initial_guess() const { return false; }
 
