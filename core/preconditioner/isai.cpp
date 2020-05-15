@@ -94,7 +94,7 @@ std::shared_ptr<const Csr> convert_to_csr_and_sort(
         }
     }
     auto copy = Csr::create(exec);
-    as<ConvertibleTo<Csr>>(mtx)->convert_to(copy.get());
+    as<ConvertibleTo<Csr>>(mtx)->convert_to(lend(copy));
     // Here, we assume that a sorted matrix converted to CSR will also be
     // sorted
     if (!skip_sorting) {
@@ -132,17 +132,17 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor> &exec,
         if (i % 2 != 0) {
             // store one power in acc:
             // i^(2n+1) -> i*i^2n
-            id_power->apply(acc.get(), tmp.get());
+            id_power->apply(lend(acc), lend(tmp));
             std::swap(acc, tmp);
             i--;
         }
         // square id_power: i^2n -> (i^2)^n
-        id_power->apply(id_power.get(), tmp.get());
+        id_power->apply(lend(id_power), lend(tmp));
         std::swap(id_power, tmp);
         i /= 2;
     }
     // combine acc and id_power again
-    id_power->apply(acc.get(), tmp.get());
+    id_power->apply(lend(acc), lend(tmp));
     return {std::move(tmp)};
 }
 

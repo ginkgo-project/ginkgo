@@ -159,7 +159,7 @@ protected:
     template <typename ReadMtx>
     std::unique_ptr<ReadMtx> read(const char *name)
     {
-        std::ifstream mtxstream{std::string{gko::matrices::location_isai_mtx} +
+        std::ifstream mtxstream{std::string{gko::matrices::location_isai_mtxs} +
                                 name};
         auto result = gko::read<ReadMtx>(mtxstream, exec);
         // to avoid removing 0s, the matrices store 12345 instead

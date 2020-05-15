@@ -40,7 +40,7 @@ namespace matrices {
 
 const char *location_ani1_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani1.mtx";
 const char *location_ani4_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/ani4.mtx";
-const char *location_isai_mtx = "@Ginkgo_BINARY_DIR@/matrices/test/";
+const char *location_isai_mtxs = "@Ginkgo_BINARY_DIR@/matrices/test/";
 
 
 }  // namespace matrices
