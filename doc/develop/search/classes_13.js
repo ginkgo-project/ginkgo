@@ -1,7 +1,7 @@
 var searchData=
 [
-  ['unary_5fminus_1060',['unary_minus',['../structgko_1_1accessor_1_1unary__minus.html',1,'gko::accessor']]],
-  ['unary_5fplus_1061',['unary_plus',['../structgko_1_1accessor_1_1unary__plus.html',1,'gko::accessor']]],
-  ['updater_1062',['Updater',['../classgko_1_1stop_1_1Criterion_1_1Updater.html',1,'gko::stop::Criterion']]],
-  ['uppertrs_1063',['UpperTrs',['../classgko_1_1solver_1_1UpperTrs.html',1,'gko::solver']]]
+  ['unary_5fminus_1061',['unary_minus',['../structgko_1_1accessor_1_1unary__minus.html',1,'gko::accessor']]],
+  ['unary_5fplus_1062',['unary_plus',['../structgko_1_1accessor_1_1unary__plus.html',1,'gko::accessor']]],
+  ['updater_1063',['Updater',['../classgko_1_1stop_1_1Criterion_1_1Updater.html',1,'gko::stop::Criterion']]],
+  ['uppertrs_1064',['UpperTrs',['../classgko_1_1solver_1_1UpperTrs.html',1,'gko::solver']]]
 ];
