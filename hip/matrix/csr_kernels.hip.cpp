@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
+#include "core/base/utils.hpp"
 #include "core/components/fill_array.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_builder.hpp"
@@ -101,6 +102,7 @@ using spgeam_kernels =
 
 
 #include "common/matrix/csr_kernels.hpp.inc"
+#include "common/matrix/csr_kernels_spgemm.hpp.inc"
 
 
 namespace host_kernel {
@@ -534,35 +536,32 @@ void spgemm(std::shared_ptr<const HipExecutor> exec,
     } else {
         Array<IndexType> tmp_indices{exec, a->get_num_stored_elements() * 3};
         Array<ValueType> tmp_values{exec, a->get_num_stored_elements()};
-        auto tmp1 = tmp_indices.get_data();
-        auto tmp2 = tmp1 + a->get_num_stored_elements();
-        auto tmp3 = tmp2 + a->get_num_stored_elements();
+        auto tmpi = tmp_indices.get_data();
         auto tmpv = tmp_values.get_data();
         auto num_rows = a->get_size()[0];
 
-        auto num_blocks = ceildiv(num_rows, default_block_size);
+        auto num_blocks =
+            ceildiv(num_rows, spgemm_block_size / config::warp_size);
 
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(sequential_spgemm_count), num_blocks,
-                           default_block_size, 0, 0, num_rows, a_row_ptrs,
-                           a_col_idxs, b_row_ptrs, b_col_idxs, tmp1, tmp2, tmp3,
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(spgemm_count), num_blocks,
+                           spgemm_block_size, 0, 0, num_rows, a_row_ptrs,
+                           a_col_idxs, b_row_ptrs, b_col_idxs, tmpi,
                            c_row_ptrs);
 
         components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
 
         auto c_nnz = static_cast<size_type>(
             exec->copy_val_to_host(c_row_ptrs + num_rows));
-
         c_col_idxs_array.resize_and_reset(c_nnz);
         c_vals_array.resize_and_reset(c_nnz);
         auto c_col_idxs = c_col_idxs_array.get_data();
         auto c_vals = c_vals_array.get_data();
 
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(sequential_spgemm), num_blocks,
-                           default_block_size, 0, 0, num_rows, a_row_ptrs,
+        hipLaunchKernelGGL(HIP_KERNEL_NAME(spgemm_kernel), num_blocks,
+                           spgemm_block_size, 0, 0, num_rows, a_row_ptrs,
                            a_col_idxs, as_hip_type(a_vals), b_row_ptrs,
-                           b_col_idxs, as_hip_type(b_vals), tmp1, tmp2,
-                           as_hip_type(tmpv), tmp3, c_row_ptrs, c_col_idxs,
-                           as_hip_type(c_vals));
+                           b_col_idxs, as_hip_type(b_vals), c_row_ptrs, tmpi,
+                           as_hip_type(tmpv), c_col_idxs, as_hip_type(c_vals));
     }
 }
 
@@ -688,7 +687,7 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
         hipsparse::destroy(a_descr);
 
         auto total_nnz = c_nnz + d->get_num_stored_elements();
-        auto nnz_per_row = total_nnz / m;
+        auto nnz_per_row = total_nnz / std::max<IndexType>(m, 1);
         select_spgeam(
             spgeam_kernels(),
             [&](int compiled_subwarp_size) {
