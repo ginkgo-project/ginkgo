@@ -140,6 +140,9 @@ int main(int argc, char *argv[])
     // Generate preconditioned solver for a specific target system
     auto ilu_gmres = ilu_gmres_factory->generate(A);
 
+    // Warmup run
+    ilu_gmres->apply(lend(b), clone(x).get());
+
     // Solve system
     std::chrono::nanoseconds time(0);
     auto tic = std::chrono::high_resolution_clock::now();
