@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
     auto ilu_gmres = ilu_gmres_factory->generate(A);
 
     // Warmup run
-    ilu_gmres->apply(lend(b), clone(x).get());
+    ilu_gmres->apply(lend(b), lend(clone(x)));
 
     // Solve system
     std::chrono::nanoseconds time(0);
