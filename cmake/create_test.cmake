@@ -106,9 +106,8 @@ function(ginkgo_create_hip_test test_name)
     hip_add_executable(${TEST_TARGET_NAME} ${test_name}.hip.cpp HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS}
         NVCC_OPTIONS  ${GINKGO_HIP_NVCC_OPTIONS} HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS})
 
-    # Let's really not use nvcc for linking here, as we cannot remove the `-pthread`
-    # flag from CUDA_LIBRARIES, coming from ginkgo_hip.
-    if (NOT BUILD_SHARED_LIBS AND GINKGO_HIP_PLATFORM MATCHES "nvcc")
+    # Let's really not use nvcc for linking here
+    if (GINKGO_HIP_PLATFORM MATCHES "nvcc")
         set_target_properties(${TEST_TARGET_NAME} PROPERTIES LINKER_LANGUAGE CXX)
     endif()
 
@@ -136,20 +135,10 @@ function(ginkgo_create_hip_test test_name)
     # GINKGO_RPATH_FOR_HIP needs to be populated before calling this for the linker to include
     # our libraries path into the executable's runpath.
     if(BUILD_SHARED_LIBS)
-        if (GINKGO_HIP_PLATFORM MATCHES "hcc")
-            target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_RPATH_FOR_HIP}")
+        target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_RPATH_FOR_HIP}")
 
-            if (GINKGO_CHECK_CIRCULAR_DEPS)
-                target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
-            endif()
-        elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")
-            target_link_libraries(${TEST_TARGET_NAME} PRIVATE
-                "-Xcompiler \\\\\\\"${GINKGO_RPATH_FOR_HIP}\\\\\\\"")
-
-            if (GINKGO_CHECK_CIRCULAR_DEPS)
-                target_link_libraries(${TEST_TARGET_NAME} PRIVATE
-                    "-Xcompiler \\\\\\\"${GINKGO_CIRCULAR_DEPS_FLAGS}\\\\\\\"")
-            endif()
+        if (GINKGO_CHECK_CIRCULAR_DEPS)
+            target_link_libraries(${TEST_TARGET_NAME} PRIVATE "${GINKGO_CIRCULAR_DEPS_FLAGS}")
         endif()
     endif()
 
