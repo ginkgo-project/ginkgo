@@ -119,7 +119,7 @@ sync:
 # Build jobs
 build/cuda90/gcc/all/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda90-gnu5-llvm39
+  image: localhost:5000/gko-cuda90-gnu5-llvm39
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -134,7 +134,7 @@ build/cuda90/gcc/all/debug/shared:
 
 build/cuda90/clang/all/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda90-gnu5-llvm39
+  image: localhost:5000/gko-cuda90-gnu5-llvm39
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -153,7 +153,7 @@ build/cuda90/clang/all/release/static:
 # cuda 9.1 and friends
 build/cuda91/gcc/all/debug/static:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda91-gnu6-llvm40
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -169,7 +169,7 @@ build/cuda91/gcc/all/debug/static:
 
 build/cuda91/clang/all/release/shared:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda91-gnu6-llvm40
+  image: localhost:5000/gko-cuda91-gnu6-llvm40
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -188,7 +188,7 @@ build/cuda91/clang/all/release/shared:
 # cuda 9.2 and friends
 build/cuda92/gcc/all/release/shared:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda92-gnu7-llvm50-intel2017
+  image: localhost:5000/gko-cuda92-gnu7-llvm50-intel2017
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -203,7 +203,7 @@ build/cuda92/gcc/all/release/shared:
 
 build/cuda92/clang/all/debug/static:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda92-gnu7-llvm50-intel2017
+  image: localhost:5000/gko-cuda92-gnu7-llvm50-intel2017
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -221,7 +221,7 @@ build/cuda92/clang/all/debug/static:
 
 build/cuda92/intel/cuda/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda92-gnu7-llvm50-intel2017
+  image: localhost:5000/gko-cuda92-gnu7-llvm50-intel2017
   variables:
     <<: *default_variables
     C_COMPILER: "icc"
@@ -239,7 +239,7 @@ build/cuda92/intel/cuda/release/static:
 # cuda 10.0 and friends
 build/cuda100/gcc/all/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda100-gnu7-llvm60-intel2018
+  image: localhost:5000/gko-cuda100-gnu7-llvm60-intel2018
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -254,7 +254,7 @@ build/cuda100/gcc/all/debug/shared:
 
 build/cuda100/clang/all/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda100-gnu7-llvm60-intel2018
+  image: localhost:5000/gko-cuda100-gnu7-llvm60-intel2018
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -272,7 +272,7 @@ build/cuda100/clang/all/release/static:
 
 build/cuda100/intel/cuda/release/shared:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda100-gnu7-llvm60-intel2018
+  image: localhost:5000/gko-cuda100-gnu7-llvm60-intel2018
   variables:
     <<: *default_variables
     C_COMPILER: "icc"
@@ -289,7 +289,7 @@ build/cuda100/intel/cuda/release/shared:
 # cuda 10.1 and friends
 build/cuda101/gcc/all/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -304,7 +304,7 @@ build/cuda101/gcc/all/debug/shared:
 
 build/cuda101/clang/all/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -321,7 +321,7 @@ build/cuda101/clang/all/release/static:
 
 build/cuda101/intel/cuda/debug/static:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     C_COMPILER: "icc"
@@ -338,7 +338,7 @@ build/cuda101/intel/cuda/debug/static:
 # HIP AMD
 build/amd/gcc/hip/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-amd-gnu8-llvm7
+  image: localhost:5000/gko-amd-gnu8-llvm7
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -351,7 +351,7 @@ build/amd/gcc/hip/debug/shared:
 
 build/amd/clang/hip/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-amd-gnu8-llvm7
+  image: localhost:5000/gko-amd-gnu8-llvm7
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -368,7 +368,7 @@ build/amd/clang/hip/release/static:
 # no cuda but latest gcc and clang
 build/nocuda/gcc/core/debug/static:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     BUILD_REFERENCE: "OFF"
@@ -380,7 +380,7 @@ build/nocuda/gcc/core/debug/static:
 
 build/nocuda/clang/core/release/shared:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -393,7 +393,7 @@ build/nocuda/clang/core/release/shared:
 
 build/nocuda/intel/core/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     C_COMPILER: "icc"
@@ -407,7 +407,7 @@ build/nocuda/intel/core/debug/shared:
 
 build/nocuda/gcc/omp/release/shared:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -418,7 +418,7 @@ build/nocuda/gcc/omp/release/shared:
 
 build/nocuda/clang/omp/debug/static:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -432,7 +432,7 @@ build/nocuda/clang/omp/debug/static:
 
 build/nocuda/intel/omp/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/update_add_ninja_85c14153_gko-nocuda-gnu9-llvm8
+  image: localhost:5000/gko-nocuda-gnu9-llvm8
   variables:
     <<: *default_variables
     C_COMPILER: "icc"
@@ -450,7 +450,7 @@ build/nocuda/intel/omp/release/static:
 warnings:
   <<: *default_build
   stage: code_quality
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -468,7 +468,7 @@ warnings:
 no-circular-deps:
   <<: *default_build
   stage: code_quality
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -486,7 +486,7 @@ no-circular-deps:
 clang-tidy:
   <<: *default_build
   stage: code_quality
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -503,7 +503,7 @@ clang-tidy:
 iwyu:
   <<: *default_build
   stage: code_quality
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -521,7 +521,7 @@ iwyu:
 # For short living branches or PRs, try to detect an open PR
 sonarqube_cov_:
   stage: code_quality
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   before_script: *default_before_script
   script:
     - PR_ID=$(curl "https://api.github.com/search/issues?q=sha:${CI_COMMIT_SHA}"
@@ -562,7 +562,7 @@ sonarqube_cov_:
 # (the one that was merged).
 sonarqube_cov:
   stage: code_quality
-  image: localhost:5000/update_add_ninja_85c14153_gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
   before_script: *default_before_script
   script:
     - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
