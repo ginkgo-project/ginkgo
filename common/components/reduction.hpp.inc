@@ -131,6 +131,51 @@ __device__ void reduce(const Group &__restrict__ group,
 /**
  * @internal
  *
+ * Computes a reduction using the binary operation `reduce_op` on entire block.
+ * The data for the reduction is taken from the `data` array which has to be of
+ * size `block_size` and accessible from all threads. The `data` array is also
+ * used as work space (so its content will be destroyed in the process), as well
+ * as to store the return value - which is stored in the 0-th position of the
+ * array.
+ */
+template <
+    typename Group, typename ValueType, typename Operator,
+    typename = xstd::enable_if_t<group::is_synchronizable_group<Group>::value>>
+__device__ void multireduce(const Group &__restrict__ group,
+                            ValueType *__restrict__ data, size_type stride,
+                            size_type num, Operator reduce_op = Operator{})
+{
+    const auto local_id = group.thread_rank();
+
+    for (int k = group.size() / 2; k >= config::warp_size; k /= 2) {
+        group.sync();
+        if (local_id < k) {
+            for (int j = 0; j < num; j++) {
+                data[j * stride + local_id] =
+                    reduce_op(data[j * stride + local_id],
+                              data[j * stride + local_id + k]);
+            }
+        }
+    }
+
+    const auto warp = group::tiled_partition<config::warp_size>(group);
+    const auto warp_id = group.thread_rank() / warp.size();
+    if (warp_id > 0) {
+        return;
+    }
+    for (int j = 0; j < num; j++) {
+        auto result =
+            reduce(warp, data[j * stride + warp.thread_rank()], reduce_op);
+        if (warp.thread_rank() == 0) {
+            data[j * stride] = result;
+        }
+    }
+}
+
+
+/**
+ * @internal
+ *
  * Computes a reduction using the binary operation `reduce_op` on an array
  * `source` of any size. Has to be called a second time on `result` to reduce
  * an array larger than `block_size`.

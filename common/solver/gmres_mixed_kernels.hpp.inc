@@ -388,6 +388,364 @@ __global__
 // total.
 template <int block_size, typename ValueType, typename ValueTypeKrylovBases>
 __global__
+    __launch_bounds__(block_size) void update_next_krylov_kernel_num_iters_0(
+        size_type num_iters, size_type num_rows, size_type num_cols,
+        ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
+        Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+        const ValueType *__restrict__ hessenberg_iter,
+        size_type stride_hessenberg,
+        const stopping_status *__restrict__ stop_status)
+{
+    const auto global_id = thread::get_thread_id_flat();
+    //    const auto row_idx = global_id / stride_next_krylov;
+    //    const auto col_idx = global_id % stride_next_krylov;
+    const auto row_idx_krylov = global_id / (stride_next_krylov * num_iters);
+    const auto col_idx_krylov = global_id % (stride_next_krylov * num_iters);
+    //    const auto num_itr_krylov = col_idx_krylov / stride_next_krylov;
+    const auto k = col_idx_krylov / stride_next_krylov;
+    const auto col_itr_krylov = col_idx_krylov % stride_next_krylov;
+
+    if (row_idx_krylov < num_rows && col_itr_krylov < num_cols &&
+        !stop_status[col_itr_krylov].has_stopped()) {
+        const auto next_krylov_idx =
+            row_idx_krylov * stride_next_krylov + col_itr_krylov;
+        const auto hessenberg_idx = k * stride_hessenberg + col_itr_krylov;
+
+        auto value =
+            hessenberg_iter[hessenberg_idx] *
+            krylov_bases.read(row_idx_krylov, k * num_cols + col_itr_krylov);
+        atomic_add(next_krylov_basis + next_krylov_idx, -value);
+    }
+}
+
+
+// Must be called with at least `num_rows * stride_next_krylov` threads in
+// total.
+template <int block_size, typename ValueType, typename ValueTypeKrylovBases>
+__global__
+    __launch_bounds__(block_size) void update_next_krylov_kernel_num_iters_1(
+        size_type num_iters, size_type num_rows, size_type num_cols,
+        ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
+        Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+        const ValueType *__restrict__ hessenberg_iter,
+        size_type stride_hessenberg,
+        const stopping_status *__restrict__ stop_status)
+{
+    if (num_cols == 1) {
+        const auto tidx = threadIdx.x;
+        const size_type row_idx = blockIdx.x;
+        const auto col_idx = 0;
+
+        // Used that way to get around dynamic initialization warning and
+        // template error when using `reduction_helper_array` directly in
+        // `reduce`
+        __shared__ UninitializedArray<ValueType, block_size>
+            reduction_helper_array;
+        ValueType *__restrict__ reduction_helper = reduction_helper_array;
+        if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
+            ValueType value = zero<ValueType>();
+            for (size_type i = tidx; i < num_iters; i += blockDim.x) {
+                const auto hessenberg_idx = i * stride_hessenberg + col_idx;
+                const auto krylov_idx = i * num_cols + col_idx;
+
+                value += hessenberg_iter[hessenberg_idx] *
+                         krylov_bases.read(row_idx, krylov_idx);
+            }
+            reduction_helper[tidx] = value;
+
+            // Perform thread block reduction. Result is in
+            // reduction_helper[0]
+            reduce(
+                group::this_thread_block(), reduction_helper,
+                [](const ValueType &a, const ValueType &b) { return a + b; });
+            if (tidx == 0) {
+                const auto next_krylov_idx =
+                    row_idx * stride_next_krylov + col_idx;
+                next_krylov_basis[next_krylov_idx] -= reduction_helper[0];
+            }
+        }
+    } else {
+        const auto global_id = thread::get_thread_id_flat();
+        const auto row_idx = global_id / stride_next_krylov;
+        const auto col_idx = global_id % stride_next_krylov;
+
+        if (row_idx < num_rows && col_idx < num_cols &&
+            !stop_status[col_idx].has_stopped()) {
+            const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
+            for (size_type k = 0; k < num_iters; ++k) {
+                // const auto krylov_idx =
+                //    row_idx * stride_krylov + k * num_cols + col_idx;
+                const auto hessenberg_idx = k * stride_hessenberg + col_idx;
+
+                next_krylov_basis[next_krylov_idx] -=
+                    hessenberg_iter[hessenberg_idx] *
+                    krylov_bases.read(row_idx, k * num_cols + col_idx);
+            }
+        }
+    }
+}
+
+
+// Must be called with at least `num_rows * stride_next_krylov` threads in
+// total.
+template <int block_size, typename ValueType, typename ValueTypeKrylovBases>
+__global__
+    __launch_bounds__(block_size) void update_next_krylov_kernel_num_iters_2(
+        size_type num_iters, size_type num_blocks, size_type num_rows,
+        size_type num_cols, ValueType *__restrict__ next_krylov_basis,
+        size_type stride_next_krylov,
+        Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+        const ValueType *__restrict__ hessenberg_iter,
+        size_type stride_hessenberg,
+        const stopping_status *__restrict__ stop_status)
+{
+    if (num_cols == 1) {
+        const auto tidx = threadIdx.x;
+        const size_type row_idx = blockIdx.x * num_blocks;
+        const auto col_idx = 0;
+
+        // Used that way to get around dynamic initialization warning and
+        // template error when using `reduction_helper_array` directly in
+        // `reduce`
+        __shared__ UninitializedArray<ValueType, block_size * block_size>
+            reduction_helper_array;
+        ValueType *__restrict__ reduction_helper = reduction_helper_array;
+        if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
+            //            for (size_type j = 0; j < num_blocks; j++) {
+            for (size_type j = row_idx, k = 0; j < num_rows && k < num_blocks;
+                 j++, k++) {
+                ValueType value = zero<ValueType>();
+                for (size_type i = tidx; i < num_iters; i += blockDim.x) {
+                    const auto hessenberg_idx = i * stride_hessenberg + col_idx;
+                    const auto krylov_idx = i * num_cols + col_idx;
+
+                    value += hessenberg_iter[hessenberg_idx] *
+                             krylov_bases.read(j, krylov_idx);
+                    //                             krylov_bases.read(row_idx+j,
+                    //                             krylov_idx);
+                }
+                reduction_helper[k * block_size + tidx] = value;
+            }
+
+            //            for (size_type j = 0; j < num_blocks; j++) {
+            for (size_type j = row_idx, k = 0; j < num_rows && k < num_blocks;
+                 j++, k++) {
+                // Perform thread block reduction. Result is in
+                // reduction_helper[0]
+                reduce(group::this_thread_block(),
+                       reduction_helper + k * block_size,
+                       [](const ValueType &a, const ValueType &b) {
+                           return a + b;
+                       });
+            }
+            if (tidx == 0) {
+                // for (size_type j = 0; j < num_blocks; j++) {
+                for (size_type j = row_idx, k = 0;
+                     j < num_rows && k < num_blocks; j++, k++) {
+                    // (row_idx + j) * stride_next_krylov + col_idx;
+                    const auto next_krylov_idx =
+                        j * stride_next_krylov + col_idx;
+                    next_krylov_basis[next_krylov_idx] -=
+                        reduction_helper[k * block_size];
+                    // reduction_helper[j * block_size];
+                }
+            }
+        }
+    } else {
+        const auto global_id = thread::get_thread_id_flat();
+        const auto row_idx = global_id / stride_next_krylov;
+        const auto col_idx = global_id % stride_next_krylov;
+
+        if (row_idx < num_rows && col_idx < num_cols &&
+            !stop_status[col_idx].has_stopped()) {
+            const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
+            for (size_type k = 0; k < num_iters; ++k) {
+                // const auto krylov_idx =
+                //    row_idx * stride_krylov + k * num_cols + col_idx;
+                const auto hessenberg_idx = k * stride_hessenberg + col_idx;
+
+                next_krylov_basis[next_krylov_idx] -=
+                    hessenberg_iter[hessenberg_idx] *
+                    krylov_bases.read(row_idx, k * num_cols + col_idx);
+            }
+        }
+    }
+}
+
+
+// Must be called with at least `num_rows * stride_next_krylov` threads in
+// total.
+template <int block_size, typename ValueType, typename ValueTypeKrylovBases>
+__global__
+    __launch_bounds__(block_size) void update_next_krylov_kernel_num_iters_3(
+        size_type num_iters, size_type num_blocks, size_type num_rows,
+        size_type num_cols, ValueType *__restrict__ next_krylov_basis,
+        size_type stride_next_krylov,
+        Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+        const ValueType *__restrict__ hessenberg_iter,
+        size_type stride_hessenberg,
+        const stopping_status *__restrict__ stop_status)
+{
+    if (num_cols == 1) {
+        const auto tidx = threadIdx.x;
+        const size_type row_idx = blockIdx.x * num_blocks;
+        const auto col_idx = 0;
+
+        // Used that way to get around dynamic initialization warning and
+        // template error when using `reduction_helper_array` directly in
+        // `reduce`
+        __shared__ UninitializedArray<ValueType, block_size * block_size>
+            reduction_helper_array;
+        ValueType *__restrict__ reduction_helper = reduction_helper_array;
+        if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
+            //            for (size_type j = 0; j < num_blocks; j++) {
+
+            for (size_type j = row_idx, k = 0; j < num_rows && k < num_blocks;
+                 j++, k++) {
+                reduction_helper[k * block_size + tidx] = zero<ValueType>();
+            }
+            for (size_type i = tidx; i < num_iters; i += blockDim.x) {
+                const auto hessenberg_idx = i * stride_hessenberg + col_idx;
+                const auto krylov_idx = i * num_cols + col_idx;
+                const auto hessenberg_val = hessenberg_iter[hessenberg_idx];
+                for (size_type j = row_idx, k = 0;
+                     j < num_rows && k < num_blocks; j++, k++) {
+                    reduction_helper[k * block_size + tidx] +=
+                        hessenberg_val * krylov_bases.read(j, krylov_idx);
+                }
+            }
+
+            //            for (size_type j = 0; j < num_blocks; j++) {
+            for (size_type j = row_idx, k = 0; j < num_rows && k < num_blocks;
+                 j++, k++) {
+                // Perform thread block reduction. Result is in
+                // reduction_helper[0]
+                reduce(group::this_thread_block(),
+                       reduction_helper + k * block_size,
+                       [](const ValueType &a, const ValueType &b) {
+                           return a + b;
+                       });
+            }
+            if (tidx == 0) {
+                // for (size_type j = 0; j < num_blocks; j++) {
+                for (size_type j = row_idx, k = 0;
+                     j < num_rows && k < num_blocks; j++, k++) {
+                    // (row_idx + j) * stride_next_krylov + col_idx;
+                    const auto next_krylov_idx =
+                        j * stride_next_krylov + col_idx;
+                    next_krylov_basis[next_krylov_idx] -=
+                        reduction_helper[k * block_size];
+                    // reduction_helper[j * block_size];
+                }
+            }
+        }
+    } else {
+        const auto global_id = thread::get_thread_id_flat();
+        const auto row_idx = global_id / stride_next_krylov;
+        const auto col_idx = global_id % stride_next_krylov;
+
+        if (row_idx < num_rows && col_idx < num_cols &&
+            !stop_status[col_idx].has_stopped()) {
+            const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
+            for (size_type k = 0; k < num_iters; ++k) {
+                // const auto krylov_idx =
+                //    row_idx * stride_krylov + k * num_cols + col_idx;
+                const auto hessenberg_idx = k * stride_hessenberg + col_idx;
+
+                next_krylov_basis[next_krylov_idx] -=
+                    hessenberg_iter[hessenberg_idx] *
+                    krylov_bases.read(row_idx, k * num_cols + col_idx);
+            }
+        }
+    }
+}
+
+
+// Must be called with at least `num_rows * stride_next_krylov` threads in
+// total.
+template <int block_size, typename ValueType, typename ValueTypeKrylovBases>
+__global__
+    __launch_bounds__(block_size) void update_next_krylov_kernel_num_iters_4(
+        size_type num_iters, size_type num_blocks, size_type num_rows,
+        size_type num_cols, ValueType *__restrict__ next_krylov_basis,
+        size_type stride_next_krylov,
+        Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+        const ValueType *__restrict__ hessenberg_iter,
+        size_type stride_hessenberg,
+        const stopping_status *__restrict__ stop_status)
+{
+    if (num_cols == 1) {
+        const auto tidx = threadIdx.x;
+        const size_type row_idx = blockIdx.x * num_blocks;
+        const auto col_idx = 0;
+
+        // Used that way to get around dynamic initialization warning and
+        // template error when using `reduction_helper_array` directly in
+        // `reduce`
+        __shared__ UninitializedArray<ValueType, block_size * block_size>
+            reduction_helper_array;
+        ValueType *__restrict__ reduction_helper = reduction_helper_array;
+        if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
+            //            for (size_type j = 0; j < num_blocks; j++) {
+
+            for (size_type j = row_idx, k = 0; j < num_rows && k < num_blocks;
+                 j++, k++) {
+                reduction_helper[k * block_size + tidx] = zero<ValueType>();
+            }
+            for (size_type i = tidx; i < num_iters; i += blockDim.x) {
+                const auto hessenberg_idx = i * stride_hessenberg + col_idx;
+                const auto krylov_idx = i * num_cols + col_idx;
+                const auto hessenberg_val = hessenberg_iter[hessenberg_idx];
+                for (size_type j = row_idx, k = 0;
+                     j < num_rows && k < num_blocks; j++, k++) {
+                    reduction_helper[k * block_size + tidx] +=
+                        hessenberg_val * krylov_bases.read(j, krylov_idx);
+                }
+            }
+            multireduce(
+                group::this_thread_block(), reduction_helper, block_size,
+                block_size,
+                [](const ValueType &a, const ValueType &b) { return a + b; });
+
+            if (tidx == 0) {
+                // for (size_type j = 0; j < num_blocks; j++) {
+                for (size_type j = row_idx, k = 0;
+                     j < num_rows && k < num_blocks; j++, k++) {
+                    // (row_idx + j) * stride_next_krylov + col_idx;
+                    const auto next_krylov_idx =
+                        j * stride_next_krylov + col_idx;
+                    next_krylov_basis[next_krylov_idx] -=
+                        reduction_helper[k * block_size];
+                    // reduction_helper[j * block_size];
+                }
+            }
+        }
+    } else {
+        const auto global_id = thread::get_thread_id_flat();
+        const auto row_idx = global_id / stride_next_krylov;
+        const auto col_idx = global_id % stride_next_krylov;
+
+        if (row_idx < num_rows && col_idx < num_cols &&
+            !stop_status[col_idx].has_stopped()) {
+            const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
+            for (size_type k = 0; k < num_iters; ++k) {
+                // const auto krylov_idx =
+                //    row_idx * stride_krylov + k * num_cols + col_idx;
+                const auto hessenberg_idx = k * stride_hessenberg + col_idx;
+
+                next_krylov_basis[next_krylov_idx] -=
+                    hessenberg_iter[hessenberg_idx] *
+                    krylov_bases.read(row_idx, k * num_cols + col_idx);
+            }
+        }
+    }
+}
+
+
+// Must be called with at least `num_rows * stride_next_krylov` threads in
+// total.
+template <int block_size, typename ValueType, typename ValueTypeKrylovBases>
+__global__
     __launch_bounds__(block_size) void update_next_krylov_kernel_and_check(
         size_type k, size_type num_rows, size_type num_cols,
         ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
@@ -493,6 +851,81 @@ __global__
                 krylov_bases.read(row_idx, k * num_cols + col_idx);
             if ((row_idx == 0) && !reorth_status[col_idx].has_stopped()) {
                 hessenberg_iter[hessenberg_idx] += buffer_iter[buffer_idx];
+            }
+        }
+    }
+}
+
+// Must be called with at least `num_rows * stride_next_krylov` threads in
+// total.
+template <int block_size, typename ValueType, typename ValueTypeKrylovBases>
+__global__
+    __launch_bounds__(block_size) void update_next_krylov_kernel_num_iters_and_add_1(
+        size_type num_iters, size_type num_rows, size_type num_cols,
+        ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
+        Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+        ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
+        const ValueType *__restrict__ buffer_iter, size_type stride_buffer,
+        const stopping_status *__restrict__ stop_status,
+        const stopping_status *__restrict__ reorth_status)
+{
+    if (num_cols == 1) {
+        const auto tidx = threadIdx.x;
+        const size_type row_idx = blockIdx.x;
+        const auto col_idx = 0;
+
+        // Used that way to get around dynamic initialization warning and
+        // template error when using `reduction_helper_array` directly in
+        // `reduce`
+        __shared__ UninitializedArray<ValueType, block_size>
+            reduction_helper_array;
+        ValueType *__restrict__ reduction_helper = reduction_helper_array;
+        if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
+            ValueType value = zero<ValueType>();
+            for (size_type i = tidx; i < num_iters; i += blockDim.x) {
+                const auto hessenberg_idx = i * stride_hessenberg + col_idx;
+                const auto buffer_idx = i * stride_buffer + col_idx;
+                const auto krylov_idx = i * num_cols + col_idx;
+
+                value += buffer_iter[buffer_idx] *
+                         krylov_bases.read(row_idx, krylov_idx);
+                if ((row_idx == 0) && !reorth_status[col_idx].has_stopped()) {
+                    hessenberg_iter[hessenberg_idx] += buffer_iter[buffer_idx];
+                }
+            }
+            reduction_helper[tidx] = value;
+
+            // Perform thread block reduction. Result is in
+            // reduction_helper[0]
+            reduce(
+                group::this_thread_block(), reduction_helper,
+                [](const ValueType &a, const ValueType &b) { return a + b; });
+            if (tidx == 0) {
+                const auto next_krylov_idx =
+                    row_idx * stride_next_krylov + col_idx;
+                next_krylov_basis[next_krylov_idx] -= reduction_helper[0];
+            }
+        }
+    } else {
+        const auto global_id = thread::get_thread_id_flat();
+        const auto row_idx = global_id / stride_next_krylov;
+        const auto col_idx = global_id % stride_next_krylov;
+
+        if (row_idx < num_rows && col_idx < num_cols &&
+            !stop_status[col_idx].has_stopped() &&
+            !reorth_status[col_idx].has_stopped()) {
+            const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
+            for (size_type k = 0; k < num_iters; ++k) {
+                // const auto krylov_idx =
+                //    row_idx * stride_krylov + k * num_cols + col_idx;
+                const auto hessenberg_idx = k * stride_hessenberg + col_idx;
+                const auto buffer_idx = k * stride_buffer + col_idx;
+                next_krylov_basis[next_krylov_idx] -=
+                    buffer_iter[buffer_idx] *
+                    krylov_bases.read(row_idx, k * num_cols + col_idx);
+                if ((row_idx == 0) && !reorth_status[col_idx].has_stopped()) {
+                    hessenberg_iter[hessenberg_idx] += buffer_iter[buffer_idx];
+                }
             }
         }
     }
