@@ -85,6 +85,8 @@ Read data
 \DoxyCodeLine{\textcolor{keyword}{auto} A = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{gko::share}}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));}
 \DoxyCodeLine{\textcolor{keyword}{auto} b = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/b.mtx"}), exec);}
 \DoxyCodeLine{\textcolor{keyword}{auto} x = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/x0.mtx"}), exec);}
+\DoxyCodeLine{\textcolor{keyword}{auto} clone\_x = vec::create(exec);}
+\DoxyCodeLine{clone\_x-\/>copy\_from(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
 \end{DoxyCode}
 
 
@@ -182,15 +184,26 @@ Generate preconditioned solver for a specific target system
 \end{DoxyCode}
 
 
-Solve system
+Warmup run
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ilu\_gmres-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\end{DoxyCode}
+
+
+Solve system 100 times and take the average time.
 
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{std::chrono::nanoseconds time(0);}
-\DoxyCodeLine{\textcolor{keyword}{auto} tic = std::chrono::high\_resolution\_clock::now();}
-\DoxyCodeLine{ilu\_gmres-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
-\DoxyCodeLine{\textcolor{keyword}{auto} toc = std::chrono::high\_resolution\_clock::now();}
-\DoxyCodeLine{time += std::chrono::duration\_cast<std::chrono::nanoseconds>(toc -\/ tic);}
+\DoxyCodeLine{\textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 100; i++) \{}
+\DoxyCodeLine{    x-\/>copy\_from(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(clone\_x));}
+\DoxyCodeLine{    \textcolor{keyword}{auto} tic = std::chrono::high\_resolution\_clock::now();}
+\DoxyCodeLine{    ilu\_gmres-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\DoxyCodeLine{    \textcolor{keyword}{auto} toc = std::chrono::high\_resolution\_clock::now();}
+\DoxyCodeLine{    time += std::chrono::duration\_cast<std::chrono::nanoseconds>(toc -\/ tic);}
+\DoxyCodeLine{\}}
 \DoxyCodeLine{}
 \DoxyCodeLine{std::cout << \textcolor{stringliteral}{"Using "} << sweeps << \textcolor{stringliteral}{" block-\/Jacobi sweeps. \(\backslash\)n"};}
 \end{DoxyCode}
@@ -218,7 +231,7 @@ Calculate residual
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"GMRES iteration count:     "} << logger-\/>get\_num\_iterations()}
 \DoxyCodeLine{              << \textcolor{stringliteral}{"\(\backslash\)n"};}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"GMRES execution time [ms]: "}}
-\DoxyCodeLine{              << static\_cast<double>(time.count()) / 1000000.0 << \textcolor{stringliteral}{"\(\backslash\)n"};}
+\DoxyCodeLine{              << static\_cast<double>(time.count()) / 100000000.0 << \textcolor{stringliteral}{"\(\backslash\)n"};}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Residual norm sqrt(r\string^T r): \(\backslash\)n"};}
 \DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(res));}
 \DoxyCodeLine{\}}
@@ -346,6 +359,8 @@ This is the expected output\+:
 \DoxyCodeLine{    \textcolor{keyword}{auto} A = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{gko::share}}(gko::read<mtx>(std::ifstream(\textcolor{stringliteral}{"data/A.mtx"}), exec));}
 \DoxyCodeLine{    \textcolor{keyword}{auto} b = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/b.mtx"}), exec);}
 \DoxyCodeLine{    \textcolor{keyword}{auto} x = gko::read<vec>(std::ifstream(\textcolor{stringliteral}{"data/x0.mtx"}), exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} clone\_x = vec::create(exec);}
+\DoxyCodeLine{    clone\_x-\/>copy\_from(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} par\_ilu\_fact =}
 \DoxyCodeLine{        \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlu}{gko::factorization::ParIlu<ValueType, IndexType>::build}}().on(exec);}
@@ -392,11 +407,16 @@ This is the expected output\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} ilu\_gmres = ilu\_gmres\_factory-\/>generate(A);}
 \DoxyCodeLine{}
-\DoxyCodeLine{    std::chrono::nanoseconds time(0);}
-\DoxyCodeLine{    \textcolor{keyword}{auto} tic = std::chrono::high\_resolution\_clock::now();}
 \DoxyCodeLine{    ilu\_gmres-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
-\DoxyCodeLine{    \textcolor{keyword}{auto} toc = std::chrono::high\_resolution\_clock::now();}
-\DoxyCodeLine{    time += std::chrono::duration\_cast<std::chrono::nanoseconds>(toc -\/ tic);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::chrono::nanoseconds time(0);}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < 100; i++) \{}
+\DoxyCodeLine{        x-\/>copy\_from(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(clone\_x));}
+\DoxyCodeLine{        \textcolor{keyword}{auto} tic = std::chrono::high\_resolution\_clock::now();}
+\DoxyCodeLine{        ilu\_gmres-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{lend}}(x));}
+\DoxyCodeLine{        \textcolor{keyword}{auto} toc = std::chrono::high\_resolution\_clock::now();}
+\DoxyCodeLine{        time += std::chrono::duration\_cast<std::chrono::nanoseconds>(toc -\/ tic);}
+\DoxyCodeLine{    \}}
 \DoxyCodeLine{}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Using "} << sweeps << \textcolor{stringliteral}{" block-\/Jacobi sweeps. \(\backslash\)n"};}
 \DoxyCodeLine{}
@@ -412,7 +432,7 @@ This is the expected output\+:
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"GMRES iteration count:     "} << logger-\/>get\_num\_iterations()}
 \DoxyCodeLine{              << \textcolor{stringliteral}{"\(\backslash\)n"};}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"GMRES execution time [ms]: "}}
-\DoxyCodeLine{              << static\_cast<double>(time.count()) / 1000000.0 << \textcolor{stringliteral}{"\(\backslash\)n"};}
+\DoxyCodeLine{              << static\_cast<double>(time.count()) / 100000000.0 << \textcolor{stringliteral}{"\(\backslash\)n"};}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Residual norm sqrt(r\string^T r): \(\backslash\)n"};}
 \DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{write}}(std::cout, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(res));}
 \DoxyCodeLine{\}}

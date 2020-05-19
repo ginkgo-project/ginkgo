@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/146545887 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/147410612 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -139,6 +139,8 @@ Triangular Solves" (Göbel, Anzt, Cojean, Flegar, Quintana-Ortí, Euro-Par 2020)
 <div class="fragment"><div class="line"><span class="keyword">auto</span> A = <a class="code" href="namespacegko.html#a3ce296f73db0ff398bdea6009a3a5c58">gko::share</a>(gko::read&lt;mtx&gt;(std::ifstream(<span class="stringliteral">&quot;data/A.mtx&quot;</span>), exec));</div>
 <div class="line"><span class="keyword">auto</span> b = gko::read&lt;vec&gt;(std::ifstream(<span class="stringliteral">&quot;data/b.mtx&quot;</span>), exec);</div>
 <div class="line"><span class="keyword">auto</span> x = gko::read&lt;vec&gt;(std::ifstream(<span class="stringliteral">&quot;data/x0.mtx&quot;</span>), exec);</div>
+<div class="line"><span class="keyword">auto</span> clone_x = vec::create(exec);</div>
+<div class="line">clone_x-&gt;copy_from(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x));</div>
 </div><!-- fragment --><p>Generate incomplete factors using ParILU</p>
 <div class="fragment"><div class="line"><span class="keyword">auto</span> par_ilu_fact =</div>
 <div class="line">    <a class="code" href="classgko_1_1factorization_1_1ParIlu.html">gko::factorization::ParIlu&lt;ValueType, IndexType&gt;::build</a>().on(exec);</div>
@@ -185,12 +187,17 @@ Triangular Solves" (Göbel, Anzt, Cojean, Flegar, Quintana-Ortí, Euro-Par 2020)
 <div class="line">        .on(exec);</div>
 </div><!-- fragment --><p>Generate preconditioned solver for a specific target system</p>
 <div class="fragment"><div class="line"><span class="keyword">auto</span> ilu_gmres = ilu_gmres_factory-&gt;generate(A);</div>
-</div><!-- fragment --><p>Solve system</p>
+</div><!-- fragment --><p>Warmup run</p>
+<div class="fragment"><div class="line">ilu_gmres-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x));</div>
+</div><!-- fragment --><p>Solve system 100 times and take the average time.</p>
 <div class="fragment"><div class="line">std::chrono::nanoseconds time(0);</div>
-<div class="line"><span class="keyword">auto</span> tic = std::chrono::high_resolution_clock::now();</div>
-<div class="line">ilu_gmres-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x));</div>
-<div class="line"><span class="keyword">auto</span> toc = std::chrono::high_resolution_clock::now();</div>
-<div class="line">time += std::chrono::duration_cast&lt;std::chrono::nanoseconds&gt;(toc - tic);</div>
+<div class="line"><span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; 100; i++) {</div>
+<div class="line">    x-&gt;copy_from(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(clone_x));</div>
+<div class="line">    <span class="keyword">auto</span> tic = std::chrono::high_resolution_clock::now();</div>
+<div class="line">    ilu_gmres-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x));</div>
+<div class="line">    <span class="keyword">auto</span> toc = std::chrono::high_resolution_clock::now();</div>
+<div class="line">    time += std::chrono::duration_cast&lt;std::chrono::nanoseconds&gt;(toc - tic);</div>
+<div class="line">}</div>
 <div class="line"> </div>
 <div class="line">std::cout &lt;&lt; <span class="stringliteral">&quot;Using &quot;</span> &lt;&lt; sweeps &lt;&lt; <span class="stringliteral">&quot; block-Jacobi sweeps. \n&quot;</span>;</div>
 </div><!-- fragment --><p>Print solution</p>
@@ -206,7 +213,7 @@ Triangular Solves" (Göbel, Anzt, Cojean, Flegar, Quintana-Ortí, Euro-Par 2020)
 <div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;GMRES iteration count:     &quot;</span> &lt;&lt; logger-&gt;get_num_iterations()</div>
 <div class="line">              &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
 <div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;GMRES execution time [ms]: &quot;</span></div>
-<div class="line">              &lt;&lt; static_cast&lt;double&gt;(time.count()) / 1000000.0 &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
+<div class="line">              &lt;&lt; static_cast&lt;double&gt;(time.count()) / 100000000.0 &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
 <div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;Residual norm sqrt(r^T r): \n&quot;</span>;</div>
 <div class="line">    <a class="code" href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148">write</a>(std::cout, <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">gko::lend</a>(res));</div>
 <div class="line">}</div>
@@ -319,6 +326,8 @@ Triangular Solves" (Göbel, Anzt, Cojean, Flegar, Quintana-Ortí, Euro-Par 2020)
 <div class="line">    <span class="keyword">auto</span> A = <a class="code" href="namespacegko.html#a3ce296f73db0ff398bdea6009a3a5c58">gko::share</a>(gko::read&lt;mtx&gt;(std::ifstream(<span class="stringliteral">&quot;data/A.mtx&quot;</span>), exec));</div>
 <div class="line">    <span class="keyword">auto</span> b = gko::read&lt;vec&gt;(std::ifstream(<span class="stringliteral">&quot;data/b.mtx&quot;</span>), exec);</div>
 <div class="line">    <span class="keyword">auto</span> x = gko::read&lt;vec&gt;(std::ifstream(<span class="stringliteral">&quot;data/x0.mtx&quot;</span>), exec);</div>
+<div class="line">    <span class="keyword">auto</span> clone_x = vec::create(exec);</div>
+<div class="line">    clone_x-&gt;copy_from(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x));</div>
 <div class="line"> </div>
 <div class="line">    <span class="keyword">auto</span> par_ilu_fact =</div>
 <div class="line">        <a class="code" href="classgko_1_1factorization_1_1ParIlu.html">gko::factorization::ParIlu&lt;ValueType, IndexType&gt;::build</a>().on(exec);</div>
@@ -365,11 +374,16 @@ Triangular Solves" (Göbel, Anzt, Cojean, Flegar, Quintana-Ortí, Euro-Par 2020)
 <div class="line"> </div>
 <div class="line">    <span class="keyword">auto</span> ilu_gmres = ilu_gmres_factory-&gt;generate(A);</div>
 <div class="line"> </div>
-<div class="line">    std::chrono::nanoseconds time(0);</div>
-<div class="line">    <span class="keyword">auto</span> tic = std::chrono::high_resolution_clock::now();</div>
 <div class="line">    ilu_gmres-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x));</div>
-<div class="line">    <span class="keyword">auto</span> toc = std::chrono::high_resolution_clock::now();</div>
-<div class="line">    time += std::chrono::duration_cast&lt;std::chrono::nanoseconds&gt;(toc - tic);</div>
+<div class="line"> </div>
+<div class="line">    std::chrono::nanoseconds time(0);</div>
+<div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; 100; i++) {</div>
+<div class="line">        x-&gt;copy_from(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(clone_x));</div>
+<div class="line">        <span class="keyword">auto</span> tic = std::chrono::high_resolution_clock::now();</div>
+<div class="line">        ilu_gmres-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x));</div>
+<div class="line">        <span class="keyword">auto</span> toc = std::chrono::high_resolution_clock::now();</div>
+<div class="line">        time += std::chrono::duration_cast&lt;std::chrono::nanoseconds&gt;(toc - tic);</div>
+<div class="line">    }</div>
 <div class="line"> </div>
 <div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;Using &quot;</span> &lt;&lt; sweeps &lt;&lt; <span class="stringliteral">&quot; block-Jacobi sweeps. \n&quot;</span>;</div>
 <div class="line"> </div>
@@ -385,7 +399,7 @@ Triangular Solves" (Göbel, Anzt, Cojean, Flegar, Quintana-Ortí, Euro-Par 2020)
 <div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;GMRES iteration count:     &quot;</span> &lt;&lt; logger-&gt;get_num_iterations()</div>
 <div class="line">              &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
 <div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;GMRES execution time [ms]: &quot;</span></div>
-<div class="line">              &lt;&lt; static_cast&lt;double&gt;(time.count()) / 1000000.0 &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
+<div class="line">              &lt;&lt; static_cast&lt;double&gt;(time.count()) / 100000000.0 &lt;&lt; <span class="stringliteral">&quot;\n&quot;</span>;</div>
 <div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;Residual norm sqrt(r^T r): \n&quot;</span>;</div>
 <div class="line">    <a class="code" href="namespacegko.html#a859dc47a462721d83728d91ab7fa2148">write</a>(std::cout, <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">gko::lend</a>(res));</div>
 <div class="line">}</div>
