@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -50,6 +51,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/multigrid/restrict_prolong.hpp>
+#include <ginkgo/core/stop/combined.hpp>
+#include <ginkgo/core/stop/criterion.hpp>
 
 
 namespace gko {
@@ -71,6 +74,14 @@ class Multigrid : public EnableLinOp<Multigrid<ValueType>> {
 
 public:
     using value_type = ValueType;
+    using vector_type = matrix::Dense<ValueType>;
+
+    /**
+     * Return true as iterative solvers use the data in x as an initial guess.
+     *
+     * @return true as iterative solvers use the data in x as an initial guess.
+     */
+    bool apply_uses_initial_guess() const override { return true; }
 
     /**
      * Gets the system operator of the linear system.
@@ -133,6 +144,19 @@ protected:
      */
     void generate();
 
+    void v_cycle(
+        size_type level, std::shared_ptr<const LinOp> matrix,
+        const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x,
+        std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &r_list,
+        std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &g_list,
+        std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &e_list) const;
+
+    void prepare_vcycle(
+        const size_type nrhs,
+        std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &r,
+        std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &g,
+        std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &e) const;
+
     explicit Multigrid(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Multigrid>(std::move(exec))
     {}
@@ -142,24 +166,29 @@ protected:
         : EnableLinOp<Multigrid>(factory->get_executor(),
                                  transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
-          system_matrix_{system_matrix}
+          system_matrix_{system_matrix},
+          one_op_{std::move(initialize<vector_type>({one<ValueType>()},
+                                                    factory->get_executor()))},
+          neg_one_op_{std::move(initialize<vector_type>(
+              {-one<ValueType>()}, factory->get_executor()))}
     {
         GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
-        pre_smoother_is_identity =
+
+        pre_smoother_is_identity_ =
             validate_identity_factory(parameters_.pre_smoother);
-        post_smoother_is_identity =
+        post_smoother_is_identity_ =
             validate_identity_factory(parameters_.post_smoother);
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
-        if (parameters_.rstr_prlg_index) {
+        if (!parameters_.rstr_prlg_index) {
             if (parameters_.rstr_prlg.size() == 1) {
                 rstr_prlg_index_ = [](const size_type, const size_type) {
                     return size_type{0};
-                }
+                };
             } else if (parameters_.rstr_prlg.size() > 1) {
                 rstr_prlg_index_ = [](const size_type, const size_type level) {
                     return level;
-                }
+                };
             }
         }
         this->generate();
@@ -168,8 +197,8 @@ protected:
     bool validate_identity_factory(std::shared_ptr<const LinOpFactory> factory)
     {
         return !factory ||
-               !std::dynamic_pointer_cast<const matrix::Identity<ValueType>>(
-                   factory);
+               std::dynamic_pointer_cast<
+                   const matrix::IdentityFactory<ValueType>>(factory);
     }
 
 private:
@@ -178,10 +207,12 @@ private:
     std::vector<std::shared_ptr<multigrid::RestrictProlong>> rstr_prlg_list_{};
     std::vector<std::shared_ptr<LinOp>> pre_smoother_list_{};
     std::vector<std::shared_ptr<LinOp>> post_smoother_list_{};
-    std::shared_ptr<LinOp> coarsest_solver{};
-    bool pre_smoother_is_identity;
-    bool post_smoother_is_identity;
+    std::shared_ptr<LinOp> coarsest_solver_{};
+    bool pre_smoother_is_identity_;
+    bool post_smoother_is_identity_;
     std::function<size_type(const size_type, const size_type)> rstr_prlg_index_;
+    std::shared_ptr<matrix::Dense<ValueType>> one_op_;
+    std::shared_ptr<matrix::Dense<ValueType>> neg_one_op_;
 };
 
 
