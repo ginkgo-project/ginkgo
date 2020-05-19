@@ -168,8 +168,8 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_merge_path_spmv, merge_path_spmv);
 template <typename ValueType, typename IndexType>
 int compute_items_per_thread(std::shared_ptr<const CudaExecutor> exec)
 {
-    const int version = exec->get_major_version()
-                        << 4 + exec->get_minor_version();
+    const int version =
+        (exec->get_major_version() << 4) + exec->get_minor_version();
     // The num_item is decided to make the occupancy 100%
     // TODO: Extend this list when new GPU is released
     //       Tune this parameter
