@@ -188,7 +188,7 @@ if(GINKGO_HIP_PLATFORM MATCHES "hcc")
     target_link_libraries(ginkgo_hip PRIVATE hip::device)
 elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")
     find_package(CUDA 9.0 REQUIRED)
-    target_link_libraries(ginkgo_hip PRIVATE ${CUDA_LIBRARIES})
+    target_link_libraries(ginkgo_hip PUBLIC ${CUDA_LIBRARIES})
     set(HIP_CUDA_LIBRARIES ${CUDA_LIBRARIES} PARENT_SCOPE)
 endif()
 

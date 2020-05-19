@@ -49,6 +49,7 @@ stages:
       CUDA_HOST_STR=-DCMAKE_CUDA_HOST_COMPILER=$(which ${CXX_COMPILER});
       fi
     - cmake ${CI_PROJECT_DIR}
+        -GNinja
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
         -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_FLAGS="${CXX_FLAGS}"
         -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} ${EXTRA_CMAKE_FLAGS}
@@ -57,7 +58,7 @@ stages:
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
-    - make -j${NUM_CORES}
+    - ninja -j${NUM_CORES}
   dependencies: []
   except:
       - schedules
@@ -73,6 +74,7 @@ stages:
       CUDA_HOST_STR=-DCMAKE_CUDA_HOST_COMPILER=$(which ${CXX_COMPILER});
       fi
     - cmake ${CI_PROJECT_DIR}
+        -GNinja
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
         -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_FLAGS="${CXX_FLAGS}"
         -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} ${EXTRA_CMAKE_FLAGS}
@@ -81,11 +83,11 @@ stages:
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
-    - make -j${NUM_CORES} install
+    - ninja -j${NUM_CORES} install
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
     - ctest -V
-    - make test_install
+    - ninja test_install
   dependencies: []
   except:
       - schedules
@@ -336,7 +338,7 @@ build/cuda101/intel/cuda/debug/static:
 # HIP AMD
 build/amd/gcc/hip/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/gko-amd-gnu7-llvm60
+  image: localhost:5000/gko-amd-gnu8-llvm7
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
@@ -349,7 +351,7 @@ build/amd/gcc/hip/debug/shared:
 
 build/amd/clang/hip/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/gko-amd-gnu7-llvm60
+  image: localhost:5000/gko-amd-gnu8-llvm7
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
