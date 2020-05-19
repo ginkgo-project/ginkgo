@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -91,17 +92,37 @@ constexpr int default_update_dim = 32;
 
 // Specialization, so the Accessor can use the same function as regular pointers
 template <typename Type1, typename Type2>
-Accessor2d<cuda_type<Type1>, cuda_type<Type2>> as_cuda_accessor(
-    Accessor2d<Type1, Type2> acc)
+xstd::enable_if_t<!Accessor2d<Type1, Type2>::has_scalar,
+                  Accessor2d<cuda_type<Type1>, cuda_type<Type2>>>
+as_cuda_accessor(Accessor2d<Type1, Type2> acc)
 {
     return {as_cuda_type(acc.get_storage()), acc.get_stride()};
 }
 
 template <typename Type1, typename Type2>
-Accessor2dConst<cuda_type<Type1>, cuda_type<Type2>> as_cuda_accessor(
-    const Accessor2dConst<Type1, Type2> &acc)
+xstd::enable_if_t<Accessor2d<Type1, Type2>::has_scalar,
+                  Accessor2d<cuda_type<Type1>, cuda_type<Type2>>>
+as_cuda_accessor(Accessor2d<Type1, Type2> acc)
+{
+    return {as_cuda_type(acc.get_storage()), acc.get_stride(),
+            as_cuda_type(acc.get_scale())};
+}
+
+template <typename Type1, typename Type2>
+xstd::enable_if_t<!Accessor2dConst<Type1, Type2>::has_scalar,
+                  Accessor2dConst<cuda_type<Type1>, cuda_type<Type2>>>
+as_cuda_accessor(const Accessor2dConst<Type1, Type2> &acc)
 {
     return {as_cuda_type(acc.get_storage()), acc.get_stride()};
+}
+
+template <typename Type1, typename Type2>
+xstd::enable_if_t<Accessor2dConst<Type1, Type2>::has_scalar,
+                  Accessor2dConst<cuda_type<Type1>, cuda_type<Type2>>>
+as_cuda_accessor(const Accessor2dConst<Type1, Type2> &acc)
+{
+    return {as_cuda_type(acc.get_storage()), acc.get_stride(),
+            as_cuda_type(acc.get_scale())};
 }
 
 

@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
 
 
-#include "core/components/accessor.hpp"
+#include "core/solver/gmres_mixed_accessor.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -62,7 +62,9 @@ protected:
     using value_type = double;
     using krylov_type = float;
     using index_type = int;
-    using Accessor2d = gko::Accessor2d<krylov_type, value_type>;
+    using Accessor2d = gko::kernels::Accessor2d<krylov_type, value_type>;
+    using Accessor2dHelper =
+        gko::kernels::Accessor2dHelper<value_type, krylov_type>;
     using Dense = gko::matrix::Dense<value_type>;
     using Mtx = Dense;
 
@@ -73,8 +75,6 @@ protected:
     {
         ref = gko::ReferenceExecutor::create();
         omp = gko::OmpExecutor::create();
-        krylov_bases.set_executor(ref);
-        d_krylov_bases.set_executor(omp);
     }
 
     void TearDown()
@@ -117,10 +117,10 @@ protected:
         arnoldi_norm = gen_mtx(2, n);
         gko::dim<2> krylov_bases_dim(
             m, (gko::solver::default_krylov_dim_mixed + 1) * n);
-        krylov_bases =
+        acc_helper = Accessor2dHelper{krylov_bases_dim, ref};
+        acc_helper.get_bases() =
             generate_krylov_bases(krylov_bases_dim[0], krylov_bases_dim[1]);
-        krylov_bases_accessor =
-            Accessor2d{krylov_bases.get_data(), krylov_bases_dim[1]};
+        krylov_bases_accessor = acc_helper.get_accessor();
 
         next_krylov_basis = gen_mtx(m, n);
         hessenberg = gen_mtx(gko::solver::default_krylov_dim_mixed + 1,
@@ -165,9 +165,9 @@ protected:
         d_b_norm->copy_from(b_norm.get());
         d_arnoldi_norm = Mtx::create(omp);
         d_arnoldi_norm->copy_from(arnoldi_norm.get());
-        d_krylov_bases = krylov_bases;
-        d_krylov_bases_accessor =
-            Accessor2d{d_krylov_bases.get_data(), krylov_bases_dim[1]};
+        d_acc_helper = Accessor2dHelper{{}, omp};
+        d_acc_helper = acc_helper;
+        d_krylov_bases_accessor = d_acc_helper.get_accessor();
         d_next_krylov_basis = Mtx::create(omp);
         d_next_krylov_basis->copy_from(next_krylov_basis.get());
         d_hessenberg = Mtx::create(omp);
@@ -202,7 +202,8 @@ protected:
     void assert_krylov_bases_near()
     {
         gko::Array<krylov_type> d_to_host{ref};
-        d_to_host = d_krylov_bases;
+        auto &krylov_bases = acc_helper.get_bases();
+        d_to_host = d_acc_helper.get_bases();
         const auto tolerance = r<krylov_type>::value;
         using std::abs;
         for (gko::size_type i = 0; i < krylov_bases.get_num_elems(); ++i) {
@@ -223,7 +224,7 @@ protected:
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> b_norm;
     std::unique_ptr<Mtx> arnoldi_norm;
-    gko::Array<krylov_type> krylov_bases;
+    Accessor2dHelper acc_helper;
     Accessor2d krylov_bases_accessor;
     std::unique_ptr<Mtx> next_krylov_basis;
     std::unique_ptr<Mtx> hessenberg;
@@ -245,7 +246,7 @@ protected:
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_b_norm;
     std::unique_ptr<Mtx> d_arnoldi_norm;
-    gko::Array<krylov_type> d_krylov_bases;
+    Accessor2dHelper d_acc_helper;
     Accessor2d d_krylov_bases_accessor;
     std::unique_ptr<Mtx> d_next_krylov_basis;
     std::unique_ptr<Mtx> d_hessenberg;

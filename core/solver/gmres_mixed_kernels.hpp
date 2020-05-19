@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
-#include "core/components/accessor.hpp"
+#include "core/solver/gmres_mixed_accessor.hpp"
 
 
 /**
