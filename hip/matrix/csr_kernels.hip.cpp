@@ -181,8 +181,8 @@ int compute_items_per_thread(std::shared_ptr<const HipExecutor> exec)
 #if GINKGO_HIP_PLATFORM_NVCC
 
 
-    const int version = exec->get_major_version()
-                        << 4 + exec->get_minor_version();
+    const int version =
+        (exec->get_major_version() << 4) + exec->get_minor_version();
     // The num_item is decided to make the occupancy 100%
     // TODO: Extend this list when new GPU is released
     //       Tune this parameter
