@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_SOLVER_MULTIGRID_HPP_
 
 
+#include <functional>
 #include <memory>
 #include <utility>
 
@@ -101,7 +102,8 @@ public:
         std::vector<std::shared_ptr<const stop::CriterionFactory>>
             GKO_FACTORY_PARAMETER(criteria, nullptr);
 
-        std::vector<std::shared_ptr<const multigrid::RestrictProlongFactory>>
+        std::vector<
+            std::shared_ptr<const gko::multigrid::RestrictProlongFactory>>
             GKO_FACTORY_PARAMETER(rstr_prlg, nullptr);
 
         std::function<size_type(const size_type, const size_type)>
@@ -204,7 +206,8 @@ protected:
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
-    std::vector<std::shared_ptr<multigrid::RestrictProlong>> rstr_prlg_list_{};
+    std::vector<std::shared_ptr<gko::multigrid::RestrictProlong>>
+        rstr_prlg_list_{};
     std::vector<std::shared_ptr<LinOp>> pre_smoother_list_{};
     std::vector<std::shared_ptr<LinOp>> post_smoother_list_{};
     std::shared_ptr<LinOp> coarsest_solver_{};
