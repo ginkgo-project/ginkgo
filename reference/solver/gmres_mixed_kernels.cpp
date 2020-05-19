@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-#include "core/components/accessor.hpp"
+#include "core/solver/gmres_mixed_accessor.hpp"
 
 
 namespace gko {

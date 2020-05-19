@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 
-#include "core/components/accessor.hpp"
+#include "core/solver/gmres_mixed_accessor.hpp"
 #include "core/solver/gmres_mixed_kernels.hpp"
 
 
@@ -75,13 +75,7 @@ GKO_REGISTER_OPERATION(step_2, gmres_mixed::step_2);
 
 }  // namespace gmres_mixed
 
-/*
-template <typename ValueType, typename ValueTypeKrylovBases, bool
-Reorthogonalization, bool MGS_CGS> void
-GmresMixed<ValueType,ValueTypeKrylovBases,
-                Reorthogonalization,MGS_CGS>::apply_impl(const LinOp *b, LinOp
-*x) const
-*/
+
 template <typename ValueType, typename ValueTypeKrylovBases>
 void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
                                                              LinOp *x) const
@@ -90,7 +84,9 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
 
     using Vector = matrix::Dense<ValueType>;
     using LowArray = Array<ValueTypeKrylovBases>;
-    using KrylovAccessor = Accessor2d<ValueTypeKrylovBases, ValueType>;
+    using KrylovAccessor = kernels::Accessor2d<ValueTypeKrylovBases, ValueType>;
+    using Accessor2dHelper =
+        kernels::Accessor2dHelper<ValueType, ValueTypeKrylovBases>;
 
 
     constexpr uint8 RelativeStoppingId{1};
@@ -106,10 +102,13 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     const dim<2> krylov_bases_dim{
         system_matrix_->get_size()[1],
         (krylov_dim_mixed_ + 1) * dense_b->get_size()[1]};
-    const size_type krylov_bases_stride = krylov_bases_dim[1];
-    LowArray krylov_bases(exec, krylov_bases_dim[0] * krylov_bases_stride);
-    KrylovAccessor krylov_bases_accessor(krylov_bases.get_data(),
-                                         krylov_bases_stride);
+    // const size_type krylov_bases_stride = krylov_bases_dim[1];
+    // LowArray krylov_bases(exec, krylov_bases_dim[0] * krylov_bases_stride);
+    // KrylovAccessor krylov_bases_accessor(krylov_bases.get_data(),
+    //                                     krylov_bases_stride);
+    Accessor2dHelper helper(krylov_bases_dim, exec);
+    auto krylov_bases_accessor = helper.get_accessor();
+
     auto next_krylov_basis = Vector::create_with_config_of(dense_b);
     std::shared_ptr<matrix::Dense<ValueType>> preconditioned_vector =
         Vector::create_with_config_of(dense_b);
@@ -317,18 +316,20 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
         system_matrix_->get_size()[1],
         (krylov_dim_mixed_ + 1) * dense_b->get_size()[1]};
     */
+    /*
     const dim<2> krylov_bases_small_dim{
         system_matrix_->get_size()[0],
         dense_b->get_size()[1] * (restart_iter + 1)};
     KrylovAccessor krylov_bases_small_accessor{krylov_bases.get_data(),
                                                krylov_bases_stride};
+    */
 
     auto hessenberg_small = hessenberg->create_submatrix(
         span{0, restart_iter},
         span{0, dense_b->get_size()[1] * (restart_iter)});
 
     exec->run(gmres_mixed::make_step_2(
-        residual_norm_collection.get(), krylov_bases_small_accessor.to_const(),
+        residual_norm_collection.get(), krylov_bases_accessor.to_const(),
         hessenberg_small.get(), y.get(), before_preconditioner.get(),
         &final_iter_nums));
 #ifdef TIMING_STEPS
