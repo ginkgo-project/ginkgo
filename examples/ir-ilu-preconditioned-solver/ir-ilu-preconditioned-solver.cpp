@@ -78,6 +78,8 @@ int main(int argc, char *argv[])
     auto A = gko::share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
+    auto clone_x = vec::create(exec);
+    clone_x->copy_from(lend(x));
 
     // Generate incomplete factors using ParILU
     auto par_ilu_fact =
@@ -140,12 +142,18 @@ int main(int argc, char *argv[])
     // Generate preconditioned solver for a specific target system
     auto ilu_gmres = ilu_gmres_factory->generate(A);
 
-    // Solve system
-    std::chrono::nanoseconds time(0);
-    auto tic = std::chrono::high_resolution_clock::now();
+    // Warmup run
     ilu_gmres->apply(lend(b), lend(x));
-    auto toc = std::chrono::high_resolution_clock::now();
-    time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
+
+    // Solve system 100 times and take the average time.
+    std::chrono::nanoseconds time(0);
+    for (int i = 0; i < 100; i++) {
+        x->copy_from(lend(clone_x));
+        auto tic = std::chrono::high_resolution_clock::now();
+        ilu_gmres->apply(lend(b), lend(x));
+        auto toc = std::chrono::high_resolution_clock::now();
+        time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
+    }
 
     std::cout << "Using " << sweeps << " block-Jacobi sweeps. \n";
 
@@ -163,7 +171,7 @@ int main(int argc, char *argv[])
     std::cout << "GMRES iteration count:     " << logger->get_num_iterations()
               << "\n";
     std::cout << "GMRES execution time [ms]: "
-              << static_cast<double>(time.count()) / 1000000.0 << "\n";
+              << static_cast<double>(time.count()) / 100000000.0 << "\n";
     std::cout << "Residual norm sqrt(r^T r): \n";
     write(std::cout, gko::lend(res));
 }
