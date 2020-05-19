@@ -59,7 +59,7 @@ GKO_REGISTER_OPERATION(step_3, cgs::step_3);
 }  // namespace cgs
 
 // Read: (5 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType + iter_fh * ((14 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType) + iter_sh * ((6 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType)
-// Write: (10 * n + 2) * ValueType + iter_fh * (6 * n + 3) + iter_sh * (4 * n * ValueType)
+// Write: (10 * n + 2) * ValueType + iter_fh * (6 * n + 3) * ValueType + iter_sh * (4 * n * ValueType)
 template <typename ValueType>
 std::unique_ptr<LinOp> Cgs<ValueType>::transpose() const
 {
