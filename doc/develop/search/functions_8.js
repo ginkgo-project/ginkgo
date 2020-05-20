@@ -8,7 +8,7 @@ var searchData=
   ['inverse_5frow_5fpermute_1255',['inverse_row_permute',['../classgko_1_1Permutable.html#ab7ff08705706169e29ebd92e9d3b3a8c',1,'gko::Permutable::inverse_row_permute()'],['../classgko_1_1matrix_1_1Csr.html#ab7a2eebfaa32a42b0102323788c45376',1,'gko::matrix::Csr::inverse_row_permute()'],['../classgko_1_1matrix_1_1Dense.html#aff5aa4d5ec9f3f63f125e6903bf2f5ef',1,'gko::matrix::Dense::inverse_row_permute(const Array&lt; int32 &gt; *inverse_permutation_indices) const override'],['../classgko_1_1matrix_1_1Dense.html#ae8530592453021c53e9956a6f485c7ab',1,'gko::matrix::Dense::inverse_row_permute(const Array&lt; int64 &gt; *inverse_permutation_indices) const override']]],
   ['is_5fcomplex_1256',['is_complex',['../namespacegko.html#a9b3e79911bb6145d7ba865dbe436b915',1,'gko']]],
   ['is_5ffinalized_1257',['is_finalized',['../classgko_1_1stopping__status.html#a7c8b094d37449098ca4ddb1f4bbf10bd',1,'gko::stopping_status']]],
-  ['is_5fowning_1258',['is_owning',['../classgko_1_1Array.html#a18164d25e9e87bdc6b8af7ce9956199a',1,'gko::Array']]],
-  ['is_5fvalid_1259',['is_valid',['../structgko_1_1span.html#a32a87f434708e6857820858503f9b133',1,'gko::span']]],
-  ['isfinite_1260',['isfinite',['../namespacegko.html#afb0f20b5d373f9439702e723d48548fa',1,'gko']]]
+  ['is_5ffinite_1258',['is_finite',['../namespacegko.html#af0297bfcc5b3c6a69b412c328390e274',1,'gko::is_finite(const T &amp;value)'],['../namespacegko.html#a2898724536884e5cf8ea9a3bad9d83ec',1,'gko::is_finite(const T &amp;value)']]],
+  ['is_5fowning_1259',['is_owning',['../classgko_1_1Array.html#a18164d25e9e87bdc6b8af7ce9956199a',1,'gko::Array']]],
+  ['is_5fvalid_1260',['is_valid',['../structgko_1_1span.html#a32a87f434708e6857820858503f9b133',1,'gko::span']]]
 ];

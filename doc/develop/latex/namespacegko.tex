@@ -283,10 +283,9 @@ constexpr \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64
 \begin{DoxyCompactList}\small\item\em Returns the position of the most significant bit of the number. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\constexpr T \mbox{\hyperlink{namespacegko_ad39645fe8148a8a812a9528865a77600}{get\+\_\+superior\+\_\+power}} (const T \&base, const T \&limit, const T \&hint=T\{1\}) noexcept
 \begin{DoxyCompactList}\small\item\em Returns the smallest power of {\ttfamily base} not smaller than {\ttfamily limit}. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{namespacegko_a23a34246f622b7e45cd5e40dc7f1f16e}\label{namespacegko_a23a34246f622b7e45cd5e40dc7f1f16e}} 
-{\footnotesize template$<$typename T $>$ }\\xstd\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, bool $>$ {\bfseries isfinite} (const T \&value)
-\item 
-{\footnotesize template$<$typename T $>$ }\\xstd\+::enable\+\_\+if\+\_\+t$<$ \mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, bool $>$ \mbox{\hyperlink{namespacegko_afb0f20b5d373f9439702e723d48548fa}{isfinite}} (const T \&value)
+{\footnotesize template$<$typename T $>$ }\\xstd\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, bool $>$ \mbox{\hyperlink{namespacegko_af0297bfcc5b3c6a69b412c328390e274}{is\+\_\+finite}} (const T \&value)
+\begin{DoxyCompactList}\small\item\em Checks if a floating point number is finite, meaning it is neither +/-\/ infinity nor NaN. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\xstd\+::enable\+\_\+if\+\_\+t$<$ \mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, bool $>$ \mbox{\hyperlink{namespacegko_a2898724536884e5cf8ea9a3bad9d83ec}{is\+\_\+finite}} (const T \&value)
 \begin{DoxyCompactList}\small\item\em Checks if all components of a complex value are finite, meaning they are neither +/-\/ infinity nor NaN. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ }\\\mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$ \mbox{\hyperlink{namespacegko_a0b476e0e3df616b08efe85000bff8da0}{read\+\_\+raw}} (std\+::istream \&is)
 \begin{DoxyCompactList}\small\item\em Reads a matrix stored in matrix market format from an input stream. \end{DoxyCompactList}\item 
@@ -752,6 +751,10 @@ Returns the absolute value of the object.
 \begin{DoxyReturn}{Returns}
 x $>$= \mbox{\hyperlink{namespacegko_a70dbe01ff95c7b953d3d737424c6feb5}{zero$<$\+T$>$()}} ? x \+: -\/x; 
 \end{DoxyReturn}
+
+
+Referenced by is\+\_\+finite().
+
 \mbox{\Hypertarget{namespacegko_a289e84ef5dea2f579dd12f27140a1470}\label{namespacegko_a289e84ef5dea2f579dd12f27140a1470}} 
 \index{gko@{gko}!as@{as}}
 \index{as@{as}!gko@{gko}}
@@ -1246,12 +1249,44 @@ Checks if T is a complex type.
 \begin{DoxyReturn}{Returns}
 {\ttfamily true} if T is a complex type, {\ttfamily false} otherwise 
 \end{DoxyReturn}
-\mbox{\Hypertarget{namespacegko_afb0f20b5d373f9439702e723d48548fa}\label{namespacegko_afb0f20b5d373f9439702e723d48548fa}} 
-\index{gko@{gko}!isfinite@{isfinite}}
-\index{isfinite@{isfinite}!gko@{gko}}
-\doxysubsubsection{\texorpdfstring{isfinite()}{isfinite()}}
+\mbox{\Hypertarget{namespacegko_af0297bfcc5b3c6a69b412c328390e274}\label{namespacegko_af0297bfcc5b3c6a69b412c328390e274}} 
+\index{gko@{gko}!is\_finite@{is\_finite}}
+\index{is\_finite@{is\_finite}!gko@{gko}}
+\doxysubsubsection{\texorpdfstring{is\_finite()}{is\_finite()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-xstd\+::enable\+\_\+if\+\_\+t$<$\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$T$>$\+::value, bool$>$ gko\+::isfinite (\begin{DoxyParamCaption}\item[{const T \&}]{value }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+xstd\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$T$>$\+::value, bool$>$ gko\+::is\+\_\+finite (\begin{DoxyParamCaption}\item[{const T \&}]{value }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Checks if a floating point number is finite, meaning it is neither +/-\/ infinity nor NaN. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & type of the value to check\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em value} & value to check\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+{\ttfamily true} if the value is finite, meaning it are neither +/-\/ infinity nor NaN. 
+\end{DoxyReturn}
+
+
+References abs().
+
+
+
+Referenced by is\+\_\+finite().
+
+\mbox{\Hypertarget{namespacegko_a2898724536884e5cf8ea9a3bad9d83ec}\label{namespacegko_a2898724536884e5cf8ea9a3bad9d83ec}} 
+\index{gko@{gko}!is\_finite@{is\_finite}}
+\index{is\_finite@{is\_finite}!gko@{gko}}
+\doxysubsubsection{\texorpdfstring{is\_finite()}{is\_finite()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+xstd\+::enable\+\_\+if\+\_\+t$<$\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$T$>$\+::value, bool$>$ gko\+::is\+\_\+finite (\begin{DoxyParamCaption}\item[{const T \&}]{value }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -1267,7 +1302,14 @@ Checks if all components of a complex value are finite, meaning they are neither
 {\em value} & complex value to check\\
 \hline
 \end{DoxyParams}
-returns {\ttfamily true} if both components of the given value are finite, meaning they are neither +/-\/ infinity nor NaN. \mbox{\Hypertarget{namespacegko_a4edc2273b5627ec552ea423b60493be3}\label{namespacegko_a4edc2273b5627ec552ea423b60493be3}} 
+\begin{DoxyReturn}{Returns}
+{\ttfamily true} if both components of the given value are finite, meaning they are neither +/-\/ infinity nor NaN. 
+\end{DoxyReturn}
+
+
+References is\+\_\+finite().
+
+\mbox{\Hypertarget{namespacegko_a4edc2273b5627ec552ea423b60493be3}\label{namespacegko_a4edc2273b5627ec552ea423b60493be3}} 
 \index{gko@{gko}!lend@{lend}}
 \index{lend@{lend}!gko@{gko}}
 \doxysubsubsection{\texorpdfstring{lend()}{lend()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}

@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/preconditioner/isai.hpp (6e8d03c02) Source File</title>
+<title>Ginkgo: ginkgo/core/preconditioner/isai.hpp (c0d1778e9) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/147643903 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/147812514 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -164,48 +164,41 @@ $(function() {
 <div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;    {</div>
 <div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;        <span class="keyword">const</span> <span class="keyword">auto</span> skip_sorting = parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Isai_1_1parameters__type.html#a0f94fd144a00a6294ac4e2b430b1d5d1">skip_sorting</a>;</div>
 <div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;        <span class="keyword">const</span> <span class="keyword">auto</span> power = parameters_.<a class="code" href="structgko_1_1preconditioner_1_1Isai_1_1parameters__type.html#a24629edfcca9106e2bb310bdbca2c28c">sparsity_power</a>;</div>
-<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;        <span class="keywordflow">if</span> (IsaiType == isai_type::lower) {</div>
-<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;            generate_l_inverse(system_matrix, skip_sorting, power);</div>
-<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;        } <span class="keywordflow">else</span> {</div>
-<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;            generate_u_inverse(system_matrix, skip_sorting, power);</div>
-<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160;        }</div>
-<div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;    }</div>
-<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160; </div>
-<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160;    <span class="keywordtype">void</span> apply_impl(<span class="keyword">const</span> LinOp *b, LinOp *x)<span class="keyword"> const override</span></div>
-<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;<span class="keyword">    </span>{</div>
-<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;        approximate_inverse_-&gt;apply(b, x);</div>
-<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;    }</div>
-<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160; </div>
-<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;    <span class="keywordtype">void</span> apply_impl(<span class="keyword">const</span> LinOp *alpha, <span class="keyword">const</span> LinOp *b, <span class="keyword">const</span> LinOp *beta,</div>
-<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;                    LinOp *x)<span class="keyword"> const override</span></div>
-<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;<span class="keyword">    </span>{</div>
-<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160;        approximate_inverse_-&gt;apply(alpha, b, beta, x);</div>
-<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;    }</div>
-<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160; </div>
-<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;    <span class="keywordtype">void</span> generate_l_inverse(std::shared_ptr&lt;const LinOp&gt; to_invert_l,</div>
-<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;                            <span class="keywordtype">bool</span> skip_sorting, <span class="keywordtype">int</span> power);</div>
+<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;        generate_inverse(system_matrix, skip_sorting, power);</div>
+<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;    }</div>
+<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160; </div>
+<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;    <span class="keywordtype">void</span> apply_impl(<span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *b, <a class="code" href="classgko_1_1LinOp.html">LinOp</a> *x)<span class="keyword"> const override</span></div>
+<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160;<span class="keyword">    </span>{</div>
+<div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;        approximate_inverse_-&gt;apply(b, x);</div>
+<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160;    }</div>
+<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160; </div>
+<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;    <span class="keywordtype">void</span> apply_impl(<span class="keyword">const</span> LinOp *alpha, <span class="keyword">const</span> LinOp *b, <span class="keyword">const</span> LinOp *beta,</div>
+<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;                    LinOp *x)<span class="keyword"> const override</span></div>
+<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;<span class="keyword">    </span>{</div>
+<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160;        approximate_inverse_-&gt;apply(alpha, b, beta, x);</div>
+<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;    }</div>
+<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160; </div>
+<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160;    <span class="keywordtype">void</span> generate_inverse(std::shared_ptr&lt;const LinOp&gt; to_invert,</div>
+<div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160;                          <span class="keywordtype">bool</span> skip_sorting, <span class="keywordtype">int</span> power);</div>
+<div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160; </div>
+<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;    std::shared_ptr&lt;Csr&gt; approximate_inverse_;</div>
+<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160;};</div>
 <div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160; </div>
-<div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160;    <span class="keywordtype">void</span> generate_u_inverse(std::shared_ptr&lt;const LinOp&gt; to_invert_u,</div>
-<div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160;                            <span class="keywordtype">bool</span> skip_sorting, <span class="keywordtype">int</span> power);</div>
-<div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160; </div>
-<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160;    std::shared_ptr&lt;Csr&gt; approximate_inverse_;</div>
-<div class="line"><a name="l00210"></a><span class="lineno">  210</span>&#160;};</div>
-<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160; </div>
-<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160; </div>
-<div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType = default_precision, <span class="keyword">typename</span> IndexType = <span class="keywordtype">int</span>32&gt;</div>
-<div class="line"><a name="l00214"></a><span class="lineno">  214</span>&#160;<span class="keyword">using</span> LowerIsai = Isai&lt;isai_type::lower, ValueType, IndexType&gt;;</div>
-<div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160; </div>
-<div class="line"><a name="l00216"></a><span class="lineno">  216</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType = default_precision, <span class="keyword">typename</span> IndexType = <span class="keywordtype">int</span>32&gt;</div>
-<div class="line"><a name="l00217"></a><span class="lineno">  217</span>&#160;<span class="keyword">using</span> UpperIsai = Isai&lt;isai_type::upper, ValueType, IndexType&gt;;</div>
-<div class="line"><a name="l00218"></a><span class="lineno">  218</span>&#160; </div>
-<div class="line"><a name="l00219"></a><span class="lineno">  219</span>&#160; </div>
-<div class="line"><a name="l00220"></a><span class="lineno">  220</span>&#160;}  <span class="comment">// namespace preconditioner</span></div>
-<div class="line"><a name="l00221"></a><span class="lineno">  221</span>&#160;}  <span class="comment">// namespace gko</span></div>
-<div class="line"><a name="l00222"></a><span class="lineno">  222</span>&#160; </div>
-<div class="line"><a name="l00223"></a><span class="lineno">  223</span>&#160; </div>
-<div class="line"><a name="l00224"></a><span class="lineno">  224</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_PRECONDITIONER_ISAI_HPP_</span></div>
+<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160; </div>
+<div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType = default_precision, <span class="keyword">typename</span> IndexType = <span class="keywordtype">int</span>32&gt;</div>
+<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160;<span class="keyword">using</span> LowerIsai = Isai&lt;isai_type::lower, ValueType, IndexType&gt;;</div>
+<div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160; </div>
+<div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType = default_precision, <span class="keyword">typename</span> IndexType = <span class="keywordtype">int</span>32&gt;</div>
+<div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160;<span class="keyword">using</span> UpperIsai = Isai&lt;isai_type::upper, ValueType, IndexType&gt;;</div>
+<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160; </div>
+<div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160; </div>
+<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;}  <span class="comment">// namespace preconditioner</span></div>
+<div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160; </div>
+<div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160; </div>
+<div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_PRECONDITIONER_ISAI_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="aclassgko_1_1matrix_1_1Csr_html"><div class="ttname"><a href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a></div><div class="ttdoc">CSR is a matrix format which stores only the nonzero coefficients by compressing each row of the matr...</div><div class="ttdef"><b>Definition:</b> coo.hpp:51</div></div>
 <div class="ttc" id="aclassgko_1_1preconditioner_1_1Isai_html_a3151e65a57c5c003aaf05c23da37d7bf"><div class="ttname"><a href="classgko_1_1preconditioner_1_1Isai.html#a3151e65a57c5c003aaf05c23da37d7bf">gko::preconditioner::Isai::get_approximate_inverse</a></div><div class="ttdeci">std::shared_ptr&lt; const Csr &gt; get_approximate_inverse() const</div><div class="ttdoc">Returns the approximate inverse of the given matrix (either L or U, depending on the template paramet...</div><div class="ttdef"><b>Definition:</b> isai.hpp:113</div></div>
