@@ -93,6 +93,28 @@ public:
      */
     bool apply_uses_initial_guess() const override { return true; }
 
+    /**
+     * Gets the stopping criterion factory of the solver.
+     *
+     * @return the stopping criterion factory
+     */
+    std::shared_ptr<const stop::CriterionFactory> get_stop_criterion_factory()
+        const
+    {
+        return stop_criterion_factory_;
+    }
+
+    /**
+     * Sets the stopping criterion of the solver.
+     *
+     * @param other  the new stopping criterion factory
+     */
+    void set_stop_criterion_factory(
+        std::shared_ptr<const stop::CriterionFactory> other)
+    {
+        stop_criterion_factory_ = std::move(other);
+    }
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
