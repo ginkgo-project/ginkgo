@@ -151,7 +151,7 @@ the kernels while reducing the intellectual overhead of optimizing the applicati
 To enhance reproducibility from a performance perspective, the Ginkgo project
 aims at providing Continuous Benchmarking on top of its extensive Continuous
 Integration setup [@gko-cb]. To this end, we provide the performance results of
-our kernel implementations in an open source git repository [@gko-data]. 
+our kernel implementations in an open source git repository. 
 A unique feature of Ginkgo is the availability of an interactive webtool, the
 Ginkgo Performance explorer [@gpe], which can plot results from the
 aforementioned data repository. Additionally, we have also put in some effort in
