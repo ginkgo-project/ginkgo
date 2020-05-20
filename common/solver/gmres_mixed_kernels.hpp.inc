@@ -45,6 +45,38 @@ __global__ __launch_bounds__(default_block_size) void zero_matrix_kernel(
 }
 
 
+template <typename ValueType, typename KrylovType,
+          bool = Accessor2d<KrylovType, ValueType>::has_scale>
+struct helper_functions_accessor {};
+
+// Accessors having a scale
+template <typename ValueType, typename KrylovType>
+struct helper_functions_accessor<ValueType, KrylovType, true> {
+    template <typename IndexType>
+    static __forceinline__ __device__ void write_scale(
+        Accessor2d<KrylovType, ValueType> krylov_bases, IndexType col_idx,
+        ValueType value)
+    {
+        krylov_bases.set_scale(col_idx, value);
+    }
+};
+
+
+// Accessors not having a scale
+template <typename ValueType, typename KrylovType>
+struct helper_functions_accessor<ValueType, KrylovType, false> {
+    template <typename IndexType>
+    static __forceinline__ __device__ void write_scale(
+        Accessor2d<KrylovType, ValueType> krylov_bases, IndexType col_idx,
+        ValueType value)
+    {}
+};
+
+// calling it with:
+// helper_functions_accessor<ValueType,
+// ValueTypeKrylovBases>::write_scale(krylov_bases, col_idx, value);
+
+
 // Must be called with at least `max(stride_b * num_rows, krylov_dim *
 // num_cols)` threads in total.
 template <size_type block_size, typename ValueType>
