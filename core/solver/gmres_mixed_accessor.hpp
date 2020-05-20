@@ -49,13 +49,10 @@ namespace gko {
 namespace kernels {  // TODO maybe put into another separate namespace
 
 
-using place_holder_type = float;
-
-
 template <typename StorageType, typename ArithmeticType,
-          bool = !std::is_same<StorageType, place_holder_type>::value ||
-                 std::is_same<StorageType, ArithmeticType>::value>
-class Accessor2dConst {};
+          bool = std::is_integral<StorageType>::value>
+class Accessor2dConst {
+};
 /**
  * @internal
  *
@@ -65,14 +62,14 @@ class Accessor2dConst {};
  * This class only manages the accesses, however, and not the memory itself.
  */
 template <typename StorageType, typename ArithmeticType>
-class Accessor2dConst<StorageType, ArithmeticType, true> {
+class Accessor2dConst<StorageType, ArithmeticType, false> {
 public:
     using storage_type = StorageType;
     using arithmetic_type = ArithmeticType;
-    // static_assert(!std::is_integral<storage_type>::value,
-    //        "storage_type must not be an integral in this class.");
+    static_assert(!std::is_integral<storage_type>::value,
+                  "storage_type must not be an integral in this class.");
 
-    static constexpr bool has_scalar{false};
+    static constexpr bool has_scale{false};
 
     /**
      * Creates the accessor with an already allocated storage space with a
@@ -126,14 +123,14 @@ protected:
  * This class only manages the accesses, however, and not the memory itself.
  */
 template <typename StorageType, typename ArithmeticType>
-class Accessor2dConst<StorageType, ArithmeticType, false> {
+class Accessor2dConst<StorageType, ArithmeticType, true> {
 public:
     using storage_type = StorageType;
     using arithmetic_type = ArithmeticType;
-    // static_assert(std::is_integral<storage_type>::value,
-    //        "storage_type must not be an integral in this class.");
+    static_assert(std::is_integral<storage_type>::value,
+                  "storage_type must not be an integral in this class.");
 
-    static constexpr bool has_scalar{true};
+    static constexpr bool has_scale{true};
 
     /**
      * Creates the accessor with an already allocated storage space with a
@@ -163,7 +160,7 @@ public:
         const storage_type *GKO_RESTRICT rest_storage = storage_;
         const arithmetic_type *GKO_RESTRICT rest_scale = scale_;
         return static_cast<arithmetic_type>(rest_storage[row * stride_ + col]) *
-               rest_scale[row];
+               rest_scale[col];
     }
 
     GKO_ATTRIBUTES size_type get_stride() const { return stride_; }
@@ -193,9 +190,9 @@ protected:
 
 
 template <typename StorageType, typename ArithmeticType,
-          bool = !std::is_same<StorageType, place_holder_type>::value ||
-                 std::is_same<StorageType, ArithmeticType>::value>
-class Accessor2d : public Accessor2dConst<StorageType, ArithmeticType> {};
+          bool = std::is_integral<StorageType>::value>
+class Accessor2d : public Accessor2dConst<StorageType, ArithmeticType> {
+};
 
 
 /**
@@ -207,13 +204,13 @@ class Accessor2d : public Accessor2dConst<StorageType, ArithmeticType> {};
  * This class only manages the accesses, however, and not the memory itself.
  */
 template <typename StorageType, typename ArithmeticType>
-class Accessor2d<StorageType, ArithmeticType, true>
+class Accessor2d<StorageType, ArithmeticType, false>
     : public Accessor2dConst<StorageType, ArithmeticType> {
 public:
     using storage_type = StorageType;
     using arithmetic_type = ArithmeticType;
-    // static_assert(!std::is_integral<storage_type>::value,
-    //        "storage_type must not be an integral in this class.");
+    static_assert(!std::is_integral<storage_type>::value,
+                  "storage_type must not be an integral in this class.");
 
 private:
     using Accessor2dC = Accessor2dConst<storage_type, arithmetic_type>;
@@ -265,13 +262,13 @@ public:
  * This class only manages the accesses, however, and not the memory itself.
  */
 template <typename StorageType, typename ArithmeticType>
-class Accessor2d<StorageType, ArithmeticType, false>
+class Accessor2d<StorageType, ArithmeticType, true>
     : public Accessor2dConst<StorageType, ArithmeticType> {
 public:
     using storage_type = StorageType;
     using arithmetic_type = ArithmeticType;
-    // static_assert(std::is_integral<storage_type>::value,
-    //        "storage_type must not be an integral in this class.");
+    static_assert(std::is_integral<storage_type>::value,
+                  "storage_type must not be an integral in this class.");
 
 private:
     using Accessor2dC = Accessor2dConst<storage_type, arithmetic_type>;
@@ -305,7 +302,7 @@ public:
         storage_type *GKO_RESTRICT rest_storage = this->storage_;
         const arithmetic_type *GKO_RESTRICT rest_scale = this->scale_;
         rest_storage[row * this->stride_ + col] =
-            static_cast<storage_type>(value / rest_scale[row]);
+            static_cast<storage_type>(value / rest_scale[col]);
     }
 
     /**
@@ -325,15 +322,16 @@ public:
 
 
 template <typename ValueType, typename ValueTypeKrylovBases,
-          bool = Accessor2d<ValueTypeKrylovBases, ValueType>::has_scalar>
-class Accessor2dHelper {};
+          bool = Accessor2d<ValueTypeKrylovBases, ValueType>::has_scale>
+class Accessor2dHelper {
+};
 
 
 template <typename ValueType, typename ValueTypeKrylovBases>
 class Accessor2dHelper<ValueType, ValueTypeKrylovBases, true> {
     using Accessor = Accessor2d<ValueTypeKrylovBases, ValueType>;
-    static_assert(Accessor::has_scalar,
-                  "This accessor must have a scalar in this class!");
+    static_assert(Accessor::has_scale,
+                  "This accessor must have a scale in this class!");
 
 public:
     Accessor2dHelper() = default;
@@ -342,19 +340,19 @@ public:
         : krylov_dim_{krylov_dim},
           bases_stride_{krylov_dim_[1]},
           bases_{exec, krylov_dim_[0] * bases_stride_},
-          scalar_{exec, krylov_dim_[0]}
+          scale_{exec, krylov_dim_[1]}
     {
-        // For testing, initialize scalar to ones
-        Array<ValueType> h_scalar{exec->get_master(), krylov_dim[0]};
-        for (size_type i = 0; i < h_scalar.get_num_elems(); ++i) {
-            h_scalar.get_data()[i] = one<ValueType>();
+        // For testing, initialize scale to ones
+        Array<ValueType> h_scale{exec->get_master(), krylov_dim[0]};
+        for (size_type i = 0; i < h_scale.get_num_elems(); ++i) {
+            h_scale.get_data()[i] = one<ValueType>();
         }
-        scalar_ = h_scalar;
+        scale_ = h_scale;
     }
 
     Accessor get_accessor()
     {
-        return {bases_.get_data(), bases_stride_, scalar_.get_data()};
+        return {bases_.get_data(), bases_stride_, scale_.get_data()};
     }
 
     gko::Array<ValueTypeKrylovBases> &get_bases() { return bases_; }
@@ -363,15 +361,15 @@ private:
     dim<2> krylov_dim_;
     size_type bases_stride_;
     Array<ValueTypeKrylovBases> bases_;
-    Array<ValueType> scalar_;
+    Array<ValueType> scale_;
 };
 
 
 template <typename ValueType, typename ValueTypeKrylovBases>
 class Accessor2dHelper<ValueType, ValueTypeKrylovBases, false> {
     using Accessor = Accessor2d<ValueTypeKrylovBases, ValueType>;
-    static_assert(!Accessor::has_scalar,
-                  "This accessor must not have a scalar in this class!");
+    static_assert(!Accessor::has_scale,
+                  "This accessor must not have a scale in this class!");
 
 public:
     Accessor2dHelper() = default;
