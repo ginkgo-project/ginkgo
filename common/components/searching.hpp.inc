@@ -47,8 +47,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @returns  the index of `middle`, i.e., the partition point
  */
 template <typename IndexType, typename Predicate>
-__device__ IndexType binary_search(IndexType offset, IndexType length,
-                                   Predicate p)
+__forceinline__ __device__ IndexType binary_search(IndexType offset,
+                                                   IndexType length,
+                                                   Predicate p)
 {
     while (length > 0) {
         auto half_length = length / 2;
@@ -78,7 +79,7 @@ __device__ IndexType binary_search(IndexType offset, IndexType length,
  * @returns  the index of `middle`, i.e., the partition point
  */
 template <int size, typename Predicate>
-__device__ int synchronous_fixed_binary_search(Predicate p)
+__forceinline__ __device__ int synchronous_fixed_binary_search(Predicate p)
 {
     if (size == 0) {
         return 0;
@@ -115,7 +116,7 @@ __device__ int synchronous_fixed_binary_search(Predicate p)
  * @returns  the index of `middle`, i.e., the partition point
  */
 template <typename Predicate>
-__device__ int synchronous_binary_search(int size, Predicate p)
+__forceinline__ __device__ int synchronous_binary_search(int size, Predicate p)
 {
     if (size == 0) {
         return 0;
@@ -154,8 +155,9 @@ __device__ int synchronous_binary_search(int size, Predicate p)
  * @returns  the index of `middle`, i.e., the partition point
  */
 template <typename IndexType, typename Group, typename Predicate>
-__device__ IndexType group_wide_search(IndexType offset, IndexType length,
-                                       Group group, Predicate p)
+__forceinline__ __device__ IndexType group_wide_search(IndexType offset,
+                                                       IndexType length,
+                                                       Group group, Predicate p)
 {
     // binary search on the group-sized blocks
     IndexType num_blocks = (length + group.size() - 1) / group.size();
@@ -209,8 +211,9 @@ __device__ IndexType group_wide_search(IndexType offset, IndexType length,
  * @returns  the index of `middle`, i.e., the partition point
  */
 template <typename IndexType, typename Group, typename Predicate>
-__device__ IndexType group_ary_search(IndexType offset, IndexType length,
-                                      Group group, Predicate p)
+__forceinline__ __device__ IndexType group_ary_search(IndexType offset,
+                                                      IndexType length,
+                                                      Group group, Predicate p)
 {
     IndexType end = offset + length;
     // invariant: [offset, offset + length] contains middle

@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/preconditioner/isai_kernels.hpp"
@@ -58,6 +59,7 @@ protected:
     using value_type = double;
     using index_type = gko::int32;
     using Csr = gko::matrix::Csr<value_type, index_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     Isai() : rand_engine(42) {}
 
     void SetUp()
@@ -72,34 +74,21 @@ protected:
         if (csr_mtx->get_executor() != ref) {
             return {nullptr};
         }
-        auto size = csr_mtx->get_size();
         const auto num_elems = csr_mtx->get_num_stored_elements();
-        auto sparsity = Csr::create(ref, size, num_elems);
+        auto sparsity = csr_mtx->clone();
 
-        // All arrays are now filled with invalid data to catch potential errors
+        // values are now filled with invalid data to catch potential errors
         auto begin_values = sparsity->get_values();
         auto end_values = begin_values + num_elems;
         std::fill(begin_values, end_values, -gko::one<value_type>());
-
-        auto begin_cols = sparsity->get_col_idxs();
-        auto end_cols = begin_cols + num_elems;
-        std::fill(begin_cols, end_cols, -gko::one<index_type>());
-
-        auto begin_rows = sparsity->get_row_ptrs();
-        auto end_rows = begin_rows + size[0] + 1;
-        std::fill(begin_rows, end_rows, -gko::one<index_type>());
         return sparsity;
     }
 
-    void initialize_data(matrix_type type)
+    void initialize_data(matrix_type type, gko::size_type n,
+                         gko::size_type row_limit)
     {
-        constexpr int n = 513;
         const bool for_lower_tm = type == matrix_type::lower;
-        // Currently, at most warp_size elements per row are supported for CUDA
-        constexpr index_type max_row_elems{
-            gko::kernels::cuda::config::warp_size - 1};
-        auto nz_dist =
-            std::uniform_int_distribution<index_type>(1, max_row_elems);
+        auto nz_dist = std::uniform_int_distribution<index_type>(1, row_limit);
         auto val_dist = std::uniform_real_distribution<value_type>(-1., 1.);
         mtx = Csr::create(ref);
         mtx = gko::test::generate_random_triangular_matrix<Csr>(
@@ -127,55 +116,210 @@ protected:
 };
 
 
-TEST_F(Isai, CudaIsaiGenerateLinverseIsEquivalentToRef)
+TEST_F(Isai, CudaIsaiGenerateLinverseShortIsEquivalentToRef)
 {
-    initialize_data(matrix_type::lower);
+    initialize_data(matrix_type::lower, 536, 31);
+    const auto num_rows = mtx->get_size()[0];
+    gko::Array<index_type> a1(ref, num_rows + 1);
+    auto a2 = a1;
+    gko::Array<index_type> da1(cuda, num_rows + 1);
+    auto da2 = da1;
 
-    gko::kernels::reference::isai::generate_l_inverse(ref, mtx.get(),
-                                                      inverse.get());
-    gko::kernels::cuda::isai::generate_l_inverse(cuda, d_mtx.get(),
-                                                 d_inverse.get());
+    gko::kernels::reference::isai::generate_tri_inverse(
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), true);
+    gko::kernels::cuda::isai::generate_tri_inverse(
+        cuda, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data(),
+        true);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, r<value_type>::value);
+    GKO_ASSERT_ARRAY_EQ(&a1, &da1);
+    GKO_ASSERT_ARRAY_EQ(&a2, &da2);
+    ASSERT_EQ(a1.get_const_data()[num_rows], 0);
 }
 
 
-TEST_F(Isai, CudaIsaiGenerateUinverseIsEquivalentToRef)
+TEST_F(Isai, CudaIsaiGenerateUinverseShortIsEquivalentToRef)
 {
-    initialize_data(matrix_type::upper);
+    initialize_data(matrix_type::upper, 615, 31);
+    const auto num_rows = mtx->get_size()[0];
+    gko::Array<index_type> a1(ref, num_rows + 1);
+    auto a2 = a1;
+    gko::Array<index_type> da1(cuda, num_rows + 1);
+    auto da2 = da1;
 
-    gko::kernels::reference::isai::generate_u_inverse(ref, mtx.get(),
-                                                      inverse.get());
-    gko::kernels::cuda::isai::generate_u_inverse(cuda, d_mtx.get(),
-                                                 d_inverse.get());
+    gko::kernels::reference::isai::generate_tri_inverse(
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
+    gko::kernels::cuda::isai::generate_tri_inverse(
+        cuda, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data(),
+        false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, r<value_type>::value);
+    GKO_ASSERT_ARRAY_EQ(&a1, &da1);
+    GKO_ASSERT_ARRAY_EQ(&a2, &da2);
+    ASSERT_EQ(a1.get_const_data()[num_rows], 0);
 }
 
 
-TEST_F(Isai, CudaIsaiIdentityTriangleLowerIsEquivalentToRef)
+TEST_F(Isai, CudaIsaiGenerateLinverseLongIsEquivalentToRef)
 {
-    initialize_data(matrix_type::lower);
+    initialize_data(matrix_type::lower, 554, 64);
+    const auto num_rows = mtx->get_size()[0];
+    gko::Array<index_type> a1(ref, num_rows + 1);
+    auto a2 = a1;
+    gko::Array<index_type> da1(cuda, num_rows + 1);
+    auto da2 = da1;
 
-    gko::kernels::reference::isai::identity_triangle(ref, mtx.get(), true);
-    gko::kernels::cuda::isai::identity_triangle(cuda, d_mtx.get(), true);
+    gko::kernels::reference::isai::generate_tri_inverse(
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), true);
+    gko::kernels::cuda::isai::generate_tri_inverse(
+        cuda, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data(),
+        true);
 
-    GKO_ASSERT_MTX_EQ_SPARSITY(mtx, d_mtx);
-    GKO_ASSERT_MTX_NEAR(mtx, d_mtx, 0);
+    GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
+    GKO_ASSERT_MTX_NEAR(inverse, d_inverse, r<value_type>::value);
+    GKO_ASSERT_ARRAY_EQ(&a1, &da1);
+    GKO_ASSERT_ARRAY_EQ(&a2, &da2);
+    ASSERT_GT(a1.get_const_data()[num_rows], 0);
 }
 
 
-TEST_F(Isai, CudaIsaiIdentityTriangleUpperIsEquivalentToRef)
+TEST_F(Isai, CudaIsaiGenerateUinverseLongIsEquivalentToRef)
 {
-    initialize_data(matrix_type::upper);
+    initialize_data(matrix_type::upper, 695, 64);
+    const auto num_rows = mtx->get_size()[0];
+    gko::Array<index_type> a1(ref, num_rows + 1);
+    auto a2 = a1;
+    gko::Array<index_type> da1(cuda, num_rows + 1);
+    auto da2 = da1;
 
-    gko::kernels::reference::isai::identity_triangle(ref, mtx.get(), false);
-    gko::kernels::cuda::isai::identity_triangle(cuda, d_mtx.get(), false);
+    gko::kernels::reference::isai::generate_tri_inverse(
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
+    gko::kernels::cuda::isai::generate_tri_inverse(
+        cuda, d_mtx.get(), d_inverse.get(), da1.get_data(), da2.get_data(),
+        false);
 
-    GKO_ASSERT_MTX_EQ_SPARSITY(mtx, d_mtx);
-    GKO_ASSERT_MTX_NEAR(mtx, d_mtx, 0);
+    GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
+    GKO_ASSERT_MTX_NEAR(inverse, d_inverse, r<value_type>::value);
+    GKO_ASSERT_ARRAY_EQ(&a1, &da1);
+    GKO_ASSERT_ARRAY_EQ(&a2, &da2);
+    ASSERT_GT(a1.get_const_data()[num_rows], 0);
+}
+
+
+TEST_F(Isai, CudaIsaiGenerateExcessLinverseLongIsEquivalentToRef)
+{
+    initialize_data(matrix_type::lower, 518, 40);
+    const auto num_rows = mtx->get_size()[0];
+    gko::Array<index_type> a1(ref, num_rows + 1);
+    auto a2 = a1;
+    gko::kernels::reference::isai::generate_tri_inverse(
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), true);
+    gko::Array<index_type> da1(cuda, a1);
+    gko::Array<index_type> da2(cuda, a2);
+    auto e_dim = a1.get_data()[num_rows];
+    auto e_nnz = a2.get_data()[num_rows];
+    auto excess = Csr::create(ref, gko::dim<2>(e_dim, e_dim), e_nnz);
+    auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
+    auto dexcess = Csr::create(cuda, gko::dim<2>(e_dim, e_dim), e_nnz);
+    auto de_rhs = Dense::create(cuda, gko::dim<2>(e_dim, 1));
+
+    gko::kernels::reference::isai::generate_excess_system(
+        ref, mtx.get(), inverse.get(), a1.get_const_data(), a2.get_const_data(),
+        excess.get(), e_rhs.get());
+    gko::kernels::cuda::isai::generate_excess_system(
+        cuda, d_mtx.get(), d_inverse.get(), da1.get_const_data(),
+        da2.get_const_data(), dexcess.get(), de_rhs.get());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(excess, dexcess);
+    GKO_ASSERT_MTX_NEAR(excess, dexcess, 0);
+    GKO_ASSERT_MTX_NEAR(e_rhs, de_rhs, 0);
+    ASSERT_GT(e_dim, 0);
+}
+
+
+TEST_F(Isai, CudaIsaiGenerateExcessUinverseLongIsEquivalentToRef)
+{
+    initialize_data(matrix_type::upper, 673, 51);
+    const auto num_rows = mtx->get_size()[0];
+    gko::Array<index_type> a1(ref, num_rows + 1);
+    auto a2 = a1;
+    gko::kernels::reference::isai::generate_tri_inverse(
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
+    gko::Array<index_type> da1(cuda, a1);
+    gko::Array<index_type> da2(cuda, a2);
+    auto e_dim = a1.get_data()[num_rows];
+    auto e_nnz = a2.get_data()[num_rows];
+    auto excess = Csr::create(ref, gko::dim<2>(e_dim, e_dim), e_nnz);
+    auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
+    auto dexcess = Csr::create(cuda, gko::dim<2>(e_dim, e_dim), e_nnz);
+    auto de_rhs = Dense::create(cuda, gko::dim<2>(e_dim, 1));
+
+    gko::kernels::reference::isai::generate_excess_system(
+        ref, mtx.get(), inverse.get(), a1.get_const_data(), a2.get_const_data(),
+        excess.get(), e_rhs.get());
+    gko::kernels::cuda::isai::generate_excess_system(
+        cuda, d_mtx.get(), d_inverse.get(), da1.get_const_data(),
+        da2.get_const_data(), dexcess.get(), de_rhs.get());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(excess, dexcess);
+    GKO_ASSERT_MTX_NEAR(excess, dexcess, 0);
+    GKO_ASSERT_MTX_NEAR(e_rhs, de_rhs, 0);
+    ASSERT_GT(e_dim, 0);
+}
+
+
+TEST_F(Isai, CudaIsaiScatterExcessSolutionLIsEquivalentToRef)
+{
+    initialize_data(matrix_type::lower, 572, 52);
+    const auto num_rows = mtx->get_size()[0];
+    gko::Array<index_type> a1(ref, num_rows + 1);
+    auto a2 = a1;
+    gko::kernels::reference::isai::generate_tri_inverse(
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), true);
+    gko::Array<index_type> da1(cuda, a1);
+    auto e_dim = a1.get_data()[num_rows];
+    auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
+    std::fill_n(e_rhs->get_values(), e_dim, 123456);
+    auto de_rhs = Dense::create(cuda);
+    de_rhs->copy_from(lend(e_rhs));
+    d_inverse->copy_from(lend(inverse));
+
+    gko::kernels::reference::isai::scatter_excess_solution(
+        ref, a1.get_const_data(), e_rhs.get(), inverse.get());
+    gko::kernels::cuda::isai::scatter_excess_solution(
+        cuda, da1.get_const_data(), de_rhs.get(), d_inverse.get());
+
+    GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
+    ASSERT_GT(e_dim, 0);
+}
+
+
+TEST_F(Isai, CudaIsaiScatterExcessSolutionUIsEquivalentToRef)
+{
+    initialize_data(matrix_type::upper, 702, 45);
+    const auto num_rows = mtx->get_size()[0];
+    gko::Array<index_type> a1(ref, num_rows + 1);
+    auto a2 = a1;
+    gko::kernels::reference::isai::generate_tri_inverse(
+        ref, mtx.get(), inverse.get(), a1.get_data(), a2.get_data(), false);
+    gko::Array<index_type> da1(cuda, a1);
+    auto e_dim = a1.get_data()[num_rows];
+    auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
+    std::fill_n(e_rhs->get_values(), e_dim, 123456);
+    auto de_rhs = Dense::create(cuda);
+    de_rhs->copy_from(lend(e_rhs));
+    // overwrite -1 values with inverse
+    d_inverse->copy_from(lend(inverse));
+
+    gko::kernels::reference::isai::scatter_excess_solution(
+        ref, a1.get_const_data(), e_rhs.get(), inverse.get());
+    gko::kernels::cuda::isai::scatter_excess_solution(
+        cuda, da1.get_const_data(), de_rhs.get(), d_inverse.get());
+
+    GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
+    ASSERT_GT(e_dim, 0);
 }
 
 

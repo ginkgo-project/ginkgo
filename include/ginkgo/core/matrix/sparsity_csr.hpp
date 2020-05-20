@@ -198,8 +198,7 @@ protected:
                 const dim<2> &size = dim<2>{}, size_type num_nonzeros = {})
         : EnableLinOp<SparsityCsr>(exec, size),
           col_idxs_(exec, num_nonzeros),
-          // avoid allocation for empty matrix
-          row_ptrs_(exec, size[0] + (size[0] > 0))
+          row_ptrs_(exec, size[0] + 1)
     {
         if (size[0] > 0) {
             auto tmp = Array<value_type>{exec->get_master(), 1};

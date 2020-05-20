@@ -769,8 +769,7 @@ protected:
         : EnableLinOp<Csr>(exec, size),
           values_(exec, num_nonzeros),
           col_idxs_(exec, num_nonzeros),
-          // avoid allocation for empty matrix
-          row_ptrs_(exec, size[0] + (size[0] > 0)),
+          row_ptrs_(exec, size[0] + 1),
           srow_(exec, strategy->clac_size(num_nonzeros)),
           strategy_(std::move(strategy))
     {}
