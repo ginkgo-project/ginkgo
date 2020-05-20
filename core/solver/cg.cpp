@@ -58,7 +58,8 @@ GKO_REGISTER_OPERATION(step_2, cg::step_2);
 
 }  // namespace cg
 
-// Read: (4 * n + 2 * nnz) * ValueType  + 2 * nnz * IndexType + loops * ((15 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType)
+// Read: (4 * n + 2 * nnz) * ValueType  + 2 * nnz * IndexType
+// + loops * ((15 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType)
 // Write: (5 * n + 2) * ValueType + loops * ((5 * n + 2) * ValueType)
 template <typename ValueType>
 std::unique_ptr<LinOp> Cg<ValueType>::transpose() const

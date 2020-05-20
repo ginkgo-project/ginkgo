@@ -55,7 +55,8 @@ GKO_REGISTER_OPERATION(step_2, fcg::step_2);
 
 }  // namespace fcg
 
-// Read: (4 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType + loops * ((17 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType)
+// Read: (4 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType
+// + loops * ((17 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType)
 // Write: (6 * n + 3) * ValueType + loops * ((6 * n + 3) * ValueType)
 template <typename ValueType>
 std::unique_ptr<LinOp> Fcg<ValueType>::transpose() const
