@@ -58,18 +58,15 @@ using place_holder_type = float;
 template <typename StorageType, typename ArithmeticType,
           bool = std::is_same<StorageType, place_holder_type>::value &&
                  !std::is_same<StorageType, ArithmeticType>::value>
-struct helper_have_scale {
-};
+struct helper_have_scale {};
 
 template <typename StorageType, typename ArithmeticType>
 struct helper_have_scale<StorageType, ArithmeticType, false>
-    : public std::false_type {
-};
+    : public std::false_type {};
 
 template <typename StorageType, typename ArithmeticType>
 struct helper_have_scale<StorageType, ArithmeticType, true>
-    : public std::true_type {
-};
+    : public std::true_type {};
 
 
 }  // namespace detail
@@ -77,8 +74,7 @@ struct helper_have_scale<StorageType, ArithmeticType, true>
 
 template <typename StorageType, typename ArithmeticType,
           bool = detail::helper_have_scale<StorageType, ArithmeticType>::value>
-class Accessor2dConst {
-};
+class Accessor2dConst {};
 /**
  * @internal
  *
@@ -218,8 +214,7 @@ protected:
 
 template <typename StorageType, typename ArithmeticType,
           bool = detail::helper_have_scale<StorageType, ArithmeticType>::value>
-class Accessor2d : public Accessor2dConst<StorageType, ArithmeticType> {
-};
+class Accessor2d : public Accessor2dConst<StorageType, ArithmeticType> {};
 
 
 /**
@@ -351,8 +346,7 @@ public:
 
 template <typename ValueType, typename ValueTypeKrylovBases,
           bool = Accessor2d<ValueTypeKrylovBases, ValueType>::has_scale>
-class Accessor2dHelper {
-};
+class Accessor2dHelper {};
 
 
 template <typename ValueType, typename ValueTypeKrylovBases>
