@@ -82,7 +82,8 @@ std::unique_ptr<LinOp> Fcg<ValueType>::conj_transpose() const
 }
 
 
-// Read: (4 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType + loops * ((17 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType)
+// Read: (4 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType
+// + loops * ((17 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType)
 // Write: (6 * n + 3) * ValueType + loops * ((6 * n + 3) * ValueType)
 template <typename ValueType>
 void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const

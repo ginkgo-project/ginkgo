@@ -84,16 +84,12 @@ std::unique_ptr<LinOp> Bicgstab<ValueType>::conj_transpose() const
 }
 
 
-// Read: (5 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType + loops * ((29 * n
-// + 4 * nnz) * ValueType + 4 * nnz * IndexType) Write: (10 * n + 6) * ValueType
-// + loops * ((8 * n + 5) * ValueType)
-
-// Updated split
-// PN: Read: (5 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType + iter_fh *
-// ((16 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType) + iter_sh * ((13 * n +
-// 2 * nnz) * ValueType + 2 * nnz * IndexType) PN: Write: (10 * n + 6) *
-// ValueType + iter_fh * ((4 * n + 2) * ValueType)+ iter_sh * ((4 * n + 3) *
-// ValueType)
+// Read: (5 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType
+// + iter_fh * ((16 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType)
+// + iter_sh * ((13 * n + 2 * nnz) * ValueType + 2 * nnz * IndexType)
+// Write: (10 * n + 6) * ValueType
+// + iter_fh * ((4 * n + 2) * ValueType)
+// + iter_sh * ((4 * n + 3) * ValueType)
 template <typename ValueType>
 void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
