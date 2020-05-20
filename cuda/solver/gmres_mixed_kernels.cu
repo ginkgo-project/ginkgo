@@ -92,7 +92,7 @@ constexpr int default_update_dim = 32;
 
 // Specialization, so the Accessor can use the same function as regular pointers
 template <typename Type1, typename Type2>
-xstd::enable_if_t<!Accessor2d<Type1, Type2>::has_scalar,
+xstd::enable_if_t<!Accessor2d<Type1, Type2>::has_scale,
                   Accessor2d<cuda_type<Type1>, cuda_type<Type2>>>
 as_cuda_accessor(Accessor2d<Type1, Type2> acc)
 {
@@ -100,7 +100,7 @@ as_cuda_accessor(Accessor2d<Type1, Type2> acc)
 }
 
 template <typename Type1, typename Type2>
-xstd::enable_if_t<Accessor2d<Type1, Type2>::has_scalar,
+xstd::enable_if_t<Accessor2d<Type1, Type2>::has_scale,
                   Accessor2d<cuda_type<Type1>, cuda_type<Type2>>>
 as_cuda_accessor(Accessor2d<Type1, Type2> acc)
 {
@@ -109,7 +109,7 @@ as_cuda_accessor(Accessor2d<Type1, Type2> acc)
 }
 
 template <typename Type1, typename Type2>
-xstd::enable_if_t<!Accessor2dConst<Type1, Type2>::has_scalar,
+xstd::enable_if_t<!Accessor2dConst<Type1, Type2>::has_scale,
                   Accessor2dConst<cuda_type<Type1>, cuda_type<Type2>>>
 as_cuda_accessor(const Accessor2dConst<Type1, Type2> &acc)
 {
@@ -117,7 +117,7 @@ as_cuda_accessor(const Accessor2dConst<Type1, Type2> &acc)
 }
 
 template <typename Type1, typename Type2>
-xstd::enable_if_t<Accessor2dConst<Type1, Type2>::has_scalar,
+xstd::enable_if_t<Accessor2dConst<Type1, Type2>::has_scale,
                   Accessor2dConst<cuda_type<Type1>, cuda_type<Type2>>>
 as_cuda_accessor(const Accessor2dConst<Type1, Type2> &acc)
 {
