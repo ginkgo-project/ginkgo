@@ -49,8 +49,34 @@ namespace gko {
 namespace kernels {  // TODO maybe put into another separate namespace
 
 
+namespace detail {
+
+
+using place_holder_type = float;
+
+
 template <typename StorageType, typename ArithmeticType,
-          bool = std::is_integral<StorageType>::value>
+          bool = std::is_same<StorageType, place_holder_type>::value &&
+                 !std::is_same<StorageType, ArithmeticType>::value>
+struct helper_have_scale {
+};
+
+template <typename StorageType, typename ArithmeticType>
+struct helper_have_scale<StorageType, ArithmeticType, false>
+    : public std::false_type {
+};
+
+template <typename StorageType, typename ArithmeticType>
+struct helper_have_scale<StorageType, ArithmeticType, true>
+    : public std::true_type {
+};
+
+
+}  // namespace detail
+
+
+template <typename StorageType, typename ArithmeticType,
+          bool = detail::helper_have_scale<StorageType, ArithmeticType>::value>
 class Accessor2dConst {
 };
 /**
@@ -66,8 +92,9 @@ class Accessor2dConst<StorageType, ArithmeticType, false> {
 public:
     using storage_type = StorageType;
     using arithmetic_type = ArithmeticType;
-    static_assert(!std::is_integral<storage_type>::value,
-                  "storage_type must not be an integral in this class.");
+    static_assert(
+        !detail::helper_have_scale<StorageType, ArithmeticType>::value,
+        "storage_type must not be an integral in this class.");
 
     static constexpr bool has_scale{false};
 
@@ -127,7 +154,7 @@ class Accessor2dConst<StorageType, ArithmeticType, true> {
 public:
     using storage_type = StorageType;
     using arithmetic_type = ArithmeticType;
-    static_assert(std::is_integral<storage_type>::value,
+    static_assert(detail::helper_have_scale<StorageType, ArithmeticType>::value,
                   "storage_type must not be an integral in this class.");
 
     static constexpr bool has_scale{true};
@@ -190,7 +217,7 @@ protected:
 
 
 template <typename StorageType, typename ArithmeticType,
-          bool = std::is_integral<StorageType>::value>
+          bool = detail::helper_have_scale<StorageType, ArithmeticType>::value>
 class Accessor2d : public Accessor2dConst<StorageType, ArithmeticType> {
 };
 
@@ -209,8 +236,9 @@ class Accessor2d<StorageType, ArithmeticType, false>
 public:
     using storage_type = StorageType;
     using arithmetic_type = ArithmeticType;
-    static_assert(!std::is_integral<storage_type>::value,
-                  "storage_type must not be an integral in this class.");
+    static_assert(
+        !detail::helper_have_scale<StorageType, ArithmeticType>::value,
+        "storage_type must not be an integral in this class.");
 
 private:
     using Accessor2dC = Accessor2dConst<storage_type, arithmetic_type>;
@@ -267,7 +295,7 @@ class Accessor2d<StorageType, ArithmeticType, true>
 public:
     using storage_type = StorageType;
     using arithmetic_type = ArithmeticType;
-    static_assert(std::is_integral<storage_type>::value,
+    static_assert(detail::helper_have_scale<StorageType, ArithmeticType>::value,
                   "storage_type must not be an integral in this class.");
 
 private:
