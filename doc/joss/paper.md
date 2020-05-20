@@ -42,7 +42,7 @@ affiliations:
    index: 3
  - name: The University of Tokyo 
    index: 4
-date: 6th March, 2020.
+date: 20th May, 2020.
 bibliography: paper.bib
 
 ---
@@ -150,7 +150,7 @@ the kernels while reducing the intellectual overhead of optimizing the applicati
 
 To enhance reproducibility from a performance perspective, the Ginkgo project
 aims at providing Continuous Benchmarking on top of its extensive Continuous
-Integration setup [@gko_cb]. To this end, we provide the performance results of
+Integration setup [@gko-cb]. To this end, we provide the performance results of
 our kernel implementations in an open source git repository [@gko-data]. 
 A unique feature of Ginkgo is the availability of an interactive webtool, the
 Ginkgo Performance explorer [@gpe], which can plot results from the
