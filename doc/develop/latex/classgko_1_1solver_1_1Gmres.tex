@@ -40,7 +40,13 @@ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>
 bool \mbox{\hyperlink{classgko_1_1solver_1_1Gmres_ab968c4bd9d71760b31842cb446b9f04e}{apply\+\_\+uses\+\_\+initial\+\_\+guess}} () const override
 \begin{DoxyCompactList}\small\item\em Return true as iterative solvers use the data in x as an initial guess. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1solver_1_1Gmres_a3a808fe82cdd1e988667a89d6982e740}{get\+\_\+krylov\+\_\+dim}} () const
-\begin{DoxyCompactList}\small\item\em Returns the krylov dimension. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Gets the krylov dimension of the solver. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1solver_1_1Gmres_aec85204e331ac7ce6832a41a5a27bc9b}{set\+\_\+krylov\+\_\+dim}} (const \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \&other)
+\begin{DoxyCompactList}\small\item\em Sets the krylov dimension. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Gmres_ae764a5c6acf6d260b2d334f434b36f49}{get\+\_\+stop\+\_\+criterion\+\_\+factory}} () const
+\begin{DoxyCompactList}\small\item\em Gets the stopping criterion factory of the solver. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1solver_1_1Gmres_a22582c251e7563c3401fd5612250b0ce}{set\+\_\+stop\+\_\+criterion\+\_\+factory}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}} $>$ other)
+\begin{DoxyCompactList}\small\item\em Sets the stopping criterion of the solver. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1solver_1_1Gmres_a54a7453e1f9106f5b6d4373ecd1a493f}\label{classgko_1_1solver_1_1Gmres_a54a7453e1f9106f5b6d4373ecd1a493f}} 
 const \mbox{\hyperlink{structgko_1_1solver_1_1Gmres_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
 \end{DoxyCompactItemize}
@@ -104,10 +110,24 @@ Reimplemented from \mbox{\hyperlink{classgko_1_1LinOp_a80967e89745c73e5df8640fe1
 
 
 
-Returns the krylov dimension. 
+Gets the krylov dimension of the solver. 
 
 \begin{DoxyReturn}{Returns}
 the krylov dimension 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Gmres_ae764a5c6acf6d260b2d334f434b36f49}\label{classgko_1_1solver_1_1Gmres_ae764a5c6acf6d260b2d334f434b36f49}} 
+\index{gko::solver::Gmres$<$ ValueType $>$@{gko::solver::Gmres$<$ ValueType $>$}!get\_stop\_criterion\_factory@{get\_stop\_criterion\_factory}}
+\index{get\_stop\_criterion\_factory@{get\_stop\_criterion\_factory}!gko::solver::Gmres$<$ ValueType $>$@{gko::solver::Gmres$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_stop\_criterion\_factory()}{get\_stop\_criterion\_factory()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Gmres}{gko\+::solver\+::\+Gmres}}$<$ Value\+Type $>$\+::get\+\_\+stop\+\_\+criterion\+\_\+factory (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the stopping criterion factory of the solver. 
+
+\begin{DoxyReturn}{Returns}
+the stopping criterion factory 
 \end{DoxyReturn}
 \mbox{\Hypertarget{classgko_1_1solver_1_1Gmres_a31d5c0225dbed72e52ea252dd38868f2}\label{classgko_1_1solver_1_1Gmres_a31d5c0225dbed72e52ea252dd38868f2}} 
 \index{gko::solver::Gmres$<$ ValueType $>$@{gko::solver::Gmres$<$ ValueType $>$}!get\_system\_matrix@{get\_system\_matrix}}
@@ -123,8 +143,40 @@ Gets the system operator (matrix) of the linear system.
 \begin{DoxyReturn}{Returns}
 the system operator (matrix) 
 \end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Gmres_aec85204e331ac7ce6832a41a5a27bc9b}\label{classgko_1_1solver_1_1Gmres_aec85204e331ac7ce6832a41a5a27bc9b}} 
+\index{gko::solver::Gmres$<$ ValueType $>$@{gko::solver::Gmres$<$ ValueType $>$}!set\_krylov\_dim@{set\_krylov\_dim}}
+\index{set\_krylov\_dim@{set\_krylov\_dim}!gko::solver::Gmres$<$ ValueType $>$@{gko::solver::Gmres$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{set\_krylov\_dim()}{set\_krylov\_dim()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+void \mbox{\hyperlink{classgko_1_1solver_1_1Gmres}{gko\+::solver\+::\+Gmres}}$<$ Value\+Type $>$\+::set\+\_\+krylov\+\_\+dim (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \&}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Sets the krylov dimension. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the new krylov dimension \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Gmres_a22582c251e7563c3401fd5612250b0ce}\label{classgko_1_1solver_1_1Gmres_a22582c251e7563c3401fd5612250b0ce}} 
+\index{gko::solver::Gmres$<$ ValueType $>$@{gko::solver::Gmres$<$ ValueType $>$}!set\_stop\_criterion\_factory@{set\_stop\_criterion\_factory}}
+\index{set\_stop\_criterion\_factory@{set\_stop\_criterion\_factory}!gko::solver::Gmres$<$ ValueType $>$@{gko::solver::Gmres$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{set\_stop\_criterion\_factory()}{set\_stop\_criterion\_factory()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+void \mbox{\hyperlink{classgko_1_1solver_1_1Gmres}{gko\+::solver\+::\+Gmres}}$<$ Value\+Type $>$\+::set\+\_\+stop\+\_\+criterion\+\_\+factory (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}} $>$}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Sets the stopping criterion of the solver. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the new stopping criterion factory \\
+\hline
+\end{DoxyParams}
 
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/solver/gmres.\+hpp (526802aef)\end{DoxyCompactItemize}
+ginkgo/core/solver/gmres.\+hpp (48c590d94)\end{DoxyCompactItemize}

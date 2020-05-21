@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/147905983 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/148130211 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -121,6 +121,12 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a1a47640513b491a8984b4356add542ec"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Cgs.html#a1a47640513b491a8984b4356add542ec">apply_uses_initial_guess</a> () const override</td></tr>
 <tr class="memdesc:a1a47640513b491a8984b4356add542ec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return true as iterative solvers use the data in x as an initial guess.  <a href="classgko_1_1solver_1_1Cgs.html#a1a47640513b491a8984b4356add542ec">More...</a><br /></td></tr>
 <tr class="separator:a1a47640513b491a8984b4356add542ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9b79357d097dcf482365b3eb7ec2d19e"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; const <a class="el" href="namespacegko_1_1stop.html#ab12a51109c50b35ec36dc5a393d6a9a0">stop::CriterionFactory</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Cgs.html#a9b79357d097dcf482365b3eb7ec2d19e">get_stop_criterion_factory</a> () const</td></tr>
+<tr class="memdesc:a9b79357d097dcf482365b3eb7ec2d19e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the stopping criterion factory of the solver.  <a href="classgko_1_1solver_1_1Cgs.html#a9b79357d097dcf482365b3eb7ec2d19e">More...</a><br /></td></tr>
+<tr class="separator:a9b79357d097dcf482365b3eb7ec2d19e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afe26bd5e3c3e8f2b6baa6064e1a77acb"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Cgs.html#afe26bd5e3c3e8f2b6baa6064e1a77acb">set_stop_criterion_factory</a> (std::shared_ptr&lt; const <a class="el" href="namespacegko_1_1stop.html#ab12a51109c50b35ec36dc5a393d6a9a0">stop::CriterionFactory</a> &gt; other)</td></tr>
+<tr class="memdesc:afe26bd5e3c3e8f2b6baa6064e1a77acb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the stopping criterion of the solver.  <a href="classgko_1_1solver_1_1Cgs.html#afe26bd5e3c3e8f2b6baa6064e1a77acb">More...</a><br /></td></tr>
+<tr class="separator:afe26bd5e3c3e8f2b6baa6064e1a77acb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9ac2a7b0f0b14f3308be1988221c22d0"><td class="memItemLeft" align="right" valign="top"><a id="a9ac2a7b0f0b14f3308be1988221c22d0"></a>
 const <a class="el" href="structgko_1_1solver_1_1Cgs_1_1parameters__type.html">parameters_type</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>get_parameters</b> () const</td></tr>
 <tr class="separator:a9ac2a7b0f0b14f3308be1988221c22d0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -307,6 +313,36 @@ template&lt;typename ValueType  = default_precision&gt; </div>
 
 </div>
 </div>
+<a id="a9b79357d097dcf482365b3eb7ec2d19e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9b79357d097dcf482365b3eb7ec2d19e">&#9670;&nbsp;</a></span>get_stop_criterion_factory()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::shared_ptr&lt;const <a class="el" href="namespacegko_1_1stop.html#ab12a51109c50b35ec36dc5a393d6a9a0">stop::CriterionFactory</a>&gt; <a class="el" href="classgko_1_1solver_1_1Cgs.html">gko::solver::Cgs</a>&lt; ValueType &gt;::get_stop_criterion_factory </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Gets the stopping criterion factory of the solver. </p>
+<dl class="section return"><dt>Returns</dt><dd>the stopping criterion factory </dd></dl>
+
+</div>
+</div>
 <a id="aa537b2e6b7ccf95e96b4100866da1770"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aa537b2e6b7ccf95e96b4100866da1770">&#9670;&nbsp;</a></span>get_system_matrix()</h2>
 
@@ -337,8 +373,44 @@ template&lt;typename ValueType  = default_precision&gt; </div>
 
 </div>
 </div>
+<a id="afe26bd5e3c3e8f2b6baa6064e1a77acb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afe26bd5e3c3e8f2b6baa6064e1a77acb">&#9670;&nbsp;</a></span>set_stop_criterion_factory()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classgko_1_1solver_1_1Cgs.html">gko::solver::Cgs</a>&lt; ValueType &gt;::set_stop_criterion_factory </td>
+          <td>(</td>
+          <td class="paramtype">std::shared_ptr&lt; const <a class="el" href="namespacegko_1_1stop.html#ab12a51109c50b35ec36dc5a393d6a9a0">stop::CriterionFactory</a> &gt;&#160;</td>
+          <td class="paramname"><em>other</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Sets the stopping criterion of the solver. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">other</td><td>the new stopping criterion factory </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/solver/<a class="el" href="cgs_8hpp_source.html">cgs.hpp (526802aef)</a></li>
+<li>ginkgo/core/solver/<a class="el" href="cgs_8hpp_source.html">cgs.hpp (48c590d94)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

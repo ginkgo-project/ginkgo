@@ -39,6 +39,10 @@ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>
 \begin{DoxyCompactList}\small\item\em Gets the system operator (matrix) of the linear system. \end{DoxyCompactList}\item 
 bool \mbox{\hyperlink{classgko_1_1solver_1_1Bicg_a0d345566816a98175f332ce315f645e3}{apply\+\_\+uses\+\_\+initial\+\_\+guess}} () const override
 \begin{DoxyCompactList}\small\item\em Return true as iterative solvers use the data in x as an initial guess. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Bicg_a831492fd74aa8559d82f982701315706}{get\+\_\+stop\+\_\+criterion\+\_\+factory}} () const
+\begin{DoxyCompactList}\small\item\em Gets the stopping criterion factory of the solver. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1solver_1_1Bicg_a0010941943d8a254313a1b5d5b400b1e}{set\+\_\+stop\+\_\+criterion\+\_\+factory}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}} $>$ other)
+\begin{DoxyCompactList}\small\item\em Sets the stopping criterion of the solver. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1solver_1_1Bicg_af42e7f5f3decccc2faeb521f90b3a598}\label{classgko_1_1solver_1_1Bicg_af42e7f5f3decccc2faeb521f90b3a598}} 
 const \mbox{\hyperlink{structgko_1_1solver_1_1Bicg_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
 \end{DoxyCompactItemize}
@@ -93,6 +97,20 @@ true as iterative solvers use the data in x as an initial guess.
 
 Reimplemented from \mbox{\hyperlink{classgko_1_1LinOp_a80967e89745c73e5df8640fe1c7e4aaa}{gko\+::\+Lin\+Op}}.
 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Bicg_a831492fd74aa8559d82f982701315706}\label{classgko_1_1solver_1_1Bicg_a831492fd74aa8559d82f982701315706}} 
+\index{gko::solver::Bicg$<$ ValueType $>$@{gko::solver::Bicg$<$ ValueType $>$}!get\_stop\_criterion\_factory@{get\_stop\_criterion\_factory}}
+\index{get\_stop\_criterion\_factory@{get\_stop\_criterion\_factory}!gko::solver::Bicg$<$ ValueType $>$@{gko::solver::Bicg$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_stop\_criterion\_factory()}{get\_stop\_criterion\_factory()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Bicg}{gko\+::solver\+::\+Bicg}}$<$ Value\+Type $>$\+::get\+\_\+stop\+\_\+criterion\+\_\+factory (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the stopping criterion factory of the solver. 
+
+\begin{DoxyReturn}{Returns}
+the stopping criterion factory 
+\end{DoxyReturn}
 \mbox{\Hypertarget{classgko_1_1solver_1_1Bicg_aab3709991ffebeeb2edcd39c32426fab}\label{classgko_1_1solver_1_1Bicg_aab3709991ffebeeb2edcd39c32426fab}} 
 \index{gko::solver::Bicg$<$ ValueType $>$@{gko::solver::Bicg$<$ ValueType $>$}!get\_system\_matrix@{get\_system\_matrix}}
 \index{get\_system\_matrix@{get\_system\_matrix}!gko::solver::Bicg$<$ ValueType $>$@{gko::solver::Bicg$<$ ValueType $>$}}
@@ -107,8 +125,24 @@ Gets the system operator (matrix) of the linear system.
 \begin{DoxyReturn}{Returns}
 the system operator (matrix) 
 \end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Bicg_a0010941943d8a254313a1b5d5b400b1e}\label{classgko_1_1solver_1_1Bicg_a0010941943d8a254313a1b5d5b400b1e}} 
+\index{gko::solver::Bicg$<$ ValueType $>$@{gko::solver::Bicg$<$ ValueType $>$}!set\_stop\_criterion\_factory@{set\_stop\_criterion\_factory}}
+\index{set\_stop\_criterion\_factory@{set\_stop\_criterion\_factory}!gko::solver::Bicg$<$ ValueType $>$@{gko::solver::Bicg$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{set\_stop\_criterion\_factory()}{set\_stop\_criterion\_factory()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+void \mbox{\hyperlink{classgko_1_1solver_1_1Bicg}{gko\+::solver\+::\+Bicg}}$<$ Value\+Type $>$\+::set\+\_\+stop\+\_\+criterion\+\_\+factory (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}} $>$}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Sets the stopping criterion of the solver. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the new stopping criterion factory \\
+\hline
+\end{DoxyParams}
 
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/solver/bicg.\+hpp (526802aef)\end{DoxyCompactItemize}
+ginkgo/core/solver/bicg.\+hpp (48c590d94)\end{DoxyCompactItemize}

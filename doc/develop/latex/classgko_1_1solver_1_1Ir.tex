@@ -43,6 +43,10 @@ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>
 \begin{DoxyCompactList}\small\item\em Returns the solver operator used as the inner solver. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classgko_1_1solver_1_1Ir_a1eaca6f9b06ed821c1b4a91ddf796d30}{set\+\_\+solver}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ new\+\_\+solver)
 \begin{DoxyCompactList}\small\item\em Sets the solver operator used as the inner solver. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Ir_a3ceb918891b6dbcbae4d52bc8a831b19}{get\+\_\+stop\+\_\+criterion\+\_\+factory}} () const
+\begin{DoxyCompactList}\small\item\em Gets the stopping criterion factory of the solver. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1solver_1_1Ir_a04f3617065297814de25581be76c8f8e}{set\+\_\+stop\+\_\+criterion\+\_\+factory}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}} $>$ other)
+\begin{DoxyCompactList}\small\item\em Sets the stopping criterion of the solver. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1solver_1_1Ir_a3bfeb9b57cea666c5fef55c10b27d897}\label{classgko_1_1solver_1_1Ir_a3bfeb9b57cea666c5fef55c10b27d897}} 
 const \mbox{\hyperlink{structgko_1_1solver_1_1Ir_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
 \end{DoxyCompactItemize}
@@ -125,6 +129,20 @@ Returns the solver operator used as the inner solver.
 \begin{DoxyReturn}{Returns}
 the solver operator used as the inner solver 
 \end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Ir_a3ceb918891b6dbcbae4d52bc8a831b19}\label{classgko_1_1solver_1_1Ir_a3ceb918891b6dbcbae4d52bc8a831b19}} 
+\index{gko::solver::Ir$<$ ValueType $>$@{gko::solver::Ir$<$ ValueType $>$}!get\_stop\_criterion\_factory@{get\_stop\_criterion\_factory}}
+\index{get\_stop\_criterion\_factory@{get\_stop\_criterion\_factory}!gko::solver::Ir$<$ ValueType $>$@{gko::solver::Ir$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_stop\_criterion\_factory()}{get\_stop\_criterion\_factory()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Ir}{gko\+::solver\+::\+Ir}}$<$ Value\+Type $>$\+::get\+\_\+stop\+\_\+criterion\+\_\+factory (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the stopping criterion factory of the solver. 
+
+\begin{DoxyReturn}{Returns}
+the stopping criterion factory 
+\end{DoxyReturn}
 \mbox{\Hypertarget{classgko_1_1solver_1_1Ir_a2095b57bb8d3c31e0cfe395c911dbf84}\label{classgko_1_1solver_1_1Ir_a2095b57bb8d3c31e0cfe395c911dbf84}} 
 \index{gko::solver::Ir$<$ ValueType $>$@{gko::solver::Ir$<$ ValueType $>$}!get\_system\_matrix@{get\_system\_matrix}}
 \index{get\_system\_matrix@{get\_system\_matrix}!gko::solver::Ir$<$ ValueType $>$@{gko::solver::Ir$<$ ValueType $>$}}
@@ -155,8 +173,24 @@ Sets the solver operator used as the inner solver.
 {\em new\+\_\+solver} & the new inner solver \\
 \hline
 \end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Ir_a04f3617065297814de25581be76c8f8e}\label{classgko_1_1solver_1_1Ir_a04f3617065297814de25581be76c8f8e}} 
+\index{gko::solver::Ir$<$ ValueType $>$@{gko::solver::Ir$<$ ValueType $>$}!set\_stop\_criterion\_factory@{set\_stop\_criterion\_factory}}
+\index{set\_stop\_criterion\_factory@{set\_stop\_criterion\_factory}!gko::solver::Ir$<$ ValueType $>$@{gko::solver::Ir$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{set\_stop\_criterion\_factory()}{set\_stop\_criterion\_factory()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+void \mbox{\hyperlink{classgko_1_1solver_1_1Ir}{gko\+::solver\+::\+Ir}}$<$ Value\+Type $>$\+::set\+\_\+stop\+\_\+criterion\+\_\+factory (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}} $>$}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Sets the stopping criterion of the solver. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the new stopping criterion factory \\
+\hline
+\end{DoxyParams}
 
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/solver/ir.\+hpp (526802aef)\end{DoxyCompactItemize}
+ginkgo/core/solver/ir.\+hpp (48c590d94)\end{DoxyCompactItemize}
