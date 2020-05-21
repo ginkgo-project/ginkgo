@@ -95,8 +95,9 @@ target_sources(ginkgo_cuda
         stop/residual_norm_reduction_kernels.cu)
 
 # This creates a compilation bug on nvcc 9.0.102 *with* the new array_deleter
-# merged at commit ed12b3df5d26
-if(NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")
+# merged at commit ed12b3df5d26, and the parameter is not recognized by clang-cuda
+if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA" AND
+   NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")
     # remove false positive CUDA warnings when calling one<T>() and zero<T>()
     target_compile_options(ginkgo_cuda
         PRIVATE
