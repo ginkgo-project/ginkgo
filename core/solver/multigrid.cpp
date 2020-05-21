@@ -99,8 +99,10 @@ void Multigrid<ValueType>::v_cycle(
     auto g = g_list.at(level);
     auto e = e_list.at(level);
     // pre-smooth
+    // r = b - Ax
     r->copy_from(b);
     matrix->apply(neg_one_op_.get(), x, one_op_.get(), r.get());
+    // x += relaxation * Smoother(r)
     pre_smoother_list_.at(level)->apply(one_op_.get(), r.get(), one_op_.get(),
                                         x);
     // compute residual
