@@ -58,15 +58,16 @@ protected:
           operators{
               gko::initialize<Mtx>(I<T>({2.0, 1.0}), exec),
               gko::initialize<Mtx>({I<T>({3.0, 2.0})}, exec),
-              gko::initialize<Mtx>({I<T>{-1.0, 1.0, 2.0}, I<T>{5.0, -3.0, 0.0}},
-                                   exec),
               gko::initialize<Mtx>(
-                  {I<T>{9.0, 4.0}, I<T>{6.0, -2.0}, I<T>{-3.0, 2.0}}, exec),
-              gko::initialize<Mtx>({I<T>{1.0, 0.0}, I<T>{0.0, 1.0}}, exec)},
+                  {I<T>({-1.0, 1.0, 2.0}), I<T>({5.0, -3.0, 0.0})}, exec),
+              gko::initialize<Mtx>(
+                  {I<T>({9.0, 4.0}), I<T>({6.0, -2.0}), I<T>({-3.0, 2.0})},
+                  exec),
+              gko::initialize<Mtx>({I<T>({1.0, 0.0}), I<T>({0.0, 1.0})}, exec)},
           identity{
-              gko::initialize<Mtx>({I<T>{1.0, 0.0}, I<T>{0.0, 1.0}}, exec)},
-          product{
-              gko::initialize<Mtx>({I<T>{-9.0, -2.0}, I<T>{27.0, 26.0}}, exec)}
+              gko::initialize<Mtx>({I<T>({1.0, 0.0}), I<T>({0.0, 1.0})}, exec)},
+          product{gko::initialize<Mtx>({I<T>({-9.0, -2.0}), I<T>({27.0, 26.0})},
+                                       exec)}
     {}
 
     std::shared_ptr<const gko::Executor> exec;
