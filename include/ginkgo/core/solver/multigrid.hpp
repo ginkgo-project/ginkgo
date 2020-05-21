@@ -94,6 +94,32 @@ public:
         return system_matrix_;
     }
 
+    /**
+     * Gets the system operator of the linear system.
+     *
+     * @return the system operator
+     */
+    const std::vector<std::shared_ptr<gko::multigrid::RestrictProlong>>
+    get_rstr_prlg_list() const
+    {
+        return rstr_prlg_list_;
+    }
+
+    const std::vector<std::shared_ptr<LinOp>> get_pre_smoother_list() const
+    {
+        return pre_smoother_list_;
+    }
+
+    const std::vector<std::shared_ptr<LinOp>> get_post_smoother_list() const
+    {
+        return post_smoother_list_;
+    }
+
+    std::shared_ptr<const LinOp> get_coarsest_solver() const
+    {
+        return coarsest_solver_;
+    }
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -120,6 +146,12 @@ public:
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(post_smoother,
                                                                   nullptr);
+
+        /**
+         * relaxation factor
+         */
+        // std::shared_ptr<const matrix::Dense<ValueType>>
+        // GKO_FACTORY_PARAMETER(relaxation, nullptr);
 
         size_type GKO_FACTORY_PARAMETER(max_levels, 10);
 
@@ -192,6 +224,8 @@ protected:
                     return level;
                 };
             }
+        } else {
+            rstr_prlg_index_ = parameters_.rstr_prlg_index;
         }
         this->generate();
     }
