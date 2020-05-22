@@ -25,6 +25,8 @@ function(ginkgo_benchmark_hipsp_linops name)
     target_compile_definitions("${name}" PRIVATE HAS_HIP=1)
     EXECUTE_PROCESS(COMMAND ${HIP_PATH}/bin/hipconfig --cpp_config OUTPUT_VARIABLE HIP_CXX_FLAGS)
     set_target_properties("${name}" PROPERTIES COMPILE_FLAGS ${HIP_CXX_FLAGS})
+    # for some reason, HIP creates a dependency on Threads::Threads here, so we need to find it
+    find_package(Threads REQUIRED)
     find_package(HIP REQUIRED)
     find_package(hipblas REQUIRED)
     find_package(hipsparse REQUIRED)
