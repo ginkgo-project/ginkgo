@@ -19,9 +19,9 @@ authors:
   - name: Goran Flegar
     orcid: 0000-0002-4154-0420
     affiliation: 3 
-  - name: Fritz G{\"o}bel
+  - name: Fritz G&#246;bel
     affiliation: 1 
-  - name: Thomas Gr{\"u}tzmacher
+  - name: Thomas Gr&#252;tzmacher
     orcid: 0000-0001-9346-2981
     affiliation: 1
   - name: Pratik Nayak 
