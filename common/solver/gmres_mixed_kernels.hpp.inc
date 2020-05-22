@@ -178,6 +178,102 @@ __global__
 }
 
 
+template <typename ValueType>
+__global__ __launch_bounds__(default_dot_size) void multinorm2_kernel(
+    size_type num_rows, size_type num_cols,
+    const ValueType *__restrict__ next_krylov_basis,
+    size_type stride_next_krylov, ValueType *__restrict__ norms,
+    size_type stride_norms, const stopping_status *__restrict__ stop_status)
+{
+    const auto tidx = threadIdx.x;
+    const auto tidy = threadIdx.y;
+    const auto col_idx = blockIdx.x * default_dot_dim + tidx;
+    const auto num = ceildiv(num_rows, gridDim.y);
+    const auto start_row = blockIdx.y * num;
+    const auto end_row =
+        ((blockIdx.y + 1) * num > num_rows) ? num_rows : (blockIdx.y + 1) * num;
+    // Used that way to get around dynamic initialization warning and
+    // template error when using `reduction_helper_array` directly in `reduce`
+    __shared__
+        UninitializedArray<ValueType, default_dot_dim *(default_dot_dim + 1)>
+            reduction_helper_array;
+    ValueType *__restrict__ reduction_helper = reduction_helper_array;
+    ValueType local_res = zero<ValueType>();
+    if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
+        for (size_type i = start_row + tidy; i < end_row;
+             i += default_dot_dim) {
+            const auto next_krylov_idx = i * stride_next_krylov + col_idx;
+            local_res += squared_norm(next_krylov_basis[next_krylov_idx]);
+        }
+    }
+    reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
+    __syncthreads();
+    local_res = reduction_helper[tidy * (default_dot_dim + 1) + tidx];
+    const auto tile_block =
+        group::tiled_partition<default_dot_dim>(group::this_thread_block());
+    const auto sum =
+        reduce(tile_block, local_res,
+               [](const ValueType &a, const ValueType &b) { return a + b; });
+    const auto new_col_idx = blockIdx.x * default_dot_dim + tidy;
+    if (tidx == 0 && new_col_idx < num_cols &&
+        !stop_status[new_col_idx].has_stopped()) {
+        const auto norms_idx = new_col_idx;
+        atomic_add(norms + norms_idx, sum);
+    }
+}
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_dot_size) void multinorminf_kernel(
+    size_type num_rows, size_type num_cols,
+    const ValueType *__restrict__ next_krylov_basis,
+    size_type stride_next_krylov, ValueType *__restrict__ norms,
+    size_type stride_norms, const stopping_status *__restrict__ stop_status)
+{
+    const auto tidx = threadIdx.x;
+    const auto tidy = threadIdx.y;
+    const auto col_idx = blockIdx.x * default_dot_dim + tidx;
+    const auto num = ceildiv(num_rows, gridDim.y);
+    const auto start_row = blockIdx.y * num;
+    const auto end_row =
+        ((blockIdx.y + 1) * num > num_rows) ? num_rows : (blockIdx.y + 1) * num;
+    // Used that way to get around dynamic initialization warning and
+    // template error when using `reduction_helper_array` directly in `reduce`
+    __shared__
+        UninitializedArray<ValueType, default_dot_dim *(default_dot_dim + 1)>
+            reduction_helper_array;
+    ValueType *__restrict__ reduction_helper = reduction_helper_array;
+    remove_complex<ValueType> local_res = zero<remove_complex<ValueType>>();
+    if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
+        for (size_type i = start_row + tidy; i < end_row;
+             i += default_dot_dim) {
+            const auto next_krylov_idx = i * stride_next_krylov + col_idx;
+            local_res = (local_res >= abs(next_krylov_basis[next_krylov_idx]))
+                            ? local_res
+                            : abs(next_krylov_basis[next_krylov_idx]);
+            // local_res = (local_res >= next_krylov_basis[next_krylov_idx])
+            //                 ? local_res
+            //                 : next_krylov_basis[next_krylov_idx];
+        }
+    }
+    reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
+    __syncthreads();
+    local_res = reduction_helper[tidy * (default_dot_dim + 1) + tidx];
+    const auto tile_block =
+        group::tiled_partition<default_dot_dim>(group::this_thread_block());
+    const auto value = reduce(
+        tile_block, local_res,
+        [](const remove_complex<ValueType> &a,
+           const remove_complex<ValueType> &b) { return ((a >= b) ? a : b); });
+    const auto new_col_idx = blockIdx.x * default_dot_dim + tidy;
+    if (tidx == 0 && new_col_idx < num_cols &&
+        !stop_status[new_col_idx].has_stopped()) {
+        const auto norms_idx = new_col_idx;
+        atomic_max(norms + norms_idx, value);
+    }
+}
+
+
 template <typename ValueType, typename ValueTypeKrylovBases>
 __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
     size_type k, size_type num_rows, size_type num_cols,
