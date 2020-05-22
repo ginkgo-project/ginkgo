@@ -126,7 +126,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     auto residual_norm =
         Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
     auto b_norm = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
-    auto arnoldi_norm = Vector::create(exec, dim<2>{2, dense_b->get_size()[1]});
+    auto arnoldi_norm = Vector::create(exec, dim<2>{3, dense_b->get_size()[1]});
     Array<size_type> final_iter_nums(this->get_executor(),
                                      dense_b->get_size()[1]);
     auto y =
