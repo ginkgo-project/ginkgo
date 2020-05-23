@@ -380,7 +380,7 @@ build/cuda101/intel/cuda/debug/static:
 # clang-cuda with cuda 10.1 and friends
 build/clang-cuda101/gcc/all/release/shared:
   <<: *default_build_with_test
-  image: localhost:5000/add_clang_cuda_69d04ab3_gko-cuda101-gnu8-llvm10-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm10-intel2019
   variables:
     <<: *default_variables
     CUDA_COMPILER: "clang++"
@@ -399,7 +399,7 @@ build/clang-cuda101/gcc/all/release/shared:
 
 build/clang-cuda101/clang/cuda/debug/static:
   <<: *default_build_with_test
-  image: localhost:5000/add_clang_cuda_69d04ab3_gko-cuda101-gnu8-llvm10-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm10-intel2019
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
