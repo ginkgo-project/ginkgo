@@ -142,7 +142,7 @@ template <size_type block_size, typename ValueType,
 __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
     size_type num_rows, size_type num_rhs,
     const ValueType *__restrict__ residual, size_type stride_residual,
-    const ValueType *__restrict__ residual_norm,
+    const remove_complex<ValueType> *__restrict__ residual_norm,
     ValueType *__restrict__ residual_norm_collection,
     Accessor2d<ValueTypeKrylovBases, ValueType> krylov_bases,
     ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
@@ -182,7 +182,7 @@ template <typename ValueType>
 __global__ __launch_bounds__(default_dot_size) void multinorm2_kernel(
     size_type num_rows, size_type num_cols,
     const ValueType *__restrict__ next_krylov_basis,
-    size_type stride_next_krylov, ValueType *__restrict__ norms,
+    size_type stride_next_krylov, remove_complex<ValueType> *__restrict__ norms,
     size_type stride_norms, const stopping_status *__restrict__ stop_status)
 {
     const auto tidx = threadIdx.x;
@@ -194,11 +194,12 @@ __global__ __launch_bounds__(default_dot_size) void multinorm2_kernel(
         ((blockIdx.y + 1) * num > num_rows) ? num_rows : (blockIdx.y + 1) * num;
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
-    __shared__
-        UninitializedArray<ValueType, default_dot_dim *(default_dot_dim + 1)>
-            reduction_helper_array;
-    ValueType *__restrict__ reduction_helper = reduction_helper_array;
-    ValueType local_res = zero<ValueType>();
+    __shared__ UninitializedArray<remove_complex<ValueType>,
+                                  default_dot_dim *(default_dot_dim + 1)>
+        reduction_helper_array;
+    remove_complex<ValueType> *__restrict__ reduction_helper =
+        reduction_helper_array;
+    remove_complex<ValueType> local_res = zero<remove_complex<ValueType>>();
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
         for (size_type i = start_row + tidy; i < end_row;
              i += default_dot_dim) {
@@ -213,7 +214,8 @@ __global__ __launch_bounds__(default_dot_size) void multinorm2_kernel(
         group::tiled_partition<default_dot_dim>(group::this_thread_block());
     const auto sum =
         reduce(tile_block, local_res,
-               [](const ValueType &a, const ValueType &b) { return a + b; });
+               [](const remove_complex<ValueType> &a,
+                  const remove_complex<ValueType> &b) { return a + b; });
     const auto new_col_idx = blockIdx.x * default_dot_dim + tidy;
     if (tidx == 0 && new_col_idx < num_cols &&
         !stop_status[new_col_idx].has_stopped()) {
@@ -227,7 +229,7 @@ template <typename ValueType>
 __global__ __launch_bounds__(default_dot_size) void multinorminf_kernel(
     size_type num_rows, size_type num_cols,
     const ValueType *__restrict__ next_krylov_basis,
-    size_type stride_next_krylov, ValueType *__restrict__ norms,
+    size_type stride_next_krylov, remove_complex<ValueType> *__restrict__ norms,
     size_type stride_norms, const stopping_status *__restrict__ stop_status)
 {
     const auto tidx = threadIdx.x;
@@ -239,30 +241,31 @@ __global__ __launch_bounds__(default_dot_size) void multinorminf_kernel(
         ((blockIdx.y + 1) * num > num_rows) ? num_rows : (blockIdx.y + 1) * num;
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
-    __shared__
-        UninitializedArray<ValueType, default_dot_dim *(default_dot_dim + 1)>
-            reduction_helper_array;
-    ValueType *__restrict__ reduction_helper = reduction_helper_array;
-    remove_complex<ValueType> local_res = zero<remove_complex<ValueType>>();
+    __shared__ UninitializedArray<remove_complex<ValueType>,
+                                  default_dot_dim *(default_dot_dim + 1)>
+        reduction_helper_array;
+    remove_complex<ValueType> *__restrict__ reduction_helper =
+        reduction_helper_array;
+    remove_complex<ValueType> local_max = zero<remove_complex<ValueType>>();
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
         for (size_type i = start_row + tidy; i < end_row;
              i += default_dot_dim) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
-            local_res = (local_res >= abs(next_krylov_basis[next_krylov_idx]))
-                            ? local_res
+            local_max = (local_max >= abs(next_krylov_basis[next_krylov_idx]))
+                            ? local_max
                             : abs(next_krylov_basis[next_krylov_idx]);
-            // local_res = (local_res >= next_krylov_basis[next_krylov_idx])
-            //                 ? local_res
+            // local_max = (local_max >= next_krylov_basis[next_krylov_idx])
+            //                 ? local_max
             //                 : next_krylov_basis[next_krylov_idx];
         }
     }
-    reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
+    reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_max;
     __syncthreads();
-    local_res = reduction_helper[tidy * (default_dot_dim + 1) + tidx];
+    local_max = reduction_helper[tidy * (default_dot_dim + 1) + tidx];
     const auto tile_block =
         group::tiled_partition<default_dot_dim>(group::this_thread_block());
     const auto value = reduce(
-        tile_block, local_res,
+        tile_block, local_max,
         [](const remove_complex<ValueType> &a,
            const remove_complex<ValueType> &b) { return ((a >= b) ? a : b); });
     const auto new_col_idx = blockIdx.x * default_dot_dim + tidy;
@@ -270,6 +273,75 @@ __global__ __launch_bounds__(default_dot_size) void multinorminf_kernel(
         !stop_status[new_col_idx].has_stopped()) {
         const auto norms_idx = new_col_idx;
         atomic_max(norms + norms_idx, value);
+    }
+}
+
+
+template <typename ValueType>
+__global__ __launch_bounds__(default_dot_size) void multinorm2_inf_kernel(
+    size_type num_rows, size_type num_cols,
+    const ValueType *__restrict__ next_krylov_basis,
+    size_type stride_next_krylov,
+    remove_complex<ValueType> *__restrict__ norms1,
+    remove_complex<ValueType> *__restrict__ norms2, size_type stride_norms,
+    const stopping_status *__restrict__ stop_status)
+{
+    const auto tidx = threadIdx.x;
+    const auto tidy = threadIdx.y;
+    const auto col_idx = blockIdx.x * default_dot_dim + tidx;
+    const auto num = ceildiv(num_rows, gridDim.y);
+    const auto start_row = blockIdx.y * num;
+    const auto end_row =
+        ((blockIdx.y + 1) * num > num_rows) ? num_rows : (blockIdx.y + 1) * num;
+    // Used that way to get around dynamic initialization warning and
+    // template error when using `reduction_helper_array` directly in `reduce`
+    __shared__ UninitializedArray<remove_complex<ValueType>,
+                                  default_dot_dim *(default_dot_dim + 1)>
+        reduction_helper_array_1, reduction_helper_array_2;
+    remove_complex<ValueType> *__restrict__ reduction_helper_1 =
+        reduction_helper_array_1;
+    remove_complex<ValueType> *__restrict__ reduction_helper_2 =
+        reduction_helper_array_2;
+    remove_complex<ValueType> local_res = zero<remove_complex<ValueType>>();
+    remove_complex<ValueType> local_max = zero<remove_complex<ValueType>>();
+    if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
+        for (size_type i = start_row + tidy; i < end_row;
+             i += default_dot_dim) {
+            const auto next_krylov_idx = i * stride_next_krylov + col_idx;
+            const auto num = next_krylov_basis[next_krylov_idx];
+            local_res += squared_norm(num);
+            // local_res += squared_norm(next_krylov_basis[next_krylov_idx]);
+            local_max = ((local_max >= abs(num)) ? local_max : abs(num));
+            // local_max = (local_max >=
+            // abs(next_krylov_basis[next_krylov_idx]))
+            //                 ? local_max
+            //                 : abs(next_krylov_basis[next_krylov_idx]);
+        }
+    }
+    // Add reduction
+    reduction_helper_1[tidx * (default_dot_dim + 1) + tidy] = local_res;
+    reduction_helper_2[tidx * (default_dot_dim + 1) + tidy] = local_max;
+    __syncthreads();
+    local_res = reduction_helper_1[tidy * (default_dot_dim + 1) + tidx];
+    const auto tile_block1 =
+        group::tiled_partition<default_dot_dim>(group::this_thread_block());
+    const auto sum =
+        reduce(tile_block1, local_res,
+               [](const remove_complex<ValueType> &a,
+                  const remove_complex<ValueType> &b) { return a + b; });
+    local_max = reduction_helper_2[tidy * (default_dot_dim + 1) + tidx];
+    const auto tile_block2 =
+        group::tiled_partition<default_dot_dim>(group::this_thread_block());
+    const auto value = reduce(
+        tile_block2, local_max,
+        [](const remove_complex<ValueType> &a,
+           const remove_complex<ValueType> &b) { return ((a >= b) ? a : b); });
+    const auto new_col_idx = blockIdx.x * default_dot_dim + tidy;
+    if (tidx == 0 && new_col_idx < num_cols &&
+        !stop_status[new_col_idx].has_stopped()) {
+        const auto norms_idx = new_col_idx;
+        atomic_add(norms1 + norms_idx, sum);
+        atomic_max(norms2 + norms_idx, value);
     }
 }
 
@@ -879,7 +951,8 @@ __global__
         ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
         Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
         const ValueType *__restrict__ hessenberg_iter,
-        size_type stride_hessenberg, const ValueType *__restrict__ arnoldi_norm,
+        size_type stride_hessenberg,
+        const remove_complex<ValueType> *__restrict__ arnoldi_norm,
         size_type stride_norm, const stopping_status *__restrict__ stop_status,
         stopping_status *__restrict__ reorth_status,
         size_type *__restrict__ num_reorth)
@@ -901,9 +974,11 @@ __global__
             hessenberg_iter[hessenberg_idx] *
             krylov_bases.read(row_idx, k * num_cols + col_idx);
         if (row_idx == 0) {
-            // TODO remove abs() as soon as type of arnoldi_norm has changed
+            // DONE: TODO remove abs() as soon as type of arnoldi_norm has
+            // changed
             if (squared_norm(hessenberg_iter[hessenberg_idx]) >
-                abs(0.99 * sqrt(arnoldi_norm[arnoldi_idx]))) {
+                (0.99 * sqrt(arnoldi_norm[arnoldi_idx]))) {
+                // abs(0.99 * sqrt(arnoldi_norm[arnoldi_idx]))) {
                 reorth_status[reorth_idx].reset();
                 atomic_add(num_reorth, (size_type)1);
             } else {
@@ -1075,14 +1150,60 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms(
 
     if (global_id < stride_norm0 && !stop_status[global_id].has_stopped()) {
         // TODO remove abs() as soon as type of arnoldi_norm has changed
-        const auto num0 = abs(eta * arnoldi_norm0[global_id]);
-        const auto num1 = abs(arnoldi_norm1[global_id]);
+        const auto num0 = (eta * arnoldi_norm0[global_id]);
+        // const auto num0 = abs(eta * arnoldi_norm0[global_id]);
+        const auto num1 = (arnoldi_norm1[global_id]);
+        // const auto num1 = abs(arnoldi_norm1[global_id]);
+        // printf("num0 = %f , num1 = %f\n", num0, num1);
         if (num1 < num0) {
             reorth_status[global_id].reset();
             atomic_add(num_reorth, (size_type)1);
         } else {
             reorth_status[global_id].stop(1);
         }
+    }
+}
+
+
+// Must be called with at least `num_cols` blocks, each with `block_size`
+// threads. `block_size` must be a power of 2.
+template <int block_size, typename ValueType, typename ValueTypeKrylovBases>
+__global__ __launch_bounds__(block_size) void check_arnoldi_norms_new(
+    remove_complex<ValueType> *__restrict__ arnoldi_norm, size_type stride_norm,
+    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
+    size_type iter,
+    Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+    const stopping_status *__restrict__ stop_status,
+    stopping_status *__restrict__ reorth_status,
+    size_type *__restrict__ num_reorth)
+{
+    const remove_complex<ValueType> eta = 1.0 / 2.0;
+    const auto col_idx = thread::get_thread_id_flat();
+
+    if (col_idx < stride_norm && !stop_status[col_idx].has_stopped()) {
+        // TODO remove abs() as soon as type of arnoldi_norm has changed
+        const auto num0 = (eta * arnoldi_norm[col_idx]);
+        // const auto num0 = abs(eta * arnoldi_norm0[col_idx]);
+        const auto num11 = (arnoldi_norm[col_idx + stride_norm]);
+        const auto num12 = sqrt(num11);
+        // const auto num1 = abs(arnoldi_norm1[col_idx]);
+        const auto num2 = (arnoldi_norm[col_idx + 2 * stride_norm]);
+        // printf("num0 = %f , num11 = %f , num12 = %f , num2 = %f\n", num0,
+        // num11,
+        //        num12, num2);
+        if (num11 < num0) {
+            reorth_status[col_idx].reset();
+            atomic_add(num_reorth, (size_type)1);
+        } else {
+            reorth_status[col_idx].stop(1);
+        }
+        arnoldi_norm[col_idx] = num11;
+        arnoldi_norm[col_idx + stride_norm] = num12;
+        hessenberg_iter[iter * stride_hessenberg + col_idx] = num12;
+        // helper_functions_accessor<ValueType,
+        // ValueTypeKrylovBases>::write_scale(
+        //     krylov_bases, col_idx, num2 / num12);
+        // krylov_bases.set_scale(col_idx, num2 / num12);
     }
 }
 
@@ -1193,9 +1314,11 @@ template <typename ValueType>
 __device__ void calculate_residual_norm_kernel(
     size_type col_idx, size_type num_cols, size_type iter,
     const ValueType *givens_sin, size_type stride_sin,
-    const ValueType *givens_cos, size_type stride_cos, ValueType *residual_norm,
+    const ValueType *givens_cos, size_type stride_cos,
+    remove_complex<ValueType> *residual_norm,
     ValueType *residual_norm_collection,
-    size_type stride_residual_norm_collection, const ValueType *b_norm)
+    size_type stride_residual_norm_collection,
+    const remove_complex<ValueType> *b_norm)
 {
     residual_norm_collection[(iter + 1) * stride_residual_norm_collection +
                              col_idx] =
@@ -1221,10 +1344,10 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     ValueType *__restrict__ givens_sin, size_type stride_sin,
     ValueType *__restrict__ givens_cos, size_type stride_cos,
-    ValueType *__restrict__ residual_norm,
+    remove_complex<ValueType> *__restrict__ residual_norm,
     ValueType *__restrict__ residual_norm_collection,
     size_type stride_residual_norm_collection,
-    const ValueType *__restrict__ b_norm,
+    const remove_complex<ValueType> *__restrict__ b_norm,
     const stopping_status *__restrict__ stop_status)
 {
     const auto col_idx = thread::get_thread_id_flat();

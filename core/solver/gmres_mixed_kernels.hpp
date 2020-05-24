@@ -44,6 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/gmres_mixed_accessor.hpp"
 
 
+#define FINISH_ARNOLDI 3
+
+
 /**
  * Instantiates a template for each value type with each lower precision type
  * supported by Ginkgo for GmresMixed.
@@ -79,19 +82,20 @@ namespace gmres_mixed {
 #define GKO_DECLARE_GMRES_MIXED_INITIALIZE_1_KERNEL(_type)                     \
     void initialize_1(                                                         \
         std::shared_ptr<const DefaultExecutor> exec,                           \
-        const matrix::Dense<_type> *b, matrix::Dense<_type> *b_norm,           \
+        const matrix::Dense<_type> *b,                                         \
+        matrix::Dense<remove_complex<_type>> *b_norm,                          \
         matrix::Dense<_type> *residual, matrix::Dense<_type> *givens_sin,      \
         matrix::Dense<_type> *givens_cos, Array<stopping_status> *stop_status, \
         size_type krylov_dim)
 
 
-#define GKO_DECLARE_GMRES_MIXED_INITIALIZE_2_KERNEL(_type1, _type2)    \
-    void initialize_2(std::shared_ptr<const DefaultExecutor> exec,     \
-                      const matrix::Dense<_type1> *residual,           \
-                      matrix::Dense<_type1> *residual_norm,            \
-                      matrix::Dense<_type1> *residual_norm_collection, \
-                      Accessor2d<_type2, _type1> krylov_bases,         \
-                      matrix::Dense<_type1> *next_krylov_basis,        \
+#define GKO_DECLARE_GMRES_MIXED_INITIALIZE_2_KERNEL(_type1, _type2)         \
+    void initialize_2(std::shared_ptr<const DefaultExecutor> exec,          \
+                      const matrix::Dense<_type1> *residual,                \
+                      matrix::Dense<remove_complex<_type1>> *residual_norm, \
+                      matrix::Dense<_type1> *residual_norm_collection,      \
+                      Accessor2d<_type2, _type1> krylov_bases,              \
+                      matrix::Dense<_type1> *next_krylov_basis,             \
                       Array<size_type> *final_iter_nums, size_type krylov_dim)
 
 
@@ -100,13 +104,13 @@ namespace gmres_mixed {
         std::shared_ptr<const DefaultExecutor> exec,                          \
         matrix::Dense<_type1> *next_krylov_basis,                             \
         matrix::Dense<_type1> *givens_sin, matrix::Dense<_type1> *givens_cos, \
-        matrix::Dense<_type1> *residual_norm,                                 \
+        matrix::Dense<remove_complex<_type1>> *residual_norm,                 \
         matrix::Dense<_type1> *residual_norm_collection,                      \
         Accessor2d<_type2, _type1> krylov_bases,                              \
         matrix::Dense<_type1> *hessenberg_iter,                               \
         matrix::Dense<_type1> *buffer_iter,                                   \
-        const matrix::Dense<_type1> *b_norm,                                  \
-        matrix::Dense<_type1> *arnoldi_norm, size_type iter,                  \
+        const matrix::Dense<remove_complex<_type1>> *b_norm,                  \
+        matrix::Dense<remove_complex<_type1>> *arnoldi_norm, size_type iter,  \
         Array<size_type> *final_iter_nums,                                    \
         const Array<stopping_status> *stop_status,                            \
         Array<stopping_status> *reorth_status, Array<size_type> *num_reorth,  \

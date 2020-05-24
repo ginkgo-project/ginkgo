@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/gmres_mixed_kernels.hpp"
 
 
-#define TIMING 1
+// #define TIMING 1
 
 
 #ifdef TIMING
@@ -83,6 +83,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
 
     using Vector = matrix::Dense<ValueType>;
+    using VectorNorms = matrix::Dense<remove_complex<ValueType>>;
     using LowArray = Array<ValueTypeKrylovBases>;
     using KrylovAccessor = kernels::Accessor2d<ValueTypeKrylovBases, ValueType>;
     using Accessor2dHelper =
@@ -124,9 +125,10 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     auto residual_norm_collection = Vector::create(
         exec, dim<2>{krylov_dim_mixed_ + 1, dense_b->get_size()[1]});
     auto residual_norm =
-        Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
-    auto b_norm = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
-    auto arnoldi_norm = Vector::create(exec, dim<2>{3, dense_b->get_size()[1]});
+        VectorNorms::create(exec, dim<2>{1, dense_b->get_size()[1]});
+    auto b_norm = VectorNorms::create(exec, dim<2>{1, dense_b->get_size()[1]});
+    auto arnoldi_norm =
+        VectorNorms::create(exec, dim<2>{3, dense_b->get_size()[1]});
     Array<size_type> final_iter_nums(this->get_executor(),
                                      dense_b->get_size()[1]);
     auto y =
@@ -201,12 +203,35 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
             exec->synchronize();
             auto t_aux_0 = std::chrono::steady_clock::now();
 #endif
+            //            std::cout << "RESTARTING" << std::endl;
             num_restarts++;
             // Restart
+            /*
+            std::cout << "[ ";
+            for (int i = 0; i <= krylov_dim_mixed_; i++) {
+                for (int j = 0; j < krylov_dim_mixed_ * dense_b->get_size()[1];
+                     j++) {
+                    if (j > 0) std::cout << ", ";
+                    std::cout << hessenberg->at(i, j);
+                }
+                std::cout << std::endl;
+            }
+            std::cout << "]" << std::endl;
+            */
             exec->run(gmres_mixed::make_step_2(
                 residual_norm_collection.get(),
                 krylov_bases_accessor.to_const(), hessenberg.get(), y.get(),
                 before_preconditioner.get(), &final_iter_nums));
+            /* */ /*
+            auto hessenberg_small = hessenberg->create_submatrix(
+                span{0, restart_iter},
+                span{0, dense_b->get_size()[1] * (restart_iter)});
+            exec->run(gmres_mixed::make_step_2(
+                residual_norm_collection.get(),
+                krylov_bases_accessor.to_const(),
+                hessenberg_small.get(), y.get(),
+                before_preconditioner.get(), &final_iter_nums));
+            */
             // Solve upper triangular.
             // y = hessenberg \ residual_norm_collection
 
@@ -332,12 +357,12 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
         residual_norm_collection.get(), krylov_bases_accessor.to_const(),
         hessenberg_small.get(), y.get(), before_preconditioner.get(),
         &final_iter_nums));
+    // Solve upper triangular.
+    // y = hessenberg \ residual_norm_collection
 #ifdef TIMING_STEPS
     exec->synchronize();
     auto time_STEP2 = std::chrono::steady_clock::now() - t_aux_3;
 #endif
-    // Solve upper triangular.
-    // y = hessenberg \ residual_norm_collection
 
 #ifdef TIMING_STEPS
     exec->synchronize();
