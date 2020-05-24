@@ -45,6 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 
 
+#include <iostream>
+
+
 namespace gko {
 namespace kernels {  // TODO maybe put into another separate namespace
 
@@ -182,6 +185,7 @@ public:
         // ignored by nvcc.
         const storage_type *GKO_RESTRICT rest_storage = storage_;
         const arithmetic_type *GKO_RESTRICT rest_scale = scale_;
+        //        std::cout << col << " - A - " << rest_scale[col] << std::endl;
         return static_cast<arithmetic_type>(rest_storage[row * stride_ + col]) *
                rest_scale[col];
     }
@@ -365,7 +369,8 @@ public:
           scale_{exec, krylov_dim_[1]}
     {
         // For testing, initialize scale to ones
-        Array<ValueType> h_scale{exec->get_master(), krylov_dim[0]};
+        // Array<ValueType> h_scale{exec->get_master(), krylov_dim[0]};
+        Array<ValueType> h_scale{exec->get_master(), krylov_dim[1]};
         for (size_type i = 0; i < h_scale.get_num_elems(); ++i) {
             h_scale.get_data()[i] = one<ValueType>();
         }

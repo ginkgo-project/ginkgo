@@ -112,7 +112,7 @@ protected:
         before_preconditioner = Mtx::create_with_config_of(x.get());
         b = gen_mtx(m, n);
         b_norm = gen_mtx(1, n);
-        arnoldi_norm = gen_mtx(2, n);
+        arnoldi_norm = gen_mtx(3, n);
         gko::dim<2> krylov_bases_dim(
             m, (gko::solver::default_krylov_dim_mixed + 1) * n);
         acc_helper = Accessor2dHelper{krylov_bases_dim, ref};
