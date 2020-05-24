@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_COMPONENTS_ATOMIC_HIP_HPP_
 
 
+#include <hip/hip_fp16.h>
+
+
 namespace gko {
 namespace kernels {
 namespace hip {

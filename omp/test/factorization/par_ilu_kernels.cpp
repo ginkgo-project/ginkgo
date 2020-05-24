@@ -356,7 +356,7 @@ TYPED_TEST(ParIlu, KernelComputeParILUWithMoreIterationsIsEquivalentToRef)
     std::unique_ptr<Csr> u_ref{};
     std::unique_ptr<Csr> l_omp{};
     std::unique_ptr<Csr> u_omp{};
-    gko::size_type iterations{20};
+    gko::size_type iterations{30};
 
     this->compute_lu(&l_ref, &u_ref, &l_omp, &u_omp, iterations);
 
