@@ -69,7 +69,7 @@ void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
             continue;
         }
         for (size_type k = 0; k < iter + 1; ++k) {
-            hessenberg_iter->at(k, i) = 0;
+            hessenberg_iter->at(k, i) = zero<ValueType>();
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 hessenberg_iter->at(k, i) +=
                     next_krylov_basis->at(j, i) *
@@ -88,10 +88,11 @@ void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
 
-        hessenberg_iter->at(iter + 1, i) = 0;
+        hessenberg_iter->at(iter + 1, i) = zero<ValueType>();
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             hessenberg_iter->at(iter + 1, i) +=
-                next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
+                squared_norm(next_krylov_basis->at(j, i));
+            // next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
         }
         hessenberg_iter->at(iter + 1, i) =
             sqrt(hessenberg_iter->at(iter + 1, i));
@@ -101,6 +102,12 @@ void finish_arnoldi(matrix::Dense<ValueType> *next_krylov_basis,
             krylov_bases.write(
                 j, next_krylov_basis->get_size()[1] * (iter + 1) + i,
                 next_krylov_basis->at(j, i));
+            // std::cout << next_krylov_basis->at(j, i) << " - "
+            //           << krylov_bases.read(
+            //                  j,
+            //                  next_krylov_basis->get_size()[1] * (iter + 1) +
+            //                  i)
+            //           << std::endl;
         }
         // next_krylov_basis /= hessenberg(iter, iter + 1)
         // krylov_bases(:, iter + 1) = next_krylov_basis
@@ -114,7 +121,8 @@ void finish_arnoldi_reorth(
     matrix::Dense<ValueType> *next_krylov_basis,
     Accessor2d<ValueTypeKrylovBases, ValueType> krylov_bases,
     matrix::Dense<ValueType> *hessenberg_iter,
-    matrix::Dense<ValueType> *arnoldi_norm, size_type iter,
+    matrix::Dense<ValueType> *buffer_iter,
+    matrix::Dense<remove_complex<ValueType>> *arnoldi_norm, size_type iter,
     const stopping_status *stop_status)
 {
     //    ValueType nrm = 0, reorth = 0;
@@ -124,7 +132,7 @@ void finish_arnoldi_reorth(
             continue;
         }
         // nrm = 0;
-        arnoldi_norm->at(0, i) = 0;
+        arnoldi_norm->at(0, i) = zero<remove_complex<ValueType>>();
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             arnoldi_norm->at(0, i) += squared_norm(next_krylov_basis->at(j, i));
             // nrm += next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
@@ -133,7 +141,7 @@ void finish_arnoldi_reorth(
         // nrm = sqrt(nrm) * 0.99;
         // nrm = norm(next_krylov_basis)
         for (size_type k = 0; k < iter + 1; ++k) {
-            hessenberg_iter->at(k, i) = 0;
+            hessenberg_iter->at(k, i) = zero<ValueType>();
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 hessenberg_iter->at(k, i) +=
                     next_krylov_basis->at(j, i) *
@@ -146,15 +154,18 @@ void finish_arnoldi_reorth(
                     krylov_bases.read(j,
                                       next_krylov_basis->get_size()[1] * k + i);
             }
-            if (squared_norm(hessenberg_iter->at(k, i) *
-                             hessenberg_iter->at(k, i)) >
+            // if (squared_norm(hessenberg_iter->at(k, i) *
+            //                  hessenberg_iter->at(k, i)) >
+            if (squared_norm(hessenberg_iter->at(k, i)) >
                 arnoldi_norm->at(0, i)) {
-                arnoldi_norm->at(1, i) = 0;
+                buffer_iter->at(k, i) = zero<ValueType>();
+                // arnoldi_norm->at(1, i) = 0;
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
                      ++j) {
-                    // TODO find good alternative here, so the type of
-                    // arnoldi_norm can change to remove_complex<ValueType>!!!
-                    arnoldi_norm->at(1, i) +=
+                    // DONE: TODO find good alternative here, so the type of
+                    // DONE: arnoldi_norm can change to
+                    // remove_complex<ValueType>!!! arnoldi_norm->at(1, i) +=
+                    buffer_iter->at(k, i) +=
                         next_krylov_basis->at(j, i) *
                         krylov_bases.read(
                             j, next_krylov_basis->get_size()[1] * k + i);
@@ -162,11 +173,13 @@ void finish_arnoldi_reorth(
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
                      ++j) {
                     next_krylov_basis->at(j, i) -=
-                        arnoldi_norm->at(1, i) *
+                        buffer_iter->at(k, i) *
+                        // arnoldi_norm->at(1, i) *
                         krylov_bases.read(
                             j, next_krylov_basis->get_size()[1] * k + i);
                 }
-                hessenberg_iter->at(k, i) += arnoldi_norm->at(1, i);
+                // hessenberg_iter->at(k, i) += arnoldi_norm->at(1, i);
+                hessenberg_iter->at(k, i) += buffer_iter->at(k, i);
             }
         }
         // for i in 1:iter
@@ -179,10 +192,11 @@ void finish_arnoldi_reorth(
         //     end
         // end
 
-        hessenberg_iter->at(iter + 1, i) = 0;
+        hessenberg_iter->at(iter + 1, i) = zero<ValueType>();
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             hessenberg_iter->at(iter + 1, i) +=
-                next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
+                squared_norm(next_krylov_basis->at(j, i));
+            // next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
         }
         hessenberg_iter->at(iter + 1, i) =
             sqrt(hessenberg_iter->at(iter + 1, i));
@@ -206,14 +220,14 @@ void finish_arnoldi_CGS(
     Accessor2d<ValueTypeKrylovBases, ValueType> krylov_bases,
     matrix::Dense<ValueType> *hessenberg_iter,
     matrix::Dense<ValueType> *buffer_iter,
-    matrix::Dense<ValueType> *arnoldi_norm, size_type iter,
+    matrix::Dense<remove_complex<ValueType>> *arnoldi_norm, size_type iter,
     const stopping_status *stop_status)
 {
     const remove_complex<ValueType> eta = 1.0 / sqrt(2.0);
     //    ValueType nrmP = 0, nrmN = 0;
-    ValueType nrmP = 0, nrmN = 0;
+    //    ValueType nrmP = 0, nrmN = 0;
     for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
-        arnoldi_norm->at(0, i) = 0;
+        arnoldi_norm->at(0, i) = zero<remove_complex<ValueType>>();
         // nrmP = 0;
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             arnoldi_norm->at(0, i) += squared_norm(next_krylov_basis->at(j, i));
@@ -227,7 +241,7 @@ void finish_arnoldi_CGS(
             continue;
         }
         for (size_type k = 0; k < iter + 1; ++k) {
-            hessenberg_iter->at(k, i) = 0;
+            hessenberg_iter->at(k, i) = zero<ValueType>();
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 hessenberg_iter->at(k, i) +=
                     next_krylov_basis->at(j, i) *
@@ -249,21 +263,21 @@ void finish_arnoldi_CGS(
         // for i in 1:iter
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
-        arnoldi_norm->at(1, i) = 0;
+        arnoldi_norm->at(1, i) = zero<remove_complex<ValueType>>();
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             arnoldi_norm->at(1, i) += squared_norm(next_krylov_basis->at(j, i));
         }
         arnoldi_norm->at(1, i) = sqrt(arnoldi_norm->at(1, i));
         // nrmN = norm(next_krylov_basis)
 
-        // TODO the abs() should be removed here as soon as the type of
-        // arnoldi_norm has changed!
+        // DONE: TODO the abs() should be removed here as soon as the type of
+        // DONE: arnoldi_norm has changed!
         for (size_type l = 1;
-             abs(arnoldi_norm->at(1, i)) < abs(arnoldi_norm->at(0, i)) && l < 3;
+             (arnoldi_norm->at(1, i)) < (arnoldi_norm->at(0, i)) && l < 3;
              l++) {
             arnoldi_norm->at(0, i) = eta * arnoldi_norm->at(1, i);
             for (size_type k = 0; k < iter + 1; ++k) {
-                buffer_iter->at(k, i) = 0;
+                buffer_iter->at(k, i) = zero<ValueType>();
                 for (size_type j = 0; j < next_krylov_basis->get_size()[0];
                      ++j) {
                     buffer_iter->at(k, i) +=
@@ -289,7 +303,7 @@ void finish_arnoldi_CGS(
             //     next_krylov_basis   -= buffer(iter, i) * krylov_bases(:, i)
             //     hessenberg(iter, i) += buffer(iter, i)
             // end
-            arnoldi_norm->at(1, i) = 0;
+            arnoldi_norm->at(1, i) = zero<remove_complex<ValueType>>();
             for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
                 arnoldi_norm->at(1, i) +=
                     squared_norm(next_krylov_basis->at(j, i));
@@ -298,13 +312,156 @@ void finish_arnoldi_CGS(
             // nrmN = norm(next_krylov_basis)
         }
         // reorthogonalization
-        hessenberg_iter->at(iter + 1, i) = 0;
+        hessenberg_iter->at(iter + 1, i) = zero<ValueType>();
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             hessenberg_iter->at(iter + 1, i) +=
-                next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
+                squared_norm(next_krylov_basis->at(j, i));
+            // next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
         }
         hessenberg_iter->at(iter + 1, i) =
             sqrt(hessenberg_iter->at(iter + 1, i));
+        // hessenberg(iter, iter + 1) = norm(next_krylov_basis)
+        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+            next_krylov_basis->at(j, i) /= hessenberg_iter->at(iter + 1, i);
+            krylov_bases.write(
+                j, next_krylov_basis->get_size()[1] * (iter + 1) + i,
+                next_krylov_basis->at(j, i));
+        }
+        // next_krylov_basis /= hessenberg(iter, iter + 1)
+        // krylov_bases(:, iter + 1) = next_krylov_basis
+        // End of arnoldi
+    }
+}
+
+
+template <typename ValueType, typename ValueTypeKrylovBases>
+void finish_arnoldi_CGS2(
+    matrix::Dense<ValueType> *next_krylov_basis,
+    Accessor2d<ValueTypeKrylovBases, ValueType> krylov_bases,
+    matrix::Dense<ValueType> *hessenberg_iter,
+    matrix::Dense<ValueType> *buffer_iter,
+    matrix::Dense<remove_complex<ValueType>> *arnoldi_norm, size_type iter,
+    const stopping_status *stop_status)
+{
+    const remove_complex<ValueType> eta = 1.0 / sqrt(2.0);
+    //    ValueType nrmP = 0, nrmN = 0;
+    //    ValueType nrmP = 0, nrmN = 0;
+    for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
+        arnoldi_norm->at(0, i) = zero<remove_complex<ValueType>>();
+        // nrmP = 0;
+        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+            arnoldi_norm->at(0, i) += squared_norm(next_krylov_basis->at(j, i));
+            // nrmP += next_krylov_basis->at(j, i) * next_krylov_basis->at(j,
+            // i);
+        }
+        arnoldi_norm->at(0, i) = sqrt(arnoldi_norm->at(0, i)) * eta;
+        // nrmP = sqrt(nrmP);
+        // arnoldi_norm->at(0, i) = norm(next_krylov_basis)
+        if (stop_status[i].has_stopped()) {
+            continue;
+        }
+        for (size_type k = 0; k < iter + 1; ++k) {
+            hessenberg_iter->at(k, i) = zero<ValueType>();
+            for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+                hessenberg_iter->at(k, i) +=
+                    next_krylov_basis->at(j, i) *
+                    krylov_bases.read(j,
+                                      next_krylov_basis->get_size()[1] * k + i);
+            }
+        }
+        // for i in 1:iter
+        //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
+        // end
+        for (size_type k = 0; k < iter + 1; ++k) {
+            for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+                next_krylov_basis->at(j, i) -=
+                    hessenberg_iter->at(k, i) *
+                    krylov_bases.read(j,
+                                      next_krylov_basis->get_size()[1] * k + i);
+            }
+        }
+        // for i in 1:iter
+        //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
+        // end
+        arnoldi_norm->at(1, i) = zero<remove_complex<ValueType>>();
+        arnoldi_norm->at(2, i) = zero<remove_complex<ValueType>>();
+        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+            arnoldi_norm->at(1, i) += squared_norm(next_krylov_basis->at(j, i));
+            arnoldi_norm->at(2, i) =
+                (arnoldi_norm->at(2, i) >= abs(next_krylov_basis->at(j, i)))
+                    ? arnoldi_norm->at(2, i)
+                    : abs(next_krylov_basis->at(j, i));
+        }
+        arnoldi_norm->at(1, i) = sqrt(arnoldi_norm->at(1, i));
+        // std::cout << arnoldi_norm->at(1, i) << " - " << arnoldi_norm->at(2,
+        // i)
+        //           << " - " << 0 << std::endl;
+        // nrmN = norm(next_krylov_basis)
+
+        // DONE: TODO the abs() should be removed here as soon as the type of
+        // DONE: arnoldi_norm has changed!
+        for (size_type l = 1;
+             (arnoldi_norm->at(1, i)) < (arnoldi_norm->at(0, i)) && l < 3;
+             l++) {
+            // std::cout << "REF RESTART " << l << std::endl;
+            arnoldi_norm->at(0, i) = eta * arnoldi_norm->at(1, i);
+            for (size_type k = 0; k < iter + 1; ++k) {
+                buffer_iter->at(k, i) = zero<ValueType>();
+                for (size_type j = 0; j < next_krylov_basis->get_size()[0];
+                     ++j) {
+                    buffer_iter->at(k, i) +=
+                        next_krylov_basis->at(j, i) *
+                        krylov_bases.read(
+                            j, next_krylov_basis->get_size()[1] * k + i);
+                }
+            }
+            // for i in 1:iter
+            //     buffer(iter, i) = next_krylov_basis' * krylov_bases(:, i)
+            // end
+            for (size_type k = 0; k < iter + 1; ++k) {
+                for (size_type j = 0; j < next_krylov_basis->get_size()[0];
+                     ++j) {
+                    next_krylov_basis->at(j, i) -=
+                        buffer_iter->at(k, i) *
+                        krylov_bases.read(
+                            j, next_krylov_basis->get_size()[1] * k + i);
+                }
+                hessenberg_iter->at(k, i) += buffer_iter->at(k, i);
+            }
+            // for i in 1:iter
+            //     next_krylov_basis   -= buffer(iter, i) * krylov_bases(:, i)
+            //     hessenberg(iter, i) += buffer(iter, i)
+            // end
+            arnoldi_norm->at(1, i) = zero<remove_complex<ValueType>>();
+            arnoldi_norm->at(2, i) = zero<remove_complex<ValueType>>();
+            for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+                arnoldi_norm->at(1, i) +=
+                    squared_norm(next_krylov_basis->at(j, i));
+                arnoldi_norm->at(2, i) =
+                    (arnoldi_norm->at(2, i) >= abs(next_krylov_basis->at(j, i)))
+                        ? arnoldi_norm->at(2, i)
+                        : abs(next_krylov_basis->at(j, i));
+            }
+            arnoldi_norm->at(1, i) = sqrt(arnoldi_norm->at(1, i));
+            // std::cout << arnoldi_norm->at(1, i) << " - "
+            //           << arnoldi_norm->at(2, i) << " - " << l << std::endl;
+            // nrmN = norm(next_krylov_basis)
+        }
+        /*
+        // reorthogonalization
+        hessenberg_iter->at(iter + 1, i) = zero<ValueType>();
+        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+            hessenberg_iter->at(iter + 1, i) +=
+                squared_norm(next_krylov_basis->at(j, i));
+            // next_krylov_basis->at(j, i) * next_krylov_basis->at(j, i);
+        }
+        hessenberg_iter->at(iter + 1, i) =
+            sqrt(hessenberg_iter->at(iter + 1, i));
+        */
+        hessenberg_iter->at(iter + 1, i) = arnoldi_norm->at(1, i);
+        // std::cout << arnoldi_norm->at(1, i) << " - " << arnoldi_norm->at(2,
+        // i)
+        //           << " - " << hessenberg_iter->at(iter + 1, i) << std::endl;
         // hessenberg(iter, iter + 1) = norm(next_krylov_basis)
         for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
             next_krylov_basis->at(j, i) /= hessenberg_iter->at(iter + 1, i);
@@ -383,9 +540,9 @@ void givens_rotation(matrix::Dense<ValueType> *next_krylov_basis,
 template <typename ValueType>
 void calculate_next_residual_norm(
     matrix::Dense<ValueType> *givens_sin, matrix::Dense<ValueType> *givens_cos,
-    matrix::Dense<ValueType> *residual_norm,
+    matrix::Dense<remove_complex<ValueType>> *residual_norm,
     matrix::Dense<ValueType> *residual_norm_collection,
-    const matrix::Dense<ValueType> *b_norm, size_type iter,
+    const matrix::Dense<remove_complex<ValueType>> *b_norm, size_type iter,
     const stopping_status *stop_status)
 {
     for (size_type i = 0; i < residual_norm->get_size()[1]; ++i) {
@@ -451,7 +608,7 @@ void calculate_qy(Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
 template <typename ValueType>
 void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *b_norm,
+                  matrix::Dense<remove_complex<ValueType>> *b_norm,
                   matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *givens_sin,
                   matrix::Dense<ValueType> *givens_cos,
@@ -459,9 +616,10 @@ void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
 {
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         // Calculate b norm
-        b_norm->at(0, j) = zero<ValueType>();
+        b_norm->at(0, j) = zero<remove_complex<ValueType>>();
         for (size_type i = 0; i < b->get_size()[0]; ++i) {
-            b_norm->at(0, j) += b->at(i, j) * b->at(i, j);
+            b_norm->at(0, j) += squared_norm(b->at(i, j));
+            // b_norm->at(0, j) += b->at(i, j) * b->at(i, j);
         }
         b_norm->at(0, j) = sqrt(b_norm->at(0, j));
 
@@ -483,7 +641,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType, typename ValueTypeKrylovBases>
 void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
-                  matrix::Dense<ValueType> *residual_norm,
+                  matrix::Dense<remove_complex<ValueType>> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
                   Accessor2d<ValueTypeKrylovBases, ValueType> krylov_bases,
                   matrix::Dense<ValueType> *next_krylov_basis,
@@ -491,9 +649,11 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
 {
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         // Calculate residual norm
-        residual_norm->at(0, j) = 0;
+        residual_norm->at(0, j) = zero<remove_complex<ValueType>>();
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
-            residual_norm->at(0, j) += residual->at(i, j) * residual->at(i, j);
+            residual_norm->at(0, j) += squared_norm(residual->at(i, j));
+            // residual_norm->at(0, j) += residual->at(i, j) * residual->at(i,
+            // j);
         }
         residual_norm->at(0, j) = sqrt(residual_norm->at(0, j));
 
@@ -532,14 +692,14 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType> *next_krylov_basis,
             matrix::Dense<ValueType> *givens_sin,
             matrix::Dense<ValueType> *givens_cos,
-            matrix::Dense<ValueType> *residual_norm,
+            matrix::Dense<remove_complex<ValueType>> *residual_norm,
             matrix::Dense<ValueType> *residual_norm_collection,
             Accessor2d<ValueTypeKrylovBases, ValueType> krylov_bases,
             matrix::Dense<ValueType> *hessenberg_iter,
             matrix::Dense<ValueType> *buffer_iter,
-            const matrix::Dense<ValueType> *b_norm,
-            matrix::Dense<ValueType> *arnoldi_norm, size_type iter,
-            Array<size_type> *final_iter_nums,
+            const matrix::Dense<remove_complex<ValueType>> *b_norm,
+            matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
+            size_type iter, Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status,
             Array<stopping_status> *reorth_status, Array<size_type> *num_reorth,
             int *num_reorth_steps, int *num_reorth_vectors)
@@ -554,15 +714,27 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
         final_iter_nums->get_data()[i] +=
             (1 - stop_status->get_const_data()[i].has_stopped());
     }
+#if FINISH_ARNOLDI == 1
+    //    std::cout << "REF MGS_REORTH" << std::endl;
+    finish_arnoldi_reorth(next_krylov_basis, krylov_bases, hessenberg_iter,
+                          buffer_iter, arnoldi_norm, iter,
+                          stop_status->get_const_data());
 
-    //    finish_arnoldi(next_krylov_basis, krylov_bases, hessenberg_iter, iter,
-    //                   stop_status->get_const_data());
-    //    finish_arnoldi_reorth(next_krylov_basis, krylov_bases,
-    //                          hessenberg_iter, arnoldi_norm, iter,
-    //                          stop_status->get_const_data());
+#elif FINISH_ARNOLDI == 2
+    //    std::cout << "REF CGS_REORTH" << std::endl;
     finish_arnoldi_CGS(next_krylov_basis, krylov_bases, hessenberg_iter,
                        buffer_iter, arnoldi_norm, iter,
                        stop_status->get_const_data());
+#elif FINISH_ARNOLDI == 3
+    //    std::cout << "REF CGS_REORTH_2" << std::endl;
+    finish_arnoldi_CGS2(next_krylov_basis, krylov_bases, hessenberg_iter,
+                        buffer_iter, arnoldi_norm, iter,
+                        stop_status->get_const_data());
+#else
+    //    std::cout << "REF MGS" << std::endl;
+    finish_arnoldi(next_krylov_basis, krylov_bases, hessenberg_iter, iter,
+                   stop_status->get_const_data());
+#endif
     givens_rotation(next_krylov_basis, givens_sin, givens_cos, hessenberg_iter,
                     iter, stop_status->get_const_data());
     calculate_next_residual_norm(givens_sin, givens_cos, residual_norm,

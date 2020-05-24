@@ -94,7 +94,7 @@ __forceinline__ __device__ ResultType reinterpret(ValueType val)
             CONVERTER_TYPE assumed;                                          \
             do {                                                             \
                 assumed = old;                                               \
-                if (abs(reinterpret<ValueType>(old)) < abs(val)) {           \
+                if (reinterpret<ValueType>(assumed) < val) {                 \
                     old = atomicCAS(address_as_converter, assumed,           \
                                     reinterpret<CONVERTER_TYPE>(val));       \
                 }                                                            \
