@@ -63,6 +63,7 @@ protected:
               gko::initialize<Mtx>(
                   {I<T>({9.0, 4.0}), I<T>({6.0, -2.0}), I<T>({-3.0, 2.0})},
                   exec),
+              gko::initialize<Mtx>({I<T>({1.0, 0.0}), I<T>({0.0, 1.0})}, exec),
               gko::initialize<Mtx>({I<T>({1.0, 0.0}), I<T>({0.0, 1.0})}, exec)},
           identity{
               gko::initialize<Mtx>({I<T>({1.0, 0.0}), I<T>({0.0, 1.0})}, exec)},
@@ -195,7 +196,7 @@ TYPED_TEST(Composition, AppliesLongerLinearCombinationToVector)
 TYPED_TEST(Composition, AppliesLongestToVector)
 {
     /*
-        cmp = [ 2 ] * [ 3 2 ] * [ -1  1  2 ] * [  9  4 ] * [ 1 0 ]
+        cmp = [ 2 ] * [ 3 2 ] * [ -1  1  2 ] * [  9  4 ] * [ 1 0 ]^2
               [ 1 ]             [  5 -3  0 ]   [  6 -2 ]   [ 0 1 ]
                                                [ -3  2 ]
     */
@@ -214,7 +215,7 @@ TYPED_TEST(Composition, AppliesLongestToVector)
 TYPED_TEST(Composition, AppliesLongestLinearCombinationToVector)
 {
     /*
-        cmp = [ 2 ] * [ 3 2 ] * [ -1  1  2 ] * [  9  4 ] * [ 1 0 ]
+        cmp = [ 2 ] * [ 3 2 ] * [ -1  1  2 ] * [  9  4 ] * [ 1 0 ]^2
               [ 1 ]             [  5 -3  0 ]   [  6 -2 ]   [ 0 1 ]
                                                [ -3  2 ]
     */
@@ -235,7 +236,7 @@ TYPED_TEST(Composition, AppliesLongestLinearCombinationToVector)
 TYPED_TEST(Composition, AppliesLongestToVectorMultipleRhs)
 {
     /*
-        cmp = [ 2 ] * [ 3 2 ] * [ -1  1  2 ] * [  9  4 ] * [ 1 0 ]
+        cmp = [ 2 ] * [ 3 2 ] * [ -1  1  2 ] * [  9  4 ] * [ 1 0 ]^2
               [ 1 ]             [  5 -3  0 ]   [  6 -2 ]   [ 0 1 ]
                                                [ -3  2 ]
     */
@@ -255,7 +256,7 @@ TYPED_TEST(Composition, AppliesLongestToVectorMultipleRhs)
 TYPED_TEST(Composition, AppliesLongestLinearCombinationToVectorMultipleRhs)
 {
     /*
-        cmp = [ 2 ] * [ 3 2 ] * [ -1  1  2 ] * [  9  4 ] * [ 1 0 ]
+        cmp = [ 2 ] * [ 3 2 ] * [ -1  1  2 ] * [  9  4 ] * [ 1 0 ]^2
               [ 1 ]             [  5 -3  0 ]   [  6 -2 ]   [ 0 1 ]
                                                [ -3  2 ]
     */
