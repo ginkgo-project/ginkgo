@@ -89,7 +89,7 @@ std::unique_ptr<LinOp> apply_inner_operators(
         operators[i]->apply(lend(in), lend(out));
     }
 
-    return std::move(out);
+    return out;
 }
 
 
