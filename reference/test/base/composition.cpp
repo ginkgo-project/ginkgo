@@ -80,6 +80,42 @@ protected:
 TYPED_TEST_CASE(Composition, gko::test::ValueTypes);
 
 
+TYPED_TEST(Composition, AppliesSingleToVector)
+{
+    /*
+        cmp = [ -9 -2 ]
+              [ 27 26 ]
+    */
+    using Mtx = typename TestFixture::Mtx;
+    auto cmp = gko::Composition<TypeParam>::create(this->product);
+    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto res = clone(x);
+
+    cmp->apply(lend(x), lend(res));
+
+    GKO_ASSERT_MTX_NEAR(res, l({-13.0, 79.0}), r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Composition, AppliesSingleLinearCombinationToVector)
+{
+    /*
+        cmp = [ -9 -2 ]
+              [ 27 26 ]
+    */
+    using Mtx = typename TestFixture::Mtx;
+    auto cmp = gko::Composition<TypeParam>::create(this->product);
+    auto alpha = gko::initialize<Mtx>({3.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto res = clone(x);
+
+    cmp->apply(lend(alpha), lend(x), lend(beta), lend(res));
+
+    GKO_ASSERT_MTX_NEAR(res, l({-40.0, 235.0}), r<TypeParam>::value);
+}
+
+
 TYPED_TEST(Composition, AppliesToVector)
 {
     /*
