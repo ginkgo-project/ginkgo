@@ -47,7 +47,8 @@ __global__ __launch_bounds__(default_block_size) void zero_matrix_kernel(
 
 template <typename ValueType, typename KrylovType,
           bool = Accessor2d<KrylovType, ValueType>::has_scale>
-struct helper_functions_accessor {};
+struct helper_functions_accessor {
+};
 
 // Accessors having a scale
 template <typename ValueType, typename KrylovType>
@@ -1149,7 +1150,6 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms(
     const auto global_id = thread::get_thread_id_flat();
 
     if (global_id < stride_norm0 && !stop_status[global_id].has_stopped()) {
-        // TODO remove abs() as soon as type of arnoldi_norm has changed
         const auto num0 = (eta * arnoldi_norm0[global_id]);
         // const auto num0 = abs(eta * arnoldi_norm0[global_id]);
         const auto num1 = (arnoldi_norm1[global_id]);
@@ -1171,8 +1171,7 @@ template <int block_size, typename ValueType, typename ValueTypeKrylovBases>
 __global__ __launch_bounds__(block_size) void check_arnoldi_norms_new(
     remove_complex<ValueType> *__restrict__ arnoldi_norm, size_type stride_norm,
     ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
-    size_type iter,
-    Accessor2dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+    size_type iter, Accessor2d<ValueTypeKrylovBases, ValueType> krylov_bases,
     const stopping_status *__restrict__ stop_status,
     stopping_status *__restrict__ reorth_status,
     size_type *__restrict__ num_reorth)
@@ -1181,7 +1180,6 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms_new(
     const auto col_idx = thread::get_thread_id_flat();
 
     if (col_idx < stride_norm && !stop_status[col_idx].has_stopped()) {
-        // TODO remove abs() as soon as type of arnoldi_norm has changed
         const auto num0 = (eta * arnoldi_norm[col_idx]);
         // const auto num0 = abs(eta * arnoldi_norm0[col_idx]);
         const auto num11 = (arnoldi_norm[col_idx + stride_norm]);
@@ -1200,10 +1198,8 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms_new(
         arnoldi_norm[col_idx] = num11;
         arnoldi_norm[col_idx + stride_norm] = num12;
         hessenberg_iter[iter * stride_hessenberg + col_idx] = num12;
-        // helper_functions_accessor<ValueType,
-        // ValueTypeKrylovBases>::write_scale(
-        //     krylov_bases, col_idx, num2 / num12);
-        // krylov_bases.set_scale(col_idx, num2 / num12);
+        helper_functions_accessor<ValueType, ValueTypeKrylovBases>::write_scale(
+            krylov_bases, col_idx, num2 / num12);
     }
 }
 
