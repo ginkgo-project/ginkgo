@@ -1089,8 +1089,11 @@ void step_2(std::shared_ptr<const CudaExecutor> exec,
             matrix::Dense<ValueType> *before_preconditioner,
             const Array<size_type> *final_iter_nums)
 {
-    const auto res_norm_col_size = residual_norm_collection->get_size();
-    const auto krylov_cols = res_norm_col_size[0] * res_norm_col_size[1];
+    // since hessenberg has dims:  iters x iters * num_rhs
+    // and krylov should have dims:  sysmtx[0] x (iters + 1) * num_rhs
+    const auto num_rhs = before_preconditioner->get_size()[1];
+    const auto hessenberg_cols = hessenberg->get_size()[1];
+    const auto krylov_cols = hessenberg_cols + num_rhs;
     solve_upper_triangular(residual_norm_collection, hessenberg, y,
                            final_iter_nums);
     calculate_qy(krylov_bases, krylov_cols, y, before_preconditioner,
