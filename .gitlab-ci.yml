@@ -15,6 +15,7 @@ stages:
   BENCHMARK_SERVER: "FINECI"
   C_COMPILER: "gcc"
   CXX_COMPILER: "g++"
+  CUDA_COMPILER: "nvcc"
   BUILD_TYPE: "Debug"
   BUILD_SHARED_LIBS: "ON"
   BUILD_REFERENCE: "ON"
@@ -51,9 +52,9 @@ stages:
     - cmake ${CI_PROJECT_DIR}
         -GNinja
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
-        -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_FLAGS="${CXX_FLAGS}"
-        -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} ${EXTRA_CMAKE_FLAGS}
-        ${CUDA_ARCH_STR} ${CUDA_HOST_STR}
+        -DCMAKE_CUDA_COMPILER=${CUDA_COMPILER} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+        ${EXTRA_CMAKE_FLAGS} ${CUDA_ARCH_STR} ${CUDA_HOST_STR}
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
@@ -76,9 +77,9 @@ stages:
     - cmake ${CI_PROJECT_DIR}
         -GNinja
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
-        -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_FLAGS="${CXX_FLAGS}"
-        -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} ${EXTRA_CMAKE_FLAGS}
-        ${CUDA_ARCH_STR} ${CUDA_HOST_STR}
+        -DCMAKE_CUDA_COMPILER=${CUDA_COMPILER} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+        ${EXTRA_CMAKE_FLAGS} ${CUDA_ARCH_STR} ${CUDA_HOST_STR}
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
@@ -345,7 +346,8 @@ build/cuda101/clang/all/release/static:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
-    BUILD_TYPE: "Debug"
+    BUILD_TYPE: "Release"
+    BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
   only:
     variables:
@@ -365,6 +367,48 @@ build/cuda101/intel/cuda/debug/static:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Debug"
+    BUILD_SHARED_LIBS: "OFF"
+    CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
+  tags:
+    - private_ci
+    - cuda
+    - gpu
+
+# clang-cuda with cuda 10.1 and friends
+build/clang-cuda101/gcc/all/release/shared:
+  <<: *default_build_with_test
+  image: localhost:5000/gko-cuda101-gnu8-llvm10-intel2019
+  variables:
+    <<: *default_variables
+    CUDA_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
+    BUILD_TYPE: "Release"
+    CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
+  tags:
+    - private_ci
+    - cuda
+    - gpu
+
+build/clang-cuda101/clang/cuda/debug/static:
+  <<: *default_build_with_test
+  image: localhost:5000/gko-cuda101-gnu8-llvm10-intel2019
+  variables:
+    <<: *default_variables
+    C_COMPILER: "clang"
+    CXX_COMPILER: "clang++"
+    CUDA_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: "Debug"
+    BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
   only:
     variables:
@@ -674,10 +718,10 @@ gh-pages:
     - mkdir -p ${CI_JOB_NAME} && pushd ${CI_JOB_NAME}
     - cmake ${CI_PROJECT_DIR}
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
-        -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DBUILD_SHARED_LIBS=ON
-        ${EXTRA_CMAKE_FLAGS} -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=OFF
-        -DGINKGO_BUILD_OMP=OFF -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_HIP=OFF
-        -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_EXAMPLES=OFF
+        -DCMAKE_CUDA_COMPILER=${CUDA_COMPILER} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        -DBUILD_SHARED_LIBS=ON ${EXTRA_CMAKE_FLAGS} -DGINKGO_DEVEL_TOOLS=OFF
+        -DGINKGO_BUILD_REFERENCE=OFF -DGINKGO_BUILD_OMP=OFF -DGINKGO_BUILD_CUDA=OFF
+        -DGINKGO_BUILD_HIP=OFF -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_EXAMPLES=OFF
         -DGINKGO_BUILD_DOC=ON -DGINKGO_DOC_GENERATE_PDF=ON
     - make usr
     - make pdf
