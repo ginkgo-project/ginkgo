@@ -58,9 +58,9 @@ protected:
 
 TEST_F(ParIlut, SetIterations)
 {
-    auto factory = ilut_factory_type::build().with_iterations(5u).on(ref);
+    auto factory = ilut_factory_type::build().with_iterations(6u).on(ref);
 
-    ASSERT_EQ(factory->get_parameters().iterations, 5u);
+    ASSERT_EQ(factory->get_parameters().iterations, 6u);
 }
 
 

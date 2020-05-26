@@ -92,9 +92,7 @@ using par_ilut_factorization::make_threshold_select;
 
 
 template <typename ValueType, typename IndexType>
-class ParIlutState {
-    friend class ParIlut<ValueType, IndexType>;
-
+struct ParIlutState {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
     using CooMatrix = matrix::Coo<ValueType, IndexType>;
     using CsrBuilder = matrix::CsrBuilder<ValueType, IndexType>;

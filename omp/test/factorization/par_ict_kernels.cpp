@@ -168,7 +168,7 @@ TYPED_TEST(ParIct, KernelAddCandidatesIsEquivalentToRef)
 }
 
 
-TYPED_TEST(ParIct, KernelComputeIsEquivalentToRef)
+TYPED_TEST(ParIct, KernelComputeFactorIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using Coo = typename TestFixture::Coo;

@@ -59,7 +59,7 @@ namespace factorization {
  * $L$ is a lower unitriangular, while $U$ is an upper triangular matrix, which
  * approximate a given matrix $A$ with $A \approx LU$. Here, $L$ and $U$ have
  * a sparsity pattern that is improved iteratively based on their element-wise
- * magnitude. The initial sparsity pattern is chosed based on the $ILU(0)$
+ * magnitude. The initial sparsity pattern is chosen based on the $ILU(0)$
  * factorization of $A$.
  *
  * One iteration of the ParILUT algorithm consists of the following steps:

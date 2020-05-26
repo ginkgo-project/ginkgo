@@ -53,12 +53,13 @@ DEFINE_uint32(max_block_size, 32,
               "Maximal block size of the block-Jacobi preconditioner");
 
 DEFINE_uint32(num_iterations, 5,
-              "Number of iterations for the ILU(T) preconditioner");
+              "Number of iterations for the ParICT/ParILU(T) preconditioner");
 
-DEFINE_bool(approx_select, true,
-            "Use approximate selection for the threshold filtering in ILUT");
+DEFINE_bool(
+    approx_select, true,
+    "Use approximate selection for the threshold filtering in ParICT/ParILUT");
 
-DEFINE_double(fill_limit, 2.0, "The fill-in limit used in ParILUT");
+DEFINE_double(fill_limit, 2.0, "The fill-in limit used in ParICT/ParILUT");
 
 DEFINE_string(preconditioners, "jacobi,parilu,parilut,ilu",
               "A comma-separated list of preconditioners to run."

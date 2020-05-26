@@ -92,9 +92,7 @@ using par_ict_factorization::make_threshold_select;
 
 
 template <typename ValueType, typename IndexType>
-class ParIctState {
-    friend class ParIct<ValueType, IndexType>;
-
+struct ParIctState {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
     using CooMatrix = matrix::Coo<ValueType, IndexType>;
     using CsrBuilder = matrix::CsrBuilder<ValueType, IndexType>;

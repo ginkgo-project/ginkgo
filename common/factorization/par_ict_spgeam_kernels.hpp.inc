@@ -96,7 +96,7 @@ __global__ __launch_bounds__(default_block_size) void ict_tri_spgeam_init(
     auto lanemask_eq = config::lane_mask_type{1} << lane;
     auto lanemask_lt = lanemask_eq - 1;
 
-    // merge lower triangle of A, L*T^T (and L)
+    // merge lower triangle of A, L*L^T (and L)
     auto l_begin = l_row_ptrs[row];
     auto l_end = l_row_ptrs[row + 1];
 
@@ -193,10 +193,10 @@ __global__ __launch_bounds__(default_block_size) void ict_tri_spgeam_init(
         l_col = subwarp.shfl_down(l_col, l_advance);
         l_val = subwarp.shfl_down(l_val, l_advance);
         /*
-         * To optimize memory access, we load the new elements for `a` and `lu`
+         * To optimize memory access, we load the new elements for `a` and `llt`
          * with a single load instruction:
          * the lower part of the group loads new elements for `a`
-         * the upper part of the group loads new elements for `lu`
+         * the upper part of the group loads new elements for `llt`
          * `load_lane` is the part-local lane idx
          * The elements for `a` have to be shuffled up afterwards.
          */
