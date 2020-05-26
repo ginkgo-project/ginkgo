@@ -59,7 +59,7 @@ namespace factorization {
  * $L$ is a lower triangular matrix which approximates a given symmetric
  * positive definite matrix $A$ with $A \approx LL^T$. Here, $L$ has a sparsity
  * pattern that is improved iteratively based on its element-wise magnitude.
- * The initial sparsity pattern is chosed based on the lower triangle of $A$.
+ * The initial sparsity pattern is chosen based on the lower triangle of $A$.
  *
  * One iteration of the ParICT algorithm consists of the following steps:
  *
@@ -174,7 +174,7 @@ public:
          * element choices are always the same.
          *
          * Note that even though the threshold selection step may be made
-         * deterministic this way, the calculation of the ILU factors can still
+         * deterministic this way, the calculation of the IC factors can still
          * be non-deterministic due to its asynchronous iterations.
          *
          * The default behavior is to use a random sample.

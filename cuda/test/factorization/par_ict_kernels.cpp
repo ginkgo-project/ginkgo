@@ -155,7 +155,7 @@ TEST_F(ParIct, KernelAddCandidatesIsEquivalentToRef)
 }
 
 
-TEST_F(ParIct, KernelComputeLUIsEquivalentToRef)
+TEST_F(ParIct, KernelComputeFactorIsEquivalentToRef)
 {
     auto square_size = mtx_ani->get_size();
     auto mtx_l_coo = Coo::create(ref, square_size);

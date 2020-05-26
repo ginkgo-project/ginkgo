@@ -70,9 +70,10 @@ DEFINE_string(
     "Supported values are: none, jacobi, adaptive-jacobi, parict, parilu, "
     "parilut, ilu, overhead");
 
-DEFINE_uint32(ilu_iterations, 5, "The number of iterations for ICT/ILU(T)");
+DEFINE_uint32(ilu_iterations, 5,
+              "The number of iterations for ParICT/ParILU(T)");
 
-DEFINE_double(ilut_limit, 2.0, "The fill-in limit for ICT/ILUT");
+DEFINE_double(ilut_limit, 2.0, "The fill-in limit for ParICT/ParILUT");
 
 DEFINE_uint32(
     nrhs, 1,
