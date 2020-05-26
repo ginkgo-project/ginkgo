@@ -188,10 +188,10 @@ TYPED_TEST(Permutation, AppliesInverseRowAndColPermutationToDense)
     using i_type = typename TestFixture::i_type;
     using Vec = typename TestFixture::Vec;
     // clang-format off
-  auto x = gko::initialize<Vec>({{2.0, 3.0, 0.0},
-                                {0.0, 1.0, 0.0},
-                                {0.0, 4.0, 2.5}},
-                               this->exec);
+    auto x = gko::initialize<Vec>({{2.0, 3.0, 0.0},
+                                  {0.0, 1.0, 0.0},
+                                  {0.0, 4.0, 2.5}},
+                                  this->exec);
     // clang-format on
     auto y1 = Vec::create(this->exec, gko::dim<2>{3});
     auto y2 = Vec::create(this->exec, gko::dim<2>{3});

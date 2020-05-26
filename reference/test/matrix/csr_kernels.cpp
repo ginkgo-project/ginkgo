@@ -1063,8 +1063,8 @@ TYPED_TEST(Csr, NonSquareMatrixIsInverseColPermutable)
     using Csr = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     // clang-format off
-  auto inverse_p_mtx = gko::initialize<Csr>({{1.0, 3.0, 2.0},
-                                             {0.0, 5.0, 0.0}}, this->exec);
+    auto inverse_p_mtx = gko::initialize<Csr>({{1.0, 3.0, 2.0},
+                                              {0.0, 5.0, 0.0}}, this->exec);
     // clang-format on
     gko::Array<index_type> inverse_permute_idxs{this->exec, {1, 2, 0}};
 

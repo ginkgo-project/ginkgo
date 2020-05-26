@@ -71,8 +71,8 @@ if(GINKGO_BUILD_TESTS AND (GINKGO_BUILD_CUDA OR GINKGO_BUILD_OMP OR GINKGO_BUILD
 endif()
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  message(STATUS "Setting build type to 'Release' as none was specified.")
-  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+    message(STATUS "Setting build type to 'Release' as none was specified.")
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
 endif()
 
 if(BUILD_SHARED_LIBS)
@@ -100,11 +100,11 @@ if(GINKGO_BUILD_TESTS)
 endif()
 
 if(GINKGO_WITH_CLANG_TIDY)
-  find_program(GINKGO_CLANG_TIDY_PATH clang-tidy)
+    find_program(GINKGO_CLANG_TIDY_PATH clang-tidy)
 endif()
 
 if(GINKGO_WITH_IWYU)
-  find_program(GINKGO_IWYU_PATH iwyu)
+    find_program(GINKGO_IWYU_PATH iwyu)
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules/")
@@ -227,13 +227,13 @@ if(NOT "${BASH}" STREQUAL "BASH-NOTFOUND" AND GINKGO_DEVEL_TOOLS)
     endif()
     unset(GIT CACHE)
     add_custom_target(format_header_all
-            COMMAND echo "format header on all code files except build/examples/third_party/ginkgo.hpp"
-            COMMAND bash -c "find * -type f | \
+        COMMAND echo "format header on all code files except build/examples/third_party/ginkgo.hpp"
+        COMMAND bash -c "find * -type f | \
                 grep -Ev 'build|examples|third_party|ginkgo.hpp' | \
                 grep -E '(\.hip)?\.(cu|hpp|cuh|cpp)$' | \
                 xargs -r -n1 ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/format_header.sh"
-            WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR}
-            VERBATIM)
+        WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR}
+        VERBATIM)
 endif()
 unset(BASH CACHE)
 
@@ -270,9 +270,9 @@ else()
 endif()
 add_custom_target(test_install
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} -H${Ginkgo_SOURCE_DIR}/test_install
-        -B${Ginkgo_BINARY_DIR}/test_install
-        -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_CONFIG_DIR}
-        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+    -B${Ginkgo_BINARY_DIR}/test_install
+    -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_CONFIG_DIR}
+    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
     # `--config cfg` is ignored by single-configuration generator.
     # `$<CONFIG>` is always be the same as `CMAKE_BUILD_TYPE` in single-configuration generator.
     COMMAND ${CMAKE_COMMAND} --build ${Ginkgo_BINARY_DIR}/test_install --config $<CONFIG>
