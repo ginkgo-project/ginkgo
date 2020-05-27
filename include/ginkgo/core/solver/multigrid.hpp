@@ -120,6 +120,18 @@ public:
         return coarsest_solver_;
     }
 
+    const std::vector<std::shared_ptr<matrix::Dense<ValueType>>>
+    get_pre_relaxation_list() const
+    {
+        return pre_relaxation_list_;
+    }
+
+    const std::vector<std::shared_ptr<matrix::Dense<ValueType>>>
+    get_post_relaxation_list() const
+    {
+        return post_relaxation_list_;
+    }
+
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
@@ -138,20 +150,20 @@ public:
         /**
          * Pre-smooth factory.
          */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(pre_smoother,
-                                                                  nullptr);
+        std::vector<std::shared_ptr<const LinOpFactory>> GKO_FACTORY_PARAMETER(
+            pre_smoother, nullptr);
 
         /**
          * Post-smooth factory.
          */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(post_smoother,
-                                                                  nullptr);
+        std::vector<std::shared_ptr<const LinOpFactory>> GKO_FACTORY_PARAMETER(
+            post_smoother, nullptr);
 
-        /**
-         * relaxation factor
-         */
-        // std::shared_ptr<const matrix::Dense<ValueType>>
-        // GKO_FACTORY_PARAMETER(relaxation, nullptr);
+        gko::Array<value_type> GKO_FACTORY_PARAMETER(pre_relaxation, nullptr);
+
+        gko::Array<value_type> GKO_FACTORY_PARAMETER(post_relaxation, nullptr);
+
+        bool GKO_FACTORY_PARAMETER(post_uses_pre, false);
 
         size_type GKO_FACTORY_PARAMETER(max_levels, 10);
 
@@ -192,8 +204,11 @@ protected:
         std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &e) const;
 
     explicit Multigrid(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Multigrid>(std::move(exec))
-    {}
+        : EnableLinOp<Multigrid>(exec)
+    {
+        parameters_.pre_relaxation.set_executor(exec);
+        parameters_.post_relaxation.set_executor(exec);
+    }
 
     explicit Multigrid(const Factory *factory,
                        std::shared_ptr<const LinOp> system_matrix)
@@ -208,10 +223,9 @@ protected:
     {
         GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
 
-        pre_smoother_is_identity_ =
-            validate_identity_factory(parameters_.pre_smoother);
-        post_smoother_is_identity_ =
-            validate_identity_factory(parameters_.post_smoother);
+        parameters_.pre_relaxation.set_executor(this->get_executor());
+        parameters_.post_relaxation.set_executor(this->get_executor());
+
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
         if (!parameters_.rstr_prlg_index) {
@@ -226,6 +240,26 @@ protected:
             }
         } else {
             rstr_prlg_index_ = parameters_.rstr_prlg_index;
+        }
+        if (parameters_.rstr_prlg.size() == 0 ||
+            (parameters_.pre_smoother.size() > 1 &&
+             parameters_.pre_smoother.size() != parameters_.rstr_prlg.size()) ||
+            (!parameters_.post_uses_pre &&
+             parameters_.post_smoother.size() > 1 &&
+             parameters_.post_smoother.size() !=
+                 parameters_.rstr_prlg.size())) {
+            GKO_NOT_SUPPORTED(this);
+        }
+        if (parameters_.pre_relaxation.get_num_elems() > 1 &&
+            parameters_.pre_relaxation.get_num_elems() !=
+                parameters_.rstr_prlg.size()) {
+            GKO_NOT_SUPPORTED(this);
+        }
+        if (!parameters_.post_uses_pre &&
+            parameters_.post_relaxation.get_num_elems() > 1 &&
+            parameters_.post_relaxation.get_num_elems() !=
+                parameters_.rstr_prlg.size()) {
+            GKO_NOT_SUPPORTED(this);
         }
         this->generate();
     }
@@ -244,6 +278,10 @@ private:
         rstr_prlg_list_{};
     std::vector<std::shared_ptr<LinOp>> pre_smoother_list_{};
     std::vector<std::shared_ptr<LinOp>> post_smoother_list_{};
+    std::vector<std::shared_ptr<matrix::Dense<ValueType>>>
+        pre_relaxation_list_{};
+    std::vector<std::shared_ptr<matrix::Dense<ValueType>>>
+        post_relaxation_list_{};
     std::shared_ptr<LinOp> coarsest_solver_{};
     bool pre_smoother_is_identity_;
     bool post_smoother_is_identity_;

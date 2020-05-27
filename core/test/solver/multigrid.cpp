@@ -123,6 +123,20 @@ protected:
 };
 
 
+int get_value(gko::multigrid::RestrictProlong *rp)
+{
+    using DummyRPFactory = DummyRestrictProlongOpWithFactory;
+    return dynamic_cast<DummyRPFactory *>(rp)->get_parameters().value;
+}
+
+
+int get_value(gko::LinOp *lo)
+{
+    using DummyFactory = DummyLinOpWithFactory;
+    return dynamic_cast<DummyFactory *>(lo)->get_parameters().value;
+}
+
+
 template <typename T>
 class Multigrid : public ::testing::Test {
 protected:
@@ -138,7 +152,8 @@ protected:
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
           rp_factory(DummyRPFactory::build().on(exec)),
           lo_factory(DummyFactory::build().on(exec)),
-          rp_factory2(DummyRPFactory::build().with_value(2).on(exec))
+          rp_factory2(DummyRPFactory::build().with_value(2).on(exec)),
+          lo_factory2(DummyFactory::build().with_value(2).on(exec))
     {
         multigrid_factory =
             Solver::build()
@@ -152,6 +167,8 @@ protected:
                 .with_pre_smoother(lo_factory)
                 .with_post_smoother(lo_factory)
                 .with_rstr_prlg(rp_factory)
+                .with_pre_relaxation(gko::Array<T>(exec, {2}))
+                .with_post_relaxation(gko::Array<T>(exec, {3}))
                 .on(exec);
         solver = multigrid_factory->generate(mtx);
     }
@@ -163,6 +180,7 @@ protected:
     std::shared_ptr<DummyRPFactory::Factory> rp_factory;
     std::shared_ptr<DummyRPFactory::Factory> rp_factory2;
     std::shared_ptr<DummyFactory::Factory> lo_factory;
+    std::shared_ptr<DummyFactory::Factory> lo_factory2;
 
     static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
     {
@@ -264,43 +282,34 @@ TYPED_TEST(Multigrid, EachLevelAreDistinct)
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
     using DummyFactory = typename TestFixture::DummyFactory;
+    using value_type = typename TestFixture::value_type;
 
     auto solver = static_cast<Solver *>(this->solver.get());
     auto rstr_prlg = solver->get_rstr_prlg_list();
     auto pre_smoother = solver->get_pre_smoother_list();
     auto post_smoother = solver->get_post_smoother_list();
     auto coarsest_solver = solver->get_coarsest_solver();
+    auto pre_relaxation = solver->get_pre_relaxation_list();
+    auto post_relaxation = solver->get_post_relaxation_list();
 
     ASSERT_EQ(rstr_prlg.size(), 2);
     ASSERT_NE(rstr_prlg.at(0), rstr_prlg.at(1));
-    ASSERT_EQ(static_cast<DummyRPFactory *>(rstr_prlg.at(0).get())
-                  ->get_parameters()
-                  .value,
-              5);
-    ASSERT_EQ(static_cast<DummyRPFactory *>(rstr_prlg.at(1).get())
-                  ->get_parameters()
-                  .value,
-              5);
+    ASSERT_EQ(get_value(rstr_prlg.at(0).get()), 5);
+    ASSERT_EQ(get_value(rstr_prlg.at(1).get()), 5);
     ASSERT_EQ(pre_smoother.size(), 2);
     ASSERT_NE(pre_smoother.at(0), pre_smoother.at(1));
-    ASSERT_EQ(static_cast<DummyFactory *>(pre_smoother.at(0).get())
-                  ->get_parameters()
-                  .value,
-              5);
-    ASSERT_EQ(static_cast<DummyFactory *>(pre_smoother.at(1).get())
-                  ->get_parameters()
-                  .value,
-              5);
+    ASSERT_EQ(get_value(pre_smoother.at(0).get()), 5);
+    ASSERT_EQ(get_value(pre_smoother.at(1).get()), 5);
     ASSERT_EQ(post_smoother.size(), 2);
     ASSERT_NE(post_smoother.at(0), post_smoother.at(1));
-    ASSERT_EQ(static_cast<DummyFactory *>(post_smoother.at(0).get())
-                  ->get_parameters()
-                  .value,
-              5);
-    ASSERT_EQ(static_cast<DummyFactory *>(post_smoother.at(1).get())
-                  ->get_parameters()
-                  .value,
-              5);
+    ASSERT_EQ(get_value(post_smoother.at(0).get()), 5);
+    ASSERT_EQ(get_value(post_smoother.at(1).get()), 5);
+    ASSERT_EQ(pre_relaxation.size(), 2);
+    ASSERT_EQ(pre_relaxation.at(0)->at(0, 0), value_type{2});
+    ASSERT_EQ(pre_relaxation.at(1)->at(0, 0), value_type{2});
+    ASSERT_EQ(post_relaxation.size(), 2);
+    ASSERT_EQ(post_relaxation.at(0)->at(0, 0), value_type{3});
+    ASSERT_EQ(post_relaxation.at(1)->at(0, 0), value_type{3});
     ASSERT_NE(coarsest_solver, nullptr);
 }
 
@@ -308,63 +317,230 @@ TYPED_TEST(Multigrid, TwoRstrPrlg)
 {
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    using value_type = typename TestFixture::value_type;
 
-    auto solver = Solver::build()
-                      .with_max_levels(2u)
-                      .with_coarsest_solver(this->lo_factory)
-                      .with_rstr_prlg(this->rp_factory, this->rp_factory2)
-                      .on(this->exec)
-                      ->generate(this->mtx);
+    auto solver =
+        Solver::build()
+            .with_max_levels(2u)
+            .with_rstr_prlg(this->rp_factory, this->rp_factory2)
+            .with_pre_smoother(this->lo_factory, this->lo_factory2)
+            .with_post_smoother(this->lo_factory2, this->lo_factory)
+            .with_pre_relaxation(gko::Array<value_type>(this->exec, {1, 2}))
+            .with_post_relaxation(gko::Array<value_type>(this->exec, {3, 4}))
+            .on(this->exec)
+            ->generate(this->mtx);
     auto rstr_prlg = solver->get_rstr_prlg_list();
+    auto pre_smoother = solver->get_pre_smoother_list();
+    auto post_smoother = solver->get_post_smoother_list();
+    auto pre_relaxation = solver->get_pre_relaxation_list();
+    auto post_relaxation = solver->get_post_relaxation_list();
+    auto coarsest_solver = solver->get_coarsest_solver();
+    auto identity = dynamic_cast<const gko::matrix::Identity<value_type> *>(
+        coarsest_solver.get());
 
     ASSERT_EQ(rstr_prlg.size(), 2);
     ASSERT_NE(rstr_prlg.at(0), rstr_prlg.at(1));
-    ASSERT_EQ(static_cast<DummyRPFactory *>(rstr_prlg.at(0).get())
-                  ->get_parameters()
-                  .value,
-              5);
-    ASSERT_EQ(static_cast<DummyRPFactory *>(rstr_prlg.at(1).get())
-                  ->get_parameters()
-                  .value,
-              2);
+    ASSERT_EQ(get_value(rstr_prlg.at(0).get()), 5);
+    ASSERT_EQ(get_value(rstr_prlg.at(1).get()), 2);
+    ASSERT_EQ(get_value(pre_smoother.at(0).get()), 5);
+    ASSERT_EQ(get_value(pre_smoother.at(1).get()), 2);
+    ASSERT_EQ(get_value(post_smoother.at(0).get()), 2);
+    ASSERT_EQ(get_value(post_smoother.at(1).get()), 5);
+    ASSERT_EQ(pre_relaxation.at(0)->at(0, 0), value_type{1});
+    ASSERT_EQ(pre_relaxation.at(1)->at(0, 0), value_type{2});
+    ASSERT_EQ(post_relaxation.at(0)->at(0, 0), value_type{3});
+    ASSERT_EQ(post_relaxation.at(1)->at(0, 0), value_type{4});
+    ASSERT_NE(identity, nullptr);
+}
+
+
+TYPED_TEST(Multigrid, TwoRstrPrlgWithOnePost)
+{
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    using value_type = typename TestFixture::value_type;
+
+    auto solver =
+        Solver::build()
+            .with_max_levels(2u)
+            .with_rstr_prlg(this->rp_factory, this->rp_factory2)
+            .with_pre_smoother(this->lo_factory, this->lo_factory2)
+            .with_post_smoother(this->lo_factory2)
+            .with_pre_relaxation(gko::Array<value_type>(this->exec, {1, 2}))
+            .with_post_relaxation(gko::Array<value_type>(this->exec, {3}))
+            .on(this->exec)
+            ->generate(this->mtx);
+    auto rstr_prlg = solver->get_rstr_prlg_list();
+    auto pre_smoother = solver->get_pre_smoother_list();
+    auto post_smoother = solver->get_post_smoother_list();
+    auto pre_relaxation = solver->get_pre_relaxation_list();
+    auto post_relaxation = solver->get_post_relaxation_list();
+    auto coarsest_solver = solver->get_coarsest_solver();
+    auto identity = dynamic_cast<const gko::matrix::Identity<value_type> *>(
+        coarsest_solver.get());
+
+    ASSERT_EQ(rstr_prlg.size(), 2);
+    ASSERT_NE(rstr_prlg.at(0), rstr_prlg.at(1));
+    ASSERT_EQ(get_value(rstr_prlg.at(0).get()), 5);
+    ASSERT_EQ(get_value(rstr_prlg.at(1).get()), 2);
+    ASSERT_EQ(get_value(pre_smoother.at(0).get()), 5);
+    ASSERT_EQ(get_value(pre_smoother.at(1).get()), 2);
+    ASSERT_EQ(get_value(post_smoother.at(0).get()), 2);
+    ASSERT_EQ(get_value(post_smoother.at(1).get()), 2);
+    ASSERT_EQ(pre_relaxation.at(0)->at(0, 0), value_type{1});
+    ASSERT_EQ(pre_relaxation.at(1)->at(0, 0), value_type{2});
+    ASSERT_EQ(post_relaxation.at(0)->at(0, 0), value_type{3});
+    ASSERT_EQ(post_relaxation.at(1)->at(0, 0), value_type{3});
+    ASSERT_NE(identity, nullptr);
 }
 
 
 TYPED_TEST(Multigrid, CustomSelector)
 {
+    using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
+
     std::function<gko::size_type(const gko::size_type, const gko::size_type)>
         selector =
             [](const gko::size_type num_rows, const gko::size_type level) {
                 return (level == 2) ? 1 : 0;
             };
-    auto solver = Solver::build()
-                      .with_max_levels(4u)
-                      .with_coarsest_solver(this->lo_factory)
-                      .with_rstr_prlg(this->rp_factory, this->rp_factory2)
-                      .with_rstr_prlg_index(selector)
-                      .on(this->exec)
-                      ->generate(this->mtx);
+    auto solver =
+        Solver::build()
+            .with_max_levels(4u)
+            .with_rstr_prlg(this->rp_factory, this->rp_factory2)
+            .with_pre_smoother(this->lo_factory, this->lo_factory2)
+            .with_pre_relaxation(gko::Array<value_type>(this->exec, {1, 2}))
+            .with_rstr_prlg_index(selector)
+            .on(this->exec)
+            ->generate(this->mtx);
     auto rstr_prlg = solver->get_rstr_prlg_list();
+    auto pre_smoother = solver->get_pre_smoother_list();
+    auto post_smoother = solver->get_post_smoother_list();
+    auto pre_relaxation = solver->get_pre_relaxation_list();
+    auto post_relaxation = solver->get_post_relaxation_list();
 
     ASSERT_EQ(rstr_prlg.size(), 4);
-    ASSERT_EQ(static_cast<DummyRPFactory *>(rstr_prlg.at(0).get())
-                  ->get_parameters()
-                  .value,
-              5);
-    ASSERT_EQ(static_cast<DummyRPFactory *>(rstr_prlg.at(1).get())
-                  ->get_parameters()
-                  .value,
-              5);
-    ASSERT_EQ(static_cast<DummyRPFactory *>(rstr_prlg.at(2).get())
-                  ->get_parameters()
-                  .value,
-              2);
-    ASSERT_EQ(static_cast<DummyRPFactory *>(rstr_prlg.at(3).get())
-                  ->get_parameters()
-                  .value,
-              5);
+    ASSERT_EQ(get_value(rstr_prlg.at(0).get()), 5);
+    ASSERT_EQ(get_value(rstr_prlg.at(1).get()), 5);
+    ASSERT_EQ(get_value(rstr_prlg.at(2).get()), 2);
+    ASSERT_EQ(get_value(rstr_prlg.at(3).get()), 5);
+    // pre_smoother use same index as rstr_prlg
+    ASSERT_EQ(pre_smoother.size(), 4);
+    ASSERT_EQ(get_value(pre_smoother.at(0).get()), 5);
+    ASSERT_EQ(get_value(pre_smoother.at(1).get()), 5);
+    ASSERT_EQ(get_value(pre_smoother.at(2).get()), 2);
+    ASSERT_EQ(get_value(pre_smoother.at(3).get()), 5);
+    // post_smoother has same number as rstr_prlg
+    ASSERT_EQ(post_smoother.size(), 4);
+    ASSERT_EQ(post_smoother.at(0), nullptr);
+    ASSERT_EQ(post_smoother.at(1), nullptr);
+    ASSERT_EQ(post_smoother.at(2), nullptr);
+    ASSERT_EQ(post_smoother.at(3), nullptr);
+    ASSERT_EQ(pre_relaxation.size(), 4);
+    ASSERT_EQ(pre_relaxation.at(0)->at(0, 0), value_type{1});
+    ASSERT_EQ(pre_relaxation.at(1)->at(0, 0), value_type{1});
+    ASSERT_EQ(pre_relaxation.at(2)->at(0, 0), value_type{2});
+    ASSERT_EQ(pre_relaxation.at(3)->at(0, 0), value_type{1});
+    ASSERT_EQ(post_relaxation.size(), 0);
+}
+
+
+TYPED_TEST(Multigrid, CustomSelectorWithOnePost)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+
+    std::function<gko::size_type(const gko::size_type, const gko::size_type)>
+        selector =
+            [](const gko::size_type num_rows, const gko::size_type level) {
+                return (level == 2) ? 1 : 0;
+            };
+    auto solver =
+        Solver::build()
+            .with_max_levels(4u)
+            .with_rstr_prlg(this->rp_factory, this->rp_factory2)
+            .with_pre_smoother(this->lo_factory, this->lo_factory2)
+            .with_post_smoother(this->lo_factory2)
+            .with_pre_relaxation(gko::Array<value_type>(this->exec, {1, 2}))
+            .with_post_relaxation(gko::Array<value_type>(this->exec, {3}))
+            .with_rstr_prlg_index(selector)
+            .on(this->exec)
+            ->generate(this->mtx);
+    auto rstr_prlg = solver->get_rstr_prlg_list();
+    auto pre_smoother = solver->get_pre_smoother_list();
+    auto post_smoother = solver->get_post_smoother_list();
+    auto pre_relaxation = solver->get_pre_relaxation_list();
+    auto post_relaxation = solver->get_post_relaxation_list();
+
+    ASSERT_EQ(rstr_prlg.size(), 4);
+    ASSERT_EQ(get_value(rstr_prlg.at(0).get()), 5);
+    ASSERT_EQ(get_value(rstr_prlg.at(1).get()), 5);
+    ASSERT_EQ(get_value(rstr_prlg.at(2).get()), 2);
+    ASSERT_EQ(get_value(rstr_prlg.at(3).get()), 5);
+    // pre_smoother use same index as rstr_prlg
+    ASSERT_EQ(pre_smoother.size(), 4);
+    ASSERT_EQ(get_value(pre_smoother.at(0).get()), 5);
+    ASSERT_EQ(get_value(pre_smoother.at(1).get()), 5);
+    ASSERT_EQ(get_value(pre_smoother.at(2).get()), 2);
+    ASSERT_EQ(get_value(pre_smoother.at(3).get()), 5);
+    ASSERT_EQ(post_smoother.size(), 4);
+    ASSERT_EQ(get_value(post_smoother.at(0).get()), 2);
+    ASSERT_EQ(get_value(post_smoother.at(1).get()), 2);
+    ASSERT_EQ(get_value(post_smoother.at(2).get()), 2);
+    ASSERT_EQ(get_value(post_smoother.at(3).get()), 2);
+    ASSERT_EQ(pre_relaxation.size(), 4);
+    ASSERT_EQ(pre_relaxation.at(0)->at(0, 0), value_type{1});
+    ASSERT_EQ(pre_relaxation.at(1)->at(0, 0), value_type{1});
+    ASSERT_EQ(pre_relaxation.at(2)->at(0, 0), value_type{2});
+    ASSERT_EQ(pre_relaxation.at(3)->at(0, 0), value_type{1});
+    ASSERT_EQ(post_relaxation.size(), 4);
+    ASSERT_EQ(post_relaxation.at(0)->at(0, 0), value_type{3});
+    ASSERT_EQ(post_relaxation.at(1)->at(0, 0), value_type{3});
+    ASSERT_EQ(post_relaxation.at(2)->at(0, 0), value_type{3});
+    ASSERT_EQ(post_relaxation.at(3)->at(0, 0), value_type{3});
+}
+
+
+TYPED_TEST(Multigrid, PostUsesPre)
+{
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    using value_type = typename TestFixture::value_type;
+
+    auto solver =
+        Solver::build()
+            .with_max_levels(2u)
+            .with_rstr_prlg(this->rp_factory, this->rp_factory2)
+            .with_pre_smoother(this->lo_factory, this->lo_factory2)
+            .with_post_smoother(this->lo_factory2, this->lo_factory)
+            .with_pre_relaxation(gko::Array<value_type>(this->exec, {1, 2}))
+            .with_post_relaxation(gko::Array<value_type>(this->exec, {3, 4}))
+            .with_post_uses_pre(true)
+            .on(this->exec)
+            ->generate(this->mtx);
+    auto rstr_prlg = solver->get_rstr_prlg_list();
+    auto pre_smoother = solver->get_pre_smoother_list();
+    auto post_smoother = solver->get_post_smoother_list();
+    auto pre_relaxation = solver->get_pre_relaxation_list();
+    auto post_relaxation = solver->get_post_relaxation_list();
+    auto coarsest_solver = solver->get_coarsest_solver();
+    auto identity = dynamic_cast<const gko::matrix::Identity<value_type> *>(
+        coarsest_solver.get());
+
+    ASSERT_EQ(rstr_prlg.size(), 2);
+    ASSERT_NE(rstr_prlg.at(0), rstr_prlg.at(1));
+    ASSERT_EQ(get_value(rstr_prlg.at(0).get()), 5);
+    ASSERT_EQ(get_value(rstr_prlg.at(1).get()), 2);
+    ASSERT_EQ(get_value(pre_smoother.at(0).get()), 5);
+    ASSERT_EQ(get_value(pre_smoother.at(1).get()), 2);
+    ASSERT_EQ(post_smoother.size(), 0);
+    ASSERT_EQ(pre_relaxation.at(0)->at(0, 0), value_type{1});
+    ASSERT_EQ(pre_relaxation.at(1)->at(0, 0), value_type{2});
+    ASSERT_EQ(post_relaxation.size(), 0);
+    ASSERT_NE(identity, nullptr);
 }
 
 

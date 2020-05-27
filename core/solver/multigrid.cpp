@@ -62,29 +62,72 @@ void Multigrid<ValueType>::generate()
     auto num_rows = system_matrix_->get_size()[0];
     size_type level = 0;
     auto matrix = system_matrix_;
+    auto exec = this->get_executor();
     while (level < parameters_.max_levels &&
            num_rows > parameters_.min_coarse_rows) {
-        auto rstr_prlg_factory =
-            parameters_.rstr_prlg.at(rstr_prlg_index_(num_rows, level));
+        auto index = rstr_prlg_index_(num_rows, level);
+        GKO_ENSURE_IN_BOUNDS(index, parameters_.rstr_prlg.size());
+        auto rstr_prlg_factory = parameters_.rstr_prlg.at(index);
         // pre_smooth_generate
-        if (!pre_smoother_is_identity_) {
-            pre_smoother_list_.emplace_back(
-                give(parameters_.pre_smoother->generate(matrix)));
+        if (parameters_.pre_smoother.size() != 0) {
+            auto temp_index = parameters_.pre_smoother.size() == 1 ? 0 : index;
+            auto pre_smoother = parameters_.pre_smoother.at(temp_index);
+            if (pre_smoother == nullptr) {
+                pre_smoother_list_.emplace_back(nullptr);
+            } else {
+                pre_smoother_list_.emplace_back(
+                    give(pre_smoother->generate(matrix)));
+            }
+        } else {
+            pre_smoother_list_.emplace_back(nullptr);
+        }
+        if (parameters_.pre_relaxation.get_num_elems() != 0) {
+            auto temp_index =
+                parameters_.pre_relaxation.get_num_elems() == 1 ? 0 : index;
+            auto data = parameters_.pre_relaxation.get_data();
+            pre_relaxation_list_.emplace_back(give(vector_type::create(
+                exec, gko::dim<2>{1},
+                Array<ValueType>::view(exec, 1, data + temp_index), 1)));
         }
         // post_smooth_generate
-        if (!post_smoother_is_identity_) {
-            post_smoother_list_.emplace_back(
-                give(parameters_.post_smoother->generate(matrix)));
+        if (!parameters_.post_uses_pre) {
+            if (parameters_.post_smoother.size() != 0) {
+                auto temp_index =
+                    parameters_.post_smoother.size() == 1 ? 0 : index;
+                auto post_smoother = parameters_.post_smoother.at(temp_index);
+                if (post_smoother == nullptr) {
+                    post_smoother_list_.emplace_back(nullptr);
+                } else {
+                    post_smoother_list_.emplace_back(
+                        give(post_smoother->generate(matrix)));
+                }
+            } else {
+                post_smoother_list_.emplace_back(nullptr);
+            }
+            if (parameters_.post_relaxation.get_num_elems() != 0) {
+                auto temp_index =
+                    parameters_.post_relaxation.get_num_elems() == 1 ? 0
+                                                                     : index;
+                auto data = parameters_.post_relaxation.get_data();
+                post_relaxation_list_.emplace_back(give(vector_type::create(
+                    exec, gko::dim<2>{1},
+                    Array<ValueType>::view(exec, 1, data + temp_index), 1)));
+            }
         }
         // coarse generate
-        auto rstr_ = rstr_prlg_factory->generate(matrix);
-        rstr_prlg_list_.emplace_back(give(rstr_));
+        auto rstr = rstr_prlg_factory->generate(matrix);
+        rstr_prlg_list_.emplace_back(give(rstr));
         matrix = rstr_prlg_list_.back()->get_coarse_operator();
         num_rows = matrix->get_size()[0];
         level++;
     }
     // generate coarsest solver
-    coarsest_solver_ = parameters_.coarsest_solver->generate(matrix);
+    if (parameters_.coarsest_solver != nullptr) {
+        coarsest_solver_ = parameters_.coarsest_solver->generate(matrix);
+    } else {
+        coarsest_solver_ =
+            matrix::Identity<ValueType>::create(exec, matrix->get_size()[0]);
+    }
 }
 
 template <typename ValueType>
@@ -100,14 +143,23 @@ void Multigrid<ValueType>::v_cycle(
     auto e = e_list.at(level);
     // pre-smooth
     // r = b - Ax
+
     r->copy_from(b);
     matrix->apply(neg_one_op_.get(), x, one_op_.get(), r.get());
     // x += relaxation * Smoother(r)
-    pre_smoother_list_.at(level)->apply(one_op_.get(), r.get(), one_op_.get(),
-                                        x);
-    // compute residual
-    r->copy_from(b);  // n * b
-    matrix->apply(neg_one_op_.get(), x, one_op_.get(), r.get());
+    auto pre_smoother = pre_smoother_list_.at(level);
+    std::shared_ptr<matrix::Dense<ValueType>> pre_relaxation;
+    if (parameters_.pre_relaxation.get_num_elems() == 0) {
+        pre_relaxation = one_op_;
+    } else {
+        pre_relaxation = pre_relaxation_list_.at(level);
+    }
+    if (pre_smoother) {
+        pre_smoother->apply(pre_relaxation.get(), r.get(), one_op_.get(), x);
+        // compute residual
+        r->copy_from(b);  // n * b
+        matrix->apply(neg_one_op_.get(), x, one_op_.get(), r.get());
+    }
     // restrict
     rstr_prlg_list_.at(level)->restrict_apply(r.get(), g.get());
     // next level or solve it
@@ -121,10 +173,25 @@ void Multigrid<ValueType>::v_cycle(
     // prolong
     rstr_prlg_list_.at(level)->prolong_applyadd(e.get(), x);
     // post-smooth
-    r->copy_from(b);
-    matrix->apply(neg_one_op_.get(), x, one_op_.get(), r.get());
-    post_smoother_list_.at(level)->apply(one_op_.get(), r.get(), one_op_.get(),
-                                         x);
+    std::shared_ptr<LinOp> post_smoother;
+    std::shared_ptr<matrix::Dense<ValueType>> post_relaxation;
+
+    if (parameters_.post_uses_pre) {
+        post_smoother = pre_smoother;
+        post_relaxation = pre_relaxation;
+    } else {
+        post_smoother = post_smoother_list_.at(level);
+        if (parameters_.post_relaxation.get_num_elems() == 0) {
+            post_relaxation = one_op_;
+        } else {
+            post_relaxation = post_relaxation_list_.at(level);
+        }
+    }
+    if (post_smoother) {
+        r->copy_from(b);
+        matrix->apply(neg_one_op_.get(), x, one_op_.get(), r.get());
+        post_smoother->apply(post_relaxation.get(), r.get(), one_op_.get(), x);
+    }
 }
 
 template <typename ValueType>
