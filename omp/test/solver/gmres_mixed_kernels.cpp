@@ -290,14 +290,14 @@ TEST_F(GmresMixed, OmpGmresMixedInitialize2IsEquivalentToRef)
 
     gko::kernels::reference::gmres_mixed::initialize_2(
         ref, residual.get(), residual_norm.get(),
-        residual_norm_collection.get(), krylov_bases_accessor,
-        next_krylov_basis.get(), final_iter_nums.get(),
+        residual_norm_collection.get(), arnoldi_norm.get(),
+        krylov_bases_accessor, next_krylov_basis.get(), final_iter_nums.get(),
         gko::solver::default_krylov_dim_mixed);
     gko::kernels::omp::gmres_mixed::initialize_2(
         omp, d_residual.get(), d_residual_norm.get(),
-        d_residual_norm_collection.get(), d_krylov_bases_accessor,
-        d_next_krylov_basis.get(), d_final_iter_nums.get(),
-        gko::solver::default_krylov_dim_mixed);
+        d_residual_norm_collection.get(), d_arnoldi_norm.get(),
+        d_krylov_bases_accessor, d_next_krylov_basis.get(),
+        d_final_iter_nums.get(), gko::solver::default_krylov_dim_mixed);
 
     GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,

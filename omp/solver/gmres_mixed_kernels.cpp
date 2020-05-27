@@ -502,6 +502,9 @@ void finish_arnoldi_CGS2(
             // nrmN = norm(next_krylov_basis)
             // nrmI = infnorm(next_krylov_basis)
         }
+        helper_functions_accessor<ValueType, ValueTypeKrylovBases>::write_scale(
+            krylov_bases, next_krylov_basis->get_size()[1] * (iter + 1) + i,
+            arnoldi_norm->at(2, i) / arnoldi_norm->at(1, i));
         // reorthogonalization
         /*
         ValueType hessenberg_iter_entry = zero<ValueType>();
@@ -706,6 +709,7 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
                   matrix::Dense<remove_complex<ValueType>> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
+                  matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
                   Accessor2d<ValueTypeKrylovBases, ValueType> krylov_bases,
                   matrix::Dense<ValueType> *next_krylov_basis,
                   Array<size_type> *final_iter_nums, size_type krylov_dim)
@@ -713,15 +717,26 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         // Calculate residual norm
         remove_complex<ValueType> res_norm = zero<remove_complex<ValueType>>();
+        remove_complex<ValueType> res_inf = zero<remove_complex<ValueType>>();
 
 #pragma omp declare reduction(addnc:remove_complex<ValueType> : omp_out = omp_out + omp_in)
+#pragma omp declare reduction(infnc : remove_complex<ValueType> : omp_out = (omp_out >= omp_in? omp_out: omp_in))
 
-#pragma omp parallel for reduction(addnc : res_norm)
+#pragma omp parallel for reduction(addnc : res_norm) reduction(infnc : res_inf)
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
             res_norm += squared_norm(residual->at(i, j));
             // res_norm += residual->at(i, j) * residual->at(i, j);
+            res_inf = (res_inf >= abs(residual->at(i, j)))
+                          ? res_inf
+                          : abs(residual->at(i, j));
         }
         residual_norm->at(0, j) = sqrt(res_norm);
+        arnoldi_norm->at(2, j) = res_inf;
+        // std::cout << residual_norm->at(0, j) << " - " << arnoldi_norm->at(2,
+        // j)
+        //           << std::endl;
+        helper_functions_accessor<ValueType, ValueTypeKrylovBases>::write_scale(
+            krylov_bases, j, arnoldi_norm->at(2, j) / residual_norm->at(0, j));
 
 #pragma omp parallel for
         for (size_type i = 0; i < krylov_dim + 1; ++i) {
@@ -739,6 +754,13 @@ void initialize_2(std::shared_ptr<const OmpExecutor> exec,
             next_krylov_basis->at(i, j) = value;
         }
         final_iter_nums->get_data()[j] = 0;
+    }
+
+#pragma omp parallel for
+    for (size_type j = residual->get_size()[1];
+         j < (krylov_dim + 1) * residual->get_size()[1]; ++j) {
+        helper_functions_accessor<ValueType, ValueTypeKrylovBases>::write_scale(
+            krylov_bases, j, one<remove_complex<ValueType>>());
     }
 
 #pragma omp parallel for

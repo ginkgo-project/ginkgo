@@ -67,6 +67,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(_macro)        \
     template _macro(double, double);                             \
     template _macro(double, float);                              \
+    template _macro(double, int64);                              \
+    template _macro(double, int32);                              \
+    template _macro(double, int16);                              \
     template _macro(float, float);                               \
     template _macro(std::complex<double>, std::complex<double>); \
     template _macro(std::complex<double>, std::complex<float>);  \
@@ -94,6 +97,7 @@ namespace gmres_mixed {
                       const matrix::Dense<_type1> *residual,                \
                       matrix::Dense<remove_complex<_type1>> *residual_norm, \
                       matrix::Dense<_type1> *residual_norm_collection,      \
+                      matrix::Dense<remove_complex<_type1>> *arnoldi_norm,  \
                       Accessor2d<_type2, _type1> krylov_bases,              \
                       matrix::Dense<_type1> *next_krylov_basis,             \
                       Array<size_type> *final_iter_nums, size_type krylov_dim)

@@ -45,10 +45,10 @@ __global__ __launch_bounds__(default_block_size) void zero_matrix_kernel(
 }
 
 
+/*
 template <typename ValueType, typename KrylovType,
           bool = Accessor2d<KrylovType, ValueType>::has_scale>
-struct helper_functions_accessor {
-};
+struct helper_functions_accessor {};
 
 // Accessors having a scale
 template <typename ValueType, typename KrylovType>
@@ -76,7 +76,7 @@ struct helper_functions_accessor<ValueType, KrylovType, false> {
 // calling it with:
 // helper_functions_accessor<ValueType,
 // ValueTypeKrylovBases>::write_scale(krylov_bases, col_idx, value);
-
+*/
 
 // Must be called with at least `max(stride_b * num_rows, krylov_dim *
 // num_cols)` threads in total.
@@ -272,6 +272,58 @@ __global__ __launch_bounds__(default_dot_size) void multinorminf_kernel(
     const auto new_col_idx = blockIdx.x * default_dot_dim + tidy;
     if (tidx == 0 && new_col_idx < num_cols &&
         !stop_status[new_col_idx].has_stopped()) {
+        const auto norms_idx = new_col_idx;
+        atomic_max(norms + norms_idx, value);
+    }
+}
+
+
+template <typename ValueType>
+__global__
+    __launch_bounds__(default_dot_size) void multinorminf_kernel_without_stop(
+        size_type num_rows, size_type num_cols,
+        const ValueType *__restrict__ next_krylov_basis,
+        size_type stride_next_krylov,
+        remove_complex<ValueType> *__restrict__ norms, size_type stride_norms)
+{
+    const auto tidx = threadIdx.x;
+    const auto tidy = threadIdx.y;
+    const auto col_idx = blockIdx.x * default_dot_dim + tidx;
+    const auto num = ceildiv(num_rows, gridDim.y);
+    const auto start_row = blockIdx.y * num;
+    const auto end_row =
+        ((blockIdx.y + 1) * num > num_rows) ? num_rows : (blockIdx.y + 1) * num;
+    // Used that way to get around dynamic initialization warning and
+    // template error when using `reduction_helper_array` directly in `reduce`
+    __shared__ UninitializedArray<remove_complex<ValueType>,
+                                  default_dot_dim *(default_dot_dim + 1)>
+        reduction_helper_array;
+    remove_complex<ValueType> *__restrict__ reduction_helper =
+        reduction_helper_array;
+    remove_complex<ValueType> local_max = zero<remove_complex<ValueType>>();
+    if (col_idx < num_cols) {
+        for (size_type i = start_row + tidy; i < end_row;
+             i += default_dot_dim) {
+            const auto next_krylov_idx = i * stride_next_krylov + col_idx;
+            local_max = (local_max >= abs(next_krylov_basis[next_krylov_idx]))
+                            ? local_max
+                            : abs(next_krylov_basis[next_krylov_idx]);
+            // local_max = (local_max >= next_krylov_basis[next_krylov_idx])
+            //                 ? local_max
+            //                 : next_krylov_basis[next_krylov_idx];
+        }
+    }
+    reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_max;
+    __syncthreads();
+    local_max = reduction_helper[tidy * (default_dot_dim + 1) + tidx];
+    const auto tile_block =
+        group::tiled_partition<default_dot_dim>(group::this_thread_block());
+    const auto value = reduce(
+        tile_block, local_max,
+        [](const remove_complex<ValueType> &a,
+           const remove_complex<ValueType> &b) { return ((a >= b) ? a : b); });
+    const auto new_col_idx = blockIdx.x * default_dot_dim + tidy;
+    if (tidx == 0 && new_col_idx < num_cols) {
         const auto norms_idx = new_col_idx;
         atomic_max(norms + norms_idx, value);
     }
@@ -1198,8 +1250,46 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms_new(
         arnoldi_norm[col_idx] = num11;
         arnoldi_norm[col_idx + stride_norm] = num12;
         hessenberg_iter[iter * stride_hessenberg + col_idx] = num12;
+        // printf("(%d) num1 = %10.5e , num2 = %10.5e\n", cod_idx, num1, num2);
+        // printf("%d - %d - %d - %d\n", stride_norm, iter, col_idx,
+        //        stride_norm * iter + col_idx);
         helper_functions_accessor<ValueType, ValueTypeKrylovBases>::write_scale(
-            krylov_bases, col_idx, num2 / num12);
+            krylov_bases, stride_norm * iter + col_idx, num2 / num12);
+        // krylov_bases, num_cols * (iter + 1) + col_idx, num2 / num12);
+        // krylov_bases, col_idx, num2 / num12);
+    }
+}
+
+
+// Must be called with at least `num_cols` blocks, each with `block_size`
+// threads. `block_size` must be a power of 2.
+template <int block_size, typename ValueType, typename ValueTypeKrylovBases>
+__global__ __launch_bounds__(block_size) void set_scale_kernel(
+    size_type num_rhs, size_type num_blocks,
+    const remove_complex<ValueType> *__restrict__ residual_norm,
+    size_type stride_residual,
+    const remove_complex<ValueType> *__restrict__ arnoldi_inf,
+    size_type stride_inf,
+    Accessor2d<ValueTypeKrylovBases, ValueType> krylov_bases)
+{
+    const auto global_id = thread::get_thread_id_flat();
+    const auto blk_idx = global_id / num_rhs;
+    const auto col_idx = global_id % num_rhs;
+
+    if (blk_idx < num_blocks && col_idx < num_rhs) {
+        if (blk_idx == 0) {
+            const auto num1 = residual_norm[col_idx];
+            const auto num2 = arnoldi_inf[col_idx];
+            // printf("num1 = %10.5e , num2 = %10.5e\n", num1, num2);
+            helper_functions_accessor<
+                ValueType, ValueTypeKrylovBases>::write_scale(krylov_bases,
+                                                              col_idx,
+                                                              num2 / num1);
+        } else {
+            const auto num = one<remove_complex<ValueType>>();
+            helper_functions_accessor<ValueType, ValueTypeKrylovBases>::
+                write_scale(krylov_bases, blk_idx * num_rhs + col_idx, num);
+        }
     }
 }
 
