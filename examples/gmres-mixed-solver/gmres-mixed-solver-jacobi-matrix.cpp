@@ -57,8 +57,9 @@ int main(int argc, char *argv[])
     using mtx = gko::matrix::Csr<>;
     // The gko::solver::Cg is used here, but any other solver class can also be
     // used.
-    //    using gmres_mixed = gko::solver::GmresMixed<double, float>;
-    using gmres_mixed = gko::solver::GmresMixed<>;
+    using gmres_mixed = gko::solver::GmresMixed<double, long int>;
+    // using gmres_mixed = gko::solver::GmresMixed<double, float>;
+    // using gmres_mixed = gko::solver::GmresMixed<>;
     using bj = gko::preconditioner::Jacobi<>;
 
     // Print the ginkgo version information.
@@ -132,7 +133,15 @@ int main(int argc, char *argv[])
         auto sizesA = A->get_size();
 
         if (std::string(argv[1]) == "cuda") {
-            x = gko::read<vec>(std::ifstream("data/one.mtx"), exec);
+            /* */
+            auto host_x =
+                vec::create(exec->get_master(), gko::dim<2>(sizesA[0], 1));
+            for (auto i = 0; i < sizesA[0]; i++) {
+                host_x->at(i, 0) = 1.0;
+            }
+            x->copy_from(host_x.get());
+            /* */
+            // x = gko::read<vec>(std::ifstream("data/one.mtx"), exec);
         } else {
             x = vec::create(exec, gko::dim<2>{sizesA[0], 1});
             for (int i = 0; i < sizesA[0]; i++) x->at(i) = 1.0;
@@ -140,7 +149,15 @@ int main(int argc, char *argv[])
         auto sizesx = x->get_size();
 
         if (std::string(argv[1]) == "cuda") {
-            b = gko::read<vec>(std::ifstream("data/zero.mtx"), exec);
+            /* */
+            auto host_b =
+                vec::create(exec->get_master(), gko::dim<2>(sizesA[0], 1));
+            for (auto i = 0; i < sizesA[0]; i++) {
+                host_b->at(i, 0) = 0.0;
+            }
+            b->copy_from(host_b.get());
+            /* */
+            // b = gko::read<vec>(std::ifstream("data/zero.mtx"), exec);
         } else {
             b = vec::create(exec, gko::dim<2>{sizesA[0], 1});
             for (int i = 0; i < sizesA[0]; i++) b->at(i) = 0.0;
@@ -150,20 +167,37 @@ int main(int argc, char *argv[])
         A->apply(lend(x), lend(b));
 
         if (std::string(argv[1]) == "cuda") {
-            x = gko::read<vec>(std::ifstream("data/zero.mtx"), exec);
+            /* */
+            auto host_x =
+                vec::create(exec->get_master(), gko::dim<2>(sizesA[0], 1));
+            for (auto i = 0; i < sizesA[0]; i++) {
+                host_x->at(i, 0) = 0.0;
+            }
+            x->copy_from(host_x.get());
+            /* */
+            // x = gko::read<vec>(std::ifstream("data/zero.mtx"), exec);
         } else {
             x = vec::create(exec, gko::dim<2>{sizesA[0], 1});
             for (int i = 0; i < sizesA[0]; i++) x->at(i) = 0.0;
         }
         /**/
         if (std::string(argv[1]) == "cuda") {
-            b = gko::read<vec>(std::ifstream("data/one.mtx"), exec);
+            /* */
+            auto host_b =
+                vec::create(exec->get_master(), gko::dim<2>(sizesA[0], 1));
+            for (auto i = 0; i < sizesA[0]; i++) {
+                host_b->at(i, 0) = 1.0;
+            }
+            b->copy_from(host_b.get());
+            /* */
+            // b = gko::read<vec>(std::ifstream("data/one.mtx"), exec);
         } else {
             b = vec::create(exec, gko::dim<2>{sizesA[0], 1});
             for (int i = 0; i < sizesA[0]; i++) b->at(i) = 1.0;
         }
         /**/
     }
+    // std::cout << "Initilization is completed" << std::endl;
     // @sect3{Creating the solver}
     // Generate the gko::solver factory. Ginkgo uses the concept of Factories to
     // build solvers with certain
@@ -206,6 +240,7 @@ int main(int argc, char *argv[])
     // Finally, solve the system. The solver, being a gko::LinOp, can be applied
     // to a right hand side, b to
     // obtain the solution, x.
+    // std::cout << "Computing " << std::endl;
     solver->apply(lend(b), lend(x));
 
     // Print the solution to the command line.
