@@ -170,6 +170,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
                   matrix::Dense<remove_complex<ValueType>> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
+                  matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
                   Accessor2d<ValueTypeKrylovBases, ValueType> krylov_bases,
                   matrix::Dense<ValueType> *next_krylov_basis,
                   Array<size_type> *final_iter_nums, size_type krylov_dim)
@@ -182,13 +183,43 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
 
+    // exec->synchronize();
+    // std::cout << "Before initialize_2_1_kernel" << std::endl;
     initialize_2_1_kernel<block_size><<<grid_dim_1, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1], krylov_dim,
         as_cuda_accessor(krylov_bases),
         as_cuda_type(residual_norm_collection->get_values()),
         residual_norm_collection->get_stride());
+    // exec->synchronize();
     residual->compute_norm2(residual_norm);
+    // exec->synchronize();
 
+    // std::cout << "Before multinorminf_kernel_without_stop" << std::endl;
+    components::fill_array(exec, arnoldi_norm->get_values() + 2 * num_rhs,
+                           num_rhs, zero<remove_complex<ValueType>>());
+    const dim3 grid_size_nrm(ceildiv(num_rhs, default_dot_dim),
+                             exec->get_num_multiprocessor() * 2);
+    const dim3 block_size_nrm(default_dot_dim, default_dot_dim);
+    multinorminf_kernel_without_stop<<<grid_size_nrm, block_size_nrm>>>(
+        num_rows, num_rhs, as_cuda_type(residual->get_const_values()), num_rhs,
+        as_cuda_type(arnoldi_norm->get_values() + 2 * num_rhs), 0);
+    // exec->synchronize();
+
+    // helper_functions_accessor<ValueType, ValueTypeKrylovBases>::write_scale(
+    //     krylov_bases, col_idx, arnoldi_norm->at(2, j) / residual_norm->at(0,
+    //     j));
+    /* */
+    // std::cout << "Before set_scale_kernel" << std::endl;
+    set_scale_kernel<default_block_size>
+        <<<ceildiv(num_rhs * (krylov_dim + 1), default_block_size),
+           default_block_size>>>(
+            num_rhs, krylov_dim + 1,
+            as_cuda_type(residual_norm->get_const_values()), num_rhs,
+            as_cuda_type(arnoldi_norm->get_const_values() + 2 * num_rhs),
+            num_rhs, as_cuda_accessor(krylov_bases));
+    // exec->synchronize();
+    /* */
+    // std::cout << "Before initialize_2_2_kernel" << std::endl;
     const dim3 grid_dim_2(ceildiv(num_rows * num_rhs, default_block_size), 1,
                           1);
     initialize_2_2_kernel<block_size><<<grid_dim_2, block_dim>>>(
@@ -200,6 +231,8 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(next_krylov_basis->get_values()),
         next_krylov_basis->get_stride(),
         as_cuda_type(final_iter_nums->get_data()));
+    // exec->synchronize();
+    // std::cout << "After initialize_2_2_kernel" << std::endl;
 }
 
 GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(

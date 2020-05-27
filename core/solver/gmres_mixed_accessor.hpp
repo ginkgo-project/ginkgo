@@ -59,8 +59,11 @@ using place_holder_type = float;
 
 
 template <typename StorageType, typename ArithmeticType,
-          bool = std::is_same<StorageType, place_holder_type>::value &&
-                 !std::is_same<StorageType, ArithmeticType>::value>
+          bool = (std::is_same<StorageType, place_holder_type>::value &&
+                  !std::is_same<StorageType, ArithmeticType>::value) ||
+                 std::is_integral<StorageType>::value>
+// bool = std::is_same<StorageType, place_holder_type>::value &&
+//        !std::is_same<StorageType, ArithmeticType>::value>
 struct helper_have_scale {};
 
 template <typename StorageType, typename ArithmeticType>
@@ -339,7 +342,18 @@ public:
     GKO_ATTRIBUTES void set_scale(IndexType idx, arithmetic_type val)
     {
         arithmetic_type *GKO_RESTRICT rest_scale = this->scale_;
-        rest_scale[idx] = val;
+        storage_type max_val = one<storage_type>();
+        // printf("(A) max_val = %d\n", max_val);
+        // if (std::is_integer<storage_type>::value) {
+        if (std::is_integral<storage_type>::value) {
+            max_val = std::numeric_limits<storage_type>::max();
+            //    printf("(B) max_val = %ld\n", max_val);
+        }
+        rest_scale[idx] = val / static_cast<arithmetic_type>(max_val);
+        //    rest_scale[idx] = one<arithmetic_type>();
+        //    printf("val = %10.5e , rest_scale = %10.5e\n", val,
+        //    rest_scale[idx]); std::cout << val << " - " << rest_scale[idx] <<
+        //    std::endl;
     }
 
     GKO_ATTRIBUTES storage_type *get_storage() { return this->storage_; }
@@ -417,6 +431,42 @@ private:
     Array<ValueTypeKrylovBases> bases_;
 };
 
+//----------------------------------------------
+
+template <typename ValueType, typename KrylovType,
+          bool = Accessor2d<KrylovType, ValueType>::has_scale>
+struct helper_functions_accessor {};
+
+// Accessors having a scale
+template <typename ValueType, typename KrylovType>
+struct helper_functions_accessor<ValueType, KrylovType, true> {
+    template <typename IndexType>
+    static inline GKO_ATTRIBUTES void write_scale(
+        // static __forceinline__ __device__ void write_scale(
+        Accessor2d<KrylovType, ValueType> krylov_bases, IndexType col_idx,
+        ValueType value)
+    {
+        krylov_bases.set_scale(col_idx, value);
+    }
+};
+
+
+// Accessors not having a scale
+template <typename ValueType, typename KrylovType>
+struct helper_functions_accessor<ValueType, KrylovType, false> {
+    template <typename IndexType>
+    static inline GKO_ATTRIBUTES void write_scale(
+        // static __forceinline__ __device__ void write_scale(
+        Accessor2d<KrylovType, ValueType> krylov_bases, IndexType col_idx,
+        ValueType value)
+    {}
+};
+
+// calling it with:
+// helper_functions_accessor<ValueType,
+// ValueTypeKrylovBases>::write_scale(krylov_bases, col_idx, value);
+
+//----------------------------------------------
 
 }  // namespace kernels
 }  // namespace gko

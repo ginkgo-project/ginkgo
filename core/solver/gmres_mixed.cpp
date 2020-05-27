@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/gmres_mixed_kernels.hpp"
 
 
-// #define TIMING 1
+#define TIMING 1
 
 
 #ifdef TIMING
@@ -142,6 +142,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     Array<size_type> num_reorth(this->get_executor(), dense_b->get_size()[1]);
     int num_restarts = 0, num_reorth_steps = 0, num_reorth_vectors = 0;
 
+    // std::cout << "Before initializate_1" << std::endl;
     // Initialization
     exec->run(gmres_mixed::make_initialize_1(
         dense_b, b_norm.get(), residual.get(), givens_sin.get(),
@@ -153,10 +154,11 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
                           residual.get());
     // residual = residual - Ax
 
+    // std::cout << "Before initializate_2" << std::endl;
     exec->run(gmres_mixed::make_initialize_2(
         residual.get(), residual_norm.get(), residual_norm_collection.get(),
-        krylov_bases_accessor, next_krylov_basis.get(), &final_iter_nums,
-        krylov_dim_mixed_));
+        arnoldi_norm.get(), krylov_bases_accessor, next_krylov_basis.get(),
+        &final_iter_nums, krylov_dim_mixed_));
     // residual_norm = norm(residual)
     // residual_norm_collection = {residual_norm, 0, ..., 0}
     // krylov_bases(:, 1) = residual / residual_norm
@@ -185,6 +187,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
 #endif
 #endif
 
+    // std::cout << "Before loop" << std::endl;
     while (true) {
         ++total_iter;
         this->template log<log::Logger::iteration_complete>(
@@ -247,8 +250,9 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
             // residual = residual - Ax
             exec->run(gmres_mixed::make_initialize_2(
                 residual.get(), residual_norm.get(),
-                residual_norm_collection.get(), krylov_bases_accessor,
-                next_krylov_basis.get(), &final_iter_nums, krylov_dim_mixed_));
+                residual_norm_collection.get(), arnoldi_norm.get(),
+                krylov_bases_accessor, next_krylov_basis.get(),
+                &final_iter_nums, krylov_dim_mixed_));
             // residual_norm = norm(residual)
             // residual_norm_collection = {residual_norm, 0, ..., 0}
             // krylov_bases(:, 1) = residual / residual_norm

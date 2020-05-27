@@ -447,6 +447,9 @@ void finish_arnoldi_CGS2(
             //           << arnoldi_norm->at(2, i) << " - " << l << std::endl;
             // nrmN = norm(next_krylov_basis)
         }
+        helper_functions_accessor<ValueType, ValueTypeKrylovBases>::write_scale(
+            krylov_bases, next_krylov_basis->get_size()[1] * (iter + 1) + i,
+            arnoldi_norm->at(2, i) / arnoldi_norm->at(1, i));
         /*
         // reorthogonalization
         hessenberg_iter->at(iter + 1, i) = zero<ValueType>();
@@ -643,6 +646,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
                   matrix::Dense<remove_complex<ValueType>> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
+                  matrix::Dense<remove_complex<ValueType>> *arnoldi_norm,
                   Accessor2d<ValueTypeKrylovBases, ValueType> krylov_bases,
                   matrix::Dense<ValueType> *next_krylov_basis,
                   Array<size_type> *final_iter_nums, size_type krylov_dim)
@@ -650,12 +654,22 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         // Calculate residual norm
         residual_norm->at(0, j) = zero<remove_complex<ValueType>>();
+        arnoldi_norm->at(2, j) = zero<remove_complex<ValueType>>();
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
             residual_norm->at(0, j) += squared_norm(residual->at(i, j));
             // residual_norm->at(0, j) += residual->at(i, j) * residual->at(i,
             // j);
+            arnoldi_norm->at(2, j) =
+                (arnoldi_norm->at(2, j) >= abs(residual->at(i, j)))
+                    ? arnoldi_norm->at(2, j)
+                    : abs(residual->at(i, j));
         }
         residual_norm->at(0, j) = sqrt(residual_norm->at(0, j));
+        // std::cout << residual_norm->at(0, j) << " - " << arnoldi_norm->at(2,
+        // j)
+        //           << std::endl;
+        helper_functions_accessor<ValueType, ValueTypeKrylovBases>::write_scale(
+            krylov_bases, j, arnoldi_norm->at(2, j) / residual_norm->at(0, j));
 
         for (size_type i = 0; i < krylov_dim + 1; ++i) {
             if (i == 0) {
@@ -675,6 +689,8 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
 
     for (size_type j = residual->get_size()[1];
          j < (krylov_dim + 1) * residual->get_size()[1]; ++j) {
+        helper_functions_accessor<ValueType, ValueTypeKrylovBases>::write_scale(
+            krylov_bases, j, one<remove_complex<ValueType>>());
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
             krylov_bases.write(i, j, zero<ValueType>());
         }
