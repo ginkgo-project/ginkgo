@@ -241,16 +241,15 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_l_u_row(
     if (row < num_rows) {
         IndexType l_row_nnz{};
         IndexType u_row_nnz{};
-        bool has_diagonal{};
         for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
             auto col = col_idxs[idx];
-            l_row_nnz += (col <= row);
-            u_row_nnz += (row <= col);
-            has_diagonal |= col == row;
+            // skip diagonal
+            l_row_nnz += (col < row);
+            u_row_nnz += (row < col);
         }
-        // if we didn't find it, add the diagonal entry
-        l_nnz_row[row] = l_row_nnz + !has_diagonal;
-        u_nnz_row[row] = u_row_nnz + !has_diagonal;
+        // add the diagonal entry
+        l_nnz_row[row] = l_row_nnz + 1;
+        u_nnz_row[row] = u_row_nnz + 1;
     }
 }
 
@@ -269,14 +268,13 @@ __global__ __launch_bounds__(default_block_size) void initialize_l_u(
     if (row < num_rows) {
         auto l_idx = l_row_ptrs[row];
         auto u_idx = u_row_ptrs[row] + 1;  // we treat the diagonal separately
-        bool has_diagonal{};
-        ValueType diag_val{};
+        // default diagonal to one
+        auto diag_val = one<ValueType>();
         for (size_type i = row_ptrs[row]; i < row_ptrs[row + 1]; ++i) {
             const auto col = col_idxs[i];
             const auto val = values[i];
             // save diagonal entry for later
             if (col == row) {
-                has_diagonal = true;
                 diag_val = val;
             }
             if (col < row) {
@@ -289,10 +287,6 @@ __global__ __launch_bounds__(default_block_size) void initialize_l_u(
                 u_values[u_idx] = val;
                 ++u_idx;
             }
-        }
-        // if there was no diagonal entry, set it to one
-        if (!has_diagonal) {
-            diag_val = one<ValueType>();
         }
         // store diagonal entries
         auto l_diag_idx = l_row_ptrs[row + 1] - 1;
@@ -314,14 +308,13 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_l_row(
     const auto row = thread::get_thread_id_flat<IndexType>();
     if (row < num_rows) {
         IndexType l_row_nnz{};
-        bool has_diagonal{};
         for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
             auto col = col_idxs[idx];
-            l_row_nnz += (col <= row);
-            has_diagonal |= col == row;
+            // skip the diagonal entry
+            l_row_nnz += col < row;
         }
-        // if we didn't find it, add the diagonal entry
-        l_nnz_row[row] = l_row_nnz + !has_diagonal;
+        // add the diagonal entry
+        l_nnz_row[row] = l_row_nnz + 1;
     }
 }
 
@@ -338,14 +331,13 @@ __global__ __launch_bounds__(default_block_size) void initialize_l(
     const auto row = thread::get_thread_id_flat<IndexType>();
     if (row < num_rows) {
         auto l_idx = l_row_ptrs[row];
-        bool has_diagonal{};
-        ValueType diag_val{};
+        // if there was no diagonal entry, default to one
+        auto diag_val = one<ValueType>();
         for (size_type i = row_ptrs[row]; i < row_ptrs[row + 1]; ++i) {
             const auto col = col_idxs[i];
             const auto val = values[i];
             // save diagonal entry for later
             if (col == row) {
-                has_diagonal = true;
                 diag_val = val;
             }
             if (col < row) {
@@ -353,10 +345,6 @@ __global__ __launch_bounds__(default_block_size) void initialize_l(
                 l_values[l_idx] = val;
                 ++l_idx;
             }
-        }
-        // if there was no diagonal entry, set it to one
-        if (!has_diagonal) {
-            diag_val = one<ValueType>();
         }
         // store diagonal entries
         auto l_diag_idx = l_row_ptrs[row + 1] - 1;

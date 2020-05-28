@@ -259,7 +259,6 @@ void initialize_row_ptrs_l(
 
     l_row_ptrs[0] = 0;
     for (size_type row = 0; row < system_matrix->get_size()[0]; ++row) {
-        bool has_diagonal{};
         for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
             size_type col = col_idxs[el];
             // skip diagonal
