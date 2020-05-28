@@ -69,8 +69,9 @@ constexpr int default_block_size = 512;
  * @return the reduction result
  */
 template <typename ValueType>
-__host__ ValueType reduce_add_array(std::shared_ptr<const HipExecutor> exec,
-                                    size_type size, const ValueType *source)
+__host__ ValueType
+reduce_add_array(const std::shared_ptr<const DefaultExecutor> &exec,
+                 size_type size, const ValueType *source)
 {
     auto block_results_val = source;
     size_type grid_dim = size;

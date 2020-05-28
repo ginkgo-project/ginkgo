@@ -30,38 +30,71 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/precision_conversion.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 
 
-#include "cuda/base/types.hpp"
-#include "cuda/components/thread_ids.cuh"
+#include <memory>
+#include <random>
+#include <vector>
 
 
-namespace gko {
-namespace kernels {
-namespace cuda {
-namespace components {
+#include <gtest/gtest.h>
 
 
-constexpr int default_block_size = 512;
+#include <ginkgo/core/base/array.hpp>
 
 
-#include "common/components/precision_conversion.hpp.inc"
+#include "core/test/utils.hpp"
 
 
-template <typename SourceType, typename TargetType>
-void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
-                       size_type size, const SourceType *in, TargetType *out)
-{
-    auto num_blocks = ceildiv(size, default_block_size);
-    convert_precision<<<num_blocks, default_block_size>>>(
-        size, as_cuda_type(in), as_cuda_type(out));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);
+namespace {
 
 
-}  // namespace components
-}  // namespace cuda
-}  // namespace kernels
-}  // namespace gko
+template <typename T>
+class PrefixSum : public ::testing::Test {
+protected:
+    using index_type = T;
+    PrefixSum()
+        : ref(gko::ReferenceExecutor::create()),
+          exec(gko::OmpExecutor::create()),
+          rand(293),
+          total_size(42793),
+          vals(ref, total_size),
+          dvals(exec)
+    {
+        std::uniform_int_distribution<index_type> dist(0, 1000);
+        for (gko::size_type i = 0; i < total_size; ++i) {
+            vals.get_data()[i] = dist(rand);
+        }
+        dvals = vals;
+    }
+
+    void test(gko::size_type size)
+    {
+        gko::kernels::reference::components::prefix_sum(ref, vals.get_data(),
+                                                        size);
+        gko::kernels::omp::components::prefix_sum(exec, dvals.get_data(), size);
+
+        auto dptr = dvals.get_const_data();
+        auto ptr = vals.get_const_data();
+        ASSERT_TRUE(std::equal(ptr, ptr + size, dptr));
+    }
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::OmpExecutor> exec;
+    std::default_random_engine rand;
+    gko::size_type total_size;
+    gko::Array<index_type> vals;
+    gko::Array<index_type> dvals;
+};
+
+TYPED_TEST_CASE(PrefixSum, gko::test::IndexTypes);
+
+
+TYPED_TEST(PrefixSum, SmallEqualsReference) { this->test(100); }
+
+
+TYPED_TEST(PrefixSum, BigEqualsReference) { this->test(this->total_size); }
+
+
+}  // namespace

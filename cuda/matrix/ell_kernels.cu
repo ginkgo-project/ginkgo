@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/config.hpp"
@@ -152,7 +152,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_abstract_spmv, abstract_spmv);
 
 template <typename ValueType, typename IndexType>
 std::array<int, 3> compute_thread_worker_and_atomicity(
-    std::shared_ptr<const CudaExecutor> exec,
+    const std::shared_ptr<const DefaultExecutor> &exec,
     const matrix::Ell<ValueType, IndexType> *a)
 {
     int num_thread_per_worker = 1;
@@ -195,7 +195,7 @@ std::array<int, 3> compute_thread_worker_and_atomicity(
 
 
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const CudaExecutor> exec,
+void spmv(const std::shared_ptr<const DefaultExecutor> &exec,
           const matrix::Ell<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
@@ -224,7 +224,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
+void advanced_spmv(const std::shared_ptr<const DefaultExecutor> &exec,
                    const matrix::Dense<ValueType> *alpha,
                    const matrix::Ell<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
@@ -257,7 +257,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
+void convert_to_dense(const std::shared_ptr<const DefaultExecutor> &exec,
                       const matrix::Ell<ValueType, IndexType> *source,
                       matrix::Dense<ValueType> *result)
 {
@@ -287,7 +287,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
+void convert_to_csr(const std::shared_ptr<const DefaultExecutor> &exec,
                     const matrix::Ell<ValueType, IndexType> *source,
                     matrix::Csr<ValueType, IndexType> *result)
 {
@@ -324,7 +324,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void count_nonzeros(std::shared_ptr<const CudaExecutor> exec,
+void count_nonzeros(const std::shared_ptr<const DefaultExecutor> &exec,
                     const matrix::Ell<ValueType, IndexType> *source,
                     size_type *result)
 {
@@ -341,9 +341,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row(std::shared_ptr<const CudaExecutor> exec,
-                                const matrix::Ell<ValueType, IndexType> *source,
-                                Array<size_type> *result)
+void calculate_nonzeros_per_row(
+    const std::shared_ptr<const DefaultExecutor> &exec,
+    const matrix::Ell<ValueType, IndexType> *source, Array<size_type> *result)
 {
     const auto num_rows = source->get_size()[0];
     const auto max_nnz_per_row = source->get_num_stored_elements_per_row();

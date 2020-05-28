@@ -51,7 +51,7 @@ namespace sellp {
 
 
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const ReferenceExecutor> exec,
+void spmv(const std::shared_ptr<const DefaultExecutor> &exec,
           const matrix::Sellp<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
@@ -84,7 +84,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
+void advanced_spmv(const std::shared_ptr<const DefaultExecutor> &exec,
                    const matrix::Dense<ValueType> *alpha,
                    const matrix::Sellp<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
@@ -124,7 +124,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
+void convert_to_dense(const std::shared_ptr<const DefaultExecutor> &exec,
                       const matrix::Sellp<ValueType, IndexType> *source,
                       matrix::Dense<ValueType> *result)
 {
@@ -160,7 +160,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
+void convert_to_csr(const std::shared_ptr<const DefaultExecutor> &exec,
                     const matrix::Sellp<ValueType, IndexType> *source,
                     matrix::Csr<ValueType, IndexType> *result)
 {
@@ -206,7 +206,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
+void count_nonzeros(const std::shared_ptr<const DefaultExecutor> &exec,
                     const matrix::Sellp<ValueType, IndexType> *source,
                     size_type *result)
 {

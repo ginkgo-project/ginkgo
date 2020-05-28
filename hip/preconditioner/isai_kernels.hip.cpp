@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/base/math.hip.hpp"
@@ -74,7 +74,7 @@ constexpr int default_block_size{subwarps_per_block * subwarp_size};
 
 
 template <typename ValueType, typename IndexType>
-void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
+void generate_tri_inverse(const std::shared_ptr<const DefaultExecutor> &exec,
                           const matrix::Csr<ValueType, IndexType> *input,
                           matrix::Csr<ValueType, IndexType> *inverse,
                           IndexType *excess_rhs_ptrs, IndexType *excess_nz_ptrs,
@@ -112,7 +112,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
+void generate_excess_system(const std::shared_ptr<const DefaultExecutor> &exec,
                             const matrix::Csr<ValueType, IndexType> *input,
                             const matrix::Csr<ValueType, IndexType> *inverse,
                             const IndexType *excess_rhs_ptrs,
@@ -140,7 +140,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void scatter_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
+void scatter_excess_solution(const std::shared_ptr<const DefaultExecutor> &exec,
                              const IndexType *excess_rhs_ptrs,
                              const matrix::Dense<ValueType> *excess_solution,
                              matrix::Csr<ValueType, IndexType> *inverse)

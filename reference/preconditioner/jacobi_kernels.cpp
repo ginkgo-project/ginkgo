@@ -136,7 +136,7 @@ inline size_type agglomerate_supervariables(uint32 max_block_size,
 
 
 template <typename ValueType, typename IndexType>
-void find_blocks(std::shared_ptr<const ReferenceExecutor> exec,
+void find_blocks(const std::shared_ptr<const DefaultExecutor> &exec,
                  const matrix::Csr<ValueType, IndexType> *system_matrix,
                  uint32 max_block_size, size_type &num_blocks,
                  Array<IndexType> &block_pointers)
@@ -292,7 +292,7 @@ inline bool invert_block(IndexType block_size, IndexType *perm,
 
 template <typename ReducedType, typename ValueType, typename IndexType>
 inline bool validate_precision_reduction_feasibility(
-    std::shared_ptr<const ReferenceExecutor> exec, IndexType block_size,
+    const std::shared_ptr<const DefaultExecutor> &exec, IndexType block_size,
     const ValueType *block, size_type stride)
 {
     using gko::detail::float_traits;
@@ -322,7 +322,7 @@ inline bool validate_precision_reduction_feasibility(
 
 
 template <typename ValueType, typename IndexType>
-void generate(std::shared_ptr<const ReferenceExecutor> exec,
+void generate(const std::shared_ptr<const DefaultExecutor> &exec,
               const matrix::Csr<ValueType, IndexType> *system_matrix,
               size_type num_blocks, uint32 max_block_size,
               remove_complex<ValueType> accuracy,
@@ -462,7 +462,7 @@ inline void apply_block(size_type block_size, size_type num_rhs,
 }  // namespace
 
 
-void initialize_precisions(std::shared_ptr<const ReferenceExecutor> exec,
+void initialize_precisions(const std::shared_ptr<const DefaultExecutor> &exec,
                            const Array<precision_reduction> &source,
                            Array<precision_reduction> &precisions)
 {
@@ -474,8 +474,8 @@ void initialize_precisions(std::shared_ptr<const ReferenceExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void apply(std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
-           uint32 max_block_size,
+void apply(const std::shared_ptr<const DefaultExecutor> &exec,
+           size_type num_blocks, uint32 max_block_size,
            const preconditioner::block_interleaved_storage_scheme<IndexType>
                &storage_scheme,
            const Array<precision_reduction> &block_precisions,
@@ -510,7 +510,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_JACOBI_APPLY_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void simple_apply(
-    std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
+    const std::shared_ptr<const DefaultExecutor> &exec, size_type num_blocks,
     uint32 max_block_size,
     const preconditioner::block_interleaved_storage_scheme<IndexType>
         &storage_scheme,
@@ -544,7 +544,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
-    std::shared_ptr<const ReferenceExecutor> exec, size_type num_blocks,
+    const std::shared_ptr<const DefaultExecutor> &exec, size_type num_blocks,
     const Array<precision_reduction> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>

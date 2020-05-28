@@ -60,7 +60,7 @@ constexpr int default_block_size = 512;
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const CudaExecutor> exec,
+void initialize(const std::shared_ptr<const DefaultExecutor> &exec,
                 const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *r_tld, matrix::Dense<ValueType> *p,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *u,
@@ -92,7 +92,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
-void step_1(std::shared_ptr<const CudaExecutor> exec,
+void step_1(const std::shared_ptr<const DefaultExecutor> &exec,
             const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *u,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *rho,
@@ -116,7 +116,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-void step_2(std::shared_ptr<const CudaExecutor> exec,
+void step_2(const std::shared_ptr<const DefaultExecutor> &exec,
             const matrix::Dense<ValueType> *u,
             const matrix::Dense<ValueType> *v_hat, matrix::Dense<ValueType> *q,
             matrix::Dense<ValueType> *t, matrix::Dense<ValueType> *alpha,
@@ -142,7 +142,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_2_KERNEL);
 
 
 template <typename ValueType>
-void step_3(std::shared_ptr<const CudaExecutor> exec,
+void step_3(const std::shared_ptr<const DefaultExecutor> &exec,
             const matrix::Dense<ValueType> *t,
             const matrix::Dense<ValueType> *u_hat, matrix::Dense<ValueType> *r,
             matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *alpha,

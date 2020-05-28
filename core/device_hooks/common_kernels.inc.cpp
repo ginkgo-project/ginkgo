@@ -33,8 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
-#include "core/components/precision_conversion.hpp"
-#include "core/components/prefix_sum.hpp"
+#include "core/components/precision_conversion_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/ilu_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"

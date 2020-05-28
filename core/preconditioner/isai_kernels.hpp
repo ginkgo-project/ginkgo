@@ -42,16 +42,16 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL(ValueType, IndexType)    \
-    void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,    \
-                              const matrix::Csr<ValueType, IndexType> *input, \
-                              matrix::Csr<ValueType, IndexType> *inverse,     \
-                              IndexType *excess_rhs_ptrs,                     \
-                              IndexType *excess_nz_ptrs, bool lower)
+#define GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL(ValueType, IndexType) \
+    void generate_tri_inverse(                                             \
+        const std::shared_ptr<const DefaultExecutor> &exec,                \
+        const matrix::Csr<ValueType, IndexType> *input,                    \
+        matrix::Csr<ValueType, IndexType> *inverse,                        \
+        IndexType *excess_rhs_ptrs, IndexType *excess_nz_ptrs, bool lower)
 
 #define GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL(ValueType, IndexType) \
     void generate_excess_system(                                             \
-        std::shared_ptr<const DefaultExecutor> exec,                         \
+        const std::shared_ptr<const DefaultExecutor> &exec,                  \
         const matrix::Csr<ValueType, IndexType> *input,                      \
         const matrix::Csr<ValueType, IndexType> *inverse,                    \
         const IndexType *excess_rhs_ptrs, const IndexType *excess_nz_ptrs,   \
@@ -60,7 +60,7 @@ namespace kernels {
 
 #define GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL(ValueType, IndexType) \
     void scatter_excess_solution(                                             \
-        std::shared_ptr<const DefaultExecutor> exec,                          \
+        const std::shared_ptr<const DefaultExecutor> &exec,                   \
         const IndexType *excess_rhs_ptrs,                                     \
         const matrix::Dense<ValueType> *excess_solution,                      \
         matrix::Csr<ValueType, IndexType> *inverse)

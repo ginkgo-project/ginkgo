@@ -30,71 +30,34 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 
 
-#include <memory>
-#include <random>
-#include <vector>
+namespace gko {
+namespace kernels {
+namespace omp {
+namespace components {
 
 
-#include <gtest/gtest.h>
-
-
-#include <ginkgo/core/base/array.hpp>
-
-
-#include "core/test/utils.hpp"
-
-
-namespace {
-
-
-template <typename T>
-class PrefixSum : public ::testing::Test {
-protected:
-    using index_type = T;
-    PrefixSum()
-        : ref(gko::ReferenceExecutor::create()),
-          exec(gko::OmpExecutor::create()),
-          rand(293),
-          total_size(42793),
-          vals(ref, total_size),
-          dvals(exec)
-    {
-        std::uniform_int_distribution<index_type> dist(0, 1000);
-        for (gko::size_type i = 0; i < total_size; ++i) {
-            vals.get_data()[i] = dist(rand);
-        }
-        dvals = vals;
+template <typename IndexType>
+void prefix_sum(const std::shared_ptr<const DefaultExecutor> &exec,
+                IndexType *counts, size_type num_entries)
+{
+    IndexType partial_sum{};
+    for (IndexType i = 0; i < num_entries; ++i) {
+        auto nnz = counts[i];
+        counts[i] = partial_sum;
+        partial_sum += nnz;
     }
+}
 
-    void test(gko::size_type size)
-    {
-        gko::kernels::reference::components::prefix_sum(ref, vals.get_data(),
-                                                        size);
-        gko::kernels::omp::components::prefix_sum(exec, dvals.get_data(), size);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
 
-        auto dptr = dvals.get_const_data();
-        auto ptr = vals.get_const_data();
-        ASSERT_TRUE(std::equal(ptr, ptr + size, dptr));
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::OmpExecutor> exec;
-    std::default_random_engine rand;
-    gko::size_type total_size;
-    gko::Array<index_type> vals;
-    gko::Array<index_type> dvals;
-};
-
-TYPED_TEST_CASE(PrefixSum, gko::test::IndexTypes);
+// instantiate for size_type as well, as this is used in the Sellp format
+template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
 
 
-TYPED_TEST(PrefixSum, SmallEqualsReference) { this->test(100); }
-
-
-TYPED_TEST(PrefixSum, BigEqualsReference) { this->test(this->total_size); }
-
-
-}  // namespace
+}  // namespace components
+}  // namespace omp
+}  // namespace kernels
+}  // namespace gko

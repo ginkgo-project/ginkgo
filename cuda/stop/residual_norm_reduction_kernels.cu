@@ -90,7 +90,7 @@ __global__ __launch_bounds__(1) void init_kernel(
 
 
 template <typename ValueType>
-void residual_norm_reduction(std::shared_ptr<const CudaExecutor> exec,
+void residual_norm_reduction(const std::shared_ptr<const DefaultExecutor> &exec,
                              const matrix::Dense<ValueType> *tau,
                              const matrix::Dense<ValueType> *orig_tau,
                              remove_complex<ValueType> rel_residual_goal,

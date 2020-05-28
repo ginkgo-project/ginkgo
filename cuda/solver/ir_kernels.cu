@@ -56,7 +56,7 @@ constexpr int default_block_size = 512;
 #include "common/solver/ir_kernels.hpp.inc"
 
 
-void initialize(std::shared_ptr<const CudaExecutor> exec,
+void initialize(const std::shared_ptr<const DefaultExecutor> &exec,
                 Array<stopping_status> *stop_status)
 {
     const dim3 block_size(default_block_size, 1, 1);

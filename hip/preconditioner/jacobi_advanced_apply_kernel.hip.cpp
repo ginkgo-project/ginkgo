@@ -112,8 +112,8 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_advanced_apply, advanced_apply);
 
 
 template <typename ValueType, typename IndexType>
-void apply(std::shared_ptr<const HipExecutor> exec, size_type num_blocks,
-           uint32 max_block_size,
+void apply(const std::shared_ptr<const DefaultExecutor> &exec,
+           size_type num_blocks, uint32 max_block_size,
            const preconditioner::block_interleaved_storage_scheme<IndexType>
                &storage_scheme,
            const Array<precision_reduction> &block_precisions,

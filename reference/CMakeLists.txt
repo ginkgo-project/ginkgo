@@ -2,8 +2,8 @@ add_library(ginkgo_reference $<TARGET_OBJECTS:ginkgo_reference_device> "")
 target_sources(ginkgo_reference
     PRIVATE
         base/version.cpp
-        components/precision_conversion.cpp
-        components/prefix_sum.cpp
+        components/precision_conversion_kernels.cpp
+        components/prefix_sum_kernels.cpp
         factorization/ilu_kernels.cpp
         factorization/factorization_kernels.cpp
         factorization/par_ilu_kernels.cpp

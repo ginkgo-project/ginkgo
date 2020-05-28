@@ -57,7 +57,7 @@ namespace hybrid {
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
+void convert_to_dense(const std::shared_ptr<const DefaultExecutor> &exec,
                       const matrix::Hybrid<ValueType, IndexType> *source,
                       matrix::Dense<ValueType> *result)
 {
@@ -92,7 +92,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
+void convert_to_csr(const std::shared_ptr<const DefaultExecutor> &exec,
                     const matrix::Hybrid<ValueType, IndexType> *source,
                     matrix::Csr<ValueType, IndexType> *result)
 {
@@ -136,7 +136,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void count_nonzeros(std::shared_ptr<const ReferenceExecutor> exec,
+void count_nonzeros(const std::shared_ptr<const DefaultExecutor> &exec,
                     const matrix::Hybrid<ValueType, IndexType> *source,
                     size_type *result)
 {

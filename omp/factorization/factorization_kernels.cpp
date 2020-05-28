@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 
 
@@ -167,7 +167,7 @@ void add_missing_diagonal_elements(const matrix::Csr<ValueType, IndexType> *mtx,
 
 
 template <typename ValueType, typename IndexType>
-void add_diagonal_elements(std::shared_ptr<const OmpExecutor> exec,
+void add_diagonal_elements(const std::shared_ptr<const DefaultExecutor> &exec,
                            matrix::Csr<ValueType, IndexType> *mtx,
                            bool is_sorted)
 {
@@ -215,7 +215,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l_u(
-    std::shared_ptr<const OmpExecutor> exec,
+    const std::shared_ptr<const DefaultExecutor> &exec,
     const matrix::Csr<ValueType, IndexType> *system_matrix,
     IndexType *l_row_ptrs, IndexType *u_row_ptrs)
 {
@@ -251,7 +251,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void initialize_l_u(std::shared_ptr<const OmpExecutor> exec,
+void initialize_l_u(const std::shared_ptr<const DefaultExecutor> &exec,
                     const matrix::Csr<ValueType, IndexType> *system_matrix,
                     matrix::Csr<ValueType, IndexType> *csr_l,
                     matrix::Csr<ValueType, IndexType> *csr_u)

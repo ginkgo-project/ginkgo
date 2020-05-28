@@ -160,8 +160,8 @@ namespace cuda {
 namespace {
 
 
-void should_perform_transpose_kernel(std::shared_ptr<const CudaExecutor> exec,
-                                     bool &do_transpose)
+void should_perform_transpose_kernel(
+    const std::shared_ptr<const DefaultExecutor> &exec, bool &do_transpose)
 {
 #if (defined(CUDA_VERSION) && (CUDA_VERSION >= 9020))
 
@@ -179,7 +179,7 @@ void should_perform_transpose_kernel(std::shared_ptr<const CudaExecutor> exec,
 }
 
 
-void init_struct_kernel(std::shared_ptr<const CudaExecutor> exec,
+void init_struct_kernel(const std::shared_ptr<const DefaultExecutor> &exec,
                         std::shared_ptr<solver::SolveStruct> &solve_struct)
 {
     solve_struct = std::make_shared<solver::cuda::SolveStruct>();
@@ -187,7 +187,7 @@ void init_struct_kernel(std::shared_ptr<const CudaExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void generate_kernel(std::shared_ptr<const CudaExecutor> exec,
+void generate_kernel(const std::shared_ptr<const DefaultExecutor> &exec,
                      const matrix::Csr<ValueType, IndexType> *matrix,
                      solver::SolveStruct *solve_struct,
                      const gko::size_type num_rhs, bool is_upper)
@@ -267,7 +267,7 @@ void generate_kernel(std::shared_ptr<const CudaExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
+void solve_kernel(const std::shared_ptr<const DefaultExecutor> &exec,
                   const matrix::Csr<ValueType, IndexType> *matrix,
                   const solver::SolveStruct *solve_struct,
                   matrix::Dense<ValueType> *trans_b,

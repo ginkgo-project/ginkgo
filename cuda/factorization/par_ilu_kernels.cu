@@ -60,7 +60,7 @@ constexpr int default_block_size{512};
 
 
 template <typename ValueType, typename IndexType>
-void compute_l_u_factors(std::shared_ptr<const CudaExecutor> exec,
+void compute_l_u_factors(const std::shared_ptr<const DefaultExecutor> &exec,
                          size_type iterations,
                          const matrix::Coo<ValueType, IndexType> *system_matrix,
                          matrix::Csr<ValueType, IndexType> *l_factor,

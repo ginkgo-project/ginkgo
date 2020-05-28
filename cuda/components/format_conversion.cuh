@@ -93,8 +93,8 @@ namespace host_kernel {
  * architecture and the number of stored elements.
  */
 template <size_type subwarp_size = config::warp_size>
-__host__ size_type calculate_nwarps(std::shared_ptr<const CudaExecutor> exec,
-                                    const size_type nnz)
+__host__ size_type calculate_nwarps(
+    const std::shared_ptr<const DefaultExecutor> &exec, const size_type nnz)
 {
     size_type warps_per_sm =
         exec->get_num_warps_per_sm() * config::warp_size / subwarp_size;

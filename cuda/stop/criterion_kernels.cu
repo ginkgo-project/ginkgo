@@ -68,7 +68,7 @@ __global__ __launch_bounds__(default_block_size) void set_all_statuses(
 }
 
 
-void set_all_statuses(std::shared_ptr<const CudaExecutor> exec,
+void set_all_statuses(const std::shared_ptr<const DefaultExecutor> &exec,
                       uint8 stoppingId, bool setFinalized,
                       Array<stopping_status> *stop_status)
 {

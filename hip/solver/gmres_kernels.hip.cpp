@@ -78,7 +78,7 @@ constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 
 
 template <typename ValueType>
-void initialize_1(std::shared_ptr<const HipExecutor> exec,
+void initialize_1(const std::shared_ptr<const DefaultExecutor> &exec,
                   const matrix::Dense<ValueType> *b,
                   matrix::Dense<ValueType> *b_norm,
                   matrix::Dense<ValueType> *residual,
@@ -107,7 +107,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
 
 
 template <typename ValueType>
-void initialize_2(std::shared_ptr<const HipExecutor> exec,
+void initialize_2(const std::shared_ptr<const DefaultExecutor> &exec,
                   const matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
@@ -141,8 +141,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
 
 
 template <typename ValueType>
-void finish_arnoldi(std::shared_ptr<const HipExecutor> exec, size_type num_rows,
-                    matrix::Dense<ValueType> *krylov_bases,
+void finish_arnoldi(const std::shared_ptr<const DefaultExecutor> &exec,
+                    size_type num_rows, matrix::Dense<ValueType> *krylov_bases,
                     matrix::Dense<ValueType> *hessenberg_iter, size_type iter,
                     const stopping_status *stop_status)
 {
@@ -213,7 +213,7 @@ void finish_arnoldi(std::shared_ptr<const HipExecutor> exec, size_type num_rows,
 
 
 template <typename ValueType>
-void givens_rotation(std::shared_ptr<const HipExecutor> exec,
+void givens_rotation(const std::shared_ptr<const DefaultExecutor> &exec,
                      matrix::Dense<ValueType> *givens_sin,
                      matrix::Dense<ValueType> *givens_cos,
                      matrix::Dense<ValueType> *hessenberg_iter,
@@ -245,8 +245,8 @@ void givens_rotation(std::shared_ptr<const HipExecutor> exec,
 
 
 template <typename ValueType>
-void step_1(std::shared_ptr<const HipExecutor> exec, size_type num_rows,
-            matrix::Dense<ValueType> *givens_sin,
+void step_1(const std::shared_ptr<const DefaultExecutor> &exec,
+            size_type num_rows, matrix::Dense<ValueType> *givens_sin,
             matrix::Dense<ValueType> *givens_cos,
             matrix::Dense<ValueType> *residual_norm,
             matrix::Dense<ValueType> *residual_norm_collection,
@@ -332,7 +332,7 @@ void calculate_qy(const matrix::Dense<ValueType> *krylov_bases,
 
 
 template <typename ValueType>
-void step_2(std::shared_ptr<const HipExecutor> exec,
+void step_2(const std::shared_ptr<const DefaultExecutor> &exec,
             const matrix::Dense<ValueType> *residual_norm_collection,
             const matrix::Dense<ValueType> *krylov_bases,
             const matrix::Dense<ValueType> *hessenberg,

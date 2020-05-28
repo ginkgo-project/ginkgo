@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/base/allocator.hpp"
 #include "core/base/iterator_factory.hpp"
-#include "core/components/prefix_sum.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "omp/components/format_conversion.hpp"
 
@@ -68,7 +68,7 @@ namespace csr {
 
 
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const OmpExecutor> exec,
+void spmv(const std::shared_ptr<const DefaultExecutor> &exec,
           const matrix::Csr<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
@@ -96,7 +96,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
+void advanced_spmv(const std::shared_ptr<const DefaultExecutor> &exec,
                    const matrix::Dense<ValueType> *alpha,
                    const matrix::Csr<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
@@ -205,7 +205,7 @@ void spgemm_accumulate_row2(map<IndexType, ValueType> &cols,
 
 
 template <typename ValueType, typename IndexType>
-void spgemm(std::shared_ptr<const OmpExecutor> exec,
+void spgemm(const std::shared_ptr<const DefaultExecutor> &exec,
             const matrix::Csr<ValueType, IndexType> *a,
             const matrix::Csr<ValueType, IndexType> *b,
             matrix::Csr<ValueType, IndexType> *c)
@@ -255,7 +255,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
+void advanced_spgemm(const std::shared_ptr<const DefaultExecutor> &exec,
                      const matrix::Dense<ValueType> *alpha,
                      const matrix::Csr<ValueType, IndexType> *a,
                      const matrix::Csr<ValueType, IndexType> *b,
@@ -321,16 +321,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename IndexType>
-void convert_row_ptrs_to_idxs(std::shared_ptr<const OmpExecutor> exec,
-                              const IndexType *ptrs, size_type num_rows,
-                              IndexType *idxs)
+void convert_row_ptrs_to_idxs(
+    const std::shared_ptr<const DefaultExecutor> &exec, const IndexType *ptrs,
+    size_type num_rows, IndexType *idxs)
 {
     convert_ptrs_to_idxs(ptrs, num_rows, idxs);
 }
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_coo(std::shared_ptr<const OmpExecutor> exec,
+void convert_to_coo(const std::shared_ptr<const DefaultExecutor> &exec,
                     const matrix::Csr<ValueType, IndexType> *source,
                     matrix::Coo<ValueType, IndexType> *result)
 {
@@ -347,7 +347,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
+void convert_to_dense(const std::shared_ptr<const DefaultExecutor> &exec,
                       const matrix::Csr<ValueType, IndexType> *source,
                       matrix::Dense<ValueType> *result)
 {
@@ -374,7 +374,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_sellp(std::shared_ptr<const OmpExecutor> exec,
+void convert_to_sellp(const std::shared_ptr<const DefaultExecutor> &exec,
                       const matrix::Csr<ValueType, IndexType> *source,
                       matrix::Sellp<ValueType, IndexType> *result)
     GKO_NOT_IMPLEMENTED;
@@ -384,7 +384,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_ell(std::shared_ptr<const OmpExecutor> exec,
+void convert_to_ell(const std::shared_ptr<const DefaultExecutor> &exec,
                     const matrix::Csr<ValueType, IndexType> *source,
                     matrix::Ell<ValueType, IndexType> *result)
     GKO_NOT_IMPLEMENTED;
@@ -411,7 +411,7 @@ inline void convert_csr_to_csc(size_type num_rows, const IndexType *row_ptrs,
 
 
 template <typename ValueType, typename IndexType, typename UnaryOperator>
-void transpose_and_transform(std::shared_ptr<const OmpExecutor> exec,
+void transpose_and_transform(const std::shared_ptr<const DefaultExecutor> &exec,
                              matrix::Csr<ValueType, IndexType> *trans,
                              const matrix::Csr<ValueType, IndexType> *orig,
                              UnaryOperator op)
@@ -437,7 +437,7 @@ void transpose_and_transform(std::shared_ptr<const OmpExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void transpose(std::shared_ptr<const OmpExecutor> exec,
+void transpose(const std::shared_ptr<const DefaultExecutor> &exec,
                const matrix::Csr<ValueType, IndexType> *orig,
                matrix::Csr<ValueType, IndexType> *trans)
 {
@@ -449,7 +449,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void conj_transpose(std::shared_ptr<const OmpExecutor> exec,
+void conj_transpose(const std::shared_ptr<const DefaultExecutor> &exec,
                     const matrix::Csr<ValueType, IndexType> *orig,
                     matrix::Csr<ValueType, IndexType> *trans)
 {
@@ -462,7 +462,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void calculate_total_cols(std::shared_ptr<const OmpExecutor> exec,
+void calculate_total_cols(const std::shared_ptr<const DefaultExecutor> &exec,
                           const matrix::Csr<ValueType, IndexType> *source,
                           size_type *result, size_type stride_factor,
                           size_type slice_size) GKO_NOT_IMPLEMENTED;
@@ -472,16 +472,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void calculate_max_nnz_per_row(std::shared_ptr<const OmpExecutor> exec,
-                               const matrix::Csr<ValueType, IndexType> *source,
-                               size_type *result) GKO_NOT_IMPLEMENTED;
+void calculate_max_nnz_per_row(
+    const std::shared_ptr<const DefaultExecutor> &exec,
+    const matrix::Csr<ValueType, IndexType> *source,
+    size_type *result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_hybrid(std::shared_ptr<const OmpExecutor> exec,
+void convert_to_hybrid(const std::shared_ptr<const DefaultExecutor> &exec,
                        const matrix::Csr<ValueType, IndexType> *source,
                        matrix::Hybrid<ValueType, IndexType> *result)
 {
@@ -557,7 +558,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void row_permute_impl(std::shared_ptr<const OmpExecutor> exec,
+void row_permute_impl(const std::shared_ptr<const DefaultExecutor> &exec,
                       const Array<IndexType> *permutation_indices,
                       const matrix::Csr<ValueType, IndexType> *orig,
                       matrix::Csr<ValueType, IndexType> *row_permuted)
@@ -599,7 +600,7 @@ void row_permute_impl(std::shared_ptr<const OmpExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void row_permute(std::shared_ptr<const OmpExecutor> exec,
+void row_permute(const std::shared_ptr<const DefaultExecutor> &exec,
                  const Array<IndexType> *permutation_indices,
                  const matrix::Csr<ValueType, IndexType> *orig,
                  matrix::Csr<ValueType, IndexType> *row_permuted)
@@ -612,7 +613,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void inverse_row_permute(std::shared_ptr<const OmpExecutor> exec,
+void inverse_row_permute(const std::shared_ptr<const DefaultExecutor> &exec,
                          const Array<IndexType> *permutation_indices,
                          const matrix::Csr<ValueType, IndexType> *orig,
                          matrix::Csr<ValueType, IndexType> *row_permuted)
@@ -662,7 +663,7 @@ void column_permute_impl(const Array<IndexType> *permutation_indices,
 
 
 template <typename ValueType, typename IndexType>
-void column_permute(std::shared_ptr<const OmpExecutor> exec,
+void column_permute(const std::shared_ptr<const DefaultExecutor> &exec,
                     const Array<IndexType> *permutation_indices,
                     const matrix::Csr<ValueType, IndexType> *orig,
                     matrix::Csr<ValueType, IndexType> *column_permuted)
@@ -682,7 +683,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void inverse_column_permute(std::shared_ptr<const OmpExecutor> exec,
+void inverse_column_permute(const std::shared_ptr<const DefaultExecutor> &exec,
                             const Array<IndexType> *permutation_indices,
                             const matrix::Csr<ValueType, IndexType> *orig,
                             matrix::Csr<ValueType, IndexType> *column_permuted)
@@ -695,9 +696,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void calculate_nonzeros_per_row(std::shared_ptr<const OmpExecutor> exec,
-                                const matrix::Csr<ValueType, IndexType> *source,
-                                Array<size_type> *result)
+void calculate_nonzeros_per_row(
+    const std::shared_ptr<const DefaultExecutor> &exec,
+    const matrix::Csr<ValueType, IndexType> *source, Array<size_type> *result)
 {
     const auto row_ptrs = source->get_const_row_ptrs();
     auto row_nnz_val = result->get_data();
@@ -713,7 +714,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void sort_by_column_index(std::shared_ptr<const OmpExecutor> exec,
+void sort_by_column_index(const std::shared_ptr<const DefaultExecutor> &exec,
                           matrix::Csr<ValueType, IndexType> *to_sort)
 {
     auto values = to_sort->get_values();
@@ -736,7 +737,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
-    std::shared_ptr<const OmpExecutor> exec,
+    const std::shared_ptr<const DefaultExecutor> &exec,
     const matrix::Csr<ValueType, IndexType> *to_check, bool *is_sorted)
 {
     const auto row_ptrs = to_check->get_const_row_ptrs();

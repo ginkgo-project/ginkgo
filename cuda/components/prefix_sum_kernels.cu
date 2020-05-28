@@ -30,69 +30,43 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 
 
-#include <memory>
-#include <random>
-#include <vector>
+#include "cuda/components/prefix_sum.cuh"
 
 
-#include <gtest/gtest.h>
+namespace gko {
+namespace kernels {
+namespace cuda {
+namespace components {
 
 
-#include <ginkgo/core/base/array.hpp>
+constexpr int prefix_sum_block_size = 512;
 
 
-#include "hip/test/utils.hip.hpp"
+template <typename IndexType>
+void prefix_sum(const std::shared_ptr<const DefaultExecutor> &exec,
+                IndexType *counts, size_type num_entries)
+{
+    auto num_blocks = ceildiv(num_entries, prefix_sum_block_size);
+    Array<IndexType> block_sum_array(exec, num_blocks);
+    auto block_sums = block_sum_array.get_data();
+    start_prefix_sum<prefix_sum_block_size>
+        <<<num_blocks, prefix_sum_block_size>>>(num_entries, counts,
+                                                block_sums);
+    finalize_prefix_sum<prefix_sum_block_size>
+        <<<num_blocks, prefix_sum_block_size>>>(num_entries, counts,
+                                                block_sums);
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
+
+// instantiate for size_type as well, as this is used in the Sellp format
+template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
 
 
-namespace {
-
-
-class PrefixSum : public ::testing::Test {
-protected:
-    using index_type = gko::int32;
-    PrefixSum()
-        : ref(gko::ReferenceExecutor::create()),
-          exec(gko::HipExecutor::create(0, ref)),
-          rand(293),
-          total_size(42793),
-          vals(ref, total_size),
-          dvals(exec)
-    {
-        std::uniform_int_distribution<index_type> dist(0, 1000);
-        for (gko::size_type i = 0; i < total_size; ++i) {
-            vals.get_data()[i] = dist(rand);
-        }
-        dvals = vals;
-    }
-
-    void test(gko::size_type size)
-    {
-        gko::kernels::reference::components::prefix_sum(ref, vals.get_data(),
-                                                        size);
-        gko::kernels::hip::components::prefix_sum(exec, dvals.get_data(), size);
-
-        gko::Array<index_type> dresult(ref, dvals);
-        auto dptr = dresult.get_const_data();
-        auto ptr = vals.get_const_data();
-        ASSERT_TRUE(std::equal(ptr, ptr + size, dptr));
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::HipExecutor> exec;
-    std::default_random_engine rand;
-    gko::size_type total_size;
-    gko::Array<index_type> vals;
-    gko::Array<index_type> dvals;
-};
-
-
-TEST_F(PrefixSum, SmallEqualsReference) { test(100); }
-
-
-TEST_F(PrefixSum, BigEqualsReference) { test(total_size); }
-
-
-}  // namespace
+}  // namespace components
+}  // namespace cuda
+}  // namespace kernels
+}  // namespace gko

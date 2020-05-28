@@ -74,10 +74,10 @@ constexpr int default_grid_size = 32 * 32 * 128;
 
 
 template <typename ValueType, typename IndexType>
-size_type find_natural_blocks(std::shared_ptr<const HipExecutor> exec,
-                              const matrix::Csr<ValueType, IndexType> *mtx,
-                              int32 max_block_size,
-                              IndexType *__restrict__ block_ptrs)
+size_type find_natural_blocks(
+    const std::shared_ptr<const DefaultExecutor> &exec,
+    const matrix::Csr<ValueType, IndexType> *mtx, int32 max_block_size,
+    IndexType *__restrict__ block_ptrs)
 {
     Array<size_type> nums(exec, 1);
 
@@ -101,7 +101,7 @@ size_type find_natural_blocks(std::shared_ptr<const HipExecutor> exec,
 
 template <typename IndexType>
 inline size_type agglomerate_supervariables(
-    std::shared_ptr<const HipExecutor> exec, int32 max_block_size,
+    const std::shared_ptr<const DefaultExecutor> &exec, int32 max_block_size,
     size_type num_natural_blocks, IndexType *block_ptrs)
 {
     Array<size_type> nums(exec, 1);
@@ -118,7 +118,7 @@ inline size_type agglomerate_supervariables(
 }  // namespace
 
 
-void initialize_precisions(std::shared_ptr<const HipExecutor> exec,
+void initialize_precisions(const std::shared_ptr<const DefaultExecutor> &exec,
                            const Array<precision_reduction> &source,
                            Array<precision_reduction> &precisions)
 {
@@ -134,7 +134,7 @@ void initialize_precisions(std::shared_ptr<const HipExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void find_blocks(std::shared_ptr<const HipExecutor> exec,
+void find_blocks(const std::shared_ptr<const DefaultExecutor> &exec,
                  const matrix::Csr<ValueType, IndexType> *system_matrix,
                  uint32 max_block_size, size_type &num_blocks,
                  Array<IndexType> &block_pointers)
@@ -151,7 +151,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_dense(
-    std::shared_ptr<const HipExecutor> exec, size_type num_blocks,
+    const std::shared_ptr<const DefaultExecutor> &exec, size_type num_blocks,
     const Array<precision_reduction> &block_precisions,
     const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>

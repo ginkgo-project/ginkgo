@@ -56,7 +56,7 @@ namespace bicgstab {
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const OmpExecutor> exec,
+void initialize(const std::shared_ptr<const DefaultExecutor> &exec,
                 const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *rr, matrix::Dense<ValueType> *y,
                 matrix::Dense<ValueType> *s, matrix::Dense<ValueType> *t,
@@ -96,7 +96,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
-void step_1(std::shared_ptr<const OmpExecutor> exec,
+void step_1(const std::shared_ptr<const DefaultExecutor> &exec,
             const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *v,
             const matrix::Dense<ValueType> *rho,
@@ -127,7 +127,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-void step_2(std::shared_ptr<const OmpExecutor> exec,
+void step_2(const std::shared_ptr<const DefaultExecutor> &exec,
             const matrix::Dense<ValueType> *r, matrix::Dense<ValueType> *s,
             const matrix::Dense<ValueType> *v,
             const matrix::Dense<ValueType> *rho,
@@ -157,12 +157,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
 
 template <typename ValueType>
 void step_3(
-    std::shared_ptr<const OmpExecutor> exec, matrix::Dense<ValueType> *x,
-    matrix::Dense<ValueType> *r, const matrix::Dense<ValueType> *s,
-    const matrix::Dense<ValueType> *t, const matrix::Dense<ValueType> *y,
-    const matrix::Dense<ValueType> *z, const matrix::Dense<ValueType> *alpha,
-    const matrix::Dense<ValueType> *beta, const matrix::Dense<ValueType> *gamma,
-    matrix::Dense<ValueType> *omega, const Array<stopping_status> *stop_status)
+    const std::shared_ptr<const DefaultExecutor> &exec,
+    matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
+    const matrix::Dense<ValueType> *s, const matrix::Dense<ValueType> *t,
+    const matrix::Dense<ValueType> *y, const matrix::Dense<ValueType> *z,
+    const matrix::Dense<ValueType> *alpha, const matrix::Dense<ValueType> *beta,
+    const matrix::Dense<ValueType> *gamma, matrix::Dense<ValueType> *omega,
+    const Array<stopping_status> *stop_status)
 {
 #pragma omp parallel for
     for (size_type j = 0; j < x->get_size()[1]; ++j) {
@@ -192,7 +193,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
 
 
 template <typename ValueType>
-void finalize(std::shared_ptr<const OmpExecutor> exec,
+void finalize(const std::shared_ptr<const DefaultExecutor> &exec,
               matrix::Dense<ValueType> *x, const matrix::Dense<ValueType> *y,
               const matrix::Dense<ValueType> *alpha,
               Array<stopping_status> *stop_status)

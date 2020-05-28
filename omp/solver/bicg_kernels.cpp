@@ -54,7 +54,7 @@ namespace bicg {
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const OmpExecutor> exec,
+void initialize(const std::shared_ptr<const DefaultExecutor> &exec,
                 const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *r,
                 matrix::Dense<ValueType> *z, matrix::Dense<ValueType> *p,
                 matrix::Dense<ValueType> *q, matrix::Dense<ValueType> *prev_rho,
@@ -84,7 +84,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_INITIALIZE_KERNEL);
 
 
 template <typename ValueType>
-void step_1(std::shared_ptr<const OmpExecutor> exec,
+void step_1(const std::shared_ptr<const DefaultExecutor> &exec,
             matrix::Dense<ValueType> *p, const matrix::Dense<ValueType> *z,
             matrix::Dense<ValueType> *p2, const matrix::Dense<ValueType> *z2,
             const matrix::Dense<ValueType> *rho,
@@ -113,7 +113,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_STEP_1_KERNEL);
 
 
 template <typename ValueType>
-void step_2(std::shared_ptr<const OmpExecutor> exec,
+void step_2(const std::shared_ptr<const DefaultExecutor> &exec,
             matrix::Dense<ValueType> *x, matrix::Dense<ValueType> *r,
             matrix::Dense<ValueType> *r2, const matrix::Dense<ValueType> *p,
             const matrix::Dense<ValueType> *q,

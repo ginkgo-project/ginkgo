@@ -105,7 +105,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_apply, apply);
 
 template <typename ValueType, typename IndexType>
 void simple_apply(
-    std::shared_ptr<const CudaExecutor> exec, size_type num_blocks,
+    const std::shared_ptr<const DefaultExecutor> &exec, size_type num_blocks,
     uint32 max_block_size,
     const preconditioner::block_interleaved_storage_scheme<IndexType>
         &storage_scheme,
@@ -115,16 +115,16 @@ void simple_apply(
 {
     // TODO: write a special kernel for multiple RHS
     for (size_type col = 0; col < b->get_size()[1]; ++col) {
-        select_apply(compiled_kernels(),
-                     [&](int compiled_block_size) {
-                         return max_block_size <= compiled_block_size;
-                     },
-                     syn::value_list<int, config::min_warps_per_block>(),
-                     syn::type_list<>(), num_blocks,
-                     block_precisions.get_const_data(),
-                     block_pointers.get_const_data(), blocks.get_const_data(),
-                     storage_scheme, b->get_const_values() + col,
-                     b->get_stride(), x->get_values() + col, x->get_stride());
+        select_apply(
+            compiled_kernels(),
+            [&](int compiled_block_size) {
+                return max_block_size <= compiled_block_size;
+            },
+            syn::value_list<int, config::min_warps_per_block>(),
+            syn::type_list<>(), num_blocks, block_precisions.get_const_data(),
+            block_pointers.get_const_data(), blocks.get_const_data(),
+            storage_scheme, b->get_const_values() + col, b->get_stride(),
+            x->get_values() + col, x->get_stride());
     }
 }
 

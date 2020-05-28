@@ -30,48 +30,29 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/precision_conversion_kernels.hpp"
 
 
 #include <algorithm>
-#include <memory>
-#include <vector>
 
 
-#include <gtest/gtest.h>
+namespace gko {
+namespace kernels {
+namespace reference {
+namespace components {
 
 
-#include "core/test/utils.hpp"
-
-
-namespace {
-
-
-template <typename T>
-class PrefixSum : public ::testing::Test {
-protected:
-    using index_type = T;
-    PrefixSum()
-        : exec(gko::ReferenceExecutor::create()),
-          vals{3, 5, 6, 7, 1, 5, 9, 7, 2, 0, 5},
-          expected{0, 3, 8, 14, 21, 22, 27, 36, 43, 45, 45}
-    {}
-
-    std::shared_ptr<const gko::ReferenceExecutor> exec;
-    std::vector<index_type> vals;
-    std::vector<index_type> expected;
-};
-
-TYPED_TEST_CASE(PrefixSum, gko::test::IndexTypes);
-
-
-TYPED_TEST(PrefixSum, Works)
+template <typename SourceType, typename TargetType>
+void convert_precision(const std::shared_ptr<const DefaultExecutor> &exec,
+                       size_type size, const SourceType *in, TargetType *out)
 {
-    gko::kernels::reference::components::prefix_sum(
-        this->exec, this->vals.data(), this->vals.size());
-
-    ASSERT_EQ(this->vals, this->expected);
+    std::copy_n(in, size, out);
 }
 
+GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);
 
-}  // namespace
+
+}  // namespace components
+}  // namespace reference
+}  // namespace kernels
+}  // namespace gko

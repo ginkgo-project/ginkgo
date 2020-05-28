@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 #include "cuda/base/config.hpp"
@@ -70,7 +70,7 @@ constexpr int warps_in_block = 4;
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
+void convert_to_dense(const std::shared_ptr<const DefaultExecutor> &exec,
                       const matrix::Hybrid<ValueType, IndexType> *source,
                       matrix::Dense<ValueType> *result) GKO_NOT_IMPLEMENTED;
 
@@ -79,7 +79,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
+void convert_to_csr(const std::shared_ptr<const DefaultExecutor> &exec,
                     const matrix::Hybrid<ValueType, IndexType> *source,
                     matrix::Csr<ValueType, IndexType> *result)
 {
@@ -146,7 +146,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void count_nonzeros(std::shared_ptr<const CudaExecutor> exec,
+void count_nonzeros(const std::shared_ptr<const DefaultExecutor> &exec,
                     const matrix::Hybrid<ValueType, IndexType> *source,
                     size_type *result)
 {

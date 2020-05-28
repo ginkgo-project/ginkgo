@@ -77,7 +77,7 @@ void forall_matching(const IndexType *fst, IndexType fst_size,
 
 
 template <typename ValueType, typename IndexType, typename Callable>
-void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
+void generic_generate(const std::shared_ptr<const DefaultExecutor> &exec,
                       const matrix::Csr<ValueType, IndexType> *mtx,
                       matrix::Csr<ValueType, IndexType> *inverse_mtx,
                       IndexType *excess_rhs_ptrs, IndexType *excess_nz_ptrs,
@@ -178,7 +178,7 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
+void generate_tri_inverse(const std::shared_ptr<const DefaultExecutor> &exec,
                           const matrix::Csr<ValueType, IndexType> *mtx,
                           matrix::Csr<ValueType, IndexType> *inverse_mtx,
                           IndexType *excess_rhs_ptrs, IndexType *excess_nz_ptrs,
@@ -229,7 +229,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void generate_excess_system(std::shared_ptr<const DefaultExecutor>,
+void generate_excess_system(const std::shared_ptr<const DefaultExecutor> &,
                             const matrix::Csr<ValueType, IndexType> *input,
                             const matrix::Csr<ValueType, IndexType> *inverse,
                             const IndexType *, const IndexType *,
@@ -289,7 +289,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void scatter_excess_solution(std::shared_ptr<const DefaultExecutor>,
+void scatter_excess_solution(const std::shared_ptr<const DefaultExecutor> &,
                              const IndexType *excess_block_ptrs,
                              const matrix::Dense<ValueType> *excess_solution,
                              matrix::Csr<ValueType, IndexType> *inverse)

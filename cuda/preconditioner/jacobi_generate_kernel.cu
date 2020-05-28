@@ -112,7 +112,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generate, generate);
 
 
 template <typename ValueType, typename IndexType>
-void generate(std::shared_ptr<const CudaExecutor> exec,
+void generate(const std::shared_ptr<const DefaultExecutor> &exec,
               const matrix::Csr<ValueType, IndexType> *system_matrix,
               size_type num_blocks, uint32 max_block_size,
               remove_complex<ValueType> accuracy,
@@ -123,15 +123,15 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
     zero_array(blocks.get_num_elems(), blocks.get_data());
-    select_generate(compiled_kernels(),
-                    [&](int compiled_block_size) {
-                        return max_block_size <= compiled_block_size;
-                    },
-                    syn::value_list<int, config::min_warps_per_block>(),
-                    syn::type_list<>(), system_matrix, accuracy,
-                    blocks.get_data(), storage_scheme, conditioning.get_data(),
-                    block_precisions.get_data(),
-                    block_pointers.get_const_data(), num_blocks);
+    select_generate(
+        compiled_kernels(),
+        [&](int compiled_block_size) {
+            return max_block_size <= compiled_block_size;
+        },
+        syn::value_list<int, config::min_warps_per_block>(), syn::type_list<>(),
+        system_matrix, accuracy, blocks.get_data(), storage_scheme,
+        conditioning.get_data(), block_precisions.get_data(),
+        block_pointers.get_const_data(), num_blocks);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

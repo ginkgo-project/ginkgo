@@ -45,32 +45,32 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_SELLP_SPMV_KERNEL(ValueType, IndexType) \
-    void spmv(std::shared_ptr<const DefaultExecutor> exec,  \
-              const matrix::Sellp<ValueType, IndexType> *a, \
+#define GKO_DECLARE_SELLP_SPMV_KERNEL(ValueType, IndexType)       \
+    void spmv(const std::shared_ptr<const DefaultExecutor> &exec, \
+              const matrix::Sellp<ValueType, IndexType> *a,       \
               const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 
-#define GKO_DECLARE_SELLP_ADVANCED_SPMV_KERNEL(ValueType, IndexType) \
-    void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,  \
-                       const matrix::Dense<ValueType> *alpha,        \
-                       const matrix::Sellp<ValueType, IndexType> *a, \
-                       const matrix::Dense<ValueType> *b,            \
-                       const matrix::Dense<ValueType> *beta,         \
+#define GKO_DECLARE_SELLP_ADVANCED_SPMV_KERNEL(ValueType, IndexType)       \
+    void advanced_spmv(const std::shared_ptr<const DefaultExecutor> &exec, \
+                       const matrix::Dense<ValueType> *alpha,              \
+                       const matrix::Sellp<ValueType, IndexType> *a,       \
+                       const matrix::Dense<ValueType> *b,                  \
+                       const matrix::Dense<ValueType> *beta,               \
                        matrix::Dense<ValueType> *c)
 
-#define GKO_DECLARE_SELLP_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)      \
-    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,       \
-                          const matrix::Sellp<ValueType, IndexType> *source, \
+#define GKO_DECLARE_SELLP_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)       \
+    void convert_to_dense(const std::shared_ptr<const DefaultExecutor> &exec, \
+                          const matrix::Sellp<ValueType, IndexType> *source,  \
                           matrix::Dense<ValueType> *result)
 
-#define GKO_DECLARE_SELLP_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)      \
-    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,       \
-                        const matrix::Sellp<ValueType, IndexType> *source, \
+#define GKO_DECLARE_SELLP_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)       \
+    void convert_to_csr(const std::shared_ptr<const DefaultExecutor> &exec, \
+                        const matrix::Sellp<ValueType, IndexType> *source,  \
                         matrix::Csr<ValueType, IndexType> *result)
 
-#define GKO_DECLARE_SELLP_COUNT_NONZEROS_KERNEL(ValueType, IndexType)      \
-    void count_nonzeros(std::shared_ptr<const DefaultExecutor> exec,       \
-                        const matrix::Sellp<ValueType, IndexType> *source, \
+#define GKO_DECLARE_SELLP_COUNT_NONZEROS_KERNEL(ValueType, IndexType)       \
+    void count_nonzeros(const std::shared_ptr<const DefaultExecutor> &exec, \
+                        const matrix::Sellp<ValueType, IndexType> *source,  \
                         size_type *result)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                 \

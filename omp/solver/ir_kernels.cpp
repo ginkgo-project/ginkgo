@@ -47,7 +47,7 @@ namespace omp {
 namespace ir {
 
 
-void initialize(std::shared_ptr<const OmpExecutor> exec,
+void initialize(const std::shared_ptr<const DefaultExecutor> &exec,
                 Array<stopping_status> *stop_status)
 {
 #pragma omp parallel for

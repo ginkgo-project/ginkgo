@@ -78,8 +78,8 @@ GKO_REGISTER_OPERATION(scatter_excess_solution, isai::scatter_excess_solution);
  */
 template <typename Csr>
 std::shared_ptr<const Csr> convert_to_csr_and_sort(
-    std::shared_ptr<const Executor> &exec, std::shared_ptr<const LinOp> mtx,
-    bool skip_sorting)
+    const std::shared_ptr<const Executor> &exec,
+    std::shared_ptr<const LinOp> mtx, bool skip_sorting)
 {
     static_assert(
         std::is_same<Csr, matrix::Csr<typename Csr::value_type,
@@ -114,8 +114,9 @@ std::shared_ptr<const Csr> convert_to_csr_and_sort(
  * If `power` is 1, the matrix will be returned unchanged.
  */
 template <typename Csr>
-std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor> &exec,
-                                     std::shared_ptr<const Csr> mtx, int power)
+std::shared_ptr<Csr> extend_sparsity(
+    const std::shared_ptr<const Executor> &exec, std::shared_ptr<const Csr> mtx,
+    int power)
 {
     GKO_ASSERT_EQ(power >= 1, true);
     if (power == 1) {

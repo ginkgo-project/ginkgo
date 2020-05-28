@@ -44,7 +44,7 @@ namespace reference {
 namespace ir {
 
 
-void initialize(std::shared_ptr<const ReferenceExecutor> exec,
+void initialize(const std::shared_ptr<const DefaultExecutor> &exec,
                 Array<stopping_status> *stop_status)
 {
     for (size_type j = 0; j < stop_status->get_num_elems(); ++j) {

@@ -59,14 +59,14 @@ namespace omp {
 namespace upper_trs {
 
 
-void should_perform_transpose(std::shared_ptr<const OmpExecutor> exec,
-                              bool &do_transpose)
+void should_perform_transpose(
+    const std::shared_ptr<const DefaultExecutor> &exec, bool &do_transpose)
 {
     do_transpose = false;
 }
 
 
-void init_struct(std::shared_ptr<const OmpExecutor> exec,
+void init_struct(const std::shared_ptr<const DefaultExecutor> &exec,
                  std::shared_ptr<solver::SolveStruct> &solve_struct)
 {
     // This init kernel is here to allow initialization of the solve struct for
@@ -75,7 +75,7 @@ void init_struct(std::shared_ptr<const OmpExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void generate(std::shared_ptr<const OmpExecutor> exec,
+void generate(const std::shared_ptr<const DefaultExecutor> &exec,
               const matrix::Csr<ValueType, IndexType> *matrix,
               solver::SolveStruct *solve_struct, const gko::size_type num_rhs)
 {
@@ -93,7 +93,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
  * versions <=9.1 due to a limitation in the cssrsm_solve algorithm
  */
 template <typename ValueType, typename IndexType>
-void solve(std::shared_ptr<const OmpExecutor> exec,
+void solve(const std::shared_ptr<const DefaultExecutor> &exec,
            const matrix::Csr<ValueType, IndexType> *matrix,
            const solver::SolveStruct *solve_struct,
            matrix::Dense<ValueType> *trans_b, matrix::Dense<ValueType> *trans_x,

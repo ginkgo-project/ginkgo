@@ -60,7 +60,7 @@ namespace detail {
  * to `TargetType` stored at `dst`.
  */
 template <typename SourceType, typename TargetType>
-void convert_data(std::shared_ptr<const Executor> exec, size_type size,
+void convert_data(const std::shared_ptr<const Executor> &exec, size_type size,
                   const SourceType *src, TargetType *dst);
 
 

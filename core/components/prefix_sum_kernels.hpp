@@ -30,39 +30,71 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/precision_conversion.hpp"
+#ifndef GKO_CORE_COMPONENTS_PREFIX_SUM_KERNELS_HPP_
+#define GKO_CORE_COMPONENTS_PREFIX_SUM_KERNELS_HPP_
 
 
-#include "hip/base/types.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
+#include <memory>
+
+
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
 namespace kernels {
+
+
+#define GKO_DECLARE_PREFIX_SUM_KERNEL(IndexType)                        \
+    void prefix_sum(const std::shared_ptr<const DefaultExecutor> &exec, \
+                    IndexType *counts, size_type num_entries)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES \
+    template <typename IndexType>    \
+    GKO_DECLARE_PREFIX_SUM_KERNEL(IndexType)
+
+
+namespace omp {
+namespace components {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace components
+}  // namespace omp
+
+
+namespace cuda {
+namespace components {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace components
+}  // namespace cuda
+
+
+namespace reference {
+namespace components {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace components
+}  // namespace reference
+
+
 namespace hip {
 namespace components {
 
-
-constexpr int default_block_size = 512;
-
-
-#include "common/components/precision_conversion.hpp.inc"
-
-
-template <typename SourceType, typename TargetType>
-void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
-                       size_type size, const SourceType *in, TargetType *out)
-{
-    auto num_blocks = ceildiv(size, default_block_size);
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(convert_precision), num_blocks,
-                       default_block_size, 0, 0, size, as_hip_type(in),
-                       as_hip_type(out));
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);
-
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace components
 }  // namespace hip
+
+
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
+
+
 }  // namespace kernels
 }  // namespace gko
+
+#endif  // GKO_CORE_COMPONENTS_PREFIX_SUM_KERNELS_HPP_

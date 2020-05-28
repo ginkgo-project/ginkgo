@@ -53,7 +53,7 @@ namespace par_ilu_factorization {
 
 
 template <typename ValueType, typename IndexType>
-void compute_l_u_factors(std::shared_ptr<const ReferenceExecutor> exec,
+void compute_l_u_factors(const std::shared_ptr<const DefaultExecutor> &exec,
                          size_type iterations,
                          const matrix::Coo<ValueType, IndexType> *system_matrix,
                          matrix::Csr<ValueType, IndexType> *l_factor,

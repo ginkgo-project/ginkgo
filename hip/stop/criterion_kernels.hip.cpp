@@ -68,8 +68,9 @@ __global__ __launch_bounds__(default_block_size) void set_all_statuses(
 }
 
 
-void set_all_statuses(std::shared_ptr<const HipExecutor> exec, uint8 stoppingId,
-                      bool setFinalized, Array<stopping_status> *stop_status)
+void set_all_statuses(const std::shared_ptr<const DefaultExecutor> &exec,
+                      uint8 stoppingId, bool setFinalized,
+                      Array<stopping_status> *stop_status)
 {
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(stop_status->get_num_elems(), block_size.x), 1,

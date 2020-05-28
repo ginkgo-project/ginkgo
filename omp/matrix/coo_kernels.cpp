@@ -62,7 +62,7 @@ namespace coo {
 
 
 template <typename ValueType, typename IndexType>
-void spmv(std::shared_ptr<const OmpExecutor> exec,
+void spmv(const std::shared_ptr<const DefaultExecutor> &exec,
           const matrix::Coo<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
@@ -78,7 +78,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
+void advanced_spmv(const std::shared_ptr<const DefaultExecutor> &exec,
                    const matrix::Dense<ValueType> *alpha,
                    const matrix::Coo<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
@@ -99,7 +99,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void spmv2(std::shared_ptr<const OmpExecutor> exec,
+void spmv2(const std::shared_ptr<const DefaultExecutor> &exec,
            const matrix::Coo<ValueType, IndexType> *a,
            const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
@@ -120,7 +120,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
+void advanced_spmv2(const std::shared_ptr<const DefaultExecutor> &exec,
                     const matrix::Dense<ValueType> *alpha,
                     const matrix::Coo<ValueType, IndexType> *a,
                     const matrix::Dense<ValueType> *b,
@@ -146,16 +146,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename IndexType>
-void convert_row_idxs_to_ptrs(std::shared_ptr<const OmpExecutor> exec,
-                              const IndexType *idxs, size_type num_nonzeros,
-                              IndexType *ptrs, size_type length)
+void convert_row_idxs_to_ptrs(
+    const std::shared_ptr<const DefaultExecutor> &exec, const IndexType *idxs,
+    size_type num_nonzeros, IndexType *ptrs, size_type length)
 {
     convert_sorted_idxs_to_ptrs(idxs, num_nonzeros, ptrs, length);
 }
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const OmpExecutor> exec,
+void convert_to_csr(const std::shared_ptr<const DefaultExecutor> &exec,
                     const matrix::Coo<ValueType, IndexType> *source,
                     matrix::Csr<ValueType, IndexType> *result)
 {
@@ -175,7 +175,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
+void convert_to_dense(const std::shared_ptr<const DefaultExecutor> &exec,
                       const matrix::Coo<ValueType, IndexType> *source,
                       matrix::Dense<ValueType> *result)
 {

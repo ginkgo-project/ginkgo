@@ -44,120 +44,123 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(_type)               \
-    void simple_apply(std::shared_ptr<const DefaultExecutor> exec, \
-                      const matrix::Dense<_type> *a,               \
+#define GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(_type)                      \
+    void simple_apply(const std::shared_ptr<const DefaultExecutor> &exec, \
+                      const matrix::Dense<_type> *a,                      \
                       const matrix::Dense<_type> *b, matrix::Dense<_type> *c)
 
 #define GKO_DECLARE_DENSE_APPLY_KERNEL(_type)                                \
-    void apply(std::shared_ptr<const DefaultExecutor> exec,                  \
+    void apply(const std::shared_ptr<const DefaultExecutor> &exec,           \
                const matrix::Dense<_type> *alpha,                            \
                const matrix::Dense<_type> *a, const matrix::Dense<_type> *b, \
                const matrix::Dense<_type> *beta, matrix::Dense<_type> *c)
 
-#define GKO_DECLARE_DENSE_SCALE_KERNEL(_type)               \
-    void scale(std::shared_ptr<const DefaultExecutor> exec, \
+#define GKO_DECLARE_DENSE_SCALE_KERNEL(_type)                      \
+    void scale(const std::shared_ptr<const DefaultExecutor> &exec, \
                const matrix::Dense<_type> *alpha, matrix::Dense<_type> *x)
 
-#define GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(_type)               \
-    void add_scaled(std::shared_ptr<const DefaultExecutor> exec, \
-                    const matrix::Dense<_type> *alpha,           \
+#define GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(_type)                      \
+    void add_scaled(const std::shared_ptr<const DefaultExecutor> &exec, \
+                    const matrix::Dense<_type> *alpha,                  \
                     const matrix::Dense<_type> *x, matrix::Dense<_type> *y)
 
-#define GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(_type)               \
-    void compute_dot(std::shared_ptr<const DefaultExecutor> exec, \
-                     const matrix::Dense<_type> *x,               \
-                     const matrix::Dense<_type> *y,               \
+#define GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(_type)                      \
+    void compute_dot(const std::shared_ptr<const DefaultExecutor> &exec, \
+                     const matrix::Dense<_type> *x,                      \
+                     const matrix::Dense<_type> *y,                      \
                      matrix::Dense<_type> *result)
 
-#define GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL(_type)               \
-    void compute_norm2(std::shared_ptr<const DefaultExecutor> exec, \
-                       const matrix::Dense<_type> *x,               \
+#define GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL(_type)                      \
+    void compute_norm2(const std::shared_ptr<const DefaultExecutor> &exec, \
+                       const matrix::Dense<_type> *x,                      \
                        matrix::Dense<_type> *result)
 
-#define GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(_type, _prec)        \
-    void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec, \
-                        const matrix::Dense<_type> *source,          \
+#define GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(_type, _prec)               \
+    void convert_to_coo(const std::shared_ptr<const DefaultExecutor> &exec, \
+                        const matrix::Dense<_type> *source,                 \
                         matrix::Coo<_type, _prec> *other)
 
-#define GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(_type, _prec)        \
-    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec, \
-                        const matrix::Dense<_type> *source,          \
+#define GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(_type, _prec)               \
+    void convert_to_csr(const std::shared_ptr<const DefaultExecutor> &exec, \
+                        const matrix::Dense<_type> *source,                 \
                         matrix::Csr<_type, _prec> *other)
 
-#define GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL(_type, _prec)        \
-    void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec, \
-                        const matrix::Dense<_type> *source,          \
+#define GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL(_type, _prec)               \
+    void convert_to_ell(const std::shared_ptr<const DefaultExecutor> &exec, \
+                        const matrix::Dense<_type> *source,                 \
                         matrix::Ell<_type, _prec> *other)
 
-#define GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL(_type, _prec)        \
-    void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec, \
-                           const matrix::Dense<_type> *source,          \
+#define GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL(_type, _prec)               \
+    void convert_to_hybrid(const std::shared_ptr<const DefaultExecutor> &exec, \
+                           const matrix::Dense<_type> *source,                 \
                            matrix::Hybrid<_type, _prec> *other)
 
-#define GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL(_type, _prec)        \
-    void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec, \
-                          const matrix::Dense<_type> *source,          \
+#define GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL(_type, _prec)               \
+    void convert_to_sellp(const std::shared_ptr<const DefaultExecutor> &exec, \
+                          const matrix::Dense<_type> *source,                 \
                           matrix::Sellp<_type, _prec> *other)
 
-#define GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_CSR_KERNEL(_type, _prec)        \
-    void convert_to_sparsity_csr(std::shared_ptr<const DefaultExecutor> exec, \
-                                 const matrix::Dense<_type> *source,          \
-                                 matrix::SparsityCsr<_type, _prec> *other)
+#define GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_CSR_KERNEL(_type, _prec) \
+    void convert_to_sparsity_csr(                                      \
+        const std::shared_ptr<const DefaultExecutor> &exec,            \
+        const matrix::Dense<_type> *source,                            \
+        matrix::SparsityCsr<_type, _prec> *other)
 
-#define GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(_type)               \
-    void count_nonzeros(std::shared_ptr<const DefaultExecutor> exec, \
+#define GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(_type)                      \
+    void count_nonzeros(const std::shared_ptr<const DefaultExecutor> &exec, \
                         const matrix::Dense<_type> *source, size_type *result)
 
 #define GKO_DECLARE_DENSE_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(_type) \
     void calculate_max_nnz_per_row(                               \
-        std::shared_ptr<const DefaultExecutor> exec,              \
+        const std::shared_ptr<const DefaultExecutor> &exec,       \
         const matrix::Dense<_type> *source, size_type *result)
 
 #define GKO_DECLARE_DENSE_CALCULATE_NONZEROS_PER_ROW_KERNEL(_type) \
     void calculate_nonzeros_per_row(                               \
-        std::shared_ptr<const DefaultExecutor> exec,               \
+        const std::shared_ptr<const DefaultExecutor> &exec,        \
         const matrix::Dense<_type> *source, Array<size_type> *result)
 
-#define GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL(_type)               \
-    void calculate_total_cols(std::shared_ptr<const DefaultExecutor> exec, \
-                              const matrix::Dense<_type> *source,          \
-                              size_type *result, size_type stride_factor,  \
-                              size_type slice_size)
+#define GKO_DECLARE_DENSE_CALCULATE_TOTAL_COLS_KERNEL(_type)   \
+    void calculate_total_cols(                                 \
+        const std::shared_ptr<const DefaultExecutor> &exec,    \
+        const matrix::Dense<_type> *source, size_type *result, \
+        size_type stride_factor, size_type slice_size)
 
-#define GKO_DECLARE_TRANSPOSE_KERNEL(_type)                     \
-    void transpose(std::shared_ptr<const DefaultExecutor> exec, \
-                   const matrix::Dense<_type> *orig,            \
+#define GKO_DECLARE_TRANSPOSE_KERNEL(_type)                            \
+    void transpose(const std::shared_ptr<const DefaultExecutor> &exec, \
+                   const matrix::Dense<_type> *orig,                   \
                    matrix::Dense<_type> *trans)
 
-#define GKO_DECLARE_CONJ_TRANSPOSE_KERNEL(_type)                     \
-    void conj_transpose(std::shared_ptr<const DefaultExecutor> exec, \
-                        const matrix::Dense<_type> *orig,            \
+#define GKO_DECLARE_CONJ_TRANSPOSE_KERNEL(_type)                            \
+    void conj_transpose(const std::shared_ptr<const DefaultExecutor> &exec, \
+                        const matrix::Dense<_type> *orig,                   \
                         matrix::Dense<_type> *trans)
 
-#define GKO_DECLARE_ROW_PERMUTE_KERNEL(_vtype, _itype)            \
-    void row_permute(std::shared_ptr<const DefaultExecutor> exec, \
-                     const Array<_itype> *permutation_indices,    \
-                     const matrix::Dense<_vtype> *orig,           \
+#define GKO_DECLARE_ROW_PERMUTE_KERNEL(_vtype, _itype)                   \
+    void row_permute(const std::shared_ptr<const DefaultExecutor> &exec, \
+                     const Array<_itype> *permutation_indices,           \
+                     const matrix::Dense<_vtype> *orig,                  \
                      matrix::Dense<_vtype> *row_permuted)
 
-#define GKO_DECLARE_COLUMN_PERMUTE_KERNEL(_vtype, _itype)            \
-    void column_permute(std::shared_ptr<const DefaultExecutor> exec, \
-                        const Array<_itype> *permutation_indices,    \
-                        const matrix::Dense<_vtype> *orig,           \
+#define GKO_DECLARE_COLUMN_PERMUTE_KERNEL(_vtype, _itype)                   \
+    void column_permute(const std::shared_ptr<const DefaultExecutor> &exec, \
+                        const Array<_itype> *permutation_indices,           \
+                        const matrix::Dense<_vtype> *orig,                  \
                         matrix::Dense<_vtype> *column_permuted)
 
-#define GKO_DECLARE_INVERSE_ROW_PERMUTE_KERNEL(_vtype, _itype)            \
-    void inverse_row_permute(std::shared_ptr<const DefaultExecutor> exec, \
-                             const Array<_itype> *permutation_indices,    \
-                             const matrix::Dense<_vtype> *orig,           \
-                             matrix::Dense<_vtype> *row_permuted)
+#define GKO_DECLARE_INVERSE_ROW_PERMUTE_KERNEL(_vtype, _itype) \
+    void inverse_row_permute(                                  \
+        const std::shared_ptr<const DefaultExecutor> &exec,    \
+        const Array<_itype> *permutation_indices,              \
+        const matrix::Dense<_vtype> *orig,                     \
+        matrix::Dense<_vtype> *row_permuted)
 
-#define GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL(_vtype, _itype)            \
-    void inverse_column_permute(std::shared_ptr<const DefaultExecutor> exec, \
-                                const Array<_itype> *permutation_indices,    \
-                                const matrix::Dense<_vtype> *orig,           \
-                                matrix::Dense<_vtype> *column_permuted)
+#define GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL(_vtype, _itype) \
+    void inverse_column_permute(                                  \
+        const std::shared_ptr<const DefaultExecutor> &exec,       \
+        const Array<_itype> *permutation_indices,                 \
+        const matrix::Dense<_vtype> *orig,                        \
+        matrix::Dense<_vtype> *column_permuted)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
     template <typename ValueType>                                           \

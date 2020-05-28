@@ -45,14 +45,14 @@ namespace kernels {
 
 
 #define GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType)          \
-    void find_blocks(std::shared_ptr<const DefaultExecutor> exec,            \
+    void find_blocks(const std::shared_ptr<const DefaultExecutor> &exec,     \
                      const matrix::Csr<ValueType, IndexType> *system_matrix, \
                      uint32 max_block_size, size_type &num_blocks,           \
                      Array<IndexType> &block_pointers)
 
 #define GKO_DECLARE_JACOBI_GENERATE_KERNEL(ValueType, IndexType)          \
     void generate(                                                        \
-        std::shared_ptr<const DefaultExecutor> exec,                      \
+        const std::shared_ptr<const DefaultExecutor> &exec,               \
         const matrix::Csr<ValueType, IndexType> *system_matrix,           \
         size_type num_blocks, uint32 max_block_size,                      \
         remove_complex<ValueType> accuracy,                               \
@@ -64,8 +64,8 @@ namespace kernels {
 
 #define GKO_DECLARE_JACOBI_APPLY_KERNEL(ValueType, IndexType)                  \
     void apply(                                                                \
-        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,     \
-        uint32 max_block_size,                                                 \
+        const std::shared_ptr<const DefaultExecutor> &exec,                    \
+        size_type num_blocks, uint32 max_block_size,                           \
         const preconditioner::block_interleaved_storage_scheme<IndexType>      \
             &storage_scheme,                                                   \
         const Array<precision_reduction> &block_precisions,                    \
@@ -76,8 +76,8 @@ namespace kernels {
 
 #define GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL(ValueType, IndexType)       \
     void simple_apply(                                                     \
-        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks, \
-        uint32 max_block_size,                                             \
+        const std::shared_ptr<const DefaultExecutor> &exec,                \
+        size_type num_blocks, uint32 max_block_size,                       \
         const preconditioner::block_interleaved_storage_scheme<IndexType>  \
             &storage_scheme,                                               \
         const Array<precision_reduction> &block_precisions,                \
@@ -85,20 +85,22 @@ namespace kernels {
         const Array<ValueType> &blocks, const matrix::Dense<ValueType> *b, \
         matrix::Dense<ValueType> *x)
 
-#define GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)   \
-    void convert_to_dense(                                                 \
-        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks, \
-        const Array<precision_reduction> &block_precisions,                \
-        const Array<IndexType> &block_pointers,                            \
-        const Array<ValueType> &blocks,                                    \
-        const preconditioner::block_interleaved_storage_scheme<IndexType>  \
-            &storage_scheme,                                               \
+#define GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)  \
+    void convert_to_dense(                                                \
+        const std::shared_ptr<const DefaultExecutor> &exec,               \
+        size_type num_blocks,                                             \
+        const Array<precision_reduction> &block_precisions,               \
+        const Array<IndexType> &block_pointers,                           \
+        const Array<ValueType> &blocks,                                   \
+        const preconditioner::block_interleaved_storage_scheme<IndexType> \
+            &storage_scheme,                                              \
         ValueType *result_values, size_type result_stride)
 
-#define GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL()                   \
-    void initialize_precisions(std::shared_ptr<const DefaultExecutor> exec, \
-                               const Array<precision_reduction> &source,    \
-                               Array<precision_reduction> &precisions)
+#define GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL()   \
+    void initialize_precisions(                             \
+        const std::shared_ptr<const DefaultExecutor> &exec, \
+        const Array<precision_reduction> &source,           \
+        Array<precision_reduction> &precisions)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
     template <typename ValueType, typename IndexType>                 \

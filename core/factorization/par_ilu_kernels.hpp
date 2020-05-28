@@ -50,7 +50,8 @@ namespace kernels {
 
 #define GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL(ValueType, IndexType) \
     void compute_l_u_factors(                                                \
-        std::shared_ptr<const DefaultExecutor> exec, size_type iterations,   \
+        const std::shared_ptr<const DefaultExecutor> &exec,                  \
+        size_type iterations,                                                \
         const matrix::Coo<ValueType, IndexType> *system_matrix,              \
         matrix::Csr<ValueType, IndexType> *l_factor,                         \
         matrix::Csr<ValueType, IndexType> *u_factor)

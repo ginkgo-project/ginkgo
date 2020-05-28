@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
-#include "core/components/precision_conversion.hpp"
+#include "core/components/precision_conversion_kernels.hpp"
 
 
 namespace gko {
@@ -53,16 +53,16 @@ namespace detail {
 
 
 template <typename SourceType, typename TargetType>
-void convert_data(std::shared_ptr<const Executor> exec, size_type size,
+void convert_data(const std::shared_ptr<const Executor> &exec, size_type size,
                   const SourceType *src, TargetType *dst)
 {
     exec->run(conversion::make_convert(size, src, dst));
 }
 
 
-#define GKO_DECLARE_ARRAY_CONVERSION(From, To)                              \
-    void convert_data<From, To>(std::shared_ptr<const Executor>, size_type, \
-                                const From *, To *)
+#define GKO_DECLARE_ARRAY_CONVERSION(From, To)                           \
+    void convert_data<From, To>(const std::shared_ptr<const Executor> &, \
+                                size_type, const From *, To *)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_ARRAY_CONVERSION);
 

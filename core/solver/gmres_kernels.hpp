@@ -47,24 +47,24 @@ namespace gmres {
 
 #define GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL(_type)                           \
     void initialize_1(                                                         \
-        std::shared_ptr<const DefaultExecutor> exec,                           \
+        const std::shared_ptr<const DefaultExecutor> &exec,                    \
         const matrix::Dense<_type> *b, matrix::Dense<_type> *b_norm,           \
         matrix::Dense<_type> *residual, matrix::Dense<_type> *givens_sin,      \
         matrix::Dense<_type> *givens_cos, Array<stopping_status> *stop_status, \
         size_type krylov_dim)
 
 
-#define GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(_type)                  \
-    void initialize_2(std::shared_ptr<const DefaultExecutor> exec,    \
-                      const matrix::Dense<_type> *residual,           \
-                      matrix::Dense<_type> *residual_norm,            \
-                      matrix::Dense<_type> *residual_norm_collection, \
-                      matrix::Dense<_type> *krylov_bases,             \
+#define GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL(_type)                      \
+    void initialize_2(const std::shared_ptr<const DefaultExecutor> &exec, \
+                      const matrix::Dense<_type> *residual,               \
+                      matrix::Dense<_type> *residual_norm,                \
+                      matrix::Dense<_type> *residual_norm_collection,     \
+                      matrix::Dense<_type> *krylov_bases,                 \
                       Array<size_type> *final_iter_nums, size_type krylov_dim)
 
 
 #define GKO_DECLARE_GMRES_STEP_1_KERNEL(_type)                        \
-    void step_1(std::shared_ptr<const DefaultExecutor> exec,          \
+    void step_1(const std::shared_ptr<const DefaultExecutor> &exec,   \
                 size_type num_rows, matrix::Dense<_type> *givens_sin, \
                 matrix::Dense<_type> *givens_cos,                     \
                 matrix::Dense<_type> *residual_norm,                  \
@@ -77,7 +77,7 @@ namespace gmres {
 
 
 #define GKO_DECLARE_GMRES_STEP_2_KERNEL(_type)                        \
-    void step_2(std::shared_ptr<const DefaultExecutor> exec,          \
+    void step_2(const std::shared_ptr<const DefaultExecutor> &exec,   \
                 const matrix::Dense<_type> *residual_norm_collection, \
                 const matrix::Dense<_type> *krylov_bases,             \
                 const matrix::Dense<_type> *hessenberg,               \

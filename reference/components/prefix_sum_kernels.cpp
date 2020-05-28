@@ -30,18 +30,18 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace omp {
+namespace reference {
 namespace components {
 
 
 template <typename IndexType>
-void prefix_sum(std::shared_ptr<const OmpExecutor> exec, IndexType *counts,
-                size_type num_entries)
+void prefix_sum(const std::shared_ptr<const DefaultExecutor> &exec,
+                IndexType *counts, size_type num_entries)
 {
     IndexType partial_sum{};
     for (IndexType i = 0; i < num_entries; ++i) {
@@ -58,6 +58,6 @@ template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
 
 
 }  // namespace components
-}  // namespace omp
+}  // namespace reference
 }  // namespace kernels
 }  // namespace gko
