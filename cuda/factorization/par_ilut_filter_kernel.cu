@@ -152,7 +152,6 @@ void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
         m_out_coo, lower);
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_KERNEL);
 

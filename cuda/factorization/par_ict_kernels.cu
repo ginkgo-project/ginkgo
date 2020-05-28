@@ -177,7 +177,6 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
         syn::value_list<int>(), syn::type_list<>(), exec, llt, a, l, l_new);
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ICT_ADD_CANDIDATES_KERNEL);
 
@@ -199,7 +198,6 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
         },
         syn::value_list<int>(), syn::type_list<>(), exec, a, l, l_coo);
 }
-
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ICT_COMPUTE_FACTOR_KERNEL);

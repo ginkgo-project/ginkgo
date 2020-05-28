@@ -207,7 +207,6 @@ void compute_dot(std::shared_ptr<const CudaExecutor> exec,
     }
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 
 
