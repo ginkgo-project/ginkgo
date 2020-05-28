@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
     auto A = gko::share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     // Create RHS and initial guess as 1
     gko::size_type num_rows = A->get_size()[0];
-    auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));
+    auto host_x = vec::create(exec->get_master(), gko::dim<2>(num_rows, 1));
     for (gko::size_type i = 0; i < num_rows; i++) {
         host_x->at(i, 0) = 1.;
     }
