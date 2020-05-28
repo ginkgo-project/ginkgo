@@ -113,7 +113,6 @@ void transpose(std::shared_ptr<const HipExecutor> exec,
                matrix::SparsityCsr<ValueType, IndexType> *trans)
     GKO_NOT_IMPLEMENTED;
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL);
 

@@ -121,7 +121,6 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ICT_COMPUTE_FACTOR_KERNEL);
 
@@ -197,7 +196,6 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
                     },
                     [](IndexType, row_state) {});
 }
-
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ICT_ADD_CANDIDATES_KERNEL);

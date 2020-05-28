@@ -150,7 +150,6 @@ void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
                        as_hip_type(result->get_values()));
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_CONVERT_TO_DENSE_KERNEL);
 

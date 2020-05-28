@@ -140,7 +140,6 @@ void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
         u_csc);
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILUT_COMPUTE_LU_FACTORS_KERNEL);
 

@@ -174,7 +174,6 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
     threshold = exec->copy_val_to_host(out_ptr);
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_SELECT_KERNEL);
 
