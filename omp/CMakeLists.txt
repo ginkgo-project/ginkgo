@@ -51,6 +51,10 @@ target_link_libraries(ginkgo_omp PUBLIC ginkgo_hip)
 ginkgo_default_includes(ginkgo_omp)
 ginkgo_install_library(ginkgo_omp omp)
 
+if (GINKGO_CHECK_CIRCULAR_DEPS)
+    ginkgo_check_headers(ginkgo_omp)
+endif()
+
 if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
