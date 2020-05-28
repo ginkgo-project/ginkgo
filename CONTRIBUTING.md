@@ -10,6 +10,11 @@ We are glad that you are interested in contributing to Ginkgo. Please have a loo
  * [Extended header files](#extended-header-files)
  * [Using library classes](#using-library-classes)
 
+[Git related](#git-related)
+ * [Our git Workflow](#our-git-workflow)
+ * [Writing good commit messages](#writing-good-commit-messages)
+ * [Creating, Reviewing and Merging Pull Requests](#creating-reviewing-and-merging-pull-requests)
+
 [Code Style](#code-style)
  * [Automatic code formatting](#automatic-code-formatting)
  * [Naming Scheme](#naming-scheme)
@@ -17,6 +22,11 @@ We are glad that you are interested in contributing to Ginkgo. Please have a loo
  * [Include statement grouping](#include-statement-grouping)
  * [Other Code Formatting not handled by ClangFormat](#other-code-formatting-not-handled-by-clangformat)
  * [CMake coding style](#cmake-coding-style)
+
+[Writing Tests](#writing-tests)
+ * [Testing know-how](#testing-know-how)
+ * [Some general rules](#some-general-rules)
+ * [Writing tests for kernels](#writing-tests-for-kernels)
 
 [Documentation style](#documentation-style)
  * [Developer targeted notes](#developer-targeted-notes)
@@ -29,9 +39,13 @@ We are glad that you are interested in contributing to Ginkgo. Please have a loo
  * [Avoiding circular dependencies](#avoiding-circular-dependencies)
 
 
-## Most important stuff
+## Most important stuff (A TLDR)
 
 * `GINKGO_DEVEL_TOOLS` needs to be set to `on` to commit. This requires `clang-format` to be installed. See [Automatic code formatting](#automatic-code-formatting) for more details. Once installed, you can run `make format` in your `build/` folder to automatically format your modified files. Once formatted, you can commit your changes.
+
+* See [Our git workflow](#our-git-workflow) to get a quick overview of our workflow.
+
+* See [Creating, Reviewing and Merging Pull Requests](#creating-reviewing-and-merging-pull-requests) on how to create a Pull request.
 
 
 ## Project structure
@@ -48,6 +62,48 @@ For such files you should always include the version from the module you are wor
 Creating new classes, it is allowed to use existing classes (polymorphic objects) inside the kernels for the distinct backends (reference/cuda/omp...). However,  it is not allowed to construct the kernels by creating new instances of a distinct (existing) class as this can result in compilation problems. 
 
 For example, when creating a new matrix class `AB` by combining existing classes `A` and `B`, the `AB::apply()` function composed of kernel invocations to `A::apply()` and `B::apply()` can only be defined in the core module, it is not possible to create instances of `A` and `B` inside the `AB` kernel file.
+
+## Git related
+
+Ginkgo uses git, the distributed version control system to track code changes and coordinate work among its developers. A general guide to git can be found in [its extensive documentation](https://git-scm.com/docs). 
+
+### Our git workflow
+
+In Ginkgo, we prioritize keeping a clean history over accurate tracking of commits. `git rebase` is hence our command of choice to make sure that we have a nice and linear history. 
+
+### Writing good commit messages
+
+With software sustainability and maintainability in mind, it is important to write commit messages that are short, clear and informative. Ideally, this would be the format to prefer:
+
+```sh
+Summary of the changes in a sentence, max 80 chars.
+
+More detailed comments:
++ Changes that have been added.
+- Changes that been removed.
+```
+
+You can refer to [this informative guide](https://chris.beams.io/posts/git-commit/) for more details. 
+
+#### Attributing credit
+
+Git has a nice feature where it allows you to add a co-author for your commit, if you would like to attribute credits for the changes made in the commit. This can be done by:
+
+```sh
+Commit message.
+
+Co-authored-by: Name <email@domain>
+```
+
+### Creating, Reviewing and Merging Pull Requests
+
+* The `develop` branch is the default branch to submit PR's to. From time to time, we merge the `develop` branch to the `master` branch and create tags on the `master` to create new releases of Ginkgo. Therefore, all pull requests must be merged into `develop`.
+* Please have a look at the labels and make sure to add the relevant labels.
+* You can mark the PR as a `WIP` if you are still working on it, `Ready for Review` when it is ready for others to review it.
+* Assignees to the PR should be the ones responsible for merging that PR. Currently, it is only possible to assign members within the `ginkgo-project`.  
+* Each pull request requires atleast two approvals before merging.
+* PR's created from within the repository will automatically trigger two CI's on pushing to the branch from the which the PR has been created. One CI with is with Github Actions which tests our framework on Mac OSX and on Windows platforms. Another comprehensive Linux based CI is run from a [mirror on gitlab](https://gitlab.com/ginkgo-project/ginkgo-public-ci/pipelines). 
+* Once a PR has been approved and the build has passed, one of the reviewers can mark the PR as `READY TO MERGE`. At this point the creator/assignee of the PR *needs to* verify that the branch is up to date with `develop` and rebase it on `develop` if it is not.
 
 
 ## Code style
@@ -169,7 +225,7 @@ Spaces and tabs are handled by ClangFormat, but blank lines are only partially h
         ```
 
 3.  Function bodies cannot have multiple consecutive blank lines, and a single blank line can only appear between two logical sections of the function.
-4.  Unit tests should follow the [AAA](http://wiki.c2.com/?ArrangeActAssert) pattern, and a single blank line must appear between consecutive "A" sections. No other blank lines are allowed in unit tests.
+4. Unit tests should follow the [AAA](http://wiki.c2.com/?ArrangeActAssert) pattern, and a single blank line must appear between consecutive "A" sections. No other blank lines are allowed in unit tests.
 5.  Enumeration definitions should have no blank lines between consecutive enumerators.
 
 
@@ -266,6 +322,28 @@ Macros in CMake do not have a scope. This means that any variable set in this ma
 #### Naming style
 All Ginkgo specific variables should be prefixed with a `GINKGO_` and all functions by `ginkgo_`.
 
+
+## Writing Tests
+
+Ginkgo uses the [GTest framework](https://github.com/google/googletest) for the unit test framework within Ginkgo. Writing good tests are extremely important to verify the functionality of the new code and to make sure that none of the existing code has been broken.
+
+### Testing know-how
+
+* GTest provides a [comprehensive documentation](https://github.com/google/googletest/blob/master/googletest/docs/primer.md) of the functionality available within Gtest.  
+* Reduce code duplication with [Testing Fixtures, `TEST_F`](https://github.com/google/googletest/blob/master/googletest/docs/primer.md#test-fixtures-using-the-same-data-configuration-for-multiple-tests-same-data-multiple-tests)
+* Write templated tests using [`TYPED_TEST`](https://github.com/google/googletest/blob/master/googletest/docs/advanced.md#typed-tests).
+
+### Some general rules.
+
+* Unit tests must follow the [KISS principle](https://en.wikipedia.org/wiki/KISS_principle).
+* Unit tests must follow the [AAA](http://wiki.c2.com/?ArrangeActAssert) pattern, and a single blank line must appear between consecutive "A" sections.
+
+### Writing tests for kernels
+
+* Reference kernels, kernels on the `ReferenceExecutor`, are meant to be single threaded reference implementations. Therefore, tests for reference kernels need to be performed with data that can be as small as possible. For example, matrices lesser than 5x5 are acceptable. 
+* OpenMP, CUDA and HIP kernels have to be tested against the reference kernels. Hence data for the tests of these kernels can be generated in the test files using helper functions or by using external files to be read through the standard input. 
+
+
 ## Documentation style
 
 Documentation uses standard Doxygen.
@@ -278,7 +356,7 @@ Make use of `@internal` doxygen tag. This can be used for any comment which is n
 #### After named tags such as `@param foo`
 The documentation tags which use an additional name should be followed by two spaces in order to better distinguish the text from the doxygen tag. It is also possible to use a line break instead.
 
-### Documenting examples.
+### Documenting examples
 There are two main steps:
 
 1. First, you can just copy over the [`doc/`](https://github.com/ginkgo-project/ginkgo/tree/develop/examples/simple-solver) folder (you can copy it from the example most relevant to you) and adapt your example names and such, then you can modify the actual documentation.  
