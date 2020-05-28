@@ -133,6 +133,10 @@ cas_target_cuda_architectures(ginkgo_cuda
 ginkgo_default_includes(ginkgo_cuda)
 ginkgo_install_library(ginkgo_cuda cuda)
 
+if (GINKGO_CHECK_CIRCULAR_DEPS)
+    ginkgo_check_headers(ginkgo_cuda)
+endif()
+
 if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()

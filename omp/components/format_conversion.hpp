@@ -37,6 +37,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 
 
+#include <ginkgo/core/base/types.hpp>
+
+
 namespace gko {
 namespace kernels {
 namespace omp {

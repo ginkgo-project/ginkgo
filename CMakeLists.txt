@@ -179,6 +179,7 @@ if(GINKGO_BUILD_CUDA)
     add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
 endif()
 add_subdirectory(core)           # Core Ginkgo types and top-level functions
+add_subdirectory(include)        # Public API self-contained check
 if (GINKGO_BUILD_REFERENCE)
     add_subdirectory(reference)  # Reference kernel implementations
 endif()
