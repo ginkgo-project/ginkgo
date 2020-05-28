@@ -33,9 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_HIP_FACTORIZATION_PAR_ILUT_SELECT_COMMON_HIP_HPP_
 #define GKO_HIP_FACTORIZATION_PAR_ILUT_SELECT_COMMON_HIP_HPP_
 
+
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+
 
 namespace gko {
 namespace kernels {
@@ -48,13 +50,13 @@ constexpr auto items_per_thread = 16;
 
 
 template <typename ValueType, typename IndexType>
-void ssss_count(const ValueType *values, IndexType size,
-                remove_complex<ValueType> *tree, unsigned char *oracles,
-                IndexType *partial_counts, IndexType *total_counts);
+void sampleselect_count(const ValueType *values, IndexType size,
+                        remove_complex<ValueType> *tree, unsigned char *oracles,
+                        IndexType *partial_counts, IndexType *total_counts);
 
 
 template <typename IndexType>
-struct ssss_bucket {
+struct sampleselect_bucket {
     IndexType idx;
     IndexType begin;
     IndexType size;
@@ -62,7 +64,7 @@ struct ssss_bucket {
 
 
 template <typename IndexType>
-ssss_bucket<IndexType> ssss_find_bucket(
+sampleselect_bucket<IndexType> sampleselect_find_bucket(
     std::shared_ptr<const DefaultExecutor> exec, IndexType *prefix_sum,
     IndexType rank);
 
@@ -71,5 +73,6 @@ ssss_bucket<IndexType> ssss_find_bucket(
 }  // namespace hip
 }  // namespace kernels
 }  // namespace gko
+
 
 #endif  // GKO_HIP_FACTORIZATION_PAR_ILUT_SELECT_COMMON_HIP_HPP_

@@ -70,10 +70,13 @@ DEFINE_string(
     "Supported values are: none, jacobi, adaptive-jacobi, parict, parilu, "
     "parilut, ilu, overhead");
 
-DEFINE_uint32(ilu_iterations, 5,
+DEFINE_uint32(parilu_iterations, 5,
               "The number of iterations for ParICT/ParILU(T)");
 
-DEFINE_double(ilut_limit, 2.0, "The fill-in limit for ParICT/ParILUT");
+DEFINE_bool(parilut_approx_select, true,
+            "Use approximate selection for ParICT/ParILUT");
+
+DEFINE_double(parilut_limit, 2.0, "The fill-in limit for ParICT/ParILUT");
 
 DEFINE_uint32(
     nrhs, 1,
@@ -172,85 +175,88 @@ protected:
 
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                                 std::shared_ptr<const gko::Executor>)>>
-    precond_factory{{"none",
-                     [](std::shared_ptr<const gko::Executor> exec) {
-                         return gko::matrix::IdentityFactory<>::create(exec);
-                     }},
-                    {"jacobi",
-                     [](std::shared_ptr<const gko::Executor> exec) {
-                         std::shared_ptr<const gko::LinOpFactory> f =
-                             gko::preconditioner::Jacobi<>::build().on(exec);
-                         return std::unique_ptr<ReferenceFactoryWrapper>(
-                             new ReferenceFactoryWrapper(f));
-                     }},
-                    {"adaptive-jacobi",
-                     [](std::shared_ptr<const gko::Executor> exec) {
-                         std::shared_ptr<const gko::LinOpFactory> f =
-                             gko::preconditioner::Jacobi<>::build()
-                                 .with_storage_optimization(
-                                     gko::precision_reduction::autodetect())
-                                 .on(exec);
-                         return std::unique_ptr<ReferenceFactoryWrapper>(
-                             new ReferenceFactoryWrapper(f));
-                     }},
-                    {"parict",
-                     [](std::shared_ptr<const gko::Executor> exec) {
-                         auto fact = std::shared_ptr<gko::LinOpFactory>(
-                             gko::factorization::ParIct<>::build()
-                                 .with_iterations(FLAGS_ilu_iterations)
-                                 .with_fill_in_limit(FLAGS_ilut_limit)
-                                 .on(exec));
-                         std::shared_ptr<const gko::LinOpFactory> f =
-                             gko::preconditioner::Ilu<>::build()
-                                 .with_factorization_factory(fact)
-                                 .on(exec);
-                         return std::unique_ptr<ReferenceFactoryWrapper>(
-                             new ReferenceFactoryWrapper(f));
-                     }},
-                    {"parilu",
-                     [](std::shared_ptr<const gko::Executor> exec) {
-                         auto fact = std::shared_ptr<gko::LinOpFactory>(
-                             gko::factorization::ParIlu<>::build()
-                                 .with_iterations(FLAGS_ilu_iterations)
-                                 .on(exec));
-                         std::shared_ptr<const gko::LinOpFactory> f =
-                             gko::preconditioner::Ilu<>::build()
-                                 .with_factorization_factory(fact)
-                                 .on(exec);
-                         return std::unique_ptr<ReferenceFactoryWrapper>(
-                             new ReferenceFactoryWrapper(f));
-                     }},
-                    {"parilut",
-                     [](std::shared_ptr<const gko::Executor> exec) {
-                         auto fact = std::shared_ptr<gko::LinOpFactory>(
-                             gko::factorization::ParIlut<>::build()
-                                 .with_iterations(FLAGS_ilu_iterations)
-                                 .with_fill_in_limit(FLAGS_ilut_limit)
-                                 .on(exec));
-                         std::shared_ptr<const gko::LinOpFactory> f =
-                             gko::preconditioner::Ilu<>::build()
-                                 .with_factorization_factory(fact)
-                                 .on(exec);
-                         return std::unique_ptr<ReferenceFactoryWrapper>(
-                             new ReferenceFactoryWrapper(f));
-                     }},
-                    {"ilu",
-                     [](std::shared_ptr<const gko::Executor> exec) {
-                         auto fact = std::shared_ptr<gko::LinOpFactory>(
-                             gko::factorization::Ilu<>::build().on(exec));
-                         std::shared_ptr<const gko::LinOpFactory> f =
-                             gko::preconditioner::Ilu<>::build()
-                                 .with_factorization_factory(fact)
-                                 .on(exec);
-                         return std::unique_ptr<ReferenceFactoryWrapper>(
-                             new ReferenceFactoryWrapper(f));
-                     }},
-                    {"overhead", [](std::shared_ptr<const gko::Executor> exec) {
-                         std::shared_ptr<const gko::LinOpFactory> f =
-                             gko::Overhead<>::build().on(exec);
-                         return std::unique_ptr<ReferenceFactoryWrapper>(
-                             new ReferenceFactoryWrapper(f));
-                     }}};
+    precond_factory{
+        {"none",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::matrix::IdentityFactory<>::create(exec);
+         }},
+        {"jacobi",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             std::shared_ptr<const gko::LinOpFactory> f =
+                 gko::preconditioner::Jacobi<>::build().on(exec);
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(f));
+         }},
+        {"adaptive-jacobi",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             std::shared_ptr<const gko::LinOpFactory> f =
+                 gko::preconditioner::Jacobi<>::build()
+                     .with_storage_optimization(
+                         gko::precision_reduction::autodetect())
+                     .on(exec);
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(f));
+         }},
+        {"parict",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto fact = std::shared_ptr<gko::LinOpFactory>(
+                 gko::factorization::ParIct<>::build()
+                     .with_iterations(FLAGS_parilu_iterations)
+                     .with_approximate_select(FLAGS_parilut_approx_select)
+                     .with_fill_in_limit(FLAGS_parilut_limit)
+                     .on(exec));
+             std::shared_ptr<const gko::LinOpFactory> f =
+                 gko::preconditioner::Ilu<>::build()
+                     .with_factorization_factory(fact)
+                     .on(exec);
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(f));
+         }},
+        {"parilu",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto fact = std::shared_ptr<gko::LinOpFactory>(
+                 gko::factorization::ParIlu<>::build()
+                     .with_iterations(FLAGS_parilu_iterations)
+                     .on(exec));
+             std::shared_ptr<const gko::LinOpFactory> f =
+                 gko::preconditioner::Ilu<>::build()
+                     .with_factorization_factory(fact)
+                     .on(exec);
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(f));
+         }},
+        {"parilut",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto fact = std::shared_ptr<gko::LinOpFactory>(
+                 gko::factorization::ParIlut<>::build()
+                     .with_iterations(FLAGS_parilu_iterations)
+                     .with_approximate_select(FLAGS_parilut_approx_select)
+                     .with_fill_in_limit(FLAGS_parilut_limit)
+                     .on(exec));
+             std::shared_ptr<const gko::LinOpFactory> f =
+                 gko::preconditioner::Ilu<>::build()
+                     .with_factorization_factory(fact)
+                     .on(exec);
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(f));
+         }},
+        {"ilu",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto fact = std::shared_ptr<gko::LinOpFactory>(
+                 gko::factorization::Ilu<>::build().on(exec));
+             std::shared_ptr<const gko::LinOpFactory> f =
+                 gko::preconditioner::Ilu<>::build()
+                     .with_factorization_factory(fact)
+                     .on(exec);
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(f));
+         }},
+        {"overhead", [](std::shared_ptr<const gko::Executor> exec) {
+             std::shared_ptr<const gko::LinOpFactory> f =
+                 gko::Overhead<>::build().on(exec);
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(f));
+         }}};
 
 
 void write_precond_info(const gko::LinOp *precond,

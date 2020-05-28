@@ -121,11 +121,12 @@ void threshold_filter_approx(syn::value_list<int, subwarp_size>,
         reinterpret_cast<AbsType *>(tmp->get_data() + tmp_size_totals +
                                     tmp_size_partials + tmp_size_oracles);
 
-    ssss_count(values, size, tree, oracles, partial_counts, total_counts);
+    sampleselect_count(values, size, tree, oracles, partial_counts,
+                       total_counts);
 
     // determine bucket with correct rank
     auto bucket = static_cast<unsigned char>(
-        ssss_find_bucket(exec, total_counts, rank).idx);
+        sampleselect_find_bucket(exec, total_counts, rank).idx);
     *threshold =
         exec->copy_val_to_host(tree + kernel::searchtree_inner_size + bucket);
     // we implicitly set the first splitter to -inf, but 0 works as well

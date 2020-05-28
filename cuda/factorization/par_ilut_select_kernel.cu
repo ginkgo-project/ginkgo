@@ -67,9 +67,10 @@ namespace par_ilut_factorization {
 
 
 template <typename ValueType, typename IndexType>
-void ssss_filter(const ValueType *values, IndexType size,
-                 const unsigned char *oracles, const IndexType *partial_counts,
-                 IndexType bucket, remove_complex<ValueType> *out)
+void sampleselect_filter(const ValueType *values, IndexType size,
+                         const unsigned char *oracles,
+                         const IndexType *partial_counts, IndexType bucket,
+                         remove_complex<ValueType> *out)
 {
     auto num_threads_total = ceildiv(size, items_per_thread);
     auto num_blocks =
@@ -118,10 +119,11 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
         reinterpret_cast<AbsType *>(tmp1.get_data() + tmp_size_totals +
                                     tmp_size_partials + tmp_size_oracles);
 
-    ssss_count(values, size, tree, oracles, partial_counts, total_counts);
+    sampleselect_count(values, size, tree, oracles, partial_counts,
+                       total_counts);
 
     // determine bucket with correct rank, use bucket-local rank
-    auto bucket = ssss_find_bucket(exec, total_counts, rank);
+    auto bucket = sampleselect_find_bucket(exec, total_counts, rank);
     rank -= bucket.begin;
 
     if (bucket.size * 2 > tmp_size_vals) {
@@ -131,7 +133,8 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
     auto tmp21 = tmp2.get_data();
     auto tmp22 = tmp2.get_data() + bucket.size;
     // extract target bucket
-    ssss_filter(values, size, oracles, partial_counts, bucket.idx, tmp22);
+    sampleselect_filter(values, size, oracles, partial_counts, bucket.idx,
+                        tmp22);
 
     // recursively select from smaller buckets
     int step{};
@@ -140,11 +143,11 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
         const auto *tmp_in = tmp21;
         auto tmp_out = tmp22;
 
-        ssss_count(tmp_in, bucket.size, tree, oracles, partial_counts,
-                   total_counts);
-        auto new_bucket = ssss_find_bucket(exec, total_counts, rank);
-        ssss_filter(tmp_in, bucket.size, oracles, partial_counts, bucket.idx,
-                    tmp_out);
+        sampleselect_count(tmp_in, bucket.size, tree, oracles, partial_counts,
+                           total_counts);
+        auto new_bucket = sampleselect_find_bucket(exec, total_counts, rank);
+        sampleselect_filter(tmp_in, bucket.size, oracles, partial_counts,
+                            bucket.idx, tmp_out);
 
         rank -= new_bucket.begin;
         bucket.size = new_bucket.size;

@@ -228,7 +228,6 @@ void initialize_row_ptrs_l_u(
     for (size_type row = 0; row < num_rows; ++row) {
         size_type l_nnz{};
         size_type u_nnz{};
-        bool has_diagonal{};
         for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
             size_type col = col_idxs[el];
             // don't count diagonal
@@ -318,7 +317,6 @@ void initialize_row_ptrs_l(
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
         size_type l_nnz{};
-        bool has_diagonal{};
         for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
             size_type col = col_idxs[el];
             // skip diagonal
