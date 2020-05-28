@@ -56,6 +56,7 @@ namespace kernels {
                         const matrix::Csr<ValueType, IndexType> *a,     \
                         const matrix::Csr<ValueType, IndexType> *l,     \
                         matrix::Csr<ValueType, IndexType> *l_new)
+
 #define GKO_DECLARE_PAR_ICT_COMPUTE_FACTOR_KERNEL(ValueType, IndexType) \
     void compute_factor(std::shared_ptr<const DefaultExecutor> exec,    \
                         const matrix::Csr<ValueType, IndexType> *a,     \

@@ -58,6 +58,7 @@ namespace kernels {
                         const matrix::Csr<ValueType, IndexType> *u,      \
                         matrix::Csr<ValueType, IndexType> *l_new,        \
                         matrix::Csr<ValueType, IndexType> *u_new)
+
 #define GKO_DECLARE_PAR_ILUT_COMPUTE_LU_FACTORS_KERNEL(ValueType, IndexType) \
     void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,    \
                              const matrix::Csr<ValueType, IndexType> *a,     \
@@ -66,12 +67,14 @@ namespace kernels {
                              matrix::Csr<ValueType, IndexType> *u,           \
                              const matrix::Coo<ValueType, IndexType> *u_coo, \
                              matrix::Csr<ValueType, IndexType> *u_csc)
+
 #define GKO_DECLARE_PAR_ILUT_THRESHOLD_SELECT_KERNEL(ValueType, IndexType) \
     void threshold_select(std::shared_ptr<const DefaultExecutor> exec,     \
                           const matrix::Csr<ValueType, IndexType> *m,      \
                           IndexType rank, Array<ValueType> &tmp,           \
                           Array<remove_complex<ValueType>> &tmp2,          \
                           remove_complex<ValueType> &threshold)
+
 #define GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_KERNEL(ValueType, IndexType) \
     void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,     \
                           const matrix::Csr<ValueType, IndexType> *m,      \
@@ -79,6 +82,7 @@ namespace kernels {
                           matrix::Csr<ValueType, IndexType> *m_out,        \
                           matrix::Coo<ValueType, IndexType> *m_out_coo,    \
                           bool lower)
+
 #define GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_APPROX_KERNEL(ValueType,        \
                                                             IndexType)        \
     void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec, \
