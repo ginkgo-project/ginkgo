@@ -33,13 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace kernel {
 
 
-constexpr auto searchtree_height = 8;
-constexpr auto searchtree_width = 1 << searchtree_height;
+constexpr auto searchtree_width = 1 << sampleselect_searchtree_height;
 constexpr auto searchtree_inner_size = searchtree_width - 1;
 constexpr auto searchtree_size = searchtree_width + searchtree_inner_size;
 
-constexpr auto oversampling_factor = 4;
-constexpr auto sample_size = searchtree_width * oversampling_factor;
+constexpr auto sample_size = searchtree_width * sampleselect_oversampling;
 
 constexpr auto basecase_size = 1024;
 constexpr auto basecase_local_size = 4;
@@ -60,20 +58,20 @@ __global__ __launch_bounds__(searchtree_width) void build_searchtree(
 {
     using AbsType = remove_complex<ValueType>;
     auto idx = threadIdx.x;
-    AbsType samples[oversampling_factor];
+    AbsType samples[sampleselect_oversampling];
     // assuming rounding towards zero
     auto stride = double(size) / sample_size;
 #pragma unroll
-    for (auto i = 0; i < oversampling_factor; ++i) {
-        auto lidx = idx * oversampling_factor + i;
+    for (auto i = 0; i < sampleselect_oversampling; ++i) {
+        auto lidx = idx * sampleselect_oversampling + i;
         auto val = input[static_cast<IndexType>(lidx * stride)];
         samples[i] = abs(val);
     }
     __shared__ AbsType sh_samples[sample_size];
-    bitonic_sort<sample_size, oversampling_factor>(samples, sh_samples);
+    bitonic_sort<sample_size, sampleselect_oversampling>(samples, sh_samples);
     if (idx > 0) {
         // root has level 0
-        auto level = searchtree_height - ffs(threadIdx.x);
+        auto level = sampleselect_searchtree_height - ffs(threadIdx.x);
         // we get the in-level index by removing trailing 10000...
         auto idx_in_level = threadIdx.x >> ffs(threadIdx.x);
         // we get the global index by adding previous levels
@@ -121,7 +119,7 @@ __global__ __launch_bounds__(default_block_size) void count_buckets(
         auto el = abs(input[i]);
         IndexType tree_idx{};
 #pragma unroll
-        for (auto level = 0; level < searchtree_height; ++level) {
+        for (auto level = 0; level < sampleselect_searchtree_height; ++level) {
             auto cmp = !(el < sh_tree[tree_idx]);
             tree_idx = 2 * tree_idx + 1 + cmp;
         }

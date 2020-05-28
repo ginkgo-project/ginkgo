@@ -185,9 +185,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_KERNEL);
 
 
-constexpr auto bucket_count = 256;
-constexpr auto oversampling_factor = 4;
-constexpr auto sample_size = bucket_count * oversampling_factor;
+constexpr auto bucket_count = 1 << sampleselect_searchtree_height;
+constexpr auto sample_size = bucket_count * sampleselect_oversampling;
 
 
 /**
@@ -223,7 +222,7 @@ void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
     // pick splitters
     for (IndexType i = 0; i < bucket_count - 1; ++i) {
         // shift by one so we get upper bounds for the buckets
-        sample[i] = sample[(i + 1) * oversampling_factor];
+        sample[i] = sample[(i + 1) * sampleselect_oversampling];
     }
     // count elements per bucket
     auto histogram = reinterpret_cast<IndexType *>(sample + bucket_count);

@@ -180,9 +180,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_KERNEL);
 
 
-constexpr auto bucket_count = 256;
-constexpr auto oversampling_factor = 4;
-constexpr auto sample_size = bucket_count * oversampling_factor;
+constexpr auto bucket_count = 1 << sampleselect_searchtree_height;
+constexpr auto sample_size = bucket_count * sampleselect_oversampling;
 
 
 template <typename ValueType, typename IndexType>
@@ -214,7 +213,7 @@ void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
     // pick splitters
     for (IndexType i = 0; i < bucket_count - 1; ++i) {
         // shift by one so we get upper bounds for the buckets
-        sample[i] = sample[(i + 1) * oversampling_factor];
+        sample[i] = sample[(i + 1) * sampleselect_oversampling];
     }
     // count elements per bucket
     auto total_histogram = reinterpret_cast<IndexType *>(sample + bucket_count);
@@ -369,17 +368,17 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
     auto u_new_row_ptrs = u_new->get_row_ptrs();
     constexpr auto sentinel = std::numeric_limits<IndexType>::max();
     // count nnz
-    abstract_spgeam(a, lu,
-                    [](IndexType) { return std::pair<IndexType, IndexType>{}; },
-                    [](IndexType row, IndexType col, ValueType, ValueType,
-                       std::pair<IndexType, IndexType> &nnzs) {
-                        nnzs.first += col <= row;
-                        nnzs.second += col >= row;
-                    },
-                    [&](IndexType row, std::pair<IndexType, IndexType> nnzs) {
-                        l_new_row_ptrs[row] = nnzs.first;
-                        u_new_row_ptrs[row] = nnzs.second;
-                    });
+    abstract_spgeam(
+        a, lu, [](IndexType) { return std::pair<IndexType, IndexType>{}; },
+        [](IndexType row, IndexType col, ValueType, ValueType,
+           std::pair<IndexType, IndexType> &nnzs) {
+            nnzs.first += col <= row;
+            nnzs.second += col >= row;
+        },
+        [&](IndexType row, std::pair<IndexType, IndexType> nnzs) {
+            l_new_row_ptrs[row] = nnzs.first;
+            u_new_row_ptrs[row] = nnzs.second;
+        });
 
     components::prefix_sum(exec, l_new_row_ptrs, num_rows + 1);
     components::prefix_sum(exec, u_new_row_ptrs, num_rows + 1);
