@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/factorization/par_ilut_select_common.cuh"
 
 
+#include "core/factorization/par_ilut_kernels.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/intrinsics.cuh"
@@ -40,7 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/searching.cuh"
 #include "cuda/components/sorting.cuh"
 #include "cuda/components/thread_ids.cuh"
-#include "cuda/factorization/par_ilut_select_common.cuh"
 
 
 namespace gko {

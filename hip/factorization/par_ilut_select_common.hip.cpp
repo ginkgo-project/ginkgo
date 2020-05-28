@@ -30,12 +30,16 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+// force-top: on
+// prevent compilation failure related to disappearing assert(...) statements
+#include <hip/hip_runtime.h>
+// force-top: off
+
+
 #include "hip/factorization/par_ilut_select_common.hip.hpp"
 
 
-#include <hip/hip_runtime.h>
-
-
+#include "core/factorization/par_ilut_kernels.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/components/atomic.hip.hpp"
 #include "hip/components/intrinsics.hip.hpp"
@@ -43,7 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/searching.hip.hpp"
 #include "hip/components/sorting.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
-#include "hip/factorization/par_ilut_select_common.hip.hpp"
 
 
 namespace gko {

@@ -89,6 +89,8 @@ namespace kernels {
                                  matrix::Coo<ValueType, IndexType> *m_out_coo)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
+    constexpr auto sampleselect_searchtree_height = 8;                    \
+    constexpr auto sampleselect_oversampling = 4;                         \
     template <typename ValueType, typename IndexType>                     \
     GKO_DECLARE_PAR_ILUT_ADD_CANDIDATES_KERNEL(ValueType, IndexType);     \
     template <typename ValueType, typename IndexType>                     \
