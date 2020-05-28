@@ -69,6 +69,8 @@ Filenames use `snake_case` and use the following extensions:
 *   C++ header files: `.hpp`
 *   CUDA source files: `.cu`
 *   CUDA header files: `.cuh`
+*   HIP source files: `.hip.cpp`
+*   HIP header files: `.hip.hpp`
 *   CMake utility files: `.cmake`
 *   Shell scripts: `.sh`
 
@@ -111,7 +113,8 @@ Namespaces use `snake_case`.
 
 #### Template parameters
 
-Template parameters use `CamelCase`.
+* Typed template parameters use `CamelCase`, for example `ValueType`.
+* Non-typed template parameters use `snake_case`, for example `subwarp_size`.
 
 ### Whitespace
 
@@ -297,7 +300,7 @@ These are global objects and are shared inside the same translation unit. Theref
 
 ### Warnings
 
-By default, the `-DGINKGO_COMPILER_FLAGS` is set to `-Wpedantic` and hence pedantic warnings are emitted by default. Some of these warnings are false positives and a complete list of the currently known warnings and their solutions is listed in #174. Specifically, when macros are being used, we have the issue of having `extra ;` warnings, which is resolved by adding a `static_assert()`. The CI system additionally also has a step where it compiles for pedantic warnings to be errors.
+By default, the `-DGINKGO_COMPILER_FLAGS` is set to `-Wpedantic` and hence pedantic warnings are emitted by default. Some of these warnings are false positives and a complete list of the currently known warnings and their solutions is listed in [Issue 174](https://github.com/ginkgo-project/ginkgo/issues/174). Specifically, when macros are being used, we have the issue of having `extra ;` warnings, which is resolved by adding a `static_assert()`. The CI system additionally also has a step where it compiles for pedantic warnings to be errors.
 
 ### Avoiding circular dependencies
 
