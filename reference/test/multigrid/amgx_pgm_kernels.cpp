@@ -66,11 +66,11 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
-    using Multigrid = gko::multigrid::AmgxPgm<value_type, index_type>;
+    using RestrictProlong = gko::multigrid::AmgxPgm<value_type, index_type>;
     using T = value_type;
     AmgxPgm()
         : exec(gko::ReferenceExecutor::create()),
-          AmgxPgm_factory(Multigrid::build()
+          Amgxpgm_factory(RestrictProlong::build()
                               .with_max_iterations(2u)
                               .with_max_unassigned_percentage(0.1)
                               .on(exec)),
@@ -174,7 +174,7 @@ protected:
     std::shared_ptr<Vec> restrict_ans;
     std::shared_ptr<Vec> prolong_ans;
     std::shared_ptr<Vec> fine_x;
-    std::unique_ptr<typename Multigrid::Factory> AmgxPgm_factory;
+    std::unique_ptr<typename RestrictProlong::Factory> Amgxpgm_factory;
 };
 
 TYPED_TEST_CASE(AmgxPgm, gko::test::ValueIndexTypes);
@@ -269,7 +269,7 @@ TYPED_TEST(AmgxPgm, Renumber)
 
 TYPED_TEST(AmgxPgm, Generate)
 {
-    auto coarse_fine = this->AmgxPgm_factory->generate(this->mtx);
+    auto coarse_fine = this->Amgxpgm_factory->generate(this->mtx);
 
     auto agg_result = coarse_fine->get_const_agg();
 
@@ -284,7 +284,7 @@ TYPED_TEST(AmgxPgm, Generate)
 TYPED_TEST(AmgxPgm, CoarseFineRestrictApply)
 {
     std::unique_ptr<gko::multigrid::RestrictProlong> amgx_pgm{
-        this->AmgxPgm_factory->generate(this->mtx)};
+        this->Amgxpgm_factory->generate(this->mtx)};
 
     // fine->coarse
     using Vec = typename TestFixture::Vec;
@@ -299,7 +299,7 @@ TYPED_TEST(AmgxPgm, CoarseFineRestrictApply)
 TYPED_TEST(AmgxPgm, CoarseFineProlongApplyadd)
 {
     std::unique_ptr<gko::multigrid::RestrictProlong> amgx_pgm{
-        this->AmgxPgm_factory->generate(this->mtx)};
+        this->Amgxpgm_factory->generate(this->mtx)};
 
     using value_type = typename TestFixture::value_type;
     auto x = gko::clone(this->fine_x);

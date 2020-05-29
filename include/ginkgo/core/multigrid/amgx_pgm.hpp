@@ -51,7 +51,8 @@ namespace multigrid {
 /**
  * Amgx parallel graph match (AmgxPgm) is the aggregate method introduced in the
  * paper M. Naumov et al., "AmgX: A Library for GPU Accelerated Algebraic
- * Multigrid and Preconditioned Iterative Methods"
+ * Multigrid and Preconditioned Iterative Methods". Current implemenation only
+ * contains size = 2 version.
  *
  * AmgxPgm creates the aggreagate group according to the matrix value not the
  * structure.
@@ -134,7 +135,10 @@ protected:
           system_matrix_{std::move(system_matrix)},
           agg_(factory->get_executor(), system_matrix_->get_size()[0])
     {
-        this->generate();
+        if (system_matrix_->get_size()[0] != 0) {
+            // generate on the existed matrix
+            this->generate();
+        }
     }
 
     void generate();
