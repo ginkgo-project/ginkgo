@@ -230,15 +230,13 @@ void initialize_row_ptrs_l_u(
         size_type u_nnz{};
         for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
             size_type col = col_idxs[el];
-            if (col <= row) {
-                ++l_nnz;
-            }
-            if (col >= row) {
-                ++u_nnz;
-            }
+            // don't count diagonal
+            l_nnz += col < row;
+            u_nnz += col > row;
         }
-        l_row_ptrs[row] = l_nnz;
-        u_row_ptrs[row] = u_nnz;
+        // add diagonal again
+        l_row_ptrs[row] = l_nnz + 1;
+        u_row_ptrs[row] = u_nnz + 1;
     }
 
     // Now, compute the prefix-sum, to get proper row_ptrs for L and U
@@ -271,7 +269,10 @@ void initialize_l_u(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
     for (size_type row = 0; row < system_matrix->get_size()[0]; ++row) {
         size_type current_index_l = row_ptrs_l[row];
-        size_type current_index_u = row_ptrs_u[row];
+        size_type current_index_u =
+            row_ptrs_u[row] + 1;  // we treat the diagonal separately
+        // if there is no diagonal value, set it to 1 by default
+        auto diag_val = one<ValueType>();
         for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
             const auto col = col_idxs[el];
             const auto val = vals[el];
@@ -280,25 +281,105 @@ void initialize_l_u(std::shared_ptr<const OmpExecutor> exec,
                 vals_l[current_index_l] = val;
                 ++current_index_l;
             } else if (col == row) {
-                // Update both L and U
-                col_idxs_l[current_index_l] = col;
-                vals_l[current_index_l] = one<ValueType>();
-                ++current_index_l;
-
-                col_idxs_u[current_index_u] = col;
-                vals_u[current_index_u] = val;
-                ++current_index_u;
+                // save value for later
+                diag_val = val;
             } else {  // col > row
                 col_idxs_u[current_index_u] = col;
                 vals_u[current_index_u] = val;
                 ++current_index_u;
             }
         }
+        // store diagonal entries
+        size_type l_diag_idx = row_ptrs_l[row + 1] - 1;
+        size_type u_diag_idx = row_ptrs_u[row];
+        col_idxs_l[l_diag_idx] = row;
+        col_idxs_u[u_diag_idx] = row;
+        vals_l[l_diag_idx] = one<ValueType>();
+        vals_u[u_diag_idx] = diag_val;
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void initialize_row_ptrs_l(
+    std::shared_ptr<const OmpExecutor> exec,
+    const matrix::Csr<ValueType, IndexType> *system_matrix,
+    IndexType *l_row_ptrs)
+{
+    auto num_rows = system_matrix->get_size()[0];
+    auto row_ptrs = system_matrix->get_const_row_ptrs();
+    auto col_idxs = system_matrix->get_const_col_idxs();
+
+// Calculate the NNZ per row first
+#pragma omp parallel for
+    for (size_type row = 0; row < num_rows; ++row) {
+        size_type l_nnz{};
+        for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
+            size_type col = col_idxs[el];
+            // skip diagonal
+            l_nnz += col < row;
+        }
+        // add diagonal again
+        l_row_ptrs[row] = l_nnz + 1;
+    }
+
+    // Now, compute the prefix-sum, to get proper row_ptrs for L
+    components::prefix_sum(exec, l_row_ptrs, num_rows + 1);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void initialize_l(std::shared_ptr<const OmpExecutor> exec,
+                  const matrix::Csr<ValueType, IndexType> *system_matrix,
+                  matrix::Csr<ValueType, IndexType> *csr_l, bool diag_sqrt)
+{
+    const auto row_ptrs = system_matrix->get_const_row_ptrs();
+    const auto col_idxs = system_matrix->get_const_col_idxs();
+    const auto vals = system_matrix->get_const_values();
+
+    const auto row_ptrs_l = csr_l->get_const_row_ptrs();
+    auto col_idxs_l = csr_l->get_col_idxs();
+    auto vals_l = csr_l->get_values();
+
+#pragma omp parallel for
+    for (size_type row = 0; row < system_matrix->get_size()[0]; ++row) {
+        size_type current_index_l = row_ptrs_l[row];
+        // if there is no diagonal value, set it to 1 by default
+        auto diag_val = one<ValueType>();
+        for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
+            const auto col = col_idxs[el];
+            const auto val = vals[el];
+            if (col < row) {
+                col_idxs_l[current_index_l] = col;
+                vals_l[current_index_l] = val;
+                ++current_index_l;
+            } else if (col == row) {
+                // save value for later
+                diag_val = val;
+            }
+        }
+        // store diagonal entries
+        size_type l_diag_idx = row_ptrs_l[row + 1] - 1;
+        col_idxs_l[l_diag_idx] = row;
+        // compute square root with sentinel
+        if (diag_sqrt) {
+            diag_val = sqrt(diag_val);
+            if (!is_finite(diag_val)) {
+                diag_val = one<ValueType>();
+            }
+        }
+        vals_l[l_diag_idx] = diag_val;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL);
 
 
 }  // namespace factorization

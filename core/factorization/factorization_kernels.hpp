@@ -66,16 +66,34 @@ namespace kernels {
         matrix::Csr<ValueType, IndexType> *l_factor,                          \
         matrix::Csr<ValueType, IndexType> *u_factor)
 
+#define GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL(ValueType, \
+                                                               IndexType) \
+    void initialize_row_ptrs_l(                                           \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        const matrix::Csr<ValueType, IndexType> *system_matrix,           \
+        IndexType *l_row_ptrs)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                     \
-    template <typename ValueType, typename IndexType>                    \
-    GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_ELEMENTS_KERNEL(ValueType,    \
-                                                           IndexType);   \
-    template <typename ValueType, typename IndexType>                    \
-    GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_U_KERNEL(ValueType,  \
-                                                             IndexType); \
-    template <typename ValueType, typename IndexType>                    \
-    GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL(ValueType, IndexType)   \
+    void initialize_l(std::shared_ptr<const DefaultExecutor> exec,            \
+                      const matrix::Csr<ValueType, IndexType> *system_matrix, \
+                      matrix::Csr<ValueType, IndexType> *l_factor,            \
+                      bool diag_sqrt)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_ELEMENTS_KERNEL(ValueType,      \
+                                                           IndexType);     \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_U_KERNEL(ValueType,    \
+                                                             IndexType);   \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL(ValueType,      \
+                                                           IndexType);     \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL(ValueType, IndexType)
 
 
 namespace omp {

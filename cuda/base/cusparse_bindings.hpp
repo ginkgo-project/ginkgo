@@ -336,7 +336,7 @@ GKO_BIND_CUSPARSE32_SPMV(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE32_SPMV
 
 
-template <typename IndexType, typename ValueType>
+template <typename ValueType, typename IndexType>
 void spgemm_buffer_size(
     cusparseHandle_t handle, IndexType m, IndexType n, IndexType k,
     const ValueType *alpha, const cusparseMatDescr_t descrA, IndexType nnzA,
@@ -349,7 +349,7 @@ void spgemm_buffer_size(
 
 #define GKO_BIND_CUSPARSE_SPGEMM_BUFFER_SIZE(ValueType, CusparseName)          \
     template <>                                                                \
-    inline void spgemm_buffer_size<int32, ValueType>(                          \
+    inline void spgemm_buffer_size<ValueType, int32>(                          \
         cusparseHandle_t handle, int32 m, int32 n, int32 k,                    \
         const ValueType *alpha, const cusparseMatDescr_t descrA, int32 nnzA,   \
         const int32 *csrRowPtrA, const int32 *csrColIndA,                      \
@@ -408,7 +408,7 @@ inline void spgemm_nnz<int32>(
 }
 
 
-template <typename IndexType, typename ValueType>
+template <typename ValueType, typename IndexType>
 void spgemm(cusparseHandle_t handle, IndexType m, IndexType n, IndexType k,
             const ValueType *alpha, const cusparseMatDescr_t descrA,
             IndexType nnzA, const ValueType *csrValA,
@@ -425,7 +425,7 @@ void spgemm(cusparseHandle_t handle, IndexType m, IndexType n, IndexType k,
 
 #define GKO_BIND_CUSPARSE_SPGEMM(ValueType, CusparseName)                      \
     template <>                                                                \
-    inline void spgemm<int32, ValueType>(                                      \
+    inline void spgemm<ValueType, int32>(                                      \
         cusparseHandle_t handle, int32 m, int32 n, int32 k,                    \
         const ValueType *alpha, const cusparseMatDescr_t descrA, int32 nnzA,   \
         const ValueType *csrValA, const int32 *csrRowPtrA,                     \
@@ -989,13 +989,13 @@ inline void csrsort<int32>(cusparseHandle_t handle, int32 m, int32 n, int32 nnz,
 }
 
 
-template <typename IndexType, typename ValueType>
+template <typename ValueType, typename IndexType>
 void gather(cusparseHandle_t handle, IndexType nnz, const ValueType *in,
             ValueType *out, const IndexType *permutation) GKO_NOT_IMPLEMENTED;
 
 #define GKO_BIND_CUSPARSE_GATHER(ValueType, CusparseName)                      \
     template <>                                                                \
-    inline void gather<int32, ValueType>(cusparseHandle_t handle, int32 nnz,   \
+    inline void gather<ValueType, int32>(cusparseHandle_t handle, int32 nnz,   \
                                          const ValueType *in, ValueType *out,  \
                                          const int32 *permutation)             \
     {                                                                          \

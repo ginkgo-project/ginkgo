@@ -53,16 +53,6 @@ struct merge_result {
     int b_advance;
 };
 
-
-template <typename ValueType, typename IndexType>
-__forceinline__ __device__ ValueType
-checked_load(const ValueType *p, IndexType i, IndexType size,
-             ValueType sentinel = device_numeric_limits<ValueType>::max)
-{
-    return i < size ? p[i] : sentinel;
-}
-
-
 }  // namespace detail
 
 
@@ -142,7 +132,7 @@ __forceinline__ __device__ detail::merge_result<ValueType> group_merge_step(
  *                  It must return `false` on all threads of the group iff the
  *                  merge shouldn't be continued.
  */
-template <int group_size, typename IndexType, typename ValueType,
+template <int group_size, typename ValueType, typename IndexType,
           typename Group, typename Callback>
 __forceinline__ __device__ void group_merge(const ValueType *__restrict__ a,
                                             IndexType a_size,
@@ -153,9 +143,10 @@ __forceinline__ __device__ void group_merge(const ValueType *__restrict__ a,
     auto c_size = a_size + b_size;
     IndexType a_begin{};
     IndexType b_begin{};
-    auto lane = IndexType(group.thread_rank());
-    auto a_cur = detail::checked_load(a, a_begin + lane, a_size);
-    auto b_cur = detail::checked_load(b, b_begin + lane, b_size);
+    auto lane = static_cast<IndexType>(group.thread_rank());
+    auto sentinel = device_numeric_limits<IndexType>::max;
+    auto a_cur = checked_load(a, a_begin + lane, a_size, sentinel);
+    auto b_cur = checked_load(b, b_begin + lane, b_size, sentinel);
     for (IndexType c_begin{}; c_begin < c_size; c_begin += group_size) {
         auto merge_result = group_merge_step<group_size>(a_cur, b_cur, group);
         auto valid = c_begin + lane < c_size;
@@ -188,7 +179,7 @@ __forceinline__ __device__ void group_merge(const ValueType *__restrict__ a,
         auto load_size = load_a ? a_size : b_size;
 
         auto load_idx = load_begin + load_lane;
-        auto loaded = detail::checked_load(load_source, load_idx, load_size);
+        auto loaded = checked_load(load_source, load_idx, load_size, sentinel);
         // shuffle the `a` values to the end of the warp
         auto lower_loaded = group.shfl_up(loaded, b_advance);
         a_cur = lane < b_advance ? a_cur : lower_loaded;
@@ -254,7 +245,7 @@ __forceinline__ __device__ void group_match(const ValueType *__restrict__ a,
  *                  the values from a/b being compared in step `c_idx`.
  *                  It must return `false` iff the merge should stop.
  */
-template <typename IndexType, typename ValueType, typename Callback>
+template <typename ValueType, typename IndexType, typename Callback>
 __forceinline__ __device__ void sequential_merge(
     const ValueType *__restrict__ a, IndexType a_size,
     const ValueType *__restrict__ b, IndexType b_size, Callback merge_fn)
@@ -262,8 +253,9 @@ __forceinline__ __device__ void sequential_merge(
     auto c_size = a_size + b_size;
     IndexType a_begin{};
     IndexType b_begin{};
-    auto a_cur = detail::checked_load(a, a_begin, a_size);
-    auto b_cur = detail::checked_load(b, b_begin, b_size);
+    auto sentinel = device_numeric_limits<IndexType>::max;
+    auto a_cur = checked_load(a, a_begin, a_size, sentinel);
+    auto b_cur = checked_load(b, b_begin, b_size, sentinel);
     for (IndexType c_begin{}; c_begin < c_size; c_begin++) {
         auto cont = merge_fn(a_begin, a_cur, b_begin, b_cur, c_begin);
         if (!cont) {
@@ -277,7 +269,7 @@ __forceinline__ __device__ void sequential_merge(
         auto load = a_advance ? a : b;
         auto load_size = a_advance ? a_size : b_size;
         auto load_idx = a_advance ? a_begin : b_begin;
-        auto loaded = detail::checked_load(load, load_idx, load_size);
+        auto loaded = checked_load(load, load_idx, load_size, sentinel);
         a_cur = a_advance ? loaded : a_cur;
         b_cur = b_advance ? loaded : b_cur;
     }

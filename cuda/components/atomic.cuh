@@ -34,8 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_COMPONENTS_ATOMIC_CUH_
 
 
-#include <cuda.h>
-#include <cuda_fp16.h>
+#include "cuda/base/math.hpp"
+#include "cuda/base/types.hpp"
 
 
 namespace gko {

@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_COMPONENTS_MERGING_CUH_
 
 
+#include "core/base/utils.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/components/intrinsics.cuh"
 #include "cuda/components/searching.cuh"
