@@ -22,6 +22,10 @@ We are glad that you are interested in contributing to Ginkgo. Please have a loo
  * [Include statement grouping](#include-statement-grouping)
  * [Other Code Formatting not handled by ClangFormat](#other-code-formatting-not-handled-by-clangformat)
  * [CMake coding style](#cmake-coding-style)
+ 
+[Helper Scripts](#helper-scripts)
+ * [Create a new algorithm](#create-a-new-algorithm)
+ * [Converting CUDA code to HIP code](#converting-cuda-code-to-hip-code) 
 
 [Writing Tests](#writing-tests)
  * [Testing know-how](#testing-know-how)
@@ -321,6 +325,24 @@ Macros in CMake do not have a scope. This means that any variable set in this ma
 
 #### Naming style
 All Ginkgo specific variables should be prefixed with a `GINKGO_` and all functions by `ginkgo_`.
+
+
+## Helper scripts
+
+To facilitate easy development within Ginkgo and to encourage coders and scientists who do not want get bogged down by the details of the Ginkgo library, but rather focus on writing the algorithms and the kernels, Ginkgo provides the developers with a few helper scripts.
+
+### Create a new algorithm
+
+A `create_new_algorithm.sh` script is available for developers to facilitate easy addition of new algorithms. The options it provides can be queried with
+
+```sh
+./create_new_algorithm.sh --help
+```
+The main objective of this script is to add files and boiler plate code for the new algorithm using a model and an instance of that model. For example, models can be any one of`factorization`,`matrix`,`preconditioner` or `solver`. For example to create a new solver named `my_solver` similar to `gmres`, you would set the `ModelType` to `solver` and set the `ModelName` to `gmres`. This would duplicate the core algorithm and kernels of the `gmres` algorithm and replace the naming to `my_solver`. Additionally, marks all the kernels of the new `my_solver` to `GKO_NOT_IMPLEMENTED`.
+
+### Converting CUDA code to HIP code
+
+This script calls the `hipify` script provided by HIP converting the CUDA syntax to HIP syntax. Additionally, it also automatically replaces the instances of CUDA with HIP as appropriate. Hence this script can be called on a Ginkgo CUDA file. 
 
 
 ## Writing Tests
