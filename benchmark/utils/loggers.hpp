@@ -142,7 +142,7 @@ private:
     template <typename LogObject>
     void end_operation(const LogObject *obj, const std::string &name) const
     {
-        exec->synchronize();
+        obj->synchronize();
         const std::lock_guard<std::mutex> lock(mutex);
         // if operations are properly nested, nested_name now ends with name
         auto nested_name = nested.back().first;
