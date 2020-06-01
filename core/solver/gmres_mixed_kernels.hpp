@@ -98,7 +98,7 @@ namespace gmres_mixed {
                       matrix::Dense<remove_complex<_type1>> *residual_norm, \
                       matrix::Dense<_type1> *residual_norm_collection,      \
                       matrix::Dense<remove_complex<_type1>> *arnoldi_norm,  \
-                      Accessor2d<_type2, _type1> krylov_bases,              \
+                      Accessor3d<_type2, _type1> krylov_bases,              \
                       matrix::Dense<_type1> *next_krylov_basis,             \
                       Array<size_type> *final_iter_nums, size_type krylov_dim)
 
@@ -110,7 +110,7 @@ namespace gmres_mixed {
         matrix::Dense<_type1> *givens_sin, matrix::Dense<_type1> *givens_cos, \
         matrix::Dense<remove_complex<_type1>> *residual_norm,                 \
         matrix::Dense<_type1> *residual_norm_collection,                      \
-        Accessor2d<_type2, _type1> krylov_bases,                              \
+        Accessor3d<_type2, _type1> krylov_bases,                              \
         matrix::Dense<_type1> *hessenberg_iter,                               \
         matrix::Dense<_type1> *buffer_iter,                                   \
         const matrix::Dense<remove_complex<_type1>> *b_norm,                  \
@@ -124,7 +124,7 @@ namespace gmres_mixed {
 #define GKO_DECLARE_GMRES_MIXED_STEP_2_KERNEL(_type1, _type2)          \
     void step_2(std::shared_ptr<const DefaultExecutor> exec,           \
                 const matrix::Dense<_type1> *residual_norm_collection, \
-                Accessor2dConst<_type2, _type1> krylov_bases,          \
+                Accessor3dConst<_type2, _type1> krylov_bases,          \
                 const matrix::Dense<_type1> *hessenberg,               \
                 matrix::Dense<_type1> *y,                              \
                 matrix::Dense<_type1> *before_preconditioner,          \

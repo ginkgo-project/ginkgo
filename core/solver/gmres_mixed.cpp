@@ -85,9 +85,9 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     using Vector = matrix::Dense<ValueType>;
     using VectorNorms = matrix::Dense<remove_complex<ValueType>>;
     using LowArray = Array<ValueTypeKrylovBases>;
-    using KrylovAccessor = kernels::Accessor2d<ValueTypeKrylovBases, ValueType>;
-    using Accessor2dHelper =
-        kernels::Accessor2dHelper<ValueType, ValueTypeKrylovBases>;
+    using KrylovAccessor = kernels::Accessor3d<ValueTypeKrylovBases, ValueType>;
+    using Accessor3dHelper =
+        kernels::Accessor3dHelper<ValueType, ValueTypeKrylovBases>;
 
 
     constexpr uint8 RelativeStoppingId{1};
@@ -100,14 +100,17 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
     auto residual = Vector::create_with_config_of(dense_b);
-    const dim<2> krylov_bases_dim{
-        system_matrix_->get_size()[1],
-        (krylov_dim_mixed_ + 1) * dense_b->get_size()[1]};
+    const dim<3> krylov_bases_dim{krylov_dim_mixed_ + 1,
+                                  system_matrix_->get_size()[1],
+                                  dense_b->get_size()[1]};
+    // const dim<2> krylov_bases_dim{
+    //     system_matrix_->get_size()[1],
+    //     (krylov_dim_mixed_ + 1) * dense_b->get_size()[1]};
     // const size_type krylov_bases_stride = krylov_bases_dim[1];
     // LowArray krylov_bases(exec, krylov_bases_dim[0] * krylov_bases_stride);
     // KrylovAccessor krylov_bases_accessor(krylov_bases.get_data(),
     //                                     krylov_bases_stride);
-    Accessor2dHelper helper(krylov_bases_dim, exec);
+    Accessor3dHelper helper(exec, krylov_bases_dim);
     auto krylov_bases_accessor = helper.get_accessor();
 
     auto next_krylov_basis = Vector::create_with_config_of(dense_b);
