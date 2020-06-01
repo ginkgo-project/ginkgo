@@ -60,9 +60,10 @@ protected:
     using value_type = double;
     using krylov_type = float;
     using index_type = int;
-    using Accessor2d = gko::kernels::Accessor2d<krylov_type, value_type>;
-    using Accessor2dHelper =
-        gko::kernels::Accessor2dHelper<value_type, krylov_type>;
+    using size_type = gko::size_type;
+    using Accessor3d = gko::kernels::Accessor3d<krylov_type, value_type>;
+    using Accessor3dHelper =
+        gko::kernels::Accessor3dHelper<value_type, krylov_type>;
     using Dense = gko::matrix::Dense<value_type>;
     using Mtx = Dense;
 
@@ -90,17 +91,31 @@ protected:
             std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
     }
 
-    gko::Array<krylov_type> generate_krylov_bases(int num_rows, int num_cols)
+    Accessor3dHelper generate_krylov_helper(gko::dim<3> size)
     {
-        gko::Array<krylov_type> result{
-            ref, static_cast<gko::size_type>(num_rows * num_cols)};
+        auto helper = Accessor3dHelper{ref, size};
+        auto &bases = helper.get_bases();
+        const auto num_rows = size[0] * size[1];
+        const auto num_cols = size[2];
         auto temp_krylov_bases = gko::test::generate_random_matrix<Dense>(
             num_rows, num_cols,
             std::uniform_int_distribution<index_type>(num_cols, num_cols),
             std::normal_distribution<krylov_type>(-1.0, 1.0), rand_engine, ref);
         std::copy_n(temp_krylov_bases->get_const_values(),
-                    result.get_num_elems(), result.get_data());
-        return result;
+                    bases.get_num_elems(), bases.get_data());
+        if (Accessor3d::has_scale) {
+            auto accessor = helper.get_accessor();
+            auto dist = std::normal_distribution<value_type>(-1, 1);
+            for (size_type k = 0; k < size[0]; ++k) {
+                for (size_type i = 0; i < size[2]; ++i) {
+                    gko::kernels::helper_functions_accessor<
+                        value_type, krylov_type>::write_scale(accessor, k, i,
+                                                              dist(
+                                                                  rand_engine));
+                }
+            }
+        }
+        return helper;
     }
 
     void initialize_data()
@@ -113,12 +128,11 @@ protected:
         b = gen_mtx(m, n);
         b_norm = gen_mtx(1, n);
         arnoldi_norm = gen_mtx(3, n);
-        gko::dim<2> krylov_bases_dim(
-            m, (gko::solver::default_krylov_dim_mixed + 1) * n);
-        acc_helper = Accessor2dHelper{krylov_bases_dim, ref};
-        acc_helper.get_bases() =
-            generate_krylov_bases(krylov_bases_dim[0], krylov_bases_dim[1]);
+        gko::dim<3> krylov_bases_dim(gko::solver::default_krylov_dim_mixed + 1,
+                                     m, n);
+        acc_helper = generate_krylov_helper(krylov_bases_dim);
         krylov_bases_accessor = acc_helper.get_accessor();
+
         next_krylov_basis = gen_mtx(m, n);
         hessenberg = gen_mtx(gko::solver::default_krylov_dim_mixed + 1,
                              gko::solver::default_krylov_dim_mixed * n);
@@ -162,7 +176,7 @@ protected:
         d_b_norm->copy_from(b_norm.get());
         d_arnoldi_norm = Mtx::create(cuda);
         d_arnoldi_norm->copy_from(arnoldi_norm.get());
-        d_acc_helper = Accessor2dHelper{{}, cuda};
+        d_acc_helper = Accessor3dHelper{cuda, {}};
         d_acc_helper = acc_helper;
         d_krylov_bases_accessor = d_acc_helper.get_accessor();
         d_next_krylov_basis = Mtx::create(cuda);
@@ -222,8 +236,8 @@ protected:
     std::unique_ptr<Mtx> b;
     std::unique_ptr<Mtx> b_norm;
     std::unique_ptr<Mtx> arnoldi_norm;
-    Accessor2dHelper acc_helper;
-    Accessor2d krylov_bases_accessor;
+    Accessor3dHelper acc_helper;
+    Accessor3d krylov_bases_accessor;
     std::unique_ptr<Mtx> next_krylov_basis;
     std::unique_ptr<Mtx> hessenberg;
     std::unique_ptr<Mtx> hessenberg_iter;
@@ -244,8 +258,8 @@ protected:
     std::unique_ptr<Mtx> d_b;
     std::unique_ptr<Mtx> d_b_norm;
     std::unique_ptr<Mtx> d_arnoldi_norm;
-    Accessor2dHelper d_acc_helper;
-    Accessor2d d_krylov_bases_accessor;
+    Accessor3dHelper d_acc_helper;
+    Accessor3d d_krylov_bases_accessor;
     std::unique_ptr<Mtx> d_next_krylov_basis;
     std::unique_ptr<Mtx> d_hessenberg;
     std::unique_ptr<Mtx> d_hessenberg_iter;
