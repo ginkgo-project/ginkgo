@@ -66,6 +66,10 @@ target_link_libraries(ginkgo
 if (GINKGO_HAVE_PAPI_SDE)
     target_link_libraries(ginkgo PUBLIC PAPI::PAPI)
 endif()
+if (GINKGO_HAVE_HWLOC)
+  target_include_directories(ginkgo PRIVATE ${HWLOC_INCLUDE_DIRS})
+  target_link_libraries(ginkgo PRIVATE ${HWLOC_LIBRARIES})
+endif()
 ginkgo_default_includes(ginkgo)
 ginkgo_install_library(ginkgo core)
 
