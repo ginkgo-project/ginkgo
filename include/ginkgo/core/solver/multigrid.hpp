@@ -95,9 +95,9 @@ public:
     }
 
     /**
-     * Gets the system operator of the linear system.
+     * Gets the list of RestrictProlong operator.
      *
-     * @return the system operator
+     * @return the list of RestrictProlong opertor
      */
     const std::vector<std::shared_ptr<gko::multigrid::RestrictProlong>>
     get_rstr_prlg_list() const
@@ -105,27 +105,52 @@ public:
         return rstr_prlg_list_;
     }
 
+    /**
+     * Gets the list of pre-smoother operator.
+     *
+     * @return the list of pre-smoother operator
+     */
     const std::vector<std::shared_ptr<LinOp>> get_pre_smoother_list() const
     {
         return pre_smoother_list_;
     }
 
+    /**
+     * Gets the list of post-smoother operator.
+     *
+     * @return the list of post-smoother operator
+     */
     const std::vector<std::shared_ptr<LinOp>> get_post_smoother_list() const
     {
         return post_smoother_list_;
     }
 
+    /**
+     * Gets the operator at the coarsest level.
+     *
+     * @return the coarsest operator
+     */
     std::shared_ptr<const LinOp> get_coarsest_solver() const
     {
         return coarsest_solver_;
     }
 
+    /**
+     * Gets the list of pre-relaxation.
+     *
+     * @return the list of pre-relaxation
+     */
     const std::vector<std::shared_ptr<matrix::Dense<ValueType>>>
     get_pre_relaxation_list() const
     {
         return pre_relaxation_list_;
     }
 
+    /**
+     * Gets the list of post-relaxation.
+     *
+     * @return the list of post-relaxation
+     */
     const std::vector<std::shared_ptr<matrix::Dense<ValueType>>>
     get_post_relaxation_list() const
     {
@@ -140,33 +165,73 @@ public:
         std::vector<std::shared_ptr<const stop::CriterionFactory>>
             GKO_FACTORY_PARAMETER(criteria, nullptr);
 
+        /**
+         * RestrictProlong Factory list
+         */
         std::vector<
             std::shared_ptr<const gko::multigrid::RestrictProlongFactory>>
             GKO_FACTORY_PARAMETER(rstr_prlg, nullptr);
 
+        /**
+         * Custom selector
+         * default selector: use the first factory when rstr_prlg size = 1
+         *                   use the level as the index when rstr_prlg size > 1
+         */
         std::function<size_type(const size_type, const size_type)>
             GKO_FACTORY_PARAMETER(rstr_prlg_index, nullptr);
 
         /**
-         * Pre-smooth factory.
+         * Pre-smooth Factory list.
+         * Its size must be 0, 1 or be the same as rstr_prlg's.
+         * when size = 0, do not use pre_smoother
+         * when size = 1, use the first factory
+         * when size > 1, use the same selector as rstr_prlg
+         * nullptr skips this pre_smoother at the level, which is different from
+         * Identity Factory. Identity Factory updates x = x + relaxation *
+         * residual.
          */
         std::vector<std::shared_ptr<const LinOpFactory>> GKO_FACTORY_PARAMETER(
             pre_smoother, nullptr);
 
         /**
-         * Post-smooth factory.
+         * Post-smooth Factory list.
+         * It is similar to Pre-smooth Factory list. It is ignore if
+         * prost_uses_pre = true.
          */
         std::vector<std::shared_ptr<const LinOpFactory>> GKO_FACTORY_PARAMETER(
             post_smoother, nullptr);
 
+        /**
+         * Pre-relaxation list.
+         * Its size must be 0, 1 or be the same as rstr_prlg's.
+         * when size = 0, use 1 as relaxation
+         * when size = 1, use the first value
+         * when size > 1, use the same selector as rstr_prlg
+         */
         gko::Array<value_type> GKO_FACTORY_PARAMETER(pre_relaxation, nullptr);
 
+        /**
+         * Post-relaxation list.
+         * It is similar to Pre-relaxation list. It is ignore if
+         * prost_uses_pre = true.
+         */
         gko::Array<value_type> GKO_FACTORY_PARAMETER(post_relaxation, nullptr);
 
+        /**
+         * Whether Post-related calls use corresponding pre-related calls.
+         */
         bool GKO_FACTORY_PARAMETER(post_uses_pre, false);
 
+        /**
+         * The maximum level can be generated
+         */
         size_type GKO_FACTORY_PARAMETER(max_levels, 10);
 
+        /**
+         * The minimal coarse rows.
+         * If generation gets the matrix which contains less than
+         * `min_coarse_rows`, the generation stops.
+         */
         size_type GKO_FACTORY_PARAMETER(min_coarse_rows, 2);
 
         /**

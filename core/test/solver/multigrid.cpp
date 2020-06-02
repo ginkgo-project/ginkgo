@@ -33,10 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/multigrid.hpp>
 
 
-#include <typeinfo>
+#include <vector>
 
 
 #include <gtest/gtest.h>
+
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -51,9 +52,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace {
 
+/**
+ * global_step is a global value to label each step of multigrid operator
+ * advanced_apply: global_step *= real(alpha), push(global_step), global_step++
+ * others:         push(global_step), global_step++
+ * Need to initialize global_step before applying multigrid.
+ */
+int global_step = 0;
 
-class DummyLinOpWithFactory : public gko::EnableLinOp<DummyLinOpWithFactory> {
+
+void assert_same_vector(std::vector<int> v1, std::vector<int> v2)
+{
+    ASSERT_EQ(v1.size(), v2.size());
+    for (gko::size_type i = 0; i < v1.size(); i++) {
+        ASSERT_EQ(v1.at(i), v2.at(i));
+    }
+}
+
+
+template <typename ValueType>
+class DummyLinOpWithFactory
+    : public gko::EnableLinOp<DummyLinOpWithFactory<ValueType>> {
 public:
+    const std::vector<int> get_step() const { return step; }
+
     DummyLinOpWithFactory(std::shared_ptr<const gko::Executor> exec)
         : gko::EnableLinOp<DummyLinOpWithFactory>(exec)
     {}
@@ -67,7 +89,8 @@ public:
 
     DummyLinOpWithFactory(const Factory *factory,
                           std::shared_ptr<const gko::LinOp> op)
-        : gko::EnableLinOp<DummyLinOpWithFactory>(factory->get_executor()),
+        : gko::EnableLinOp<DummyLinOpWithFactory>(factory->get_executor(),
+                                                  transpose(op->get_size())),
           parameters_{factory->get_parameters()},
           op_{op}
     {}
@@ -75,11 +98,24 @@ public:
     std::shared_ptr<const gko::LinOp> op_;
 
 protected:
-    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
+    {
+        step.push_back(global_step);
+        global_step++;
+    }
 
     void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
                     const gko::LinOp *beta, gko::LinOp *x) const override
-    {}
+    {
+        auto alpha_value =
+            gko::as<gko::matrix::Dense<ValueType>>(alpha)->at(0, 0);
+        gko::remove_complex<ValueType> scale = std::real(alpha_value);
+        global_step *= static_cast<int>(scale);
+        step.push_back(global_step);
+        global_step++;
+    }
+
+    mutable std::vector<int> step;
 };
 
 
@@ -87,12 +123,15 @@ class DummyRestrictProlongOpWithFactory
     : public gko::multigrid::EnableRestrictProlong<
           DummyRestrictProlongOpWithFactory> {
 public:
+    const std::vector<int> get_rstr_step() const { return rstr_step; }
+
+    const std::vector<int> get_prlg_step() const { return prlg_step; }
+
     DummyRestrictProlongOpWithFactory(std::shared_ptr<const gko::Executor> exec)
         : gko::multigrid::EnableRestrictProlong<
               DummyRestrictProlongOpWithFactory>(exec)
     {}
 
-    int get_value() const { return parameters_.value; }
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         int GKO_FACTORY_PARAMETER(value, 5);
@@ -115,26 +154,21 @@ public:
 
 protected:
     void restrict_apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
-    {}
+    {
+        rstr_step.push_back(global_step);
+        global_step++;
+    }
 
     void prolong_applyadd_impl(const gko::LinOp *b,
                                gko::LinOp *x) const override
-    {}
+    {
+        prlg_step.push_back(global_step);
+        global_step++;
+    }
+
+    mutable std::vector<int> rstr_step;
+    mutable std::vector<int> prlg_step;
 };
-
-
-int get_value(gko::multigrid::RestrictProlong *rp)
-{
-    using DummyRPFactory = DummyRestrictProlongOpWithFactory;
-    return dynamic_cast<DummyRPFactory *>(rp)->get_parameters().value;
-}
-
-
-int get_value(gko::LinOp *lo)
-{
-    using DummyFactory = DummyLinOpWithFactory;
-    return dynamic_cast<DummyFactory *>(lo)->get_parameters().value;
-}
 
 
 template <typename T>
@@ -144,7 +178,7 @@ protected:
     using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Multigrid<value_type>;
     using DummyRPFactory = DummyRestrictProlongOpWithFactory;
-    using DummyFactory = DummyLinOpWithFactory;
+    using DummyFactory = DummyLinOpWithFactory<value_type>;
 
     Multigrid()
         : exec(gko::ReferenceExecutor::create()),
@@ -179,8 +213,8 @@ protected:
     std::unique_ptr<gko::LinOp> solver;
     std::shared_ptr<DummyRPFactory::Factory> rp_factory;
     std::shared_ptr<DummyRPFactory::Factory> rp_factory2;
-    std::shared_ptr<DummyFactory::Factory> lo_factory;
-    std::shared_ptr<DummyFactory::Factory> lo_factory2;
+    std::shared_ptr<typename DummyFactory::Factory> lo_factory;
+    std::shared_ptr<typename DummyFactory::Factory> lo_factory2;
 
     static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
     {
@@ -191,6 +225,32 @@ protected:
                 EXPECT_EQ(m1->at(i, j), m2->at(i, j));
             }
         }
+    }
+
+    static void assert_same_step(const gko::LinOp *lo, std::vector<int> v2)
+    {
+        auto v1 = dynamic_cast<const DummyFactory *>(lo)->get_step();
+        assert_same_vector(v1, v2);
+    }
+
+    static void assert_same_step(const gko::multigrid::RestrictProlong *rp,
+                                 std::vector<int> rstr, std::vector<int> prlg)
+    {
+        auto dummy = dynamic_cast<const DummyRPFactory *>(rp);
+        auto v = dummy->get_rstr_step();
+        assert_same_vector(v, rstr);
+        v = dummy->get_prlg_step();
+        assert_same_vector(v, prlg);
+    }
+
+    static int get_value(gko::multigrid::RestrictProlong *rp)
+    {
+        return dynamic_cast<DummyRPFactory *>(rp)->get_parameters().value;
+    }
+
+    static int get_value(gko::LinOp *lo)
+    {
+        return dynamic_cast<DummyFactory *>(lo)->get_parameters().value;
     }
 };
 
@@ -260,6 +320,7 @@ TYPED_TEST(Multigrid, CanBeCloned)
 TYPED_TEST(Multigrid, CanBeCleared)
 {
     using Solver = typename TestFixture::Solver;
+
     this->solver->clear();
 
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
@@ -277,13 +338,13 @@ TYPED_TEST(Multigrid, ApplyUsesInitialGuessReturnsTrue)
     ASSERT_TRUE(this->solver->apply_uses_initial_guess());
 }
 
+
 TYPED_TEST(Multigrid, EachLevelAreDistinct)
 {
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
     using DummyFactory = typename TestFixture::DummyFactory;
     using value_type = typename TestFixture::value_type;
-
     auto solver = static_cast<Solver *>(this->solver.get());
     auto rstr_prlg = solver->get_rstr_prlg_list();
     auto pre_smoother = solver->get_pre_smoother_list();
@@ -294,16 +355,16 @@ TYPED_TEST(Multigrid, EachLevelAreDistinct)
 
     ASSERT_EQ(rstr_prlg.size(), 2);
     ASSERT_NE(rstr_prlg.at(0), rstr_prlg.at(1));
-    ASSERT_EQ(get_value(rstr_prlg.at(0).get()), 5);
-    ASSERT_EQ(get_value(rstr_prlg.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(rstr_prlg.at(0).get()), 5);
+    ASSERT_EQ(this->get_value(rstr_prlg.at(1).get()), 5);
     ASSERT_EQ(pre_smoother.size(), 2);
     ASSERT_NE(pre_smoother.at(0), pre_smoother.at(1));
-    ASSERT_EQ(get_value(pre_smoother.at(0).get()), 5);
-    ASSERT_EQ(get_value(pre_smoother.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(0).get()), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(1).get()), 5);
     ASSERT_EQ(post_smoother.size(), 2);
     ASSERT_NE(post_smoother.at(0), post_smoother.at(1));
-    ASSERT_EQ(get_value(post_smoother.at(0).get()), 5);
-    ASSERT_EQ(get_value(post_smoother.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(post_smoother.at(0).get()), 5);
+    ASSERT_EQ(this->get_value(post_smoother.at(1).get()), 5);
     ASSERT_EQ(pre_relaxation.size(), 2);
     ASSERT_EQ(pre_relaxation.at(0)->at(0, 0), value_type{2});
     ASSERT_EQ(pre_relaxation.at(1)->at(0, 0), value_type{2});
@@ -340,12 +401,12 @@ TYPED_TEST(Multigrid, TwoRstrPrlg)
 
     ASSERT_EQ(rstr_prlg.size(), 2);
     ASSERT_NE(rstr_prlg.at(0), rstr_prlg.at(1));
-    ASSERT_EQ(get_value(rstr_prlg.at(0).get()), 5);
-    ASSERT_EQ(get_value(rstr_prlg.at(1).get()), 2);
-    ASSERT_EQ(get_value(pre_smoother.at(0).get()), 5);
-    ASSERT_EQ(get_value(pre_smoother.at(1).get()), 2);
-    ASSERT_EQ(get_value(post_smoother.at(0).get()), 2);
-    ASSERT_EQ(get_value(post_smoother.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(rstr_prlg.at(0).get()), 5);
+    ASSERT_EQ(this->get_value(rstr_prlg.at(1).get()), 2);
+    ASSERT_EQ(this->get_value(pre_smoother.at(0).get()), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(1).get()), 2);
+    ASSERT_EQ(this->get_value(post_smoother.at(0).get()), 2);
+    ASSERT_EQ(this->get_value(post_smoother.at(1).get()), 5);
     ASSERT_EQ(pre_relaxation.at(0)->at(0, 0), value_type{1});
     ASSERT_EQ(pre_relaxation.at(1)->at(0, 0), value_type{2});
     ASSERT_EQ(post_relaxation.at(0)->at(0, 0), value_type{3});
@@ -381,12 +442,12 @@ TYPED_TEST(Multigrid, TwoRstrPrlgWithOnePost)
 
     ASSERT_EQ(rstr_prlg.size(), 2);
     ASSERT_NE(rstr_prlg.at(0), rstr_prlg.at(1));
-    ASSERT_EQ(get_value(rstr_prlg.at(0).get()), 5);
-    ASSERT_EQ(get_value(rstr_prlg.at(1).get()), 2);
-    ASSERT_EQ(get_value(pre_smoother.at(0).get()), 5);
-    ASSERT_EQ(get_value(pre_smoother.at(1).get()), 2);
-    ASSERT_EQ(get_value(post_smoother.at(0).get()), 2);
-    ASSERT_EQ(get_value(post_smoother.at(1).get()), 2);
+    ASSERT_EQ(this->get_value(rstr_prlg.at(0).get()), 5);
+    ASSERT_EQ(this->get_value(rstr_prlg.at(1).get()), 2);
+    ASSERT_EQ(this->get_value(pre_smoother.at(0).get()), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(1).get()), 2);
+    ASSERT_EQ(this->get_value(post_smoother.at(0).get()), 2);
+    ASSERT_EQ(this->get_value(post_smoother.at(1).get()), 2);
     ASSERT_EQ(pre_relaxation.at(0)->at(0, 0), value_type{1});
     ASSERT_EQ(pre_relaxation.at(1)->at(0, 0), value_type{2});
     ASSERT_EQ(post_relaxation.at(0)->at(0, 0), value_type{3});
@@ -400,7 +461,6 @@ TYPED_TEST(Multigrid, CustomSelector)
     using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
-
     std::function<gko::size_type(const gko::size_type, const gko::size_type)>
         selector =
             [](const gko::size_type num_rows, const gko::size_type level) {
@@ -422,16 +482,16 @@ TYPED_TEST(Multigrid, CustomSelector)
     auto post_relaxation = solver->get_post_relaxation_list();
 
     ASSERT_EQ(rstr_prlg.size(), 4);
-    ASSERT_EQ(get_value(rstr_prlg.at(0).get()), 5);
-    ASSERT_EQ(get_value(rstr_prlg.at(1).get()), 5);
-    ASSERT_EQ(get_value(rstr_prlg.at(2).get()), 2);
-    ASSERT_EQ(get_value(rstr_prlg.at(3).get()), 5);
+    ASSERT_EQ(this->get_value(rstr_prlg.at(0).get()), 5);
+    ASSERT_EQ(this->get_value(rstr_prlg.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(rstr_prlg.at(2).get()), 2);
+    ASSERT_EQ(this->get_value(rstr_prlg.at(3).get()), 5);
     // pre_smoother use same index as rstr_prlg
     ASSERT_EQ(pre_smoother.size(), 4);
-    ASSERT_EQ(get_value(pre_smoother.at(0).get()), 5);
-    ASSERT_EQ(get_value(pre_smoother.at(1).get()), 5);
-    ASSERT_EQ(get_value(pre_smoother.at(2).get()), 2);
-    ASSERT_EQ(get_value(pre_smoother.at(3).get()), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(0).get()), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(2).get()), 2);
+    ASSERT_EQ(this->get_value(pre_smoother.at(3).get()), 5);
     // post_smoother has same number as rstr_prlg
     ASSERT_EQ(post_smoother.size(), 4);
     ASSERT_EQ(post_smoother.at(0), nullptr);
@@ -452,7 +512,6 @@ TYPED_TEST(Multigrid, CustomSelectorWithOnePost)
     using value_type = typename TestFixture::value_type;
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
-
     std::function<gko::size_type(const gko::size_type, const gko::size_type)>
         selector =
             [](const gko::size_type num_rows, const gko::size_type level) {
@@ -476,21 +535,21 @@ TYPED_TEST(Multigrid, CustomSelectorWithOnePost)
     auto post_relaxation = solver->get_post_relaxation_list();
 
     ASSERT_EQ(rstr_prlg.size(), 4);
-    ASSERT_EQ(get_value(rstr_prlg.at(0).get()), 5);
-    ASSERT_EQ(get_value(rstr_prlg.at(1).get()), 5);
-    ASSERT_EQ(get_value(rstr_prlg.at(2).get()), 2);
-    ASSERT_EQ(get_value(rstr_prlg.at(3).get()), 5);
+    ASSERT_EQ(this->get_value(rstr_prlg.at(0).get()), 5);
+    ASSERT_EQ(this->get_value(rstr_prlg.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(rstr_prlg.at(2).get()), 2);
+    ASSERT_EQ(this->get_value(rstr_prlg.at(3).get()), 5);
     // pre_smoother use same index as rstr_prlg
     ASSERT_EQ(pre_smoother.size(), 4);
-    ASSERT_EQ(get_value(pre_smoother.at(0).get()), 5);
-    ASSERT_EQ(get_value(pre_smoother.at(1).get()), 5);
-    ASSERT_EQ(get_value(pre_smoother.at(2).get()), 2);
-    ASSERT_EQ(get_value(pre_smoother.at(3).get()), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(0).get()), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(1).get()), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(2).get()), 2);
+    ASSERT_EQ(this->get_value(pre_smoother.at(3).get()), 5);
     ASSERT_EQ(post_smoother.size(), 4);
-    ASSERT_EQ(get_value(post_smoother.at(0).get()), 2);
-    ASSERT_EQ(get_value(post_smoother.at(1).get()), 2);
-    ASSERT_EQ(get_value(post_smoother.at(2).get()), 2);
-    ASSERT_EQ(get_value(post_smoother.at(3).get()), 2);
+    ASSERT_EQ(this->get_value(post_smoother.at(0).get()), 2);
+    ASSERT_EQ(this->get_value(post_smoother.at(1).get()), 2);
+    ASSERT_EQ(this->get_value(post_smoother.at(2).get()), 2);
+    ASSERT_EQ(this->get_value(post_smoother.at(3).get()), 2);
     ASSERT_EQ(pre_relaxation.size(), 4);
     ASSERT_EQ(pre_relaxation.at(0)->at(0, 0), value_type{1});
     ASSERT_EQ(pre_relaxation.at(1)->at(0, 0), value_type{1});
@@ -509,7 +568,6 @@ TYPED_TEST(Multigrid, PostUsesPre)
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
     using value_type = typename TestFixture::value_type;
-
     auto solver =
         Solver::build()
             .with_max_levels(2u)
@@ -532,15 +590,106 @@ TYPED_TEST(Multigrid, PostUsesPre)
 
     ASSERT_EQ(rstr_prlg.size(), 2);
     ASSERT_NE(rstr_prlg.at(0), rstr_prlg.at(1));
-    ASSERT_EQ(get_value(rstr_prlg.at(0).get()), 5);
-    ASSERT_EQ(get_value(rstr_prlg.at(1).get()), 2);
-    ASSERT_EQ(get_value(pre_smoother.at(0).get()), 5);
-    ASSERT_EQ(get_value(pre_smoother.at(1).get()), 2);
+    ASSERT_EQ(this->get_value(rstr_prlg.at(0).get()), 5);
+    ASSERT_EQ(this->get_value(rstr_prlg.at(1).get()), 2);
+    ASSERT_EQ(this->get_value(pre_smoother.at(0).get()), 5);
+    ASSERT_EQ(this->get_value(pre_smoother.at(1).get()), 2);
     ASSERT_EQ(post_smoother.size(), 0);
     ASSERT_EQ(pre_relaxation.at(0)->at(0, 0), value_type{1});
     ASSERT_EQ(pre_relaxation.at(1)->at(0, 0), value_type{2});
     ASSERT_EQ(post_relaxation.size(), 0);
     ASSERT_NE(identity, nullptr);
+}
+
+
+TYPED_TEST(Multigrid, VCycle)
+{
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    using DummyFactory = typename TestFixture::DummyFactory;
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto solver =
+        Solver::build()
+            .with_max_levels(2u)
+            .with_rstr_prlg(this->rp_factory, this->rp_factory2)
+            .with_pre_smoother(nullptr, this->lo_factory)
+            .with_post_smoother(this->lo_factory2, nullptr)
+            .with_pre_relaxation(gko::Array<value_type>(this->exec, {1, 2}))
+            .with_post_relaxation(gko::Array<value_type>(this->exec, {3, 4}))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(this->exec))
+            .on(this->exec)
+            ->generate(this->mtx);
+    auto b = gko::initialize<Mtx>(
+        {I<value_type>({1, 0}), I<value_type>({0, 2}), I<value_type>({-1, -2})},
+        this->exec);
+    auto x = gko::initialize<Mtx>(
+        {I<value_type>({-1, 0}), I<value_type>({-2, 1}), I<value_type>({1, 1})},
+        this->exec);
+    auto rstr_prlg = solver->get_rstr_prlg_list();
+    auto pre_smoother = solver->get_pre_smoother_list();
+    auto post_smoother = solver->get_post_smoother_list();
+
+    // - pass                     - lo2 (18)
+    //   | rp (0)               | rp (5)
+    //     - lo (2)           - pass
+    //       | rp2 (3)      | rp2 (4)
+    //         - Identity -
+    global_step = 0;
+    solver->apply(gko::lend(b), gko::lend(x));
+
+    this->assert_same_step(rstr_prlg.at(0).get(), {0}, {5});
+    this->assert_same_step(rstr_prlg.at(1).get(), {3}, {4});
+    this->assert_same_step(pre_smoother.at(1).get(), {2});
+    this->assert_same_step(post_smoother.at(0).get(), {18});
+}
+
+
+TYPED_TEST(Multigrid, VCyclePostUsesPre)
+{
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    using DummyFactory = typename TestFixture::DummyFactory;
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto solver =
+        Solver::build()
+            .with_max_levels(2u)
+            .with_rstr_prlg(this->rp_factory, this->rp_factory2)
+            .with_pre_smoother(nullptr, this->lo_factory)
+            .with_post_smoother(this->lo_factory2, nullptr)
+            .with_coarsest_solver(this->lo_factory2)
+            .with_pre_relaxation(gko::Array<value_type>(this->exec, {2}))
+            .with_post_relaxation(gko::Array<value_type>(this->exec, {3, 4}))
+            .with_post_uses_pre(true)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u).on(this->exec))
+            .on(this->exec)
+            ->generate(this->mtx);
+    auto b = gko::initialize<Mtx>(
+        {I<value_type>({1, 0}), I<value_type>({0, 2}), I<value_type>({-1, -2})},
+        this->exec);
+    auto x = gko::initialize<Mtx>(
+        {I<value_type>({-1, 0}), I<value_type>({-2, 1}), I<value_type>({1, 1})},
+        this->exec);
+    auto rstr_prlg = solver->get_rstr_prlg_list();
+    auto pre_smoother = solver->get_pre_smoother_list();
+    auto post_smoother = solver->get_post_smoother_list();
+    auto coarsest_solver = solver->get_coarsest_solver();
+
+    // - pass                    - pass
+    //   | rp1 (0)             | rp1 (13)
+    //     - lo (2)          - lo (2, 12)
+    //       | rp2 (3)     | rp2 (5)
+    //         - lo2 (4) -
+    global_step = 0;
+    solver->apply(gko::lend(b), gko::lend(x));
+
+    this->assert_same_step(rstr_prlg.at(0).get(), {0}, {13});
+    this->assert_same_step(rstr_prlg.at(1).get(), {3}, {5});
+    this->assert_same_step(pre_smoother.at(1).get(), {2, 12});
+    this->assert_same_step(coarsest_solver.get(), {4});
 }
 
 
