@@ -433,7 +433,7 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel_num_iters(
 {
     const auto tidx = threadIdx.x;
     const auto tidy = threadIdx.y;
-    const auto col_idx = blockIdx.x * default_dot_dim + tidx;
+    const size_type col_idx = blockIdx.x * default_dot_dim + tidx;
     const auto num = ceildiv(num_rows, gridDim.y);
     const auto start_row = blockIdx.y * num;
     const auto end_row =
@@ -485,7 +485,7 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel_num_iters_1(
     const auto tidx = threadIdx.x;
     const auto tidy = threadIdx.y;
     const auto num_cols_iters = num_cols * num_iters;
-    const auto col_idx_iters = blockIdx.x * default_dot_dim + tidx;
+    const auto col_idx_iters = blockIdx.x * blockDim.x + tidx;
     const auto col_idx = col_idx_iters % num_cols;
     const auto num = ceildiv(num_rows, gridDim.y);
     const auto start_row = blockIdx.y * num;
@@ -546,6 +546,116 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel_num_iters_1(
         atomic_add(hessenberg_iter + hessenberg_idx, sum);
     }
     //    }
+}
+
+template <int dot_dim, typename ValueType, typename ValueTypeKrylovBases>
+__global__ __launch_bounds__(dot_dim *dot_dim) void multidot_kernel_num_iters_2(
+    size_type num_iters, size_type num_rows, size_type num_cols,
+    const ValueType *__restrict__ next_krylov_basis,
+    size_type stride_next_krylov,
+    Accessor3dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status *__restrict__ stop_status)
+{
+    /*
+     * In general in this kernel (thread indices appear to be col-major):
+     * grid_dim
+     *   x: for col_idx (^= which right hand side)
+     *   y: for row_idx
+     *   z: for num_iters (number of krylov vectors)
+     * block_dim
+     *   x: for col_idx
+     *   y: for row_idx
+     *   (z not used, must be set to 1 in dim)
+     */
+    const size_type tidx = threadIdx.x;
+    const size_type tidy = threadIdx.y;
+    const size_type col_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const size_type num_rows_per_thread = ceildiv(num_rows, gridDim.y);
+    const size_type start_row = blockIdx.y * num_rows_per_thread + threadIdx.y;
+    const auto end_row = min((blockIdx.y + 1) * num_rows_per_thread, num_rows);
+    const size_type k = blockIdx.z;
+    // Used that way to get around dynamic initialization warning and
+    // template error when using `reduction_helper_array` directly in `reduce`
+    __shared__ UninitializedArray<ValueType, dot_dim * dot_dim>
+        reduction_helper_array;
+    ValueType *__restrict__ reduction_helper = reduction_helper_array;
+
+    ValueType local_res = zero<ValueType>();
+    if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
+        for (size_type i = start_row; i < end_row; i += blockDim.y) {
+            const auto next_krylov_idx = i * stride_next_krylov + col_idx;
+            local_res += next_krylov_basis[next_krylov_idx] *
+                         krylov_bases.read(k, i, col_idx);
+        }
+    }
+    // Transpose local_res, so each warp contains a local_res from the same
+    // right hand side
+    reduction_helper[tidx * dot_dim + tidy] = local_res;
+    auto thread_block = group::this_thread_block();
+    thread_block.sync();
+    local_res = reduction_helper[tidy * dot_dim + tidx];
+    const auto new_col_idx = blockIdx.x * blockDim.x + tidy;
+    const auto tile_block = group::tiled_partition<dot_dim>(thread_block);
+    const auto sum =
+        reduce(tile_block, local_res,
+               [](const ValueType &a, const ValueType &b) { return a + b; });
+    if (tidx == 0 && new_col_idx < num_cols &&
+        !stop_status[new_col_idx].has_stopped()) {
+        const auto hessenberg_idx = k * stride_hessenberg + new_col_idx;
+        atomic_add(hessenberg_iter + hessenberg_idx, sum);
+    }
+}
+
+
+template <int block_size, typename ValueType, typename ValueTypeKrylovBases>
+__global__ __launch_bounds__(block_size) void singledot_kernel_num_iters_2(
+    size_type num_iters, size_type num_rows,
+    const ValueType *__restrict__ next_krylov_basis,
+    size_type stride_next_krylov,
+    Accessor3dConst<ValueTypeKrylovBases, ValueType> krylov_bases,
+    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
+    const stopping_status *__restrict__ stop_status)
+{
+    /*
+     * In general in this kernel (thread indices appear to be col-major):
+     * grid_dim
+     *   x: for row_idx
+     *   y: for num_iters (number of krylov vectors)
+     * block_dim
+     *   x: for row_idx (must be block_size)
+     *   (y not used, must be set to 1 in dim)
+     */
+    const size_type tidx = threadIdx.x;
+    constexpr size_type col_idx{0};
+    const size_type num_rows_per_thread = ceildiv(num_rows, gridDim.x);
+    const size_type start_row = blockIdx.x * num_rows_per_thread + threadIdx.x;
+    const auto end_row = min((blockIdx.x + 1) * num_rows_per_thread, num_rows);
+    const size_type k = blockIdx.y;
+    // Used that way to get around dynamic initialization warning and
+    // template error when using `reduction_helper_array` directly in `reduce`
+    __shared__ UninitializedArray<ValueType, block_size> reduction_helper_array;
+    ValueType *__restrict__ reduction_helper = reduction_helper_array;
+
+    ValueType local_res = zero<ValueType>();
+    if (!stop_status[col_idx].has_stopped()) {
+        for (size_type i = start_row; i < end_row; i += block_size) {
+            const auto next_krylov_idx = i * stride_next_krylov + col_idx;
+            local_res += next_krylov_basis[next_krylov_idx] *
+                         krylov_bases.read(k, i, col_idx);
+        }
+    }
+    // Transpose local_res, so each warp contains a local_res from the same
+    // right hand side
+    reduction_helper[tidx] = local_res;
+    auto thread_block = group::this_thread_block();
+    thread_block.sync();
+    reduce(thread_block, reduction_helper,
+           [](const ValueType &a, const ValueType &b) { return a + b; });
+    if (tidx == 0 && !stop_status[col_idx].has_stopped()) {
+        const auto hessenberg_idx = k * stride_hessenberg + col_idx;
+        atomic_add(hessenberg_iter + hessenberg_idx, reduction_helper[0]);
+    }
 }
 
 
