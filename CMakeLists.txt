@@ -15,9 +15,11 @@ project(Ginkgo LANGUAGES C CXX VERSION 1.3.0 DESCRIPTION "A numerical linear alg
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
-# Determine which executors can be compiled
+# Add custom modules search path for the find_package functions.
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+# Determine which modules can be compiled
 include(cmake/hip_path.cmake)
-include(cmake/autodetect_executors.cmake)
+include(cmake/autodetect_library_dependencies.cmake)
 include(cmake/build_type_helpers.cmake)
 
 # Ginkgo configuration options
@@ -31,6 +33,7 @@ option(GINKGO_BUILD_DPCPP
     "Compile DPC++ kernels for Intel GPUs or other DPC++ enabled hardware" ${GINKGO_HAS_DPCPP})
 option(GINKGO_BUILD_CUDA "Compile kernels for NVIDIA GPUs" ${GINKGO_HAS_CUDA})
 option(GINKGO_BUILD_HIP "Compile kernels for AMD or NVIDIA GPUs" ${GINKGO_HAS_HIP})
+option(GINKGO_WITH_HWLOC "Build Ginkgo with HWLOC support" ${GINKGO_HAS_HWLOC})
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
 option(GINKGO_SKIP_DEPENDENCY_UPDATE
     "Do not update dependencies each time the project is rebuilt" ON)
@@ -141,6 +144,17 @@ set(GINKGO_HAVE_PAPI_SDE 0)
 find_package(PAPI OPTIONAL_COMPONENTS sde)
 if(PAPI_sde_FOUND)
     set(GINKGO_HAVE_PAPI_SDE 1)
+endif()
+
+# Find HWLOC if needed
+set(GINKGO_HAVE_HWLOC 0)
+if(GINKGO_WITH_HWLOC)
+  find_package(HWLOC REQUIRED)
+  set(GKO_HWLOC_XMLFILE "${HWLOC_XMLFILE}")
+  message(STATUS "HWLOC XML file set to: ${GKO_HWLOC_XMLFILE}")
+  if(HWLOC_FOUND)
+    set(GINKGO_HAVE_HWLOC 1)
+  endif()
 endif()
 
 set(GINKGO_HIP_PLATFORM_NVCC 0)

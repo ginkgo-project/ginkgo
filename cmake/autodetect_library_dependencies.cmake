@@ -2,18 +2,27 @@ set(GINKGO_HAS_OMP OFF)
 set(GINKGO_HAS_CUDA OFF)
 set(GINKGO_HAS_DPCPP OFF)
 set(GINKGO_HAS_HIP OFF)
+set(GINKGO_HAS_HWLOC OFF)
 find_package(OpenMP)
 include(CheckLanguage)
 check_language(CUDA)
 try_compile(GKO_CAN_COMPILE_DPCPP ${PROJECT_BINARY_DIR}/dpcpp
     SOURCES ${PROJECT_SOURCE_DIR}/dpcpp/test_dpcpp.dp.cpp
     CXX_STANDARD 17)
+find_package(HWLOC)
 
 if(OpenMP_CXX_FOUND)
     if(NOT DEFINED GINKGO_BUILD_OMP)
         message(STATUS "Enabling OpenMP executor")
     endif()
     set(GINKGO_HAS_OMP ON)
+endif()
+
+if(HWLOC_FOUND)
+  if(NOT DEFINED GINKGO_WITH_HWLOC)
+    message(STATUS "Enabling HWLOC support")
+  endif()
+  set(GINKGO_HAS_HWLOC ON)
 endif()
 
 if(CMAKE_CUDA_COMPILER)
