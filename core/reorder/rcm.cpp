@@ -76,7 +76,7 @@ void Rcm<ValueType, IndexType>::generate() const
         num_rows, adjacency_matrix_.get(), degrees_->get_data(),
         permutation_->get_permutation(),
         inv_permutation_.get() ? inv_permutation_->get_permutation() : nullptr,
-        parameters_.starting_strategy));
+        parameters_.strategy));
 }
 
 
