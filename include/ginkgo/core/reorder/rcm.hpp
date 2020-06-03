@@ -136,7 +136,7 @@ public:
          * vertex.
          */
         starting_strategy GKO_FACTORY_PARAMETER(
-            starting_strategy, starting_strategy::pseudo_peripheral);
+            strategy, starting_strategy::pseudo_peripheral);
     };
     GKO_ENABLE_REORDERING_BASE_FACTORY(Rcm, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
