@@ -258,6 +258,11 @@ int main(int, char **)
         auto test = Mtx::create(refExec, gko::dim<2>{2, 2});
     }
 
+    // core/multigrid/amgx_pgm.hpp
+    {
+        auto test = gko::multigrid::AmgxPgm<>::build().on(refExec);
+    }
+
     // core/preconditioner/ilu.hpp
     {
         auto test = gko::preconditioner::Ilu<>::build().on(refExec);

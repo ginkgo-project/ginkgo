@@ -1,1 +1,0 @@
-ginkgo_create_test_cpp_cuda_header(amgx_pgm_kernels)

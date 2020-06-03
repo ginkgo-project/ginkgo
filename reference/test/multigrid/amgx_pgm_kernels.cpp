@@ -70,7 +70,7 @@ protected:
     using T = value_type;
     AmgxPgm()
         : exec(gko::ReferenceExecutor::create()),
-          Amgxpgm_factory(RestrictProlong::build()
+          amgxpgm_factory(RestrictProlong::build()
                               .with_max_iterations(2u)
                               .with_max_unassigned_percentage(0.1)
                               .on(exec)),
@@ -92,20 +92,26 @@ protected:
               exec)),
           mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
                           std::make_shared<typename Mtx::classical>())),
+          coarse(Mtx::create(exec, gko::dim<2>(2, 2), 4,
+                             std::make_shared<typename Mtx::classical>())),
           mtx_diag(exec, 5),
           agg(exec, 5)
     {
-        this->create_mtx(mtx.get(), &mtx_diag, &agg);
+        this->create_mtx(mtx.get(), &mtx_diag, &agg, coarse.get());
+        rstr_prlg = amgxpgm_factory->generate(mtx);
     }
 
     void create_mtx(Mtx *fine, gko::Array<value_type> *diag,
-                    gko::Array<index_type> *agg)
+                    gko::Array<index_type> *agg, Mtx *coarse)
     {
         auto vals = fine->get_values();
         auto cols = fine->get_col_idxs();
         auto rows = fine->get_row_ptrs();
         auto diag_val = diag->get_data();
         auto agg_val = agg->get_data();
+        auto c_vals = coarse->get_values();
+        auto c_cols = coarse->get_col_idxs();
+        auto c_rows = coarse->get_row_ptrs();
         /* this matrix is stored:
          *  5 -3 -3  0  0
          * -3  5  0 -2 -1
@@ -163,10 +169,51 @@ protected:
         agg_val[2] = 0;
         agg_val[3] = 1;
         agg_val[4] = 0;
+
+        /* this coarse is stored:
+         *  6 -5
+         * -4  5
+         */
+        c_vals[0] = 6;
+        c_vals[1] = -5;
+        c_vals[2] = -4;
+        c_vals[3] = 5;
+
+        c_rows[0] = 0;
+        c_rows[1] = 2;
+        c_rows[2] = 4;
+
+        c_cols[0] = 0;
+        c_cols[1] = 1;
+        c_cols[2] = 0;
+        c_cols[3] = 1;
+    }
+
+    static void assert_same_matrices(const Mtx *m1, const Mtx *m2)
+    {
+        ASSERT_EQ(m1->get_size()[0], m2->get_size()[0]);
+        ASSERT_EQ(m1->get_size()[1], m2->get_size()[1]);
+        ASSERT_EQ(m1->get_num_stored_elements(), m2->get_num_stored_elements());
+        for (gko::size_type i = 0; i < m1->get_size() + 1; i++) {
+            ASSERT_EQ(m1->get_const_row_ptrs()[i], m2->get_const_row_ptrs()[i]);
+        }
+        for (gko::size_type i = 0; i < m1->get_num_stored_elements(); ++i) {
+            EXPECT_EQ(m1->get_const_values()[i], m2->get_const_values()[i]);
+            EXPECT_EQ(m1->get_const_col_idxs()[i], m2->get_const_col_idxs()[i]);
+        }
+    }
+
+    static void assert_same_agg(const index_type *m1, const index_type *m2,
+                                gko::size_type len)
+    {
+        for (gko::size_type i = 0; i < len; ++i) {
+            EXPECT_EQ(m1[i], m2[i]);
+        }
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Mtx> coarse;
     gko::Array<value_type> mtx_diag;
     gko::Array<index_type> agg;
     std::shared_ptr<Vec> coarse_b;
@@ -174,10 +221,96 @@ protected:
     std::shared_ptr<Vec> restrict_ans;
     std::shared_ptr<Vec> prolong_ans;
     std::shared_ptr<Vec> fine_x;
-    std::unique_ptr<typename RestrictProlong::Factory> Amgxpgm_factory;
+    std::unique_ptr<typename RestrictProlong::Factory> amgxpgm_factory;
+    std::unique_ptr<RestrictProlong> rstr_prlg;
 };
 
 TYPED_TEST_CASE(AmgxPgm, gko::test::ValueIndexTypes);
+
+
+TYPED_TEST(AmgxPgm, CanBeCopied)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using RestrictProlong = typename TestFixture::RestrictProlong;
+    auto copy = this->amgxpgm_factory->generate(Mtx::create(this->exec));
+
+    copy->copy_from(this->rstr_prlg.get());
+
+    auto copy_mtx =
+        static_cast<RestrictProlong *>(copy.get())->get_system_matrix();
+    auto copy_agg = static_cast<RestrictProlong *>(copy.get())->get_const_agg();
+    auto copy_coarse = copy->get_coarse_operator();
+
+    this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
+                               this->mtx.get());
+    this->assert_same_agg(copy_agg, this->agg.get_data(),
+                          this->agg.get_num_elems());
+    this->assert_same_matrices(static_cast<const Mtx *>(copy_coarse.get()),
+                               this->coarse.get());
+}
+
+
+TYPED_TEST(AmgxPgm, CanBeMoved)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using RestrictProlong = typename TestFixture::RestrictProlong;
+    auto copy = this->amgxpgm_factory->generate(Mtx::create(this->exec));
+
+    copy->copy_from(std::move(this->rstr_prlg));
+
+    auto copy_mtx =
+        static_cast<RestrictProlong *>(copy.get())->get_system_matrix();
+    auto copy_agg = static_cast<RestrictProlong *>(copy.get())->get_const_agg();
+    auto copy_coarse = copy->get_coarse_operator();
+
+    this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
+                               this->mtx.get());
+    this->assert_same_agg(copy_agg, this->agg.get_data(),
+                          this->agg.get_num_elems());
+    this->assert_same_matrices(static_cast<const Mtx *>(copy_coarse.get()),
+                               this->coarse.get());
+}
+
+
+TYPED_TEST(AmgxPgm, CanBeCloned)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using RestrictProlong = typename TestFixture::RestrictProlong;
+    auto copy = this->amgxpgm_factory->generate(Mtx::create(this->exec));
+
+    auto clone = this->rstr_prlg->clone();
+
+    auto clone_mtx =
+        static_cast<RestrictProlong *>(clone.get())->get_system_matrix();
+    auto clone_agg =
+        static_cast<RestrictProlong *>(clone.get())->get_const_agg();
+    auto clone_coarse = clone->get_coarse_operator();
+
+    this->assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()),
+                               this->mtx.get());
+    this->assert_same_agg(clone_agg, this->agg.get_data(),
+                          this->agg.get_num_elems());
+    this->assert_same_matrices(static_cast<const Mtx *>(clone_coarse.get()),
+                               this->coarse.get());
+}
+
+
+TYPED_TEST(AmgxPgm, CanBeCleared)
+{
+    using RestrictProlong = typename TestFixture::RestrictProlong;
+
+    this->rstr_prlg->clear();
+
+    auto mtx = static_cast<RestrictProlong *>(this->rstr_prlg.get())
+                   ->get_system_matrix();
+    auto coarse = this->rstr_prlg->get_coarse_operator();
+    auto agg = static_cast<RestrictProlong *>(this->rstr_prlg.get())->get_agg();
+
+    ASSERT_EQ(mtx, nullptr);
+    ASSERT_EQ(coarse, nullptr);
+    ASSERT_EQ(agg, nullptr);
+}
+
 
 TYPED_TEST(AmgxPgm, RestrictApply)
 {
@@ -185,8 +318,10 @@ TYPED_TEST(AmgxPgm, RestrictApply)
     using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     auto x = Vec::create_with_config_of(gko::lend(this->coarse_b));
+
     gko::kernels::reference::amgx_pgm::restrict_apply(
         this->exec, this->agg, this->fine_b.get(), x.get());
+
     GKO_ASSERT_MTX_NEAR(x, this->restrict_ans,
                         gko::remove_complex<value_type>{0});
 }
@@ -195,8 +330,10 @@ TYPED_TEST(AmgxPgm, ProlongApplyadd)
 {
     using value_type = typename TestFixture::value_type;
     auto x = gko::clone(this->fine_x);
+
     gko::kernels::reference::amgx_pgm::prolong_applyadd(
         this->exec, this->agg, this->coarse_b.get(), x.get());
+
     GKO_ASSERT_MTX_NEAR(x, this->prolong_ans,
                         gko::remove_complex<value_type>{0});
 }
@@ -269,7 +406,7 @@ TYPED_TEST(AmgxPgm, Renumber)
 
 TYPED_TEST(AmgxPgm, Generate)
 {
-    auto coarse_fine = this->Amgxpgm_factory->generate(this->mtx);
+    auto coarse_fine = this->amgxpgm_factory->generate(this->mtx);
 
     auto agg_result = coarse_fine->get_const_agg();
 
@@ -284,7 +421,7 @@ TYPED_TEST(AmgxPgm, Generate)
 TYPED_TEST(AmgxPgm, CoarseFineRestrictApply)
 {
     std::unique_ptr<gko::multigrid::RestrictProlong> amgx_pgm{
-        this->Amgxpgm_factory->generate(this->mtx)};
+        this->amgxpgm_factory->generate(this->mtx)};
 
     // fine->coarse
     using Vec = typename TestFixture::Vec;
@@ -298,11 +435,11 @@ TYPED_TEST(AmgxPgm, CoarseFineRestrictApply)
 
 TYPED_TEST(AmgxPgm, CoarseFineProlongApplyadd)
 {
-    std::unique_ptr<gko::multigrid::RestrictProlong> amgx_pgm{
-        this->Amgxpgm_factory->generate(this->mtx)};
-
     using value_type = typename TestFixture::value_type;
+    std::unique_ptr<gko::multigrid::RestrictProlong> amgx_pgm{
+        this->amgxpgm_factory->generate(this->mtx)};
     auto x = gko::clone(this->fine_x);
+
     amgx_pgm->prolong_applyadd(this->coarse_b.get(), x.get());
     GKO_ASSERT_MTX_NEAR(x, this->prolong_ans,
                         gko::remove_complex<value_type>{0});
@@ -312,8 +449,8 @@ TYPED_TEST(AmgxPgm, CoarseFineProlongApplyadd)
 TYPED_TEST(AmgxPgm, ExtractDiag)
 {
     using value_type = typename TestFixture::value_type;
-
     gko::Array<value_type> diag(this->exec, 5);
+
     gko::kernels::reference::amgx_pgm::extract_diag(this->exec, this->mtx.get(),
                                                     diag);
     GKO_ASSERT_ARRAY_EQ(diag, this->mtx_diag);
@@ -331,8 +468,10 @@ TYPED_TEST(AmgxPgm, FindStrongestNeighbor)
         snb_vals[i] = -1;
         agg_vals[i] = -1;
     }
+
     gko::kernels::reference::amgx_pgm::find_strongest_neighbor(
         this->exec, this->mtx.get(), this->mtx_diag, agg, strongest_neighbor);
+
     ASSERT_EQ(snb_vals[0], 2);
     ASSERT_EQ(snb_vals[1], 0);
     ASSERT_EQ(snb_vals[2], 0);
@@ -353,8 +492,10 @@ TYPED_TEST(AmgxPgm, AssignToExistAgg)
     agg_vals[2] = 0;
     agg_vals[3] = 1;
     agg_vals[4] = -1;
+
     gko::kernels::reference::amgx_pgm::assign_to_exist_agg(
         this->exec, this->mtx.get(), this->mtx_diag, agg, intermediate_agg);
+
     ASSERT_EQ(agg_vals[0], 0);
     ASSERT_EQ(agg_vals[1], 1);
     ASSERT_EQ(agg_vals[2], 0);
@@ -377,14 +518,15 @@ TYPED_TEST(AmgxPgm, GenerateMtx)
     agg_vals[3] = 1;
     agg_vals[4] = 2;
     auto csr_coarse = mtx_type::create(this->exec, gko::dim<2>{3, 3}, 0);
+
     gko::kernels::reference::amgx_pgm::amgx_pgm_generate(
         this->exec, this->mtx.get(), agg, csr_coarse.get());
 
-    ASSERT_EQ(csr_coarse->get_size(), gko::dim<2>(3, 3));
-    ASSERT_EQ(csr_coarse->get_num_stored_elements(), 9);
     auto r = csr_coarse->get_const_row_ptrs();
     auto c = csr_coarse->get_const_col_idxs();
     auto v = csr_coarse->get_const_values();
+    ASSERT_EQ(csr_coarse->get_size(), gko::dim<2>(3, 3));
+    ASSERT_EQ(csr_coarse->get_num_stored_elements(), 9);
     ASSERT_EQ(r[0], 0);
     ASSERT_EQ(r[1], 3);
     ASSERT_EQ(r[2], 6);
