@@ -67,6 +67,7 @@ GKO_REGISTER_OPERATION(amgx_pgm_generate, amgx_pgm::amgx_pgm_generate);
 
 }  // namespace amgx_pgm
 
+
 namespace {
 
 

@@ -106,7 +106,7 @@ public:
         /**
          * The maximum number of iteration.
          */
-        unsigned GKO_FACTORY_PARAMETER(max_iterations, 15);
+        unsigned GKO_FACTORY_PARAMETER(max_iterations, 15u);
 
         /**
          * The maximum ratio of unassigned number.
@@ -125,9 +125,11 @@ protected:
     void restrict_apply_impl(const LinOp *b, LinOp *x) const override;
 
     void prolong_applyadd_impl(const LinOp *b, LinOp *x) const override;
+
     explicit AmgxPgm(std::shared_ptr<const Executor> exec)
         : EnableRestrictProlong<AmgxPgm>(std::move(exec))
     {}
+
     explicit AmgxPgm(const Factory *factory,
                      std::shared_ptr<const LinOp> system_matrix)
         : EnableRestrictProlong<AmgxPgm>(factory->get_executor()),

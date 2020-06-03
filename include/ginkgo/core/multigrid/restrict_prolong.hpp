@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <memory>
 
+
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -55,7 +56,6 @@ namespace multigrid {
  *
  * @ingroup RestrictProlong
  */
-
 class RestrictProlong
     : public EnableAbstractPolymorphicObject<RestrictProlong> {
 public:
@@ -226,6 +226,7 @@ public:
     }
 };
 
+
 template <typename ConcreteFactory, typename ConcreteCriterion,
           typename ParametersType,
           typename PolymorphicBase = RestrictProlongFactory>
@@ -259,7 +260,6 @@ public:
                                   make_temporary_clone(exec, x).get());
         return self();
     }
-
 
     ConcreteLinOp *prolong_applyadd(const LinOp *b, LinOp *x)
     {

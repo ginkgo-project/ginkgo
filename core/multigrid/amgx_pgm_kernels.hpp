@@ -55,28 +55,23 @@ namespace amgx_pgm {
         std::shared_ptr<const DefaultExecutor> exec, const Array<_itype> &agg, \
         const matrix::Dense<_vtype> *b, matrix::Dense<_vtype> *x)
 
-
 #define GKO_DECLARE_AMGX_PGM_PROLONGATE_APPLY_KERNEL(_vtype, _itype)           \
     void prolong_applyadd(                                                     \
         std::shared_ptr<const DefaultExecutor> exec, const Array<_itype> &agg, \
         const matrix::Dense<_vtype> *b, matrix::Dense<_vtype> *x)
 
-
 #define GKO_DECLARE_AMGX_PGM_INITIAL_KERNEL(_itype)           \
     void initial(std::shared_ptr<const DefaultExecutor> exec, \
                  Array<_itype> &agg)
-
 
 #define GKO_DECLARE_AMGX_PGM_MATCH_EDGE_KERNEL(_itype)           \
     void match_edge(std::shared_ptr<const DefaultExecutor> exec, \
                     const Array<_itype> &strongest_neighbor,     \
                     Array<_itype> &agg)
 
-
 #define GKO_DECLARE_AMGX_PGM_COUNT_UNAGG_KERNEL(_itype)           \
     void count_unagg(std::shared_ptr<const DefaultExecutor> exec, \
                      const Array<_itype> &agg, size_type *num_unagg)
-
 
 #define GKO_DECLARE_AMGX_PGM_RENUMBER_KERNEL(_itype)           \
     void renumber(std::shared_ptr<const DefaultExecutor> exec, \
@@ -106,7 +101,6 @@ namespace amgx_pgm {
                            const matrix::Csr<ValueType, IndexType> *source, \
                            const Array<IndexType> &agg,                     \
                            matrix::Csr<ValueType, IndexType> *coarse)
-
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
     template <typename ValueType, typename IndexType>                   \
