@@ -60,6 +60,7 @@ namespace gko {
 namespace solver {
 
 
+enum class multigrid_cycle { v, f, w, kfcg, kgcr };
 /**
  * Multigrid
  *
@@ -196,7 +197,7 @@ public:
         /**
          * Post-smooth Factory list.
          * It is similar to Pre-smooth Factory list. It is ignore if
-         * prost_uses_pre = true.
+         * post_uses_pre = true.
          */
         std::vector<std::shared_ptr<const LinOpFactory>> GKO_FACTORY_PARAMETER(
             post_smoother, nullptr);
@@ -213,7 +214,7 @@ public:
         /**
          * Post-relaxation list.
          * It is similar to Pre-relaxation list. It is ignore if
-         * prost_uses_pre = true.
+         * post_uses_pre = true.
          */
         gko::Array<value_type> GKO_FACTORY_PARAMETER(post_relaxation, nullptr);
 
@@ -239,6 +240,12 @@ public:
          */
         std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
             coarsest_solver, nullptr);
+
+        /**
+         * Multigrid cycle type
+         * Options: v, f, w, kfcg and kgcr
+         */
+        multigrid_cycle GKO_FACTORY_PARAMETER(cycle, multigrid_cycle::v);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Multigrid, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -258,6 +265,14 @@ protected:
     void v_cycle(
         size_type level, std::shared_ptr<const LinOp> matrix,
         const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x,
+        std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &r_list,
+        std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &g_list,
+        std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &e_list) const;
+
+    void run_cycle(
+        multigrid_cycle cycle, size_type level,
+        std::shared_ptr<const LinOp> matrix, const matrix::Dense<ValueType> *b,
+        matrix::Dense<ValueType> *x,
         std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &r_list,
         std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &g_list,
         std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &e_list) const;
@@ -326,6 +341,7 @@ protected:
                 parameters_.rstr_prlg.size()) {
             GKO_NOT_SUPPORTED(this);
         }
+        cycle_ = parameters_.cycle;
         this->generate();
     }
 
@@ -353,6 +369,7 @@ private:
     std::function<size_type(const size_type, const size_type)> rstr_prlg_index_;
     std::shared_ptr<matrix::Dense<ValueType>> one_op_;
     std::shared_ptr<matrix::Dense<ValueType>> neg_one_op_;
+    multigrid_cycle cycle_;
 };
 
 
