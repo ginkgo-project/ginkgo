@@ -57,15 +57,15 @@ namespace kernels {  // TODO maybe put into another separate namespace
 namespace detail {
 
 
-using place_holder_type = float;
+// using place_holder_type = float;
 
 
 template <typename StorageType, typename ArithmeticType,
-          bool = (std::is_same<StorageType, place_holder_type>::value &&
+          bool = std::is_integral<StorageType>::value>
+/*          bool = (std::is_same<StorageType, place_holder_type>::value &&
                   !std::is_same<StorageType, ArithmeticType>::value) ||
                  std::is_integral<StorageType>::value>
-// bool = std::is_same<StorageType, place_holder_type>::value &&
-//        !std::is_same<StorageType, ArithmeticType>::value>
+*/
 struct helper_have_scale {};
 
 template <typename StorageType, typename ArithmeticType>
