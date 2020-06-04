@@ -89,10 +89,14 @@ dependencies between the `core` and the backend library. With this in mind, our
 CI contains a job which checks if such a circular dependency exists.
 
 For example, when creating a new matrix class `AB` by combining existing classes
-`A` and `B`, the `AB::apply()` function composed of kernel invocations to
+`A` and `B`, the `AB::apply()` function composed of invocations to
 `A::apply()` and `B::apply()` can only be defined in the core module, it is not
-possible to create instances of `A` and `B` inside the `AB` kernel file. An
-example for such a class the `hybrid` matrix format.
+possible to create instances of `A` and `B` inside the `AB` kernel files. This is 
+to avoid the aforementioned circular dependency issue. An example for such
+ a class the `Hybrid` matrix format, which uses the `apply()` of the `Ell` and `Coo`
+ matrix formats. Nevertheless, it is possible to call the kernels themselves directly 
+ within the same executor. For example, `cuda::dense::add_scaled()` can be called from
+ any other `cuda` kernel. 
 
 ## Git related
 
@@ -558,7 +562,7 @@ files.
 
 By default, the `-DGINKGO_COMPILER_FLAGS` is set to `-Wpedantic` and hence
 pedantic warnings are emitted by default. Some of these warnings are false
-positives and a complete list of the currently known warnings and their
+positives and a complete list of the resolved warnings and their
 solutions is listed in [Issue
 174](https://github.com/ginkgo-project/ginkgo/issues/174). Specifically, when
 macros are being used, we have the issue of having `extra ;` warnings, which is
@@ -567,11 +571,9 @@ step where it compiles for pedantic warnings to be errors.
 
 ### Avoiding circular dependencies
 
-To avoid circular dependencies, it is forbidden inside the kernel modules
-(`ginkgo_cuda`, `ginkgo_omp`, `ginkgo_reference`) to use functions implemented
-only in the `core` module (using functions implemented in the headers is fine).
-In practice, what this means is that it is required that any commit to Ginkgo
-passes the `no-circular-deps` CI step. For more details, see [this
+To facilitate finding circular dependencies issues (see
+[Using library classes](#using-library-classes) for more details), a CI step
+`no-circular-deps` was created. For more details on its usage, see [this
 pipeline](https://gitlab.com/ginkgo-project/ginkgo-public-ci/pipelines/52941979),
 where Ginkgo did not abide to this policy and [PR
 #278](https://github.com/ginkgo-project/ginkgo/pull/278) which fixed this. Note
