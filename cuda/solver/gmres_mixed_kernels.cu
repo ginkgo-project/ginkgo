@@ -634,10 +634,10 @@ void finish_arnoldi_CGS2(
                                      iter + 1);
     const dim3 block_size(default_dot_dim, default_dot_dim);
     // Note: having iter first (instead of row_idx information) is likely
-    //       beneficial for avoiding atomic_add conflicts. Maybe, we need to
-    //       modify `grid_size_num_iters_2` as well
-    const dim3 grid_size_iters_single(iter + 1,
-                                      exec->get_num_multiprocessor() * 2);
+    //       beneficial for avoiding atomic_add conflicts, but that needs
+    //       further investigation.
+    const dim3 grid_size_iters_single(exec->get_num_multiprocessor() * 2,
+                                      iter + 1);
     const dim3 block_size_iters_single(default_block_size);
     size_type numReorth;
 
