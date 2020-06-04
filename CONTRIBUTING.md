@@ -52,7 +52,9 @@ look at our coding guidelines before proposing a pull request.
   `clang-format` to be installed. See [Automatic code
   formatting](#automatic-code-formatting) for more details. Once installed, you
   can run `make format` in your `build/` folder to automatically format your
-  modified files. Once formatted, you can commit your changes.
+  modified files. As `make format` unstages your files post-formatting, you must
+  stage the files again once you have verified that `make format` has done the
+  appropriate formatting, before committing the files.
 
 * See [Our git workflow](#our-git-workflow) to get a quick overview of our
   workflow.
@@ -113,11 +115,13 @@ write commit messages that are short, clear and informative. Ideally, this would
 be the format to prefer:
 
 ```sh
-Summary of the changes in a sentence, max 80 chars.
+Summary of the changes in a sentence, max 50 chars.
 
 More detailed comments:
 + Changes that have been added.
 - Changes that been removed.
+
+Related PR: https://github.com/ginkgo-project/ginkgo/pull/<PR-number>
 ```
 
 You can refer to [this informative
@@ -208,7 +212,7 @@ considered a CUDA file.
 
 #### Macros
 
-C++ macros (both object-like and function-like macros) use `CAPITAL_CASE`. They
+Macros (both object-like and function-like macros) use `CAPITAL_CASE`. They
 have to start with `GKO_` to avoid name clashes (even if they are `#undef`-ed in
 the same file!).
 
@@ -398,6 +402,7 @@ _Note_: Please see the detail in the `dev_tools/scripts/config`.
 ### Other Code Formatting not handled by ClangFormat
 
 #### Control flow constructs
+
 Single line statements should be avoided in all cases. Use of brackets is
 mandatory for all control flow constructs (e.g. `if`, `for`, `while`, ...).
 
@@ -423,6 +428,7 @@ own _type-specifier_.
 All alignment in CMake files should use four spaces.
 
 #### Use of macros vs functions
+
 Macros in CMake do not have a scope. This means that any variable set in this
 macro will be available to the whole project. In contrast, functions in CMake
 have local scope and therefore all set variables are local only. In general,
@@ -430,6 +436,7 @@ wrap all piece of algorithms using temporary variables in a function and use
 macros to propagate variables to the whole project.
 
 #### Naming style
+
 All Ginkgo specific variables should be prefixed with a `GINKGO_` and all
 functions by `ginkgo_`.
 
@@ -486,7 +493,8 @@ existing code has been broken.
 * Reference kernels, kernels on the `ReferenceExecutor`, are meant to be single
   threaded reference implementations. Therefore, tests for reference kernels
   need to be performed with data that can be as small as possible. For example,
-  matrices lesser than 5x5 are acceptable.
+  matrices lesser than 5x5 are acceptable. This allows the reviewers to verify
+  the results for exactness with tools such as MATLAB.
 * OpenMP, CUDA and HIP kernels have to be tested against the reference kernels.
   Hence data for the tests of these kernels can be generated in the test files
   using helper functions or by using external files to be read through the
@@ -506,11 +514,13 @@ not intended for users, but is useful to better understand a piece of code.
 ### Whitespaces
 
 #### After named tags such as `@param foo`
+
 The documentation tags which use an additional name should be followed by two
 spaces in order to better distinguish the text from the doxygen tag. It is also
 possible to use a line break instead.
 
 ### Documenting examples
+
 There are two main steps:
 
 1. First, you can just copy over the [`doc/`](https://github.com/ginkgo-project/ginkgo/tree/develop/examples/simple-solver) folder (you can copy it from the example most relevant to you) and adapt your example names and such, then you can modify the actual documentation.  
