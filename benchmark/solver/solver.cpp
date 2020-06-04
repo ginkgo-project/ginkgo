@@ -146,6 +146,10 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                     create_solver<gko::solver::GmresMixed<double, float>>},
                    {"gmres_mixed_double",
                     create_solver<gko::solver::GmresMixed<double, double>>},
+                   {"gmres_mixed_int16",
+                    create_solver<gko::solver::GmresMixed<double, gko::int16>>},
+                   {"gmres_mixed_int32",
+                    create_solver<gko::solver::GmresMixed<double, gko::int32>>},
                    {"overhead", create_solver<gko::Overhead<>>}};
 
 
