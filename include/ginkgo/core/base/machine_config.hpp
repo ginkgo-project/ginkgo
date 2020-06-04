@@ -103,6 +103,7 @@ public:
         return std::unique_ptr<Topology>(new Topology());
     }
 
+    hwloc_topology *get_topology() const { return this->topo_.get(); }
 
     void bind_to_core(std::size_t id) override
     {
@@ -152,6 +153,29 @@ public:
 #endif
     }
 
+#if GKO_HAVE_HWLOC
+
+    static void hwloc_print_children(hwloc_topology *topology, hwloc_obj_t obj,
+                                     int depth)
+    {
+        char type[32], attr[1024];
+        unsigned i;
+        hwloc_obj_type_snprintf(type, sizeof(type), obj, 0);
+        std::cout << std::string(2 * depth, ' ') << type;
+        if (obj->os_index != (unsigned)-1) {
+            std::cout << "#" << obj->os_index;
+        }
+        hwloc_obj_attr_snprintf(attr, sizeof(attr), obj, " ", 0);
+        if (*attr) {
+            std::cout << "(" << attr << ")";
+        }
+        std::cout << std::endl;
+        for (i = 0; i < obj->arity; i++) {
+            hwloc_print_children(topology, obj->children[i], depth + 1);
+        }
+    }
+
+#endif
 
 protected:
     Topology()
@@ -208,27 +232,6 @@ protected:
         hwloc_topology_load(tmp);
 
         return tmp;
-    }
-
-
-    static void hwloc_print_children(hwloc_topology *topology, hwloc_obj_t obj,
-                                     int depth)
-    {
-        char type[32], attr[1024];
-        unsigned i;
-        hwloc_obj_type_snprintf(type, sizeof(type), obj, 0);
-        std::cout << std::string(2 * depth, ' ') << type;
-        if (obj->os_index != (unsigned)-1) {
-            std::cout << "#" << obj->os_index;
-        }
-        hwloc_obj_attr_snprintf(attr, sizeof(attr), obj, " ", 0);
-        if (*attr) {
-            std::cout << "(" << attr << ")";
-        }
-        std::cout << std::endl;
-        for (i = 0; i < obj->arity; i++) {
-            hwloc_print_children(topology, obj->children[i], depth + 1);
-        }
     }
 
 

@@ -316,6 +316,11 @@ if (GINKGO_CHECK_CIRCULAR_DEPS)
     ginkgo_check_headers(ginkgo_hip)
 endif()
 
+if (GINKGO_HAVE_HWLOC)
+    target_include_directories(ginkgo_hip PUBLIC ${HWLOC_INCLUDE_DIRS})
+    target_link_libraries(ginkgo_hip PUBLIC ${HWLOC_LIBRARIES})
+endif()
+
 if(GINKGO_BUILD_TESTS)
   # Here, we go through all of Ginkgo's dependencies to build a `-Wl,-rpath` string since for
   # some reason `hipcc` through CMake does not have rpath settings unlike the other compilers.
