@@ -43,7 +43,7 @@ We are glad that you are interested in contributing to Ginkgo. Please have a loo
  * [Avoiding circular dependencies](#avoiding-circular-dependencies)
 
 
-## Most important stuff (A TLDR)
+## Most important stuff (A TL;DR)
 
 * `GINKGO_DEVEL_TOOLS` needs to be set to `on` to commit. This requires `clang-format` to be installed. See [Automatic code formatting](#automatic-code-formatting) for more details. Once installed, you can run `make format` in your `build/` folder to automatically format your modified files. Once formatted, you can commit your changes.
 
@@ -63,7 +63,7 @@ For such files you should always include the version from the module you are wor
 
 ### Using library classes
 
-Creating new classes, it is allowed to use existing classes (polymorphic objects) inside the kernels for the distinct backends (reference/cuda/omp...). However,  it is not allowed to construct the kernels by creating new instances of a distinct (existing) class as this can result in compilation problems. 
+You can use and call functions of existing classes inside a kernel (that are defined and not just declared in a header file), however, you are not allowed to create new instances of a polymorphic class inside a kernel (or in general inside any kernel module like cuda/hip/omp/reference) as this creates circular dependencies between the `core` and the backend library. With this in mind, our CI contains a job which checks if such a circular dependency exists.
 
 For example, when creating a new matrix class `AB` by combining existing classes `A` and `B`, the `AB::apply()` function composed of kernel invocations to `A::apply()` and `B::apply()` can only be defined in the core module, it is not possible to create instances of `A` and `B` inside the `AB` kernel file.
 
@@ -73,7 +73,7 @@ Ginkgo uses git, the distributed version control system to track code changes an
 
 ### Our git workflow
 
-In Ginkgo, we prioritize keeping a clean history over accurate tracking of commits. `git rebase` is hence our command of choice to make sure that we have a nice and linear history. 
+In Ginkgo, we prioritize keeping a clean history over accurate tracking of commits. `git rebase` is hence our command of choice to make sure that we have a nice and linear history, especially for pulling the latest changes from the `develop` branch. More importantly, rebasing upon develop is **required** before the commits of the PR are merged into the `develop` branch.
 
 ### Writing good commit messages
 
@@ -99,14 +99,16 @@ Commit message.
 Co-authored-by: Name <email@domain>
 ```
 
+In the Ginkgo commit history, this is most common associated with suggested improvements from code reviews.
+
 ### Creating, Reviewing and Merging Pull Requests
 
 * The `develop` branch is the default branch to submit PR's to. From time to time, we merge the `develop` branch to the `master` branch and create tags on the `master` to create new releases of Ginkgo. Therefore, all pull requests must be merged into `develop`.
 * Please have a look at the labels and make sure to add the relevant labels.
 * You can mark the PR as a `WIP` if you are still working on it, `Ready for Review` when it is ready for others to review it.
 * Assignees to the PR should be the ones responsible for merging that PR. Currently, it is only possible to assign members within the `ginkgo-project`.  
-* Each pull request requires atleast two approvals before merging.
-* PR's created from within the repository will automatically trigger two CI's on pushing to the branch from the which the PR has been created. One CI with is with Github Actions which tests our framework on Mac OSX and on Windows platforms. Another comprehensive Linux based CI is run from a [mirror on gitlab](https://gitlab.com/ginkgo-project/ginkgo-public-ci/pipelines). 
+* Each pull request requires at least two approvals before merging.
+* PR's created from within the repository will automatically trigger two CI pipelines on pushing to the branch from the which the PR has been created. The Github Actions pipeline tests our framework on Mac OSX and on Windows platforms. Another comprehensive Linux based pipeline is run from a [mirror on gitlab](https://gitlab.com/ginkgo-project/ginkgo-public-ci/pipelines) and contains additional checks like static analysis and test coverage.
 * Once a PR has been approved and the build has passed, one of the reviewers can mark the PR as `READY TO MERGE`. At this point the creator/assignee of the PR *needs to* verify that the branch is up to date with `develop` and rebase it on `develop` if it is not.
 
 
@@ -114,7 +116,7 @@ Co-authored-by: Name <email@domain>
 
 ### Automatic code formatting
 
-Ginkgo uses [ClangFormat](https://clang.llvm.org/docs/ClangFormat.html) (executable is usually named `clang-format`) and a custom `.clang-format` configuration file (mostly based on ClangFormat's _Google_ style) to automatically format your code. __Make sure you have ClangFormat set up and running properly__ (basically you should be able to run `make format` from Ginkgo's build directory) before committing anything that will end up in a pull request against `ginkgo-project/ginkgo` repository. In addition, you should __never__ modify the `.clang-format` configuration file shipped with Ginkgo. E.g. if ClangFormat has trouble reading this file  on your system, you should install a newer version of ClangFormat, and avoid commenting out parts of the configuration file at all costs.
+Ginkgo uses [ClangFormat](https://clang.llvm.org/docs/ClangFormat.html) (executable is usually named `clang-format`) and a custom `.clang-format` configuration file (mostly based on ClangFormat's _Google_ style) to automatically format your code. __Make sure you have ClangFormat set up and running properly__ ( you should be able to run `make format` from Ginkgo's build directory) before committing anything that will end up in a pull request against `ginkgo-project/ginkgo` repository. In addition, you should __never__ modify the `.clang-format` configuration file shipped with Ginkgo. E.g. if ClangFormat has trouble reading this file  on your system, you should install a newer version of ClangFormat, and avoid commenting out parts of the configuration file.
 
 ClangFormat is the primary tool that helps us achieve a uniform look of Ginkgo's codebase, while reducing the learning curve of potential contributors. However, ClangFormat configuration is not expressive enough to incorporate the entire coding style, so there are several additional rules that all contributed code should follow.
 
@@ -131,6 +133,7 @@ Filenames use `snake_case` and use the following extensions:
 *   CUDA header files: `.cuh`
 *   HIP source files: `.hip.cpp`
 *   HIP header files: `.hip.hpp`
+*   Common source files used by both CUDA and HIP: `.hpp.inc`
 *   CMake utility files: `.cmake`
 *   Shell scripts: `.sh`
 
@@ -173,8 +176,8 @@ Namespaces use `snake_case`.
 
 #### Template parameters
 
-* Typed template parameters use `CamelCase`, for example `ValueType`.
-* Non-typed template parameters use `snake_case`, for example `subwarp_size`.
+* Type template parameters use `CamelCase`, for example `ValueType`.
+* Non-type template parameters use `snake_case`, for example `subwarp_size`.
 
 ### Whitespace
 
@@ -276,6 +279,8 @@ _Example_: A file `core/base/my_file.cpp` might have an include list like this:
 
 #### Main header
 
+This section presents general rules used to define the main header attributed to the file. In the previous example, this would be ` #include <ginkgo/core/base/my_file.hpp>`.
+
 General rules:
 1. Some fixed main header.
 2. components:
@@ -338,11 +343,11 @@ A `create_new_algorithm.sh` script is available for developers to facilitate eas
 ```sh
 ./create_new_algorithm.sh --help
 ```
-The main objective of this script is to add files and boiler plate code for the new algorithm using a model and an instance of that model. For example, models can be any one of`factorization`,`matrix`,`preconditioner` or `solver`. For example to create a new solver named `my_solver` similar to `gmres`, you would set the `ModelType` to `solver` and set the `ModelName` to `gmres`. This would duplicate the core algorithm and kernels of the `gmres` algorithm and replace the naming to `my_solver`. Additionally, marks all the kernels of the new `my_solver` to `GKO_NOT_IMPLEMENTED`.
+The main objective of this script is to add files and boiler plate code for the new algorithm using a model and an instance of that model. For example, models can be any one of `factorization`, `matrix`, `preconditioner` or `solver`. For example to create a new solver named `my_solver` similar to `gmres`, you would set the `ModelType` to `solver` and set the `ModelName` to `gmres`. This would duplicate the core algorithm and kernels of the `gmres` algorithm and replace the naming to `my_solver`. Additionally, all the kernels of the new `my_solver` are marked as `GKO_NOT_IMPLEMENTED`. For easy navigation and `.txt` file is created in the folder where the script is run, which lists all the TODO's. These TODO's can also be found in the corresponding files.
 
 ### Converting CUDA code to HIP code
 
-This script calls the `hipify` script provided by HIP converting the CUDA syntax to HIP syntax. Additionally, it also automatically replaces the instances of CUDA with HIP as appropriate. Hence this script can be called on a Ginkgo CUDA file. 
+This script calls the `hipify` script provided by HIP converting the CUDA syntax to HIP syntax. Additionally, it also automatically replaces the instances of CUDA with HIP as appropriate. Hence, this script can be called on a Ginkgo CUDA file. 
 
 
 ## Writing Tests
@@ -363,7 +368,7 @@ Ginkgo uses the [GTest framework](https://github.com/google/googletest) for the 
 ### Writing tests for kernels
 
 * Reference kernels, kernels on the `ReferenceExecutor`, are meant to be single threaded reference implementations. Therefore, tests for reference kernels need to be performed with data that can be as small as possible. For example, matrices lesser than 5x5 are acceptable. 
-* OpenMP, CUDA and HIP kernels have to be tested against the reference kernels. Hence data for the tests of these kernels can be generated in the test files using helper functions or by using external files to be read through the standard input. 
+* OpenMP, CUDA and HIP kernels have to be tested against the reference kernels. Hence data for the tests of these kernels can be generated in the test files using helper functions or by using external files to be read through the standard input. In particular for CUDA and HIP, the data size should be at least bigger than the architecture's warp size to ensure there is no corner case in the kernels.
 
 
 ## Documentation style
@@ -404,5 +409,4 @@ By default, the `-DGINKGO_COMPILER_FLAGS` is set to `-Wpedantic` and hence pedan
 
 ### Avoiding circular dependencies
 
-To avoid circular dependencies, it is forbidden inside the kernel modules (`ginkgo_cuda`, `ginkgo_omp`, `ginkgo_reference`) to use functions implemented only in the `core` module (using functions implemented in the headers is fine). In practice, what this means is that it is required that any commit to Ginkgo pass the `no-circular-deps` CI step. For more details, see [this pipeline](https://gitlab.com/ginkgo-project/ginkgo-public-ci/pipelines/52941979), where Ginkgo did not abide to this policy and [PR #278](https://github.com/ginkgo-project/ginkgo/pull/278) which fixed this. Note that doing so is not enough to guarantee with 100% accuracy that no circular dependency is present. For an example of such a case, take a look at [this pipeline](https://gitlab.com/ginkgo-project/ginkgo-public-ci/pipelines/53006772) where one of the compiler setups detected an incorrect dependency of the `cuda` module (due to jacobi) on the `core` module.
-
+To avoid circular dependencies, it is forbidden inside the kernel modules (`ginkgo_cuda`, `ginkgo_omp`, `ginkgo_reference`) to use functions implemented only in the `core` module (using functions implemented in the headers is fine). In practice, what this means is that it is required that any commit to Ginkgo passes the `no-circular-deps` CI step. For more details, see [this pipeline](https://gitlab.com/ginkgo-project/ginkgo-public-ci/pipelines/52941979), where Ginkgo did not abide to this policy and [PR #278](https://github.com/ginkgo-project/ginkgo/pull/278) which fixed this. Note that doing so is not enough to guarantee with 100% accuracy that no circular dependency is present. For an example of such a case, take a look at [this pipeline](https://gitlab.com/ginkgo-project/ginkgo-public-ci/pipelines/53006772) where one of the compiler setups detected an incorrect dependency of the `cuda` module (due to jacobi) on the `core` module.
