@@ -620,18 +620,20 @@ __global__ __launch_bounds__(block_size) void singledot_kernel_num_iters_2(
     /*
      * In general in this kernel (thread indices appear to be col-major):
      * grid_dim
-     *   x: for row_idx
-     *   y: for num_iters (number of krylov vectors)
+     *   x: for num_iters (number of krylov vectors)
+     *   y: for row_idx
      * block_dim
      *   x: for row_idx (must be block_size)
      *   (y not used, must be set to 1 in dim)
+     * Note: the grid_dim is transposed to the storage layout intentioally
+     *       so less conflicts with `atomic_add` occur at the same time.
      */
     const size_type tidx = threadIdx.x;
     constexpr size_type col_idx{0};
-    const size_type num_rows_per_thread = ceildiv(num_rows, gridDim.x);
-    const size_type start_row = blockIdx.x * num_rows_per_thread + threadIdx.x;
-    const auto end_row = min((blockIdx.x + 1) * num_rows_per_thread, num_rows);
-    const size_type k = blockIdx.y;
+    const size_type k = blockIdx.x;
+    const size_type num_rows_per_thread = ceildiv(num_rows, gridDim.y);
+    const size_type start_row = blockIdx.y * num_rows_per_thread + threadIdx.x;
+    const auto end_row = min((blockIdx.y + 1) * num_rows_per_thread, num_rows);
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
     __shared__ UninitializedArray<ValueType, block_size> reduction_helper_array;

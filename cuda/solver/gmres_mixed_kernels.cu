@@ -55,13 +55,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/uninitialized_array.hpp"
 
 
-#include <iostream>
-
-
 // #define TIMING 1
 
 
 #ifdef TIMING
+#include <chrono>
+#include <iostream>
+
+
 using double_seconds = std::chrono::duration<double, std::milli>;
 #endif
 
@@ -186,7 +187,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
     constexpr auto block_size = default_block_size;
 
     // exec->synchronize();
-    // std::cout << "Before initialize_2_1_kernel" << std::endl;
+    // std::cout << "Before initialize_2_1_kernel" << '\n';
     initialize_2_1_kernel<block_size><<<grid_dim_1, block_dim>>>(
         residual->get_size()[0], residual->get_size()[1], krylov_dim,
         as_cuda_accessor(krylov_bases),
@@ -196,7 +197,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
     residual->compute_norm2(residual_norm);
     // exec->synchronize();
 
-    // std::cout << "Before multinorminf_kernel_without_stop" << std::endl;
+    // std::cout << "Before multinorminf_kernel_without_stop" << '\n';
     components::fill_array(exec, arnoldi_norm->get_values() + 2 * num_rhs,
                            num_rhs, zero<remove_complex<ValueType>>());
     const dim3 grid_size_nrm(ceildiv(num_rhs, default_dot_dim),
@@ -211,7 +212,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
     //     krylov_bases, col_idx, arnoldi_norm->at(2, j) / residual_norm->at(0,
     //     j));
     /* */
-    // std::cout << "Before set_scale_kernel" << std::endl;
+    // std::cout << "Before set_scale_kernel" << '\n';
     set_scale_kernel<default_block_size>
         <<<ceildiv(num_rhs * (krylov_dim + 1), default_block_size),
            default_block_size>>>(
@@ -221,7 +222,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
             num_rhs, as_cuda_accessor(krylov_bases));
     // exec->synchronize();
     /* */
-    // std::cout << "Before initialize_2_2_kernel" << std::endl;
+    // std::cout << "Before initialize_2_2_kernel" << '\n';
     const dim3 grid_dim_2(
         ceildiv(num_rows * krylov_bases.get_stride1(), default_block_size), 1,
         1);
@@ -235,7 +236,7 @@ void initialize_2(std::shared_ptr<const CudaExecutor> exec,
         next_krylov_basis->get_stride(),
         as_cuda_type(final_iter_nums->get_data()));
     // exec->synchronize();
-    // std::cout << "After initialize_2_2_kernel" << std::endl;
+    // std::cout << "After initialize_2_2_kernel" << '\n';
 }
 
 GKO_INSTANTIATE_FOR_EACH_GMRES_MIXED_TYPE(
@@ -632,8 +633,11 @@ void finish_arnoldi_CGS2(
                                      exec->get_num_multiprocessor() * 2,
                                      iter + 1);
     const dim3 block_size(default_dot_dim, default_dot_dim);
-    const dim3 grid_size_iters_single(exec->get_num_multiprocessor() * 2,
-                                      iter + 1);
+    // Note: having iter first (instead of row_idx information) is likely
+    //       beneficial for avoiding atomic_add conflicts. Maybe, we need to
+    //       modify `grid_size_num_iters_2` as well
+    const dim3 grid_size_iters_single(iter + 1,
+                                      exec->get_num_multiprocessor() * 2);
     const dim3 block_size_iters_single(default_block_size);
     size_type numReorth;
 
@@ -692,16 +696,16 @@ void finish_arnoldi_CGS2(
                 as_cuda_type(hessenberg_iter->get_values()), stride_hessenberg,
                 as_cuda_type(stop_status));
     }
-        // */
-        // exec->synchronize();
-        // write(std::cout, hessenberg_iter);
-        /* */
+    // */
+    // exec->synchronize();
+    // write(std::cout, hessenberg_iter);
+    /* */
 #ifdef TIMING
     exec->synchronize();
     auto time_1 = std::chrono::steady_clock::now() - start_1;
     std::cout << "time_1(" << iter << ") = "
               << std::chrono::duration_cast<double_seconds>(time_1).count()
-              << std::endl;
+              << '\n';
 #endif
     // for i in 1:iter
     //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
@@ -724,11 +728,11 @@ void finish_arnoldi_CGS2(
     auto time_2 = std::chrono::steady_clock::now() - start_2;
     std::cout << "time_2(" << iter << ") = "
               << std::chrono::duration_cast<double_seconds>(time_2).count()
-              << std::endl;
+              << '\n';
     std::cout << "time_1 / time_2(" << iter << ") = "
               << std::chrono::duration_cast<double_seconds>(time_1).count() /
                      std::chrono::duration_cast<double_seconds>(time_2).count()
-              << std::endl;
+              << '\n';
 #endif
     // for i in 1:iter
     //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
@@ -778,7 +782,7 @@ void finish_arnoldi_CGS2(
             exec.get(), 1, arnoldi_norm->get_values() + dim_size[1], &norm);
         exec->get_master()->copy_from(
             exec.get(), 1, arnoldi_norm->get_values() + 2 * dim_size[1], &inf);
-        std::cout << sqrt(norm) << " - " << inf << std::endl;
+        std::cout << sqrt(norm) << " - " << inf << '\n';
     }
     */
 #ifdef TIMING
@@ -786,7 +790,7 @@ void finish_arnoldi_CGS2(
     auto time_3 = std::chrono::steady_clock::now() - start_3;
     std::cout << "time_3(" << iter << ") = "
               << std::chrono::duration_cast<double_seconds>(time_3).count()
-              << std::endl;
+              << '\n';
 #endif
     // nrmN = norm(next_krylov_basis)
 #ifdef TIMING
@@ -814,7 +818,7 @@ void finish_arnoldi_CGS2(
     auto time_4 = std::chrono::steady_clock::now() - start_4;
     std::cout << "time_4(" << iter << ") = "
               << std::chrono::duration_cast<double_seconds>(time_4).count()
-              << std::endl;
+              << '\n';
 #endif
 #ifdef TIMING
     exec->synchronize();
@@ -828,11 +832,11 @@ void finish_arnoldi_CGS2(
     auto time_5 = std::chrono::steady_clock::now() - start_5;
     std::cout << "time_5(" << iter << ") = "
               << std::chrono::duration_cast<double_seconds>(time_5).count()
-              << std::endl;
+              << '\n';
 #endif
     // numReorth <= number of next_krylov vector to be reorthogonalization
     for (size_type l = 1; (numReorth > 0) && (l < 3); l++) {
-        // std::cout << "CUDA RESTART " << l << std::endl;
+        // std::cout << "CUDA RESTART " << l << '\n';
         (*num_reorth_steps)++;
         (*num_reorth_vectors) += iter;
         zero_matrix(iter + 1, dim_size[1], stride_buffer,
@@ -985,7 +989,7 @@ void finish_arnoldi_CGS2(
     auto time_6 = std::chrono::steady_clock::now() - start_6;
     std::cout << "time_6(" << iter << ") = "
               << std::chrono::duration_cast<double_seconds>(time_6).count()
-              << std::endl;
+              << '\n';
 #endif
     // next_krylov_basis /= hessenberg(iter, iter + 1)
     // krylov_bases(:, iter + 1) = next_krylov_basis
@@ -1047,26 +1051,26 @@ void step_1(std::shared_ptr<const CudaExecutor> exec,
                               as_cuda_type(stop_status->get_const_data()),
                               final_iter_nums->get_num_elems());
 #if FINISH_ARNOLDI == 1
-    //    std::cout << "CUDA MGS_REORTH" << std::endl;
+    //    std::cout << "CUDA MGS_REORTH" << '\n';
     finish_arnoldi_reorth(exec, next_krylov_basis, krylov_bases,
                           hessenberg_iter, buffer_iter, arnoldi_norm, iter,
                           stop_status->get_const_data(),
                           reorth_status->get_data(), num_reorth);
 #elif FINISH_ARNOLDI == 2
-    //    std::cout << "CUDA CGS_REORTH" << std::endl;
+    //    std::cout << "CUDA CGS_REORTH" << '\n';
     finish_arnoldi_CGS(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                        buffer_iter, arnoldi_norm, iter,
                        stop_status->get_const_data(), reorth_status->get_data(),
                        num_reorth);
 #elif FINISH_ARNOLDI == 3
-    //    std::cout << "CUDA CGS_REORTH_2" << std::endl;
+    //    std::cout << "CUDA CGS_REORTH_2" << '\n';
     finish_arnoldi_CGS2(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                         buffer_iter, arnoldi_norm, iter,
                         stop_status->get_const_data(),
                         reorth_status->get_data(), num_reorth, num_reorth_steps,
                         num_reorth_vectors);
 #else
-    //    std::cout << "CUDA MGS" << std::endl;
+    //    std::cout << "CUDA MGS" << '\n';
     finish_arnoldi(exec, next_krylov_basis, krylov_bases, hessenberg_iter, iter,
                    stop_status->get_const_data());
 #endif

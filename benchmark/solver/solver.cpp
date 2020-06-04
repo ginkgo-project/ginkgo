@@ -170,63 +170,82 @@ std::unique_ptr<gko::LinOpFactory> create_solver(
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                                 std::shared_ptr<const gko::Executor>,
                                 std::shared_ptr<const gko::LinOpFactory>)>>
-    solver_factory{{"bicgstab", create_solver<gko::solver::Bicgstab<etype>>},
-                   {"bicg", create_solver<gko::solver::Bicg<etype>>},
-                   {"cg", create_solver<gko::solver::Cg<etype>>},
-                   {"cgs", create_solver<gko::solver::Cgs<etype>>},
-                   {"fcg", create_solver<gko::solver::Fcg<etype>>},
-                   {"idr",
-                    [](std::shared_ptr<const gko::Executor> exec,
-                       std::shared_ptr<const gko::LinOpFactory> precond) {
-                        return gko::solver::Idr<etype>::build()
-                            .with_criteria(create_criterion(exec))
-                            .with_subspace_dim(FLAGS_idr_subspace_dim)
-                            .with_kappa(static_cast<rc_etype>(FLAGS_idr_kappa))
-                            .with_preconditioner(give(precond))
-                            .on(exec);
-                    }},
-                   {"gmres",
-                    [](std::shared_ptr<const gko::Executor> exec,
-                       std::shared_ptr<const gko::LinOpFactory> precond) {
-                        return gko::solver::Gmres<etype>::build()
-                            .with_criteria(create_criterion(exec))
-                            .with_krylov_dim(FLAGS_gmres_restart)
-                            .with_preconditioner(give(precond))
-                            .on(exec);
-                    }},
-                   {"gmres_mixed_double",
-                    [](std::shared_ptr<const gko::Executor> exec,
-                       std::shared_ptr<const gko::LinOpFactory> precond) {
-                        return gko::solver::GmresMixed<double, double>::build()
-                            .with_criteria(create_criterion(exec))
-                            .with_krylov_dim_mixed(FLAGS_gmres_restart)
-                            .with_preconditioner(give(precond))
-                            .on(exec);
-                    }},
-                   {"gmres_mixed_float",
-                    [](std::shared_ptr<const gko::Executor> exec,
-                       std::shared_ptr<const gko::LinOpFactory> precond) {
-                        return gko::solver::GmresMixed<double, float>::build()
-                            .with_criteria(create_criterion(exec))
-                            .with_krylov_dim_mixed(FLAGS_gmres_restart)
-                            .with_preconditioner(give(precond))
-                            .on(exec);
-                    }},
-                   {"lower_trs",
-                    [](std::shared_ptr<const gko::Executor> exec,
-                       std::shared_ptr<const gko::LinOpFactory>) {
-                        return gko::solver::LowerTrs<etype>::build()
-                            .with_num_rhs(FLAGS_nrhs)
-                            .on(exec);
-                    }},
-                   {"upper_trs",
-                    [](std::shared_ptr<const gko::Executor> exec,
-                       std::shared_ptr<const gko::LinOpFactory>) {
-                        return gko::solver::UpperTrs<etype>::build()
-                            .with_num_rhs(FLAGS_nrhs)
-                            .on(exec);
-                    }},
-                   {"overhead", create_solver<gko::Overhead<etype>>}};
+    solver_factory{
+        {"bicgstab", create_solver<gko::solver::Bicgstab<etype>>},
+        {"bicg", create_solver<gko::solver::Bicg<etype>>},
+        {"cg", create_solver<gko::solver::Cg<etype>>},
+        {"cgs", create_solver<gko::solver::Cgs<etype>>},
+        {"fcg", create_solver<gko::solver::Fcg<etype>>},
+        {"idr",
+         [](std::shared_ptr<const gko::Executor> exec,
+            std::shared_ptr<const gko::LinOpFactory> precond) {
+             return gko::solver::Idr<etype>::build()
+                 .with_criteria(create_criterion(exec))
+                 .with_subspace_dim(FLAGS_idr_subspace_dim)
+                 .with_kappa(static_cast<rc_etype>(FLAGS_idr_kappa))
+                 .with_preconditioner(give(precond))
+                 .on(exec);
+         }},
+        {"gmres",
+         [](std::shared_ptr<const gko::Executor> exec,
+            std::shared_ptr<const gko::LinOpFactory> precond) {
+             return gko::solver::Gmres<etype>::build()
+                 .with_criteria(create_criterion(exec))
+                 .with_krylov_dim(FLAGS_gmres_restart)
+                 .with_preconditioner(give(precond))
+                 .on(exec);
+         }},
+        {"gmres_mixed_double",
+         [](std::shared_ptr<const gko::Executor> exec,
+            std::shared_ptr<const gko::LinOpFactory> precond) {
+             return gko::solver::GmresMixed<double, double>::build()
+                 .with_criteria(create_criterion(exec))
+                 .with_krylov_dim_mixed(FLAGS_gmres_restart)
+                 .with_preconditioner(give(precond))
+                 .on(exec);
+         }},
+        {"gmres_mixed_float",
+         [](std::shared_ptr<const gko::Executor> exec,
+            std::shared_ptr<const gko::LinOpFactory> precond) {
+             return gko::solver::GmresMixed<double, float>::build()
+                 .with_criteria(create_criterion(exec))
+                 .with_krylov_dim_mixed(FLAGS_gmres_restart)
+                 .with_preconditioner(give(precond))
+                 .on(exec);
+         }},
+        {"gmres_mixed_int32",
+         [](std::shared_ptr<const gko::Executor> exec,
+            std::shared_ptr<const gko::LinOpFactory> precond) {
+             return gko::solver::GmresMixed<double, gko::int32>::build()
+                 .with_criteria(create_criterion(exec))
+                 .with_krylov_dim_mixed(FLAGS_gmres_restart)
+                 .with_preconditioner(give(precond))
+                 .on(exec);
+         }},
+        {"gmres_mixed_int16",
+         [](std::shared_ptr<const gko::Executor> exec,
+            std::shared_ptr<const gko::LinOpFactory> precond) {
+             return gko::solver::GmresMixed<double, gko::int16>::build()
+                 .with_criteria(create_criterion(exec))
+                 .with_krylov_dim_mixed(FLAGS_gmres_restart)
+                 .with_preconditioner(give(precond))
+                 .on(exec);
+         }},
+        {"lower_trs",
+         [](std::shared_ptr<const gko::Executor> exec,
+            std::shared_ptr<const gko::LinOpFactory>) {
+             return gko::solver::LowerTrs<etype>::build()
+                 .with_num_rhs(FLAGS_nrhs)
+                 .on(exec);
+         }},
+        {"upper_trs",
+         [](std::shared_ptr<const gko::Executor> exec,
+            std::shared_ptr<const gko::LinOpFactory>) {
+             return gko::solver::UpperTrs<etype>::build()
+                 .with_num_rhs(FLAGS_nrhs)
+                 .on(exec);
+         }},
+        {"overhead", create_solver<gko::Overhead<etype>>}};
 
 
 void write_precond_info(const gko::LinOp *precond,
