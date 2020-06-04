@@ -97,9 +97,8 @@ set(GINKGO_INSTALL_CONFIG_DIR "${GINKGO_INSTALL_PREFIX}/@GINKGO_INSTALL_CONFIG_D
 set(GINKGO_INSTALL_MODULE_DIR "${GINKGO_INSTALL_PREFIX}/@GINKGO_INSTALL_MODULE_DIR@")
 
 # Forward Ginkgo's MODULE PATH and the PREFIX PATH for HIP and more
-set(CMAKE_MODULE_PATH "@CMAKE_MODULE_PATH@")
-set(CMAKE_MODULE_PATH "${GINKGO_INSTALL_MODULE_DIR}" ${CMAKE_MODULE_PATH})
-set(CMAKE_PREFIX_PATH "@CMAKE_PREFIX_PATH@")
+list(APPEND CMAKE_MODULE_PATH "@CMAKE_MODULE_PATH@" "${GINKGO_INSTALL_MODULE_DIR}")
+list(APPEND CMAKE_PREFIX_PATH "@CMAKE_PREFIX_PATH@")
 
 
 set(GINKGO_INTERFACE_LINK_LIBRARIES "@GINKGO_INTERFACE_LINK_LIBRARIES@")
@@ -141,9 +140,34 @@ if (GINKGO_BUILD_CUDA AND GINKGO_CUDA_HOST_COMPILER AND NOT CMAKE_CUDA_HOST_COMP
     set(CMAKE_CUDA_HOST_COMPILER "${GINKGO_CXX_COMPILER}" CACHE STRING "" FORCE)
 endif()
 
+if(GINKGO_HAVE_PAPI_SDE)
+    find_package(PAPI REQUIRED OPTIONAL_COMPONENTS sde)
+endif()
+
 # HIP depends on Threads::Threads in some circumstances, but doesn't find it
 if (GINKGO_BUILD_HIP)
     find_package(Threads REQUIRED)
 endif()
+
+# Needed because of a known issue with CUDA while linking statically.
+# For details, see https://gitlab.kitware.com/cmake/cmake/issues/18614
+if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_BUILD_CUDA)
+    enable_language(CUDA)
+endif()
+
+if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_BUILD_HIP)
+    find_package(HIP REQUIRED)
+    find_package(hipblas REQUIRED)
+    find_package(hipsparse REQUIRED)
+    if(GINKGO_HIP_PLATFORM MATCHES "hcc")
+        ginkgo_hip_ban_link_hcflag(hcc::hccrt)
+        ginkgo_hip_ban_link_hcflag(hcc::hc_am)
+        ginkgo_hip_ban_link_hcflag(hcc::mcwamp)
+        ginkgo_hip_ban_compile_hcflag(hcc::hccrt)
+        ginkgo_hip_ban_compile_hcflag(hcc::hc_am)
+        ginkgo_hip_ban_compile_hcflag(hcc::mcwamp)
+    endif()
+endif()
+
 
 include(${CMAKE_CURRENT_LIST_DIR}/GinkgoTargets.cmake)
