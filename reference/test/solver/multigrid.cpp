@@ -195,7 +195,7 @@ protected:
                              .with_max_unassigned_percentage(0.1)
                              .on(exec)),
           smoother_factory(
-              gko::give(Smoother::build().with_max_block_size(3u).on(exec))),
+              gko::give(Smoother::build().with_max_block_size(1u).on(exec))),
           coarsest_factory(
               CoarsestSolver::build()
                   .with_criteria(
@@ -211,24 +211,7 @@ protected:
           lo_factory(DummyFactory::build().on(exec)),
           rp_factory2(DummyRPFactory::build().with_value(2).on(exec)),
           lo_factory2(DummyFactory::build().with_value(2).on(exec))
-    {
-        multigrid_factory =
-            Solver::build()
-                .with_pre_smoother(smoother_factory)
-                .with_post_smoother(smoother_factory)
-                .with_coarsest_solver(coarsest_factory)
-                .with_max_levels(2u)
-                .with_rstr_prlg(coarse_factory)
-                .with_criteria(
-                    gko::stop::Iteration::build().with_max_iters(4u).on(exec),
-                    gko::stop::Time::build()
-                        .with_time_limit(std::chrono::seconds(100))
-                        .on(exec),
-                    gko::stop::ResidualNormReduction<value_type>::build()
-                        .with_reduction_factor(r<value_type>::value)
-                        .on(exec))
-                .on(exec);
-    }
+    {}
 
     static void assert_same_step(const gko::LinOp *lo, std::vector<int> v2)
     {
@@ -246,9 +229,70 @@ protected:
         assert_same_vector(v, prlg);
     }
 
+    std::unique_ptr<typename Solver::Factory> get_multigrid_factory(
+        gko::solver::multigrid_cycle cycle)
+    {
+        return std::move(
+            Solver::build()
+                .with_pre_smoother(smoother_factory)
+                .with_post_smoother(smoother_factory)
+                .with_coarsest_solver(coarsest_factory)
+                .with_max_levels(2u)
+                .with_rstr_prlg(coarse_factory)
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(4u).on(exec),
+                    gko::stop::Time::build()
+                        .with_time_limit(std::chrono::seconds(6))
+                        .on(exec),
+                    gko::stop::ResidualNormReduction<value_type>::build()
+                        .with_reduction_factor(r<value_type>::value)
+                        .on(exec))
+                .with_cycle(cycle)
+                .on(exec));
+    }
+
+
+    std::unique_ptr<typename Solver::Factory> get_factory_individual(
+        gko::solver::multigrid_cycle cycle)
+    {
+        return std::move(
+            Solver::build()
+                .with_max_levels(2u)
+                .with_rstr_prlg(this->rp_factory, this->rp_factory2)
+                .with_pre_smoother(nullptr, this->lo_factory)
+                .with_post_smoother(this->lo_factory2, nullptr)
+                .with_pre_relaxation(gko::Array<value_type>(this->exec, {1, 2}))
+                .with_post_relaxation(
+                    gko::Array<value_type>(this->exec, {3, 4}))
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(1u).on(
+                        this->exec))
+                .with_cycle(cycle)
+                .on(this->exec));
+    }
+
+
+    std::unique_ptr<typename Solver::Factory> get_factory_same(
+        gko::solver::multigrid_cycle cycle)
+    {
+        return std::move(
+            Solver::build()
+                .with_max_levels(2u)
+                .with_rstr_prlg(this->rp_factory, this->rp_factory2)
+                .with_pre_smoother(nullptr, this->lo_factory)
+                .with_coarsest_solver(this->lo_factory2)
+                .with_pre_relaxation(gko::Array<value_type>(this->exec, {2}))
+                .with_post_uses_pre(true)
+                .with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(1u).on(
+                        this->exec))
+                .with_cycle(cycle)
+                .on(this->exec));
+    }
+
+
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Csr> mtx;
-    std::unique_ptr<typename Solver::Factory> multigrid_factory;
     std::shared_ptr<typename Coarse::Factory> coarse_factory;
     std::shared_ptr<typename Smoother::Factory> smoother_factory;
     std::shared_ptr<typename CoarsestSolver::Factory> coarsest_factory;
@@ -268,18 +312,8 @@ TYPED_TEST(Multigrid, VCycle)
     using DummyFactory = typename TestFixture::DummyFactory;
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
-    auto solver =
-        Solver::build()
-            .with_max_levels(2u)
-            .with_rstr_prlg(this->rp_factory, this->rp_factory2)
-            .with_pre_smoother(nullptr, this->lo_factory)
-            .with_post_smoother(this->lo_factory2, nullptr)
-            .with_pre_relaxation(gko::Array<value_type>(this->exec, {1, 2}))
-            .with_post_relaxation(gko::Array<value_type>(this->exec, {3, 4}))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(this->exec))
-            .on(this->exec)
-            ->generate(this->mtx);
+    auto solver = this->get_factory_individual(gko::solver::multigrid_cycle::v)
+                      ->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
         {I<value_type>({1, 0}), I<value_type>({0, 2}), I<value_type>({-1, -2})},
         this->exec);
@@ -312,18 +346,8 @@ TYPED_TEST(Multigrid, VCyclePostUsesPre)
     using DummyFactory = typename TestFixture::DummyFactory;
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
-    auto solver =
-        Solver::build()
-            .with_max_levels(2u)
-            .with_rstr_prlg(this->rp_factory, this->rp_factory2)
-            .with_pre_smoother(nullptr, this->lo_factory)
-            .with_coarsest_solver(this->lo_factory2)
-            .with_pre_relaxation(gko::Array<value_type>(this->exec, {2}))
-            .with_post_uses_pre(true)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(this->exec))
-            .on(this->exec)
-            ->generate(this->mtx);
+    auto solver = this->get_factory_same(gko::solver::multigrid_cycle::v)
+                      ->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
         {I<value_type>({1, 0}), I<value_type>({0, 2}), I<value_type>({-1, -2})},
         this->exec);
@@ -356,19 +380,8 @@ TYPED_TEST(Multigrid, WCyclePostUsesPre)
     using DummyFactory = typename TestFixture::DummyFactory;
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
-    auto solver =
-        Solver::build()
-            .with_max_levels(2u)
-            .with_rstr_prlg(this->rp_factory, this->rp_factory2)
-            .with_pre_smoother(nullptr, this->lo_factory)
-            .with_coarsest_solver(this->lo_factory2)
-            .with_pre_relaxation(gko::Array<value_type>(this->exec, {2}))
-            .with_post_uses_pre(true)
-            .with_cycle(gko::solver::multigrid_cycle::w)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(this->exec))
-            .on(this->exec)
-            ->generate(this->mtx);
+    auto solver = this->get_factory_same(gko::solver::multigrid_cycle::w)
+                      ->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
         {I<value_type>({1, 0}), I<value_type>({0, 2}), I<value_type>({-1, -2})},
         this->exec);
@@ -407,19 +420,8 @@ TYPED_TEST(Multigrid, FCyclePostUsesPre)
     using DummyFactory = typename TestFixture::DummyFactory;
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
-    auto solver =
-        Solver::build()
-            .with_max_levels(2u)
-            .with_rstr_prlg(this->rp_factory, this->rp_factory2)
-            .with_pre_smoother(nullptr, this->lo_factory)
-            .with_coarsest_solver(this->lo_factory2)
-            .with_pre_relaxation(gko::Array<value_type>(this->exec, {2}))
-            .with_post_uses_pre(true)
-            .with_cycle(gko::solver::multigrid_cycle::f)
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(1u).on(this->exec))
-            .on(this->exec)
-            ->generate(this->mtx);
+    auto solver = this->get_factory_same(gko::solver::multigrid_cycle::f)
+                      ->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
         {I<value_type>({1, 0}), I<value_type>({0, 2}), I<value_type>({-1, -2})},
         this->exec);
@@ -433,9 +435,9 @@ TYPED_TEST(Multigrid, FCyclePostUsesPre)
     // \restrict, /prolong, +presmooth, -postsmooth, .coarsest_solve, *midsmooth
     //  +                       +               -  | pass
     //    \                   /   \           /    | rp_0
-    //      +       +       -       +       -      | lo2
+    //      +       *       -       *       -      | lo_2
     //        \   /   \   /           \   /        | rp_1
-    //          v       v               v          | lo2
+    //          v       v               v          | lo_2
     //  +                       +               -  | pass
     //    0                   33  34          149  | rp_0
     //      2       12      32      70      148    | presmooth
@@ -451,14 +453,53 @@ TYPED_TEST(Multigrid, FCyclePostUsesPre)
 }
 
 
-TYPED_TEST(Multigrid, SolvesStencilSystem)
+TYPED_TEST(Multigrid, SolvesStencilSystemByVCycle)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
-    auto solver = this->multigrid_factory->generate(this->mtx);
+
+    auto multigrid_factory =
+        this->get_multigrid_factory(gko::solver::multigrid_cycle::v);
+    auto solver = multigrid_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
     solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value);
+}
+
+
+TYPED_TEST(Multigrid, SolvesStencilSystemByWCycle)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+
+    auto multigrid_factory =
+        this->get_multigrid_factory(gko::solver::multigrid_cycle::w);
+    auto solver = multigrid_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value);
+}
+
+
+TYPED_TEST(Multigrid, SolvesStencilSystemByFCycle)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+
+    auto multigrid_factory =
+        this->get_multigrid_factory(gko::solver::multigrid_cycle::f);
+    auto solver = multigrid_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value);
 }
 
