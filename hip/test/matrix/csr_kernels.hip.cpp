@@ -650,4 +650,29 @@ TEST_F(Csr, SortUnsortedMatrixIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, OneAutomaticalWorksWithDifferentMatrices)
+{
+    auto automatical = std::make_shared<Mtx::automatical>();
+    auto row_len_limit = std::max(automatical->nvidia_row_len_limit,
+                                  automatical->amd_row_len_limit);
+    auto load_balance_mtx = Mtx::create(ref);
+    auto classical_mtx = Mtx::create(ref);
+    load_balance_mtx->copy_from(
+        gen_mtx<Vec>(1, row_len_limit + 1000, row_len_limit + 1));
+    classical_mtx->copy_from(gen_mtx<Vec>(50, 50, 1));
+    auto load_balance_mtx_d = Mtx::create(hip);
+    auto classical_mtx_d = Mtx::create(hip);
+    load_balance_mtx_d->copy_from(load_balance_mtx.get());
+    classical_mtx_d->copy_from(classical_mtx.get());
+
+    load_balance_mtx_d->set_strategy(automatical);
+    classical_mtx_d->set_strategy(automatical);
+
+    EXPECT_EQ("load_balance", load_balance_mtx_d->get_strategy()->get_name());
+    EXPECT_EQ("classical", classical_mtx_d->get_strategy()->get_name());
+    ASSERT_NE(load_balance_mtx_d->get_strategy().get(),
+              classical_mtx_d->get_strategy().get());
+}
+
+
 }  // namespace
