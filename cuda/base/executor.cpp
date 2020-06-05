@@ -56,13 +56,14 @@ namespace gko {
 
 
 std::shared_ptr<CudaExecutor> CudaExecutor::create(
-    int device_id, std::shared_ptr<Executor> master)
+    int device_id, std::shared_ptr<Executor> master, bool device_reset)
 {
     return std::shared_ptr<CudaExecutor>(
-        new CudaExecutor(device_id, std::move(master)),
+        new CudaExecutor(device_id, std::move(master), device_reset),
         [device_id](CudaExecutor *exec) {
             delete exec;
-            if (!CudaExecutor::get_num_execs(device_id)) {
+            if (!CudaExecutor::get_num_execs(device_id) &&
+                exec->get_device_reset()) {
                 cuda::device_guard g(device_id);
                 cudaDeviceReset();
             }

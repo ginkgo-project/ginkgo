@@ -61,10 +61,10 @@ int main(int argc, char *argv[])
         exec = gko::OmpExecutor::create();
     } else if (argc == 2 && std::string(argv[1]) == "cuda" &&
                gko::CudaExecutor::get_num_devices() > 0) {
-        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
     } else if (argc == 2 && std::string(argv[1]) == "hip" &&
                gko::HipExecutor::get_num_devices() > 0) {
-        exec = gko::HipExecutor::create(0, gko::OmpExecutor::create());
+        exec = gko::HipExecutor::create(0, gko::OmpExecutor::create(), true);
     } else {
         std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
         std::exit(-1);
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 
     // copy b again
     b->copy_from(host_x.get());
-    gko::size_type max_iters= 10000u; 
+    gko::size_type max_iters = 10000u;
     gko::remove_complex<ValueType> outer_reduction_factor = 1e-12;
     auto iter_stop =
         gko::stop::Iteration::build().with_max_iters(max_iters).on(exec);

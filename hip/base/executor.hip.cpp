@@ -56,13 +56,14 @@ namespace gko {
 
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
-    int device_id, std::shared_ptr<Executor> master)
+    int device_id, std::shared_ptr<Executor> master, bool device_reset)
 {
     return std::shared_ptr<HipExecutor>(
-        new HipExecutor(device_id, std::move(master)),
+        new HipExecutor(device_id, std::move(master), device_reset),
         [device_id](HipExecutor *exec) {
             delete exec;
-            if (!HipExecutor::get_num_execs(device_id)) {
+            if (!HipExecutor::get_num_execs(device_id) &&
+                exec->get_device_reset()) {
                 hip::device_guard g(device_id);
                 hipDeviceReset();
             }

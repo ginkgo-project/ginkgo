@@ -260,11 +260,11 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
         {"cuda",
          [] {
              return gko::CudaExecutor::create(FLAGS_device_id,
-                                              gko::OmpExecutor::create());
+                                              gko::OmpExecutor::create(), true);
          }},
         {"hip", [] {
              return gko::HipExecutor::create(FLAGS_device_id,
-                                             gko::OmpExecutor::create());
+                                             gko::OmpExecutor::create(), true);
          }}};
 
 

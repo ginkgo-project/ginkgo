@@ -275,7 +275,8 @@ TEST(ReferenceExecutor, IsItsOwnMaster)
 TEST(CudaExecutor, RunsCorrectOperation)
 {
     int value = 0;
-    exec_ptr cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    exec_ptr cuda =
+        gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
 
     cuda->run(ExampleOperation(value));
     ASSERT_EQ(2, value);
@@ -288,7 +289,8 @@ TEST(CudaExecutor, RunsCorrectLambdaOperation)
     auto omp_lambda = [&value]() { value = 1; };
     auto cuda_lambda = [&value]() { value = 2; };
     auto hip_lambda = [&value]() { value = 3; };
-    exec_ptr cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    exec_ptr cuda =
+        gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
 
     cuda->run(omp_lambda, cuda_lambda, hip_lambda);
     ASSERT_EQ(2, value);
@@ -310,6 +312,35 @@ TEST(CudaExecutor, KnowsItsDeviceId)
     auto cuda = gko::CudaExecutor::create(0, omp);
 
     ASSERT_EQ(0, cuda->get_device_id());
+}
+
+
+TEST(CudaExecutor, CanGetDeviceResetBoolean)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto cuda = gko::CudaExecutor::create(0, omp);
+
+    ASSERT_EQ(false, cuda->get_device_reset());
+}
+
+
+TEST(CudaExecutor, CanSetDefaultDeviceResetBoolean)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto cuda = gko::CudaExecutor::create(0, omp, true);
+
+    ASSERT_EQ(true, cuda->get_device_reset());
+}
+
+
+TEST(CudaExecutor, CanSetDeviceResetBoolean)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto cuda = gko::CudaExecutor::create(0, omp);
+
+    cuda->set_device_reset(true);
+
+    ASSERT_EQ(true, cuda->get_device_reset());
 }
 
 
@@ -351,6 +382,35 @@ TEST(HipExecutor, KnowsItsDeviceId)
     auto hip = gko::HipExecutor::create(0, omp);
 
     ASSERT_EQ(0, hip->get_device_id());
+}
+
+
+TEST(HipExecutor, CanGetDeviceResetBoolean)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto hip = gko::HipExecutor::create(0, omp);
+
+    ASSERT_EQ(false, hip->get_device_reset());
+}
+
+
+TEST(HipExecutor, CanSetDefaultDeviceResetBoolean)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto hip = gko::HipExecutor::create(0, omp, true);
+
+    ASSERT_EQ(true, hip->get_device_reset());
+}
+
+
+TEST(HipExecutor, CanSetDeviceResetBoolean)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto hip = gko::HipExecutor::create(0, omp);
+
+    hip->set_device_reset(true);
+
+    ASSERT_EQ(true, hip->get_device_reset());
 }
 
 
