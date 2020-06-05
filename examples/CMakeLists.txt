@@ -23,6 +23,7 @@ set(EXAMPLES_LIST
     ginkgo-overhead
     minimal-cuda-solver
     mixed-spmv
+    multigrid-preconditioned-solver
     par-ilu-convergence
     performance-debugging
     preconditioner-export
