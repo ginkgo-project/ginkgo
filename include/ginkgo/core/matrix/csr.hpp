@@ -166,6 +166,12 @@ public:
          */
         virtual int64_t clac_size(const int64_t nnz) = 0;
 
+        /**
+         * Copy a strategy. This is a workaround until strategies are revamped,
+         * since strategies like `automatical` do not work when actually shared.
+         */
+        virtual std::shared_ptr<strategy_type> copy() = 0;
+
     protected:
         void set_name(std::string name) { name_ = name; }
 
@@ -215,6 +221,11 @@ public:
             return max_length_per_row_;
         }
 
+        std::shared_ptr<strategy_type> copy() override
+        {
+            return std::make_shared<classical>();
+        }
+
     private:
         index_type max_length_per_row_;
     };
@@ -236,6 +247,11 @@ public:
         {}
 
         int64_t clac_size(const int64_t nnz) override { return 0; }
+
+        std::shared_ptr<strategy_type> copy() override
+        {
+            return std::make_shared<merge_path>();
+        }
     };
 
     /**
@@ -256,6 +272,11 @@ public:
         {}
 
         int64_t clac_size(const int64_t nnz) override { return 0; }
+
+        std::shared_ptr<strategy_type> copy() override
+        {
+            return std::make_shared<cusparse>();
+        }
     };
 
     /**
@@ -275,6 +296,11 @@ public:
         {}
 
         int64_t clac_size(const int64_t nnz) override { return 0; }
+
+        std::shared_ptr<strategy_type> copy() override
+        {
+            return std::make_shared<sparselib>();
+        }
     };
 
     /**
@@ -406,6 +432,12 @@ public:
             }
         }
 
+        std::shared_ptr<strategy_type> copy() override
+        {
+            return std::make_shared<load_balance>(nwarps_, warp_size_,
+                                                  cuda_strategy_);
+        }
+
     private:
         int64_t nwarps_;
         int warp_size_;
@@ -414,8 +446,21 @@ public:
 
     class automatical : public strategy_type {
     public:
+        /* Use imbalance strategy when the maximum number of nonzero per row is
+         * more than 1024 on NVIDIA hardware */
+        const index_type nvidia_row_len_limit = 1024;
+        /* Use imbalance strategy when the matrix has more more than 1e6 on
+         * NVIDIA hardware */
+        const index_type nvidia_nnz_limit = 1e6;
+        /* Use imbalance strategy when the maximum number of nonzero per row is
+         * more than 768 on AMD hardware */
+        const index_type amd_row_len_limit = 768;
+        /* Use imbalance strategy when the matrix has more more than 1e8 on AMD
+         * hardware */
+        const index_type amd_nnz_limit = 1e8;
+
         /**
-         * Creates a automatical strategy.
+         * Creates an automatical strategy.
          */
         automatical()
             : automatical(std::move(
@@ -423,7 +468,7 @@ public:
         {}
 
         /**
-         * Creates a automatical strategy with CUDA executor.
+         * Creates an automatical strategy with CUDA executor.
          *
          * @param exec the CUDA executor
          */
@@ -432,7 +477,7 @@ public:
         {}
 
         /**
-         * Creates a automatical strategy with HIP executor.
+         * Creates an automatical strategy with HIP executor.
          *
          * @param exec the HIP executor
          */
@@ -441,7 +486,7 @@ public:
         {}
 
         /**
-         * Creates a automatical strategy with specified parameters
+         * Creates an automatical strategy with specified parameters
          *
          * @param nwarps the number of warps in the executor
          * @param warp_size the warp size of the executor
@@ -466,14 +511,12 @@ public:
             // if the number of stored elements is larger than <nnz_limit> or
             // the maximum number of stored elements per row is larger than
             // <row_len_limit>, use load_balance otherwise use classical
-            // CUDA: nnz_limit = 1e6, row_len_limit = 1024
-            // AMD: nnz_limit = 1e8, row_len_limit = 768
-            index_type nnz_limit = 1e6;
-            index_type row_len_limit = 1024;
+            index_type nnz_limit = nvidia_nnz_limit;
+            index_type row_len_limit = nvidia_row_len_limit;
 #if GINKGO_HIP_PLATFORM_HCC
             if (!cuda_strategy_) {
-                nnz_limit = 1e8;
-                row_len_limit = 768;
+                nnz_limit = amd_nnz_limit;
+                row_len_limit = amd_row_len_limit;
             }
 #endif  // GINKGO_HIP_PLATFORM_HCC
             auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
@@ -539,6 +582,12 @@ public:
             return max_length_per_row_;
         }
 
+        std::shared_ptr<strategy_type> copy() override
+        {
+            return std::make_shared<automatical>(nwarps_, warp_size_,
+                                                 cuda_strategy_);
+        }
+
     private:
         int64_t nwarps_;
         int warp_size_;
@@ -548,11 +597,13 @@ public:
 
     void convert_to(Csr<ValueType, IndexType> *result) const override
     {
-        bool same_executor = this->get_executor() == result->get_executor();
-        EnableLinOp<Csr>::convert_to(result);
-        if (!same_executor) {
-            detail::strategy_rebuild_helper(result);
-        }
+        // NOTE: as soon as strategies are improved, this can be reverted
+        result->values_ = this->values_;
+        result->col_idxs_ = this->col_idxs_;
+        result->row_ptrs_ = this->row_ptrs_;
+        result->srow_ = this->srow_;
+        result->set_strategy(std::move(this->get_strategy()->copy()));
+        // END NOTE
     }
 
     void move_to(Csr<ValueType, IndexType> *result) override
@@ -739,7 +790,7 @@ public:
      */
     void set_strategy(std::shared_ptr<strategy_type> strategy)
     {
-        strategy_ = std::move(strategy);
+        strategy_ = std::move(strategy->copy());
         this->make_srow();
     }
 
@@ -771,7 +822,7 @@ protected:
           col_idxs_(exec, num_nonzeros),
           row_ptrs_(exec, size[0] + 1),
           srow_(exec, strategy->clac_size(num_nonzeros)),
-          strategy_(std::move(strategy))
+          strategy_(std::move(strategy->copy()))
     {}
 
     /**
@@ -804,7 +855,7 @@ protected:
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)},
           srow_(exec),
-          strategy_(std::move(strategy))
+          strategy_(std::move(strategy->copy()))
     {
         GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
         GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_num_elems());

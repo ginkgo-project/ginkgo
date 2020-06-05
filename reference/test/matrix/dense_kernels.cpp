@@ -487,9 +487,9 @@ TYPED_TEST(Dense, ConvertsToCsr32)
     EXPECT_EQ(v[1], T{3.0});
     EXPECT_EQ(v[2], T{2.0});
     EXPECT_EQ(v[3], T{5.0});
-    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
+    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
     GKO_ASSERT_MTX_NEAR(csr_mtx_c.get(), csr_mtx_m.get(), 0.0);
-    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
+    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
 }
 
 
@@ -522,9 +522,9 @@ TYPED_TEST(Dense, MovesToCsr32)
     EXPECT_EQ(v[1], T{3.0});
     EXPECT_EQ(v[2], T{2.0});
     EXPECT_EQ(v[3], T{5.0});
-    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
+    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
     GKO_ASSERT_MTX_NEAR(csr_mtx_c.get(), csr_mtx_m.get(), 0.0);
-    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
+    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
 }
 
 
@@ -556,9 +556,9 @@ TYPED_TEST(Dense, ConvertsToCsr64)
     EXPECT_EQ(v[1], T{3.0});
     EXPECT_EQ(v[2], T{2.0});
     EXPECT_EQ(v[3], T{5.0});
-    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
+    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
     GKO_ASSERT_MTX_NEAR(csr_mtx_c.get(), csr_mtx_m.get(), 0.0);
-    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
+    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
 }
 
 
@@ -591,9 +591,9 @@ TYPED_TEST(Dense, MovesToCsr64)
     EXPECT_EQ(v[1], T{3.0});
     EXPECT_EQ(v[2], T{2.0});
     EXPECT_EQ(v[3], T{5.0});
-    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
+    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
     GKO_ASSERT_MTX_NEAR(csr_mtx_c.get(), csr_mtx_m.get(), 0.0);
-    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
+    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
 }
 
 

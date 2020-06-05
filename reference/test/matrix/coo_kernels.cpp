@@ -155,8 +155,8 @@ TYPED_TEST(Coo, ConvertsToCsr)
 
     this->assert_equal_to_mtx_in_csr_format(csr_mtx_c.get());
     this->assert_equal_to_mtx_in_csr_format(csr_mtx_m.get());
-    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
-    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
+    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
+    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
 }
 
 
@@ -176,8 +176,8 @@ TYPED_TEST(Coo, MovesToCsr)
 
     this->assert_equal_to_mtx_in_csr_format(csr_mtx_c.get());
     this->assert_equal_to_mtx_in_csr_format(csr_mtx_m.get());
-    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
-    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
+    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
+    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
 }
 
 
