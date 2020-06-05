@@ -602,6 +602,7 @@ public:
         result->col_idxs_ = this->col_idxs_;
         result->row_ptrs_ = this->row_ptrs_;
         result->srow_ = this->srow_;
+        result->set_size(this->get_size());
         result->set_strategy(std::move(this->get_strategy()->copy()));
         // END NOTE
     }
@@ -822,7 +823,7 @@ protected:
           col_idxs_(exec, num_nonzeros),
           row_ptrs_(exec, size[0] + 1),
           srow_(exec, strategy->clac_size(num_nonzeros)),
-          strategy_(std::move(strategy->copy()))
+          strategy_(strategy->copy())
     {}
 
     /**
@@ -855,7 +856,7 @@ protected:
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
           row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)},
           srow_(exec),
-          strategy_(std::move(strategy->copy()))
+          strategy_(strategy->copy())
     {
         GKO_ASSERT_EQ(values_.get_num_elems(), col_idxs_.get_num_elems());
         GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_num_elems());
