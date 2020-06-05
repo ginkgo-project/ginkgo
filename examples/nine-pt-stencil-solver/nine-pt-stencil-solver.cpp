@@ -228,8 +228,8 @@ void solve_system(const std::string &executor_string,
     const auto omp = gko::OmpExecutor::create();
     std::map<std::string, std::shared_ptr<gko::Executor>> exec_map{
         {"omp", omp},
-        {"cuda", gko::CudaExecutor::create(0, omp)},
-        {"hip", gko::HipExecutor::create(0, omp)},
+        {"cuda", gko::CudaExecutor::create(0, omp, true)},
+        {"hip", gko::HipExecutor::create(0, omp, true)},
         {"reference", gko::ReferenceExecutor::create()}};
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string);  // throws if not valid

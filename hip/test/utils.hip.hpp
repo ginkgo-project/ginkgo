@@ -45,7 +45,7 @@ namespace {
 
 // prevent device reset after each test
 auto no_reset_exec =
-    gko::HipExecutor::create(0, gko::ReferenceExecutor::create());
+    gko::HipExecutor::create(0, gko::ReferenceExecutor::create(), true);
 
 
 }  // namespace

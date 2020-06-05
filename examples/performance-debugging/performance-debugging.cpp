@@ -372,7 +372,7 @@ int main(int argc, char *argv[])
         exec = gko::OmpExecutor::create();
     } else if (argc > 1 && std::string(argv[1]) == "cuda" &&
                gko::CudaExecutor::get_num_devices() > 0) {
-        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
     } else {
         print_usage(argv[0]);
     }
