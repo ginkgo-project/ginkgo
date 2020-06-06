@@ -671,6 +671,33 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void spgeam(std::shared_ptr<const DefaultExecutor> exec,
+            const matrix::Dense<ValueType> *alpha,
+            const matrix::Csr<ValueType, IndexType> *a,
+            const matrix::Dense<ValueType> *beta,
+            const matrix::Csr<ValueType, IndexType> *b,
+            matrix::Csr<ValueType, IndexType> *c)
+{
+    auto valpha = exec->copy_val_to_host(alpha->get_const_values());
+    auto vbeta = exec->copy_val_to_host(beta->get_const_values());
+    auto total_nnz =
+        a->get_num_stored_elements() + b->get_num_stored_elements();
+    auto nnz_per_row = total_nnz / a->get_size()[0];
+    select_spgeam(spgeam_kernels(),
+                  [&](int compiled_subwarp_size) {
+                      return compiled_subwarp_size >= nnz_per_row ||
+                             compiled_subwarp_size == config::warp_size;
+                  },
+                  syn::value_list<int>(), syn::type_list<>(), exec, valpha,
+                  a->get_const_row_ptrs(), a->get_const_col_idxs(),
+                  a->get_const_values(), vbeta, b->get_const_row_ptrs(),
+                  b->get_const_col_idxs(), b->get_const_values(), c);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
+
+
 template <typename IndexType>
 void convert_row_ptrs_to_idxs(std::shared_ptr<const HipExecutor> exec,
                               const IndexType *ptrs, size_type num_rows,
