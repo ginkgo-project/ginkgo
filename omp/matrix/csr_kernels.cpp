@@ -274,12 +274,8 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for firstprivate(local_col_idxs)
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_col_idxs.clear();
-        if (vbeta != zero(vbeta)) {
-            spgemm_insert_row(local_col_idxs, d, a_row);
-        }
-        if (valpha != zero(valpha)) {
-            spgemm_insert_row2(local_col_idxs, a, b, a_row);
-        }
+        spgemm_insert_row(local_col_idxs, d, a_row);
+        spgemm_insert_row2(local_col_idxs, a, b, a_row);
         c_row_ptrs[a_row] = local_col_idxs.size();
     }
 
@@ -300,12 +296,8 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for firstprivate(local_row_nzs)
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_row_nzs.clear();
-        if (vbeta != zero(vbeta)) {
-            spgemm_accumulate_row(local_row_nzs, d, vbeta, a_row);
-        }
-        if (valpha != zero(valpha)) {
-            spgemm_accumulate_row2(local_row_nzs, a, b, valpha, a_row);
-        }
+        spgemm_accumulate_row(local_row_nzs, d, vbeta, a_row);
+        spgemm_accumulate_row2(local_row_nzs, a, b, valpha, a_row);
         // store result
         auto c_nz = c_row_ptrs[a_row];
         for (auto pair : local_row_nzs) {
