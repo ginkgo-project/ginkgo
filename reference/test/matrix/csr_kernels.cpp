@@ -484,6 +484,38 @@ TYPED_TEST(Csr, AppliesLinearCombinationToCsrMatrix)
 }
 
 
+TYPED_TEST(Csr, AppliesLinearCombinationToIdentityMatrix)
+{
+    using T = typename TestFixture::value_type;
+    using Vec = typename TestFixture::Vec;
+    using Mtx = typename TestFixture::Mtx;
+    auto alpha = gko::initialize<Vec>({-3.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    auto a = gko::initialize<Mtx>(
+        {I<T>{2.0, 0.0, 3.0}, I<T>{0.0, 1.0, -1.5}, I<T>{0.0, -2.0, 0.0},
+         I<T>{5.0, 0.0, 0.0}, I<T>{1.0, 0.0, 4.0}, I<T>{2.0, -2.0, 0.0},
+         I<T>{0.0, 0.0, 0.0}},
+        this->exec);
+    auto b = gko::initialize<Mtx>(
+        {I<T>{2.0, -2.0, 0.0}, I<T>{1.0, 0.0, 4.0}, I<T>{2.0, 0.0, 3.0},
+         I<T>{0.0, 1.0, -1.5}, I<T>{1.0, 0.0, 0.0}, I<T>{0.0, 0.0, 0.0},
+         I<T>{0.0, 0.0, 0.0}},
+        this->exec);
+    auto expect = gko::initialize<Mtx>(
+        {I<T>{-2.0, -4.0, -9.0}, I<T>{2.0, -3.0, 12.5}, I<T>{4.0, 6.0, 6.0},
+         I<T>{-15.0, 2.0, -3.0}, I<T>{-1.0, 0.0, -12.0}, I<T>{-6.0, 6.0, 0.0},
+         I<T>{0.0, 0.0, 0.0}},
+        this->exec);
+    auto id = gko::matrix::Identity<T>::create(this->exec, a->get_size()[1]);
+
+    a->apply(gko::lend(alpha), gko::lend(id), gko::lend(beta), gko::lend(b));
+
+    GKO_ASSERT_MTX_NEAR(b, expect, r<T>::value);
+    GKO_ASSERT_MTX_EQ_SPARSITY(b, expect);
+    ASSERT_TRUE(b->is_sorted_by_column_index());
+}
+
+
 TYPED_TEST(Csr, ApplyFailsOnWrongInnerDimension)
 {
     using Vec = typename TestFixture::Vec;

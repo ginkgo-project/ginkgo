@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/iterator_factory.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_builder.hpp"
+#include "omp/components/csr_spgeam.hpp"
 #include "omp/components/format_conversion.hpp"
 
 
@@ -310,6 +311,54 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void spgeam(std::shared_ptr<const OmpExecutor> exec,
+            const matrix::Dense<ValueType> *alpha,
+            const matrix::Csr<ValueType, IndexType> *a,
+            const matrix::Dense<ValueType> *beta,
+            const matrix::Csr<ValueType, IndexType> *b,
+            matrix::Csr<ValueType, IndexType> *c)
+{
+    auto num_rows = a->get_size()[0];
+    auto valpha = alpha->at(0, 0);
+    auto vbeta = beta->at(0, 0);
+
+    // first sweep: count nnz for each row
+    auto c_row_ptrs = c->get_row_ptrs();
+
+    abstract_spgeam(
+        a, b, [](IndexType) { return IndexType{}; },
+        [](IndexType, IndexType, ValueType, ValueType, IndexType &nnz) {
+            ++nnz;
+        },
+        [&](IndexType row, IndexType nnz) { c_row_ptrs[row] = nnz; });
+
+    // build row pointers
+    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
+
+    // second sweep: accumulate non-zeros
+    auto new_nnz = c_row_ptrs[num_rows];
+    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+    auto &c_col_idxs_array = c_builder.get_col_idx_array();
+    auto &c_vals_array = c_builder.get_value_array();
+    c_col_idxs_array.resize_and_reset(new_nnz);
+    c_vals_array.resize_and_reset(new_nnz);
+    auto c_col_idxs = c_col_idxs_array.get_data();
+    auto c_vals = c_vals_array.get_data();
+
+    abstract_spgeam(a, b, [&](IndexType row) { return c_row_ptrs[row]; },
+                    [&](IndexType, IndexType col, ValueType a_val,
+                        ValueType b_val, IndexType &nz) {
+                        c_vals[nz] = valpha * a_val + vbeta * b_val;
+                        c_col_idxs[nz] = col;
+                        ++nz;
+                    },
+                    [](IndexType, IndexType) {});
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 
 template <typename IndexType>

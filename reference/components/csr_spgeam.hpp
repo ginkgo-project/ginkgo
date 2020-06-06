@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_OMP_FACTORIZATION_PAR_IXT_COMMON_HPP_
-#define GKO_OMP_FACTORIZATION_PAR_IXT_COMMON_HPP_
+#ifndef GKO_OMP_COMPONENTS_CSR_SPGEAM_HPP_
+#define GKO_OMP_COMPONENTS_CSR_SPGEAM_HPP_
 
 
 #include <limits>
@@ -52,7 +52,8 @@ namespace reference {
  * Adds two (sorted) sparse matrices.
  *
  * Calls begin_cb(row) on each row to initialize row-local data
- * Calls entry_cb(a, b, a_val, b_val, local_data) on each non-zero of the output
+ * Calls entry_cb(row, col, a_val, b_val, local_data) on each non-zero of the
+ * output.
  * Calls end_cb(row, local_data) on each row to finalize row-local data
  */
 template <typename ValueType, typename IndexType, typename BeginCallback,
@@ -109,4 +110,4 @@ void abstract_spgeam(const matrix::Csr<ValueType, IndexType> *a,
 }  // namespace gko
 
 
-#endif  // GKO_OMP_FACTORIZATION_PAR_IXT_COMMON_HPP_
+#endif  // GKO_OMP_COMPONENTS_CSR_SPGEAM_HPP_

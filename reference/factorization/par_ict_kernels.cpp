@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"
-#include "reference/factorization/par_ixt_common.hpp"
+#include "reference/components/csr_spgeam.hpp"
 
 
 namespace gko {
