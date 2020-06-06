@@ -196,10 +196,12 @@ int main(int, char **)
         auto test = gko::log::Stream<>::create(refExec);
     }
 
-    // core/log/convergence.hpp
+#if GKO_HAVE_PAPI_SDE
+    // core/log/papi.hpp
     {
-        auto test = gko::log::Convergence<>::create(refExec);
+        auto test = gko::log::Papi<>::create(refExec);
     }
+#endif  // GKO_HAVE_PAPI_SDE
 
     // core/matrix/coo.hpp
     {

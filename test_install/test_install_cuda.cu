@@ -200,10 +200,12 @@ int main(int, char **)
         gko::log::Stream<>::create(cudaExec);
     }
 
-    // core/log/convergence.hpp
+#if GKO_HAVE_PAPI_SDE
+    // core/log/papi.hpp
     {
-        gko::log::Convergence<>::create(cudaExec);
+        gko::log::Papi<>::create(cudaExec);
     }
+#endif  // GKO_HAVE_PAPI_SDE
 
     // core/matrix/coo.hpp
     {
