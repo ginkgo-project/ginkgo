@@ -82,7 +82,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)
 set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" PARENT_SCOPE)
 
 # setting the default flags like CMAKE_{LANG}_FLAGS_{TYPE}
-# the setting is copied from the default CMAKE_CXX_FLAGS_{TYPE} 
+# the setting is copied from the default CMAKE_CXX_FLAGS_{TYPE}
 set(HIP_HIPCC_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}" CACHE STRING "Flags used by the HIPCC compiler during DEBUG builds")
 set(HIP_HIPCC_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL}" CACHE STRING "Flags used by the HIPCC compiler during MINSIZEREL builds")
 set(HIP_HIPCC_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}" CACHE STRING "Flags used by the HIPCC compiler during RELEASE builds")
@@ -101,9 +101,9 @@ set(GINKGO_HIP_SOURCES
     base/exception.hip.cpp
     base/executor.hip.cpp
     base/version.hip.cpp
+    components/fill_array.hip.cpp
     components/precision_conversion.hip.cpp
     components/prefix_sum.hip.cpp
-    components/zero_array_kernels.hip.cpp
     factorization/ilu_kernels.hip.cpp
     factorization/factorization_kernels.hip.cpp
     factorization/par_ict_kernels.hip.cpp
@@ -148,7 +148,7 @@ if (GINKGO_HIP_PLATFORM MATCHES "nvcc")
     if (CMAKE_CUDA_HOST_COMPILER)
         set(GINKGO_HIP_CUDA_HOST_COMPILER "-ccbin=${CMAKE_CUDA_HOST_COMPILER}")
     endif()
-    
+
     # Remove false positive CUDA warnings when calling one<T>() and zero<T>()
     # This creates a compilation bug on nvcc 9.0.102 *with* the new array_deleter
     # merged at commit ed12b3df5d26

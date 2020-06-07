@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "core/components/precision_conversion.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/factorization/factorization_kernels.hpp"
@@ -84,6 +85,13 @@ GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
 // explicitly instantiate for size_type, as this is used in the SellP format
 template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
+
+template <typename IndexType>
+GKO_DECLARE_FILL_ARRAY_KERNEL(IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
+template GKO_DECLARE_FILL_ARRAY_KERNEL(size_type);
 
 
 }  // namespace components

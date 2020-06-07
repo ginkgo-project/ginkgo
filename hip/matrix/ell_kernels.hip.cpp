@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
@@ -57,7 +58,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/format_conversion.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
-#include "hip/components/zero_array.hip.hpp"
 
 
 namespace gko {
@@ -214,7 +214,8 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
      */
     const int info = (!atomic) * num_thread_per_worker;
     if (atomic) {
-        zero_array(c->get_num_stored_elements(), c->get_values());
+        components::fill_array(exec, c->get_values(), zero<ValueType>(),
+                               c->get_num_stored_elements());
     }
     select_abstract_spmv(
         compiled_kernels(),

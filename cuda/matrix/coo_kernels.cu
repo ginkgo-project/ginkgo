@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
@@ -50,7 +51,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/format_conversion.cuh"
 #include "cuda/components/segment_scan.cuh"
 #include "cuda/components/thread_ids.cuh"
-#include "cuda/components/zero_array.hpp"
 
 
 namespace gko {
@@ -82,7 +82,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Coo<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    zero_array(c->get_num_stored_elements(), c->get_values());
+    components::fill_array(exec, c->get_values(), zero<ValueType>(),
+                           c->get_num_stored_elements());
 
     spmv2(exec, a, b, c);
 }

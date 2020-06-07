@@ -30,35 +30,55 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_HIP_COMPONENTS_ZERO_ARRAY_HIP_HPP_
-#define GKO_HIP_COMPONENTS_ZERO_ARRAY_HIP_HPP_
+#include "core/components/fill_array.hpp"
 
 
-#include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
+#include <memory>
+#include <random>
+#include <vector>
 
 
-namespace gko {
-namespace kernels {
-namespace hip {
+#include <gtest/gtest.h>
 
 
-/**
- * Zeroes an array allocated on a HIP device.
- *
- * @tparam ValueType  the type of the array's elements
- *
- * @param n  the size of the array
- * @param array  the array to fill with zeros
- **/
-template <typename ValueType>
-void zero_array(size_type n, ValueType *array);
+#include <ginkgo/core/base/array.hpp>
 
 
-}  // namespace hip
-}  // namespace kernels
-}  // namespace gko
+#include "core/test/utils.hpp"
 
 
-#endif  // GKO_HIP_COMPONENTS_ZERO_ARRAY_HIP_HPP_
+namespace {
+
+
+template <typename T>
+class FillArray : public ::testing::Test {
+protected:
+    using value_type = T;
+    FillArray()
+        : ref(gko::ReferenceExecutor::create()),
+          total_size(6344),
+          expected(ref, total_size),
+          vals(ref, total_size)
+    {
+        std::fill_n(expected.get_data(), total_size, T(6453));
+    }
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    gko::size_type total_size;
+    gko::Array<value_type> expected;
+    gko::Array<value_type> vals;
+};
+
+TYPED_TEST_CASE(FillArray, gko::test::ValueAndIndexTypes);
+
+
+TYPED_TEST(FillArray, EqualsReference)
+{
+    using T = typename TestFixture::value_type;
+    gko::kernels::reference::components::fill_array(
+        this->ref, this->vals.get_data(), T(6453), this->total_size);
+    GKO_ASSERT_ARRAY_EQ(this->vals, this->expected);
+}
+
+
+}  // namespace
