@@ -84,7 +84,7 @@ protected:
                                          {1., 1., 1., 1., 1., 1., 1., 0., 0.},
                                          {0., 1., 1., 1., 1., 1., 1., 0., 0.},
                                          {1., 0., 0., 0., 1., 0., 0., 1., 1.},
-                                         {1., 0., 0., 1., 1., 0., 0., 1., 1.},},
+                                         {1., 0., 0., 1., 1., 0., 0., 1., 1.}},
                                         exec)),
           // clang-format on
           rcm_factory(reorder_type::build().on(exec)),
@@ -141,7 +141,7 @@ TEST_F(Rcm, PermutesPerfectFullBand)
     // These perms are hand-crafted for the matrix given in the ctor.
     // They are same graph renumbering, reversed.
     std::vector<i_type> correct_0 = {2, 1, 6, 5, 3, 4, 0, 8, 7};
-    std::vector<i_type> correct_1 = {6, 7, 2, 3, 5, 4, 8, 0, 1};
+    std::vector<i_type> correct_1 = {7, 8, 0, 4, 3, 5, 6, 1, 2};
 
     auto eq_0 = std::equal(p, p + correct_0.size(), correct_0.begin());
     auto eq_1 = std::equal(p, p + correct_1.size(), correct_1.begin());
