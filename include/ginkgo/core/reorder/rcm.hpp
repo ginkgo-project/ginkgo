@@ -74,7 +74,13 @@ enum class starting_strategy { minimum_degree, pseudo_peripheral };
  * the form of the Permutation matrix), which can be used to apply to reorder a
  * matrix as required.
  *
- * <Explanation starting strategy here>
+ * There are two "starting strategies" currently available: minimum degree and
+ * pseudo-peripheral. These strategies control how a starting vertex for a
+ * connected component is choosen, which is then renumbered as first vertex in
+ * the component, starting the algorithm from there.
+ * In general, the bandwidths obtained by choosing a pseudo-peripheral node are
+ * slightly smaller than those obtained from choosing a node of minimum degree.
+ * On the other hand, this strategy is much more expensive, relatively.
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrices used in this class
