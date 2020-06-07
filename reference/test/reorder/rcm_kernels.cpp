@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,25 +63,41 @@ protected:
     using CsrMtx = gko::matrix::Csr<v_type, i_type>;
     using reorder_type = gko::reorder::Rcm<v_type, i_type>;
     using perm_type = gko::matrix::Permutation<i_type>;
+
+
     Rcm()
         : exec(gko::ReferenceExecutor::create()),
           // clang-format off
-          p_mtx(gko::initialize<CsrMtx>(
+          p_mtx_0(gko::initialize<CsrMtx>(
                                         {{1.0, 2.0, 0.0, -1.3, 2.1},
                                          {2.0, 5.0, 1.5, 0.0, 0.0},
                                          {0.0, 1.5, 1.5, 1.1, 0.0},
                                          {-1.3, 0.0, 1.1, 2.0, 0.0},
                                          {2.1, 0.0, 0.0, 0.0, 1.0}},
                                         exec)),
+        p_mtx_1(gko::initialize<CsrMtx>(
+                                        {{1., 0., 0., 1., 1., 1., 0., 1., 1.},
+                                         {0., 1., 1., 1., 0., 1., 1., 0., 0.},
+                                         {0., 1., 1., 0., 0., 1., 1., 0., 0.},
+                                         {1., 1., 0., 1., 1., 1., 1., 0., 1.},
+                                         {1., 0., 0., 1., 1., 1., 1., 1., 1.},
+                                         {1., 1., 1., 1., 1., 1., 1., 0., 0.},
+                                         {0., 1., 1., 1., 1., 1., 1., 0., 0.},
+                                         {1., 0., 0., 0., 1., 0., 0., 1., 1.},
+                                         {1., 0., 0., 1., 1., 0., 0., 1., 1.},},
+                                        exec)),
           // clang-format on
           rcm_factory(reorder_type::build().on(exec)),
-          reorder_op(rcm_factory->generate(p_mtx))
+          reorder_op_0(rcm_factory->generate(p_mtx_0)),
+          reorder_op_1(rcm_factory->generate(p_mtx_1))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<CsrMtx> p_mtx;
     std::unique_ptr<reorder_type::Factory> rcm_factory;
-    std::unique_ptr<reorder_type> reorder_op;
+    std::shared_ptr<CsrMtx> p_mtx_0;
+    std::unique_ptr<reorder_type> reorder_op_0;
+    std::shared_ptr<CsrMtx> p_mtx_1;
+    std::unique_ptr<reorder_type> reorder_op_1;
 
     bool find_duplicates(i_type val, std::size_t index, const i_type *data,
                          std::size_t length)
@@ -113,12 +129,24 @@ protected:
     }
 };
 
-
 TEST_F(Rcm, CreatesAPermutation)
 {
-    auto p = reorder_op->get_permutation();
+    auto p = reorder_op_0->get_permutation();
     assert_correct_permutation(p.get());
 }
 
+TEST_F(Rcm, PermutesPerfectFullBand)
+{
+    auto p = reorder_op_1->get_permutation()->get_const_permutation();
+    // These perms are hand-crafted for the matrix given in the ctor.
+    // They are same graph renumbering, reversed.
+    std::vector<i_type> correct_0 = {2, 1, 6, 5, 3, 4, 0, 8, 7};
+    std::vector<i_type> correct_1 = {6, 7, 2, 3, 5, 4, 8, 0, 1};
+
+    auto eq_0 = std::equal(p, p + correct_0.size(), correct_0.begin());
+    auto eq_1 = std::equal(p, p + correct_1.size(), correct_1.begin());
+    const auto incl_or = [](bool a, bool b) { return a || b; };
+    ASSERT_PRED2(incl_or, eq_0, eq_1);
+}
 
 }  // namespace
