@@ -346,7 +346,7 @@ inline std::unique_ptr<typename std::decay<T>::type> as(
         return std::unique_ptr<typename std::decay<T>::type>{p};
     } else {
         throw NotSupported(__FILE__, __LINE__, __func__,
-                           name_demangling::get_type_name(typeid(obj.get())));
+                           name_demangling::get_type_name(typeid(*obj)));
     }
 }
 
@@ -370,7 +370,7 @@ inline std::shared_ptr<typename std::decay<T>::type> as(std::shared_ptr<U> obj)
         return ptr;
     } else {
         throw NotSupported(__FILE__, __LINE__, __func__,
-                           name_demangling::get_type_name(typeid(obj.get())));
+                           name_demangling::get_type_name(typeid(*obj)));
     }
 }
 
@@ -398,7 +398,7 @@ inline std::shared_ptr<const typename std::decay<T>::type> as(
         return ptr;
     } else {
         throw NotSupported(__FILE__, __LINE__, __func__,
-                           name_demangling::get_type_name(typeid(obj.get())));
+                           name_demangling::get_type_name(typeid(*obj)));
     }
 }
 

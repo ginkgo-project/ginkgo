@@ -857,4 +857,68 @@ TYPED_TEST(Isai, UseWithIluPreconditioner)
 }
 
 
+TYPED_TEST(Isai, ReturnsTransposedCorrectInverseL)
+{
+    using UpperIsai = typename TestFixture::UpperIsai;
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    const auto isai = this->lower_isai_factory->generate(this->l_sparse);
+
+    auto l_inv = gko::as<Csr>(gko::as<UpperIsai>(isai->transpose())
+                                  ->get_approximate_inverse()
+                                  ->transpose());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_inv, this->l_sparse_inv);
+    GKO_ASSERT_MTX_NEAR(l_inv, this->l_sparse_inv, r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, ReturnsTransposedCorrectInverseU)
+{
+    using LowerIsai = typename TestFixture::LowerIsai;
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    const auto isai = this->upper_isai_factory->generate(this->u_sparse);
+
+    auto u_inv = gko::as<Csr>(gko::as<LowerIsai>(isai->transpose())
+                                  ->get_approximate_inverse()
+                                  ->transpose());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_inv, this->u_sparse_inv);
+    GKO_ASSERT_MTX_NEAR(u_inv, this->u_sparse_inv, r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, ReturnsConjTransposedCorrectInverseL)
+{
+    using UpperIsai = typename TestFixture::UpperIsai;
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    const auto isai = this->lower_isai_factory->generate(this->l_sparse);
+
+    auto l_inv = gko::as<Csr>(gko::as<UpperIsai>(isai->conj_transpose())
+                                  ->get_approximate_inverse()
+                                  ->conj_transpose());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_inv, this->l_sparse_inv);
+    GKO_ASSERT_MTX_NEAR(l_inv, this->l_sparse_inv, r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, ReturnsConjTransposedCorrectInverseU)
+{
+    using LowerIsai = typename TestFixture::LowerIsai;
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
+    const auto isai = this->upper_isai_factory->generate(this->u_sparse);
+
+    auto u_inv = gko::as<Csr>(gko::as<LowerIsai>(isai->conj_transpose())
+                                  ->get_approximate_inverse()
+                                  ->conj_transpose());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_inv, this->u_sparse_inv);
+    GKO_ASSERT_MTX_NEAR(u_inv, this->u_sparse_inv, r<value_type>::value);
+}
+
+
 }  // namespace

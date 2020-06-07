@@ -318,4 +318,34 @@ TYPED_TEST(Bicgstab, SolvesMultipleDenseSystemsDivergenceCheck)
 }
 
 
+TYPED_TEST(Bicgstab, SolvesTransposedDenseSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto half_tol = std::sqrt(r<value_type>::value);
+    auto solver = this->bicgstab_factory->generate(this->mtx->transpose());
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->transpose()->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), half_tol);
+}
+
+
+TYPED_TEST(Bicgstab, SolvesConjTransposedDenseSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto half_tol = std::sqrt(r<value_type>::value);
+    auto solver = this->bicgstab_factory->generate(this->mtx->conj_transpose());
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->conj_transpose()->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), half_tol);
+}
+
+
 }  // namespace
