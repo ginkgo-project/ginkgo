@@ -97,65 +97,23 @@ void get_permutation(std::shared_ptr<const OmpExecutor> exec,
                      IndexType *const inv_permutation,
                      const gko::reorder::starting_strategy strategy)
 {
-    IndexType num_vtxs = static_cast<IndexType>(num_vertices);
-    auto adj_ptrs = adjacency_matrix->get_row_ptrs();
-    auto adj_idxs = adjacency_matrix->get_col_idxs();
-    auto node_deg = node_degrees->get_data();
-    auto permutation_arr = permutation_mat->get_permutation();
-    auto inv_permutation_arr = inv_permutation_mat->get_permutation();
-
-    std::queue<IndexType> q;
-    std::vector<IndexType> r;
-    std::vector<std::pair<IndexType, IndexType>> not_visited;
-
-    for (auto i = 0; i < num_vtxs; ++i) {
-        not_visited.push_back(std::make_pair(i, node_deg[i]));
-    }
-
-    while (not_visited.size()) {
-        // choose this better.
-        IndexType min_node_index = 0;
-
-        for (auto i = 0; i < not_visited.size(); i++) {
-            if (not_visited[i].second < not_visited[min_node_index].second) {
-                min_node_index = i;
-            }
-        }
-        q.push(not_visited[min_node_index].first);
-
-        not_visited.erase(
-            not_visited.begin() +
-            find_index(not_visited, not_visited[q.front()].first));
-
-        // Simple BFS
-        while (!q.empty()) {
-            std::vector<IndexType> to_sort;
-
-            for (IndexType i = 0; i < num_vtxs; i++) {
-                if (i != q.front() && find_index(not_visited, i) != -1) {
-                    to_sort.push_back(i);
-                    not_visited.erase(not_visited.begin() +
-                                      find_index(not_visited, i));
-                }
-            }
-
-            std::sort(to_sort.begin(), to_sort.end(),
-                      [&node_deg](int i, int j) {
-                          return node_deg[i] < node_deg[j];
-                      });
-
-            for (auto i = 0; i < to_sort.size(); i++) q.push(to_sort[i]);
-
-            r.push_back(q.front());
-            q.pop();
-        }
-    }
-
-#pragma omp parallel for
-    for (auto i = 0; i < r.size(); ++i) {
-        permutation_arr[i] = r[i];
-        inv_permutation_arr[r[i]] = i;
-    }
+    // Phase 1:
+    //     Compute the level of each node using UBFS.
+    //     Find all starting vertices.
+    // Phase 2 (for each connected component,
+    // starting once respective starting vertex is confirmed):
+    //     Get the primary offset into the perm.
+    //     Compute the level borders as prefix sum of the counts.
+    // Phase 3 (for each connected component)
+    //     Start by writing the starting node.
+    //     Threads watch their level:
+    //         If the thread to the left writes a new node to your level:
+    //         Write those neighbours of the node which are in the next level to
+    //         the next level, sorted by degree.
+    //     (Can either by implemented by spinning or tasks)
+    // Once the last node in the last level is written for each component,
+    // the algorithm is finished.
+    GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL);
