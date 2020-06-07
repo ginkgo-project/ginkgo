@@ -52,28 +52,25 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL(ValueType, IndexType)     \
-    void get_permutation(std::shared_ptr<const DefaultExecutor> exec,    \
-                         const size_type num_vertices,                   \
-                         const matrix::SparsityCsr<ValueType, IndexType> \
-                             *const adjacency_matrix,                    \
-                         const IndexType *const degrees,                 \
-                         IndexType *const permutation,                   \
-                         IndexType *const inv_permutation,               \
-                         const gko::reorder::starting_strategy strategy)
+#define GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL(IndexType)                \
+    void get_permutation(                                                \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const size_type num_vertices, const IndexType *const row_ptrs,   \
+        const IndexType *const col_idxs, const IndexType *const degrees, \
+        IndexType *const permutation, IndexType *const inv_permutation,  \
+        const gko::reorder::starting_strategy strategy)
 
-
-#define GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL(ValueType, IndexType)     \
-    void get_degree_of_nodes(std::shared_ptr<const DefaultExecutor> exec,    \
-                             const matrix::SparsityCsr<ValueType, IndexType> \
-                                 *const adjacency_matrix,                    \
+#define GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL(IndexType)             \
+    void get_degree_of_nodes(std::shared_ptr<const DefaultExecutor> exec, \
+                             const size_type num_vertices,                \
+                             const IndexType *const row_ptrs,             \
                              IndexType *const degrees)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                       \
+    template <typename IndexType>                          \
+    GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL(IndexType); \
+    template <typename IndexType>                          \
+    GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL(IndexType)
 
 
 namespace omp {
