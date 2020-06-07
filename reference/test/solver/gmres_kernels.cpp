@@ -353,4 +353,39 @@ TYPED_TEST(Gmres, SolvesWithPreconditioner)
 }
 
 
+TYPED_TEST(Gmres, SolvesTransposedBigDenseSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->gmres_factory_big->generate(this->mtx_big->transpose());
+    auto b = gko::initialize<Mtx>(
+        {72748.36, 297469.88, 347229.24, 36290.66, 82958.82, -80192.15},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->transpose()->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}),
+                        r<value_type>::value * 1e3);
+}
+
+
+TYPED_TEST(Gmres, SolvesConjTransposedBigDenseSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver =
+        this->gmres_factory_big->generate(this->mtx_big->conj_transpose());
+    auto b = gko::initialize<Mtx>(
+        {72748.36, 297469.88, 347229.24, 36290.66, 82958.82, -80192.15},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->conj_transpose()->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}),
+                        r<value_type>::value * 1e3);
+}
+
+
 }  // namespace

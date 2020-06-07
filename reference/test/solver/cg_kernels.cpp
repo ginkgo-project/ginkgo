@@ -285,4 +285,38 @@ TYPED_TEST(Cg, SolvesMultipleDenseSystemForDivergenceCheck)
 }
 
 
+TYPED_TEST(Cg, SolvesTransposedBigDenseSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->cg_factory_big->generate(this->mtx_big);
+    auto b = gko::initialize<Mtx>(
+        {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->transpose()->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}),
+                        r<value_type>::value * 1e2);
+}
+
+
+TYPED_TEST(Cg, SolvesConjTransposedBigDenseSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->cg_factory_big->generate(this->mtx_big);
+    auto b = gko::initialize<Mtx>(
+        {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->conj_transpose()->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}),
+                        r<value_type>::value * 1e2);
+}
+
+
 }  // namespace
