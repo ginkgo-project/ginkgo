@@ -30,38 +30,53 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "cuda/components/zero_array.hpp"
+#include "core/components/fill_array.hpp"
 
 
-#include "cuda/components/thread_ids.cuh"
+#include <memory>
+#include <random>
+#include <vector>
 
 
-namespace gko {
-namespace kernels {
-namespace cuda {
+#include <gtest/gtest.h>
 
 
-constexpr int default_block_size = 512;
+#include <ginkgo/core/base/array.hpp>
 
 
-#include "common/components/zero_array.hpp.inc"
+#include "core/test/utils/assertions.hpp"
 
 
-template <typename ValueType>
-void zero_array(size_type n, ValueType *array)
+namespace {
+
+
+class FillArray : public ::testing::Test {
+protected:
+    using value_type = double;
+    FillArray()
+        : ref(gko::ReferenceExecutor::create()),
+          exec(gko::CudaExecutor::create(0, ref)),
+          total_size(6344),
+          vals(ref, total_size),
+          dvals(exec, total_size)
+    {
+        std::fill_n(vals.get_data(), total_size, 1234.0);
+    }
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::CudaExecutor> exec;
+    gko::size_type total_size;
+    gko::Array<value_type> vals;
+    gko::Array<value_type> dvals;
+};
+
+
+TEST_F(FillArray, EqualsReference)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
-    kernel::zero_array<<<grid_size, block_size, 0, 0>>>(n, as_cuda_type(array));
+    gko::kernels::cuda::components::fill_array(exec, dvals.get_data(), 1234.0,
+                                               total_size);
+    GKO_ASSERT_ARRAY_EQ(vals, dvals);
 }
 
 
-#define GKO_DECLARE_ZERO_ARRAY(_type) \
-    void zero_array<_type>(size_type n, _type * array);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_ZERO_ARRAY);
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ZERO_ARRAY);
-
-
-}  // namespace cuda
-}  // namespace kernels
-}  // namespace gko
+}  // namespace

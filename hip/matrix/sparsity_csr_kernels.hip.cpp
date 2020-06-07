@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
@@ -51,7 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/segment_scan.hip.hpp"
 #include "hip/components/uninitialized_array.hip.hpp"
-#include "hip/components/zero_array.hip.hpp"
 
 
 namespace gko {

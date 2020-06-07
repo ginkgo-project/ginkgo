@@ -30,39 +30,57 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "hip/components/zero_array.hip.hpp"
+#include "core/components/fill_array.hpp"
 
 
-#include <hip/hip_runtime.h>
+#include <memory>
+#include <random>
+#include <vector>
 
 
-namespace gko {
-namespace kernels {
-namespace hip {
+#include <gtest/gtest.h>
 
 
-constexpr int default_block_size = 512;
+#include <ginkgo/core/base/array.hpp>
 
 
-#include "common/components/zero_array.hpp.inc"
+#include "core/test/utils.hpp"
 
 
-template <typename ValueType>
-void zero_array(size_type n, ValueType *array)
+namespace {
+
+
+template <typename T>
+class FillArray : public ::testing::Test {
+protected:
+    using value_type = T;
+    FillArray()
+        : ref(gko::ReferenceExecutor::create()),
+          exec(gko::OmpExecutor::create()),
+          total_size(63531),
+          vals(ref, total_size),
+          dvals(exec, total_size)
+    {
+        std::fill_n(vals.get_data(), total_size, T(1523));
+    }
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::OmpExecutor> exec;
+    gko::size_type total_size;
+    gko::Array<value_type> vals;
+    gko::Array<value_type> dvals;
+};
+
+TYPED_TEST_CASE(FillArray, gko::test::ValueAndIndexTypes);
+
+
+TYPED_TEST(FillArray, EqualsReference)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
-    hipLaunchKernelGGL(kernel::zero_array, dim3(grid_size), dim3(block_size), 0,
-                       0, n, as_hip_type(array));
+    using T = typename TestFixture::value_type;
+    gko::kernels::omp::components::fill_array(
+        this->exec, this->dvals.get_data(), T(1523), this->total_size);
+    GKO_ASSERT_ARRAY_EQ(this->vals, this->dvals);
 }
 
 
-#define GKO_DECLARE_ZERO_ARRAY(_type) \
-    void zero_array<_type>(size_type n, _type * array);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_ZERO_ARRAY);
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ZERO_ARRAY);
-
-
-}  // namespace hip
-}  // namespace kernels
-}  // namespace gko
+}  // namespace
