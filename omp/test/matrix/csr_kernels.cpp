@@ -381,7 +381,7 @@ TEST_F(Csr, CalculatesNonzerosPerRow)
     gko::kernels::omp::csr::calculate_nonzeros_per_row(omp, dmtx.get(),
                                                        &drow_nnz);
 
-    GKO_ASSERT_ARRAY_EQ(&row_nnz, &drow_nnz);
+    GKO_ASSERT_ARRAY_EQ(row_nnz, drow_nnz);
 }
 
 

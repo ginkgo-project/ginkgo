@@ -244,8 +244,8 @@ TYPED_TEST(Isai, KernelGenerateL1)
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_csr_inv);
     GKO_ASSERT_MTX_NEAR(result, this->l_csr_inv, r<value_type>::value);
     // no row above the size limit -> zero array
-    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
-    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
+    GKO_ASSERT_ARRAY_EQ(a1, zeros);
+    GKO_ASSERT_ARRAY_EQ(a2, zeros);
 }
 
 
@@ -271,8 +271,8 @@ TYPED_TEST(Isai, KernelGenerateL2)
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
     // no row above the size limit -> zero array
-    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
-    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
+    GKO_ASSERT_ARRAY_EQ(a1, zeros);
+    GKO_ASSERT_ARRAY_EQ(a2, zeros);
 }
 
 
@@ -296,8 +296,8 @@ TYPED_TEST(Isai, KernelGenerateLsparse1)
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_sparse_inv);
     GKO_ASSERT_MTX_NEAR(result, this->l_sparse_inv, r<value_type>::value);
     // no row above the size limit -> zero array
-    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
-    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
+    GKO_ASSERT_ARRAY_EQ(a1, zeros);
+    GKO_ASSERT_ARRAY_EQ(a2, zeros);
 }
 
 
@@ -321,8 +321,8 @@ TYPED_TEST(Isai, KernelGenerateLsparse2)
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_sparse2_inv);
     GKO_ASSERT_MTX_NEAR(result, this->l_sparse2_inv, r<value_type>::value);
     // no row above the size limit -> zero array
-    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
-    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
+    GKO_ASSERT_ARRAY_EQ(a1, zeros);
+    GKO_ASSERT_ARRAY_EQ(a2, zeros);
 }
 
 
@@ -354,8 +354,8 @@ TYPED_TEST(Isai, KernelGenerateLsparse3)
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
     // no row above the size limit -> zero array
-    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
-    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
+    GKO_ASSERT_ARRAY_EQ(a1, zeros);
+    GKO_ASSERT_ARRAY_EQ(a2, zeros);
 }
 
 
@@ -389,8 +389,8 @@ TYPED_TEST(Isai, KernelGenerateLLongrow)
     GKO_ASSERT_MTX_NEAR(result, this->l_csr_longrow_inv_partial,
                         r<value_type>::value);
     // no row above the size limit -> zero array
-    GKO_ASSERT_ARRAY_EQ(&a1, &a1_expect);
-    GKO_ASSERT_ARRAY_EQ(&a2, &a2_expect);
+    GKO_ASSERT_ARRAY_EQ(a1, a1_expect);
+    GKO_ASSERT_ARRAY_EQ(a2, a2_expect);
 }
 
 
@@ -448,8 +448,8 @@ TYPED_TEST(Isai, KernelGenerateU1)
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
     // no row above the size limit -> zero array
-    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
-    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
+    GKO_ASSERT_ARRAY_EQ(a1, zeros);
+    GKO_ASSERT_ARRAY_EQ(a2, zeros);
 }
 
 
@@ -473,8 +473,8 @@ TYPED_TEST(Isai, KernelGenerateU2)
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_csr_inv);
     GKO_ASSERT_MTX_NEAR(result, this->u_csr_inv, r<value_type>::value);
     // no row above the size limit -> zero array
-    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
-    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
+    GKO_ASSERT_ARRAY_EQ(a1, zeros);
+    GKO_ASSERT_ARRAY_EQ(a2, zeros);
 }
 
 
@@ -500,8 +500,8 @@ TYPED_TEST(Isai, KernelGenerateUsparse1)
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
     // no row above the size limit -> zero array
-    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
-    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
+    GKO_ASSERT_ARRAY_EQ(a1, zeros);
+    GKO_ASSERT_ARRAY_EQ(a2, zeros);
 }
 
 
@@ -533,8 +533,8 @@ TYPED_TEST(Isai, KernelGenerateUsparse2)
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
     // no row above the size limit -> zero array
-    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
-    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
+    GKO_ASSERT_ARRAY_EQ(a1, zeros);
+    GKO_ASSERT_ARRAY_EQ(a2, zeros);
 }
 
 
@@ -558,8 +558,8 @@ TYPED_TEST(Isai, KernelGenerateUsparse3)
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_sparse_inv);
     GKO_ASSERT_MTX_NEAR(result, this->u_sparse_inv, r<value_type>::value);
     // no row above the size limit -> zero array
-    GKO_ASSERT_ARRAY_EQ(&a1, &zeros);
-    GKO_ASSERT_ARRAY_EQ(&a2, &zeros);
+    GKO_ASSERT_ARRAY_EQ(a1, zeros);
+    GKO_ASSERT_ARRAY_EQ(a2, zeros);
 }
 
 
@@ -589,8 +589,8 @@ TYPED_TEST(Isai, KernelGenerateULongrow)
     GKO_ASSERT_MTX_NEAR(result, this->u_csr_longrow_inv_partial,
                         r<value_type>::value);
     // no row above the size limit -> zero array
-    GKO_ASSERT_ARRAY_EQ(&a1, &a1_expect);
-    GKO_ASSERT_ARRAY_EQ(&a2, &a2_expect);
+    GKO_ASSERT_ARRAY_EQ(a1, a1_expect);
+    GKO_ASSERT_ARRAY_EQ(a2, a2_expect);
 }
 
 

@@ -251,7 +251,7 @@ TEST_F(Cgs, HipCgsInitializeIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(d_alpha, alpha, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_beta, beta, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_gamma, gamma, 1e-14);
-    GKO_ASSERT_ARRAY_EQ(d_stop_status, stop_status);
+    GKO_ASSERT_ARRAY_EQ(*d_stop_status, *stop_status);
 }
 
 

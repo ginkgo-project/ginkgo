@@ -94,7 +94,7 @@ TEST_F(PrecisionConversion, ConvertsReal)
     tmp = vals;
     out = tmp;
 
-    GKO_ASSERT_ARRAY_EQ(&vals, &out);
+    GKO_ASSERT_ARRAY_EQ(vals, out);
 }
 
 
@@ -106,8 +106,8 @@ TEST_F(PrecisionConversion, ConversionRounds)
     tmp = vals2;
     out = tmp;
 
-    GKO_ASSERT_ARRAY_EQ(&tmp, &expected_float);
-    GKO_ASSERT_ARRAY_EQ(&out, &expected_double);
+    GKO_ASSERT_ARRAY_EQ(tmp, expected_float);
+    GKO_ASSERT_ARRAY_EQ(out, expected_double);
 }
 
 
@@ -119,7 +119,7 @@ TEST_F(PrecisionConversion, ConvertsRealWithSetExecutor)
     tmp = vals;
     out = tmp;
 
-    GKO_ASSERT_ARRAY_EQ(&vals, &out);
+    GKO_ASSERT_ARRAY_EQ(vals, out);
 }
 
 
@@ -131,7 +131,7 @@ TEST_F(PrecisionConversion, ConvertsRealFromView)
     tmp = gko::Array<float>::view(ref, vals.get_num_elems(), vals.get_data());
     out = tmp;
 
-    GKO_ASSERT_ARRAY_EQ(&vals, &out);
+    GKO_ASSERT_ARRAY_EQ(vals, out);
 }
 
 
@@ -143,7 +143,7 @@ TEST_F(PrecisionConversion, ConvertsComplex)
     tmp = cvals;
     out = tmp;
 
-    GKO_ASSERT_ARRAY_EQ(&cvals, &out);
+    GKO_ASSERT_ARRAY_EQ(cvals, out);
 }
 
 

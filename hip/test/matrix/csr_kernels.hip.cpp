@@ -564,7 +564,7 @@ TEST_F(Csr, CalculatesNonzerosPerRow)
     gko::kernels::hip::csr::calculate_nonzeros_per_row(hip, dmtx.get(),
                                                        &drow_nnz);
 
-    GKO_ASSERT_ARRAY_EQ(&row_nnz, &drow_nnz);
+    GKO_ASSERT_ARRAY_EQ(row_nnz, drow_nnz);
 }
 
 
