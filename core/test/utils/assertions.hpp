@@ -359,10 +359,10 @@ template <typename MatrixData1, typename MatrixData2>
 template <typename ValueType>
 ::testing::AssertionResult array_equal_impl(
     const std::string &first_expression, const std::string &second_expression,
-    const Array<ValueType> *first, const Array<ValueType> *second)
+    const Array<ValueType> &first, const Array<ValueType> &second)
 {
-    const auto num_elems1 = first->get_num_elems();
-    const auto num_elems2 = second->get_num_elems();
+    const auto num_elems1 = first.get_num_elems();
+    const auto num_elems2 = second.get_num_elems();
     if (num_elems1 != num_elems2) {
         auto fail = ::testing::AssertionFailure();
         fail << "Array " << first_expression << " contains " << num_elems1
@@ -371,10 +371,10 @@ template <typename ValueType>
         return fail;
     }
 
-    auto exec = first->get_executor()->get_master();
-    Array<ValueType> first_array(exec, *first);
-    Array<ValueType> second_array(exec, *second);
-    for (decltype(first->get_num_elems()) i = 0; i < num_elems1; ++i) {
+    auto exec = first.get_executor()->get_master();
+    Array<ValueType> first_array(exec, first);
+    Array<ValueType> second_array(exec, second);
+    for (decltype(first.get_num_elems()) i = 0; i < num_elems1; ++i) {
         if (!(first_array.get_const_data()[i] ==
               second_array.get_const_data()[i])) {
             auto fail = ::testing::AssertionFailure();
@@ -596,12 +596,11 @@ template <typename LinOp1, typename T>
 template <typename ValueType>
 ::testing::AssertionResult array_equal(const std::string &first_expression,
                                        const std::string &second_expression,
-                                       const Array<ValueType> *first,
-                                       const Array<ValueType> *second)
+                                       const Array<ValueType> &first,
+                                       const Array<ValueType> &second)
 {
-    return detail::array_equal_impl(
-        detail::remove_pointer_wrapper(first_expression),
-        detail::remove_pointer_wrapper(second_expression), first, second);
+    return detail::array_equal_impl(first_expression, second_expression, first,
+                                    second);
 }
 
 
@@ -831,11 +830,11 @@ T plain_ptr(T ptr)
  * @param _array1  first array
  * @param _array2  second array
  **/
-#define GKO_ASSERT_ARRAY_EQ(_array1, _array2)                        \
-    {                                                                \
-        using ::gko::test::assertions::detail::plain_ptr;            \
-        EXPECT_PRED_FORMAT2(::gko::test::assertions::array_equal,    \
-                            plain_ptr(_array1), plain_ptr(_array2)); \
+#define GKO_ASSERT_ARRAY_EQ(_array1, _array2)                              \
+    {                                                                      \
+        using ::gko::test::assertions::detail::plain_ptr;                  \
+        EXPECT_PRED_FORMAT2(::gko::test::assertions::array_equal, _array1, \
+                            _array2);                                      \
     }
 
 

@@ -105,7 +105,7 @@ TEST_F(PrecisionConversion, ConvertsReal)
     dtmp = dvals;
     dout = dtmp;
 
-    GKO_ASSERT_ARRAY_EQ(&dvals, &dout);
+    GKO_ASSERT_ARRAY_EQ(dvals, dout);
 }
 
 
@@ -117,7 +117,7 @@ TEST_F(PrecisionConversion, ConvertsRealViaRef)
     tmp = dvals;
     dout = tmp;
 
-    GKO_ASSERT_ARRAY_EQ(&dvals, &dout);
+    GKO_ASSERT_ARRAY_EQ(dvals, dout);
 }
 
 
@@ -129,7 +129,7 @@ TEST_F(PrecisionConversion, ConvertsComplex)
     dtmp = dcvals;
     dout = dtmp;
 
-    GKO_ASSERT_ARRAY_EQ(&dcvals, &dout);
+    GKO_ASSERT_ARRAY_EQ(dcvals, dout);
 }
 
 
@@ -141,8 +141,8 @@ TEST_F(PrecisionConversion, ConversionRounds)
     dtmp = dvals2;
     dout = dtmp;
 
-    GKO_ASSERT_ARRAY_EQ(&dtmp, &expected_float);
-    GKO_ASSERT_ARRAY_EQ(&dout, &expected_double);
+    GKO_ASSERT_ARRAY_EQ(dtmp, expected_float);
+    GKO_ASSERT_ARRAY_EQ(dout, expected_double);
 }
 
 
@@ -154,7 +154,7 @@ TEST_F(PrecisionConversion, ConvertsRealFromRef)
     dtmp = vals;
     dout = dtmp;
 
-    GKO_ASSERT_ARRAY_EQ(&dvals, &dout);
+    GKO_ASSERT_ARRAY_EQ(dvals, dout);
 }
 
 
@@ -166,7 +166,7 @@ TEST_F(PrecisionConversion, ConvertsComplexFromRef)
     dtmp = cvals;
     dout = dtmp;
 
-    GKO_ASSERT_ARRAY_EQ(&dcvals, &dout);
+    GKO_ASSERT_ARRAY_EQ(dcvals, dout);
 }
 
 

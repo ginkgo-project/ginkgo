@@ -590,7 +590,7 @@ TEST_F(Csr, CalculatesNonzerosPerRow)
     gko::kernels::cuda::csr::calculate_nonzeros_per_row(cuda, dmtx.get(),
                                                         &drow_nnz);
 
-    GKO_ASSERT_ARRAY_EQ(&row_nnz, &drow_nnz);
+    GKO_ASSERT_ARRAY_EQ(row_nnz, drow_nnz);
 }
 
 
