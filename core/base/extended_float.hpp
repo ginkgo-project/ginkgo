@@ -337,6 +337,14 @@ public:
         return static_cast<float64>(static_cast<float32>(*this));
     }
 
+    GKO_ATTRIBUTES half operator-() const noexcept
+    {
+        auto res = *this;
+        // flip sign bit
+        res.data_ ^= f16_traits::sign_mask;
+        return res;
+    }
+
 private:
     using f16_traits = detail::float_traits<float16>;
     using f32_traits = detail::float_traits<float32>;
@@ -454,6 +462,16 @@ public:
         const auto bits = static_cast<full_bits_type>(data_)
                           << component_position;
         return reinterpret_cast<const float_type &>(bits);
+    }
+
+    GKO_ATTRIBUTES truncated operator-() const noexcept
+    {
+        auto res = *this;
+        // flip sign bit
+        if (ComponentId == 0) {
+            res.data_ ^= bits_type{1} << (8 * sizeof(bits_type) - 1);
+        }
+        return res;
     }
 
 private:

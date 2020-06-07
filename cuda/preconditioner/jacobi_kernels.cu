@@ -37,11 +37,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/extended_float.hpp"
+#include "core/preconditioner/jacobi_utils.hpp"
+#include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/thread_ids.cuh"
+#include "cuda/preconditioner/jacobi_common.hpp"
 
 
 namespace gko {
@@ -136,6 +139,93 @@ void find_blocks(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL);
+
+
+namespace {
+
+
+template <bool conjugate, int warps_per_block, int max_block_size,
+          typename ValueType, typename IndexType>
+void transpose_jacobi(
+    syn::value_list<int, max_block_size>, size_type num_blocks,
+    const precision_reduction *block_precisions,
+    const IndexType *block_pointers, const ValueType *blocks,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
+    ValueType *out_blocks)
+{
+    constexpr int subwarp_size = get_larger_power(max_block_size);
+    constexpr int blocks_per_warp = config::warp_size / subwarp_size;
+    const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
+                         1, 1);
+    const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
+
+    if (block_precisions) {
+        adaptive_transpose_jacobi<conjugate, max_block_size, subwarp_size,
+                                  warps_per_block>
+            <<<grid_size, block_size, 0, 0>>>(
+                as_cuda_type(blocks), storage_scheme, block_precisions,
+                block_pointers, num_blocks, as_cuda_type(out_blocks));
+    } else {
+        transpose_jacobi<conjugate, max_block_size, subwarp_size,
+                         warps_per_block><<<grid_size, block_size, 0, 0>>>(
+            as_cuda_type(blocks), storage_scheme, block_pointers, num_blocks,
+            as_cuda_type(out_blocks));
+    }
+}
+
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_transpose_jacobi, transpose_jacobi);
+
+
+}  // namespace
+
+
+template <typename ValueType, typename IndexType>
+void transpose_jacobi(
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
+    uint32 max_block_size, const Array<precision_reduction> &block_precisions,
+    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
+    Array<ValueType> &out_blocks)
+{
+    select_transpose_jacobi(
+        compiled_kernels(),
+        [&](int compiled_block_size) {
+            return max_block_size <= compiled_block_size;
+        },
+        syn::value_list<int, false, config::min_warps_per_block>(),
+        syn::type_list<>(), num_blocks, block_precisions.get_const_data(),
+        block_pointers.get_const_data(), blocks.get_const_data(),
+        storage_scheme, out_blocks.get_data());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_JACOBI_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void conj_transpose_jacobi(
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
+    uint32 max_block_size, const Array<precision_reduction> &block_precisions,
+    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
+    Array<ValueType> &out_blocks)
+{
+    select_transpose_jacobi(
+        compiled_kernels(),
+        [&](int compiled_block_size) {
+            return max_block_size <= compiled_block_size;
+        },
+        syn::value_list<int, true, config::min_warps_per_block>(),
+        syn::type_list<>(), num_blocks, block_precisions.get_const_data(),
+        block_pointers.get_const_data(), blocks.get_const_data(),
+        storage_scheme, out_blocks.get_data());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_JACOBI_CONJ_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

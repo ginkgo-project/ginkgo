@@ -253,6 +253,24 @@ template <typename SourceValueType, typename ResultValueType,
           typename IndexType,
           typename ValueConverter =
               default_converter<SourceValueType, ResultValueType>>
+inline void conj_transpose_block(IndexType block_size,
+                                 const SourceValueType *from,
+                                 size_type from_stride, ResultValueType *to,
+                                 size_type to_stride,
+                                 ValueConverter converter = {}) noexcept
+{
+    for (IndexType i = 0; i < block_size; ++i) {
+        for (IndexType j = 0; j < block_size; ++j) {
+            to[i * to_stride + j] = conj(converter(from[i + j * from_stride]));
+        }
+    }
+}
+
+
+template <typename SourceValueType, typename ResultValueType,
+          typename IndexType,
+          typename ValueConverter =
+              default_converter<SourceValueType, ResultValueType>>
 inline void permute_and_transpose_block(IndexType block_size,
                                         const IndexType *col_perm,
                                         const SourceValueType *source,
@@ -540,6 +558,78 @@ void simple_apply(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void transpose_jacobi(
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
+    uint32 max_block_size, const Array<precision_reduction> &block_precisions,
+    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
+    Array<ValueType> &out_blocks)
+{
+    const auto ptrs = block_pointers.get_const_data();
+    const auto prec = block_precisions.get_const_data();
+    const size_type matrix_size = ptrs[num_blocks];
+
+    for (size_type i = 0; i < num_blocks; ++i) {
+        const auto group_ofs = storage_scheme.get_group_offset(i);
+        const auto block_ofs = storage_scheme.get_block_offset(i);
+        const auto block_stride = storage_scheme.get_stride();
+        const auto group = blocks.get_const_data() + group_ofs;
+        auto out_group = out_blocks.get_data() + group_ofs;
+        const auto block_size = ptrs[i + 1] - ptrs[i];
+        const auto p = prec ? prec[i] : precision_reduction();
+        GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
+            ValueType, p,
+            transpose_block(
+                block_size,
+                reinterpret_cast<const resolved_precision *>(group) + block_ofs,
+                block_stride,
+                reinterpret_cast<resolved_precision *>(out_group) + block_ofs,
+                block_stride));
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_JACOBI_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void conj_transpose_jacobi(
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
+    uint32 max_block_size, const Array<precision_reduction> &block_precisions,
+    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
+    Array<ValueType> &out_blocks)
+{
+    const auto ptrs = block_pointers.get_const_data();
+    const auto prec = block_precisions.get_const_data();
+    const size_type matrix_size = ptrs[num_blocks];
+
+    for (size_type i = 0; i < num_blocks; ++i) {
+        const auto group_ofs = storage_scheme.get_group_offset(i);
+        const auto block_ofs = storage_scheme.get_block_offset(i);
+        const auto block_stride = storage_scheme.get_stride();
+        const auto group = blocks.get_const_data() + group_ofs;
+        auto out_group = out_blocks.get_data() + group_ofs;
+        const auto block_size = ptrs[i + 1] - ptrs[i];
+        const auto p = prec ? prec[i] : precision_reduction();
+        GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
+            ValueType, p,
+            conj_transpose_block(
+                block_size,
+                reinterpret_cast<const resolved_precision *>(group) + block_ofs,
+                block_stride,
+                reinterpret_cast<resolved_precision *>(out_group) + block_ofs,
+                block_stride));
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_JACOBI_CONJ_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
