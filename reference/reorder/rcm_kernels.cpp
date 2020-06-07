@@ -296,7 +296,7 @@ void get_permutation(std::shared_ptr<const ReferenceExecutor> exec,
                   });
 
         // Write out the processed vertex.
-        permutation[perm_index] = next_vertex;
+        permutation[num_vertices - perm_index - 1] = next_vertex;
     }
 
     if (inv_permutation) {
