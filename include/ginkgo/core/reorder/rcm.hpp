@@ -63,10 +63,10 @@ enum class starting_strategy { minimum_degree, pseudo_peripheral };
 
 
 /**
- * Rcm is the reordering algorithm which uses METIS to compute a
- * fill reducing re-ordering of the given sparse matrix. The METIS
- * `Metis_NodeND` which is implements the multilevel nested dissection algorithm
- * as in the METIS documentation.
+ * Rcm is a reordering algorithm minimizing the bandwidth of a matrix. Such a
+ * reordering typically also significantly reduces fill-in, though usually not
+ * as effective as more complex algorithms, specifically AMD and nested
+ * dissection schemes. The advantage of this algorithm is its low runtime.
  *
  * @note  This class is derives from polymorphic object but is not a LinOp as it
  * does not make sense for this class to implement the apply methods. The
@@ -78,9 +78,12 @@ enum class starting_strategy { minimum_degree, pseudo_peripheral };
  * pseudo-peripheral. These strategies control how a starting vertex for a
  * connected component is choosen, which is then renumbered as first vertex in
  * the component, starting the algorithm from there.
- * In general, the bandwidths obtained by choosing a pseudo-peripheral node are
- * slightly smaller than those obtained from choosing a node of minimum degree.
- * On the other hand, this strategy is much more expensive, relatively.
+ * In general, the bandwidths obtained by choosing a pseudo-peripheral vertex
+ * are slightly smaller than those obtained from choosing a vertex of minimum
+ * degree. On the other hand, this strategy is much more expensive, relatively.
+ * The algorithm for finding a pseudo-peripheral vertex as
+ * described in "Computer Solution of Sparse Linear Systems" (George, Liu, Ng,
+ * Oak Ridge National Laboratory, 1994) is implemented here.
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrices used in this class
@@ -180,6 +183,9 @@ protected:
         degrees_ = std::unique_ptr<Array<IndexType>>(
             new Array<IndexType>(exec, dim[0]));
         permutation_ = PermutationMatrix::create(exec, dim);
+
+        // To make it explicit.
+        inv_permutation_ = nullptr;
         if (parameters_.construct_inverse_permutation) {
             inv_permutation_ = PermutationMatrix::create(exec, dim);
         }
@@ -188,10 +194,10 @@ protected:
     }
 
 private:
-    std::shared_ptr<SparsityMatrix> adjacency_matrix_{};
-    std::shared_ptr<PermutationMatrix> permutation_{};
-    std::unique_ptr<Array<IndexType>> degrees_{};
-    std::shared_ptr<PermutationMatrix> inv_permutation_{};
+    std::shared_ptr<SparsityMatrix> adjacency_matrix_;
+    std::shared_ptr<PermutationMatrix> permutation_;
+    std::unique_ptr<Array<IndexType>> degrees_;
+    std::shared_ptr<PermutationMatrix> inv_permutation_;
 };
 
 
