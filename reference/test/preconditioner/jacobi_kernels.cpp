@@ -788,4 +788,17 @@ TYPED_TEST(Jacobi, ConvertsToDenseWithAdaptivePrecision)
 }
 
 
+TYPED_TEST(Jacobi, ConvertsEmptyToDense)
+{
+    using Vec = typename TestFixture::Vec;
+    auto empty = Vec::create(this->exec);
+    auto res = Vec::create(this->exec);
+
+    res->copy_from(
+        TestFixture::Bj::build().on(this->exec)->generate(gko::share(empty)));
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
 }  // namespace

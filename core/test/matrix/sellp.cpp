@@ -134,7 +134,7 @@ protected:
         ASSERT_EQ(m->get_const_values(), nullptr);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
         ASSERT_EQ(m->get_const_slice_lengths(), nullptr);
-        ASSERT_EQ(m->get_const_slice_sets(), nullptr);
+        ASSERT_NE(m->get_const_slice_sets(), nullptr);
     }
 };
 

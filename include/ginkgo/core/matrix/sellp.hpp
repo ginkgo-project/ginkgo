@@ -313,10 +313,8 @@ protected:
         : EnableLinOp<Sellp>(exec, size),
           values_(exec, slice_size * total_cols),
           col_idxs_(exec, slice_size * total_cols),
-          slice_lengths_(exec,
-                         (size[0] == 0) ? 0 : ceildiv(size[0], slice_size)),
-          slice_sets_(exec,
-                      (size[0] == 0) ? 0 : ceildiv(size[0], slice_size) + 1),
+          slice_lengths_(exec, ceildiv(size[0], slice_size)),
+          slice_sets_(exec, ceildiv(size[0], slice_size) + 1),
           slice_size_(slice_size),
           stride_factor_(stride_factor),
           total_cols_(total_cols)
