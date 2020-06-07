@@ -62,24 +62,19 @@ namespace omp {
 namespace rcm {
 
 
-template <typename ValueType, typename IndexType>
-void get_degree_of_nodes(
-    std::shared_ptr<const OmpExecutor> exec,
-    std::shared_ptr<matrix::SparsityCsr<ValueType, IndexType>> adjacency_matrix,
-    std::shared_ptr<gko::Array<IndexType>> node_degrees)
+template <typename IndexType>
+void get_degree_of_nodes(std::shared_ptr<const OmpExecutor> exec,
+                         const size_type num_vertices,
+                         const IndexType *const row_ptrs,
+                         IndexType *const degrees)
 {
-    auto num_rows = adjacency_matrix->get_size()[0];
-    auto adj_ptrs = adjacency_matrix->get_row_ptrs();
-    auto node_deg = node_degrees->get_data();
-
 #pragma omp parallel for
-    for (auto i = 0; i < num_rows; ++i) {
-        node_deg[i] = adj_ptrs[i + 1] - adj_ptrs[i];
+    for (auto i = 0; i < num_vertices; ++i) {
+        degrees[i] = row_ptrs[i + 1] - row_ptrs[i];
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_DEGREE_OF_NODES_KERNEL);
 
 
 template <typename IndexType>
@@ -92,14 +87,15 @@ IndexType find_index(std::vector<std::pair<IndexType, IndexType>> &a,
 }
 
 
-template <typename ValueType, typename IndexType>
-void get_permutation(
-    std::shared_ptr<const OmpExecutor> exec, size_type num_vertices,
-    std::shared_ptr<matrix::SparsityCsr<ValueType, IndexType>> adjacency_matrix,
-    std::shared_ptr<Array<IndexType>> node_degrees,
-    std::shared_ptr<matrix::Permutation<IndexType>> permutation_mat,
-    std::shared_ptr<matrix::Permutation<IndexType>> inv_permutation_mat,
-    const gko::reorder::starting_strategy strategy)
+template <typename IndexType>
+void get_permutation(std::shared_ptr<const OmpExecutor> exec,
+                     const size_type num_vertices,
+                     const IndexType *const row_ptrs,
+                     const IndexType *const col_idxs,
+                     const IndexType *const degrees,
+                     IndexType *const permutation,
+                     IndexType *const inv_permutation,
+                     const gko::reorder::starting_strategy strategy)
 {
     IndexType num_vtxs = static_cast<IndexType>(num_vertices);
     auto adj_ptrs = adjacency_matrix->get_row_ptrs();
@@ -162,8 +158,7 @@ void get_permutation(
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM_GET_PERMUTATION_KERNEL);
 
 
 }  // namespace rcm
