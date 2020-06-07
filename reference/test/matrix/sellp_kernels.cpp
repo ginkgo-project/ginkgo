@@ -304,6 +304,108 @@ TYPED_TEST(Sellp, MovesToCsr)
 }
 
 
+TYPED_TEST(Sellp, ConvertsEmptyToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Sellp = typename TestFixture::Mtx;
+    using OtherSellp = gko::matrix::Sellp<OtherType, IndexType>;
+    auto empty = OtherSellp::create(this->exec);
+    empty->get_slice_sets()[0] = 0;
+    auto res = Sellp::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_slice_sets(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Sellp, MovesEmptyToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Sellp = typename TestFixture::Mtx;
+    using OtherSellp = gko::matrix::Sellp<OtherType, IndexType>;
+    auto empty = OtherSellp::create(this->exec);
+    empty->get_slice_sets()[0] = 0;
+    auto res = Sellp::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_slice_sets(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Sellp, ConvertsEmptyToDense)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Sellp = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<ValueType>;
+    auto empty = Sellp::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Sellp, MovesEmptyToDense)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Sellp = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<ValueType>;
+    auto empty = Sellp::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Sellp, ConvertsEmptyToCsr)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Sellp = typename TestFixture::Mtx;
+    using Csr = gko::matrix::Csr<ValueType, IndexType>;
+    auto empty = Sellp::create(this->exec);
+    auto res = Csr::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Sellp, MovesEmptyToCsr)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Sellp = typename TestFixture::Mtx;
+    using Csr = gko::matrix::Csr<ValueType, IndexType>;
+    auto empty = Sellp::create(this->exec);
+    auto res = Csr::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
 TYPED_TEST(Sellp, AppliesWithSliceSizeAndStrideFactorToDenseVector)
 {
     using Vec = typename TestFixture::Vec;

@@ -198,16 +198,9 @@ protected:
                 const dim<2> &size = dim<2>{}, size_type num_nonzeros = {})
         : EnableLinOp<SparsityCsr>(exec, size),
           col_idxs_(exec, num_nonzeros),
-          row_ptrs_(exec, size[0] + 1)
-    {
-        if (size[0] > 0) {
-            auto tmp = Array<value_type>{exec->get_master(), 1};
-            tmp.get_data()[0] = one<ValueType>();
-            value_ = Array<value_type>{exec, std::move(tmp)};
-        } else {
-            value_ = Array<value_type>{exec};
-        }
-    }
+          row_ptrs_(exec, size[0] + 1),
+          value_(exec, {one<ValueType>()})
+    {}
 
     /**
      * Creates a SparsityCsr matrix from already allocated (and initialized) row
@@ -234,11 +227,9 @@ protected:
                 value_type value = one<ValueType>())
         : EnableLinOp<SparsityCsr>(exec, size),
           col_idxs_{exec, std::forward<ColIdxsArray>(col_idxs)},
-          row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)}
+          row_ptrs_{exec, std::forward<RowPtrsArray>(row_ptrs)},
+          value_{exec, {value}}
     {
-        auto tmp = Array<value_type>{exec->get_master(), 1};
-        tmp.get_data()[0] = value;
-        value_ = Array<value_type>{exec, std::move(tmp)};
         GKO_ASSERT_EQ(this->get_size()[0] + 1, row_ptrs_.get_num_elems());
     }
 

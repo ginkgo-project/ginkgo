@@ -430,8 +430,10 @@ void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
     }
-    slice_sets[slice_num] =
-        slice_sets[slice_num - 1] + slice_lengths[slice_num - 1];
+    if (slice_num > 0) {
+        slice_sets[slice_num] =
+            slice_sets[slice_num - 1] + slice_lengths[slice_num - 1];
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

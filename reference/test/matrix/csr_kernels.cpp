@@ -801,6 +801,204 @@ TYPED_TEST(Csr, MovesToHybridByColumn2)
 }
 
 
+TYPED_TEST(Csr, ConvertsEmptyToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Csr = typename TestFixture::Mtx;
+    using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
+    auto empty = OtherCsr::create(this->exec);
+    empty->get_row_ptrs()[0] = 0;
+    auto res = Csr::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Csr = typename TestFixture::Mtx;
+    using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
+    auto empty = OtherCsr::create(this->exec);
+    empty->get_row_ptrs()[0] = 0;
+    auto res = Csr::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, ConvertsEmptyToDense)
+{
+    using ValueType = typename TestFixture::value_type;
+    using Csr = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<ValueType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToDense)
+{
+    using ValueType = typename TestFixture::value_type;
+    using Csr = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<ValueType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, ConvertsEmptyToCoo)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Coo = gko::matrix::Coo<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Coo::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToCoo)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Coo = gko::matrix::Coo<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Coo::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, ConvertsEmptyToSellp)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Sellp = gko::matrix::Sellp<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Sellp::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_slice_sets(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToSellp)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Sellp = gko::matrix::Sellp<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Sellp::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_slice_sets(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, ConvertsEmptyToSparsityCsr)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using SparsityCsr = gko::matrix::SparsityCsr<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    empty->get_row_ptrs()[0] = 0;
+    auto res = SparsityCsr::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_nonzeros(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToSparsityCsr)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using SparsityCsr = gko::matrix::SparsityCsr<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    empty->get_row_ptrs()[0] = 0;
+    auto res = SparsityCsr::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_nonzeros(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+}
+
+
+TYPED_TEST(Csr, ConvertsEmptyToHybrid)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Hybrid = gko::matrix::Hybrid<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Hybrid::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToHybrid)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Hybrid = gko::matrix::Hybrid<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Hybrid::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
 TYPED_TEST(Csr, CalculatesNonzerosPerRow)
 {
     gko::Array<gko::size_type> row_nnz(this->exec, this->mtx->get_size()[0]);
