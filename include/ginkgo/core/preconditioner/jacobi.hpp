@@ -206,7 +206,8 @@ struct block_interleaved_storage_scheme {
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Jacobi : public EnableLinOp<Jacobi<ValueType, IndexType>>,
                public ConvertibleTo<matrix::Dense<ValueType>>,
-               public WritableToMatrixData<ValueType, IndexType> {
+               public WritableToMatrixData<ValueType, IndexType>,
+               public Transposable {
     friend class EnableLinOp<Jacobi>;
     friend class EnablePolymorphicObject<Jacobi, LinOp>;
 
@@ -216,6 +217,7 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
+    using transposed_type = Jacobi<ValueType, IndexType>;
 
     /**
      * Returns the number of blocks of the operator.
@@ -286,6 +288,10 @@ public:
     void move_to(matrix::Dense<value_type> *result) override;
 
     void write(mat_data &data) const override;
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
