@@ -174,6 +174,11 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                    \
         const matrix::Csr<ValueType, IndexType> *to_check, bool *is_sorted)
 
+#define GKO_DECLARE_CSR_EXTRACT_DIAGONAL(ValueType, IndexType)           \
+    void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,   \
+                          const matrix::Csr<ValueType, IndexType> *orig, \
+                          matrix::Dense<ValueType> *diag)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_SPMV_KERNEL(ValueType, IndexType);                       \
@@ -216,7 +221,9 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                        \
     GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType);              \
     template <typename ValueType, typename IndexType>                        \
-    GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType)
+    GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType);         \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CSR_EXTRACT_DIAGONAL(ValueType, IndexType)
 
 
 namespace omp {

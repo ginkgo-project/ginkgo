@@ -827,6 +827,13 @@ public:
         this->make_srow();
     }
 
+    /**
+     * Extracts the diagonal entries of the matrix into a vector.
+     *
+     * @param diag  the vector into which the diagonal will be written
+     */
+    void extract_diagonal(Dense<value_type> *diag);
+
 protected:
     /**
      * Creates an uninitialized CSR matrix of the specified size.
