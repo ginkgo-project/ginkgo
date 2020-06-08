@@ -730,7 +730,7 @@ TEST_F(Csr, OneAutomaticalWorksWithDifferentMatrices)
 
 TEST_F(Csr, ExtractDiagonalIsquivalentToRef)
 {
-    set_up_apply_data();
+    set_up_apply_data(std::make_shared<Mtx::automatical>());
 
     auto diag_size = std::min(mtx->get_size()[0], mtx->get_size()[1]);
 

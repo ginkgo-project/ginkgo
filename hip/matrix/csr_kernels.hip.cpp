@@ -1193,8 +1193,8 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
         ceildiv(config::warp_size * diag_size, default_block_size);
 
     const auto orig_values = orig->get_const_values();
-    const atuo orig_row_ptrs = orig->get_const_row_ptrs();
-    const atuo orig_col_idxs = orig->get_const_col_idxs();
+    const auto orig_row_ptrs = orig->get_const_row_ptrs();
+    const auto orig_col_idxs = orig->get_const_col_idxs();
     auto diag_values = diag->get_values();
 
     hipLaunchKernelGGL(HIP_KERNEL_NAME(kernel::extract_diagonal),

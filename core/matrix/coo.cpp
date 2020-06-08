@@ -61,6 +61,7 @@ GKO_REGISTER_OPERATION(spmv2, coo::spmv2);
 GKO_REGISTER_OPERATION(advanced_spmv2, coo::advanced_spmv2);
 GKO_REGISTER_OPERATION(convert_to_csr, coo::convert_to_csr);
 GKO_REGISTER_OPERATION(convert_to_dense, coo::convert_to_dense);
+GKO_REGISTER_OPERATION(extract_diagonal, coo::extract_diagonal);
 
 
 }  // namespace coo
@@ -212,6 +213,18 @@ void Coo<ValueType, IndexType>::write(mat_data &data) const
         const auto val = tmp->values_.get_const_data()[i];
         data.nonzeros.emplace_back(row, col, val);
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::extract_diagonal(Dense<ValueType> *diag)
+{
+    GKO_ASSERT_EQ(std::min(this->get_size()[0], this->get_size()[1]),
+                  diag->get_size()[0]);
+    GKO_ASSERT_EQ(diag->get_size()[1], 1);
+
+    auto exec = this->get_executor();
+    exec->run(coo::make_extract_diagonal(this, diag));
 }
 
 

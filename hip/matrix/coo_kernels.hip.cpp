@@ -258,6 +258,38 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
+                      const matrix::Coo<ValueType, IndexType> *orig,
+                      matrix::Dense<ValueType> *diag)
+{
+    auto nnz = orig->get_num_stored_elements();
+    auto diag_size = diag->get_size()[0];
+    auto diag_stride = diag->get_stride();
+    auto num_blocks = ceildiv(diag_size, default_block_size);
+
+    const auto orig_values = orig->get_const_values();
+    const auto orig_row_idxs = orig->get_const_row_idxs();
+    const auto orig_col_idxs = orig->get_const_col_idxs();
+    auto diag_values = diag->get_values();
+
+    hipLaunchKernelGGL(kernel::initialize_zero_dense, dim3(num_blocks),
+                       dim3(default_block_size), 0, 0, diag->get_size()[0],
+                       diag->get_size()[1], diag_stride,
+                       as_hip_type(diag_values));
+
+    num_blocks = ceildiv(nnz, default_block_size);
+
+    hipLaunchKernelGGL(
+        kernel::extract_diagonal, dim3(num_blocks), dim3(default_block_size), 0,
+        0, nnz, as_hip_type(orig_values), as_hip_type(orig_row_idxs),
+        as_hip_type(orig_col_idxs), diag_stride, as_hip_type(diag_values));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL);
+
+
 }  // namespace coo
 }  // namespace hip
 }  // namespace kernels
