@@ -1975,6 +1975,26 @@ TYPED_TEST(Dense, NonSquareMatrixIsInverseColPermutable64)
 }
 
 
+TYPED_TEST(Dense, ExtractsDiagonal)
+{
+    // clang-format off
+    // {1.0, -1.0, -0.5},
+    // {-2.0, 2.0, 4.5},
+    // {2.1, 3.4, 1.2}
+    // clang-format on
+    using Mtx = typename TestFixture::Mtx;
+    auto exec = this->mtx5->get_executor();
+    auto diag = Mtx::create(exec, gko::dim<2>(this->mtx5->get_size()[0], 1));
+
+    this->mtx5->extract_diagonal(lend(diag));
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(diag,
+                        l({{1.}, {2.}, {1.2}}), r<TypeParam>::value);
+    // clang-format on
+}
+
+
 template <typename T>
 class DenseComplex : public ::testing::Test {
 protected:
