@@ -214,7 +214,8 @@ std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::transpose() const
     transp->set_size(gko::transpose(this->get_size()));
     transp->approximate_inverse_ =
         share(as<Csr>(this->get_approximate_inverse()->transpose()));
-    return transp;
+
+    return std::move(transp);
 }
 
 
@@ -227,7 +228,8 @@ std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::conj_transpose()
     transp->set_size(gko::transpose(this->get_size()));
     transp->approximate_inverse_ =
         share(as<Csr>(this->get_approximate_inverse()->conj_transpose()));
-    return transp;
+
+    return std::move(transp);
 }
 
 

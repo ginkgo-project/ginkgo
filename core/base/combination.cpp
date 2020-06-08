@@ -73,7 +73,8 @@ std::unique_ptr<LinOp> Combination<ValueType>::transpose() const
         transposed->operators_.push_back(
             share(as<Transposable>(op)->transpose()));
     }
-    return transposed;
+
+    return std::move(transposed);
 }
 
 
@@ -92,7 +93,8 @@ std::unique_ptr<LinOp> Combination<ValueType>::conj_transpose() const
         transposed->operators_.push_back(
             share(as<Transposable>(op)->conj_transpose()));
     }
-    return transposed;
+
+    return std::move(transposed);
 }
 
 
