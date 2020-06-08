@@ -1291,6 +1291,21 @@ TYPED_TEST(Csr, SortUnsortedMatrix)
 }
 
 
+TYPED_TEST(Csr, ExtractsDiagonal)
+{
+    auto matrix = this->mtx3_unsorted->clone();
+    auto exec = matrix->get_executor();
+    using T = typename TestFixture::value_type;
+    auto diag = gko::matrix::Dense<T>::create(
+        exec,
+        gko::dim<2>(std::min(matrix->get_size()[0], matrix->get_size()[1]), 1));
+
+    matrix->extract_diagonal(gko::lend(diag));
+
+    GKO_ASSERT_MTX_NEAR(diag, l({{0.}, {1.}, {3.}}), 0.0);
+}
+
+
 template <typename ValueIndexType>
 class CsrComplex : public ::testing::Test {
 protected:

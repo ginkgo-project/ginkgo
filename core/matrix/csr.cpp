@@ -78,6 +78,7 @@ GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
 GKO_REGISTER_OPERATION(sort_by_column_index, csr::sort_by_column_index);
 GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        csr::is_sorted_by_column_index);
+GKO_REGISTER_OPERATION(extract_diagonal, csr::extract_diagonal);
 
 
 }  // namespace csr
@@ -461,6 +462,18 @@ bool Csr<ValueType, IndexType>::is_sorted_by_column_index() const
     bool is_sorted;
     exec->run(csr::make_is_sorted_by_column_index(this, &is_sorted));
     return is_sorted;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::extract_diagonal(Dense<ValueType> *diag)
+{
+    GKO_ASSERT_EQ(std::min(this->get_size()[0], this->get_size()[1]),
+                  diag->get_size()[0]);
+    GKO_ASSERT_EQ(diag->get_size()[1], 1);
+
+    auto exec = this->get_executor();
+    exec->run(csr::make_extract_diagonal(this, diag));
 }
 
 
