@@ -220,4 +220,21 @@ TEST_F(Ell, CountNonzerosIsEquivalentToRef)
 }
 
 
+TEST_F(Ell, ExtractDiagonalIsquivalentToRef)
+{
+    set_up_apply_data();
+
+    auto diag_size = std::min(mtx->get_size()[0], mtx->get_size()[1]);
+
+    auto diag = gko::matrix::Dense<>::create(mtx->get_executor(),
+                                             gko::dim<2>(diag_size, 1));
+    auto ddiag = gko::matrix::Dense<>::create(dmtx->get_executor(),
+                                              gko::dim<2>(diag_size, 1));
+    mtx->extract_diagonal(lend(diag));
+    dmtx->extract_diagonal(lend(ddiag));
+
+    GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
+}
+
+
 }  // namespace

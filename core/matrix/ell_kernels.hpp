@@ -80,19 +80,26 @@ namespace kernels {
         const matrix::Ell<ValueType, IndexType> *source,             \
         Array<size_type> *result)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_ELL_SPMV_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)    \
+    void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,   \
+                          const matrix::Ell<ValueType, IndexType> *orig, \
+                          matrix::Dense<ValueType> *diag)
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_ELL_SPMV_KERNEL(ValueType, IndexType);                       \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(ValueType, IndexType);              \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);             \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL(ValueType, IndexType);             \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_ELL_CALCULATE_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)
 
 
 namespace omp {
