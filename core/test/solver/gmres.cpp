@@ -201,7 +201,12 @@ TYPED_TEST(Gmres, CanSetPreconditionerGenerator)
                 gko::stop::ResidualNormReduction<value_type>::build()
                     .with_reduction_factor(TestFixture::reduction_factor)
                     .on(this->exec))
-            .with_preconditioner(Solver::build().on(this->exec))
+            .with_preconditioner(
+                Solver::build()
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(3u).on(
+                            this->exec))
+                    .on(this->exec))
             .on(this->exec);
     auto solver = gmres_factory->generate(this->mtx);
     auto precond = dynamic_cast<const gko::solver::Gmres<value_type> *>(

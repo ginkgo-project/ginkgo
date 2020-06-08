@@ -182,7 +182,12 @@ TYPED_TEST(Ir, CanSetInnerSolverInFactory)
                 gko::stop::ResidualNormReduction<value_type>::build()
                     .with_reduction_factor(r<value_type>::value)
                     .on(this->exec))
-            .with_solver(Solver::build().on(this->exec))
+            .with_solver(
+                Solver::build()
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(3u).on(
+                            this->exec))
+                    .on(this->exec))
             .on(this->exec);
     auto solver = ir_factory->generate(this->mtx);
     auto inner_solver = dynamic_cast<const Solver *>(

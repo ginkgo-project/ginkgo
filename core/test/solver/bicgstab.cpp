@@ -177,7 +177,12 @@ TYPED_TEST(Bicgstab, CanSetPreconditionerGenerator)
         Solver::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
-            .with_preconditioner(Solver::build().on(this->exec))
+            .with_preconditioner(
+                Solver::build()
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(3u).on(
+                            this->exec))
+                    .on(this->exec))
             .on(this->exec);
 
     auto solver = bicgstab_factory->generate(this->mtx);
