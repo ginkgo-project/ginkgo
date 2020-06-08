@@ -59,6 +59,7 @@ GKO_REGISTER_OPERATION(convert_to_csr, ell::convert_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, ell::count_nonzeros);
 GKO_REGISTER_OPERATION(calculate_nonzeros_per_row,
                        ell::calculate_nonzeros_per_row);
+GKO_REGISTER_OPERATION(extract_diagonal, ell::extract_diagonal);
 
 
 }  // namespace ell
@@ -230,6 +231,18 @@ void Ell<ValueType, IndexType>::write(mat_data &data) const
             }
         }
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::extract_diagonal(Dense<ValueType> *diag)
+{
+    GKO_ASSERT_EQ(std::min(this->get_size()[0], this->get_size()[1]),
+                  diag->get_size()[0]);
+    GKO_ASSERT_EQ(diag->get_size()[1], 1);
+
+    auto exec = this->get_executor();
+    exec->run(ell::make_extract_diagonal(this, diag));
 }
 
 
