@@ -160,7 +160,7 @@ std::unique_ptr<LinOp> Jacobi<ValueType, IndexType>::transpose() const
         parameters_.storage_optimization.block_wise, parameters_.block_pointers,
         blocks_, storage_scheme_, res->blocks_));
 
-    return res;
+    return std::move(res);
 }
 
 
@@ -180,7 +180,7 @@ std::unique_ptr<LinOp> Jacobi<ValueType, IndexType>::conj_transpose() const
         parameters_.storage_optimization.block_wise, parameters_.block_pointers,
         blocks_, storage_scheme_, res->blocks_));
 
-    return res;
+    return std::move(res);
 }
 
 

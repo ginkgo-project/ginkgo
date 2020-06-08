@@ -73,7 +73,8 @@ std::unique_ptr<LinOp> UpperTrs<ValueType, IndexType>::transpose() const
     transposed->parameters_.num_rhs = this->parameters_.num_rhs;
     transposed->init_trs_solve_struct();
     transposed->generate();
-    return transposed;
+
+    return std::move(transposed);
 }
 
 
@@ -88,7 +89,8 @@ std::unique_ptr<LinOp> UpperTrs<ValueType, IndexType>::conj_transpose() const
     transposed->parameters_.num_rhs = this->parameters_.num_rhs;
     transposed->init_trs_solve_struct();
     transposed->generate();
-    return transposed;
+
+    return std::move(transposed);
 }
 
 

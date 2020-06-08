@@ -185,7 +185,8 @@ public:
         transposed->u_solver_ =
             share(as<typename l_solver_type::transposed_type>(
                 this->get_l_solver()->transpose()));
-        return transposed;
+
+        return std::move(transposed);
     }
 
     std::unique_ptr<LinOp> conj_transpose() const override
@@ -199,7 +200,8 @@ public:
         transposed->u_solver_ =
             share(as<typename l_solver_type::transposed_type>(
                 this->get_l_solver()->conj_transpose()));
-        return transposed;
+
+        return std::move(transposed);
     }
 
 protected:

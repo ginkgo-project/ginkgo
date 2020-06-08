@@ -140,7 +140,8 @@ std::unique_ptr<LinOp> Composition<ValueType>::transpose() const
                    [](const std::shared_ptr<const LinOp> &op) {
                        return share(as<Transposable>(op)->transpose());
                    });
-    return transposed;
+
+    return std::move(transposed);
 }
 
 
@@ -155,7 +156,8 @@ std::unique_ptr<LinOp> Composition<ValueType>::conj_transpose() const
                    [](const std::shared_ptr<const LinOp> &op) {
                        return share(as<Transposable>(op)->conj_transpose());
                    });
-    return transposed;
+
+    return std::move(transposed);
 }
 
 
