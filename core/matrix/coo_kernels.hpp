@@ -81,19 +81,26 @@ namespace kernels {
                         const matrix::Coo<ValueType, IndexType> *source, \
                         matrix::Csr<ValueType, IndexType> *result)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                             \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_COO_SPMV_KERNEL(ValueType, IndexType);           \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL(ValueType, IndexType);  \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_COO_SPMV2_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)    \
+    void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,   \
+                          const matrix::Coo<ValueType, IndexType> *orig, \
+                          matrix::Dense<ValueType> *diag)
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_SPMV_KERNEL(ValueType, IndexType);             \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_SPMV2_KERNEL(ValueType, IndexType);            \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)
 
 
 namespace omp {
