@@ -25,7 +25,7 @@ look at our coding guidelines before proposing a pull request.
  * [Other Code Formatting not handled by
    ClangFormat](#other-code-formatting-not-handled-by-clangformat)
  * [CMake coding style](#cmake-coding-style)
- 
+
 [Helper Scripts](#helper-scripts)
  * [Create a new algorithm](#create-a-new-algorithm)
  * [Converting CUDA code to HIP code](#converting-cuda-code-to-hip-code)
@@ -39,7 +39,7 @@ look at our coding guidelines before proposing a pull request.
  * [Developer targeted notes](#developer-targeted-notes)
  * [Whitespaces](#whitespaces)
  * [Documenting examples](#documenting-examples)
- 
+
 [Other general programming comments](#other-general-programming-comments)
  * [C++ standard stream objects](#c++-standard-stream-objects)
  * [Warnings](#warnings)
@@ -89,14 +89,14 @@ dependencies between the `core` and the backend library. With this in mind, our
 CI contains a job which checks if such a circular dependency exists.
 
 For example, when creating a new matrix class `AB` by combining existing classes
-`A` and `B`, the `AB::apply()` function composed of invocations to
-`A::apply()` and `B::apply()` can only be defined in the core module, it is not
-possible to create instances of `A` and `B` inside the `AB` kernel files. This is 
-to avoid the aforementioned circular dependency issue. An example for such
- a class the `Hybrid` matrix format, which uses the `apply()` of the `Ell` and `Coo`
- matrix formats. Nevertheless, it is possible to call the kernels themselves directly 
- within the same executor. For example, `cuda::dense::add_scaled()` can be called from
- any other `cuda` kernel. 
+`A` and `B`, the `AB::apply()` function composed of invocations to `A::apply()`
+and `B::apply()` can only be defined in the core module, it is not possible to
+create instances of `A` and `B` inside the `AB` kernel files. This is to avoid
+the aforementioned circular dependency issue. An example for such a class is the
+`Hybrid` matrix format, which uses the `apply()` of the `Ell` and `Coo` matrix
+formats. Nevertheless, it is possible to call the kernels themselves directly
+within the same executor. For example, `cuda::dense::add_scaled()` can be called
+from any other `cuda` kernel.
 
 ## Git related
 
@@ -155,7 +155,8 @@ improvements from code reviews.
 * Please have a look at the labels and make sure to add the relevant labels.
 * You can mark the PR as a `WIP` if you are still working on it, `Ready for
   Review` when it is ready for others to review it.
-* Assignees to the PR should be the ones responsible for merging that PR. Currently, it is only possible to assign members within the `ginkgo-project`.  
+* Assignees to the PR should be the ones responsible for merging that PR.
+  Currently, it is only possible to assign members within the `ginkgo-project`.
 * Each pull request requires at least two approvals before merging.
 * PR's created from within the repository will automatically trigger two CI
   pipelines on pushing to the branch from the which the PR has been created. The
@@ -196,7 +197,7 @@ ClangFormat's documentation.
 
 ### Naming scheme
 
-#### Filenames 
+#### Filenames
 
 Filenames use `snake_case` and use the following extensions:
 *   C++ source files: `.cpp`
@@ -216,9 +217,9 @@ considered a CUDA file.
 
 #### Macros
 
-Macros (both object-like and function-like macros) use `CAPITAL_CASE`. They
-have to start with `GKO_` to avoid name clashes (even if they are `#undef`-ed in
-the same file!).
+Macros (both object-like and function-like macros) use `CAPITAL_CASE`. They have
+to start with `GKO_` to avoid name clashes (even if they are `#undef`-ed in the
+same file!).
 
 #### Variables
 
@@ -234,9 +235,9 @@ Functions use `snake_case`.
 
 #### Structures and classes
 
-Structures and classes which do not experience polymorphic behaviour (i.e. do
-not contain virtual methods, nor members which experience polymorphic behaviour)
-use `snake_case`.
+Structures and classes which do not experience polymorphic behavior (i.e. do not
+contain virtual methods, nor members which experience polymorphic behavior) use
+`snake_case`.
 
 All other structures and classes use `CamelCase`.
 
@@ -268,7 +269,8 @@ Thus, contributors should be aware of the following rules for blank lines:
 1.  Top-level statements and statements directly within namespaces are separated
     with 2 blank lines. The first / last statement of a namespace is separated
     by two blank lines from the opening / closing brace of the namespace.
-    1.  _exception_: if the first __or__ the last statement in the namespace is another namespace, then no blank lines are required  
+    1.  _exception_: if the first __or__ the last statement in the namespace is
+    another namespace, then no blank lines are required
         _example_:
         ```c++
         namespace foo {
@@ -310,7 +312,7 @@ Thus, contributors should be aware of the following rules for blank lines:
 2.  Statements within structures / classes are separated with 1 blank line.
     There are no blank lines betweeen the first / last statement in the
     structure / class.
-    1.  _exception_: there is no blank line between an access modifier (`private`, `protected`, `public`) and the following statement.  
+    1.  _exception_: there is no blank line between an access modifier (`private`, `protected`, `public`) and the following statement.
        _example_:
         ```c++
         class foo {
@@ -429,6 +431,7 @@ own _type-specifier_.
 ### CMake coding style
 
 #### Whitespaces
+
 All alignment in CMake files should use four spaces.
 
 #### Use of macros vs functions
@@ -460,7 +463,16 @@ easy addition of new algorithms. The options it provides can be queried with
 ```sh
 ./create_new_algorithm.sh --help
 ```
-The main objective of this script is to add files and boiler plate code for the new algorithm using a model and an instance of that model. For example, models can be any one of `factorization`, `matrix`, `preconditioner` or `solver`. For example to create a new solver named `my_solver` similar to `gmres`, you would set the `ModelType` to `solver` and set the `ModelName` to `gmres`. This would duplicate the core algorithm and kernels of the `gmres` algorithm and replace the naming to `my_solver`. Additionally, all the kernels of the new `my_solver` are marked as `GKO_NOT_IMPLEMENTED`. For easy navigation and `.txt` file is created in the folder where the script is run, which lists all the TODO's. These TODO's can also be found in the corresponding files.
+The main objective of this script is to add files and boiler plate code for the
+new algorithm using a model and an instance of that model. For example, models
+can be any one of `factorization`, `matrix`, `preconditioner` or `solver`. For
+example to create a new solver named `my_solver` similar to `gmres`, you would
+set the `ModelType` to `solver` and set the `ModelName` to `gmres`. This would
+duplicate the core algorithm and kernels of the `gmres` algorithm and replace
+the naming to `my_solver`. Additionally, all the kernels of the new `my_solver`
+are marked as `GKO_NOT_IMPLEMENTED`. For easy navigation and `.txt` file is created
+in the folder where the script is run, which lists all the TODO's. These TODO's can
+also be found in the corresponding files.
 
 ### Converting CUDA code to HIP code
 
@@ -479,7 +491,9 @@ existing code has been broken.
 
 ### Testing know-how
 
-* GTest provides a [comprehensive documentation](https://github.com/google/googletest/blob/master/googletest/docs/primer.md) of the functionality available within Gtest.  
+* GTest provides a [comprehensive
+  documentation](https://github.com/google/googletest/blob/master/googletest/docs/primer.md)
+  of the functionality available within Gtest.
 * Reduce code duplication with [Testing Fixtures,
   `TEST_F`](https://github.com/google/googletest/blob/master/googletest/docs/primer.md#test-fixtures-using-the-same-data-configuration-for-multiple-tests-same-data-multiple-tests)
 * Write templated tests using
@@ -512,6 +526,7 @@ existing code has been broken.
 Documentation uses standard Doxygen.
 
 ###  Developer targeted notes
+
 Make use of `@internal` doxygen tag. This can be used for any comment which is
 not intended for users, but is useful to better understand a piece of code.
 
@@ -527,7 +542,10 @@ possible to use a line break instead.
 
 There are two main steps:
 
-1. First, you can just copy over the [`doc/`](https://github.com/ginkgo-project/ginkgo/tree/develop/examples/simple-solver) folder (you can copy it from the example most relevant to you) and adapt your example names and such, then you can modify the actual documentation.  
+1. First, you can just copy over the
+   [`doc/`](https://github.com/ginkgo-project/ginkgo/tree/develop/examples/simple-solver)
+   folder (you can copy it from the example most relevant to you) and adapt your
+   example names and such, then you can modify the actual documentation.
 + In `tooltip`: A short description of the example.
 + In `short-intro`: The name of the example.
 + In `results.dox`: Run the example and write the output you get.
@@ -562,18 +580,18 @@ files.
 
 By default, the `-DGINKGO_COMPILER_FLAGS` is set to `-Wpedantic` and hence
 pedantic warnings are emitted by default. Some of these warnings are false
-positives and a complete list of the resolved warnings and their
-solutions is listed in [Issue
-174](https://github.com/ginkgo-project/ginkgo/issues/174). Specifically, when
-macros are being used, we have the issue of having `extra ;` warnings, which is
-resolved by adding a `static_assert()`. The CI system additionally also has a
-step where it compiles for pedantic warnings to be errors.
+positives and a complete list of the resolved warnings and their solutions is
+listed in [Issue 174](https://github.com/ginkgo-project/ginkgo/issues/174).
+Specifically, when macros are being used, we have the issue of having `extra ;`
+warnings, which is resolved by adding a `static_assert()`. The CI system
+additionally also has a step where it compiles for pedantic warnings to be
+errors.
 
 ### Avoiding circular dependencies
 
-To facilitate finding circular dependencies issues (see
-[Using library classes](#using-library-classes) for more details), a CI step
-`no-circular-deps` was created. For more details on its usage, see [this
+To facilitate finding circular dependencies issues (see [Using library
+classes](#using-library-classes) for more details), a CI step `no-circular-deps`
+was created. For more details on its usage, see [this
 pipeline](https://gitlab.com/ginkgo-project/ginkgo-public-ci/pipelines/52941979),
 where Ginkgo did not abide to this policy and [PR
 #278](https://github.com/ginkgo-project/ginkgo/pull/278) which fixed this. Note
