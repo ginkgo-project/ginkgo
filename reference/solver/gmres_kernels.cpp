@@ -164,9 +164,9 @@ void givens_rotation(matrix::Dense<ValueType> *givens_sin,
 template <typename ValueType>
 void calculate_next_residual_norm(
     matrix::Dense<ValueType> *givens_sin, matrix::Dense<ValueType> *givens_cos,
-    matrix::Dense<ValueType> *residual_norm,
+    matrix::Dense<remove_complex<ValueType>> *residual_norm,
     matrix::Dense<ValueType> *residual_norm_collection,
-    const matrix::Dense<ValueType> *b_norm, size_type iter,
+    const matrix::Dense<remove_complex<ValueType>> *b_norm, size_type iter,
     const stopping_status *stop_status)
 {
     for (size_type i = 0; i < residual_norm->get_size()[1]; ++i) {
@@ -233,17 +233,18 @@ void calculate_qy(const matrix::Dense<ValueType> *krylov_bases,
 template <typename ValueType>
 void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *b_norm,
+                  matrix::Dense<remove_complex<ValueType>> *b_norm,
                   matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *givens_sin,
                   matrix::Dense<ValueType> *givens_cos,
                   Array<stopping_status> *stop_status, size_type krylov_dim)
 {
+    using NormValueType = remove_complex<ValueType>;
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         // Calculate b norm
-        b_norm->at(0, j) = zero<ValueType>();
+        b_norm->at(0, j) = zero<NormValueType>();
         for (size_type i = 0; i < b->get_size()[0]; ++i) {
-            b_norm->at(0, j) += b->at(i, j) * b->at(i, j);
+            b_norm->at(0, j) += squared_norm(b->at(i, j));
         }
         b_norm->at(0, j) = sqrt(b_norm->at(0, j));
 
@@ -264,7 +265,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
 template <typename ValueType>
 void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
-                  matrix::Dense<ValueType> *residual_norm,
+                  matrix::Dense<remove_complex<ValueType>> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
                   matrix::Dense<ValueType> *krylov_bases,
                   Array<size_type> *final_iter_nums, size_type krylov_dim)
@@ -273,7 +274,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
         // Calculate residual norm
         residual_norm->at(0, j) = 0;
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
-            residual_norm->at(0, j) += residual->at(i, j) * residual->at(i, j);
+            residual_norm->at(0, j) += squared_norm(residual->at(i, j));
         }
         residual_norm->at(0, j) = sqrt(residual_norm->at(0, j));
         residual_norm_collection->at(0, j) = residual_norm->at(0, j);
@@ -292,12 +293,12 @@ template <typename ValueType>
 void step_1(std::shared_ptr<const ReferenceExecutor> exec, size_type num_rows,
             matrix::Dense<ValueType> *givens_sin,
             matrix::Dense<ValueType> *givens_cos,
-            matrix::Dense<ValueType> *residual_norm,
+            matrix::Dense<remove_complex<ValueType>> *residual_norm,
             matrix::Dense<ValueType> *residual_norm_collection,
             matrix::Dense<ValueType> *krylov_bases,
             matrix::Dense<ValueType> *hessenberg_iter,
-            const matrix::Dense<ValueType> *b_norm, size_type iter,
-            Array<size_type> *final_iter_nums,
+            const matrix::Dense<remove_complex<ValueType>> *b_norm,
+            size_type iter, Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status)
 {
     for (size_type i = 0; i < final_iter_nums->get_num_elems(); ++i) {

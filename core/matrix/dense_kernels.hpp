@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
@@ -73,7 +74,7 @@ namespace kernels {
 #define GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL(_type)               \
     void compute_norm2(std::shared_ptr<const DefaultExecutor> exec, \
                        const matrix::Dense<_type> *x,               \
-                       matrix::Dense<_type> *result)
+                       matrix::Dense<remove_complex<_type>> *result)
 
 #define GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(_type, _prec)        \
     void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec, \

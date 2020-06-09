@@ -396,6 +396,19 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 
 /**
+ * Instantiates a template for each non-complex value type compiled by Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take one argument, which is replaced by the
+ *                value type.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro) \
+    template _macro(float);                                     \
+    template _macro(double)
+
+
+/**
  * Instantiates a template for each value type compiled by Ginkgo.
  *
  * @param _macro  A macro which expands the template instantiation
@@ -403,10 +416,9 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take one argument, which is replaced by the
  *                value type.
  */
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro) \
-    template _macro(float);                         \
-    template _macro(double);                        \
-    template _macro(std::complex<float>);           \
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro)          \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro); \
+    template _macro(std::complex<float>);                    \
     template _macro(std::complex<double>)
 
 
