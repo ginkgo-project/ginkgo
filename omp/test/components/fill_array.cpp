@@ -78,7 +78,7 @@ TYPED_TEST(FillArray, EqualsReference)
 {
     using T = typename TestFixture::value_type;
     gko::kernels::omp::components::fill_array(
-        this->exec, this->dvals.get_data(), T(1523), this->total_size);
+        this->exec, this->dvals.get_data(), this->total_size, T(1523));
     GKO_ASSERT_ARRAY_EQ(this->vals, this->dvals);
 }
 

@@ -80,8 +80,8 @@ protected:
 
 TEST_F(FillArray, EqualsReference)
 {
-    gko::kernels::hip::components::fill_array(exec, dvals.get_data(), 1234.0,
-                                              total_size);
+    gko::kernels::hip::components::fill_array(exec, dvals.get_data(),
+                                              total_size, 1234.0);
     GKO_ASSERT_ARRAY_EQ(vals, dvals);
 }
 

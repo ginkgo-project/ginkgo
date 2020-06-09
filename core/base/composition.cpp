@@ -104,7 +104,7 @@ std::unique_ptr<LinOp> apply_inner_operators(
             } else {
                 // rectangular matrix: we can't do better than zeros
                 exec->run(composition::make_fill_array(
-                    out->get_values(), zero<ValueType>(), out_size));
+                    out->get_values(), out_size, zero<ValueType>()));
             }
         }
         // apply operator

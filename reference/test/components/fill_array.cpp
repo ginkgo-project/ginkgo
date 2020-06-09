@@ -76,7 +76,7 @@ TYPED_TEST(FillArray, EqualsReference)
 {
     using T = typename TestFixture::value_type;
     gko::kernels::reference::components::fill_array(
-        this->ref, this->vals.get_data(), T(6453), this->total_size);
+        this->ref, this->vals.get_data(), this->total_size, T(6453));
     GKO_ASSERT_ARRAY_EQ(this->vals, this->expected);
 }
 

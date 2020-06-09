@@ -40,7 +40,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
-#include "core/components/fill_array.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 

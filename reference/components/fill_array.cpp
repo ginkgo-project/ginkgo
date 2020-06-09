@@ -41,7 +41,7 @@ namespace components {
 
 template <typename ValueType>
 void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType *array,
-                ValueType val, size_type n)
+                size_type n, ValueType val)
 {
     std::fill_n(array, n, val);
 }

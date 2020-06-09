@@ -211,8 +211,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
      */
     const int info = (!atomic) * num_thread_per_worker;
     if (atomic) {
-        components::fill_array(exec, c->get_values(), zero<ValueType>(),
-                               c->get_num_stored_elements());
+        components::fill_array(exec, c->get_values(),
+                               c->get_num_stored_elements(), zero<ValueType>());
     }
     select_abstract_spmv(
         compiled_kernels(),

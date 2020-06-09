@@ -104,14 +104,14 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
     auto row_ptrs = result->get_row_ptrs();
     auto coo_row_ptrs = Array<IndexType>(exec, num_rows);
 
-    components::fill_array(exec, row_ptrs, zero<IndexType>(), num_rows + 1);
+    components::fill_array(exec, row_ptrs, num_rows + 1, zero<IndexType>());
     grid_num = ceildiv(num_rows, warps_in_block);
     ell::kernel::count_nnz_per_row<<<grid_num, default_block_size>>>(
         num_rows, max_nnz_per_row, stride, as_cuda_type(ell_val),
         as_cuda_type(row_ptrs));
 
-    components::fill_array(exec, coo_row_ptrs.get_data(), zero<IndexType>(),
-                           num_rows);
+    components::fill_array(exec, coo_row_ptrs.get_data(), num_rows,
+                           zero<IndexType>());
 
     auto nwarps =
         coo::host_kernel::calculate_nwarps(exec, coo_num_stored_elements);
@@ -163,8 +163,8 @@ void count_nonzeros(std::shared_ptr<const CudaExecutor> exec,
         const dim3 coo_grid(ceildiv(nwarps, warps_in_block), 1);
         const auto num_rows = source->get_size()[0];
         auto nnz_per_row = Array<IndexType>(exec, num_rows);
-        components::fill_array(exec, nnz_per_row.get_data(), zero<IndexType>(),
-                               num_rows);
+        components::fill_array(exec, nnz_per_row.get_data(), num_rows,
+                               zero<IndexType>());
         kernel::count_coo_row_nnz<<<coo_grid, coo_block>>>(
             nnz, num_lines, as_cuda_type(source->get_coo()->get_const_values()),
             as_cuda_type(source->get_coo()->get_const_row_idxs()),

@@ -33,25 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/sparsity_csr_kernels.hpp"
 
 
-#include <algorithm>
-
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
-
-
-#include "core/components/fill_array.hpp"
-#include "core/matrix/dense_kernels.hpp"
-#include "core/synthesizer/implementation_selection.hpp"
-#include "hip/base/hipsparse_bindings.hip.hpp"
-#include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/atomic.hip.hpp"
-#include "hip/components/cooperative_groups.hip.hpp"
-#include "hip/components/reduction.hip.hpp"
-#include "hip/components/segment_scan.hip.hpp"
-#include "hip/components/uninitialized_array.hip.hpp"
 
 
 namespace gko {
