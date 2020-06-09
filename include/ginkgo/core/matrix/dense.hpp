@@ -267,7 +267,7 @@ public:
      *
      * @param diag  the vector into which the diagonal will be written
      */
-    void extract_diagonal(Dense<ValueType> *diag);
+    void extract_diagonal(Dense<ValueType> *diag) const;
 
 
     /**

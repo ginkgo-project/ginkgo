@@ -188,6 +188,32 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_HYBRID_COUNT_NONZEROS_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
+                      const matrix::Hybrid<ValueType, IndexType> *orig,
+                      matrix::Dense<ValueType> *diag)
+{
+    gko::kernels::hip::ell::extract_diagonal(exec, orig->get_ell(), diag);
+
+    const auto coo_row_idxs = orig->get_const_coo_row_idxs();
+    const auto coo_col_idxs = orig->get_const_coo_col_idxs();
+    const auto coo_values = orig->get_const_coo_values();
+    const auto coo_nnz = orig->get_coo_num_stored_elements();
+
+    const auto diag_stride = diag->get_stride();
+    const auto num_blocks = ceildiv(coo_nnz, default_block_size);
+    auto diag_values = diag->get_values();
+
+    hipLaunchKernelGGL(num_blocks, default_block_size, 0, 0, coo_nnz,
+                       as_cuda_type(coo_values), as_cuda_type(coo_row_idxs),
+                       as_cuda_type(coo_col_idxs), diag_stride,
+                       as_cuda_type(diag_values));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_HYBRID_EXTRACT_DIAGONAL_KERNEL);
+
+
 }  // namespace hybrid
 }  // namespace hip
 }  // namespace kernels

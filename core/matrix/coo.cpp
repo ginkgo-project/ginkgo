@@ -217,7 +217,7 @@ void Coo<ValueType, IndexType>::write(mat_data &data) const
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::extract_diagonal(Dense<ValueType> *diag)
+void Coo<ValueType, IndexType>::extract_diagonal(Dense<ValueType> *diag) const
 {
     GKO_ASSERT_EQ(std::min(this->get_size()[0], this->get_size()[1]),
                   diag->get_size()[0]);
