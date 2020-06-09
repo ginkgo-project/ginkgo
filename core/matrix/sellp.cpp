@@ -55,6 +55,7 @@ GKO_REGISTER_OPERATION(advanced_spmv, sellp::advanced_spmv);
 GKO_REGISTER_OPERATION(convert_to_dense, sellp::convert_to_dense);
 GKO_REGISTER_OPERATION(convert_to_csr, sellp::convert_to_csr);
 GKO_REGISTER_OPERATION(count_nonzeros, sellp::count_nonzeros);
+GKO_REGISTER_OPERATION(extract_diagonal, sellp::extract_diagonal);
 
 
 }  // namespace sellp
@@ -283,6 +284,18 @@ void Sellp<ValueType, IndexType>::write(mat_data &data) const
             }
         }
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+void Sellp<ValueType, IndexType>::extract_diagonal(Dense<ValueType> *diag)
+{
+    GKO_ASSERT_EQ(std::min(this->get_size()[0], this->get_size()[1]),
+                  diag->get_size()[0]);
+    GKO_ASSERT_EQ(diag->get_size()[1], 1);
+
+    auto exec = this->get_executor();
+    exec->run(sellp::make_extract_diagonal(this, diag));
 }
 
 
