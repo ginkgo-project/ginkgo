@@ -783,6 +783,43 @@ private:
 };
 
 
+/**
+ * Controls whether the DeviceReset function should be called thanks to a
+ * boolean. Note that in any case, `DeviceReset` is called only after destroying
+ * the last Ginkgo executor. Therefore, it is sufficient to set this flag to the
+ * last living executor in Ginkgo. Setting this flag to an executor which is not
+ * destroyed last has no effect.
+ */
+class EnableDeviceReset {
+public:
+    /**
+     * Set the device reset capability.
+     *
+     * @param device_reset  whether to allow a device reset or not
+     */
+    void set_device_reset(bool device_reset) { device_reset_ = device_reset; }
+
+    /**
+     * Returns the current status of the device reset boolean for this executor.
+     *
+     * @return the current status of the device reset boolean for this executor.
+     */
+    bool get_device_reset() { return device_reset_; }
+
+protected:
+    /**
+     * Instantiate an EnableDeviceReset class
+     *
+     * @param device_reset  the starting device_reset status. Defaults to false.
+     */
+    EnableDeviceReset(bool device_reset = false) : device_reset_{device_reset}
+    {}
+
+private:
+    bool device_reset_{};
+};
+
+
 }  // namespace detail
 
 
@@ -876,7 +913,8 @@ using DefaultExecutor = ReferenceExecutor;
  * @ingroup Executor
  */
 class CudaExecutor : public detail::ExecutorBase<CudaExecutor>,
-                     public std::enable_shared_from_this<CudaExecutor> {
+                     public std::enable_shared_from_this<CudaExecutor>,
+                     public detail::EnableDeviceReset {
     friend class detail::ExecutorBase<CudaExecutor>;
 
 public:
@@ -888,7 +926,8 @@ public:
      * kernels
      */
     static std::shared_ptr<CudaExecutor> create(
-        int device_id, std::shared_ptr<Executor> master);
+        int device_id, std::shared_ptr<Executor> master,
+        bool device_reset = false);
 
     ~CudaExecutor() { decrease_num_execs(this->device_id_); }
 
@@ -965,8 +1004,10 @@ protected:
 
     void init_handles();
 
-    CudaExecutor(int device_id, std::shared_ptr<Executor> master)
-        : device_id_(device_id),
+    CudaExecutor(int device_id, std::shared_ptr<Executor> master,
+                 bool device_reset = false)
+        : EnableDeviceReset{device_reset},
+          device_id_(device_id),
           master_(master),
           num_warps_per_sm_(0),
           num_multiprocessor_(0),
@@ -1038,7 +1079,8 @@ using DefaultExecutor = CudaExecutor;
  * @ingroup Executor
  */
 class HipExecutor : public detail::ExecutorBase<HipExecutor>,
-                    public std::enable_shared_from_this<HipExecutor> {
+                    public std::enable_shared_from_this<HipExecutor>,
+                    public detail::EnableDeviceReset {
     friend class detail::ExecutorBase<HipExecutor>;
 
 public:
@@ -1049,8 +1091,9 @@ public:
      * @param master  an executor on the host that is used to invoke the device
      *                kernels
      */
-    static std::shared_ptr<HipExecutor> create(
-        int device_id, std::shared_ptr<Executor> master);
+    static std::shared_ptr<HipExecutor> create(int device_id,
+                                               std::shared_ptr<Executor> master,
+                                               bool device_reset = false);
 
     ~HipExecutor() { decrease_num_execs(this->device_id_); }
 
@@ -1127,8 +1170,10 @@ protected:
 
     void init_handles();
 
-    HipExecutor(int device_id, std::shared_ptr<Executor> master)
-        : device_id_(device_id),
+    HipExecutor(int device_id, std::shared_ptr<Executor> master,
+                bool device_reset = false)
+        : EnableDeviceReset{device_reset},
+          device_id_(device_id),
           master_(master),
           num_multiprocessor_(0),
           num_warps_per_sm_(0),
