@@ -196,4 +196,33 @@ __global__ __launch_bounds__(default_block_size) void fill_in_csr(
 }
 
 
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void extract_diagonal(
+    size_type diag_size, size_type slice_size,
+    const size_type *__restrict__ orig_slice_sets,
+    const ValueType *__restrict__ orig_values,
+    const IndexType *__restrict__ orig_col_idxs, size_type diag_stride,
+    ValueType *__restrict__ diag)
+{
+    constexpr auto warp_size = config::warp_size;
+    auto warp_tile =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    const auto slice_id = thread::get_subwarp_id_flat<warp_size>();
+    const auto tid_in_warp = warp_tile.thread_rank();
+
+    for (size_type sellp_ind =
+             orig_slice_sets[slice_id] * slice_size + tid_in_warp;
+         sellp_ind < orig_slice_sets[slice_id + 1] * slice_size;
+         sellp_ind += warp_size) {
+        auto global_row = slice_id * slice_size + sellp_ind % slice_size;
+        if (global_row < diag_size) {
+            if (orig_col_idxs[sellp_ind] == global_row &&
+                orig_values[sellp_ind] != zero<ValueType>()) {
+                diag[global_row * diag_stride] = orig_values[sellp_ind];
+            }
+        }
+    }
+}
+
+
 }  // namespace kernel

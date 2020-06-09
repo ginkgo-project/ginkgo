@@ -178,6 +178,43 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_COUNT_NONZEROS_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
+                      const matrix::Sellp<ValueType, IndexType> *orig,
+                      matrix::Dense<ValueType> *diag)
+{
+    const auto diag_size = diag->get_size()[0];
+    const auto slice_size = orig->get_slice_size();
+    const auto slice_num = ceildiv(orig->get_size()[0], slice_size);
+
+    const auto orig_values = orig->get_const_values();
+    const auto orig_slice_sets = orig->get_const_slice_sets();
+    const auto orig_slice_lengths = orig->get_const_slice_lengths();
+    const auto orig_col_idxs = orig->get_const_col_idxs();
+
+#pragma omp parallel for
+    for (size_type slice = 0; slice < slice_num; slice++) {
+        for (size_type row = 0;
+             row < slice_size && slice_size * slice + row < diag_size; row++) {
+            auto global_row = slice_size * slice + row;
+            diag->at(global_row, 0) = zero<ValueType>();
+            for (size_type i = 0; i < orig_slice_lengths[slice]; i++) {
+                if (orig->col_at(row, orig_slice_sets[slice], i) ==
+                        global_row &&
+                    orig->val_at(row, orig_slice_sets[slice], i) !=
+                        zero<ValueType>()) {
+                    diag->at(global_row, 0) =
+                        orig->val_at(row, orig_slice_sets[slice], i);
+                }
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SELLP_EXTRACT_DIAGONAL_KERNEL);
+
+
 }  // namespace sellp
 }  // namespace omp
 }  // namespace kernels
