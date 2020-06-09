@@ -1,4 +1,4 @@
-# Contributing guidelines
+# Contributing guidelines                         {#contributing_guidelines}
 
 We are glad that you are interested in contributing to Ginkgo. Please have a
 look at our coding guidelines before proposing a pull request.
@@ -399,7 +399,7 @@ _Note_: Please see the detail in the `dev_tools/scripts/config`.
 #### Some general comments.
 
 1. Private headers of Ginkgo should not be included within the public Ginkgo header.
-2. It is a good idea to keep the headers self-sufficient, See [Google Style guide for reasoning](https://google.github.io/styleguide/cppguide.html#Self_contained_Headers). 
+2. It is a good idea to keep the headers self-sufficient, See [Google Style guide for reasoning](https://google.github.io/styleguide/cppguide.html#Self_contained_Headers).
 3. The recommendations of the `iwyu` (Include what you use) tool can be used to make sure that the headers are self-sufficient and that the compiled files ( `.cu`, '.cpp', `.hip.cpp` ) include only what they use. A [CI pipeline](https://gitlab.com/ginkgo-project/ginkgo-public-ci/-/jobs/584358356) is available that runs with the `iwyu` tool. Please be aware that this tool can be incorrect in some cases.
 
 #### Automatic header arrangement
