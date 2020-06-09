@@ -175,9 +175,9 @@ void givens_rotation(matrix::Dense<ValueType> *givens_sin,
 template <typename ValueType>
 void calculate_next_residual_norm(
     matrix::Dense<ValueType> *givens_sin, matrix::Dense<ValueType> *givens_cos,
-    matrix::Dense<ValueType> *residual_norm,
+    matrix::Dense<remove_complex<ValueType>> *residual_norm,
     matrix::Dense<ValueType> *residual_norm_collection,
-    const matrix::Dense<ValueType> *b_norm, size_type iter,
+    const matrix::Dense<remove_complex<ValueType>> *b_norm, size_type iter,
     const stopping_status *stop_status)
 {
 #pragma omp parallel for
@@ -247,21 +247,22 @@ void calculate_qy(const matrix::Dense<ValueType> *krylov_bases,
 template <typename ValueType>
 void initialize_1(std::shared_ptr<const OmpExecutor> exec,
                   const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *b_norm,
+                  matrix::Dense<remove_complex<ValueType>> *b_norm,
                   matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *givens_sin,
                   matrix::Dense<ValueType> *givens_cos,
                   Array<stopping_status> *stop_status, size_type krylov_dim)
 {
+    using norm_type = remove_complex<ValueType>;
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
         // Calculate b norm
-        ValueType norm = zero<ValueType>();
+        norm_type norm = zero<norm_type>();
 
-#pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)
+#pragma omp declare reduction(add:norm_type : omp_out = omp_out + omp_in)
 
 #pragma omp parallel for reduction(add : norm)
         for (size_type i = 0; i < b->get_size()[0]; ++i) {
-            norm += b->at(i, j) * b->at(i, j);
+            norm += squared_norm(b->at(i, j));
         }
         b_norm->at(0, j) = sqrt(norm);
 
@@ -285,19 +286,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
 template <typename ValueType>
 void initialize_2(std::shared_ptr<const OmpExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
-                  matrix::Dense<ValueType> *residual_norm,
+                  matrix::Dense<remove_complex<ValueType>> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
                   matrix::Dense<ValueType> *krylov_bases,
                   Array<size_type> *final_iter_nums, size_type krylov_dim)
 {
+    using norm_type = remove_complex<ValueType>;
     for (size_type j = 0; j < residual->get_size()[1]; ++j) {
         // Calculate residual norm
-        ValueType res_norm = zero<ValueType>();
-#pragma omp declare reduction(add:ValueType : omp_out = omp_out + omp_in)
+        norm_type res_norm = zero<norm_type>();
+#pragma omp declare reduction(add:norm_type : omp_out = omp_out + omp_in)
 
 #pragma omp parallel for reduction(add : res_norm)
         for (size_type i = 0; i < residual->get_size()[0]; ++i) {
-            res_norm += residual->at(i, j) * residual->at(i, j);
+            res_norm += squared_norm(residual->at(i, j));
         }
         residual_norm->at(0, j) = sqrt(res_norm);
         residual_norm_collection->at(0, j) = residual_norm->at(0, j);
@@ -317,12 +319,12 @@ template <typename ValueType>
 void step_1(std::shared_ptr<const OmpExecutor> exec, size_type num_rows,
             matrix::Dense<ValueType> *givens_sin,
             matrix::Dense<ValueType> *givens_cos,
-            matrix::Dense<ValueType> *residual_norm,
+            matrix::Dense<remove_complex<ValueType>> *residual_norm,
             matrix::Dense<ValueType> *residual_norm_collection,
             matrix::Dense<ValueType> *krylov_bases,
             matrix::Dense<ValueType> *hessenberg_iter,
-            const matrix::Dense<ValueType> *b_norm, size_type iter,
-            Array<size_type> *final_iter_nums,
+            const matrix::Dense<remove_complex<ValueType>> *b_norm,
+            size_type iter, Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status)
 {
 #pragma omp parallel for

@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -56,7 +57,12 @@ namespace {
 
 class Gmres : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
+    using value_type = gko::default_precision;
+    using index_type = gko::int32;
+    using Mtx = gko::matrix::Dense<value_type>;
+    using norm_type = gko::remove_complex<value_type>;
+    using NormVector = gko::matrix::Dense<norm_type>;
+
     Gmres() : rand_engine(30) {}
 
     void SetUp()
@@ -76,8 +82,8 @@ protected:
     {
         return gko::test::generate_random_matrix<Mtx>(
             num_rows, num_cols,
-            std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            std::uniform_int_distribution<index_type>(num_cols, num_cols),
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
     }
 
     void initialize_data()
@@ -152,12 +158,12 @@ protected:
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> y;
     std::unique_ptr<Mtx> b;
-    std::unique_ptr<Mtx> b_norm;
+    std::unique_ptr<NormVector> b_norm;
     std::unique_ptr<Mtx> krylov_bases;
     std::unique_ptr<Mtx> hessenberg;
     std::unique_ptr<Mtx> hessenberg_iter;
     std::unique_ptr<Mtx> residual;
-    std::unique_ptr<Mtx> residual_norm;
+    std::unique_ptr<NormVector> residual_norm;
     std::unique_ptr<Mtx> residual_norm_collection;
     std::unique_ptr<Mtx> givens_sin;
     std::unique_ptr<Mtx> givens_cos;
@@ -168,12 +174,12 @@ protected:
     std::unique_ptr<Mtx> d_before_preconditioner;
     std::unique_ptr<Mtx> d_y;
     std::unique_ptr<Mtx> d_b;
-    std::unique_ptr<Mtx> d_b_norm;
+    std::unique_ptr<NormVector> d_b_norm;
     std::unique_ptr<Mtx> d_krylov_bases;
     std::unique_ptr<Mtx> d_hessenberg;
     std::unique_ptr<Mtx> d_hessenberg_iter;
     std::unique_ptr<Mtx> d_residual;
-    std::unique_ptr<Mtx> d_residual_norm;
+    std::unique_ptr<NormVector> d_residual_norm;
     std::unique_ptr<Mtx> d_residual_norm_collection;
     std::unique_ptr<Mtx> d_givens_sin;
     std::unique_ptr<Mtx> d_givens_cos;

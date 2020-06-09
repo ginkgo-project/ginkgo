@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/base/math.hpp>
+
+
 #include "core/test/utils.hpp"
 
 
@@ -46,6 +49,7 @@ template <typename T>
 class ResidualNormReduction : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<T>;
+    using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
 
     ResidualNormReduction()
     {
@@ -66,7 +70,9 @@ TYPED_TEST_CASE(ResidualNormReduction, gko::test::ValueTypes);
 TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
 {
     using Mtx = typename TestFixture::Mtx;
+    using NormVector = typename TestFixture::NormVector;
     auto scalar = gko::initialize<Mtx>({1.0}, this->omp_);
+    auto norm = gko::initialize<NormVector>({1.0}, this->omp_);
     auto criterion =
         this->factory_->generate(nullptr, nullptr, nullptr, scalar.get());
     bool one_changed{};
@@ -76,21 +82,21 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
 
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(scalar.get())
+            .residual_norm(norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    scalar->at(0) = r<TypeParam>::value * 1.0e+2;
+    norm->at(0) = r<TypeParam>::value * 1.0e+2;
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(scalar.get())
+            .residual_norm(norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
     ASSERT_EQ(one_changed, false);
 
-    scalar->at(0) = r<TypeParam>::value * 1.0e-2;
+    norm->at(0) = r<TypeParam>::value * 1.0e-2;
     ASSERT_TRUE(
         criterion->update()
-            .residual_norm(scalar.get())
+            .residual_norm(norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
     ASSERT_EQ(one_changed, true);
@@ -100,8 +106,11 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
 TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
 {
     using Mtx = typename TestFixture::Mtx;
+    using NormVector = typename TestFixture::NormVector;
     using T = TypeParam;
+    using T_nc = gko::remove_complex<TypeParam>;
     auto mtx = gko::initialize<Mtx>({I<T>{1.0, 1.0}}, this->omp_);
+    auto norm = gko::initialize<NormVector>({I<T_nc>{1.0, 1.0}}, this->omp_);
     auto criterion =
         this->factory_->generate(nullptr, nullptr, nullptr, mtx.get());
     bool one_changed{};
@@ -110,18 +119,24 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
 
-    ASSERT_FALSE(criterion->update().residual_norm(mtx.get()).check(
-        RelativeStoppingId, true, &stop_status, &one_changed));
+    ASSERT_FALSE(
+        criterion->update()
+            .residual_norm(norm.get())
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    mtx->at(0, 0) = r<TypeParam>::value * 1.0e-2;
-    ASSERT_FALSE(criterion->update().residual_norm(mtx.get()).check(
-        RelativeStoppingId, true, &stop_status, &one_changed));
+    norm->at(0, 0) = r<TypeParam>::value * 1.0e-2;
+    ASSERT_FALSE(
+        criterion->update()
+            .residual_norm(norm.get())
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
     ASSERT_EQ(one_changed, true);
 
-    mtx->at(0, 1) = r<TypeParam>::value * 1.0e-2;
-    ASSERT_TRUE(criterion->update().residual_norm(mtx.get()).check(
-        RelativeStoppingId, true, &stop_status, &one_changed));
+    norm->at(0, 1) = r<TypeParam>::value * 1.0e-2;
+    ASSERT_TRUE(
+        criterion->update()
+            .residual_norm(norm.get())
+            .check(RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[1].has_converged(), true);
     ASSERT_EQ(one_changed, true);
 }
