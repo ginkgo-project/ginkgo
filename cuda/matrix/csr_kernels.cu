@@ -1360,9 +1360,9 @@ void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
                       const matrix::Csr<ValueType, IndexType> *orig,
                       matrix::Dense<ValueType> *diag)
 {
-    auto nnz = orig->get_num_stored_elements();
-    auto diag_size = diag->get_size()[0];
-    auto diag_stride = diag->get_stride();
+    const auto nnz = orig->get_num_stored_elements();
+    const auto diag_size = diag->get_size()[0];
+    const auto diag_stride = diag->get_stride();
     auto num_blocks =
         ceildiv(config::warp_size * diag_size, default_block_size);
 

@@ -377,10 +377,10 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
                       const matrix::Ell<ValueType, IndexType> *orig,
                       matrix::Dense<ValueType> *diag)
 {
-    auto max_nnz_per_row = orig->get_num_stored_elements_per_row();
-    auto orig_stride = orig->get_stride();
-    auto diag_size = diag->get_size()[0];
-    auto diag_stride = diag->get_stride();
+    const auto max_nnz_per_row = orig->get_num_stored_elements_per_row();
+    const auto orig_stride = orig->get_stride();
+    const auto diag_size = diag->get_size()[0];
+    const auto diag_stride = diag->get_stride();
     auto num_blocks = ceildiv(diag_size, default_block_size);
 
     const auto orig_values = orig->get_const_values();
