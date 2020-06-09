@@ -597,13 +597,18 @@ public:
 
     void convert_to(Csr<ValueType, IndexType> *result) const override
     {
+        bool same_executor = this->get_executor() == result->get_executor();
         // NOTE: as soon as strategies are improved, this can be reverted
         result->values_ = this->values_;
         result->col_idxs_ = this->col_idxs_;
         result->row_ptrs_ = this->row_ptrs_;
         result->srow_ = this->srow_;
         result->set_size(this->get_size());
-        result->set_strategy(std::move(this->get_strategy()->copy()));
+        if (!same_executor) {
+            convert_strategy_helper(result);
+        } else {
+            result->set_strategy(std::move(this->get_strategy()->copy()));
+        }
         // END NOTE
     }
 
@@ -867,6 +872,58 @@ protected:
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
+
+    // TODO clean this up as soon as we improve strategy_type
+    template <typename CsrType>
+    void convert_strategy_helper(CsrType *result) const
+    {
+        auto strat = this->get_strategy().get();
+        std::shared_ptr<typename CsrType::strategy_type> new_strat;
+        if (dynamic_cast<classical *>(strat)) {
+            new_strat = std::make_shared<typename CsrType::classical>();
+        } else if (dynamic_cast<merge_path *>(strat)) {
+            new_strat = std::make_shared<typename CsrType::merge_path>();
+        } else if (dynamic_cast<cusparse *>(strat)) {
+            new_strat = std::make_shared<typename CsrType::cusparse>();
+        } else if (dynamic_cast<sparselib *>(strat)) {
+            new_strat = std::make_shared<typename CsrType::sparselib>();
+        } else {
+            auto rexec = result->get_executor();
+            auto cuda_exec =
+                std::dynamic_pointer_cast<const CudaExecutor>(rexec);
+            auto hip_exec = std::dynamic_pointer_cast<const HipExecutor>(rexec);
+            auto lb = dynamic_cast<load_balance *>(strat);
+            if (cuda_exec) {
+                if (lb) {
+                    new_strat =
+                        std::make_shared<typename CsrType::load_balance>(
+                            cuda_exec);
+                } else {
+                    new_strat = std::make_shared<typename CsrType::automatical>(
+                        cuda_exec);
+                }
+            } else if (hip_exec) {
+                if (lb) {
+                    new_strat =
+                        std::make_shared<typename CsrType::load_balance>(
+                            hip_exec);
+                } else {
+                    new_strat = std::make_shared<typename CsrType::automatical>(
+                        hip_exec);
+                }
+            } else {
+                // FIXME this creates a long delay
+                if (lb) {
+                    new_strat =
+                        std::make_shared<typename CsrType::load_balance>();
+                } else {
+                    new_strat =
+                        std::make_shared<typename CsrType::automatical>();
+                }
+            }
+        }
+        result->set_strategy(new_strat);
+    }
 
     /**
      * Computes srow. It should be run after changing any row_ptrs_ value.
