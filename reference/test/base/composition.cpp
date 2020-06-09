@@ -346,4 +346,65 @@ TYPED_TEST(Composition, AppliesToVectorWithInitialGuess2)
 }
 
 
+TYPED_TEST(Composition, AppliesToVectorWithInitialGuess3)
+{
+    /*
+        cmp = I * DummyLinOp
+    */
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto cmp = gko::Composition<TypeParam>::create(
+        DummyLinOp<value_type>::create(this->exec, this->identity->get_size()),
+        this->identity);
+    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto res = clone(x);
+
+    cmp->apply(lend(x), lend(res));
+
+    GKO_ASSERT_MTX_NEAR(res, l({1.0, 2.0}), 0);
+}
+
+
+TYPED_TEST(Composition, AppliesToVectorWithInitialGuess4)
+{
+    /*
+        cmp = I * DummyLinOp(2x3) * DummyLinOp(3x2)
+    */
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto size1 = gko::dim<2>(3, 2);
+    auto size2 = gko::dim<2>(2, 3);
+    auto cmp = gko::Composition<TypeParam>::create(
+        this->identity, DummyLinOp<value_type>::create(this->exec, size2),
+        DummyLinOp<value_type>::create(this->exec, size1));
+    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto res = clone(x);
+
+    cmp->apply(lend(x), lend(res));
+
+    GKO_ASSERT_MTX_NEAR(res, l({0.0, 0.0}), 0);
+}
+
+
+TYPED_TEST(Composition, AppliesToVectorWithInitialGuess5)
+{
+    /*
+        cmp = DummyLinOp(2x3) * DummyLinOp(3x2) * I
+    */
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto size1 = gko::dim<2>(3, 2);
+    auto size2 = gko::dim<2>(2, 3);
+    auto cmp = gko::Composition<TypeParam>::create(
+        DummyLinOp<value_type>::create(this->exec, size2),
+        DummyLinOp<value_type>::create(this->exec, size1), this->identity);
+    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto res = clone(x);
+
+    cmp->apply(lend(x), lend(res));
+
+    GKO_ASSERT_MTX_NEAR(res, l({1.0, 2.0}), 0);
+}
+
+
 }  // namespace
