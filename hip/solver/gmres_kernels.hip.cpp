@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/base/hipblas_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"
@@ -166,7 +167,7 @@ void finish_arnoldi(std::shared_ptr<const HipExecutor> exec, size_type num_rows,
             // multidot_kernel which parallelize multiple rhs.
             components::fill_array(
                 exec, hessenberg_iter->get_values() + k * stride_hessenberg,
-                zero<ValueType>(), hessenberg_iter->get_size()[1]);
+                hessenberg_iter->get_size()[1], zero<ValueType>());
             hipLaunchKernelGGL(
                 multidot_kernel, dim3(grid_size), dim3(block_size), 0, 0, k,
                 num_rows, hessenberg_iter->get_size()[1],

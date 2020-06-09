@@ -47,7 +47,7 @@ namespace kernels {
 
 #define GKO_DECLARE_FILL_ARRAY_KERNEL(ValueType)                 \
     void fill_array(std::shared_ptr<const DefaultExecutor> exec, \
-                    ValueType *data, ValueType val, size_type num_entries)
+                    ValueType *data, size_type num_entries, ValueType val)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \
@@ -96,5 +96,6 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace kernels
 }  // namespace gko
+
 
 #endif  // GKO_CORE_COMPONENTS_FILL_ARRAY_HPP_

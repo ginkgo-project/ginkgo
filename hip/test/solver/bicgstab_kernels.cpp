@@ -150,8 +150,6 @@ protected:
         d_omega = Mtx::create(hip);
         d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
             new gko::Array<gko::stopping_status>(hip));
-        d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(hip));
 
         d_x->copy_from(x.get());
         d_b->copy_from(b.get());

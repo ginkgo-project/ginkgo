@@ -832,7 +832,6 @@ T plain_ptr(T ptr)
  **/
 #define GKO_ASSERT_ARRAY_EQ(_array1, _array2)                              \
     {                                                                      \
-        using ::gko::test::assertions::detail::plain_ptr;                  \
         EXPECT_PRED_FORMAT2(::gko::test::assertions::array_equal, _array1, \
                             _array2);                                      \
     }

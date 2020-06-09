@@ -85,8 +85,8 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
           const matrix::Coo<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    components::fill_array(exec, c->get_values(), zero<ValueType>(),
-                           c->get_num_stored_elements());
+    components::fill_array(exec, c->get_values(), c->get_num_stored_elements(),
+                           zero<ValueType>());
 
     spmv2(exec, a, b, c);
 }

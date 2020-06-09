@@ -122,8 +122,8 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
               Array<precision_reduction> &block_precisions,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
-    components::fill_array(exec, blocks.get_data(), zero<ValueType>(),
-                           blocks.get_num_elems());
+    components::fill_array(exec, blocks.get_data(), blocks.get_num_elems(),
+                           zero<ValueType>());
     select_generate(compiled_kernels(),
                     [&](int compiled_block_size) {
                         return max_block_size <= compiled_block_size;
