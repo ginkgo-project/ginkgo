@@ -405,6 +405,18 @@ TEST_F(Dense, MoveToSellpIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, ConvertsEmptyToSellp)
+{
+    auto dempty_mtx = Mtx::create(hip);
+    auto dsellp_mtx = gko::matrix::Sellp<>::create(hip);
+
+    dempty_mtx->convert_to(dsellp_mtx.get());
+
+    ASSERT_EQ(hip->copy_val_to_host(dsellp_mtx->get_const_slice_sets()), 0);
+    ASSERT_FALSE(dsellp_mtx->get_size());
+}
+
+
 TEST_F(Dense, CountNNZIsEquivalentToRef)
 {
     set_up_apply_data();

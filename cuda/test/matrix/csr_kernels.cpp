@@ -552,6 +552,18 @@ TEST_F(Csr, MoveToSellpIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, ConvertsEmptyToSellp)
+{
+    auto dempty_mtx = Mtx::create(cuda);
+    auto dsellp_mtx = gko::matrix::Sellp<>::create(cuda);
+
+    dempty_mtx->convert_to(dsellp_mtx.get());
+
+    ASSERT_EQ(cuda->copy_val_to_host(dsellp_mtx->get_const_slice_sets()), 0);
+    ASSERT_FALSE(dsellp_mtx->get_size());
+}
+
+
 TEST_F(Csr, CalculateTotalColsIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());

@@ -899,6 +899,38 @@ TYPED_TEST(Csr, MovesEmptyToCoo)
 }
 
 
+TYPED_TEST(Csr, ConvertsEmptyToEll)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Ell = gko::matrix::Ell<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Ell::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToEll)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Ell = gko::matrix::Ell<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Ell::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
 TYPED_TEST(Csr, ConvertsEmptyToSellp)
 {
     using ValueType = typename TestFixture::value_type;
