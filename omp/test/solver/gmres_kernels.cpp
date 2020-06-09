@@ -62,6 +62,8 @@ protected:
     using Mtx = gko::matrix::Dense<value_type>;
     using norm_type = gko::remove_complex<value_type>;
     using NormVector = gko::matrix::Dense<norm_type>;
+    template <typename T>
+    using Dense = typename gko::matrix::Dense<T>;
 
     Gmres() : rand_engine(30) {}
 
@@ -78,12 +80,13 @@ protected:
         }
     }
 
-    std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
+    template <typename ValueType = value_type, typename IndexType = index_type>
+    std::unique_ptr<Dense<ValueType>> gen_mtx(int num_rows, int num_cols)
     {
-        return gko::test::generate_random_matrix<Mtx>(
+        return gko::test::generate_random_matrix<Dense<ValueType>>(
             num_rows, num_cols,
-            std::uniform_int_distribution<index_type>(num_cols, num_cols),
-            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
+            std::uniform_int_distribution<IndexType>(num_cols, num_cols),
+            std::normal_distribution<ValueType>(-1.0, 1.0), rand_engine, ref);
     }
 
     void initialize_data()
@@ -94,13 +97,13 @@ protected:
         y = gen_mtx(gko::solver::default_krylov_dim, n);
         before_preconditioner = Mtx::create_with_config_of(x.get());
         b = gen_mtx(m, n);
-        b_norm = gen_mtx(1, n);
+        b_norm = gen_mtx<norm_type>(1, n);
         krylov_bases = gen_mtx(m * (gko::solver::default_krylov_dim + 1), n);
         hessenberg = gen_mtx(gko::solver::default_krylov_dim + 1,
                              gko::solver::default_krylov_dim * n);
         hessenberg_iter = gen_mtx(gko::solver::default_krylov_dim + 1, n);
         residual = gen_mtx(m, n);
-        residual_norm = gen_mtx(1, n);
+        residual_norm = gen_mtx<norm_type>(1, n);
         residual_norm_collection =
             gen_mtx(gko::solver::default_krylov_dim + 1, n);
         givens_sin = gen_mtx(gko::solver::default_krylov_dim, n);
@@ -123,7 +126,7 @@ protected:
         d_y->copy_from(y.get());
         d_b = Mtx::create(omp);
         d_b->copy_from(b.get());
-        d_b_norm = Mtx::create(omp);
+        d_b_norm = NormVector::create(omp);
         d_b_norm->copy_from(b_norm.get());
         d_krylov_bases = Mtx::create(omp);
         d_krylov_bases->copy_from(krylov_bases.get());
@@ -133,7 +136,7 @@ protected:
         d_hessenberg_iter->copy_from(hessenberg_iter.get());
         d_residual = Mtx::create(omp);
         d_residual->copy_from(residual.get());
-        d_residual_norm = Mtx::create(omp);
+        d_residual_norm = NormVector::create(omp);
         d_residual_norm->copy_from(residual_norm.get());
         d_residual_norm_collection = Mtx::create(omp);
         d_residual_norm_collection->copy_from(residual_norm_collection.get());

@@ -214,24 +214,9 @@ GKO_BIND_CUBLAS_DOT(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUBLAS_DOT
 
 
-#define GKO_BIND_CUBLAS_COMPLEX_NORM2(ValueType, CublasName)                 \
-    inline void norm2(cublasHandle_t handle, int n, const ValueType *x,      \
-                      int incx, ValueType *result)                           \
-    {                                                                        \
-        cudaMemset(result, 0, sizeof(ValueType));                            \
-        GKO_ASSERT_NO_CUBLAS_ERRORS(                                         \
-            CublasName(handle, n, as_culibs_type(x), incx,                   \
-                       reinterpret_cast<remove_complex<ValueType> *>(        \
-                           as_culibs_type(result))));                        \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
-
 #define GKO_BIND_CUBLAS_NORM2(ValueType, CublasName)                           \
     inline void norm2(cublasHandle_t handle, int n, const ValueType *x,        \
-                      int incx, ValueType *result)                             \
+                      int incx, remove_complex<ValueType> *result)             \
     {                                                                          \
         GKO_ASSERT_NO_CUBLAS_ERRORS(CublasName(handle, n, as_culibs_type(x),   \
                                                incx, as_culibs_type(result))); \
@@ -243,12 +228,11 @@ GKO_BIND_CUBLAS_DOT(ValueType, detail::not_implemented);
 
 GKO_BIND_CUBLAS_NORM2(float, cublasSnrm2);
 GKO_BIND_CUBLAS_NORM2(double, cublasDnrm2);
-GKO_BIND_CUBLAS_COMPLEX_NORM2(std::complex<float>, cublasScnrm2);
-GKO_BIND_CUBLAS_COMPLEX_NORM2(std::complex<double>, cublasDznrm2);
+GKO_BIND_CUBLAS_NORM2(std::complex<float>, cublasScnrm2);
+GKO_BIND_CUBLAS_NORM2(std::complex<double>, cublasDznrm2);
 template <typename ValueType>
 GKO_BIND_CUBLAS_NORM2(ValueType, detail::not_implemented);
 
-#undef GKO_BIND_CUBLAS_COMPLEX_NORM2
 #undef GKO_BIND_CUBLAS_NORM2
 
 
