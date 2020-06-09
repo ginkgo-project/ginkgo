@@ -81,7 +81,7 @@ constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 template <typename ValueType>
 void initialize_1(std::shared_ptr<const HipExecutor> exec,
                   const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *b_norm,
+                  matrix::Dense<remove_complex<ValueType>> *b_norm,
                   matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *givens_sin,
                   matrix::Dense<ValueType> *givens_cos,
@@ -110,7 +110,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
 template <typename ValueType>
 void initialize_2(std::shared_ptr<const HipExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
-                  matrix::Dense<ValueType> *residual_norm,
+                  matrix::Dense<remove_complex<ValueType>> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
                   matrix::Dense<ValueType> *krylov_bases,
                   Array<size_type> *final_iter_nums, size_type krylov_dim)
@@ -219,10 +219,10 @@ void givens_rotation(std::shared_ptr<const HipExecutor> exec,
                      matrix::Dense<ValueType> *givens_sin,
                      matrix::Dense<ValueType> *givens_cos,
                      matrix::Dense<ValueType> *hessenberg_iter,
-                     matrix::Dense<ValueType> *residual_norm,
+                     matrix::Dense<remove_complex<ValueType>> *residual_norm,
                      matrix::Dense<ValueType> *residual_norm_collection,
-                     const matrix::Dense<ValueType> *b_norm, size_type iter,
-                     const Array<stopping_status> *stop_status)
+                     const matrix::Dense<remove_complex<ValueType>> *b_norm,
+                     size_type iter, const Array<stopping_status> *stop_status)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
@@ -250,12 +250,12 @@ template <typename ValueType>
 void step_1(std::shared_ptr<const HipExecutor> exec, size_type num_rows,
             matrix::Dense<ValueType> *givens_sin,
             matrix::Dense<ValueType> *givens_cos,
-            matrix::Dense<ValueType> *residual_norm,
+            matrix::Dense<remove_complex<ValueType>> *residual_norm,
             matrix::Dense<ValueType> *residual_norm_collection,
             matrix::Dense<ValueType> *krylov_bases,
             matrix::Dense<ValueType> *hessenberg_iter,
-            const matrix::Dense<ValueType> *b_norm, size_type iter,
-            Array<size_type> *final_iter_nums,
+            const matrix::Dense<remove_complex<ValueType>> *b_norm,
+            size_type iter, Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status)
 {
     hipLaunchKernelGGL(
