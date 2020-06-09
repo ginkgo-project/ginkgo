@@ -785,7 +785,10 @@ private:
 
 /**
  * Controls whether the DeviceReset function should be called thanks to a
- * boolean.
+ * boolean. Note that in any case, `DeviceReset` is called only after destroying
+ * the last Ginkgo executor. Therefore, it is sufficient to set this flag to the
+ * last living executor in Ginkgo. Setting this flag to an executor which is not
+ * destroyed last has no effect.
  */
 class EnableDeviceReset {
 public:
