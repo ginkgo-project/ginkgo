@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
@@ -277,14 +278,16 @@ TYPED_TEST(Dense, ComputesNorm2)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
+    using T_nc = gko::remove_complex<T>;
+    using NormVector = gko::matrix::Dense<T_nc>;
     auto mtx(gko::initialize<Mtx>(
         {I<T>{1.0, 0.0}, I<T>{2.0, 3.0}, I<T>{2.0, 4.0}}, this->exec));
-    auto result = Mtx::create(this->exec, gko::dim<2>{1, 2});
+    auto result = NormVector::create(this->exec, gko::dim<2>{1, 2});
 
     mtx->compute_norm2(result.get());
 
-    EXPECT_EQ(result->at(0, 0), T{3.0});
-    EXPECT_EQ(result->at(0, 1), T{5.0});
+    EXPECT_EQ(result->at(0, 0), T_nc{3.0});
+    EXPECT_EQ(result->at(0, 1), T_nc{5.0});
 }
 
 

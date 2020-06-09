@@ -93,7 +93,6 @@ void Fcg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();
-    size_type num_vectors = dense_b->get_size()[1];
 
     auto one_op = initialize<Vector>({one<ValueType>()}, exec);
     auto neg_one_op = initialize<Vector>({-one<ValueType>()}, exec);

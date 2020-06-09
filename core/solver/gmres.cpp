@@ -97,6 +97,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix_);
 
     using Vector = matrix::Dense<ValueType>;
+    using NormVector = matrix::Dense<remove_complex<ValueType>>;
 
     constexpr uint8 RelativeStoppingId{1};
 
@@ -122,8 +123,8 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto residual_norm_collection =
         Vector::create(exec, dim<2>{krylov_dim_ + 1, dense_b->get_size()[1]});
     auto residual_norm =
-        Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
-    auto b_norm = Vector::create(exec, dim<2>{1, dense_b->get_size()[1]});
+        NormVector::create(exec, dim<2>{1, dense_b->get_size()[1]});
+    auto b_norm = NormVector::create(exec, dim<2>{1, dense_b->get_size()[1]});
     Array<size_type> final_iter_nums(this->get_executor(),
                                      dense_b->get_size()[1]);
     auto y = Vector::create(exec, dim<2>{krylov_dim_, dense_b->get_size()[1]});

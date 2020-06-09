@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -68,6 +69,7 @@ class ResidualNormReduction
                                          Criterion>;
 
 public:
+    using NormVector = matrix::Dense<remove_complex<ValueType>>;
     using Vector = matrix::Dense<ValueType>;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -106,15 +108,15 @@ protected:
         auto exec = factory->get_executor();
 
         auto dense_r = as<Vector>(args.initial_residual);
-        starting_tau_ = Vector::create(
+        starting_tau_ = NormVector::create(
             exec, dim<2>{1, args.initial_residual->get_size()[1]});
-        u_dense_tau_ = Vector::create_with_config_of(starting_tau_.get());
+        u_dense_tau_ = NormVector::create_with_config_of(starting_tau_.get());
         dense_r->compute_norm2(starting_tau_.get());
     }
 
 private:
-    std::unique_ptr<Vector> starting_tau_{};
-    std::unique_ptr<Vector> u_dense_tau_{};
+    std::unique_ptr<NormVector> starting_tau_{};
+    std::unique_ptr<NormVector> u_dense_tau_{};
     /* Contains device side: all_converged and one_changed booleans */
     Array<bool> device_storage_;
 };
