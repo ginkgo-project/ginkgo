@@ -94,7 +94,9 @@ TYPED_TEST(CsrBuilder, UpdatesSrowOnDestruction)
         {
             *was_called = true;
         }
+
         virtual int64_t clac_size(const int64_t nnz) override { return 0; }
+
         virtual std::shared_ptr<typename Mtx::strategy_type> copy() override
         {
             return std::make_shared<mock_strategy>(*was_called);
