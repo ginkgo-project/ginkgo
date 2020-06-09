@@ -133,7 +133,7 @@ std::shared_ptr<const CriterionFactory> combine(FactoryContainer &&factories)
         return factories[0];
     default:
         if (factories[0] == nullptr) {
-            // first factory must be vaild to capture executor
+            // first factory must be valid to capture executor
             GKO_NOT_SUPPORTED(nullptr);
             return nullptr;
         } else {
