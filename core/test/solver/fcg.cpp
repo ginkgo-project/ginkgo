@@ -169,7 +169,12 @@ TYPED_TEST(Fcg, CanSetPreconditionerGenerator)
                     .with_reduction_factor(
                         gko::remove_complex<value_type>(1e-6))
                     .on(this->exec))
-            .with_preconditioner(Solver::build().on(this->exec))
+            .with_preconditioner(
+                Solver::build()
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(3u).on(
+                            this->exec))
+                    .on(this->exec))
             .on(this->exec);
     auto solver = fcg_factory->generate(this->mtx);
     auto precond = dynamic_cast<const gko::solver::Fcg<value_type> *>(
