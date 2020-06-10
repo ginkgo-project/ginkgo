@@ -166,6 +166,7 @@ TYPED_TEST(Sellp, CanBeEmpty)
     this->assert_empty(mtx.get());
 }
 
+
 TYPED_TEST(Sellp, CanBeConstructedWithSliceSizeAndStrideFactor)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -237,6 +238,7 @@ TYPED_TEST(Sellp, CanBeReadFromMatrixData)
     this->assert_equal_to_original_mtx(m.get());
 }
 
+
 TYPED_TEST(Sellp, CanBeReadFromMatrixDataWithSliceSizeAndStrideFactor)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -252,6 +254,7 @@ TYPED_TEST(Sellp, CanBeReadFromMatrixDataWithSliceSizeAndStrideFactor)
     this->assert_equal_to_original_mtx_with_slice_size_and_stride_factor(
         m.get());
 }
+
 
 TYPED_TEST(Sellp, GeneratesCorrectMatrixData)
 {

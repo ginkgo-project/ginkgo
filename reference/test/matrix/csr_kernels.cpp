@@ -1121,6 +1121,7 @@ TYPED_TEST(Csr, NonSquareMtxIsTransposable)
     // clang-format on
 }
 
+
 TYPED_TEST(Csr, SquareMatrixIsRowPermutable)
 {
     using Csr = typename TestFixture::Mtx;

@@ -169,6 +169,7 @@ TYPED_TEST(Fcg, SolvesMultipleStencilSystemsUsingAdvancedApply)
                         r<value_type>::value * 1e1);
 }
 
+
 TYPED_TEST(Fcg, SolvesBigDenseSystem1)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -284,6 +285,7 @@ TYPED_TEST(Fcg, SolvesMultipleBigDenseSystems)
     GKO_ASSERT_MTX_NEAR(xc, mergedRes, r<value_type>::value);
 }
 
+
 TYPED_TEST(Fcg, SolvesTransposedBigDenseSystem)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -299,6 +301,7 @@ TYPED_TEST(Fcg, SolvesTransposedBigDenseSystem)
     GKO_ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}),
                         r<value_type>::value * 1e3);
 }
+
 
 TYPED_TEST(Fcg, SolvesConjTransposedBigDenseSystem)
 {
