@@ -912,13 +912,45 @@ protected:
                         hip_exec);
                 }
             } else {
-                // FIXME this creates a long delay
-                if (lb) {
-                    new_strat =
-                        std::make_shared<typename CsrType::load_balance>();
+                // Try to preserve this executor's configuration
+                auto this_cuda_exec =
+                    std::dynamic_pointer_cast<const CudaExecutor>(
+                        this->get_executor());
+                auto this_hip_exec =
+                    std::dynamic_pointer_cast<const HipExecutor>(
+                        this->get_executor());
+                if (this_cuda_exec) {
+                    if (lb) {
+                        new_strat =
+                            std::make_shared<typename CsrType::load_balance>(
+                                this_cuda_exec);
+                    } else {
+                        new_strat =
+                            std::make_shared<typename CsrType::automatical>(
+                                this_cuda_exec);
+                    }
+                } else if (this_hip_exec) {
+                    if (lb) {
+                        new_strat =
+                            std::make_shared<typename CsrType::load_balance>(
+                                this_hip_exec);
+                    } else {
+                        new_strat =
+                            std::make_shared<typename CsrType::automatical>(
+                                this_hip_exec);
+                    }
                 } else {
-                    new_strat =
-                        std::make_shared<typename CsrType::automatical>();
+                    // We had a load balance or automatical strategy from a non
+                    // HIP or Cuda executor and are moving to a non HIP or Cuda
+                    // executor.
+                    // FIXME this creates a long delay
+                    if (lb) {
+                        new_strat =
+                            std::make_shared<typename CsrType::load_balance>();
+                    } else {
+                        new_strat =
+                            std::make_shared<typename CsrType::automatical>();
+                    }
                 }
             }
         }
@@ -947,8 +979,8 @@ namespace detail {
 
 
 /**
- * When strategy is load_balance or automatical, rebuild the strategy according
- * to executor's property.
+ * When strategy is load_balance or automatical, rebuild the strategy
+ * according to executor's property.
  *
  * @param result  the csr matrix.
  */
