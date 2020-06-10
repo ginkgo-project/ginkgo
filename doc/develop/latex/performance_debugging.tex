@@ -467,7 +467,7 @@ Figure out where to run the code
 \DoxyCodeLine{    exec = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
 \DoxyCodeLine{\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc > 1 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"cuda"} \&\&}
 \DoxyCodeLine{           \mbox{\hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{gko::CudaExecutor::get\_num\_devices}}() > 0) \{}
-\DoxyCodeLine{    exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{    exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(), \textcolor{keyword}{true});}
 \DoxyCodeLine{\} \textcolor{keywordflow}{else} \{}
 \DoxyCodeLine{    print\_usage(argv[0]);}
 \DoxyCodeLine{\}}
@@ -1225,7 +1225,7 @@ Here is a sample output in the file log.\+txt\+:
 \DoxyCodeLine{        exec = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
 \DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc > 1 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"cuda"} \&\&}
 \DoxyCodeLine{               \mbox{\hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{gko::CudaExecutor::get\_num\_devices}}() > 0) \{}
-\DoxyCodeLine{        exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{        exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(), \textcolor{keyword}{true});}
 \DoxyCodeLine{    \} \textcolor{keywordflow}{else} \{}
 \DoxyCodeLine{        print\_usage(argv[0]);}
 \DoxyCodeLine{    \}}

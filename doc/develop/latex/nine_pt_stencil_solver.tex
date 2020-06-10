@@ -270,8 +270,8 @@ Figure out where to run the code
 \DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} omp = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
 \DoxyCodeLine{std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{}
 \DoxyCodeLine{    \{\textcolor{stringliteral}{"omp"}, omp\},}
-\DoxyCodeLine{    \{\textcolor{stringliteral}{"cuda"}, \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, omp)\},}
-\DoxyCodeLine{    \{\textcolor{stringliteral}{"hip"}, \mbox{\hyperlink{classgko_1_1HipExecutor_a81b123713b336ed6be2099b043cff409}{gko::HipExecutor::create}}(0, omp)\},}
+\DoxyCodeLine{    \{\textcolor{stringliteral}{"cuda"}, \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, omp, \textcolor{keyword}{true})\},}
+\DoxyCodeLine{    \{\textcolor{stringliteral}{"hip"}, \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(0, omp, \textcolor{keyword}{true})\},}
 \DoxyCodeLine{    \{\textcolor{stringliteral}{"reference"}, gko::ReferenceExecutor::create()\}\};}
 \end{DoxyCode}
 
@@ -696,8 +696,8 @@ The expected output of the relative error at K=10 should be
 \DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} omp = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
 \DoxyCodeLine{    std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{}
 \DoxyCodeLine{        \{\textcolor{stringliteral}{"omp"}, omp\},}
-\DoxyCodeLine{        \{\textcolor{stringliteral}{"cuda"}, \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, omp)\},}
-\DoxyCodeLine{        \{\textcolor{stringliteral}{"hip"}, \mbox{\hyperlink{classgko_1_1HipExecutor_a81b123713b336ed6be2099b043cff409}{gko::HipExecutor::create}}(0, omp)\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"cuda"}, \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, omp, \textcolor{keyword}{true})\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"hip"}, \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(0, omp, \textcolor{keyword}{true})\},}
 \DoxyCodeLine{        \{\textcolor{stringliteral}{"reference"}, gko::ReferenceExecutor::create()\}\};}
 \DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string);  \textcolor{comment}{// throws if not valid}}
 \DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec\_map[\textcolor{stringliteral}{"omp"}];}

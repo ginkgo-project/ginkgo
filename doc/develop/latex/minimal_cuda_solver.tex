@@ -36,7 +36,7 @@ Instantiate a C\+U\+DA executor
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{auto} gpu = \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{\textcolor{keyword}{auto} gpu = \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(), \textcolor{keyword}{true});}
 \end{DoxyCode}
 
 
@@ -157,7 +157,7 @@ The following is the expected result when using the data contained in the folder
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keywordtype}{int} main()}
 \DoxyCodeLine{\{}
-\DoxyCodeLine{    \textcolor{keyword}{auto} gpu = \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{    \textcolor{keyword}{auto} gpu = \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(), \textcolor{keyword}{true});}
 \DoxyCodeLine{    \textcolor{keyword}{auto} A = gko::read<gko::matrix::Csr<>>(std::cin, gpu);}
 \DoxyCodeLine{    \textcolor{keyword}{auto} b = gko::read<gko::matrix::Dense<>>(std::cin, gpu);}
 \DoxyCodeLine{    \textcolor{keyword}{auto} x = gko::read<gko::matrix::Dense<>>(std::cin, gpu);}

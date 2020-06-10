@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/153590948 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/154522753 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -85,7 +85,7 @@ $(function() {
 <div class="dynheader">
 Collaboration diagram for gko::HipExecutor:</div>
 <div class="dyncontent">
-<div class="center"><div class="zoom"><iframe scrolling="no" frameborder="0" src="classgko_1_1HipExecutor__coll__graph.svg" width="100%" height="388"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
+<div class="center"><div class="zoom"><iframe scrolling="no" frameborder="0" src="classgko_1_1HipExecutor__coll__graph.svg" width="100%" height="437"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
 </div>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
@@ -141,9 +141,9 @@ int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
-<tr class="memitem:a81b123713b336ed6be2099b043cff409"><td class="memItemLeft" align="right" valign="top">static std::shared_ptr&lt; <a class="el" href="classgko_1_1HipExecutor.html">HipExecutor</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1HipExecutor.html#a81b123713b336ed6be2099b043cff409">create</a> (int device_id, std::shared_ptr&lt; <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; master)</td></tr>
-<tr class="memdesc:a81b123713b336ed6be2099b043cff409"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new <a class="el" href="classgko_1_1HipExecutor.html" title="This is the Executor subclass which represents the HIP enhanced device.">HipExecutor</a>.  <a href="classgko_1_1HipExecutor.html#a81b123713b336ed6be2099b043cff409">More...</a><br /></td></tr>
-<tr class="separator:a81b123713b336ed6be2099b043cff409"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abee0dc3dfc064c9edbdc02c2b3b11264"><td class="memItemLeft" align="right" valign="top">static std::shared_ptr&lt; <a class="el" href="classgko_1_1HipExecutor.html">HipExecutor</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1HipExecutor.html#abee0dc3dfc064c9edbdc02c2b3b11264">create</a> (int device_id, std::shared_ptr&lt; <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; master, bool device_reset=false)</td></tr>
+<tr class="memdesc:abee0dc3dfc064c9edbdc02c2b3b11264"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new <a class="el" href="classgko_1_1HipExecutor.html" title="This is the Executor subclass which represents the HIP enhanced device.">HipExecutor</a>.  <a href="classgko_1_1HipExecutor.html#abee0dc3dfc064c9edbdc02c2b3b11264">More...</a><br /></td></tr>
+<tr class="separator:abee0dc3dfc064c9edbdc02c2b3b11264"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7b34cbd84692dafa2290e6630754aa97"><td class="memItemLeft" align="right" valign="top"><a id="a7b34cbd84692dafa2290e6630754aa97"></a>
 static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1HipExecutor.html#a7b34cbd84692dafa2290e6630754aa97">get_num_devices</a> ()</td></tr>
 <tr class="memdesc:a7b34cbd84692dafa2290e6630754aa97"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the number of devices present on the system. <br /></td></tr>
@@ -152,8 +152,8 @@ static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>This is the <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor.">Executor</a> subclass which represents the HIP enhanced device. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a id="a81b123713b336ed6be2099b043cff409"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a81b123713b336ed6be2099b043cff409">&#9670;&nbsp;</a></span>create()</h2>
+<a id="abee0dc3dfc064c9edbdc02c2b3b11264"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abee0dc3dfc064c9edbdc02c2b3b11264">&#9670;&nbsp;</a></span>create()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -171,7 +171,13 @@ static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">std::shared_ptr&lt; <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt;&#160;</td>
-          <td class="paramname"><em>master</em>&#160;</td>
+          <td class="paramname"><em>master</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>device_reset</em> = <code>false</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -350,7 +356,7 @@ static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/base/<a class="el" href="executor_8hpp_source.html">executor.hpp (8e9aa9083)</a></li>
+<li>ginkgo/core/base/<a class="el" href="executor_8hpp_source.html">executor.hpp (14205b615)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

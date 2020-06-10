@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/153590948 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/154522753 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -85,7 +85,7 @@ $(function() {
 <div class="dynheader">
 Collaboration diagram for gko::CudaExecutor:</div>
 <div class="dyncontent">
-<div class="center"><div class="zoom"><iframe scrolling="no" frameborder="0" src="classgko_1_1CudaExecutor__coll__graph.svg" width="100%" height="388"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
+<div class="center"><div class="zoom"><iframe scrolling="no" frameborder="0" src="classgko_1_1CudaExecutor__coll__graph.svg" width="100%" height="437"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
 </div>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
@@ -141,9 +141,9 @@ int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
-<tr class="memitem:a2718a92034350650ef406ffdb60db090"><td class="memItemLeft" align="right" valign="top">static std::shared_ptr&lt; <a class="el" href="classgko_1_1CudaExecutor.html">CudaExecutor</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#a2718a92034350650ef406ffdb60db090">create</a> (int device_id, std::shared_ptr&lt; <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; master)</td></tr>
-<tr class="memdesc:a2718a92034350650ef406ffdb60db090"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new <a class="el" href="classgko_1_1CudaExecutor.html" title="This is the Executor subclass which represents the CUDA device.">CudaExecutor</a>.  <a href="classgko_1_1CudaExecutor.html#a2718a92034350650ef406ffdb60db090">More...</a><br /></td></tr>
-<tr class="separator:a2718a92034350650ef406ffdb60db090"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa577135e082f9be20617e9d66209ca25"><td class="memItemLeft" align="right" valign="top">static std::shared_ptr&lt; <a class="el" href="classgko_1_1CudaExecutor.html">CudaExecutor</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#aa577135e082f9be20617e9d66209ca25">create</a> (int device_id, std::shared_ptr&lt; <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; master, bool device_reset=false)</td></tr>
+<tr class="memdesc:aa577135e082f9be20617e9d66209ca25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new <a class="el" href="classgko_1_1CudaExecutor.html" title="This is the Executor subclass which represents the CUDA device.">CudaExecutor</a>.  <a href="classgko_1_1CudaExecutor.html#aa577135e082f9be20617e9d66209ca25">More...</a><br /></td></tr>
+<tr class="separator:aa577135e082f9be20617e9d66209ca25"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aef0258494d14de0e56149b920c5173e5"><td class="memItemLeft" align="right" valign="top"><a id="aef0258494d14de0e56149b920c5173e5"></a>
 static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#aef0258494d14de0e56149b920c5173e5">get_num_devices</a> ()</td></tr>
 <tr class="memdesc:aef0258494d14de0e56149b920c5173e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the number of devices present on the system. <br /></td></tr>
@@ -152,8 +152,8 @@ static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>This is the <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor.">Executor</a> subclass which represents the CUDA device. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a id="a2718a92034350650ef406ffdb60db090"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2718a92034350650ef406ffdb60db090">&#9670;&nbsp;</a></span>create()</h2>
+<a id="aa577135e082f9be20617e9d66209ca25"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa577135e082f9be20617e9d66209ca25">&#9670;&nbsp;</a></span>create()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -171,7 +171,13 @@ static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">std::shared_ptr&lt; <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt;&#160;</td>
-          <td class="paramname"><em>master</em>&#160;</td>
+          <td class="paramname"><em>master</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>device_reset</em> = <code>false</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -350,7 +356,7 @@ static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/base/<a class="el" href="executor_8hpp_source.html">executor.hpp (8e9aa9083)</a></li>
+<li>ginkgo/core/base/<a class="el" href="executor_8hpp_source.html">executor.hpp (14205b615)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
