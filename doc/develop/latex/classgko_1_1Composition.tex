@@ -53,6 +53,12 @@ The \mbox{\hyperlink{classgko_1_1Composition}{Composition}} class can be used to
 \item opn.
 \end{DoxyItemize}
 
+All Lin\+Ops of the \mbox{\hyperlink{classgko_1_1Composition}{Composition}} must operate on Dense inputs. For an operator {\ttfamily op\+\_\+k} that require an initial guess for their {\ttfamily apply}, \mbox{\hyperlink{classgko_1_1Composition}{Composition}} provides either
+\begin{DoxyItemize}
+\item the output of the previous {\ttfamily op\+\_\+\{k+1\}-\/$>$apply} if {\ttfamily op\+\_\+k} has square dimension
+\item zero if {\ttfamily op\+\_\+k} is rectangular as an initial guess.
+\end{DoxyItemize}
+
 
 \begin{DoxyTemplParams}{Template Parameters}
 {\em Value\+Type} & precision of input and result vectors \\
@@ -79,4 +85,4 @@ a list of operators
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/composition.\+hpp (43d6cccf4)\end{DoxyCompactItemize}
+ginkgo/core/base/composition.\+hpp (52295abfa)\end{DoxyCompactItemize}

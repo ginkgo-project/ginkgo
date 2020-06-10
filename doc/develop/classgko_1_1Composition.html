@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/154717377 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/154811897 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -252,6 +252,10 @@ class gko::Composition&lt; ValueType &gt;</h3>
 <ul>
 <li>opn.</li>
 </ul>
+<p>All LinOps of the <a class="el" href="classgko_1_1Composition.html" title="The Composition class can be used to compose linear operators op1, op2, ..., opn and obtain the opera...">Composition</a> must operate on Dense inputs. For an operator <code>op_k</code> that require an initial guess for their <code>apply</code>, <a class="el" href="classgko_1_1Composition.html" title="The Composition class can be used to compose linear operators op1, op2, ..., opn and obtain the opera...">Composition</a> provides either</p><ul>
+<li>the output of the previous <code>op_{k+1}-&gt;apply</code> if <code>op_k</code> has square dimension</li>
+<li>zero if <code>op_k</code> is rectangular as an initial guess.</li>
+</ul>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
     <tr><td class="paramname">ValueType</td><td>precision of input and result vectors </td></tr>
@@ -290,7 +294,7 @@ template&lt;typename ValueType  = default_precision&gt; </div>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/base/<a class="el" href="composition_8hpp_source.html">composition.hpp (43d6cccf4)</a></li>
+<li>ginkgo/core/base/<a class="el" href="composition_8hpp_source.html">composition.hpp (52295abfa)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
