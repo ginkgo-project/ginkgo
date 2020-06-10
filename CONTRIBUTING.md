@@ -5,7 +5,7 @@ look at our coding guidelines before proposing a pull request.
 
 ## Table of Contents
 
-[Most Important stuff](#most-important-stuff)
+[Most Important stuff](#most-important-stuff-a-tldr)
 
 [Project Structure](#project-structure)
  * [Extended header files](#extended-header-files)
@@ -40,8 +40,8 @@ look at our coding guidelines before proposing a pull request.
  * [Whitespaces](#whitespaces)
  * [Documenting examples](#documenting-examples)
 
-[Other general programming comments](#other-general-programming-comments)
- * [C++ standard stream objects](#c++-standard-stream-objects)
+[Other programming comments](#other-programming-comments)
+ * [C++ standard stream objects](#c-standard-stream-objects)
  * [Warnings](#warnings)
  * [Avoiding circular dependencies](#avoiding-circular-dependencies)
 
@@ -400,7 +400,7 @@ _Note_: Please see the detail in the `dev_tools/scripts/config`.
 
 1. Private headers of Ginkgo should not be included within the public Ginkgo header.
 2. It is a good idea to keep the headers self-sufficient, See [Google Style guide for reasoning](https://google.github.io/styleguide/cppguide.html#Self_contained_Headers).
-3. The recommendations of the `iwyu` (Include what you use) tool can be used to make sure that the headers are self-sufficient and that the compiled files ( `.cu`, '.cpp', `.hip.cpp` ) include only what they use. A [CI pipeline](https://gitlab.com/ginkgo-project/ginkgo-public-ci/-/jobs/584358356) is available that runs with the `iwyu` tool. Please be aware that this tool can be incorrect in some cases.
+3. The recommendations of the `iwyu` (Include what you use) tool can be used to make sure that the headers are self-sufficient and that the compiled files ( `.cu`, `.cpp`, `.hip.cpp` ) include only what they use. A [CI pipeline](https://gitlab.com/ginkgo-project/ginkgo-public-ci/-/jobs/584358356) is available that runs with the `iwyu` tool. Please be aware that this tool can be incorrect in some cases.
 
 #### Automatic header arrangement
 
@@ -480,11 +480,11 @@ in the folder where the script is run, which lists all the TODO's. These TODO's 
 also be found in the corresponding files.
 
 ### Converting CUDA code to HIP code
-
-This script calls the `hipify` script provided by HIP converting the CUDA syntax
+We provide a `cuda2hip` script that converts `cuda` kernel code into `hip` kernel code. 
+Internally, this script calls the [`hipify` script](https://github.com/ROCm-Developer-Tools/HIPIFY) provided by HIP, converting the CUDA syntax
 to HIP syntax. Additionally, it also automatically replaces the instances of
 CUDA with HIP as appropriate. Hence, this script can be called on a Ginkgo CUDA
-file.
+file. You can find this script in the `dev_tools/scripts/` folder.
 
 
 ## Writing Tests
