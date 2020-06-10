@@ -302,6 +302,17 @@ std::unique_ptr<vec<ValueType>> create_matrix(
 }
 
 
+// creates a matrix with all values set to `val`
+template <typename ValueType>
+std::unique_ptr<vec<ValueType>> create_matrix(
+    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size, ValueType val)
+{
+    auto res = vec<ValueType>::create(exec);
+    res->read(gko::matrix_data<ValueType>(size, val));
+    return res;
+}
+
+
 // creates a random matrix
 template <typename ValueType, typename RandomEngine>
 std::unique_ptr<vec<ValueType>> create_matrix(

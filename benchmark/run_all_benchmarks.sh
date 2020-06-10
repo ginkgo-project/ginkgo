@@ -60,12 +60,25 @@ if [ ! "${DEVICE_ID}" ]; then
     DEVICE_ID="0"
 fi
 
+if [ ! "${NUM_RHS}" ]; then
+    echo "NUM_RHS environment variable not set - assuming \"1\"" 1>&2
+    NUM_RHS="1"
+fi
+
 # Control whether to run detailed benchmarks or not.
 # Default setting is detailed=false. To activate, set DETAILED=1.
 if  [ ! "${DETAILED}" ] || [ "${DETAILED}" -eq 0 ]; then
     DETAILED_STR="--detailed=false"
 else
     DETAILED_STR="--detailed=true"
+fi
+
+# Control whether to randomize the right hand side.
+# Default setting is randomize=true. To deactivate, set RANDOMIZE_RHS=0.
+if  [ ! "${RANDOMIZE_RHS}" ] || [ "${RANDOMIZE_RHS}" -ne 0 ]; then
+    RANDOMIZE_STR="--randomize_rhs=true"
+else
+    RANDOMIZE_STR="--randomize_rhs=false"
 fi
 
 # This allows using a matrix list file for benchmarking.
@@ -167,7 +180,7 @@ run_solver_benchmarks() {
                     --executor="${EXECUTOR}" --solvers="${SOLVERS}" \
                     --preconditioners="${PRECONDS}" \
                     --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
-                    ${DETAILED_STR} --device_id="${DEVICE_ID}" \
+                    ${DETAILED_STR} ${RANDOMIZE_STR} --nrhs=${NUM_RHS} --device_id="${DEVICE_ID}" \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
