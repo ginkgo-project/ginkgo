@@ -26,7 +26,7 @@ jobs:
         mkdir build
         cd build
         cmake .. -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }}
-        make -j8 
+        make -j8
         ctest -j10 --output-on-failure
     - name: install
       run: |

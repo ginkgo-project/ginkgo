@@ -60,7 +60,6 @@ jobs:
         cd build
         cmake --install . --config ${{ matrix.config.build_type }}
         cmake --build . --target test_install --config ${{ matrix.config.build_type }}
-
   windows_mingw:
     strategy:
       fail-fast: false
