@@ -103,6 +103,7 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
               public ConvertibleTo<Sellp<ValueType, int64>>,
               public ConvertibleTo<SparsityCsr<ValueType, int32>>,
               public ConvertibleTo<SparsityCsr<ValueType, int64>>,
+              public DiagonalExtractable<Dense<ValueType>, Dense<ValueType>>,
               public ReadableFromMatrixData<ValueType, int32>,
               public ReadableFromMatrixData<ValueType, int64>,
               public WritableToMatrixData<ValueType, int32>,
@@ -261,13 +262,6 @@ public:
     {
         return values_.get_const_data();
     }
-
-    /**
-     * Extracts the diagonal entries of the matrix into a vector.
-     *
-     * @param diag  the vector into which the diagonal will be written
-     */
-    void extract_diagonal(Dense<ValueType> *diag) const;
 
 
     /**
@@ -540,6 +534,8 @@ protected:
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
+
+    void extract_diagonal_impl(Dense<ValueType> *diag) const override;
 
     size_type linearize_index(size_type row, size_type col) const noexcept
     {

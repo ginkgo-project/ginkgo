@@ -116,19 +116,21 @@ void strategy_rebuild_helper(Csr<ValueType, IndexType> *result);
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
-            public EnableCreateMethod<Csr<ValueType, IndexType>>,
-            public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>,
-            public ConvertibleTo<Dense<ValueType>>,
-            public ConvertibleTo<Coo<ValueType, IndexType>>,
-            public ConvertibleTo<Ell<ValueType, IndexType>>,
-            public ConvertibleTo<Hybrid<ValueType, IndexType>>,
-            public ConvertibleTo<Sellp<ValueType, IndexType>>,
-            public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
-            public ReadableFromMatrixData<ValueType, IndexType>,
-            public WritableToMatrixData<ValueType, IndexType>,
-            public Transposable,
-            public Permutable<IndexType> {
+class Csr
+    : public EnableLinOp<Csr<ValueType, IndexType>>,
+      public EnableCreateMethod<Csr<ValueType, IndexType>>,
+      public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>,
+      public ConvertibleTo<Dense<ValueType>>,
+      public ConvertibleTo<Coo<ValueType, IndexType>>,
+      public ConvertibleTo<Ell<ValueType, IndexType>>,
+      public ConvertibleTo<Hybrid<ValueType, IndexType>>,
+      public ConvertibleTo<Sellp<ValueType, IndexType>>,
+      public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
+      public DiagonalExtractable<Dense<ValueType>, Csr<ValueType, IndexType>>,
+      public ReadableFromMatrixData<ValueType, IndexType>,
+      public WritableToMatrixData<ValueType, IndexType>,
+      public Transposable,
+      public Permutable<IndexType> {
     friend class EnableCreateMethod<Csr>;
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
@@ -827,13 +829,6 @@ public:
         this->make_srow();
     }
 
-    /**
-     * Extracts the diagonal entries of the matrix into a vector.
-     *
-     * @param diag  the vector into which the diagonal will be written
-     */
-    void extract_diagonal(Dense<value_type> *diag) const;
-
 protected:
     /**
      * Creates an uninitialized CSR matrix of the specified size.
@@ -990,6 +985,8 @@ protected:
         }
         result->set_strategy(new_strat);
     }
+
+    void extract_diagonal_impl(Dense<ValueType> *diag) const override;
 
     /**
      * Computes srow. It should be run after changing any row_ptrs_ value.

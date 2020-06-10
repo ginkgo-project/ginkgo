@@ -592,6 +592,40 @@ private:
 
 
 /**
+ * The diagonal of a LinOp implementing this interface can be extracted.
+ *
+ * @ingroup LinOp
+ */
+template <typename ResultType, typename PolymorphicBase = LinOp>
+class DiagonalExtractable {
+public:
+    using result_type = ResultType;
+
+    virtual ~DiagonalExtractable() = default;
+
+    /**
+     * Extracts the diagonal entries of the matrix into a vector.
+     *
+     * @param diag  the vector into which the diagonal will be written
+     */
+    void extract_diagonal(result_type *diag) const
+    {
+        GKO_ASSERT_EQ(std::min(self()->get_size()[0], self()->get_size()[1]),
+                      diag->get_size()[0]);
+        GKO_ASSERT_EQ(diag->get_size()[1], 1);
+
+        auto exec = self()->get_executor();
+        extract_diagonal_impl(
+            as<result_type>(make_temporary_clone(exec, diag).get()));
+    }
+
+protected:
+    GKO_ENABLE_SELF(PolymorphicBase);
+
+    virtual void extract_diagonal_impl(result_type *diag) const = 0;
+};
+
+/**
  * The EnableLinOp mixin can be used to provide sensible default implementations
  * of the majority of the LinOp and PolymorphicObject interface.
  *
