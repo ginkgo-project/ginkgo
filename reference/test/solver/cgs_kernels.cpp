@@ -288,7 +288,7 @@ TYPED_TEST(Cgs, SolvesTransposedBigDenseSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
-    auto solver = this->cgs_factory_big->generate(this->mtx_big);
+    auto solver = this->cgs_factory_big->generate(this->mtx_big->transpose());
     auto b = gko::initialize<Mtx>(
         {764.0, -4032.0, -11855.0, 7111.0, -12765.0, -4589}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
@@ -304,7 +304,8 @@ TYPED_TEST(Cgs, SolvesConjTransposedBigDenseSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
-    auto solver = this->cgs_factory_big->generate(this->mtx_big);
+    auto solver =
+        this->cgs_factory_big->generate(this->mtx_big->conj_transpose());
     auto b = gko::initialize<Mtx>(
         {764.0, -4032.0, -11855.0, 7111.0, -12765.0, -4589}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);

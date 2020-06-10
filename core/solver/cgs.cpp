@@ -62,14 +62,26 @@ GKO_REGISTER_OPERATION(step_3, cgs::step_3);
 template <typename ValueType>
 std::unique_ptr<LinOp> Cgs<ValueType>::transpose() const
 {
-    return this->clone();
+    return build()
+        .with_generated_preconditioner(
+            share(as<Transposable>(this->get_preconditioner())->transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .on(this->get_executor())
+        ->generate(
+            share(as<Transposable>(this->get_system_matrix())->transpose()));
 }
 
 
 template <typename ValueType>
 std::unique_ptr<LinOp> Cgs<ValueType>::conj_transpose() const
 {
-    return this->clone();
+    return build()
+        .with_generated_preconditioner(share(
+            as<Transposable>(this->get_preconditioner())->conj_transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .on(this->get_executor())
+        ->generate(share(
+            as<Transposable>(this->get_system_matrix())->conj_transpose()));
 }
 
 
