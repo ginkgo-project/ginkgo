@@ -295,6 +295,7 @@ TYPED_TEST(Jacobi, InvertsDiagonalBlocks)
     GKO_EXPECT_NEAR(b2[2 + 2 * p], T{14.0 / 48.0}, r<T>::value);
 }
 
+
 TYPED_TEST(Jacobi, InvertsDiagonalBlocksWithAdaptivePrecision)
 {
     using T = typename TestFixture::value_type;
@@ -353,6 +354,7 @@ TYPED_TEST(Jacobi, CanTransposeDiagonalBlocks)
     GKO_EXPECT_NEAR(b2[2 + 2 * p], T{14.0 / 48.0}, r<T>::value);
 }
 
+
 TYPED_TEST(Jacobi, CanTransposeDiagonalBlocksWithAdaptivePrecision)
 {
     using T = typename TestFixture::value_type;
@@ -410,6 +412,7 @@ TYPED_TEST(Jacobi, CanConjTransposeDiagonalBlocks)
     GKO_EXPECT_NEAR(b2[1 + 2 * p], T{4.0 / 48.0}, r<T>::value);
     GKO_EXPECT_NEAR(b2[2 + 2 * p], T{14.0 / 48.0}, r<T>::value);
 }
+
 
 TYPED_TEST(Jacobi, CanConjTransposeDiagonalBlocksWithAdaptivePrecision)
 {

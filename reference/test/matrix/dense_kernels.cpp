@@ -403,6 +403,7 @@ TYPED_TEST(Dense, MovesToCoo32)
     EXPECT_EQ(v[3], T{5.0});
 }
 
+
 TYPED_TEST(Dense, ConvertsToCoo64)
 {
     using T = typename TestFixture::value_type;
