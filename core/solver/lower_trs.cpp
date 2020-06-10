@@ -65,32 +65,20 @@ GKO_REGISTER_OPERATION(solve, lower_trs::solve);
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> LowerTrs<ValueType, IndexType>::transpose() const
 {
-    std::unique_ptr<transposed_type> transposed{
-        new transposed_type{this->get_executor()}};
-    transposed->set_size(gko::transpose(this->get_size()));
-    transposed->system_matrix_ = share(as<matrix::Csr<ValueType, IndexType>>(
-        this->get_system_matrix()->transpose()));
-    transposed->parameters_.num_rhs = this->parameters_.num_rhs;
-    transposed->init_trs_solve_struct();
-    transposed->generate();
-
-    return std::move(transposed);
+    return transposed_type::build()
+        .with_num_rhs(this->parameters_.num_rhs)
+        .on(this->get_executor())
+        ->generate(share(this->get_system_matrix()->transpose()));
 }
 
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> LowerTrs<ValueType, IndexType>::conj_transpose() const
 {
-    std::unique_ptr<transposed_type> transposed{
-        new transposed_type{this->get_executor()}};
-    transposed->set_size(gko::transpose(this->get_size()));
-    transposed->system_matrix_ = share(as<matrix::Csr<ValueType, IndexType>>(
-        this->get_system_matrix()->conj_transpose()));
-    transposed->parameters_.num_rhs = this->parameters_.num_rhs;
-    transposed->init_trs_solve_struct();
-    transposed->generate();
-
-    return std::move(transposed);
+    return transposed_type::build()
+        .with_num_rhs(this->parameters_.num_rhs)
+        .on(this->get_executor())
+        ->generate(share(this->get_system_matrix()->conj_transpose()));
 }
 
 
