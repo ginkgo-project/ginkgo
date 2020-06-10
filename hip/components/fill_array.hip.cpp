@@ -30,69 +30,47 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/fill_array.hpp"
 
 
-#include <memory>
-#include <random>
-#include <vector>
+#include <hip/hip_runtime.h>
 
 
-#include <gtest/gtest.h>
+#include <ginkgo/core/base/math.hpp>
 
 
-#include <ginkgo/core/base/array.hpp>
+#include "hip/base/types.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
 
 
-#include "core/test/utils.hpp"
+namespace gko {
+namespace kernels {
+namespace hip {
+namespace components {
+
+constexpr int default_block_size = 512;
 
 
-namespace {
+#include "common/components/fill_array.hpp.inc"
 
 
-template <typename T>
-class PrefixSum : public ::testing::Test {
-protected:
-    using index_type = T;
-    PrefixSum()
-        : ref(gko::ReferenceExecutor::create()),
-          exec(gko::OmpExecutor::create()),
-          rand(293),
-          total_size(42793),
-          vals(ref, total_size),
-          dvals(exec)
-    {
-        std::uniform_int_distribution<index_type> dist(0, 1000);
-        for (gko::size_type i = 0; i < total_size; ++i) {
-            vals.get_data()[i] = dist(rand);
-        }
-        dvals = vals;
-    }
-
-    void test(gko::size_type size)
-    {
-        gko::kernels::reference::components::prefix_sum(ref, vals.get_data(),
-                                                        size);
-        gko::kernels::omp::components::prefix_sum(exec, dvals.get_data(), size);
-
-        GKO_ASSERT_ARRAY_EQ(vals, dvals);
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::OmpExecutor> exec;
-    std::default_random_engine rand;
-    gko::size_type total_size;
-    gko::Array<index_type> vals;
-    gko::Array<index_type> dvals;
-};
-
-TYPED_TEST_CASE(PrefixSum, gko::test::IndexTypes);
+template <typename ValueType>
+void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType *array,
+                size_type n, ValueType val)
+{
+    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
+    hipLaunchKernelGGL(kernel::fill_array, dim3(grid_size), dim3(block_size), 0,
+                       0, n, as_hip_type(array), as_hip_type(val));
+}
 
 
-TYPED_TEST(PrefixSum, SmallEqualsReference) { this->test(100); }
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
+template GKO_DECLARE_FILL_ARRAY_KERNEL(size_type);
 
 
-TYPED_TEST(PrefixSum, BigEqualsReference) { this->test(this->total_size); }
-
-
-}  // namespace
+}  // namespace components
+}  // namespace hip
+}  // namespace kernels
+}  // namespace gko

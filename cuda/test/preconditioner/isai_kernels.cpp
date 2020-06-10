@@ -133,8 +133,8 @@ TEST_F(Isai, CudaIsaiGenerateLinverseShortIsEquivalentToRef)
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, r<value_type>::value);
-    GKO_ASSERT_ARRAY_EQ(&a1, &da1);
-    GKO_ASSERT_ARRAY_EQ(&a2, &da2);
+    GKO_ASSERT_ARRAY_EQ(a1, da1);
+    GKO_ASSERT_ARRAY_EQ(a2, da2);
     ASSERT_EQ(a1.get_const_data()[num_rows], 0);
 }
 
@@ -156,8 +156,8 @@ TEST_F(Isai, CudaIsaiGenerateUinverseShortIsEquivalentToRef)
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, r<value_type>::value);
-    GKO_ASSERT_ARRAY_EQ(&a1, &da1);
-    GKO_ASSERT_ARRAY_EQ(&a2, &da2);
+    GKO_ASSERT_ARRAY_EQ(a1, da1);
+    GKO_ASSERT_ARRAY_EQ(a2, da2);
     ASSERT_EQ(a1.get_const_data()[num_rows], 0);
 }
 
@@ -179,8 +179,8 @@ TEST_F(Isai, CudaIsaiGenerateLinverseLongIsEquivalentToRef)
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, r<value_type>::value);
-    GKO_ASSERT_ARRAY_EQ(&a1, &da1);
-    GKO_ASSERT_ARRAY_EQ(&a2, &da2);
+    GKO_ASSERT_ARRAY_EQ(a1, da1);
+    GKO_ASSERT_ARRAY_EQ(a2, da2);
     ASSERT_GT(a1.get_const_data()[num_rows], 0);
 }
 
@@ -202,8 +202,8 @@ TEST_F(Isai, CudaIsaiGenerateUinverseLongIsEquivalentToRef)
 
     GKO_ASSERT_MTX_EQ_SPARSITY(inverse, d_inverse);
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, r<value_type>::value);
-    GKO_ASSERT_ARRAY_EQ(&a1, &da1);
-    GKO_ASSERT_ARRAY_EQ(&a2, &da2);
+    GKO_ASSERT_ARRAY_EQ(a1, da1);
+    GKO_ASSERT_ARRAY_EQ(a2, da2);
     ASSERT_GT(a1.get_const_data()[num_rows], 0);
 }
 

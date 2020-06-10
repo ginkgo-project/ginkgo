@@ -290,8 +290,8 @@ TEST_F(ParIlu, KernelInitializeRowPtrsLUEquivalentToRef)
         l_row_ptrs_array_ref.get_data(), u_row_ptrs_array_ref.get_data(),
         l_row_ptrs_array_cuda.get_data(), u_row_ptrs_array_cuda.get_data());
 
-    GKO_ASSERT_ARRAY_EQ(&l_row_ptrs_array_ref, &l_row_ptrs_array_cuda);
-    GKO_ASSERT_ARRAY_EQ(&u_row_ptrs_array_ref, &u_row_ptrs_array_cuda);
+    GKO_ASSERT_ARRAY_EQ(l_row_ptrs_array_ref, l_row_ptrs_array_cuda);
+    GKO_ASSERT_ARRAY_EQ(u_row_ptrs_array_ref, u_row_ptrs_array_cuda);
 }
 
 

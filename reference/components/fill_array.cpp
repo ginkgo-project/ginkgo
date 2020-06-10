@@ -30,19 +30,28 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include "core/components/fill_array.hpp"
 
-namespace kernel {
+
+namespace gko {
+namespace kernels {
+namespace reference {
+namespace components {
 
 
 template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void zero_array(
-    size_type n, ValueType *__restrict__ array)
+void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType *array,
+                size_type n, ValueType val)
 {
-    const auto tidx = thread::get_thread_id_flat();
-    if (tidx < n) {
-        array[tidx] = zero<ValueType>();
-    }
+    std::fill_n(array, n, val);
 }
 
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
+template GKO_DECLARE_FILL_ARRAY_KERNEL(size_type);
 
-}  // namespace kernel
+
+}  // namespace components
+}  // namespace reference
+}  // namespace kernels
+}  // namespace gko

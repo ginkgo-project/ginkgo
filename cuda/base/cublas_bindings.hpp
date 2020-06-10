@@ -42,7 +42,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
-#include "cuda/components/zero_array.hpp"
 
 
 namespace gko {
@@ -219,7 +218,7 @@ GKO_BIND_CUBLAS_DOT(ValueType, detail::not_implemented);
     inline void norm2(cublasHandle_t handle, int n, const ValueType *x,      \
                       int incx, ValueType *result)                           \
     {                                                                        \
-        zero_array(1, result);                                               \
+        cudaMemset(result, 0, sizeof(ValueType));                            \
         GKO_ASSERT_NO_CUBLAS_ERRORS(                                         \
             CublasName(handle, n, as_culibs_type(x), incx,                   \
                        reinterpret_cast<remove_complex<ValueType> *>(        \

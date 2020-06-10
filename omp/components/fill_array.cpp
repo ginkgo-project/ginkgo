@@ -30,38 +30,31 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "cuda/components/zero_array.hpp"
-
-
-#include "cuda/components/thread_ids.cuh"
+#include "core/components/fill_array.hpp"
 
 
 namespace gko {
 namespace kernels {
-namespace cuda {
-
-
-constexpr int default_block_size = 512;
-
-
-#include "common/components/zero_array.hpp.inc"
+namespace omp {
+namespace components {
 
 
 template <typename ValueType>
-void zero_array(size_type n, ValueType *array)
+void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType *array,
+                size_type n, ValueType val)
 {
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(ceildiv(n, block_size.x), 1, 1);
-    kernel::zero_array<<<grid_size, block_size, 0, 0>>>(n, as_cuda_type(array));
+#pragma omp parallel for
+    for (size_type i = 0; i < n; ++i) {
+        array[i] = val;
+    }
 }
 
-
-#define GKO_DECLARE_ZERO_ARRAY(_type) \
-    void zero_array<_type>(size_type n, _type * array);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_ZERO_ARRAY);
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ZERO_ARRAY);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
+template GKO_DECLARE_FILL_ARRAY_KERNEL(size_type);
 
 
-}  // namespace cuda
+}  // namespace components
+}  // namespace omp
 }  // namespace kernels
 }  // namespace gko

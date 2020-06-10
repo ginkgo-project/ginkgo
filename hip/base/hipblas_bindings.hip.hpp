@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
-#include "hip/components/zero_array.hip.hpp"
 
 
 namespace gko {
@@ -231,7 +230,7 @@ GKO_BIND_HIPBLAS_DOT(ValueType, detail::not_implemented);
     inline void norm2(hipblasHandle_t handle, int n, const ValueType *x,     \
                       int incx, ValueType *result)                           \
     {                                                                        \
-        zero_array(1, result);                                               \
+        hipMemset(result, 0, sizeof(ValueType));                             \
         GKO_ASSERT_NO_HIPBLAS_ERRORS(                                        \
             CublasName(handle, n, as_hiplibs_type(x), incx,                  \
                        reinterpret_cast<remove_complex<ValueType> *>(        \

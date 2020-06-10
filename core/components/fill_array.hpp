@@ -30,69 +30,72 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/prefix_sum.hpp"
+#ifndef GKO_CORE_COMPONENTS_FILL_ARRAY_HPP_
+#define GKO_CORE_COMPONENTS_FILL_ARRAY_HPP_
 
 
 #include <memory>
-#include <random>
-#include <vector>
 
 
-#include <gtest/gtest.h>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
-#include <ginkgo/core/base/array.hpp>
+namespace gko {
+namespace kernels {
 
 
-#include "core/test/utils.hpp"
+#define GKO_DECLARE_FILL_ARRAY_KERNEL(ValueType)                 \
+    void fill_array(std::shared_ptr<const DefaultExecutor> exec, \
+                    ValueType *data, size_type num_entries, ValueType val)
 
 
-namespace {
+#define GKO_DECLARE_ALL_AS_TEMPLATES \
+    template <typename IndexType>    \
+    GKO_DECLARE_FILL_ARRAY_KERNEL(IndexType)
 
 
-template <typename T>
-class PrefixSum : public ::testing::Test {
-protected:
-    using index_type = T;
-    PrefixSum()
-        : ref(gko::ReferenceExecutor::create()),
-          exec(gko::OmpExecutor::create()),
-          rand(293),
-          total_size(42793),
-          vals(ref, total_size),
-          dvals(exec)
-    {
-        std::uniform_int_distribution<index_type> dist(0, 1000);
-        for (gko::size_type i = 0; i < total_size; ++i) {
-            vals.get_data()[i] = dist(rand);
-        }
-        dvals = vals;
-    }
+namespace omp {
+namespace components {
 
-    void test(gko::size_type size)
-    {
-        gko::kernels::reference::components::prefix_sum(ref, vals.get_data(),
-                                                        size);
-        gko::kernels::omp::components::prefix_sum(exec, dvals.get_data(), size);
+GKO_DECLARE_ALL_AS_TEMPLATES;
 
-        GKO_ASSERT_ARRAY_EQ(vals, dvals);
-    }
-
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::OmpExecutor> exec;
-    std::default_random_engine rand;
-    gko::size_type total_size;
-    gko::Array<index_type> vals;
-    gko::Array<index_type> dvals;
-};
-
-TYPED_TEST_CASE(PrefixSum, gko::test::IndexTypes);
+}  // namespace components
+}  // namespace omp
 
 
-TYPED_TEST(PrefixSum, SmallEqualsReference) { this->test(100); }
+namespace cuda {
+namespace components {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace components
+}  // namespace cuda
 
 
-TYPED_TEST(PrefixSum, BigEqualsReference) { this->test(this->total_size); }
+namespace reference {
+namespace components {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace components
+}  // namespace reference
 
 
-}  // namespace
+namespace hip {
+namespace components {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace components
+}  // namespace hip
+
+
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
+
+
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif  // GKO_CORE_COMPONENTS_FILL_ARRAY_HPP_

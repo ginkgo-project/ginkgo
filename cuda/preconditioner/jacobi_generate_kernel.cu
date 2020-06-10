@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/extended_float.hpp"
+#include "core/components/fill_array.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/config.hpp"
@@ -48,7 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
 #include "cuda/components/warp_blas.cuh"
-#include "cuda/components/zero_array.hpp"
 #include "cuda/preconditioner/jacobi_common.hpp"
 
 
@@ -122,7 +122,8 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
               Array<precision_reduction> &block_precisions,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
-    zero_array(blocks.get_num_elems(), blocks.get_data());
+    components::fill_array(exec, blocks.get_data(), blocks.get_num_elems(),
+                           zero<ValueType>());
     select_generate(compiled_kernels(),
                     [&](int compiled_block_size) {
                         return max_block_size <= compiled_block_size;

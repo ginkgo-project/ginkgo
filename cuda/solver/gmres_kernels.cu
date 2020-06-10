@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "cuda/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/base/math.hpp"
@@ -159,8 +160,9 @@ void finish_arnoldi(std::shared_ptr<const CudaExecutor> exec,
             // TODO: this condition should be tuned
             // single rhs will use vendor's dot, otherwise, use our own
             // multidot_kernel which parallelize multiple rhs.
-            zero_array(hessenberg_iter->get_size()[1],
-                       hessenberg_iter->get_values() + k * stride_hessenberg);
+            components::fill_array(
+                exec, hessenberg_iter->get_values() + k * stride_hessenberg,
+                hessenberg_iter->get_size()[1], zero<ValueType>());
             multidot_kernel<<<grid_size, block_size>>>(
                 k, num_rows, hessenberg_iter->get_size()[1],
                 as_cuda_type(k_krylov_bases), as_cuda_type(next_krylov_basis),

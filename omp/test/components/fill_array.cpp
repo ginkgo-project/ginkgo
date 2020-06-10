@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/fill_array.hpp"
 
 
 #include <memory>
@@ -51,48 +51,36 @@ namespace {
 
 
 template <typename T>
-class PrefixSum : public ::testing::Test {
+class FillArray : public ::testing::Test {
 protected:
-    using index_type = T;
-    PrefixSum()
+    using value_type = T;
+    FillArray()
         : ref(gko::ReferenceExecutor::create()),
           exec(gko::OmpExecutor::create()),
-          rand(293),
-          total_size(42793),
+          total_size(63531),
           vals(ref, total_size),
-          dvals(exec)
+          dvals(exec, total_size)
     {
-        std::uniform_int_distribution<index_type> dist(0, 1000);
-        for (gko::size_type i = 0; i < total_size; ++i) {
-            vals.get_data()[i] = dist(rand);
-        }
-        dvals = vals;
-    }
-
-    void test(gko::size_type size)
-    {
-        gko::kernels::reference::components::prefix_sum(ref, vals.get_data(),
-                                                        size);
-        gko::kernels::omp::components::prefix_sum(exec, dvals.get_data(), size);
-
-        GKO_ASSERT_ARRAY_EQ(vals, dvals);
+        std::fill_n(vals.get_data(), total_size, T(1523));
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<gko::OmpExecutor> exec;
-    std::default_random_engine rand;
     gko::size_type total_size;
-    gko::Array<index_type> vals;
-    gko::Array<index_type> dvals;
+    gko::Array<value_type> vals;
+    gko::Array<value_type> dvals;
 };
 
-TYPED_TEST_CASE(PrefixSum, gko::test::IndexTypes);
+TYPED_TEST_CASE(FillArray, gko::test::ValueAndIndexTypes);
 
 
-TYPED_TEST(PrefixSum, SmallEqualsReference) { this->test(100); }
-
-
-TYPED_TEST(PrefixSum, BigEqualsReference) { this->test(this->total_size); }
+TYPED_TEST(FillArray, EqualsReference)
+{
+    using T = typename TestFixture::value_type;
+    gko::kernels::omp::components::fill_array(
+        this->exec, this->dvals.get_data(), this->total_size, T(1523));
+    GKO_ASSERT_ARRAY_EQ(this->vals, this->dvals);
+}
 
 
 }  // namespace

@@ -30,34 +30,60 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CUDA_COMPONENTS_ZERO_ARRAY_HPP_
-#define GKO_CUDA_COMPONENTS_ZERO_ARRAY_HPP_
+// force-top: on
+// TODO remove when the HIP includes are fixed
+#include <hip/hip_runtime.h>
+// force-top: off
 
 
-#include "cuda/base/math.hpp"
-#include "cuda/base/types.hpp"
+#include "core/components/fill_array.hpp"
 
 
-namespace gko {
-namespace kernels {
-namespace cuda {
+#include <memory>
+#include <random>
+#include <vector>
 
 
-/**
- * Zeroes an array allocated on a CUDA device.
- *
- * @tparam ValueType  the type of the array's elements
- *
- * @param n  the size of the array
- * @param array  the array to fill with zeros
- **/
-template <typename ValueType>
-void zero_array(size_type n, ValueType *array);
+#include <gtest/gtest.h>
 
 
-}  // namespace cuda
-}  // namespace kernels
-}  // namespace gko
+#include <ginkgo/core/base/array.hpp>
 
 
-#endif  // GKO_CUDA_COMPONENTS_ZERO_ARRAY_HPP_
+#include "core/test/utils/assertions.hpp"
+#include "hip/test/utils.hip.hpp"
+
+
+namespace {
+
+
+class FillArray : public ::testing::Test {
+protected:
+    using value_type = double;
+    FillArray()
+        : ref(gko::ReferenceExecutor::create()),
+          exec(gko::HipExecutor::create(0, ref)),
+          total_size(6344),
+          vals(ref, total_size),
+          dvals(exec, total_size)
+    {
+        std::fill_n(vals.get_data(), total_size, 1234.0);
+    }
+
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::HipExecutor> exec;
+    gko::size_type total_size;
+    gko::Array<value_type> vals;
+    gko::Array<value_type> dvals;
+};
+
+
+TEST_F(FillArray, EqualsReference)
+{
+    gko::kernels::hip::components::fill_array(exec, dvals.get_data(),
+                                              total_size, 1234.0);
+    GKO_ASSERT_ARRAY_EQ(vals, dvals);
+}
+
+
+}  // namespace

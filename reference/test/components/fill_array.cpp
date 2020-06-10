@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/components/prefix_sum.hpp"
+#include "core/components/fill_array.hpp"
 
 
 #include <memory>
@@ -44,56 +44,41 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 
 
-#include "cuda/test/utils.hpp"
+#include "core/test/utils.hpp"
 
 
 namespace {
 
 
-class PrefixSum : public ::testing::Test {
+template <typename T>
+class FillArray : public ::testing::Test {
 protected:
-    using index_type = gko::int32;
-    PrefixSum()
+    using value_type = T;
+    FillArray()
         : ref(gko::ReferenceExecutor::create()),
-          exec(gko::CudaExecutor::create(0, ref)),
-          rand(293),
-          total_size(42793),
-          vals(ref, total_size),
-          dvals(exec)
+          total_size(6344),
+          expected(ref, total_size),
+          vals(ref, total_size)
     {
-        std::uniform_int_distribution<index_type> dist(0, 1000);
-        for (gko::size_type i = 0; i < total_size; ++i) {
-            vals.get_data()[i] = dist(rand);
-        }
-        dvals = vals;
-    }
-
-    void test(gko::size_type size)
-    {
-        gko::kernels::reference::components::prefix_sum(ref, vals.get_data(),
-                                                        size);
-        gko::kernels::cuda::components::prefix_sum(exec, dvals.get_data(),
-                                                   size);
-
-        gko::Array<index_type> dresult(ref, dvals);
-        auto dptr = dresult.get_const_data();
-        auto ptr = vals.get_const_data();
-        ASSERT_TRUE(std::equal(ptr, ptr + size, dptr));
+        std::fill_n(expected.get_data(), total_size, T(6453));
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::CudaExecutor> exec;
-    std::default_random_engine rand;
     gko::size_type total_size;
-    gko::Array<index_type> vals;
-    gko::Array<index_type> dvals;
+    gko::Array<value_type> expected;
+    gko::Array<value_type> vals;
 };
 
+TYPED_TEST_CASE(FillArray, gko::test::ValueAndIndexTypes);
 
-TEST_F(PrefixSum, SmallEqualsReference) { test(100); }
 
-
-TEST_F(PrefixSum, BigEqualsReference) { test(total_size); }
+TYPED_TEST(FillArray, EqualsReference)
+{
+    using T = typename TestFixture::value_type;
+    gko::kernels::reference::components::fill_array(
+        this->ref, this->vals.get_data(), this->total_size, T(6453));
+    GKO_ASSERT_ARRAY_EQ(this->vals, this->expected);
+}
 
 
 }  // namespace

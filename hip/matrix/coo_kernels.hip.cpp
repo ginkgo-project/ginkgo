@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/base/hipsparse_bindings.hip.hpp"
@@ -53,7 +54,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/format_conversion.hip.hpp"
 #include "hip/components/segment_scan.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
-#include "hip/components/zero_array.hip.hpp"
 
 
 namespace gko {
@@ -85,7 +85,8 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
           const matrix::Coo<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    zero_array(c->get_num_stored_elements(), c->get_values());
+    components::fill_array(exec, c->get_values(), c->get_num_stored_elements(),
+                           zero<ValueType>());
 
     spmv2(exec, a, b, c);
 }
