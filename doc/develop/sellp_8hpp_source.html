@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/matrix/sellp.hpp (8a86dad58) Source File</title>
+<title>Ginkgo: ginkgo/core/matrix/sellp.hpp (9a3dc7c52) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/154522753 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/154676864 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -252,42 +252,40 @@ $(function() {
 <div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160;        : EnableLinOp&lt;Sellp&gt;(exec, size),</div>
 <div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160;          values_(exec, slice_size * total_cols),</div>
 <div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160;          col_idxs_(exec, slice_size * total_cols),</div>
-<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160;          slice_lengths_(exec,</div>
-<div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160;                         (size[0] == 0) ? 0 : <a class="code" href="namespacegko.html#a93065a86872e6511b701b73b75823483">ceildiv</a>(size[0], slice_size)),</div>
-<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160;          slice_sets_(exec,</div>
-<div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;                      (size[0] == 0) ? 0 : <a class="code" href="namespacegko.html#a93065a86872e6511b701b73b75823483">ceildiv</a>(size[0], slice_size) + 1),</div>
-<div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160;          slice_size_(slice_size),</div>
-<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160;          stride_factor_(stride_factor),</div>
-<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160;          total_cols_(total_cols)</div>
-<div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160;    {}</div>
+<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160;          slice_lengths_(exec, <a class="code" href="namespacegko.html#a93065a86872e6511b701b73b75823483">ceildiv</a>(size[0], slice_size)),</div>
+<div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160;          slice_sets_(exec, <a class="code" href="namespacegko.html#a93065a86872e6511b701b73b75823483">ceildiv</a>(size[0], slice_size) + 1),</div>
+<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160;          slice_size_(slice_size),</div>
+<div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;          stride_factor_(stride_factor),</div>
+<div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160;          total_cols_(total_cols)</div>
+<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160;    {}</div>
+<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160; </div>
+<div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160;    <span class="keywordtype">void</span> apply_impl(<span class="keyword">const</span> LinOp *b, LinOp *x) <span class="keyword">const override</span>;</div>
 <div class="line"><a name="l00324"></a><span class="lineno">  324</span>&#160; </div>
-<div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160;    <span class="keywordtype">void</span> apply_impl(<span class="keyword">const</span> LinOp *b, LinOp *x) <span class="keyword">const override</span>;</div>
-<div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160; </div>
-<div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160;    <span class="keywordtype">void</span> apply_impl(<span class="keyword">const</span> LinOp *alpha, <span class="keyword">const</span> LinOp *b, <span class="keyword">const</span> LinOp *beta,</div>
-<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160;                    LinOp *x) <span class="keyword">const override</span>;</div>
-<div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160; </div>
-<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;    <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> linearize_index(<a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> row, <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> slice_set,</div>
-<div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160;                              <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> col) <span class="keyword">const</span> noexcept</div>
-<div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160;    {</div>
-<div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160;        <span class="keywordflow">return</span> (slice_set + col) * slice_size_ + row;</div>
-<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;    }</div>
-<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160; </div>
-<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;<span class="keyword">private</span>:</div>
-<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;    Array&lt;value_type&gt; values_{0};</div>
-<div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160;    Array&lt;index_type&gt; col_idxs_{0};</div>
-<div class="line"><a name="l00339"></a><span class="lineno">  339</span>&#160;    Array&lt;size_type&gt; slice_lengths_{0};</div>
-<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160;    Array&lt;size_type&gt; slice_sets_{0};</div>
-<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160;    <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> slice_size_;</div>
-<div class="line"><a name="l00342"></a><span class="lineno">  342</span>&#160;    <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> stride_factor_;</div>
-<div class="line"><a name="l00343"></a><span class="lineno">  343</span>&#160;    <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> total_cols_{0};</div>
-<div class="line"><a name="l00344"></a><span class="lineno">  344</span>&#160;};</div>
-<div class="line"><a name="l00345"></a><span class="lineno">  345</span>&#160; </div>
-<div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160; </div>
-<div class="line"><a name="l00347"></a><span class="lineno">  347</span>&#160;}  <span class="comment">// namespace matrix</span></div>
-<div class="line"><a name="l00348"></a><span class="lineno">  348</span>&#160;}  <span class="comment">// namespace gko</span></div>
-<div class="line"><a name="l00349"></a><span class="lineno">  349</span>&#160; </div>
-<div class="line"><a name="l00350"></a><span class="lineno">  350</span>&#160; </div>
-<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_MATRIX_SELLP_HPP_</span></div>
+<div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160;    <span class="keywordtype">void</span> apply_impl(<span class="keyword">const</span> LinOp *alpha, <span class="keyword">const</span> LinOp *b, <span class="keyword">const</span> LinOp *beta,</div>
+<div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160;                    LinOp *x) <span class="keyword">const override</span>;</div>
+<div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160; </div>
+<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160;    <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> linearize_index(<a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> row, <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> slice_set,</div>
+<div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160;                              <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> col) <span class="keyword">const</span> noexcept</div>
+<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;    {</div>
+<div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160;        <span class="keywordflow">return</span> (slice_set + col) * slice_size_ + row;</div>
+<div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160;    }</div>
+<div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160; </div>
+<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;<span class="keyword">private</span>:</div>
+<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160;    Array&lt;value_type&gt; values_{0};</div>
+<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;    Array&lt;index_type&gt; col_idxs_{0};</div>
+<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;    Array&lt;size_type&gt; slice_lengths_{0};</div>
+<div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160;    Array&lt;size_type&gt; slice_sets_{0};</div>
+<div class="line"><a name="l00339"></a><span class="lineno">  339</span>&#160;    <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> slice_size_;</div>
+<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160;    <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> stride_factor_;</div>
+<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160;    <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> total_cols_{0};</div>
+<div class="line"><a name="l00342"></a><span class="lineno">  342</span>&#160;};</div>
+<div class="line"><a name="l00343"></a><span class="lineno">  343</span>&#160; </div>
+<div class="line"><a name="l00344"></a><span class="lineno">  344</span>&#160; </div>
+<div class="line"><a name="l00345"></a><span class="lineno">  345</span>&#160;}  <span class="comment">// namespace matrix</span></div>
+<div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00347"></a><span class="lineno">  347</span>&#160; </div>
+<div class="line"><a name="l00348"></a><span class="lineno">  348</span>&#160; </div>
+<div class="line"><a name="l00349"></a><span class="lineno">  349</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_MATRIX_SELLP_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="aclassgko_1_1matrix_1_1Sellp_html_a1b5bcac41afe4dee75994ad05c1ffc81"><div class="ttname"><a href="classgko_1_1matrix_1_1Sellp.html#a1b5bcac41afe4dee75994ad05c1ffc81">gko::matrix::Sellp::get_const_slice_sets</a></div><div class="ttdeci">const size_type * get_const_slice_sets() const noexcept</div><div class="ttdoc">Returns the offsets of slices.</div><div class="ttdef"><b>Definition:</b> sellp.hpp:181</div></div>
 <div class="ttc" id="aclassgko_1_1matrix_1_1Sellp_html_a34c7942cac3db5a9c4c0b609d2a5540b"><div class="ttname"><a href="classgko_1_1matrix_1_1Sellp.html#a34c7942cac3db5a9c4c0b609d2a5540b">gko::matrix::Sellp::get_stride_factor</a></div><div class="ttdeci">size_type get_stride_factor() const noexcept</div><div class="ttdoc">Returns the stride factor(t) of SELL-P.</div><div class="ttdef"><b>Definition:</b> sellp.hpp:198</div></div>
