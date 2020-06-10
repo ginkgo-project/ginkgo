@@ -265,13 +265,9 @@ void Hybrid<ValueType, IndexType>::write(mat_data &data) const
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::extract_diagonal(
+void Hybrid<ValueType, IndexType>::extract_diagonal_impl(
     Dense<ValueType> *diag) const
 {
-    GKO_ASSERT_EQ(std::min(this->get_size()[0], this->get_size()[1]),
-                  diag->get_size()[0]);
-    GKO_ASSERT_EQ(diag->get_size()[1], 1);
-
     auto exec = this->get_executor();
     exec->run(hybrid::make_extract_diagonal(this, diag));
 }

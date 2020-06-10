@@ -74,13 +74,15 @@ class CooBuilder;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
-            public EnableCreateMethod<Coo<ValueType, IndexType>>,
-            public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
-            public ConvertibleTo<Csr<ValueType, IndexType>>,
-            public ConvertibleTo<Dense<ValueType>>,
-            public ReadableFromMatrixData<ValueType, IndexType>,
-            public WritableToMatrixData<ValueType, IndexType> {
+class Coo
+    : public EnableLinOp<Coo<ValueType, IndexType>>,
+      public EnableCreateMethod<Coo<ValueType, IndexType>>,
+      public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
+      public ConvertibleTo<Csr<ValueType, IndexType>>,
+      public ConvertibleTo<Dense<ValueType>>,
+      public DiagonalExtractable<Dense<ValueType>, Coo<ValueType, IndexType>>,
+      public ReadableFromMatrixData<ValueType, IndexType>,
+      public WritableToMatrixData<ValueType, IndexType> {
     friend class EnableCreateMethod<Coo>;
     friend class EnablePolymorphicObject<Coo, LinOp>;
     friend class Csr<ValueType, IndexType>;
@@ -246,13 +248,6 @@ public:
         return this;
     }
 
-    /**
-     * Extracts the diagonal entries of the matrix into a vector.
-     *
-     * @param diag  the vector into which the diagonal will be written
-     */
-    void extract_diagonal(Dense<value_type> *diag) const;
-
 protected:
     /**
      * Creates an uninitialized COO matrix of the specified size.
@@ -310,6 +305,8 @@ protected:
     void apply2_impl(const LinOp *b, LinOp *x) const;
 
     void apply2_impl(const LinOp *alpha, const LinOp *b, LinOp *x) const;
+
+    void extract_diagonal_impl(Dense<ValueType> *diag) const override;
 
 private:
     Array<value_type> values_;

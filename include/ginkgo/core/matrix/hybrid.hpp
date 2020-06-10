@@ -74,6 +74,8 @@ class Hybrid
       public ConvertibleTo<Hybrid<next_precision<ValueType>, IndexType>>,
       public ConvertibleTo<Dense<ValueType>>,
       public ConvertibleTo<Csr<ValueType, IndexType>>,
+      public DiagonalExtractable<Dense<ValueType>,
+                                 Hybrid<ValueType, IndexType>>,
       public ReadableFromMatrixData<ValueType, IndexType>,
       public WritableToMatrixData<ValueType, IndexType> {
     friend class EnableCreateMethod<Hybrid>;
@@ -586,13 +588,6 @@ public:
         return *this;
     }
 
-    /**
-     * Extracts the diagonal entries of the matrix into a vector.
-     *
-     * @param diag  the vector into which the diagonal will be written
-     */
-    void extract_diagonal(Dense<value_type> *diag) const;
-
 protected:
     /**
      * Creates an uninitialized Hybrid matrix of specified method.
@@ -685,6 +680,8 @@ protected:
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
+
+    void extract_diagonal_impl(Dense<ValueType> *diag) const override;
 
 private:
     std::shared_ptr<ell_type> ell_;

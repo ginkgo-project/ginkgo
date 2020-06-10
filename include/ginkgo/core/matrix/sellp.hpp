@@ -65,13 +65,15 @@ class Csr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Sellp : public EnableLinOp<Sellp<ValueType, IndexType>>,
-              public EnableCreateMethod<Sellp<ValueType, IndexType>>,
-              public ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>,
-              public ConvertibleTo<Dense<ValueType>>,
-              public ConvertibleTo<Csr<ValueType, IndexType>>,
-              public ReadableFromMatrixData<ValueType, IndexType>,
-              public WritableToMatrixData<ValueType, IndexType> {
+class Sellp
+    : public EnableLinOp<Sellp<ValueType, IndexType>>,
+      public EnableCreateMethod<Sellp<ValueType, IndexType>>,
+      public ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>,
+      public ConvertibleTo<Dense<ValueType>>,
+      public ConvertibleTo<Csr<ValueType, IndexType>>,
+      public DiagonalExtractable<Dense<ValueType>, Sellp<ValueType, IndexType>>,
+      public ReadableFromMatrixData<ValueType, IndexType>,
+      public WritableToMatrixData<ValueType, IndexType> {
     friend class EnableCreateMethod<Sellp>;
     friend class EnablePolymorphicObject<Sellp, LinOp>;
     friend class Dense<ValueType>;
@@ -270,13 +272,6 @@ public:
             ->get_const_col_idxs()[this->linearize_index(row, slice_set, idx)];
     }
 
-    /**
-     * Extracts the diagonal entries of the matrix into a vector.
-     *
-     * @param diag  the vector into which the diagonal will be written
-     */
-    void extract_diagonal(Dense<value_type> *diag) const;
-
 protected:
     /**
      * Creates an uninitialized Sellp matrix of the specified size.
@@ -331,6 +326,8 @@ protected:
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
+
+    void extract_diagonal_impl(Dense<ValueType> *diag) const override;
 
     size_type linearize_index(size_type row, size_type slice_set,
                               size_type col) const noexcept

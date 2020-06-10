@@ -741,12 +741,8 @@ std::unique_ptr<LinOp> Dense<ValueType>::inverse_column_permute(
 
 
 template <typename ValueType>
-void Dense<ValueType>::extract_diagonal(Dense<ValueType> *diag) const
+void Dense<ValueType>::extract_diagonal_impl(Dense<ValueType> *diag) const
 {
-    GKO_ASSERT_EQ(std::min(this->get_size()[0], this->get_size()[1]),
-                  diag->get_size()[0]);
-    GKO_ASSERT_EQ(diag->get_size()[1], 1);
-
     auto exec = this->get_executor();
     exec->run(dense::make_extract_diagonal(this, diag));
 }
