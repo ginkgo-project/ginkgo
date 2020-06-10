@@ -332,6 +332,7 @@ TEST_F(Jacobi, CudaTransposedPreconditionerEquivalentToRefWithMPW)
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
+    d_bj->copy_from(bj.get());
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->transpose()),
                         gko::as<Bj>(bj->transpose()), 1e-13);
@@ -345,6 +346,7 @@ TEST_F(Jacobi, CudaConjTransposedPreconditionerEquivalentToRefWithMPW)
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
+    d_bj->copy_from(bj.get());
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->conj_transpose()),
                         gko::as<Bj>(bj->conj_transpose()), 1e-13);
@@ -597,9 +599,10 @@ TEST_F(Jacobi, CudaTransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
+    d_bj->copy_from(bj.get());
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->transpose()),
-                        gko::as<Bj>(bj->transpose()), 1e-1);
+                        gko::as<Bj>(bj->transpose()), 1e-13);
 }
 
 
@@ -612,9 +615,10 @@ TEST_F(Jacobi,
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
+    d_bj->copy_from(bj.get());
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->conj_transpose()),
-                        gko::as<Bj>(bj->conj_transpose()), 1e-1);
+                        gko::as<Bj>(bj->conj_transpose()), 1e-13);
 }
 
 
