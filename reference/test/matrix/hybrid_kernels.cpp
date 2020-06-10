@@ -368,6 +368,104 @@ TYPED_TEST(Hybrid, MovesToCsrWithoutZeros)
 }
 
 
+TYPED_TEST(Hybrid, ConvertsEmptyToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Hybrid = typename TestFixture::Mtx;
+    using OtherHybrid = gko::matrix::Hybrid<OtherType, IndexType>;
+    auto other = Hybrid::create(this->exec);
+    auto res = OtherHybrid::create(this->exec);
+
+    other->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Hybrid, MovesEmptyToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Hybrid = typename TestFixture::Mtx;
+    using OtherHybrid = gko::matrix::Hybrid<OtherType, IndexType>;
+    auto other = Hybrid::create(this->exec);
+    auto res = OtherHybrid::create(this->exec);
+
+    other->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Hybrid, ConvertsEmptyToDense)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Hybrid = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<ValueType>;
+    auto other = Hybrid::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    other->convert_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Hybrid, MovesEmptyToDense)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Hybrid = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<ValueType>;
+    auto other = Hybrid::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    other->move_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Hybrid, ConvertsEmptyToCsr)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Hybrid = typename TestFixture::Mtx;
+    using Csr = gko::matrix::Csr<ValueType, IndexType>;
+    auto other = Hybrid::create(this->exec);
+    auto res = Csr::create(this->exec);
+
+    other->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Hybrid, MovesEmptyToCsr)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Hybrid = typename TestFixture::Mtx;
+    using Csr = gko::matrix::Csr<ValueType, IndexType>;
+    auto other = Hybrid::create(this->exec);
+    auto res = Csr::create(this->exec);
+
+    other->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
 TYPED_TEST(Hybrid, CountsNonzeros)
 {
     gko::size_type nonzeros;

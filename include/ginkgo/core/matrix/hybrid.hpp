@@ -241,6 +241,9 @@ public:
         {
             auto row_nnz_val = row_nnz->get_data();
             auto num_rows = row_nnz->get_num_elems();
+            if (num_rows == 0) {
+                return 0;
+            }
             std::sort(row_nnz_val, row_nnz_val + num_rows);
             if (percent_ < 1) {
                 auto percent_pos = static_cast<size_type>(num_rows * percent_);

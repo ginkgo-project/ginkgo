@@ -459,36 +459,6 @@ TYPED_TEST(Dense, MovesToCoo64)
 }
 
 
-TYPED_TEST(Dense, ConvertsEmptyMatrixToCsr)
-{
-    using T = typename TestFixture::value_type;
-    using Mtx = typename TestFixture::Mtx;
-    using Csr = typename gko::matrix::Csr<T, gko::int32>;
-    auto strategy = std::make_shared<typename Csr::load_balance>(0);
-    auto from_mtx = Mtx::create(this->exec, gko::dim<2>{0, 0});
-    auto to_mtx = Csr::create(this->exec, gko::dim<2>{0, 0}, 0, strategy);
-
-    from_mtx->convert_to(to_mtx.get());
-
-    ASSERT_FALSE(to_mtx->get_size());
-}
-
-
-TYPED_TEST(Dense, MovesEmptyMatrixToCsr)
-{
-    using T = typename TestFixture::value_type;
-    using Mtx = typename TestFixture::Mtx;
-    using Csr = typename gko::matrix::Csr<T, gko::int32>;
-    auto strategy = std::make_shared<typename Csr::load_balance>(0);
-    auto from_mtx = Mtx::create(this->exec, gko::dim<2>{0, 0});
-    auto to_mtx = Csr::create(this->exec, gko::dim<2>{0, 0}, 0, strategy);
-
-    from_mtx->move_to(to_mtx.get());
-
-    ASSERT_FALSE(to_mtx->get_size());
-}
-
-
 TYPED_TEST(Dense, ConvertsToCsr32)
 {
     using T = typename TestFixture::value_type;
@@ -1482,6 +1452,222 @@ TYPED_TEST(Dense, ConvertsToAndFromSellpWithMoreThanOneSlice)
     sellp_mtx->convert_to(dense_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(dense_mtx.get(), x.get(), r<TypeParam>::value);
+}
+
+
+TYPED_TEST(Dense, ConvertsEmptyToPrecision)
+{
+    using Dense = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using OtherT = typename gko::next_precision<T>;
+    using OtherDense = typename gko::matrix::Dense<OtherT>;
+    auto empty = OtherDense::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Dense, MovesEmptyToPrecision)
+{
+    using Dense = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using OtherT = typename gko::next_precision<T>;
+    using OtherDense = typename gko::matrix::Dense<OtherT>;
+    auto empty = OtherDense::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Dense, ConvertsEmptyToCoo)
+{
+    using Dense = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Coo = typename gko::matrix::Coo<T, gko::int32>;
+    auto empty = Dense::create(this->exec);
+    auto res = Coo::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Dense, MovesEmptyToCoo)
+{
+    using Dense = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Coo = typename gko::matrix::Coo<T, gko::int32>;
+    auto empty = Dense::create(this->exec);
+    auto res = Coo::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Dense, ConvertsEmptyMatrixToCsr)
+{
+    using Dense = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Csr = typename gko::matrix::Csr<T, gko::int32>;
+    auto empty = Dense::create(this->exec);
+    auto res = Csr::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Dense, MovesEmptyMatrixToCsr)
+{
+    using Dense = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Csr = typename gko::matrix::Csr<T, gko::int32>;
+    auto empty = Dense::create(this->exec);
+    auto res = Csr::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Dense, ConvertsEmptyToSparsityCsr)
+{
+    using Dense = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using SparsityCsr = typename gko::matrix::SparsityCsr<T, gko::int32>;
+    auto empty = Dense::create(this->exec);
+    auto res = SparsityCsr::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_nonzeros(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Dense, MovesEmptyToSparsityCsr)
+{
+    using Dense = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using SparsityCsr = typename gko::matrix::SparsityCsr<T, gko::int32>;
+    auto empty = Dense::create(this->exec);
+    auto res = SparsityCsr::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_nonzeros(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Dense, ConvertsEmptyToEll)
+{
+    using Dense = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Ell = typename gko::matrix::Ell<T, gko::int32>;
+    auto empty = Dense::create(this->exec);
+    auto res = Ell::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Dense, MovesEmptyToEll)
+{
+    using Dense = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Ell = typename gko::matrix::Ell<T, gko::int32>;
+    auto empty = Dense::create(this->exec);
+    auto res = Ell::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Dense, ConvertsEmptyToHybrid)
+{
+    using Dense = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Hybrid = typename gko::matrix::Hybrid<T, gko::int32>;
+    auto empty = Dense::create(this->exec);
+    auto res = Hybrid::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Dense, MovesEmptyToHybrid)
+{
+    using Dense = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Hybrid = typename gko::matrix::Hybrid<T, gko::int32>;
+    auto empty = Dense::create(this->exec);
+    auto res = Hybrid::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Dense, ConvertsEmptyToSellp)
+{
+    using Dense = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Sellp = typename gko::matrix::Sellp<T, gko::int32>;
+    auto empty = Dense::create(this->exec);
+    auto res = Sellp::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_slice_sets(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Dense, MovesEmptyToSellp)
+{
+    using Dense = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Sellp = typename gko::matrix::Sellp<T, gko::int32>;
+    auto empty = Dense::create(this->exec);
+    auto res = Sellp::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_slice_sets(), 0);
+    ASSERT_FALSE(res->get_size());
 }
 
 

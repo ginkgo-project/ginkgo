@@ -547,6 +547,18 @@ TEST_F(Dense, MoveToSellpIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, ConvertsEmptyToSellp)
+{
+    auto dempty_mtx = Mtx::create(omp);
+    auto dsellp_mtx = gko::matrix::Sellp<>::create(omp);
+
+    dempty_mtx->convert_to(dsellp_mtx.get());
+
+    ASSERT_EQ(*dsellp_mtx->get_const_slice_sets(), 0);
+    ASSERT_FALSE(dsellp_mtx->get_size());
+}
+
+
 TEST_F(Dense, CalculateMaxNNZPerRowIsEquivalentToRef)
 {
     std::size_t ref_max_nnz_per_row = 0;

@@ -100,10 +100,10 @@ protected:
         ASSERT_EQ(m->get_num_nonzeros(), 0);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
         ASSERT_NE(m->get_const_row_ptrs(), nullptr);
-        ASSERT_EQ(m->get_const_value(), nullptr);
+        ASSERT_NE(m->get_const_value(), nullptr);
         ASSERT_EQ(m->get_col_idxs(), nullptr);
         ASSERT_NE(m->get_row_ptrs(), nullptr);
-        ASSERT_EQ(m->get_value(), nullptr);
+        ASSERT_NE(m->get_value(), nullptr);
     }
 };
 
