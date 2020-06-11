@@ -101,7 +101,7 @@ function(ginkgo_doc_gen name in pdf mainpage-in)
         ${doxygen_base_input}
         )
     # pick some markdown files we want as pages
-    set(doxygen_markdown_files "../../INSTALL.md ../../TESTING.md ../../BENCHMARKING.md")
+    set(doxygen_markdown_files "../../INSTALL.md ../../TESTING.md ../../BENCHMARKING.md ../../CONTRIBUTING.md")
     ginkgo_to_string(doxygen_base_input_str ${doxygen_base_input} )
     ginkgo_to_string(doxygen_dev_input_str ${doxygen_dev_input} )
     ginkgo_to_string(doxygen_image_path_str ${doxygen_image_path} )
