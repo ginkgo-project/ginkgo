@@ -83,10 +83,7 @@ public:
         : gko::EnableLinOp<DummyLinOpWithFactory>(exec)
     {}
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
-        int GKO_FACTORY_PARAMETER(value, 5);
-    };
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};
     GKO_ENABLE_LIN_OP_FACTORY(DummyLinOpWithFactory, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
@@ -135,10 +132,7 @@ public:
               DummyRestrictProlongOpWithFactory>(exec)
     {}
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
-        int GKO_FACTORY_PARAMETER(value, 5);
-    };
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};
     GKO_ENABLE_RESTRICT_PROLONG_FACTORY(DummyRestrictProlongOpWithFactory,
                                         parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -209,8 +203,13 @@ protected:
                   .on(exec)),
           rp_factory(DummyRPFactory::build().on(exec)),
           lo_factory(DummyFactory::build().on(exec)),
-          rp_factory2(DummyRPFactory::build().with_value(2).on(exec)),
-          lo_factory2(DummyFactory::build().with_value(2).on(exec))
+          b(gko::initialize<Mtx>({I<value_type>({1, 0}), I<value_type>({0, 2}),
+                                  I<value_type>({-1, -2})},
+                                 exec)),
+          x(gko::initialize<Mtx>(
+              {I<value_type>({-1, 0}), I<value_type>({-2, 1}),
+               I<value_type>({1, 1})},
+              exec))
     {}
 
     static void assert_same_step(const gko::LinOp *lo, std::vector<int> v2)
@@ -235,9 +234,10 @@ protected:
         return std::move(
             Solver::build()
                 .with_pre_smoother(smoother_factory)
-                .with_post_smoother(smoother_factory)
                 .with_coarsest_solver(coarsest_factory)
                 .with_max_levels(2u)
+                .with_post_uses_pre(true)
+                .with_mid_case(gko::solver::multigrid_mid_uses::pre)
                 .with_rstr_prlg(coarse_factory)
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(4u).on(exec),
@@ -258,12 +258,14 @@ protected:
         return std::move(
             Solver::build()
                 .with_max_levels(2u)
-                .with_rstr_prlg(this->rp_factory, this->rp_factory2)
+                .with_rstr_prlg(this->rp_factory, this->rp_factory)
                 .with_pre_smoother(nullptr, this->lo_factory)
-                .with_post_smoother(this->lo_factory2, nullptr)
+                .with_mid_smoother(this->lo_factory, nullptr)
+                .with_post_smoother(this->lo_factory, nullptr)
                 .with_pre_relaxation(gko::Array<value_type>(this->exec, {1, 2}))
+                .with_mid_relaxation(gko::Array<value_type>(this->exec, {3, 4}))
                 .with_post_relaxation(
-                    gko::Array<value_type>(this->exec, {3, 4}))
+                    gko::Array<value_type>(this->exec, {5, 6}))
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(1u).on(
                         this->exec))
@@ -278,11 +280,12 @@ protected:
         return std::move(
             Solver::build()
                 .with_max_levels(2u)
-                .with_rstr_prlg(this->rp_factory, this->rp_factory2)
+                .with_rstr_prlg(this->rp_factory, this->rp_factory)
                 .with_pre_smoother(nullptr, this->lo_factory)
-                .with_coarsest_solver(this->lo_factory2)
+                .with_coarsest_solver(this->lo_factory)
                 .with_pre_relaxation(gko::Array<value_type>(this->exec, {2}))
                 .with_post_uses_pre(true)
+                .with_mid_case(gko::solver::multigrid_mid_uses::pre)
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(1u).on(
                         this->exec))
@@ -297,15 +300,15 @@ protected:
     std::shared_ptr<typename Smoother::Factory> smoother_factory;
     std::shared_ptr<typename CoarsestSolver::Factory> coarsest_factory;
     std::shared_ptr<DummyRPFactory::Factory> rp_factory;
-    std::shared_ptr<DummyRPFactory::Factory> rp_factory2;
     std::shared_ptr<typename DummyFactory::Factory> lo_factory;
-    std::shared_ptr<typename DummyFactory::Factory> lo_factory2;
+    std::shared_ptr<Mtx> b;
+    std::shared_ptr<Mtx> x;
 };
 
 TYPED_TEST_CASE(Multigrid, gko::test::ValueTypes);
 
 
-TYPED_TEST(Multigrid, VCycle)
+TYPED_TEST(Multigrid, VCycleIndividual)
 {
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
@@ -314,32 +317,38 @@ TYPED_TEST(Multigrid, VCycle)
     using Mtx = typename TestFixture::Mtx;
     auto solver = this->get_factory_individual(gko::solver::multigrid_cycle::v)
                       ->generate(this->mtx);
-    auto b = gko::initialize<Mtx>(
-        {I<value_type>({1, 0}), I<value_type>({0, 2}), I<value_type>({-1, -2})},
-        this->exec);
-    auto x = gko::initialize<Mtx>(
-        {I<value_type>({-1, 0}), I<value_type>({-2, 1}), I<value_type>({1, 1})},
-        this->exec);
     auto rstr_prlg = solver->get_rstr_prlg_list();
     auto pre_smoother = solver->get_pre_smoother_list();
     auto post_smoother = solver->get_post_smoother_list();
 
-    // - pass                     - lo2 (18)
-    //   | rp (0)               | rp (5)
-    //     - lo (2)           - pass
-    //       | rp2 (3)      | rp2 (4)
-    //         - Identity -
+    // \: restrict,  /: prolong,   v: coarsest_solve
+    // +: presmooth, *: midsmooth, -: postsmooth
+    // alpha setting
+    // pre: pass, 2
+    // mid: 3, pass (not used)
+    // post: 5, pass
+    // coarset_solver: Identity
+    //  +               -
+    //    \           /
+    //      +       -
+    //        \   /
+    //          v
+    //  +               30
+    //    0           5
+    //      2       -
+    //        3   4
+    //          v
     global_step = 0;
-    solver->apply(gko::lend(b), gko::lend(x));
+    solver->apply(gko::lend(this->b), gko::lend(this->x));
 
     this->assert_same_step(rstr_prlg.at(0).get(), {0}, {5});
     this->assert_same_step(rstr_prlg.at(1).get(), {3}, {4});
     this->assert_same_step(pre_smoother.at(1).get(), {2});
-    this->assert_same_step(post_smoother.at(0).get(), {18});
+    this->assert_same_step(post_smoother.at(0).get(), {30});
 }
 
 
-TYPED_TEST(Multigrid, VCyclePostUsesPre)
+TYPED_TEST(Multigrid, VCycleSame)
 {
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
@@ -348,32 +357,80 @@ TYPED_TEST(Multigrid, VCyclePostUsesPre)
     using Mtx = typename TestFixture::Mtx;
     auto solver = this->get_factory_same(gko::solver::multigrid_cycle::v)
                       ->generate(this->mtx);
-    auto b = gko::initialize<Mtx>(
-        {I<value_type>({1, 0}), I<value_type>({0, 2}), I<value_type>({-1, -2})},
-        this->exec);
-    auto x = gko::initialize<Mtx>(
-        {I<value_type>({-1, 0}), I<value_type>({-2, 1}), I<value_type>({1, 1})},
-        this->exec);
     auto rstr_prlg = solver->get_rstr_prlg_list();
     auto pre_smoother = solver->get_pre_smoother_list();
     auto coarsest_solver = solver->get_coarsest_solver();
 
-    // - pass                    - pass
-    //   | rp1 (0)             | rp1 (13)
-    //     - lo (2)          - lo (2, 12)
-    //       | rp2 (3)     | rp2 (5)
-    //         - lo2 (4) -
+    // \: restrict,  /: prolong,   v: coarsest_solve
+    // +: presmooth, *: midsmooth, -: postsmooth
+    // alpha setting
+    // pre, mid, post: pass, 2
+    // coarset_solver: dummy_operator
+    //  +               -
+    //    \           /
+    //      +       -
+    //        \   /
+    //          v
+    //  +               -
+    //    0           13
+    //      2       12
+    //        3   5
+    //          4
     global_step = 0;
-    solver->apply(gko::lend(b), gko::lend(x));
+    solver->apply(gko::lend(this->b), gko::lend(this->x));
 
     this->assert_same_step(rstr_prlg.at(0).get(), {0}, {13});
     this->assert_same_step(rstr_prlg.at(1).get(), {3}, {5});
+    // all uses pre_smoother
     this->assert_same_step(pre_smoother.at(1).get(), {2, 12});
     this->assert_same_step(coarsest_solver.get(), {4});
 }
 
 
-TYPED_TEST(Multigrid, WCyclePostUsesPre)
+TYPED_TEST(Multigrid, WCycleIndividual)
+{
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    using DummyFactory = typename TestFixture::DummyFactory;
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto solver = this->get_factory_individual(gko::solver::multigrid_cycle::w)
+                      ->generate(this->mtx);
+    auto rstr_prlg = solver->get_rstr_prlg_list();
+    auto pre_smoother = solver->get_pre_smoother_list();
+    auto mid_smoother = solver->get_mid_smoother_list();
+    auto post_smoother = solver->get_post_smoother_list();
+    auto coarsest_solver = solver->get_coarsest_solver();
+    // \: restrict,  /: prolong,   v: coarsest_solve
+    // +: presmooth, *: midsmooth, -: postsmooth
+    // alpha setting
+    // pre: pass, 2
+    // mid: 3, pass
+    // post: 5, pass
+    // coarset_solver: Identity
+    //  +                       *                       -
+    //    \                   /   \                   /
+    //      +       *       -       +       *       -
+    //        \   /   \   /           \   /   \   /
+    //          v       v               v       v
+    //  +                       24                      290
+    //    0                   7   25                  57
+    //      2       *       -       52      *       -
+    //        3   4   5   6           53  54  55  56
+    //          v       v               v       v
+    global_step = 0;
+    solver->apply(gko::lend(this->b), gko::lend(this->x));
+
+    this->assert_same_step(rstr_prlg.at(0).get(), {0, 25}, {7, 57});
+    this->assert_same_step(rstr_prlg.at(1).get(), {3, 5, 53, 55},
+                           {4, 6, 54, 56});
+    this->assert_same_step(pre_smoother.at(1).get(), {2, 52});
+    this->assert_same_step(mid_smoother.at(0).get(), {24});
+    this->assert_same_step(post_smoother.at(0).get(), {290});
+}
+
+
+TYPED_TEST(Multigrid, WCycleSame)
 {
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
@@ -382,38 +439,79 @@ TYPED_TEST(Multigrid, WCyclePostUsesPre)
     using Mtx = typename TestFixture::Mtx;
     auto solver = this->get_factory_same(gko::solver::multigrid_cycle::w)
                       ->generate(this->mtx);
-    auto b = gko::initialize<Mtx>(
-        {I<value_type>({1, 0}), I<value_type>({0, 2}), I<value_type>({-1, -2})},
-        this->exec);
-    auto x = gko::initialize<Mtx>(
-        {I<value_type>({-1, 0}), I<value_type>({-2, 1}), I<value_type>({1, 1})},
-        this->exec);
     auto rstr_prlg = solver->get_rstr_prlg_list();
     auto pre_smoother = solver->get_pre_smoother_list();
     auto coarsest_solver = solver->get_coarsest_solver();
-    // \restrict, /prolong, +presmooth, -postsmooth, .coarsest_solve, *midsmooth
-    //  +                       +                       -
+    // \: restrict,  /: prolong,   v: coarsest_solve
+    // +: presmooth, *: midsmooth, -: postsmooth
+    // alpha setting
+    // pre, mid, post: pass, 2
+    // coarset_solver: dummy_operator
+    //  +                       *                       -
     //    \                   /   \                   /
-    //      +       +       -       +       +       -
+    //      +       *       -       +       *       -
     //        \   /   \   /           \   /   \   /
     //          v       v               v       v
-    //  +                       +                       -
+    //  +                       *                       -
     //    0                   33  34                  305
     //      2       12      32      70      148     304
     //        3   5   13  15          71  73  149 151
     //          4       14              72      150
     global_step = 0;
-    solver->apply(gko::lend(b), gko::lend(x));
+    solver->apply(gko::lend(this->b), gko::lend(this->x));
 
     this->assert_same_step(rstr_prlg.at(0).get(), {0, 34}, {33, 305});
     this->assert_same_step(rstr_prlg.at(1).get(), {3, 13, 71, 149},
                            {5, 15, 73, 151});
+    // all uses pre_smoother
     this->assert_same_step(pre_smoother.at(1).get(), {2, 12, 32, 70, 148, 304});
     this->assert_same_step(coarsest_solver.get(), {4, 14, 72, 150});
 }
 
 
-TYPED_TEST(Multigrid, FCyclePostUsesPre)
+TYPED_TEST(Multigrid, FCycleIndividual)
+{
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    using DummyFactory = typename TestFixture::DummyFactory;
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto solver = this->get_factory_individual(gko::solver::multigrid_cycle::f)
+                      ->generate(this->mtx);
+    auto rstr_prlg = solver->get_rstr_prlg_list();
+    auto pre_smoother = solver->get_pre_smoother_list();
+    auto mid_smoother = solver->get_mid_smoother_list();
+    auto post_smoother = solver->get_post_smoother_list();
+    // \: restrict,  /: prolong,   v: coarsest_solve
+    // +: presmooth, *: midsmooth, -: postsmooth
+    // alpha setting
+    // pre: pass, 2
+    // mid: 3, pass
+    // post: 5, pass
+    // coarset_solver: Identity
+    //  +                       *               -
+    //    \                   /   \           /
+    //      +       *       -       +       -
+    //        \   /   \   /           \   /
+    //          v       v               v
+    //  +                       24              280
+    //    0                   7   25          55
+    //      2       *       -       52      -
+    //        3   4   5   6           53  54
+    //          v       v               v
+    global_step = 0;
+    solver->apply(gko::lend(this->b), gko::lend(this->x));
+
+    this->assert_same_step(rstr_prlg.at(0).get(), {0, 25}, {7, 55});
+    this->assert_same_step(rstr_prlg.at(1).get(), {3, 5, 53}, {4, 6, 54});
+    // all uses pre_smoother
+    this->assert_same_step(pre_smoother.at(1).get(), {2, 52});
+    this->assert_same_step(mid_smoother.at(0).get(), {24});
+    this->assert_same_step(post_smoother.at(0).get(), {280});
+}
+
+
+TYPED_TEST(Multigrid, FCycleSame)
 {
     using Solver = typename TestFixture::Solver;
     using DummyRPFactory = typename TestFixture::DummyRPFactory;
@@ -422,32 +520,61 @@ TYPED_TEST(Multigrid, FCyclePostUsesPre)
     using Mtx = typename TestFixture::Mtx;
     auto solver = this->get_factory_same(gko::solver::multigrid_cycle::f)
                       ->generate(this->mtx);
-    auto b = gko::initialize<Mtx>(
-        {I<value_type>({1, 0}), I<value_type>({0, 2}), I<value_type>({-1, -2})},
-        this->exec);
-    auto x = gko::initialize<Mtx>(
-        {I<value_type>({-1, 0}), I<value_type>({-2, 1}), I<value_type>({1, 1})},
-        this->exec);
     auto rstr_prlg = solver->get_rstr_prlg_list();
     auto pre_smoother = solver->get_pre_smoother_list();
     auto post_smoother = solver->get_post_smoother_list();
     auto coarsest_solver = solver->get_coarsest_solver();
-    // \restrict, /prolong, +presmooth, -postsmooth, .coarsest_solve, *midsmooth
-    //  +                       +               -  | pass
-    //    \                   /   \           /    | rp_0
-    //      +       *       -       *       -      | lo_2
-    //        \   /   \   /           \   /        | rp_1
-    //          v       v               v          | lo_2
-    //  +                       +               -  | pass
-    //    0                   33  34          149  | rp_0
-    //      2       12      32      70      148    | presmooth
-    //        3   5   13  15          71  73       | rp_1
-    //          4       14              72         | solver
+    // \: restrict,  /: prolong,   v: coarsest_solve
+    // +: presmooth, *: midsmooth, -: postsmooth
+    // alpha setting
+    // pre, mid, post: pass, 2
+    // coarset_solver: dummy_operator
+    //  +                       *               -
+    //    \                   /   \           /
+    //      +       *       -       +       -
+    //        \   /   \   /           \   /
+    //          v       v               v
+    //  +                       *               -
+    //    0                   33  34          149
+    //      2       12      32      70      148
+    //        3   5   13  15          71  73
+    //          4       14              72
     global_step = 0;
-    solver->apply(gko::lend(b), gko::lend(x));
+    solver->apply(gko::lend(this->b), gko::lend(this->x));
 
     this->assert_same_step(rstr_prlg.at(0).get(), {0, 34}, {33, 149});
     this->assert_same_step(rstr_prlg.at(1).get(), {3, 13, 71}, {5, 15, 73});
+    // all uses pre_smoother
+    this->assert_same_step(pre_smoother.at(1).get(), {2, 12, 32, 70, 148});
+    this->assert_same_step(coarsest_solver.get(), {4, 14, 72});
+}
+
+
+TYPED_TEST(Multigrid, CanChangeCycle)
+{
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    using DummyFactory = typename TestFixture::DummyFactory;
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto solver = this->get_factory_same(gko::solver::multigrid_cycle::v)
+                      ->generate(this->mtx);
+    auto original = solver->get_cycle();
+    auto rstr_prlg = solver->get_rstr_prlg_list();
+    auto pre_smoother = solver->get_pre_smoother_list();
+    auto post_smoother = solver->get_post_smoother_list();
+    auto coarsest_solver = solver->get_coarsest_solver();
+
+    // change v cycle to f cycle
+    global_step = 0;
+    solver->set_cycle(gko::solver::multigrid_cycle::f);
+    solver->apply(gko::lend(this->b), gko::lend(this->x));
+
+    ASSERT_EQ(original, gko::solver::multigrid_cycle::v);
+    ASSERT_EQ(solver->get_cycle(), gko::solver::multigrid_cycle::f);
+    this->assert_same_step(rstr_prlg.at(0).get(), {0, 34}, {33, 149});
+    this->assert_same_step(rstr_prlg.at(1).get(), {3, 13, 71}, {5, 15, 73});
+    // all uses pre_smoother
     this->assert_same_step(pre_smoother.at(1).get(), {2, 12, 32, 70, 148});
     this->assert_same_step(coarsest_solver.get(), {4, 14, 72});
 }

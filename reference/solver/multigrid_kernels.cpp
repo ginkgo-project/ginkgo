@@ -51,10 +51,9 @@ namespace multigrid {
 
 
 template <typename ValueType>
-void initialize_v(
-    std::shared_ptr<const ReferenceExecutor> exec,
-    std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &e_list,
-    Array<stopping_status> *stop_status)
+void initialize(std::shared_ptr<const ReferenceExecutor> exec,
+                std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &e_list,
+                Array<stopping_status> *stop_status)
 {
     for (size_type i = 0; i < stop_status->get_num_elems(); i++) {
         stop_status->get_data()[i].reset();
@@ -69,7 +68,7 @@ void initialize_v(
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_INITIALIZE_V_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_INITIALIZE_KERNEL);
 
 
 }  // namespace multigrid

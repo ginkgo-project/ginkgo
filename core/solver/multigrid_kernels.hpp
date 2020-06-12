@@ -45,8 +45,8 @@ namespace kernels {
 namespace multigrid {
 
 
-#define GKO_DECLARE_MULTIGRID_INITIALIZE_V_KERNEL(_type)            \
-    void initialize_v(                                              \
+#define GKO_DECLARE_MULTIGRID_INITIALIZE_KERNEL(_type)              \
+    void initialize(                                                \
         std::shared_ptr<const DefaultExecutor> exec,                \
         std::vector<std::shared_ptr<matrix::Dense<_type>>> &e_list, \
         Array<stopping_status> *stop_status)
@@ -54,7 +54,7 @@ namespace multigrid {
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \
     template <typename ValueType>    \
-    GKO_DECLARE_MULTIGRID_INITIALIZE_V_KERNEL(ValueType)
+    GKO_DECLARE_MULTIGRID_INITIALIZE_KERNEL(ValueType)
 
 
 }  // namespace multigrid
