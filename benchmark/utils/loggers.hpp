@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <chrono>
+#include <mutex>
 #include <regex>
 #include <unordered_map>
 
@@ -104,6 +105,7 @@ struct OperationLogger : gko::log::Logger {
                     rapidjson::MemoryPoolAllocator<> &alloc,
                     gko::uint32 repetitions)
     {
+        const std::lock_guard<std::mutex> lock(mutex);
         for (const auto &entry : total) {
             add_or_set_member(
                 object, entry.first.c_str(),
@@ -124,6 +126,7 @@ private:
                          const std::string &name) const
     {
         exec->synchronize();
+        const std::lock_guard<std::mutex> lock(mutex);
         auto nested_name = nested.empty() || !use_nested_name
                                ? name
                                : nested.back().first + "::" + name;
@@ -133,9 +136,10 @@ private:
 
     void end_operation(const gko::Executor *exec, const std::string &name) const
     {
+        exec->synchronize();
+        const std::lock_guard<std::mutex> lock(mutex);
         // if operations are properly nested, nested_name now ends with name
         auto nested_name = nested.back().first;
-        exec->synchronize();
         const auto end = std::chrono::steady_clock::now();
         const auto diff = end - start[nested_name];
         // make sure timings for nested operations are not counted twice
@@ -147,6 +151,7 @@ private:
     }
 
     bool use_nested_name;
+    mutable std::mutex mutex;
     mutable std::map<std::string, std::chrono::steady_clock::time_point> start;
     mutable std::map<std::string, std::chrono::steady_clock::duration> total;
     // the position i of this vector holds the total time spend on child
@@ -162,18 +167,21 @@ struct StorageLogger : gko::log::Logger {
                                  const gko::size_type &num_bytes,
                                  const gko::uintptr &location) const override
     {
+        const std::lock_guard<std::mutex> lock(mutex);
         storage[location] = num_bytes;
     }
 
     void on_free_completed(const gko::Executor *,
                            const gko::uintptr &location) const override
     {
+        const std::lock_guard<std::mutex> lock(mutex);
         storage[location] = 0;
     }
 
     void write_data(rapidjson::Value &output,
                     rapidjson::MemoryPoolAllocator<> &allocator)
     {
+        const std::lock_guard<std::mutex> lock(mutex);
         gko::size_type total{};
         for (const auto &e : storage) {
             total += e.second;
@@ -186,6 +194,7 @@ struct StorageLogger : gko::log::Logger {
     {}
 
 private:
+    mutable std::mutex mutex;
     mutable std::unordered_map<gko::uintptr, gko::size_type> storage;
 };
 
