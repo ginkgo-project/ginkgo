@@ -591,13 +591,7 @@ TYPED_TEST(Sellp, CountsNonzeros)
 TYPED_TEST(Sellp, ExtractsDiagonal)
 {
     auto matrix = this->mtx1->clone();
-    auto exec = matrix->get_executor();
-    using T = typename TestFixture::value_type;
-    auto diag = gko::matrix::Dense<T>::create(
-        exec,
-        gko::dim<2>(std::min(matrix->get_size()[0], matrix->get_size()[1]), 1));
-
-    matrix->extract_diagonal(gko::lend(diag));
+    auto diag = matrix->extract_diagonal();
 
     GKO_ASSERT_MTX_NEAR(diag, l({{1.}, {5.}}), 0.0);
 }
@@ -606,13 +600,7 @@ TYPED_TEST(Sellp, ExtractsDiagonal)
 TYPED_TEST(Sellp, ExtractsDiagonalWithSliceSizeAndStrideFactor)
 {
     auto matrix = this->mtx2->clone();
-    auto exec = matrix->get_executor();
-    using T = typename TestFixture::value_type;
-    auto diag = gko::matrix::Dense<T>::create(
-        exec,
-        gko::dim<2>(std::min(matrix->get_size()[0], matrix->get_size()[1]), 1));
-
-    matrix->extract_diagonal(gko::lend(diag));
+    auto diag = matrix->extract_diagonal();
 
     GKO_ASSERT_MTX_NEAR(diag, l({{1.}, {5.}}), 0.0);
 }

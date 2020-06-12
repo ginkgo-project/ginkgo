@@ -74,8 +74,7 @@ class Hybrid
       public ConvertibleTo<Hybrid<next_precision<ValueType>, IndexType>>,
       public ConvertibleTo<Dense<ValueType>>,
       public ConvertibleTo<Csr<ValueType, IndexType>>,
-      public DiagonalExtractable<Dense<ValueType>,
-                                 Hybrid<ValueType, IndexType>>,
+      public DiagonalExtractable<ValueType>,
       public ReadableFromMatrixData<ValueType, IndexType>,
       public WritableToMatrixData<ValueType, IndexType> {
     friend class EnableCreateMethod<Hybrid>;
@@ -355,6 +354,8 @@ public:
     void read(const mat_data &data) override;
 
     void write(mat_data &data) const override;
+
+    std::unique_ptr<Dense<ValueType>> extract_diagonal() const override;
 
     /**
      * Returns the values of the ell part.
@@ -680,8 +681,6 @@ protected:
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
-
-    void extract_diagonal_impl(Dense<ValueType> *diag) const override;
 
 private:
     std::shared_ptr<ell_type> ell_;

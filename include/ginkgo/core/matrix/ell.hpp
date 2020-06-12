@@ -68,15 +68,14 @@ class Csr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Ell
-    : public EnableLinOp<Ell<ValueType, IndexType>>,
-      public EnableCreateMethod<Ell<ValueType, IndexType>>,
-      public ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>,
-      public ConvertibleTo<Dense<ValueType>>,
-      public ConvertibleTo<Csr<ValueType, IndexType>>,
-      public DiagonalExtractable<Dense<ValueType>, Ell<ValueType, IndexType>>,
-      public ReadableFromMatrixData<ValueType, IndexType>,
-      public WritableToMatrixData<ValueType, IndexType> {
+class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
+            public EnableCreateMethod<Ell<ValueType, IndexType>>,
+            public ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>,
+            public ConvertibleTo<Dense<ValueType>>,
+            public ConvertibleTo<Csr<ValueType, IndexType>>,
+            public DiagonalExtractable<ValueType>,
+            public ReadableFromMatrixData<ValueType, IndexType>,
+            public WritableToMatrixData<ValueType, IndexType> {
     friend class EnableCreateMethod<Ell>;
     friend class EnablePolymorphicObject<Ell, LinOp>;
     friend class Dense<ValueType>;
@@ -108,6 +107,8 @@ public:
     void read(const mat_data &data) override;
 
     void write(mat_data &data) const override;
+
+    std::unique_ptr<Dense<ValueType>> extract_diagonal() const override;
 
     /**
      * Returns the values of the matrix.
@@ -307,8 +308,6 @@ protected:
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
-
-    void extract_diagonal_impl(Dense<ValueType> *diag) const override;
 
     size_type linearize_index(size_type row, size_type col) const noexcept
     {

@@ -255,9 +255,9 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
 
     hipLaunchKernelGGL(kernel::extract_diagonal, dim3(num_blocks),
                        dim3(default_block_size), 0, 0, diag_size, slice_size,
-                       as_cuda_type(orig_slice_sets), as_cuda_type(orig_values),
-                       as_cuda_type(orig_col_idxs), diag_stride,
-                       as_cuda_type(diag_values));
+                       as_hip_type(orig_slice_sets), as_hip_type(orig_values),
+                       as_hip_type(orig_col_idxs), diag_stride,
+                       as_hip_type(diag_values));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

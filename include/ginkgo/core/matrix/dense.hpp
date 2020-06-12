@@ -103,7 +103,7 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
               public ConvertibleTo<Sellp<ValueType, int64>>,
               public ConvertibleTo<SparsityCsr<ValueType, int32>>,
               public ConvertibleTo<SparsityCsr<ValueType, int64>>,
-              public DiagonalExtractable<Dense<ValueType>, Dense<ValueType>>,
+              public DiagonalExtractable<ValueType>,
               public ReadableFromMatrixData<ValueType, int32>,
               public ReadableFromMatrixData<ValueType, int64>,
               public WritableToMatrixData<ValueType, int32>,
@@ -242,6 +242,8 @@ public:
 
     std::unique_ptr<LinOp> inverse_column_permute(
         const Array<int64> *inverse_permutation_indices) const override;
+
+    std::unique_ptr<Dense<ValueType>> extract_diagonal() const override;
 
 
     /**
@@ -534,8 +536,6 @@ protected:
 
     void apply_impl(const LinOp *alpha, const LinOp *b, const LinOp *beta,
                     LinOp *x) const override;
-
-    void extract_diagonal_impl(Dense<ValueType> *diag) const override;
 
     size_type linearize_index(size_type row, size_type col) const noexcept
     {

@@ -695,12 +695,8 @@ TEST_F(Dense, ExtractDiagonalIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    auto diag_size = std::min(x->get_size()[0], x->get_size()[1]);
-
-    auto diag = Mtx::create(x->get_executor(), gko::dim<2>(diag_size, 1));
-    auto ddiag = Mtx::create(dx->get_executor(), gko::dim<2>(diag_size, 1));
-    x->extract_diagonal(lend(diag));
-    dx->extract_diagonal(lend(ddiag));
+    auto diag = x->extract_diagonal();
+    auto ddiag = dx->extract_diagonal();
 
     GKO_ASSERT_MTX_NEAR(diag.get(), ddiag.get(), 0);
 }

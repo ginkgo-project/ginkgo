@@ -819,6 +819,7 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
         for (size_type idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
             if (col_idxs[idx] == row) {
                 diag->at(row, 0) = values[idx];
+                break;
             }
         }
     }
