@@ -68,7 +68,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/idr_kernels.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/lower_trs_kernels.hpp"
-#include "core/solver/multigrid_kernels.hpp"
 #include "core/solver/upper_trs_kernels.hpp"
 #include "core/stop/criterion_kernels.hpp"
 #include "core/stop/residual_norm_kernels.hpp"
@@ -644,18 +643,6 @@ GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 
 
 }  // namespace ir
-
-
-namespace multigrid {
-
-
-template <typename ValueType>
-GKO_DECLARE_MULTIGRID_INITIALIZE_KERNEL(ValueType)
-GKO_NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_INITIALIZE_KERNEL);
-
-
-}  // namespace multigrid
 
 
 namespace sparsity_csr {
