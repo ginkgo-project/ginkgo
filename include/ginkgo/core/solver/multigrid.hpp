@@ -348,20 +348,6 @@ protected:
      */
     void generate();
 
-    void run_cycle(
-        multigrid_cycle cycle, size_type level,
-        std::shared_ptr<const LinOp> matrix, const matrix::Dense<ValueType> *b,
-        matrix::Dense<ValueType> *x,
-        std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &r_list,
-        std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &g_list,
-        std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &e_list) const;
-
-    void prepare_vcycle(
-        const size_type nrhs,
-        std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &r,
-        std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &g,
-        std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &e) const;
-
     explicit Multigrid(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Multigrid>(exec)
     {

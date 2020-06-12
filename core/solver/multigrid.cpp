@@ -42,14 +42,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
-#include "core/solver/multigrid_kernels.hpp"
+#include "core/components/fill_array.hpp"
+#include "core/solver/ir_kernels.hpp"
+
 
 namespace gko {
 namespace solver {
 namespace multigrid {
 
 
-GKO_REGISTER_OPERATION(initialize, multigrid::initialize);
+GKO_REGISTER_OPERATION(initialize, ir::initialize);
+GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
 }  // namespace multigrid
@@ -94,6 +97,138 @@ void handle_list(
         relaxation.emplace_back(one);
     }
 }
+
+
+template <typename ValueType>
+struct MultigridState {
+    using vec = matrix::Dense<ValueType>;
+    MultigridState(std::shared_ptr<const Executor> exec_in,
+                   const LinOp *system_matrix_in,
+                   const Multigrid<ValueType> *multigrid_in,
+                   const size_type nrhs_in, const vec *one_in,
+                   const vec *neg_one_in)
+        : exec{std::move(exec_in)},
+          system_matrix(system_matrix_in),
+          multigrid(multigrid_in),
+          nrhs(nrhs_in),
+          one(one_in),
+          neg_one(neg_one_in),
+          r_list(multigrid_in->get_rstr_prlg_list().size()),
+          g_list(multigrid_in->get_rstr_prlg_list().size()),
+          e_list(multigrid_in->get_rstr_prlg_list().size())
+    {
+        auto current_nrows = system_matrix->get_size()[0];
+        auto rstr_prlg_list = multigrid->get_rstr_prlg_list();
+        for (int i = 0; i < rstr_prlg_list.size(); i++) {
+            auto next_nrows =
+                rstr_prlg_list.at(i)->get_coarse_operator()->get_size()[0];
+            r_list.at(i) = vec::create(exec, gko::dim<2>{current_nrows, nrhs});
+            g_list.at(i) = vec::create(exec, gko::dim<2>{next_nrows, nrhs});
+            e_list.at(i) = vec::create(exec, gko::dim<2>{next_nrows, nrhs});
+            current_nrows = next_nrows;
+        }
+    }
+
+    void run_cycle(multigrid_cycle cycle, size_type level,
+                   const std::shared_ptr<const LinOp> &matrix,
+                   const matrix::Dense<ValueType> *b,
+                   matrix::Dense<ValueType> *x)
+    {
+        auto r = r_list.at(level);
+        auto g = g_list.at(level);
+        auto e = e_list.at(level);
+        // get rstr_prlg
+        auto rstr_prlg = multigrid->get_rstr_prlg_list().at(level);
+        auto total_level = multigrid->get_rstr_prlg_list().size();
+        // get the pre_smoother
+        auto pre_smoother = multigrid->get_pre_smoother_list().at(level);
+        auto pre_relaxation = multigrid->get_pre_relaxation_list().at(level);
+        // get the mid_smoother
+        auto mid_smoother = multigrid->get_mid_smoother_list().at(level);
+        auto mid_relaxation = multigrid->get_mid_relaxation_list().at(level);
+        // get the post_smoother
+        auto post_smoother = multigrid->get_post_smoother_list().at(level);
+        auto post_relaxation = multigrid->get_post_relaxation_list().at(level);
+        // move the residual computation in level zero to out-of-cycle
+        if (level != 0) {
+            r->copy_from(b);
+            matrix->apply(neg_one, x, one, r.get());
+        }
+        // x += relaxation * Smoother(r)
+        if (pre_smoother) {
+            pre_smoother->apply(pre_relaxation.get(), r.get(), one, x);
+            // compute residual
+            r->copy_from(b);  // n * b
+            matrix->apply(neg_one, x, one, r.get());
+        }
+        // first cycle
+        rstr_prlg->restrict_apply(r.get(), g.get());
+        // next level or solve it
+        if (level + 1 == total_level) {
+            multigrid->get_coarsest_solver()->apply(g.get(), e.get());
+        } else {
+            this->run_cycle(cycle, level + 1, rstr_prlg->get_coarse_operator(),
+                            g.get(), e.get());
+        }
+        // additional work for non-v_cycle
+        if (cycle == multigrid_cycle::f || cycle == multigrid_cycle::w) {
+            // second cycle - f_cycle, w_cycle
+            // prolong
+            rstr_prlg->prolong_applyadd(e.get(), x);
+            // compute residual
+            r->copy_from(b);  // n * b
+            matrix->apply(neg_one, x, one, r.get());
+            // mid-smooth
+            if (mid_smoother) {
+                mid_smoother->apply(mid_relaxation.get(), r.get(), one, x);
+                // compute residual
+                r->copy_from(b);  // n * b
+                matrix->apply(neg_one, x, one, r.get());
+            }
+
+            rstr_prlg->restrict_apply(r.get(), g.get());
+            // next level or solve it
+            if (level + 1 == total_level) {
+                multigrid->get_coarsest_solver()->apply(g.get(), e.get());
+            } else {
+                if (cycle == multigrid_cycle::f) {
+                    // f_cycle call v_cycle in the second cycle
+                    this->run_cycle(multigrid_cycle::v, level + 1,
+                                    rstr_prlg->get_coarse_operator(), g.get(),
+                                    e.get());
+                } else {
+                    this->run_cycle(cycle, level + 1,
+                                    rstr_prlg->get_coarse_operator(), g.get(),
+                                    e.get());
+                }
+            }
+        } else if (cycle == multigrid_cycle::kfcg ||
+                   cycle == multigrid_cycle::kgcr) {
+            // do some work in coarse level - do not need prolong
+            GKO_NOT_IMPLEMENTED;
+        }
+
+        // prolong
+        rstr_prlg->prolong_applyadd(e.get(), x);
+
+        // post-smooth
+        if (post_smoother) {
+            r->copy_from(b);
+            matrix->apply(neg_one, x, one, r.get());
+            post_smoother->apply(post_relaxation.get(), r.get(), one, x);
+        }
+    }
+
+    std::vector<std::shared_ptr<vec>> r_list;
+    std::vector<std::shared_ptr<vec>> g_list;
+    std::vector<std::shared_ptr<vec>> e_list;
+    std::shared_ptr<const Executor> exec;
+    const LinOp *system_matrix;
+    const Multigrid<ValueType> *multigrid;
+    size_type nrhs;
+    const vec *one;
+    const vec *neg_one;
+};
 
 
 }  // namespace
@@ -159,124 +294,6 @@ void Multigrid<ValueType>::generate()
 
 
 template <typename ValueType>
-void Multigrid<ValueType>::prepare_vcycle(
-    const size_type nrhs,
-    std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &r,
-    std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &g,
-    std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &e) const
-{
-    auto current_nrows = system_matrix_->get_size()[0];
-    auto exec = this->get_executor();
-    for (int i = 0; i < rstr_prlg_list_.size(); i++) {
-        auto next_nrows =
-            rstr_prlg_list_.at(i)->get_coarse_operator()->get_size()[0];
-        r.at(i) = matrix::Dense<ValueType>::create(
-            exec, gko::dim<2>{current_nrows, nrhs});
-        g.at(i) = matrix::Dense<ValueType>::create(
-            exec, gko::dim<2>{next_nrows, nrhs});
-        e.at(i) = matrix::Dense<ValueType>::create(
-            exec, gko::dim<2>{next_nrows, nrhs});
-        current_nrows = next_nrows;
-    }
-}
-
-
-template <typename ValueType>
-void Multigrid<ValueType>::run_cycle(
-    multigrid_cycle cycle, size_type level, std::shared_ptr<const LinOp> matrix,
-    const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *x,
-    std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &r_list,
-    std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &g_list,
-    std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &e_list) const
-{
-    auto r = r_list.at(level);
-    auto g = g_list.at(level);
-    auto e = e_list.at(level);
-    // get the pre_smoother
-    auto pre_smoother = pre_smoother_list_.at(level);
-    auto pre_relaxation = pre_relaxation_list_.at(level);
-    // get the post_smoother
-    auto post_smoother = post_smoother_list_.at(level);
-    auto post_relaxation = post_relaxation_list_.at(level);
-    // get the mid_smoother
-    auto mid_smoother = mid_smoother_list_.at(level);
-    auto mid_relaxation = mid_relaxation_list_.at(level);
-    // move the residual computation in level zero to out-of-cycle
-    if (level != 0) {
-        r->copy_from(b);
-        matrix->apply(neg_one_op_.get(), x, one_op_.get(), r.get());
-    }
-    // x += relaxation * Smoother(r)
-    if (pre_smoother) {
-        pre_smoother->apply(pre_relaxation.get(), r.get(), one_op_.get(), x);
-        // compute residual
-        r->copy_from(b);  // n * b
-        matrix->apply(neg_one_op_.get(), x, one_op_.get(), r.get());
-    }
-    // first cycle
-    rstr_prlg_list_.at(level)->restrict_apply(r.get(), g.get());
-    // next level or solve it
-    if (level + 1 == rstr_prlg_list_.size()) {
-        coarsest_solver_->apply(g.get(), e.get());
-    } else {
-        this->run_cycle(cycle, level + 1,
-                        rstr_prlg_list_.at(level)->get_coarse_operator(),
-                        g.get(), e.get(), r_list, g_list, e_list);
-    }
-    // additional work for non-v_cycle
-    if (cycle == multigrid_cycle::f || cycle == multigrid_cycle::w) {
-        // second cycle - f_cycle, w_cycle
-        // prolong
-        rstr_prlg_list_.at(level)->prolong_applyadd(e.get(), x);
-        // compute residual
-        r->copy_from(b);  // n * b
-        matrix->apply(neg_one_op_.get(), x, one_op_.get(), r.get());
-        // mid-smooth
-        if (mid_smoother) {
-            mid_smoother->apply(mid_relaxation.get(), r.get(), one_op_.get(),
-                                x);
-            // compute residual
-            r->copy_from(b);  // n * b
-            matrix->apply(neg_one_op_.get(), x, one_op_.get(), r.get());
-        }
-
-        rstr_prlg_list_.at(level)->restrict_apply(r.get(), g.get());
-        // next level or solve it
-        if (level + 1 == rstr_prlg_list_.size()) {
-            coarsest_solver_->apply(g.get(), e.get());
-        } else {
-            if (cycle == multigrid_cycle::f) {
-                // f_cycle call v_cycle in the second cycle
-                this->run_cycle(
-                    multigrid_cycle::v, level + 1,
-                    rstr_prlg_list_.at(level)->get_coarse_operator(), g.get(),
-                    e.get(), r_list, g_list, e_list);
-            } else {
-                this->run_cycle(
-                    cycle, level + 1,
-                    rstr_prlg_list_.at(level)->get_coarse_operator(), g.get(),
-                    e.get(), r_list, g_list, e_list);
-            }
-        }
-    } else if (cycle == multigrid_cycle::kfcg ||
-               cycle == multigrid_cycle::kgcr) {
-        // do some work in coarse level - do not need prolong
-        GKO_NOT_IMPLEMENTED;
-    }
-
-    // prolong
-    rstr_prlg_list_.at(level)->prolong_applyadd(e.get(), x);
-
-    // post-smooth
-    if (post_smoother) {
-        r->copy_from(b);
-        matrix->apply(neg_one_op_.get(), x, one_op_.get(), r.get());
-        post_smoother->apply(post_relaxation.get(), r.get(), one_op_.get(), x);
-    }
-}
-
-
-template <typename ValueType>
 void Multigrid<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     if (cycle_ == multigrid_cycle::kfcg || cycle_ == multigrid_cycle::kgcr) {
@@ -289,13 +306,12 @@ void Multigrid<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     bool one_changed{};
     auto dense_x = gko::as<matrix::Dense<ValueType>>(x);
     auto dense_b = gko::as<matrix::Dense<ValueType>>(b);
-    std::vector<std::shared_ptr<vector_type>> r_list(rstr_prlg_list_.size());
-    std::vector<std::shared_ptr<vector_type>> g_list(rstr_prlg_list_.size());
-    std::vector<std::shared_ptr<vector_type>> e_list(rstr_prlg_list_.size());
-    this->prepare_vcycle(b->get_size()[1], r_list, g_list, e_list);
-    exec->run(multigrid::make_initialize(e_list, &stop_status));
+    auto state = MultigridState<ValueType>(exec, system_matrix_.get(), this,
+                                           b->get_size()[1], one_op_.get(),
+                                           neg_one_op_.get());
+    exec->run(multigrid::make_initialize(&stop_status));
     // compute the residual at the r_list(0);
-    auto r = r_list.at(0);
+    auto r = state.r_list.at(0);
     r->copy_from(dense_b);
     system_matrix_->apply(neg_one_op_.get(), x, one_op_.get(), r.get());
     auto stop_criterion = stop_criterion_factory_->generate(
@@ -313,8 +329,13 @@ void Multigrid<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
             break;
         }
-        this->run_cycle(cycle_, 0, system_matrix_, dense_b, dense_x, r_list,
-                        g_list, e_list);
+        for (size_type i = 0; i < state.e_list.size(); i++) {
+            auto e = state.e_list.at(i);
+            exec->run(multigrid::make_fill_array(e->get_values(),
+                                                 e->get_num_stored_elements(),
+                                                 zero<ValueType>()));
+        }
+        state.run_cycle(cycle_, 0, system_matrix_, dense_b, dense_x);
         r->copy_from(dense_b);
         system_matrix_->apply(neg_one_op_.get(), x, one_op_.get(), r.get());
     }

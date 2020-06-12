@@ -182,7 +182,6 @@ set(GINKGO_HIP_SOURCES
     solver/cb_gmres_kernels.hip.cpp
     solver/idr_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp
-    solver/multigrid_kernels.hip.cpp
     solver/upper_trs_kernels.hip.cpp
     stop/criterion_kernels.hip.cpp
     stop/residual_norm_kernels.hip.cpp
