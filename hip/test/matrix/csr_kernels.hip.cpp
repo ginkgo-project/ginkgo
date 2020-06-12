@@ -699,7 +699,7 @@ TEST_F(Csr, OneAutomaticalWorksWithDifferentMatrices)
 }
 
 
-TEST_F(Csr, ExtractDiagonalIsquivalentToRef)
+TEST_F(Csr, ExtractDiagonalIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
 

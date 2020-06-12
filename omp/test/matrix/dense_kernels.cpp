@@ -691,7 +691,7 @@ TEST_F(Dense, IsInverseColPermutable)
 }
 
 
-TEST_F(Dense, ExtractDiagonalIsquivalentToRef)
+TEST_F(Dense, ExtractDiagonalIsEquivalentToRef)
 {
     set_up_apply_data();
 

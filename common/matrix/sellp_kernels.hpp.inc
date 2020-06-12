@@ -210,9 +210,10 @@ __global__ __launch_bounds__(default_block_size) void extract_diagonal(
     const auto slice_id = thread::get_subwarp_id_flat<warp_size>();
     const auto tid_in_warp = warp_tile.thread_rank();
 
-    for (size_type sellp_ind =
-             orig_slice_sets[slice_id] * slice_size + tid_in_warp;
-         sellp_ind < orig_slice_sets[slice_id + 1] * slice_size;
+    const auto start_ind = orig_slice_sets[slice_id] * slice_size + tid_in_warp;
+    const auto end_ind = orig_slice_sets[slice_id + 1] * slice_size;
+
+    for (auto sellp_ind = start_ind; sellp_ind < end_ind;
          sellp_ind += warp_size) {
         auto global_row = slice_id * slice_size + sellp_ind % slice_size;
         if (global_row < diag_size) {

@@ -220,7 +220,7 @@ TEST_F(Ell, CountNonzerosIsEquivalentToRef)
 }
 
 
-TEST_F(Ell, ExtractDiagonalIsquivalentToRef)
+TEST_F(Ell, ExtractDiagonalIsEquivalentToRef)
 {
     set_up_apply_data();
 

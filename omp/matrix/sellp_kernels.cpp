@@ -194,10 +194,11 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
 
 #pragma omp parallel for
     for (size_type slice = 0; slice < slice_num; slice++) {
-        for (size_type row = 0;
-             row < slice_size && slice_size * slice + row < diag_size; row++) {
+        for (size_type row = 0; row < slice_size; row++) {
             auto global_row = slice_size * slice + row;
-            diag->at(global_row, 0) = zero<ValueType>();
+            if (global_row >= diag_size) {
+                break;
+            }
             for (size_type i = 0; i < orig_slice_lengths[slice]; i++) {
                 if (orig->col_at(row, orig_slice_sets[slice], i) ==
                         global_row &&

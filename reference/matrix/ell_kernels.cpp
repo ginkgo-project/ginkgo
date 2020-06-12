@@ -219,10 +219,10 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
     const auto max_nnz_per_row = orig->get_num_stored_elements_per_row();
 
     for (size_type row = 0; row < diag_size; row++) {
-        diag->at(row, 0) = zero<ValueType>();
         for (size_type i = 0; i < max_nnz_per_row; i++) {
             if (orig->col_at(row, i) == row) {
                 diag->at(row, 0) = orig->val_at(row, i);
+                break;
             }
         }
     }

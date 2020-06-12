@@ -247,10 +247,12 @@ __global__ __launch_bounds__(default_block_size) void extract_diagonal(
     const auto tidx = thread::get_thread_id_flat();
     const auto row = tidx % diag_size;
     const auto col = tidx / diag_size;
+    const auto ell_ind = orig_stride * col + row;
 
     if (col < max_nnz_per_row) {
-        if (orig_col_idxs[orig_stride * col + row] == row) {
-            diag[row * diag_stride] = orig_values[orig_stride * col + row];
+        if (orig_col_idxs[ell_ind] == row &&
+            orig_values[ell_ind] != zero<ValueType>()) {
+            diag[row * diag_stride] = orig_values[ell_ind];
         }
     }
 }

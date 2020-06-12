@@ -210,30 +210,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_HYBRID_COUNT_NONZEROS_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
-                      const matrix::Hybrid<ValueType, IndexType> *orig,
-                      matrix::Dense<ValueType> *diag)
-{
-    gko::kernels::omp::ell::extract_diagonal(exec, orig->get_ell(), diag);
-
-    const auto coo_row_idxs = orig->get_const_coo_row_idxs();
-    const auto coo_col_idxs = orig->get_const_coo_col_idxs();
-    const auto coo_values = orig->get_const_coo_values();
-    const auto coo_nnz = orig->get_coo_num_stored_elements();
-
-#pragma omp parallel for
-    for (size_type i = 0; i < coo_nnz; i++) {
-        if (coo_row_idxs[i] == coo_col_idxs[i]) {
-            diag->at(coo_row_idxs[i], 0) = coo_values[i];
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_HYBRID_EXTRACT_DIAGONAL_KERNEL);
-
-
 }  // namespace hybrid
 }  // namespace omp
 }  // namespace kernels

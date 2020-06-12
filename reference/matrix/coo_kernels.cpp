@@ -198,10 +198,6 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
     const auto diag_size = diag->get_size()[0];
     const auto nnz = orig->get_num_stored_elements();
 
-    for (size_type row = 0; row < diag_size; row++) {
-        diag->at(row, 0) = zero<ValueType>();
-    }
-
     for (size_type idx = 0; idx < nnz; idx++) {
         if (row_idxs[idx] == col_idxs[idx]) {
             diag->at(row_idxs[idx], 0) = values[idx];

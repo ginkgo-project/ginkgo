@@ -259,7 +259,7 @@ TEST_F(Coo, ConvertToCsrIsEquivalentToRef)
 }
 
 
-TEST_F(Coo, ExtractDiagonalIsquivalentToRef)
+TEST_F(Coo, ExtractDiagonalIsEquivalentToRef)
 {
     set_up_apply_data();
 

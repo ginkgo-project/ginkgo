@@ -326,7 +326,7 @@ TEST_F(Sellp, CountNonzerosIsEquivalentToRef)
 }
 
 
-TEST_F(Sellp, ExtractDiagonalIsquivalentToRef)
+TEST_F(Sellp, ExtractDiagonalIsEquivalentToRef)
 {
     set_up_apply_matrix();
 

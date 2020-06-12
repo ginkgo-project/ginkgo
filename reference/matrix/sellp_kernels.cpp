@@ -38,8 +38,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
-#include <iostream>
-
 
 namespace gko {
 namespace kernels {
@@ -256,10 +254,11 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
     const auto orig_col_idxs = orig->get_const_col_idxs();
 
     for (size_type slice = 0; slice < slice_num; slice++) {
-        for (size_type row = 0;
-             row < slice_size && slice_size * slice + row < diag_size; row++) {
+        for (size_type row = 0; row < slice_size; row++) {
             auto global_row = slice_size * slice + row;
-            diag->at(global_row, 0) = zero<ValueType>();
+            if (global_row >= diag_size) {
+                break;
+            }
             for (size_type i = 0; i < orig_slice_lengths[slice]; i++) {
                 if (orig->col_at(row, orig_slice_sets[slice], i) ==
                         global_row &&
@@ -267,6 +266,7 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
                         zero<ValueType>()) {
                     diag->at(global_row, 0) =
                         orig->val_at(row, orig_slice_sets[slice], i);
+                    break;
                 }
             }
         }
