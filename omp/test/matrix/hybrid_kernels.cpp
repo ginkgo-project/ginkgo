@@ -218,7 +218,7 @@ TEST_F(Hybrid, MoveToCsrIsEquivalentToRef)
 }
 
 
-TEST_F(Hybrid, ExtractDiagonalIsquivalentToRef)
+TEST_F(Hybrid, ExtractDiagonalIsEquivalentToRef)
 {
     set_up_apply_data();
 

@@ -344,7 +344,7 @@ TEST_F(Ell, CountNNZIsEquivalentToRef)
 }
 
 
-TEST_F(Ell, ExtractDiagonalIsquivalentToRef)
+TEST_F(Ell, ExtractDiagonalIsEquivalentToRef)
 {
     set_up_apply_data();
 

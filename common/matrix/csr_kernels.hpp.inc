@@ -914,15 +914,13 @@ __global__ __launch_bounds__(default_block_size) void extract_diagonal(
     const auto local_tidx = threadIdx.x % warp_size;
 
     if (row < diag_size) {
-        if (local_tidx == 0) {
-            diag[row * diag_stride] = zero<ValueType>();
-        }
         for (size_type i = local_tidx;
              i < orig_row_ptrs[row + 1] - orig_row_ptrs[row]; i += warp_size) {
             const auto orig_idx = i + orig_row_ptrs[row];
             if (orig_idx < nnz) {
                 if (orig_col_idxs[orig_idx] == row) {
                     diag[row * diag_stride] = orig_values[orig_idx];
+                    return;
                 }
             }
         }

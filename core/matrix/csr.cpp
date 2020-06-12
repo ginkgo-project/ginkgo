@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "core/matrix/csr_kernels.hpp"
 
 
@@ -79,6 +80,7 @@ GKO_REGISTER_OPERATION(sort_by_column_index, csr::sort_by_column_index);
 GKO_REGISTER_OPERATION(is_sorted_by_column_index,
                        csr::is_sorted_by_column_index);
 GKO_REGISTER_OPERATION(extract_diagonal, csr::extract_diagonal);
+GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
 }  // namespace csr
@@ -470,6 +472,8 @@ void Csr<ValueType, IndexType>::extract_diagonal_impl(
     Dense<ValueType> *diag) const
 {
     auto exec = this->get_executor();
+    exec->run(csr::make_fill_array(diag->get_values(), diag->get_size()[0],
+                                   zero<ValueType>()));
     exec->run(csr::make_extract_diagonal(this, diag));
 }
 
