@@ -1982,11 +1982,7 @@ TYPED_TEST(Dense, ExtractsDiagonal)
     // {-2.0, 2.0, 4.5},
     // {2.1, 3.4, 1.2}
     // clang-format on
-    using Mtx = typename TestFixture::Mtx;
-    auto exec = this->mtx5->get_executor();
-    auto diag = Mtx::create(exec, gko::dim<2>(this->mtx5->get_size()[0], 1));
-
-    this->mtx5->extract_diagonal(lend(diag));
+    auto diag = this->mtx5->extract_diagonal();
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(diag,

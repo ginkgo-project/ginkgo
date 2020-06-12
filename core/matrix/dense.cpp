@@ -741,10 +741,14 @@ std::unique_ptr<LinOp> Dense<ValueType>::inverse_column_permute(
 
 
 template <typename ValueType>
-void Dense<ValueType>::extract_diagonal_impl(Dense<ValueType> *diag) const
+std::unique_ptr<Dense<ValueType>> Dense<ValueType>::extract_diagonal() const
 {
     auto exec = this->get_executor();
-    exec->run(dense::make_extract_diagonal(this, diag));
+
+    const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
+    auto diag = Dense<ValueType>::create(exec, dim<2>(diag_size, 1));
+    exec->run(dense::make_extract_diagonal(this, lend(diag)));
+    return diag;
 }
 
 

@@ -51,6 +51,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 
+namespace matrix {
+template <typename ValueType>
+class Dense;
+}
+
 
 /**
  * @addtogroup LinOp
@@ -596,10 +601,10 @@ private:
  *
  * @ingroup LinOp
  */
-template <typename ResultType, typename PolymorphicBase = LinOp>
+template <typename ValueType>
 class DiagonalExtractable {
 public:
-    using result_type = ResultType;
+    using value_type = ValueType;
 
     virtual ~DiagonalExtractable() = default;
 
@@ -608,21 +613,8 @@ public:
      *
      * @param diag  the vector into which the diagonal will be written
      */
-    void extract_diagonal(result_type *diag) const
-    {
-        GKO_ASSERT_EQ(std::min(self()->get_size()[0], self()->get_size()[1]),
-                      diag->get_size()[0]);
-        GKO_ASSERT_EQ(diag->get_size()[1], 1);
-
-        auto exec = self()->get_executor();
-        extract_diagonal_impl(
-            as<result_type>(make_temporary_clone(exec, diag).get()));
-    }
-
-protected:
-    GKO_ENABLE_SELF(PolymorphicBase);
-
-    virtual void extract_diagonal_impl(result_type *diag) const = 0;
+    virtual std::unique_ptr<matrix::Dense<ValueType>> extract_diagonal()
+        const = 0;
 };
 
 /**

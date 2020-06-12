@@ -206,6 +206,7 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
                         zero<ValueType>()) {
                     diag->at(global_row, 0) =
                         orig->val_at(row, orig_slice_sets[slice], i);
+                    break;
                 }
             }
         }

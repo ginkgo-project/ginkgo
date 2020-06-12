@@ -715,7 +715,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType>
-void extract_diagonal(std::shared_ptr<const CudaExecutor> exec,
+void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
                       const matrix::Dense<ValueType> *orig,
                       matrix::Dense<ValueType> *diag)
 {

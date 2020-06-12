@@ -74,15 +74,14 @@ class CooBuilder;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Coo
-    : public EnableLinOp<Coo<ValueType, IndexType>>,
-      public EnableCreateMethod<Coo<ValueType, IndexType>>,
-      public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
-      public ConvertibleTo<Csr<ValueType, IndexType>>,
-      public ConvertibleTo<Dense<ValueType>>,
-      public DiagonalExtractable<Dense<ValueType>, Coo<ValueType, IndexType>>,
-      public ReadableFromMatrixData<ValueType, IndexType>,
-      public WritableToMatrixData<ValueType, IndexType> {
+class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
+            public EnableCreateMethod<Coo<ValueType, IndexType>>,
+            public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
+            public ConvertibleTo<Csr<ValueType, IndexType>>,
+            public ConvertibleTo<Dense<ValueType>>,
+            public DiagonalExtractable<ValueType>,
+            public ReadableFromMatrixData<ValueType, IndexType>,
+            public WritableToMatrixData<ValueType, IndexType> {
     friend class EnableCreateMethod<Coo>;
     friend class EnablePolymorphicObject<Coo, LinOp>;
     friend class Csr<ValueType, IndexType>;
@@ -115,6 +114,8 @@ public:
     void read(const mat_data &data) override;
 
     void write(mat_data &data) const override;
+
+    std::unique_ptr<Dense<ValueType>> extract_diagonal() const override;
 
     /**
      * Returns the values of the matrix.
@@ -305,8 +306,6 @@ protected:
     void apply2_impl(const LinOp *b, LinOp *x) const;
 
     void apply2_impl(const LinOp *alpha, const LinOp *b, LinOp *x) const;
-
-    void extract_diagonal_impl(Dense<ValueType> *diag) const override;
 
 private:
     Array<value_type> values_;
