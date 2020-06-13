@@ -270,9 +270,11 @@ TYPED_TEST(ParIct, SetStrategies)
     auto fact = factory->generate(this->mtx_system);
 
     ASSERT_EQ(factory->get_parameters().l_strategy, l_strategy);
-    ASSERT_EQ(fact->get_l_factor()->get_strategy(), l_strategy);
+    ASSERT_EQ(fact->get_l_factor()->get_strategy()->get_name(),
+              l_strategy->get_name());
     ASSERT_EQ(factory->get_parameters().lt_strategy, lt_strategy);
-    ASSERT_EQ(fact->get_lt_factor()->get_strategy(), lt_strategy);
+    ASSERT_EQ(fact->get_lt_factor()->get_strategy()->get_name(),
+              lt_strategy->get_name());
 }
 
 

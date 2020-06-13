@@ -90,11 +90,17 @@ TYPED_TEST(CsrBuilder, UpdatesSrowOnDestruction)
     using index_type = typename TestFixture::index_type;
     struct mock_strategy : public Mtx::strategy_type {
         virtual void process(const gko::Array<index_type> &,
-                             gko::Array<index_type> *)
+                             gko::Array<index_type> *) override
         {
             *was_called = true;
         }
-        virtual int64_t clac_size(const int64_t nnz) { return 0; }
+
+        virtual int64_t clac_size(const int64_t nnz) override { return 0; }
+
+        virtual std::shared_ptr<typename Mtx::strategy_type> copy() override
+        {
+            return std::make_shared<mock_strategy>(*was_called);
+        }
 
         mock_strategy(bool &flag) : Mtx::strategy_type(""), was_called(&flag) {}
 
