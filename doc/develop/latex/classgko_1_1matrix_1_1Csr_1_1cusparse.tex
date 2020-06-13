@@ -28,7 +28,9 @@ Collaboration diagram for gko\+::matrix\+::Csr$<$ Value\+Type, Index\+Type $>$\+
 void \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1cusparse_acf64bdc81eee1fb3f46fd80f5d920939}{process}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ \&mtx\+\_\+row\+\_\+ptrs, \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ $\ast$mtx\+\_\+srow) override
 \begin{DoxyCompactList}\small\item\em Computes srow according to row pointers. \end{DoxyCompactList}\item 
 int64\+\_\+t \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1cusparse_a094614c818d821cb0a71a4266fbef2d0}{clac\+\_\+size}} (const int64\+\_\+t nnz) override
-\begin{DoxyCompactList}\small\item\em Computes the srow size according to the number of nonzeros. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Computes the srow size according to the number of nonzeros. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1cusparse_aaa34a27d6d9fb0d7bef655ad9a4fc686}{copy}} () override
+\begin{DoxyCompactList}\small\item\em Copy a strategy. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
@@ -66,6 +68,21 @@ the size of srow
 
 Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type_a07a6dda9dd04ed8abd914f3a69f330f2}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1cusparse_aaa34a27d6d9fb0d7bef655ad9a4fc686}\label{classgko_1_1matrix_1_1Csr_1_1cusparse_aaa34a27d6d9fb0d7bef655ad9a4fc686}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse@{gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse}!copy@{copy}}
+\index{copy@{copy}!gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse@{gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse}}
+\doxysubsubsection{\texorpdfstring{copy()}{copy()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}}$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::cusparse\+::copy (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Copy a strategy. 
+
+This is a workaround until strategies are revamped, since strategies like {\ttfamily automatical} do not work when actually shared. 
+
+Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type_adf3dc78938ffb991608b272447db6a68}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
+
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1cusparse_acf64bdc81eee1fb3f46fd80f5d920939}\label{classgko_1_1matrix_1_1Csr_1_1cusparse_acf64bdc81eee1fb3f46fd80f5d920939}} 
 \index{gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse@{gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse}!process@{process}}
 \index{process@{process}!gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse@{gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse}}
@@ -92,4 +109,4 @@ Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type_a58bda92
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/matrix/csr.\+hpp (4539e4283)\end{DoxyCompactItemize}
+ginkgo/core/matrix/csr.\+hpp (fdc2f6f76)\end{DoxyCompactItemize}

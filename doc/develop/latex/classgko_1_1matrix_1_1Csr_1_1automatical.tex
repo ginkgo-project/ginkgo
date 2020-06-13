@@ -15,19 +15,36 @@ Collaboration diagram for gko\+::matrix\+::Csr$<$ Value\+Type, Index\+Type $>$\+
 \item 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1automatical_a4ba9ec73abf4ac52d00811065d50b6d9}\label{classgko_1_1matrix_1_1Csr_1_1automatical_a4ba9ec73abf4ac52d00811065d50b6d9}} 
 \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1automatical_a4ba9ec73abf4ac52d00811065d50b6d9}{automatical}} ()
-\begin{DoxyCompactList}\small\item\em Creates a automatical strategy. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Creates an automatical strategy. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1automatical_a5e3cff9dc55b22b01ddf3db31731b267}{automatical}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}} $>$ exec)
-\begin{DoxyCompactList}\small\item\em Creates a automatical strategy with C\+U\+DA executor. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Creates an automatical strategy with C\+U\+DA executor. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1automatical_a9ec5b221681ed8e5f33fd77c9b781690}{automatical}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1HipExecutor}{Hip\+Executor}} $>$ exec)
-\begin{DoxyCompactList}\small\item\em Creates a automatical strategy with H\+IP executor. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Creates an automatical strategy with H\+IP executor. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1automatical_aded15aecba0706d609e7557a585a686a}{automatical}} (int64\+\_\+t nwarps, int warp\+\_\+size=32, bool cuda\+\_\+strategy=true)
-\begin{DoxyCompactList}\small\item\em Creates a automatical strategy with specified parameters. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Creates an automatical strategy with specified parameters. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1automatical_aefa241047539f2ee7784a54cf5051720}{process}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ \&mtx\+\_\+row\+\_\+ptrs, \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ $\ast$mtx\+\_\+srow) override
 \begin{DoxyCompactList}\small\item\em Computes srow according to row pointers. \end{DoxyCompactList}\item 
 int64\+\_\+t \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1automatical_a4c3e6ae322c261f0da10641c58e83398}{clac\+\_\+size}} (const int64\+\_\+t nnz) override
 \begin{DoxyCompactList}\small\item\em Computes the srow size according to the number of nonzeros. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1automatical_a593dee0b8e70a753670e1d81a05d2307}\label{classgko_1_1matrix_1_1Csr_1_1automatical_a593dee0b8e70a753670e1d81a05d2307}} 
 index\+\_\+type {\bfseries get\+\_\+max\+\_\+length\+\_\+per\+\_\+row} () const noexcept
+\item 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1automatical_ae1c938cbb2b6d0609eee055febb2fbd2}{copy}} () override
+\begin{DoxyCompactList}\small\item\em Copy a strategy. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1automatical_a909abe5ebd5bb68031b7ab68c2f847d4}\label{classgko_1_1matrix_1_1Csr_1_1automatical_a909abe5ebd5bb68031b7ab68c2f847d4}} 
+const index\+\_\+type {\bfseries nvidia\+\_\+row\+\_\+len\+\_\+limit} = 1024
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1automatical_ac1f75409470cd36a437d76a2bc4e79fd}\label{classgko_1_1matrix_1_1Csr_1_1automatical_ac1f75409470cd36a437d76a2bc4e79fd}} 
+const index\+\_\+type {\bfseries nvidia\+\_\+nnz\+\_\+limit} = 1e6
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1automatical_a21ff9463860ca7269f16f5cee771d999}\label{classgko_1_1matrix_1_1Csr_1_1automatical_a21ff9463860ca7269f16f5cee771d999}} 
+const index\+\_\+type {\bfseries amd\+\_\+row\+\_\+len\+\_\+limit} = 768
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1automatical_a2cdf9df0edbbaff89c3bb7e5979953c7}\label{classgko_1_1matrix_1_1Csr_1_1automatical_a2cdf9df0edbbaff89c3bb7e5979953c7}} 
+const index\+\_\+type {\bfseries amd\+\_\+nnz\+\_\+limit} = 1e8
 \end{DoxyCompactItemize}
 
 
@@ -41,7 +58,7 @@ index\+\_\+type {\bfseries get\+\_\+max\+\_\+length\+\_\+per\+\_\+row} () const 
 
 
 
-Creates a automatical strategy with C\+U\+DA executor. 
+Creates an automatical strategy with C\+U\+DA executor. 
 
 
 \begin{DoxyParams}{Parameters}
@@ -57,7 +74,7 @@ Creates a automatical strategy with C\+U\+DA executor.
 
 
 
-Creates a automatical strategy with H\+IP executor. 
+Creates an automatical strategy with H\+IP executor. 
 
 
 \begin{DoxyParams}{Parameters}
@@ -73,7 +90,7 @@ Creates a automatical strategy with H\+IP executor.
 
 
 
-Creates a automatical strategy with specified parameters. 
+Creates an automatical strategy with specified parameters. 
 
 
 \begin{DoxyParams}{Parameters}
@@ -113,6 +130,21 @@ the size of srow
 
 Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type_a07a6dda9dd04ed8abd914f3a69f330f2}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1automatical_ae1c938cbb2b6d0609eee055febb2fbd2}\label{classgko_1_1matrix_1_1Csr_1_1automatical_ae1c938cbb2b6d0609eee055febb2fbd2}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::automatical@{gko::matrix::Csr$<$ ValueType, IndexType $>$::automatical}!copy@{copy}}
+\index{copy@{copy}!gko::matrix::Csr$<$ ValueType, IndexType $>$::automatical@{gko::matrix::Csr$<$ ValueType, IndexType $>$::automatical}}
+\doxysubsubsection{\texorpdfstring{copy()}{copy()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}}$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::automatical\+::copy (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Copy a strategy. 
+
+This is a workaround until strategies are revamped, since strategies like {\ttfamily automatical} do not work when actually shared. 
+
+Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type_adf3dc78938ffb991608b272447db6a68}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
+
 \mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1automatical_aefa241047539f2ee7784a54cf5051720}\label{classgko_1_1matrix_1_1Csr_1_1automatical_aefa241047539f2ee7784a54cf5051720}} 
 \index{gko::matrix::Csr$<$ ValueType, IndexType $>$::automatical@{gko::matrix::Csr$<$ ValueType, IndexType $>$::automatical}!process@{process}}
 \index{process@{process}!gko::matrix::Csr$<$ ValueType, IndexType $>$::automatical@{gko::matrix::Csr$<$ ValueType, IndexType $>$::automatical}}
@@ -143,4 +175,4 @@ References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data(), gko\
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/matrix/csr.\+hpp (4539e4283)\end{DoxyCompactItemize}
+ginkgo/core/matrix/csr.\+hpp (fdc2f6f76)\end{DoxyCompactItemize}

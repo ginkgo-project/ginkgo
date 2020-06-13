@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['example_20programs_1473',['Example programs',['../Examples.html',1,'']]]
+  ['contributing_20guidelines_1474',['Contributing guidelines',['../contributing_guidelines.html',1,'']]]
 ];

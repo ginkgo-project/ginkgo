@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/154974292 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/155863751 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -97,6 +97,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a07a6dda9dd04ed8abd914f3a69f330f2"><td class="memItemLeft" align="right" valign="top">virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html#a07a6dda9dd04ed8abd914f3a69f330f2">clac_size</a> (const int64_t nnz)=0</td></tr>
 <tr class="memdesc:a07a6dda9dd04ed8abd914f3a69f330f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Computes the srow size according to the number of nonzeros.  <a href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html#a07a6dda9dd04ed8abd914f3a69f330f2">More...</a><br /></td></tr>
 <tr class="separator:a07a6dda9dd04ed8abd914f3a69f330f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adf3dc78938ffb991608b272447db6a68"><td class="memItemLeft" align="right" valign="top">virtual std::shared_ptr&lt; <a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html">strategy_type</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html#adf3dc78938ffb991608b272447db6a68">copy</a> ()=0</td></tr>
+<tr class="memdesc:adf3dc78938ffb991608b272447db6a68"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy a strategy.  <a href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html#adf3dc78938ffb991608b272447db6a68">More...</a><br /></td></tr>
+<tr class="separator:adf3dc78938ffb991608b272447db6a68"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="friends"></a>
 Friends</h2></td></tr>
@@ -187,6 +190,38 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 
 </div>
 </div>
+<a id="adf3dc78938ffb991608b272447db6a68"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adf3dc78938ffb991608b272447db6a68">&#9670;&nbsp;</a></span>copy()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType = default_precision, typename IndexType = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual std::shared_ptr&lt;<a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html">strategy_type</a>&gt; <a class="el" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a>&lt; ValueType, IndexType &gt;::strategy_type::copy </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Copy a strategy. </p>
+<p>This is a workaround until strategies are revamped, since strategies like <code>automatical</code> do not work when actually shared. </p>
+
+<p>Implemented in <a class="el" href="classgko_1_1matrix_1_1Csr_1_1automatical.html#ae1c938cbb2b6d0609eee055febb2fbd2">gko::matrix::Csr&lt; ValueType, IndexType &gt;::automatical</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1load__balance.html#a424cd2ae61da007c1add51cda9a859b3">gko::matrix::Csr&lt; ValueType, IndexType &gt;::load_balance</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1sparselib.html#a49e87d70b74009707ecaa9ab2de8da3f">gko::matrix::Csr&lt; ValueType, IndexType &gt;::sparselib</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1cusparse.html#aaa34a27d6d9fb0d7bef655ad9a4fc686">gko::matrix::Csr&lt; ValueType, IndexType &gt;::cusparse</a>, <a class="el" href="classgko_1_1matrix_1_1Csr_1_1merge__path.html#acc5f27d23fe04ffbdd5c840be4d0c7ae">gko::matrix::Csr&lt; ValueType, IndexType &gt;::merge_path</a>, and <a class="el" href="classgko_1_1matrix_1_1Csr_1_1classical.html#a2202060ee33f46510308a01e5caa8234">gko::matrix::Csr&lt; ValueType, IndexType &gt;::classical</a>.</p>
+
+</div>
+</div>
 <a id="a0c22b251b0c1dfd087a5c097488febe0"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0c22b251b0c1dfd087a5c097488febe0">&#9670;&nbsp;</a></span>get_name()</h2>
 
@@ -269,7 +304,7 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/matrix/<a class="el" href="csr_8hpp_source.html">csr.hpp (4539e4283)</a></li>
+<li>ginkgo/core/matrix/<a class="el" href="csr_8hpp_source.html">csr.hpp (fdc2f6f76)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
