@@ -49,6 +49,8 @@ set(GINKGO_HIP_NVCC_COMPILER_FLAGS "" CACHE STRING
     "Set the required HIP nvcc compiler flags. Current default is an empty string.")
 set(GINKGO_HIP_HCC_COMPILER_FLAGS "" CACHE STRING
     "Set the required HIPC HCC compiler flags. Current default is an empty string.")
+set(GINKGO_HIP_CLANG_COMPILER_FLAGS "" CACHE STRING
+    "Set the required HIPC CLANG compiler flags. Current default is an empty string.")
 set(GINKGO_HIP_AMDGPU "" CACHE STRING
     "The amdgpu_target(s) variable passed to hipcc. The default is none (auto).")
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)

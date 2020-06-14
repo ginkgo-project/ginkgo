@@ -124,6 +124,30 @@ TEST(CudaError, ReturnsCusparseError)
 }
 
 
+void throws_hip_error() { throw GKO_HIP_ERROR(0); }
+
+TEST(HipError, ReturnsHipError)
+{
+    ASSERT_THROW(throws_hip_error(), gko::HipError);
+}
+
+
+void throws_hipblas_error() { throw GKO_HIPBLAS_ERROR(0); }
+
+TEST(HipError, ReturnsHipblasError)
+{
+    ASSERT_THROW(throws_hipblas_error(), gko::HipblasError);
+}
+
+
+void throws_hipsparse_error() { throw GKO_HIPSPARSE_ERROR(0); }
+
+TEST(HipError, ReturnsHipsparseError)
+{
+    ASSERT_THROW(throws_hipsparse_error(), gko::HipsparseError);
+}
+
+
 TEST(AssertIsSquareMatrix, DoesNotThrowWhenIsSquareMatrix)
 {
     ASSERT_NO_THROW(GKO_ASSERT_IS_SQUARE_MATRIX(gko::dim<2>(3, 3)));

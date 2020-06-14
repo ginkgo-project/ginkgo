@@ -1,19 +1,28 @@
-if(NOT DEFINED HIPBLAS_PATH)
-    if(NOT DEFINED ENV{HIPBLAS_PATH})
-        set(HIPBLAS_PATH "${HIP_PATH}/../hipblas" CACHE PATH "Path to which HIPBLAS has been installed")
+if(NOT DEFINED ROCM_PATH)
+    if(DEFINED ENV{ROCM_PATH})
+        set(ROCM_PATH $ENV{ROCM_PATH} CACHE PATH "Path to which ROCM has been installed")
+    elseif(DEFINED ENV{HIP_PATH})
+        set(ROCM_PATH "$ENV{HIP_PATH}/.." CACHE PATH "Path to which ROCM has been installed")
     else()
+        set(ROCM_PATH "/opt/rocm" CACHE PATH "Path to which ROCM has been installed")
+    endif()
+endif()
+
+if(NOT DEFINED HIPBLAS_PATH)
+    if(DEFINED ENV{HIPBLAS_PATH})
         set(HIPBLAS_PATH $ENV{HIPBLAS_PATH} CACHE PATH "Path to which HIPBLAS has been installed")
+    else()
+        set(HIPBLAS_PATH "${ROCM_PATH}/hipblas" CACHE PATH "Path to which HIPBLAS has been installed")
     endif()
 endif()
 
 if(NOT DEFINED HIPSPARSE_PATH)
-    if(NOT DEFINED ENV{HIPSPARSE_PATH})
-        set(HIPSPARSE_PATH "${HIP_PATH}/../hipsparse" CACHE PATH "Path to which HIPSPARSE has been installed")
-    else()
+    if(DEFINED ENV{HIPSPARSE_PATH})
         set(HIPSPARSE_PATH $ENV{HIPSPARSE_PATH} CACHE PATH "Path to which HIPSPARSE has been installed")
+    else()
+        set(HIPSPARSE_PATH "${ROCM_PATH}/hipsparse" CACHE PATH "Path to which HIPSPARSE has been installed")
     endif()
 endif()
-
 
 ## Both the definition of `HCC_PATH` and `HIP_HIPCC_CMAKE_LINKER_HELPER` are required
 ## before including `FindHIP`, as these are essential but not defined in the beginning
@@ -24,12 +33,20 @@ endif()
 ##    `FindHIP` defines this only in macro calls, which we call much later on after
 ##    including the file itself.
 if(NOT DEFINED HCC_PATH)
-    if(NOT DEFINED ENV{HCC_PATH})
-        set(HCC_PATH "/opt/rocm/hcc" CACHE PATH "Path to which HCC has been installed")
-    else()
+    if(DEFINED ENV{HCC_PATH})
         set(HCC_PATH $ENV{HCC_PATH} CACHE PATH "Path to which HCC has been installed")
+    else()
+        set(HCC_PATH "${ROCM_PATH}/hcc" CACHE PATH "Path to which HCC has been installed")
     endif()
     set(HCC_HOME "${HCC_PATH}")
+endif()
+
+if(NOT DEFINED HIP_CLANG_PATH)
+    if(NOT DEFINED ENV{HIP_CLANG_PATH})
+        set(HIP_CLANG_PATH "${ROCM_PATH}/llvm/bin" CACHE PATH "Path to which HIP compatible clang binaries have been installed")
+    else()
+        set(HIP_CLANG_PATH $ENV{HIP_CLANG_PATH} CACHE PATH "Path to which HIP compatible clang binaries have been installed")
+    endif()
 endif()
 
 # Find HIPCC_CMAKE_LINKER_HELPER executable
@@ -92,7 +109,8 @@ find_package(HIP REQUIRED)
 find_package(hipblas REQUIRED)
 find_package(hipsparse REQUIRED)
 find_path(GINKGO_HIP_THRUST_PATH "thrust/complex.h"
-    PATHS "${HIP_PATH}/../include")
+    PATHS "${HIP_PATH}/../include"
+    ENV HIP_THRUST_PATH)
 if (NOT GINKGO_HIP_THRUST_PATH)
     message(FATAL_ERROR "Could not find the ROCm header thrust/complex.h which is required by Ginkgo HIP.")
 endif()
@@ -164,10 +182,10 @@ endif()
 set(GINKGO_HIPCC_OPTIONS ${GINKGO_HIP_COMPILER_FLAGS})
 set(GINKGO_HIP_NVCC_OPTIONS ${GINKGO_HIP_NVCC_COMPILER_FLAGS} ${GINKGO_HIP_NVCC_ARCH} ${GINKGO_HIP_NVCC_ADDITIONAL_FLAGS})
 set(GINKGO_HIP_HCC_OPTIONS ${GINKGO_HIP_HCC_COMPILER_FLAGS})
-
+set(GINKGO_HIP_CLANG_OPTIONS ${GINKGO_HIP_CLANG_COMPILER_FLAGS})
 
 set_source_files_properties(${GINKGO_HIP_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
-hip_add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES} HIPCC_OPTIONS "${GINKGO_HIPCC_OPTIONS} -std=c++11" NVCC_OPTIONS "${GINKGO_HIP_NVCC_OPTIONS} ${GINKGO_HIP_CUDA_HOST_COMPILER}" HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS} ${GINKGO_STATIC_OR_SHARED})
+hip_add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES} HIPCC_OPTIONS "${GINKGO_HIPCC_OPTIONS} -std=c++11" NVCC_OPTIONS "${GINKGO_HIP_NVCC_OPTIONS} ${GINKGO_HIP_CUDA_HOST_COMPILER}" HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS} CLANG_OPTIONS ${GINKGO_HIP_CLANG_OPTIONS} ${GINKGO_STATIC_OR_SHARED})
 
 if(GINKGO_HIP_AMDGPU AND GINKGO_HIP_PLATFORM MATCHES "hcc")
     foreach(target ${GINKGO_HIP_AMDGPU})
