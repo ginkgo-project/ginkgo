@@ -10,7 +10,7 @@ jobs:
     - uses: actions/checkout@v2
     - name: setup
       run: |
-        choco install cuda -y
+        choco install cuda --version=10.2.89.20191206 -y
     - name: configure
       run: |
         $env:ChocolateyInstall = Convert-Path "$((Get-Command choco).Path)\..\.."   
