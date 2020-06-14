@@ -322,10 +322,17 @@ public:
         size_type GKO_FACTORY_PARAMETER(min_coarse_rows, 2);
 
         /**
-         * Coarsest factory.
+         * Coarsest factory list.
          */
-        std::shared_ptr<const LinOpFactory> GKO_FACTORY_PARAMETER(
+        std::vector<std::shared_ptr<const LinOpFactory>> GKO_FACTORY_PARAMETER(
             coarsest_solver, nullptr);
+
+        /**
+         * Custom solver selector (level, matrix)
+         * default selector: use the first factory
+         */
+        std::function<size_type(const size_type, const LinOp *)>
+            GKO_FACTORY_PARAMETER(solver_index, nullptr);
 
         /**
          * Multigrid cycle type
@@ -388,6 +395,15 @@ protected:
         } else {
             rstr_prlg_index_ = parameters_.rstr_prlg_index;
         }
+        if (!parameters_.solver_index) {
+            if (parameters_.coarsest_solver.size() >= 1) {
+                solver_index_ = [](const size_type, const LinOp *) {
+                    return size_type{0};
+                };
+            }
+        } else {
+            solver_index_ = parameters_.solver_index;
+        }
         if (parameters_.rstr_prlg.size() == 0 ||
             (parameters_.pre_smoother.size() > 1 &&
              parameters_.pre_smoother.size() != parameters_.rstr_prlg.size()) ||
@@ -415,7 +431,10 @@ protected:
             GKO_NOT_SUPPORTED(this);
         }
         cycle_ = parameters_.cycle;
-        this->generate();
+        if (system_matrix_->get_size()[0] != 0) {
+            // generate on the existed matrix
+            this->generate();
+        }
     }
 
 private:
@@ -434,6 +453,7 @@ private:
         post_relaxation_list_{};
     std::shared_ptr<LinOp> coarsest_solver_{};
     std::function<size_type(const size_type, const LinOp *)> rstr_prlg_index_;
+    std::function<size_type(const size_type, const LinOp *)> solver_index_;
     std::shared_ptr<matrix::Dense<ValueType>> one_op_;
     std::shared_ptr<matrix::Dense<ValueType>> neg_one_op_;
     multigrid_cycle cycle_;

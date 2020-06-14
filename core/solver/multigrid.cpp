@@ -248,6 +248,13 @@ void Multigrid<ValueType>::generate()
         auto index = rstr_prlg_index_(level, lend(matrix));
         GKO_ENSURE_IN_BOUNDS(index, parameters_.rstr_prlg.size());
         auto rstr_prlg_factory = parameters_.rstr_prlg.at(index);
+        // coarse generate
+        auto rstr = rstr_prlg_factory->generate(matrix);
+        if (rstr->get_coarse_operator()->get_size()[0] == num_rows) {
+            // do not reduce dimension
+            break;
+        }
+        rstr_prlg_list_.emplace_back(give(rstr));
         // pre_smooth_generate
         handle_list(exec, index, matrix, parameters_.pre_smoother,
                     parameters_.pre_relaxation, pre_smoother_list_,
@@ -264,9 +271,6 @@ void Multigrid<ValueType>::generate()
                         parameters_.post_relaxation, post_smoother_list_,
                         post_relaxation_list_, one_op_);
         }
-        // coarse generate
-        auto rstr = rstr_prlg_factory->generate(matrix);
-        rstr_prlg_list_.emplace_back(give(rstr));
         matrix = rstr_prlg_list_.back()->get_coarse_operator();
         num_rows = matrix->get_size()[0];
         level++;
@@ -282,13 +286,24 @@ void Multigrid<ValueType>::generate()
         mid_smoother_list_ = post_smoother_list_;
         mid_relaxation_list_ = post_relaxation_list_;
     }
+    // Generate at least one level
+    GKO_ASSERT_EQ(level > 0, true);
     // generate coarsest solver
-    if (parameters_.coarsest_solver != nullptr) {
-        coarsest_solver_ = parameters_.coarsest_solver->generate(matrix);
-    } else {
+    if (parameters_.coarsest_solver.size() == 0) {
         // default is identity
         coarsest_solver_ =
             matrix::Identity<ValueType>::create(exec, matrix->get_size()[0]);
+    } else {
+        auto temp_index = solver_index_(level, lend(matrix));
+        GKO_ENSURE_IN_BOUNDS(temp_index, parameters_.coarsest_solver.size());
+        auto solver = parameters_.coarsest_solver.at(temp_index);
+        if (solver == nullptr) {
+            // default is identity
+            coarsest_solver_ = matrix::Identity<ValueType>::create(
+                exec, matrix->get_size()[0]);
+        } else {
+            coarsest_solver_ = solver->generate(matrix);
+        }
     }
 }
 
