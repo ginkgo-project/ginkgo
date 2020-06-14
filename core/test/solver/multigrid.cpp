@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/multigrid.hpp>
 
 
+#include <iostream>
 #include <vector>
 
 
@@ -51,6 +52,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 namespace {
+
+
+class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
+                   public gko::EnableCreateMethod<DummyLinOp> {
+public:
+    DummyLinOp(std::shared_ptr<const gko::Executor> exec,
+               gko::dim<2> size = gko::dim<2>{})
+        : EnableLinOp<DummyLinOp>(exec, size)
+    {}
+
+protected:
+    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+
+    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
+                    const gko::LinOp *beta, gko::LinOp *x) const override
+    {}
+};
 
 
 class DummyLinOpWithFactory : public gko::EnableLinOp<DummyLinOpWithFactory> {
@@ -109,7 +127,9 @@ public:
           parameters_{factory->get_parameters()},
           op_{op}
     {
-        this->set_coarse_fine(op_, op_->get_size()[0]);
+        gko::size_type n = op_->get_size()[0] - 1;
+        auto coarse = DummyLinOp::create(this->get_executor(), gko::dim<2>{n});
+        this->set_coarse_fine(gko::give(coarse), op_->get_size()[0]);
     }
 
     std::shared_ptr<const gko::LinOp> op_;
@@ -135,8 +155,11 @@ protected:
 
     Multigrid()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<Mtx>(
-              {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
+          mtx(gko::initialize<Mtx>({{2, -1.0, 0.0, 0.0},
+                                    {-1.0, 2, -1.0, 0.0},
+                                    {0.0, -1.0, 2, -1.0},
+                                    {0.0, 0.0, -1.0, 2}},
+                                   exec)),
           rp_factory(DummyRPFactory::build().on(exec)),
           lo_factory(DummyFactory::build().on(exec)),
           rp_factory2(DummyRPFactory::build().with_value(2).on(exec)),
@@ -184,14 +207,14 @@ protected:
         }
     }
 
-    static int get_value(gko::multigrid::RestrictProlong *rp)
+    static int get_value(const gko::multigrid::RestrictProlong *rp)
     {
-        return dynamic_cast<DummyRPFactory *>(rp)->get_parameters().value;
+        return dynamic_cast<const DummyRPFactory *>(rp)->get_parameters().value;
     }
 
-    static int get_value(gko::LinOp *lo)
+    static int get_value(const gko::LinOp *lo)
     {
-        return dynamic_cast<DummyFactory *>(lo)->get_parameters().value;
+        return dynamic_cast<const DummyFactory *>(lo)->get_parameters().value;
     }
 };
 
@@ -208,7 +231,7 @@ TYPED_TEST(Multigrid, MultigridFactoryCreatesCorrectSolver)
 {
     using Solver = typename TestFixture::Solver;
 
-    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(3, 3));
+    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(4, 4));
     auto multigrid_solver = static_cast<Solver *>(this->solver.get());
     ASSERT_NE(multigrid_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(multigrid_solver->get_system_matrix(), this->mtx);
@@ -223,7 +246,7 @@ TYPED_TEST(Multigrid, CanBeCopied)
 
     copy->copy_from(this->solver.get());
 
-    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
+    ASSERT_EQ(copy->get_size(), gko::dim<2>(4, 4));
     auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
     this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
                                this->mtx.get());
@@ -238,7 +261,7 @@ TYPED_TEST(Multigrid, CanBeMoved)
 
     copy->copy_from(std::move(this->solver));
 
-    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
+    ASSERT_EQ(copy->get_size(), gko::dim<2>(4, 4));
     auto copy_mtx = static_cast<Solver *>(copy.get())->get_system_matrix();
     this->assert_same_matrices(static_cast<const Mtx *>(copy_mtx.get()),
                                this->mtx.get());
@@ -251,7 +274,7 @@ TYPED_TEST(Multigrid, CanBeCloned)
     using Solver = typename TestFixture::Solver;
     auto clone = this->solver->clone();
 
-    ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
+    ASSERT_EQ(clone->get_size(), gko::dim<2>(4, 4));
     auto clone_mtx = static_cast<Solver *>(clone.get())->get_system_matrix();
     this->assert_same_matrices(static_cast<const Mtx *>(clone_mtx.get()),
                                this->mtx.get());
@@ -832,6 +855,98 @@ TYPED_TEST(Multigrid, PostUsesPreAndMidUsesPost)
     ASSERT_EQ(mid_relaxation.size(), 2);
     ASSERT_EQ(mid_relaxation.at(0).get(), pre_relaxation.at(0).get());
     ASSERT_EQ(mid_relaxation.at(1).get(), pre_relaxation.at(1).get());
+}
+
+
+TYPED_TEST(Multigrid, EmptyCoarsestSolverListUsesIdentity)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    auto solver =
+        Solver::build()
+            .with_max_levels(2u)
+            .with_rstr_prlg(this->rp_factory)
+            .with_pre_smoother(this->lo_factory)
+            .with_post_uses_pre(true)
+            .with_mid_case(gko::solver::multigrid_mid_uses::pre)
+            .with_criteria(this->criterion)
+            .with_coarsest_solver(
+                std::vector<std::shared_ptr<const gko::LinOpFactory>>{})
+            .on(this->exec)
+            ->generate(this->mtx);
+    auto coarsest_solver = solver->get_coarsest_solver();
+    auto identity = dynamic_cast<const gko::matrix::Identity<value_type> *>(
+        coarsest_solver.get());
+
+    ASSERT_NE(identity, nullptr);
+}
+
+
+TYPED_TEST(Multigrid, DefaultCoarsestSolverUsesIdentity)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    auto solver = Solver::build()
+                      .with_max_levels(2u)
+                      .with_rstr_prlg(this->rp_factory)
+                      .with_pre_smoother(this->lo_factory)
+                      .with_post_uses_pre(true)
+                      .with_mid_case(gko::solver::multigrid_mid_uses::pre)
+                      .with_criteria(this->criterion)
+                      .on(this->exec)
+                      ->generate(this->mtx);
+    auto coarsest_solver = solver->get_coarsest_solver();
+    auto identity = dynamic_cast<const gko::matrix::Identity<value_type> *>(
+        coarsest_solver.get());
+
+    ASSERT_NE(identity, nullptr);
+}
+
+
+TYPED_TEST(Multigrid, DefaultCoarsestSolverSelectorUsesTheFirstOne)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    auto solver = Solver::build()
+                      .with_max_levels(2u)
+                      .with_rstr_prlg(this->rp_factory)
+                      .with_pre_smoother(this->lo_factory)
+                      .with_post_uses_pre(true)
+                      .with_mid_case(gko::solver::multigrid_mid_uses::pre)
+                      .with_criteria(this->criterion)
+                      .with_coarsest_solver(this->lo_factory, this->lo_factory2)
+                      .on(this->exec)
+                      ->generate(this->mtx);
+    auto coarsest_solver = solver->get_coarsest_solver();
+
+    ASSERT_EQ(this->get_value(coarsest_solver.get()), 5);
+}
+
+TYPED_TEST(Multigrid, CustomCoarsestSolverSelector)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    auto selector = [](const gko::size_type level, const gko::LinOp *matrix) {
+        return (level == 2) ? 1 : 0;
+    };
+    auto solver = Solver::build()
+                      .with_max_levels(2u)
+                      .with_rstr_prlg(this->rp_factory)
+                      .with_pre_smoother(this->lo_factory)
+                      .with_post_uses_pre(true)
+                      .with_mid_case(gko::solver::multigrid_mid_uses::pre)
+                      .with_criteria(this->criterion)
+                      .with_coarsest_solver(this->lo_factory, this->lo_factory2)
+                      .with_solver_index(selector)
+                      .on(this->exec)
+                      ->generate(this->mtx);
+    auto coarsest_solver = solver->get_coarsest_solver();
+
+    ASSERT_EQ(this->get_value(coarsest_solver.get()), 2);
 }
 
 

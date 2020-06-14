@@ -73,6 +73,23 @@ void assert_same_vector(std::vector<int> v1, std::vector<int> v2)
 }
 
 
+class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
+                   public gko::EnableCreateMethod<DummyLinOp> {
+public:
+    DummyLinOp(std::shared_ptr<const gko::Executor> exec,
+               gko::dim<2> size = gko::dim<2>{})
+        : EnableLinOp<DummyLinOp>(exec, size)
+    {}
+
+protected:
+    void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override {}
+
+    void apply_impl(const gko::LinOp *alpha, const gko::LinOp *b,
+                    const gko::LinOp *beta, gko::LinOp *x) const override
+    {}
+};
+
+
 template <typename ValueType>
 class DummyLinOpWithFactory
     : public gko::EnableLinOp<DummyLinOpWithFactory<ValueType>> {
@@ -144,7 +161,9 @@ public:
           parameters_{factory->get_parameters()},
           op_{op}
     {
-        this->set_coarse_fine(op_, op_->get_size()[0]);
+        gko::size_type n = op_->get_size()[0] - 1;
+        auto coarse = DummyLinOp::create(this->get_executor(), gko::dim<2>{n});
+        this->set_coarse_fine(gko::give(coarse), op_->get_size()[0]);
     }
 
     std::shared_ptr<const gko::LinOp> op_;
@@ -248,6 +267,7 @@ protected:
                         .with_reduction_factor(r<value_type>::value)
                         .on(exec))
                 .with_cycle(cycle)
+                .with_min_coarse_rows(1u)
                 .on(exec));
     }
 
@@ -270,6 +290,7 @@ protected:
                     gko::stop::Iteration::build().with_max_iters(1u).on(
                         this->exec))
                 .with_cycle(cycle)
+                .with_min_coarse_rows(1u)
                 .on(this->exec));
     }
 
@@ -290,6 +311,7 @@ protected:
                     gko::stop::Iteration::build().with_max_iters(1u).on(
                         this->exec))
                 .with_cycle(cycle)
+                .with_min_coarse_rows(1u)
                 .on(this->exec));
     }
 
