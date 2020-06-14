@@ -33,9 +33,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 
 
+#include <string>
+
+
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <cusparse.h>
+
+
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
