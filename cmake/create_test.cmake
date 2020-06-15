@@ -103,8 +103,19 @@ function(ginkgo_create_hip_test test_name)
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
 
     set_source_files_properties(${test_name}.hip.cpp PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
-    hip_add_executable(${TEST_TARGET_NAME} ${test_name}.hip.cpp HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS}
-        NVCC_OPTIONS  ${GINKGO_HIP_NVCC_OPTIONS} HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS})
+
+    if (HIP_VERSION GREATER_EQUAL "3.5")
+        hip_add_executable(${TEST_TARGET_NAME} ${test_name}.hip.cpp
+            HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS}
+            NVCC_OPTIONS  ${GINKGO_HIP_NVCC_OPTIONS}
+            HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS}
+            CLANG_OPTIONS ${GINKGO_HIP_CLANG_OPTIONS})
+    else()
+        hip_add_executable(${TEST_TARGET_NAME} ${test_name}.hip.cpp
+            HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS}
+            NVCC_OPTIONS  ${GINKGO_HIP_NVCC_OPTIONS}
+            HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS})
+    endif()
 
     # Let's really not use nvcc for linking here
     if (GINKGO_HIP_PLATFORM MATCHES "nvcc")

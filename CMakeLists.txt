@@ -48,9 +48,9 @@ set(GINKGO_HIP_COMPILER_FLAGS "" CACHE STRING
 set(GINKGO_HIP_NVCC_COMPILER_FLAGS "" CACHE STRING
     "Set the required HIP nvcc compiler flags. Current default is an empty string.")
 set(GINKGO_HIP_HCC_COMPILER_FLAGS "" CACHE STRING
-    "Set the required HIPC HCC compiler flags. Current default is an empty string.")
+    "Set the required HIP HCC compiler flags. Current default is an empty string.")
 set(GINKGO_HIP_CLANG_COMPILER_FLAGS "" CACHE STRING
-    "Set the required HIPC CLANG compiler flags. Current default is an empty string.")
+    "Set the required HIP CLANG compiler flags. Current default is an empty string.")
 set(GINKGO_HIP_AMDGPU "" CACHE STRING
     "The amdgpu_target(s) variable passed to hipcc. The default is none (auto).")
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
@@ -131,10 +131,10 @@ set(GINKGO_HIP_PLATFORM_HCC 0)
 
 if(GINKGO_BUILD_HIP)
     # GINKGO_HIPCONFIG_PATH and HIP_PATH are set in cmake/hip_path.cmake
-    if(GINKGO_HIPCONFIG_PATH)
-        execute_process(COMMAND ${GINKGO_HIPCONFIG_PATH} --platform OUTPUT_VARIABLE GINKGO_HIP_PLATFORM)
-    elseif(DEFINED ENV{HIP_PLATFORM})
+    if(DEFINED ENV{HIP_PLATFORM})
         set(GINKGO_HIP_PLATFORM "$ENV{HIP_PLATFORM}")
+    elseif(GINKGO_HIPCONFIG_PATH)
+        execute_process(COMMAND ${GINKGO_HIPCONFIG_PATH} --platform OUTPUT_VARIABLE GINKGO_HIP_PLATFORM)
     else()
         message(FATAL_ERROR "No platform could be found for HIP. "
             "Set and export the environment variable HIP_PLATFORM.")
