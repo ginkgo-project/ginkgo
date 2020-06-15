@@ -410,14 +410,17 @@ int main(int argc, char *argv[])
     auto stop_time = std::chrono::steady_clock::now();
 
     const auto runtime_duration =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time -
-                                                             start_time)
-            .count() *
+        static_cast<double>(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time -
+                                                                 start_time)
+                .count()) *
         1e-6;
 
     print_solution<ValueType, IndexType>(dp, u.data());
     std::cout << "The average relative error is "
-              << calculate_error(dp, u.data(), correct_u) / dp_3 << std::endl;
+              << calculate_error(dp, u.data(), correct_u) /
+                     static_cast<gko::remove_complex<ValueType>>(dp_3)
+              << std::endl;
 
     std::cout << "The runtime is " << std::to_string(runtime_duration) << " ms"
               << std::endl;

@@ -89,8 +89,11 @@ int main(int argc, char *argv[])
     auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(tac - tic);
     std::cout << "Running " << num_iters
               << " iterations of the CG solver took a total of "
-              << 1.0 * time.count() / std::nano::den << " seconds." << std::endl
+              << static_cast<double>(time.count()) /
+                     static_cast<double>(std::nano::den)
+              << " seconds." << std::endl
               << "\tAverage library overhead:     "
-              << 1.0 * time.count() / num_iters << " [nanoseconds / iteration]"
-              << std::endl;
+              << static_cast<double>(time.count()) /
+                     static_cast<double>(num_iters)
+              << " [nanoseconds / iteration]" << std::endl;
 }
