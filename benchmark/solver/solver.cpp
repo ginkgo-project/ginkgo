@@ -213,6 +213,24 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_preconditioner(give(precond))
                  .on(exec);
          }},
+        {"gmres_mixed_half",
+         [](std::shared_ptr<const gko::Executor> exec,
+            std::shared_ptr<const gko::LinOpFactory> precond) {
+             return gko::solver::GmresMixed<double, gko::half>::build()
+                 .with_criteria(create_criterion(exec))
+                 .with_krylov_dim_mixed(FLAGS_gmres_restart)
+                 .with_preconditioner(give(precond))
+                 .on(exec);
+         }},
+        {"gmres_mixed_int64",
+         [](std::shared_ptr<const gko::Executor> exec,
+            std::shared_ptr<const gko::LinOpFactory> precond) {
+             return gko::solver::GmresMixed<double, gko::int64>::build()
+                 .with_criteria(create_criterion(exec))
+                 .with_krylov_dim_mixed(FLAGS_gmres_restart)
+                 .with_preconditioner(give(precond))
+                 .on(exec);
+         }},
         {"gmres_mixed_int32",
          [](std::shared_ptr<const gko::Executor> exec,
             std::shared_ptr<const gko::LinOpFactory> precond) {
