@@ -1,6 +1,6 @@
 Installation Instructions                      {#install_ginkgo}
 -------------------------------------
-### Building 
+### Building
 
 Use the standard cmake build procedure:
 
@@ -53,6 +53,9 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_WITH_IWYU={ON, OFF}` makes Ginkgo call `iwyu` to find include
     issues. The path can be manually controlled with the CMake variable
     `-DGINKGO_IWYU_PATH=<path>`. The default is `OFF`.
+*   `-DGINKGO_CHECK_CIRCULAR_DEPS={ON, OFF}` enables compile-time checks for
+    circular dependencies between different Ginkgo libraries and self-sufficient
+    headers. Should only be used for development purposes. The default is `OFF`.
 *   `-DGINKGO_VERBOSE_LEVEL=integer` sets the verbosity of Ginkgo.
     * `0` disables all output in the main libraries,
     * `1` enables a few important messages related to unexpected behavior (default).
@@ -62,7 +65,7 @@ Ginkgo adds the following additional switches to control what is being built:
     this build of Ginkgo. The default is `RELEASE`. Supported values are CMake's
     standard build types such as `DEBUG` and `RELEASE` and the Ginkgo specific
     `COVERAGE`, `ASAN` (AddressSanitizer), `LSAN` (LeakSanitizer), `TSAN`
-    (ThreadSanitizer) and `UBSAN` (undefined behavior sanitizer) types. 
+    (ThreadSanitizer) and `UBSAN` (undefined behavior sanitizer) types.
 *   `-DBUILD_SHARED_LIBS={ON, OFF}` builds ginkgo as shared libraries (`OFF`)
     or as dynamic libraries (`ON`), default is `ON`.
 *   `-DGINKGO_JACOBI_FULL_OPTIMIZATIONS={ON, OFF}` use all the optimizations

@@ -87,6 +87,8 @@ create new instances of a polymorphic class inside a kernel (or in general
 inside any kernel module like cuda/hip/omp/reference) as this creates circular
 dependencies between the `core` and the backend library. With this in mind, our
 CI contains a job which checks if such a circular dependency exists.
+These checks can be run manually using the `-DGINKGO_CHECK_CIRCULAR_DEPS=ON`
+option in the CMake configuration.
 
 For example, when creating a new matrix class `AB` by combining existing classes
 `A` and `B`, the `AB::apply()` function composed of invocations to `A::apply()`
@@ -400,6 +402,7 @@ _Note_: Please see the detail in the `dev_tools/scripts/config`.
 
 1. Private headers of Ginkgo should not be included within the public Ginkgo header.
 2. It is a good idea to keep the headers self-sufficient, See [Google Style guide for reasoning](https://google.github.io/styleguide/cppguide.html#Self_contained_Headers).
+When compiling with `GINKGO_CHECK_CIRCULAR_DEPS` enabled, this property is explicitly checked.
 3. The recommendations of the `iwyu` (Include what you use) tool can be used to make sure that the headers are self-sufficient and that the compiled files ( `.cu`, `.cpp`, `.hip.cpp` ) include only what they use. A [CI pipeline](https://gitlab.com/ginkgo-project/ginkgo-public-ci/-/jobs/584358356) is available that runs with the `iwyu` tool. Please be aware that this tool can be incorrect in some cases.
 
 #### Automatic header arrangement
@@ -480,7 +483,7 @@ in the folder where the script is run, which lists all the TODO's. These TODO's 
 also be found in the corresponding files.
 
 ### Converting CUDA code to HIP code
-We provide a `cuda2hip` script that converts `cuda` kernel code into `hip` kernel code. 
+We provide a `cuda2hip` script that converts `cuda` kernel code into `hip` kernel code.
 Internally, this script calls the [`hipify` script](https://github.com/ROCm-Developer-Tools/HIPIFY) provided by HIP, converting the CUDA syntax
 to HIP syntax. Additionally, it also automatically replaces the instances of
 CUDA with HIP as appropriate. Hence, this script can be called on a Ginkgo CUDA
