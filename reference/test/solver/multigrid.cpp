@@ -187,10 +187,13 @@ protected:
 };
 
 
-template <typename T>
+template <typename ValueIndexType>
 class Multigrid : public ::testing::Test {
 protected:
-    using value_type = T;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Csr = gko::matrix::Csr<value_type>;
     using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Multigrid<value_type>;
@@ -327,7 +330,7 @@ protected:
     std::shared_ptr<Mtx> x;
 };
 
-TYPED_TEST_CASE(Multigrid, gko::test::ValueTypes);
+TYPED_TEST_CASE(Multigrid, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Multigrid, VCycleIndividual)

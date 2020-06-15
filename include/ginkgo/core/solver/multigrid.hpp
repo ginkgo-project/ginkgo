@@ -404,36 +404,52 @@ protected:
         } else {
             solver_index_ = parameters_.solver_index;
         }
-        if (parameters_.rstr_prlg.size() == 0 ||
-            (parameters_.pre_smoother.size() > 1 &&
-             parameters_.pre_smoother.size() != parameters_.rstr_prlg.size()) ||
-            (!parameters_.post_uses_pre &&
-             parameters_.post_smoother.size() > 1 &&
-             parameters_.post_smoother.size() !=
-                 parameters_.rstr_prlg.size())) {
+        const auto rstr_prlg_len = parameters_.rstr_prlg.size();
+        if (rstr_prlg_len == 0) {
             GKO_NOT_SUPPORTED(this);
+        } else {
+            // each rstr_prlg can not be nullptr
+            for (size_type i = 0; i < rstr_prlg_len; i++) {
+                if (parameters_.rstr_prlg.at(i) == nullptr) {
+                    GKO_NOT_SUPPORTED(this);
+                }
+            }
         }
-        if (parameters_.pre_relaxation.get_num_elems() > 1 &&
-            parameters_.pre_relaxation.get_num_elems() !=
-                parameters_.rstr_prlg.size()) {
-            GKO_NOT_SUPPORTED(this);
-        }
-        if (parameters_.mid_case != multigrid_mid_uses::mid &&
-            parameters_.mid_relaxation.get_num_elems() > 1 &&
-            parameters_.mid_relaxation.get_num_elems() !=
-                parameters_.rstr_prlg.size()) {
-            GKO_NOT_SUPPORTED(this);
-        }
-        if (!parameters_.post_uses_pre &&
-            parameters_.post_relaxation.get_num_elems() > 1 &&
-            parameters_.post_relaxation.get_num_elems() !=
-                parameters_.rstr_prlg.size()) {
-            GKO_NOT_SUPPORTED(this);
-        }
+        // verify pre-related parameters
+        this->verify_legal_length(true, parameters_.pre_smoother.size(),
+                                  rstr_prlg_len);
+        this->verify_legal_length(
+            true, parameters_.pre_relaxation.get_num_elems(), rstr_prlg_len);
+        // verify post-related parameters when post does not use pre
+        this->verify_legal_length(!parameters_.post_uses_pre,
+                                  parameters_.post_smoother.size(),
+                                  rstr_prlg_len);
+        this->verify_legal_length(!parameters_.post_uses_pre,
+                                  parameters_.post_relaxation.get_num_elems(),
+                                  rstr_prlg_len);
+        // verify mid-related parameters when mid does not use pre/post.
+        this->verify_legal_length(
+            parameters_.mid_case == multigrid_mid_uses::mid,
+            parameters_.mid_smoother.size(), rstr_prlg_len);
+        this->verify_legal_length(
+            parameters_.mid_case == multigrid_mid_uses::mid,
+            parameters_.mid_relaxation.get_num_elems(), rstr_prlg_len);
+
         cycle_ = parameters_.cycle;
         if (system_matrix_->get_size()[0] != 0) {
             // generate on the existed matrix
             this->generate();
+        }
+    }
+    void verify_legal_length(bool checked, size_type len, size_type ref_len)
+    {
+        if (checked) {
+            // len = 0 uses default behaviour
+            // len = 1 uses the first one
+            // len > 1 : must contain the same len as ref(rstr_prlg)
+            if (len > 1 && len != ref_len) {
+                GKO_NOT_SUPPORTED(this);
+            }
         }
     }
 
