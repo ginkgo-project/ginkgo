@@ -26,6 +26,9 @@ option(GINKGO_EXPORT_BUILD_DIR
     OFF)
 option(GINKGO_WITH_CLANG_TIDY "Make Ginkgo call `clang-tidy` to find programming issues." OFF)
 option(GINKGO_WITH_IWYU "Make Ginkgo call `iwyu` (Include What You Use) to find include issues." OFF)
+option(GINKGO_CHECK_CIRCULAR_DEPS
+    "Enable compile-time checks detecting circular dependencies between libraries and non-self-sufficient headers."
+    OFF)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
     "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
 if(MSVC)
