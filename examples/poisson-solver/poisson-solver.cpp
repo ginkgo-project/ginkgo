@@ -69,9 +69,9 @@ void generate_rhs(Closure f, ValueType u0, ValueType u1,
 {
     const auto discretization_points = rhs->get_size()[0];
     auto values = rhs->get_values();
-    const ValueType h = 1.0 / (discretization_points + 1);
+    const ValueType h = 1.0 / static_cast<ValueType>(discretization_points + 1);
     for (gko::size_type i = 0; i < discretization_points; ++i) {
-        const auto xi = ValueType(i + 1) * h;
+        const auto xi = static_cast<ValueType>(i + 1) * h;
         values[i] = -f(xi) * h * h;
     }
     values[0] += u0;
@@ -99,11 +99,11 @@ gko::remove_complex<ValueType> calculate_error(
     int discretization_points, const gko::matrix::Dense<ValueType> *u,
     Closure correct_u)
 {
-    const ValueType h = 1.0 / (discretization_points + 1);
+    const ValueType h = 1.0 / static_cast<ValueType>(discretization_points + 1);
     auto error = 0.0;
     for (int i = 0; i < discretization_points; ++i) {
         using std::abs;
-        const auto xi = ValueType(i + 1) * h;
+        const auto xi = static_cast<ValueType>(i + 1) * h;
         error +=
             abs(u->get_const_values()[i] - correct_u(xi)) / abs(correct_u(xi));
     }
@@ -180,6 +180,7 @@ int main(int argc, char *argv[])
     print_solution<ValueType>(u0, u1, lend(u));
     std::cout << "The average relative error is "
               << calculate_error(discretization_points, lend(u), correct_u) /
-                     discretization_points
+                     static_cast<gko::remove_complex<ValueType>>(
+                         discretization_points)
               << std::endl;
 }
