@@ -69,7 +69,8 @@ protected:
           gmres_mixed_factory(
               gmres_type::build()
                   .with_criteria(
-                      gko::stop::Iteration::build().with_max_iters(4u).on(exec),
+                      gko::stop::Iteration::build().with_max_iters(100u).on(
+                          exec),
                       gko::stop::Time::build()
                           .with_time_limit(std::chrono::seconds(6))
                           .on(exec),
@@ -112,12 +113,14 @@ protected:
 };
 
 
-using TestTypes =
-    ::testing::Types<std::tuple<double, double>, std::tuple<double, float>,
-                     std::tuple<float, float>,
-                     std::tuple<std::complex<double>, std::complex<double>>,
-                     std::tuple<std::complex<double>, std::complex<float>>,
-                     std::tuple<std::complex<float>, std::complex<float>>>;
+using TestTypes = ::testing::Types<
+    std::tuple<double, double>, std::tuple<double, float>,
+    std::tuple<double, gko::int64>, std::tuple<double, gko::int32>,
+    std::tuple<double, gko::int16>, std::tuple<double, gko::half>,
+    std::tuple<float, float>, std::tuple<float, gko::half>,
+    std::tuple<std::complex<double>, std::complex<double>>,
+    std::tuple<std::complex<double>, std::complex<float>>,
+    std::tuple<std::complex<float>, std::complex<float>>>;
 
 
 TYPED_TEST_CASE(GmresMixed, TestTypes);

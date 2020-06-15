@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 
+#include "core/base/extended_float.hpp"
 #include "core/solver/gmres_mixed_accessor.hpp"
 
 
@@ -70,7 +71,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     template _macro(double, int64);                              \
     template _macro(double, int32);                              \
     template _macro(double, int16);                              \
+    template _macro(double, half);                               \
     template _macro(float, float);                               \
+    template _macro(float, half);                                \
     template _macro(std::complex<double>, std::complex<double>); \
     template _macro(std::complex<double>, std::complex<float>);  \
     template _macro(std::complex<float>, std::complex<float>)
