@@ -302,6 +302,7 @@ TYPED_TEST(Multigrid, ApplyUsesInitialGuessReturnsTrue)
     ASSERT_TRUE(this->solver->apply_uses_initial_guess());
 }
 
+
 TYPED_TEST(Multigrid, CanChangeCycle)
 {
     using Solver = typename TestFixture::Solver;
@@ -358,6 +359,229 @@ TYPED_TEST(Multigrid, EachLevelAreDistinct)
     ASSERT_EQ(post_relaxation.at(1)->at(0, 0), value_type{4});
     ASSERT_NE(coarsest_solver, nullptr);
 }
+
+
+TYPED_TEST(Multigrid, DefaultBehavior)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    auto solver = Solver::build()
+                      .with_max_levels(1u)
+                      .with_rstr_prlg(this->rp_factory)
+                      .with_criteria(this->criterion)
+                      .on(this->exec)
+                      ->generate(this->mtx);
+    auto coarsest_solver = solver->get_coarsest_solver();
+    auto identity = dynamic_cast<const gko::matrix::Identity<value_type> *>(
+        coarsest_solver.get());
+    auto pre_smoother = solver->get_pre_smoother_list();
+    auto mid_smoother = solver->get_mid_smoother_list();
+    auto post_smoother = solver->get_post_smoother_list();
+    auto pre_relaxation = solver->get_pre_relaxation_list();
+    auto mid_relaxation = solver->get_mid_relaxation_list();
+    auto post_relaxation = solver->get_post_relaxation_list();
+
+    ASSERT_EQ(pre_smoother.at(0), nullptr);
+    ASSERT_EQ(mid_smoother.at(0), nullptr);
+    ASSERT_EQ(post_smoother.at(0), nullptr);
+    ASSERT_EQ(pre_relaxation.at(0)->at(0, 0), value_type{1});
+    ASSERT_EQ(mid_relaxation.at(0)->at(0, 0), value_type{1});
+    ASSERT_EQ(post_relaxation.at(0)->at(0, 0), value_type{1});
+    ASSERT_NE(identity, nullptr);
+}
+
+
+TYPED_TEST(Multigrid, DefaultBehaviorGivenEmptyList)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    auto solver =
+        Solver::build()
+            .with_max_levels(1u)
+            .with_rstr_prlg(this->rp_factory)
+            .with_pre_smoother(
+                std::vector<std::shared_ptr<const gko::LinOpFactory>>{})
+            .with_mid_smoother(
+                std::vector<std::shared_ptr<const gko::LinOpFactory>>{})
+            .with_post_smoother(
+                std::vector<std::shared_ptr<const gko::LinOpFactory>>{})
+            .with_coarsest_solver(
+                std::vector<std::shared_ptr<const gko::LinOpFactory>>{})
+            .with_criteria(this->criterion)
+            .on(this->exec)
+            ->generate(this->mtx);
+    auto coarsest_solver = solver->get_coarsest_solver();
+    auto identity = dynamic_cast<const gko::matrix::Identity<value_type> *>(
+        coarsest_solver.get());
+    auto pre_smoother = solver->get_pre_smoother_list();
+    auto mid_smoother = solver->get_mid_smoother_list();
+    auto post_smoother = solver->get_post_smoother_list();
+    auto pre_relaxation = solver->get_pre_relaxation_list();
+    auto mid_relaxation = solver->get_mid_relaxation_list();
+    auto post_relaxation = solver->get_post_relaxation_list();
+
+    ASSERT_EQ(pre_smoother.at(0), nullptr);
+    ASSERT_EQ(mid_smoother.at(0), nullptr);
+    ASSERT_EQ(post_smoother.at(0), nullptr);
+    ASSERT_EQ(pre_relaxation.at(0)->at(0, 0), value_type{1});
+    ASSERT_EQ(mid_relaxation.at(0)->at(0, 0), value_type{1});
+    ASSERT_EQ(post_relaxation.at(0)->at(0, 0), value_type{1});
+    ASSERT_NE(identity, nullptr);
+}
+
+
+TYPED_TEST(Multigrid, ThrowWhenNullRstrPrlg)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    auto factory = Solver::build()
+                       .with_max_levels(1u)
+                       .with_criteria(this->criterion)
+                       .on(this->exec);
+
+    ASSERT_THROW(factory->generate(this->mtx), gko::NotSupported);
+}
+
+
+TYPED_TEST(Multigrid, ThrowWhenRstrPrlgContainsNullptr)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    auto factory = Solver::build()
+                       .with_max_levels(1u)
+                       .with_criteria(this->criterion)
+                       .with_rstr_prlg(this->rp_factory, nullptr)
+                       .on(this->exec);
+
+    ASSERT_THROW(factory->generate(this->mtx), gko::NotSupported);
+}
+
+
+TYPED_TEST(Multigrid, ThrowWhenEmptyRstrPrlgList)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    auto factory = Solver::build()
+                       .with_max_levels(1u)
+                       .with_rstr_prlg(
+                           std::vector<std::shared_ptr<
+                               const gko::multigrid::RestrictProlongFactory>>{})
+                       .with_criteria(this->criterion)
+                       .on(this->exec);
+
+    ASSERT_THROW(factory->generate(this->mtx), gko::NotSupported);
+}
+
+
+TYPED_TEST(Multigrid, ThrowWhenInconsistentSizeOfPreSmoother)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    auto factory = Solver::build()
+                       .with_max_levels(1u)
+                       .with_criteria(this->criterion)
+                       .with_rstr_prlg(this->rp_factory, this->rp_factory,
+                                       this->rp_factory)
+                       .with_pre_smoother(this->lo_factory, this->lo_factory)
+                       .on(this->exec);
+
+    ASSERT_THROW(factory->generate(this->mtx), gko::NotSupported);
+}
+
+
+TYPED_TEST(Multigrid, ThrowWhenInconsistentSizeOfMidSmoother)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    auto factory = Solver::build()
+                       .with_max_levels(1u)
+                       .with_criteria(this->criterion)
+                       .with_rstr_prlg(this->rp_factory, this->rp_factory,
+                                       this->rp_factory)
+                       .with_mid_smoother(this->lo_factory, this->lo_factory)
+                       .on(this->exec);
+
+    ASSERT_THROW(factory->generate(this->mtx), gko::NotSupported);
+}
+
+
+TYPED_TEST(Multigrid, ThrowWhenInconsistentSizeOfPostSmoother)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    auto factory = Solver::build()
+                       .with_max_levels(1u)
+                       .with_criteria(this->criterion)
+                       .with_rstr_prlg(this->rp_factory, this->rp_factory,
+                                       this->rp_factory)
+                       .with_post_smoother(this->lo_factory, this->lo_factory)
+                       .on(this->exec);
+
+    ASSERT_THROW(factory->generate(this->mtx), gko::NotSupported);
+}
+
+
+TYPED_TEST(Multigrid, ThrowWhenInconsistentSizeOfPreRelaxation)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    auto factory =
+        Solver::build()
+            .with_max_levels(1u)
+            .with_criteria(this->criterion)
+            .with_rstr_prlg(this->rp_factory, this->rp_factory,
+                            this->rp_factory)
+            .with_pre_relaxation(gko::Array<value_type>(this->exec, {1, 2}))
+            .on(this->exec);
+
+    ASSERT_THROW(factory->generate(this->mtx), gko::NotSupported);
+}
+
+
+TYPED_TEST(Multigrid, ThrowWhenInconsistentSizeOfMidRelaxation)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    auto factory =
+        Solver::build()
+            .with_max_levels(1u)
+            .with_criteria(this->criterion)
+            .with_rstr_prlg(this->rp_factory, this->rp_factory,
+                            this->rp_factory)
+            .with_mid_relaxation(gko::Array<value_type>(this->exec, {1, 2}))
+            .on(this->exec);
+
+    ASSERT_THROW(factory->generate(this->mtx), gko::NotSupported);
+}
+
+
+TYPED_TEST(Multigrid, ThrowWhenInconsistentSizeOfPostRelaxation)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    auto factory =
+        Solver::build()
+            .with_max_levels(1u)
+            .with_criteria(this->criterion)
+            .with_rstr_prlg(this->rp_factory, this->rp_factory,
+                            this->rp_factory)
+            .with_post_relaxation(gko::Array<value_type>(this->exec, {1, 2}))
+            .on(this->exec);
+
+    ASSERT_THROW(factory->generate(this->mtx), gko::NotSupported);
+}
+
 
 TYPED_TEST(Multigrid, TwoRstrPrlg)
 {
@@ -858,53 +1082,6 @@ TYPED_TEST(Multigrid, PostUsesPreAndMidUsesPost)
 }
 
 
-TYPED_TEST(Multigrid, EmptyCoarsestSolverListUsesIdentity)
-{
-    using value_type = typename TestFixture::value_type;
-    using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
-    auto solver =
-        Solver::build()
-            .with_max_levels(2u)
-            .with_rstr_prlg(this->rp_factory)
-            .with_pre_smoother(this->lo_factory)
-            .with_post_uses_pre(true)
-            .with_mid_case(gko::solver::multigrid_mid_uses::pre)
-            .with_criteria(this->criterion)
-            .with_coarsest_solver(
-                std::vector<std::shared_ptr<const gko::LinOpFactory>>{})
-            .on(this->exec)
-            ->generate(this->mtx);
-    auto coarsest_solver = solver->get_coarsest_solver();
-    auto identity = dynamic_cast<const gko::matrix::Identity<value_type> *>(
-        coarsest_solver.get());
-
-    ASSERT_NE(identity, nullptr);
-}
-
-
-TYPED_TEST(Multigrid, DefaultCoarsestSolverUsesIdentity)
-{
-    using value_type = typename TestFixture::value_type;
-    using Solver = typename TestFixture::Solver;
-    using DummyRPFactory = typename TestFixture::DummyRPFactory;
-    auto solver = Solver::build()
-                      .with_max_levels(2u)
-                      .with_rstr_prlg(this->rp_factory)
-                      .with_pre_smoother(this->lo_factory)
-                      .with_post_uses_pre(true)
-                      .with_mid_case(gko::solver::multigrid_mid_uses::pre)
-                      .with_criteria(this->criterion)
-                      .on(this->exec)
-                      ->generate(this->mtx);
-    auto coarsest_solver = solver->get_coarsest_solver();
-    auto identity = dynamic_cast<const gko::matrix::Identity<value_type> *>(
-        coarsest_solver.get());
-
-    ASSERT_NE(identity, nullptr);
-}
-
-
 TYPED_TEST(Multigrid, DefaultCoarsestSolverSelectorUsesTheFirstOne)
 {
     using value_type = typename TestFixture::value_type;
@@ -924,6 +1101,7 @@ TYPED_TEST(Multigrid, DefaultCoarsestSolverSelectorUsesTheFirstOne)
 
     ASSERT_EQ(this->get_value(coarsest_solver.get()), 5);
 }
+
 
 TYPED_TEST(Multigrid, CustomCoarsestSolverSelector)
 {
