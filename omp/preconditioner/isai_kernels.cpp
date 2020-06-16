@@ -109,16 +109,20 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
     const auto i_cols = inverse_mtx->get_const_col_idxs();
     auto i_vals = inverse_mtx->get_values();
 
+    auto num_threads = static_cast<size_type>(omp_get_max_threads());
+    // RHS for local trisystem
+    gko::Array<ValueType> rhs_array{exec, row_size_limit * num_threads};
+    // memory for dense trisystem
+    gko::Array<ValueType> trisystem_array{
+        exec, row_size_limit * row_size_limit * num_threads};
+
 #pragma omp parallel
     {
-        // OpenMP seems to have issues copying the arrays, so we do it manually
-        // RHS for local trisystem
-        gko::Array<ValueType> rhs_array{exec, row_size_limit};
-        auto rhs = rhs_array.get_data();
-        // memory for dense trisystem
-        gko::Array<ValueType> trisystem_array{exec,
-                                              row_size_limit * row_size_limit};
-        auto trisystem_ptr = trisystem_array.get_data();
+        auto thread_num = static_cast<size_type>(omp_get_thread_num());
+
+        auto rhs = rhs_array.get_data() + thread_num * row_size_limit;
+        auto trisystem_ptr = trisystem_array.get_data() +
+                             thread_num * row_size_limit * row_size_limit;
 
 #pragma omp for
         for (size_type row = 0; row < num_rows; ++row) {
