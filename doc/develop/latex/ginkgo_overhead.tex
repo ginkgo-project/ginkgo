@@ -71,10 +71,13 @@ The ginkgo overhead measurement example..
 \DoxyCodeLine{    \textcolor{keyword}{auto} time = std::chrono::duration\_cast<std::chrono::nanoseconds>(tac -\/ tic);}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Running "} << num\_iters}
 \DoxyCodeLine{              << \textcolor{stringliteral}{" iterations of the CG solver took a total of "}}
-\DoxyCodeLine{              << 1.0 * time.count() / std::nano::den << \textcolor{stringliteral}{" seconds."} << std::endl}
+\DoxyCodeLine{              << static\_cast<double>(time.count()) /}
+\DoxyCodeLine{                     static\_cast<double>(std::nano::den)}
+\DoxyCodeLine{              << \textcolor{stringliteral}{" seconds."} << std::endl}
 \DoxyCodeLine{              << \textcolor{stringliteral}{"\(\backslash\)tAverage library overhead:     "}}
-\DoxyCodeLine{              << 1.0 * time.count() / num\_iters << \textcolor{stringliteral}{" [nanoseconds / iteration]"}}
-\DoxyCodeLine{              << std::endl;}
+\DoxyCodeLine{              << static\_cast<double>(time.count()) /}
+\DoxyCodeLine{                     static\_cast<double>(num\_iters)}
+\DoxyCodeLine{              << \textcolor{stringliteral}{" [nanoseconds / iteration]"} << std::endl;}
 \DoxyCodeLine{\}}
 \end{DoxyCode}
  \label{_Results}%
@@ -188,10 +191,13 @@ This is the expected output\+:
 \DoxyCodeLine{    \textcolor{keyword}{auto} time = std::chrono::duration\_cast<std::chrono::nanoseconds>(tac -\/ tic);}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Running "} << num\_iters}
 \DoxyCodeLine{              << \textcolor{stringliteral}{" iterations of the CG solver took a total of "}}
-\DoxyCodeLine{              << 1.0 * time.count() / std::nano::den << \textcolor{stringliteral}{" seconds."} << std::endl}
+\DoxyCodeLine{              << static\_cast<double>(time.count()) /}
+\DoxyCodeLine{                     static\_cast<double>(std::nano::den)}
+\DoxyCodeLine{              << \textcolor{stringliteral}{" seconds."} << std::endl}
 \DoxyCodeLine{              << \textcolor{stringliteral}{"\(\backslash\)tAverage library overhead:     "}}
-\DoxyCodeLine{              << 1.0 * time.count() / num\_iters << \textcolor{stringliteral}{" [nanoseconds / iteration]"}}
-\DoxyCodeLine{              << std::endl;}
+\DoxyCodeLine{              << static\_cast<double>(time.count()) /}
+\DoxyCodeLine{                     static\_cast<double>(num\_iters)}
+\DoxyCodeLine{              << \textcolor{stringliteral}{" [nanoseconds / iteration]"} << std::endl;}
 \DoxyCodeLine{\}}
 \end{DoxyCodeInclude}
  

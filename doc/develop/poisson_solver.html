@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/156769765 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/156929586 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -135,9 +135,9 @@ $(function() {
 <div class="line">{</div>
 <div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> discretization_points = rhs-&gt;<a class="code" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">get_size</a>()[0];</div>
 <div class="line">    <span class="keyword">auto</span> values = rhs-&gt;<a class="code" href="classgko_1_1matrix_1_1Dense.html#a3bc458e02fab8e4c9f60f70bd4d5a4f9">get_values</a>();</div>
-<div class="line">    <span class="keyword">const</span> ValueType h = 1.0 / (discretization_points + 1);</div>
+<div class="line">    <span class="keyword">const</span> ValueType h = 1.0 / static_cast&lt;ValueType&gt;(discretization_points + 1);</div>
 <div class="line">    <span class="keywordflow">for</span> (<a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a> i = 0; i &lt; discretization_points; ++i) {</div>
-<div class="line">        <span class="keyword">const</span> <span class="keyword">auto</span> xi = ValueType(i + 1) * h;</div>
+<div class="line">        <span class="keyword">const</span> <span class="keyword">auto</span> xi = static_cast&lt;ValueType&gt;(i + 1) * h;</div>
 <div class="line">        values[i] = -f(xi) * h * h;</div>
 <div class="line">    }</div>
 <div class="line">    values[0] += u0;</div>
@@ -160,11 +160,11 @@ $(function() {
 <div class="line">    <span class="keywordtype">int</span> discretization_points, <span class="keyword">const</span> <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a> *u,</div>
 <div class="line">    Closure correct_u)</div>
 <div class="line">{</div>
-<div class="line">    <span class="keyword">const</span> ValueType h = 1.0 / (discretization_points + 1);</div>
+<div class="line">    <span class="keyword">const</span> ValueType h = 1.0 / static_cast&lt;ValueType&gt;(discretization_points + 1);</div>
 <div class="line">    <span class="keyword">auto</span> error = 0.0;</div>
 <div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; discretization_points; ++i) {</div>
 <div class="line">        <span class="keyword">using</span> std::abs;</div>
-<div class="line">        <span class="keyword">const</span> <span class="keyword">auto</span> xi = ValueType(i + 1) * h;</div>
+<div class="line">        <span class="keyword">const</span> <span class="keyword">auto</span> xi = static_cast&lt;ValueType&gt;(i + 1) * h;</div>
 <div class="line">        error +=</div>
 <div class="line">            <a class="code" href="namespacegko.html#a57797fc0a00fd4b7ff34ca4bfc84bc51">abs</a>(u-&gt;<a class="code" href="classgko_1_1matrix_1_1Dense.html#ab83c739c1b11abaecc3bfd89506f6c9c">get_const_values</a>()[i] - correct_u(xi)) / <a class="code" href="namespacegko.html#a57797fc0a00fd4b7ff34ca4bfc84bc51">abs</a>(correct_u(xi));</div>
 <div class="line">    }</div>
@@ -236,7 +236,8 @@ $(function() {
 <div class="line">    print_solution&lt;ValueType&gt;(u0, u1, <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(u));</div>
 <div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;The average relative error is &quot;</span></div>
 <div class="line">              &lt;&lt; calculate_error(discretization_points, <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(u), correct_u) /</div>
-<div class="line">                     discretization_points</div>
+<div class="line">                     <span class="keyword">static_cast&lt;</span><a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a><span class="keyword">&gt;</span>(</div>
+<div class="line">                         discretization_points)</div>
 <div class="line">              &lt;&lt; std::endl;</div>
 <div class="line">}</div>
 </div><!-- fragment --><p> <a class="anchor" id="Results"></a></p><h1>Results</h1>
@@ -334,9 +335,9 @@ $(function() {
 <div class="line">{</div>
 <div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> discretization_points = rhs-&gt;<a class="code" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">get_size</a>()[0];</div>
 <div class="line">    <span class="keyword">auto</span> values = rhs-&gt;<a class="code" href="classgko_1_1matrix_1_1Dense.html#a3bc458e02fab8e4c9f60f70bd4d5a4f9">get_values</a>();</div>
-<div class="line">    <span class="keyword">const</span> ValueType h = 1.0 / (discretization_points + 1);</div>
+<div class="line">    <span class="keyword">const</span> ValueType h = 1.0 / static_cast&lt;ValueType&gt;(discretization_points + 1);</div>
 <div class="line">    <span class="keywordflow">for</span> (<a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a> i = 0; i &lt; discretization_points; ++i) {</div>
-<div class="line">        <span class="keyword">const</span> <span class="keyword">auto</span> xi = ValueType(i + 1) * h;</div>
+<div class="line">        <span class="keyword">const</span> <span class="keyword">auto</span> xi = static_cast&lt;ValueType&gt;(i + 1) * h;</div>
 <div class="line">        values[i] = -f(xi) * h * h;</div>
 <div class="line">    }</div>
 <div class="line">    values[0] += u0;</div>
@@ -361,11 +362,11 @@ $(function() {
 <div class="line">    <span class="keywordtype">int</span> discretization_points, <span class="keyword">const</span> <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a> *u,</div>
 <div class="line">    Closure correct_u)</div>
 <div class="line">{</div>
-<div class="line">    <span class="keyword">const</span> ValueType h = 1.0 / (discretization_points + 1);</div>
+<div class="line">    <span class="keyword">const</span> ValueType h = 1.0 / static_cast&lt;ValueType&gt;(discretization_points + 1);</div>
 <div class="line">    <span class="keyword">auto</span> error = 0.0;</div>
 <div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; discretization_points; ++i) {</div>
 <div class="line">        <span class="keyword">using</span> std::abs;</div>
-<div class="line">        <span class="keyword">const</span> <span class="keyword">auto</span> xi = ValueType(i + 1) * h;</div>
+<div class="line">        <span class="keyword">const</span> <span class="keyword">auto</span> xi = static_cast&lt;ValueType&gt;(i + 1) * h;</div>
 <div class="line">        error +=</div>
 <div class="line">            <a class="code" href="namespacegko.html#a57797fc0a00fd4b7ff34ca4bfc84bc51">abs</a>(u-&gt;<a class="code" href="classgko_1_1matrix_1_1Dense.html#ab83c739c1b11abaecc3bfd89506f6c9c">get_const_values</a>()[i] - correct_u(xi)) / <a class="code" href="namespacegko.html#a57797fc0a00fd4b7ff34ca4bfc84bc51">abs</a>(correct_u(xi));</div>
 <div class="line">    }</div>
@@ -434,7 +435,8 @@ $(function() {
 <div class="line">    print_solution&lt;ValueType&gt;(u0, u1, <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(u));</div>
 <div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;The average relative error is &quot;</span></div>
 <div class="line">              &lt;&lt; calculate_error(discretization_points, <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(u), correct_u) /</div>
-<div class="line">                     discretization_points</div>
+<div class="line">                     <span class="keyword">static_cast&lt;</span><a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a><span class="keyword">&gt;</span>(</div>
+<div class="line">                         discretization_points)</div>
 <div class="line">              &lt;&lt; std::endl;</div>
 <div class="line">}</div>
 </div><!-- fragment --> </div></div><!-- contents -->

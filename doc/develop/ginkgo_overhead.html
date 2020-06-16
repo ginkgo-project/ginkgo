@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/156769765 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/156929586 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -151,10 +151,13 @@ $(function() {
 <div class="line">    <span class="keyword">auto</span> time = std::chrono::duration_cast&lt;std::chrono::nanoseconds&gt;(tac - tic);</div>
 <div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;Running &quot;</span> &lt;&lt; num_iters</div>
 <div class="line">              &lt;&lt; <span class="stringliteral">&quot; iterations of the CG solver took a total of &quot;</span></div>
-<div class="line">              &lt;&lt; 1.0 * time.count() / std::nano::den &lt;&lt; <span class="stringliteral">&quot; seconds.&quot;</span> &lt;&lt; std::endl</div>
+<div class="line">              &lt;&lt; static_cast&lt;double&gt;(time.count()) /</div>
+<div class="line">                     static_cast&lt;double&gt;(std::nano::den)</div>
+<div class="line">              &lt;&lt; <span class="stringliteral">&quot; seconds.&quot;</span> &lt;&lt; std::endl</div>
 <div class="line">              &lt;&lt; <span class="stringliteral">&quot;\tAverage library overhead:     &quot;</span></div>
-<div class="line">              &lt;&lt; 1.0 * time.count() / num_iters &lt;&lt; <span class="stringliteral">&quot; [nanoseconds / iteration]&quot;</span></div>
-<div class="line">              &lt;&lt; std::endl;</div>
+<div class="line">              &lt;&lt; static_cast&lt;double&gt;(time.count()) /</div>
+<div class="line">                     static_cast&lt;double&gt;(num_iters)</div>
+<div class="line">              &lt;&lt; <span class="stringliteral">&quot; [nanoseconds / iteration]&quot;</span> &lt;&lt; std::endl;</div>
 <div class="line">}</div>
 </div><!-- fragment --><p> <a class="anchor" id="Results"></a></p><h1>Results</h1>
 <p>This is the expected output:</p>
@@ -253,10 +256,13 @@ $(function() {
 <div class="line">    <span class="keyword">auto</span> time = std::chrono::duration_cast&lt;std::chrono::nanoseconds&gt;(tac - tic);</div>
 <div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;Running &quot;</span> &lt;&lt; num_iters</div>
 <div class="line">              &lt;&lt; <span class="stringliteral">&quot; iterations of the CG solver took a total of &quot;</span></div>
-<div class="line">              &lt;&lt; 1.0 * time.count() / std::nano::den &lt;&lt; <span class="stringliteral">&quot; seconds.&quot;</span> &lt;&lt; std::endl</div>
+<div class="line">              &lt;&lt; static_cast&lt;double&gt;(time.count()) /</div>
+<div class="line">                     static_cast&lt;double&gt;(std::nano::den)</div>
+<div class="line">              &lt;&lt; <span class="stringliteral">&quot; seconds.&quot;</span> &lt;&lt; std::endl</div>
 <div class="line">              &lt;&lt; <span class="stringliteral">&quot;\tAverage library overhead:     &quot;</span></div>
-<div class="line">              &lt;&lt; 1.0 * time.count() / num_iters &lt;&lt; <span class="stringliteral">&quot; [nanoseconds / iteration]&quot;</span></div>
-<div class="line">              &lt;&lt; std::endl;</div>
+<div class="line">              &lt;&lt; static_cast&lt;double&gt;(time.count()) /</div>
+<div class="line">                     static_cast&lt;double&gt;(num_iters)</div>
+<div class="line">              &lt;&lt; <span class="stringliteral">&quot; [nanoseconds / iteration]&quot;</span> &lt;&lt; std::endl;</div>
 <div class="line">}</div>
 </div><!-- fragment --> </div></div><!-- contents -->
 </div><!-- PageDoc -->

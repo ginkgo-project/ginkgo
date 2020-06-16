@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/156769765 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/156929586 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -377,14 +377,17 @@ $(function() {
 <div class="line">                 values.data(), rhs.data(), u.data(), reduction_factor);</div>
 <div class="line">    <span class="keyword">auto</span> stop_time = std::chrono::steady_clock::now();</div>
 <div class="line">    <span class="keyword">auto</span> runtime_duration =</div>
-<div class="line">        std::chrono::duration_cast&lt;std::chrono::nanoseconds&gt;(stop_time -</div>
-<div class="line">                                                             start_time)</div>
-<div class="line">            .count() *</div>
+<div class="line">        static_cast&lt;double&gt;(</div>
+<div class="line">            std::chrono::duration_cast&lt;std::chrono::nanoseconds&gt;(stop_time -</div>
+<div class="line">                                                                 start_time)</div>
+<div class="line">                .count()) *</div>
 <div class="line">        1e-6;</div>
 <div class="line"> </div>
 <div class="line">    print_solution(dp, u.data());</div>
 <div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;The average relative error is &quot;</span></div>
-<div class="line">              &lt;&lt; calculate_error(dp, u.data(), correct_u) / dp_2 &lt;&lt; std::endl;</div>
+<div class="line">              &lt;&lt; calculate_error(dp, u.data(), correct_u) /</div>
+<div class="line">                     <span class="keyword">static_cast&lt;</span><a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a><span class="keyword">&gt;</span>(dp_2)</div>
+<div class="line">              &lt;&lt; std::endl;</div>
 <div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;The runtime is &quot;</span> &lt;&lt; std::to_string(runtime_duration) &lt;&lt; <span class="stringliteral">&quot; ms&quot;</span></div>
 <div class="line">              &lt;&lt; std::endl;</div>
 <div class="line">}</div>
@@ -693,14 +696,17 @@ $(function() {
 <div class="line">                 values.data(), rhs.data(), u.data(), reduction_factor);</div>
 <div class="line">    <span class="keyword">auto</span> stop_time = std::chrono::steady_clock::now();</div>
 <div class="line">    <span class="keyword">auto</span> runtime_duration =</div>
-<div class="line">        std::chrono::duration_cast&lt;std::chrono::nanoseconds&gt;(stop_time -</div>
-<div class="line">                                                             start_time)</div>
-<div class="line">            .count() *</div>
+<div class="line">        static_cast&lt;double&gt;(</div>
+<div class="line">            std::chrono::duration_cast&lt;std::chrono::nanoseconds&gt;(stop_time -</div>
+<div class="line">                                                                 start_time)</div>
+<div class="line">                .count()) *</div>
 <div class="line">        1e-6;</div>
 <div class="line"> </div>
 <div class="line">    print_solution(dp, u.data());</div>
 <div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;The average relative error is &quot;</span></div>
-<div class="line">              &lt;&lt; calculate_error(dp, u.data(), correct_u) / dp_2 &lt;&lt; std::endl;</div>
+<div class="line">              &lt;&lt; calculate_error(dp, u.data(), correct_u) /</div>
+<div class="line">                     <span class="keyword">static_cast&lt;</span><a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a><span class="keyword">&gt;</span>(dp_2)</div>
+<div class="line">              &lt;&lt; std::endl;</div>
 <div class="line">    std::cout &lt;&lt; <span class="stringliteral">&quot;The runtime is &quot;</span> &lt;&lt; std::to_string(runtime_duration) &lt;&lt; <span class="stringliteral">&quot; ms&quot;</span></div>
 <div class="line">              &lt;&lt; std::endl;</div>
 <div class="line">}</div>

@@ -522,14 +522,17 @@ looking for solution u = x$^\wedge$3\+: f = 6x, u(0) = 0, u(1) = 1
 \DoxyCodeLine{    \textcolor{keyword}{auto} stop\_time = std::chrono::steady\_clock::now();}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} runtime\_duration =}
-\DoxyCodeLine{        std::chrono::duration\_cast<std::chrono::nanoseconds>(stop\_time -\/}
-\DoxyCodeLine{                                                             start\_time)}
-\DoxyCodeLine{            .count() *}
+\DoxyCodeLine{        static\_cast<double>(}
+\DoxyCodeLine{            std::chrono::duration\_cast<std::chrono::nanoseconds>(stop\_time -\/}
+\DoxyCodeLine{                                                                 start\_time)}
+\DoxyCodeLine{                .count()) *}
 \DoxyCodeLine{        1e-\/6;}
 \DoxyCodeLine{}
 \DoxyCodeLine{    print\_solution<ValueType, IndexType>(dp, u.data());}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"The average relative error is "}}
-\DoxyCodeLine{              << calculate\_error(dp, u.data(), correct\_u) / dp\_3 << std::endl;}
+\DoxyCodeLine{              << calculate\_error(dp, u.data(), correct\_u) /}
+\DoxyCodeLine{                     \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}}\textcolor{keyword}{>}(dp\_3)}
+\DoxyCodeLine{              << std::endl;}
 \DoxyCodeLine{}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"The runtime is "} << std::to\_string(runtime\_duration) << \textcolor{stringliteral}{" ms"}}
 \DoxyCodeLine{              << std::endl;}
@@ -922,14 +925,17 @@ The expected output of the relative error at K=10 should be
 \DoxyCodeLine{    \textcolor{keyword}{auto} stop\_time = std::chrono::steady\_clock::now();}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} runtime\_duration =}
-\DoxyCodeLine{        std::chrono::duration\_cast<std::chrono::nanoseconds>(stop\_time -\/}
-\DoxyCodeLine{                                                             start\_time)}
-\DoxyCodeLine{            .count() *}
+\DoxyCodeLine{        static\_cast<double>(}
+\DoxyCodeLine{            std::chrono::duration\_cast<std::chrono::nanoseconds>(stop\_time -\/}
+\DoxyCodeLine{                                                                 start\_time)}
+\DoxyCodeLine{                .count()) *}
 \DoxyCodeLine{        1e-\/6;}
 \DoxyCodeLine{}
 \DoxyCodeLine{    print\_solution<ValueType, IndexType>(dp, u.data());}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"The average relative error is "}}
-\DoxyCodeLine{              << calculate\_error(dp, u.data(), correct\_u) / dp\_3 << std::endl;}
+\DoxyCodeLine{              << calculate\_error(dp, u.data(), correct\_u) /}
+\DoxyCodeLine{                     \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}}\textcolor{keyword}{>}(dp\_3)}
+\DoxyCodeLine{              << std::endl;}
 \DoxyCodeLine{}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"The runtime is "} << std::to\_string(runtime\_duration) << \textcolor{stringliteral}{" ms"}}
 \DoxyCodeLine{              << std::endl;}
