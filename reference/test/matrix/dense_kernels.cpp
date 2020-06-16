@@ -1975,7 +1975,7 @@ TYPED_TEST(Dense, NonSquareMatrixIsInverseColPermutable64)
 }
 
 
-TYPED_TEST(Dense, ExtractsDiagonal)
+TYPED_TEST(Dense, ExtractsDiagonalFromSquareMatrix)
 {
     // clang-format off
     // {1.0, -1.0, -0.5},
@@ -1987,6 +1987,21 @@ TYPED_TEST(Dense, ExtractsDiagonal)
     // clang-format off
     GKO_ASSERT_MTX_NEAR(diag,
                         l({{1.}, {2.}, {1.2}}), r<TypeParam>::value);
+    // clang-format on
+}
+
+
+TYPED_TEST(Dense, ExtractsDiagonalFromNonSquareMatrix)
+{
+    // clang-format off
+    // {1.0, 3.0, 2.0},
+    // {0.0, 5.0, 0.0}
+    // clang-format on
+    auto diag = this->mtx4->extract_diagonal();
+
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(diag,
+                        l({{1.}, {5.}}), r<TypeParam>::value);
     // clang-format on
 }
 
