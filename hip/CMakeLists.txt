@@ -159,6 +159,7 @@ set(GINKGO_HIP_SOURCES
     matrix/coo_kernels.hip.cpp
     matrix/csr_kernels.hip.cpp
     matrix/dense_kernels.hip.cpp
+    matrix/diagonal_kernels.hip.cpp
     matrix/ell_kernels.hip.cpp
     matrix/hybrid_kernels.hip.cpp
     matrix/sellp_kernels.hip.cpp
