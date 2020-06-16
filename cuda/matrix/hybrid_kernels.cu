@@ -67,7 +67,6 @@ constexpr int warps_in_block = 4;
 constexpr int spmv_block_size = 0;
 
 
-#include "common/matrix/coo_kernels.hpp.inc"
 #include "common/matrix/hybrid_kernels.hpp.inc"
 
 
