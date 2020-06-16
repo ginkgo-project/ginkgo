@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/156599794 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/156769765 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -124,7 +124,7 @@ Extended header files</h2>
 <p>Some header files from the core module have to be extended to include special functionality for specific architectures. An example of this is <code><a class="el" href="math_8hpp_source.html">core/base/math.hpp</a></code>, which has a GPU counterpart in <code>cuda/base/math.hpp</code>. For such files you should always include the version from the module you are working on, and this file will internally include its <code>core</code> counterpart.</p>
 <h2><a class="anchor" id="autotoc_md15"></a>
 Using library classes</h2>
-<p>You can use and call functions of existing classes inside a kernel (that are defined and not just declared in a header file), however, you are not allowed to create new instances of a polymorphic class inside a kernel (or in general inside any kernel module like cuda/hip/omp/reference) as this creates circular dependencies between the <code>core</code> and the backend library. With this in mind, our CI contains a job which checks if such a circular dependency exists.</p>
+<p>You can use and call functions of existing classes inside a kernel (that are defined and not just declared in a header file), however, you are not allowed to create new instances of a polymorphic class inside a kernel (or in general inside any kernel module like cuda/hip/omp/reference) as this creates circular dependencies between the <code>core</code> and the backend library. With this in mind, our CI contains a job which checks if such a circular dependency exists. These checks can be run manually using the <code>-DGINKGO_CHECK_CIRCULAR_DEPS=ON</code> option in the CMake configuration.</p>
 <p>For example, when creating a new matrix class <code>AB</code> by combining existing classes <code>A</code> and <code>B</code>, the <code>AB::apply()</code> function composed of invocations to <code>A::apply()</code> and <code>B::apply()</code> can only be defined in the core module, it is not possible to create instances of <code>A</code> and <code>B</code> inside the <code>AB</code> kernel files. This is to avoid the aforementioned circular dependency issue. An example for such a class is the <code>Hybrid</code> matrix format, which uses the <code>apply()</code> of the <code>Ell</code> and <code>Coo</code> matrix formats. Nevertheless, it is possible to call the kernels themselves directly within the same executor. For example, <code>cuda::dense::add_scaled()</code> can be called from any other <code>cuda</code> kernel.</p>
 <h1><a class="anchor" id="autotoc_md16"></a>
 Git related</h1>
@@ -329,7 +329,7 @@ Main header</h3>
 Some general comments.</h3>
 <ol type="1">
 <li>Private headers of Ginkgo should not be included within the public Ginkgo header.</li>
-<li>It is a good idea to keep the headers self-sufficient, See <a href="https://google.github.io/styleguide/cppguide.html#Self_contained_Headers">Google Style guide for reasoning</a>.</li>
+<li>It is a good idea to keep the headers self-sufficient, See <a href="https://google.github.io/styleguide/cppguide.html#Self_contained_Headers">Google Style guide for reasoning</a>. When compiling with <code>GINKGO_CHECK_CIRCULAR_DEPS</code> enabled, this property is explicitly checked.</li>
 <li>The recommendations of the <code>iwyu</code> (Include what you use) tool can be used to make sure that the headers are self-sufficient and that the compiled files ( <code>.cu</code>, <code>.cpp</code>, <code>.hip.cpp</code> ) include only what they use. A <a href="https://gitlab.com/ginkgo-project/ginkgo-public-ci/-/jobs/584358356">CI pipeline</a> is available that runs with the <code>iwyu</code> tool. Please be aware that this tool can be incorrect in some cases.</li>
 </ol>
 <h3><a class="anchor" id="autotoc_md37"></a>
