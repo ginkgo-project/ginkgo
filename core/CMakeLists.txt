@@ -64,6 +64,10 @@ endif()
 ginkgo_default_includes(ginkgo)
 ginkgo_install_library(ginkgo core)
 
+if (GINKGO_CHECK_CIRCULAR_DEPS)
+    ginkgo_check_headers(ginkgo)
+endif()
+
 if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()

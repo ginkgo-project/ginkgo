@@ -214,6 +214,10 @@ ginkgo_compile_features(ginkgo_hip)
 ginkgo_default_includes(ginkgo_hip)
 ginkgo_install_library(ginkgo_hip hip)
 
+if (GINKGO_CHECK_CIRCULAR_DEPS)
+    ginkgo_check_headers(ginkgo_hip)
+endif()
+
 if(GINKGO_BUILD_TESTS)
   # Here, we go through all of Ginkgo's dependencies to build a `-Wl,-rpath` string since for
   # some reason `hipcc` through CMake does not have rpath settings unlike the other compilers.
