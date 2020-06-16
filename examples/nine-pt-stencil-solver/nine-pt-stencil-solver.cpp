@@ -339,14 +339,17 @@ int main(int argc, char *argv[])
                  values.data(), rhs.data(), u.data(), reduction_factor);
     auto stop_time = std::chrono::steady_clock::now();
     auto runtime_duration =
-        std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time -
-                                                             start_time)
-            .count() *
+        static_cast<double>(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time -
+                                                                 start_time)
+                .count()) *
         1e-6;
 
     print_solution(dp, u.data());
     std::cout << "The average relative error is "
-              << calculate_error(dp, u.data(), correct_u) / dp_2 << std::endl;
+              << calculate_error(dp, u.data(), correct_u) /
+                     static_cast<gko::remove_complex<ValueType>>(dp_2)
+              << std::endl;
     std::cout << "The runtime is " << std::to_string(runtime_duration) << " ms"
               << std::endl;
 }

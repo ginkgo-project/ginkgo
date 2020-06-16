@@ -72,18 +72,21 @@ void compute_summary(const std::vector<gko::size_type> &dist,
     // clang-format on
 
     add_or_set_member(out, "min", dist[0], allocator);
-    add_or_set_member(out, "q1",
-                      coefs[r][0] * dist[positions[r][0]] +
-                          coefs[r][1] * dist[positions[r][1]],
-                      allocator);
-    add_or_set_member(out, "median",
-                      coefs[r][2] * dist[positions[r][2]] +
-                          coefs[r][3] * dist[positions[r][3]],
-                      allocator);
-    add_or_set_member(out, "q3",
-                      coefs[r][4] * dist[positions[r][4]] +
-                          coefs[r][5] * dist[positions[r][5]],
-                      allocator);
+    add_or_set_member(
+        out, "q1",
+        coefs[r][0] * static_cast<double>(dist[positions[r][0]]) +
+            coefs[r][1] * static_cast<double>(dist[positions[r][1]]),
+        allocator);
+    add_or_set_member(
+        out, "median",
+        coefs[r][2] * static_cast<double>(dist[positions[r][2]]) +
+            coefs[r][3] * static_cast<double>(dist[positions[r][3]]),
+        allocator);
+    add_or_set_member(
+        out, "q3",
+        coefs[r][4] * static_cast<double>(dist[positions[r][4]]) +
+            coefs[r][5] * static_cast<double>(dist[positions[r][5]]),
+        allocator);
     add_or_set_member(out, "max", dist[dist.size() - 1], allocator);
 }
 
@@ -94,11 +97,12 @@ double compute_moment(int degree, const std::vector<gko::size_type> &dist,
     if (normalization == 0.0) {
         return 0.0;
     }
-    auto moment = 0.0;
+    double moment = 0.0;
     for (const auto &x : dist) {
-        moment += std::pow(x - center, degree);
+        moment += std::pow(static_cast<double>(x) - center, degree);
     }
-    return moment / dist.size() / std::pow(normalization, degree);
+    return moment / static_cast<double>(dist.size()) /
+           std::pow(normalization, static_cast<double>(degree));
 }
 
 
