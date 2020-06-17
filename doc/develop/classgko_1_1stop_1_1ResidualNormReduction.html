@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/157155372 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/157310577 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -101,6 +101,9 @@ Classes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-types"></a>
 Public Types</h2></td></tr>
+<tr class="memitem:a3f346b2acc1cab1a883441f23b82115d"><td class="memItemLeft" align="right" valign="top"><a id="a3f346b2acc1cab1a883441f23b82115d"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>NormVector</b> = <a class="el" href="classgko_1_1matrix_1_1Dense.html">matrix::Dense</a>&lt; <a class="el" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">remove_complex</a>&lt; ValueType &gt; &gt;</td></tr>
+<tr class="separator:a3f346b2acc1cab1a883441f23b82115d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3be024dedb5a5b7f62ed9370e098b4c4"><td class="memItemLeft" align="right" valign="top"><a id="a3be024dedb5a5b7f62ed9370e098b4c4"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>Vector</b> = <a class="el" href="classgko_1_1matrix_1_1Dense.html">matrix::Dense</a>&lt; ValueType &gt;</td></tr>
 <tr class="separator:a3be024dedb5a5b7f62ed9370e098b4c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -153,7 +156,7 @@ class gko::stop::ResidualNormReduction&lt; ValueType &gt;</h3>
 <p>For better performance, the checks are run thanks to kernels on the executor where the algorithm is executed.</p>
 <dl class="section note"><dt>Note</dt><dd>To use this stopping criterion there are some dependencies. The constructor depends on <code>initial_residual</code> in order to compute the first relative residual norm. The check method depends on either the <code>residual_norm</code> or the <code>residual</code> being set. When any of those is not correctly provided, an exception ::gko::NotSupported() is thrown. </dd></dl>
 </div><hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/stop/<a class="el" href="residual__norm__reduction_8hpp_source.html">residual_norm_reduction.hpp (ccf35426a)</a></li>
+<li>ginkgo/core/stop/<a class="el" href="residual__norm__reduction_8hpp_source.html">residual_norm_reduction.hpp (38ba93959)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
