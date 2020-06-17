@@ -66,7 +66,7 @@ std::unique_ptr<LinOp> Combination<ValueType>::transpose() const
     transposed->set_size(gko::transpose(this->get_size()));
     // copy coefficients
     for (auto &coef : get_coefficients()) {
-        transposed->coefficients_.push_back(share(as<LinOp>(coef->clone())));
+        transposed->coefficients_.push_back(share(coef->clone()));
     }
     // transpose operators
     for (auto &op : get_operators()) {

@@ -149,6 +149,7 @@ std::unique_ptr<LinOp> Jacobi<ValueType, IndexType>::transpose() const
 {
     auto res = std::unique_ptr<Jacobi<ValueType, IndexType>>(
         new Jacobi<ValueType, IndexType>(this->get_executor()));
+    // Jacobi enforces square matrices, so no dim transposition necessary
     res->set_size(this->get_size());
     res->storage_scheme_ = storage_scheme_;
     res->num_blocks_ = num_blocks_;
@@ -169,6 +170,7 @@ std::unique_ptr<LinOp> Jacobi<ValueType, IndexType>::conj_transpose() const
 {
     auto res = std::unique_ptr<Jacobi<ValueType, IndexType>>(
         new Jacobi<ValueType, IndexType>(this->get_executor()));
+    // Jacobi enforces square matrices, so no dim transposition necessary
     res->set_size(this->get_size());
     res->storage_scheme_ = storage_scheme_;
     res->num_blocks_ = num_blocks_;

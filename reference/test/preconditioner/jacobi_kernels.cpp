@@ -332,6 +332,7 @@ TYPED_TEST(Jacobi, CanTransposeDiagonalBlocks)
     using T = typename TestFixture::value_type;
     using Bj = typename TestFixture::Bj;
     auto tmp_bj = this->bj_factory->generate(this->mtx);
+
     auto bj = gko::as<Bj>(tmp_bj->transpose());
 
     auto scheme = bj->get_storage_scheme();
@@ -341,7 +342,6 @@ TYPED_TEST(Jacobi, CanTransposeDiagonalBlocks)
     GKO_EXPECT_NEAR(b1[1 + 0 * p], T{2.0 / 14.0}, r<T>::value);
     GKO_EXPECT_NEAR(b1[0 + 1 * p], T{1.0 / 14.0}, r<T>::value);
     GKO_EXPECT_NEAR(b1[1 + 1 * p], T{4.0 / 14.0}, r<T>::value);
-
     auto b2 = bj->get_blocks() + scheme.get_global_block_offset(1);
     GKO_EXPECT_NEAR(b2[0 + 0 * p], T{14.0 / 48.0}, r<T>::value);
     GKO_EXPECT_NEAR(b2[1 + 0 * p], T{8.0 / 48.0}, r<T>::value);
@@ -361,6 +361,7 @@ TYPED_TEST(Jacobi, CanTransposeDiagonalBlocksWithAdaptivePrecision)
     using Bj = typename TestFixture::Bj;
     auto half_tol = std::sqrt(r<T>::value);
     auto tmp_bj = this->adaptive_bj_factory->generate(this->mtx);
+
     auto bj = gko::as<Bj>(tmp_bj->transpose());
 
     auto scheme = bj->get_storage_scheme();
@@ -372,7 +373,6 @@ TYPED_TEST(Jacobi, CanTransposeDiagonalBlocksWithAdaptivePrecision)
     GKO_EXPECT_NEAR(b1[1 + 0 * p], reduced{2.0 / 14.0}, half_tol);
     GKO_EXPECT_NEAR(b1[0 + 1 * p], reduced{1.0 / 14.0}, half_tol);
     GKO_EXPECT_NEAR(b1[1 + 1 * p], reduced{4.0 / 14.0}, half_tol);
-
     auto b2 = bj->get_blocks() + scheme.get_global_block_offset(1);
     GKO_EXPECT_NEAR(b2[0 + 0 * p], T{14.0 / 48.0}, r<T>::value);
     GKO_EXPECT_NEAR(b2[1 + 0 * p], T{8.0 / 48.0}, r<T>::value);
@@ -391,6 +391,7 @@ TYPED_TEST(Jacobi, CanConjTransposeDiagonalBlocks)
     using T = typename TestFixture::value_type;
     using Bj = typename TestFixture::Bj;
     auto tmp_bj = this->bj_factory->generate(this->mtx);
+
     auto bj = gko::as<Bj>(tmp_bj->conj_transpose());
 
     auto scheme = bj->get_storage_scheme();
@@ -400,7 +401,6 @@ TYPED_TEST(Jacobi, CanConjTransposeDiagonalBlocks)
     GKO_EXPECT_NEAR(b1[1 + 0 * p], T{2.0 / 14.0}, r<T>::value);
     GKO_EXPECT_NEAR(b1[0 + 1 * p], T{1.0 / 14.0}, r<T>::value);
     GKO_EXPECT_NEAR(b1[1 + 1 * p], T{4.0 / 14.0}, r<T>::value);
-
     auto b2 = bj->get_blocks() + scheme.get_global_block_offset(1);
     GKO_EXPECT_NEAR(b2[0 + 0 * p], T{14.0 / 48.0}, r<T>::value);
     GKO_EXPECT_NEAR(b2[1 + 0 * p], T{8.0 / 48.0}, r<T>::value);
@@ -420,6 +420,7 @@ TYPED_TEST(Jacobi, CanConjTransposeDiagonalBlocksWithAdaptivePrecision)
     using Bj = typename TestFixture::Bj;
     auto half_tol = std::sqrt(r<T>::value);
     auto tmp_bj = this->adaptive_bj_factory->generate(this->mtx);
+
     auto bj = gko::as<Bj>(tmp_bj->conj_transpose());
 
     auto scheme = bj->get_storage_scheme();
@@ -431,7 +432,6 @@ TYPED_TEST(Jacobi, CanConjTransposeDiagonalBlocksWithAdaptivePrecision)
     GKO_EXPECT_NEAR(b1[1 + 0 * p], reduced{2.0 / 14.0}, half_tol);
     GKO_EXPECT_NEAR(b1[0 + 1 * p], reduced{1.0 / 14.0}, half_tol);
     GKO_EXPECT_NEAR(b1[1 + 1 * p], reduced{4.0 / 14.0}, half_tol);
-
     auto b2 = bj->get_blocks() + scheme.get_global_block_offset(1);
     GKO_EXPECT_NEAR(b2[0 + 0 * p], T{14.0 / 48.0}, r<T>::value);
     GKO_EXPECT_NEAR(b2[1 + 0 * p], T{8.0 / 48.0}, r<T>::value);
