@@ -51,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/gmres_mixed_kernels.hpp"
 
 
-#define TIMING 1
+//#define TIMING 1
 
 
 #ifdef TIMING
@@ -130,8 +130,12 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     auto residual_norm =
         VectorNorms::create(exec, dim<2>{1, dense_b->get_size()[1]});
     auto b_norm = VectorNorms::create(exec, dim<2>{1, dense_b->get_size()[1]});
-    auto arnoldi_norm =
-        VectorNorms::create(exec, dim<2>{3, dense_b->get_size()[1]});
+    // TODO: write description what the different rows represent
+    // The optional entry stores the infinity_norm of each next_krylov_vector,
+    // which is only used to compute the scale
+    auto arnoldi_norm = VectorNorms::create(
+        exec, dim<2>{2 + Accessor3dHelper::Accessor::has_scale,
+                     dense_b->get_size()[1]});
     Array<size_type> final_iter_nums(this->get_executor(),
                                      dense_b->get_size()[1]);
     auto y =
