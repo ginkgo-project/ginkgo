@@ -588,9 +588,9 @@ namespace {
 
 template <int subwarp_size, typename ValueType, typename IndexType>
 void spgeam(syn::value_list<int, subwarp_size>,
-            std::shared_ptr<const DefaultExecutor> exec, ValueType alpha,
+            std::shared_ptr<const DefaultExecutor> exec, const ValueType *alpha,
             const IndexType *a_row_ptrs, const IndexType *a_col_idxs,
-            const ValueType *a_vals, ValueType beta,
+            const ValueType *a_vals, const ValueType *beta,
             const IndexType *b_row_ptrs, const IndexType *b_col_idxs,
             const ValueType *b_vals, matrix::Csr<ValueType, IndexType> *c)
 {
@@ -618,7 +618,6 @@ void spgeam(syn::value_list<int, subwarp_size>,
         c_row_ptrs, c_col_idxs, as_cuda_type(c_vals));
 }
 
-
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_spgeam, spgeam);
 
 
@@ -633,8 +632,6 @@ void spgeam(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Csr<ValueType, IndexType> *b,
             matrix::Csr<ValueType, IndexType> *c)
 {
-    auto valpha = exec->copy_val_to_host(alpha->get_const_values());
-    auto vbeta = exec->copy_val_to_host(beta->get_const_values());
     auto total_nnz =
         a->get_num_stored_elements() + b->get_num_stored_elements();
     auto nnz_per_row = total_nnz / a->get_size()[0];
@@ -643,9 +640,10 @@ void spgeam(std::shared_ptr<const DefaultExecutor> exec,
                       return compiled_subwarp_size >= nnz_per_row ||
                              compiled_subwarp_size == config::warp_size;
                   },
-                  syn::value_list<int>(), syn::type_list<>(), exec, valpha,
-                  a->get_const_row_ptrs(), a->get_const_col_idxs(),
-                  a->get_const_values(), vbeta, b->get_const_row_ptrs(),
+                  syn::value_list<int>(), syn::type_list<>(), exec,
+                  alpha->get_const_values(), a->get_const_row_ptrs(),
+                  a->get_const_col_idxs(), a->get_const_values(),
+                  beta->get_const_values(), b->get_const_row_ptrs(),
                   b->get_const_col_idxs(), b->get_const_values(), c);
 }
 

@@ -496,21 +496,23 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
 
 template <int subwarp_size, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void spgeam_nnz(
-    const IndexType *a_row_ptrs, const IndexType *a_col_idxs,
-    const IndexType *b_row_ptrs, const IndexType *b_col_idxs,
-    IndexType num_rows, IndexType *nnz)
+    const IndexType *__restrict__ a_row_ptrs,
+    const IndexType *__restrict__ a_col_idxs,
+    const IndexType *__restrict__ b_row_ptrs,
+    const IndexType *__restrict__ b_col_idxs, IndexType num_rows,
+    IndexType *__restrict__ nnz)
 {
-    auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
+    const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
     auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     if (row >= num_rows) {
         return;
     }
 
-    auto a_begin = a_row_ptrs[row];
-    auto b_begin = b_row_ptrs[row];
-    auto a_size = a_row_ptrs[row + 1] - a_begin;
-    auto b_size = b_row_ptrs[row + 1] - b_begin;
+    const auto a_begin = a_row_ptrs[row];
+    const auto b_begin = b_row_ptrs[row];
+    const auto a_size = a_row_ptrs[row + 1] - a_begin;
+    const auto b_size = b_row_ptrs[row + 1] - b_begin;
     IndexType count{};
     group_merge<subwarp_size>(
         a_col_idxs + a_begin, a_size, b_col_idxs + b_begin, b_size, subwarp,
@@ -528,28 +530,35 @@ __global__ __launch_bounds__(default_block_size) void spgeam_nnz(
 
 template <int subwarp_size, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void spgeam(
-    ValueType alpha, const IndexType *a_row_ptrs, const IndexType *a_col_idxs,
-    const ValueType *a_vals, ValueType beta, const IndexType *b_row_ptrs,
-    const IndexType *b_col_idxs, const ValueType *b_vals, IndexType num_rows,
-    const IndexType *c_row_ptrs, IndexType *c_col_idxs, ValueType *c_vals)
+    const ValueType *__restrict__ palpha,
+    const IndexType *__restrict__ a_row_ptrs,
+    const IndexType *__restrict__ a_col_idxs,
+    const ValueType *__restrict__ a_vals, const ValueType *__restrict__ pbeta,
+    const IndexType *__restrict__ b_row_ptrs,
+    const IndexType *__restrict__ b_col_idxs,
+    const ValueType *__restrict__ b_vals, IndexType num_rows,
+    const IndexType *__restrict__ c_row_ptrs,
+    IndexType *__restrict__ c_col_idxs, ValueType *__restrict__ c_vals)
 {
-    auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
+    const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
     auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     if (row >= num_rows) {
         return;
     }
 
-    auto lane = static_cast<IndexType>(subwarp.thread_rank());
+    const auto alpha = palpha[0];
+    const auto beta = pbeta[0];
+    const auto lane = static_cast<IndexType>(subwarp.thread_rank());
     constexpr auto lanemask_full =
         ~config::lane_mask_type{} >> (config::warp_size - subwarp_size);
-    auto lanemask_eq = config::lane_mask_type{1} << lane;
-    auto lanemask_lt = lanemask_eq - 1;
+    const auto lanemask_eq = config::lane_mask_type{1} << lane;
+    const auto lanemask_lt = lanemask_eq - 1;
 
-    auto a_begin = a_row_ptrs[row];
-    auto b_begin = b_row_ptrs[row];
-    auto a_size = a_row_ptrs[row + 1] - a_begin;
-    auto b_size = b_row_ptrs[row + 1] - b_begin;
+    const auto a_begin = a_row_ptrs[row];
+    const auto b_begin = b_row_ptrs[row];
+    const auto a_size = a_row_ptrs[row + 1] - a_begin;
+    const auto b_size = b_row_ptrs[row + 1] - b_begin;
     auto c_begin = c_row_ptrs[row];
     bool skip_first{};
     group_merge<subwarp_size>(
