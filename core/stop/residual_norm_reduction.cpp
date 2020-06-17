@@ -53,10 +53,9 @@ bool ResidualNormReduction<ValueType>::check_impl(
     uint8 stoppingId, bool setFinalized, Array<stopping_status> *stop_status,
     bool *one_changed, const Criterion::Updater &updater)
 {
-    std::unique_ptr<Vector> u_dense_tau;
-    const Vector *dense_tau;
+    const NormVector *dense_tau;
     if (updater.residual_norm_ != nullptr) {
-        dense_tau = as<Vector>(updater.residual_norm_);
+        dense_tau = as<NormVector>(updater.residual_norm_);
     } else if (updater.residual_ != nullptr) {
         auto *dense_r = as<Vector>(updater.residual_);
         dense_r->compute_norm2(u_dense_tau_.get());

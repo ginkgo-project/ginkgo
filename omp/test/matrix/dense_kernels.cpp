@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
@@ -61,6 +62,7 @@ namespace {
 class Dense : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
+    using NormVector = gko::matrix::Dense<gko::remove_complex<Mtx::value_type>>;
     using Arr = gko::Array<int>;
     using ComplexMtx = gko::matrix::Dense<std::complex<double>>;
 
@@ -273,11 +275,14 @@ TEST_F(Dense, MultipleVectorOmpComputeDotIsEquivalentToRef)
 TEST_F(Dense, ComputesNorm2IsEquivalentToRef)
 {
     set_up_vector_data(20);
+    auto norm_size = gko::dim<2>{1, x->get_size()[1]};
+    auto norm_expected = NormVector::create(this->ref, norm_size);
+    auto dnorm = NormVector::create(this->omp, norm_size);
 
-    x->compute_norm2(expected.get());
-    dx->compute_norm2(dresult.get());
+    x->compute_norm2(norm_expected.get());
+    dx->compute_norm2(dnorm.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(norm_expected, dnorm, 1e-14);
 }
 
 

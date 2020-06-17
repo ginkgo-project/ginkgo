@@ -65,35 +65,12 @@ __global__ __launch_bounds__(block_size) void initialize_1_kernel(
 }
 
 
-// Must be called with at least `num_rows * stride_krylov` threads in total.
-template <size_type block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void initialize_2_1_kernel(
-    size_type num_rows, size_type num_rhs, size_type krylov_dim,
-    ValueType *__restrict__ krylov_bases, size_type stride_krylov,
-    ValueType *__restrict__ residual_norm_collection,
-    size_type stride_residual_nc)
-{
-    const auto global_id = thread::get_thread_id_flat();
-    const auto row_idx = global_id / stride_krylov;
-    const auto col_idx = global_id % stride_krylov;
-    const auto krylov_bases_nrows = (krylov_dim + 1) * num_rows;
-    if (row_idx < krylov_bases_nrows && col_idx < num_rhs) {
-        krylov_bases[row_idx * stride_krylov + col_idx] = zero<ValueType>();
-    }
-
-    if (row_idx < krylov_dim + 1 && col_idx < num_rhs) {
-        residual_norm_collection[row_idx * stride_residual_nc + col_idx] =
-            zero<ValueType>();
-    }
-}
-
-
 // Must be called with at least `num_rows * num_rhs` threads in total.
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
     size_type num_rows, size_type num_rhs,
     const ValueType *__restrict__ residual, size_type stride_residual,
-    const ValueType *__restrict__ residual_norm,
+    const remove_complex<ValueType> *__restrict__ residual_norm,
     ValueType *__restrict__ residual_norm_collection,
     ValueType *__restrict__ krylov_bases, size_type stride_krylov,
     size_type *__restrict__ final_iter_nums)
@@ -293,8 +270,10 @@ template <typename ValueType>
 __device__ void calculate_residual_norm_kernel(
     size_type col_idx, size_type num_cols, size_type iter,
     const ValueType &register_sin, const ValueType &register_cos,
-    ValueType *residual_norm, ValueType *residual_norm_collection,
-    size_type stride_residual_norm_collection, const ValueType *b_norm)
+    remove_complex<ValueType> *residual_norm,
+    ValueType *residual_norm_collection,
+    size_type stride_residual_norm_collection,
+    const remove_complex<ValueType> *b_norm)
 {
     const auto this_rnc =
         residual_norm_collection[iter * stride_residual_norm_collection +
@@ -315,10 +294,10 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     ValueType *__restrict__ givens_sin, size_type stride_sin,
     ValueType *__restrict__ givens_cos, size_type stride_cos,
-    ValueType *__restrict__ residual_norm,
+    remove_complex<ValueType> *__restrict__ residual_norm,
     ValueType *__restrict__ residual_norm_collection,
     size_type stride_residual_norm_collection,
-    const ValueType *__restrict__ b_norm,
+    const remove_complex<ValueType> *__restrict__ b_norm,
     const stopping_status *__restrict__ stop_status)
 {
     const auto col_idx = thread::get_thread_id_flat();

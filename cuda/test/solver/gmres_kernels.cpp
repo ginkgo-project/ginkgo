@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -56,7 +57,14 @@ namespace {
 
 class Gmres : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
+    using value_type = gko::default_precision;
+    using index_type = gko::int32;
+    using Mtx = gko::matrix::Dense<value_type>;
+    using norm_type = gko::remove_complex<value_type>;
+    using NormVector = gko::matrix::Dense<norm_type>;
+    template <typename T>
+    using Dense = typename gko::matrix::Dense<T>;
+
     Gmres() : rand_engine(30) {}
 
     void SetUp()
@@ -73,12 +81,13 @@ protected:
         }
     }
 
-    std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
+    template <typename ValueType = value_type, typename IndexType = index_type>
+    std::unique_ptr<Dense<ValueType>> gen_mtx(int num_rows, int num_cols)
     {
-        return gko::test::generate_random_matrix<Mtx>(
+        return gko::test::generate_random_matrix<Dense<ValueType>>(
             num_rows, num_cols,
-            std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            std::uniform_int_distribution<IndexType>(num_cols, num_cols),
+            std::normal_distribution<ValueType>(-1.0, 1.0), rand_engine, ref);
     }
 
     void initialize_data(int nrhs = 43)
@@ -88,13 +97,13 @@ protected:
         y = gen_mtx(gko::solver::default_krylov_dim, nrhs);
         before_preconditioner = Mtx::create_with_config_of(x.get());
         b = gen_mtx(m, nrhs);
-        b_norm = gen_mtx(1, nrhs);
+        b_norm = gen_mtx<norm_type>(1, nrhs);
         krylov_bases = gen_mtx(m * (gko::solver::default_krylov_dim + 1), nrhs);
         hessenberg = gen_mtx(gko::solver::default_krylov_dim + 1,
                              gko::solver::default_krylov_dim * nrhs);
         hessenberg_iter = gen_mtx(gko::solver::default_krylov_dim + 1, nrhs);
         residual = gen_mtx(m, nrhs);
-        residual_norm = gen_mtx(1, nrhs);
+        residual_norm = gen_mtx<norm_type>(1, nrhs);
         residual_norm_collection =
             gen_mtx(gko::solver::default_krylov_dim + 1, nrhs);
         givens_sin = gen_mtx(gko::solver::default_krylov_dim, nrhs);
@@ -117,7 +126,7 @@ protected:
         d_y->copy_from(y.get());
         d_b = Mtx::create(cuda);
         d_b->copy_from(b.get());
-        d_b_norm = Mtx::create(cuda);
+        d_b_norm = NormVector::create(cuda);
         d_b_norm->copy_from(b_norm.get());
         d_krylov_bases = Mtx::create(cuda);
         d_krylov_bases->copy_from(krylov_bases.get());
@@ -127,7 +136,7 @@ protected:
         d_hessenberg_iter->copy_from(hessenberg_iter.get());
         d_residual = Mtx::create(cuda);
         d_residual->copy_from(residual.get());
-        d_residual_norm = Mtx::create(cuda);
+        d_residual_norm = NormVector::create(cuda);
         d_residual_norm->copy_from(residual_norm.get());
         d_residual_norm_collection = Mtx::create(cuda);
         d_residual_norm_collection->copy_from(residual_norm_collection.get());
@@ -152,12 +161,12 @@ protected:
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> y;
     std::unique_ptr<Mtx> b;
-    std::unique_ptr<Mtx> b_norm;
+    std::unique_ptr<NormVector> b_norm;
     std::unique_ptr<Mtx> krylov_bases;
     std::unique_ptr<Mtx> hessenberg;
     std::unique_ptr<Mtx> hessenberg_iter;
     std::unique_ptr<Mtx> residual;
-    std::unique_ptr<Mtx> residual_norm;
+    std::unique_ptr<NormVector> residual_norm;
     std::unique_ptr<Mtx> residual_norm_collection;
     std::unique_ptr<Mtx> givens_sin;
     std::unique_ptr<Mtx> givens_cos;
@@ -168,12 +177,12 @@ protected:
     std::unique_ptr<Mtx> d_before_preconditioner;
     std::unique_ptr<Mtx> d_y;
     std::unique_ptr<Mtx> d_b;
-    std::unique_ptr<Mtx> d_b_norm;
+    std::unique_ptr<NormVector> d_b_norm;
     std::unique_ptr<Mtx> d_krylov_bases;
     std::unique_ptr<Mtx> d_hessenberg;
     std::unique_ptr<Mtx> d_hessenberg_iter;
     std::unique_ptr<Mtx> d_residual;
-    std::unique_ptr<Mtx> d_residual_norm;
+    std::unique_ptr<NormVector> d_residual_norm;
     std::unique_ptr<Mtx> d_residual_norm_collection;
     std::unique_ptr<Mtx> d_givens_sin;
     std::unique_ptr<Mtx> d_givens_cos;

@@ -199,16 +199,22 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 template <typename ValueType>
 void compute_norm2(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::Dense<ValueType> *x,
-                   matrix::Dense<ValueType> *result)
+                   matrix::Dense<remove_complex<ValueType>> *result)
 {
-    compute_dot(exec, x, x, result);
-    const size_type dim_0 = result->get_size()[0];
-    const size_type dim_1 = result->get_size()[1];
-#pragma omp parallel for collapse(2)
-    for (size_type i = 0; i < dim_0; ++i) {
-        for (size_type j = 0; j < dim_1; ++j) {
-            result->at(i, j) = sqrt(abs(result->at(i, j)));
+    using norm_type = remove_complex<ValueType>;
+#pragma omp parallel for
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+        result->at(0, j) = zero<norm_type>();
+    }
+#pragma omp parallel for
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+        for (size_type i = 0; i < x->get_size()[0]; ++i) {
+            result->at(0, j) += squared_norm(x->at(i, j));
         }
+    }
+#pragma omp parallel for
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+        result->at(0, j) = sqrt(result->at(0, j));
     }
 }
 

@@ -222,7 +222,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 template <typename ValueType>
 void compute_norm2(std::shared_ptr<const HipExecutor> exec,
                    const matrix::Dense<ValueType> *x,
-                   matrix::Dense<ValueType> *result)
+                   matrix::Dense<remove_complex<ValueType>> *result)
 {
     if (hipblas::is_supported<ValueType>::value) {
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
@@ -231,13 +231,31 @@ void compute_norm2(std::shared_ptr<const HipExecutor> exec,
                            result->get_values() + col);
         }
     } else {
-        compute_dot(exec, x, x, result);
-        const dim3 block_size(default_block_size, 1, 1);
-        const dim3 grid_size(ceildiv(result->get_size()[1], block_size.x), 1,
-                             1);
-        hipLaunchKernelGGL(kernel::compute_sqrt, dim3(grid_size),
-                           dim3(block_size), 0, 0, result->get_size()[1],
-                           as_hip_type(result->get_values()));
+        using norm_type = remove_complex<ValueType>;
+        // TODO: these are tuning parameters obtained experimentally, once
+        // we decide how to handle this uniformly, they should be modified
+        // appropriately
+        constexpr auto work_per_thread = 32;
+        constexpr auto block_size = 1024;
+
+        constexpr auto work_per_block = work_per_thread * block_size;
+        const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
+        const dim3 block_dim{config::warp_size, 1,
+                             block_size / config::warp_size};
+        Array<norm_type> work(exec, grid_dim.x);
+        // TODO: write a kernel which does this more efficiently
+        for (size_type col = 0; col < x->get_size()[1]; ++col) {
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(kernel::compute_partial_norm2<block_size>),
+                dim3(grid_dim), dim3(block_dim), 0, 0, x->get_size()[0],
+                as_hip_type(x->get_const_values() + col), x->get_stride(),
+                as_hip_type(work.get_data()));
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(kernel::finalize_norm2_computation<block_size>),
+                dim3(1), dim3(block_dim), 0, 0, grid_dim.x,
+                as_hip_type(work.get_const_data()),
+                as_hip_type(result->get_values() + col));
+        }
     }
 }
 

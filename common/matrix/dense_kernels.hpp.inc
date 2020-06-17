@@ -73,11 +73,12 @@ __global__ __launch_bounds__(block_size) void add_scaled(
 }
 
 
-template <size_type block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void compute_partial_dot(
-    size_type num_rows, const ValueType *__restrict__ x, size_type stride_x,
-    const ValueType *__restrict__ y, size_type stride_y,
-    ValueType *__restrict__ work)
+template <size_type block_size, typename OutType, typename CallableGetValue,
+          typename CallableReduce>
+__device__ void compute_partial_reduce(size_type num_rows,
+                                       OutType *__restrict__ work,
+                                       CallableGetValue get_value,
+                                       CallableReduce reduce_op)
 {
     constexpr auto warps_per_block = block_size / config::warp_size;
 
@@ -86,15 +87,15 @@ __global__ __launch_bounds__(block_size) void compute_partial_dot(
     const auto global_id =
         thread::get_thread_id<config::warp_size, warps_per_block>();
 
-    auto tmp = zero<ValueType>();
+    auto tmp = zero<OutType>();
     for (auto i = global_id; i < num_rows; i += block_size * num_blocks) {
-        tmp += x[i * stride_x] * y[i * stride_y];
+        tmp = reduce_op(tmp, get_value(i));
     }
-    __shared__ UninitializedArray<ValueType, block_size> tmp_work;
+    __shared__ UninitializedArray<OutType, block_size> tmp_work;
     tmp_work[local_id] = tmp;
 
-    reduce(group::this_thread_block(), static_cast<ValueType *>(tmp_work),
-           [](const ValueType &x, const ValueType &y) { return x + y; });
+    reduce(group::this_thread_block(), static_cast<OutType *>(tmp_work),
+           reduce_op);
 
     if (local_id == 0) {
         work[thread::get_block_id()] = tmp_work[0];
@@ -102,36 +103,79 @@ __global__ __launch_bounds__(block_size) void compute_partial_dot(
 }
 
 
-template <size_type block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void finalize_dot_computation(
-    size_type size, const ValueType *work, ValueType *result)
+template <size_type block_size, typename ValueType, typename CallableReduce,
+          typename CallableFinalize>
+__device__ void finalize_reduce_computation(size_type size,
+                                            const ValueType *work,
+                                            ValueType *result,
+                                            CallableReduce reduce_op,
+                                            CallableFinalize finalize_op)
 {
     const auto local_id = thread::get_local_thread_id<config::warp_size>();
 
     ValueType tmp = zero<ValueType>();
     for (auto i = local_id; i < size; i += block_size) {
-        tmp += work[i];
+        tmp = reduce_op(tmp, work[i]);
     }
     __shared__ UninitializedArray<ValueType, block_size> tmp_work;
     tmp_work[local_id] = tmp;
 
     reduce(group::this_thread_block(), static_cast<ValueType *>(tmp_work),
-           [](const ValueType &x, const ValueType &y) { return x + y; });
+           reduce_op);
 
     if (local_id == 0) {
-        *result = tmp_work[0];
+        *result = finalize_op(tmp_work[0]);
     }
 }
 
 
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void compute_sqrt(
-    size_type num_cols, ValueType *__restrict__ work)
+template <size_type block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void compute_partial_dot(
+    size_type num_rows, const ValueType *__restrict__ x, size_type stride_x,
+    const ValueType *__restrict__ y, size_type stride_y,
+    ValueType *__restrict__ work)
 {
-    const auto tidx = thread::get_thread_id_flat();
-    if (tidx < num_cols) {
-        work[tidx] = sqrt(abs(work[tidx]));
-    }
+    compute_partial_reduce<block_size>(
+        num_rows, work,
+        [x, stride_x, y, stride_y](size_type i) {
+            return x[i * stride_x] * conj(y[i * stride_y]);
+        },
+        [](const ValueType &x, const ValueType &y) { return x + y; });
+}
+
+
+template <size_type block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void finalize_dot_computation(
+    size_type size, const ValueType *work, ValueType *result)
+{
+    finalize_reduce_computation<block_size>(
+        size, work, result,
+        [](const ValueType &x, const ValueType &y) { return x + y; },
+        [](const ValueType &x) { return x; });
+}
+
+
+template <size_type block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void compute_partial_norm2(
+    size_type num_rows, const ValueType *__restrict__ x, size_type stride_x,
+    remove_complex<ValueType> *__restrict__ work)
+{
+    using norm_type = remove_complex<ValueType>;
+    compute_partial_reduce<block_size>(
+        num_rows, work,
+        [x, stride_x](size_type i) { return squared_norm(x[i * stride_x]); },
+        [](const norm_type &x, const norm_type &y) { return x + y; });
+}
+
+
+template <size_type block_size, typename ValueType>
+__global__ __launch_bounds__(block_size) void finalize_norm2_computation(
+    size_type size, const ValueType *work, ValueType *result)
+{
+    finalize_reduce_computation<block_size>(
+        size, work, result,
+        [](const ValueType &x, const ValueType &y) { return x + y; },
+        [](const ValueType &x) { return sqrt(x); });
 }
 
 

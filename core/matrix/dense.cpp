@@ -267,10 +267,11 @@ void Dense<ValueType>::compute_dot_impl(const LinOp *b, LinOp *result) const
 template <typename ValueType>
 void Dense<ValueType>::compute_norm2_impl(LinOp *result) const
 {
+    using NormVector = Dense<remove_complex<ValueType>>;
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     exec->run(dense::make_compute_norm2(as<Dense<ValueType>>(this),
-                                        as<Dense<ValueType>>(result)));
+                                        as<NormVector>(result)));
 }
 
 
