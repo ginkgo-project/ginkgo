@@ -324,6 +324,34 @@ TEST_F(Jacobi, OmpPreconditionerEquivalentToRefWithMPW)
 }
 
 
+TEST_F(Jacobi, OmpTransposedPreconditionerEquivalentToRefWithMPW)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 13,
+                    97, 99);
+
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+    d_bj->copy_from(bj.get());
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->transpose()),
+                        gko::as<Bj>(bj->transpose()), 1e-14);
+}
+
+
+TEST_F(Jacobi, OmpConjTransposedPreconditionerEquivalentToRefWithMPW)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 13,
+                    97, 99);
+
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+    d_bj->copy_from(bj.get());
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->conj_transpose()),
+                        gko::as<Bj>(bj->conj_transpose()), 1e-14);
+}
+
+
 TEST_F(Jacobi, OmpApplyEquivalentToRefWithBlockSize32)
 {
     initialize_data({0, 32, 64, 96, 128}, {}, {}, 32, 100, 111);
@@ -559,6 +587,37 @@ TEST_F(Jacobi, OmpPreconditionerEquivalentToRefWithAdaptivePrecision)
     auto d_bj = d_bj_factory->generate(mtx);
 
     GKO_ASSERT_MTX_NEAR(lend(d_bj), lend(bj), 1e-1);
+}
+
+
+TEST_F(Jacobi, OmpTransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 13, 97,
+                    99);
+
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+    d_bj->copy_from(bj.get());
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->transpose()),
+                        gko::as<Bj>(bj->transpose()), 1e-14);
+}
+
+
+TEST_F(Jacobi,
+       OmpConjTransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 13, 97,
+                    99);
+
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
+    d_bj->copy_from(bj.get());
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->conj_transpose()),
+                        gko::as<Bj>(bj->conj_transpose()), 1e-14);
 }
 
 

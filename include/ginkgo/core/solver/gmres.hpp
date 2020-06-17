@@ -69,12 +69,15 @@ constexpr size_type default_krylov_dim = 100u;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Gmres : public EnableLinOp<Gmres<ValueType>>, public Preconditionable {
+class Gmres : public EnableLinOp<Gmres<ValueType>>,
+              public Preconditionable,
+              public Transposable {
     friend class EnableLinOp<Gmres>;
     friend class EnablePolymorphicObject<Gmres, LinOp>;
 
 public:
     using value_type = ValueType;
+    using transposed_type = Gmres<ValueType>;
 
     /**
      * Gets the system operator (matrix) of the linear system.
@@ -85,6 +88,10 @@ public:
     {
         return system_matrix_;
     }
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Return true as iterative solvers use the data in x as an initial guess.
@@ -171,7 +178,7 @@ protected:
     explicit Gmres(const Factory *factory,
                    std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Gmres>(factory->get_executor(),
-                             transpose(system_matrix->get_size())),
+                             gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {

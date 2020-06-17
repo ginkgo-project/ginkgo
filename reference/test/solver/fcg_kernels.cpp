@@ -169,6 +169,7 @@ TYPED_TEST(Fcg, SolvesMultipleStencilSystemsUsingAdvancedApply)
                         r<value_type>::value * 1e1);
 }
 
+
 TYPED_TEST(Fcg, SolvesBigDenseSystem1)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -282,6 +283,40 @@ TYPED_TEST(Fcg, SolvesMultipleBigDenseSystems)
     // Not sure if this is necessary, the assertions above should cover what is
     // needed.
     GKO_ASSERT_MTX_NEAR(xc, mergedRes, r<value_type>::value);
+}
+
+
+TYPED_TEST(Fcg, SolvesTransposedBigDenseSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->fcg_factory_big->generate(this->mtx_big);
+    auto b = gko::initialize<Mtx>(
+        {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->transpose()->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}),
+                        r<value_type>::value * 1e3);
+}
+
+
+TYPED_TEST(Fcg, SolvesConjTransposedBigDenseSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->fcg_factory_big->generate(this->mtx_big);
+    auto b = gko::initialize<Mtx>(
+        {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->conj_transpose()->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({81.0, 55.0, 45.0, 5.0, 85.0, -10.0}),
+                        r<value_type>::value * 1e3);
 }
 
 

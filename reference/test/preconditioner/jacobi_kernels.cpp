@@ -295,6 +295,7 @@ TYPED_TEST(Jacobi, InvertsDiagonalBlocks)
     GKO_EXPECT_NEAR(b2[2 + 2 * p], T{14.0 / 48.0}, r<T>::value);
 }
 
+
 TYPED_TEST(Jacobi, InvertsDiagonalBlocksWithAdaptivePrecision)
 {
     using T = typename TestFixture::value_type;
@@ -322,6 +323,124 @@ TYPED_TEST(Jacobi, InvertsDiagonalBlocksWithAdaptivePrecision)
     GKO_EXPECT_NEAR(b2[1 + 2 * p], T{8.0 / 48.0}, r<T>::value);
     GKO_EXPECT_NEAR(b2[2 + 0 * p], T{1.0 / 48.0}, r<T>::value);
     GKO_EXPECT_NEAR(b2[2 + 1 * p], T{4.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[2 + 2 * p], T{14.0 / 48.0}, r<T>::value);
+}
+
+
+TYPED_TEST(Jacobi, CanTransposeDiagonalBlocks)
+{
+    using T = typename TestFixture::value_type;
+    using Bj = typename TestFixture::Bj;
+    auto tmp_bj = this->bj_factory->generate(this->mtx);
+
+    auto bj = gko::as<Bj>(tmp_bj->transpose());
+
+    auto scheme = bj->get_storage_scheme();
+    auto p = scheme.get_stride();
+    auto b1 = bj->get_blocks() + scheme.get_global_block_offset(0);
+    GKO_EXPECT_NEAR(b1[0 + 0 * p], T{4.0 / 14.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b1[1 + 0 * p], T{2.0 / 14.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b1[0 + 1 * p], T{1.0 / 14.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b1[1 + 1 * p], T{4.0 / 14.0}, r<T>::value);
+    auto b2 = bj->get_blocks() + scheme.get_global_block_offset(1);
+    GKO_EXPECT_NEAR(b2[0 + 0 * p], T{14.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[1 + 0 * p], T{8.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[2 + 0 * p], T{4.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[0 + 1 * p], T{4.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[1 + 1 * p], T{16.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[2 + 1 * p], T{8.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[0 + 2 * p], T{1.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[1 + 2 * p], T{4.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[2 + 2 * p], T{14.0 / 48.0}, r<T>::value);
+}
+
+
+TYPED_TEST(Jacobi, CanTransposeDiagonalBlocksWithAdaptivePrecision)
+{
+    using T = typename TestFixture::value_type;
+    using Bj = typename TestFixture::Bj;
+    auto half_tol = std::sqrt(r<T>::value);
+    auto tmp_bj = this->adaptive_bj_factory->generate(this->mtx);
+
+    auto bj = gko::as<Bj>(tmp_bj->transpose());
+
+    auto scheme = bj->get_storage_scheme();
+    auto p = scheme.get_stride();
+    using reduced = ::gko::reduce_precision<T>;
+    auto b1 = reinterpret_cast<const reduced *>(
+        bj->get_blocks() + scheme.get_global_block_offset(0));
+    GKO_EXPECT_NEAR(b1[0 + 0 * p], reduced{4.0 / 14.0}, half_tol);
+    GKO_EXPECT_NEAR(b1[1 + 0 * p], reduced{2.0 / 14.0}, half_tol);
+    GKO_EXPECT_NEAR(b1[0 + 1 * p], reduced{1.0 / 14.0}, half_tol);
+    GKO_EXPECT_NEAR(b1[1 + 1 * p], reduced{4.0 / 14.0}, half_tol);
+    auto b2 = bj->get_blocks() + scheme.get_global_block_offset(1);
+    GKO_EXPECT_NEAR(b2[0 + 0 * p], T{14.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[1 + 0 * p], T{8.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[2 + 0 * p], T{4.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[0 + 1 * p], T{4.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[1 + 1 * p], T{16.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[2 + 1 * p], T{8.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[0 + 2 * p], T{1.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[1 + 2 * p], T{4.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[2 + 2 * p], T{14.0 / 48.0}, r<T>::value);
+}
+
+
+TYPED_TEST(Jacobi, CanConjTransposeDiagonalBlocks)
+{
+    using T = typename TestFixture::value_type;
+    using Bj = typename TestFixture::Bj;
+    auto tmp_bj = this->bj_factory->generate(this->mtx);
+
+    auto bj = gko::as<Bj>(tmp_bj->conj_transpose());
+
+    auto scheme = bj->get_storage_scheme();
+    auto p = scheme.get_stride();
+    auto b1 = bj->get_blocks() + scheme.get_global_block_offset(0);
+    GKO_EXPECT_NEAR(b1[0 + 0 * p], T{4.0 / 14.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b1[1 + 0 * p], T{2.0 / 14.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b1[0 + 1 * p], T{1.0 / 14.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b1[1 + 1 * p], T{4.0 / 14.0}, r<T>::value);
+    auto b2 = bj->get_blocks() + scheme.get_global_block_offset(1);
+    GKO_EXPECT_NEAR(b2[0 + 0 * p], T{14.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[1 + 0 * p], T{8.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[2 + 0 * p], T{4.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[0 + 1 * p], T{4.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[1 + 1 * p], T{16.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[2 + 1 * p], T{8.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[0 + 2 * p], T{1.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[1 + 2 * p], T{4.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[2 + 2 * p], T{14.0 / 48.0}, r<T>::value);
+}
+
+
+TYPED_TEST(Jacobi, CanConjTransposeDiagonalBlocksWithAdaptivePrecision)
+{
+    using T = typename TestFixture::value_type;
+    using Bj = typename TestFixture::Bj;
+    auto half_tol = std::sqrt(r<T>::value);
+    auto tmp_bj = this->adaptive_bj_factory->generate(this->mtx);
+
+    auto bj = gko::as<Bj>(tmp_bj->conj_transpose());
+
+    auto scheme = bj->get_storage_scheme();
+    auto p = scheme.get_stride();
+    using reduced = ::gko::reduce_precision<T>;
+    auto b1 = reinterpret_cast<const reduced *>(
+        bj->get_blocks() + scheme.get_global_block_offset(0));
+    GKO_EXPECT_NEAR(b1[0 + 0 * p], reduced{4.0 / 14.0}, half_tol);
+    GKO_EXPECT_NEAR(b1[1 + 0 * p], reduced{2.0 / 14.0}, half_tol);
+    GKO_EXPECT_NEAR(b1[0 + 1 * p], reduced{1.0 / 14.0}, half_tol);
+    GKO_EXPECT_NEAR(b1[1 + 1 * p], reduced{4.0 / 14.0}, half_tol);
+    auto b2 = bj->get_blocks() + scheme.get_global_block_offset(1);
+    GKO_EXPECT_NEAR(b2[0 + 0 * p], T{14.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[1 + 0 * p], T{8.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[2 + 0 * p], T{4.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[0 + 1 * p], T{4.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[1 + 1 * p], T{16.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[2 + 1 * p], T{8.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[0 + 2 * p], T{1.0 / 48.0}, r<T>::value);
+    GKO_EXPECT_NEAR(b2[1 + 2 * p], T{4.0 / 48.0}, r<T>::value);
     GKO_EXPECT_NEAR(b2[2 + 2 * p], T{14.0 / 48.0}, r<T>::value);
 }
 

@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <iterator>
 
 
 #include <ginkgo/core/matrix/dense.hpp>
@@ -125,6 +126,38 @@ std::unique_ptr<LinOp> apply_inner_operators(
     }
 
     return std::move(out);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Composition<ValueType>::transpose() const
+{
+    auto transposed = Composition<ValueType>::create(this->get_executor());
+    transposed->set_size(gko::transpose(this->get_size()));
+    // transpose and reverse operators
+    std::transform(this->get_operators().rbegin(), this->get_operators().rend(),
+                   std::back_inserter(transposed->operators_),
+                   [](const std::shared_ptr<const LinOp> &op) {
+                       return share(as<Transposable>(op)->transpose());
+                   });
+
+    return std::move(transposed);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Composition<ValueType>::conj_transpose() const
+{
+    auto transposed = Composition<ValueType>::create(this->get_executor());
+    transposed->set_size(gko::transpose(this->get_size()));
+    // conjugate-transpose and reverse operators
+    std::transform(this->get_operators().rbegin(), this->get_operators().rend(),
+                   std::back_inserter(transposed->operators_),
+                   [](const std::shared_ptr<const LinOp> &op) {
+                       return share(as<Transposable>(op)->conj_transpose());
+                   });
+
+    return std::move(transposed);
 }
 
 

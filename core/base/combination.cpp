@@ -60,6 +60,45 @@ inline void initialize_scalars(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType>
+std::unique_ptr<LinOp> Combination<ValueType>::transpose() const
+{
+    auto transposed = Combination<ValueType>::create(this->get_executor());
+    transposed->set_size(gko::transpose(this->get_size()));
+    // copy coefficients
+    for (auto &coef : get_coefficients()) {
+        transposed->coefficients_.push_back(share(coef->clone()));
+    }
+    // transpose operators
+    for (auto &op : get_operators()) {
+        transposed->operators_.push_back(
+            share(as<Transposable>(op)->transpose()));
+    }
+
+    return std::move(transposed);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Combination<ValueType>::conj_transpose() const
+{
+    auto transposed = Combination<ValueType>::create(this->get_executor());
+    transposed->set_size(gko::transpose(this->get_size()));
+    // conjugate coefficients!
+    for (auto &coef : get_coefficients()) {
+        transposed->coefficients_.push_back(
+            share(as<Transposable>(coef)->conj_transpose()));
+    }
+    // conjugate-transpose operators
+    for (auto &op : get_operators()) {
+        transposed->operators_.push_back(
+            share(as<Transposable>(op)->conj_transpose()));
+    }
+
+    return std::move(transposed);
+}
+
+
+template <typename ValueType>
 void Combination<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     initialize_scalars<ValueType>(this->get_executor(), cache_.zero,

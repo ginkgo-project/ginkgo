@@ -53,12 +53,14 @@ namespace gko {
  */
 template <typename ValueType = default_precision>
 class Combination : public EnableLinOp<Combination<ValueType>>,
-                    public EnableCreateMethod<Combination<ValueType>> {
+                    public EnableCreateMethod<Combination<ValueType>>,
+                    public Transposable {
     friend class EnablePolymorphicObject<Combination, LinOp>;
     friend class EnableCreateMethod<Combination>;
 
 public:
     using value_type = ValueType;
+    using transposed_type = Combination<ValueType>;
 
     /**
      * Returns a list of coefficients of the combination.
@@ -81,6 +83,10 @@ public:
     {
         return operators_;
     }
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
 protected:
     /**

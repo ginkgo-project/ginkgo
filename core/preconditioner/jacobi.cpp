@@ -55,6 +55,8 @@ GKO_REGISTER_OPERATION(simple_apply, jacobi::simple_apply);
 GKO_REGISTER_OPERATION(apply, jacobi::apply);
 GKO_REGISTER_OPERATION(find_blocks, jacobi::find_blocks);
 GKO_REGISTER_OPERATION(generate, jacobi::generate);
+GKO_REGISTER_OPERATION(transpose_jacobi, jacobi::transpose_jacobi);
+GKO_REGISTER_OPERATION(conj_transpose_jacobi, jacobi::conj_transpose_jacobi);
 GKO_REGISTER_OPERATION(convert_to_dense, jacobi::convert_to_dense);
 GKO_REGISTER_OPERATION(initialize_precisions, jacobi::initialize_precisions);
 
@@ -143,6 +145,48 @@ void Jacobi<ValueType, IndexType>::write(mat_data &data) const
 
 
 template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Jacobi<ValueType, IndexType>::transpose() const
+{
+    auto res = std::unique_ptr<Jacobi<ValueType, IndexType>>(
+        new Jacobi<ValueType, IndexType>(this->get_executor()));
+    // Jacobi enforces square matrices, so no dim transposition necessary
+    res->set_size(this->get_size());
+    res->storage_scheme_ = storage_scheme_;
+    res->num_blocks_ = num_blocks_;
+    res->blocks_.resize_and_reset(blocks_.get_num_elems());
+    res->conditioning_ = conditioning_;
+    res->parameters_ = parameters_;
+    this->get_executor()->run(jacobi::make_transpose_jacobi(
+        num_blocks_, parameters_.max_block_size,
+        parameters_.storage_optimization.block_wise, parameters_.block_pointers,
+        blocks_, storage_scheme_, res->blocks_));
+
+    return std::move(res);
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Jacobi<ValueType, IndexType>::conj_transpose() const
+{
+    auto res = std::unique_ptr<Jacobi<ValueType, IndexType>>(
+        new Jacobi<ValueType, IndexType>(this->get_executor()));
+    // Jacobi enforces square matrices, so no dim transposition necessary
+    res->set_size(this->get_size());
+    res->storage_scheme_ = storage_scheme_;
+    res->num_blocks_ = num_blocks_;
+    res->blocks_.resize_and_reset(blocks_.get_num_elems());
+    res->conditioning_ = conditioning_;
+    res->parameters_ = parameters_;
+    this->get_executor()->run(jacobi::make_conj_transpose_jacobi(
+        num_blocks_, parameters_.max_block_size,
+        parameters_.storage_optimization.block_wise, parameters_.block_pointers,
+        blocks_, storage_scheme_, res->blocks_));
+
+    return std::move(res);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Jacobi<ValueType, IndexType>::detect_blocks(
     const matrix::Csr<ValueType, IndexType> *system_matrix)
 {
@@ -159,8 +203,7 @@ void Jacobi<ValueType, IndexType>::detect_blocks(
 template <typename ValueType, typename IndexType>
 void Jacobi<ValueType, IndexType>::generate(const LinOp *system_matrix)
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(system_matrix,
-                                transpose(system_matrix->get_size()));
+    GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
     const auto exec = this->get_executor();
     const auto csr_mtx = copy_and_convert_to<matrix::Csr<ValueType, IndexType>>(
         exec, system_matrix);

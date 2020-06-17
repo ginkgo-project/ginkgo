@@ -120,6 +120,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
 public:
     using value_type = ValueType;
     using index_type = IndexType;
+    using transposed_type = Csr<ValueType, IndexType>;
     using mat_data = matrix_data<ValueType, IndexType>;
 
     class automatical;

@@ -433,6 +433,7 @@ TEST_F(Csr, MoveToEllIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(ell_mtx.get(), dell_mtx.get(), 1e-14);
 }
 
+
 TEST_F(Csr, ConvertToSparsityCsrIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());

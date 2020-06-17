@@ -51,6 +51,32 @@ GKO_REGISTER_OPERATION(initialize, ir::initialize);
 
 
 template <typename ValueType>
+std::unique_ptr<LinOp> Ir<ValueType>::transpose() const
+{
+    return build()
+        .with_generated_solver(
+            share(as<Transposable>(this->get_solver())->transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .on(this->get_executor())
+        ->generate(
+            share(as<Transposable>(this->get_system_matrix())->transpose()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Ir<ValueType>::conj_transpose() const
+{
+    return build()
+        .with_generated_solver(
+            share(as<Transposable>(this->get_solver())->conj_transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .on(this->get_executor())
+        ->generate(share(
+            as<Transposable>(this->get_system_matrix())->conj_transpose()));
+}
+
+
+template <typename ValueType>
 void Ir<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using Vector = matrix::Dense<ValueType>;

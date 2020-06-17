@@ -61,12 +61,14 @@ namespace gko {
  */
 template <typename ValueType = default_precision>
 class Composition : public EnableLinOp<Composition<ValueType>>,
-                    public EnableCreateMethod<Composition<ValueType>> {
+                    public EnableCreateMethod<Composition<ValueType>>,
+                    public Transposable {
     friend class EnablePolymorphicObject<Composition, LinOp>;
     friend class EnableCreateMethod<Composition>;
 
 public:
     using value_type = ValueType;
+    using transposed_type = Composition<ValueType>;
 
     /**
      * Returns a list of operators of the composition.
@@ -78,6 +80,10 @@ public:
     {
         return operators_;
     }
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
 protected:
     /**

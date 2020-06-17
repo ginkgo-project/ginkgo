@@ -141,3 +141,75 @@ __global__ void agglomerate_supervariables_kernel(
     block_ptrs[num_blocks] = block_ptrs[num_natural_blocks];
     num_blocks_arr[0] = num_blocks;
 }
+
+
+template <bool conjugate, int max_block_size, int subwarp_size,
+          int warps_per_block, typename ValueType, typename IndexType>
+__global__ void __launch_bounds__(warps_per_block *config::warp_size)
+    transpose_jacobi(const ValueType *__restrict__ blocks,
+                     preconditioner::block_interleaved_storage_scheme<IndexType>
+                         storage_scheme,
+                     const IndexType *__restrict__ block_ptrs,
+                     size_type num_blocks, ValueType *__restrict__ out_blocks)
+{
+    const auto block_id =
+        thread::get_subwarp_id<subwarp_size, warps_per_block>();
+    const auto subwarp =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    if (block_id >= num_blocks) {
+        return;
+    }
+    const auto block_size = block_ptrs[block_id + 1] - block_ptrs[block_id];
+
+    const auto block_ofs = storage_scheme.get_global_block_offset(block_id);
+    const auto block_stride = storage_scheme.get_stride();
+    const auto rank = subwarp.thread_rank();
+    if (rank < block_size) {
+        for (IndexType i = 0; i < block_size; ++i) {
+            auto val = blocks[block_ofs + i * block_stride + rank];
+            out_blocks[block_ofs + i + rank * block_stride] =
+                conjugate ? conj(val) : val;
+        }
+    }
+}
+
+
+template <bool conjugate, int max_block_size, int subwarp_size,
+          int warps_per_block, typename ValueType, typename IndexType>
+__global__ void
+__launch_bounds__(warps_per_block *config::warp_size) adaptive_transpose_jacobi(
+    const ValueType *__restrict__ blocks,
+    preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
+    const precision_reduction *__restrict__ block_precisions,
+    const IndexType *__restrict__ block_ptrs, size_type num_blocks,
+    ValueType *__restrict__ out_blocks)
+{
+    const auto block_id =
+        thread::get_subwarp_id<subwarp_size, warps_per_block>();
+    const auto subwarp =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    if (block_id >= num_blocks) {
+        return;
+    }
+    const auto block_size = block_ptrs[block_id + 1] - block_ptrs[block_id];
+
+    const auto block_stride = storage_scheme.get_stride();
+    const auto rank = subwarp.thread_rank();
+    if (rank < block_size) {
+        GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
+            ValueType, block_precisions[block_id],
+            auto local_block =
+                reinterpret_cast<const resolved_precision *>(
+                    blocks + storage_scheme.get_group_offset(block_id)) +
+                storage_scheme.get_block_offset(block_id);
+            auto local_out_block =
+                reinterpret_cast<resolved_precision *>(
+                    out_blocks + storage_scheme.get_group_offset(block_id)) +
+                storage_scheme.get_block_offset(block_id);
+            for (IndexType i = 0; i < block_size; ++i) {
+                auto val = local_block[i * block_stride + rank];
+                local_out_block[i + rank * block_stride] =
+                    conjugate ? conj(val) : val;
+            });
+    }
+}

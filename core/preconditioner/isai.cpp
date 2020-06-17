@@ -205,6 +205,34 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     approximate_inverse_ = std::move(inverted);
 }
 
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::transpose() const
+{
+    std::unique_ptr<transposed_type> transp{
+        new transposed_type{this->get_executor()}};
+    transp->set_size(gko::transpose(this->get_size()));
+    transp->approximate_inverse_ =
+        share(as<Csr>(this->get_approximate_inverse()->transpose()));
+
+    return std::move(transp);
+}
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::conj_transpose()
+    const
+{
+    std::unique_ptr<transposed_type> transp{
+        new transposed_type{this->get_executor()}};
+    transp->set_size(gko::transpose(this->get_size()));
+    transp->approximate_inverse_ =
+        share(as<Csr>(this->get_approximate_inverse()->conj_transpose()));
+
+    return std::move(transp);
+}
+
+
 #define GKO_DECLARE_LOWER_ISAI(ValueType, IndexType) \
     class Isai<isai_type::lower, ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_ISAI);

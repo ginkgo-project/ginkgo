@@ -128,6 +128,7 @@ public:
 
     using value_type = ValueType;
     using index_type = int64;
+    using transposed_type = Dense<ValueType>;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
 
