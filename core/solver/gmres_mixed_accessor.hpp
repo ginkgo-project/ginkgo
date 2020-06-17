@@ -402,11 +402,11 @@ class Accessor3dHelper {};
 
 template <typename ValueType, typename ValueTypeKrylovBases>
 class Accessor3dHelper<ValueType, ValueTypeKrylovBases, true> {
+public:
     using Accessor = Accessor3d<ValueTypeKrylovBases, ValueType>;
     static_assert(Accessor::has_scale,
                   "This accessor must have a scale in this class!");
 
-public:
     Accessor3dHelper() = default;
 
     Accessor3dHelper(std::shared_ptr<const Executor> exec, dim<3> krylov_dim)
@@ -442,11 +442,11 @@ private:
 
 template <typename ValueType, typename ValueTypeKrylovBases>
 class Accessor3dHelper<ValueType, ValueTypeKrylovBases, false> {
+public:
     using Accessor = Accessor3d<ValueTypeKrylovBases, ValueType>;
     static_assert(!Accessor::has_scale,
                   "This accessor must not have a scale in this class!");
 
-public:
     Accessor3dHelper() = default;
 
     Accessor3dHelper(std::shared_ptr<const Executor> exec, dim<3> krylov_dim)
