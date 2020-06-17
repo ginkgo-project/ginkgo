@@ -1,5 +1,5 @@
 <map id="gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;" name="gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;">
-<area shape="rect" id="node1" title="The Incomplete LU (ILU) preconditioner solves the equation &#160;for a given lower triangular matrix L,..." alt="" coords="2823,241,3031,312"/>
+<area shape="rect" id="node1" title="The Incomplete LU (ILU) preconditioner solves the equation &#160;for a given lower triangular matrix L,..." alt="" coords="2823,291,3031,361"/>
 <area shape="rect" id="node2" href="$classgko_1_1EnableLinOp.html" title=" " alt="" coords="2555,249,2773,305"/>
 <area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="2056,126,2320,182"/>
 <area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="1756,15,1989,85"/>
@@ -18,4 +18,5 @@
 <area shape="rect" id="node19" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="1277,285,1423,327"/>
 <area shape="rect" id="node18" href="$classgko_1_1EnablePolymorphicAssignment.html" title=" " alt="" coords="1745,285,2001,327"/>
 <area shape="rect" id="node15" href="$classgko_1_1EnableLinOp.html" title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ..." alt="" coords="2084,256,2292,297"/>
+<area shape="rect" id="node20" href="$classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface." alt="" coords="2595,329,2733,355"/>
 </map>

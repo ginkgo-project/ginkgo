@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/156929586 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/157155372 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -107,6 +107,9 @@ using&#160;</td><td class="memItemRight" valign="bottom"><b>value_type</b> = Val
 <tr class="memitem:a361cb1c89c8f6cba2201344467d9edee"><td class="memItemLeft" align="right" valign="top"><a id="a361cb1c89c8f6cba2201344467d9edee"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>index_type</b> = IndexType</td></tr>
 <tr class="separator:a361cb1c89c8f6cba2201344467d9edee"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a774d312cfa0901262b06469f321ff20a"><td class="memItemLeft" align="right" valign="top"><a id="a774d312cfa0901262b06469f321ff20a"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>transposed_type</b> = <a class="el" href="classgko_1_1solver_1_1LowerTrs.html">LowerTrs</a>&lt; ValueType, IndexType &gt;</td></tr>
+<tr class="separator:a774d312cfa0901262b06469f321ff20a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_types_classgko_1_1EnablePolymorphicAssignment"><td colspan="2" onclick="javascript:toggleInherit('pub_types_classgko_1_1EnablePolymorphicAssignment')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="classgko_1_1EnablePolymorphicAssignment.html">gko::EnablePolymorphicAssignment&lt; UpperTrs&lt; ValueType, IndexType &gt; &gt;</a></td></tr>
 <tr class="memitem:a2e92aa4e8262a8f6625330b76a24deeb inherit pub_types_classgko_1_1EnablePolymorphicAssignment"><td class="memItemLeft" align="right" valign="top"><a id="a2e92aa4e8262a8f6625330b76a24deeb"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>result_type</b> = UpperTrs&lt; ValueType, IndexType &gt;</td></tr>
@@ -121,6 +124,12 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a5634d236ea80f6e0ad0bb80aae965a78"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; const <a class="el" href="classgko_1_1matrix_1_1Csr.html">matrix::Csr</a>&lt; ValueType, IndexType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1UpperTrs.html#a5634d236ea80f6e0ad0bb80aae965a78">get_system_matrix</a> () const</td></tr>
 <tr class="memdesc:a5634d236ea80f6e0ad0bb80aae965a78"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the system operator (CSR matrix) of the linear system.  <a href="classgko_1_1solver_1_1UpperTrs.html#a5634d236ea80f6e0ad0bb80aae965a78">More...</a><br /></td></tr>
 <tr class="separator:a5634d236ea80f6e0ad0bb80aae965a78"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae92d5699fdff442300dd150e6b1e9a70"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1UpperTrs.html#ae92d5699fdff442300dd150e6b1e9a70">transpose</a> () const override</td></tr>
+<tr class="memdesc:ae92d5699fdff442300dd150e6b1e9a70"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface.">Transposable</a> object.  <a href="classgko_1_1solver_1_1UpperTrs.html#ae92d5699fdff442300dd150e6b1e9a70">More...</a><br /></td></tr>
+<tr class="separator:ae92d5699fdff442300dd150e6b1e9a70"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad1ea3550cf3dd135555ba292f0bf3818"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1UpperTrs.html#ad1ea3550cf3dd135555ba292f0bf3818">conj_transpose</a> () const override</td></tr>
+<tr class="memdesc:ad1ea3550cf3dd135555ba292f0bf3818"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface.">Transposable</a> object.  <a href="classgko_1_1solver_1_1UpperTrs.html#ad1ea3550cf3dd135555ba292f0bf3818">More...</a><br /></td></tr>
+<tr class="separator:ad1ea3550cf3dd135555ba292f0bf3818"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a37fa165fc38663072ef41ad10ca0e11c"><td class="memItemLeft" align="right" valign="top"><a id="a37fa165fc38663072ef41ad10ca0e11c"></a>
 const <a class="el" href="structgko_1_1solver_1_1UpperTrs_1_1parameters__type.html">parameters_type</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>get_parameters</b> () const</td></tr>
 <tr class="separator:a37fa165fc38663072ef41ad10ca0e11c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -257,6 +266,9 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>EnableLinOp&lt; Uppe
 <tr class="memitem:a2f2f9845d1fc77478b1a53d3c3334a5d"><td class="memItemLeft" align="right" valign="top"><a id="a2f2f9845d1fc77478b1a53d3c3334a5d"></a>
 class&#160;</td><td class="memItemRight" valign="bottom"><b>EnablePolymorphicObject&lt; UpperTrs, LinOp &gt;</b></td></tr>
 <tr class="separator:a2f2f9845d1fc77478b1a53d3c3334a5d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aac6e7466a2b111508de4effc8102b7ff"><td class="memItemLeft" align="right" valign="top"><a id="aac6e7466a2b111508de4effc8102b7ff"></a>
+class&#160;</td><td class="memItemRight" valign="bottom"><b>LowerTrs&lt; ValueType, IndexType &gt;</b></td></tr>
+<tr class="separator:aac6e7466a2b111508de4effc8102b7ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><h3>template&lt;typename ValueType = default_precision, typename IndexType = int32&gt;<br />
@@ -273,6 +285,38 @@ class gko::solver::UpperTrs&lt; ValueType, IndexType &gt;</h3>
   </dd>
 </dl>
 </div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="ad1ea3550cf3dd135555ba292f0bf3818"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad1ea3550cf3dd135555ba292f0bf3818">&#9670;&nbsp;</a></span>conj_transpose()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;<a class="el" href="classgko_1_1LinOp.html">LinOp</a>&gt; <a class="el" href="classgko_1_1solver_1_1UpperTrs.html">gko::solver::UpperTrs</a>&lt; ValueType, IndexType &gt;::conj_transpose </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface.">Transposable</a> object. </p>
+<dl class="section return"><dt>Returns</dt><dd>a pointer to the new conjugate transposed object </dd></dl>
+
+<p>Implements <a class="el" href="classgko_1_1Transposable.html#ab41b669288740cf2a6f7bf76e875b077">gko::Transposable</a>.</p>
+
+</div>
+</div>
 <a id="a5634d236ea80f6e0ad0bb80aae965a78"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a5634d236ea80f6e0ad0bb80aae965a78">&#9670;&nbsp;</a></span>get_system_matrix()</h2>
 
@@ -303,8 +347,41 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 
 </div>
 </div>
-<hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/solver/<a class="el" href="upper__trs_8hpp_source.html">upper_trs.hpp (ccf35426a)</a></li>
+<a id="ae92d5699fdff442300dd150e6b1e9a70"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae92d5699fdff442300dd150e6b1e9a70">&#9670;&nbsp;</a></span>transpose()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;<a class="el" href="classgko_1_1LinOp.html">LinOp</a>&gt; <a class="el" href="classgko_1_1solver_1_1UpperTrs.html">gko::solver::UpperTrs</a>&lt; ValueType, IndexType &gt;::transpose </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface.">Transposable</a> object. </p>
+<dl class="section return"><dt>Returns</dt><dd>a pointer to the new transposed object </dd></dl>
+
+<p>Implements <a class="el" href="classgko_1_1Transposable.html#a5c6b778b71b47d53e0bda6ccf894d318">gko::Transposable</a>.</p>
+
+</div>
+</div>
+<hr/>The documentation for this class was generated from the following files:<ul>
+<li>ginkgo/core/solver/<a class="el" href="lower__trs_8hpp_source.html">lower_trs.hpp (869586100)</a></li>
+<li>ginkgo/core/solver/<a class="el" href="upper__trs_8hpp_source.html">upper_trs.hpp (869586100)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

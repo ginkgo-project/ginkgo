@@ -59,9 +59,9 @@ var sectionId = 'dynsection-0';
 <g id="node1" class="node">
 <title>Node1</title>
 <g id="a_node1"><a xlink:title="LowerTrs is the triangular solver which solves the system L x = b, when L is a lower triangular matri...">
-<polygon fill="#bfbfbf" stroke="#000000" points="2063,-128 2063,-158 2207,-158 2207,-128 2063,-128"/>
-<text text-anchor="start" x="2071" y="-146" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::LowerTrs</text>
-<text text-anchor="middle" x="2135" y="-135" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; ValueType, IndexType &gt;</text>
+<polygon fill="#bfbfbf" stroke="#000000" points="2063,-96 2063,-126 2207,-126 2207,-96 2063,-96"/>
+<text text-anchor="start" x="2071" y="-114" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::LowerTrs</text>
+<text text-anchor="middle" x="2135" y="-103" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; ValueType, IndexType &gt;</text>
 </a>
 </g>
 </g>
@@ -78,8 +78,8 @@ var sectionId = 'dynsection-0';
 <!-- Node2&#45;&gt;Node1 -->
 <g id="edge1" class="edge">
 <title>Node2&#45;&gt;Node1</title>
-<path fill="none" stroke="#191970" d="M2036.5126,-143C2045.3017,-143 2054.153,-143 2062.753,-143"/>
-<polygon fill="#191970" stroke="#191970" points="2036.2423,-139.5001 2026.2423,-143 2036.2423,-146.5001 2036.2423,-139.5001"/>
+<path fill="none" stroke="#191970" d="M2036.226,-127.9478C2045.1092,-126.4236 2054.0595,-124.8879 2062.753,-123.3963"/>
+<polygon fill="#191970" stroke="#191970" points="2035.5064,-124.5201 2026.2423,-129.6608 2036.6902,-131.4192 2035.5064,-124.5201"/>
 </g>
 <!-- Node3 -->
 <g id="node3" class="node">
@@ -429,6 +429,21 @@ var sectionId = 'dynsection-0';
 <title>Node23&#45;&gt;Node22</title>
 <path fill="none" stroke="#191970" d="M1054.9015,-124.5045C1118.7679,-124.0207 1216.6945,-123.2788 1289.4105,-122.728"/>
 <polygon fill="#191970" stroke="#191970" points="1054.5353,-121.0071 1044.5621,-124.5829 1054.5884,-128.0069 1054.5353,-121.0071"/>
+</g>
+<!-- Node24 -->
+<g id="node20" class="node">
+<title>Node24</title>
+<g id="a_node20"><a xlink:href="classgko_1_1Transposable.html" target="_top" xlink:title="Linear operators which support transposition should implement the Transposable interface.">
+<polygon fill="#ffffff" stroke="#000000" points="1896.5,-89.5 1896.5,-108.5 2000.5,-108.5 2000.5,-89.5 1896.5,-89.5"/>
+<text text-anchor="middle" x="1948.5" y="-96.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::Transposable</text>
+</a>
+</g>
+</g>
+<!-- Node24&#45;&gt;Node1 -->
+<g id="edge28" class="edge">
+<title>Node24&#45;&gt;Node1</title>
+<path fill="none" stroke="#191970" d="M2011.0676,-103.0258C2027.6598,-104.0934 2045.7107,-105.2548 2062.7712,-106.3526"/>
+<polygon fill="#191970" stroke="#191970" points="2011.1511,-99.524 2000.947,-102.3746 2010.7016,-106.5096 2011.1511,-99.524"/>
 </g>
 </g>
 </svg>

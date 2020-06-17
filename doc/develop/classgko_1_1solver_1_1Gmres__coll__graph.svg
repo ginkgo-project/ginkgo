@@ -59,9 +59,9 @@ var sectionId = 'dynsection-0';
 <g id="node1" class="node">
 <title>Node1</title>
 <g id="a_node1"><a xlink:title="GMRES or the generalized minimal residual method is an iterative type Krylov subspace method which is...">
-<polygon fill="#bfbfbf" stroke="#000000" points="2053,-90.5 2053,-120.5 2162,-120.5 2162,-90.5 2053,-90.5"/>
-<text text-anchor="start" x="2061" y="-108.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Gmres</text>
-<text text-anchor="middle" x="2107.5" y="-97.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; ValueType &gt;</text>
+<polygon fill="#bfbfbf" stroke="#000000" points="2053,-78.5 2053,-108.5 2162,-108.5 2162,-78.5 2053,-78.5"/>
+<text text-anchor="start" x="2061" y="-96.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Gmres</text>
+<text text-anchor="middle" x="2107.5" y="-85.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">&lt; ValueType &gt;</text>
 </a>
 </g>
 </g>
@@ -78,8 +78,8 @@ var sectionId = 'dynsection-0';
 <!-- Node2&#45;&gt;Node1 -->
 <g id="edge1" class="edge">
 <title>Node2&#45;&gt;Node1</title>
-<path fill="none" stroke="#191970" d="M2026.3912,-121.3261C2035.2658,-119.5945 2044.1264,-117.8656 2052.5572,-116.2205"/>
-<polygon fill="#191970" stroke="#191970" points="2025.5324,-117.9276 2016.3879,-123.278 2026.8731,-124.798 2025.5324,-117.9276"/>
+<path fill="none" stroke="#191970" d="M2009.3469,-119.8338C2023.7922,-115.9582 2038.9338,-111.8958 2052.8815,-108.1538"/>
+<polygon fill="#191970" stroke="#191970" points="2008.2323,-116.509 1999.4808,-122.4808 2010.0462,-123.2699 2008.2323,-116.509"/>
 </g>
 <!-- Node3 -->
 <g id="node3" class="node">
@@ -358,7 +358,7 @@ var sectionId = 'dynsection-0';
 <title>Node17&#45;&gt;Node23</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M693.2492,-72.9653C763.7965,-82.3334 876.3437,-97.2787 943.2718,-106.1662"/>
 <polygon fill="#ffa500" stroke="#ffa500" points="693.5295,-69.4719 683.1558,-71.625 692.608,-76.411 693.5295,-69.4719"/>
-<text text-anchor="middle" x="813" y="-99.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; ConcreteLinOp &gt;</text>
+<text text-anchor="middle" x="813" y="-98.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; ConcreteLinOp &gt;</text>
 </g>
 <!-- Node18&#45;&gt;Node15 -->
 <g id="edge16" class="edge">
@@ -380,9 +380,9 @@ var sectionId = 'dynsection-0';
 <!-- Node18&#45;&gt;Node22 -->
 <g id="edge27" class="edge">
 <title>Node18&#45;&gt;Node22</title>
-<path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M1104.6818,-76.8953C1155.3404,-82.8162 1216.8051,-90.0106 1272,-96.5 1279.3039,-97.3587 1286.8608,-98.2485 1294.4602,-99.1442"/>
-<polygon fill="#ffa500" stroke="#ffa500" points="1105.038,-73.4132 1094.6993,-75.7287 1104.2254,-80.3659 1105.038,-73.4132"/>
-<text text-anchor="middle" x="1195.5" y="-99.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; ConcreteLinOp &gt;</text>
+<path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M1104.7161,-76.213C1155.3823,-81.8837 1216.8434,-88.8835 1272,-95.5 1279.3093,-96.3768 1286.8701,-97.2989 1294.4722,-98.2368"/>
+<polygon fill="#ffa500" stroke="#ffa500" points="1105.0588,-72.7296 1094.7319,-75.0971 1104.2812,-79.6863 1105.0588,-72.7296"/>
+<text text-anchor="middle" x="1195.5" y="-98.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; ConcreteLinOp &gt;</text>
 </g>
 <!-- Node19 -->
 <g id="node15" class="node">
@@ -437,8 +437,23 @@ var sectionId = 'dynsection-0';
 <!-- Node24&#45;&gt;Node1 -->
 <g id="edge28" class="edge">
 <title>Node24&#45;&gt;Node1</title>
-<path fill="none" stroke="#191970" d="M2014.72,-98.7112C2027.5047,-99.6467 2040.6451,-100.6082 2052.869,-101.5026"/>
-<polygon fill="#191970" stroke="#191970" points="2014.7963,-95.2075 2004.5675,-97.9684 2014.2854,-102.1889 2014.7963,-95.2075"/>
+<path fill="none" stroke="#191970" d="M2014.72,-93.5C2027.5047,-93.5 2040.6451,-93.5 2052.869,-93.5"/>
+<polygon fill="#191970" stroke="#191970" points="2014.5676,-90.0001 2004.5675,-93.5 2014.5675,-97.0001 2014.5676,-90.0001"/>
+</g>
+<!-- Node25 -->
+<g id="node21" class="node">
+<title>Node25</title>
+<g id="a_node21"><a xlink:href="classgko_1_1Transposable.html" target="_top" xlink:title="Linear operators which support transposition should implement the Transposable interface.">
+<polygon fill="#ffffff" stroke="#000000" points="1891.5,-46 1891.5,-65 1995.5,-65 1995.5,-46 1891.5,-46"/>
+<text text-anchor="middle" x="1943.5" y="-53" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::Transposable</text>
+</a>
+</g>
+</g>
+<!-- Node25&#45;&gt;Node1 -->
+<g id="edge29" class="edge">
+<title>Node25&#45;&gt;Node1</title>
+<path fill="none" stroke="#191970" d="M1994.8421,-67.3963C2013.2652,-71.6651 2034.1002,-76.4927 2052.7978,-80.8251"/>
+<polygon fill="#191970" stroke="#191970" points="1995.4161,-63.9367 1984.8841,-65.089 1993.836,-70.756 1995.4161,-63.9367"/>
 </g>
 </g>
 </svg>

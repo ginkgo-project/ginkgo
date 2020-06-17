@@ -1,5 +1,5 @@
 <map id="gko::preconditioner::Isai&lt; IsaiType, ValueType, IndexType &gt;" name="gko::preconditioner::Isai&lt; IsaiType, ValueType, IndexType &gt;">
-<area shape="rect" id="node1" title="The Incomplete Sparse Approximate Inverse (ISAI) Preconditioner generates an approximate inverse matr..." alt="" coords="2740,254,2939,310"/>
+<area shape="rect" id="node1" title="The Incomplete Sparse Approximate Inverse (ISAI) Preconditioner generates an approximate inverse matr..." alt="" coords="2740,303,2939,359"/>
 <area shape="rect" id="node2" href="$classgko_1_1EnableLinOp.html" title=" " alt="" coords="2517,254,2691,310"/>
 <area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="2059,126,2280,182"/>
 <area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="1751,45,1999,101"/>
@@ -18,4 +18,5 @@
 <area shape="rect" id="node19" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="1279,285,1426,327"/>
 <area shape="rect" id="node18" href="$classgko_1_1EnablePolymorphicAssignment.html" title=" " alt="" coords="1747,289,2003,331"/>
 <area shape="rect" id="node15" href="$classgko_1_1EnableLinOp.html" title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ..." alt="" coords="2065,261,2273,303"/>
+<area shape="rect" id="node20" href="$classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface." alt="" coords="2535,334,2673,361"/>
 </map>

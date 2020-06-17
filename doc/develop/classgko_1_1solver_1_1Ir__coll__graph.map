@@ -1,5 +1,5 @@
 <map id="gko::solver::Ir&lt; ValueType &gt;" name="gko::solver::Ir&lt; ValueType &gt;">
-<area shape="rect" id="node1" title="Iterative refinement (IR) is an iterative method that uses another coarse method to approximate the e..." alt="" coords="2627,262,2833,289"/>
+<area shape="rect" id="node1" title="Iterative refinement (IR) is an iterative method that uses another coarse method to approximate the e..." alt="" coords="2627,305,2833,331"/>
 <area shape="rect" id="node2" href="$classgko_1_1EnableLinOp.html" title=" " alt="" coords="2419,255,2577,296"/>
 <area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="2009,135,2231,176"/>
 <area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="1709,46,1943,102"/>
@@ -18,4 +18,5 @@
 <area shape="rect" id="node19" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="1230,287,1377,328"/>
 <area shape="rect" id="node18" href="$classgko_1_1EnablePolymorphicAssignment.html" title=" " alt="" coords="1698,291,1954,332"/>
 <area shape="rect" id="node15" href="$classgko_1_1EnableLinOp.html" title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ..." alt="" coords="2016,255,2224,296"/>
+<area shape="rect" id="node20" href="$classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface." alt="" coords="2429,321,2567,347"/>
 </map>

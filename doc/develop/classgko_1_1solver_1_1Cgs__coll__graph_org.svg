@@ -13,8 +13,8 @@
 <g id="node1" class="node">
 <title>Node1</title>
 <g id="a_node1"><a xlink:title="CGS or the conjugate gradient square method is an iterative type Krylov subspace method which is suit...">
-<polygon fill="#bfbfbf" stroke="#000000" points="2000,-96 2000,-115 2167,-115 2167,-96 2000,-96"/>
-<text text-anchor="middle" x="2083.5" y="-103" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Cgs&lt; ValueType &gt;</text>
+<polygon fill="#bfbfbf" stroke="#000000" points="2000,-84 2000,-103 2167,-103 2167,-84 2000,-84"/>
+<text text-anchor="middle" x="2083.5" y="-91" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Cgs&lt; ValueType &gt;</text>
 </a>
 </g>
 </g>
@@ -31,8 +31,8 @@
 <!-- Node2&#45;&gt;Node1 -->
 <g id="edge1" class="edge">
 <title>Node2&#45;&gt;Node1</title>
-<path fill="none" stroke="#191970" d="M1973.1634,-124.4826C1991.5271,-121.3233 2010.8258,-118.0031 2028.0569,-115.0386"/>
-<polygon fill="#191970" stroke="#191970" points="1972.3384,-121.0731 1963.0766,-126.218 1973.5253,-127.9717 1972.3384,-121.0731"/>
+<path fill="none" stroke="#191970" d="M1971.0392,-120.1036C1995.6597,-114.2794 2022.1851,-108.0046 2043.2884,-103.0124"/>
+<polygon fill="#191970" stroke="#191970" points="1969.9161,-116.7726 1960.9904,-122.4808 1971.5276,-123.5846 1969.9161,-116.7726"/>
 </g>
 <!-- Node3 -->
 <g id="node3" class="node">
@@ -311,7 +311,7 @@
 <title>Node17&#45;&gt;Node23</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M693.0839,-73.2764C760.3684,-82.5635 865.4684,-97.0703 929.3622,-105.8894"/>
 <polygon fill="#ffa500" stroke="#ffa500" points="693.4161,-69.7891 683.0315,-71.8888 692.4589,-76.7234 693.4161,-69.7891"/>
-<text text-anchor="middle" x="806" y="-99.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; ConcreteLinOp &gt;</text>
+<text text-anchor="middle" x="806" y="-98.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; ConcreteLinOp &gt;</text>
 </g>
 <!-- Node18&#45;&gt;Node15 -->
 <g id="edge16" class="edge">
@@ -333,9 +333,9 @@
 <!-- Node18&#45;&gt;Node22 -->
 <g id="edge27" class="edge">
 <title>Node18&#45;&gt;Node22</title>
-<path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M1090.6818,-76.8953C1141.3404,-82.8162 1202.8051,-90.0106 1258,-96.5 1265.3039,-97.3587 1272.8608,-98.2485 1280.4602,-99.1442"/>
-<polygon fill="#ffa500" stroke="#ffa500" points="1091.038,-73.4132 1080.6993,-75.7287 1090.2254,-80.3659 1091.038,-73.4132"/>
-<text text-anchor="middle" x="1181.5" y="-99.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; ConcreteLinOp &gt;</text>
+<path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M1090.7161,-76.213C1141.3823,-81.8837 1202.8434,-88.8835 1258,-95.5 1265.3093,-96.3768 1272.8701,-97.2989 1280.4722,-98.2368"/>
+<polygon fill="#ffa500" stroke="#ffa500" points="1091.0588,-72.7296 1080.7319,-75.0971 1090.2812,-79.6863 1091.0588,-72.7296"/>
+<text text-anchor="middle" x="1181.5" y="-98.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; ConcreteLinOp &gt;</text>
 </g>
 <!-- Node19 -->
 <g id="node15" class="node">
@@ -390,8 +390,23 @@
 <!-- Node24&#45;&gt;Node1 -->
 <g id="edge28" class="edge">
 <title>Node24&#45;&gt;Node1</title>
-<path fill="none" stroke="#191970" d="M1968.6693,-98.0916C1978.8194,-98.7464 1989.3373,-99.425 1999.7013,-100.0936"/>
-<polygon fill="#191970" stroke="#191970" points="1968.8656,-94.597 1958.661,-97.4459 1968.4149,-101.5825 1968.8656,-94.597"/>
+<path fill="none" stroke="#191970" d="M1968.6693,-93.5C1978.8194,-93.5 1989.3373,-93.5 1999.7013,-93.5"/>
+<polygon fill="#191970" stroke="#191970" points="1968.661,-90.0001 1958.661,-93.5 1968.6609,-97.0001 1968.661,-90.0001"/>
+</g>
+<!-- Node25 -->
+<g id="node21" class="node">
+<title>Node25</title>
+<g id="a_node21"><a xlink:href="classgko_1_1Transposable.html" target="_top" xlink:title="Linear operators which support transposition should implement the Transposable interface.">
+<polygon fill="#ffffff" stroke="#000000" points="1845.5,-46 1845.5,-65 1949.5,-65 1949.5,-46 1845.5,-46"/>
+<text text-anchor="middle" x="1897.5" y="-53" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::Transposable</text>
+</a>
+</g>
+</g>
+<!-- Node25&#45;&gt;Node1 -->
+<g id="edge29" class="edge">
+<title>Node25&#45;&gt;Node1</title>
+<path fill="none" stroke="#191970" d="M1954.3255,-67.1095C1980.779,-72.514 2011.8583,-78.8635 2036.9019,-83.9799"/>
+<polygon fill="#191970" stroke="#191970" points="1954.9339,-63.6616 1944.4357,-65.089 1953.5327,-70.5199 1954.9339,-63.6616"/>
 </g>
 </g>
 </svg>

@@ -13,10 +13,10 @@
 <g id="node1" class="node">
 <title>Node1</title>
 <g id="a_node1"><a xlink:title="The Incomplete Sparse Approximate Inverse (ISAI) Preconditioner generates an approximate inverse matr...">
-<polygon fill="#bfbfbf" stroke="#000000" points="2051,-122.5 2051,-163.5 2200,-163.5 2200,-122.5 2051,-122.5"/>
-<text text-anchor="start" x="2059" y="-151.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::preconditioner</text>
-<text text-anchor="start" x="2059" y="-140.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">::Isai&lt; IsaiType, ValueType,</text>
-<text text-anchor="middle" x="2125.5" y="-129.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> IndexType &gt;</text>
+<polygon fill="#bfbfbf" stroke="#000000" points="2051,-85.5 2051,-126.5 2200,-126.5 2200,-85.5 2051,-85.5"/>
+<text text-anchor="start" x="2059" y="-114.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::preconditioner</text>
+<text text-anchor="start" x="2059" y="-103.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">::Isai&lt; IsaiType, ValueType,</text>
+<text text-anchor="middle" x="2125.5" y="-92.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> IndexType &gt;</text>
 </a>
 </g>
 </g>
@@ -34,8 +34,8 @@
 <!-- Node2&#45;&gt;Node1 -->
 <g id="edge1" class="edge">
 <title>Node2&#45;&gt;Node1</title>
-<path fill="none" stroke="#191970" d="M2024.3673,-143C2033.0959,-143 2041.9963,-143 2050.7171,-143"/>
-<polygon fill="#191970" stroke="#191970" points="2024.2207,-139.5001 2014.2206,-143 2024.2206,-146.5001 2024.2207,-139.5001"/>
+<path fill="none" stroke="#191970" d="M2024.0827,-127.2603C2032.9024,-125.4114 2041.9015,-123.5249 2050.7171,-121.6769"/>
+<polygon fill="#191970" stroke="#191970" points="2023.2898,-123.8503 2014.2206,-129.3277 2024.726,-130.7014 2023.2898,-123.8503"/>
 </g>
 <!-- Node3 -->
 <g id="node3" class="node">
@@ -386,6 +386,21 @@
 <title>Node23&#45;&gt;Node22</title>
 <path fill="none" stroke="#191970" d="M1076.0239,-124.4985C1138.9342,-124.0171 1234.7021,-123.2842 1306.2698,-122.7365"/>
 <polygon fill="#191970" stroke="#191970" points="1075.8055,-121 1065.8326,-124.5765 1075.8591,-127.9998 1075.8055,-121"/>
+</g>
+<!-- Node24 -->
+<g id="node20" class="node">
+<title>Node24</title>
+<g id="a_node20"><a xlink:href="classgko_1_1Transposable.html" target="_top" xlink:title="Linear operators which support transposition should implement the Transposable interface.">
+<polygon fill="#ffffff" stroke="#000000" points="1897,-84.5 1897,-103.5 2001,-103.5 2001,-84.5 1897,-84.5"/>
+<text text-anchor="middle" x="1949" y="-91.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::Transposable</text>
+</a>
+</g>
+</g>
+<!-- Node24&#45;&gt;Node1 -->
+<g id="edge28" class="edge">
+<title>Node24&#45;&gt;Node1</title>
+<path fill="none" stroke="#191970" d="M2011.1331,-98.2243C2024.0144,-99.1001 2037.7116,-100.0314 2050.9839,-100.9337"/>
+<polygon fill="#191970" stroke="#191970" points="2011.2156,-94.722 2001.0012,-97.5355 2010.7407,-101.7058 2011.2156,-94.722"/>
 </g>
 </g>
 </svg>

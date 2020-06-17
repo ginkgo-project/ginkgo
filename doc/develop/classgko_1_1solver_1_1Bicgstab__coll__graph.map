@@ -1,5 +1,5 @@
 <map id="gko::solver::Bicgstab&lt; ValueType &gt;" name="gko::solver::Bicgstab&lt; ValueType &gt;">
-<area shape="rect" id="node1" title="BiCGSTAB or the Bi&#45;Conjugate Gradient&#45;Stabilized is a Krylov subspace solver." alt="" coords="2768,309,2927,351"/>
+<area shape="rect" id="node1" title="BiCGSTAB or the Bi&#45;Conjugate Gradient&#45;Stabilized is a Krylov subspace solver." alt="" coords="2768,325,2927,367"/>
 <area shape="rect" id="node2" href="$classgko_1_1EnableLinOp.html" title=" " alt="" coords="2512,267,2719,308"/>
 <area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="2056,127,2277,183"/>
 <area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="1756,46,1989,102"/>
@@ -19,4 +19,5 @@
 <area shape="rect" id="node18" href="$classgko_1_1EnablePolymorphicAssignment.html" title=" " alt="" coords="1745,291,2001,332"/>
 <area shape="rect" id="node15" href="$classgko_1_1EnableLinOp.html" title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ..." alt="" coords="2063,267,2271,308"/>
 <area shape="rect" id="node20" href="$classgko_1_1Preconditionable.html" title="A LinOp implementing this interface can be preconditioned." alt="" coords="2534,333,2697,359"/>
+<area shape="rect" id="node21" href="$classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface." alt="" coords="2546,383,2685,410"/>
 </map>

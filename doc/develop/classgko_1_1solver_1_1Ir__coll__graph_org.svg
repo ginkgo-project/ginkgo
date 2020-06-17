@@ -13,8 +13,8 @@
 <g id="node1" class="node">
 <title>Node1</title>
 <g id="a_node1"><a xlink:title="Iterative refinement (IR) is an iterative method that uses another coarse method to approximate the e...">
-<polygon fill="#bfbfbf" stroke="#000000" points="1966,-128 1966,-147 2121,-147 2121,-128 1966,-128"/>
-<text text-anchor="middle" x="2043.5" y="-135" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Ir&lt; ValueType &gt;</text>
+<polygon fill="#bfbfbf" stroke="#000000" points="1966,-96 1966,-115 2121,-115 2121,-96 1966,-96"/>
+<text text-anchor="middle" x="2043.5" y="-103" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Ir&lt; ValueType &gt;</text>
 </a>
 </g>
 </g>
@@ -31,8 +31,8 @@
 <!-- Node2&#45;&gt;Node1 -->
 <g id="edge1" class="edge">
 <title>Node2&#45;&gt;Node1</title>
-<path fill="none" stroke="#191970" d="M1939.4875,-137.5C1948.2086,-137.5 1957.167,-137.5 1965.9935,-137.5"/>
-<polygon fill="#191970" stroke="#191970" points="1939.381,-134.0001 1929.3809,-137.5 1939.3809,-141.0001 1939.381,-134.0001"/>
+<path fill="none" stroke="#191970" d="M1939.5018,-124.6261C1956.9144,-121.4238 1975.2723,-118.0476 1991.6367,-115.0381"/>
+<polygon fill="#191970" stroke="#191970" points="1938.5829,-121.2363 1929.3809,-126.4874 1939.8491,-128.1209 1938.5829,-121.2363"/>
 </g>
 <!-- Node3 -->
 <g id="node3" class="node">
@@ -377,6 +377,21 @@
 <title>Node23&#45;&gt;Node22</title>
 <path fill="none" stroke="#191970" d="M1039.0239,-112.9985C1101.9342,-112.5171 1197.7021,-111.7842 1269.2698,-111.2365"/>
 <polygon fill="#191970" stroke="#191970" points="1038.8055,-109.5 1028.8326,-113.0765 1038.8591,-116.4998 1038.8055,-109.5"/>
+</g>
+<!-- Node24 -->
+<g id="node20" class="node">
+<title>Node24</title>
+<g id="a_node20"><a xlink:href="classgko_1_1Transposable.html" target="_top" xlink:title="Linear operators which support transposition should implement the Transposable interface.">
+<polygon fill="#ffffff" stroke="#000000" points="1817.5,-84 1817.5,-103 1921.5,-103 1921.5,-84 1817.5,-84"/>
+<text text-anchor="middle" x="1869.5" y="-91" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::Transposable</text>
+</a>
+</g>
+</g>
+<!-- Node24&#45;&gt;Node1 -->
+<g id="edge28" class="edge">
+<title>Node24&#45;&gt;Node1</title>
+<path fill="none" stroke="#191970" d="M1931.7004,-97.7897C1942.7882,-98.5544 1954.4623,-99.3595 1965.9162,-100.1494"/>
+<polygon fill="#191970" stroke="#191970" points="1931.9229,-94.2968 1921.7057,-97.1004 1931.4412,-101.2802 1931.9229,-94.2968"/>
 </g>
 </g>
 </svg>

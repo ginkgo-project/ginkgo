@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/156929586 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/157155372 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -104,6 +104,9 @@ Public Types</h2></td></tr>
 <tr class="memitem:a010f8f5b0b315108a3990052a73f80b0"><td class="memItemLeft" align="right" valign="top"><a id="a010f8f5b0b315108a3990052a73f80b0"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>value_type</b> = ValueType</td></tr>
 <tr class="separator:a010f8f5b0b315108a3990052a73f80b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a29d42ebe191a59393037297b28f9530d"><td class="memItemLeft" align="right" valign="top"><a id="a29d42ebe191a59393037297b28f9530d"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>transposed_type</b> = <a class="el" href="classgko_1_1solver_1_1Cg.html">Cg</a>&lt; ValueType &gt;</td></tr>
+<tr class="separator:a29d42ebe191a59393037297b28f9530d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_types_classgko_1_1EnablePolymorphicAssignment"><td colspan="2" onclick="javascript:toggleInherit('pub_types_classgko_1_1EnablePolymorphicAssignment')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="classgko_1_1EnablePolymorphicAssignment.html">gko::EnablePolymorphicAssignment&lt; Cg&lt; ValueType &gt; &gt;</a></td></tr>
 <tr class="memitem:a2e92aa4e8262a8f6625330b76a24deeb inherit pub_types_classgko_1_1EnablePolymorphicAssignment"><td class="memItemLeft" align="right" valign="top"><a id="a2e92aa4e8262a8f6625330b76a24deeb"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>result_type</b> = Cg&lt; ValueType &gt;</td></tr>
@@ -118,6 +121,12 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a09d50a99fdc668316757ee253386ad2a"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; const <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Cg.html#a09d50a99fdc668316757ee253386ad2a">get_system_matrix</a> () const</td></tr>
 <tr class="memdesc:a09d50a99fdc668316757ee253386ad2a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the system operator (matrix) of the linear system.  <a href="classgko_1_1solver_1_1Cg.html#a09d50a99fdc668316757ee253386ad2a">More...</a><br /></td></tr>
 <tr class="separator:a09d50a99fdc668316757ee253386ad2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a71705ea69c27dc3d9028885e1a2579e0"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Cg.html#a71705ea69c27dc3d9028885e1a2579e0">transpose</a> () const override</td></tr>
+<tr class="memdesc:a71705ea69c27dc3d9028885e1a2579e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface.">Transposable</a> object.  <a href="classgko_1_1solver_1_1Cg.html#a71705ea69c27dc3d9028885e1a2579e0">More...</a><br /></td></tr>
+<tr class="separator:a71705ea69c27dc3d9028885e1a2579e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af7d15957dcfdb5477bc899485dfa11d1"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Cg.html#af7d15957dcfdb5477bc899485dfa11d1">conj_transpose</a> () const override</td></tr>
+<tr class="memdesc:af7d15957dcfdb5477bc899485dfa11d1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface.">Transposable</a> object.  <a href="classgko_1_1solver_1_1Cg.html#af7d15957dcfdb5477bc899485dfa11d1">More...</a><br /></td></tr>
+<tr class="separator:af7d15957dcfdb5477bc899485dfa11d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afe55c303b6b99937bae9e1c36449997d"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Cg.html#afe55c303b6b99937bae9e1c36449997d">apply_uses_initial_guess</a> () const override</td></tr>
 <tr class="memdesc:afe55c303b6b99937bae9e1c36449997d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return true as iterative solvers use the data in x as an initial guess.  <a href="classgko_1_1solver_1_1Cg.html#afe55c303b6b99937bae9e1c36449997d">More...</a><br /></td></tr>
 <tr class="separator:afe55c303b6b99937bae9e1c36449997d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -314,6 +323,38 @@ template&lt;typename ValueType  = default_precision&gt; </div>
 
 </div>
 </div>
+<a id="af7d15957dcfdb5477bc899485dfa11d1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af7d15957dcfdb5477bc899485dfa11d1">&#9670;&nbsp;</a></span>conj_transpose()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;<a class="el" href="classgko_1_1LinOp.html">LinOp</a>&gt; <a class="el" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg</a>&lt; ValueType &gt;::conj_transpose </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface.">Transposable</a> object. </p>
+<dl class="section return"><dt>Returns</dt><dd>a pointer to the new conjugate transposed object </dd></dl>
+
+<p>Implements <a class="el" href="classgko_1_1Transposable.html#ab41b669288740cf2a6f7bf76e875b077">gko::Transposable</a>.</p>
+
+</div>
+</div>
 <a id="a48541be9e21c056ae495214afa9a341a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a48541be9e21c056ae495214afa9a341a">&#9670;&nbsp;</a></span>get_stop_criterion_factory()</h2>
 
@@ -410,8 +451,40 @@ template&lt;typename ValueType  = default_precision&gt; </div>
 
 </div>
 </div>
+<a id="a71705ea69c27dc3d9028885e1a2579e0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a71705ea69c27dc3d9028885e1a2579e0">&#9670;&nbsp;</a></span>transpose()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;<a class="el" href="classgko_1_1LinOp.html">LinOp</a>&gt; <a class="el" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg</a>&lt; ValueType &gt;::transpose </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface.">Transposable</a> object. </p>
+<dl class="section return"><dt>Returns</dt><dd>a pointer to the new transposed object </dd></dl>
+
+<p>Implements <a class="el" href="classgko_1_1Transposable.html#a5c6b778b71b47d53e0bda6ccf894d318">gko::Transposable</a>.</p>
+
+</div>
+</div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/solver/<a class="el" href="cg_8hpp_source.html">cg.hpp (48c590d94)</a></li>
+<li>ginkgo/core/solver/<a class="el" href="cg_8hpp_source.html">cg.hpp (869586100)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

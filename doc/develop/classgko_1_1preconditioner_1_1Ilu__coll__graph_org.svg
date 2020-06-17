@@ -13,11 +13,11 @@
 <g id="node1" class="node">
 <title>Node1</title>
 <g id="a_node1"><a xlink:title="The Incomplete LU (ILU) preconditioner solves the equation &#160;for a given lower triangular matrix L,...">
-<polygon fill="#bfbfbf" stroke="#000000" points="2113,-131.5 2113,-183.5 2269,-183.5 2269,-131.5 2113,-131.5"/>
-<text text-anchor="start" x="2121" y="-171.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::preconditioner</text>
-<text text-anchor="start" x="2121" y="-160.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">::Ilu&lt; LSolverType,</text>
-<text text-anchor="start" x="2121" y="-149.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> USolverType, ReverseApply,</text>
-<text text-anchor="middle" x="2191" y="-138.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> IndexType &gt;</text>
+<polygon fill="#bfbfbf" stroke="#000000" points="2113,-94.5 2113,-146.5 2269,-146.5 2269,-94.5 2113,-94.5"/>
+<text text-anchor="start" x="2121" y="-134.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::preconditioner</text>
+<text text-anchor="start" x="2121" y="-123.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">::Ilu&lt; LSolverType,</text>
+<text text-anchor="start" x="2121" y="-112.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> USolverType, ReverseApply,</text>
+<text text-anchor="middle" x="2191" y="-101.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> IndexType &gt;</text>
 </a>
 </g>
 </g>
@@ -35,8 +35,8 @@
 <!-- Node2&#45;&gt;Node1 -->
 <g id="edge1" class="edge">
 <title>Node2&#45;&gt;Node1</title>
-<path fill="none" stroke="#191970" d="M2086.1397,-157.5C2095.0552,-157.5 2104.0404,-157.5 2112.8016,-157.5"/>
-<polygon fill="#191970" stroke="#191970" points="2086.1193,-154.0001 2076.1192,-157.5 2086.1192,-161.0001 2086.1193,-154.0001"/>
+<path fill="none" stroke="#191970" d="M2086.1397,-140.1946C2095.0552,-138.5201 2104.0404,-136.8325 2112.8016,-135.187"/>
+<polygon fill="#191970" stroke="#191970" points="2085.3013,-136.7908 2076.1192,-142.0766 2086.5935,-143.6705 2085.3013,-136.7908"/>
 </g>
 <!-- Node3 -->
 <g id="node3" class="node">
@@ -394,6 +394,21 @@
 <title>Node23&#45;&gt;Node22</title>
 <path fill="none" stroke="#191970" d="M1074.0239,-135.5C1136.9342,-135.5 1232.7021,-135.5 1304.2698,-135.5"/>
 <polygon fill="#191970" stroke="#191970" points="1073.8327,-132.0001 1063.8326,-135.5 1073.8326,-139.0001 1073.8327,-132.0001"/>
+</g>
+<!-- Node24 -->
+<g id="node20" class="node">
+<title>Node24</title>
+<g id="a_node20"><a xlink:href="classgko_1_1Transposable.html" target="_top" xlink:title="Linear operators which support transposition should implement the Transposable interface.">
+<polygon fill="#ffffff" stroke="#000000" points="1942,-99 1942,-118 2046,-118 2046,-99 1942,-99"/>
+<text text-anchor="middle" x="1994" y="-106" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::Transposable</text>
+</a>
+</g>
+</g>
+<!-- Node24&#45;&gt;Node1 -->
+<g id="edge28" class="edge">
+<title>Node24&#45;&gt;Node1</title>
+<path fill="none" stroke="#191970" d="M2056.0667,-112.2807C2074.027,-113.3747 2093.8684,-114.5834 2112.6833,-115.7294"/>
+<polygon fill="#191970" stroke="#191970" points="2056.2115,-108.7831 2046.0171,-111.6686 2055.7858,-115.7702 2056.2115,-108.7831"/>
 </g>
 </g>
 </svg>

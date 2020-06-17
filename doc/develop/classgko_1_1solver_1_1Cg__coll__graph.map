@@ -1,5 +1,5 @@
 <map id="gko::solver::Cg&lt; ValueType &gt;" name="gko::solver::Cg&lt; ValueType &gt;">
-<area shape="rect" id="node1" title="CG or the conjugate gradient method is an iterative type Krylov subspace method which is suitable for..." alt="" coords="2651,305,2865,331"/>
+<area shape="rect" id="node1" title="CG or the conjugate gradient method is an iterative type Krylov subspace method which is suitable for..." alt="" coords="2651,321,2865,347"/>
 <area shape="rect" id="node2" href="$classgko_1_1EnableLinOp.html" title=" " alt="" coords="2435,255,2601,296"/>
 <area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="2017,135,2239,176"/>
 <area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="1717,46,1951,102"/>
@@ -19,4 +19,5 @@
 <area shape="rect" id="node18" href="$classgko_1_1EnablePolymorphicAssignment.html" title=" " alt="" coords="1706,291,1962,332"/>
 <area shape="rect" id="node15" href="$classgko_1_1EnableLinOp.html" title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ..." alt="" coords="2024,255,2232,296"/>
 <area shape="rect" id="node20" href="$classgko_1_1Preconditionable.html" title="A LinOp implementing this interface can be preconditioned." alt="" coords="2437,321,2599,347"/>
+<area shape="rect" id="node21" href="$classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface." alt="" coords="2449,371,2587,398"/>
 </map>

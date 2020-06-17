@@ -1,5 +1,5 @@
 <map id="gko::solver::Gmres&lt; ValueType &gt;" name="gko::solver::Gmres&lt; ValueType &gt;">
-<area shape="rect" id="node1" title="GMRES or the generalized minimal residual method is an iterative type Krylov subspace method which is..." alt="" coords="2743,297,2888,339"/>
+<area shape="rect" id="node1" title="GMRES or the generalized minimal residual method is an iterative type Krylov subspace method which is..." alt="" coords="2743,313,2888,355"/>
 <area shape="rect" id="node2" href="$classgko_1_1EnableLinOp.html" title=" " alt="" coords="2500,255,2693,296"/>
 <area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="2043,135,2279,176"/>
 <area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="1743,46,1976,102"/>
@@ -19,4 +19,5 @@
 <area shape="rect" id="node18" href="$classgko_1_1EnablePolymorphicAssignment.html" title=" " alt="" coords="1731,291,1987,332"/>
 <area shape="rect" id="node15" href="$classgko_1_1EnableLinOp.html" title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ..." alt="" coords="2057,255,2265,296"/>
 <area shape="rect" id="node20" href="$classgko_1_1Preconditionable.html" title="A LinOp implementing this interface can be preconditioned." alt="" coords="2515,321,2678,347"/>
+<area shape="rect" id="node21" href="$classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface." alt="" coords="2527,371,2666,398"/>
 </map>

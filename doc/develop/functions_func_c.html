@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/156929586 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/157155372 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -130,10 +130,24 @@ $(function() {
 : <a class="el" href="structgko_1_1matrix__data.html#a84056e4ef41884be328ec78554074df1">gko::matrix_data&lt; ValueType, IndexType &gt;</a>
 </li>
 <li>conj_transpose()
-: <a class="el" href="classgko_1_1matrix_1_1Csr.html#a38820451af5424f18b767667f3067d72">gko::matrix::Csr&lt; ValueType, IndexType &gt;</a>
+: <a class="el" href="classgko_1_1Combination.html#acc7a84511ba0e200ef728a3585183dfd">gko::Combination&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1Composition.html#ae78b03ae3a621f11f9c410cbe1c9964e">gko::Composition&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1matrix_1_1Csr.html#a38820451af5424f18b767667f3067d72">gko::matrix::Csr&lt; ValueType, IndexType &gt;</a>
 , <a class="el" href="classgko_1_1matrix_1_1Dense.html#a19890b1448497a50d57c16ed4c3bd820">gko::matrix::Dense&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1matrix_1_1Identity.html#ac308028f6bf144e79f944f642d8efb2e">gko::matrix::Identity&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1matrix_1_1SparsityCsr.html#a13a497b072cea219330031033372192c">gko::matrix::SparsityCsr&lt; ValueType, IndexType &gt;</a>
+, <a class="el" href="classgko_1_1preconditioner_1_1Ilu.html#a730786dbc37890c71f7555d563640fec">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;</a>
+, <a class="el" href="classgko_1_1preconditioner_1_1Isai.html#a394fa1926aaed174c575180d7700d316">gko::preconditioner::Isai&lt; IsaiType, ValueType, IndexType &gt;</a>
+, <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#a2530df9cfe55e73a48d7ceb7ca512088">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Bicg.html#a9f44fb2e94ea57e85c975759bb80812e">gko::solver::Bicg&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Bicgstab.html#a35c92af92663aa7054e1ed6a2c85a432">gko::solver::Bicgstab&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Cg.html#af7d15957dcfdb5477bc899485dfa11d1">gko::solver::Cg&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Cgs.html#a8ca145f6ed4e205ebf3a4a73567d56e7">gko::solver::Cgs&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Fcg.html#a0bd070044c5c819645fc525fdbb79524">gko::solver::Fcg&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Gmres.html#afb866babec77637ff75009b4393e7217">gko::solver::Gmres&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Ir.html#a2f0e7d4ff9f81f0079da9b7d486767f0">gko::solver::Ir&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1LowerTrs.html#ab6be11d9f77f83e14f6a834299297526">gko::solver::LowerTrs&lt; ValueType, IndexType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1UpperTrs.html#ad1ea3550cf3dd135555ba292f0bf3818">gko::solver::UpperTrs&lt; ValueType, IndexType &gt;</a>
 , <a class="el" href="classgko_1_1Transposable.html#ab41b669288740cf2a6f7bf76e875b077">gko::Transposable</a>
 </li>
 <li>converge()
@@ -160,7 +174,7 @@ $(function() {
 <li>copy_from()
 : <a class="el" href="classgko_1_1accessor_1_1row__major.html#a878a175c452549107d9db2521e481efe">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;</a>
 , <a class="el" href="classgko_1_1Executor.html#adf7573e4a7e267fcb821eb9049a1054f">gko::Executor</a>
-, <a class="el" href="classgko_1_1PolymorphicObject.html#ae6ba40d3fb5e1e73cd92f4830a34c999">gko::PolymorphicObject</a>
+, <a class="el" href="classgko_1_1PolymorphicObject.html#a5e6f713938293cfbe788d00480eb4d81">gko::PolymorphicObject</a>
 </li>
 <li>copy_val_to_host()
 : <a class="el" href="classgko_1_1Executor.html#ab5ee27c7997a4e109831e27c42242073">gko::Executor</a>
@@ -176,7 +190,7 @@ $(function() {
 , <a class="el" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor</a>
 </li>
 <li>create_default()
-: <a class="el" href="classgko_1_1PolymorphicObject.html#aca2ad91eee15e667cc0e7d1444a6de47">gko::PolymorphicObject</a>
+: <a class="el" href="classgko_1_1PolymorphicObject.html#a4f39c32375e3887fd4d7a9f02af42ca7">gko::PolymorphicObject</a>
 </li>
 <li>create_submatrix()
 : <a class="el" href="classgko_1_1matrix_1_1Dense.html#ad606073cc426e9164bb2445354f22366">gko::matrix::Dense&lt; ValueType &gt;</a>

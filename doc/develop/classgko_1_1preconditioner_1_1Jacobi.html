@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/156929586 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/157155372 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -110,6 +110,9 @@ using&#160;</td><td class="memItemRight" valign="bottom"><b>index_type</b> = Ind
 <tr class="memitem:a75209ba14d90b99037e3d8ffef8477e6"><td class="memItemLeft" align="right" valign="top"><a id="a75209ba14d90b99037e3d8ffef8477e6"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>mat_data</b> = <a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt; ValueType, IndexType &gt;</td></tr>
 <tr class="separator:a75209ba14d90b99037e3d8ffef8477e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aef9555a8f386aa930874f266f071e49b"><td class="memItemLeft" align="right" valign="top"><a id="aef9555a8f386aa930874f266f071e49b"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>transposed_type</b> = <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html">Jacobi</a>&lt; ValueType, IndexType &gt;</td></tr>
+<tr class="separator:aef9555a8f386aa930874f266f071e49b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_types_classgko_1_1EnablePolymorphicAssignment"><td colspan="2" onclick="javascript:toggleInherit('pub_types_classgko_1_1EnablePolymorphicAssignment')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="classgko_1_1EnablePolymorphicAssignment.html">gko::EnablePolymorphicAssignment&lt; Jacobi&lt; ValueType, IndexType &gt; &gt;</a></td></tr>
 <tr class="memitem:a2e92aa4e8262a8f6625330b76a24deeb inherit pub_types_classgko_1_1EnablePolymorphicAssignment"><td class="memItemLeft" align="right" valign="top"><a id="a2e92aa4e8262a8f6625330b76a24deeb"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>result_type</b> = Jacobi&lt; ValueType, IndexType &gt;</td></tr>
@@ -149,6 +152,12 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:ac52bb1c70d4882876da1ee21c3b124ee"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#ac52bb1c70d4882876da1ee21c3b124ee">write</a> (<a class="el" href="structgko_1_1matrix__data.html">mat_data</a> &amp;data) const override</td></tr>
 <tr class="memdesc:ac52bb1c70d4882876da1ee21c3b124ee"><td class="mdescLeft">&#160;</td><td class="mdescRight">Writes a matrix to a <a class="el" href="structgko_1_1matrix__data.html" title="This structure is used as an intermediate data type to store a sparse matrix.">matrix_data</a> structure.  <a href="classgko_1_1preconditioner_1_1Jacobi.html#ac52bb1c70d4882876da1ee21c3b124ee">More...</a><br /></td></tr>
 <tr class="separator:ac52bb1c70d4882876da1ee21c3b124ee"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac88af140d6c069cd53ec75e4baaff9f5"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#ac88af140d6c069cd53ec75e4baaff9f5">transpose</a> () const override</td></tr>
+<tr class="memdesc:ac88af140d6c069cd53ec75e4baaff9f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface.">Transposable</a> object.  <a href="classgko_1_1preconditioner_1_1Jacobi.html#ac88af140d6c069cd53ec75e4baaff9f5">More...</a><br /></td></tr>
+<tr class="separator:ac88af140d6c069cd53ec75e4baaff9f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2530df9cfe55e73a48d7ceb7ca512088"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#a2530df9cfe55e73a48d7ceb7ca512088">conj_transpose</a> () const override</td></tr>
+<tr class="memdesc:a2530df9cfe55e73a48d7ceb7ca512088"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface.">Transposable</a> object.  <a href="classgko_1_1preconditioner_1_1Jacobi.html#a2530df9cfe55e73a48d7ceb7ca512088">More...</a><br /></td></tr>
+<tr class="separator:a2530df9cfe55e73a48d7ceb7ca512088"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7410d911899907737de500aa4a70e06a"><td class="memItemLeft" align="right" valign="top"><a id="a7410d911899907737de500aa4a70e06a"></a>
 const <a class="el" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html">parameters_type</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>get_parameters</b> () const</td></tr>
 <tr class="separator:a7410d911899907737de500aa4a70e06a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -305,6 +314,38 @@ class gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;</h3>
 <dd>
 When using the adaptive variant, there may be a trade-off in terms of slightly longer preconditioner generation due to extra work required to detect the optimal precision of the blocks. </dd></dl>
 </div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="a2530df9cfe55e73a48d7ceb7ca512088"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2530df9cfe55e73a48d7ceb7ca512088">&#9670;&nbsp;</a></span>conj_transpose()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;<a class="el" href="classgko_1_1LinOp.html">LinOp</a>&gt; <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi</a>&lt; ValueType, IndexType &gt;::conj_transpose </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface.">Transposable</a> object. </p>
+<dl class="section return"><dt>Returns</dt><dd>a pointer to the new conjugate transposed object </dd></dl>
+
+<p>Implements <a class="el" href="classgko_1_1Transposable.html#ab41b669288740cf2a6f7bf76e875b077">gko::Transposable</a>.</p>
+
+</div>
+</div>
 <a id="a54ce952ac4a12c3f4686442375cd4dc8"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a54ce952ac4a12c3f4686442375cd4dc8">&#9670;&nbsp;</a></span>convert_to()</h2>
 
@@ -541,6 +582,38 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 
 </div>
 </div>
+<a id="ac88af140d6c069cd53ec75e4baaff9f5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac88af140d6c069cd53ec75e4baaff9f5">&#9670;&nbsp;</a></span>transpose()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;<a class="el" href="classgko_1_1LinOp.html">LinOp</a>&gt; <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi</a>&lt; ValueType, IndexType &gt;::transpose </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface.">Transposable</a> object. </p>
+<dl class="section return"><dt>Returns</dt><dd>a pointer to the new transposed object </dd></dl>
+
+<p>Implements <a class="el" href="classgko_1_1Transposable.html#a5c6b778b71b47d53e0bda6ccf894d318">gko::Transposable</a>.</p>
+
+</div>
+</div>
 <a id="ac52bb1c70d4882876da1ee21c3b124ee"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac52bb1c70d4882876da1ee21c3b124ee">&#9670;&nbsp;</a></span>write()</h2>
 
@@ -580,7 +653,7 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/preconditioner/<a class="el" href="include_2ginkgo_2core_2preconditioner_2jacobi_8hpp_source.html">jacobi.hpp (ec80371cc)</a></li>
+<li>ginkgo/core/preconditioner/<a class="el" href="include_2ginkgo_2core_2preconditioner_2jacobi_8hpp_source.html">jacobi.hpp (1247df306)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

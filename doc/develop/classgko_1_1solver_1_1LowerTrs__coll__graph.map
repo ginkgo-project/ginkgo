@@ -1,5 +1,5 @@
 <map id="gko::solver::LowerTrs&lt; ValueType, IndexType &gt;" name="gko::solver::LowerTrs&lt; ValueType, IndexType &gt;">
-<area shape="rect" id="node1" title="LowerTrs is the triangular solver which solves the system L x = b, when L is a lower triangular matri..." alt="" coords="2756,261,2948,303"/>
+<area shape="rect" id="node1" title="LowerTrs is the triangular solver which solves the system L x = b, when L is a lower triangular matri..." alt="" coords="2756,304,2948,345"/>
 <area shape="rect" id="node2" href="$classgko_1_1EnableLinOp.html" title=" " alt="" coords="2500,261,2707,303"/>
 <area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="2041,126,2291,182"/>
 <area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="1736,45,1969,101"/>
@@ -18,4 +18,5 @@
 <area shape="rect" id="node19" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="1251,285,1398,327"/>
 <area shape="rect" id="node18" href="$classgko_1_1EnablePolymorphicAssignment.html" title=" " alt="" coords="1725,289,1981,331"/>
 <area shape="rect" id="node15" href="$classgko_1_1EnableLinOp.html" title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ..." alt="" coords="2062,261,2270,303"/>
+<area shape="rect" id="node20" href="$classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface." alt="" coords="2534,327,2673,354"/>
 </map>

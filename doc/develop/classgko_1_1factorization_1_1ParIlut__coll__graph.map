@@ -1,7 +1,7 @@
 <map id="gko::factorization::ParIlut&lt; ValueType, IndexType &gt;" name="gko::factorization::ParIlut&lt; ValueType, IndexType &gt;">
-<area shape="rect" id="node1" title="ParILUT is an incomplete threshold&#45;based LU factorization which is computed in parallel." alt="" coords="2989,225,3145,281"/>
-<area shape="rect" id="node2" href="$classgko_1_1Composition.html" title="The Composition class can be used to compose linear operators op1, op2, ..., opn and obtain the opera..." alt="" coords="2708,240,2940,267"/>
-<area shape="rect" id="node3" href="$classgko_1_1EnableLinOp.html" title=" " alt="" coords="2427,186,2659,227"/>
+<area shape="rect" id="node1" title="ParILUT is an incomplete threshold&#45;based LU factorization which is computed in parallel." alt="" coords="2989,272,3145,328"/>
+<area shape="rect" id="node2" href="$classgko_1_1Composition.html" title="The Composition class can be used to compose linear operators op1, op2, ..., opn and obtain the opera..." alt="" coords="2708,287,2940,313"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnableLinOp.html" title=" " alt="" coords="2427,189,2659,230"/>
 <area shape="rect" id="node4" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="1663,59,1885,115"/>
 <area shape="rect" id="node5" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="539,9,782,65"/>
 <area shape="rect" id="node6" href="$classgko_1_1LinOp.html" title=" " alt="" coords="92,5,183,32"/>
@@ -17,6 +17,7 @@
 <area shape="rect" id="node18" href="$classgko_1_1ConvertibleTo.html" title=" " alt="" coords="1169,359,1315,401"/>
 <area shape="rect" id="node17" href="$classgko_1_1EnablePolymorphicAssignment.html" title=" " alt="" coords="1646,309,1902,350"/>
 <area shape="rect" id="node14" href="$classgko_1_1EnableLinOp.html" title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ..." alt="" coords="1957,173,2165,214"/>
-<area shape="rect" id="node19" href="$classgko_1_1EnableCreateMethod.html" title=" " alt="" coords="2427,265,2658,306"/>
+<area shape="rect" id="node19" href="$classgko_1_1EnableCreateMethod.html" title=" " alt="" coords="2427,279,2658,321"/>
 <area shape="rect" id="node20" href="$classgko_1_1EnableCreateMethod.html" title="This mixin implements a static create() method on ConcreteType that dynamically allocates the memory,..." alt="" coords="1967,290,2156,331"/>
+<area shape="rect" id="node21" href="$classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface." alt="" coords="2473,345,2612,372"/>
 </map>

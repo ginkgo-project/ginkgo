@@ -31,12 +31,19 @@ struct \mbox{\hyperlink{structgko_1_1solver_1_1Gmres_1_1parameters__type}{parame
 \item 
 \mbox{\Hypertarget{classgko_1_1solver_1_1Gmres_a0df4f52a85e853e0e09ab5e6a83cdf66}\label{classgko_1_1solver_1_1Gmres_a0df4f52a85e853e0e09ab5e6a83cdf66}} 
 using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Gmres_a3dc53785cae42d48100ee5948efde528}\label{classgko_1_1solver_1_1Gmres_a3dc53785cae42d48100ee5948efde528}} 
+using {\bfseries transposed\+\_\+type} = \mbox{\hyperlink{classgko_1_1solver_1_1Gmres}{Gmres}}$<$ Value\+Type $>$
 \end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
 std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Gmres_a31d5c0225dbed72e52ea252dd38868f2}{get\+\_\+system\+\_\+matrix}} () const
 \begin{DoxyCompactList}\small\item\em Gets the system operator (matrix) of the linear system. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Gmres_a27967b5b32a1884f46d6d3b3080ac04e}{transpose}} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Gmres_afb866babec77637ff75009b4393e7217}{conj\+\_\+transpose}} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\item 
 bool \mbox{\hyperlink{classgko_1_1solver_1_1Gmres_ab968c4bd9d71760b31842cb446b9f04e}{apply\+\_\+uses\+\_\+initial\+\_\+guess}} () const override
 \begin{DoxyCompactList}\small\item\em Return true as iterative solvers use the data in x as an initial guess. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1solver_1_1Gmres_a3a808fe82cdd1e988667a89d6982e740}{get\+\_\+krylov\+\_\+dim}} () const
@@ -100,6 +107,24 @@ true as iterative solvers use the data in x as an initial guess.
 
 
 Reimplemented from \mbox{\hyperlink{classgko_1_1LinOp_a80967e89745c73e5df8640fe1c7e4aaa}{gko\+::\+Lin\+Op}}.
+
+\mbox{\Hypertarget{classgko_1_1solver_1_1Gmres_afb866babec77637ff75009b4393e7217}\label{classgko_1_1solver_1_1Gmres_afb866babec77637ff75009b4393e7217}} 
+\index{gko::solver::Gmres$<$ ValueType $>$@{gko::solver::Gmres$<$ ValueType $>$}!conj\_transpose@{conj\_transpose}}
+\index{conj\_transpose@{conj\_transpose}!gko::solver::Gmres$<$ ValueType $>$@{gko::solver::Gmres$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{conj\_transpose()}{conj\_transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Gmres}{gko\+::solver\+::\+Gmres}}$<$ Value\+Type $>$\+::conj\+\_\+transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new conjugate transposed object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Transposable_ab41b669288740cf2a6f7bf76e875b077}{gko\+::\+Transposable}}.
 
 \mbox{\Hypertarget{classgko_1_1solver_1_1Gmres_a3a808fe82cdd1e988667a89d6982e740}\label{classgko_1_1solver_1_1Gmres_a3a808fe82cdd1e988667a89d6982e740}} 
 \index{gko::solver::Gmres$<$ ValueType $>$@{gko::solver::Gmres$<$ ValueType $>$}!get\_krylov\_dim@{get\_krylov\_dim}}
@@ -175,8 +200,26 @@ Sets the stopping criterion of the solver.
 {\em other} & the new stopping criterion factory \\
 \hline
 \end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Gmres_a27967b5b32a1884f46d6d3b3080ac04e}\label{classgko_1_1solver_1_1Gmres_a27967b5b32a1884f46d6d3b3080ac04e}} 
+\index{gko::solver::Gmres$<$ ValueType $>$@{gko::solver::Gmres$<$ ValueType $>$}!transpose@{transpose}}
+\index{transpose@{transpose}!gko::solver::Gmres$<$ ValueType $>$@{gko::solver::Gmres$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{transpose()}{transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Gmres}{gko\+::solver\+::\+Gmres}}$<$ Value\+Type $>$\+::transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new transposed object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Transposable_a5c6b778b71b47d53e0bda6ccf894d318}{gko\+::\+Transposable}}.
+
 
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/solver/gmres.\+hpp (48c590d94)\end{DoxyCompactItemize}
+ginkgo/core/solver/gmres.\+hpp (869586100)\end{DoxyCompactItemize}

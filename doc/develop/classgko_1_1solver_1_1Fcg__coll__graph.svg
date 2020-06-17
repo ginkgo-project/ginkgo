@@ -59,8 +59,8 @@ var sectionId = 'dynsection-0';
 <g id="node1" class="node">
 <title>Node1</title>
 <g id="a_node1"><a xlink:title="FCG or the flexible conjugate gradient method is an iterative type Krylov subspace method which is su...">
-<polygon fill="#bfbfbf" stroke="#000000" points="1996,-96 1996,-115 2161,-115 2161,-96 1996,-96"/>
-<text text-anchor="middle" x="2078.5" y="-103" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Fcg&lt; ValueType &gt;</text>
+<polygon fill="#bfbfbf" stroke="#000000" points="1996,-84 1996,-103 2161,-103 2161,-84 1996,-84"/>
+<text text-anchor="middle" x="2078.5" y="-91" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::solver::Fcg&lt; ValueType &gt;</text>
 </a>
 </g>
 </g>
@@ -77,8 +77,8 @@ var sectionId = 'dynsection-0';
 <!-- Node2&#45;&gt;Node1 -->
 <g id="edge1" class="edge">
 <title>Node2&#45;&gt;Node1</title>
-<path fill="none" stroke="#191970" d="M1969.1508,-124.5173C1987.4294,-121.3384 2006.6561,-117.9946 2023.8018,-115.0127"/>
-<polygon fill="#191970" stroke="#191970" points="1968.3652,-121.1013 1959.1128,-126.263 1969.5646,-127.9977 1968.3652,-121.1013"/>
+<path fill="none" stroke="#191970" d="M1967.2485,-120.1036C1991.6042,-114.2794 2017.8444,-108.0046 2038.7208,-103.0124"/>
+<polygon fill="#191970" stroke="#191970" points="1966.2195,-116.7509 1957.3077,-122.4808 1967.8476,-123.559 1966.2195,-116.7509"/>
 </g>
 <!-- Node3 -->
 <g id="node3" class="node">
@@ -357,7 +357,7 @@ var sectionId = 'dynsection-0';
 <title>Node17&#45;&gt;Node23</title>
 <path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M693.2854,-73.3291C760.3377,-82.6103 864.7439,-97.062 928.353,-105.8667"/>
 <polygon fill="#ffa500" stroke="#ffa500" points="693.6505,-69.8463 683.265,-71.942 692.6906,-76.7802 693.6505,-69.8463"/>
-<text text-anchor="middle" x="805.5" y="-99.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; ConcreteLinOp &gt;</text>
+<text text-anchor="middle" x="805.5" y="-98.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; ConcreteLinOp &gt;</text>
 </g>
 <!-- Node18&#45;&gt;Node15 -->
 <g id="edge16" class="edge">
@@ -379,9 +379,9 @@ var sectionId = 'dynsection-0';
 <!-- Node18&#45;&gt;Node22 -->
 <g id="edge27" class="edge">
 <title>Node18&#45;&gt;Node22</title>
-<path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M1089.6818,-76.8953C1140.3404,-82.8162 1201.8051,-90.0106 1257,-96.5 1264.3039,-97.3587 1271.8608,-98.2485 1279.4602,-99.1442"/>
-<polygon fill="#ffa500" stroke="#ffa500" points="1090.038,-73.4132 1079.6993,-75.7287 1089.2254,-80.3659 1090.038,-73.4132"/>
-<text text-anchor="middle" x="1180.5" y="-99.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; ConcreteLinOp &gt;</text>
+<path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M1089.7161,-76.213C1140.3823,-81.8837 1201.8434,-88.8835 1257,-95.5 1264.3093,-96.3768 1271.8701,-97.2989 1279.4722,-98.2368"/>
+<polygon fill="#ffa500" stroke="#ffa500" points="1090.0588,-72.7296 1079.7319,-75.0971 1089.2812,-79.6863 1090.0588,-72.7296"/>
+<text text-anchor="middle" x="1180.5" y="-98.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; ConcreteLinOp &gt;</text>
 </g>
 <!-- Node19 -->
 <g id="node15" class="node">
@@ -436,8 +436,23 @@ var sectionId = 'dynsection-0';
 <!-- Node24&#45;&gt;Node1 -->
 <g id="edge28" class="edge">
 <title>Node24&#45;&gt;Node1</title>
-<path fill="none" stroke="#191970" d="M1965.628,-98.1388C1975.4699,-98.7806 1985.6482,-99.4444 1995.6794,-100.0987"/>
-<polygon fill="#191970" stroke="#191970" points="1965.7204,-94.6375 1955.5138,-97.4792 1965.2648,-101.6226 1965.7204,-94.6375"/>
+<path fill="none" stroke="#191970" d="M1965.628,-93.5C1975.4699,-93.5 1985.6482,-93.5 1995.6794,-93.5"/>
+<polygon fill="#191970" stroke="#191970" points="1965.5138,-90.0001 1955.5138,-93.5 1965.5137,-97.0001 1965.5138,-90.0001"/>
+</g>
+<!-- Node25 -->
+<g id="node21" class="node">
+<title>Node25</title>
+<g id="a_node21"><a xlink:href="classgko_1_1Transposable.html" target="_top" xlink:title="Linear operators which support transposition should implement the Transposable interface.">
+<polygon fill="#ffffff" stroke="#000000" points="1842.5,-46 1842.5,-65 1946.5,-65 1946.5,-46 1842.5,-46"/>
+<text text-anchor="middle" x="1894.5" y="-53" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::Transposable</text>
+</a>
+</g>
+</g>
+<!-- Node25&#45;&gt;Node1 -->
+<g id="edge29" class="edge">
+<title>Node25&#45;&gt;Node1</title>
+<path fill="none" stroke="#191970" d="M1951.0606,-67.181C1977.1542,-72.5699 2007.7378,-78.8861 2032.4029,-83.9799"/>
+<polygon fill="#191970" stroke="#191970" points="1951.4322,-63.684 1940.931,-65.089 1950.0164,-70.5393 1951.4322,-63.684"/>
 </g>
 </g>
 </svg>
