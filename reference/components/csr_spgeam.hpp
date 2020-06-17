@@ -52,8 +52,7 @@ namespace reference {
  * Adds two (sorted) sparse matrices.
  *
  * Calls begin_cb(row) on each row to initialize row-local data
- * Calls entry_cb(row, col, a_val, b_val, local_data) on each non-zero of the
- * output.
+ * Calls entry_cb(row, col, a_val, b_val, local_data) on each output non-zero
  * Calls end_cb(row, local_data) on each row to finalize row-local data
  */
 template <typename ValueType, typename IndexType, typename BeginCallback,
