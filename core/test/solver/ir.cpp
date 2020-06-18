@@ -319,4 +319,24 @@ TYPED_TEST(Ir, ThrowOnWrongInnerSolverSet)
 }
 
 
+TYPED_TEST(Ir, UseAsRichardson)
+{
+    using value_type = typename TestFixture::value_type;
+    const value_type relaxation{0.5};
+
+    auto richardson =
+        gko::solver::Richardson<value_type>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
+                gko::stop::ResidualNormReduction<value_type>::build()
+                    .with_reduction_factor(r<value_type>::value)
+                    .on(this->exec))
+            .with_relaxation(relaxation)
+            .on(this->exec)
+            ->generate(this->mtx);
+
+    ASSERT_EQ(richardson->get_parameters().relaxation, value_type{0.5});
+}
+
+
 }  // namespace
