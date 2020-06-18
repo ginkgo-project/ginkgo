@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -52,7 +53,8 @@ namespace solver {
 /**
  * Iterative refinement (IR) is an iterative method that uses another coarse
  * method to approximate the error of the current solution via the current
- * residual.
+ * residual. Moreover, it can be also considered as prconditioned Richardson
+ * iteration with relaxation factor = 1.
  *
  * For any approximation of the solution `solution` to the system `Ax = b`, the
  * residual is defined as: `residual = b - A solution`. The error in
@@ -70,8 +72,11 @@ namespace solver {
  * while not converged:
  *     residual = b - A solution
  *     error = solver(A, residual)
- *     solution = solution + error
+ *     solution = solution + relaxation * error
  * ```
+ *
+ * When relaxation is 1 (default) is Iterative Refiement, when the relaxation is
+ * not 1 is Richardson iteration.
  *
  * Assuming that `solver` has accuracy `c`, i.e., `| e - error | <= c | e |`,
  * iterative refinement will converge with a convergence rate of `c`. Indeed,
@@ -183,6 +188,11 @@ public:
          */
         std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER(generated_solver,
                                                            nullptr);
+
+        /**
+         * Relaxtion factor for Richardson
+         */
+        ValueType GKO_FACTORY_PARAMETER(relaxation, value_type{1});
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ir, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -213,6 +223,8 @@ protected:
             solver_ = matrix::Identity<ValueType>::create(this->get_executor(),
                                                           this->get_size()[0]);
         }
+        relaxation_ = gko::initialize<matrix::Dense<ValueType>>(
+            {parameters_.relaxation}, this->get_executor());
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
     }
@@ -221,7 +233,12 @@ private:
     std::shared_ptr<const LinOp> system_matrix_{};
     std::shared_ptr<const LinOp> solver_{};
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
+    std::shared_ptr<const matrix::Dense<ValueType>> relaxation_{};
 };
+
+
+template <typename ValueType = default_precision>
+using Richardson = Ir<ValueType>;
 
 
 }  // namespace solver
