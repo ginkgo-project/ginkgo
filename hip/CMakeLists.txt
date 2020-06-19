@@ -90,6 +90,7 @@ execute_process(
             OUTPUT_STRIP_TRAILING_WHITESPACE
             ERROR_STRIP_TRAILING_WHITESPACE
             )
+set(GINKGO_HIP_VERSION ${GINKGO_HIP_VERSION} PARENT_SCOPE)
 
 if (GINKGO_HIP_PLATFORM MATCHES "nvcc") # ensure ENV{CUDA_PATH} is set by the user
     if (NOT DEFINED ENV{CUDA_PATH})
@@ -208,7 +209,7 @@ set(GINKGO_HIP_HCC_OPTIONS ${GINKGO_HIP_HCC_COMPILER_FLAGS})
 set(GINKGO_HIP_CLANG_OPTIONS ${GINKGO_HIP_CLANG_COMPILER_FLAGS})
 
 set_source_files_properties(${GINKGO_HIP_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
-if (GINKGO_HIP_VERSION GREATER_EQUAL "3.5")
+if (GINKGO_HIP_VERSION VERSION_GREATER_EQUAL "3.5")
     hip_add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES}
         HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} "-std=c++11"
         HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS}
@@ -246,6 +247,11 @@ if(GINKGO_HIP_PLATFORM MATCHES "hcc")
     # a static library, and it's definitely not a known option to any compiler.
     ginkgo_hip_ban_link_hcflag(hcc::hccrt)
 
+    if (NOT BUILD_SHARED_LIBS)
+        # Do not let hip::device flags propagate to executables which don't
+        # directly use HIP
+        ginkgo_hip_clang_ban_hip_device_flags()
+    endif()
     target_link_libraries(ginkgo_hip PRIVATE hip::device)
 elseif(GINKGO_HIP_PLATFORM MATCHES "nvcc")
     find_package(CUDA 9.0 REQUIRED)
