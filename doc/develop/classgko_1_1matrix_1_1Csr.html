@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/157310577 branch based on develop. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from pipelines/158086282 branch based on develop. Ginkgo version 1.1.1</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -496,6 +496,23 @@ class gko::matrix::Csr&lt; ValueType, IndexType &gt;</h3>
 
 <p>CSR is a matrix format which stores only the nonzero coefficients by compressing each row of the matrix (compressed sparse row format). </p>
 <p>The nonzero elements are stored in a 1D array row-wise, and accompanied with a row pointer array which stores the starting index of each row. An additional column index array is used to identify the column of each nonzero element.</p>
+<p>The <a class="el" href="classgko_1_1matrix_1_1Csr.html" title="CSR is a matrix format which stores only the nonzero coefficients by compressing each row of the matr...">Csr</a> <a class="el" href="classgko_1_1LinOp.html">LinOp</a> supports different operations:</p>
+<div class="fragment"><div class="line">matrix::Csr *A, *B, *C;      <span class="comment">// matrices</span></div>
+<div class="line">matrix::Dense *b, *x;        <span class="comment">// vectors tall-and-skinny matrices</span></div>
+<div class="line">matrix::Dense *alpha, *beta; <span class="comment">// scalars of dimension 1x1</span></div>
+<div class="line">matrix::Identity *I;         <span class="comment">// identity matrix</span></div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Applying to Dense matrices computes an SpMV/SpMM product</span></div>
+<div class="line">A-&gt;apply(b, x)              <span class="comment">// x = A*b</span></div>
+<div class="line">A-&gt;apply(alpha, b, beta, x) <span class="comment">// x = alpha*A*b + beta*x</span></div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Applying to Csr matrices computes a SpGEMM product of two sparse matrices</span></div>
+<div class="line">A-&gt;apply(B, C)              <span class="comment">// C = A*B</span></div>
+<div class="line">A-&gt;apply(alpha, B, beta, C) <span class="comment">// C = alpha*A*B + beta*C</span></div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Applying to an Identity matrix computes a SpGEAM sparse matrix addition</span></div>
+<div class="line">A-&gt;apply(alpha, I, beta, B) <span class="comment">// B = alpha*A + beta*B</span></div>
+</div><!-- fragment --><p> Both the SpGEMM and SpGEAM operation require the input matrices to be sorted by column index, otherwise the algorithms will produce incorrect results.</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
     <tr><td class="paramname">ValueType</td><td>precision of matrix elements </td></tr>
@@ -1192,7 +1209,7 @@ template&lt;typename ValueType = default_precision, typename IndexType = int32&g
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
 <li>ginkgo/core/matrix/<a class="el" href="coo_8hpp_source.html">coo.hpp (8a86dad58)</a></li>
-<li>ginkgo/core/matrix/<a class="el" href="csr_8hpp_source.html">csr.hpp (869586100)</a></li>
+<li>ginkgo/core/matrix/<a class="el" href="csr_8hpp_source.html">csr.hpp (9fdf77aa9)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

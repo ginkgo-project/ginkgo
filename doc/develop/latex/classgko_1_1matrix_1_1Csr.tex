@@ -192,6 +192,28 @@ C\+SR is a matrix format which stores only the nonzero coefficients by compressi
 
 The nonzero elements are stored in a 1D array row-\/wise, and accompanied with a row pointer array which stores the starting index of each row. An additional column index array is used to identify the column of each nonzero element.
 
+The \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}} \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} supports different operations\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{matrix::Csr *A, *B, *C;      \textcolor{comment}{// matrices}}
+\DoxyCodeLine{matrix::Dense *b, *x;        \textcolor{comment}{// vectors tall-\/and-\/skinny matrices}}
+\DoxyCodeLine{matrix::Dense *alpha, *beta; \textcolor{comment}{// scalars of dimension 1x1}}
+\DoxyCodeLine{matrix::Identity *I;         \textcolor{comment}{// identity matrix}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{comment}{// Applying to Dense matrices computes an SpMV/SpMM product}}
+\DoxyCodeLine{A-\/>apply(b, x)              \textcolor{comment}{// x = A*b}}
+\DoxyCodeLine{A-\/>apply(alpha, b, beta, x) \textcolor{comment}{// x = alpha*A*b + beta*x}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{comment}{// Applying to Csr matrices computes a SpGEMM product of two sparse matrices}}
+\DoxyCodeLine{A-\/>apply(B, C)              \textcolor{comment}{// C = A*B}}
+\DoxyCodeLine{A-\/>apply(alpha, B, beta, C) \textcolor{comment}{// C = alpha*A*B + beta*C}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{comment}{// Applying to an Identity matrix computes a SpGEAM sparse matrix addition}}
+\DoxyCodeLine{A-\/>apply(alpha, I, beta, B) \textcolor{comment}{// B = alpha*A + beta*B}}
+\end{DoxyCode}
+ Both the Sp\+G\+E\+MM and Sp\+G\+E\+AM operation require the input matrices to be sorted by column index, otherwise the algorithms will produce incorrect results.
+
 
 \begin{DoxyTemplParams}{Template Parameters}
 {\em Value\+Type} & precision of matrix elements \\
@@ -597,4 +619,4 @@ Implements \mbox{\hyperlink{classgko_1_1WritableToMatrixData_a96036c3a4bf4c67fa9
 The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
 \item 
 ginkgo/core/matrix/coo.\+hpp (8a86dad58)\item 
-ginkgo/core/matrix/csr.\+hpp (869586100)\end{DoxyCompactItemize}
+ginkgo/core/matrix/csr.\+hpp (9fdf77aa9)\end{DoxyCompactItemize}
