@@ -86,6 +86,28 @@ void strategy_rebuild_helper(Csr<ValueType, IndexType> *result);
  * An additional column index array is used to identify the column of each
  * nonzero element.
  *
+ * The Csr LinOp supports different operations:
+ *
+ * ```cpp
+ * matrix::Csr *A, *B, *C;      // matrices
+ * matrix::Dense *b, *x;        // vectors tall-and-skinny matrices
+ * matrix::Dense *alpha, *beta; // scalars of dimension 1x1
+ * matrix::Identity *I;         // identity matrix
+ *
+ * // Applying to Dense matrices computes an SpMV/SpMM product
+ * A->apply(b, x)              // x = A*b
+ * A->apply(alpha, b, beta, x) // x = alpha*A*b + beta*x
+ *
+ * // Applying to Csr matrices computes a SpGEMM product of two sparse matrices
+ * A->apply(B, C)              // C = A*B
+ * A->apply(alpha, B, beta, C) // C = alpha*A*B + beta*C
+ *
+ * // Applying to an Identity matrix computes a SpGEAM sparse matrix addition
+ * A->apply(alpha, I, beta, B) // B = alpha*A + beta*B
+ * ```
+ * Both the SpGEMM and SpGEAM operation require the input matrices to be sorted
+ * by column index, otherwise the algorithms will produce incorrect results.
+ *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *

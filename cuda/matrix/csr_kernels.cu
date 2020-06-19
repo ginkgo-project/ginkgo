@@ -93,6 +93,9 @@ using compiled_kernels = syn::value_list<int, 3, 4, 6, 7, 8, 12, 14>;
 using classical_kernels =
     syn::value_list<int, config::warp_size, 32, 16, 8, 4, 2, 1>;
 
+using spgeam_kernels =
+    syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
+
 
 #include "common/matrix/csr_kernels.hpp.inc"
 
@@ -578,6 +581,73 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL);
+
+
+namespace {
+
+
+template <int subwarp_size, typename ValueType, typename IndexType>
+void spgeam(syn::value_list<int, subwarp_size>,
+            std::shared_ptr<const DefaultExecutor> exec, const ValueType *alpha,
+            const IndexType *a_row_ptrs, const IndexType *a_col_idxs,
+            const ValueType *a_vals, const ValueType *beta,
+            const IndexType *b_row_ptrs, const IndexType *b_col_idxs,
+            const ValueType *b_vals, matrix::Csr<ValueType, IndexType> *c)
+{
+    auto m = static_cast<IndexType>(c->get_size()[0]);
+    auto c_row_ptrs = c->get_row_ptrs();
+    // count nnz for alpha * A + beta * B
+    auto subwarps_per_block = default_block_size / subwarp_size;
+    auto num_blocks = ceildiv(m, subwarps_per_block);
+    kernel::spgeam_nnz<subwarp_size><<<num_blocks, default_block_size>>>(
+        a_row_ptrs, a_col_idxs, b_row_ptrs, b_col_idxs, m, c_row_ptrs);
+
+    // build row pointers
+    components::prefix_sum(exec, c_row_ptrs, m + 1);
+
+    // accumulate non-zeros for alpha * A + beta * B
+    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+    auto c_nnz = exec->copy_val_to_host(c_row_ptrs + m);
+    c_builder.get_col_idx_array().resize_and_reset(c_nnz);
+    c_builder.get_value_array().resize_and_reset(c_nnz);
+    auto c_col_idxs = c->get_col_idxs();
+    auto c_vals = c->get_values();
+    kernel::spgeam<subwarp_size><<<num_blocks, default_block_size>>>(
+        as_cuda_type(alpha), a_row_ptrs, a_col_idxs, as_cuda_type(a_vals),
+        as_cuda_type(beta), b_row_ptrs, b_col_idxs, as_cuda_type(b_vals), m,
+        c_row_ptrs, c_col_idxs, as_cuda_type(c_vals));
+}
+
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_spgeam, spgeam);
+
+
+}  // namespace
+
+
+template <typename ValueType, typename IndexType>
+void spgeam(std::shared_ptr<const DefaultExecutor> exec,
+            const matrix::Dense<ValueType> *alpha,
+            const matrix::Csr<ValueType, IndexType> *a,
+            const matrix::Dense<ValueType> *beta,
+            const matrix::Csr<ValueType, IndexType> *b,
+            matrix::Csr<ValueType, IndexType> *c)
+{
+    auto total_nnz =
+        a->get_num_stored_elements() + b->get_num_stored_elements();
+    auto nnz_per_row = total_nnz / a->get_size()[0];
+    select_spgeam(spgeam_kernels(),
+                  [&](int compiled_subwarp_size) {
+                      return compiled_subwarp_size >= nnz_per_row ||
+                             compiled_subwarp_size == config::warp_size;
+                  },
+                  syn::value_list<int>(), syn::type_list<>(), exec,
+                  alpha->get_const_values(), a->get_const_row_ptrs(),
+                  a->get_const_col_idxs(), a->get_const_values(),
+                  beta->get_const_values(), b->get_const_row_ptrs(),
+                  b->get_const_col_idxs(), b->get_const_values(), c);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 
 template <typename IndexType>

@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -367,6 +368,27 @@ TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
     ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
+}
+
+
+TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
+    auto a = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
+    auto b = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
+    auto da = Mtx::create(hip);
+    auto db = Mtx::create(hip);
+    da->copy_from(a.get());
+    db->copy_from(b.get());
+    auto id = gko::matrix::Identity<Mtx::value_type>::create(ref, mtx_size[1]);
+    auto did = gko::matrix::Identity<Mtx::value_type>::create(hip, mtx_size[1]);
+
+    a->apply(alpha.get(), id.get(), beta.get(), b.get());
+    da->apply(dalpha.get(), did.get(), dbeta.get(), db.get());
+
+    GKO_ASSERT_MTX_NEAR(b, db, 1e-14);
+    GKO_ASSERT_MTX_EQ_SPARSITY(b, db);
+    ASSERT_TRUE(db->is_sorted_by_column_index());
 }
 
 

@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -57,6 +58,7 @@ GKO_REGISTER_OPERATION(spmv, csr::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, csr::advanced_spmv);
 GKO_REGISTER_OPERATION(spgemm, csr::spgemm);
 GKO_REGISTER_OPERATION(advanced_spgemm, csr::advanced_spgemm);
+GKO_REGISTER_OPERATION(spgeam, csr::spgeam);
 GKO_REGISTER_OPERATION(convert_to_coo, csr::convert_to_coo);
 GKO_REGISTER_OPERATION(convert_to_dense, csr::convert_to_dense);
 GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
@@ -111,6 +113,12 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
         this->get_executor()->run(
             csr::make_advanced_spgemm(as<Dense>(alpha), this, b_csr,
                                       as<Dense>(beta), x_copy.get(), x_csr));
+    } else if (dynamic_cast<const Identity<ValueType> *>(b)) {
+        // if b is an identity matrix, we compute an SpGEAM
+        auto x_csr = as<TCsr>(x);
+        auto x_copy = x_csr->clone();
+        this->get_executor()->run(csr::make_spgeam(
+            as<Dense>(alpha), this, as<Dense>(beta), lend(x_copy), x_csr));
     } else {
         // otherwise we assume that b is dense and compute a SpMV/SpMM
         this->get_executor()->run(

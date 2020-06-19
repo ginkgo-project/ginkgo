@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -483,91 +484,35 @@ TYPED_TEST(Csr, AppliesLinearCombinationToCsrMatrix)
 }
 
 
-TYPED_TEST(Csr, AppliesZeroLinearCombinationToCsrMatrixWithZeroAlpha)
+TYPED_TEST(Csr, AppliesLinearCombinationToIdentityMatrix)
 {
-    using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
-    auto alpha = gko::initialize<Vec>({0.0}, this->exec);
+    using Vec = typename TestFixture::Vec;
+    using Mtx = typename TestFixture::Mtx;
+    auto alpha = gko::initialize<Vec>({-3.0}, this->exec);
     auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    auto a = gko::initialize<Mtx>(
+        {I<T>{2.0, 0.0, 3.0}, I<T>{0.0, 1.0, -1.5}, I<T>{0.0, -2.0, 0.0},
+         I<T>{5.0, 0.0, 0.0}, I<T>{1.0, 0.0, 4.0}, I<T>{2.0, -2.0, 0.0},
+         I<T>{0.0, 0.0, 0.0}},
+        this->exec);
+    auto b = gko::initialize<Mtx>(
+        {I<T>{2.0, -2.0, 0.0}, I<T>{1.0, 0.0, 4.0}, I<T>{2.0, 0.0, 3.0},
+         I<T>{0.0, 1.0, -1.5}, I<T>{1.0, 0.0, 0.0}, I<T>{0.0, 0.0, 0.0},
+         I<T>{0.0, 0.0, 0.0}},
+        this->exec);
+    auto expect = gko::initialize<Mtx>(
+        {I<T>{-2.0, -4.0, -9.0}, I<T>{2.0, -3.0, 12.5}, I<T>{4.0, 6.0, 6.0},
+         I<T>{-15.0, 2.0, -3.0}, I<T>{-1.0, 0.0, -12.0}, I<T>{-6.0, 6.0, 0.0},
+         I<T>{0.0, 0.0, 0.0}},
+        this->exec);
+    auto id = gko::matrix::Identity<T>::create(this->exec, a->get_size()[1]);
 
-    this->mtx->apply(alpha.get(), this->mtx3_unsorted.get(), beta.get(),
-                     this->mtx2.get());
+    a->apply(gko::lend(alpha), gko::lend(id), gko::lend(beta), gko::lend(b));
 
-    ASSERT_EQ(this->mtx2->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(this->mtx2->get_num_stored_elements(), 5);
-    this->mtx2->sort_by_column_index();
-    auto r = this->mtx2->get_const_row_ptrs();
-    auto c = this->mtx2->get_const_col_idxs();
-    auto v = this->mtx2->get_const_values();
-    //  2  6  4
-    // {0} 10 0
-    EXPECT_EQ(r[0], 0);
-    EXPECT_EQ(r[1], 3);
-    EXPECT_EQ(r[2], 5);
-    EXPECT_EQ(c[0], 0);
-    EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 2);
-    EXPECT_EQ(c[3], 0);
-    EXPECT_EQ(c[4], 1);
-    EXPECT_EQ(v[0], T{2});
-    EXPECT_EQ(v[1], T{6});
-    EXPECT_EQ(v[2], T{4});
-    EXPECT_EQ(v[3], T{0});
-    EXPECT_EQ(v[4], T{T{10}});
-}
-
-
-TYPED_TEST(Csr, AppliesLinearCombinationToCsrMatrixWithZeroBeta)
-{
-    using Vec = typename TestFixture::Vec;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
-    auto beta = gko::initialize<Vec>({0.0}, this->exec);
-
-    this->mtx->apply(alpha.get(), this->mtx3_unsorted.get(), beta.get(),
-                     this->mtx2.get());
-
-    ASSERT_EQ(this->mtx2->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(this->mtx2->get_num_stored_elements(), 6);
-    this->mtx2->sort_by_column_index();
-    auto r = this->mtx2->get_const_row_ptrs();
-    auto c = this->mtx2->get_const_col_idxs();
-    auto v = this->mtx2->get_const_values();
-    // -13  -5 -31
-    // -15  -5 -40
-    EXPECT_EQ(r[0], 0);
-    EXPECT_EQ(r[1], 3);
-    EXPECT_EQ(r[2], 6);
-    EXPECT_EQ(c[0], 0);
-    EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 2);
-    EXPECT_EQ(c[3], 0);
-    EXPECT_EQ(c[4], 1);
-    EXPECT_EQ(c[5], 2);
-    EXPECT_EQ(v[0], T{-13});
-    EXPECT_EQ(v[1], T{-5});
-    EXPECT_EQ(v[2], T{-31});
-    EXPECT_EQ(v[3], T{-15});
-    EXPECT_EQ(v[4], T{-5});
-    EXPECT_EQ(v[5], T{-40});
-}
-
-
-TYPED_TEST(Csr, AppliesLinearCombinationToCsrMatrixWithZeroAlphaBeta)
-{
-    using Vec = typename TestFixture::Vec;
-    auto alpha = gko::initialize<Vec>({0.0}, this->exec);
-    auto beta = gko::initialize<Vec>({0.0}, this->exec);
-
-    this->mtx->apply(alpha.get(), this->mtx3_unsorted.get(), beta.get(),
-                     this->mtx2.get());
-
-    ASSERT_EQ(this->mtx2->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(this->mtx2->get_num_stored_elements(), 0);
-    auto r = this->mtx2->get_const_row_ptrs();
-    EXPECT_EQ(r[0], 0);
-    EXPECT_EQ(r[1], 0);
-    EXPECT_EQ(r[2], 0);
+    GKO_ASSERT_MTX_NEAR(b, expect, r<T>::value);
+    GKO_ASSERT_MTX_EQ_SPARSITY(b, expect);
+    ASSERT_TRUE(b->is_sorted_by_column_index());
 }
 
 

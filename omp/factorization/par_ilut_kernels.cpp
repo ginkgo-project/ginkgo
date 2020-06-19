@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"
-#include "omp/factorization/par_ixt_common.hpp"
+#include "omp/components/csr_spgeam.hpp"
 
 
 namespace gko {
@@ -368,17 +368,17 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
     auto u_new_row_ptrs = u_new->get_row_ptrs();
     constexpr auto sentinel = std::numeric_limits<IndexType>::max();
     // count nnz
-    abstract_spgeam(
-        a, lu, [](IndexType) { return std::pair<IndexType, IndexType>{}; },
-        [](IndexType row, IndexType col, ValueType, ValueType,
-           std::pair<IndexType, IndexType> &nnzs) {
-            nnzs.first += col <= row;
-            nnzs.second += col >= row;
-        },
-        [&](IndexType row, std::pair<IndexType, IndexType> nnzs) {
-            l_new_row_ptrs[row] = nnzs.first;
-            u_new_row_ptrs[row] = nnzs.second;
-        });
+    abstract_spgeam(a, lu,
+                    [](IndexType) { return std::pair<IndexType, IndexType>{}; },
+                    [](IndexType row, IndexType col, ValueType, ValueType,
+                       std::pair<IndexType, IndexType> &nnzs) {
+                        nnzs.first += col <= row;
+                        nnzs.second += col >= row;
+                    },
+                    [&](IndexType row, std::pair<IndexType, IndexType> nnzs) {
+                        l_new_row_ptrs[row] = nnzs.first;
+                        u_new_row_ptrs[row] = nnzs.second;
+                    });
 
     components::prefix_sum(exec, l_new_row_ptrs, num_rows + 1);
     components::prefix_sum(exec, u_new_row_ptrs, num_rows + 1);
