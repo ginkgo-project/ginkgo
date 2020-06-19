@@ -25,12 +25,15 @@ function(ginkgo_benchmark_hipsp_linops name)
     target_compile_definitions("${name}" PRIVATE HAS_HIP=1)
     EXECUTE_PROCESS(COMMAND ${HIP_PATH}/bin/hipconfig --cpp_config OUTPUT_VARIABLE HIP_CXX_FLAGS)
     set_target_properties("${name}" PROPERTIES COMPILE_FLAGS ${HIP_CXX_FLAGS})
-    # for some reason, HIP creates a dependency on Threads::Threads here, so we need to find it
+    # for some reason, HIP creates a dependency on Threads::Threads here, so we
+    # need to find it
     find_package(Threads REQUIRED)
     find_package(HIP REQUIRED)
     find_package(hipblas REQUIRED)
     find_package(hipsparse REQUIRED)
-    target_include_directories("${name}" SYSTEM PRIVATE ${HSA_HEADER} ${HIP_INCLUDE_DIRS} ${HIPBLAS_INCLUDE_DIRS} ${HIPSPARSE_INCLUDE_DIRS})
+    target_include_directories("${name}" SYSTEM PRIVATE
+        ${HSA_HEADER} ${HIP_INCLUDE_DIRS}
+        ${HIPBLAS_INCLUDE_DIRS} ${HIPSPARSE_INCLUDE_DIRS})
 
     if(GINKGO_HIP_PLATFORM MATCHES "hcc")
         ginkgo_hip_ban_link_hcflag(hcc::hccrt)
@@ -39,6 +42,7 @@ function(ginkgo_benchmark_hipsp_linops name)
         ginkgo_hip_ban_compile_hcflag(hcc::hccrt)
         ginkgo_hip_ban_compile_hcflag(hcc::hc_am)
         ginkgo_hip_ban_compile_hcflag(hcc::mcwamp)
+        ginkgo_hip_clang_ban_hip_device_flags()
         target_link_libraries("${name}" hip::device)
     else()
         target_link_libraries("${name}" ${HIP_CUDA_LIBRARIES})
