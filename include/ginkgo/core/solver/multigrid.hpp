@@ -339,6 +339,22 @@ public:
          * Options: v, f, w, kfcg and kgcr
          */
         multigrid_cycle GKO_FACTORY_PARAMETER(cycle, multigrid_cycle::v);
+
+        /**
+         * kcycle_base is a factor to choose how often enable FCG/GCR step.
+         * This parameter is ignored on v, w, f cycle.
+         * Enable the FCG/GCR step when level % kcycle_base == 0
+         */
+        size_type GKO_FACTORY_PARAMETER(kcycle_base, 1);
+
+        /**
+         * kcycle_rel_tol decides whether run the second iteration of FCG/GCR
+         * step.
+         * kcycle_rel_tol <= 0: always run one iterations.
+         * kcycle_rel_tol == inf: always run two iterations.
+         * ||updated_r|| <= kcycle_rel_tol ||r||: run second iteration.
+         */
+        remove_complex<ValueType> GKO_FACTORY_PARAMETER(kcycle_rel_tol, 0.25);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Multigrid, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

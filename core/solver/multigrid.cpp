@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/fill_array.hpp"
 #include "core/solver/ir_kernels.hpp"
+#include "core/solver/multigrid_kernels.hpp"
 
 
 namespace gko {
@@ -53,6 +54,9 @@ namespace multigrid {
 
 GKO_REGISTER_OPERATION(initialize, ir::initialize);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
+GKO_REGISTER_OPERATION(kcycle_step_1, multigrid::kcycle_step_1);
+GKO_REGISTER_OPERATION(kcycle_step_2, multigrid::kcycle_step_2);
+GKO_REGISTER_OPERATION(kcycle_check_stop, multigrid::kcycle_check_stop);
 
 
 }  // namespace multigrid
@@ -102,29 +106,68 @@ void handle_list(
 template <typename ValueType>
 struct MultigridState {
     using vec = matrix::Dense<ValueType>;
+    using norm_vec = matrix::Dense<remove_complex<ValueType>>;
     MultigridState(std::shared_ptr<const Executor> exec_in,
                    const LinOp *system_matrix_in,
                    const Multigrid<ValueType> *multigrid_in,
                    const size_type nrhs_in, const vec *one_in,
-                   const vec *neg_one_in)
+                   const vec *neg_one_in, const size_type k_base_in = 1,
+                   const remove_complex<ValueType> rel_tol_in = 1)
         : exec{std::move(exec_in)},
           system_matrix(system_matrix_in),
           multigrid(multigrid_in),
           nrhs(nrhs_in),
           one(one_in),
           neg_one(neg_one_in),
-          r_list(multigrid_in->get_rstr_prlg_list().size()),
-          g_list(multigrid_in->get_rstr_prlg_list().size()),
-          e_list(multigrid_in->get_rstr_prlg_list().size())
+          k_base(k_base_in),
+          rel_tol(rel_tol_in)
     {
         auto current_nrows = system_matrix->get_size()[0];
         auto rstr_prlg_list = multigrid->get_rstr_prlg_list();
+        auto list_size = rstr_prlg_list.size();
+        auto cycle = multigrid->get_cycle();
+        r_list.reserve(list_size);
+        g_list.reserve(list_size);
+        e_list.reserve(list_size);
+        if (cycle == multigrid_cycle::kfcg || cycle == multigrid_cycle::kgcr) {
+            auto k_num = rstr_prlg_list.size() / k_base;
+            alpha_list.reserve(k_num);
+            beta_list.reserve(k_num);
+            gamma_list.reserve(k_num);
+            rho_list.reserve(k_num);
+            zeta_list.reserve(k_num);
+            v_list.reserve(k_num);
+            w_list.reserve(k_num);
+            d_list.reserve(k_num);
+            old_norm_list.reserve(k_num);
+            new_norm_list.reserve(k_num);
+        }
+        // Allocate memory first such that repeating allocation in each iter.
         for (int i = 0; i < rstr_prlg_list.size(); i++) {
             auto next_nrows =
                 rstr_prlg_list.at(i)->get_coarse_operator()->get_size()[0];
-            r_list.at(i) = vec::create(exec, gko::dim<2>{current_nrows, nrhs});
-            g_list.at(i) = vec::create(exec, gko::dim<2>{next_nrows, nrhs});
-            e_list.at(i) = vec::create(exec, gko::dim<2>{next_nrows, nrhs});
+            r_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
+            g_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
+            e_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
+            if ((cycle == multigrid_cycle::kfcg ||
+                 cycle == multigrid_cycle::kgcr) &&
+                i % k_base == 0) {
+                auto scaler_size = dim<2>{1, nrhs};
+                auto vector_size = dim<2>{next_nrows, nrhs};
+                // 1 x nrhs
+                alpha_list.emplace_back(vec::create(exec, scaler_size));
+                beta_list.emplace_back(vec::create(exec, scaler_size));
+                gamma_list.emplace_back(vec::create(exec, scaler_size));
+                rho_list.emplace_back(vec::create(exec, scaler_size));
+                zeta_list.emplace_back(vec::create(exec, scaler_size));
+                // next level's nrows x nrhs
+                v_list.emplace_back(vec::create(exec, vector_size));
+                w_list.emplace_back(vec::create(exec, vector_size));
+                d_list.emplace_back(vec::create(exec, vector_size));
+                // 1 x nrhs norm_vec
+                old_norm_list.emplace_back(norm_vec::create(exec, scaler_size));
+                new_norm_list.emplace_back(norm_vec::create(exec, scaler_size));
+            }
             current_nrows = next_nrows;
         }
     }
@@ -202,12 +245,77 @@ struct MultigridState {
                                     e.get());
                 }
             }
-        } else if (cycle == multigrid_cycle::kfcg ||
-                   cycle == multigrid_cycle::kgcr) {
+        } else if ((cycle == multigrid_cycle::kfcg ||
+                    cycle == multigrid_cycle::kgcr) &&
+                   level % k_base == 0) {
+            // otherwise, use v_cycle
             // do some work in coarse level - do not need prolong
-            GKO_NOT_IMPLEMENTED;
-        }
+            bool is_fcg = cycle == multigrid_cycle::kfcg;
+            auto k_idx = level / k_base;
+            auto alpha = alpha_list.at(k_idx);
+            auto beta = beta_list.at(k_idx);
+            auto gamma = gamma_list.at(k_idx);
+            auto rho = rho_list.at(k_idx);
+            auto zeta = zeta_list.at(k_idx);
+            auto v = v_list.at(k_idx);
+            auto w = w_list.at(k_idx);
+            auto d = d_list.at(k_idx);
+            auto old_norm = old_norm_list.at(k_idx);
+            auto new_norm = new_norm_list.at(k_idx);
+            auto matrix = rstr_prlg->get_coarse_operator();
 
+            // first iteration
+            matrix->apply(e.get(), v.get());
+            std::shared_ptr<const matrix::Dense<ValueType>> t = is_fcg ? e : v;
+            t->compute_dot(v.get(), rho.get());
+            t->compute_dot(g.get(), alpha.get());
+
+            if (!std::isnan(rel_tol) && rel_tol >= 0) {
+                // calculate the r norm
+                g->compute_norm2(old_norm.get());
+            }
+            // kcycle_step_1 update g, d
+            // temp = alpha/rho
+            // g = g - temp * v
+            // d = e = temp * e
+            exec->run(multigrid::make_kcycle_step_1(
+                alpha.get(), rho.get(), v.get(), g.get(), d.get(), e.get()));
+            // check ||new_r|| <= t * ||old_r|| only when t > 0 && t != inf
+            bool is_stop = true;
+            if (!std::isnan(rel_tol) && rel_tol >= 0) {
+                // calculate the updated r norm
+                g->compute_norm2(new_norm.get());
+                // is_stop = true when all new_norm <= t * old_norm.
+                exec->run(multigrid::make_kcycle_check_stop(
+                    old_norm.get(), new_norm.get(), rel_tol, is_stop));
+            }
+            // rel_tol < 0: run two iteraion
+            // rel_tol is nan: run one iteraions
+            // others: new_norm <= rel_tol * old_norm -> run second iteraion.
+            if (rel_tol < 0 || (rel_tol >= 0 && !is_stop)) {
+                // second iteration
+                // Apply on d for keeping the answer on e
+                if (level + 1 == total_level) {
+                    multigrid->get_coarsest_solver()->apply(g.get(), d.get());
+                } else {
+                    this->run_cycle(cycle, level + 1,
+                                    rstr_prlg->get_coarse_operator(), g.get(),
+                                    d.get());
+                }
+                matrix->apply(d.get(), w.get());
+                t = is_fcg ? d : w;
+                t->compute_dot(v.get(), gamma.get());
+                t->compute_dot(w.get(), beta.get());
+                t->compute_dot(g.get(), zeta.get());
+                // kcycle_step_2 update e
+                // scaler_d = zeta/(beta - gamma^2/rho)
+                // scaler_e = 1 - gamma/alpha*scaler_d
+                // e = scaler_e * e + scaler_d * d
+                exec->run(multigrid::make_kcycle_step_2(
+                    alpha.get(), rho.get(), gamma.get(), beta.get(), zeta.get(),
+                    d.get(), e.get()));
+            }
+        }
         // prolong
         rstr_prlg->prolong_applyadd(e.get(), x);
 
@@ -219,15 +327,32 @@ struct MultigridState {
         }
     }
 
+    // current level's nrows x nrhs
     std::vector<std::shared_ptr<vec>> r_list;
+    // next level's nrows x nrhs
     std::vector<std::shared_ptr<vec>> g_list;
     std::vector<std::shared_ptr<vec>> e_list;
+    // Kcycle usage
+    // 1 x nrhs
+    std::vector<std::shared_ptr<vec>> alpha_list;
+    std::vector<std::shared_ptr<vec>> beta_list;
+    std::vector<std::shared_ptr<vec>> gamma_list;
+    std::vector<std::shared_ptr<vec>> rho_list;
+    std::vector<std::shared_ptr<vec>> zeta_list;
+    std::vector<std::shared_ptr<norm_vec>> old_norm_list;
+    std::vector<std::shared_ptr<norm_vec>> new_norm_list;
+    // next level's nrows x nrhs
+    std::vector<std::shared_ptr<vec>> v_list;
+    std::vector<std::shared_ptr<vec>> w_list;
+    std::vector<std::shared_ptr<vec>> d_list;
     std::shared_ptr<const Executor> exec;
     const LinOp *system_matrix;
     const Multigrid<ValueType> *multigrid;
     size_type nrhs;
     const vec *one;
     const vec *neg_one;
+    size_type k_base;
+    remove_complex<ValueType> rel_tol;
 };
 
 
@@ -311,19 +436,15 @@ void Multigrid<ValueType>::generate()
 template <typename ValueType>
 void Multigrid<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    if (cycle_ == multigrid_cycle::kfcg || cycle_ == multigrid_cycle::kgcr) {
-        GKO_NOT_IMPLEMENTED;
-    }
-
     auto exec = this->get_executor();
     constexpr uint8 RelativeStoppingId{1};
     Array<stopping_status> stop_status(exec, b->get_size()[1]);
     bool one_changed{};
     auto dense_x = gko::as<matrix::Dense<ValueType>>(x);
     auto dense_b = gko::as<matrix::Dense<ValueType>>(b);
-    auto state = MultigridState<ValueType>(exec, system_matrix_.get(), this,
-                                           b->get_size()[1], one_op_.get(),
-                                           neg_one_op_.get());
+    auto state = MultigridState<ValueType>(
+        exec, system_matrix_.get(), this, b->get_size()[1], one_op_.get(),
+        neg_one_op_.get(), parameters_.kcycle_base, parameters_.kcycle_rel_tol);
     exec->run(multigrid::make_initialize(&stop_status));
     // compute the residual at the r_list(0);
     auto r = state.r_list.at(0);
