@@ -33,9 +33,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 
 
+#include <string>
+
+
 #include <hip/hip_runtime.h>
 #include <hipblas.h>
 #include <hipsparse.h>
+
+
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
