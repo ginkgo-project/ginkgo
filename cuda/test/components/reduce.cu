@@ -30,9 +30,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "cuda/components/cooperative_groups.cuh"
-
-
 #include <chrono>
 #include <cstring>
 #include <iostream>
@@ -46,8 +43,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
+
 #include "core/test/utils.hpp"
 #include "cuda/base/types.hpp"
+#include "cuda/components/cooperative_groups.cuh"
 #include "cuda/test/utils.hpp"
 
 

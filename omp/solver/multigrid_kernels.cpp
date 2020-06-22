@@ -58,7 +58,19 @@ void kcycle_step_1(std::shared_ptr<const DefaultExecutor> exec,
                    matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *d,
                    matrix::Dense<ValueType> *e)
 {
-    GKO_NOT_IMPLEMENTED;
+    const auto nrows = g->get_size()[0];
+    const auto nrhs = g->get_size()[1];
+#pragma omp parallel for
+    for (size_type i = 0; i < nrhs; i++) {
+        auto temp = alpha->at(0, i) / rho->at(0, i);
+        for (size_type j = 0; j < nrows; j++) {
+            if (is_finite(temp)) {
+                g->at(j, i) -= temp * v->at(j, i);
+                e->at(j, i) *= temp;
+            }
+            d->at(j, i) = e->at(j, i);
+        }
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_STEP_1_KERNEL);
@@ -74,7 +86,21 @@ void kcycle_step_2(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::Dense<ValueType> *d,
                    matrix::Dense<ValueType> *e)
 {
-    GKO_NOT_IMPLEMENTED;
+    const auto nrows = e->get_size()[0];
+    const auto nrhs = e->get_size()[1];
+#pragma omp parallel for
+    for (size_type i = 0; i < nrhs; i++) {
+        auto scaler_d = zeta->at(0, i) /
+                        (beta->at(0, i) -
+                         gamma->at(0, i) * gamma->at(0, i) / rho->at(0, i));
+        auto scaler_e =
+            one<ValueType>() - gamma->at(0, i) / alpha->at(0, i) * scaler_d;
+        if (is_finite(scaler_d) && is_finite(scaler_e)) {
+            for (size_type j = 0; j < nrows; j++) {
+                e->at(j, i) = scaler_e * e->at(j, i) + scaler_d * d->at(j, i);
+            }
+        }
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_STEP_2_KERNEL);
@@ -86,7 +112,13 @@ void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec,
                        const matrix::Dense<ValueType> *new_norm,
                        const ValueType rel_tol, bool &is_stop)
 {
-    GKO_NOT_IMPLEMENTED;
+    is_stop = true;
+#pragma omp parallel for
+    for (size_type i = 0; i < old_norm->get_size()[1]; i++) {
+        if (new_norm->at(0, i) > rel_tol * old_norm->at(0, i)) {
+            is_stop = false;
+        }
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(

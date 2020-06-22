@@ -36,9 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // force-top: off
 
 
-#include "hip/components/cooperative_groups.hip.hpp"
-
-
 #include <chrono>
 #include <cstring>
 #include <iostream>
@@ -52,8 +49,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
+
 #include "core/test/utils.hpp"
 #include "hip/base/types.hip.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/test/utils.hip.hpp"
 
 
