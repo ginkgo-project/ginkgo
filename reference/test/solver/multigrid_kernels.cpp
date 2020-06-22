@@ -375,19 +375,28 @@ TYPED_TEST_CASE(Multigrid, gko::test::ValueIndexTypes);
 TYPED_TEST(Multigrid, KCycleStep1)
 {
     using Mtx = typename TestFixture::Mtx;
+    // 1st-group: all are finite
+    // 2nd-group: scaler_d, scaler_e are not finite
+    // 3rd-group: temp, scaler_d, scaler_e are not finite -> unchanged
+    // 4th-group: scaler_e is not finite
     auto e = gko::initialize<Mtx>(
-        {{0.0, 1.0, 2.0}, {-1.0, 1.0, 0.0}, {2.0, -1.0, 1.0}}, this->exec);
+        {{0.0, 1.0, 2.0, 4.0}, {-1.0, 1.0, 0.0, 2.0}, {2.0, -1.0, 1.0, 0.0}},
+        this->exec);
     auto v = gko::initialize<Mtx>(
-        {{1.0, 0.0, -2.0}, {0.0, 2.0, -1.0}, {1.0, -1.0, 1.0}}, this->exec);
+        {{1.0, 0.0, -2.0, 3.0}, {0.0, 2.0, -1.0, 2.0}, {1.0, -1.0, 1.0, 2.0}},
+        this->exec);
     auto g = gko::initialize<Mtx>(
-        {{-1.0, 3.0, -1.0}, {2.0, 1.0, 0.0}, {2.0, 2.0, 2.0}}, this->exec);
-    auto d = Mtx::create(this->exec, gko::dim<2>{3, 3});
-    auto alpha = gko::initialize<Mtx>({{-2.0, 3.0, 0.0}}, this->exec);
-    auto rho = gko::initialize<Mtx>({{1.0, 2.0, 0.0}}, this->exec);
+        {{-1.0, 3.0, -1.0, -1.0}, {2.0, 1.0, 0.0, 3.0}, {2.0, 2.0, 2.0, 1.0}},
+        this->exec);
+    auto d = Mtx::create(this->exec, gko::dim<2>{3, 4});
+    auto alpha = gko::initialize<Mtx>({{-2.0, 3.0, 0.0, 0.0}}, this->exec);
+    auto rho = gko::initialize<Mtx>({{1.0, 2.0, 0.0, 1.0}}, this->exec);
     auto updated_g = gko::initialize<Mtx>(
-        {{1.0, 3.0, -1.0}, {2.0, -2.0, 0.0}, {4.0, 3.5, 2.0}}, this->exec);
+        {{1.0, 3.0, -1.0, -1.0}, {2.0, -2.0, 0.0, 3.0}, {4.0, 3.5, 2.0, 1.0}},
+        this->exec);
     auto updated_de = gko::initialize<Mtx>(
-        {{0.0, 1.5, 2.0}, {2.0, 1.5, 0.0}, {-4.0, -1.5, 1.0}}, this->exec);
+        {{0.0, 1.5, 2.0, 0.0}, {2.0, 1.5, 0.0, 0.0}, {-4.0, -1.5, 1.0, 0.0}},
+        this->exec);
 
     gko::kernels::reference::multigrid::kcycle_step_1(
         this->exec, gko::lend(alpha), gko::lend(rho), gko::lend(v),
@@ -398,21 +407,27 @@ TYPED_TEST(Multigrid, KCycleStep1)
     this->assert_same_matrices(gko::lend(g), gko::lend(updated_g));
 }
 
-
 TYPED_TEST(Multigrid, KCycleStep2)
 {
     using Mtx = typename TestFixture::Mtx;
+    // 1st-group: all are finite
+    // 2nd-group: scaler_d, scaler_e are not finite -> unchanged
+    // 3rd-group: temp, scaler_d, scaler_e are not finite -> unchanged
+    // 4th-group: scaler_e is not finite -> unchanged
     auto e = gko::initialize<Mtx>(
-        {{0.0, 1.0, 2.0}, {-1.0, 1.0, 0.0}, {2.0, -1.0, 1.0}}, this->exec);
+        {{0.0, 1.0, 2.0, 4.0}, {-1.0, 1.0, 0.0, -2.0}, {2.0, -1.0, 1.0, 0.0}},
+        this->exec);
     auto d = gko::initialize<Mtx>(
-        {{1.0, 0.0, -2.0}, {0.0, 2.0, -1.0}, {1.0, -1.0, 1.0}}, this->exec);
-    auto alpha = gko::initialize<Mtx>({{-2.0, 3.0, 0.0}}, this->exec);
-    auto rho = gko::initialize<Mtx>({{1.0, 2.0, 0.0}}, this->exec);
-    auto gamma = gko::initialize<Mtx>({{1.0, 2.0, 0.0}}, this->exec);
-    auto beta = gko::initialize<Mtx>({{2.0, 2.0, -1.0}}, this->exec);
-    auto zeta = gko::initialize<Mtx>({{1.0, -1.0, 3.0}}, this->exec);
+        {{1.0, 0.0, -2.0, 3.0}, {0.0, 2.0, -1.0, 2.0}, {1.0, -1.0, 1.0, -1.0}},
+        this->exec);
+    auto alpha = gko::initialize<Mtx>({{-2.0, 3.0, 0.0, 0.0}}, this->exec);
+    auto rho = gko::initialize<Mtx>({{1.0, 2.0, 0.0, 1.0}}, this->exec);
+    auto beta = gko::initialize<Mtx>({{2.0, 2.0, -1.0, 2.0}}, this->exec);
+    auto gamma = gko::initialize<Mtx>({{1.0, 2.0, 0.0, 1.0}}, this->exec);
+    auto zeta = gko::initialize<Mtx>({{1.0, -1.0, 3.0, 2.0}}, this->exec);
     auto updated_e = gko::initialize<Mtx>(
-        {{1.0, 1.0, 2.0}, {-1.5, 1.0, 0.0}, {4.0, -1.0, 1.0}}, this->exec);
+        {{1.0, 1.0, 2.0, 4.0}, {-1.5, 1.0, 0.0, -2.0}, {4.0, -1.0, 1.0, 0.0}},
+        this->exec);
 
 
     gko::kernels::reference::multigrid::kcycle_step_2(

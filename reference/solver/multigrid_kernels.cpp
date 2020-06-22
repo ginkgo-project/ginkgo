@@ -32,11 +32,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/solver/multigrid_kernels.hpp"
 
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <iostream>
 
 
 namespace gko {
@@ -93,7 +93,6 @@ void kcycle_step_2(std::shared_ptr<const DefaultExecutor> exec,
                          gamma->at(0, i) * gamma->at(0, i) / rho->at(0, i));
         auto scaler_e =
             one<ValueType>() - gamma->at(0, i) / alpha->at(0, i) * scaler_d;
-        std::cout << scaler_d << " " << scaler_e << std::endl;
         if (is_finite(scaler_d) && is_finite(scaler_e)) {
             for (size_type j = 0; j < nrows; j++) {
                 e->at(j, i) = scaler_e * e->at(j, i) + scaler_d * d->at(j, i);

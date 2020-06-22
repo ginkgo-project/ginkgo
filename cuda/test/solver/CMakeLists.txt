@@ -1,5 +1,6 @@
 ginkgo_create_test(gmres_kernels)
 ginkgo_create_test(cb_gmres_kernels)
 ginkgo_create_test(idr_kernels)
+ginkgo_create_test(multigrid_kernels)
 ginkgo_create_test_cpp_cuda_header(lower_trs_kernels)
 ginkgo_create_test_cpp_cuda_header(upper_trs_kernels)
