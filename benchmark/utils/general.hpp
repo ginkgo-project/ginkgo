@@ -292,6 +292,27 @@ std::unique_ptr<vec<ValueType>> create_vector(
     return res;
 }
 
+
+// Create a matrix with value indices sin(idx++)
+template <typename ValueType>
+std::unique_ptr<vec<ValueType>> create_matrix_sin(
+    std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)
+{
+    struct count {
+        using itype = gko::int32;
+        itype idx;
+        count() = default;
+        itype get_next_value() { return idx++; }
+    };
+    auto my_dist = [](count &c) {
+        return std::sin(ValueType{c.get_next_value()});
+    };
+    auto res = vec<ValueType>::create(exec);
+    res->read(gko::matrix_data<ValueType>(size, my_dist, count{}));
+    return res;
+}
+
+
 template <typename ValueType>
 std::unique_ptr<vec<ValueType>> create_matrix(
     std::shared_ptr<const gko::Executor> exec, gko::dim<2> size)

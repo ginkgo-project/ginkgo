@@ -580,20 +580,14 @@ int main(int argc, char *argv[])
                 auto data = gko::read_raw<etype>(mtx_fd);
                 system_matrix = share(formats::matrix_factory.at(
                     test_case["optimal"]["spmv"].GetString())(exec, data));
+                auto vec_size =
+                    gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs};
                 if (FLAGS_randomize_rhs) {
-                    b = create_matrix<etype>(
-                        exec,
-                        gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
-                        engine);
+                    b = create_matrix<etype>(exec, vec_size, engine);
                 } else {
-                    b = create_matrix<etype>(
-                        exec,
-                        gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
-                        gko::one<etype>());
+                    b = create_matrix_sin<etype>(exec, vec_size);
                 }
-                x = create_matrix<etype>(
-                    exec,
-                    gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs});
+                x = create_matrix<etype>(exec, vec_size);
             }
 
             std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
