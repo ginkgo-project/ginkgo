@@ -124,7 +124,6 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         Vector::create(exec, dim<2>{krylov_dim_ + 1, dense_b->get_size()[1]});
     auto residual_norm =
         NormVector::create(exec, dim<2>{1, dense_b->get_size()[1]});
-    auto b_norm = NormVector::create(exec, dim<2>{1, dense_b->get_size()[1]});
     Array<size_type> final_iter_nums(this->get_executor(),
                                      dense_b->get_size()[1]);
     auto y = Vector::create(exec, dim<2>{krylov_dim_, dense_b->get_size()[1]});
@@ -134,10 +133,9 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
                                        dense_b->get_size()[1]);
 
     // Initialization
-    exec->run(gmres::make_initialize_1(dense_b, b_norm.get(), residual.get(),
+    exec->run(gmres::make_initialize_1(dense_b, residual.get(),
                                        givens_sin.get(), givens_cos.get(),
                                        &stop_status, krylov_dim_));
-    // b_norm = norm(b)
     // residual = dense_b
     // givens_sin = givens_cos = 0
     system_matrix_->apply(neg_one_op.get(), dense_x, one_op.get(),
@@ -233,8 +231,8 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         exec->run(gmres::make_step_1(
             dense_b->get_size()[0], givens_sin.get(), givens_cos.get(),
             residual_norm.get(), residual_norm_collection.get(),
-            krylov_bases.get(), hessenberg_iter.get(), b_norm.get(),
-            restart_iter, &final_iter_nums, &stop_status));
+            krylov_bases.get(), hessenberg_iter.get(), restart_iter,
+            &final_iter_nums, &stop_status));
         // final_iter_nums += 1 (unconverged)
         // next_krylov_basis is alias for (restart_iter + 1)-th krylov_bases
         // for i in 0:restart_iter(include)
@@ -269,7 +267,7 @@ void Gmres<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
         // this_rnc = residual_norm_collection(restart_iter)
         // next_rnc = -conj(sin(restart_iter)) * this_rnc
         // residual_norm_collection(restart_iter) = cos(restart_iter) * this_rnc
-        // residual_norm = abs(next_rnc)/b_norm
+        // residual_norm = abs(next_rnc)
         // residual_norm_collection(restart_iter + 1) = next_rnc
 
         restart_iter++;

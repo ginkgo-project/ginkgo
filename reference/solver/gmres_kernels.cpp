@@ -165,8 +165,7 @@ template <typename ValueType>
 void calculate_next_residual_norm(
     matrix::Dense<ValueType> *givens_sin, matrix::Dense<ValueType> *givens_cos,
     matrix::Dense<remove_complex<ValueType>> *residual_norm,
-    matrix::Dense<ValueType> *residual_norm_collection,
-    const matrix::Dense<remove_complex<ValueType>> *b_norm, size_type iter,
+    matrix::Dense<ValueType> *residual_norm_collection, size_type iter,
     const stopping_status *stop_status)
 {
     for (size_type i = 0; i < residual_norm->get_size()[1]; ++i) {
@@ -179,7 +178,7 @@ void calculate_next_residual_norm(
         residual_norm_collection->at(iter, i) =
             givens_cos->at(iter, i) * residual_norm_collection->at(iter, i);
         residual_norm->at(0, i) =
-            abs(residual_norm_collection->at(iter + 1, i)) / b_norm->at(0, i);
+            abs(residual_norm_collection->at(iter + 1, i));
     }
 }
 
@@ -233,7 +232,6 @@ void calculate_qy(const matrix::Dense<ValueType> *krylov_bases,
 template <typename ValueType>
 void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Dense<ValueType> *b,
-                  matrix::Dense<remove_complex<ValueType>> *b_norm,
                   matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *givens_sin,
                   matrix::Dense<ValueType> *givens_cos,
@@ -241,13 +239,6 @@ void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
 {
     using NormValueType = remove_complex<ValueType>;
     for (size_type j = 0; j < b->get_size()[1]; ++j) {
-        // Calculate b norm
-        b_norm->at(0, j) = zero<NormValueType>();
-        for (size_type i = 0; i < b->get_size()[0]; ++i) {
-            b_norm->at(0, j) += squared_norm(b->at(i, j));
-        }
-        b_norm->at(0, j) = sqrt(b_norm->at(0, j));
-
         for (size_type i = 0; i < b->get_size()[0]; ++i) {
             residual->at(i, j) = b->at(i, j);
         }
@@ -296,9 +287,8 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec, size_type num_rows,
             matrix::Dense<remove_complex<ValueType>> *residual_norm,
             matrix::Dense<ValueType> *residual_norm_collection,
             matrix::Dense<ValueType> *krylov_bases,
-            matrix::Dense<ValueType> *hessenberg_iter,
-            const matrix::Dense<remove_complex<ValueType>> *b_norm,
-            size_type iter, Array<size_type> *final_iter_nums,
+            matrix::Dense<ValueType> *hessenberg_iter, size_type iter,
+            Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status)
 {
     for (size_type i = 0; i < final_iter_nums->get_num_elems(); ++i) {
@@ -311,7 +301,7 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec, size_type num_rows,
     givens_rotation(givens_sin, givens_cos, hessenberg_iter, iter,
                     stop_status->get_const_data());
     calculate_next_residual_norm(givens_sin, givens_cos, residual_norm,
-                                 residual_norm_collection, b_norm, iter,
+                                 residual_norm_collection, iter,
                                  stop_status->get_const_data());
 }
 

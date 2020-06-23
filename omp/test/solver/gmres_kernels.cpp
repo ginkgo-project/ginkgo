@@ -97,7 +97,6 @@ protected:
         y = gen_mtx(gko::solver::default_krylov_dim, n);
         before_preconditioner = Mtx::create_with_config_of(x.get());
         b = gen_mtx(m, n);
-        b_norm = gen_mtx<norm_type>(1, n);
         krylov_bases = gen_mtx(m * (gko::solver::default_krylov_dim + 1), n);
         hessenberg = gen_mtx(gko::solver::default_krylov_dim + 1,
                              gko::solver::default_krylov_dim * n);
@@ -126,8 +125,6 @@ protected:
         d_y->copy_from(y.get());
         d_b = Mtx::create(omp);
         d_b->copy_from(b.get());
-        d_b_norm = NormVector::create(omp);
-        d_b_norm->copy_from(b_norm.get());
         d_krylov_bases = Mtx::create(omp);
         d_krylov_bases->copy_from(krylov_bases.get());
         d_hessenberg = Mtx::create(omp);
@@ -161,7 +158,6 @@ protected:
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> y;
     std::unique_ptr<Mtx> b;
-    std::unique_ptr<NormVector> b_norm;
     std::unique_ptr<Mtx> krylov_bases;
     std::unique_ptr<Mtx> hessenberg;
     std::unique_ptr<Mtx> hessenberg_iter;
@@ -177,7 +173,6 @@ protected:
     std::unique_ptr<Mtx> d_before_preconditioner;
     std::unique_ptr<Mtx> d_y;
     std::unique_ptr<Mtx> d_b;
-    std::unique_ptr<NormVector> d_b_norm;
     std::unique_ptr<Mtx> d_krylov_bases;
     std::unique_ptr<Mtx> d_hessenberg;
     std::unique_ptr<Mtx> d_hessenberg_iter;
@@ -196,14 +191,13 @@ TEST_F(Gmres, OmpGmresInitialize1IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::gmres::initialize_1(
-        ref, b.get(), b_norm.get(), residual.get(), givens_sin.get(),
-        givens_cos.get(), stop_status.get(), gko::solver::default_krylov_dim);
+        ref, b.get(), residual.get(), givens_sin.get(), givens_cos.get(),
+        stop_status.get(), gko::solver::default_krylov_dim);
     gko::kernels::omp::gmres::initialize_1(
-        omp, d_b.get(), d_b_norm.get(), d_residual.get(), d_givens_sin.get(),
+        omp, d_b.get(), d_residual.get(), d_givens_sin.get(),
         d_givens_cos.get(), d_stop_status.get(),
         gko::solver::default_krylov_dim);
 
-    GKO_ASSERT_MTX_NEAR(d_b_norm, b_norm, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_residual, residual, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
@@ -240,12 +234,11 @@ TEST_F(Gmres, OmpGmresStep1IsEquivalentToRef)
     gko::kernels::reference::gmres::step_1(
         ref, x->get_size()[0], givens_sin.get(), givens_cos.get(),
         residual_norm.get(), residual_norm_collection.get(), krylov_bases.get(),
-        hessenberg_iter.get(), b_norm.get(), iter, final_iter_nums.get(),
-        stop_status.get());
+        hessenberg_iter.get(), iter, final_iter_nums.get(), stop_status.get());
     gko::kernels::omp::gmres::step_1(
         omp, d_x->get_size()[0], d_givens_sin.get(), d_givens_cos.get(),
         d_residual_norm.get(), d_residual_norm_collection.get(),
-        d_krylov_bases.get(), d_hessenberg_iter.get(), d_b_norm.get(), iter,
+        d_krylov_bases.get(), d_hessenberg_iter.get(), iter,
         d_final_iter_nums.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
