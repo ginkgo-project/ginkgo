@@ -1468,18 +1468,16 @@ __device__ void calculate_residual_norm_kernel(
 {
     residual_norm_collection[(iter + 1) * stride_residual_norm_collection +
                              col_idx] =
-        -givens_sin[iter * stride_sin + col_idx] *
+        -conj(givens_sin[iter * stride_sin + col_idx]) *
         residual_norm_collection[iter * stride_residual_norm_collection +
                                  col_idx];
     residual_norm_collection[iter * stride_residual_norm_collection + col_idx] =
         givens_cos[iter * stride_cos + col_idx] *
         residual_norm_collection[iter * stride_residual_norm_collection +
                                  col_idx];
-    residual_norm[col_idx] =
-        abs(residual_norm_collection[(iter + 1) *
-                                         stride_residual_norm_collection +
-                                     col_idx]) /
-        b_norm[col_idx];
+    residual_norm[col_idx] = abs(
+        residual_norm_collection[(iter + 1) * stride_residual_norm_collection +
+                                 col_idx]);
 }
 
 
