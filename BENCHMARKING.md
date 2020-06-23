@@ -143,7 +143,7 @@ The benchmark suite can take a number of configuration parameters. Benchmarks
 can be run only for `sparse matrix vector products (spmv)`, for full solvers
 (with or without preconditioners), or for preconditioners only when supported.
 The benchmark suite also allows to target a sub-part of the SuiteSparse matrix
-collection. For details, see the [available benchmark options](### 5: Available
+collection. For details, see the [available benchmark options](### 6: Available
 benchmark options). Here are the most important options:
 * `BENCHMARK={spmv, solver, preconditioner}` - allows to select the type of
     benchmark to be ran.
@@ -303,9 +303,16 @@ The supported environment variables are described in the following list:
     the solver should stop. The default is `1e-6`.
 * `SOLVERS_MAX_ITERATION=<number>` - the maximum number of iterations with which
     a solver should be ran. The default is `10000`.
-* `SOLVERS_RHS={unit, random}` - whether to use a vector of all ones or random
-    values as the right-hand side in solver benchmarks. Default is `unit`.
+* `SOLVERS_RHS={1, random, sinus}` - whether to use a vector of all ones,
+    random values or $b = A * (s / |s|)$ with $s(i) = sin(i)$
+    as the right-hand side in solver benchmarks. Default is `1`.
+* `SOLVERS_INITIAL_GUESS`={rhs,0,random} - the initial guess generation of the
+    solvers. `rhs` uses the right-hand side, `0` uses a zero vector and `random`
+    generates a random vector as the initial guess.
 * `DETAILED={0,1}` - selects whether detailed benchmarks should be ran for the
     solver benchmarks, can be either `0` (off) or `1` (on). The default is `0`.
 * `GPU_TIMER={true, false}` - If set to `true`, use the gpu timer, which is
     valid for cuda/hip executor, to measure the timing. Default is `false`.
+* `SOLVERS_JACOBI_MAX_BS` - sets the maximum block size for the Jacobi
+    preconditioner (if used, otherwise, it does nothing) in the solvers
+    benchmark
