@@ -37,7 +37,7 @@ For Ginkgo core library:
 
 *   _cmake 3.9+_
 *   C++11 compliant compiler, one of:
-    *   _gcc 5.3+, 6.3+, 7.3+, 8.1+_
+    *   _gcc 5.3+, 6.3+, 7.3+, 8.1+, 9.1+, 10.1+_
     *   _clang 3.9+_
     *   _Intel compiler 2017+_
     *   _Apple LLVM 8.0+_ (__TODO__: verify)
@@ -50,6 +50,7 @@ The Ginkgo CUDA module has the following __additional__ requirements:
     [CUDA installation guide for Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)
     or [CUDA installation guide for Mac Os X](https://docs.nvidia.com/cuda/cuda-installation-guide-mac-os-x/index.html)
 
+
 In addition, if you want to contribute code to Ginkgo, you will also need the
 following:
 
@@ -59,6 +60,7 @@ following:
 
 The Ginkgo HIP module has the following __additional__ requirements:
 
+* _ROCm 2.8+_
 *    the HIP, hipBLAS and hipSPARSE packages compiled with either:
     * _AMD_ backend
     * _CUDA 9.0+_ backend. When using CUDA 10+, _cmake 3.12.2+_ is required.
@@ -68,8 +70,8 @@ The Ginkgo HIP module has the following __additional__ requirements:
 The prequirement needs to be verified
 *   _cmake 3.9+_
 *   C++11 compliant 64-bits compiler:
-    *   _MinGW : gcc 5.3+, 6.3+, 7.3+, 8.1+_
-    *   _Cygwin : gcc 5.3+, 6.3+, 7.3+, 8.1+_
+    *   _MinGW : gcc 5.3+, 6.3+, 7.3+, 8.1+, 9.1+, 10.1+_
+    *   _Cygwin : gcc 5.3+, 6.3+, 7.3+, 8.1+, 9.1+, 10.1+_
     *   _Microsoft Visual Studio : VS 2017 15.7+_
 
 __NOTE:__ Need to add `--autocrlf=input` after `git clone` in _Cygwin_.
