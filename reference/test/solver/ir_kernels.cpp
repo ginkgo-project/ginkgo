@@ -62,7 +62,8 @@ protected:
           mtx(gko::initialize<Mtx>(
               {{0.9, -1.0, 3.0}, {0.0, 1.0, 3.0}, {0.0, 0.0, 1.1}}, exec)),
           // Eigenvalues of mtx are 0.9, 1.0 and 1.1
-          // Richardson iteration, converges since | lambda - 1 | < 1
+          // Richardson iteration, converges since
+          // | relaxation_factor * lambda - 1 | < 1
           ir_factory(
               Solver::build()
                   .with_criteria(
@@ -220,7 +221,7 @@ TYPED_TEST(Ir, RichardsonSolvesTriangularSystem)
                           gko::stop::ResidualNormReduction<value_type>::build()
                               .with_reduction_factor(r<value_type>::value)
                               .on(this->exec))
-                      .with_relaxation(value_type{1})
+                      .with_relaxation_factor(value_type{0.9})
                       .on(this->exec)
                       ->generate(this->mtx);
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
@@ -251,7 +252,7 @@ TYPED_TEST(Ir, RichardsonSolvesTriangularSystemWithIterativeInnerSolver)
                 gko::stop::ResidualNormReduction<value_type>::build()
                     .with_reduction_factor(r<value_type>::value)
                     .on(this->exec))
-            .with_relaxation(value_type{1})
+            .with_relaxation_factor(value_type{0.9})
             .with_solver(gko::share(inner_solver_factory))
             .on(this->exec);
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
@@ -274,7 +275,7 @@ TYPED_TEST(Ir, RichardsonTransposedSolvesTriangularSystem)
                            gko::stop::ResidualNormReduction<value_type>::build()
                                .with_reduction_factor(r<value_type>::value)
                                .on(this->exec))
-            .with_relaxation(value_type{0.9})
+            .with_relaxation_factor(value_type{0.9})
             .on(this->exec)
             ->generate(this->mtx->transpose());
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
@@ -297,7 +298,7 @@ TYPED_TEST(Ir, RichardsonConjTransposedSolvesTriangularSystem)
                            gko::stop::ResidualNormReduction<value_type>::build()
                                .with_reduction_factor(r<value_type>::value)
                                .on(this->exec))
-            .with_relaxation(value_type{0.9})
+            .with_relaxation_factor(value_type{0.9})
             .on(this->exec)
             ->generate(this->mtx->conj_transpose());
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
