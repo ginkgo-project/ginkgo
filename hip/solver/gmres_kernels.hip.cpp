@@ -81,7 +81,6 @@ constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 template <typename ValueType>
 void initialize_1(std::shared_ptr<const HipExecutor> exec,
                   const matrix::Dense<ValueType> *b,
-                  matrix::Dense<remove_complex<ValueType>> *b_norm,
                   matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *givens_sin,
                   matrix::Dense<ValueType> *givens_cos,
@@ -93,7 +92,6 @@ void initialize_1(std::shared_ptr<const HipExecutor> exec,
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
 
-    b->compute_norm2(b_norm);
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(initialize_1_kernel<block_size>), dim3(grid_dim),
         dim3(block_dim), 0, 0, b->get_size()[0], b->get_size()[1], krylov_dim,
@@ -221,7 +219,6 @@ void givens_rotation(std::shared_ptr<const HipExecutor> exec,
                      matrix::Dense<ValueType> *hessenberg_iter,
                      matrix::Dense<remove_complex<ValueType>> *residual_norm,
                      matrix::Dense<ValueType> *residual_norm_collection,
-                     const matrix::Dense<remove_complex<ValueType>> *b_norm,
                      size_type iter, const Array<stopping_status> *stop_status)
 {
     // TODO: tune block_size for optimal performance
@@ -241,7 +238,6 @@ void givens_rotation(std::shared_ptr<const HipExecutor> exec,
         givens_cos->get_stride(), as_hip_type(residual_norm->get_values()),
         as_hip_type(residual_norm_collection->get_values()),
         residual_norm_collection->get_stride(),
-        as_hip_type(b_norm->get_const_values()),
         as_hip_type(stop_status->get_const_data()));
 }
 
@@ -253,9 +249,8 @@ void step_1(std::shared_ptr<const HipExecutor> exec, size_type num_rows,
             matrix::Dense<remove_complex<ValueType>> *residual_norm,
             matrix::Dense<ValueType> *residual_norm_collection,
             matrix::Dense<ValueType> *krylov_bases,
-            matrix::Dense<ValueType> *hessenberg_iter,
-            const matrix::Dense<remove_complex<ValueType>> *b_norm,
-            size_type iter, Array<size_type> *final_iter_nums,
+            matrix::Dense<ValueType> *hessenberg_iter, size_type iter,
+            Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status)
 {
     hipLaunchKernelGGL(
@@ -269,8 +264,7 @@ void step_1(std::shared_ptr<const HipExecutor> exec, size_type num_rows,
     finish_arnoldi(exec, num_rows, krylov_bases, hessenberg_iter, iter,
                    stop_status->get_const_data());
     givens_rotation(exec, givens_sin, givens_cos, hessenberg_iter,
-                    residual_norm, residual_norm_collection, b_norm, iter,
-                    stop_status);
+                    residual_norm, residual_norm_collection, iter, stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);
