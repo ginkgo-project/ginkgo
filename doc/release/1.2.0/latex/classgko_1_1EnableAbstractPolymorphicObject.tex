@@ -1,0 +1,70 @@
+\hypertarget{classgko_1_1EnableAbstractPolymorphicObject}{}\doxysection{gko\+::Enable\+Abstract\+Polymorphic\+Object$<$ Abstract\+Object, Polymorphic\+Base $>$ Class Template Reference}
+\label{classgko_1_1EnableAbstractPolymorphicObject}\index{gko::EnableAbstractPolymorphicObject$<$ AbstractObject, PolymorphicBase $>$@{gko::EnableAbstractPolymorphicObject$<$ AbstractObject, PolymorphicBase $>$}}
+
+
+This mixin inherits from (a subclass of) \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} and provides a base implementation of a new abstract object.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/polymorphic\+\_\+object.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Enable\+Abstract\+Polymorphic\+Object$<$ Abstract\+Object, Polymorphic\+Base $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=278pt]{classgko_1_1EnableAbstractPolymorphicObject__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableAbstractPolymorphicObject_ac84c5033523a8c59662287fa0541c18c}\label{classgko_1_1EnableAbstractPolymorphicObject_ac84c5033523a8c59662287fa0541c18c}} 
+std\+::unique\+\_\+ptr$<$ Abstract\+Object $>$ {\bfseries create\+\_\+default} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec) const
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableAbstractPolymorphicObject_a5153f52a413e92a0477c0b99c5bc3b37}\label{classgko_1_1EnableAbstractPolymorphicObject_a5153f52a413e92a0477c0b99c5bc3b37}} 
+std\+::unique\+\_\+ptr$<$ Abstract\+Object $>$ {\bfseries create\+\_\+default} () const
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableAbstractPolymorphicObject_ab580b1eed2674cd1eda5d18086bc1944}\label{classgko_1_1EnableAbstractPolymorphicObject_ab580b1eed2674cd1eda5d18086bc1944}} 
+std\+::unique\+\_\+ptr$<$ Abstract\+Object $>$ {\bfseries clone} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec) const
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableAbstractPolymorphicObject_a08485221c0ea27e9100069c65c40f5cb}\label{classgko_1_1EnableAbstractPolymorphicObject_a08485221c0ea27e9100069c65c40f5cb}} 
+std\+::unique\+\_\+ptr$<$ Abstract\+Object $>$ {\bfseries clone} () const
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableAbstractPolymorphicObject_a6a9588dfdd287538548e513c79793d5e}\label{classgko_1_1EnableAbstractPolymorphicObject_a6a9588dfdd287538548e513c79793d5e}} 
+Abstract\+Object $\ast$ {\bfseries copy\+\_\+from} (const \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} $\ast$other)
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableAbstractPolymorphicObject_ab1a690b36626761167b3fa51bd8ea06a}\label{classgko_1_1EnableAbstractPolymorphicObject_ab1a690b36626761167b3fa51bd8ea06a}} 
+Abstract\+Object $\ast$ {\bfseries copy\+\_\+from} (std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} $>$ other)
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableAbstractPolymorphicObject_ae74d41178d0f0e6bfcada520ea3e3099}\label{classgko_1_1EnableAbstractPolymorphicObject_ae74d41178d0f0e6bfcada520ea3e3099}} 
+Abstract\+Object $\ast$ {\bfseries clear} ()
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Abstract\+Object, typename Polymorphic\+Base = Polymorphic\+Object$>$\newline
+class gko\+::\+Enable\+Abstract\+Polymorphic\+Object$<$ Abstract\+Object, Polymorphic\+Base $>$}
+
+This mixin inherits from (a subclass of) \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} and provides a base implementation of a new abstract object. 
+
+It uses method hiding to update the parameter and return types from {\ttfamily \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}} to}Abstract\+Object\`{} wherever it makes sense. As opposed to \mbox{\hyperlink{classgko_1_1EnablePolymorphicObject}{Enable\+Polymorphic\+Object}}, it does not implement \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}}\textquotesingle{}s virtual methods.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Abstract\+Object} & the abstract class which is being implemented \mbox{[}C\+R\+TP parameter\mbox{]} \\
+\hline
+{\em Polymorphic\+Base} & parent of Abstract\+Object in the polymorphic hierarchy, has to be a subclass of polymorphic object\\
+\hline
+\end{DoxyTemplParams}
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{classgko_1_1EnablePolymorphicObject}{Enable\+Polymorphic\+Object}} for creating a concrete subclass of \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}}. 
+\end{DoxySeeAlso}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/polymorphic\+\_\+object.\+hpp (3190c3e0f)\end{DoxyCompactItemize}

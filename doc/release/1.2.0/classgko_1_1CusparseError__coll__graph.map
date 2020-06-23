@@ -1,0 +1,5 @@
+<map id="gko::CusparseError" name="gko::CusparseError">
+<area shape="rect" id="node1" title="CusparseError is thrown when a cuSPARSE routine throws a non&#45;zero error code." alt="" coords="5,155,151,181"/>
+<area shape="rect" id="node2" href="$classgko_1_1Error.html" title="The Error class is used to report exceptional behaviour in library functions." alt="" coords="35,80,121,107"/>
+<area shape="rect" id="node3" title="STL class." alt="" coords="21,5,135,32"/>
+</map>

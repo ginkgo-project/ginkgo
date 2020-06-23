@@ -1,0 +1,35 @@
+\hypertarget{classgko_1_1EnableCreateMethod}{}\doxysection{gko\+::Enable\+Create\+Method$<$ Concrete\+Type $>$ Class Template Reference}
+\label{classgko_1_1EnableCreateMethod}\index{gko::EnableCreateMethod$<$ ConcreteType $>$@{gko::EnableCreateMethod$<$ ConcreteType $>$}}
+
+
+This mixin implements a static {\ttfamily create()} method on {\ttfamily Concrete\+Type} that dynamically allocates the memory, uses the passed-\/in arguments to construct the object, and returns an std\+::unique\+\_\+ptr to such an object.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/polymorphic\+\_\+object.\+hpp$>$}
+
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableCreateMethod_aa732d4d8736a4ade9206b9641cd1edd5}\label{classgko_1_1EnableCreateMethod_aa732d4d8736a4ade9206b9641cd1edd5}} 
+{\footnotesize template$<$typename... Args$>$ }\\static std\+::unique\+\_\+ptr$<$ Concrete\+Type $>$ {\bfseries create} (Args \&\&... args)
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Concrete\+Type$>$\newline
+class gko\+::\+Enable\+Create\+Method$<$ Concrete\+Type $>$}
+
+This mixin implements a static {\ttfamily create()} method on {\ttfamily Concrete\+Type} that dynamically allocates the memory, uses the passed-\/in arguments to construct the object, and returns an std\+::unique\+\_\+ptr to such an object. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Concrete\+Object} & the concrete type for which {\ttfamily create()} is being implemented \mbox{[}C\+R\+TP parameter\mbox{]} \\
+\hline
+\end{DoxyTemplParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/polymorphic\+\_\+object.\+hpp (3190c3e0f)\end{DoxyCompactItemize}

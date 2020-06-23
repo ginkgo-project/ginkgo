@@ -1,0 +1,119 @@
+\hypertarget{classgko_1_1EnableDefaultFactory}{}\doxysection{gko\+::Enable\+Default\+Factory$<$ Concrete\+Factory, Product\+Type, Parameters\+Type, Polymorphic\+Base $>$ Class Template Reference}
+\label{classgko_1_1EnableDefaultFactory}\index{gko::EnableDefaultFactory$<$ ConcreteFactory, ProductType, ParametersType, PolymorphicBase $>$@{gko::EnableDefaultFactory$<$ ConcreteFactory, ProductType, ParametersType, PolymorphicBase $>$}}
+
+
+This mixin provides a default implementation of a concrete factory.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/abstract\+\_\+factory.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Enable\+Default\+Factory$<$ Concrete\+Factory, Product\+Type, Parameters\+Type, Polymorphic\+Base $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1EnableDefaultFactory__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableDefaultFactory_ac762510ed96961493c273338ca358ecf}\label{classgko_1_1EnableDefaultFactory_ac762510ed96961493c273338ca358ecf}} 
+using {\bfseries product\+\_\+type} = Product\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableDefaultFactory_a911e420cd7f7c7f5550abbf0e788b59a}\label{classgko_1_1EnableDefaultFactory_a911e420cd7f7c7f5550abbf0e788b59a}} 
+using {\bfseries parameters\+\_\+type} = Parameters\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableDefaultFactory_a76344d95116ad7c95190152ecd64c2fb}\label{classgko_1_1EnableDefaultFactory_a76344d95116ad7c95190152ecd64c2fb}} 
+using {\bfseries polymorphic\+\_\+base} = Polymorphic\+Base
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableDefaultFactory_ae1741e6f98c9a038a0bae24804a20f34}\label{classgko_1_1EnableDefaultFactory_ae1741e6f98c9a038a0bae24804a20f34}} 
+using {\bfseries abstract\+\_\+product\+\_\+type} = typename Polymorphic\+Base\+::abstract\+\_\+product\+\_\+type
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableDefaultFactory_a5006a049ebb2f4d5c0f274f9d82ce870}\label{classgko_1_1EnableDefaultFactory_a5006a049ebb2f4d5c0f274f9d82ce870}} 
+using {\bfseries components\+\_\+type} = typename Polymorphic\+Base\+::components\+\_\+type
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableDefaultFactory_adc2fe350c1549e20ff5fec67c315d8f4}\label{classgko_1_1EnableDefaultFactory_adc2fe350c1549e20ff5fec67c315d8f4}} 
+{\footnotesize template$<$typename... Args$>$ }\\std\+::unique\+\_\+ptr$<$ Product\+Type $>$ {\bfseries generate} (Args \&\&... args) const
+\item 
+const parameters\+\_\+type \& \mbox{\hyperlink{classgko_1_1EnableDefaultFactory_ae32f2b3100640293f3a46e1280965162}{get\+\_\+parameters}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the parameters of the factory. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static parameters\+\_\+type \mbox{\hyperlink{classgko_1_1EnableDefaultFactory_a1d077101d9e788e6c65f088612d14cc3}{create}} ()
+\begin{DoxyCompactList}\small\item\em Creates a new Parameters\+Type object which can be used to instantiate a new Concrete\+Factory. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1EnableDefaultFactory_a01a6ad051cccd6915df38622922a5bb6}\label{classgko_1_1EnableDefaultFactory_a01a6ad051cccd6915df38622922a5bb6}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Concrete\+Factory, Polymorphic\+Base $>$}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Concrete\+Factory, typename Product\+Type, typename Parameters\+Type, typename Polymorphic\+Base$>$\newline
+class gko\+::\+Enable\+Default\+Factory$<$ Concrete\+Factory, Product\+Type, Parameters\+Type, Polymorphic\+Base $>$}
+
+This mixin provides a default implementation of a concrete factory. 
+
+It implements all the methods of \mbox{\hyperlink{classgko_1_1AbstractFactory}{Abstract\+Factory}} and \mbox{\hyperlink{classgko_1_1PolymorphicObject}{Polymorphic\+Object}}. Its implementation of the generate\+\_\+impl() method delegates the creation of the product by calling the {\ttfamily Product\+Type\+::\+Product\+Type(const Concrete\+Factory $\ast$, const components\+\_\+type \&)} constructor. The factory also supports parameters by using the {\ttfamily Parameters\+Type} structure, which is defined by the user.
+
+For a simple example, see Int\+Factory in {\ttfamily core/test/base/abstract\+\_\+factory.\+cpp}.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Concrete\+Factory} & the concrete factory which is being implemented \mbox{[}C\+R\+TP parameter\mbox{]} \\
+\hline
+{\em Product\+Type} & the concrete type of products which this factory produces, has to be a subclass of Polymorphic\+Base\+::abstract\+\_\+product\+\_\+type \\
+\hline
+{\em Parameters\+Type} & a type representing the parameters of the factory, has to inherit from the \mbox{\hyperlink{structgko_1_1enable__parameters__type}{enable\+\_\+parameters\+\_\+type}} mixin \\
+\hline
+{\em Polymorphic\+Base} & parent of Concrete\+Factory in the polymorphic hierarchy, has to be a subclass of \mbox{\hyperlink{classgko_1_1AbstractFactory}{Abstract\+Factory}} \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1EnableDefaultFactory_a1d077101d9e788e6c65f088612d14cc3}\label{classgko_1_1EnableDefaultFactory_a1d077101d9e788e6c65f088612d14cc3}} 
+\index{gko::EnableDefaultFactory$<$ ConcreteFactory, ProductType, ParametersType, PolymorphicBase $>$@{gko::EnableDefaultFactory$<$ ConcreteFactory, ProductType, ParametersType, PolymorphicBase $>$}!create@{create}}
+\index{create@{create}!gko::EnableDefaultFactory$<$ ConcreteFactory, ProductType, ParametersType, PolymorphicBase $>$@{gko::EnableDefaultFactory$<$ ConcreteFactory, ProductType, ParametersType, PolymorphicBase $>$}}
+\doxysubsubsection{\texorpdfstring{create()}{create()}}
+{\footnotesize\ttfamily template$<$typename Concrete\+Factory , typename Product\+Type , typename Parameters\+Type , typename Polymorphic\+Base $>$ \\
+static parameters\+\_\+type \mbox{\hyperlink{classgko_1_1EnableDefaultFactory}{gko\+::\+Enable\+Default\+Factory}}$<$ Concrete\+Factory, Product\+Type, Parameters\+Type, Polymorphic\+Base $>$\+::create (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+
+
+Creates a new Parameters\+Type object which can be used to instantiate a new Concrete\+Factory. 
+
+This method does not construct the factory directly, but returns a new parameters\+\_\+type object, which can be used to set the parameters of the factory. Once the parameters have been set, the parameters\+\_\+type\+::on() method can be used to obtain an instance of the factory with those parameters.
+
+\begin{DoxyReturn}{Returns}
+a default parameters\+\_\+type object 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1EnableDefaultFactory_ae32f2b3100640293f3a46e1280965162}\label{classgko_1_1EnableDefaultFactory_ae32f2b3100640293f3a46e1280965162}} 
+\index{gko::EnableDefaultFactory$<$ ConcreteFactory, ProductType, ParametersType, PolymorphicBase $>$@{gko::EnableDefaultFactory$<$ ConcreteFactory, ProductType, ParametersType, PolymorphicBase $>$}!get\_parameters@{get\_parameters}}
+\index{get\_parameters@{get\_parameters}!gko::EnableDefaultFactory$<$ ConcreteFactory, ProductType, ParametersType, PolymorphicBase $>$@{gko::EnableDefaultFactory$<$ ConcreteFactory, ProductType, ParametersType, PolymorphicBase $>$}}
+\doxysubsubsection{\texorpdfstring{get\_parameters()}{get\_parameters()}}
+{\footnotesize\ttfamily template$<$typename Concrete\+Factory , typename Product\+Type , typename Parameters\+Type , typename Polymorphic\+Base $>$ \\
+const parameters\+\_\+type\& \mbox{\hyperlink{classgko_1_1EnableDefaultFactory}{gko\+::\+Enable\+Default\+Factory}}$<$ Concrete\+Factory, Product\+Type, Parameters\+Type, Polymorphic\+Base $>$\+::get\+\_\+parameters (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the parameters of the factory. 
+
+\begin{DoxyReturn}{Returns}
+the parameters of the factory 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/abstract\+\_\+factory.\+hpp (29444d385)\end{DoxyCompactItemize}

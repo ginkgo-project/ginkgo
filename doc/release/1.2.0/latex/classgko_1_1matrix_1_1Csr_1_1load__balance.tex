@@ -1,0 +1,183 @@
+\hypertarget{classgko_1_1matrix_1_1Csr_1_1load__balance}{}\doxysection{gko\+::matrix\+::Csr$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance Class Reference}
+\label{classgko_1_1matrix_1_1Csr_1_1load__balance}\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance@{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance}}
+
+
+\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance}{load\+\_\+balance}} is a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} which uses the load balance algorithm.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/matrix/csr.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::matrix\+::Csr$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=238pt]{classgko_1_1matrix_1_1Csr_1_1load__balance__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1load__balance_ab1862c520e88fb4e801a8fec8ab44328}\label{classgko_1_1matrix_1_1Csr_1_1load__balance_ab1862c520e88fb4e801a8fec8ab44328}} 
+\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance_ab1862c520e88fb4e801a8fec8ab44328}{load\+\_\+balance}} ()
+\begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance}{load\+\_\+balance}} strategy. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance_ad80a0ef5dd9bb2e4f311e59e5e4e013e}{load\+\_\+balance}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}} $>$ exec)
+\begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance}{load\+\_\+balance}} strategy with C\+U\+DA executor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance_a3d211f9e4a10d864dca92113b9e3f48b}{load\+\_\+balance}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1HipExecutor}{Hip\+Executor}} $>$ exec)
+\begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance}{load\+\_\+balance}} strategy with H\+IP executor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance_a9ecf343dff4ae8bc908c5528f8a83670}{load\+\_\+balance}} (int64\+\_\+t nwarps, int warp\+\_\+size=32, bool cuda\+\_\+strategy=true)
+\begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance}{load\+\_\+balance}} strategy with specified parameters. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance_aba6c8c9169c1068c30ac9df19ec862ff}{process}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ \&mtx\+\_\+row\+\_\+ptrs, \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ $\ast$mtx\+\_\+srow) override
+\begin{DoxyCompactList}\small\item\em Computes srow according to row pointers. \end{DoxyCompactList}\item 
+int64\+\_\+t \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance_ac0413220bebe762defe180d900240fac}{clac\+\_\+size}} (const int64\+\_\+t nnz) override
+\begin{DoxyCompactList}\small\item\em Computes the srow size according to the number of nonzeros. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance_a424cd2ae61da007c1add51cda9a859b3}{copy}} () override
+\begin{DoxyCompactList}\small\item\em Copy a strategy. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance}
+
+\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance}{load\+\_\+balance}} is a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} which uses the load balance algorithm. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1load__balance_ad80a0ef5dd9bb2e4f311e59e5e4e013e}\label{classgko_1_1matrix_1_1Csr_1_1load__balance_ad80a0ef5dd9bb2e4f311e59e5e4e013e}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance@{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance}!load\_balance@{load\_balance}}
+\index{load\_balance@{load\_balance}!gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance@{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance}}
+\doxysubsubsection{\texorpdfstring{load\_balance()}{load\_balance()}\hspace{0.1cm}{\footnotesize\ttfamily [1/3]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+::load\+\_\+balance (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}} $>$}]{exec }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance}{load\+\_\+balance}} strategy with C\+U\+DA executor. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the C\+U\+DA executor \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1load__balance_a3d211f9e4a10d864dca92113b9e3f48b}\label{classgko_1_1matrix_1_1Csr_1_1load__balance_a3d211f9e4a10d864dca92113b9e3f48b}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance@{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance}!load\_balance@{load\_balance}}
+\index{load\_balance@{load\_balance}!gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance@{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance}}
+\doxysubsubsection{\texorpdfstring{load\_balance()}{load\_balance()}\hspace{0.1cm}{\footnotesize\ttfamily [2/3]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+::load\+\_\+balance (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1HipExecutor}{Hip\+Executor}} $>$}]{exec }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance}{load\+\_\+balance}} strategy with H\+IP executor. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the H\+IP executor \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1load__balance_a9ecf343dff4ae8bc908c5528f8a83670}\label{classgko_1_1matrix_1_1Csr_1_1load__balance_a9ecf343dff4ae8bc908c5528f8a83670}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance@{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance}!load\_balance@{load\_balance}}
+\index{load\_balance@{load\_balance}!gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance@{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance}}
+\doxysubsubsection{\texorpdfstring{load\_balance()}{load\_balance()}\hspace{0.1cm}{\footnotesize\ttfamily [3/3]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+::load\+\_\+balance (\begin{DoxyParamCaption}\item[{int64\+\_\+t}]{nwarps,  }\item[{int}]{warp\+\_\+size = {\ttfamily 32},  }\item[{bool}]{cuda\+\_\+strategy = {\ttfamily true} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1load__balance}{load\+\_\+balance}} strategy with specified parameters. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em nwarps} & the number of warps in the executor \\
+\hline
+{\em warp\+\_\+size} & the warp size of the executor \\
+\hline
+{\em cuda\+\_\+strategy} & whether the {\ttfamily cuda\+\_\+strategy} needs to be used.\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+The warp\+\_\+size must be the size of full warp. When using this constructor, set\+\_\+strategy needs to be called with correct parameters which is replaced during the conversion. 
+\end{DoxyNote}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1load__balance_ac0413220bebe762defe180d900240fac}\label{classgko_1_1matrix_1_1Csr_1_1load__balance_ac0413220bebe762defe180d900240fac}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance@{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance}!clac\_size@{clac\_size}}
+\index{clac\_size@{clac\_size}!gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance@{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance}}
+\doxysubsubsection{\texorpdfstring{clac\_size()}{clac\_size()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+int64\+\_\+t \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+::clac\+\_\+size (\begin{DoxyParamCaption}\item[{const int64\+\_\+t}]{nnz }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Computes the srow size according to the number of nonzeros. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em nnz} & the number of nonzeros\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the size of srow 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type_a07a6dda9dd04ed8abd914f3a69f330f2}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
+
+
+
+References gko\+::ceildiv(), and gko\+::min().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1load__balance_a424cd2ae61da007c1add51cda9a859b3}\label{classgko_1_1matrix_1_1Csr_1_1load__balance_a424cd2ae61da007c1add51cda9a859b3}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance@{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance}!copy@{copy}}
+\index{copy@{copy}!gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance@{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance}}
+\doxysubsubsection{\texorpdfstring{copy()}{copy()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}}$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+::copy (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Copy a strategy. 
+
+This is a workaround until strategies are revamped, since strategies like {\ttfamily automatical} do not work when actually shared. 
+
+Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type_adf3dc78938ffb991608b272447db6a68}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1load__balance_aba6c8c9169c1068c30ac9df19ec862ff}\label{classgko_1_1matrix_1_1Csr_1_1load__balance_aba6c8c9169c1068c30ac9df19ec862ff}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance@{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance}!process@{process}}
+\index{process@{process}!gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance@{gko::matrix::Csr$<$ ValueType, IndexType $>$::load\_balance}}
+\doxysubsubsection{\texorpdfstring{process()}{process()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+::process (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ \&}]{mtx\+\_\+row\+\_\+ptrs,  }\item[{\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ $\ast$}]{mtx\+\_\+srow }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Computes srow according to row pointers. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em mtx\+\_\+row\+\_\+ptrs} & the row pointers of the matrix \\
+\hline
+{\em mtx\+\_\+srow} & the srow of the matrix \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type_a58bda9208766e57d861262d4059b65b4}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
+
+
+
+References gko\+::ceildiv(), gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data(), gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data(), gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+executor(), and gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+num\+\_\+elems().
+
+
+
+Referenced by gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::automatical\+::process().
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/matrix/csr.\+hpp (9fdf77aa9)\end{DoxyCompactItemize}

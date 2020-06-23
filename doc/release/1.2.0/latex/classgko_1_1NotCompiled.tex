@@ -1,0 +1,58 @@
+\hypertarget{classgko_1_1NotCompiled}{}\doxysection{gko\+::Not\+Compiled Class Reference}
+\label{classgko_1_1NotCompiled}\index{gko::NotCompiled@{gko::NotCompiled}}
+
+
+\mbox{\hyperlink{classgko_1_1NotCompiled}{Not\+Compiled}} is thrown when attempting to call an operation which is a part of a module that was not compiled on the system.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/exception.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Not\+Compiled\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=184pt]{classgko_1_1NotCompiled__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classgko_1_1NotCompiled_aa85feba061f17a192a47f238a5bb4a32}{Not\+Compiled}} (const std\+::string \&file, int line, const std\+::string \&func, const std\+::string \&module)
+\begin{DoxyCompactList}\small\item\em Initializes a \mbox{\hyperlink{classgko_1_1NotCompiled}{Not\+Compiled}} error. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\mbox{\hyperlink{classgko_1_1NotCompiled}{Not\+Compiled}} is thrown when attempting to call an operation which is a part of a module that was not compiled on the system. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classgko_1_1NotCompiled_aa85feba061f17a192a47f238a5bb4a32}\label{classgko_1_1NotCompiled_aa85feba061f17a192a47f238a5bb4a32}} 
+\index{gko::NotCompiled@{gko::NotCompiled}!NotCompiled@{NotCompiled}}
+\index{NotCompiled@{NotCompiled}!gko::NotCompiled@{gko::NotCompiled}}
+\doxysubsubsection{\texorpdfstring{NotCompiled()}{NotCompiled()}}
+{\footnotesize\ttfamily gko\+::\+Not\+Compiled\+::\+Not\+Compiled (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{file,  }\item[{int}]{line,  }\item[{const std\+::string \&}]{func,  }\item[{const std\+::string \&}]{module }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Initializes a \mbox{\hyperlink{classgko_1_1NotCompiled}{Not\+Compiled}} error. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em file} & The name of the offending source file \\
+\hline
+{\em line} & The source code line number where the error occurred \\
+\hline
+{\em func} & The name of the function that has not been compiled \\
+\hline
+{\em module} & The name of the module which contains the function \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/exception.\+hpp (ccf35426a)\end{DoxyCompactItemize}

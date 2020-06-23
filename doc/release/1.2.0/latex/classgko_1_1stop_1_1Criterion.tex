@@ -1,0 +1,93 @@
+\hypertarget{classgko_1_1stop_1_1Criterion}{}\doxysection{gko\+::stop\+::Criterion Class Reference}
+\label{classgko_1_1stop_1_1Criterion}\index{gko::stop::Criterion@{gko::stop::Criterion}}
+
+
+The \mbox{\hyperlink{classgko_1_1stop_1_1Criterion}{Criterion}} class is a base class for all stopping criteria.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/stop/criterion.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::stop\+::Criterion\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1stop_1_1Criterion__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1Criterion_1_1Updater}{Updater}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1Criterion_1_1Updater}{Updater}} class serves for convenient argument passing to the \mbox{\hyperlink{classgko_1_1stop_1_1Criterion}{Criterion}}\textquotesingle{}s check function. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classgko_1_1stop_1_1Criterion_1_1Updater}{Updater}} \mbox{\hyperlink{classgko_1_1stop_1_1Criterion_a47e22c46eaa742d709dcbf0d26d93e6c}{update}} ()
+\begin{DoxyCompactList}\small\item\em Returns the updater object. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classgko_1_1stop_1_1Criterion_a64634d8f02b439e5d8e6125fb996600d}{check}} (\mbox{\hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8}} stopping\+Id, bool set\+Finalized, \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status}} $>$ $\ast$stop\+\_\+status, bool $\ast$one\+\_\+changed, const \mbox{\hyperlink{classgko_1_1stop_1_1Criterion_1_1Updater}{Updater}} \&updater)
+\begin{DoxyCompactList}\small\item\em This checks whether convergence was reached for a certain criterion. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The \mbox{\hyperlink{classgko_1_1stop_1_1Criterion}{Criterion}} class is a base class for all stopping criteria. 
+
+It contains a factory to instantiate criteria. It is up to each specific stopping criterion to decide what to do with the data that is passed to it.
+
+Note that depending on the criterion, convergence may not have happened after stopping. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1stop_1_1Criterion_a64634d8f02b439e5d8e6125fb996600d}\label{classgko_1_1stop_1_1Criterion_a64634d8f02b439e5d8e6125fb996600d}} 
+\index{gko::stop::Criterion@{gko::stop::Criterion}!check@{check}}
+\index{check@{check}!gko::stop::Criterion@{gko::stop::Criterion}}
+\doxysubsubsection{\texorpdfstring{check()}{check()}}
+{\footnotesize\ttfamily bool gko\+::stop\+::\+Criterion\+::check (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8}}}]{stopping\+Id,  }\item[{bool}]{set\+Finalized,  }\item[{\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{classgko_1_1stopping__status}{stopping\+\_\+status}} $>$ $\ast$}]{stop\+\_\+status,  }\item[{bool $\ast$}]{one\+\_\+changed,  }\item[{const \mbox{\hyperlink{classgko_1_1stop_1_1Criterion_1_1Updater}{Updater}} \&}]{updater }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+This checks whether convergence was reached for a certain criterion. 
+
+The actual implantation of the criterion goes here.
+
+
+\begin{DoxyParams}{Parameters}
+{\em stopping\+Id} & id of the stopping criterion \\
+\hline
+{\em set\+Finalized} & Controls if the current version should count as finalized or not \\
+\hline
+{\em stop\+\_\+status} & status of the stopping criterion \\
+\hline
+{\em one\+\_\+changed} & indicates if one vector\textquotesingle{}s status changed \\
+\hline
+{\em updater} & the \mbox{\hyperlink{classgko_1_1stop_1_1Criterion_1_1Updater}{Updater}} object containing all the information\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+whether convergence was completely reached 
+\end{DoxyReturn}
+
+
+Referenced by gko\+::stop\+::\+Criterion\+::\+Updater\+::check().
+
+\mbox{\Hypertarget{classgko_1_1stop_1_1Criterion_a47e22c46eaa742d709dcbf0d26d93e6c}\label{classgko_1_1stop_1_1Criterion_a47e22c46eaa742d709dcbf0d26d93e6c}} 
+\index{gko::stop::Criterion@{gko::stop::Criterion}!update@{update}}
+\index{update@{update}!gko::stop::Criterion@{gko::stop::Criterion}}
+\doxysubsubsection{\texorpdfstring{update()}{update()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{classgko_1_1stop_1_1Criterion_1_1Updater}{Updater}} gko\+::stop\+::\+Criterion\+::update (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Returns the updater object. 
+
+\begin{DoxyReturn}{Returns}
+the updater object 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/stop/criterion.\+hpp (29444d385)\end{DoxyCompactItemize}

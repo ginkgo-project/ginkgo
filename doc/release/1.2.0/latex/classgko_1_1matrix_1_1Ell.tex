@@ -1,0 +1,397 @@
+\hypertarget{classgko_1_1matrix_1_1Ell}{}\doxysection{gko\+::matrix\+::Ell$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1matrix_1_1Ell}\index{gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}}
+
+
+E\+LL is a matrix format where stride with explicit zeros is used such that all rows have the same number of stored elements.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/matrix/ell.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::matrix\+::Ell$<$ Value\+Type, Index\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1matrix_1_1Ell__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_ae56802e0bd9f47e3d0029b6fdb37db6e}\label{classgko_1_1matrix_1_1Ell_ae56802e0bd9f47e3d0029b6fdb37db6e}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a17e4809eeab4d76c2887d57e9b4b3cc4}\label{classgko_1_1matrix_1_1Ell_a17e4809eeab4d76c2887d57e9b4b3cc4}} 
+using {\bfseries index\+\_\+type} = Index\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a993ff3d650fa2f2c72777b856531163a}\label{classgko_1_1matrix_1_1Ell_a993ff3d650fa2f2c72777b856531163a}} 
+using {\bfseries mat\+\_\+data} = \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a27157e1cd5530327dc45c3f4162c7328}\label{classgko_1_1matrix_1_1Ell_a27157e1cd5530327dc45c3f4162c7328}} 
+void {\bfseries convert\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{Ell}}$<$ \mbox{\hyperlink{namespacegko_a6362f751c7753cf4fa0a4771d56e8ede}{next\+\_\+precision}}$<$ Value\+Type $>$, Index\+Type $>$ $\ast$result) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a7a3f5a0133c4b3736bec99f90844e328}\label{classgko_1_1matrix_1_1Ell_a7a3f5a0133c4b3736bec99f90844e328}} 
+void {\bfseries move\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{Ell}}$<$ \mbox{\hyperlink{namespacegko_a6362f751c7753cf4fa0a4771d56e8ede}{next\+\_\+precision}}$<$ Value\+Type $>$, Index\+Type $>$ $\ast$result) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_ac7ffdfa4fa0b75b47f49a1373995c1c8}\label{classgko_1_1matrix_1_1Ell_ac7ffdfa4fa0b75b47f49a1373995c1c8}} 
+void {\bfseries convert\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ Value\+Type $>$ $\ast$other) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_aafff71fa45b090208cb6fa29ba495d37}\label{classgko_1_1matrix_1_1Ell_aafff71fa45b090208cb6fa29ba495d37}} 
+void {\bfseries move\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{Dense}}$<$ Value\+Type $>$ $\ast$other) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_aa54a287350e098bd1e5f3b243c2ad0d9}\label{classgko_1_1matrix_1_1Ell_aa54a287350e098bd1e5f3b243c2ad0d9}} 
+void {\bfseries convert\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}}$<$ Value\+Type, Index\+Type $>$ $\ast$other) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a5d2394c6dfe5568e6e82ab84fc779c40}\label{classgko_1_1matrix_1_1Ell_a5d2394c6dfe5568e6e82ab84fc779c40}} 
+void {\bfseries move\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}}$<$ Value\+Type, Index\+Type $>$ $\ast$other) override
+\item 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a2c877d9f7bbc57f97df5ab443954a6fd}{read}} (const \mbox{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data}} \&data) override
+\begin{DoxyCompactList}\small\item\em Reads a matrix from a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_afa9148a16a9255003055d8e9156ee941}{write}} (\mbox{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data}} \&data) const override
+\begin{DoxyCompactList}\small\item\em Writes a matrix to a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. \end{DoxyCompactList}\item 
+value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a4028e9629a7d96a7a483e6ea4a686a1d}{get\+\_\+values}} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the values of the matrix. \end{DoxyCompactList}\item 
+const value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a5bc4d3c67b328b353409e76eb9f70803}{get\+\_\+const\+\_\+values}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the values of the matrix. \end{DoxyCompactList}\item 
+index\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_ac80ca9482997e97d88425214fd1b8aef}{get\+\_\+col\+\_\+idxs}} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns the column indexes of the matrix. \end{DoxyCompactList}\item 
+const index\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_addb3c84f52b090c75f519833fb379cef}{get\+\_\+const\+\_\+col\+\_\+idxs}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the column indexes of the matrix. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a08f9b04b356e58ab57d03ce335ff11ce}{get\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the number of stored elements per row. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a0be6e75dcea0975b10e3389a9eedacc1}{get\+\_\+stride}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the stride of the matrix. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_aecca4e9cfb1e81958881c6dc3e2aa06f}{get\+\_\+num\+\_\+stored\+\_\+elements}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the number of elements explicitly stored in the matrix. \end{DoxyCompactList}\item 
+value\+\_\+type \& \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a0d2365837e44dc1889fc16000ff3b0a9}{val\+\_\+at}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} row, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} idx) noexcept
+\begin{DoxyCompactList}\small\item\em Returns the {\ttfamily idx}-\/th non-\/zero element of the {\ttfamily row}-\/th row . \end{DoxyCompactList}\item 
+value\+\_\+type \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a3591fa0ab2ec09b43a15b0f0649d8ea3}{val\+\_\+at}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} row, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} idx) const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the {\ttfamily idx}-\/th non-\/zero element of the {\ttfamily row}-\/th row . \end{DoxyCompactList}\item 
+index\+\_\+type \& \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a1ef17227a6de85a1c12ebc106abbfc32}{col\+\_\+at}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} row, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} idx) noexcept
+\begin{DoxyCompactList}\small\item\em Returns the {\ttfamily idx}-\/th column index of the {\ttfamily row}-\/th row . \end{DoxyCompactList}\item 
+index\+\_\+type \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a1ac1702011ead4e56857de130b4a5301}{col\+\_\+at}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} row, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} idx) const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the {\ttfamily idx}-\/th column index of the {\ttfamily row}-\/th row . \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_aff1f69cf59ce70d0ad4ccd5fc854c616}\label{classgko_1_1matrix_1_1Ell_aff1f69cf59ce70d0ad4ccd5fc854c616}} 
+class {\bfseries Enable\+Create\+Method$<$ Ell $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a71537fa3276ed9af486b2167b456f511}\label{classgko_1_1matrix_1_1Ell_a71537fa3276ed9af486b2167b456f511}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Ell, Lin\+Op $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a22a84c8f67f946aa60a2fa8bf5835a32}\label{classgko_1_1matrix_1_1Ell_a22a84c8f67f946aa60a2fa8bf5835a32}} 
+class {\bfseries Dense$<$ Value\+Type $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a3962faf971a3df6ff4c9226c61fb24cc}\label{classgko_1_1matrix_1_1Ell_a3962faf971a3df6ff4c9226c61fb24cc}} 
+class {\bfseries Csr$<$ Value\+Type, Index\+Type $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a89acd0bfc3d7c2054773d8e306a60ced}\label{classgko_1_1matrix_1_1Ell_a89acd0bfc3d7c2054773d8e306a60ced}} 
+class {\bfseries Ell$<$ next\+\_\+precision$<$ Value\+Type $>$, Index\+Type $>$}
+\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$}
+
+E\+LL is a matrix format where stride with explicit zeros is used such that all rows have the same number of stored elements. 
+
+The number of elements stored in each row is the largest number of nonzero elements in any of the rows (obtainable through \mbox{\hyperlink{classgko_1_1matrix_1_1Ell_a08f9b04b356e58ab57d03ce335ff11ce}{get\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row()}} method). This removes the need of a row pointer like in the C\+SR format, and allows for S\+I\+MD processing of the distinct rows. For efficient processing, the nonzero elements and the corresponding column indices are stored in column-\/major fashion. The columns are padded to the length by user-\/defined stride parameter whose default value is the number of rows of the matrix.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of matrix elements \\
+\hline
+{\em Index\+Type} & precision of matrix indexes \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a1ac1702011ead4e56857de130b4a5301}\label{classgko_1_1matrix_1_1Ell_a1ac1702011ead4e56857de130b4a5301}} 
+\index{gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}!col\_at@{col\_at}}
+\index{col\_at@{col\_at}!gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{col\_at()}{col\_at()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+index\+\_\+type \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{gko\+::matrix\+::\+Ell}}$<$ Value\+Type, Index\+Type $>$\+::col\+\_\+at (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{row,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{idx }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the {\ttfamily idx}-\/th column index of the {\ttfamily row}-\/th row . 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & the row of the requested element \\
+\hline
+{\em idx} & the idx-\/th stored element of the row\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+the method has to be called on the same \mbox{\hyperlink{classgko_1_1Executor}{Executor}} the matrix is stored at (e.\+g. trying to call this method on a G\+PU matrix from the O\+MP results in a runtime error) 
+\end{DoxyNote}
+
+
+References gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a1ef17227a6de85a1c12ebc106abbfc32}\label{classgko_1_1matrix_1_1Ell_a1ef17227a6de85a1c12ebc106abbfc32}} 
+\index{gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}!col\_at@{col\_at}}
+\index{col\_at@{col\_at}!gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{col\_at()}{col\_at()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+index\+\_\+type\& \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{gko\+::matrix\+::\+Ell}}$<$ Value\+Type, Index\+Type $>$\+::col\+\_\+at (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{row,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{idx }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the {\ttfamily idx}-\/th column index of the {\ttfamily row}-\/th row . 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & the row of the requested element \\
+\hline
+{\em idx} & the idx-\/th stored element of the row\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+the method has to be called on the same \mbox{\hyperlink{classgko_1_1Executor}{Executor}} the matrix is stored at (e.\+g. trying to call this method on a G\+PU matrix from the O\+MP results in a runtime error) 
+\end{DoxyNote}
+
+
+References gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_ac80ca9482997e97d88425214fd1b8aef}\label{classgko_1_1matrix_1_1Ell_ac80ca9482997e97d88425214fd1b8aef}} 
+\index{gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}!get\_col\_idxs@{get\_col\_idxs}}
+\index{get\_col\_idxs@{get\_col\_idxs}!gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_col\_idxs()}{get\_col\_idxs()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+index\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{gko\+::matrix\+::\+Ell}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the column indexes of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the column indexes of the matrix. 
+\end{DoxyReturn}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
+
+
+
+Referenced by gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::col\+\_\+at().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_addb3c84f52b090c75f519833fb379cef}\label{classgko_1_1matrix_1_1Ell_addb3c84f52b090c75f519833fb379cef}} 
+\index{gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}!get\_const\_col\_idxs@{get\_const\_col\_idxs}}
+\index{get\_const\_col\_idxs@{get\_const\_col\_idxs}!gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_const\_col\_idxs()}{get\_const\_col\_idxs()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+const index\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{gko\+::matrix\+::\+Ell}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the column indexes of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the column indexes of the matrix.
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data().
+
+
+
+Referenced by gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::col\+\_\+at().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a5bc4d3c67b328b353409e76eb9f70803}\label{classgko_1_1matrix_1_1Ell_a5bc4d3c67b328b353409e76eb9f70803}} 
+\index{gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}!get\_const\_values@{get\_const\_values}}
+\index{get\_const\_values@{get\_const\_values}!gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_const\_values()}{get\_const\_values()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+const value\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{gko\+::matrix\+::\+Ell}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+values (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the values of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the values of the matrix.
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_aecca4e9cfb1e81958881c6dc3e2aa06f}\label{classgko_1_1matrix_1_1Ell_aecca4e9cfb1e81958881c6dc3e2aa06f}} 
+\index{gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}!get\_num\_stored\_elements@{get\_num\_stored\_elements}}
+\index{get\_num\_stored\_elements@{get\_num\_stored\_elements}!gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_num\_stored\_elements()}{get\_num\_stored\_elements()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{gko\+::matrix\+::\+Ell}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+num\+\_\+stored\+\_\+elements (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the number of elements explicitly stored in the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the number of elements explicitly stored in the matrix 
+\end{DoxyReturn}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+num\+\_\+elems().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a08f9b04b356e58ab57d03ce335ff11ce}\label{classgko_1_1matrix_1_1Ell_a08f9b04b356e58ab57d03ce335ff11ce}} 
+\index{gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}!get\_num\_stored\_elements\_per\_row@{get\_num\_stored\_elements\_per\_row}}
+\index{get\_num\_stored\_elements\_per\_row@{get\_num\_stored\_elements\_per\_row}!gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_num\_stored\_elements\_per\_row()}{get\_num\_stored\_elements\_per\_row()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{gko\+::matrix\+::\+Ell}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the number of stored elements per row. 
+
+\begin{DoxyReturn}{Returns}
+the number of stored elements per row. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a0be6e75dcea0975b10e3389a9eedacc1}\label{classgko_1_1matrix_1_1Ell_a0be6e75dcea0975b10e3389a9eedacc1}} 
+\index{gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}!get\_stride@{get\_stride}}
+\index{get\_stride@{get\_stride}!gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_stride()}{get\_stride()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{gko\+::matrix\+::\+Ell}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+stride (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the stride of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the stride of the matrix. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a4028e9629a7d96a7a483e6ea4a686a1d}\label{classgko_1_1matrix_1_1Ell_a4028e9629a7d96a7a483e6ea4a686a1d}} 
+\index{gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}!get\_values@{get\_values}}
+\index{get\_values@{get\_values}!gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_values()}{get\_values()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+value\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{gko\+::matrix\+::\+Ell}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+values (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the values of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the values of the matrix. 
+\end{DoxyReturn}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a2c877d9f7bbc57f97df5ab443954a6fd}\label{classgko_1_1matrix_1_1Ell_a2c877d9f7bbc57f97df5ab443954a6fd}} 
+\index{gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}!read@{read}}
+\index{read@{read}!gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{read()}{read()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{gko\+::matrix\+::\+Ell}}$<$ Value\+Type, Index\+Type $>$\+::read (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data}} \&}]{data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Reads a matrix from a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em data} & the \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classgko_1_1ReadableFromMatrixData_add5c12e23b3ac3c8fbd607fa5a9656bb}{gko\+::\+Readable\+From\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$}}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a3591fa0ab2ec09b43a15b0f0649d8ea3}\label{classgko_1_1matrix_1_1Ell_a3591fa0ab2ec09b43a15b0f0649d8ea3}} 
+\index{gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}!val\_at@{val\_at}}
+\index{val\_at@{val\_at}!gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{val\_at()}{val\_at()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+value\+\_\+type \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{gko\+::matrix\+::\+Ell}}$<$ Value\+Type, Index\+Type $>$\+::val\+\_\+at (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{row,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{idx }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the {\ttfamily idx}-\/th non-\/zero element of the {\ttfamily row}-\/th row . 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & the row of the requested element \\
+\hline
+{\em idx} & the idx-\/th stored element of the row\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+the method has to be called on the same \mbox{\hyperlink{classgko_1_1Executor}{Executor}} the matrix is stored at (e.\+g. trying to call this method on a G\+PU matrix from the O\+MP results in a runtime error) 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_a0d2365837e44dc1889fc16000ff3b0a9}\label{classgko_1_1matrix_1_1Ell_a0d2365837e44dc1889fc16000ff3b0a9}} 
+\index{gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}!val\_at@{val\_at}}
+\index{val\_at@{val\_at}!gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{val\_at()}{val\_at()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+value\+\_\+type\& \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{gko\+::matrix\+::\+Ell}}$<$ Value\+Type, Index\+Type $>$\+::val\+\_\+at (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{row,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{idx }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the {\ttfamily idx}-\/th non-\/zero element of the {\ttfamily row}-\/th row . 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row} & the row of the requested element \\
+\hline
+{\em idx} & the idx-\/th stored element of the row\\
+\hline
+\end{DoxyParams}
+\begin{DoxyNote}{Note}
+the method has to be called on the same \mbox{\hyperlink{classgko_1_1Executor}{Executor}} the matrix is stored at (e.\+g. trying to call this method on a G\+PU matrix from the O\+MP results in a runtime error) 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Ell_afa9148a16a9255003055d8e9156ee941}\label{classgko_1_1matrix_1_1Ell_afa9148a16a9255003055d8e9156ee941}} 
+\index{gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}!write@{write}}
+\index{write@{write}!gko::matrix::Ell$<$ ValueType, IndexType $>$@{gko::matrix::Ell$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{write()}{write()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Ell}{gko\+::matrix\+::\+Ell}}$<$ Value\+Type, Index\+Type $>$\+::write (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data}} \&}]{data }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Writes a matrix to a \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em data} & the \mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}} structure \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classgko_1_1WritableToMatrixData_a96036c3a4bf4c67fa93002808b8b14e2}{gko\+::\+Writable\+To\+Matrix\+Data$<$ Value\+Type, Index\+Type $>$}}.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/matrix/csr.\+hpp (9fdf77aa9)\item 
+ginkgo/core/matrix/ell.\+hpp (8a86dad58)\end{DoxyCompactItemize}

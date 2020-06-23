@@ -1,0 +1,82 @@
+\hypertarget{classgko_1_1OmpExecutor}{}\doxysection{gko\+::Omp\+Executor Class Reference}
+\label{classgko_1_1OmpExecutor}\index{gko::OmpExecutor@{gko::OmpExecutor}}
+
+
+This is the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} subclass which represents the Open\+MP device (typically C\+PU).  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/executor.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Omp\+Executor\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1OmpExecutor__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ \mbox{\hyperlink{classgko_1_1OmpExecutor_a5b83349e601d473cf8768c0bdbcaca8c}{get\+\_\+master}} () noexcept override
+\begin{DoxyCompactList}\small\item\em Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ \mbox{\hyperlink{classgko_1_1OmpExecutor_ab297a7eba78463784d4d2ca08b03c675}{get\+\_\+master}} () const noexcept override
+\begin{DoxyCompactList}\small\item\em Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1OmpExecutor_ad4e421dcc3d1e5c7e396167a122e57ae}\label{classgko_1_1OmpExecutor_ad4e421dcc3d1e5c7e396167a122e57ae}} 
+void \mbox{\hyperlink{classgko_1_1OmpExecutor_ad4e421dcc3d1e5c7e396167a122e57ae}{synchronize}} () const override
+\begin{DoxyCompactList}\small\item\em Synchronize the operations launched on the executor with its master. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}\label{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}} 
+static std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} $>$ \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{create}} ()
+\begin{DoxyCompactList}\small\item\em Creates a new \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+This is the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} subclass which represents the Open\+MP device (typically C\+PU). 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1OmpExecutor_ab297a7eba78463784d4d2ca08b03c675}\label{classgko_1_1OmpExecutor_ab297a7eba78463784d4d2ca08b03c675}} 
+\index{gko::OmpExecutor@{gko::OmpExecutor}!get\_master@{get\_master}}
+\index{get\_master@{get\_master}!gko::OmpExecutor@{gko::OmpExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_master()}{get\_master()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1Executor}{Executor}}$>$ gko\+::\+Omp\+Executor\+::get\+\_\+master (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+
+\begin{DoxyReturn}{Returns}
+the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Executor_a261386e439c8daa6e0d95dc331b9bfeb}{gko\+::\+Executor}}.
+
+\mbox{\Hypertarget{classgko_1_1OmpExecutor_a5b83349e601d473cf8768c0bdbcaca8c}\label{classgko_1_1OmpExecutor_a5b83349e601d473cf8768c0bdbcaca8c}} 
+\index{gko::OmpExecutor@{gko::OmpExecutor}!get\_master@{get\_master}}
+\index{get\_master@{get\_master}!gko::OmpExecutor@{gko::OmpExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_master()}{get\_master()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1Executor}{Executor}}$>$ gko\+::\+Omp\+Executor\+::get\+\_\+master (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+
+\begin{DoxyReturn}{Returns}
+the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Executor_acaec4f999d52fc71e5e5a3d3ad93609c}{gko\+::\+Executor}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/executor.\+hpp (14205b615)\end{DoxyCompactItemize}

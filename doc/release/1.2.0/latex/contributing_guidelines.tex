@@ -1,0 +1,344 @@
+We are glad that you are interested in contributing to Ginkgo. Please have a look at our coding guidelines before proposing a pull request.\hypertarget{contributing_guidelines_autotoc_md11}{}\doxysection{Table of Contents}\label{contributing_guidelines_autotoc_md11}
+\href{\#most-important-stuff-a-tldr}{\texttt{ Most Important stuff}}
+
+\href{\#project-structure}{\texttt{ Project Structure}}
+\begin{DoxyItemize}
+\item \href{\#extended-header-files}{\texttt{ Extended header files}}
+\item \href{\#using-library-classes}{\texttt{ Using library classes}}
+\end{DoxyItemize}
+
+\href{\#git-related}{\texttt{ Git related}}
+\begin{DoxyItemize}
+\item \href{\#our-git-workflow}{\texttt{ Our git Workflow}}
+\item \href{\#writing-good-commit-messages}{\texttt{ Writing good commit messages}}
+\item \href{\#creating-reviewing-and-merging-pull-requests}{\texttt{ Creating, Reviewing and Merging Pull Requests}}
+\end{DoxyItemize}
+
+\href{\#code-style}{\texttt{ Code Style}}
+\begin{DoxyItemize}
+\item \href{\#automatic-code-formatting}{\texttt{ Automatic code formatting}}
+\item \href{\#naming-scheme}{\texttt{ Naming Scheme}}
+\item \href{\#whitespace}{\texttt{ Whitespace}}
+\item \href{\#include-statement-grouping}{\texttt{ Include statement grouping}}
+\item \href{\#other-code-formatting-not-handled-by-clangformat}{\texttt{ Other Code Formatting not handled by Clang\+Format}}
+\item \href{\#cmake-coding-style}{\texttt{ C\+Make coding style}}
+\end{DoxyItemize}
+
+\href{\#helper-scripts}{\texttt{ Helper Scripts}}
+\begin{DoxyItemize}
+\item \href{\#create-a-new-algorithm}{\texttt{ Create a new algorithm}}
+\item \href{\#converting-cuda-code-to-hip-code}{\texttt{ Converting C\+U\+DA code to H\+IP code}}
+\end{DoxyItemize}
+
+\href{\#writing-tests}{\texttt{ Writing Tests}}
+\begin{DoxyItemize}
+\item \href{\#testing-know-how}{\texttt{ Testing know-\/how}}
+\item \href{\#some-general-rules}{\texttt{ Some general rules}}
+\item \href{\#writing-tests-for-kernels}{\texttt{ Writing tests for kernels}}
+\end{DoxyItemize}
+
+\href{\#documentation-style}{\texttt{ Documentation style}}
+\begin{DoxyItemize}
+\item \href{\#developer-targeted-notes}{\texttt{ Developer targeted notes}}
+\item \href{\#whitespaces}{\texttt{ Whitespaces}}
+\item \href{\#documenting-examples}{\texttt{ Documenting examples}}
+\end{DoxyItemize}
+
+\href{\#other-programming-comments}{\texttt{ Other programming comments}}
+\begin{DoxyItemize}
+\item \href{\#c-standard-stream-objects}{\texttt{ C++ standard stream objects}}
+\item \href{\#warnings}{\texttt{ Warnings}}
+\item \href{\#avoiding-circular-dependencies}{\texttt{ Avoiding circular dependencies}}
+\end{DoxyItemize}\hypertarget{contributing_guidelines_autotoc_md12}{}\doxysection{Most important stuff (\+A T\+L;\+D\+R)}\label{contributing_guidelines_autotoc_md12}
+
+\begin{DoxyItemize}
+\item {\ttfamily G\+I\+N\+K\+G\+O\+\_\+\+D\+E\+V\+E\+L\+\_\+\+T\+O\+O\+LS} needs to be set to {\ttfamily on} to commit. This requires {\ttfamily clang-\/format} to be installed. See \href{\#automatic-code-formatting}{\texttt{ Automatic code formatting}} for more details. Once installed, you can run {\ttfamily make format} in your {\ttfamily build/} folder to automatically format your modified files. As {\ttfamily make format} unstages your files post-\/formatting, you must stage the files again once you have verified that {\ttfamily make format} has done the appropriate formatting, before committing the files.
+\item See \href{\#our-git-workflow}{\texttt{ Our git workflow}} to get a quick overview of our workflow.
+\item See \href{\#creating-reviewing-and-merging-pull-requests}{\texttt{ Creating, Reviewing and Merging Pull Requests}} on how to create a Pull request.
+\end{DoxyItemize}\hypertarget{contributing_guidelines_autotoc_md13}{}\doxysection{Project structure}\label{contributing_guidelines_autotoc_md13}
+Ginkgo is divided into a {\ttfamily core} module with common functionalities independent of the architecture, and several kernel modules ({\ttfamily reference}, {\ttfamily omp}, {\ttfamily cuda}, {\ttfamily hip}) which contain low-\/level computational routines for each supported architecture.\hypertarget{contributing_guidelines_autotoc_md14}{}\doxysubsection{Extended header files}\label{contributing_guidelines_autotoc_md14}
+Some header files from the core module have to be extended to include special functionality for specific architectures. An example of this is {\ttfamily \mbox{\hyperlink{math_8hpp_source}{core/base/math.\+hpp}}}, which has a G\+PU counterpart in {\ttfamily cuda/base/math.\+hpp}. For such files you should always include the version from the module you are working on, and this file will internally include its {\ttfamily core} counterpart.\hypertarget{contributing_guidelines_autotoc_md15}{}\doxysubsection{Using library classes}\label{contributing_guidelines_autotoc_md15}
+You can use and call functions of existing classes inside a kernel (that are defined and not just declared in a header file), however, you are not allowed to create new instances of a polymorphic class inside a kernel (or in general inside any kernel module like cuda/hip/omp/reference) as this creates circular dependencies between the {\ttfamily core} and the backend library. With this in mind, our CI contains a job which checks if such a circular dependency exists. These checks can be run manually using the {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+C\+H\+E\+C\+K\+\_\+\+C\+I\+R\+C\+U\+L\+A\+R\+\_\+\+D\+E\+PS=ON} option in the C\+Make configuration.
+
+For example, when creating a new matrix class {\ttfamily AB} by combining existing classes {\ttfamily A} and {\ttfamily B}, the {\ttfamily A\+B\+::apply()} function composed of invocations to {\ttfamily A\+::apply()} and {\ttfamily B\+::apply()} can only be defined in the core module, it is not possible to create instances of {\ttfamily A} and {\ttfamily B} inside the {\ttfamily AB} kernel files. This is to avoid the aforementioned circular dependency issue. An example for such a class is the {\ttfamily Hybrid} matrix format, which uses the {\ttfamily apply()} of the {\ttfamily Ell} and {\ttfamily Coo} matrix formats. Nevertheless, it is possible to call the kernels themselves directly within the same executor. For example, {\ttfamily cuda\+::dense\+::add\+\_\+scaled()} can be called from any other {\ttfamily cuda} kernel.\hypertarget{contributing_guidelines_autotoc_md16}{}\doxysection{Git related}\label{contributing_guidelines_autotoc_md16}
+Ginkgo uses git, the distributed version control system to track code changes and coordinate work among its developers. A general guide to git can be found in \href{https://git-scm.com/docs}{\texttt{ its extensive documentation}}.\hypertarget{contributing_guidelines_autotoc_md17}{}\doxysubsection{Our git workflow}\label{contributing_guidelines_autotoc_md17}
+In Ginkgo, we prioritize keeping a clean history over accurate tracking of commits. {\ttfamily git rebase} is hence our command of choice to make sure that we have a nice and linear history, especially for pulling the latest changes from the {\ttfamily develop} branch. More importantly, rebasing upon develop is {\bfseries{required}} before the commits of the PR are merged into the {\ttfamily develop} branch.\hypertarget{contributing_guidelines_autotoc_md18}{}\doxysubsection{Writing good commit messages}\label{contributing_guidelines_autotoc_md18}
+With software sustainability and maintainability in mind, it is important to write commit messages that are short, clear and informative. Ideally, this would be the format to prefer\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{Summary of the changes in a sentence, max 50 chars.}
+\DoxyCodeLine{}
+\DoxyCodeLine{More detailed comments:}
+\DoxyCodeLine{+ Changes that have been added.}
+\DoxyCodeLine{-\/ Changes that been removed.}
+\DoxyCodeLine{}
+\DoxyCodeLine{Related PR: https://github.com/ginkgo-\/project/ginkgo/pull/<PR-\/number>}
+\end{DoxyCode}
+
+
+You can refer to \href{https://chris.beams.io/posts/git-commit/}{\texttt{ this informative guide}} for more details.\hypertarget{contributing_guidelines_autotoc_md19}{}\doxysubsubsection{Attributing credit}\label{contributing_guidelines_autotoc_md19}
+Git has a nice feature where it allows you to add a co-\/author for your commit, if you would like to attribute credits for the changes made in the commit. This can be done by\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{Commit message.}
+\DoxyCodeLine{}
+\DoxyCodeLine{Co-\/authored-\/by: Name <email@domain>}
+\end{DoxyCode}
+
+
+In the Ginkgo commit history, this is most common associated with suggested improvements from code reviews.\hypertarget{contributing_guidelines_autotoc_md20}{}\doxysubsection{Creating, Reviewing and Merging Pull Requests}\label{contributing_guidelines_autotoc_md20}
+
+\begin{DoxyItemize}
+\item The {\ttfamily develop} branch is the default branch to submit PR\textquotesingle{}s to. From time to time, we merge the {\ttfamily develop} branch to the {\ttfamily master} branch and create tags on the {\ttfamily master} to create new releases of Ginkgo. Therefore, all pull requests must be merged into {\ttfamily develop}.
+\item Please have a look at the labels and make sure to add the relevant labels.
+\item You can mark the PR as a {\ttfamily W\+IP} if you are still working on it, {\ttfamily Ready for Review} when it is ready for others to review it.
+\item Assignees to the PR should be the ones responsible for merging that PR. Currently, it is only possible to assign members within the {\ttfamily ginkgo-\/project}.
+\item Each pull request requires at least two approvals before merging.
+\item PR\textquotesingle{}s created from within the repository will automatically trigger two CI pipelines on pushing to the branch from the which the PR has been created. The Github Actions pipeline tests our framework on Mac O\+SX and on Windows platforms. Another comprehensive Linux based pipeline is run from a \href{https://gitlab.com/ginkgo-project/ginkgo-public-ci/pipelines}{\texttt{ mirror on gitlab}} and contains additional checks like static analysis and test coverage.
+\item Once a PR has been approved and the build has passed, one of the reviewers can mark the PR as {\ttfamily R\+E\+A\+DY TO M\+E\+R\+GE}. At this point the creator/assignee of the PR {\itshape needs to} verify that the branch is up to date with {\ttfamily develop} and rebase it on {\ttfamily develop} if it is not.
+\end{DoxyItemize}\hypertarget{contributing_guidelines_autotoc_md21}{}\doxysection{Code style}\label{contributing_guidelines_autotoc_md21}
+\hypertarget{contributing_guidelines_autotoc_md22}{}\doxysubsection{Automatic code formatting}\label{contributing_guidelines_autotoc_md22}
+Ginkgo uses \href{https://clang.llvm.org/docs/ClangFormat.html}{\texttt{ Clang\+Format}} (executable is usually named {\ttfamily clang-\/format}) and a custom {\ttfamily .clang-\/format} configuration file (mostly based on Clang\+Format\textquotesingle{}s {\itshape Google} style) to automatically format your code. {\bfseries{Make sure you have Clang\+Format set up and running properly}} ( you should be able to run {\ttfamily make format} from Ginkgo\textquotesingle{}s build directory) before committing anything that will end up in a pull request against {\ttfamily ginkgo-\/project/ginkgo} repository. In addition, you should {\bfseries{never}} modify the {\ttfamily .clang-\/format} configuration file shipped with Ginkgo. E.\+g. if Clang\+Format has trouble reading this file on your system, you should install a newer version of Clang\+Format, and avoid commenting out parts of the configuration file.
+
+Clang\+Format is the primary tool that helps us achieve a uniform look of Ginkgo\textquotesingle{}s codebase, while reducing the learning curve of potential contributors. However, Clang\+Format configuration is not expressive enough to incorporate the entire coding style, so there are several additional rules that all contributed code should follow.
+
+{\itshape Note}\+: To learn more about how Clang\+Format will format your code, see existing files in Ginkgo, {\ttfamily .clang-\/format} configuration file shipped with Ginkgo, and Clang\+Format\textquotesingle{}s documentation.\hypertarget{contributing_guidelines_autotoc_md23}{}\doxysubsection{Naming scheme}\label{contributing_guidelines_autotoc_md23}
+\hypertarget{contributing_guidelines_autotoc_md24}{}\doxysubsubsection{Filenames}\label{contributing_guidelines_autotoc_md24}
+Filenames use {\ttfamily snake\+\_\+case} and use the following extensions\+:
+\begin{DoxyItemize}
+\item C++ source files\+: {\ttfamily .cpp}
+\item C++ header files\+: {\ttfamily .hpp}
+\item C\+U\+DA source files\+: {\ttfamily .cu}
+\item C\+U\+DA header files\+: {\ttfamily .cuh}
+\item H\+IP source files\+: {\ttfamily .hip.\+cpp}
+\item H\+IP header files\+: {\ttfamily .hip.\+hpp}
+\item Common source files used by both C\+U\+DA and H\+IP\+: {\ttfamily .hpp.\+inc}
+\item C\+Make utility files\+: {\ttfamily .cmake}
+\item Shell scripts\+: {\ttfamily .sh}
+\end{DoxyItemize}
+
+{\itshape Note\+:} A C++ source/header file is considered a {\ttfamily C\+U\+DA} file if it contains C\+U\+DA code that is not guarded with {\ttfamily \#if} guards that disable this code in non-\/\+C\+U\+DA compilers. I.\+e. if a file can be compiled by a general C++ compiler, it is not considered a C\+U\+DA file.\hypertarget{contributing_guidelines_autotoc_md25}{}\doxysubsubsection{Macros}\label{contributing_guidelines_autotoc_md25}
+Macros (both object-\/like and function-\/like macros) use {\ttfamily C\+A\+P\+I\+T\+A\+L\+\_\+\+C\+A\+SE}. They have to start with {\ttfamily G\+K\+O\+\_\+} to avoid name clashes (even if they are {\ttfamily \#undef}-\/ed in the same file!).\hypertarget{contributing_guidelines_autotoc_md26}{}\doxysubsubsection{Variables}\label{contributing_guidelines_autotoc_md26}
+Variables use {\ttfamily snake\+\_\+case}.\hypertarget{contributing_guidelines_autotoc_md27}{}\doxysubsubsection{Constants}\label{contributing_guidelines_autotoc_md27}
+Constants use {\ttfamily snake\+\_\+case}.\hypertarget{contributing_guidelines_autotoc_md28}{}\doxysubsubsection{Functions}\label{contributing_guidelines_autotoc_md28}
+Functions use {\ttfamily snake\+\_\+case}.\hypertarget{contributing_guidelines_autotoc_md29}{}\doxysubsubsection{Structures and classes}\label{contributing_guidelines_autotoc_md29}
+Structures and classes which do not experience polymorphic behavior (i.\+e. do not contain virtual methods, nor members which experience polymorphic behavior) use {\ttfamily snake\+\_\+case}.
+
+All other structures and classes use {\ttfamily Camel\+Case}.\hypertarget{contributing_guidelines_autotoc_md30}{}\doxysubsubsection{Members}\label{contributing_guidelines_autotoc_md30}
+All structure / class members use the same naming scheme as they would if they were not members\+:
+\begin{DoxyItemize}
+\item methods use the naming scheme for functions
+\item data members the naming scheme for variables or constants
+\item type members for classes / structures
+\end{DoxyItemize}
+
+Additionally, non-\/public data members end with an underscore ({\ttfamily \+\_\+}).\hypertarget{contributing_guidelines_autotoc_md31}{}\doxysubsubsection{Namespaces}\label{contributing_guidelines_autotoc_md31}
+Namespaces use {\ttfamily snake\+\_\+case}.\hypertarget{contributing_guidelines_autotoc_md32}{}\doxysubsubsection{Template parameters}\label{contributing_guidelines_autotoc_md32}
+
+\begin{DoxyItemize}
+\item Type template parameters use {\ttfamily Camel\+Case}, for example {\ttfamily Value\+Type}.
+\item Non-\/type template parameters use {\ttfamily snake\+\_\+case}, for example {\ttfamily subwarp\+\_\+size}.
+\end{DoxyItemize}\hypertarget{contributing_guidelines_autotoc_md33}{}\doxysubsection{Whitespace}\label{contributing_guidelines_autotoc_md33}
+Spaces and tabs are handled by Clang\+Format, but blank lines are only partially handled (the current configuration doesn\textquotesingle{}t allow for more than 2 blank lines). Thus, contributors should be aware of the following rules for blank lines\+:
+
+
+\begin{DoxyEnumerate}
+\item Top-\/level statements and statements directly within namespaces are separated with 2 blank lines. The first / last statement of a namespace is separated by two blank lines from the opening / closing brace of the namespace.
+\begin{DoxyEnumerate}
+\item {\itshape exception}\+: if the first {\bfseries{or}} the last statement in the namespace is another namespace, then no blank lines are required {\itshape example}\+: \`{}\`{}\`{}c++ namespace foo \{
+\end{DoxyEnumerate}
+\end{DoxyEnumerate}
+
+\begin{DoxyVerb}    struct x {
+    };
+
+
+    }  // namespace foo
+
+
+    namespace bar {
+    namespace baz {
+
+
+    void f();
+
+
+    }  // namespace baz
+    }  // namespace bar
+    ```
+
+2.  _exception_: in header files whose only purpose is to _declare_ a bunch
+    of functions (e.g. the `*_kernel.hpp` files) these declarations can be
+    separated by only 1 blank line (note: standard rules apply for all other
+    statements that might be present in that file)
+3.  _exception_: "related" statement can have 1 blank line between them.
+    "Related" is not a strictly defined adjective in this sense, but is in
+    general one of:
+
+    1.  overload of a same function,
+    2.  function / class template and it's specializations,
+    3.  macro that modifies the meaning or adds functionality to the
+        previous / following statement.
+
+    However, simply calling function `f` from function `g` does not imply
+    that `f` and `g` are "related".
+\end{DoxyVerb}
+
+\begin{DoxyEnumerate}
+\item Statements within structures / classes are separated with 1 blank line. There are no blank lines betweeen the first / last statement in the structure / class.
+\begin{DoxyEnumerate}
+\item {\itshape exception}\+: there is no blank line between an access modifier ({\ttfamily private}, {\ttfamily protected}, {\ttfamily public}) and the following statement. {\itshape example}\+: \`{}\`{}\`{}c++ class foo \{ public\+: int get\+\_\+x() const noexcept \{ return x\+\_\+; \}
+
+int \&get\+\_\+x() noexcept \{ return x\+\_\+; \}
+
+private\+: int x\+\_\+; \}; \`{}\`{}\`{}
+\end{DoxyEnumerate}
+\item Function bodies cannot have multiple consecutive blank lines, and a single blank line can only appear between two logical sections of the function.
+\item Unit tests should follow the \href{http://wiki.c2.com/?ArrangeActAssert}{\texttt{ A\+AA}} pattern, and a single blank line must appear between consecutive \char`\"{}\+A\char`\"{} sections. No other blank lines are allowed in unit tests.
+\item Enumeration definitions should have no blank lines between consecutive enumerators.
+\end{DoxyEnumerate}\hypertarget{contributing_guidelines_autotoc_md34}{}\doxysubsection{Include statement grouping}\label{contributing_guidelines_autotoc_md34}
+In general, all include statements should be present on the top of the file, ordered in the following groups, with two blank lines between each group\+:
+
+
+\begin{DoxyEnumerate}
+\item Related header file (e.\+g. {\ttfamily core/foo/bar.\+hpp} included in {\ttfamily core/foo/bar.\+cpp}, or in the unit test{\ttfamily core/test/foo/bar.\+cpp})
+\item Standard library headers (e.\+g. {\ttfamily vector})
+\item Executor specific library headers (e.\+g. {\ttfamily omp.\+h})
+\item System third-\/party library headers (e.\+g. {\ttfamily papi.\+h})
+\item Local third-\/party library headers
+\item Public Ginkgo headers
+\item Private Ginkgo headers
+\end{DoxyEnumerate}
+
+{\itshape Example}\+: A file {\ttfamily core/base/my\+\_\+file.\+cpp} might have an include list like this\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{c++\}}
+\DoxyCodeLine{\#include <ginkgo/core/base/my\_file.hpp>}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\#include <algorithm>}
+\DoxyCodeLine{\#include <vector>}
+\DoxyCodeLine{\#include <tuple>}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\#include <omp.h>}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\#include <papi.h>}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\#include "third\_party/blas/cblas.hpp"}
+\DoxyCodeLine{\#include "third\_party/lapack/lapack.hpp"}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\#include <ginkgo/core/base/executor.hpp>}
+\DoxyCodeLine{\#include <ginkgo/core/base/lin\_op.hpp>}
+\DoxyCodeLine{\#include <ginkgo/core/base/types.hpp>}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\#include "core/base/my\_file\_kernels.hpp"}
+\end{DoxyCode}
+\hypertarget{contributing_guidelines_autotoc_md35}{}\doxysubsubsection{Main header}\label{contributing_guidelines_autotoc_md35}
+This section presents general rules used to define the main header attributed to the file. In the previous example, this would be {\ttfamily \#include $<$ginkgo/core/base/my\+\_\+file.\+hpp$>$}.
+
+General rules\+:
+\begin{DoxyEnumerate}
+\item Some fixed main header.
+\item components\+:
+\begin{DoxyItemize}
+\item with {\ttfamily \+\_\+kernel} suffix looks for the header in the same folder.
+\item without {\ttfamily \+\_\+kernel} suffix looks for the header in {\ttfamily core}.
+\end{DoxyItemize}
+\item {\ttfamily test/utils}\+: looks for the header in {\ttfamily core}
+\item {\ttfamily core}\+: looks for the header in {\ttfamily ginkgo}
+\item {\ttfamily test} or {\ttfamily base}\+: looks for the header in {\ttfamily ginkgo/core}
+\item others\+: looks for the header in {\ttfamily core}
+\end{DoxyEnumerate}
+
+{\itshape Note}\+: Please see the detail in the {\ttfamily dev\+\_\+tools/scripts/config}.\hypertarget{contributing_guidelines_autotoc_md36}{}\doxysubsubsection{Some general comments.}\label{contributing_guidelines_autotoc_md36}
+
+\begin{DoxyEnumerate}
+\item Private headers of Ginkgo should not be included within the public Ginkgo header.
+\item It is a good idea to keep the headers self-\/sufficient, See \href{https://google.github.io/styleguide/cppguide.html\#Self_contained_Headers}{\texttt{ Google Style guide for reasoning}}. When compiling with {\ttfamily G\+I\+N\+K\+G\+O\+\_\+\+C\+H\+E\+C\+K\+\_\+\+C\+I\+R\+C\+U\+L\+A\+R\+\_\+\+D\+E\+PS} enabled, this property is explicitly checked.
+\item The recommendations of the {\ttfamily iwyu} (Include what you use) tool can be used to make sure that the headers are self-\/sufficient and that the compiled files ( {\ttfamily .cu}, {\ttfamily .cpp}, {\ttfamily .hip.\+cpp} ) include only what they use. A \href{https://gitlab.com/ginkgo-project/ginkgo-public-ci/-/jobs/584358356}{\texttt{ CI pipeline}} is available that runs with the {\ttfamily iwyu} tool. Please be aware that this tool can be incorrect in some cases.
+\end{DoxyEnumerate}\hypertarget{contributing_guidelines_autotoc_md37}{}\doxysubsubsection{Automatic header arrangement}\label{contributing_guidelines_autotoc_md37}
+
+\begin{DoxyEnumerate}
+\item {\ttfamily dev\+\_\+tools/script/format\+\_\+header.\+sh} will take care of the group/sorting of headers according to this guideline.
+\item {\ttfamily make format\+\_\+header} arranges the header of the modified files in the branch.
+\item {\ttfamily make format\+\_\+header\+\_\+all} arranges the header of all files.
+\end{DoxyEnumerate}\hypertarget{contributing_guidelines_autotoc_md38}{}\doxysubsection{Other Code Formatting not handled by Clang\+Format}\label{contributing_guidelines_autotoc_md38}
+\hypertarget{contributing_guidelines_autotoc_md39}{}\doxysubsubsection{Control flow constructs}\label{contributing_guidelines_autotoc_md39}
+Single line statements should be avoided in all cases. Use of brackets is mandatory for all control flow constructs (e.\+g. {\ttfamily if}, {\ttfamily for}, {\ttfamily while}, ...).\hypertarget{contributing_guidelines_autotoc_md40}{}\doxysubsubsection{Variable declarations}\label{contributing_guidelines_autotoc_md40}
+C++ supports declaring / defining multiple variables using a single {\itshape type-\/specifier}. However, this is often very confusing as references and pointers exhibit strange behavior\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{c++\}}
+\DoxyCodeLine{template <typename T> using pointer = T *;}
+\DoxyCodeLine{}
+\DoxyCodeLine{int *        x, y;  // x is a pointer, y is not}
+\DoxyCodeLine{pointer<int> x, y;  // both x and y are pointers}
+\end{DoxyCode}
+
+
+For this reason, {\bfseries{always}} declare each variable on a separate line, with its own {\itshape type-\/specifier}.\hypertarget{contributing_guidelines_autotoc_md41}{}\doxysubsection{C\+Make coding style}\label{contributing_guidelines_autotoc_md41}
+\hypertarget{contributing_guidelines_autotoc_md42}{}\doxysubsubsection{Whitespaces}\label{contributing_guidelines_autotoc_md42}
+All alignment in C\+Make files should use four spaces.\hypertarget{contributing_guidelines_autotoc_md43}{}\doxysubsubsection{Use of macros vs functions}\label{contributing_guidelines_autotoc_md43}
+Macros in C\+Make do not have a scope. This means that any variable set in this macro will be available to the whole project. In contrast, functions in C\+Make have local scope and therefore all set variables are local only. In general, wrap all piece of algorithms using temporary variables in a function and use macros to propagate variables to the whole project.\hypertarget{contributing_guidelines_autotoc_md44}{}\doxysubsubsection{Naming style}\label{contributing_guidelines_autotoc_md44}
+All Ginkgo specific variables should be prefixed with a {\ttfamily G\+I\+N\+K\+G\+O\+\_\+} and all functions by {\ttfamily ginkgo\+\_\+}.\hypertarget{contributing_guidelines_autotoc_md45}{}\doxysection{Helper scripts}\label{contributing_guidelines_autotoc_md45}
+To facilitate easy development within Ginkgo and to encourage coders and scientists who do not want get bogged down by the details of the Ginkgo library, but rather focus on writing the algorithms and the kernels, Ginkgo provides the developers with a few helper scripts.\hypertarget{contributing_guidelines_autotoc_md46}{}\doxysubsection{Create a new algorithm}\label{contributing_guidelines_autotoc_md46}
+A {\ttfamily create\+\_\+new\+\_\+algorithm.\+sh} script is available for developers to facilitate easy addition of new algorithms. The options it provides can be queried with
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{./create\_new\_algorithm.sh -\/-\/help}
+\end{DoxyCode}
+ The main objective of this script is to add files and boiler plate code for the new algorithm using a model and an instance of that model. For example, models can be any one of {\ttfamily factorization}, {\ttfamily matrix}, {\ttfamily preconditioner} or {\ttfamily solver}. For example to create a new solver named {\ttfamily my\+\_\+solver} similar to {\ttfamily gmres}, you would set the {\ttfamily Model\+Type} to {\ttfamily solver} and set the {\ttfamily Model\+Name} to {\ttfamily gmres}. This would duplicate the core algorithm and kernels of the {\ttfamily gmres} algorithm and replace the naming to {\ttfamily my\+\_\+solver}. Additionally, all the kernels of the new {\ttfamily my\+\_\+solver} are marked as {\ttfamily G\+K\+O\+\_\+\+N\+O\+T\+\_\+\+I\+M\+P\+L\+E\+M\+E\+N\+T\+ED}. For easy navigation and {\ttfamily .txt} file is created in the folder where the script is run, which lists all the T\+O\+DO\textquotesingle{}s. These T\+O\+DO\textquotesingle{}s can also be found in the corresponding files.\hypertarget{contributing_guidelines_autotoc_md47}{}\doxysubsection{Converting C\+U\+D\+A code to H\+I\+P code}\label{contributing_guidelines_autotoc_md47}
+We provide a {\ttfamily cuda2hip} script that converts {\ttfamily cuda} kernel code into {\ttfamily hip} kernel code. Internally, this script calls the \href{https://github.com/ROCm-Developer-Tools/HIPIFY}{\texttt{ {\ttfamily hipify} script}} provided by H\+IP, converting the C\+U\+DA syntax to H\+IP syntax. Additionally, it also automatically replaces the instances of C\+U\+DA with H\+IP as appropriate. Hence, this script can be called on a Ginkgo C\+U\+DA file. You can find this script in the {\ttfamily dev\+\_\+tools/scripts/} folder.\hypertarget{contributing_guidelines_autotoc_md48}{}\doxysection{Writing Tests}\label{contributing_guidelines_autotoc_md48}
+Ginkgo uses the \href{https://github.com/google/googletest}{\texttt{ G\+Test framework}} for the unit test framework within Ginkgo. Writing good tests are extremely important to verify the functionality of the new code and to make sure that none of the existing code has been broken.\hypertarget{contributing_guidelines_autotoc_md49}{}\doxysubsection{Testing know-\/how}\label{contributing_guidelines_autotoc_md49}
+
+\begin{DoxyItemize}
+\item G\+Test provides a \href{https://github.com/google/googletest/blob/master/googletest/docs/primer.md}{\texttt{ comprehensive documentation}} of the functionality available within Gtest.
+\item Reduce code duplication with \href{https://github.com/google/googletest/blob/master/googletest/docs/primer.md\#test-fixtures-using-the-same-data-configuration-for-multiple-tests-same-data-multiple-tests}{\texttt{ Testing Fixtures, {\ttfamily T\+E\+S\+T\+\_\+F}}}
+\item Write templated tests using \href{https://github.com/google/googletest/blob/master/googletest/docs/advanced.md\#typed-tests}{\texttt{ {\ttfamily T\+Y\+P\+E\+D\+\_\+\+T\+E\+ST}}}.
+\end{DoxyItemize}\hypertarget{contributing_guidelines_autotoc_md50}{}\doxysubsection{Some general rules.}\label{contributing_guidelines_autotoc_md50}
+
+\begin{DoxyItemize}
+\item Unit tests must follow the \href{https://en.wikipedia.org/wiki/KISS_principle}{\texttt{ K\+I\+SS principle}}.
+\item Unit tests must follow the \href{http://wiki.c2.com/?ArrangeActAssert}{\texttt{ A\+AA}} pattern, and a single blank line must appear between consecutive \char`\"{}\+A\char`\"{} sections.
+\end{DoxyItemize}\hypertarget{contributing_guidelines_autotoc_md51}{}\doxysubsection{Writing tests for kernels}\label{contributing_guidelines_autotoc_md51}
+
+\begin{DoxyItemize}
+\item Reference kernels, kernels on the {\ttfamily Reference\+Executor}, are meant to be single threaded reference implementations. Therefore, tests for reference kernels need to be performed with data that can be as small as possible. For example, matrices lesser than 5x5 are acceptable. This allows the reviewers to verify the results for exactness with tools such as M\+A\+T\+L\+AB.
+\item Open\+MP, C\+U\+DA and H\+IP kernels have to be tested against the reference kernels. Hence data for the tests of these kernels can be generated in the test files using helper functions or by using external files to be read through the standard input. In particular for C\+U\+DA and H\+IP, the data size should be at least bigger than the architecture\textquotesingle{}s warp size to ensure there is no corner case in the kernels.
+\end{DoxyItemize}\hypertarget{contributing_guidelines_autotoc_md52}{}\doxysection{Documentation style}\label{contributing_guidelines_autotoc_md52}
+Documentation uses standard Doxygen.\hypertarget{contributing_guidelines_autotoc_md53}{}\doxysubsection{Developer targeted notes}\label{contributing_guidelines_autotoc_md53}
+Make use of {\ttfamily @internal} doxygen tag. This can be used for any comment which is not intended for users, but is useful to better understand a piece of code.\hypertarget{contributing_guidelines_autotoc_md54}{}\doxysubsection{Whitespaces}\label{contributing_guidelines_autotoc_md54}
+\hypertarget{contributing_guidelines_autotoc_md55}{}\doxysubsubsection{After named tags such as $<$tt$>$@param foo$<$/tt$>$}\label{contributing_guidelines_autotoc_md55}
+The documentation tags which use an additional name should be followed by two spaces in order to better distinguish the text from the doxygen tag. It is also possible to use a line break instead.\hypertarget{contributing_guidelines_autotoc_md56}{}\doxysubsection{Documenting examples}\label{contributing_guidelines_autotoc_md56}
+There are two main steps\+:
+
+
+\begin{DoxyEnumerate}
+\item First, you can just copy over the \href{https://github.com/ginkgo-project/ginkgo/tree/develop/examples/simple-solver}{\texttt{ {\ttfamily doc/}}} folder (you can copy it from the example most relevant to you) and adapt your example names and such, then you can modify the actual documentation.
+\end{DoxyEnumerate}
+\begin{DoxyItemize}
+\item In {\ttfamily tooltip}\+: A short description of the example.
+\item In {\ttfamily short-\/intro}\+: The name of the example.
+\item In {\ttfamily results.\+dox}\+: Run the example and write the output you get.
+\item In {\ttfamily kind}\+: The kind of the example. For different kinds see \href{https://ginkgo-project.github.io/ginkgo/doc/develop/Examples.html}{\texttt{ the documentation}}. Examples can be of {\ttfamily basic}, {\ttfamily techniques}, {\ttfamily logging}, {\ttfamily stopping\+\_\+criteria} or {\ttfamily preconditioners}. If your example does not fit any of these categories, feel free to create one.
+\item In {\ttfamily intro.\+dox}\+: You write an explanation of your code with some introduction similar to what you see in an existing example most relevant to you.
+\item In {\ttfamily builds-\/on}\+: You write the examples it builds on.
+\end{DoxyItemize}
+\begin{DoxyEnumerate}
+\item You also need to modify the \href{https://github.com/ginkgo-project/ginkgo/blob/develop/doc/examples/examples.hpp.in}{\texttt{ examples.\+hpp.\+in}} file. You add the name of the example in the main section and in the section that you specified in the {\ttfamily doc/kind} file in the example documentation.
+\end{DoxyEnumerate}\hypertarget{contributing_guidelines_autotoc_md57}{}\doxysection{Other programming comments}\label{contributing_guidelines_autotoc_md57}
+\hypertarget{contributing_guidelines_autotoc_md58}{}\doxysubsection{C++ standard stream objects}\label{contributing_guidelines_autotoc_md58}
+These are global objects and are shared inside the same translation unit. Therefore, whenever its state or formatting is changed (e.\+g. using {\ttfamily std\+::hex} or floating point formatting) inside library code, make sure to restore the state before returning the control to the user. See this \href{https://stackoverflow.com/questions/2273330/restore-the-state-of-stdcout-after-manipulating-it}{\texttt{ stackoverflow question}} for examples on how to do it correctly. This is extremely important for header files.\hypertarget{contributing_guidelines_autotoc_md59}{}\doxysubsection{Warnings}\label{contributing_guidelines_autotoc_md59}
+By default, the {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+C\+O\+M\+P\+I\+L\+E\+R\+\_\+\+F\+L\+A\+GS} is set to {\ttfamily -\/Wpedantic} and hence pedantic warnings are emitted by default. Some of these warnings are false positives and a complete list of the resolved warnings and their solutions is listed in \href{https://github.com/ginkgo-project/ginkgo/issues/174}{\texttt{ Issue 174}}. Specifically, when macros are being used, we have the issue of having {\ttfamily extra ;} warnings, which is resolved by adding a {\ttfamily static\+\_\+assert()}. The CI system additionally also has a step where it compiles for pedantic warnings to be errors.\hypertarget{contributing_guidelines_autotoc_md60}{}\doxysubsection{Avoiding circular dependencies}\label{contributing_guidelines_autotoc_md60}
+To facilitate finding circular dependencies issues (see \href{\#using-library-classes}{\texttt{ Using library classes}} for more details), a CI step {\ttfamily no-\/circular-\/deps} was created. For more details on its usage, see \href{https://gitlab.com/ginkgo-project/ginkgo-public-ci/pipelines/52941979}{\texttt{ this pipeline}}, where Ginkgo did not abide to this policy and \href{https://github.com/ginkgo-project/ginkgo/pull/278}{\texttt{ PR \#278}} which fixed this. Note that doing so is not enough to guarantee with 100\% accuracy that no circular dependency is present. For an example of such a case, take a look at \href{https://gitlab.com/ginkgo-project/ginkgo-public-ci/pipelines/53006772}{\texttt{ this pipeline}} where one of the compiler setups detected an incorrect dependency of the {\ttfamily cuda} module (due to jacobi) on the {\ttfamily core} module. 

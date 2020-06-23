@@ -1,0 +1,168 @@
+\hypertarget{classgko_1_1precision__reduction}{}\doxysection{gko\+::precision\+\_\+reduction Class Reference}
+\label{classgko_1_1precision__reduction}\index{gko::precision\_reduction@{gko::precision\_reduction}}
+
+
+This class is used to encode storage precisions of low precision algorithms.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/types.\+hpp$>$}
+
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1precision__reduction_a2a1a94a27fa69b4cc321136b56e7b7d9}\label{classgko_1_1precision__reduction_a2a1a94a27fa69b4cc321136b56e7b7d9}} 
+using \mbox{\hyperlink{classgko_1_1precision__reduction_a2a1a94a27fa69b4cc321136b56e7b7d9}{storage\+\_\+type}} = \mbox{\hyperlink{namespacegko_a3950fc3732811a8563484e5098c31531}{uint8}}
+\begin{DoxyCompactList}\small\item\em The underlying datatype used to store the encoding. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+constexpr \mbox{\hyperlink{classgko_1_1precision__reduction_a371fe028770edee40c013d1a45365aa2}{precision\+\_\+reduction}} () noexcept
+\begin{DoxyCompactList}\small\item\em Creates a default \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}} encoding. \end{DoxyCompactList}\item 
+constexpr \mbox{\hyperlink{classgko_1_1precision__reduction_ae4d4355a6614ced4fc611619da7b09f2}{precision\+\_\+reduction}} (\mbox{\hyperlink{classgko_1_1precision__reduction_a2a1a94a27fa69b4cc321136b56e7b7d9}{storage\+\_\+type}} preserving, \mbox{\hyperlink{classgko_1_1precision__reduction_a2a1a94a27fa69b4cc321136b56e7b7d9}{storage\+\_\+type}} nonpreserving) noexcept
+\begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}} encoding with the specified number of conversions. \end{DoxyCompactList}\item 
+constexpr \mbox{\hyperlink{classgko_1_1precision__reduction_a3ee4da03be089565f7ab91b553d7738f}{operator storage\+\_\+type}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Extracts the raw data of the encoding. \end{DoxyCompactList}\item 
+constexpr \mbox{\hyperlink{classgko_1_1precision__reduction_a2a1a94a27fa69b4cc321136b56e7b7d9}{storage\+\_\+type}} \mbox{\hyperlink{classgko_1_1precision__reduction_ad709bd9bdd9b4ec27f75fc213aef51df}{get\+\_\+preserving}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the number of preserving conversions in the encoding. \end{DoxyCompactList}\item 
+constexpr \mbox{\hyperlink{classgko_1_1precision__reduction_a2a1a94a27fa69b4cc321136b56e7b7d9}{storage\+\_\+type}} \mbox{\hyperlink{classgko_1_1precision__reduction_a909a01025fd490d4658abd7c5791685d}{get\+\_\+nonpreserving}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the number of non-\/preserving conversions in the encoding. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+constexpr static \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}} \mbox{\hyperlink{classgko_1_1precision__reduction_a1fde4dd48fab015698c1616408f3ef81}{autodetect}} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns a special encoding which instructs the algorithm to automatically detect the best precision. \end{DoxyCompactList}\item 
+constexpr static \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}} \mbox{\hyperlink{classgko_1_1precision__reduction_ab6501f1de114d0d1fe589132235cb02e}{common}} (\mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}} x, \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}} y) noexcept
+\begin{DoxyCompactList}\small\item\em Returns the common encoding of input encodings. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+This class is used to encode storage precisions of low precision algorithms. 
+
+Some algorithms in Ginkgo can improve their performance by storing parts of the data in lower precision, while doing computation in full precision. This class is used to encode the precisions used to store the data. From the user\textquotesingle{}s perspective, some algorithms can provide a parameter for fine-\/tuning the storage precision. Commonly, the special value returned by \mbox{\hyperlink{classgko_1_1precision__reduction_a1fde4dd48fab015698c1616408f3ef81}{precision\+\_\+reduction\+::autodetect()}} should be used to allow the algorithm to automatically choose an appropriate value, though manually selected values can be used for fine-\/tuning.
+
+In general, a lower precision floating point value can be obtained by either dropping some of the insignificant bits of the significand (keeping the same number of exponent bits, and thus preserving the range of representable values) or using one of the hardware or software supported conversions between I\+E\+EE formats, such as double to float or float to half (reducing both the number of exponent, as well as significand bits, and thus decreasing the range of representable values).
+
+The \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}} class encodes the lower precision format relative to the base precision used and the algorithm in question. The encoding is done by specifying the amount of range non-\/preserving conversions and the amount of range preserving conversions that should be done on the base precision to obtain the lower precision format. For example, starting with a double precision value (11 exp, 52 sig. bits), the encoding specifying 1 non-\/preserving conversion and 1 preserving conversion would first use a hardware-\/supported non-\/preserving conversion to obtain a single precision value (8 exp, 23 sig. bits), followed by a preserving bit truncation to obtain a value with 8 exponent and 7 significand bits. Note that non-\/preserving conversion are always done first, as preserving conversions usually result in datatypes that are not supported by builtin conversions (thus, it is generally not possible to apply a non-\/preserving conversion to the result of a preserving conversion).
+
+If the specified conversion is not supported by the algorithm, it will most likely fall back to using full precision for storing the data. Refer to the documentation of specific algorithms using this class for details about such special cases. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classgko_1_1precision__reduction_a371fe028770edee40c013d1a45365aa2}\label{classgko_1_1precision__reduction_a371fe028770edee40c013d1a45365aa2}} 
+\index{gko::precision\_reduction@{gko::precision\_reduction}!precision\_reduction@{precision\_reduction}}
+\index{precision\_reduction@{precision\_reduction}!gko::precision\_reduction@{gko::precision\_reduction}}
+\doxysubsubsection{\texorpdfstring{precision\_reduction()}{precision\_reduction()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily constexpr gko\+::precision\+\_\+reduction\+::precision\+\_\+reduction (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+
+
+
+Creates a default \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}} encoding. 
+
+This encoding represents the case where no conversions are performed. 
+
+Referenced by common().
+
+\mbox{\Hypertarget{classgko_1_1precision__reduction_ae4d4355a6614ced4fc611619da7b09f2}\label{classgko_1_1precision__reduction_ae4d4355a6614ced4fc611619da7b09f2}} 
+\index{gko::precision\_reduction@{gko::precision\_reduction}!precision\_reduction@{precision\_reduction}}
+\index{precision\_reduction@{precision\_reduction}!gko::precision\_reduction@{gko::precision\_reduction}}
+\doxysubsubsection{\texorpdfstring{precision\_reduction()}{precision\_reduction()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily constexpr gko\+::precision\+\_\+reduction\+::precision\+\_\+reduction (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classgko_1_1precision__reduction_a2a1a94a27fa69b4cc321136b56e7b7d9}{storage\+\_\+type}}}]{preserving,  }\item[{\mbox{\hyperlink{classgko_1_1precision__reduction_a2a1a94a27fa69b4cc321136b56e7b7d9}{storage\+\_\+type}}}]{nonpreserving }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+
+
+
+Creates a \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}} encoding with the specified number of conversions. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em preserving} & the number of range preserving conversion \\
+\hline
+{\em nonpreserving} & the number of range non-\/preserving conversions \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1precision__reduction_a1fde4dd48fab015698c1616408f3ef81}\label{classgko_1_1precision__reduction_a1fde4dd48fab015698c1616408f3ef81}} 
+\index{gko::precision\_reduction@{gko::precision\_reduction}!autodetect@{autodetect}}
+\index{autodetect@{autodetect}!gko::precision\_reduction@{gko::precision\_reduction}}
+\doxysubsubsection{\texorpdfstring{autodetect()}{autodetect()}}
+{\footnotesize\ttfamily constexpr static \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}} gko\+::precision\+\_\+reduction\+::autodetect (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+
+
+
+Returns a special encoding which instructs the algorithm to automatically detect the best precision. 
+
+\begin{DoxyReturn}{Returns}
+a special encoding instructing the algorithm to automatically detect the best precision. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1precision__reduction_ab6501f1de114d0d1fe589132235cb02e}\label{classgko_1_1precision__reduction_ab6501f1de114d0d1fe589132235cb02e}} 
+\index{gko::precision\_reduction@{gko::precision\_reduction}!common@{common}}
+\index{common@{common}!gko::precision\_reduction@{gko::precision\_reduction}}
+\doxysubsubsection{\texorpdfstring{common()}{common()}}
+{\footnotesize\ttfamily constexpr static \mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}} gko\+::precision\+\_\+reduction\+::common (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}}}]{x,  }\item[{\mbox{\hyperlink{classgko_1_1precision__reduction}{precision\+\_\+reduction}}}]{y }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the common encoding of input encodings. 
+
+The common encoding is defined as the encoding that does not have more preserving, nor non-\/preserving conversions than the input encodings.
+
+
+\begin{DoxyParams}{Parameters}
+{\em x} & an encoding \\
+\hline
+{\em y} & an encoding\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the common encoding of {\ttfamily x} and {\ttfamily y} 
+\end{DoxyReturn}
+
+
+References precision\+\_\+reduction().
+
+\mbox{\Hypertarget{classgko_1_1precision__reduction_a909a01025fd490d4658abd7c5791685d}\label{classgko_1_1precision__reduction_a909a01025fd490d4658abd7c5791685d}} 
+\index{gko::precision\_reduction@{gko::precision\_reduction}!get\_nonpreserving@{get\_nonpreserving}}
+\index{get\_nonpreserving@{get\_nonpreserving}!gko::precision\_reduction@{gko::precision\_reduction}}
+\doxysubsubsection{\texorpdfstring{get\_nonpreserving()}{get\_nonpreserving()}}
+{\footnotesize\ttfamily constexpr \mbox{\hyperlink{classgko_1_1precision__reduction_a2a1a94a27fa69b4cc321136b56e7b7d9}{storage\+\_\+type}} gko\+::precision\+\_\+reduction\+::get\+\_\+nonpreserving (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the number of non-\/preserving conversions in the encoding. 
+
+\begin{DoxyReturn}{Returns}
+the number of non-\/preserving conversions in the encoding. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1precision__reduction_ad709bd9bdd9b4ec27f75fc213aef51df}\label{classgko_1_1precision__reduction_ad709bd9bdd9b4ec27f75fc213aef51df}} 
+\index{gko::precision\_reduction@{gko::precision\_reduction}!get\_preserving@{get\_preserving}}
+\index{get\_preserving@{get\_preserving}!gko::precision\_reduction@{gko::precision\_reduction}}
+\doxysubsubsection{\texorpdfstring{get\_preserving()}{get\_preserving()}}
+{\footnotesize\ttfamily constexpr \mbox{\hyperlink{classgko_1_1precision__reduction_a2a1a94a27fa69b4cc321136b56e7b7d9}{storage\+\_\+type}} gko\+::precision\+\_\+reduction\+::get\+\_\+preserving (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the number of preserving conversions in the encoding. 
+
+\begin{DoxyReturn}{Returns}
+the number of preserving conversions in the encoding. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1precision__reduction_a3ee4da03be089565f7ab91b553d7738f}\label{classgko_1_1precision__reduction_a3ee4da03be089565f7ab91b553d7738f}} 
+\index{gko::precision\_reduction@{gko::precision\_reduction}!operator storage\_type@{operator storage\_type}}
+\index{operator storage\_type@{operator storage\_type}!gko::precision\_reduction@{gko::precision\_reduction}}
+\doxysubsubsection{\texorpdfstring{operator storage\_type()}{operator storage\_type()}}
+{\footnotesize\ttfamily constexpr gko\+::precision\+\_\+reduction\+::operator \mbox{\hyperlink{classgko_1_1precision__reduction_a2a1a94a27fa69b4cc321136b56e7b7d9}{storage\+\_\+type}} (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}, {\ttfamily [noexcept]}}
+
+
+
+Extracts the raw data of the encoding. 
+
+\begin{DoxyReturn}{Returns}
+the raw data of the encoding 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/types.\+hpp (38ba93959)\end{DoxyCompactItemize}

@@ -1,0 +1,116 @@
+\hypertarget{classgko_1_1Perturbation}{}\doxysection{gko\+::Perturbation$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1Perturbation}\index{gko::Perturbation$<$ ValueType $>$@{gko::Perturbation$<$ ValueType $>$}}
+
+
+The \mbox{\hyperlink{classgko_1_1Perturbation}{Perturbation}} class can be used to construct a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} to represent the operation {\ttfamily (identity + scalar $\ast$ basis $\ast$ projector)}.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/perturbation.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Perturbation$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1Perturbation__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1Perturbation_a4cfdd76ca131540add0bd9d01cee1b5e}\label{classgko_1_1Perturbation_a4cfdd76ca131540add0bd9d01cee1b5e}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+const std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1Perturbation_a4080d4c1ea5529e5eb51eea5f85946bb}{get\+\_\+basis}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the basis of the perturbation. \end{DoxyCompactList}\item 
+const std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1Perturbation_a000aeeb35938fef6923673de3b932234}{get\+\_\+projector}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the projector of the perturbation. \end{DoxyCompactList}\item 
+const std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1Perturbation_af3a1d57c22b34f276a9222eb248825ae}{get\+\_\+scalar}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the scalar of the perturbation. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1Perturbation_a7e9386180dd5369d21b42afab1c27562}\label{classgko_1_1Perturbation_a7e9386180dd5369d21b42afab1c27562}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Perturbation, Lin\+Op $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1Perturbation_a13fd7967428770aca8d7f67ac2397215}\label{classgko_1_1Perturbation_a13fd7967428770aca8d7f67ac2397215}} 
+class {\bfseries Enable\+Create\+Method$<$ Perturbation $>$}
+\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::\+Perturbation$<$ Value\+Type $>$}
+
+The \mbox{\hyperlink{classgko_1_1Perturbation}{Perturbation}} class can be used to construct a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} to represent the operation {\ttfamily (identity + scalar $\ast$ basis $\ast$ projector)}. 
+
+This operator adds a movement along a direction constructed by {\ttfamily basis} and {\ttfamily projector} on the \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}. {\ttfamily projector} gives the coefficient of {\ttfamily basis} to decide the direction.
+
+For example, the Householder matrix can be represented with the \mbox{\hyperlink{classgko_1_1Perturbation}{Perturbation}} operator as follows. If u is the Householder factor then we can generate the \href{https://en.wikipedia.org/wiki/Householder_transformation}{\texttt{ Householder transformation}}, H = (I -\/ 2 u u$\ast$). In this case, the parameters of \mbox{\hyperlink{classgko_1_1Perturbation}{Perturbation}} class are scalar = -\/2, basis = u, and projector = u$\ast$.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of input and result vectors\\
+\hline
+\end{DoxyTemplParams}
+\begin{DoxyNote}{Note}
+the apply operations of \mbox{\hyperlink{classgko_1_1Perturbation}{Perturbation}} class are not thread safe 
+\end{DoxyNote}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1Perturbation_a4080d4c1ea5529e5eb51eea5f85946bb}\label{classgko_1_1Perturbation_a4080d4c1ea5529e5eb51eea5f85946bb}} 
+\index{gko::Perturbation$<$ ValueType $>$@{gko::Perturbation$<$ ValueType $>$}!get\_basis@{get\_basis}}
+\index{get\_basis@{get\_basis}!gko::Perturbation$<$ ValueType $>$@{gko::Perturbation$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_basis()}{get\_basis()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+const std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1Perturbation}{gko\+::\+Perturbation}}$<$ Value\+Type $>$\+::get\+\_\+basis (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the basis of the perturbation. 
+
+\begin{DoxyReturn}{Returns}
+the basis of the perturbation 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1Perturbation_a000aeeb35938fef6923673de3b932234}\label{classgko_1_1Perturbation_a000aeeb35938fef6923673de3b932234}} 
+\index{gko::Perturbation$<$ ValueType $>$@{gko::Perturbation$<$ ValueType $>$}!get\_projector@{get\_projector}}
+\index{get\_projector@{get\_projector}!gko::Perturbation$<$ ValueType $>$@{gko::Perturbation$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_projector()}{get\_projector()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+const std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1Perturbation}{gko\+::\+Perturbation}}$<$ Value\+Type $>$\+::get\+\_\+projector (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the projector of the perturbation. 
+
+\begin{DoxyReturn}{Returns}
+the projector of the perturbation 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1Perturbation_af3a1d57c22b34f276a9222eb248825ae}\label{classgko_1_1Perturbation_af3a1d57c22b34f276a9222eb248825ae}} 
+\index{gko::Perturbation$<$ ValueType $>$@{gko::Perturbation$<$ ValueType $>$}!get\_scalar@{get\_scalar}}
+\index{get\_scalar@{get\_scalar}!gko::Perturbation$<$ ValueType $>$@{gko::Perturbation$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_scalar()}{get\_scalar()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+const std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1Perturbation}{gko\+::\+Perturbation}}$<$ Value\+Type $>$\+::get\+\_\+scalar (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the scalar of the perturbation. 
+
+\begin{DoxyReturn}{Returns}
+the scalar of the perturbation 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/perturbation.\+hpp (29444d385)\end{DoxyCompactItemize}

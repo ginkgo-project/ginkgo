@@ -1,0 +1,149 @@
+\hypertarget{classgko_1_1solver_1_1UpperTrs}{}\doxysection{gko\+::solver\+::Upper\+Trs$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1solver_1_1UpperTrs}\index{gko::solver::UpperTrs$<$ ValueType, IndexType $>$@{gko::solver::UpperTrs$<$ ValueType, IndexType $>$}}
+
+
+\mbox{\hyperlink{classgko_1_1solver_1_1UpperTrs}{Upper\+Trs}} is the triangular solver which solves the system U x = b, when U is an upper triangular matrix.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/solver/upper\+\_\+trs.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::solver\+::Upper\+Trs$<$ Value\+Type, Index\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1solver_1_1UpperTrs__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1solver_1_1UpperTrs_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1solver_1_1UpperTrs_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1UpperTrs_a30d7665c4a4694017ce3bf425069db5a}\label{classgko_1_1solver_1_1UpperTrs_a30d7665c4a4694017ce3bf425069db5a}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1UpperTrs_a361cb1c89c8f6cba2201344467d9edee}\label{classgko_1_1solver_1_1UpperTrs_a361cb1c89c8f6cba2201344467d9edee}} 
+using {\bfseries index\+\_\+type} = Index\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1UpperTrs_a774d312cfa0901262b06469f321ff20a}\label{classgko_1_1solver_1_1UpperTrs_a774d312cfa0901262b06469f321ff20a}} 
+using {\bfseries transposed\+\_\+type} = \mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs}{Lower\+Trs}}$<$ Value\+Type, Index\+Type $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$ $>$ \mbox{\hyperlink{classgko_1_1solver_1_1UpperTrs_a5634d236ea80f6e0ad0bb80aae965a78}{get\+\_\+system\+\_\+matrix}} () const
+\begin{DoxyCompactList}\small\item\em Gets the system operator (C\+SR matrix) of the linear system. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1UpperTrs_ae92d5699fdff442300dd150e6b1e9a70}{transpose}} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1UpperTrs_ad1ea3550cf3dd135555ba292f0bf3818}{conj\+\_\+transpose}} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1UpperTrs_a37fa165fc38663072ef41ad10ca0e11c}\label{classgko_1_1solver_1_1UpperTrs_a37fa165fc38663072ef41ad10ca0e11c}} 
+const \mbox{\hyperlink{structgko_1_1solver_1_1UpperTrs_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1UpperTrs_ae0718f752bc09a9df5b7de9bbc28e348}\label{classgko_1_1solver_1_1UpperTrs_ae0718f752bc09a9df5b7de9bbc28e348}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1solver_1_1UpperTrs_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1UpperTrs_ace1f94d11afd9219da2b56ee51b5b0e9}\label{classgko_1_1solver_1_1UpperTrs_ace1f94d11afd9219da2b56ee51b5b0e9}} 
+class {\bfseries Enable\+Lin\+Op$<$ Upper\+Trs $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1UpperTrs_a2f2f9845d1fc77478b1a53d3c3334a5d}\label{classgko_1_1solver_1_1UpperTrs_a2f2f9845d1fc77478b1a53d3c3334a5d}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Upper\+Trs, Lin\+Op $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1UpperTrs_aac6e7466a2b111508de4effc8102b7ff}\label{classgko_1_1solver_1_1UpperTrs_aac6e7466a2b111508de4effc8102b7ff}} 
+class {\bfseries Lower\+Trs$<$ Value\+Type, Index\+Type $>$}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::solver\+::\+Upper\+Trs$<$ Value\+Type, Index\+Type $>$}
+
+\mbox{\hyperlink{classgko_1_1solver_1_1UpperTrs}{Upper\+Trs}} is the triangular solver which solves the system U x = b, when U is an upper triangular matrix. 
+
+It works best when passing in a matrix in C\+SR format. If the matrix is not in C\+SR, then the generate step converts it into a C\+SR matrix. The generation fails if the matrix is not convertible to C\+SR.
+
+\begin{DoxyNote}{Note}
+As the constructor uses the copy and convert functionality, it is not possible to create a empty solver or a solver with a matrix in any other format other than C\+SR, if none of the executor modules are being compiled with.
+\end{DoxyNote}
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of matrix elements \\
+\hline
+{\em Index\+Type} & precision of matrix indices \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1solver_1_1UpperTrs_ad1ea3550cf3dd135555ba292f0bf3818}\label{classgko_1_1solver_1_1UpperTrs_ad1ea3550cf3dd135555ba292f0bf3818}} 
+\index{gko::solver::UpperTrs$<$ ValueType, IndexType $>$@{gko::solver::UpperTrs$<$ ValueType, IndexType $>$}!conj\_transpose@{conj\_transpose}}
+\index{conj\_transpose@{conj\_transpose}!gko::solver::UpperTrs$<$ ValueType, IndexType $>$@{gko::solver::UpperTrs$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{conj\_transpose()}{conj\_transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1UpperTrs}{gko\+::solver\+::\+Upper\+Trs}}$<$ Value\+Type, Index\+Type $>$\+::conj\+\_\+transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new conjugate transposed object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Transposable_ab41b669288740cf2a6f7bf76e875b077}{gko\+::\+Transposable}}.
+
+\mbox{\Hypertarget{classgko_1_1solver_1_1UpperTrs_a5634d236ea80f6e0ad0bb80aae965a78}\label{classgko_1_1solver_1_1UpperTrs_a5634d236ea80f6e0ad0bb80aae965a78}} 
+\index{gko::solver::UpperTrs$<$ ValueType, IndexType $>$@{gko::solver::UpperTrs$<$ ValueType, IndexType $>$}!get\_system\_matrix@{get\_system\_matrix}}
+\index{get\_system\_matrix@{get\_system\_matrix}!gko::solver::UpperTrs$<$ ValueType, IndexType $>$@{gko::solver::UpperTrs$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_system\_matrix()}{get\_system\_matrix()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$Value\+Type, Index\+Type$>$ $>$ \mbox{\hyperlink{classgko_1_1solver_1_1UpperTrs}{gko\+::solver\+::\+Upper\+Trs}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+system\+\_\+matrix (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the system operator (C\+SR matrix) of the linear system. 
+
+\begin{DoxyReturn}{Returns}
+the system operator (C\+SR matrix) 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1solver_1_1UpperTrs_ae92d5699fdff442300dd150e6b1e9a70}\label{classgko_1_1solver_1_1UpperTrs_ae92d5699fdff442300dd150e6b1e9a70}} 
+\index{gko::solver::UpperTrs$<$ ValueType, IndexType $>$@{gko::solver::UpperTrs$<$ ValueType, IndexType $>$}!transpose@{transpose}}
+\index{transpose@{transpose}!gko::solver::UpperTrs$<$ ValueType, IndexType $>$@{gko::solver::UpperTrs$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{transpose()}{transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1UpperTrs}{gko\+::solver\+::\+Upper\+Trs}}$<$ Value\+Type, Index\+Type $>$\+::transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new transposed object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Transposable_a5c6b778b71b47d53e0bda6ccf894d318}{gko\+::\+Transposable}}.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/solver/lower\+\_\+trs.\+hpp (869586100)\item 
+ginkgo/core/solver/upper\+\_\+trs.\+hpp (869586100)\end{DoxyCompactItemize}

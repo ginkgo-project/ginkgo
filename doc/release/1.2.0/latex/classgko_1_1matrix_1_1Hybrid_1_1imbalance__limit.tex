@@ -1,0 +1,94 @@
+\hypertarget{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit}{}\doxysection{gko\+::matrix\+::Hybrid$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+limit Class Reference}
+\label{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit}\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_limit}}
+
+
+\mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit}{imbalance\+\_\+limit}} is a \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type}{strategy\+\_\+type}} which decides the number of stored elements per row of the ell part according to the percent.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/matrix/hybrid.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::matrix\+::Hybrid$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+limit\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=213pt]{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit_ab546af3508d47185d6f5e6fb2f1412bc}{imbalance\+\_\+limit}} (float percent=0.\+8)
+\begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit}{imbalance\+\_\+limit}} strategy. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit_aa95250e2c38d516dbd2fbf5bdfa67e72}{compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row}} (\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $>$ $\ast$row\+\_\+nnz) const override
+\begin{DoxyCompactList}\small\item\em Computes the number of stored elements per row of the ell part. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+limit}
+
+\mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit}{imbalance\+\_\+limit}} is a \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type}{strategy\+\_\+type}} which decides the number of stored elements per row of the ell part according to the percent. 
+
+It sorts the number of nonzeros of each row and takes the value at the position {\ttfamily floor(percent $\ast$ num\+\_\+row)} as the number of stored elements per row of the ell part. Thus, at least {\ttfamily percent} rows of all are in the ell part. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit_ab546af3508d47185d6f5e6fb2f1412bc}\label{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit_ab546af3508d47185d6f5e6fb2f1412bc}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_limit}!imbalance\_limit@{imbalance\_limit}}
+\index{imbalance\_limit@{imbalance\_limit}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_limit}}
+\doxysubsubsection{\texorpdfstring{imbalance\_limit()}{imbalance\_limit()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+limit\+::imbalance\+\_\+limit (\begin{DoxyParamCaption}\item[{float}]{percent = {\ttfamily 0.8} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [explicit]}}
+
+
+
+Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit}{imbalance\+\_\+limit}} strategy. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em percent} & the row\+\_\+nnz\mbox{[}floor(num\+\_\+rows$\ast$percent)\mbox{]} is the number of stored elements per row of the ell part \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit_aa95250e2c38d516dbd2fbf5bdfa67e72}\label{classgko_1_1matrix_1_1Hybrid_1_1imbalance__limit_aa95250e2c38d516dbd2fbf5bdfa67e72}} 
+\index{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_limit}!compute\_ell\_num\_stored\_elements\_per\_row@{compute\_ell\_num\_stored\_elements\_per\_row}}
+\index{compute\_ell\_num\_stored\_elements\_per\_row@{compute\_ell\_num\_stored\_elements\_per\_row}!gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_limit@{gko::matrix::Hybrid$<$ ValueType, IndexType $>$::imbalance\_limit}}
+\doxysubsubsection{\texorpdfstring{compute\_ell\_num\_stored\_elements\_per\_row()}{compute\_ell\_num\_stored\_elements\_per\_row()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid}{gko\+::matrix\+::\+Hybrid}}$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+limit\+::compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} $>$ $\ast$}]{row\+\_\+nnz }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Computes the number of stored elements per row of the ell part. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em row\+\_\+nnz} & the number of nonzeros of each row\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the number of stored elements per row of the ell part 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Hybrid_1_1strategy__type_a0a0cd4024f27c7d0f286f35fc0a6de60}{gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
+
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data(), and gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+num\+\_\+elems().
+
+
+
+Referenced by gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+bounded\+\_\+limit\+::compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row(), and gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::minimal\+\_\+storage\+\_\+limit\+::compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row().
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/matrix/hybrid.\+hpp (9a3dc7c52)\end{DoxyCompactItemize}

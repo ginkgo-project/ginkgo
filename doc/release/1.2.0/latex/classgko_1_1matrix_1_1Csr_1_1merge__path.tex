@@ -1,0 +1,109 @@
+\hypertarget{classgko_1_1matrix_1_1Csr_1_1merge__path}{}\doxysection{gko\+::matrix\+::Csr$<$ Value\+Type, Index\+Type $>$\+::merge\+\_\+path Class Reference}
+\label{classgko_1_1matrix_1_1Csr_1_1merge__path}\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::merge\_path@{gko::matrix::Csr$<$ ValueType, IndexType $>$::merge\_path}}
+
+
+\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1merge__path}{merge\+\_\+path}} is a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} which uses the \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1merge__path}{merge\+\_\+path}} algorithm.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/matrix/csr.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::matrix\+::Csr$<$ Value\+Type, Index\+Type $>$\+::merge\+\_\+path\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=238pt]{classgko_1_1matrix_1_1Csr_1_1merge__path__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1merge__path_a3761055a7460cbdfb2fb330fda047e7a}\label{classgko_1_1matrix_1_1Csr_1_1merge__path_a3761055a7460cbdfb2fb330fda047e7a}} 
+\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1merge__path_a3761055a7460cbdfb2fb330fda047e7a}{merge\+\_\+path}} ()
+\begin{DoxyCompactList}\small\item\em Creates a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1merge__path}{merge\+\_\+path}} strategy. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1merge__path_afe80aaab5ab3a0945488dad118d9ab8d}{process}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ \&mtx\+\_\+row\+\_\+ptrs, \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ $\ast$mtx\+\_\+srow) override
+\begin{DoxyCompactList}\small\item\em Computes srow according to row pointers. \end{DoxyCompactList}\item 
+int64\+\_\+t \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1merge__path_a2072b7810a1fbc515ca87807ed8adcdb}{clac\+\_\+size}} (const int64\+\_\+t nnz) override
+\begin{DoxyCompactList}\small\item\em Computes the srow size according to the number of nonzeros. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1merge__path_acc5f27d23fe04ffbdd5c840be4d0c7ae}{copy}} () override
+\begin{DoxyCompactList}\small\item\em Copy a strategy. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::merge\+\_\+path}
+
+\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1merge__path}{merge\+\_\+path}} is a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} which uses the \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1merge__path}{merge\+\_\+path}} algorithm. 
+
+\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1merge__path}{merge\+\_\+path}} is according to Merrill and Garland\+: Merge-\/\+Based Parallel Sparse Matrix-\/\+Vector Multiplication 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1merge__path_a2072b7810a1fbc515ca87807ed8adcdb}\label{classgko_1_1matrix_1_1Csr_1_1merge__path_a2072b7810a1fbc515ca87807ed8adcdb}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::merge\_path@{gko::matrix::Csr$<$ ValueType, IndexType $>$::merge\_path}!clac\_size@{clac\_size}}
+\index{clac\_size@{clac\_size}!gko::matrix::Csr$<$ ValueType, IndexType $>$::merge\_path@{gko::matrix::Csr$<$ ValueType, IndexType $>$::merge\_path}}
+\doxysubsubsection{\texorpdfstring{clac\_size()}{clac\_size()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+int64\+\_\+t \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::merge\+\_\+path\+::clac\+\_\+size (\begin{DoxyParamCaption}\item[{const int64\+\_\+t}]{nnz }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Computes the srow size according to the number of nonzeros. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em nnz} & the number of nonzeros\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the size of srow 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type_a07a6dda9dd04ed8abd914f3a69f330f2}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1merge__path_acc5f27d23fe04ffbdd5c840be4d0c7ae}\label{classgko_1_1matrix_1_1Csr_1_1merge__path_acc5f27d23fe04ffbdd5c840be4d0c7ae}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::merge\_path@{gko::matrix::Csr$<$ ValueType, IndexType $>$::merge\_path}!copy@{copy}}
+\index{copy@{copy}!gko::matrix::Csr$<$ ValueType, IndexType $>$::merge\_path@{gko::matrix::Csr$<$ ValueType, IndexType $>$::merge\_path}}
+\doxysubsubsection{\texorpdfstring{copy()}{copy()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}}$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::merge\+\_\+path\+::copy (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Copy a strategy. 
+
+This is a workaround until strategies are revamped, since strategies like {\ttfamily automatical} do not work when actually shared. 
+
+Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type_adf3dc78938ffb991608b272447db6a68}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1merge__path_afe80aaab5ab3a0945488dad118d9ab8d}\label{classgko_1_1matrix_1_1Csr_1_1merge__path_afe80aaab5ab3a0945488dad118d9ab8d}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::merge\_path@{gko::matrix::Csr$<$ ValueType, IndexType $>$::merge\_path}!process@{process}}
+\index{process@{process}!gko::matrix::Csr$<$ ValueType, IndexType $>$::merge\_path@{gko::matrix::Csr$<$ ValueType, IndexType $>$::merge\_path}}
+\doxysubsubsection{\texorpdfstring{process()}{process()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::merge\+\_\+path\+::process (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ \&}]{mtx\+\_\+row\+\_\+ptrs,  }\item[{\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ $\ast$}]{mtx\+\_\+srow }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Computes srow according to row pointers. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em mtx\+\_\+row\+\_\+ptrs} & the row pointers of the matrix \\
+\hline
+{\em mtx\+\_\+srow} & the srow of the matrix \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type_a58bda9208766e57d861262d4059b65b4}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/matrix/csr.\+hpp (9fdf77aa9)\end{DoxyCompactItemize}

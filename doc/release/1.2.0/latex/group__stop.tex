@@ -1,0 +1,64 @@
+\hypertarget{group__stop}{}\doxysection{Stopping criteria}
+\label{group__stop}\index{Stopping criteria@{Stopping criteria}}
+
+
+A module dedicated to the implementation and usage of the Stopping Criteria in Ginkgo.  
+
+
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespacegko_1_1stop}{gko\+::stop}}
+\begin{DoxyCompactList}\small\item\em The Stopping criterion namespace. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1Combined}{gko\+::stop\+::\+Combined}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1Combined}{Combined}} class is used to combine multiple criterions together through an OR operation. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1Iteration}{gko\+::stop\+::\+Iteration}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1Iteration}{Iteration}} class is a stopping criterion which stops the iteration process after a preset number of iterations. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko\+::stop\+::\+Residual\+Norm\+Reduction$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{Residual\+Norm\+Reduction}} class is a stopping criterion which stops the iteration process when the relative residual norm is below a certain threshold. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1stopping__status}{gko\+::stopping\+\_\+status}}
+\begin{DoxyCompactList}\small\item\em This class is used to keep track of the stopping status of one vector. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1Time}{gko\+::stop\+::\+Time}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1Time}{Time}} class is a stopping criterion which stops the iteration process after a certain amout of time has passed. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$typename Factory\+Container $>$ }\\std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{Criterion\+Factory}} $>$ \mbox{\hyperlink{group__stop_ga3a3325b3a7660501f3bb72d08b09f2d2}{gko\+::stop\+::combine}} (Factory\+Container \&\&factories)
+\begin{DoxyCompactList}\small\item\em Combines multiple criterion factories into a single combined criterion factory. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+A module dedicated to the implementation and usage of the Stopping Criteria in Ginkgo. 
+
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{group__stop_ga3a3325b3a7660501f3bb72d08b09f2d2}\label{group__stop_ga3a3325b3a7660501f3bb72d08b09f2d2}} 
+\index{Stopping criteria@{Stopping criteria}!combine@{combine}}
+\index{combine@{combine}!Stopping criteria@{Stopping criteria}}
+\doxysubsubsection{\texorpdfstring{combine()}{combine()}}
+{\footnotesize\ttfamily template$<$typename Factory\+Container $>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{Criterion\+Factory}}$>$ gko\+::stop\+::combine (\begin{DoxyParamCaption}\item[{Factory\+Container \&\&}]{factories }\end{DoxyParamCaption})}
+
+
+
+Combines multiple criterion factories into a single combined criterion factory. 
+
+This function treats a singleton container as a special case and avoids creating an additional object and just returns the input factory.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Factory\+Container} & a random access container type\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em factories} & a list of factories to combined\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+a combined criterion factory if the input contains multiple factories or the input factory if the input contains only one factory 
+\end{DoxyReturn}

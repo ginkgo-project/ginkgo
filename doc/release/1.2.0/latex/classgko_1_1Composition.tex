@@ -1,0 +1,131 @@
+\hypertarget{classgko_1_1Composition}{}\doxysection{gko\+::Composition$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1Composition}\index{gko::Composition$<$ ValueType $>$@{gko::Composition$<$ ValueType $>$}}
+
+
+The \mbox{\hyperlink{classgko_1_1Composition}{Composition}} class can be used to compose linear operators {\ttfamily op1, op2, ..., opn} and obtain the operator {\ttfamily op1 $\ast$ op2 $\ast$ ... } 
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/composition.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Composition$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1Composition__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1Composition_ab565c6599fe56bf6b96f4c48f5992d6b}\label{classgko_1_1Composition_ab565c6599fe56bf6b96f4c48f5992d6b}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1Composition_a12ae2979361046b134643b49f1249cc5}\label{classgko_1_1Composition_a12ae2979361046b134643b49f1249cc5}} 
+using {\bfseries transposed\+\_\+type} = \mbox{\hyperlink{classgko_1_1Composition}{Composition}}$<$ Value\+Type $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ $>$ \& \mbox{\hyperlink{classgko_1_1Composition_a196507096c635aba24e1074050827c68}{get\+\_\+operators}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns a list of operators of the composition. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1Composition_a67a4c73162eb35f2a12e8d638787d60a}{transpose}} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1Composition_ae78b03ae3a621f11f9c410cbe1c9964e}{conj\+\_\+transpose}} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1Composition_afa7c3f077edf67d0b19255dd78af3ecb}\label{classgko_1_1Composition_afa7c3f077edf67d0b19255dd78af3ecb}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Composition, Lin\+Op $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1Composition_a0350dc3dedd61760b46c3afd62943e6c}\label{classgko_1_1Composition_a0350dc3dedd61760b46c3afd62943e6c}} 
+class {\bfseries Enable\+Create\+Method$<$ Composition $>$}
+\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::\+Composition$<$ Value\+Type $>$}
+
+The \mbox{\hyperlink{classgko_1_1Composition}{Composition}} class can be used to compose linear operators {\ttfamily op1, op2, ..., opn} and obtain the operator {\ttfamily op1 $\ast$ op2 $\ast$ ... }
+
+
+\begin{DoxyItemize}
+\item opn.
+\end{DoxyItemize}
+
+All Lin\+Ops of the \mbox{\hyperlink{classgko_1_1Composition}{Composition}} must operate on Dense inputs. For an operator {\ttfamily op\+\_\+k} that require an initial guess for their {\ttfamily apply}, \mbox{\hyperlink{classgko_1_1Composition}{Composition}} provides either
+\begin{DoxyItemize}
+\item the output of the previous {\ttfamily op\+\_\+\{k+1\}-\/$>$apply} if {\ttfamily op\+\_\+k} has square dimension
+\item zero if {\ttfamily op\+\_\+k} is rectangular as an initial guess.
+\end{DoxyItemize}
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of input and result vectors \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1Composition_ae78b03ae3a621f11f9c410cbe1c9964e}\label{classgko_1_1Composition_ae78b03ae3a621f11f9c410cbe1c9964e}} 
+\index{gko::Composition$<$ ValueType $>$@{gko::Composition$<$ ValueType $>$}!conj\_transpose@{conj\_transpose}}
+\index{conj\_transpose@{conj\_transpose}!gko::Composition$<$ ValueType $>$@{gko::Composition$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{conj\_transpose()}{conj\_transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1Composition}{gko\+::\+Composition}}$<$ Value\+Type $>$\+::conj\+\_\+transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new conjugate transposed object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Transposable_ab41b669288740cf2a6f7bf76e875b077}{gko\+::\+Transposable}}.
+
+\mbox{\Hypertarget{classgko_1_1Composition_a196507096c635aba24e1074050827c68}\label{classgko_1_1Composition_a196507096c635aba24e1074050827c68}} 
+\index{gko::Composition$<$ ValueType $>$@{gko::Composition$<$ ValueType $>$}!get\_operators@{get\_operators}}
+\index{get\_operators@{get\_operators}!gko::Composition$<$ ValueType $>$@{gko::Composition$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_operators()}{get\_operators()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+const std\+::vector$<$std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ $>$\& \mbox{\hyperlink{classgko_1_1Composition}{gko\+::\+Composition}}$<$ Value\+Type $>$\+::get\+\_\+operators (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns a list of operators of the composition. 
+
+\begin{DoxyReturn}{Returns}
+a list of operators 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1Composition_a67a4c73162eb35f2a12e8d638787d60a}\label{classgko_1_1Composition_a67a4c73162eb35f2a12e8d638787d60a}} 
+\index{gko::Composition$<$ ValueType $>$@{gko::Composition$<$ ValueType $>$}!transpose@{transpose}}
+\index{transpose@{transpose}!gko::Composition$<$ ValueType $>$@{gko::Composition$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{transpose()}{transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1Composition}{gko\+::\+Composition}}$<$ Value\+Type $>$\+::transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new transposed object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Transposable_a5c6b778b71b47d53e0bda6ccf894d318}{gko\+::\+Transposable}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/composition.\+hpp (869586100)\end{DoxyCompactItemize}
