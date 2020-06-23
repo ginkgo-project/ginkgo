@@ -53,7 +53,7 @@ namespace solver {
 /**
  * Iterative refinement (IR) is an iterative method that uses another coarse
  * method to approximate the error of the current solution via the current
- * residual. Moreover, it can be also considered as prconditioned Richardson
+ * residual. Moreover, it can be also considered as preconditioned Richardson
  * iteration with relaxation factor = 1.
  *
  * For any approximation of the solution `solution` to the system `Ax = b`, the
@@ -61,22 +61,25 @@ namespace solver {
  * `solution`,  `e = x - solution` (with `x` being the exact solution) can be
  * obtained as the solution to the residual equation `Ae = residual`, since `A e
  * = Ax - A solution = b - A solution = residual`. Then, the real solution is
- * computed as `x = solution + e`. Instead of accurately solving the residual
- * equation `Ae = residual`, the solution of the system `e` can be approximated
- * to obtain the approximation `error` using a coarse method `solver`, which is
- * used to update `solution`, and the entire process is repeated with the
- * updated `solution`.  This yields the iterative refinement method:
+ * computed as `x = relaxation_factor * solution + e`. Instead of accurately
+ * solving the residual equation `Ae = residual`, the solution of the system `e`
+ * can be approximated to obtain the approximation `error` using a coarse method
+ * `solver`, which is used to update `solution`, and the entire process is
+ * repeated with the updated `solution`.  This yields the iterative refinement
+ * method:
  *
  * ```
  * solution = initial_guess
  * while not converged:
  *     residual = b - A solution
  *     error = solver(A, residual)
- *     solution = solution + relaxation * error
+ *     solution = solution + relaxation_factor * error
  * ```
  *
- * When relaxation is 1 (default) is Iterative Refiement, when the relaxation is
- * not 1 is Richardson iteration.
+ * With `relaxation_factor` equal to 1 (default), the solver is Iterative
+ * Refinement, with `relaxation_factor` equal to a value other than `1`, the
+ * solver is a Richardson iteration, with possibility for additional
+ * preconditioning.
  *
  * Assuming that `solver` has accuracy `c`, i.e., `| e - error | <= c | e |`,
  * iterative refinement will converge with a convergence rate of `c`. Indeed,
@@ -91,7 +94,8 @@ namespace solver {
  * solver. Such a setting results in a relaxation method known as the Richardson
  * iteration with parameter 1, which is guaranteed to converge for matrices
  * whose spectrum is strictly contained within the unit disc around 1 (i.e., all
- * its eigenvalues `lambda` have to satisfy the equation `|lambda - 1| < 1).
+ * its eigenvalues `lambda` have to satisfy the equation `|relaxation_factor *
+ * lambda - 1| < 1).
  *
  * @tparam ValueType  precision of matrix elements
  *
@@ -190,9 +194,9 @@ public:
                                                            nullptr);
 
         /**
-         * Relaxtion factor for Richardson
+         * Relaxation factor for Richardson iteration
          */
-        ValueType GKO_FACTORY_PARAMETER(relaxation, value_type{1});
+        ValueType GKO_FACTORY_PARAMETER(relaxation_factor, value_type{1});
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ir, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -223,8 +227,8 @@ protected:
             solver_ = matrix::Identity<ValueType>::create(this->get_executor(),
                                                           this->get_size()[0]);
         }
-        relaxation_ = gko::initialize<matrix::Dense<ValueType>>(
-            {parameters_.relaxation}, this->get_executor());
+        relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
+            {parameters_.relaxation_factor}, this->get_executor());
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
     }
@@ -233,7 +237,7 @@ private:
     std::shared_ptr<const LinOp> system_matrix_{};
     std::shared_ptr<const LinOp> solver_{};
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
-    std::shared_ptr<const matrix::Dense<ValueType>> relaxation_{};
+    std::shared_ptr<const matrix::Dense<ValueType>> relaxation_factor_{};
 };
 
 

@@ -194,13 +194,13 @@ TEST_F(Ir, RichardsonApplyIsEquivalentToRef)
         gko::solver::Ir<>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(2u).on(ref))
-            .with_relaxation(0.9)
+            .with_relaxation_factor(0.9)
             .on(ref);
     auto d_ir_factory =
         gko::solver::Ir<>::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(2u).on(hip))
-            .with_relaxation(0.9)
+            .with_relaxation_factor(0.9)
             .on(hip);
     auto solver = ir_factory->generate(std::move(mtx));
     auto d_solver = d_ir_factory->generate(std::move(d_mtx));
@@ -230,7 +230,7 @@ TEST_F(Ir, RichardsonApplyWithIterativeInnerSolverIsEquivalentToRef)
                     .on(ref))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(2u).on(ref))
-            .with_relaxation(0.9)
+            .with_relaxation_factor(0.9)
             .on(ref);
     auto d_ir_factory =
         gko::solver::Ir<>::build()
@@ -242,7 +242,7 @@ TEST_F(Ir, RichardsonApplyWithIterativeInnerSolverIsEquivalentToRef)
                     .on(hip))
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(2u).on(hip))
-            .with_relaxation(0.9)
+            .with_relaxation_factor(0.9)
             .on(hip);
     auto solver = ir_factory->generate(std::move(mtx));
     auto d_solver = d_ir_factory->generate(std::move(d_mtx));
