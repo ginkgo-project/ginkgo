@@ -107,7 +107,7 @@ protected:
      * @param exec  Executor associated to the matrix
      */
     explicit Diagonal(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Diagonal>(exec)
+        : Diagonal(std::move(exec), size_type{})
     {}
 
     /**
@@ -134,9 +134,9 @@ protected:
      *       original array data will not be used in the matrix.
      */
     template <typename ValuesArray>
-    Diagonal(std::shared_ptr<const Executor> exec, size_type size,
+    Diagonal(std::shared_ptr<const Executor> exec, const size_type size,
              ValuesArray &&values)
-        : EnableLinOp<Diagonal>(exec, dim<2>{size}),
+        : EnableLinOp<Diagonal>(exec, dim<2>(size)),
           values_{exec, std::forward<ValuesArray>(values)}
     {
         GKO_ENSURE_IN_BOUNDS(size - 1, values_.get_num_elems());

@@ -56,20 +56,20 @@ class Diagonal : public ::testing::Test {
 protected:
     using Diag = gko::matrix::Diagonal<>;
     using Mtx = gko::matrix::Dense<>;
-    using Arr = gko::Array<int>;
 
     Diagonal() : rand_engine(15) {}
 
     void SetUp()
     {
+        ASSERT_GT(gko::CudaExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        omp = gko::OmpExecutor::create();
+        cuda = gko::CudaExecutor::create(0, ref);
     }
 
     void TearDown()
     {
-        if (omp != nullptr) {
-            ASSERT_NO_THROW(omp->synchronize());
+        if (cuda != nullptr) {
+            ASSERT_NO_THROW(cuda->synchronize());
         }
     }
 
@@ -101,26 +101,20 @@ protected:
         y = gen_mtx<Mtx>(25, 40);
         expected1 = gen_mtx<Mtx>(40, 25);
         expected2 = gen_mtx<Mtx>(25, 40);
-        alpha = gko::initialize<Mtx>({2.0}, ref);
-        beta = gko::initialize<Mtx>({-1.0}, ref);
-        ddiag = Diag::create(omp);
+        ddiag = Diag::create(cuda);
         ddiag->copy_from(diag.get());
-        dx = Mtx::create(omp);
+        dx = Mtx::create(cuda);
         dx->copy_from(x.get());
-        dy = Mtx::create(omp);
+        dy = Mtx::create(cuda);
         dy->copy_from(y.get());
-        dresult1 = Mtx::create(omp);
+        dresult1 = Mtx::create(cuda);
         dresult1->copy_from(expected1.get());
-        dresult2 = Mtx::create(omp);
+        dresult2 = Mtx::create(cuda);
         dresult2->copy_from(expected2.get());
-        dalpha = Mtx::create(omp);
-        dalpha->copy_from(alpha.get());
-        dbeta = Mtx::create(omp);
-        dbeta->copy_from(beta.get());
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::OmpExecutor> omp;
+    std::shared_ptr<const gko::CudaExecutor> cuda;
 
     std::ranlux48 rand_engine;
 
@@ -129,16 +123,12 @@ protected:
 
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> y;
-    std::unique_ptr<Mtx> alpha;
-    std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> expected1;
     std::unique_ptr<Mtx> expected2;
     std::unique_ptr<Mtx> dresult1;
     std::unique_ptr<Mtx> dresult2;
     std::unique_ptr<Mtx> dx;
     std::unique_ptr<Mtx> dy;
-    std::unique_ptr<Mtx> dalpha;
-    std::unique_ptr<Mtx> dbeta;
 };
 
 

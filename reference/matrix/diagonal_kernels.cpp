@@ -46,9 +46,9 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The Dense matrix format namespace.
+ * @brief The Diagonal matrix format namespace.
  *
- * @ingroup dense
+ * @ingroup diagonal
  */
 namespace diagonal {
 

@@ -30,76 +30,41 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/matrix/diagonal.hpp>
-
-
-#include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
-
-
-#include "core/matrix/diagonal_kernels.hpp"
-
-
-namespace gko {
-namespace matrix {
-namespace diagonal {
-
-
-GKO_REGISTER_OPERATION(apply_to_dense, diagonal::apply_to_dense);
-GKO_REGISTER_OPERATION(right_apply_to_dense, diagonal::right_apply_to_dense);
-
-
-}  // namespace diagonal
+namespace kernel {
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+__global__ __launch_bounds__(default_block_size) void apply_to_dense(
+    size_type num_rows, size_type num_cols, const ValueType *__restrict__ diag,
+    size_type source_stride, const ValueType *__restrict__ source_values,
+    size_type result_stride, ValueType *__restrict__ result_values)
 {
-    auto exec = this->get_executor();
+    const auto tidx = thread::get_thread_id_flat();
+    const auto row = tidx / num_cols;
+    const auto col = tidx % num_cols;
 
-    exec->run(diagonal::make_apply_to_dense(this, as<Dense<ValueType>>(b),
-                                            as<Dense<ValueType>>(x)));
+    if (row < num_rows) {
+        result_values[row * result_stride + col] =
+            source_values[row * source_stride + col] * diag[row];
+    }
 }
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::rapply_impl(const LinOp *b, LinOp *x) const
+__global__ __launch_bounds__(default_block_size) void right_apply_to_dense(
+    size_type num_rows, size_type num_cols, const ValueType *__restrict__ diag,
+    size_type source_stride, const ValueType *__restrict__ source_values,
+    size_type result_stride, ValueType *__restrict__ result_values)
 {
-    auto exec = this->get_executor();
+    const auto tidx = thread::get_thread_id_flat();
+    const auto row = tidx / num_cols;
+    const auto col = tidx % num_cols;
 
-    exec->run(diagonal::make_right_apply_to_dense(this, as<Dense<ValueType>>(b),
-                                                  as<Dense<ValueType>>(x)));
+    if (row < num_rows) {
+        result_values[row * result_stride + col] =
+            source_values[row * source_stride + col] * diag[col];
+    }
 }
 
 
-template <typename ValueType>
-void Diagonal<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                     const LinOp *beta, LinOp *x) const
-{
-    auto dense_x = as<Dense<ValueType>>(x);
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, b);
-}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> Diagonal<ValueType>::transpose() const
-{
-    return this->clone();
-}
-
-
-template <typename ValueType>
-std::unique_ptr<LinOp> Diagonal<ValueType>::conj_transpose() const
-{
-    return this->clone();
-}
-
-
-#define GKO_DECLARE_DIAGONAL_MATRIX(_type) class Diagonal<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_MATRIX);
-
-
-}  // namespace matrix
-}  // namespace gko
+}  // namespace kernel
