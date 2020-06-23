@@ -62,14 +62,15 @@ protected:
 
     void SetUp()
     {
+        ASSERT_GT(gko::HipExecutor::get_num_devices(), 0);
         ref = gko::ReferenceExecutor::create();
-        omp = gko::OmpExecutor::create();
+        hip = gko::HipExecutor::create(0, ref);
     }
 
     void TearDown()
     {
-        if (omp != nullptr) {
-            ASSERT_NO_THROW(omp->synchronize());
+        if (hip != nullptr) {
+            ASSERT_NO_THROW(hip->synchronize());
         }
     }
 
@@ -103,24 +104,24 @@ protected:
         expected2 = gen_mtx<Mtx>(25, 40);
         alpha = gko::initialize<Mtx>({2.0}, ref);
         beta = gko::initialize<Mtx>({-1.0}, ref);
-        ddiag = Diag::create(omp);
+        ddiag = Diag::create(hip);
         ddiag->copy_from(diag.get());
-        dx = Mtx::create(omp);
+        dx = Mtx::create(hip);
         dx->copy_from(x.get());
-        dy = Mtx::create(omp);
+        dy = Mtx::create(hip);
         dy->copy_from(y.get());
-        dresult1 = Mtx::create(omp);
+        dresult1 = Mtx::create(hip);
         dresult1->copy_from(expected1.get());
-        dresult2 = Mtx::create(omp);
+        dresult2 = Mtx::create(hip);
         dresult2->copy_from(expected2.get());
-        dalpha = Mtx::create(omp);
+        dalpha = Mtx::create(hip);
         dalpha->copy_from(alpha.get());
-        dbeta = Mtx::create(omp);
+        dbeta = Mtx::create(hip);
         dbeta->copy_from(beta.get());
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<const gko::OmpExecutor> omp;
+    std::shared_ptr<const gko::HipExecutor> hip;
 
     std::ranlux48 rand_engine;
 

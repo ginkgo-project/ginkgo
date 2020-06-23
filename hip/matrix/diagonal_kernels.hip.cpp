@@ -42,22 +42,50 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "hip/base/hipsparse_bindings.hip.hpp"
+#include "hip/base/types.hip.hpp"
+#include "hip/components/thread_ids.hip.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace hip {
 /**
- * @brief The Dense matrix format namespace.
+ * @brief The Diagonal matrix format namespace.
  *
- * @ingroup dense
+ * @ingroup diagonal
  */
 namespace diagonal {
+
+
+constexpr auto default_block_size = 512;
+
+
+#include "common/matrix/diagonal_kernels.hpp.inc"
 
 
 template <typename ValueType>
 void apply_to_dense(std::shared_ptr<const HipExecutor> exec,
                     const matrix::Diagonal<ValueType> *a,
                     const matrix::Dense<ValueType> *b,
-                    matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
+                    matrix::Dense<ValueType> *c)
+{
+    const auto b_size = b->get_size();
+    const auto num_rows = b_size[0];
+    const auto num_cols = b_size[1];
+    const auto b_stride = b->get_stride();
+    const auto c_stride = c->get_stride();
+    const auto grid_dim = ceildiv(num_rows * num_cols, default_block_size);
+
+    const auto diag_values = a->get_const_values();
+    const auto b_values = b->get_const_values();
+    auto c_values = c->get_values();
+
+    hipLaunchKernelGGL(kernel::apply_to_dense, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, num_rows, num_cols,
+                       as_hip_type(diag_values), b_stride,
+                       as_hip_type(b_values), c_stride, as_hip_type(c_values));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);
 
@@ -66,7 +94,24 @@ template <typename ValueType>
 void right_apply_to_dense(std::shared_ptr<const HipExecutor> exec,
                           const matrix::Diagonal<ValueType> *a,
                           const matrix::Dense<ValueType> *b,
-                          matrix::Dense<ValueType> *c) GKO_NOT_IMPLEMENTED;
+                          matrix::Dense<ValueType> *c)
+{
+    const auto b_size = b->get_size();
+    const auto num_rows = b_size[0];
+    const auto num_cols = b_size[1];
+    const auto b_stride = b->get_stride();
+    const auto c_stride = c->get_stride();
+    const auto grid_dim = ceildiv(num_rows * num_cols, default_block_size);
+
+    const auto diag_values = a->get_const_values();
+    const auto b_values = b->get_const_values();
+    auto c_values = c->get_values();
+
+    hipLaunchKernelGGL(kernel::right_apply_to_dense, dim3(grid_dim),
+                       dim3(default_block_size), 0, 0, num_rows, num_cols,
+                       as_hip_type(diag_values), b_stride,
+                       as_hip_type(b_values), c_stride, as_hip_type(c_values));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_DENSE_KERNEL);

@@ -75,8 +75,6 @@ protected:
     {
         this->create_diag1(diag1.get());
         this->create_diag2(diag2.get());
-        this->create_diag3(diag3.get());
-        this->create_diag4(diag4.get());
     }
 
     void create_diag1(Diag *d)
@@ -94,26 +92,9 @@ protected:
         v[2] = 4.0;
     }
 
-    void create_diag3(Diag *d)
-    {
-        auto *v = d->get_values();
-        v[0] = 2.0;
-        v[1] = 3.0;
-    }
-
-    void create_diag4(Diag *d)
-    {
-        auto *v = d->get_values();
-        v[0] = 2.0;
-        v[1] = 3.0;
-        v[2] = 4.0;
-    }
-
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Diag> diag1;
     std::unique_ptr<Diag> diag2;
-    std::unique_ptr<Diag> diag3;
-    std::unique_ptr<Diag> diag4;
     std::unique_ptr<Mtx> mtx1;
     std::unique_ptr<Mtx> mtx2;
     std::unique_ptr<Mtx> mtx3;
@@ -140,7 +121,7 @@ TYPED_TEST(Diagonal, AppliesToDense)
 TYPED_TEST(Diagonal, RightAppliesToDense)
 {
     using T = typename TestFixture::value_type;
-    this->diag4->rapply(this->mtx1.get(), this->mtx3.get());
+    this->diag2->rapply(this->mtx1.get(), this->mtx3.get());
 
     EXPECT_EQ(this->mtx3->at(0, 0), T{2.0});
     EXPECT_EQ(this->mtx3->at(0, 1), T{6.0});
