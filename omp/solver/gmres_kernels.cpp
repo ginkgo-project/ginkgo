@@ -191,7 +191,7 @@ void calculate_next_residual_norm(
         residual_norm_collection->at(iter, i) =
             givens_cos->at(iter, i) * residual_norm_collection->at(iter, i);
         residual_norm->at(0, i) =
-            abs(residual_norm_collection->at(iter + 1, i)) / b_norm->at(0, i);
+            abs(residual_norm_collection->at(iter + 1, i));
     }
 }
 

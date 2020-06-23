@@ -281,7 +281,7 @@ __device__ void calculate_residual_norm_kernel(
     const auto next_rnc = -conj(register_sin) * this_rnc;
     residual_norm_collection[iter * stride_residual_norm_collection + col_idx] =
         register_cos * this_rnc;
-    residual_norm[col_idx] = abs(next_rnc) / b_norm[col_idx];
+    residual_norm[col_idx] = abs(next_rnc);
     residual_norm_collection[(iter + 1) * stride_residual_norm_collection +
                              col_idx] = next_rnc;
 }
