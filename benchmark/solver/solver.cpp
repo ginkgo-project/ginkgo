@@ -584,10 +584,12 @@ int main(int argc, char *argv[])
                     gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs};
                 if (FLAGS_randomize_rhs) {
                     b = create_matrix<etype>(exec, vec_size, engine);
+                    x = create_matrix<etype>(exec, vec_size);
                 } else {
                     b = create_matrix_sin<etype>(exec, vec_size);
+                    x = clone(b.get());
                 }
-                x = create_matrix<etype>(exec, vec_size);
+                // x = create_matrix<etype>(exec, vec_size);
             }
 
             std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
