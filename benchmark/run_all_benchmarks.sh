@@ -60,9 +60,15 @@ if [ ! "${DEVICE_ID}" ]; then
     DEVICE_ID="0"
 fi
 
+if [ ! "${SOLVERS_JACOBI_MAX_BS}" ]; then
+    SOLVERS_JACOBI_MAX_BS="32"
+    "SOLVERS_JACOBI_MAX_BS environment variable not set - assuming \"${SOLVERS_JACOBI_MAX_BS}\"" 1>&2
+fi
+
+
 if [ ! "${SOLVERS_RHS}" ]; then
-    echo "SOLVERS_RHS environment variable not set - assuming \"unit\"" 1>&2
-    SOLVERS_RHS="unit"
+    SOLVERS_RHS="1"
+    echo "SOLVERS_RHS environment variable not set - assuming \"${SOLVERS_RHS}\"" 1>&2
 fi
 
 if [ ! "${BENCHMARK_PRECISION}" ]; then
@@ -85,14 +91,37 @@ else
 fi
 
 if [ "${SOLVERS_RHS}" == "random" ]; then
-    SOLVERS_RHS_FLAG="--random_rhs=true"
+    SOLVERS_RHS_FLAG="--rhs_generation=random"
+elif [ "${SOLVERS_RHS}" == "1" ]; then
+    SOLVERS_RHS_FLAG="--rhs_generation=1"
+elif [ "${SOLVERS_RHS}" == "sinus" ]; then
+    SOLVERS_RHS_FLAG="--rhs_generation=sinus"
 else
-    SOLVERS_RHS_FLAG="--random_rhs=false"
+    echo "SOLVERS_RHS does not support the value \"${SOLVERS_RHS}\"." 1>&2
+    echo "The following values are supported: \"1\", \"random\" and \"sinus\"" 1>&2
+    exit 1
+fi
+
+if [ ! "${SOLVERS_INITIAL_GUESS}" ]; then
+    SOLVERS_INITIAL_GUESS="rhs"
+    echo "SOLVERS_RHS environment variable not set - assuming \"${SOLVERS_INITIAL_GUESS}\"" 1>&2
 fi
 
 if [ ! "${GPU_TIMER}" ]; then
     echo "GPU_TIMER    environment variable not set - assuming \"false\"" 1>&2
     GPU_TIMER="false"
+fi
+
+if [ "${SOLVERS_INITIAL_GUESS}" == "random" ]; then
+    SOLVERS_INITIAL_GUESS_FLAG="--initial_guess_generation=random"
+elif [ "${SOLVERS_INITIAL_GUESS}" == "0" ]; then
+    SOLVERS_INITIAL_GUESS_FLAG="--initial_guess_generation=0"
+elif [ "${SOLVERS_INITIAL_GUESS}" == "rhs" ]; then
+    SOLVERS_INITIAL_GUESS_FLAG="--initial_guess_generation=rhs"
+else
+    echo "SOLVERS_RHS does not support the value \"${SOLVERS_RHS}\"." 1>&2
+    echo "The following values are supported: \"1\", \"random\" and \"sinus\"" 1>&2
+    exit 1
 fi
 
 # Control whether to run detailed benchmarks or not.
@@ -202,7 +231,9 @@ run_solver_benchmarks() {
                     --executor="${EXECUTOR}" --solvers="${SOLVERS}" \
                     --preconditioners="${PRECONDS}" \
                     --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
-                    ${SOLVERS_RHS_FLAG} ${DETAILED_STR} --device_id="${DEVICE_ID}" --gpu_timer=${GPU_TIMER} \
+                    ${SOLVERS_RHS_FLAG} ${DETAILED_STR} ${SOLVERS_INITIAL_GUESS_FLAG} \
+                    --gpu_timer=${GPU_TIMER} \
+                    --jacobi_max_block_size=${SOLVERS_JACOBI_MAX_BS} --device_id="${DEVICE_ID}" \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }

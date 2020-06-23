@@ -89,11 +89,19 @@ DEFINE_double(
     idr_kappa, 0.7,
     "the number to check whether Av_n and v_n are too close or not in IDR");
 
-DEFINE_bool(random_rhs, false,
-            "Use a random vector for the rhs (otherwise use all ones)");
+DEFINE_string(
+    rhs_generation, "1",
+    "Method used to generate the right hand side. Supported values are:"
+    "1, random, sinus. 1 sets all values of the right hand side to 1, "
+    "random assigns the values to a uniformly distributed random number "
+    "in [-1, 1), and sinus assigns b = A * (s / |s|) with A := system matrix, "
+    "s := vector with s(i) = sin(i).");
 
-DEFINE_bool(random_initial_guess, false,
-            "Use a random vector for the initial guess (otherwise use rhs)");
+DEFINE_string(
+    initial_guess_generation, "rhs",
+    "Method used to generate the initial guess. Supported values are: "
+    "random, rhs, 0. random uses a random vector, rhs uses the right "
+    "hand side, and 0 uses a zero vector as the initial guess.");
 
 // This allows to benchmark the overhead of a solver by using the following
 // data: A=[1.0], x=[0.0], b=[nan]. This data can be used to benchmark normal
@@ -115,6 +123,62 @@ DEFINE_bool(overhead, false,
                  "\"spmv\": \"<matrix format>\" } }\n"
               << "  ]" << std::endl;
     std::exit(1);
+}
+
+
+template <typename Engine>
+std::unique_ptr<vec<etype>> generate_rhs(
+    std::shared_ptr<const gko::Executor> exec,
+    std::shared_ptr<const gko::LinOp> system_matrix, Engine engine)
+{
+    using rc_etype = gko::remove_complex<etype>;
+    gko::dim<2> vec_size{system_matrix->get_size()[0], FLAGS_nrhs};
+    if (FLAGS_rhs_generation == "1") {
+        return create_matrix<etype>(exec, vec_size, gko::one<etype>());
+    } else if (FLAGS_rhs_generation == "random") {
+        return create_matrix<etype>(exec, vec_size, engine);
+    } else if (FLAGS_rhs_generation == "sinus") {
+        auto rhs = vec<etype>::create(exec, vec_size);
+
+        auto tmp = create_matrix_sin<etype>(exec, vec_size);
+        auto scalar = gko::matrix::Dense<rc_etype>::create(
+            exec->get_master(), gko::dim<2>{1, vec_size[1]});
+        tmp->compute_norm2(scalar.get());
+        for (gko::size_type i = 0; i < vec_size[1]; ++i) {
+            scalar->at(0, i) = gko::one<rc_etype>() / scalar->at(0, i);
+        }
+        // normalize sin-vector
+        if (gko::is_complex_s<etype>::value) {
+            tmp->scale(scalar->make_complex().get());
+        } else {
+            tmp->scale(scalar.get());
+        }
+        system_matrix->apply(tmp.get(), rhs.get());
+        return rhs;
+    }
+    throw std::invalid_argument(std::string("\"rhs_generation\" = ") +
+                                FLAGS_rhs_generation + " is not supported!");
+}
+
+
+template <typename Engine>
+std::unique_ptr<vec<etype>> generate_initial_guess(
+    std::shared_ptr<const gko::Executor> exec,
+    std::shared_ptr<const gko::LinOp> system_matrix, const vec<etype> *rhs,
+    Engine engine)
+{
+    using rc_etype = gko::remove_complex<etype>;
+    gko::dim<2> vec_size{system_matrix->get_size()[1], FLAGS_nrhs};
+    if (FLAGS_initial_guess_generation == "0") {
+        return create_matrix<etype>(exec, vec_size, gko::zero<etype>());
+    } else if (FLAGS_initial_guess_generation == "random") {
+        return create_matrix<etype>(exec, vec_size, engine);
+    } else if (FLAGS_initial_guess_generation == "rhs") {
+        return rhs->clone();
+    }
+    throw std::invalid_argument(std::string("\"initial_guess_generation\" = ") +
+                                FLAGS_initial_guess_generation +
+                                " is not supported!");
 }
 
 
@@ -552,19 +616,10 @@ int main(int argc, char *argv[])
                     std::ifstream rhs_fd{test_case["rhs"].GetString()};
                     b = gko::read<Vec>(rhs_fd, exec);
                 } else {
-                    b = create_matrix<etype>(
-                        exec,
-                        gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
-                        engine, FLAGS_random_rhs);
+                    b = generate_rhs(exec, system_matrix, engine);
                 }
-                if (FLAGS_random_initial_guess) {
-                    x = create_matrix<etype>(
-                        exec,
-                        gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
-                        engine);
-                } else {
-                    x = b->clone();
-                }
+                x = generate_initial_guess(exec, system_matrix, b.get(),
+                                           engine);
             }
 
             std::clog << "Matrix is of size (" << system_matrix->get_size()[0]
