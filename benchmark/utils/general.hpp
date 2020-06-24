@@ -129,7 +129,7 @@ void initialize_argument_parsing(int *argc, char **argv[], std::string &header,
  *
  * @param extra  describes benchmark specific extra parameters to output
  */
-void print_general_information(std::string &extra)
+void print_general_information(const std::string &extra)
 {
     std::clog << gko::version_info::get() << std::endl
               << "Running on " << FLAGS_executor << "(" << FLAGS_device_id

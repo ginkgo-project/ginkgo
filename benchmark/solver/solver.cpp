@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 
 
 #include "benchmark/utils/formats.hpp"
@@ -511,13 +512,13 @@ int main(int argc, char *argv[])
         "format\n\n";
     initialize_argument_parsing(&argc, &argv, header, format);
 
-    std::string extra_information = "Running " + FLAGS_solvers + " with " +
-                                    std::to_string(FLAGS_max_iters) +
-                                    " iterations and residual goal of " +
-                                    std::to_string(FLAGS_rel_res_goal) +
-                                    "\nThe number of right hand sides is " +
-                                    std::to_string(FLAGS_nrhs) + "\n";
-    print_general_information(extra_information);
+    std::stringstream extra_information;
+    extra_information << "Running " << FLAGS_solvers << " with "
+                      << FLAGS_max_iters << " iterations and residual goal of "
+                      << FLAGS_rel_res_goal
+                      << "\nThe number of right hand sides is " << FLAGS_nrhs
+                      << "\n";
+    print_general_information(extra_information.str());
 
     auto exec = get_executor();
     auto solvers = split(FLAGS_solvers, ',');
