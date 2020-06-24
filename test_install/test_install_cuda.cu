@@ -343,7 +343,7 @@ int main(int, char **)
         auto time = gko::stop::Time::build()
                         .with_time_limit(std::chrono::milliseconds(10))
                         .on(cudaExec);
-        // residual_norm_reduction.hpp
+        // residual_norm.hpp
         gko::stop::ResidualNormReduction<>::build()
             .with_reduction_factor(1e-10)
             .on(cudaExec);

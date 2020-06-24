@@ -99,7 +99,7 @@ target_sources(ginkgo_cuda
     solver/lower_trs_kernels.cu
     solver/upper_trs_kernels.cu
     stop/criterion_kernels.cu
-    stop/residual_norm_reduction_kernels.cu)
+    stop/residual_norm_kernels.cu)
 
 # This creates a compilation bug on nvcc 9.0.102 *with* the new array_deleter
 # merged at commit ed12b3df5d26, and the parameter is not recognized by clang-cuda
