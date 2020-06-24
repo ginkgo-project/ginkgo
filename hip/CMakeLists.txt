@@ -178,7 +178,7 @@ set(GINKGO_HIP_SOURCES
     solver/lower_trs_kernels.hip.cpp
     solver/upper_trs_kernels.hip.cpp
     stop/criterion_kernels.hip.cpp
-    stop/residual_norm_reduction_kernels.hip.cpp)
+    stop/residual_norm_kernels.hip.cpp)
 
 set(GINKGO_HIP_NVCC_ARCH "")
 if (GINKGO_HIP_PLATFORM MATCHES "nvcc")

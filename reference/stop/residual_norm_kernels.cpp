@@ -30,63 +30,61 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/stop/residual_norm_reduction_kernels.hpp"
+#include "core/stop/residual_norm_kernels.hpp"
 
 
-#include <omp.h>
+#include <algorithm>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
 namespace kernels {
-namespace omp {
+namespace reference {
 /**
- * @brief The Residual norm reduction stopping criterion namespace.
+ * @brief The Residual norm stopping criterion.
  * @ref resnorm
  * @ingroup resnorm
  */
-namespace residual_norm_reduction {
+namespace residual_norm {
 
 
 template <typename ValueType>
-void residual_norm_reduction(std::shared_ptr<const OmpExecutor> exec,
-                             const matrix::Dense<ValueType> *tau,
-                             const matrix::Dense<ValueType> *orig_tau,
-                             ValueType rel_residual_goal, uint8 stoppingId,
-                             bool setFinalized,
-                             Array<stopping_status> *stop_status,
-                             Array<bool> *device_storage, bool *all_converged,
-                             bool *one_changed)
+void residual_norm(std::shared_ptr<const ReferenceExecutor> exec,
+                   const matrix::Dense<ValueType> *tau,
+                   const matrix::Dense<ValueType> *orig_tau,
+                   ValueType rel_residual_goal, uint8 stoppingId,
+                   bool setFinalized, Array<stopping_status> *stop_status,
+                   Array<bool> *device_storage, bool *all_converged,
+                   bool *one_changed)
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
     *all_converged = true;
     *one_changed = false;
-#pragma omp parallel for
     for (size_type i = 0; i < tau->get_size()[1]; ++i) {
         if (tau->at(i) < rel_residual_goal * orig_tau->at(i)) {
             stop_status->get_data()[i].converge(stoppingId, setFinalized);
             *one_changed = true;
         }
     }
-    // No early stopping here because one cannot use break with omp parallel
-    // for But it's parallel so does it matter?
-#pragma omp parallel for
     for (size_type i = 0; i < stop_status->get_num_elems(); ++i) {
         if (!stop_status->get_const_data()[i].has_stopped()) {
             *all_converged = false;
+            break;
         }
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
-    GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL);
+    GKO_DECLARE_RESIDUAL_NORM_KERNEL);
 
 
-}  // namespace residual_norm_reduction
-}  // namespace omp
+}  // namespace residual_norm
+}  // namespace reference
 }  // namespace kernels
 }  // namespace gko

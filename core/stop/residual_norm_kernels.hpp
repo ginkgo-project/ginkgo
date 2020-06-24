@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_STOP_RESIDUAL_NORM_REDUCTION_KERNELS_HPP_
-#define GKO_CORE_STOP_RESIDUAL_NORM_REDUCTION_KERNELS_HPP_
+#ifndef GKO_CORE_STOP_RESIDUAL_NORM_KERNELS_HPP_
+#define GKO_CORE_STOP_RESIDUAL_NORM_KERNELS_HPP_
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -43,11 +43,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace gko {
 namespace kernels {
-namespace residual_norm_reduction {
+namespace residual_norm {
 
 
-#define GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL(_type)                      \
-    void residual_norm_reduction(                                              \
+#define GKO_DECLARE_RESIDUAL_NORM_KERNEL(_type)                                \
+    void residual_norm(                                                        \
         std::shared_ptr<const DefaultExecutor> exec,                           \
         const matrix::Dense<_type> *tau, const matrix::Dense<_type> *orig_tau, \
         _type rel_residual_goal, uint8 stoppingId, bool setFinalized,          \
@@ -57,45 +57,45 @@ namespace residual_norm_reduction {
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \
     template <typename ValueType>    \
-    GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL(ValueType)
+    GKO_DECLARE_RESIDUAL_NORM_KERNEL(ValueType)
 
 
-}  // namespace residual_norm_reduction
+}  // namespace residual_norm
 
 
 namespace omp {
-namespace residual_norm_reduction {
+namespace residual_norm {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace residual_norm_reduction
+}  // namespace residual_norm
 }  // namespace omp
 
 
 namespace cuda {
-namespace residual_norm_reduction {
+namespace residual_norm {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace residual_norm_reduction
+}  // namespace residual_norm
 }  // namespace cuda
 
 
 namespace reference {
-namespace residual_norm_reduction {
+namespace residual_norm {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace residual_norm_reduction
+}  // namespace residual_norm
 }  // namespace reference
 
 
 namespace hip {
-namespace residual_norm_reduction {
+namespace residual_norm {
 
 GKO_DECLARE_ALL_AS_TEMPLATES;
 
-}  // namespace residual_norm_reduction
+}  // namespace residual_norm
 }  // namespace hip
 
 
@@ -104,4 +104,4 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace kernels
 }  // namespace gko
 
-#endif  // GKO_CORE_STOP_RESIDUAL_NORM_REDUCTION_KERNELS_HPP_
+#endif  // GKO_CORE_STOP_RESIDUAL_NORM_KERNELS_HPP_

@@ -35,7 +35,7 @@ Apply operations times (ns):
         dense::compute_dot#3: 28548
         dense::compute_norm2#2: 45677
         free: 25109
-        residual_norm_reduction::residual_norm_reduction#9: 10617
+        residual_norm::residual_norm#9: 10617
 Recurrent Residual Norms:
 [
         4.3589
