@@ -98,6 +98,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/criterion.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
+#include <ginkgo/core/stop/residual_norm_reduction.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
