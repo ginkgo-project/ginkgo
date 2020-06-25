@@ -816,26 +816,6 @@ addresssanitizer:
     - cuda
     - gpu
 
-leaksanitizer:
-  stage: QoS_tools
-  image: localhost:5000/gko-cuda101-gnu8-llvm10-intel2019
-  before_script: *default_before_script
-  script:
-    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=LSAN
-      -DCTEST_MEMORYCHECK_TYPE=LeakSanitizer
-  dependencies: []
-  only:
-    refs:
-      - master
-      - develop
-      - tags
-    variables:
-      - $RUN_CI_TAG
-  tags:
-    - private_ci
-    - cuda
-    - gpu
-
 undefinedsanitizer:
   stage: QoS_tools
   image: localhost:5000/gko-cuda101-gnu8-llvm10-intel2019
