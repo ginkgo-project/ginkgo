@@ -175,7 +175,7 @@ TEST_F(GmresMixed, CanSetKrylovDim)
 {
     auto gmres_mixed_factory =
         Solver::build()
-            .with_krylov_dim_mixed(4u)
+            .with_krylov_dim(4u)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(4u).on(exec),
                 gko::stop::ResidualNormReduction<>::build()
@@ -183,9 +183,9 @@ TEST_F(GmresMixed, CanSetKrylovDim)
                     .on(exec))
             .on(exec);
     auto solver = gmres_mixed_factory->generate(mtx);
-    auto krylov_dim_mixed = solver->get_krylov_dim_mixed();
+    auto krylov_dim = solver->get_krylov_dim();
 
-    ASSERT_EQ(krylov_dim_mixed, 4);
+    ASSERT_EQ(krylov_dim, 4);
 }
 
 TEST_F(GmresMixed, CanSetPreconditionerInFactory)

@@ -73,6 +73,14 @@ else
     DETAILED_STR="--detailed=true"
 fi
 
+# Control whether to print additional preconditioner information for solver
+# benchmarks. Requires `DETAILED` to be set to have an effect.
+if  [ ! "${SOLVERS_PRINT_PRECOND}" ] || [ "${SOLVERS_PRINT_PRECOND}" -ne 0 ]; then
+    PRINT_PRECOND_STR="--print_preconditioner_information=true"
+else
+    PRINT_PRECOND_STR="--print_preconditioner_information=false"
+fi
+
 # Control whether to randomize the right hand side.
 # Default setting is randomize=true. To deactivate, set SOLVERS_RANDOMIZE_RHS=0.
 if  [ ! "${SOLVERS_RANDOMIZE_RHS}" ] || [ "${SOLVERS_RANDOMIZE_RHS}" -ne 0 ]; then
@@ -181,6 +189,7 @@ run_solver_benchmarks() {
                     --preconditioners="${PRECONDS}" \
                     --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
                     ${SOLVERS_RND_STR} --nrhs=${SOLVERS_NUM_RHS} ${DETAILED_STR} --device_id="${DEVICE_ID}" \
+                    ${PRINT_PRECOND_STR} \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }

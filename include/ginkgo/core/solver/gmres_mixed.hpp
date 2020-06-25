@@ -106,7 +106,7 @@ public:
      *
      * @return the krylov dimension
      */
-    size_type get_krylov_dim_mixed() const { return krylov_dim_mixed_; }
+    size_type get_krylov_dim() const { return krylov_dim_; }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -132,7 +132,7 @@ public:
         /**
          * krylov dimension factory.
          */
-        size_type GKO_FACTORY_PARAMETER(krylov_dim_mixed, 0u);
+        size_type GKO_FACTORY_PARAMETER(krylov_dim, 0u);
     };
     GKO_ENABLE_LIN_OP_FACTORY(GmresMixed, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -165,10 +165,10 @@ protected:
             set_preconditioner(matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size()[0]));
         }
-        if (parameters_.krylov_dim_mixed) {
-            krylov_dim_mixed_ = parameters_.krylov_dim_mixed;
+        if (parameters_.krylov_dim) {
+            krylov_dim_ = parameters_.krylov_dim;
         } else {
-            krylov_dim_mixed_ = default_krylov_dim_mixed;
+            krylov_dim_ = default_krylov_dim_mixed;
         }
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
@@ -177,7 +177,7 @@ protected:
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
-    size_type krylov_dim_mixed_;
+    size_type krylov_dim_;
 };
 
 

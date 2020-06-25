@@ -88,6 +88,12 @@ DEFINE_bool(
     "Randomize the right hand side for each solver if set to True (default "
     "value). If set to False, the right hand side is set to all 1.");
 
+DEFINE_bool(
+    print_preconditioner_information, true,
+    "If `detailed` is set, it prints information about the preconditioner used "
+    "if available. Otherwise, no additional preconditioner information is "
+    "provided.");
+
 // This allows to benchmark the overhead of a solver by using the following
 // data: A=[1.0], x=[0.0], b=[nan]. This data can be used to benchmark normal
 // solvers or using the argument --solvers=overhead, a minimal solver will be
@@ -292,6 +298,9 @@ void write_precond_info(const gko::LinOp *precond,
                         rapidjson::Value &precond_info,
                         rapidjson::MemoryPoolAllocator<> &allocator)
 {
+    if (!FLAGS_print_preconditioner_information) {
+        return;
+    }
     if (const auto jacobi =
             dynamic_cast<const gko::preconditioner::Jacobi<etype> *>(precond)) {
         // extract block sizes

@@ -305,7 +305,7 @@ std::unique_ptr<vec<ValueType>> create_matrix_sin(
         itype get_next_value() { return idx++; }
     };
     auto my_dist = [](count &c) {
-        return std::sin(ValueType{c.get_next_value()});
+        return std::sin(static_cast<ValueType>(c.get_next_value()));
     };
     auto res = vec<ValueType>::create(exec);
     res->read(gko::matrix_data<ValueType>(size, my_dist, count{}));
