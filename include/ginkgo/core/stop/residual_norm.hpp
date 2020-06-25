@@ -47,6 +47,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace stop {
 
+
+/**
+ * The ResidualNorm class provides a framework for stopping criteria
+ * related to the residual norm. These criteria differ in the way they
+ * initialize starting_tau_, so in the value they compare the
+ * residual norm against.
+ *
+ * @ingroup stop
+ */
 template <typename ValueType = default_precision>
 class ResidualNorm
     : public EnablePolymorphicObject<ResidualNorm<ValueType>, Criterion> {
@@ -82,6 +91,7 @@ private:
     Array<bool> device_storage_;
 };
 
+
 /**
  * The ResidualNormReduction class is a stopping criterion which stops the
  * iteration process when the residual norm is below a certain
@@ -106,7 +116,7 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * Relative residual norm goal
+         * Factor by which the residual norm will be reduced
          */
         remove_complex<ValueType> GKO_FACTORY_PARAMETER(reduction_factor,
                                                         1e-15);
@@ -222,7 +232,7 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * Relative residual norm goal
+         * Absolute residual norm goal
          */
         remove_complex<ValueType> GKO_FACTORY_PARAMETER(tolerance, 1e-15);
     };

@@ -248,7 +248,6 @@ protected:
 
     AbsoluteResidualNorm()
     {
-        std::cout << "TOLERANCE: " << r<T>::value << "\n";
         omp_ = gko::OmpExecutor::create();
         factory_ = gko::stop::AbsoluteResidualNorm<T>::build()
                        .with_tolerance(r<T>::value)
