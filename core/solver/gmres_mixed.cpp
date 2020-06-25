@@ -100,12 +100,11 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
     auto residual = Vector::create_with_config_of(dense_b);
-    const dim<3> krylov_bases_dim{krylov_dim_mixed_ + 1,
-                                  system_matrix_->get_size()[1],
-                                  dense_b->get_size()[1]};
+    const dim<3> krylov_bases_dim{
+        krylov_dim_ + 1, system_matrix_->get_size()[1], dense_b->get_size()[1]};
     // const dim<2> krylov_bases_dim{
     //     system_matrix_->get_size()[1],
-    //     (krylov_dim_mixed_ + 1) * dense_b->get_size()[1]};
+    //     (krylov_dim_ + 1) * dense_b->get_size()[1]};
     // const size_type krylov_bases_stride = krylov_bases_dim[1];
     // LowArray krylov_bases(exec, krylov_bases_dim[0] * krylov_bases_stride);
     // KrylovAccessor krylov_bases_accessor(krylov_bases.get_data(),
@@ -117,16 +116,15 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     std::shared_ptr<matrix::Dense<ValueType>> preconditioned_vector =
         Vector::create_with_config_of(dense_b);
     auto hessenberg = Vector::create(
-        exec, dim<2>{krylov_dim_mixed_ + 1,
-                     krylov_dim_mixed_ * dense_b->get_size()[1]});
-    auto buffer = Vector::create(
-        exec, dim<2>{krylov_dim_mixed_ + 1, dense_b->get_size()[1]});
+        exec, dim<2>{krylov_dim_ + 1, krylov_dim_ * dense_b->get_size()[1]});
+    auto buffer =
+        Vector::create(exec, dim<2>{krylov_dim_ + 1, dense_b->get_size()[1]});
     auto givens_sin =
-        Vector::create(exec, dim<2>{krylov_dim_mixed_, dense_b->get_size()[1]});
+        Vector::create(exec, dim<2>{krylov_dim_, dense_b->get_size()[1]});
     auto givens_cos =
-        Vector::create(exec, dim<2>{krylov_dim_mixed_, dense_b->get_size()[1]});
-    auto residual_norm_collection = Vector::create(
-        exec, dim<2>{krylov_dim_mixed_ + 1, dense_b->get_size()[1]});
+        Vector::create(exec, dim<2>{krylov_dim_, dense_b->get_size()[1]});
+    auto residual_norm_collection =
+        Vector::create(exec, dim<2>{krylov_dim_ + 1, dense_b->get_size()[1]});
     auto residual_norm =
         VectorNorms::create(exec, dim<2>{1, dense_b->get_size()[1]});
     auto b_norm = VectorNorms::create(exec, dim<2>{1, dense_b->get_size()[1]});
@@ -138,8 +136,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
                      dense_b->get_size()[1]});
     Array<size_type> final_iter_nums(this->get_executor(),
                                      dense_b->get_size()[1]);
-    auto y =
-        Vector::create(exec, dim<2>{krylov_dim_mixed_, dense_b->get_size()[1]});
+    auto y = Vector::create(exec, dim<2>{krylov_dim_, dense_b->get_size()[1]});
 
     bool one_changed{};
     Array<stopping_status> stop_status(this->get_executor(),
@@ -153,7 +150,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     // Initialization
     exec->run(gmres_mixed::make_initialize_1(
         dense_b, b_norm.get(), residual.get(), givens_sin.get(),
-        givens_cos.get(), &stop_status, krylov_dim_mixed_));
+        givens_cos.get(), &stop_status, krylov_dim_));
     // b_norm = norm(b)
     // residual = dense_b
     // givens_sin = givens_cos = 0
@@ -165,7 +162,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     exec->run(gmres_mixed::make_initialize_2(
         residual.get(), residual_norm.get(), residual_norm_collection.get(),
         arnoldi_norm.get(), krylov_bases_accessor, next_krylov_basis.get(),
-        &final_iter_nums, krylov_dim_mixed_));
+        &final_iter_nums, krylov_dim_));
     // residual_norm = norm(residual)
     // residual_norm_collection = {residual_norm, 0, ..., 0}
     // krylov_bases(:, 1) = residual / residual_norm
@@ -193,7 +190,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     auto time_STEP1 = start - start;
 #endif
 #endif
-
+    bool stop_already_encountered{false};
     // std::cout << "Before loop" << std::endl;
     while (true) {
         ++total_iter;
@@ -205,10 +202,30 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
                 .residual_norm(residual_norm.get())
                 .solution(dense_x)
                 .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
-            break;
+            if (stop_already_encountered) {
+                break;
+            }
+            stop_already_encountered = true;
+            Array<stopping_status> host_stop_status(
+                this->get_executor()->get_master(), stop_status);
+            bool host_array_changed{false};
+            for (size_type i = 0; i < host_stop_status.get_num_elems(); ++i) {
+                auto local_status = host_stop_status.get_data() + i;
+                if (local_status->has_converged()) {
+                    local_status->reset();
+                    host_array_changed = true;
+                }
+            }
+            if (host_array_changed) {
+                stop_status = host_stop_status;
+            } else {
+                break;
+            }
+        } else {
+            stop_already_encountered = false;
         }
 
-        if (restart_iter == krylov_dim_mixed_) {
+        if (stop_already_encountered || restart_iter == krylov_dim_) {
 #ifdef TIMING_STEPS
             exec->synchronize();
             auto t_aux_0 = std::chrono::steady_clock::now();
@@ -218,8 +235,8 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
             // Restart
             /*
             std::cout << "[ ";
-            for (int i = 0; i <= krylov_dim_mixed_; i++) {
-                for (int j = 0; j < krylov_dim_mixed_ * dense_b->get_size()[1];
+            for (int i = 0; i <= krylov_dim_; i++) {
+                for (int j = 0; j < krylov_dim_ * dense_b->get_size()[1];
                      j++) {
                     if (j > 0) std::cout << ", ";
                     std::cout << hessenberg->at(i, j);
@@ -228,10 +245,15 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
             }
             std::cout << "]" << std::endl;
             */
+            // use a view in case this is called earlier
+            auto hessenberg_view = hessenberg->create_submatrix(
+                span{0, restart_iter},
+                span{0, dense_b->get_size()[1] * (restart_iter)});
+
             exec->run(gmres_mixed::make_step_2(
                 residual_norm_collection.get(),
-                krylov_bases_accessor.to_const(), hessenberg.get(), y.get(),
-                before_preconditioner.get(), &final_iter_nums));
+                krylov_bases_accessor.to_const(), hessenberg_view.get(),
+                y.get(), before_preconditioner.get(), &final_iter_nums));
             /* */ /*
             auto hessenberg_small = hessenberg->create_submatrix(
                 span{0, restart_iter},
@@ -259,7 +281,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
                 residual.get(), residual_norm.get(),
                 residual_norm_collection.get(), arnoldi_norm.get(),
                 krylov_bases_accessor, next_krylov_basis.get(),
-                &final_iter_nums, krylov_dim_mixed_));
+                &final_iter_nums, krylov_dim_));
             // residual_norm = norm(residual)
             // residual_norm_collection = {residual_norm, 0, ..., 0}
             // krylov_bases(:, 1) = residual / residual_norm
@@ -350,7 +372,7 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
         span{0, dense_b->get_size()[1] * (restart_iter + 1)});
     const dim<2> krylov_bases_dim{
         system_matrix_->get_size()[1],
-        (krylov_dim_mixed_ + 1) * dense_b->get_size()[1]};
+        (krylov_dim_ + 1) * dense_b->get_size()[1]};
     */
     /*
     const dim<2> krylov_bases_small_dim{

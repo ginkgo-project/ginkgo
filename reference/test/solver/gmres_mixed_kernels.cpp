@@ -316,7 +316,7 @@ TYPED_TEST(GmresMixed, SolvesBigDenseSystem1WithRestart)
     const auto half_tol = std::sqrt(r<value_type>::value);
     auto gmres_mixed_factory_restart =
         gmres_type::build()
-            .with_krylov_dim_mixed(4u)
+            .with_krylov_dim(4u)
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(200u).on(
                     this->exec),
