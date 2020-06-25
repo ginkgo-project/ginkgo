@@ -29,16 +29,25 @@ include(CMakeDependentOption)
 
 set(${PROJECT_NAME}_CUSTOM_BUILD_TYPES      "COVERAGE;TSAN;ASAN;LSAN;UBSAN" CACHE INTERNAL "")
 
+# LLVM provides all sanitizers in a single library, but they are separate in GCC
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(GKO_TSAN_LIBRARIES "-static-libsan")
+    set(GKO_UBSAN_LIBRARIES "-static-libsan")
+else()
+    set(GKO_TSAN_LIBRARIES "-static-libtsan")
+    set(GKO_UBSAN_LIBRARIES "-static-libubsan")
+endif()
+
 set(${PROJECT_NAME}_COVERAGE_COMPILER_FLAGS "-g -O0 --coverage" CACHE INTERNAL "")
 set(${PROJECT_NAME}_COVERAGE_LINKER_FLAGS   "--coverage"        CACHE INTERNAL "")
 set(${PROJECT_NAME}_TSAN_COMPILER_FLAGS     "-g -O1 -fsanitize=thread -fno-omit-frame-pointer -fPIC" CACHE INTERNAL "")
-set(${PROJECT_NAME}_TSAN_LINKER_FLAGS       "-fsanitize=thread -static-libtsan -fno-omit-frame-pointer -fPIC" CACHE INTERNAL "")
+set(${PROJECT_NAME}_TSAN_LINKER_FLAGS       "-fsanitize=thread ${GKO_TSAN_LIBRARIES} -fno-omit-frame-pointer -fPIC" CACHE INTERNAL "")
 set(${PROJECT_NAME}_ASAN_COMPILER_FLAGS     "-g -O1 -fsanitize=address -fno-omit-frame-pointer" CACHE INTERNAL "")
 set(${PROJECT_NAME}_ASAN_LINKER_FLAGS       "-fsanitize=address -fno-omit-frame-pointer"        CACHE INTERNAL "")
 set(${PROJECT_NAME}_LSAN_COMPILER_FLAGS     "-g -O1 -fsanitize=leak" CACHE INTERNAL "")
 set(${PROJECT_NAME}_LSAN_LINKER_FLAGS       "-fsanitize=leak"        CACHE INTERNAL "")
-set(${PROJECT_NAME}_UBSAN_COMPILER_FLAGS    "-g -O1 -fsanitize=undefined -static-libubsan" CACHE INTERNAL "")
-set(${PROJECT_NAME}_UBSAN_LINKER_FLAGS      "-fsanitize=undefined -static-libubsan"        CACHE INTERNAL "")
+set(${PROJECT_NAME}_UBSAN_COMPILER_FLAGS    "-g -O1 -fsanitize=undefined ${GKO_UBSAN_LIBRARIES}" CACHE INTERNAL "")
+set(${PROJECT_NAME}_UBSAN_LINKER_FLAGS      "-fsanitize=undefined ${GKO_UBSAN_LIBRARIES}"        CACHE INTERNAL "")
 
 # We need to wrap all flags with `-Xcomplier` for HIP when using the NVCC backend
 function(GKO_XCOMPILER varname varlist)
