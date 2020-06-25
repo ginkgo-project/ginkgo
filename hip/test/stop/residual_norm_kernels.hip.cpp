@@ -82,7 +82,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
             .residual_norm(d_scalar.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    scalar->at(0) = reduction_factor * 1.0e+2;
+    scalar->at(0) = tol * 1.0e+2;
     d_scalar->copy_from(scalar.get());
     ASSERT_FALSE(
         criterion->update()
@@ -93,7 +93,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
     stop_status.set_executor(hip_);
     ASSERT_FALSE(one_changed);
 
-    scalar->at(0) = reduction_factor * 1.0e-2;
+    scalar->at(0) = tol * 1.0e-2;
     d_scalar->copy_from(scalar.get());
     ASSERT_TRUE(
         criterion->update()
@@ -123,7 +123,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
             .residual_norm(d_mtx.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    mtx->at(0, 0) = reduction_factor * 1.0e-2;
+    mtx->at(0, 0) = tol * 1.0e-2;
     d_mtx->copy_from(mtx.get());
     ASSERT_FALSE(
         criterion->update()
@@ -134,7 +134,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
     stop_status.set_executor(hip_);
     ASSERT_TRUE(one_changed);
 
-    mtx->at(0, 1) = reduction_factor * 1.0e-2;
+    mtx->at(0, 1) = tol * 1.0e-2;
     d_mtx->copy_from(mtx.get());
     ASSERT_TRUE(
         criterion->update()
@@ -155,7 +155,8 @@ protected:
         ref_ = gko::ReferenceExecutor::create();
         hip_ = gko::HipExecutor::create(0, ref_);
         factory_ =
-            gko::stop::RelativeResidualNorm<>::build().tolerance(tol).on(hip_);
+            gko::stop::RelativeResidualNorm<>::build().with_tolerance(tol).on(
+                hip_);
     }
 
     std::unique_ptr<gko::stop::RelativeResidualNorm<>::Factory> factory_;
@@ -181,7 +182,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
             .residual_norm(d_scalar.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    scalar->at(0) = tolerance * 1.0e+2;
+    scalar->at(0) = tol * 1.0e+2;
     d_scalar->copy_from(scalar.get());
     ASSERT_FALSE(
         criterion->update()
@@ -192,7 +193,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
     stop_status.set_executor(hip_);
     ASSERT_FALSE(one_changed);
 
-    scalar->at(0) = tolerance * 1.0e-2;
+    scalar->at(0) = tol * 1.0e-2;
     d_scalar->copy_from(scalar.get());
     ASSERT_TRUE(
         criterion->update()
@@ -222,7 +223,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
             .residual_norm(d_mtx.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    mtx->at(0, 0) = tolerance * 1.0e-2;
+    mtx->at(0, 0) = tol * 1.0e-2;
     d_mtx->copy_from(mtx.get());
     ASSERT_FALSE(
         criterion->update()
@@ -233,7 +234,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
     stop_status.set_executor(hip_);
     ASSERT_TRUE(one_changed);
 
-    mtx->at(0, 1) = tolerance * 1.0e-2;
+    mtx->at(0, 1) = tol * 1.0e-2;
     d_mtx->copy_from(mtx.get());
     ASSERT_TRUE(
         criterion->update()
@@ -254,7 +255,8 @@ protected:
         ref_ = gko::ReferenceExecutor::create();
         hip_ = gko::HipExecutor::create(0, ref_);
         factory_ =
-            gko::stop::AbsoluteResidualNorm<>::build().tolerance(tol).on(hip_);
+            gko::stop::AbsoluteResidualNorm<>::build().with_tolerance(tol).on(
+                hip_);
     }
 
     std::unique_ptr<gko::stop::AbsoluteResidualNorm<>::Factory> factory_;
@@ -280,7 +282,7 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoal)
             .residual_norm(d_scalar.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    scalar->at(0) = tolerance * 1.0e+2;
+    scalar->at(0) = tol * 1.0e+2;
     d_scalar->copy_from(scalar.get());
     ASSERT_FALSE(
         criterion->update()
@@ -291,7 +293,7 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoal)
     stop_status.set_executor(hip_);
     ASSERT_FALSE(one_changed);
 
-    scalar->at(0) = tolerance * 1.0e-2;
+    scalar->at(0) = tol * 1.0e-2;
     d_scalar->copy_from(scalar.get());
     ASSERT_TRUE(
         criterion->update()
@@ -321,7 +323,7 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoalMultipleRHS)
             .residual_norm(d_mtx.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    mtx->at(0, 0) = tolerance * 1.0e-2;
+    mtx->at(0, 0) = tol * 1.0e-2;
     d_mtx->copy_from(mtx.get());
     ASSERT_FALSE(
         criterion->update()
@@ -332,7 +334,7 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoalMultipleRHS)
     stop_status.set_executor(hip_);
     ASSERT_TRUE(one_changed);
 
-    mtx->at(0, 1) = tolerance * 1.0e-2;
+    mtx->at(0, 1) = tol * 1.0e-2;
     d_mtx->copy_from(mtx.get());
     ASSERT_TRUE(
         criterion->update()

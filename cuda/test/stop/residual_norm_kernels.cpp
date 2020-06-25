@@ -82,7 +82,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
             .residual_norm(d_scalar.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    scalar->at(0) = reduction_factor * 1.0e+2;
+    scalar->at(0) = tol * 1.0e+2;
     d_scalar->copy_from(scalar.get());
     ASSERT_FALSE(
         criterion->update()
@@ -93,7 +93,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
     stop_status.set_executor(cuda_);
     ASSERT_FALSE(one_changed);
 
-    scalar->at(0) = reduction_factor * 1.0e-2;
+    scalar->at(0) = tol * 1.0e-2;
     d_scalar->copy_from(scalar.get());
     ASSERT_TRUE(
         criterion->update()
@@ -123,7 +123,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
             .residual_norm(d_mtx.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    mtx->at(0, 0) = reduction_factor * 1.0e-2;
+    mtx->at(0, 0) = tol * 1.0e-2;
     d_mtx->copy_from(mtx.get());
     ASSERT_FALSE(
         criterion->update()
@@ -134,7 +134,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
     stop_status.set_executor(cuda_);
     ASSERT_TRUE(one_changed);
 
-    mtx->at(0, 1) = reduction_factor * 1.0e-2;
+    mtx->at(0, 1) = tol * 1.0e-2;
     d_mtx->copy_from(mtx.get());
     ASSERT_TRUE(
         criterion->update()
@@ -182,7 +182,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
             .residual_norm(d_scalar.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    scalar->at(0) = tolerance * 1.0e+2;
+    scalar->at(0) = tol * 1.0e+2;
     d_scalar->copy_from(scalar.get());
     ASSERT_FALSE(
         criterion->update()
@@ -193,7 +193,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
     stop_status.set_executor(cuda_);
     ASSERT_FALSE(one_changed);
 
-    scalar->at(0) = tolerance * 1.0e-2;
+    scalar->at(0) = tol * 1.0e-2;
     d_scalar->copy_from(scalar.get());
     ASSERT_TRUE(
         criterion->update()
@@ -223,7 +223,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
             .residual_norm(d_mtx.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    mtx->at(0, 0) = tolerance * 1.0e-2;
+    mtx->at(0, 0) = tol * 1.0e-2;
     d_mtx->copy_from(mtx.get());
     ASSERT_FALSE(
         criterion->update()
@@ -234,7 +234,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
     stop_status.set_executor(cuda_);
     ASSERT_TRUE(one_changed);
 
-    mtx->at(0, 1) = tolerance * 1.0e-2;
+    mtx->at(0, 1) = tol * 1.0e-2;
     d_mtx->copy_from(mtx.get());
     ASSERT_TRUE(
         criterion->update()
@@ -282,7 +282,7 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoal)
             .residual_norm(d_scalar.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    scalar->at(0) = tolerance * 1.0e+2;
+    scalar->at(0) = tol * 1.0e+2;
     d_scalar->copy_from(scalar.get());
     ASSERT_FALSE(
         criterion->update()
@@ -293,7 +293,7 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoal)
     stop_status.set_executor(cuda_);
     ASSERT_FALSE(one_changed);
 
-    scalar->at(0) = tolerance * 1.0e-2;
+    scalar->at(0) = tol * 1.0e-2;
     d_scalar->copy_from(scalar.get());
     ASSERT_TRUE(
         criterion->update()
@@ -323,7 +323,7 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoalMultipleRHS)
             .residual_norm(d_mtx.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    mtx->at(0, 0) = tolerance * 1.0e-2;
+    mtx->at(0, 0) = tol * 1.0e-2;
     d_mtx->copy_from(mtx.get());
     ASSERT_FALSE(
         criterion->update()
@@ -334,7 +334,7 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoalMultipleRHS)
     stop_status.set_executor(cuda_);
     ASSERT_TRUE(one_changed);
 
-    mtx->at(0, 1) = tolerance * 1.0e-2;
+    mtx->at(0, 1) = tol * 1.0e-2;
     d_mtx->copy_from(mtx.get());
     ASSERT_TRUE(
         criterion->update()
