@@ -154,9 +154,9 @@ protected:
     {
         ref_ = gko::ReferenceExecutor::create();
         cuda_ = gko::CudaExecutor::create(0, ref_);
-        factory_ = gko::stop::RelativeResidualNorm<>::build()
-                       .with_reduction_factor(tol)
-                       .on(cuda_);
+        factory_ =
+            gko::stop::RelativeResidualNorm<>::build().with_tolerance(tol).on(
+                cuda_);
     }
 
     std::unique_ptr<gko::stop::RelativeResidualNorm<>::Factory> factory_;
@@ -254,9 +254,9 @@ protected:
     {
         ref_ = gko::ReferenceExecutor::create();
         cuda_ = gko::CudaExecutor::create(0, ref_);
-        factory_ = gko::stop::AbsoluteResidualNorm<>::build()
-                       .with_reduction_factor(tol)
-                       .on(cuda_);
+        factory_ =
+            gko::stop::AbsoluteResidualNorm<>::build().with_tolerance(tol).on(
+                cuda_);
     }
 
     std::unique_ptr<gko::stop::AbsoluteResidualNorm<>::Factory> factory_;

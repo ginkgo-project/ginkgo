@@ -67,9 +67,6 @@ bool ResidualNorm<ValueType>::check_impl(uint8 stoppingId, bool setFinalized,
     }
     bool all_converged = true;
 
-    if (dense_tau->get_size()[1] > 1) {
-    }
-
     this->get_executor()->run(residual_norm::make_residual_norm(
         dense_tau, this->starting_tau_.get(), this->tolerance_, stoppingId,
         setFinalized, stop_status, &this->device_storage_, &all_converged,
