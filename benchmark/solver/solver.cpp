@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <type_traits>
 
 
 #include "benchmark/utils/formats.hpp"
@@ -94,6 +95,11 @@ DEFINE_bool(
     "if available. Otherwise, no additional preconditioner information is "
     "provided.");
 
+DEFINE_uint32(
+    krylov_dim, gko::solver::default_krylov_dim,
+    "The krylov dimension for the gmres solver. If no gmres solver is "
+    "selected, this parameter has no effect. Default value is 100.");
+
 // This allows to benchmark the overhead of a solver by using the following
 // data: A=[1.0], x=[0.0], b=[nan]. This data can be used to benchmark normal
 // solvers or using the argument --solvers=overhead, a minimal solver will be
@@ -127,21 +133,77 @@ void validate_option_object(const rapidjson::Value &value)
 }
 
 
+template <typename SolverType, typename = void>
+struct has_factory_parameter_criteria : std::false_type {
+};
+
+template <typename SolverType>
+struct has_factory_parameter_criteria<
+    SolverType, gko::xstd::void_t<decltype(SolverType::build().with_criteria(
+                    std::shared_ptr<const gko::stop::CriterionFactory>{}))>>
+    : std::true_type {
+};
+
+
+template <typename SolverType, typename BuildType, typename ExecutorType>
+gko::xstd::enable_if_t<has_factory_parameter_criteria<SolverType>::value,
+                       BuildType>
+add_criteria(BuildType build, ExecutorType exec)
+{
+    return build.with_criteria(
+        gko::stop::ResidualNormReduction<>::build()
+            .with_reduction_factor(FLAGS_rel_res_goal)
+            .on(exec),
+        gko::stop::Iteration::build().with_max_iters(FLAGS_max_iters).on(exec));
+}
+
+template <typename SolverType, typename BuildType, typename ExecutorType>
+gko::xstd::enable_if_t<!has_factory_parameter_criteria<SolverType>::value,
+                       BuildType>
+add_criteria(BuildType build, ExecutorType exec)
+{
+    return build;
+}
+
+
+template <typename SolverType, typename = void>
+struct has_factory_parameter_krylov_dim : std::false_type {
+};
+
+template <typename SolverType>
+struct has_factory_parameter_krylov_dim<
+    SolverType,
+    gko::xstd::void_t<decltype(SolverType::build().with_krylov_dim(0u))>>
+    : std::true_type {
+};
+
+
+template <typename SolverType, typename BuildType>
+gko::xstd::enable_if_t<has_factory_parameter_krylov_dim<SolverType>::value,
+                       BuildType>
+add_krylov_dim(BuildType build)
+{
+    return build.with_krylov_dim(FLAGS_krylov_dim);
+}
+
+template <typename SolverType, typename BuildType>
+gko::xstd::enable_if_t<!has_factory_parameter_krylov_dim<SolverType>::value,
+                       BuildType>
+add_krylov_dim(BuildType build)
+{
+    return build;
+}
+
+
 // solver mapping
 template <typename SolverType>
 std::unique_ptr<gko::LinOpFactory> create_solver(
     std::shared_ptr<const gko::Executor> exec,
     std::shared_ptr<const gko::LinOpFactory> precond)
 {
-    return SolverType::build()
-        .with_criteria(gko::stop::ResidualNormReduction<>::build()
-                           .with_reduction_factor(FLAGS_rel_res_goal)
-                           .on(exec),
-                       gko::stop::Iteration::build()
-                           .with_max_iters(FLAGS_max_iters)
-                           .on(exec))
-        .with_preconditioner(give(precond))
-        .on(exec);
+    auto with_criteria = add_criteria<SolverType>(SolverType::build(), exec);
+    auto with_krylov_dim = add_krylov_dim<SolverType>(with_criteria);
+    return with_krylov_dim.with_preconditioner(give(precond)).on(exec);
 }
 
 

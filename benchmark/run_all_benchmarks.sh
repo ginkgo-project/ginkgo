@@ -50,6 +50,11 @@ if [ ! "${SOLVERS_MAX_ITERATIONS}" ]; then
     SOLVERS_MAX_ITERATIONS=10000
 fi
 
+if [ ! "${SOLVERS_KRYLOV_DIM}" ]; then
+    echo "SOLVERS_KRYLOV_DIM    environment variable not set - assuming \"100\"" 1>&2
+    SOLVERS_KRYLOV_DIM=100
+fi
+
 if [ ! "${SYSTEM_NAME}" ]; then
     echo "SYSTEM_MANE environment variable not set - assuming \"unknown\"" 1>&2
     SYSTEM_NAME="unknown"
@@ -187,9 +192,11 @@ run_solver_benchmarks() {
     ./solver/solver --backup="$1.bkp" --double_buffer="$1.bkp2" \
                     --executor="${EXECUTOR}" --solvers="${SOLVERS}" \
                     --preconditioners="${PRECONDS}" \
-                    --max_iters=${SOLVERS_MAX_ITERATIONS} --rel_res_goal=${SOLVERS_PRECISION} \
-                    ${SOLVERS_RND_STR} --nrhs=${SOLVERS_NUM_RHS} ${DETAILED_STR} --device_id="${DEVICE_ID}" \
-                    ${PRINT_PRECOND_STR} \
+                    --max_iters="${SOLVERS_MAX_ITERATIONS}" \
+                    --rel_res_goal="${SOLVERS_PRECISION}" \
+                    --krylov_dim="${SOLVERS_KRYLOV_DIM}" "${SOLVERS_RND_STR}" \
+                    --nrhs="${SOLVERS_NUM_RHS}" "${DETAILED_STR}" \
+                    --device_id="${DEVICE_ID}" "${PRINT_PRECOND_STR}" \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
