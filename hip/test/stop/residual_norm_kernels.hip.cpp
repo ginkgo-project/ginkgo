@@ -66,11 +66,13 @@ protected:
 
 TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
 {
-    auto scalar = gko::initialize<Mtx>({1.0}, ref_);
-    auto d_scalar = Mtx::create(hip_);
-    d_scalar->copy_from(scalar.get());
-    auto criterion =
-        factory_->generate(nullptr, nullptr, nullptr, d_scalar.get());
+    auto res = gko::initialize<Mtx>({100.0}, ref_);
+    auto d_res = Mtx::create(hip_);
+    d_res->copy_from(res.get());
+    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, ref_);
+    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(hip_);
+    d_rhs->copy_from(rhs.get());
+    auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
     gko::Array<gko::stopping_status> stop_status(ref_, 1);
@@ -79,25 +81,25 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
 
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(d_scalar.get())
+            .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    scalar->at(0) = tol * 1.0e+2;
-    d_scalar->copy_from(scalar.get());
+    res->at(0) = tol * 1.0e+2;
+    d_res->copy_from(res.get());
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(d_scalar.get())
+            .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     stop_status.set_executor(ref_);
     ASSERT_FALSE(stop_status.get_data()[0].has_converged());
     stop_status.set_executor(hip_);
     ASSERT_FALSE(one_changed);
 
-    scalar->at(0) = tol * 1.0e-2;
-    d_scalar->copy_from(scalar.get());
+    res->at(0) = tol * 1.0e+1;
+    d_res->copy_from(res.get());
     ASSERT_TRUE(
         criterion->update()
-            .residual_norm(d_scalar.get())
+            .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     stop_status.set_executor(ref_);
     ASSERT_TRUE(stop_status.get_data()[0].has_converged());
@@ -107,10 +109,13 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
 
 TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
 {
-    auto mtx = gko::initialize<Mtx>({{1.0, 1.0}}, ref_);
-    auto d_mtx = Mtx::create(hip_);
-    d_mtx->copy_from(mtx.get());
-    auto criterion = factory_->generate(nullptr, nullptr, nullptr, d_mtx.get());
+    auto res = gko::initialize<Mtx>({100.0, 100.0}, ref_);
+    auto d_res = Mtx::create(hip_);
+    d_res->copy_from(res.get());
+    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0, 10.0}, ref_);
+    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(hip_);
+    d_rhs->copy_from(rhs.get());
+    auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
     gko::Array<gko::stopping_status> stop_status(ref_, 2);
@@ -120,25 +125,25 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
 
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(d_mtx.get())
+            .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    mtx->at(0, 0) = tol * 1.0e-2;
-    d_mtx->copy_from(mtx.get());
+    res->at(0, 0) = tol * 1.0e+1;
+    d_res->copy_from(res.get());
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(d_mtx.get())
+            .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     stop_status.set_executor(ref_);
     ASSERT_TRUE(stop_status.get_data()[0].has_converged());
     stop_status.set_executor(hip_);
     ASSERT_TRUE(one_changed);
 
-    mtx->at(0, 1) = tol * 1.0e-2;
-    d_mtx->copy_from(mtx.get());
+    res->at(0, 1) = tol * 1.0e+1;
+    d_res->copy_from(res.get());
     ASSERT_TRUE(
         criterion->update()
-            .residual_norm(d_mtx.get())
+            .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     stop_status.set_executor(ref_);
     ASSERT_TRUE(stop_status.get_data()[1].has_converged());
@@ -167,10 +172,13 @@ protected:
 
 TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
 {
-    auto scalar = gko::initialize<Mtx>({1.0}, ref_);
-    std::shared_ptr<gko::LinOp> d_scalar = Mtx::create(hip_);
-    d_scalar->copy_from(scalar.get());
-    auto criterion = factory_->generate(nullptr, d_scalar, nullptr, nullptr);
+    auto res = gko::initialize<Mtx>({100.0}, ref_);
+    auto d_res = Mtx::create(hip_);
+    d_res->copy_from(res.get());
+    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, ref_);
+    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(hip_);
+    d_rhs->copy_from(rhs.get());
+    auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
     gko::Array<gko::stopping_status> stop_status(ref_, 1);
@@ -179,25 +187,25 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
 
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(d_scalar.get())
+            .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    scalar->at(0) = tol * 1.0e+2;
-    d_scalar->copy_from(scalar.get());
+    res->at(0) = tol * 1.0e+1;
+    d_res->copy_from(res.get());
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(d_scalar.get())
+            .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     stop_status.set_executor(ref_);
     ASSERT_FALSE(stop_status.get_data()[0].has_converged());
     stop_status.set_executor(hip_);
     ASSERT_FALSE(one_changed);
 
-    scalar->at(0) = tol * 1.0e-2;
-    d_scalar->copy_from(scalar.get());
+    res->at(0) = tol;
+    d_res->copy_from(res.get());
     ASSERT_TRUE(
         criterion->update()
-            .residual_norm(d_scalar.get())
+            .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     stop_status.set_executor(ref_);
     ASSERT_TRUE(stop_status.get_data()[0].has_converged());
@@ -207,10 +215,13 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
 
 TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
 {
-    auto mtx = gko::initialize<Mtx>({{1.0, 1.0}}, ref_);
-    std::shared_ptr<gko::LinOp> d_mtx = Mtx::create(hip_);
-    d_mtx->copy_from(mtx.get());
-    auto criterion = factory_->generate(nullptr, d_mtx, nullptr, nullptr);
+    auto res = gko::initialize<Mtx>({100.0, 100.0}, ref_);
+    auto d_res = Mtx::create(hip_);
+    d_res->copy_from(res.get());
+    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0, 10.0}, ref_);
+    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(hip_);
+    d_rhs->copy_from(rhs.get());
+    auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
     gko::Array<gko::stopping_status> stop_status(ref_, 2);
@@ -220,25 +231,25 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
 
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(d_mtx.get())
+            .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    mtx->at(0, 0) = tol * 1.0e-2;
-    d_mtx->copy_from(mtx.get());
+    res->at(0, 0) = tol;
+    d_res->copy_from(res.get());
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(d_mtx.get())
+            .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     stop_status.set_executor(ref_);
     ASSERT_TRUE(stop_status.get_data()[0].has_converged());
     stop_status.set_executor(hip_);
     ASSERT_TRUE(one_changed);
 
-    mtx->at(0, 1) = tol * 1.0e-2;
-    d_mtx->copy_from(mtx.get());
+    res->at(0, 1) = tol;
+    d_res->copy_from(res.get());
     ASSERT_TRUE(
         criterion->update()
-            .residual_norm(d_mtx.get())
+            .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     stop_status.set_executor(ref_);
     ASSERT_TRUE(stop_status.get_data()[1].has_converged());
@@ -267,10 +278,13 @@ protected:
 
 TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoal)
 {
-    auto scalar = gko::initialize<Mtx>({1.0}, ref_);
-    std::shared_ptr<gko::LinOp> d_scalar = Mtx::create(hip_);
-    d_scalar->copy_from(scalar.get());
-    auto criterion = factory_->generate(nullptr, d_scalar, nullptr, nullptr);
+    auto res = gko::initialize<Mtx>({100.0}, ref_);
+    auto d_res = Mtx::create(hip_);
+    d_res->copy_from(res.get());
+    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, ref_);
+    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(hip_);
+    d_rhs->copy_from(rhs.get());
+    auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
     gko::Array<gko::stopping_status> stop_status(ref_, 1);
@@ -279,25 +293,25 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoal)
 
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(d_scalar.get())
+            .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    scalar->at(0) = tol * 1.0e+2;
-    d_scalar->copy_from(scalar.get());
+    res->at(0) = tol;
+    d_res->copy_from(res.get());
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(d_scalar.get())
+            .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     stop_status.set_executor(ref_);
     ASSERT_FALSE(stop_status.get_data()[0].has_converged());
     stop_status.set_executor(hip_);
     ASSERT_FALSE(one_changed);
 
-    scalar->at(0) = tol * 1.0e-2;
-    d_scalar->copy_from(scalar.get());
+    res->at(0) = tol * 1.0e-1;
+    d_res->copy_from(res.get());
     ASSERT_TRUE(
         criterion->update()
-            .residual_norm(d_scalar.get())
+            .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     stop_status.set_executor(ref_);
     ASSERT_TRUE(stop_status.get_data()[0].has_converged());
@@ -307,10 +321,13 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoal)
 
 TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoalMultipleRHS)
 {
-    auto mtx = gko::initialize<Mtx>({{1.0, 1.0}}, ref_);
-    std::shared_ptr<gko::LinOp> d_mtx = Mtx::create(hip_);
-    d_mtx->copy_from(mtx.get());
-    auto criterion = factory_->generate(nullptr, d_mtx, nullptr, nullptr);
+    auto res = gko::initialize<Mtx>({100.0, 100.0}, ref_);
+    auto d_res = Mtx::create(hip_);
+    d_res->copy_from(res.get());
+    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0, 10.0}, ref_);
+    std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(hip_);
+    d_rhs->copy_from(rhs.get());
+    auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
     gko::Array<gko::stopping_status> stop_status(ref_, 2);
@@ -320,25 +337,25 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoalMultipleRHS)
 
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(d_mtx.get())
+            .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    mtx->at(0, 0) = tol * 1.0e-2;
-    d_mtx->copy_from(mtx.get());
+    res->at(0, 0) = tol * 1.0e-1;
+    d_res->copy_from(res.get());
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(d_mtx.get())
+            .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     stop_status.set_executor(ref_);
     ASSERT_TRUE(stop_status.get_data()[0].has_converged());
     stop_status.set_executor(hip_);
     ASSERT_TRUE(one_changed);
 
-    mtx->at(0, 1) = tol * 1.0e-2;
-    d_mtx->copy_from(mtx.get());
+    res->at(0, 1) = tol * 1.0e-1;
+    d_res->copy_from(res.get());
     ASSERT_TRUE(
         criterion->update()
-            .residual_norm(d_mtx.get())
+            .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     stop_status.set_executor(ref_);
     ASSERT_TRUE(stop_status.get_data()[1].has_converged());

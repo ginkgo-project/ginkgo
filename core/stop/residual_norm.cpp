@@ -60,17 +60,16 @@ bool ResidualNorm<ValueType>::check_impl(uint8 stoppingId, bool setFinalized,
         dense_tau = as<NormVector>(updater.residual_norm_);
     } else if (updater.residual_ != nullptr) {
         auto *dense_r = as<Vector>(updater.residual_);
-        dense_r->compute_norm2(this->u_dense_tau_.get());
-        dense_tau = this->u_dense_tau_.get();
+        dense_r->compute_norm2(u_dense_tau_.get());
+        dense_tau = u_dense_tau_.get();
     } else {
         GKO_NOT_SUPPORTED(nullptr);
     }
     bool all_converged = true;
 
     this->get_executor()->run(residual_norm::make_residual_norm(
-        dense_tau, this->starting_tau_.get(), this->tolerance_, stoppingId,
-        setFinalized, stop_status, &this->device_storage_, &all_converged,
-        one_changed));
+        dense_tau, starting_tau_.get(), tolerance_, stoppingId, setFinalized,
+        stop_status, &device_storage_, &all_converged, one_changed));
 
     return all_converged;
 }
