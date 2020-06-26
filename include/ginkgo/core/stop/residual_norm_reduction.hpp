@@ -30,5 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-// This file is deprecated and will be removed in a later release.
+#ifdef __GNUC__
+#warning This file is deprecated and will be removed in a later major release.
+#elif defined(_MSC_VER)
+#pragma message WARN( \
+    "This file is deprecated and will be removed in a later major release.")
+#endif
 #include <ginkgo/core/stop/residual_norm.hpp>
