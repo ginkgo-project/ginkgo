@@ -191,18 +191,27 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
 #endif
 #endif
     bool stop_already_encountered{false};
-    // std::cout << "Before loop" << std::endl;
+    bool perform_reset{false};
+    decltype(krylov_dim_) forced_iterations{0};
+    const decltype(forced_iterations) forced_limit{krylov_dim_ / 10};
+    // TODO: take care of multiple RHS. Currently, we restart everything,
+    //       even though a lot of parts might have already converged!
+    //       Use `one_changed` to take care of that!
     while (true) {
         ++total_iter;
         this->template log<log::Logger::iteration_complete>(
             this, total_iter, residual.get(), dense_x, residual_norm.get());
-        if (stop_criterion->update()
-                .num_iterations(total_iter)
-                .residual(residual.get())
-                .residual_norm(residual_norm.get())
-                .solution(dense_x)
-                .check(RelativeStoppingId, true, &stop_status, &one_changed)) {
+        if (stop_already_encountered && forced_iterations < forced_limit) {
+            ++forced_iterations;
+        } else if (stop_criterion->update()
+                       .num_iterations(total_iter)
+                       .residual(residual.get())
+                       .residual_norm(residual_norm.get())
+                       .solution(dense_x)
+                       .check(RelativeStoppingId, true, &stop_status,
+                              &one_changed)) {
             if (stop_already_encountered) {
+                // forced_iterations = 0;
                 break;
             }
             stop_already_encountered = true;
@@ -211,21 +220,25 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
             bool host_array_changed{false};
             for (size_type i = 0; i < host_stop_status.get_num_elems(); ++i) {
                 auto local_status = host_stop_status.get_data() + i;
+                // TODO: ignore all actually converged ones!
                 if (local_status->has_converged()) {
                     local_status->reset();
                     host_array_changed = true;
                 }
             }
             if (host_array_changed) {
+                perform_reset = true;
                 stop_status = host_stop_status;
             } else {
                 break;
             }
         } else {
+            forced_iterations = 0;
             stop_already_encountered = false;
         }
 
-        if (stop_already_encountered || restart_iter == krylov_dim_) {
+        if (perform_reset || restart_iter == krylov_dim_) {
+            perform_reset = false;
 #ifdef TIMING_STEPS
             exec->synchronize();
             auto t_aux_0 = std::chrono::steady_clock::now();
