@@ -172,4 +172,81 @@ TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
 }
 
 
+TEST_F(Ir, RichardsonApplyIsEquivalentToRef)
+{
+    auto mtx = gen_mtx(50, 50);
+    auto x = gen_mtx(50, 3);
+    auto b = gen_mtx(50, 3);
+    auto d_mtx = clone(omp, mtx);
+    auto d_x = clone(omp, x);
+    auto d_b = clone(omp, b);
+    // Forget about accuracy - Richardson is not going to converge for a random
+    // matrix, just check that a couple of iterations gives the same result on
+    // both executors
+    auto ir_factory =
+        gko::solver::Ir<>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(2u).on(ref))
+            .with_relaxation_factor(0.9)
+            .on(ref);
+    auto d_ir_factory =
+        gko::solver::Ir<>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(2u).on(omp))
+            .with_relaxation_factor(0.9)
+            .on(omp);
+    auto solver = ir_factory->generate(std::move(mtx));
+    auto d_solver = d_ir_factory->generate(std::move(d_mtx));
+
+    solver->apply(lend(b), lend(x));
+    d_solver->apply(lend(d_b), lend(d_x));
+
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+}
+
+
+TEST_F(Ir, RichardsonApplyWithIterativeInnerSolverIsEquivalentToRef)
+{
+    auto mtx = gen_mtx(50, 50);
+    auto x = gen_mtx(50, 3);
+    auto b = gen_mtx(50, 3);
+    auto d_mtx = clone(omp, mtx);
+    auto d_x = clone(omp, x);
+    auto d_b = clone(omp, b);
+    auto ir_factory =
+        gko::solver::Ir<>::build()
+            .with_solver(
+                gko::solver::Gmres<>::build()
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(1u).on(
+                            ref))
+                    .on(ref))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(2u).on(ref))
+            .with_relaxation_factor(0.9)
+            .on(ref);
+    auto d_ir_factory =
+        gko::solver::Ir<>::build()
+            .with_solver(
+                gko::solver::Gmres<>::build()
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(1u).on(
+                            omp))
+                    .on(omp))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(2u).on(omp))
+            .with_relaxation_factor(0.9)
+            .on(omp);
+    auto solver = ir_factory->generate(std::move(mtx));
+    auto d_solver = d_ir_factory->generate(std::move(d_mtx));
+
+    solver->apply(lend(b), lend(x));
+    d_solver->apply(lend(d_b), lend(d_x));
+
+    // Note: 1e-12 instead of 1e-14, as the difference in the inner gmres
+    // iteration gets amplified by the difference in IR.
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-12);
+}
+
+
 }  // namespace

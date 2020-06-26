@@ -57,6 +57,7 @@ std::unique_ptr<LinOp> Ir<ValueType>::transpose() const
         .with_generated_solver(
             share(as<Transposable>(this->get_solver())->transpose()))
         .with_criteria(this->stop_criterion_factory_)
+        .with_relaxation_factor(parameters_.relaxation_factor)
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -70,6 +71,7 @@ std::unique_ptr<LinOp> Ir<ValueType>::conj_transpose() const
         .with_generated_solver(
             share(as<Transposable>(this->get_solver())->conj_transpose()))
         .with_criteria(this->stop_criterion_factory_)
+        .with_relaxation_factor(conj(parameters_.relaxation_factor))
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -125,16 +127,17 @@ void Ir<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             inner_solution->copy_from(lend(residual));
             solver_->apply(lend(residual), lend(inner_solution));
 
-            // x = x + inner_solution
-            dense_x->add_scaled(lend(one_op), lend(inner_solution));
+            // x = x + relaxation_factor * inner_solution
+            dense_x->add_scaled(lend(relaxation_factor_), lend(inner_solution));
 
             // residual = b - A * x
             residual->copy_from(dense_b);
             system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
                                   lend(residual));
         } else {
-            // x = x + A \ residual
-            solver_->apply(lend(one_op), lend(residual), lend(one_op), dense_x);
+            // x = x + relaxation_factor * A \ residual
+            solver_->apply(lend(relaxation_factor_), lend(residual),
+                           lend(one_op), dense_x);
 
             // residual = b - A * x
             residual->copy_from(dense_b);
