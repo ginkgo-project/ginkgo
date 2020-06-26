@@ -316,3 +316,5 @@ The supported environment variables are described in the following list:
 * `SOLVERS_JACOBI_MAX_BS` - sets the maximum block size for the Jacobi
     preconditioner (if used, otherwise, it does nothing) in the solvers
     benchmark
+* `SOLVERS_GMRES_RESTART` - the maximum dimension of the Krylov space to use in
+    GMRES. The default is `100`.

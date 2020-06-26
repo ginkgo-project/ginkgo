@@ -50,6 +50,11 @@ if [ ! "${SOLVERS_MAX_ITERATIONS}" ]; then
     SOLVERS_MAX_ITERATIONS=10000
 fi
 
+if [ ! "${SOLVERS_GMRES_RESTART}" ]; then
+    SOLVERS_GMRES_RESTART=100
+    echo "SOLVERS_GMRES_RESTART    environment variable not set - assuming \"${SOLVERS_GMRES_RESTART}\"" 1>&2
+fi
+
 if [ ! "${SYSTEM_NAME}" ]; then
     echo "SYSTEM_MANE environment variable not set - assuming \"unknown\"" 1>&2
     SYSTEM_NAME="unknown"
@@ -234,6 +239,7 @@ run_solver_benchmarks() {
                     ${SOLVERS_RHS_FLAG} ${DETAILED_STR} ${SOLVERS_INITIAL_GUESS_FLAG} \
                     --gpu_timer=${GPU_TIMER} \
                     --jacobi_max_block_size=${SOLVERS_JACOBI_MAX_BS} --device_id="${DEVICE_ID}" \
+                    --gmres_restart="${SOLVERS_GMRES_RESTART}" \
                     <"$1.imd" 2>&1 >"$1"
     keep_latest "$1" "$1.bkp" "$1.bkp2" "$1.imd"
 }
