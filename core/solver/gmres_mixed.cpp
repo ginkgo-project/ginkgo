@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <iostream>
+#include <typeinfo>
 
 
 #include "core/solver/gmres_mixed_accessor.hpp"
@@ -74,6 +75,24 @@ GKO_REGISTER_OPERATION(step_2, gmres_mixed::step_2);
 
 
 }  // namespace gmres_mixed
+
+// TODO: Remove output
+template <typename T>
+struct type_string {
+    static const char *get() { return typeid(T).name(); }
+};
+
+#define GKO_SPECIALIZE_TYPE_STRING(type)           \
+    template <>                                    \
+    struct type_string<type> {                     \
+        static const char *get() { return #type; } \
+    }
+
+GKO_SPECIALIZE_TYPE_STRING(int32);
+GKO_SPECIALIZE_TYPE_STRING(int16);
+GKO_SPECIALIZE_TYPE_STRING(double);
+GKO_SPECIALIZE_TYPE_STRING(float);
+GKO_SPECIALIZE_TYPE_STRING(half);
 
 
 template <typename ValueType, typename ValueTypeKrylovBases>
@@ -194,6 +213,8 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     bool perform_reset{false};
     decltype(krylov_dim_) forced_iterations{0};
     const decltype(forced_iterations) forced_limit{krylov_dim_ / 10};
+    decltype(krylov_dim_) total_checks{0};  // TODO: Remove debug output
+    const char *type_str = type_string<ValueTypeKrylovBases>::get();
     // TODO: take care of multiple RHS. Currently, we restart everything,
     //       even though a lot of parts might have already converged!
     //       Use `one_changed` to take care of that!
@@ -215,6 +236,9 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
                 break;
             }
             stop_already_encountered = true;
+            std::cout << type_str << ": " << ++total_checks
+                      << ". check in iteration " << total_iter << "; "
+                      << forced_iterations << " / " << forced_limit << '\n';
             Array<stopping_status> host_stop_status(
                 this->get_executor()->get_master(), stop_status);
             bool host_array_changed{false};
@@ -373,6 +397,9 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
 
         restart_iter++;
     }
+    std::cout << type_str << ": " << total_checks << ": exiting in iteration "
+              << total_iter << "; " << forced_iterations << " / "
+              << forced_limit << '\n';
 
     // Solve x
 #ifdef TIMING_STEPS
