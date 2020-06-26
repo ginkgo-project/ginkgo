@@ -209,6 +209,11 @@ __global__ __launch_bounds__(default_block_size) void extract_diagonal(
         group::tiled_partition<warp_size>(group::this_thread_block());
     const auto slice_id = thread::get_subwarp_id_flat<warp_size>();
     const auto tid_in_warp = warp_tile.thread_rank();
+    const auto slice_num = ceildiv(diag_size, slice_size);
+
+    if (slice_id >= slice_num) {
+        return;
+    }
 
     const auto start_ind = orig_slice_sets[slice_id] * slice_size + tid_in_warp;
     const auto end_ind = orig_slice_sets[slice_id + 1] * slice_size;
