@@ -244,7 +244,7 @@ void extract_diagonal(std::shared_ptr<const HipExecutor> exec,
     const auto diag_size = diag->get_size()[0];
     const auto diag_stride = diag->get_stride();
     const auto slice_size = orig->get_slice_size();
-    const auto slice_num = ceildiv(orig->get_size()[0], slice_size);
+    const auto slice_num = ceildiv(diag_size, slice_size);
     const auto num_blocks =
         ceildiv(slice_num * config::warp_size, default_block_size);
 
