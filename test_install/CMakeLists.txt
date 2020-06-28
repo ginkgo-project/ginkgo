@@ -36,3 +36,19 @@ if(GINKGO_BUILD_CUDA)
     add_executable(test_install_cuda test_install_cuda.cu)
     target_link_libraries(test_install_cuda PRIVATE Ginkgo::ginkgo)
 endif()
+
+if(GINKGO_BUILD_HIP
+   AND GINKGO_HIP_PLATFORM MATCHES "hcc"
+   AND GINKGO_HIP_VERSION VERSION_GREATER_EQUAL "3.5"
+   AND NOT GINKGO_BUILD_SHARED_LIBS)
+    # Compile options somehow add hip-clang specific flags. Wipe them.
+    # Currently, the flags wiped out should be:
+    # -x;hip;--hip-device-lib-path=/opt/rocm/lib;--cuda-gpu-arch=gfx900;
+    # --cuda-gpu-arch=gfx906
+    set_target_properties(hip::device PROPERTIES INTERFACE_COMPILE_OPTIONS "")
+    # In addition, link libraries have a similar problem. We only keep
+    # `hip::host`. Currently, the flags should be:
+    # hip::host;--hip-device-lib-path=/opt/rocm/lib;--hip-link;
+    # --cuda-gpu-arch=gfx900;--cuda-gpu-arch=gfx906
+    set_target_properties(hip::device PROPERTIES INTERFACE_LINK_LIBRARIES "hip::host")
+endif()
