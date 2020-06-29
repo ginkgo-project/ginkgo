@@ -11,6 +11,11 @@ if [ ! "${DRY_RUN}" ]; then
     DRY_RUN="false"
 fi
 
+if [ ! "${KEEP_MTX_FILES}" ]; then
+    echo "KEEP_MTX_FILES    environment variable not set - assuming \"false\"" 1>&2
+    KEEP_MTX_FILES="false"
+fi
+
 if [ ! "${EXECUTOR}" ]; then
     echo "EXECUTOR    environment variable not set - assuming \"cuda\"" 1>&2
     EXECUTOR="cuda"
@@ -409,7 +414,8 @@ for bsize in ${BLOCK_SIZES}; do
         run_preconditioner_benchmarks "${RESULT_FILE}"
 
         echo -e "${PREFIX}Cleaning up problem ${GROUP}/${NAME}" 1>&2
-        [ "${DRY_RUN}" != "true" ] && rm -r "/tmp/${GROUP}/${NAME}.mtx"
+        [ "${DRY_RUN}" != "true" ] && [ "${KEEP_MTX_FILES}" != "false" ] && \
+            rm -r "/tmp/${GROUP}/${NAME}.mtx"
     done
     if [ "${ID}" -ge "${LOOP_END}" ]; then
         break

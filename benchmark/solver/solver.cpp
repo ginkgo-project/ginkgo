@@ -134,15 +134,13 @@ void validate_option_object(const rapidjson::Value &value)
 
 
 template <typename SolverType, typename = void>
-struct has_factory_parameter_criteria : std::false_type {
-};
+struct has_factory_parameter_criteria : std::false_type {};
 
 template <typename SolverType>
 struct has_factory_parameter_criteria<
     SolverType, gko::xstd::void_t<decltype(SolverType::build().with_criteria(
                     std::shared_ptr<const gko::stop::CriterionFactory>{}))>>
-    : std::true_type {
-};
+    : std::true_type {};
 
 
 template <typename SolverType, typename BuildType, typename ExecutorType>
@@ -167,15 +165,13 @@ add_criteria(BuildType build, ExecutorType exec)
 
 
 template <typename SolverType, typename = void>
-struct has_factory_parameter_krylov_dim : std::false_type {
-};
+struct has_factory_parameter_krylov_dim : std::false_type {};
 
 template <typename SolverType>
 struct has_factory_parameter_krylov_dim<
     SolverType,
     gko::xstd::void_t<decltype(SolverType::build().with_krylov_dim(0u))>>
-    : std::true_type {
-};
+    : std::true_type {};
 
 
 template <typename SolverType, typename BuildType>
@@ -283,11 +279,50 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
              return std::unique_ptr<ReferenceFactoryWrapper>(
                  new ReferenceFactoryWrapper(f));
          }},
-
+        {"jacobi-b4",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             std::shared_ptr<const gko::LinOpFactory> f =
+                 gko::preconditioner::Jacobi<>::build()
+                     .with_max_block_size(4u)
+                     .on(exec);
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(f));
+         }},
+        {"jacobi-b8",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             std::shared_ptr<const gko::LinOpFactory> f =
+                 gko::preconditioner::Jacobi<>::build()
+                     .with_max_block_size(8u)
+                     .on(exec);
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(f));
+         }},
         {"adaptive-jacobi",
          [](std::shared_ptr<const gko::Executor> exec) {
              std::shared_ptr<const gko::LinOpFactory> f =
                  gko::preconditioner::Jacobi<>::build()
+                     .with_storage_optimization(
+                         gko::precision_reduction::autodetect())
+                     .on(exec);
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(f));
+         }},
+        {"adaptive-jacobi-b4",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             std::shared_ptr<const gko::LinOpFactory> f =
+                 gko::preconditioner::Jacobi<>::build()
+                     .with_max_block_size(4u)
+                     .with_storage_optimization(
+                         gko::precision_reduction::autodetect())
+                     .on(exec);
+             return std::unique_ptr<ReferenceFactoryWrapper>(
+                 new ReferenceFactoryWrapper(f));
+         }},
+        {"adaptive-jacobi-b8",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             std::shared_ptr<const gko::LinOpFactory> f =
+                 gko::preconditioner::Jacobi<>::build()
+                     .with_max_block_size(8u)
                      .with_storage_optimization(
                          gko::precision_reduction::autodetect())
                      .on(exec);
