@@ -84,7 +84,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
             .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res->at(0) = tol * 1.0e+2;
+    res->at(0) = tol * 1.1e+2;
     d_res->copy_from(res.get());
     ASSERT_FALSE(
         criterion->update()
@@ -95,7 +95,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
     stop_status.set_executor(cuda_);
     ASSERT_FALSE(one_changed);
 
-    res->at(0) = tol * 1.0e+1;
+    res->at(0) = tol * 0.9e+2;
     d_res->copy_from(res.get());
     ASSERT_TRUE(
         criterion->update()
@@ -109,10 +109,11 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoal)
 
 TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
 {
-    auto res = gko::initialize<Mtx>({100.0, 100.0}, ref_);
+    auto res = gko::initialize<Mtx>({{100.0, 100.0}}, ref_);
     auto d_res = Mtx::create(cuda_);
     d_res->copy_from(res.get());
-    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0, 10.0}, ref_);
+    std::shared_ptr<gko::LinOp> rhs =
+        gko::initialize<Mtx>({{10.0, 10.0}}, ref_);
     std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
     d_rhs->copy_from(rhs.get());
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
@@ -128,7 +129,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
             .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res->at(0, 0) = tol * 1.0e+1;
+    res->at(0, 0) = tol * 0.9e+2;
     d_res->copy_from(res.get());
     ASSERT_FALSE(
         criterion->update()
@@ -139,7 +140,7 @@ TEST_F(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
     stop_status.set_executor(cuda_);
     ASSERT_TRUE(one_changed);
 
-    res->at(0, 1) = tol * 1.0e+1;
+    res->at(0, 1) = tol * 0.9e+2;
     d_res->copy_from(res.get());
     ASSERT_TRUE(
         criterion->update()
@@ -190,7 +191,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
             .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res->at(0) = tol * 1.0e+1;
+    res->at(0) = tol * 1.1e+1;
     d_res->copy_from(res.get());
     ASSERT_FALSE(
         criterion->update()
@@ -201,7 +202,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
     stop_status.set_executor(cuda_);
     ASSERT_FALSE(one_changed);
 
-    res->at(0) = tol;
+    res->at(0) = tol * 0.9e+1;
     d_res->copy_from(res.get());
     ASSERT_TRUE(
         criterion->update()
@@ -215,10 +216,11 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoal)
 
 TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
 {
-    auto res = gko::initialize<Mtx>({100.0, 100.0}, ref_);
+    auto res = gko::initialize<Mtx>({{100.0, 100.0}}, ref_);
     auto d_res = Mtx::create(cuda_);
     d_res->copy_from(res.get());
-    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0, 10.0}, ref_);
+    std::shared_ptr<gko::LinOp> rhs =
+        gko::initialize<Mtx>({{10.0, 10.0}}, ref_);
     std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
     d_rhs->copy_from(rhs.get());
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
@@ -234,7 +236,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
             .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res->at(0, 0) = tol * 1.0e+1;
+    res->at(0, 0) = tol * 0.9e+1;
     d_res->copy_from(res.get());
     ASSERT_FALSE(
         criterion->update()
@@ -245,7 +247,7 @@ TEST_F(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
     stop_status.set_executor(cuda_);
     ASSERT_TRUE(one_changed);
 
-    res->at(0, 1) = tol * 1.0e+1;
+    res->at(0, 1) = tol * 0.9e+1;
     d_res->copy_from(res.get());
     ASSERT_TRUE(
         criterion->update()
@@ -296,7 +298,7 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoal)
             .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res->at(0) = tol;
+    res->at(0) = tol * 1.1;
     d_res->copy_from(res.get());
     ASSERT_FALSE(
         criterion->update()
@@ -307,7 +309,7 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoal)
     stop_status.set_executor(cuda_);
     ASSERT_FALSE(one_changed);
 
-    res->at(0) = tol * 1.0e-1;
+    res->at(0) = tol * 0.9;
     d_res->copy_from(res.get());
     ASSERT_TRUE(
         criterion->update()
@@ -321,10 +323,11 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoal)
 
 TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoalMultipleRHS)
 {
-    auto res = gko::initialize<Mtx>({100.0, 100.0}, ref_);
+    auto res = gko::initialize<Mtx>({{100.0, 100.0}}, ref_);
     auto d_res = Mtx::create(cuda_);
     d_res->copy_from(res.get());
-    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0, 10.0}, ref_);
+    std::shared_ptr<gko::LinOp> rhs =
+        gko::initialize<Mtx>({{10.0, 10.0}}, ref_);
     std::shared_ptr<gko::LinOp> d_rhs = Mtx::create(cuda_);
     d_rhs->copy_from(rhs.get());
     auto criterion = factory_->generate(nullptr, d_rhs, nullptr, d_res.get());
@@ -340,7 +343,7 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoalMultipleRHS)
             .residual_norm(d_res.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res->at(0, 0) = tol * 1.0e+1;
+    res->at(0, 0) = tol * 0.9;
     d_res->copy_from(res.get());
     ASSERT_FALSE(
         criterion->update()
@@ -351,7 +354,7 @@ TEST_F(AbsoluteResidualNorm, WaitsTillResidualGoalMultipleRHS)
     stop_status.set_executor(cuda_);
     ASSERT_TRUE(one_changed);
 
-    res->at(0, 1) = tol * 1.0e+1;
+    res->at(0, 1) = tol * 0.9;
     d_res->copy_from(res.get());
     ASSERT_TRUE(
         criterion->update()

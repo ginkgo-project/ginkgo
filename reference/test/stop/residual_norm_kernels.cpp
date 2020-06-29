@@ -117,7 +117,7 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res_norm->at(0) = r<TypeParam>::value * 1.0e+2;
+    res_norm->at(0) = r<TypeParam>::value * 1.1e+2;
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
@@ -125,7 +125,7 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoal)
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
     ASSERT_EQ(one_changed, false);
 
-    res_norm->at(0) = r<TypeParam>::value * 1.0e+1;
+    res_norm->at(0) = r<TypeParam>::value * 0.9e+2;
     ASSERT_TRUE(
         criterion->update()
             .residual_norm(res_norm.get())
@@ -139,40 +139,37 @@ TYPED_TEST(ResidualNormReduction, WaitsTillResidualGoalMultipleRHS)
 {
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;
-    auto one = gko::one<TypeParam>();
-    auto one_nc = gko::one<gko::remove_complex<TypeParam>>();
-    auto mtx = gko::initialize<Mtx>({{one, one}}, this->exec_);
-    auto norm = gko::initialize<NormVector>({{one_nc, one_nc}}, this->exec_);
-    auto criterion =
-        this->factory_->generate(nullptr, nullptr, nullptr, mtx.get());
+    using T = TypeParam;
+    using T_nc = gko::remove_complex<TypeParam>;
+    auto res = gko::initialize<Mtx>({I<T>{100.0, 100.0}}, this->exec_);
+    auto res_norm =
+        gko::initialize<NormVector>({I<T_nc>{100.0, 100.0}}, this->exec_);
+    std::shared_ptr<gko::LinOp> rhs =
+        gko::initialize<Mtx>({I<T>{10.0, 10.0}}, this->exec_);
+    auto criterion = this->factory_->generate(nullptr, rhs, nullptr, res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
     gko::Array<gko::stopping_status> stop_status(this->exec_, 2);
-    // Array only does malloc, it *does not* construct the object
-    // therefore you get undefined values in your objects whatever you do.
-    // Proper fix is not easy, we can't just call memset. We can probably not
-    // call the placement constructor either
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
 
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(norm.get())
+            .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    norm->at(0, 0) = r<TypeParam>::value * 1.0e-2;
+    res_norm->at(0, 0) = r<TypeParam>::value * 0.9e+2;
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(norm.get())
+            .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
     ASSERT_EQ(one_changed, true);
-    one_changed = false;
 
-    norm->at(0, 1) = r<TypeParam>::value * 1.0e-2;
+    res_norm->at(0, 1) = r<TypeParam>::value * 0.9e+2;
     ASSERT_TRUE(
         criterion->update()
-            .residual_norm(norm.get())
+            .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[1].has_converged(), true);
     ASSERT_EQ(one_changed, true);
@@ -246,7 +243,7 @@ TYPED_TEST(RelativeResidualNorm, WaitsTillResidualGoal)
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res_norm->at(0) = r<TypeParam>::value * 1.0e+1;
+    res_norm->at(0) = r<TypeParam>::value * 1.1e+1;
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
@@ -254,7 +251,7 @@ TYPED_TEST(RelativeResidualNorm, WaitsTillResidualGoal)
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
     ASSERT_EQ(one_changed, false);
 
-    res_norm->at(0) = r<TypeParam>::value;
+    res_norm->at(0) = r<TypeParam>::value * 0.9e+1;
     ASSERT_TRUE(
         criterion->update()
             .residual_norm(res_norm.get())
@@ -268,40 +265,37 @@ TYPED_TEST(RelativeResidualNorm, WaitsTillResidualGoalMultipleRHS)
 {
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;
-    auto one = gko::one<TypeParam>();
-    auto one_nc = gko::one<gko::remove_complex<TypeParam>>();
-    std::shared_ptr<gko::LinOp> mtx =
-        gko::initialize<Mtx>({{one, one}}, this->exec_);
-    auto norm = gko::initialize<NormVector>({{one_nc, one_nc}}, this->exec_);
-    auto criterion = this->factory_->generate(nullptr, mtx, nullptr, nullptr);
+    using T = TypeParam;
+    using T_nc = gko::remove_complex<TypeParam>;
+    auto res = gko::initialize<Mtx>({I<T>{100.0, 100.0}}, this->exec_);
+    auto res_norm =
+        gko::initialize<NormVector>({I<T_nc>{100.0, 100.0}}, this->exec_);
+    std::shared_ptr<gko::LinOp> rhs =
+        gko::initialize<Mtx>({I<T>{10.0, 10.0}}, this->exec_);
+    auto criterion = this->factory_->generate(nullptr, rhs, nullptr, res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
     gko::Array<gko::stopping_status> stop_status(this->exec_, 2);
-    // Array only does malloc, it *does not* construct the object
-    // therefore you get undefined values in your objects whatever you do.
-    // Proper fix is not easy, we can't just call memset. We can probably not
-    // call the placement constructor either
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
 
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(norm.get())
+            .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    norm->at(0, 0) = r<TypeParam>::value * 1.0e-2;
+    res_norm->at(0, 0) = r<TypeParam>::value * 0.9e+1;
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(norm.get())
+            .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
     ASSERT_EQ(one_changed, true);
-    one_changed = false;
 
-    norm->at(0, 1) = r<TypeParam>::value * 1.0e-2;
+    res_norm->at(0, 1) = r<TypeParam>::value * 0.9e+1;
     ASSERT_TRUE(
         criterion->update()
-            .residual_norm(norm.get())
+            .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[1].has_converged(), true);
     ASSERT_EQ(one_changed, true);
@@ -375,7 +369,7 @@ TYPED_TEST(AbsoluteResidualNorm, WaitsTillResidualGoal)
             .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    res_norm->at(0) = r<TypeParam>::value;
+    res_norm->at(0) = r<TypeParam>::value * 1.1;
     ASSERT_FALSE(
         criterion->update()
             .residual_norm(res_norm.get())
@@ -383,7 +377,7 @@ TYPED_TEST(AbsoluteResidualNorm, WaitsTillResidualGoal)
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
     ASSERT_EQ(one_changed, false);
 
-    res_norm->at(0) = r<TypeParam>::value * 1.0e-1;
+    res_norm->at(0) = r<TypeParam>::value * 0.9;
     ASSERT_TRUE(
         criterion->update()
             .residual_norm(res_norm.get())
@@ -397,40 +391,37 @@ TYPED_TEST(AbsoluteResidualNorm, WaitsTillResidualGoalMultipleRHS)
 {
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;
-    auto one = gko::one<TypeParam>();
-    auto one_nc = gko::one<gko::remove_complex<TypeParam>>();
-    std::shared_ptr<gko::LinOp> mtx =
-        gko::initialize<Mtx>({{one, one}}, this->exec_);
-    auto norm = gko::initialize<NormVector>({{one_nc, one_nc}}, this->exec_);
-    auto criterion = this->factory_->generate(nullptr, mtx, nullptr, nullptr);
+    using T = TypeParam;
+    using T_nc = gko::remove_complex<TypeParam>;
+    auto res = gko::initialize<Mtx>({I<T>{100.0, 100.0}}, this->exec_);
+    auto res_norm =
+        gko::initialize<NormVector>({I<T_nc>{100.0, 100.0}}, this->exec_);
+    std::shared_ptr<gko::LinOp> rhs =
+        gko::initialize<Mtx>({I<T>{10.0, 10.0}}, this->exec_);
+    auto criterion = this->factory_->generate(nullptr, rhs, nullptr, res.get());
     bool one_changed{};
     constexpr gko::uint8 RelativeStoppingId{1};
     gko::Array<gko::stopping_status> stop_status(this->exec_, 2);
-    // Array only does malloc, it *does not* construct the object
-    // therefore you get undefined values in your objects whatever you do.
-    // Proper fix is not easy, we can't just call memset. We can probably not
-    // call the placement constructor either
     stop_status.get_data()[0].reset();
     stop_status.get_data()[1].reset();
 
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(norm.get())
+            .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
 
-    norm->at(0, 0) = r<TypeParam>::value * 1.0e-2;
+    res_norm->at(0, 0) = r<TypeParam>::value * 0.9;
     ASSERT_FALSE(
         criterion->update()
-            .residual_norm(norm.get())
+            .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
     ASSERT_EQ(one_changed, true);
-    one_changed = false;
 
-    norm->at(0, 1) = r<TypeParam>::value * 1.0e-2;
+    res_norm->at(0, 1) = r<TypeParam>::value * 0.9;
     ASSERT_TRUE(
         criterion->update()
-            .residual_norm(norm.get())
+            .residual_norm(res_norm.get())
             .check(RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[1].has_converged(), true);
     ASSERT_EQ(one_changed, true);
