@@ -755,10 +755,14 @@ gh-pages:
 
 threadsanitizer:
   stage: QoS_tools
-  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm10-intel2019
   before_script: *default_before_script
   script:
-    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=TSAN -DCTEST_MEMORYCHECK_TYPE=ThreadSanitizer
+    - LD_PRELOAD=/usr/local/lib/libomp.so
+      CC=clang CXX=clang++
+        ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=TSAN
+        -DCTEST_MEMORYCHECK_TYPE=ThreadSanitizer
+        --timeout 6000
   dependencies: []
   only:
     refs:
@@ -774,7 +778,7 @@ threadsanitizer:
 
 leaksanitizer:
   stage: QoS_tools
-  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm10-intel2019
   before_script: *default_before_script
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=LSAN
@@ -794,7 +798,7 @@ leaksanitizer:
 
 addresssanitizer:
   stage: QoS_tools
-  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm10-intel2019
   before_script: *default_before_script
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=ASAN
@@ -812,29 +816,9 @@ addresssanitizer:
     - cuda
     - gpu
 
-leaksanitizer:
-  stage: QoS_tools
-  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
-  before_script: *default_before_script
-  script:
-    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=LSAN
-      -DCTEST_MEMORYCHECK_TYPE=LeakSanitizer
-  dependencies: []
-  only:
-    refs:
-      - master
-      - develop
-      - tags
-    variables:
-      - $RUN_CI_TAG
-  tags:
-    - private_ci
-    - cuda
-    - gpu
-
 undefinedsanitizer:
   stage: QoS_tools
-  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm10-intel2019
   before_script: *default_before_script
   script:
     # the Gold linker is required because of a linker flag issues given by UBsan
