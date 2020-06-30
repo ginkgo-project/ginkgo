@@ -48,23 +48,28 @@ namespace diagonal {
 
 GKO_REGISTER_OPERATION(apply_to_dense, diagonal::apply_to_dense);
 GKO_REGISTER_OPERATION(right_apply_to_dense, diagonal::right_apply_to_dense);
+GKO_REGISTER_OPERATION(apply_to_csr, diagonal::apply_to_csr);
+GKO_REGISTER_OPERATION(right_apply_to_csr, diagonal::right_apply_to_csr);
 
 
 }  // namespace diagonal
 
 
-template <typename ValueType>
-void Diagonal<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
+template <typename ValueType, typename IndexType>
+void Diagonal<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     auto exec = this->get_executor();
 
-    exec->run(diagonal::make_apply_to_dense(this, as<Dense<ValueType>>(b),
-                                            as<Dense<ValueType>>(x)));
+    if (static_cast<const Dense<ValueType> *>(b) &&
+        static_cast<Dense<ValueType> *>(x)) {
+        exec->run(diagonal::make_apply_to_dense(this, as<Dense<ValueType>>(b),
+                                                as<Dense<ValueType>>(x)));
+    }
 }
 
 
-template <typename ValueType>
-void Diagonal<ValueType>::rapply_impl(const LinOp *b, LinOp *x) const
+template <typename ValueType, typename IndexType>
+void Diagonal<ValueType, IndexType>::rapply_impl(const LinOp *b, LinOp *x) const
 {
     auto exec = this->get_executor();
 
@@ -73,9 +78,11 @@ void Diagonal<ValueType>::rapply_impl(const LinOp *b, LinOp *x) const
 }
 
 
-template <typename ValueType>
-void Diagonal<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
-                                     const LinOp *beta, LinOp *x) const
+template <typename ValueType, typename IndexType>
+void Diagonal<ValueType, IndexType>::apply_impl(const LinOp *alpha,
+                                                const LinOp *b,
+                                                const LinOp *beta,
+                                                LinOp *x) const
 {
     auto dense_x = as<Dense<ValueType>>(x);
     dense_x->scale(beta);
@@ -83,15 +90,15 @@ void Diagonal<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
 }
 
 
-template <typename ValueType>
-std::unique_ptr<LinOp> Diagonal<ValueType>::transpose() const
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Diagonal<ValueType, IndexType>::transpose() const
 {
     return this->clone();
 }
 
 
-template <typename ValueType>
-std::unique_ptr<LinOp> Diagonal<ValueType>::conj_transpose() const
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Diagonal<ValueType, IndexType>::conj_transpose() const
 {
     return this->clone();
 }

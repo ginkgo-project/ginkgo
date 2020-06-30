@@ -54,9 +54,9 @@ namespace matrix {
  * @ingroup mat_formats
  * @ingroup LinOp
  */
-template <typename ValueType = default_precision>
-class Diagonal : public EnableLinOp<Diagonal<ValueType>>,
-                 public EnableCreateMethod<Diagonal<ValueType>>,
+template <typename ValueType = default_precision, typename IndexType = int32>
+class Diagonal : public EnableLinOp<Diagonal<ValueType, IndexType>>,
+                 public EnableCreateMethod<Diagonal<ValueType, IndexType>>,
                  public Transposable {
     friend class EnablePolymorphicObject<Diagonal, LinOp>;
     friend class EnableCreateMethod<Diagonal>;
@@ -66,6 +66,7 @@ public:
     using EnableLinOp<Diagonal>::move_to;
 
     using value_type = ValueType;
+    using index_type = IndexType;
 
     std::unique_ptr<LinOp> transpose() const override;
 

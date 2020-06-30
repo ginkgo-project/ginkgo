@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 
 
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -87,6 +88,53 @@ void right_apply_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void apply_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
+                  const matrix::Diagonal<ValueType, IndexType> *a,
+                  const matrix::Csr<ValueType, IndexType> *b,
+                  matrix::Csr<ValueType, IndexType> *c)
+{
+    const auto diag_values = a->get_const_values();
+    c->copy_from(b);
+    auto csr_values = c->get_values();
+    auto csr_row_ptrs = c->get_row_ptrs();
+
+    for (size_type row = 0; row < c->get_size()[0]; row++) {
+        for (size_type idx = csr_row_ptrs[row]; idx < csr_row_ptrs[row + 1];
+             idx++) {
+            csr_values[idx] *= diag_values[row];
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void right_apply_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
+                        const matrix::Diagonal<ValueType, IndexType> *a,
+                        const matrix::Csr<ValueType, IndexType> *b,
+                        matrix::Csr<ValueType, IndexType> *c)
+{
+    const auto diag_values = a->get_const_values();
+    c->copy_from(b);
+    auto csr_values = c->get_values();
+    auto csr_row_ptrs = c->get_row_ptrs();
+    auto csr_col_idxs = c->get_col_idxs();
+
+    for (size_type row = 0; row < c->get_size()[0]; row++) {
+        for (size_type idx = csr_row_ptrs[row]; idx < csr_row_ptrs[row + 1];
+             idx++) {
+            csr_values[idx] *= diag_values[csr_col_idxs[idx]];
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL);
 
 
 }  // namespace diagonal
