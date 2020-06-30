@@ -30,6 +30,10 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_CORE_STOP_RESIDUAL_NORM_REDUCTION_HPP_
+#define GKO_CORE_STOP_RESIDUAL_NORM_REDUCTION_HPP_
+
+
 #ifdef __GNUC__
 #warning This file is deprecated and will be removed in a later major release.
 #elif defined(_MSC_VER)
@@ -37,3 +41,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     "This file is deprecated and will be removed in a later major release.")
 #endif
 #include <ginkgo/core/stop/residual_norm.hpp>
+
+
+#endif  // GKO_CORE_STOP_RESIDUAL_NORM_REDUCTION_HPP_
