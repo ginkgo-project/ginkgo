@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 
 
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -89,6 +90,27 @@ void right_apply_to_dense(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_DENSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void apply_to_csr(std::shared_ptr<const OmpExecutor> exec,
+                  const matrix::Diagonal<ValueType, IndexType> *a,
+                  const matrix::Csr<ValueType, IndexType> *b,
+                  matrix::Csr<ValueType, IndexType> *c) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void right_apply_to_csr(std::shared_ptr<const OmpExecutor> exec,
+                        const matrix::Diagonal<ValueType, IndexType> *a,
+                        const matrix::Csr<ValueType, IndexType> *b,
+                        matrix::Csr<ValueType, IndexType> *c)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL);
 
 
 }  // namespace diagonal
