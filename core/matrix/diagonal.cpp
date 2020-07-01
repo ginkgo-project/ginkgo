@@ -60,10 +60,15 @@ void Diagonal<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     auto exec = this->get_executor();
 
-    if (static_cast<const Dense<ValueType> *>(b) &&
-        static_cast<Dense<ValueType> *>(x)) {
+    if (dynamic_cast<const Dense<ValueType> *>(b) &&
+        dynamic_cast<Dense<ValueType> *>(x)) {
         exec->run(diagonal::make_apply_to_dense(this, as<Dense<ValueType>>(b),
                                                 as<Dense<ValueType>>(x)));
+    } else if (dynamic_cast<const Csr<ValueType, IndexType> *>(b) &&
+               dynamic_cast<Csr<ValueType, IndexType> *>(x)) {
+        exec->run(
+            diagonal::make_apply_to_csr(this, as<Csr<ValueType, IndexType>>(b),
+                                        as<Csr<ValueType, IndexType>>(x)));
     }
 }
 
@@ -73,8 +78,16 @@ void Diagonal<ValueType, IndexType>::rapply_impl(const LinOp *b, LinOp *x) const
 {
     auto exec = this->get_executor();
 
-    exec->run(diagonal::make_right_apply_to_dense(this, as<Dense<ValueType>>(b),
-                                                  as<Dense<ValueType>>(x)));
+    if (dynamic_cast<const Dense<ValueType> *>(b) &&
+        dynamic_cast<Dense<ValueType> *>(x)) {
+        exec->run(diagonal::make_right_apply_to_dense(
+            this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
+    } else if (dynamic_cast<const Csr<ValueType, IndexType> *>(b) &&
+               dynamic_cast<Csr<ValueType, IndexType> *>(x)) {
+        exec->run(diagonal::make_right_apply_to_csr(
+            this, as<Csr<ValueType, IndexType>>(b),
+            as<Csr<ValueType, IndexType>>(x)));
+    }
 }
 
 
@@ -104,8 +117,9 @@ std::unique_ptr<LinOp> Diagonal<ValueType, IndexType>::conj_transpose() const
 }
 
 
-#define GKO_DECLARE_DIAGONAL_MATRIX(_type) class Diagonal<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_MATRIX);
+#define GKO_DECLARE_DIAGONAL_MATRIX(value_type, index_type) \
+    class Diagonal<value_type, index_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DIAGONAL_MATRIX);
 
 
 }  // namespace matrix

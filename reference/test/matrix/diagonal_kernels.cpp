@@ -55,24 +55,29 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-template <typename T>
+template <typename ValueIndexType>
 class Diagonal : public ::testing::Test {
 protected:
-    using value_type = T;
-    using Diag = gko::matrix::Diagonal<value_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Csr = gko::matrix::Csr<value_type, index_type>;
+    using Diag = gko::matrix::Diagonal<value_type, index_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     Diagonal()
         : exec(gko::ReferenceExecutor::create()),
           diag1(Diag::create(exec, 2)),
           diag2(Diag::create(exec, 3)),
-          mtx1(gko::initialize<Mtx>(4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}},
-                                    exec)),
-          mtx2(
-              gko::initialize<Mtx>({I<T>({1.0, 2.0}), I<T>({0.5, 1.5})}, exec)),
-          mtx3(gko::initialize<Mtx>(4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}},
-                                    exec)),
-          mtx4(gko::initialize<Mtx>({I<T>({1.0, 2.0}), I<T>({0.5, 1.5})}, exec))
+          dense1(gko::initialize<Dense>(4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}},
+                                        exec)),
+          dense3(gko::initialize<Dense>(4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}},
+                                        exec))
     {
+        csr1 = Csr::create(exec);
+        csr1->copy_from(dense1.get());
+        csr3 = Csr::create(exec);
+        csr3->copy_from(dense3.get());
         this->create_diag1(diag1.get());
         this->create_diag2(diag2.get());
     }
@@ -93,42 +98,102 @@ protected:
     }
 
     std::shared_ptr<const gko::Executor> exec;
+    std::unique_ptr<Csr> csr1;
+    std::unique_ptr<Csr> csr2;
+    std::unique_ptr<Csr> csr3;
+    std::unique_ptr<Csr> csr4;
     std::unique_ptr<Diag> diag1;
     std::unique_ptr<Diag> diag2;
-    std::unique_ptr<Mtx> mtx1;
-    std::unique_ptr<Mtx> mtx2;
-    std::unique_ptr<Mtx> mtx3;
-    std::unique_ptr<Mtx> mtx4;
+    std::unique_ptr<Dense> dense1;
+    std::unique_ptr<Dense> dense3;
 };
 
-TYPED_TEST_CASE(Diagonal, gko::test::ValueTypes);
+TYPED_TEST_CASE(Diagonal, gko::test::ValueIndexTypes);
 
 
 TYPED_TEST(Diagonal, AppliesToDense)
 {
-    using T = typename TestFixture::value_type;
-    this->diag1->apply(this->mtx1.get(), this->mtx3.get());
+    using value_type = typename TestFixture::value_type;
+    this->diag1->apply(this->dense1.get(), this->dense3.get());
 
-    EXPECT_EQ(this->mtx3->at(0, 0), T{2.0});
-    EXPECT_EQ(this->mtx3->at(0, 1), T{4.0});
-    EXPECT_EQ(this->mtx3->at(0, 2), T{6.0});
-    EXPECT_EQ(this->mtx3->at(1, 0), T{4.5});
-    EXPECT_EQ(this->mtx3->at(1, 1), T{7.5});
-    EXPECT_EQ(this->mtx3->at(1, 2), T{10.5});
+    EXPECT_EQ(this->dense3->at(0, 0), value_type{2.0});
+    EXPECT_EQ(this->dense3->at(0, 1), value_type{4.0});
+    EXPECT_EQ(this->dense3->at(0, 2), value_type{6.0});
+    EXPECT_EQ(this->dense3->at(1, 0), value_type{4.5});
+    EXPECT_EQ(this->dense3->at(1, 1), value_type{7.5});
+    EXPECT_EQ(this->dense3->at(1, 2), value_type{10.5});
 }
 
 
 TYPED_TEST(Diagonal, RightAppliesToDense)
 {
-    using T = typename TestFixture::value_type;
-    this->diag2->rapply(this->mtx1.get(), this->mtx3.get());
+    using value_type = typename TestFixture::value_type;
+    this->diag2->rapply(this->dense1.get(), this->dense3.get());
 
-    EXPECT_EQ(this->mtx3->at(0, 0), T{2.0});
-    EXPECT_EQ(this->mtx3->at(0, 1), T{6.0});
-    EXPECT_EQ(this->mtx3->at(0, 2), T{12.0});
-    EXPECT_EQ(this->mtx3->at(1, 0), T{3.0});
-    EXPECT_EQ(this->mtx3->at(1, 1), T{7.5});
-    EXPECT_EQ(this->mtx3->at(1, 2), T{14.0});
+    EXPECT_EQ(this->dense3->at(0, 0), value_type{2.0});
+    EXPECT_EQ(this->dense3->at(0, 1), value_type{6.0});
+    EXPECT_EQ(this->dense3->at(0, 2), value_type{12.0});
+    EXPECT_EQ(this->dense3->at(1, 0), value_type{3.0});
+    EXPECT_EQ(this->dense3->at(1, 1), value_type{7.5});
+    EXPECT_EQ(this->dense3->at(1, 2), value_type{14.0});
+}
+
+
+TYPED_TEST(Diagonal, AppliesToCsr)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->diag1->apply(this->csr1.get(), this->csr3.get());
+
+    const auto values = this->csr3->get_const_values();
+    const auto row_ptrs = this->csr3->get_const_row_ptrs();
+    const auto col_idxs = this->csr3->get_const_col_idxs();
+
+    EXPECT_EQ(this->csr3->get_num_stored_elements(), 6);
+    EXPECT_EQ(values[0], value_type{2.0});
+    EXPECT_EQ(values[1], value_type{4.0});
+    EXPECT_EQ(values[2], value_type{6.0});
+    EXPECT_EQ(values[3], value_type{4.5});
+    EXPECT_EQ(values[4], value_type{7.5});
+    EXPECT_EQ(values[5], value_type{10.5});
+    EXPECT_EQ(row_ptrs[0], index_type{0});
+    EXPECT_EQ(row_ptrs[1], index_type{3});
+    EXPECT_EQ(row_ptrs[2], index_type{6});
+    EXPECT_EQ(col_idxs[0], index_type{0});
+    EXPECT_EQ(col_idxs[1], index_type{1});
+    EXPECT_EQ(col_idxs[2], index_type{2});
+    EXPECT_EQ(col_idxs[3], index_type{0});
+    EXPECT_EQ(col_idxs[4], index_type{1});
+    EXPECT_EQ(col_idxs[5], index_type{2});
+}
+
+
+TYPED_TEST(Diagonal, RightAppliesToCsr)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->diag2->rapply(this->csr1.get(), this->csr3.get());
+
+    const auto values = this->csr3->get_const_values();
+    const auto row_ptrs = this->csr3->get_const_row_ptrs();
+    const auto col_idxs = this->csr3->get_const_col_idxs();
+
+    EXPECT_EQ(this->csr3->get_num_stored_elements(), 6);
+    EXPECT_EQ(values[0], value_type{2.0});
+    EXPECT_EQ(values[1], value_type{6.0});
+    EXPECT_EQ(values[2], value_type{12.0});
+    EXPECT_EQ(values[3], value_type{3.0});
+    EXPECT_EQ(values[4], value_type{7.5});
+    EXPECT_EQ(values[5], value_type{14.0});
+    EXPECT_EQ(row_ptrs[0], index_type{0});
+    EXPECT_EQ(row_ptrs[1], index_type{3});
+    EXPECT_EQ(row_ptrs[2], index_type{6});
+    EXPECT_EQ(col_idxs[0], index_type{0});
+    EXPECT_EQ(col_idxs[1], index_type{1});
+    EXPECT_EQ(col_idxs[2], index_type{2});
+    EXPECT_EQ(col_idxs[3], index_type{0});
+    EXPECT_EQ(col_idxs[4], index_type{1});
+    EXPECT_EQ(col_idxs[5], index_type{2});
 }
 
 }  // namespace
