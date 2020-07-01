@@ -69,6 +69,8 @@ void Diagonal<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
         exec->run(
             diagonal::make_apply_to_csr(this, as<Csr<ValueType, IndexType>>(b),
                                         as<Csr<ValueType, IndexType>>(x)));
+    } else {
+        GKO_NOT_IMPLEMENTED;
     }
 }
 
@@ -87,6 +89,8 @@ void Diagonal<ValueType, IndexType>::rapply_impl(const LinOp *b, LinOp *x) const
         exec->run(diagonal::make_right_apply_to_csr(
             this, as<Csr<ValueType, IndexType>>(b),
             as<Csr<ValueType, IndexType>>(x)));
+    } else {
+        GKO_NOT_IMPLEMENTED;
     }
 }
 
@@ -97,9 +101,14 @@ void Diagonal<ValueType, IndexType>::apply_impl(const LinOp *alpha,
                                                 const LinOp *beta,
                                                 LinOp *x) const
 {
-    auto dense_x = as<Dense<ValueType>>(x);
-    dense_x->scale(beta);
-    dense_x->add_scaled(alpha, b);
+    if (dynamic_cast<const Dense<ValueType> *>(b) &&
+        dynamic_cast<Dense<ValueType> *>(x)) {
+        auto dense_x = as<Dense<ValueType>>(x);
+        dense_x->scale(beta);
+        dense_x->add_scaled(alpha, b);
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
 }
 
 
