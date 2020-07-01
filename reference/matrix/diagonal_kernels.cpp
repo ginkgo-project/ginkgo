@@ -54,9 +54,9 @@ namespace reference {
 namespace diagonal {
 
 
-template <typename ValueType>
+template <typename ValueType, typename IndexType>
 void apply_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Diagonal<ValueType> *a,
+                    const matrix::Diagonal<ValueType, IndexType> *a,
                     const matrix::Dense<ValueType> *b,
                     matrix::Dense<ValueType> *c)
 {
@@ -69,12 +69,13 @@ void apply_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);
 
 
-template <typename ValueType>
+template <typename ValueType, typename IndexType>
 void right_apply_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
-                          const matrix::Diagonal<ValueType> *a,
+                          const matrix::Diagonal<ValueType, IndexType> *a,
                           const matrix::Dense<ValueType> *b,
                           matrix::Dense<ValueType> *c)
 {
@@ -86,7 +87,7 @@ void right_apply_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_DENSE_KERNEL);
 
 
