@@ -37,7 +37,7 @@ For Ginkgo core library:
 
 *   _cmake 3.9+_
 *   C++11 compliant compiler, one of:
-    *   _gcc 5.3+, 6.3+, 7.3+, 8.1+, 9.1+, 10.1+_
+    *   _gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
     *   _clang 3.9+_
     *   _Intel compiler 2017+_
     *   _Apple LLVM 8.0+_ (__TODO__: verify)
@@ -70,8 +70,8 @@ The Ginkgo HIP module has the following __additional__ requirements:
 The prequirement needs to be verified
 *   _cmake 3.9+_
 *   C++11 compliant 64-bits compiler:
-    *   _MinGW : gcc 5.3+, 6.3+, 7.3+, 8.1+, 9.1+, 10.1+_
-    *   _Cygwin : gcc 5.3+, 6.3+, 7.3+, 8.1+, 9.1+, 10.1+_
+    *   _MinGW : gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
+    *   _Cygwin : gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
     *   _Microsoft Visual Studio : VS 2017 15.7+_
 
 __NOTE:__ Need to add `--autocrlf=input` after `git clone` in _Cygwin_.
@@ -142,12 +142,10 @@ Name Surname <email@domain> Institution(s)
 
 #### Contributing guidelines
 
-Contributing guidelines can be accessed in our Wiki under the [Developer's
-Homepage](https://github.com/ginkgo-project/ginkgo/wiki/Developers-Homepage).
-This page also contains other information useful to developers, such as writing
-proper commit messages, understanding Ginkgo's library design, relevant C++
-information, and more. In general, always refer to this page for developer
-information.
+Contributing guidelines can be accessed in the [CONTRIBUTING.md
+page](./CONTRIBUTING.md). This page also contains other information useful to
+developers, such as writing proper commit messages, understanding Ginkgo's
+library design, relevant C++ information, and more.
 
 ### Support
 If you have any question, bug to report or would like to propose a new feature,
