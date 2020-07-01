@@ -307,23 +307,61 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
         if (cusparse::is_supported<ValueType, IndexType>::value) {
             // TODO: add implementation for int64 and multiple RHS
             auto handle = exec->get_cusparse_handle();
-            auto descr = cusparse::create_mat_descr();
             {
                 cusparse::pointer_mode_guard pm_guard(handle);
-                auto row_ptrs = a->get_const_row_ptrs();
-                auto col_idxs = a->get_const_col_idxs();
                 auto alpha = one<ValueType>();
                 auto beta = zero<ValueType>();
-                if (b->get_stride() != 1 || c->get_stride() != 1) {
+                // TODO: add implementation for int64 and multiple RHS
+                if (b->get_stride() != 1 || c->get_stride() != 1)
                     GKO_NOT_IMPLEMENTED;
-                }
+
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+                auto descr = cusparse::create_mat_descr();
+                auto row_ptrs = a->get_const_row_ptrs();
+                auto col_idxs = a->get_const_col_idxs();
                 cusparse::spmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                a->get_size()[0], a->get_size()[1],
                                a->get_num_stored_elements(), &alpha, descr,
                                a->get_const_values(), row_ptrs, col_idxs,
                                b->get_const_values(), &beta, c->get_values());
+
+                cusparse::destroy(descr);
+#else  // CUDA_VERSION >= 11000
+                cudaDataType_t cu_value =
+                    gko::kernels::cuda::cuda_data_type<ValueType>();
+                cusparseIndexType_t cu_index =
+                    gko::kernels::cuda::cusparse_index_type<IndexType>();
+                cusparseOperation_t trans = CUSPARSE_OPERATION_NON_TRANSPOSE;
+                cusparseSpMVAlg_t alg = CUSPARSE_CSRMV_ALG1;
+                auto row_ptrs =
+                    const_cast<IndexType *>(a->get_const_row_ptrs());
+                auto col_idxs =
+                    const_cast<IndexType *>(a->get_const_col_idxs());
+                auto values = const_cast<ValueType *>(a->get_const_values());
+                auto mat = cusparse::create_csr(
+                    a->get_size()[0], a->get_size()[1],
+                    a->get_num_stored_elements(), row_ptrs, col_idxs, values,
+                    cu_index, cu_index, CUSPARSE_INDEX_BASE_ZERO, cu_value);
+                auto b_val = const_cast<ValueType *>(b->get_const_values());
+                auto c_val = c->get_values();
+                auto vecb = cusparse::create_dnvec(b->get_num_stored_elements(),
+                                                   b_val, cu_value);
+                auto vecc = cusparse::create_dnvec(c->get_num_stored_elements(),
+                                                   c_val, cu_value);
+                size_t buffer_size = 0;
+                cusparse::spmv_buffersize(handle, trans, &alpha, mat, vecb,
+                                          &beta, vecc, cu_value, alg,
+                                          &buffer_size);
+
+                gko::Array<char> buffer_array(exec, buffer_size);
+                auto buffer = buffer_array.get_data();
+                cusparse::spmv(handle, trans, &alpha, mat, vecb, &beta, vecc,
+                               cu_value, alg, buffer);
+                cusparse::destroy(vecb);
+                cusparse::destroy(vecc);
+                cusparse::destroy(mat);
+#endif
             }
-            cusparse::destroy(descr);
         } else {
             GKO_NOT_IMPLEMENTED;
         }
@@ -368,14 +406,13 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                a->get_strategy()->get_name() == "cusparse") {
         if (cusparse::is_supported<ValueType, IndexType>::value) {
             // TODO: add implementation for int64 and multiple RHS
-            auto descr = cusparse::create_mat_descr();
-
-            auto row_ptrs = a->get_const_row_ptrs();
-            auto col_idxs = a->get_const_col_idxs();
-
             if (b->get_stride() != 1 || c->get_stride() != 1)
                 GKO_NOT_IMPLEMENTED;
 
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+            auto descr = cusparse::create_mat_descr();
+            auto row_ptrs = a->get_const_row_ptrs();
+            auto col_idxs = a->get_const_col_idxs();
             cusparse::spmv(exec->get_cusparse_handle(),
                            CUSPARSE_OPERATION_NON_TRANSPOSE, a->get_size()[0],
                            a->get_size()[1], a->get_num_stored_elements(),
@@ -385,6 +422,39 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                            c->get_values());
 
             cusparse::destroy(descr);
+#else  // CUDA_VERSION >= 11000
+            cudaDataType_t cu_value =
+                gko::kernels::cuda::cuda_data_type<ValueType>();
+            cusparseIndexType_t cu_index =
+                gko::kernels::cuda::cusparse_index_type<IndexType>();
+            cusparseOperation_t trans = CUSPARSE_OPERATION_NON_TRANSPOSE;
+            cusparseSpMVAlg_t alg = CUSPARSE_CSRMV_ALG1;
+            auto row_ptrs = const_cast<IndexType *>(a->get_const_row_ptrs());
+            auto col_idxs = const_cast<IndexType *>(a->get_const_col_idxs());
+            auto values = const_cast<ValueType *>(a->get_const_values());
+            auto mat = cusparse::create_csr(
+                a->get_size()[0], a->get_size()[1],
+                a->get_num_stored_elements(), row_ptrs, col_idxs, values,
+                cu_index, cu_index, CUSPARSE_INDEX_BASE_ZERO, cu_value);
+            auto b_val = const_cast<ValueType *>(b->get_const_values());
+            auto c_val = c->get_values();
+            auto vecb = cusparse::create_dnvec(b->get_num_stored_elements(),
+                                               b_val, cu_value);
+            auto vecc = cusparse::create_dnvec(c->get_num_stored_elements(),
+                                               c_val, cu_value);
+            size_t buffer_size = 0;
+            cusparse::spmv_buffersize(handle, trans, alpha->get_const_values(),
+                                      mat, vecb, beta->get_const_values(), vecc,
+                                      cu_value, alg, &buffer_size);
+            gko::Array<char> buffer_array(exec, buffer_size);
+            auto buffer = buffer_array.get_data();
+            cusparse::spmv(handle, trans, alpha->get_const_values(), mat, vecb,
+                           beta->get_const_values(), vecc, cu_value, alg,
+                           buffer);
+            cusparse::destroy(vecb);
+            cusparse::destroy(vecc);
+            cusparse::destroy(mat);
+#endif
         } else {
             GKO_NOT_IMPLEMENTED;
         }
@@ -860,6 +930,7 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
                matrix::Csr<ValueType, IndexType> *trans)
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
 
@@ -869,6 +940,30 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
             trans->get_col_idxs(), trans->get_row_ptrs(), copyValues, idxBase);
+#else  // CUDA_VERSION >= 11000
+        cudaDataType_t cu_value =
+            gko::kernels::cuda::cuda_data_type<ValueType>();
+        cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
+        cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
+        cusparseCsr2CscAlg_t alg = CUSPARSE_CSR2CSC_ALG2;
+        size_type buffer_size = 0;
+        cusparse::transpose_buffersize(
+            exec->get_cusparse_handle(), orig->get_size()[0],
+            orig->get_size()[1], orig->get_num_stored_elements(),
+            orig->get_const_values(), orig->get_const_row_ptrs(),
+            orig->get_const_col_idxs(), trans->get_values(),
+            trans->get_col_idxs(), trans->get_row_ptrs(), cu_value, copyValues,
+            idxBase, alg, &buffer_size);
+        Array<char> buffer_array(exec, buffer_size);
+        auto buffer = buffer_array.get_data();
+        cusparse::transpose(
+            exec->get_cusparse_handle(), orig->get_size()[0],
+            orig->get_size()[1], orig->get_num_stored_elements(),
+            orig->get_const_values(), orig->get_const_row_ptrs(),
+            orig->get_const_col_idxs(), trans->get_values(),
+            trans->get_col_idxs(), trans->get_row_ptrs(), cu_value, copyValues,
+            idxBase, alg, buffer);
+#endif
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -887,6 +982,7 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
         const dim3 grid_size(
             ceildiv(trans->get_num_stored_elements(), block_size.x), 1, 1);
 
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
 
@@ -896,6 +992,30 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
             trans->get_col_idxs(), trans->get_row_ptrs(), copyValues, idxBase);
+#else  // CUDA_VERSION >= 11000
+        cudaDataType_t cu_value =
+            gko::kernels::cuda::cuda_data_type<ValueType>();
+        cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
+        cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
+        cusparseCsr2CscAlg_t alg = CUSPARSE_CSR2CSC_ALG2;
+        size_type buffer_size = 0;
+        cusparse::transpose_buffersize(
+            exec->get_cusparse_handle(), orig->get_size()[0],
+            orig->get_size()[1], orig->get_num_stored_elements(),
+            orig->get_const_values(), orig->get_const_row_ptrs(),
+            orig->get_const_col_idxs(), trans->get_values(),
+            trans->get_col_idxs(), trans->get_row_ptrs(), cu_value, copyValues,
+            idxBase, alg, &buffer_size);
+        Array<char> buffer_array(exec, buffer_size);
+        auto buffer = buffer_array.get_data();
+        cusparse::transpose(
+            exec->get_cusparse_handle(), orig->get_size()[0],
+            orig->get_size()[1], orig->get_num_stored_elements(),
+            orig->get_const_values(), orig->get_const_row_ptrs(),
+            orig->get_const_col_idxs(), trans->get_values(),
+            trans->get_col_idxs(), trans->get_row_ptrs(), cu_value, copyValues,
+            idxBase, alg, buffer);
+#endif
 
         conjugate_kernel<<<grid_size, block_size, 0, 0>>>(
             trans->get_num_stored_elements(),

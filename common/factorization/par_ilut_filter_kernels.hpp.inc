@@ -42,7 +42,8 @@ __device__ void abstract_filter_impl(const IndexType *row_ptrs,
                                      StepCallback step_cb,
                                      FinishCallback finish_cb)
 {
-    auto subwarp = group::thread_block_tile<subwarp_size>();
+    auto subwarp =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
     auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
     auto lane = subwarp.thread_rank();
     auto lane_prefix_mask = (config::lane_mask_type(1) << lane) - 1;
