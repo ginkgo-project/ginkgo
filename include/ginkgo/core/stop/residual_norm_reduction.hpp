@@ -35,7 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #ifdef __GNUC__
-#warning This file is deprecated and will be removed in a later major release.
+#pragma message \
+    "This file is deprecated and will be removed in a later major release."
 #elif defined(_MSC_VER)
 #pragma message WARN( \
     "This file is deprecated and will be removed in a later major release.")
