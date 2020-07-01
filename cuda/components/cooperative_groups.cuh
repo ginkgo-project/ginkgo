@@ -317,10 +317,10 @@ template <typename Group>
 class enable_extended_shuffle : public Group {
 public:
     using Group::Group;
-    using Group::shfl;
-    using Group::shfl_down;
-    using Group::shfl_up;
-    using Group::shfl_xor;
+    // using Group::shfl;
+    // using Group::shfl_down;
+    // using Group::shfl_up;
+    // using Group::shfl_xor;
 
 #define GKO_ENABLE_SHUFFLE_OPERATION(_name, SelectorType)                   \
     template <typename ValueType>                                           \
@@ -369,10 +369,11 @@ private:
 // Implementing this as a using directive messes up with SFINAE for some reason,
 // probably a bug in NVCC. If it is a complete type, everything works fine.
 template <size_type Size>
-struct thread_block_tile : detail::enable_extended_shuffle<
-                               cooperative_groups::thread_block_tile<Size>> {
-    using detail::enable_extended_shuffle<
-        cooperative_groups::thread_block_tile<Size>>::enable_extended_shuffle;
+struct thread_block_tile
+    : detail::enable_extended_shuffle<cooperative_groups::thread_block_tile<
+          Size, cooperative_groups::thread_block>> {
+    using detail::enable_extended_shuffle<cooperative_groups::thread_block_tile<
+        Size, cooperative_groups::thread_block>>::enable_extended_shuffle;
 };
 // inherits thread_group
 //
