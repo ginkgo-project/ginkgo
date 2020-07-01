@@ -1,0 +1,67 @@
+\hypertarget{classgko_1_1stop_1_1AbsoluteResidualNorm}{}\doxysection{gko\+::stop\+::Absolute\+Residual\+Norm$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1stop_1_1AbsoluteResidualNorm}\index{gko::stop::AbsoluteResidualNorm$<$ ValueType $>$@{gko::stop::AbsoluteResidualNorm$<$ ValueType $>$}}
+
+
+The \mbox{\hyperlink{classgko_1_1stop_1_1AbsoluteResidualNorm}{Absolute\+Residual\+Norm}} class is a stopping criterion which stops the iteration process when the residual norm is below a certain threshold, i.\+e.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/stop/residual\+\_\+norm.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::stop\+::Absolute\+Residual\+Norm$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1stop_1_1AbsoluteResidualNorm__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1AbsoluteResidualNorm_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1stop_1_1AbsoluteResidualNorm_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1AbsoluteResidualNorm_a1aedca2db8dd8eab07a885b581c4d052}\label{classgko_1_1stop_1_1AbsoluteResidualNorm_a1aedca2db8dd8eab07a885b581c4d052}} 
+using {\bfseries Norm\+Vector} = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{matrix\+::\+Dense}}$<$ \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}}$<$ Value\+Type $>$ $>$
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1AbsoluteResidualNorm_aeac683232d51066ca9dc9398da5a59fe}\label{classgko_1_1stop_1_1AbsoluteResidualNorm_aeac683232d51066ca9dc9398da5a59fe}} 
+using {\bfseries Vector} = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{matrix\+::\+Dense}}$<$ Value\+Type $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1AbsoluteResidualNorm_a246ae0ee8df17a52ab661d88c58aead9}\label{classgko_1_1stop_1_1AbsoluteResidualNorm_a246ae0ee8df17a52ab661d88c58aead9}} 
+const \mbox{\hyperlink{structgko_1_1stop_1_1AbsoluteResidualNorm_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1AbsoluteResidualNorm_a57b7d5fae9e62b4df1c1349f3ee4108c}\label{classgko_1_1stop_1_1AbsoluteResidualNorm_a57b7d5fae9e62b4df1c1349f3ee4108c}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1stop_1_1AbsoluteResidualNorm_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::stop\+::\+Absolute\+Residual\+Norm$<$ Value\+Type $>$}
+
+The \mbox{\hyperlink{classgko_1_1stop_1_1AbsoluteResidualNorm}{Absolute\+Residual\+Norm}} class is a stopping criterion which stops the iteration process when the residual norm is below a certain threshold, i.\+e. 
+
+when norm(residual) / threshold. For better performance, the checks are run thanks to kernels on the executor where the algorithm is executed.
+
+\begin{DoxyNote}{Note}
+To use this stopping criterion there are some dependencies. The constructor depends on {\ttfamily b} in order to get the number of right-\/hand sides. If this is not correctly provided, an exception \+::gko\+::\+Not\+Supported() is thrown. 
+\end{DoxyNote}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/stop/residual\+\_\+norm.\+hpp (968408853)\end{DoxyCompactItemize}

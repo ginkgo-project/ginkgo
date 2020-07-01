@@ -1,10 +1,11 @@
 <map id="gko::stop::ResidualNormReduction&lt; ValueType &gt;" name="gko::stop::ResidualNormReduction&lt; ValueType &gt;">
-<area shape="rect" id="node1" title="The ResidualNormReduction class is a stopping criterion which stops the iteration process when the re..." alt="" coords="1796,70,2041,111"/>
-<area shape="rect" id="node2" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="1525,63,1747,119"/>
-<area shape="rect" id="node3" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="727,31,962,87"/>
-<area shape="rect" id="node4" title=" " alt="" coords="282,5,361,32"/>
-<area shape="rect" id="node5" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="189,79,453,135"/>
-<area shape="rect" id="node8" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="711,111,979,167"/>
-<area shape="rect" id="node6" title=" " alt="" coords="5,143,140,169"/>
-<area shape="rect" id="node7" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="1028,102,1301,143"/>
+<area shape="rect" id="node1" title="The ResidualNormReduction class is a stopping criterion which stops the iteration process when the re..." alt="" coords="2043,70,2288,111"/>
+<area shape="rect" id="node2" href="$classgko_1_1stop_1_1ResidualNorm.html" title="The ResidualNorm class provides a framework for stopping criteria related to the residual norm." alt="" coords="1812,70,1993,111"/>
+<area shape="rect" id="node3" href="$classgko_1_1EnablePolymorphicObject.html" title=" " alt="" coords="1541,63,1763,119"/>
+<area shape="rect" id="node4" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="719,31,970,87"/>
+<area shape="rect" id="node5" title=" " alt="" coords="282,5,361,32"/>
+<area shape="rect" id="node6" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="189,79,453,135"/>
+<area shape="rect" id="node9" href="$classgko_1_1EnableAbstractPolymorphicObject.html" title=" " alt="" coords="711,111,979,167"/>
+<area shape="rect" id="node7" title=" " alt="" coords="5,143,140,169"/>
+<area shape="rect" id="node8" href="$classgko_1_1EnablePolymorphicObject.html" title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne..." alt="" coords="1028,102,1301,143"/>
 </map>

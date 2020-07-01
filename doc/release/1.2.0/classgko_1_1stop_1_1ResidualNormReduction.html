@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/159300008 branch based on develop. Ginkgo version 1.2.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/162070747 branch based on develop. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -74,17 +74,16 @@ $(function() {
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-static-methods">Static Public Member Functions</a> &#124;
-<a href="#friends">Friends</a> &#124;
 <a href="classgko_1_1stop_1_1ResidualNormReduction-members.html">List of all members</a>  </div>
   <div class="headertitle">
 <div class="title">gko::stop::ResidualNormReduction&lt; ValueType &gt; Class Template Reference<div class="ingroups"><a class="el" href="group__stop.html">Stopping criteria</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
 
-<p>The <a class="el" href="classgko_1_1stop_1_1ResidualNormReduction.html" title="The ResidualNormReduction class is a stopping criterion which stops the iteration process when the re...">ResidualNormReduction</a> class is a stopping criterion which stops the iteration process when the relative residual norm is below a certain threshold.  
+<p>The <a class="el" href="classgko_1_1stop_1_1ResidualNormReduction.html" title="The ResidualNormReduction class is a stopping criterion which stops the iteration process when the re...">ResidualNormReduction</a> class is a stopping criterion which stops the iteration process when the residual norm is below a certain threshold relative to the norm of the initial residual, i.e.  
  <a href="classgko_1_1stop_1_1ResidualNormReduction.html#details">More...</a></p>
 
-<p><code>#include &lt;<a class="el" href="residual__norm__reduction_8hpp_source.html">ginkgo/core/stop/residual_norm_reduction.hpp</a>&gt;</code></p>
+<p><code>#include &lt;<a class="el" href="residual__norm_8hpp_source.html">ginkgo/core/stop/residual_norm.hpp</a>&gt;</code></p>
 <div class="dynheader">
 Collaboration diagram for gko::stop::ResidualNormReduction&lt; ValueType &gt;:</div>
 <div class="dyncontent">
@@ -107,33 +106,40 @@ using&#160;</td><td class="memItemRight" valign="bottom"><b>NormVector</b> = <a 
 <tr class="memitem:a3be024dedb5a5b7f62ed9370e098b4c4"><td class="memItemLeft" align="right" valign="top"><a id="a3be024dedb5a5b7f62ed9370e098b4c4"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>Vector</b> = <a class="el" href="classgko_1_1matrix_1_1Dense.html">matrix::Dense</a>&lt; ValueType &gt;</td></tr>
 <tr class="separator:a3be024dedb5a5b7f62ed9370e098b4c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_types_classgko_1_1stop_1_1ResidualNorm"><td colspan="2" onclick="javascript:toggleInherit('pub_types_classgko_1_1stop_1_1ResidualNorm')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="classgko_1_1stop_1_1ResidualNorm.html">gko::stop::ResidualNorm&lt; ValueType &gt;</a></td></tr>
+<tr class="memitem:affb192af2bd946ac210ee5720551ee6b inherit pub_types_classgko_1_1stop_1_1ResidualNorm"><td class="memItemLeft" align="right" valign="top"><a id="affb192af2bd946ac210ee5720551ee6b"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>NormVector</b> = <a class="el" href="classgko_1_1matrix_1_1Dense.html">matrix::Dense</a>&lt; <a class="el" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">remove_complex</a>&lt; ValueType &gt; &gt;</td></tr>
+<tr class="separator:affb192af2bd946ac210ee5720551ee6b inherit pub_types_classgko_1_1stop_1_1ResidualNorm"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aac0bd59ac7da605a9005b3a905d6abd7 inherit pub_types_classgko_1_1stop_1_1ResidualNorm"><td class="memItemLeft" align="right" valign="top"><a id="aac0bd59ac7da605a9005b3a905d6abd7"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>Vector</b> = <a class="el" href="classgko_1_1matrix_1_1Dense.html">matrix::Dense</a>&lt; ValueType &gt;</td></tr>
+<tr class="separator:aac0bd59ac7da605a9005b3a905d6abd7 inherit pub_types_classgko_1_1stop_1_1ResidualNorm"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:aa5a5af284c81a179256da9cf191c9f17"><td class="memItemLeft" align="right" valign="top"><a id="aa5a5af284c81a179256da9cf191c9f17"></a>
 const <a class="el" href="structgko_1_1stop_1_1ResidualNormReduction_1_1parameters__type.html">parameters_type</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>get_parameters</b> () const</td></tr>
 <tr class="separator:aa5a5af284c81a179256da9cf191c9f17"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="inherit_header pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classgko_1_1EnableAbstractPolymorphicObject')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classgko_1_1EnableAbstractPolymorphicObject.html">gko::EnableAbstractPolymorphicObject&lt; ResidualNormReduction&lt; ValueType &gt;, Criterion &gt;</a></td></tr>
+<tr class="inherit_header pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classgko_1_1EnableAbstractPolymorphicObject')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classgko_1_1EnableAbstractPolymorphicObject.html">gko::EnableAbstractPolymorphicObject&lt; ResidualNorm&lt; ValueType &gt;, Criterion &gt;</a></td></tr>
 <tr class="memitem:ac84c5033523a8c59662287fa0541c18c inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="ac84c5033523a8c59662287fa0541c18c"></a>
-std::unique_ptr&lt; ResidualNormReduction&lt; ValueType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>create_default</b> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec) const</td></tr>
+std::unique_ptr&lt; ResidualNorm&lt; ValueType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>create_default</b> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec) const</td></tr>
 <tr class="separator:ac84c5033523a8c59662287fa0541c18c inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5153f52a413e92a0477c0b99c5bc3b37 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a5153f52a413e92a0477c0b99c5bc3b37"></a>
-std::unique_ptr&lt; ResidualNormReduction&lt; ValueType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>create_default</b> () const</td></tr>
+std::unique_ptr&lt; ResidualNorm&lt; ValueType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>create_default</b> () const</td></tr>
 <tr class="separator:a5153f52a413e92a0477c0b99c5bc3b37 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab580b1eed2674cd1eda5d18086bc1944 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="ab580b1eed2674cd1eda5d18086bc1944"></a>
-std::unique_ptr&lt; ResidualNormReduction&lt; ValueType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>clone</b> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec) const</td></tr>
+std::unique_ptr&lt; ResidualNorm&lt; ValueType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>clone</b> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec) const</td></tr>
 <tr class="separator:ab580b1eed2674cd1eda5d18086bc1944 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a08485221c0ea27e9100069c65c40f5cb inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a08485221c0ea27e9100069c65c40f5cb"></a>
-std::unique_ptr&lt; ResidualNormReduction&lt; ValueType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>clone</b> () const</td></tr>
+std::unique_ptr&lt; ResidualNorm&lt; ValueType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>clone</b> () const</td></tr>
 <tr class="separator:a08485221c0ea27e9100069c65c40f5cb inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6a9588dfdd287538548e513c79793d5e inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a6a9588dfdd287538548e513c79793d5e"></a>
-ResidualNormReduction&lt; ValueType &gt; *&#160;</td><td class="memItemRight" valign="bottom"><b>copy_from</b> (const <a class="el" href="classgko_1_1PolymorphicObject.html">PolymorphicObject</a> *other)</td></tr>
+ResidualNorm&lt; ValueType &gt; *&#160;</td><td class="memItemRight" valign="bottom"><b>copy_from</b> (const <a class="el" href="classgko_1_1PolymorphicObject.html">PolymorphicObject</a> *other)</td></tr>
 <tr class="separator:a6a9588dfdd287538548e513c79793d5e inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab1a690b36626761167b3fa51bd8ea06a inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="ab1a690b36626761167b3fa51bd8ea06a"></a>
-ResidualNormReduction&lt; ValueType &gt; *&#160;</td><td class="memItemRight" valign="bottom"><b>copy_from</b> (std::unique_ptr&lt; <a class="el" href="classgko_1_1PolymorphicObject.html">PolymorphicObject</a> &gt; other)</td></tr>
+ResidualNorm&lt; ValueType &gt; *&#160;</td><td class="memItemRight" valign="bottom"><b>copy_from</b> (std::unique_ptr&lt; <a class="el" href="classgko_1_1PolymorphicObject.html">PolymorphicObject</a> &gt; other)</td></tr>
 <tr class="separator:ab1a690b36626761167b3fa51bd8ea06a inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae74d41178d0f0e6bfcada520ea3e3099 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="ae74d41178d0f0e6bfcada520ea3e3099"></a>
-ResidualNormReduction&lt; ValueType &gt; *&#160;</td><td class="memItemRight" valign="bottom"><b>clear</b> ()</td></tr>
+ResidualNorm&lt; ValueType &gt; *&#160;</td><td class="memItemRight" valign="bottom"><b>clear</b> ()</td></tr>
 <tr class="separator:ae74d41178d0f0e6bfcada520ea3e3099 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-methods"></a>
@@ -141,22 +147,16 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memitem:a4fb8c7e611fe0ddea7a149351439566c"><td class="memItemLeft" align="right" valign="top"><a id="a4fb8c7e611fe0ddea7a149351439566c"></a>
 static auto&#160;</td><td class="memItemRight" valign="bottom"><b>build</b> () -&gt; decltype(<a class="el" href="classgko_1_1stop_1_1ResidualNormReduction_1_1Factory.html">Factory</a> ::create())</td></tr>
 <tr class="separator:a4fb8c7e611fe0ddea7a149351439566c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="friends"></a>
-Friends</h2></td></tr>
-<tr class="memitem:aef2f52d8e5cedbae7f8132d5be88132c"><td class="memItemLeft" align="right" valign="top"><a id="aef2f52d8e5cedbae7f8132d5be88132c"></a>
-class&#160;</td><td class="memItemRight" valign="bottom"><b>EnablePolymorphicObject&lt; ResidualNormReduction&lt; ValueType &gt;, Criterion &gt;</b></td></tr>
-<tr class="separator:aef2f52d8e5cedbae7f8132d5be88132c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><h3>template&lt;typename ValueType = default_precision&gt;<br />
 class gko::stop::ResidualNormReduction&lt; ValueType &gt;</h3>
 
-<p>The <a class="el" href="classgko_1_1stop_1_1ResidualNormReduction.html" title="The ResidualNormReduction class is a stopping criterion which stops the iteration process when the re...">ResidualNormReduction</a> class is a stopping criterion which stops the iteration process when the relative residual norm is below a certain threshold. </p>
-<p>For better performance, the checks are run thanks to kernels on the executor where the algorithm is executed.</p>
+<p>The <a class="el" href="classgko_1_1stop_1_1ResidualNormReduction.html" title="The ResidualNormReduction class is a stopping criterion which stops the iteration process when the re...">ResidualNormReduction</a> class is a stopping criterion which stops the iteration process when the residual norm is below a certain threshold relative to the norm of the initial residual, i.e. </p>
+<p>when norm(residual) / norm(initial_residual) &lt; threshold. For better performance, the checks are run thanks to kernels on the executor where the algorithm is executed.</p>
 <dl class="section note"><dt>Note</dt><dd>To use this stopping criterion there are some dependencies. The constructor depends on <code>initial_residual</code> in order to compute the first relative residual norm. The check method depends on either the <code>residual_norm</code> or the <code>residual</code> being set. When any of those is not correctly provided, an exception ::gko::NotSupported() is thrown. </dd></dl>
 </div><hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/stop/<a class="el" href="residual__norm__reduction_8hpp_source.html">residual_norm_reduction.hpp (38ba93959)</a></li>
+<li>ginkgo/core/stop/<a class="el" href="residual__norm_8hpp_source.html">residual_norm.hpp (968408853)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

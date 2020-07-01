@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/159300008 branch based on develop. Ginkgo version 1.2.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/162070747 branch based on develop. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -281,14 +281,16 @@ class&#160;</td><td class="memItemRight" valign="bottom"><b>EnablePolymorphicObj
 class gko::solver::Ir&lt; ValueType &gt;</h3>
 
 <p>Iterative refinement (IR) is an iterative method that uses another coarse method to approximate the error of the current solution via the current residual. </p>
-<p>For any approximation of the solution <code>solution</code> to the system <code>Ax = b</code>, the residual is defined as: <code>residual = b - A solution</code>. The error in <code>solution</code>, <code>e = x - solution</code> (with <code>x</code> being the exact solution) can be obtained as the solution to the residual equation <code>Ae = residual</code>, since <code>A e = Ax - A solution = b - A solution = residual</code>. Then, the real solution is computed as <code>x = solution + e</code>. Instead of accurately solving the residual equation <code>Ae = residual</code>, the solution of the system <code>e</code> can be approximated to obtain the approximation <code>error</code> using a coarse method <code>solver</code>, which is used to update <code>solution</code>, and the entire process is repeated with the updated <code>solution</code>. This yields the iterative refinement method:</p>
+<p>Moreover, it can be also considered as preconditioned Richardson iteration with relaxation factor = 1.</p>
+<p>For any approximation of the solution <code>solution</code> to the system <code>Ax = b</code>, the residual is defined as: <code>residual = b - A solution</code>. The error in <code>solution</code>, <code>e = x - solution</code> (with <code>x</code> being the exact solution) can be obtained as the solution to the residual equation <code>Ae = residual</code>, since <code>A e = Ax - A solution = b - A solution = residual</code>. Then, the real solution is computed as <code>x = relaxation_factor * solution + e</code>. Instead of accurately solving the residual equation <code>Ae = residual</code>, the solution of the system <code>e</code> can be approximated to obtain the approximation <code>error</code> using a coarse method <code>solver</code>, which is used to update <code>solution</code>, and the entire process is repeated with the updated <code>solution</code>. This yields the iterative refinement method:</p>
 <div class="fragment"><div class="line">solution = initial_guess</div>
 <div class="line"><span class="keywordflow">while</span> not converged:</div>
 <div class="line">    residual = b - A solution</div>
 <div class="line">    error = solver(A, residual)</div>
-<div class="line">    solution = solution + error</div>
-</div><!-- fragment --><p>Assuming that <code>solver</code> has accuracy <code>c</code>, i.e., <code>| e - error | &lt;= c | e |</code>, iterative refinement will converge with a convergence rate of <code>c</code>. Indeed, from <code>e - error = x - solution - error = x - solution*</code> (where <code>solution*</code> denotes the value stored in <code>solution</code> after the update) and <code>e = inv(A) residual = inv(A)b - inv(A) A solution = x - solution</code> it follows that | x - solution* | &lt;= c | x - solution |.</p>
-<p>Unless otherwise specified via the <code>solver</code> factory parameter, this implementation uses the identity operator (i.e. the solver that approximates the solution of a system Ax = b by setting x := b) as the default inner solver. Such a setting results in a relaxation method known as the Richardson iteration with parameter 1, which is guaranteed to converge for matrices whose spectrum is strictly contained within the unit disc around 1 (i.e., all its eigenvalues <code>lambda</code> have to satisfy the equation `|lambda - 1| &lt; 1).</p>
+<div class="line">    solution = solution + relaxation_factor * error</div>
+</div><!-- fragment --><p>With <code>relaxation_factor</code> equal to 1 (default), the solver is Iterative Refinement, with <code>relaxation_factor</code> equal to a value other than <code>1</code>, the solver is a Richardson iteration, with possibility for additional preconditioning.</p>
+<p>Assuming that <code>solver</code> has accuracy <code>c</code>, i.e., <code>| e - error | &lt;= c | e |</code>, iterative refinement will converge with a convergence rate of <code>c</code>. Indeed, from <code>e - error = x - solution - error = x - solution*</code> (where <code>solution*</code> denotes the value stored in <code>solution</code> after the update) and <code>e = inv(A) residual = inv(A)b - inv(A) A solution = x - solution</code> it follows that | x - solution* | &lt;= c | x - solution |.</p>
+<p>Unless otherwise specified via the <code>solver</code> factory parameter, this implementation uses the identity operator (i.e. the solver that approximates the solution of a system Ax = b by setting x := b) as the default inner solver. Such a setting results in a relaxation method known as the Richardson iteration with parameter 1, which is guaranteed to converge for matrices whose spectrum is strictly contained within the unit disc around 1 (i.e., all its eigenvalues <code>lambda</code> have to satisfy the equation `|relaxation_factor * lambda - 1| &lt; 1).</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
     <tr><td class="paramname">ValueType</td><td>precision of matrix elements </td></tr>
@@ -555,7 +557,7 @@ template&lt;typename ValueType  = default_precision&gt; </div>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/solver/<a class="el" href="ir_8hpp_source.html">ir.hpp (869586100)</a></li>
+<li>ginkgo/core/solver/<a class="el" href="ir_8hpp_source.html">ir.hpp (316387d6f)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
