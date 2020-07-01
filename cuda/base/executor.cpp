@@ -74,9 +74,11 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
 void OmpExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
-    cuda::device_guard g(dest->get_device_id());
-    GKO_ASSERT_NO_CUDA_ERRORS(
-        cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice));
+    if (num_bytes > 0) {
+        cuda::device_guard g(dest->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice));
+    }
 }
 
 
@@ -113,18 +115,23 @@ void *CudaExecutor::raw_alloc(size_type num_bytes) const
 void CudaExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
                                const void *src_ptr, void *dest_ptr) const
 {
-    cuda::device_guard g(this->get_device_id());
-    GKO_ASSERT_NO_CUDA_ERRORS(
-        cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost));
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost));
+    }
 }
 
 
 void CudaExecutor::raw_copy_to(const CudaExecutor *src, size_type num_bytes,
                                const void *src_ptr, void *dest_ptr) const
 {
-    cuda::device_guard g(this->get_device_id());
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(
-        dest_ptr, this->device_id_, src_ptr, src->get_device_id(), num_bytes));
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, this->device_id_,
+                                                 src_ptr, src->get_device_id(),
+                                                 num_bytes));
+    }
 }
 
 
@@ -132,9 +139,12 @@ void CudaExecutor::raw_copy_to(const HipExecutor *src, size_type num_bytes,
                                const void *src_ptr, void *dest_ptr) const
 {
 #if GINKGO_HIP_PLATFORM_NVCC == 1
-    cuda::device_guard g(this->get_device_id());
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(
-        dest_ptr, this->device_id_, src_ptr, src->get_device_id(), num_bytes));
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, this->device_id_,
+                                                 src_ptr, src->get_device_id(),
+                                                 num_bytes));
+    }
 #else
     GKO_NOT_SUPPORTED(this);
 #endif
