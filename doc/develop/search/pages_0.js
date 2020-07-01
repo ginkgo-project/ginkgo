@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['contributing_20guidelines_1476',['Contributing guidelines',['../contributing_guidelines.html',1,'']]]
+  ['contributing_20guidelines_1484',['Contributing guidelines',['../contributing_guidelines.html',1,'']]]
 ];

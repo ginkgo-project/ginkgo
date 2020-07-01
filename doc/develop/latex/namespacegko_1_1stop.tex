@@ -8,6 +8,8 @@ The Stopping criterion namespace.
 \doxysubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1AbsoluteResidualNorm}{Absolute\+Residual\+Norm}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1AbsoluteResidualNorm}{Absolute\+Residual\+Norm}} class is a stopping criterion which stops the iteration process when the residual norm is below a certain threshold, i.\+e. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1stop_1_1Combined}{Combined}}
 \begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1Combined}{Combined}} class is used to combine multiple criterions together through an OR operation. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1stop_1_1Criterion}{Criterion}}
@@ -16,8 +18,12 @@ struct \mbox{\hyperlink{structgko_1_1stop_1_1CriterionArgs}{Criterion\+Args}}
 \begin{DoxyCompactList}\small\item\em This struct is used to pass parameters to the Enable\+Default\+Criterion\+Factory\+Criterion\+Factory\+::generate() method. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1stop_1_1Iteration}{Iteration}}
 \begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1Iteration}{Iteration}} class is a stopping criterion which stops the iteration process after a preset number of iterations. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1RelativeResidualNorm}{Relative\+Residual\+Norm}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1RelativeResidualNorm}{Relative\+Residual\+Norm}} class is a stopping criterion which stops the iteration process when the residual norm is below a certain threshold relative to the norm of the right-\/hand side, i.\+e. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{Residual\+Norm}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{Residual\+Norm}} class provides a framework for stopping criteria related to the residual norm. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{Residual\+Norm\+Reduction}}
-\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{Residual\+Norm\+Reduction}} class is a stopping criterion which stops the iteration process when the relative residual norm is below a certain threshold. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{Residual\+Norm\+Reduction}} class is a stopping criterion which stops the iteration process when the residual norm is below a certain threshold relative to the norm of the initial residual, i.\+e. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1stop_1_1Time}{Time}}
 \begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1Time}{Time}} class is a stopping criterion which stops the iteration process after a certain amout of time has passed. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Typedefs}
