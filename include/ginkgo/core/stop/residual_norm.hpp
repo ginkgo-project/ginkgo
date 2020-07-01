@@ -95,7 +95,8 @@ private:
 /**
  * The ResidualNormReduction class is a stopping criterion which stops the
  * iteration process when the residual norm is below a certain
- * threshold relative to the norm of the initial residual.
+ * threshold relative to the norm of the initial residual, i.e. when
+ * norm(residual) / norm(initial_residual) < threshold.
  * For better performance, the checks are run thanks to kernels on
  * the executor where the algorithm is executed.
  *
@@ -155,13 +156,14 @@ protected:
 /**
  * The RelativeResidualNorm class is a stopping criterion which stops the
  * iteration process when the residual norm is below a certain
- * threshold relative to the norm of the right-hand side.
+ * threshold relative to the norm of the right-hand side, i.e. when
+ * norm(residual) / norm(right_hand_side) < threshold.
  * For better performance, the checks are run thanks to kernels on
  * the executor where the algorithm is executed.
  *
  * @note To use this stopping criterion there are some dependencies. The
  * constructor depends on `b` in order to compute the norm of the
- * right-hand side. If this is not correctlyprovided, an exception
+ * right-hand side. If this is not correctly provided, an exception
  * ::gko::NotSupported() is thrown.
  *
  * @ingroup stop
@@ -213,7 +215,8 @@ protected:
 /**
  * The AbsoluteResidualNorm class is a stopping criterion which stops the
  * iteration process when the residual norm is below a certain
- * threshold. For better performance, the checks are run thanks to kernels on
+ * threshold, i.e. when norm(residual) / threshold.
+ * For better performance, the checks are run thanks to kernels on
  * the executor where the algorithm is executed.
  *
  * @note To use this stopping criterion there are some dependencies. The
