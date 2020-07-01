@@ -100,7 +100,7 @@ void apply_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
     const auto diag_values = a->get_const_values();
     c->copy_from(b);
     auto csr_values = c->get_values();
-    auto csr_row_ptrs = c->get_row_ptrs();
+    const auto csr_row_ptrs = c->get_const_row_ptrs();
 
     for (size_type row = 0; row < c->get_size()[0]; row++) {
         for (size_type idx = csr_row_ptrs[row]; idx < csr_row_ptrs[row + 1];
@@ -123,8 +123,8 @@ void right_apply_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
     const auto diag_values = a->get_const_values();
     c->copy_from(b);
     auto csr_values = c->get_values();
-    auto csr_row_ptrs = c->get_row_ptrs();
-    auto csr_col_idxs = c->get_col_idxs();
+    const auto csr_row_ptrs = c->get_const_row_ptrs();
+    const auto csr_col_idxs = c->get_const_col_idxs();
 
     for (size_type row = 0; row < c->get_size()[0]; row++) {
         for (size_type idx = csr_row_ptrs[row]; idx < csr_row_ptrs[row + 1];
