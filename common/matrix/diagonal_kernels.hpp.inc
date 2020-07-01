@@ -67,4 +67,45 @@ __global__ __launch_bounds__(default_block_size) void right_apply_to_dense(
 }
 
 
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void apply_to_csr(
+    size_type num_rows, const ValueType *__restrict__ diag,
+    const IndexType *__restrict__ row_ptrs,
+    ValueType *__restrict__ result_values)
+{
+    constexpr auto warp_size = config::warp_size;
+    auto warp_tile =
+        group::tiled_partition<warp_size>(group::this_thread_block());
+    const auto row = thread::get_subwarp_id_flat<warp_size>();
+    const auto tid_in_warp = warp_tile.thread_rank();
+
+    if (row >= num_rows) {
+        return;
+    }
+
+    const auto diag_val = diag[row];
+
+    for (size_type idx = row_ptrs[row] + tid_in_warp; idx < row_ptrs[row + 1];
+         idx += warp_size) {
+        result_values[idx] *= diag_val;
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void right_apply_to_csr(
+    size_type num_nnz, const ValueType *__restrict__ diag,
+    const IndexType *__restrict__ col_idxs,
+    ValueType *__restrict__ result_values)
+{
+    const auto tidx = thread::get_thread_id_flat();
+
+    if (tidx >= num_nnz) {
+        return;
+    }
+
+    result_values[tidx] *= diag[col_idxs[tidx]];
+}
+
+
 }  // namespace kernel

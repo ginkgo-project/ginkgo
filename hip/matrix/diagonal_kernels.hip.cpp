@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "hip/base/hipsparse_bindings.hip.hpp"
 #include "hip/base/types.hip.hpp"
+#include "hip/components/cooperative_groups.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 
 
@@ -123,7 +124,20 @@ template <typename ValueType, typename IndexType>
 void apply_to_csr(std::shared_ptr<const HipExecutor> exec,
                   const matrix::Diagonal<ValueType, IndexType> *a,
                   const matrix::Csr<ValueType, IndexType> *b,
-                  matrix::Csr<ValueType, IndexType> *c) GKO_NOT_IMPLEMENTED;
+                  matrix::Csr<ValueType, IndexType> *c)
+{
+    const auto num_rows = b->get_size()[0];
+    const auto diag_values = a->get_const_values();
+    c->copy_from(b);
+    auto csr_values = c->get_values();
+    const auto csr_row_ptrs = c->get_const_row_ptrs();
+
+    const auto grid_dim =
+        ceildiv(num_rows * config::warp_size, default_block_size);
+    hipLaunchKernelGGL(kernel::apply_to_csr, grid_dim, default_block_size, 0, 0,
+                       num_rows, as_cuda_type(diag_values),
+                       as_cuda_type(csr_row_ptrs), as_cuda_type(csr_values));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL);
@@ -134,7 +148,18 @@ void right_apply_to_csr(std::shared_ptr<const HipExecutor> exec,
                         const matrix::Diagonal<ValueType, IndexType> *a,
                         const matrix::Csr<ValueType, IndexType> *b,
                         matrix::Csr<ValueType, IndexType> *c)
-    GKO_NOT_IMPLEMENTED;
+{
+    const auto num_nnz = b->get_num_stored_elements();
+    const auto diag_values = a->get_const_values();
+    c->copy_from(b);
+    auto csr_values = c->get_values();
+    const auto csr_col_idxs = c->get_const_col_idxs();
+
+    const auto grid_dim = ceildiv(num_nnz, default_block_size);
+    hipLaunchKernelGGL(kernel::right_apply_to_csr, grid_dim, default_block_size,
+                       0, 0, num_nnz, as_cuda_type(diag_values),
+                       as_cuda_type(csr_col_idxs), as_cuda_type(csr_values));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL);
