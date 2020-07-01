@@ -60,7 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/lower_trs_kernels.hpp"
 #include "core/solver/upper_trs_kernels.hpp"
 #include "core/stop/criterion_kernels.hpp"
-#include "core/stop/residual_norm_reduction_kernels.hpp"
+#include "core/stop/residual_norm_kernels.hpp"
 
 
 #ifndef GKO_HOOK_MODULE
@@ -966,17 +966,17 @@ GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 }  // namespace set_all_statuses
 
 
-namespace residual_norm_reduction {
+namespace residual_norm {
 
 
 template <typename ValueType>
-GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL(ValueType)
+GKO_DECLARE_RESIDUAL_NORM_KERNEL(ValueType)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
-    GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL);
+    GKO_DECLARE_RESIDUAL_NORM_KERNEL);
 
 
-}  // namespace residual_norm_reduction
+}  // namespace residual_norm
 }  // namespace GKO_HOOK_MODULE
 }  // namespace kernels
 }  // namespace gko

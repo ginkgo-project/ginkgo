@@ -44,7 +44,8 @@ fi
 
 # Put all header files as a list (separated by newlines) in the file ${HEADER_LIST}
 # Requires detected files (including the path) to not contain newlines
-find "${TOP_HEADER_FOLDER}" -name '*.hpp' -type f -print > "${HEADER_LIST}"
+find "${TOP_HEADER_FOLDER}" -name '*.hpp' -type f -print | \
+        grep -v 'residual_norm_reduction.hpp' > "${HEADER_LIST}"
 
 if [ ${?} -ne 0 ]; then
     echo "${WARNING_PREFIX} "'The `find` command returned with an error!' 1>&2
@@ -76,7 +77,7 @@ if [[ "$(file "${GINKGO_HEADER_TEMPLATE_FILE}")" == *"CRLF"* ]]; then
 fi
 
 # Generate a new, temporary ginkgo header file.
-# It will get compared at the end to the existing file in order to prevent 
+# It will get compared at the end to the existing file in order to prevent
 # the rebuilding of targets which depend on the global header
 # (e.g. benchmarks and examples)
 GINKGO_HEADER_TMP="${GINKGO_HEADER_FILE}.tmp"
@@ -109,12 +110,12 @@ while IFS='' read -r line; do
         while IFS='' read -r prefixed_file; do
             # Remove the include directory from the file name
             file="${prefixed_file#${TOP_HEADER_FOLDER}/}"
-            
+
             # Do not include yourself
             if [ "${file}" == "${GINKGO_HEADER_FILE}" ]; then
                 continue
             fi
-            
+
             CURRENT_FOLDER="$(dirname ${file})"
             # add newline between different include folder
             if [ "${READING_FIRST_LINE}" != true ] && \

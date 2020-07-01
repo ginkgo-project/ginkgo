@@ -31,7 +31,7 @@ target_sources(ginkgo_omp
     solver/lower_trs_kernels.cpp
     solver/upper_trs_kernels.cpp
     stop/criterion_kernels.cpp
-    stop/residual_norm_reduction_kernels.cpp)
+    stop/residual_norm_kernels.cpp)
 
 ginkgo_compile_features(ginkgo_omp)
 

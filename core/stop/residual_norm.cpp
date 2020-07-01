@@ -30,28 +30,30 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 
 
-#include "core/stop/residual_norm_reduction_kernels.hpp"
+#include "core/components/fill_array.hpp"
+#include "core/stop/residual_norm_kernels.hpp"
 
 
 namespace gko {
 namespace stop {
-namespace residual_norm_reduction {
+namespace residual_norm {
 
 
-GKO_REGISTER_OPERATION(residual_norm_reduction,
-                       residual_norm_reduction::residual_norm_reduction);
+GKO_REGISTER_OPERATION(residual_norm, residual_norm::residual_norm);
+GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
-}  // namespace residual_norm_reduction
+}  // namespace residual_norm
 
 
 template <typename ValueType>
-bool ResidualNormReduction<ValueType>::check_impl(
-    uint8 stoppingId, bool setFinalized, Array<stopping_status> *stop_status,
-    bool *one_changed, const Criterion::Updater &updater)
+bool ResidualNorm<ValueType>::check_impl(uint8 stoppingId, bool setFinalized,
+                                         Array<stopping_status> *stop_status,
+                                         bool *one_changed,
+                                         const Criterion::Updater &updater)
 {
     const NormVector *dense_tau;
     if (updater.residual_norm_ != nullptr) {
@@ -65,18 +67,29 @@ bool ResidualNormReduction<ValueType>::check_impl(
     }
     bool all_converged = true;
 
-    this->get_executor()->run(
-        residual_norm_reduction::make_residual_norm_reduction(
-            dense_tau, starting_tau_.get(), parameters_.reduction_factor,
-            stoppingId, setFinalized, stop_status, &this->device_storage_,
-            &all_converged, one_changed));
+    this->get_executor()->run(residual_norm::make_residual_norm(
+        dense_tau, starting_tau_.get(), tolerance_, stoppingId, setFinalized,
+        stop_status, &device_storage_, &all_converged, one_changed));
+
     return all_converged;
 }
 
+template <typename ValueType>
+void AbsoluteResidualNorm<ValueType>::initialize_starting_tau()
+{
+    this->get_executor()->run(residual_norm::make_fill_array(
+        this->starting_tau_->get_values(), this->starting_tau_->get_size()[1],
+        gko::one<remove_complex<ValueType>>()));
+}
 
-#define GKO_DECLARE_RESIDUAL_NORM_REDUCTION(_type) \
-    class ResidualNormReduction<_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM_REDUCTION);
+
+#define GKO_DECLARE_RESIDUAL_NORM(_type) class ResidualNorm<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM);
+
+
+#define GKO_DECLARE_ABSOLUTE_RESIDUAL_NORM(_type) \
+    class AbsoluteResidualNorm<_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_ABSOLUTE_RESIDUAL_NORM);
 
 
 }  // namespace stop

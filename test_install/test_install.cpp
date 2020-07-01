@@ -351,9 +351,18 @@ int main(int, char **)
         auto time = gko::stop::Time::build()
                         .with_time_limit(std::chrono::milliseconds(10))
                         .on(refExec);
-        // residual_norm_reduction.hpp
+
+        // residual_norm.hpp
         auto res_red = gko::stop::ResidualNormReduction<>::build()
                            .with_reduction_factor(1e-10)
+                           .on(refExec);
+
+        auto rel_res = gko::stop::RelativeResidualNorm<>::build()
+                           .with_tolerance(1e-10)
+                           .on(refExec);
+
+        auto abs_res = gko::stop::AbsoluteResidualNorm<>::build()
+                           .with_tolerance(1e-10)
                            .on(refExec);
 
         // stopping_status.hpp

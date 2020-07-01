@@ -30,44 +30,40 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/stop/residual_norm_reduction_kernels.hpp"
-
-
-#include <hip/hip_runtime.h>
+#include "core/stop/residual_norm_kernels.hpp"
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 
 
-#include "hip/base/math.hip.hpp"
-#include "hip/base/types.hip.hpp"
-#include "hip/components/thread_ids.hip.hpp"
+#include "cuda/base/math.hpp"
+#include "cuda/base/types.hpp"
+#include "cuda/components/thread_ids.cuh"
 
 
 namespace gko {
 namespace kernels {
-namespace hip {
+namespace cuda {
 /**
- * @brief The Residual norm reduction stopping criterion namespace.
+ * @brief The Residual norm stopping criterion namespace.
  * @ref resnorm
  * @ingroup resnorm
  */
-namespace residual_norm_reduction {
+namespace residual_norm {
 
 
 constexpr int default_block_size = 512;
 
 
 template <typename ValueType>
-__global__
-    __launch_bounds__(default_block_size) void residual_norm_reduction_kernel(
-        size_type num_cols, ValueType rel_residual_goal,
-        const ValueType *__restrict__ tau,
-        const ValueType *__restrict__ orig_tau, uint8 stoppingId,
-        bool setFinalized, stopping_status *__restrict__ stop_status,
-        bool *__restrict__ device_storage)
+__global__ __launch_bounds__(default_block_size) void residual_norm_kernel(
+    size_type num_cols, ValueType rel_residual_goal,
+    const ValueType *__restrict__ tau, const ValueType *__restrict__ orig_tau,
+    uint8 stoppingId, bool setFinalized,
+    stopping_status *__restrict__ stop_status,
+    bool *__restrict__ device_storage)
 {
     const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_cols) {
@@ -93,29 +89,27 @@ __global__ __launch_bounds__(1) void init_kernel(
 
 
 template <typename ValueType>
-void residual_norm_reduction(std::shared_ptr<const HipExecutor> exec,
-                             const matrix::Dense<ValueType> *tau,
-                             const matrix::Dense<ValueType> *orig_tau,
-                             ValueType rel_residual_goal, uint8 stoppingId,
-                             bool setFinalized,
-                             Array<stopping_status> *stop_status,
-                             Array<bool> *device_storage, bool *all_converged,
-                             bool *one_changed)
+void residual_norm(std::shared_ptr<const CudaExecutor> exec,
+                   const matrix::Dense<ValueType> *tau,
+                   const matrix::Dense<ValueType> *orig_tau,
+                   ValueType rel_residual_goal, uint8 stoppingId,
+                   bool setFinalized, Array<stopping_status> *stop_status,
+                   Array<bool> *device_storage, bool *all_converged,
+                   bool *one_changed)
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
-    hipLaunchKernelGGL((init_kernel), dim3(1), dim3(1), 0, 0,
-                       as_hip_type(device_storage->get_data()));
+    init_kernel<<<1, 1>>>(as_cuda_type(device_storage->get_data()));
 
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(tau->get_size()[1], block_size.x), 1, 1);
 
-    hipLaunchKernelGGL((residual_norm_reduction_kernel), dim3(grid_size),
-                       dim3(block_size), 0, 0, tau->get_size()[1],
-                       rel_residual_goal, as_hip_type(tau->get_const_values()),
-                       as_hip_type(orig_tau->get_const_values()), stoppingId,
-                       setFinalized, as_hip_type(stop_status->get_data()),
-                       as_hip_type(device_storage->get_data()));
+    residual_norm_kernel<<<grid_size, block_size>>>(
+        tau->get_size()[1], rel_residual_goal,
+        as_cuda_type(tau->get_const_values()),
+        as_cuda_type(orig_tau->get_const_values()), stoppingId, setFinalized,
+        as_cuda_type(stop_status->get_data()),
+        as_cuda_type(device_storage->get_data()));
 
     /* Represents all_converged, one_changed */
     *all_converged = exec->copy_val_to_host(device_storage->get_const_data());
@@ -123,10 +117,10 @@ void residual_norm_reduction(std::shared_ptr<const HipExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
-    GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL);
+    GKO_DECLARE_RESIDUAL_NORM_KERNEL);
 
 
-}  // namespace residual_norm_reduction
-}  // namespace hip
+}  // namespace residual_norm
+}  // namespace cuda
 }  // namespace kernels
 }  // namespace gko

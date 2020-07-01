@@ -42,7 +42,7 @@ target_sources(ginkgo
     stop/combined.cpp
     stop/criterion.cpp
     stop/iteration.cpp
-    stop/residual_norm_reduction.cpp
+    stop/residual_norm.cpp
     stop/time.cpp)
 
 if(GINKGO_HAVE_PAPI_SDE)
@@ -71,4 +71,3 @@ endif()
 if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
-
