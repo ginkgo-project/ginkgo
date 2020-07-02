@@ -62,23 +62,25 @@ void residual_norm(std::shared_ptr<const OmpExecutor> exec,
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
-    *all_converged = true;
-    *one_changed = false;
-#pragma omp parallel for
+    bool local_one_changed = false;
+#pragma omp parallel for reduction(|| : local_one_changed)
     for (size_type i = 0; i < tau->get_size()[1]; ++i) {
         if (tau->at(i) < rel_residual_goal * orig_tau->at(i)) {
             stop_status->get_data()[i].converge(stoppingId, setFinalized);
-            *one_changed = true;
+            local_one_changed = true;
         }
     }
-    // No early stopping here because one cannot use break with omp parallel
-    // for But it's parallel so does it matter?
-#pragma omp parallel for
+    *one_changed = local_one_changed;
+    // No early stopping here because one cannot use break with parallel for
+    // But it's parallel so does it matter?
+    bool local_all_converged = true;
+#pragma omp parallel for reduction(&& : local_all_converged)
     for (size_type i = 0; i < stop_status->get_num_elems(); ++i) {
         if (!stop_status->get_const_data()[i].has_stopped()) {
-            *all_converged = false;
+            local_all_converged = false;
         }
     }
+    *all_converged = local_all_converged;
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
