@@ -53,12 +53,12 @@ __device__ __forceinline__ bool validate_precision_reduction_feasibility(
     }
 
     // compute the condition number
-    auto perm = group.thread_rank();
-    auto trans_perm = perm;
+    uint32 perm = group.thread_rank();
+    uint32 trans_perm = perm;
     auto block_cond = compute_infinity_norm<max_block_size>(group, block_size,
                                                             block_size, row);
-    auto succeeded =
-        invert_block<max_block_size>(group, block_size, row, perm, trans_perm);
+    auto succeeded = invert_block<max_block_size>(
+        group, static_cast<uint32>(block_size), row, perm, trans_perm);
     block_cond *= compute_infinity_norm<max_block_size>(group, block_size,
                                                         block_size, row);
 
@@ -99,10 +99,10 @@ __global__ void __launch_bounds__(warps_per_block *config::warp_size) generate(
     const auto subwarp = group::tiled_partition<subwarp_size>(block);
     if (block_id < num_blocks) {
         const auto block_size = block_ptrs[block_id + 1] - block_ptrs[block_id];
-        auto perm = subwarp.thread_rank();
-        auto trans_perm = subwarp.thread_rank();
-        invert_block<max_block_size>(subwarp, block_size, row, perm,
-                                     trans_perm);
+        uint32 perm = subwarp.thread_rank();
+        uint32 trans_perm = subwarp.thread_rank();
+        invert_block<max_block_size>(subwarp, static_cast<uint32>(block_size),
+                                     row, perm, trans_perm);
         copy_matrix<max_block_size, and_transpose>(
             subwarp, block_size, row, 1, perm, trans_perm,
             block_data + storage_scheme.get_global_block_offset(block_id),
@@ -138,11 +138,11 @@ __launch_bounds__(warps_per_block *config::warp_size) adaptive_generate(
 
     // compute inverse and figure out the correct precision
     const auto subwarp = group::tiled_partition<subwarp_size>(block);
-    const auto block_size =
+    const uint32 block_size =
         block_id < num_blocks ? block_ptrs[block_id + 1] - block_ptrs[block_id]
                               : 0;
-    auto perm = subwarp.thread_rank();
-    auto trans_perm = subwarp.thread_rank();
+    uint32 perm = subwarp.thread_rank();
+    uint32 trans_perm = subwarp.thread_rank();
     auto prec_descriptor = ~uint32{};
     if (block_id < num_blocks) {
         auto block_cond = compute_infinity_norm<max_block_size>(

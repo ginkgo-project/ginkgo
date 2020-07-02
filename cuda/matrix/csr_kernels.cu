@@ -443,12 +443,14 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
             auto vecc = cusparse::create_dnvec(c->get_num_stored_elements(),
                                                c_val, cu_value);
             size_t buffer_size = 0;
-            cusparse::spmv_buffersize(handle, trans, alpha->get_const_values(),
-                                      mat, vecb, beta->get_const_values(), vecc,
-                                      cu_value, alg, &buffer_size);
+            cusparse::spmv_buffersize(exec->get_cusparse_handle(), trans,
+                                      alpha->get_const_values(), mat, vecb,
+                                      beta->get_const_values(), vecc, cu_value,
+                                      alg, &buffer_size);
             gko::Array<char> buffer_array(exec, buffer_size);
             auto buffer = buffer_array.get_data();
-            cusparse::spmv(handle, trans, alpha->get_const_values(), mat, vecb,
+            cusparse::spmv(exec->get_cusparse_handle(), trans,
+                           alpha->get_const_values(), mat, vecb,
                            beta->get_const_values(), vecc, cu_value, alg,
                            buffer);
             cusparse::destroy(vecb);
@@ -939,20 +941,20 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_col_idxs(), trans->get_row_ptrs(), copyValues, idxBase);
+            trans->get_row_ptrs(), trans->get_col_idxs(), copyValues, idxBase);
 #else  // CUDA_VERSION >= 11000
         cudaDataType_t cu_value =
             gko::kernels::cuda::cuda_data_type<ValueType>();
         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
-        cusparseCsr2CscAlg_t alg = CUSPARSE_CSR2CSC_ALG2;
+        cusparseCsr2CscAlg_t alg = CUSPARSE_CSR2CSC_ALG1;
         size_type buffer_size = 0;
         cusparse::transpose_buffersize(
             exec->get_cusparse_handle(), orig->get_size()[0],
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_col_idxs(), trans->get_row_ptrs(), cu_value, copyValues,
+            trans->get_row_ptrs(), trans->get_col_idxs(), cu_value, copyValues,
             idxBase, alg, &buffer_size);
         Array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
@@ -961,7 +963,7 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_col_idxs(), trans->get_row_ptrs(), cu_value, copyValues,
+            trans->get_row_ptrs(), trans->get_col_idxs(), cu_value, copyValues,
             idxBase, alg, buffer);
 #endif
     } else {
@@ -991,7 +993,7 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_col_idxs(), trans->get_row_ptrs(), copyValues, idxBase);
+            trans->get_row_ptrs(), trans->get_col_idxs(), copyValues, idxBase);
 #else  // CUDA_VERSION >= 11000
         cudaDataType_t cu_value =
             gko::kernels::cuda::cuda_data_type<ValueType>();
@@ -1004,7 +1006,7 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_col_idxs(), trans->get_row_ptrs(), cu_value, copyValues,
+            trans->get_row_ptrs(), trans->get_col_idxs(), cu_value, copyValues,
             idxBase, alg, &buffer_size);
         Array<char> buffer_array(exec, buffer_size);
         auto buffer = buffer_array.get_data();
@@ -1013,7 +1015,7 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_col_idxs(), trans->get_row_ptrs(), cu_value, copyValues,
+            trans->get_row_ptrs(), trans->get_col_idxs(), cu_value, copyValues,
             idxBase, alg, buffer);
 #endif
 

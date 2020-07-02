@@ -368,6 +368,21 @@ private:
 
 // Implementing this as a using directive messes up with SFINAE for some reason,
 // probably a bug in NVCC. If it is a complete type, everything works fine.
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+
+
+template <size_type Size>
+struct thread_block_tile : detail::enable_extended_shuffle<
+                               cooperative_groups::thread_block_tile<Size>> {
+    using detail::enable_extended_shuffle<
+        cooperative_groups::thread_block_tile<Size>>::enable_extended_shuffle;
+};
+
+
+#else
+
+
+// Cuda cooperative groups must need parent group type from cuda 11
 template <size_type Size>
 struct thread_block_tile
     : detail::enable_extended_shuffle<cooperative_groups::thread_block_tile<
@@ -375,6 +390,9 @@ struct thread_block_tile
     using detail::enable_extended_shuffle<cooperative_groups::thread_block_tile<
         Size, cooperative_groups::thread_block>>::enable_extended_shuffle;
 };
+
+
+#endif
 // inherits thread_group
 //
 // public API:

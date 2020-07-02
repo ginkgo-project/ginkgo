@@ -187,13 +187,15 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"coo", read_matrix_from_data<gko::matrix::Coo<>>},
         {"ell", read_matrix_from_data<gko::matrix::Ell<>>},
 #ifdef HAS_CUDA
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
         {"cusp_csr", read_matrix_from_data<cusp_csr>},
         {"cusp_csrmp", read_matrix_from_data<cusp_csrmp>},
-        {"cusp_csrex", read_matrix_from_data<cusp_csrex>},
         {"cusp_csrmm", read_matrix_from_data<cusp_csrmm>},
         {"cusp_hybrid", read_matrix_from_data<cusp_hybrid>},
         {"cusp_coo", read_matrix_from_data<cusp_coo>},
         {"cusp_ell", read_matrix_from_data<cusp_ell>},
+#endif
+        {"cusp_csrex", read_matrix_from_data<cusp_csrex>},
 #if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) && \
     !(defined(_WIN32) || defined(__CYGWIN__))
         {"cusp_gcsr", read_matrix_from_data<cusp_gcsr>},
