@@ -561,6 +561,8 @@ inline void transpose(cusparseHandle_t handle, size_type m, size_type n,
                       cusparseAction_t copyValues,
                       cusparseIndexBase_t idxBase) GKO_NOT_IMPLEMENTED;
 
+// Cusparse csr2csc use the order (row_inx, col_ptr) for csc, so we need to
+// switch row_ptr and col_idx of transposed csr here
 #define GKO_BIND_CUSPARSE_TRANSPOSE32(ValueType, CusparseName)                \
     template <>                                                               \
     inline void transpose<ValueType, int32>(                                  \
@@ -573,7 +575,7 @@ inline void transpose(cusparseHandle_t handle, size_type m, size_type n,
         GKO_ASSERT_NO_CUSPARSE_ERRORS(                                        \
             CusparseName(handle, m, n, nnz, as_culibs_type(OrigValA),         \
                          OrigRowPtrA, OrigColIndA, as_culibs_type(TransValA), \
-                         TransRowPtrA, TransColIndA, copyValues, idxBase));   \
+                         TransColIndA, TransRowPtrA, copyValues, idxBase));   \
     }                                                                         \
     static_assert(true,                                                       \
                   "This assert is used to counter the false positive extra "  \
