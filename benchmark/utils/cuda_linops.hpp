@@ -116,6 +116,8 @@ private:
     handle_manager<cusparseMatDescr> descr_;
 };
 
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+
 
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32>
@@ -297,6 +299,8 @@ private:
     cusparseOperation_t trans_;
 };
 
+#endif
+
 
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32>
@@ -400,6 +404,8 @@ private:
 };
 
 
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32,
           cusparseHybPartition_t Partition = CUSPARSE_HYB_PARTITION_AUTO,
@@ -482,6 +488,9 @@ private:
     cusparseOperation_t trans_;
     cusparseHybMat_t hyb_;
 };
+
+
+#endif
 
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) && \
@@ -688,10 +697,12 @@ private:
 
 
 // Some shortcuts
-using cusp_csr = detail::CuspCsr<>;
 using cusp_csrex = detail::CuspCsrEx<>;
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+using cusp_csr = detail::CuspCsr<>;
 using cusp_csrmp = detail::CuspCsrmp<>;
 using cusp_csrmm = detail::CuspCsrmm<>;
+#endif
 
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) && \
@@ -708,10 +719,12 @@ using cusp_gcoo = detail::CuspGenericCoo<>;
         // !(defined(_WIN32) || defined(__CYGWIN__))
 
 
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 using cusp_coo =
     detail::CuspHybrid<double, gko::int32, CUSPARSE_HYB_PARTITION_USER, 0>;
 using cusp_ell =
     detail::CuspHybrid<double, gko::int32, CUSPARSE_HYB_PARTITION_MAX, 0>;
 using cusp_hybrid = detail::CuspHybrid<>;
+#endif
 
 #endif  // GKO_BENCHMARK_UTILS_CUDA_LINOPS_HPP_
