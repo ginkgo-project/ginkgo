@@ -164,3 +164,23 @@ Depending on the configuration options used when building Ginkgo, third party
 software may be pulled as additional dependencies, which have their own
 licensing conditions. Refer to [ABOUT-LICENSING.md](ABOUT-LICENSING.md) for
 details.
+
+Citing Ginkgo
+-------------
+
+The main Ginkgo paper describing Ginkgo's purpose, design and interface is
+available through the following reference:
+
+``` bibtex
+@misc{anzt2020ginkgo,
+    title={Ginkgo: A Modern Linear Operator Algebra Framework for High Performance Computing},
+    author={Hartwig Anzt and Terry Cojean and Goran Flegar and Fritz Göbel and Thomas Grützmacher and Pratik Nayak and Tobias Ribizel and Yuhsiang Mike Tsai and Enrique S. Quintana-Ortí},
+    year={2020},
+    eprint={2006.16852},
+    archivePrefix={arXiv},
+    primaryClass={cs.MS}
+}
+```
+
+For more information on topical subjects, please refer to the [CITING.md
+page](CITING.md).
