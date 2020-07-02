@@ -136,16 +136,25 @@ void step_2(std::shared_ptr<const OmpExecutor> exec,
             const Array<stopping_status> *stop_status)
 {
 #pragma omp parallel for
+    for (size_type j = 0; j < s->get_size()[1]; ++j) {
+        if (stop_status->get_const_data()[j].has_stopped()) {
+            continue;
+        }
+        if (beta->at(j) != zero<ValueType>()) {
+            alpha->at(j) = rho->at(j) / beta->at(j);
+        } else {
+            alpha->at(j) = zero<ValueType>();
+        }
+    }
+#pragma omp parallel for
     for (size_type i = 0; i < s->get_size()[0]; ++i) {
         for (size_type j = 0; j < s->get_size()[1]; ++j) {
             if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
             if (beta->at(j) != zero<ValueType>()) {
-                alpha->at(j) = rho->at(j) / beta->at(j);
                 s->at(i, j) = r->at(i, j) - alpha->at(j) * v->at(i, j);
             } else {
-                alpha->at(j) = zero<ValueType>();
                 s->at(i, j) = r->at(i, j);
             }
         }
