@@ -342,14 +342,15 @@ void spgeam(std::shared_ptr<const ReferenceExecutor> exec,
     auto c_col_idxs = c_col_idxs_array.get_data();
     auto c_vals = c_vals_array.get_data();
 
-    abstract_spgeam(a, b, [&](IndexType row) { return c_row_ptrs[row]; },
-                    [&](IndexType, IndexType col, ValueType a_val,
-                        ValueType b_val, IndexType &nz) {
-                        c_vals[nz] = valpha * a_val + vbeta * b_val;
-                        c_col_idxs[nz] = col;
-                        ++nz;
-                    },
-                    [](IndexType, IndexType) {});
+    abstract_spgeam(
+        a, b, [&](IndexType row) { return c_row_ptrs[row]; },
+        [&](IndexType, IndexType col, ValueType a_val, ValueType b_val,
+            IndexType &nz) {
+            c_vals[nz] = valpha * a_val + vbeta * b_val;
+            c_col_idxs[nz] = col;
+            ++nz;
+        },
+        [](IndexType, IndexType) {});
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
