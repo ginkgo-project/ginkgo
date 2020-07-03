@@ -180,8 +180,8 @@ void add_scaled_diag(std::shared_ptr<const CudaExecutor> exec,
 
     kernel::add_scaled_diag<<<grid_dim, default_block_size>>>(
         size, as_cuda_type(alpha->get_const_values()),
-        as_cuda_type(x->get_const_values()), y->get_stride(),
-        as_cuda_type(y->get_values()));
+        as_cuda_type(x->get_const_values()), as_cuda_type(y->get_values()),
+        y->get_stride());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
