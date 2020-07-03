@@ -73,6 +73,22 @@ __global__ __launch_bounds__(block_size) void add_scaled(
 }
 
 
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void add_scaled_diag(
+    size_type size, const ValueType *__restrict__ alpha,
+    const ValueType *__restrict__ diag, ValueType *__restrict__ y,
+    size_type stride_y)
+{
+    const auto tidx = thread::get_thread_id_flat();
+
+    if (tidx >= size) {
+        return;
+    }
+
+    y[tidx * stride_y + tidx] += alpha[0] * diag[tidx];
+}
+
+
 template <size_type block_size, typename OutType, typename CallableGetValue,
           typename CallableReduce>
 __device__ void compute_partial_reduce(size_type num_rows,

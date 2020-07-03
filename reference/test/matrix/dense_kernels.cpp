@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
@@ -257,6 +258,23 @@ TYPED_TEST(Dense, AddScaledFailsOnWrongSizes)
 
     ASSERT_THROW(this->mtx1->add_scaled(alpha.get(), this->mtx2.get()),
                  gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Dense, AddsScaledDiag)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
+    auto diag =
+        gko::matrix::Diagonal<T, int>::create(this->exec, 2, I<T>{3.0, 2.0});
+
+    this->mtx2->add_scaled(alpha.get(), diag.get());
+
+    ASSERT_EQ(this->mtx2->at(0, 0), T{7.0});
+    ASSERT_EQ(this->mtx2->at(0, 1), T{-1.0});
+    ASSERT_EQ(this->mtx2->at(1, 0), T{-2.0});
+    ASSERT_EQ(this->mtx2->at(1, 1), T{6.0});
 }
 
 
