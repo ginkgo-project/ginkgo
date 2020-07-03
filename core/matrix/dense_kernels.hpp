@@ -65,6 +65,12 @@ namespace kernels {
                     const matrix::Dense<_type> *alpha,           \
                     const matrix::Dense<_type> *x, matrix::Dense<_type> *y)
 
+#define GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL(_type, _prec)        \
+    void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec, \
+                         const matrix::Dense<_type> *alpha,           \
+                         const matrix::Diagonal<_type, _prec> *x,     \
+                         matrix::Dense<_type> *y)
+
 #define GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(_type)               \
     void compute_dot(std::shared_ptr<const DefaultExecutor> exec, \
                      const matrix::Dense<_type> *x,               \
@@ -169,6 +175,8 @@ namespace kernels {
     GKO_DECLARE_DENSE_SCALE_KERNEL(ValueType);                              \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_ADD_SCALED_KERNEL(ValueType);                         \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL(ValueType, IndexType);         \
     template <typename ValueType>                                           \
     GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL(ValueType);                        \
     template <typename ValueType>                                           \

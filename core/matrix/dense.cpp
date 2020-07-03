@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
@@ -62,6 +63,7 @@ GKO_REGISTER_OPERATION(simple_apply, dense::simple_apply);
 GKO_REGISTER_OPERATION(apply, dense::apply);
 GKO_REGISTER_OPERATION(scale, dense::scale);
 GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled);
+GKO_REGISTER_OPERATION(add_scaled_diag, dense::add_scaled_diag);
 GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot);
 GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2);
 GKO_REGISTER_OPERATION(count_nonzeros, dense::count_nonzeros);
@@ -248,6 +250,14 @@ void Dense<ValueType>::add_scaled_impl(const LinOp *alpha, const LinOp *b)
     }
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     auto exec = this->get_executor();
+
+    if (dynamic_cast<const Diagonal<ValueType> *>(b)) {
+        exec->run(dense::make_add_scaled_diag(
+            as<Dense<ValueType>>(alpha),
+            dynamic_cast<const Diagonal<ValueType> *>(b), this));
+        return;
+    }
+
     exec->run(dense::make_add_scaled(as<Dense<ValueType>>(alpha),
                                      as<Dense<ValueType>>(b), this));
 }
