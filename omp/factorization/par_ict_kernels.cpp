@@ -163,38 +163,38 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
         IndexType l_old_begin;
         IndexType l_old_end;
     };
-    abstract_spgeam(a, llt,
-                    [&](IndexType row) {
-                        row_state state{};
-                        state.l_new_nz = l_new_row_ptrs[row];
-                        state.l_old_begin = l_row_ptrs[row];
-                        state.l_old_end = l_row_ptrs[row + 1];
-                        return state;
-                    },
-                    [&](IndexType row, IndexType col, ValueType a_val,
-                        ValueType llt_val, row_state &state) {
-                        auto r_val = a_val - llt_val;
-                        // load matching entry of L
-                        auto l_col = checked_load(l_col_idxs, state.l_old_begin,
-                                                  state.l_old_end, sentinel);
-                        auto l_val =
-                            checked_load(l_vals, state.l_old_begin,
-                                         state.l_old_end, zero<ValueType>());
-                        // load diagonal entry of L
-                        auto diag = l_vals[l_row_ptrs[col + 1] - 1];
-                        // if there is already an entry present, use that
-                        // instead.
-                        auto out_val = l_col == col ? l_val : r_val / diag;
-                        // store output entries
-                        if (row >= col) {
-                            l_new_col_idxs[state.l_new_nz] = col;
-                            l_new_vals[state.l_new_nz] = out_val;
-                            state.l_new_nz++;
-                        }
-                        // advance entry of L if we used it
-                        state.l_old_begin += (l_col == col);
-                    },
-                    [](IndexType, row_state) {});
+    abstract_spgeam(
+        a, llt,
+        [&](IndexType row) {
+            row_state state{};
+            state.l_new_nz = l_new_row_ptrs[row];
+            state.l_old_begin = l_row_ptrs[row];
+            state.l_old_end = l_row_ptrs[row + 1];
+            return state;
+        },
+        [&](IndexType row, IndexType col, ValueType a_val, ValueType llt_val,
+            row_state &state) {
+            auto r_val = a_val - llt_val;
+            // load matching entry of L
+            auto l_col = checked_load(l_col_idxs, state.l_old_begin,
+                                      state.l_old_end, sentinel);
+            auto l_val = checked_load(l_vals, state.l_old_begin,
+                                      state.l_old_end, zero<ValueType>());
+            // load diagonal entry of L
+            auto diag = l_vals[l_row_ptrs[col + 1] - 1];
+            // if there is already an entry present, use that
+            // instead.
+            auto out_val = l_col == col ? l_val : r_val / diag;
+            // store output entries
+            if (row >= col) {
+                l_new_col_idxs[state.l_new_nz] = col;
+                l_new_vals[state.l_new_nz] = out_val;
+                state.l_new_nz++;
+            }
+            // advance entry of L if we used it
+            state.l_old_begin += (l_col == col);
+        },
+        [](IndexType, row_state) {});
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

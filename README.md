@@ -37,7 +37,7 @@ For Ginkgo core library:
 
 *   _cmake 3.9+_
 *   C++11 compliant compiler, one of:
-    *   _gcc 5.3+, 6.3+, 7.3+, 8.1+_
+    *   _gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
     *   _clang 3.9+_
     *   _Intel compiler 2017+_
     *   _Apple LLVM 8.0+_ (__TODO__: verify)
@@ -50,6 +50,7 @@ The Ginkgo CUDA module has the following __additional__ requirements:
     [CUDA installation guide for Linux](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html)
     or [CUDA installation guide for Mac Os X](https://docs.nvidia.com/cuda/cuda-installation-guide-mac-os-x/index.html)
 
+
 In addition, if you want to contribute code to Ginkgo, you will also need the
 following:
 
@@ -59,6 +60,7 @@ following:
 
 The Ginkgo HIP module has the following __additional__ requirements:
 
+* _ROCm 2.8+_
 *    the HIP, hipBLAS and hipSPARSE packages compiled with either:
     * _AMD_ backend
     * _CUDA 9.0+_ backend. When using CUDA 10+, _cmake 3.12.2+_ is required.
@@ -68,8 +70,8 @@ The Ginkgo HIP module has the following __additional__ requirements:
 The prequirement needs to be verified
 *   _cmake 3.9+_
 *   C++11 compliant 64-bits compiler:
-    *   _MinGW : gcc 5.3+, 6.3+, 7.3+, 8.1+_
-    *   _Cygwin : gcc 5.3+, 6.3+, 7.3+, 8.1+_
+    *   _MinGW : gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
+    *   _Cygwin : gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
     *   _Microsoft Visual Studio : VS 2017 15.7+_
 
 __NOTE:__ Need to add `--autocrlf=input` after `git clone` in _Cygwin_.
@@ -140,12 +142,10 @@ Name Surname <email@domain> Institution(s)
 
 #### Contributing guidelines
 
-Contributing guidelines can be accessed in our Wiki under the [Developer's
-Homepage](https://github.com/ginkgo-project/ginkgo/wiki/Developers-Homepage).
-This page also contains other information useful to developers, such as writing
-proper commit messages, understanding Ginkgo's library design, relevant C++
-information, and more. In general, always refer to this page for developer
-information.
+Contributing guidelines can be accessed in the [CONTRIBUTING.md
+page](./CONTRIBUTING.md). This page also contains other information useful to
+developers, such as writing proper commit messages, understanding Ginkgo's
+library design, relevant C++ information, and more.
 
 ### Support
 If you have any question, bug to report or would like to propose a new feature,
@@ -164,3 +164,23 @@ Depending on the configuration options used when building Ginkgo, third party
 software may be pulled as additional dependencies, which have their own
 licensing conditions. Refer to [ABOUT-LICENSING.md](ABOUT-LICENSING.md) for
 details.
+
+Citing Ginkgo
+-------------
+
+The main Ginkgo paper describing Ginkgo's purpose, design and interface is
+available through the following reference:
+
+``` bibtex
+@misc{anzt2020ginkgo,
+    title={Ginkgo: A Modern Linear Operator Algebra Framework for High Performance Computing},
+    author={Hartwig Anzt and Terry Cojean and Goran Flegar and Fritz Göbel and Thomas Grützmacher and Pratik Nayak and Tobias Ribizel and Yuhsiang Mike Tsai and Enrique S. Quintana-Ortí},
+    year={2020},
+    eprint={2006.16852},
+    archivePrefix={arXiv},
+    primaryClass={cs.MS}
+}
+```
+
+For more information on topical subjects, please refer to the [CITING.md
+page](CITING.md).

@@ -165,14 +165,14 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
     auto total_nnz =
         lu->get_num_stored_elements() + a->get_num_stored_elements();
     auto total_nnz_per_row = total_nnz / num_rows;
-    select_add_candidates(compiled_kernels(),
-                          [&](int compiled_subwarp_size) {
-                              return total_nnz_per_row <=
-                                         compiled_subwarp_size ||
-                                     compiled_subwarp_size == config::warp_size;
-                          },
-                          syn::value_list<int>(), syn::type_list<>(), exec, lu,
-                          a, l, u, l_new, u_new);
+    select_add_candidates(
+        compiled_kernels(),
+        [&](int compiled_subwarp_size) {
+            return total_nnz_per_row <= compiled_subwarp_size ||
+                   compiled_subwarp_size == config::warp_size;
+        },
+        syn::value_list<int>(), syn::type_list<>(), exec, lu, a, l, u, l_new,
+        u_new);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

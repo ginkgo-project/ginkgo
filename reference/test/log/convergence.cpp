@@ -49,8 +49,7 @@ namespace {
 
 
 template <typename T>
-class Convergence : public ::testing::Test {
-};
+class Convergence : public ::testing::Test {};
 
 TYPED_TEST_CASE(Convergence, gko::test::ValueTypes);
 

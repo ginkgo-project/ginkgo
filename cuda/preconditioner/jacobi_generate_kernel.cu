@@ -124,15 +124,15 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
 {
     components::fill_array(exec, blocks.get_data(), blocks.get_num_elems(),
                            zero<ValueType>());
-    select_generate(compiled_kernels(),
-                    [&](int compiled_block_size) {
-                        return max_block_size <= compiled_block_size;
-                    },
-                    syn::value_list<int, config::min_warps_per_block>(),
-                    syn::type_list<>(), system_matrix, accuracy,
-                    blocks.get_data(), storage_scheme, conditioning.get_data(),
-                    block_precisions.get_data(),
-                    block_pointers.get_const_data(), num_blocks);
+    select_generate(
+        compiled_kernels(),
+        [&](int compiled_block_size) {
+            return max_block_size <= compiled_block_size;
+        },
+        syn::value_list<int, config::min_warps_per_block>(), syn::type_list<>(),
+        system_matrix, accuracy, blocks.get_data(), storage_scheme,
+        conditioning.get_data(), block_precisions.get_data(),
+        block_pointers.get_const_data(), num_blocks);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
