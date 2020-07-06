@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/matrix/dense.hpp (869586100) Source File</title>
+<title>Ginkgo: ginkgo/core/matrix/dense.hpp (7d52244f2) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/163537343 branch based on master. Ginkgo version 1.2.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/163579025 branch based on master. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -404,8 +404,8 @@ $(function() {
 <div class="line"><a name="l00477"></a><span class="lineno">  477</span>&#160;          values_{exec, std::forward&lt;ValuesArray&gt;(values)},</div>
 <div class="line"><a name="l00478"></a><span class="lineno">  478</span>&#160;          stride_{stride}</div>
 <div class="line"><a name="l00479"></a><span class="lineno">  479</span>&#160;    {</div>
-<div class="line"><a name="l00480"></a><span class="lineno">  480</span>&#160;        GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,</div>
-<div class="line"><a name="l00481"></a><span class="lineno">  481</span>&#160;                             values_.<a class="code" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">get_num_elems</a>());</div>
+<div class="line"><a name="l00480"></a><span class="lineno">  480</span>&#160;        GKO_ASSERT_EQ((size[0] - 1) * stride + size[1],</div>
+<div class="line"><a name="l00481"></a><span class="lineno">  481</span>&#160;                      values_.<a class="code" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">get_num_elems</a>());</div>
 <div class="line"><a name="l00482"></a><span class="lineno">  482</span>&#160;    }</div>
 <div class="line"><a name="l00483"></a><span class="lineno">  483</span>&#160; </div>
 <div class="line"><a name="l00489"></a><span class="lineno">  489</span>&#160;    <span class="keyword">virtual</span> std::unique_ptr&lt;Dense&gt; create_with_same_config()<span class="keyword"> const</span></div>
