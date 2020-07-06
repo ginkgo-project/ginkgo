@@ -111,8 +111,8 @@ __global__ __launch_bounds__(default_block_size) void right_apply_to_csr(
 template <typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void convert_to_csr(
     size_type size, const ValueType *__restrict__ diag_values,
-    size_type *__restrict__ row_idxs, size_type *__restrict__ col_idxs,
-    value_type *__restrict__ csr_values)
+    IndexType *__restrict__ row_ptrs, IndexType *__restrict__ col_idxs,
+    ValueType *__restrict__ csr_values)
 {
     const auto tidx = thread::get_thread_id_flat();
 
