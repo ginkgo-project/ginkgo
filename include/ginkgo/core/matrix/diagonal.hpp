@@ -40,6 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace matrix {
 
+template <typename ValueType, typename IndexType>
+class Csr;
+
 
 /**
  * This class is a utility which efficiently implements the diagonal matrix (a
@@ -55,22 +58,25 @@ namespace matrix {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Diagonal : public EnableLinOp<Diagonal<ValueType, IndexType>>,
+class Diagonal : public ConvertibleTo<Csr<ValueType, IndexType>>,
+                 public EnableLinOp<Diagonal<ValueType, IndexType>>,
                  public EnableCreateMethod<Diagonal<ValueType, IndexType>>,
                  public Transposable {
+    friend class Csr<ValueType, IndexType>;
     friend class EnablePolymorphicObject<Diagonal, LinOp>;
     friend class EnableCreateMethod<Diagonal>;
 
 public:
-    using EnableLinOp<Diagonal>::convert_to;
-    using EnableLinOp<Diagonal>::move_to;
-
     using value_type = ValueType;
     using index_type = IndexType;
 
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    void convert_to(Csr<ValueType, IndexType> *result) const override;
+
+    void move_to(Csr<ValueType, IndexType> *result) override;
 
     /**
      * Returns a pointer to the array of values of the matrix.

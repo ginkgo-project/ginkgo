@@ -74,6 +74,12 @@ namespace kernels {
                             const matrix::Csr<value_type, index_type> *b,      \
                             matrix::Csr<value_type, index_type> *c)
 
+
+#define GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)      \
+    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,          \
+                        const matrix::Diagonal<ValueType, IndexType> *source, \
+                        matrix::Csr<ValueType, IndexType> *result)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL(ValueType, IndexType);       \
@@ -82,7 +88,9 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL(ValueType, IndexType);         \
     template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)
 
 
 namespace omp {

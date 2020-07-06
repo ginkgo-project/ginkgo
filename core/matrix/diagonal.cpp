@@ -50,6 +50,7 @@ GKO_REGISTER_OPERATION(apply_to_dense, diagonal::apply_to_dense);
 GKO_REGISTER_OPERATION(right_apply_to_dense, diagonal::right_apply_to_dense);
 GKO_REGISTER_OPERATION(apply_to_csr, diagonal::apply_to_csr);
 GKO_REGISTER_OPERATION(right_apply_to_csr, diagonal::right_apply_to_csr);
+GKO_REGISTER_OPERATION(convert_to_csr, diagonal::convert_to_csr);
 
 
 }  // namespace diagonal
@@ -123,6 +124,25 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Diagonal<ValueType, IndexType>::conj_transpose() const
 {
     return this->clone();
+}
+
+
+template <typename ValueType, typename IndexType>
+void Diagonal<ValueType, IndexType>::convert_to(
+    Csr<ValueType, IndexType> *result) const
+{
+    auto exec = this->get_executor();
+    auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size(),
+                                                 this->get_size()[0]);
+    exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Diagonal<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
+{
+    this->convert_to(result);
 }
 
 
