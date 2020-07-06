@@ -199,43 +199,33 @@ void extract_diag(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_AMGX_PGM_EXTRACT_DIAG);
 
 
 template <typename ValueType, typename IndexType>
-void find_strongest_neighbor(std::shared_ptr<const ReferenceExecutor> exec,
-                             const matrix::Csr<ValueType, IndexType> *source,
-                             const Array<ValueType> &diag,
-                             Array<IndexType> &agg,
-                             Array<IndexType> &strongest_neighbor)
+void find_strongest_neighbor(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const matrix::Csr<ValueType, IndexType> *weight_mtx,
+    const Array<ValueType> &diag, Array<IndexType> &agg,
+    Array<IndexType> &strongest_neighbor)
 {
-    const auto row_ptrs = source->get_const_row_ptrs();
-    const auto col_idxs = source->get_const_col_idxs();
-    const auto vals = source->get_const_values();
+    const auto row_ptrs = weight_mtx->get_const_row_ptrs();
+    const auto col_idxs = weight_mtx->get_const_col_idxs();
+    const auto vals = weight_mtx->get_const_values();
     for (size_type row = 0; row < agg.get_num_elems(); row++) {
-        auto max_weight_unagg = zero<remove_complex<ValueType>>();
-        auto max_weight_agg = zero<remove_complex<ValueType>>();
+        auto max_weight_unagg = zero<ValueType>();
+        auto max_weight_agg = zero<ValueType>();
         IndexType strongest_unagg = -1;
         IndexType strongest_agg = -1;
         if (agg.get_const_data()[row] == -1) {
-            for (auto ind = row_ptrs[row]; ind < row_ptrs[row + 1]; ind++) {
-                auto weight = zero<remove_complex<ValueType>>();
-                auto col = col_idxs[ind];
+            for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
+                auto col = col_idxs[idx];
                 if (col == row) {
                     continue;
                 }
-                // Handle the unsymmetric values cases
-                for (auto trans_ind = row_ptrs[col];
-                     trans_ind < row_ptrs[col + 1]; trans_ind++) {
-                    if (col_idxs[trans_ind] == row) {
-                        weight = 0.5 * (abs(vals[ind]) + abs(vals[trans_ind])) /
-                                 max(abs(diag.get_const_data()[row]),
-                                     abs(diag.get_const_data()[col]));
-                        break;
-                    }
-                }
-
+                auto weight = vals[idx] / max(abs(diag.get_const_data()[row]),
+                                              abs(diag.get_const_data()[col]));
                 if (agg.get_const_data()[col] == -1 &&
                     (weight > max_weight_unagg ||
                      (weight == max_weight_unagg && col > strongest_unagg))) {
@@ -264,21 +254,21 @@ void find_strongest_neighbor(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_AMGX_PGM_FIND_STRONGEST_NEIGHBOR);
 
 
 template <typename ValueType, typename IndexType>
 void assign_to_exist_agg(std::shared_ptr<const ReferenceExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType> *source,
+                         const matrix::Csr<ValueType, IndexType> *weight_mtx,
                          const Array<ValueType> &diag, Array<IndexType> &agg,
                          Array<IndexType> &intermediate_agg)
 {
-    const auto row_ptrs = source->get_const_row_ptrs();
-    const auto col_idxs = source->get_const_col_idxs();
-    const auto vals = source->get_const_values();
+    const auto row_ptrs = weight_mtx->get_const_row_ptrs();
+    const auto col_idxs = weight_mtx->get_const_col_idxs();
+    const auto vals = weight_mtx->get_const_values();
     const auto diag_vals = diag.get_const_data();
-    auto max_weight_agg = zero<remove_complex<ValueType>>();
+    auto max_weight_agg = zero<ValueType>();
     const auto agg_const_val = agg.get_const_data();
     auto agg_val = (intermediate_agg.get_num_elems() > 0)
                        ? intermediate_agg.get_data()
@@ -294,8 +284,8 @@ void assign_to_exist_agg(std::shared_ptr<const ReferenceExecutor> exec,
             if (col == row) {
                 break;
             }
-            auto weight =
-                abs(vals[idx]) / max(abs(diag_vals[row]), abs(diag_vals[col]));
+            auto weight = vals[idx] / max(abs(diag.get_const_data()[row]),
+                                          abs(diag.get_const_data()[col]));
             if (agg_const_val[col] != -1 &&
                 (weight > max_weight_agg ||
                  (weight == max_weight_agg && col > strongest_agg))) {
@@ -316,7 +306,7 @@ void assign_to_exist_agg(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_AMGX_PGM_ASSIGN_TO_EXIST_AGG);
 
 

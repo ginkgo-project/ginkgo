@@ -68,6 +68,8 @@ protected:
     using Vec = gko::matrix::Dense<value_type>;
     using RestrictProlong = gko::multigrid::AmgxPgm<value_type, index_type>;
     using T = value_type;
+    using rmc_value_type = gko::remove_complex<value_type>;
+    using WeightMtx = gko::matrix::Csr<rmc_value_type, index_type>;
     AmgxPgm()
         : exec(gko::ReferenceExecutor::create()),
           amgxpgm_factory(RestrictProlong::build()
@@ -92,21 +94,29 @@ protected:
               exec)),
           mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
                           std::make_shared<typename Mtx::classical>())),
+          weight(WeightMtx::create(
+              exec, gko::dim<2>(5, 5), 15,
+              std::make_shared<typename WeightMtx::classical>())),
           coarse(Mtx::create(exec, gko::dim<2>(2, 2), 4,
                              std::make_shared<typename Mtx::classical>())),
           mtx_diag(exec, 5),
           agg(exec, 5)
     {
-        this->create_mtx(mtx.get(), &mtx_diag, &agg, coarse.get());
+        this->create_mtx(mtx.get(), weight.get(), &mtx_diag, &agg,
+                         coarse.get());
         rstr_prlg = amgxpgm_factory->generate(mtx);
     }
 
-    void create_mtx(Mtx *fine, gko::Array<value_type> *diag,
+    void create_mtx(Mtx *fine, WeightMtx *weight,
+                    gko::Array<rmc_value_type> *diag,
                     gko::Array<index_type> *agg, Mtx *coarse)
     {
         auto vals = fine->get_values();
         auto cols = fine->get_col_idxs();
         auto rows = fine->get_row_ptrs();
+        auto w_vals = weight->get_values();
+        auto w_cols = weight->get_col_idxs();
+        auto w_rows = weight->get_row_ptrs();
         auto diag_val = diag->get_data();
         auto agg_val = agg->get_data();
         auto c_vals = coarse->get_values();
@@ -157,6 +167,52 @@ protected:
         cols[12] = 1;
         cols[13] = 2;
         cols[14] = 4;
+
+        /* weight matrix is stored:
+         * 5   3   3   0   0
+         * 3   5   0   2.5 1.5
+         * 3   0   5   0   1.5
+         * 0   2.5 0   5   0
+         * 0   1.5 1.5 0   5
+         */
+        w_vals[0] = 5;
+        w_vals[1] = 3;
+        w_vals[2] = 3;
+        w_vals[3] = 3;
+        w_vals[4] = 5;
+        w_vals[5] = 2.5;
+        w_vals[6] = 1.5;
+        w_vals[7] = 3;
+        w_vals[8] = 5;
+        w_vals[9] = 1.5;
+        w_vals[10] = 2.5;
+        w_vals[11] = 5;
+        w_vals[12] = 1.5;
+        w_vals[13] = 1.5;
+        w_vals[14] = 5;
+
+        w_rows[0] = 0;
+        w_rows[1] = 3;
+        w_rows[2] = 7;
+        w_rows[3] = 10;
+        w_rows[4] = 12;
+        w_rows[5] = 15;
+
+        w_cols[0] = 0;
+        w_cols[1] = 1;
+        w_cols[2] = 2;
+        w_cols[3] = 0;
+        w_cols[4] = 1;
+        w_cols[5] = 3;
+        w_cols[6] = 4;
+        w_cols[7] = 0;
+        w_cols[8] = 2;
+        w_cols[9] = 4;
+        w_cols[10] = 1;
+        w_cols[11] = 3;
+        w_cols[12] = 1;
+        w_cols[13] = 2;
+        w_cols[14] = 4;
 
         diag_val[0] = 5;
         diag_val[1] = 5;
@@ -214,7 +270,8 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> coarse;
-    gko::Array<value_type> mtx_diag;
+    std::shared_ptr<WeightMtx> weight;
+    gko::Array<rmc_value_type> mtx_diag;
     gko::Array<index_type> agg;
     std::shared_ptr<Vec> coarse_b;
     std::shared_ptr<Vec> fine_b;
@@ -448,11 +505,11 @@ TYPED_TEST(AmgxPgm, CoarseFineProlongApplyadd)
 
 TYPED_TEST(AmgxPgm, ExtractDiag)
 {
-    using value_type = typename TestFixture::value_type;
-    gko::Array<value_type> diag(this->exec, 5);
+    using rmc_value_type = typename TestFixture::rmc_value_type;
+    gko::Array<rmc_value_type> diag(this->exec, 5);
 
-    gko::kernels::reference::amgx_pgm::extract_diag(this->exec, this->mtx.get(),
-                                                    diag);
+    gko::kernels::reference::amgx_pgm::extract_diag(this->exec,
+                                                    this->weight.get(), diag);
     GKO_ASSERT_ARRAY_EQ(diag, this->mtx_diag);
 }
 
@@ -470,7 +527,8 @@ TYPED_TEST(AmgxPgm, FindStrongestNeighbor)
     }
 
     gko::kernels::reference::amgx_pgm::find_strongest_neighbor(
-        this->exec, this->mtx.get(), this->mtx_diag, agg, strongest_neighbor);
+        this->exec, this->weight.get(), this->mtx_diag, agg,
+        strongest_neighbor);
 
     ASSERT_EQ(snb_vals[0], 2);
     ASSERT_EQ(snb_vals[1], 0);
@@ -494,7 +552,7 @@ TYPED_TEST(AmgxPgm, AssignToExistAgg)
     agg_vals[4] = -1;
 
     gko::kernels::reference::amgx_pgm::assign_to_exist_agg(
-        this->exec, this->mtx.get(), this->mtx_diag, agg, intermediate_agg);
+        this->exec, this->weight.get(), this->mtx_diag, agg, intermediate_agg);
 
     ASSERT_EQ(agg_vals[0], 0);
     ASSERT_EQ(agg_vals[1], 1);

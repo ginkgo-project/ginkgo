@@ -63,6 +63,7 @@ class Csr : public ::testing::Test {
 protected:
     using Arr = gko::Array<int>;
     using Mtx = gko::matrix::Csr<>;
+    using AbsMtx = gko::matrix::Csr<>;
     using Vec = gko::matrix::Dense<>;
     using ComplexVec = gko::matrix::Dense<std::complex<double>>;
     using ComplexMtx = gko::matrix::Csr<std::complex<double>>;

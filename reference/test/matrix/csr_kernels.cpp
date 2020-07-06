@@ -69,6 +69,8 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
+    using AbsMtx =
+        gko::matrix::Csr<gko::remove_complex<value_type>, index_type>;
     using Sellp = gko::matrix::Sellp<value_type, index_type>;
     using SparsityCsr = gko::matrix::SparsityCsr<value_type, index_type>;
     using Ell = gko::matrix::Ell<value_type, index_type>;
