@@ -43,6 +43,9 @@ namespace matrix {
 template <typename ValueType, typename IndexType>
 class Csr;
 
+template <typename ValueType>
+class Dense;
+
 
 /**
  * This class is a utility which efficiently implements the diagonal matrix (a
@@ -147,6 +150,17 @@ protected:
           values_{exec, std::forward<ValuesArray>(values)}
     {
         GKO_ENSURE_IN_BOUNDS(size - 1, values_.get_num_elems());
+    }
+
+    Diagonal(std::shared_ptr<const Executor> exec, const size_type size,
+             Dense<ValueType> *values)
+        : EnableLinOp<Diagonal>(exec, dim<2>(size))
+    {
+        GKO_ASSERT_EQ(size, values->get_size()[0]);
+        GKO_ASSERT_EQ(1, values->get_size()[1]);
+        GKO_ASSERT_EQ(1, values->get_stride());
+
+        values_ = gko::Array<value_type>(exec, size, values->get_values());
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
