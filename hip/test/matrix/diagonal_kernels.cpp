@@ -200,4 +200,15 @@ TEST_F(Diagonal, RightApplyToCsrIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(csrexpected2, csrresult2, 0);
 }
 
+
+TEST_F(Diagonal, ConvertToCsrIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    diag->convert_to(csr1.get());
+    ddiag->convert_to(dcsr1.get());
+
+    GKO_ASSERT_MTX_NEAR(csr1, dcsr1, 0);
+}
+
 }  // namespace

@@ -165,6 +165,29 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
+                    const matrix::Diagonal<ValueType, IndexType> *source,
+                    matrix::Csr<ValueType, IndexType> *result)
+{
+    const auto size = source->get_size()[0];
+    const auto grid_dim = ceildiv(size, default_block_size);
+
+    const auto diag_values = source->get_const_values();
+    auto row_ptrs = result->get_row_ptrs();
+    auto col_idxs = result->get_col_idxs();
+    auto csr_values = result->get_values();
+
+    hipLaunchKernelGGL(kernel::convert_to_csr, grid_dim, default_block_size, 0,
+                       0, size, as_cuda_type(diag_values),
+                       as_cuda_type(row_ptrs), as_cuda_type(col_idxs),
+                       as_cuda_type(csr_values));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL);
+
+
 }  // namespace diagonal
 }  // namespace hip
 }  // namespace kernels

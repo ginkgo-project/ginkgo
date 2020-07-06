@@ -196,4 +196,27 @@ TYPED_TEST(Diagonal, RightAppliesToCsr)
     EXPECT_EQ(col_idxs[5], index_type{2});
 }
 
+
+TYPED_TEST(Diagonal, ConverstToCsr)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+
+    this->diag1->convert_to(this->csr1.get());
+
+    const auto nnz = this->csr1->get_num_stored_elements();
+    const auto row_ptrs = this->csr1->get_const_row_ptrs();
+    const auto col_idxs = this->csr1->get_const_col_idxs();
+    const auto values = this->csr1->get_const_values();
+
+    EXPECT_EQ(nnz, 2);
+    EXPECT_EQ(row_ptrs[0], index_type(0));
+    EXPECT_EQ(row_ptrs[1], index_type(1));
+    EXPECT_EQ(row_ptrs[2], index_type(2));
+    EXPECT_EQ(col_idxs[0], index_type(0));
+    EXPECT_EQ(col_idxs[1], index_type(1));
+    EXPECT_EQ(values[0], value_type(2.0));
+    EXPECT_EQ(values[1], value_type(3.0));
+}
+
 }  // namespace
