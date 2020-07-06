@@ -110,22 +110,10 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_RENUMBER_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void extract_diag(std::shared_ptr<const OmpExecutor> exec,
-                  const matrix::Csr<ValueType, IndexType> *source,
-                  Array<ValueType> &diag)
-{
-    GKO_NOT_IMPLEMENTED;
-}
-
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_AMGX_PGM_EXTRACT_DIAG);
-
-
-template <typename ValueType, typename IndexType>
 void find_strongest_neighbor(
     std::shared_ptr<const OmpExecutor> exec,
     const matrix::Csr<ValueType, IndexType> *weight_mtx,
-    const Array<ValueType> &diag, Array<IndexType> &agg,
+    const matrix::Diagonal<ValueType> *diag, Array<IndexType> &agg,
     Array<IndexType> &strongest_neighbor)
 {
     GKO_NOT_IMPLEMENTED;
@@ -138,7 +126,8 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void assign_to_exist_agg(std::shared_ptr<const OmpExecutor> exec,
                          const matrix::Csr<ValueType, IndexType> *weight_mtx,
-                         const Array<ValueType> &diag, Array<IndexType> &agg,
+                         const matrix::Diagonal<ValueType> *diag,
+                         Array<IndexType> &agg,
                          Array<IndexType> &intermediate_agg)
 {
     GKO_NOT_IMPLEMENTED;
