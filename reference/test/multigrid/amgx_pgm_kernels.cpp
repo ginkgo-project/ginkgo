@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm_reduction.hpp>
@@ -99,17 +100,15 @@ protected:
               std::make_shared<typename WeightMtx::classical>())),
           coarse(Mtx::create(exec, gko::dim<2>(2, 2), 4,
                              std::make_shared<typename Mtx::classical>())),
-          mtx_diag(exec, 5),
           agg(exec, 5)
     {
-        this->create_mtx(mtx.get(), weight.get(), &mtx_diag, &agg,
-                         coarse.get());
+        this->create_mtx(mtx.get(), weight.get(), &agg, coarse.get());
         rstr_prlg = amgxpgm_factory->generate(mtx);
+        mtx_diag = weight->extract_diagonal();
     }
 
-    void create_mtx(Mtx *fine, WeightMtx *weight,
-                    gko::Array<rmc_value_type> *diag,
-                    gko::Array<index_type> *agg, Mtx *coarse)
+    void create_mtx(Mtx *fine, WeightMtx *weight, gko::Array<index_type> *agg,
+                    Mtx *coarse)
     {
         auto vals = fine->get_values();
         auto cols = fine->get_col_idxs();
@@ -117,7 +116,6 @@ protected:
         auto w_vals = weight->get_values();
         auto w_cols = weight->get_col_idxs();
         auto w_rows = weight->get_row_ptrs();
-        auto diag_val = diag->get_data();
         auto agg_val = agg->get_data();
         auto c_vals = coarse->get_values();
         auto c_cols = coarse->get_col_idxs();
@@ -214,12 +212,6 @@ protected:
         w_cols[13] = 2;
         w_cols[14] = 4;
 
-        diag_val[0] = 5;
-        diag_val[1] = 5;
-        diag_val[2] = 5;
-        diag_val[3] = 5;
-        diag_val[4] = 5;
-
         agg_val[0] = 0;
         agg_val[1] = 1;
         agg_val[2] = 0;
@@ -271,7 +263,7 @@ protected:
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> coarse;
     std::shared_ptr<WeightMtx> weight;
-    gko::Array<rmc_value_type> mtx_diag;
+    std::shared_ptr<gko::matrix::Diagonal<rmc_value_type>> mtx_diag;
     gko::Array<index_type> agg;
     std::shared_ptr<Vec> coarse_b;
     std::shared_ptr<Vec> fine_b;
@@ -503,17 +495,6 @@ TYPED_TEST(AmgxPgm, CoarseFineProlongApplyadd)
 }
 
 
-TYPED_TEST(AmgxPgm, ExtractDiag)
-{
-    using rmc_value_type = typename TestFixture::rmc_value_type;
-    gko::Array<rmc_value_type> diag(this->exec, 5);
-
-    gko::kernels::reference::amgx_pgm::extract_diag(this->exec,
-                                                    this->weight.get(), diag);
-    GKO_ASSERT_ARRAY_EQ(diag, this->mtx_diag);
-}
-
-
 TYPED_TEST(AmgxPgm, FindStrongestNeighbor)
 {
     using index_type = typename TestFixture::index_type;
@@ -527,7 +508,7 @@ TYPED_TEST(AmgxPgm, FindStrongestNeighbor)
     }
 
     gko::kernels::reference::amgx_pgm::find_strongest_neighbor(
-        this->exec, this->weight.get(), this->mtx_diag, agg,
+        this->exec, this->weight.get(), this->mtx_diag.get(), agg,
         strongest_neighbor);
 
     ASSERT_EQ(snb_vals[0], 2);
@@ -552,7 +533,8 @@ TYPED_TEST(AmgxPgm, AssignToExistAgg)
     agg_vals[4] = -1;
 
     gko::kernels::reference::amgx_pgm::assign_to_exist_agg(
-        this->exec, this->weight.get(), this->mtx_diag, agg, intermediate_agg);
+        this->exec, this->weight.get(), this->mtx_diag.get(), agg,
+        intermediate_agg);
 
     ASSERT_EQ(agg_vals[0], 0);
     ASSERT_EQ(agg_vals[1], 1);

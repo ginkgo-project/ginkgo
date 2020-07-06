@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/multigrid/amgx_pgm.hpp>
 
 
@@ -180,39 +181,16 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_RENUMBER_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void extract_diag(std::shared_ptr<const ReferenceExecutor> exec,
-                  const matrix::Csr<ValueType, IndexType> *source,
-                  Array<ValueType> &diag)
-{
-    const auto dim_size = source->get_size();
-    const auto row_ptrs = source->get_const_row_ptrs();
-    const auto col_idxs = source->get_const_col_idxs();
-    const auto vals = source->get_const_values();
-    auto diag_val = diag.get_data();
-    for (IndexType i = 0; i < dim_size[0]; i++) {
-        for (auto j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
-            if (col_idxs[j] == i) {
-                diag_val[i] = vals[j];
-                break;
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_AMGX_PGM_EXTRACT_DIAG);
-
-
-template <typename ValueType, typename IndexType>
 void find_strongest_neighbor(
     std::shared_ptr<const ReferenceExecutor> exec,
     const matrix::Csr<ValueType, IndexType> *weight_mtx,
-    const Array<ValueType> &diag, Array<IndexType> &agg,
+    const matrix::Diagonal<ValueType> *diag, Array<IndexType> &agg,
     Array<IndexType> &strongest_neighbor)
 {
     const auto row_ptrs = weight_mtx->get_const_row_ptrs();
     const auto col_idxs = weight_mtx->get_const_col_idxs();
     const auto vals = weight_mtx->get_const_values();
+    const auto diag_vals = diag->get_const_values();
     for (size_type row = 0; row < agg.get_num_elems(); row++) {
         auto max_weight_unagg = zero<ValueType>();
         auto max_weight_agg = zero<ValueType>();
@@ -224,8 +202,8 @@ void find_strongest_neighbor(
                 if (col == row) {
                     continue;
                 }
-                auto weight = vals[idx] / max(abs(diag.get_const_data()[row]),
-                                              abs(diag.get_const_data()[col]));
+                auto weight =
+                    vals[idx] / max(abs(diag_vals[row]), abs(diag_vals[col]));
                 if (agg.get_const_data()[col] == -1 &&
                     (weight > max_weight_unagg ||
                      (weight == max_weight_unagg && col > strongest_unagg))) {
@@ -261,19 +239,19 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void assign_to_exist_agg(std::shared_ptr<const ReferenceExecutor> exec,
                          const matrix::Csr<ValueType, IndexType> *weight_mtx,
-                         const Array<ValueType> &diag, Array<IndexType> &agg,
+                         const matrix::Diagonal<ValueType> *diag,
+                         Array<IndexType> &agg,
                          Array<IndexType> &intermediate_agg)
 {
     const auto row_ptrs = weight_mtx->get_const_row_ptrs();
     const auto col_idxs = weight_mtx->get_const_col_idxs();
     const auto vals = weight_mtx->get_const_values();
-    const auto diag_vals = diag.get_const_data();
     auto max_weight_agg = zero<ValueType>();
     const auto agg_const_val = agg.get_const_data();
     auto agg_val = (intermediate_agg.get_num_elems() > 0)
                        ? intermediate_agg.get_data()
                        : agg.get_data();
-
+    const auto diag_vals = diag->get_const_values();
     for (IndexType row = 0; row < agg.get_num_elems(); row++) {
         if (agg_const_val[row] != -1) {
             continue;
@@ -284,8 +262,8 @@ void assign_to_exist_agg(std::shared_ptr<const ReferenceExecutor> exec,
             if (col == row) {
                 break;
             }
-            auto weight = vals[idx] / max(abs(diag.get_const_data()[row]),
-                                          abs(diag.get_const_data()[col]));
+            auto weight =
+                vals[idx] / max(abs(diag_vals[row]), abs(diag_vals[col]));
             if (agg_const_val[col] != -1 &&
                 (weight > max_weight_agg ||
                  (weight == max_weight_agg && col > strongest_agg))) {

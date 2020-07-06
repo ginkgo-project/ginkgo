@@ -59,7 +59,6 @@ GKO_REGISTER_OPERATION(initial, amgx_pgm::initial);
 GKO_REGISTER_OPERATION(match_edge, amgx_pgm::match_edge);
 GKO_REGISTER_OPERATION(count_unagg, amgx_pgm::count_unagg);
 GKO_REGISTER_OPERATION(renumber, amgx_pgm::renumber);
-GKO_REGISTER_OPERATION(extract_diag, amgx_pgm::extract_diag);
 GKO_REGISTER_OPERATION(find_strongest_neighbor,
                        amgx_pgm::find_strongest_neighbor);
 GKO_REGISTER_OPERATION(assign_to_exist_agg, amgx_pgm::assign_to_exist_agg);
@@ -97,7 +96,6 @@ void AmgxPgm<ValueType, IndexType>::generate()
     using weight_matrix_type = remove_complex<matrix_type>;
     auto exec = this->get_executor();
     const auto num = this->system_matrix_->get_size()[0];
-    Array<rmc_value_type> diag(this->get_executor(), num);
     Array<IndexType> strongest_neighbor(this->get_executor(), num);
     Array<IndexType> intermediate_agg(this->get_executor(),
                                       parameters_.deterministic * num);
@@ -117,11 +115,11 @@ void AmgxPgm<ValueType, IndexType>::generate()
     abs_mtx->apply(lend(half_scaler), lend(identity), lend(half_scaler),
                    lend(weight_mtx));
     // Extract the diagonal value of matrix
-    exec->run(amgx_pgm::make_extract_diag(weight_mtx.get(), diag));
+    auto diag = weight_mtx->extract_diagonal();
     for (int i = 0; i < parameters_.max_iterations; i++) {
         // Find the strongest neighbor of each row
         exec->run(amgx_pgm::make_find_strongest_neighbor(
-            weight_mtx.get(), diag, agg_, strongest_neighbor));
+            weight_mtx.get(), diag.get(), agg_, strongest_neighbor));
         // Match edges
         exec->run(amgx_pgm::make_match_edge(strongest_neighbor, agg_));
         // Get the num_unagg
@@ -140,8 +138,8 @@ void AmgxPgm<ValueType, IndexType>::generate()
         intermediate_agg = agg_;
     }
     while (num_unagg != 0) {
-        exec->run(amgx_pgm::make_assign_to_exist_agg(weight_mtx.get(), diag,
-                                                     agg_, intermediate_agg));
+        exec->run(amgx_pgm::make_assign_to_exist_agg(
+            weight_mtx.get(), diag.get(), agg_, intermediate_agg));
         exec->run(amgx_pgm::make_count_unagg(agg_, &num_unagg));
     }
     size_type num_agg;

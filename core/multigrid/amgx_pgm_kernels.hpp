@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 
 
 namespace gko {
@@ -77,23 +78,18 @@ namespace amgx_pgm {
     void renumber(std::shared_ptr<const DefaultExecutor> exec, \
                   Array<_itype> &agg, size_type *num_agg)
 
-#define GKO_DECLARE_AMGX_PGM_EXTRACT_DIAG(ValueType, IndexType)        \
-    void extract_diag(std::shared_ptr<const DefaultExecutor> exec,     \
-                      const matrix::Csr<ValueType, IndexType> *source, \
-                      Array<ValueType> &diag)
-
 #define GKO_DECLARE_AMGX_PGM_FIND_STRONGEST_NEIGHBOR(ValueType, IndexType) \
     void find_strongest_neighbor(                                          \
         std::shared_ptr<const DefaultExecutor> exec,                       \
         const matrix::Csr<ValueType, IndexType> *weight_mtx,               \
-        const Array<ValueType> &diag, Array<IndexType> &agg,               \
+        const matrix::Diagonal<ValueType> *diag, Array<IndexType> &agg,    \
         Array<IndexType> &strongest_neighbor)
 
-#define GKO_DECLARE_AMGX_PGM_ASSIGN_TO_EXIST_AGG(ValueType, IndexType) \
-    void assign_to_exist_agg(                                          \
-        std::shared_ptr<const DefaultExecutor> exec,                   \
-        const matrix::Csr<ValueType, IndexType> *weight_mtx,           \
-        const Array<ValueType> &diag, Array<IndexType> &agg,           \
+#define GKO_DECLARE_AMGX_PGM_ASSIGN_TO_EXIST_AGG(ValueType, IndexType)  \
+    void assign_to_exist_agg(                                           \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const matrix::Csr<ValueType, IndexType> *weight_mtx,            \
+        const matrix::Diagonal<ValueType> *diag, Array<IndexType> &agg, \
         Array<IndexType> &intermediate_agg)
 
 #define GKO_DECLARE_AMGX_PGM_GENERATE(ValueType, IndexType)                 \
@@ -115,8 +111,6 @@ namespace amgx_pgm {
     GKO_DECLARE_AMGX_PGM_COUNT_UNAGG_KERNEL(IndexType);                 \
     template <typename IndexType>                                       \
     GKO_DECLARE_AMGX_PGM_RENUMBER_KERNEL(IndexType);                    \
-    template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_AMGX_PGM_EXTRACT_DIAG(ValueType, IndexType);            \
     template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_AMGX_PGM_FIND_STRONGEST_NEIGHBOR(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                   \
