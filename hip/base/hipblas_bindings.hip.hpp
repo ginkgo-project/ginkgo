@@ -43,7 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
-#include "hip/components/zero_array.hip.hpp"
 
 
 namespace gko {
@@ -227,23 +226,9 @@ GKO_BIND_HIPBLAS_DOT(ValueType, detail::not_implemented);
 #undef GKO_BIND_HIPBLAS_DOT
 
 
-#define GKO_BIND_HIPBLAS_COMPLEX_NORM2(ValueType, CublasName)                \
-    inline void norm2(hipblasHandle_t handle, int n, const ValueType *x,     \
-                      int incx, ValueType *result)                           \
-    {                                                                        \
-        zero_array(1, result);                                               \
-        GKO_ASSERT_NO_HIPBLAS_ERRORS(                                        \
-            CublasName(handle, n, as_hiplibs_type(x), incx,                  \
-                       reinterpret_cast<remove_complex<ValueType> *>(        \
-                           as_hiplibs_type(result))));                       \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
 #define GKO_BIND_HIPBLAS_NORM2(ValueType, HipblasName)                       \
     inline void norm2(hipblasHandle_t handle, int n, const ValueType *x,     \
-                      int incx, ValueType *result)                           \
+                      int incx, remove_complex<ValueType> *result)           \
     {                                                                        \
         GKO_ASSERT_NO_HIPBLAS_ERRORS(HipblasName(                            \
             handle, n, as_hiplibs_type(x), incx, as_hiplibs_type(result)));  \
@@ -252,12 +237,11 @@ GKO_BIND_HIPBLAS_DOT(ValueType, detail::not_implemented);
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
-
 GKO_BIND_HIPBLAS_NORM2(float, hipblasSnrm2);
 GKO_BIND_HIPBLAS_NORM2(double, hipblasDnrm2);
 /* not implemented
-GKO_BIND_HIPBLAS_COMPLEX_NORM2(std::complex<float>, hipblasScnrm2);
-GKO_BIND_HIPBLAS_COMPLEX_NORM2(std::complex<double>, hipblasDznrm2);
+GKO_BIND_HIPBLAS_NORM2(std::complex<float>, hipblasScnrm2);
+GKO_BIND_HIPBLAS_NORM2(std::complex<double>, hipblasDznrm2);
 */
 template <typename ValueType>
 GKO_BIND_HIPBLAS_NORM2(ValueType, detail::not_implemented);

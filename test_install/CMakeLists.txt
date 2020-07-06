@@ -20,30 +20,6 @@ endif()
 include(CheckLanguage)
 check_language(CUDA)
 
-if(GINKGO_HAVE_PAPI_SDE)
-    find_package(PAPI REQUIRED OPTIONAL_COMPONENTS sde)
-endif()
-
-# Needed because of a known issue with CUDA while linking statically.
-# For details, see https://gitlab.kitware.com/cmake/cmake/issues/18614
-if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_BUILD_CUDA)
-    enable_language(CUDA)
-endif()
-
-if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_BUILD_HIP)
-    find_package(HIP REQUIRED)
-    find_package(hipblas REQUIRED)
-    find_package(hipsparse REQUIRED)
-    if(GINKGO_HIP_PLATFORM MATCHES "hcc")
-        ginkgo_hip_ban_link_hcflag(hcc::hccrt)
-        ginkgo_hip_ban_link_hcflag(hcc::hc_am)
-        ginkgo_hip_ban_link_hcflag(hcc::mcwamp)
-        ginkgo_hip_ban_compile_hcflag(hcc::hccrt)
-        ginkgo_hip_ban_compile_hcflag(hcc::hc_am)
-        ginkgo_hip_ban_compile_hcflag(hcc::mcwamp)
-    endif()
-endif()
-
 add_executable(test_install test_install.cpp)
 target_compile_features(test_install PUBLIC cxx_std_11)
 target_link_libraries(test_install PRIVATE Ginkgo::ginkgo)
@@ -59,4 +35,20 @@ if(GINKGO_BUILD_CUDA)
     endif()
     add_executable(test_install_cuda test_install_cuda.cu)
     target_link_libraries(test_install_cuda PRIVATE Ginkgo::ginkgo)
+endif()
+
+if(GINKGO_BUILD_HIP
+   AND GINKGO_HIP_PLATFORM MATCHES "hcc"
+   AND GINKGO_HIP_VERSION VERSION_GREATER_EQUAL "3.5"
+   AND NOT GINKGO_BUILD_SHARED_LIBS)
+    # Compile options somehow add hip-clang specific flags. Wipe them.
+    # Currently, the flags wiped out should be:
+    # -x;hip;--hip-device-lib-path=/opt/rocm/lib;--cuda-gpu-arch=gfx900;
+    # --cuda-gpu-arch=gfx906
+    set_target_properties(hip::device PROPERTIES INTERFACE_COMPILE_OPTIONS "")
+    # In addition, link libraries have a similar problem. We only keep
+    # `hip::host`. Currently, the flags should be:
+    # hip::host;--hip-device-lib-path=/opt/rocm/lib;--hip-link;
+    # --cuda-gpu-arch=gfx900;--cuda-gpu-arch=gfx906
+    set_target_properties(hip::device PROPERTIES INTERFACE_LINK_LIBRARIES "hip::host")
 endif()

@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/extended_float.hpp"
+#include "core/components/fill_array.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "hip/base/config.hip.hpp"
@@ -51,7 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/thread_ids.hip.hpp"
 #include "hip/components/uninitialized_array.hip.hpp"
 #include "hip/components/warp_blas.hip.hpp"
-#include "hip/components/zero_array.hip.hpp"
 #include "hip/preconditioner/jacobi_common.hip.hpp"
 
 
@@ -127,16 +127,17 @@ void generate(std::shared_ptr<const HipExecutor> exec,
               Array<precision_reduction> &block_precisions,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
-    zero_array(blocks.get_num_elems(), blocks.get_data());
-    select_generate(compiled_kernels(),
-                    [&](int compiled_block_size) {
-                        return max_block_size <= compiled_block_size;
-                    },
-                    syn::value_list<int, config::min_warps_per_block>(),
-                    syn::type_list<>(), system_matrix, accuracy,
-                    blocks.get_data(), storage_scheme, conditioning.get_data(),
-                    block_precisions.get_data(),
-                    block_pointers.get_const_data(), num_blocks);
+    components::fill_array(exec, blocks.get_data(), blocks.get_num_elems(),
+                           zero<ValueType>());
+    select_generate(
+        compiled_kernels(),
+        [&](int compiled_block_size) {
+            return max_block_size <= compiled_block_size;
+        },
+        syn::value_list<int, config::min_warps_per_block>(), syn::type_list<>(),
+        system_matrix, accuracy, blocks.get_data(), storage_scheme,
+        conditioning.get_data(), block_precisions.get_data(),
+        block_pointers.get_const_data(), num_blocks);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

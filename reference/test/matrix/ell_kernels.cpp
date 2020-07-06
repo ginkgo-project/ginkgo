@@ -211,6 +211,48 @@ TYPED_TEST(Ell, ApplyFailsOnWrongNumberOfCols)
 }
 
 
+TYPED_TEST(Ell, ConvertsToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Ell = typename TestFixture::Mtx;
+    using OtherEll = gko::matrix::Ell<OtherType, IndexType>;
+    auto tmp = OtherEll::create(this->exec);
+    auto res = Ell::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    this->mtx1->convert_to(tmp.get());
+    tmp->convert_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx1, res, residual);
+}
+
+
+TYPED_TEST(Ell, MovesToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Ell = typename TestFixture::Mtx;
+    using OtherEll = gko::matrix::Ell<OtherType, IndexType>;
+    auto tmp = OtherEll::create(this->exec);
+    auto res = Ell::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    this->mtx1->move_to(tmp.get());
+    tmp->move_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx1, res, residual);
+}
+
+
 TYPED_TEST(Ell, ConvertsToDense)
 {
     using Vec = typename TestFixture::Vec;
@@ -394,12 +436,51 @@ TYPED_TEST(Ell, ConvertsToCsr)
 
     this->assert_equal_to_mtx(csr_mtx_c.get());
     this->assert_equal_to_mtx(csr_mtx_m.get());
-    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
-    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
+    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
+    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
+}
+
+
+TYPED_TEST(Ell, MovesToCsr)
+{
+    using Vec = typename TestFixture::Vec;
+    using Csr = typename TestFixture::Csr;
+    auto csr_s_classical = std::make_shared<typename Csr::classical>();
+    auto csr_s_merge = std::make_shared<typename Csr::merge_path>();
+    auto csr_mtx_c = Csr::create(this->mtx1->get_executor(), csr_s_classical);
+    auto csr_mtx_m = Csr::create(this->mtx1->get_executor(), csr_s_merge);
+
+    this->mtx1->move_to(csr_mtx_c.get());
+    this->mtx1->move_to(csr_mtx_m.get());
+
+    this->assert_equal_to_mtx(csr_mtx_c.get());
+    this->assert_equal_to_mtx(csr_mtx_m.get());
+    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
+    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
 }
 
 
 TYPED_TEST(Ell, ConvertsWithStrideToCsr)
+{
+    using Vec = typename TestFixture::Vec;
+    using Csr = typename TestFixture::Csr;
+    auto csr_s_classical = std::make_shared<typename Csr::classical>();
+    auto csr_s_merge = std::make_shared<typename Csr::merge_path>();
+    auto csr_mtx_c = Csr::create(this->mtx2->get_executor(), csr_s_classical);
+    auto csr_mtx_m = Csr::create(this->mtx2->get_executor(), csr_s_merge);
+    auto mtx_clone = this->mtx2->clone();
+
+    this->mtx2->convert_to(csr_mtx_c.get());
+    mtx_clone->convert_to(csr_mtx_m.get());
+
+    this->assert_equal_to_mtx(csr_mtx_c.get());
+    this->assert_equal_to_mtx(csr_mtx_m.get());
+    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
+    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
+}
+
+
+TYPED_TEST(Ell, MovesWithStrideToCsr)
 {
     using Vec = typename TestFixture::Vec;
     using Csr = typename TestFixture::Csr;
@@ -414,8 +495,106 @@ TYPED_TEST(Ell, ConvertsWithStrideToCsr)
 
     this->assert_equal_to_mtx(csr_mtx_c.get());
     this->assert_equal_to_mtx(csr_mtx_m.get());
-    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
-    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
+    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
+    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
+}
+
+
+TYPED_TEST(Ell, ConvertsEmptyToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Ell = typename TestFixture::Mtx;
+    using OtherEll = gko::matrix::Ell<OtherType, IndexType>;
+    auto empty = Ell::create(this->exec);
+    auto res = OtherEll::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Ell, MovesEmptyToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Ell = typename TestFixture::Mtx;
+    using OtherEll = gko::matrix::Ell<OtherType, IndexType>;
+    auto empty = Ell::create(this->exec);
+    auto res = OtherEll::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Ell, ConvertsEmptyToDense)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Ell = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<ValueType>;
+    auto empty = Ell::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Ell, MovesEmptyToDense)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Ell = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<ValueType>;
+    auto empty = Ell::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Ell, ConvertsEmptyToCsr)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Ell = typename TestFixture::Mtx;
+    using Csr = gko::matrix::Csr<ValueType, IndexType>;
+    auto empty = Ell::create(this->exec);
+    auto res = Csr::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Ell, MovesEmptyToCsr)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Ell = typename TestFixture::Mtx;
+    using Csr = gko::matrix::Csr<ValueType, IndexType>;
+    auto empty = Ell::create(this->exec);
+    auto res = Csr::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
 }
 
 

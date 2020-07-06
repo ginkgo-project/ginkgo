@@ -44,7 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 
 
 #include "core/solver/cg_kernels.hpp"
@@ -196,7 +196,7 @@ TEST_F(Cg, HipCgInitializeIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(d_q, q, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_prev_rho, prev_rho, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_rho, rho, 1e-14);
-    GKO_ASSERT_ARRAY_EQ(d_stop_status, stop_status);
+    GKO_ASSERT_ARRAY_EQ(*d_stop_status, *stop_status);
 }
 
 

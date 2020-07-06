@@ -65,38 +65,14 @@ __global__ __launch_bounds__(block_size) void initialize_1_kernel(
 }
 
 
-// Must be called with at least `num_rows * stride_krylov` threads in total.
-template <size_type block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void initialize_2_1_kernel(
-    size_type num_rows, size_type num_rhs, size_type krylov_dim,
-    ValueType *__restrict__ krylov_bases, size_type stride_krylov,
-    ValueType *__restrict__ residual_norm_collection,
-    size_type stride_residual_nc)
-{
-    const auto global_id = thread::get_thread_id_flat();
-    const auto row_idx = global_id / stride_krylov;
-    const auto col_idx = global_id % stride_krylov;
-
-    if (row_idx < num_rows && col_idx < (krylov_dim + 1) * num_rhs) {
-        krylov_bases[row_idx * stride_krylov + col_idx] = zero<ValueType>();
-    }
-
-    if (row_idx < krylov_dim + 1 && col_idx < num_rhs) {
-        residual_norm_collection[row_idx * stride_residual_nc + col_idx] =
-            zero<ValueType>();
-    }
-}
-
-
 // Must be called with at least `num_rows * num_rhs` threads in total.
 template <size_type block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
     size_type num_rows, size_type num_rhs,
     const ValueType *__restrict__ residual, size_type stride_residual,
-    const ValueType *__restrict__ residual_norm,
+    const remove_complex<ValueType> *__restrict__ residual_norm,
     ValueType *__restrict__ residual_norm_collection,
     ValueType *__restrict__ krylov_bases, size_type stride_krylov,
-    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
     size_type *__restrict__ final_iter_nums)
 {
     const auto global_id = thread::get_thread_id_flat();
@@ -112,7 +88,6 @@ __global__ __launch_bounds__(block_size) void initialize_2_2_kernel(
         auto value = residual[row_idx * stride_residual + col_idx] /
                      residual_norm[col_idx];
         krylov_bases[row_idx * stride_krylov + col_idx] = value;
-        next_krylov_basis[row_idx * stride_next_krylov + col_idx] = value;
     }
 }
 
@@ -132,10 +107,9 @@ __global__
 template <typename ValueType>
 __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
     size_type k, size_type num_rows, size_type num_cols,
-    const ValueType *__restrict__ next_krylov_basis,
-    size_type stride_next_krylov, const ValueType *__restrict__ krylov_bases,
-    size_type stride_krylov, ValueType *__restrict__ hessenberg_iter,
-    size_type stride_hessenberg,
+    const ValueType *__restrict__ krylov_bases,
+    const ValueType *__restrict__ next_krylov_basis, size_type stride_krylov,
+    ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
     const auto tidx = threadIdx.x;
@@ -153,14 +127,12 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
     ValueType *__restrict__ reduction_helper = reduction_helper_array;
 
     ValueType local_res = zero<ValueType>();
-    const auto krylov_col = k * num_cols + col_idx;
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
         for (size_type i = start_row + tidy; i < end_row;
              i += default_dot_dim) {
-            const auto next_krylov_idx = i * stride_next_krylov + col_idx;
-            const auto krylov_idx = i * stride_krylov + krylov_col;
+            const auto krylov_idx = i * stride_krylov + col_idx;
             local_res +=
-                next_krylov_basis[next_krylov_idx] * krylov_bases[krylov_idx];
+                conj(krylov_bases[krylov_idx]) * next_krylov_basis[krylov_idx];
         }
     }
     reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
@@ -185,20 +157,19 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
 template <int block_size, typename ValueType>
 __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
     size_type k, size_type num_rows, size_type num_cols,
-    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
-    const ValueType *__restrict__ krylov_bases, size_type stride_krylov,
+    const ValueType *__restrict__ krylov_bases,
+    ValueType *__restrict__ next_krylov_basis, size_type stride_krylov,
     const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
-    const auto row_idx = global_id / stride_next_krylov;
-    const auto col_idx = global_id % stride_next_krylov;
+    const auto row_idx = global_id / stride_krylov;
+    const auto col_idx = global_id % stride_krylov;
 
     if (row_idx < num_rows && col_idx < num_cols &&
         !stop_status[col_idx].has_stopped()) {
-        const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
-        const auto krylov_idx =
-            row_idx * stride_krylov + k * num_cols + col_idx;
+        const auto next_krylov_idx = row_idx * stride_krylov + col_idx;
+        const auto krylov_idx = row_idx * stride_krylov + col_idx;
         const auto hessenberg_idx = k * stride_hessenberg + col_idx;
 
         next_krylov_basis[next_krylov_idx] -=
@@ -248,33 +219,26 @@ __global__ __launch_bounds__(block_size) void update_hessenberg_2_kernel(
 }
 
 
-// Must be called with at least `num_rows * stride_next_krylov` threads in
+// Must be called with at least `num_rows * stride_krylov` threads in
 // total.
 template <int block_size, typename ValueType>
-__global__ __launch_bounds__(block_size) void update_krylov_next_krylov_kernel(
+__global__ __launch_bounds__(block_size) void update_krylov_kernel(
     size_type iter, size_type num_rows, size_type num_cols,
-    ValueType *__restrict__ next_krylov_basis, size_type stride_next_krylov,
     ValueType *__restrict__ krylov_bases, size_type stride_krylov,
     const ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status *__restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
-    const auto row_idx = global_id / stride_next_krylov;
-    const auto col_idx = global_id % stride_next_krylov;
+    const auto row_idx = global_id / stride_krylov;
+    const auto col_idx = global_id % stride_krylov;
     const auto hessenberg =
         hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx];
 
     if (row_idx < num_rows && col_idx < num_cols &&
         !stop_status[col_idx].has_stopped()) {
-        const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
-        const auto krylov_idx =
-            row_idx * stride_krylov + num_cols * (iter + 1) + col_idx;
+        const auto krylov_idx = row_idx * stride_krylov + col_idx;
 
-        const auto next_krylov_value =
-            next_krylov_basis[next_krylov_idx] / hessenberg;
-
-        next_krylov_basis[next_krylov_idx] = next_krylov_value;
-        krylov_bases[krylov_idx] = next_krylov_value;
+        krylov_bases[krylov_idx] /= hessenberg;
     }
 }
 
@@ -282,53 +246,43 @@ __global__ __launch_bounds__(block_size) void update_krylov_next_krylov_kernel(
 template <typename ValueType>
 __device__ void calculate_sin_and_cos_kernel(
     size_type col_idx, size_type num_cols, size_type iter,
-    const ValueType *hessenberg_iter, size_type stride_hessenberg,
+    const ValueType &this_hess, const ValueType &next_hess,
     ValueType *givens_sin, size_type stride_sin, ValueType *givens_cos,
-    size_type stride_cos)
+    size_type stride_cos, ValueType &register_sin, ValueType &register_cos)
 {
-    if (hessenberg_iter[iter * stride_hessenberg + col_idx] ==
-        zero<ValueType>()) {
-        givens_cos[iter * stride_cos + col_idx] = zero<ValueType>();
-        givens_sin[iter * stride_sin + col_idx] = one<ValueType>();
+    if (this_hess == zero<ValueType>()) {
+        register_cos = zero<ValueType>();
+        register_sin = one<ValueType>();
     } else {
-        auto hypotenuse =
-            sqrt(hessenberg_iter[iter * stride_hessenberg + col_idx] *
-                     hessenberg_iter[iter * stride_hessenberg + col_idx] +
-                 hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx] *
-                     hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx]);
-        givens_cos[iter * stride_cos + col_idx] =
-            abs(hessenberg_iter[iter * stride_hessenberg + col_idx]) /
-            hypotenuse;
-        givens_sin[iter * stride_sin + col_idx] =
-            givens_cos[iter * stride_cos + col_idx] *
-            hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx] /
-            hessenberg_iter[iter * stride_hessenberg + col_idx];
+        const auto scale = abs(this_hess) + abs(next_hess);
+        const auto hypotenuse =
+            scale * sqrt(abs(this_hess / scale) * abs(this_hess / scale) +
+                         abs(next_hess / scale) * abs(next_hess / scale));
+        register_cos = conj(this_hess) / hypotenuse;
+        register_sin = conj(next_hess) / hypotenuse;
     }
+    givens_cos[iter * stride_cos + col_idx] = register_cos;
+    givens_sin[iter * stride_sin + col_idx] = register_sin;
 }
 
 
 template <typename ValueType>
 __device__ void calculate_residual_norm_kernel(
     size_type col_idx, size_type num_cols, size_type iter,
-    const ValueType *givens_sin, size_type stride_sin,
-    const ValueType *givens_cos, size_type stride_cos, ValueType *residual_norm,
+    const ValueType &register_sin, const ValueType &register_cos,
+    remove_complex<ValueType> *residual_norm,
     ValueType *residual_norm_collection,
-    size_type stride_residual_norm_collection, const ValueType *b_norm)
+    size_type stride_residual_norm_collection)
 {
-    residual_norm_collection[(iter + 1) * stride_residual_norm_collection +
-                             col_idx] =
-        -givens_sin[iter * stride_sin + col_idx] *
+    const auto this_rnc =
         residual_norm_collection[iter * stride_residual_norm_collection +
                                  col_idx];
+    const auto next_rnc = -conj(register_sin) * this_rnc;
     residual_norm_collection[iter * stride_residual_norm_collection + col_idx] =
-        givens_cos[iter * stride_cos + col_idx] *
-        residual_norm_collection[iter * stride_residual_norm_collection +
-                                 col_idx];
-    residual_norm[col_idx] =
-        abs(residual_norm_collection[(iter + 1) *
-                                         stride_residual_norm_collection +
-                                     col_idx]) /
-        b_norm[col_idx];
+        register_cos * this_rnc;
+    residual_norm[col_idx] = abs(next_rnc);
+    residual_norm_collection[(iter + 1) * stride_residual_norm_collection +
+                             col_idx] = next_rnc;
 }
 
 
@@ -339,10 +293,9 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     ValueType *__restrict__ hessenberg_iter, size_type stride_hessenberg,
     ValueType *__restrict__ givens_sin, size_type stride_sin,
     ValueType *__restrict__ givens_cos, size_type stride_cos,
-    ValueType *__restrict__ residual_norm,
+    remove_complex<ValueType> *__restrict__ residual_norm,
     ValueType *__restrict__ residual_norm_collection,
     size_type stride_residual_norm_collection,
-    const ValueType *__restrict__ b_norm,
     const stopping_status *__restrict__ stop_status)
 {
     const auto col_idx = thread::get_thread_id_flat();
@@ -351,24 +304,17 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
         return;
     }
 
-    const auto current_thread_block = group::this_thread_block();
-
+    auto this_hess = hessenberg_iter[col_idx];
+    auto next_hess = hessenberg_iter[stride_hessenberg + col_idx];
     for (size_type i = 0; i < iter; ++i) {
-        const auto tmp =
-            givens_cos[i * stride_cos + col_idx] *
-                hessenberg_iter[i * stride_hessenberg + col_idx] +
-            givens_sin[i * stride_sin + col_idx] *
-                hessenberg_iter[(i + 1) * stride_hessenberg + col_idx];
-        current_thread_block.sync();
-        hessenberg_iter[(i + 1) * stride_hessenberg + col_idx] =
-            givens_cos[i * stride_cos + col_idx] *
-                hessenberg_iter[(i + 1) * stride_hessenberg + col_idx] -
-            givens_sin[i * stride_sin + col_idx] *
-                hessenberg_iter[i * stride_hessenberg + col_idx];
-        hessenberg_iter[i * stride_hessenberg + col_idx] = tmp;
-        current_thread_block.sync();
+        const auto cos = givens_cos[i * stride_cos + col_idx];
+        const auto sin = givens_sin[i * stride_sin + col_idx];
+        hessenberg_iter[i * stride_hessenberg + col_idx] =
+            cos * this_hess + sin * next_hess;
+        this_hess = conj(cos) * next_hess - conj(sin) * this_hess;
+        next_hess = hessenberg_iter[(i + 2) * stride_hessenberg + col_idx];
     }
-    // for j in 1:iter - 1
+    // for j in 0:iter - 1
     //     temp             =  cos(j)*hessenberg(j) +
     //                         sin(j)*hessenberg(j+1)
     //     hessenberg(j+1)  = -sin(j)*hessenberg(j) +
@@ -376,26 +322,24 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     //     hessenberg(j)    =  temp;
     // end
 
-    calculate_sin_and_cos_kernel(col_idx, num_cols, iter, hessenberg_iter,
-                                 stride_hessenberg, givens_sin, stride_sin,
-                                 givens_cos, stride_cos);
-    // Calculate sin and cos
+    ValueType register_sin;
+    ValueType register_cos;
+    calculate_sin_and_cos_kernel(col_idx, num_cols, iter, this_hess, next_hess,
+                                 givens_sin, stride_sin, givens_cos, stride_cos,
+                                 register_sin, register_cos);
+    // Calculate sin and cos on hessenberg(iter) and hessenberg(iter+1)
 
     hessenberg_iter[iter * stride_hessenberg + col_idx] =
-        givens_cos[iter * stride_cos + col_idx] *
-            hessenberg_iter[iter * stride_hessenberg + col_idx] +
-        givens_sin[iter * stride_sin + col_idx] *
-            hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx];
+        register_cos * this_hess + register_sin * next_hess;
     hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx] =
         zero<ValueType>();
     // hessenberg(iter)   = cos(iter)*hessenberg(iter) +
-    //                      sin(iter)*hessenberg(iter)
+    //                      sin(iter)*hessenberg(iter+1)
     // hessenberg(iter+1) = 0
 
-    calculate_residual_norm_kernel(col_idx, num_cols, iter, givens_sin,
-                                   stride_sin, givens_cos, stride_cos,
-                                   residual_norm, residual_norm_collection,
-                                   stride_residual_norm_collection, b_norm);
+    calculate_residual_norm_kernel(
+        col_idx, num_cols, iter, register_sin, register_cos, residual_norm,
+        residual_norm_collection, stride_residual_norm_collection);
     // Calculate residual norm
 }
 
@@ -449,11 +393,13 @@ __global__ __launch_bounds__(block_size) void calculate_Qy_kernel(
     const auto col_id = global_id % stride_preconditioner;
 
     if (row_id < num_rows && col_id < num_cols) {
-        before_preconditioner[global_id] = zero<ValueType>();
+        ValueType temp = zero<ValueType>();
+
         for (size_type j = 0; j < final_iter_nums[col_id]; ++j) {
-            before_preconditioner[global_id] +=
-                krylov_bases[row_id * stride_krylov + j * num_rhs + col_id] *
+            temp +=
+                krylov_bases[(row_id + j * num_rows) * stride_krylov + col_id] *
                 y[j * stride_y + col_id];
         }
+        before_preconditioner[global_id] = temp;
     }
 }

@@ -207,14 +207,13 @@ void compute_dot(std::shared_ptr<const CudaExecutor> exec,
     }
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 
 
 template <typename ValueType>
 void compute_norm2(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::Dense<ValueType> *x,
-                   matrix::Dense<ValueType> *result)
+                   matrix::Dense<remove_complex<ValueType>> *result)
 {
     if (cublas::is_supported<ValueType>::value) {
         for (size_type col = 0; col < x->get_size()[1]; ++col) {
@@ -223,12 +222,27 @@ void compute_norm2(std::shared_ptr<const CudaExecutor> exec,
                           result->get_values() + col);
         }
     } else {
-        compute_dot(exec, x, x, result);
-        const dim3 block_size(default_block_size, 1, 1);
-        const dim3 grid_size(ceildiv(result->get_size()[1], block_size.x), 1,
-                             1);
-        kernel::compute_sqrt<<<grid_size, block_size, 0, 0>>>(
-            result->get_size()[1], as_cuda_type(result->get_values()));
+        using norm_type = remove_complex<ValueType>;
+        // TODO: these are tuning parameters obtained experimentally, once
+        // we decide how to handle this uniformly, they should be modified
+        // appropriately
+        constexpr auto work_per_thread = 32;
+        constexpr auto block_size = 1024;
+
+        constexpr auto work_per_block = work_per_thread * block_size;
+        const dim3 grid_dim = ceildiv(x->get_size()[0], work_per_block);
+        const dim3 block_dim{config::warp_size, 1,
+                             block_size / config::warp_size};
+        Array<norm_type> work(exec, grid_dim.x);
+        // TODO: write a kernel which does this more efficiently
+        for (size_type col = 0; col < x->get_size()[1]; ++col) {
+            kernel::compute_partial_norm2<block_size><<<grid_dim, block_dim>>>(
+                x->get_size()[0], as_cuda_type(x->get_const_values() + col),
+                x->get_stride(), as_cuda_type(work.get_data()));
+            kernel::finalize_norm2_computation<block_size><<<1, block_dim>>>(
+                grid_dim.x, as_cuda_type(work.get_const_data()),
+                as_cuda_type(result->get_values() + col));
+        }
     }
 }
 
@@ -252,7 +266,7 @@ void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,
     auto nnz_prefix_sum = Array<size_type>(exec, num_rows);
     calculate_nonzeros_per_row(exec, source, &nnz_prefix_sum);
 
-    prefix_sum(exec, nnz_prefix_sum.get_data(), num_rows);
+    components::prefix_sum(exec, nnz_prefix_sum.get_data(), num_rows);
 
     size_type grid_dim = ceildiv(num_rows, default_block_size);
 
@@ -288,7 +302,7 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
         num_rows, num_cols, stride, as_cuda_type(source->get_const_values()),
         as_cuda_type(row_ptrs));
 
-    prefix_sum(exec, row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, row_ptrs, num_rows + 1);
 
     size_type grid_dim = ceildiv(num_rows, default_block_size);
 
@@ -369,7 +383,7 @@ void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(nnz_per_row.get_const_data()), as_cuda_type(slice_lengths),
         as_cuda_type(slice_sets));
 
-    prefix_sum(exec, slice_sets, slice_num + 1);
+    components::prefix_sum(exec, slice_sets, slice_num + 1);
 
     grid_dim = ceildiv(num_rows, default_block_size);
     kernel::fill_in_sellp<<<grid_dim, default_block_size>>>(
@@ -435,8 +449,7 @@ void calculate_max_nnz_per_row(std::shared_ptr<const CudaExecutor> exec,
         grid_dim, as_cuda_type(block_results.get_const_data()),
         as_cuda_type(d_result.get_data()));
 
-    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
-                                  result);
+    *result = exec->copy_val_to_host(d_result.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -500,8 +513,7 @@ void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
         grid_dim, as_cuda_type(block_results.get_const_data()),
         as_cuda_type(d_result.get_data()));
 
-    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
-                                  result);
+    *result = exec->copy_val_to_host(d_result.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(

@@ -71,12 +71,11 @@ protected:
 
     void test(gko::size_type size)
     {
-        gko::kernels::reference::prefix_sum(ref, vals.get_data(), size);
-        gko::kernels::omp::prefix_sum(exec, dvals.get_data(), size);
+        gko::kernels::reference::components::prefix_sum(ref, vals.get_data(),
+                                                        size);
+        gko::kernels::omp::components::prefix_sum(exec, dvals.get_data(), size);
 
-        auto dptr = dvals.get_const_data();
-        auto ptr = vals.get_const_data();
-        ASSERT_TRUE(std::equal(ptr, ptr + size, dptr));
+        GKO_ASSERT_ARRAY_EQ(vals, dvals);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;

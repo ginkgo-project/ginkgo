@@ -42,8 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // A CUDA kernel implementing the stencil, which will be used if running on the
 // CUDA executor. Unfortunately, NVCC has serious problems interpreting some
 // parts of Ginkgo's code, so the kernel has to be compiled separately.
-extern void stencil_kernel(std::size_t size, const double *coefs,
-                           const double *b, double *x);
+template <typename ValueType>
+void stencil_kernel(std::size_t size, const ValueType *coefs,
+                    const ValueType *b, ValueType *x);
 
 
 // A stencil matrix class representing the 3pt stencil linear operator.
@@ -57,21 +58,22 @@ extern void stencil_kernel(std::size_t size, const double *coefs,
 // implementation of the static create method. This method will forward all its
 // arguments to the constructor to create the object, and return an
 // std::unique_ptr to the created object.
-class StencilMatrix : public gko::EnableLinOp<StencilMatrix>,
-                      public gko::EnableCreateMethod<StencilMatrix> {
+template <typename ValueType>
+class StencilMatrix : public gko::EnableLinOp<StencilMatrix<ValueType>>,
+                      public gko::EnableCreateMethod<StencilMatrix<ValueType>> {
 public:
     // This constructor will be called by the create method. Here we initialize
     // the coefficients of the stencil.
     StencilMatrix(std::shared_ptr<const gko::Executor> exec,
-                  gko::size_type size = 0, double left = -1.0,
-                  double center = 2.0, double right = -1.0)
+                  gko::size_type size = 0, ValueType left = -1.0,
+                  ValueType center = 2.0, ValueType right = -1.0)
         : gko::EnableLinOp<StencilMatrix>(exec, gko::dim<2>{size}),
           coefficients(exec, {left, center, right})
     {}
 
 protected:
-    using vec = gko::matrix::Dense<>;
-    using coef_type = gko::Array<double>;
+    using vec = gko::matrix::Dense<ValueType>;
+    using coef_type = gko::Array<ValueType>;
 
     // Here we implement the application of the linear operator, x = A * b.
     // apply_impl will be called by the apply method, after the arguments have
@@ -156,14 +158,15 @@ private:
 
 // Creates a stencil matrix in CSR format for the given number of discretization
 // points.
-void generate_stencil_matrix(gko::matrix::Csr<> *matrix)
+template <typename ValueType, typename IndexType>
+void generate_stencil_matrix(gko::matrix::Csr<ValueType, IndexType> *matrix)
 {
     const auto discretization_points = matrix->get_size()[0];
     auto row_ptrs = matrix->get_row_ptrs();
     auto col_idxs = matrix->get_col_idxs();
     auto values = matrix->get_values();
-    int pos = 0;
-    const double coefs[] = {-1, 2, -1};
+    IndexType pos = 0;
+    const ValueType coefs[] = {-1, 2, -1};
     row_ptrs[0] = pos;
     for (int i = 0; i < discretization_points; ++i) {
         for (auto ofs : {-1, 0, 1}) {
@@ -179,14 +182,15 @@ void generate_stencil_matrix(gko::matrix::Csr<> *matrix)
 
 
 // Generates the RHS vector given `f` and the boundary conditions.
-template <typename Closure>
-void generate_rhs(Closure f, double u0, double u1, gko::matrix::Dense<> *rhs)
+template <typename Closure, typename ValueType>
+void generate_rhs(Closure f, ValueType u0, ValueType u1,
+                  gko::matrix::Dense<ValueType> *rhs)
 {
     const auto discretization_points = rhs->get_size()[0];
     auto values = rhs->get_values();
-    const auto h = 1.0 / (discretization_points + 1);
+    const ValueType h = 1.0 / (discretization_points + 1);
     for (int i = 0; i < discretization_points; ++i) {
-        const auto xi = (i + 1) * h;
+        const ValueType xi = ValueType(i + 1) * h;
         values[i] = -f(xi) * h * h;
     }
     values[0] += u0;
@@ -195,7 +199,9 @@ void generate_rhs(Closure f, double u0, double u1, gko::matrix::Dense<> *rhs)
 
 
 // Prints the solution `u`.
-void print_solution(double u0, double u1, const gko::matrix::Dense<> *u)
+template <typename ValueType>
+void print_solution(ValueType u0, ValueType u1,
+                    const gko::matrix::Dense<ValueType> *u)
 {
     std::cout << u0 << '\n';
     for (int i = 0; i < u->get_size()[0]; ++i) {
@@ -207,8 +213,9 @@ void print_solution(double u0, double u1, const gko::matrix::Dense<> *u)
 
 // Computes the 1-norm of the error given the computed `u` and the correct
 // solution function `correct_u`.
-template <typename Closure>
-double calculate_error(int discretization_points, const gko::matrix::Dense<> *u,
+template <typename Closure, typename ValueType>
+double calculate_error(int discretization_points,
+                       const gko::matrix::Dense<ValueType> *u,
                        Closure correct_u)
 {
     const auto h = 1.0 / (discretization_points + 1);
@@ -226,9 +233,12 @@ double calculate_error(int discretization_points, const gko::matrix::Dense<> *u,
 int main(int argc, char *argv[])
 {
     // Some shortcuts
-    using vec = gko::matrix::Dense<double>;
-    using mtx = gko::matrix::Csr<double, int>;
-    using cg = gko::solver::Cg<double>;
+    using ValueType = double;
+    using IndexType = int;
+
+    using vec = gko::matrix::Dense<ValueType>;
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
+    using cg = gko::solver::Cg<ValueType>;
 
     if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " DISCRETIZATION_POINTS [executor]"
@@ -245,8 +255,8 @@ int main(int argc, char *argv[])
     const auto omp = gko::OmpExecutor::create();
     std::map<std::string, std::shared_ptr<gko::Executor>> exec_map{
         {"omp", omp},
-        {"cuda", gko::CudaExecutor::create(0, omp)},
-        {"hip", gko::HipExecutor::create(0, omp)},
+        {"cuda", gko::CudaExecutor::create(0, omp, true)},
+        {"hip", gko::HipExecutor::create(0, omp, true)},
         {"reference", gko::ReferenceExecutor::create()}};
 
     // executor where Ginkgo will perform the computation
@@ -255,8 +265,8 @@ int main(int argc, char *argv[])
     const auto app_exec = exec_map["omp"];
 
     // problem:
-    auto correct_u = [](double x) { return x * x * x; };
-    auto f = [](double x) { return 6 * x; };
+    auto correct_u = [](ValueType x) { return x * x * x; };
+    auto f = [](ValueType x) { return ValueType(6) * x; };
     auto u0 = correct_u(0);
     auto u1 = correct_u(1);
 
@@ -268,19 +278,20 @@ int main(int argc, char *argv[])
         u->get_values()[i] = 0.0;
     }
 
+    const ValueType reduction_factor = 1e-7;
     // Generate solver and solve the system
     cg::build()
         .with_criteria(gko::stop::Iteration::build()
                            .with_max_iters(discretization_points)
                            .on(exec),
-                       gko::stop::ResidualNormReduction<>::build()
-                           .with_reduction_factor(1e-6)
+                       gko::stop::ResidualNormReduction<ValueType>::build()
+                           .with_reduction_factor(reduction_factor)
                            .on(exec))
         .on(exec)
         // notice how our custom StencilMatrix can be used in the same way as
         // any built-in type
-        ->generate(
-            StencilMatrix::create(exec, discretization_points, -1, 2, -1))
+        ->generate(StencilMatrix<ValueType>::create(exec, discretization_points,
+                                                    -1, 2, -1))
         ->apply(lend(rhs), lend(u));
 
     print_solution(u0, u1, lend(u));

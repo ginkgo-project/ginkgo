@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_COMPONENTS_FORMAT_CONVERSION_CUH_
 
 
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 
 

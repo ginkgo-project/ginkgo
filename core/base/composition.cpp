@@ -33,50 +33,143 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/composition.hpp>
 
 
+#include <algorithm>
+#include <iterator>
+
+
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/fill_array.hpp"
+
+
 namespace gko {
-namespace {
+namespace composition {
 
 
-template <typename ValueType, typename OpIterator, typename VecIterator>
-inline void allocate_vectors(OpIterator begin, OpIterator end, VecIterator res)
-{
-    for (auto it = begin; it != end; ++it) {
-        if (*res == nullptr || (*res)->get_size()[0] != (*it)->get_size()[0]) {
-            *res = matrix::Dense<ValueType>::create(
-                (*it)->get_executor(), gko::dim<2>{(*it)->get_size()[0], 1});
-        }
-        ++res;
-    }
-}
+GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
-inline const LinOp *apply_inner_operators(
+}  // namespace composition
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> apply_inner_operators(
     const std::vector<std::shared_ptr<const LinOp>> &operators,
-    const std::vector<std::unique_ptr<LinOp>> &intermediate, const LinOp *rhs)
+    Array<ValueType> &storage, const LinOp *rhs)
 {
-    for (auto i = operators.size() - 1; i > 0u; --i) {
-        auto solution = lend(intermediate[i - 1]);
-        operators[i]->apply(rhs, solution);
-        rhs = solution;
+    using Dense = matrix::Dense<ValueType>;
+    // determine amount of necessary storage:
+    // maximum sum of two subsequent intermediate vectors
+    // (and the out dimension of the last op if we only have one operator)
+    auto num_rhs = rhs->get_size()[1];
+    auto max_intermediate_size = std::accumulate(
+        begin(operators) + 1, end(operators) - 1,
+        operators.back()->get_size()[0],
+        [](size_type acc, std::shared_ptr<const LinOp> op) {
+            return std::max(acc, op->get_size()[0] + op->get_size()[1]);
+        });
+    auto storage_size = max_intermediate_size * num_rhs;
+    storage.resize_and_reset(storage_size);
+
+    // apply inner vectors
+    auto exec = rhs->get_executor();
+    auto data = storage.get_data();
+    // apply last operator
+    auto op_size = operators.back()->get_size();
+    auto out_dim = gko::dim<2>{op_size[0], num_rhs};
+    auto out_size = out_dim[0] * num_rhs;
+    auto out = Dense::create(
+        exec, out_dim, Array<ValueType>::view(exec, out_size, data), num_rhs);
+    // for operators with initial guess: set initial guess
+    if (operators.back()->apply_uses_initial_guess()) {
+        if (op_size[0] == op_size[1]) {
+            // square matrix: we can use the previous output
+            exec->copy(out_size, as<Dense>(rhs)->get_const_values(),
+                       out->get_values());
+        } else {
+            // rectangular matrix: we can't do better than zeros
+            exec->run(composition::make_fill_array(out->get_values(), out_size,
+                                                   zero<ValueType>()));
+        }
     }
-    return rhs;
+    operators.back()->apply(rhs, lend(out));
+    // apply following operators
+    // alternate intermediate vectors between beginning/end of storage
+    auto reversed_storage = true;
+    for (auto i = operators.size() - 2; i > 0; --i) {
+        // swap in and out
+        auto in = std::move(out);
+        // build new intermediate vector
+        op_size = operators[i]->get_size();
+        out_dim[0] = op_size[0];
+        out_size = out_dim[0] * num_rhs;
+        auto out_data =
+            data + (reversed_storage ? storage_size - out_size : size_type{});
+        reversed_storage = !reversed_storage;
+        out = Dense::create(exec, out_dim,
+                            Array<ValueType>::view(exec, out_size, out_data),
+                            num_rhs);
+        // for operators with initial guess: set initial guess
+        if (operators[i]->apply_uses_initial_guess()) {
+            if (op_size[0] == op_size[1]) {
+                // square matrix: we can use the previous output
+                exec->copy(out_size, in->get_const_values(), out->get_values());
+            } else {
+                // rectangular matrix: we can't do better than zeros
+                exec->run(composition::make_fill_array(
+                    out->get_values(), out_size, zero<ValueType>()));
+            }
+        }
+        // apply operator
+        operators[i]->apply(lend(in), lend(out));
+    }
+
+    return std::move(out);
 }
 
 
-}  // namespace
+template <typename ValueType>
+std::unique_ptr<LinOp> Composition<ValueType>::transpose() const
+{
+    auto transposed = Composition<ValueType>::create(this->get_executor());
+    transposed->set_size(gko::transpose(this->get_size()));
+    // transpose and reverse operators
+    std::transform(this->get_operators().rbegin(), this->get_operators().rend(),
+                   std::back_inserter(transposed->operators_),
+                   [](const std::shared_ptr<const LinOp> &op) {
+                       return share(as<Transposable>(op)->transpose());
+                   });
+
+    return std::move(transposed);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Composition<ValueType>::conj_transpose() const
+{
+    auto transposed = Composition<ValueType>::create(this->get_executor());
+    transposed->set_size(gko::transpose(this->get_size()));
+    // conjugate-transpose and reverse operators
+    std::transform(this->get_operators().rbegin(), this->get_operators().rend(),
+                   std::back_inserter(transposed->operators_),
+                   [](const std::shared_ptr<const LinOp> &op) {
+                       return share(as<Transposable>(op)->conj_transpose());
+                   });
+
+    return std::move(transposed);
+}
 
 
 template <typename ValueType>
 void Composition<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
-    cache_.intermediate.resize(operators_.size() - 1);
-    allocate_vectors<ValueType>(begin(operators_) + 1, end(operators_),
-                                begin(cache_.intermediate));
-    operators_[0]->apply(
-        apply_inner_operators(operators_, cache_.intermediate, b), x);
+    if (operators_.size() > 1) {
+        operators_[0]->apply(
+            lend(apply_inner_operators(operators_, storage_, b)), x);
+    } else {
+        operators_[0]->apply(b, x);
+    }
 }
 
 
@@ -84,12 +177,13 @@ template <typename ValueType>
 void Composition<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
                                         const LinOp *beta, LinOp *x) const
 {
-    cache_.intermediate.resize(operators_.size() - 1);
-    allocate_vectors<ValueType>(begin(operators_) + 1, end(operators_),
-                                begin(cache_.intermediate));
-    operators_[0]->apply(
-        alpha, apply_inner_operators(operators_, cache_.intermediate, b), beta,
-        x);
+    if (operators_.size() > 1) {
+        operators_[0]->apply(
+            alpha, lend(apply_inner_operators(operators_, storage_, b)), beta,
+            x);
+    } else {
+        operators_[0]->apply(alpha, b, beta, x);
+    }
 }
 
 

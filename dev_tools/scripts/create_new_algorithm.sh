@@ -243,9 +243,9 @@ then
                     ## For most directories this works with something of the form:
                     ##target_sources(
                     ##     PRIVATE
-                    ##         <lib1>
-                    ##         ...
-                    ##         <libn>)
+                    ##     <lib1>
+                    ##     ...
+                    ##     <libn>)
                     ## For HIP:
                     ##set(GINKGO_HIP_SOURCES
                     ##    <lib1>
@@ -255,7 +255,7 @@ then
                     then
                         list=( $(awk '/^set\(GINKGO_HIP_SOURCES/,/    .*\)/ {if ( match($0, "GINKGO_HIP_SOURCES") == 0 ) { print $0 }}' $cmake_file) )
                     else
-                        list=( $(awk '/^target_sources/,/        .*\)/ {if ( match($0, "target_sources") == 0 && match($0, "PRIVATE") == 0 ) { print $0 }}' $cmake_file) )
+                        list=( $(awk '/^target_sources/,/    .*\)/ {if ( match($0, "target_sources") == 0 && match($0, "PRIVATE") == 0 ) { print $0 }}' $cmake_file) )
                     fi
 
                     last_elem=$((${#list[@]}-1))
@@ -274,18 +274,14 @@ then
                     else
                         insert_to=$(grep -n -m 1 "target_sources" $cmake_file | sed 's/:.*//')
                         insert_to=$((insert_to + 1)) # account for the "PRIVATE"
-                        awk '/^target_sources/,/        .*\)/ {if (match($0, "target_sources") != 0 || match($0, "PRIVATE") != 0){ print $0 }; next}1'  $cmake_file > tmp
+                        awk '/^target_sources/,/    .*\)/ {if (match($0, "target_sources") != 0 || match($0, "PRIVATE") != 0){ print $0 }; next}1'  $cmake_file > tmp
                     fi
 
                     mytmp=`mktemp`
                     head -n$insert_to tmp > $mytmp
                     for line in "${sorted[@]}"
                     do
-                        if [[ $cmake_file == *"hip/"* ]]; then
-                            echo "    $line" >> $mytmp
-                        else
-                            echo "        $line" >> $mytmp
-                        fi
+                        echo "    $line" >> $mytmp
                     done
                     tail -n +$((insert_to+1)) tmp >> $mytmp
                     mv $mytmp tmp

@@ -51,18 +51,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Utility function which gets the scalar value of a Ginkgo gko::matrix::Dense
 // matrix representing the norm of a vector.
 template <typename ValueType>
-double get_norm(const gko::matrix::Dense<ValueType> *norm)
+gko::remove_complex<ValueType> get_norm(
+    const gko::matrix::Dense<ValueType> *norm)
 {
     // Put the value on CPU thanks to the master executor
     auto cpu_norm = clone(norm->get_executor()->get_master(), norm);
     // Return the scalar value contained at position (0, 0)
-    return cpu_norm->at(0, 0);
+    return std::real(cpu_norm->at(0, 0));
 }
 
 // Utility function which computes the norm of a Ginkgo gko::matrix::Dense
 // vector.
 template <typename ValueType>
-double compute_norm(const gko::matrix::Dense<ValueType> *b)
+gko::remove_complex<ValueType> compute_norm(
+    const gko::matrix::Dense<ValueType> *b)
 {
     // Get the executor of the vector
     auto exec = b->get_executor();
@@ -83,10 +85,10 @@ struct ResidualLogger : gko::log::Logger {
     void write() const
     {
         // Print a header for the table
-        std::cout << "Recurrent vs real residual norm:" << std::endl;
+        std::cout << "Recurrent vs true residual norm:" << std::endl;
         std::cout << '|' << std::setw(10) << "Iteration" << '|' << std::setw(25)
                   << "Recurrent Residual Norm" << '|' << std::setw(25)
-                  << "Real Residual Norm" << '|' << std::endl;
+                  << "True Residual Norm" << '|' << std::endl;
         // Print a separation line. Note that for creating `10` characters
         // `std::setw()` should be set to `11`.
         std::cout << '|' << std::setfill('-') << std::setw(11) << '|'
@@ -188,14 +190,16 @@ int main(int argc, char *argv[])
     // with one column/one row. The advantage of this concept is that using
     // multiple vectors is a now a natural extension of adding columns/rows are
     // necessary.
-    using vec = gko::matrix::Dense<>;
+    using ValueType = double;
+    using IndexType = int;
+    using vec = gko::matrix::Dense<ValueType>;
     // The gko::matrix::Csr class is used here, but any other matrix class such
     // as gko::matrix::Coo, gko::matrix::Hybrid, gko::matrix::Ell or
     // gko::matrix::Sellp could also be used.
-    using mtx = gko::matrix::Csr<>;
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
     // The gko::solver::Cg is used here, but any other solver class can also be
     // used.
-    using cg = gko::solver::Cg<>;
+    using cg = gko::solver::Cg<ValueType>;
 
     // Print the ginkgo version information.
     std::cout << gko::version_info::get() << std::endl;
@@ -217,7 +221,7 @@ int main(int argc, char *argv[])
         exec = gko::OmpExecutor::create();
     } else if (argc == 2 && std::string(argv[1]) == "cuda" &&
                gko::CudaExecutor::get_num_devices() > 0) {
-        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
     } else if (argc == 2 && std::string(argv[1]) == "hip" &&
                gko::HipExecutor::get_num_devices() > 0) {
         exec = gko::HipExecutor::create(0, gko::OmpExecutor::create());
@@ -237,6 +241,7 @@ int main(int argc, char *argv[])
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
+    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
 
     // @sect3{Creating the solver}
     // Generate the gko::solver factory. Ginkgo uses the concept of Factories to
@@ -251,14 +256,14 @@ int main(int argc, char *argv[])
         cg::build()
             .with_criteria(
                 gko::stop::Iteration::build().with_max_iters(20u).on(exec),
-                gko::stop::ResidualNormReduction<>::build()
-                    .with_reduction_factor(1e-15)
+                gko::stop::ResidualNormReduction<ValueType>::build()
+                    .with_reduction_factor(reduction_factor)
                     .on(exec))
             .on(exec);
 
     // Instantiate a ResidualLogger logger.
-    auto logger = std::make_shared<ResidualLogger<double>>(exec, gko::lend(A),
-                                                           gko::lend(b));
+    auto logger = std::make_shared<ResidualLogger<ValueType>>(
+        exec, gko::lend(A), gko::lend(b));
 
     // Add the previously created logger to the solver factory. The logger will
     // be automatically propagated to all solvers created from this factory.

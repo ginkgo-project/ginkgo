@@ -187,6 +187,48 @@ TYPED_TEST(Sellp, ApplyFailsOnWrongNumberOfCols)
 }
 
 
+TYPED_TEST(Sellp, ConvertsToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Sellp = typename TestFixture::Mtx;
+    using OtherSellp = gko::matrix::Sellp<OtherType, IndexType>;
+    auto tmp = OtherSellp::create(this->exec);
+    auto res = Sellp::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    this->mtx1->convert_to(tmp.get());
+    tmp->convert_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx1, res, residual);
+}
+
+
+TYPED_TEST(Sellp, MovesToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Sellp = typename TestFixture::Mtx;
+    using OtherSellp = gko::matrix::Sellp<OtherType, IndexType>;
+    auto tmp = OtherSellp::create(this->exec);
+    auto res = Sellp::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    this->mtx1->move_to(tmp.get());
+    tmp->move_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx1, res, residual);
+}
+
+
 TYPED_TEST(Sellp, ConvertsToDense)
 {
     using Vec = typename TestFixture::Vec;
@@ -234,8 +276,8 @@ TYPED_TEST(Sellp, ConvertsToCsr)
                            {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
     GKO_ASSERT_MTX_NEAR(csr_mtx_c.get(), csr_mtx_m.get(), 0.0);
-    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
-    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
+    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
+    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
 }
 
 
@@ -257,8 +299,110 @@ TYPED_TEST(Sellp, MovesToCsr)
                            {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
     GKO_ASSERT_MTX_NEAR(csr_mtx_c.get(), csr_mtx_m.get(), 0.0);
-    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
-    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
+    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
+    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
+}
+
+
+TYPED_TEST(Sellp, ConvertsEmptyToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Sellp = typename TestFixture::Mtx;
+    using OtherSellp = gko::matrix::Sellp<OtherType, IndexType>;
+    auto empty = OtherSellp::create(this->exec);
+    empty->get_slice_sets()[0] = 0;
+    auto res = Sellp::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_slice_sets(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Sellp, MovesEmptyToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Sellp = typename TestFixture::Mtx;
+    using OtherSellp = gko::matrix::Sellp<OtherType, IndexType>;
+    auto empty = OtherSellp::create(this->exec);
+    empty->get_slice_sets()[0] = 0;
+    auto res = Sellp::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_slice_sets(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Sellp, ConvertsEmptyToDense)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Sellp = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<ValueType>;
+    auto empty = Sellp::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Sellp, MovesEmptyToDense)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Sellp = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<ValueType>;
+    auto empty = Sellp::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Sellp, ConvertsEmptyToCsr)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Sellp = typename TestFixture::Mtx;
+    using Csr = gko::matrix::Csr<ValueType, IndexType>;
+    auto empty = Sellp::create(this->exec);
+    auto res = Csr::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Sellp, MovesEmptyToCsr)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Sellp = typename TestFixture::Mtx;
+    using Csr = gko::matrix::Csr<ValueType, IndexType>;
+    auto empty = Sellp::create(this->exec);
+    auto res = Csr::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
 }
 
 

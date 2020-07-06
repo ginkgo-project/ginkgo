@@ -182,13 +182,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
 template <typename ValueType>
 void compute_norm2(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Dense<ValueType> *x,
-                   matrix::Dense<ValueType> *result)
+                   matrix::Dense<remove_complex<ValueType>> *result)
 {
-    compute_dot(exec, x, x, result);
-    for (size_type i = 0; i < result->get_size()[0]; ++i) {
-        for (size_type j = 0; j < result->get_size()[1]; ++j) {
-            result->at(i, j) = sqrt(abs(result->at(i, j)));
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+        result->at(0, j) = zero<remove_complex<ValueType>>();
+    }
+    for (size_type i = 0; i < x->get_size()[0]; ++i) {
+        for (size_type j = 0; j < x->get_size()[1]; ++j) {
+            result->at(0, j) += squared_norm(x->at(i, j));
         }
+    }
+    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+        result->at(0, j) = sqrt(result->at(0, j));
     }
 }
 
@@ -408,8 +413,11 @@ void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
     }
-    slice_sets[slice_num] =
-        slice_sets[slice_num - 1] + slice_lengths[slice_num - 1];
+
+    if (slice_num > 0) {
+        slice_sets[slice_num] =
+            slice_sets[slice_num - 1] + slice_lengths[slice_num - 1];
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

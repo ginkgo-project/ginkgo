@@ -34,10 +34,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_BASE_TYPES_HIP_HPP_
 
 
+#include <ginkgo/core/base/types.hpp>
+
+
 #include <hip/hip_complex.h>
+#include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
 #include <hipblas.h>
 #include <thrust/complex.h>
+
+
+#include <ginkgo/core/base/std_extensions.hpp>
 
 
 namespace gko {

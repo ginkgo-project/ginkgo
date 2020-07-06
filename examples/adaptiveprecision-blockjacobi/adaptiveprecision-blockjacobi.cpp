@@ -61,10 +61,10 @@ int main(int argc, char *argv[])
         exec = gko::OmpExecutor::create();
     } else if (argc == 2 && std::string(argv[1]) == "cuda" &&
                gko::CudaExecutor::get_num_devices() > 0) {
-        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
     } else if (argc == 2 && std::string(argv[1]) == "hip" &&
                gko::HipExecutor::get_num_devices() > 0) {
-        exec = gko::HipExecutor::create(0, gko::OmpExecutor::create());
+        exec = gko::HipExecutor::create(0, gko::OmpExecutor::create(), true);
     } else {
         std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
         std::exit(-1);
@@ -74,13 +74,12 @@ int main(int argc, char *argv[])
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     // Create RHS and initial guess as 1
     gko::size_type size = A->get_size()[0];
-    auto host_x = gko::matrix::Dense<ValueType>::create(exec->get_master(),
-                                                        gko::dim<2>(size, 1));
+    auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));
     for (auto i = 0; i < size; i++) {
         host_x->at(i, 0) = 1.;
     }
-    auto x = gko::matrix::Dense<>::create(exec);
-    auto b = gko::matrix::Dense<>::create(exec);
+    auto x = vec::create(exec);
+    auto b = vec::create(exec);
     x->copy_from(host_x.get());
     b->copy_from(host_x.get());
 
@@ -93,11 +92,11 @@ int main(int argc, char *argv[])
 
     // copy b again
     b->copy_from(host_x.get());
-
+    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
     auto iter_stop =
         gko::stop::Iteration::build().with_max_iters(10000u).on(exec);
     auto tol_stop = gko::stop::ResidualNormReduction<ValueType>::build()
-                        .with_reduction_factor(static_cast<ValueType>(1e-12))
+                        .with_reduction_factor(reduction_factor)
                         .on(exec);
 
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =

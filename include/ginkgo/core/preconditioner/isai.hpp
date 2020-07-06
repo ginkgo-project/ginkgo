@@ -94,13 +94,20 @@ enum struct isai_type { lower, upper };
  * @ingroup LinOp
  */
 template <isai_type IsaiType, typename ValueType, typename IndexType>
-class Isai : public EnableLinOp<Isai<IsaiType, ValueType, IndexType>> {
+class Isai : public EnableLinOp<Isai<IsaiType, ValueType, IndexType>>,
+             public Transposable {
     friend class EnableLinOp<Isai>;
     friend class EnablePolymorphicObject<Isai, LinOp>;
+    friend class Isai<IsaiType == isai_type::lower ? isai_type::upper
+                                                   : isai_type::lower,
+                      ValueType, IndexType>;
 
 public:
     using value_type = ValueType;
     using index_type = IndexType;
+    using transposed_type =
+        Isai<IsaiType == isai_type::lower ? isai_type::upper : isai_type::lower,
+             ValueType, IndexType>;
     using Csr = matrix::Csr<ValueType, IndexType>;
     static constexpr isai_type type{IsaiType};
 
@@ -141,6 +148,10 @@ public:
     GKO_ENABLE_LIN_OP_FACTORY(Isai, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
+
 protected:
     explicit Isai(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Isai>(std::move(exec))
@@ -160,11 +171,7 @@ protected:
     {
         const auto skip_sorting = parameters_.skip_sorting;
         const auto power = parameters_.sparsity_power;
-        if (IsaiType == isai_type::lower) {
-            generate_l_inverse(system_matrix, skip_sorting, power);
-        } else {
-            generate_u_inverse(system_matrix, skip_sorting, power);
-        }
+        generate_inverse(system_matrix, skip_sorting, power);
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override
@@ -180,30 +187,17 @@ protected:
 
 private:
     /**
-     * Generates the approximate inverse for a lower triangular matrix and
+     * Generates the approximate inverse for a triangular matrix and
      * stores the result in `approximate_inverse_`.
      *
-     * @param to_invert_l  the source lower triangular matrix used to generate
+     * @param to_invert  the source triangular matrix used to generate
      *                     the approximate inverse
      *
      * @param skip_sorting  dictates if the sorting of the input matrix should
      *                      be skipped.
      */
-    void generate_l_inverse(std::shared_ptr<const LinOp> to_invert_l,
-                            bool skip_sorting, int power);
-
-    /**
-     * Generates the approximate inverse for an upper triangular matrix and
-     * stores the result in `approximate_inverse_`.
-     *
-     * @param to_invert_u  the source upper triangular matrix used to generate
-     *                     the approximate inverse
-     *
-     * @param skip_sorting  dictates if the sorting of the input matrix should
-     *                      be skipped.
-     */
-    void generate_u_inverse(std::shared_ptr<const LinOp> to_invert_u,
-                            bool skip_sorting, int power);
+    void generate_inverse(std::shared_ptr<const LinOp> to_invert,
+                          bool skip_sorting, int power);
 
 private:
     std::shared_ptr<Csr> approximate_inverse_;

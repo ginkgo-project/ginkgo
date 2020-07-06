@@ -89,9 +89,7 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const CudaExecutor> exec,
     reduce_add_array<<<1, default_block_size>>>(
         grid_dim, as_cuda_type(block_results_val),
         as_cuda_type(d_result.get_data()));
-    ValueType answer = zero<ValueType>();
-    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
-                                  &answer);
+    auto answer = exec->copy_val_to_host(d_result.get_const_data());
     return answer;
 }
 

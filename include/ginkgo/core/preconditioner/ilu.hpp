@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/upper_trs.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 
 
 namespace gko {
@@ -111,7 +111,8 @@ template <typename LSolverType = solver::LowerTrs<>,
           typename USolverType = solver::UpperTrs<>, bool ReverseApply = false,
           typename IndexType = int32>
 class Ilu : public EnableLinOp<
-                Ilu<LSolverType, USolverType, ReverseApply, IndexType>> {
+                Ilu<LSolverType, USolverType, ReverseApply, IndexType>>,
+            public Transposable {
     friend class EnableLinOp<Ilu>;
     friend class EnablePolymorphicObject<Ilu, LinOp>;
 
@@ -125,6 +126,9 @@ public:
     using u_solver_type = USolverType;
     static constexpr bool performs_reverse_apply = ReverseApply;
     using index_type = IndexType;
+    using transposed_type =
+        Ilu<typename USolverType::transposed_type,
+            typename LSolverType::transposed_type, ReverseApply, IndexType>;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -168,6 +172,36 @@ public:
     std::shared_ptr<const u_solver_type> get_u_solver() const
     {
         return u_solver_;
+    }
+
+    std::unique_ptr<LinOp> transpose() const override
+    {
+        std::unique_ptr<transposed_type> transposed{
+            new transposed_type{this->get_executor()}};
+        transposed->set_size(gko::transpose(this->get_size()));
+        transposed->l_solver_ =
+            share(as<typename u_solver_type::transposed_type>(
+                this->get_u_solver()->transpose()));
+        transposed->u_solver_ =
+            share(as<typename l_solver_type::transposed_type>(
+                this->get_l_solver()->transpose()));
+
+        return std::move(transposed);
+    }
+
+    std::unique_ptr<LinOp> conj_transpose() const override
+    {
+        std::unique_ptr<transposed_type> transposed{
+            new transposed_type{this->get_executor()}};
+        transposed->set_size(gko::transpose(this->get_size()));
+        transposed->l_solver_ =
+            share(as<typename u_solver_type::transposed_type>(
+                this->get_u_solver()->conj_transpose()));
+        transposed->u_solver_ =
+            share(as<typename l_solver_type::transposed_type>(
+                this->get_l_solver()->conj_transpose()));
+
+        return std::move(transposed);
     }
 
 protected:

@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
 
@@ -315,6 +315,36 @@ TYPED_TEST(Bicgstab, SolvesMultipleDenseSystemsDivergenceCheck)
     // Not sure if this is necessary, the assertions above should cover what is
     // needed.
     GKO_ASSERT_MTX_NEAR(xc, testMtx, r<value_type>::value);
+}
+
+
+TYPED_TEST(Bicgstab, SolvesTransposedDenseSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto half_tol = std::sqrt(r<value_type>::value);
+    auto solver = this->bicgstab_factory->generate(this->mtx->transpose());
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->transpose()->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), half_tol);
+}
+
+
+TYPED_TEST(Bicgstab, SolvesConjTransposedDenseSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto half_tol = std::sqrt(r<value_type>::value);
+    auto solver = this->bicgstab_factory->generate(this->mtx->conj_transpose());
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->conj_transpose()->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({-4.0, -1.0, 4.0}), half_tol);
 }
 
 

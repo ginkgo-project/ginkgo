@@ -53,6 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/base/iterator_factory.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_builder.hpp"
+#include "omp/components/csr_spgeam.hpp"
 #include "omp/components/format_conversion.hpp"
 
 
@@ -224,7 +225,7 @@ void spgemm(std::shared_ptr<const OmpExecutor> exec,
     }
 
     // build row pointers
-    prefix_sum(exec, c_row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
 
     // second sweep: accumulate non-zeros
     auto new_nnz = c_row_ptrs[num_rows];
@@ -274,17 +275,13 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for firstprivate(local_col_idxs)
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_col_idxs.clear();
-        if (vbeta != zero(vbeta)) {
-            spgemm_insert_row(local_col_idxs, d, a_row);
-        }
-        if (valpha != zero(valpha)) {
-            spgemm_insert_row2(local_col_idxs, a, b, a_row);
-        }
+        spgemm_insert_row(local_col_idxs, d, a_row);
+        spgemm_insert_row2(local_col_idxs, a, b, a_row);
         c_row_ptrs[a_row] = local_col_idxs.size();
     }
 
     // build row pointers
-    prefix_sum(exec, c_row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
 
     // second sweep: accumulate non-zeros
     auto new_nnz = c_row_ptrs[num_rows];
@@ -300,12 +297,8 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for firstprivate(local_row_nzs)
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_row_nzs.clear();
-        if (vbeta != zero(vbeta)) {
-            spgemm_accumulate_row(local_row_nzs, d, vbeta, a_row);
-        }
-        if (valpha != zero(valpha)) {
-            spgemm_accumulate_row2(local_row_nzs, a, b, valpha, a_row);
-        }
+        spgemm_accumulate_row(local_row_nzs, d, vbeta, a_row);
+        spgemm_accumulate_row2(local_row_nzs, a, b, valpha, a_row);
         // store result
         auto c_nz = c_row_ptrs[a_row];
         for (auto pair : local_row_nzs) {
@@ -318,6 +311,55 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void spgeam(std::shared_ptr<const OmpExecutor> exec,
+            const matrix::Dense<ValueType> *alpha,
+            const matrix::Csr<ValueType, IndexType> *a,
+            const matrix::Dense<ValueType> *beta,
+            const matrix::Csr<ValueType, IndexType> *b,
+            matrix::Csr<ValueType, IndexType> *c)
+{
+    auto num_rows = a->get_size()[0];
+    auto valpha = alpha->at(0, 0);
+    auto vbeta = beta->at(0, 0);
+
+    // first sweep: count nnz for each row
+    auto c_row_ptrs = c->get_row_ptrs();
+
+    abstract_spgeam(
+        a, b, [](IndexType) { return IndexType{}; },
+        [](IndexType, IndexType, ValueType, ValueType, IndexType &nnz) {
+            ++nnz;
+        },
+        [&](IndexType row, IndexType nnz) { c_row_ptrs[row] = nnz; });
+
+    // build row pointers
+    components::prefix_sum(exec, c_row_ptrs, num_rows + 1);
+
+    // second sweep: accumulate non-zeros
+    auto new_nnz = c_row_ptrs[num_rows];
+    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+    auto &c_col_idxs_array = c_builder.get_col_idx_array();
+    auto &c_vals_array = c_builder.get_value_array();
+    c_col_idxs_array.resize_and_reset(new_nnz);
+    c_vals_array.resize_and_reset(new_nnz);
+    auto c_col_idxs = c_col_idxs_array.get_data();
+    auto c_vals = c_vals_array.get_data();
+
+    abstract_spgeam(
+        a, b, [&](IndexType row) { return c_row_ptrs[row]; },
+        [&](IndexType, IndexType col, ValueType a_val, ValueType b_val,
+            IndexType &nz) {
+            c_vals[nz] = valpha * a_val + vbeta * b_val;
+            c_col_idxs[nz] = col;
+            ++nz;
+        },
+        [](IndexType, IndexType) {});
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 
 template <typename IndexType>
@@ -357,12 +399,11 @@ void convert_to_dense(std::shared_ptr<const OmpExecutor> exec,
     auto col_idxs = source->get_const_col_idxs();
     auto vals = source->get_const_values();
 
-    for (size_type row = 0; row < num_rows; ++row) {
 #pragma omp parallel for
+    for (size_type row = 0; row < num_rows; ++row) {
         for (size_type col = 0; col < num_cols; ++col) {
             result->at(row, col) = zero<ValueType>();
         }
-#pragma omp parallel for
         for (size_type i = row_ptrs[row];
              i < static_cast<size_type>(row_ptrs[row + 1]); ++i) {
             result->at(row, col_idxs[i]) = vals[i];
@@ -394,7 +435,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL);
 
 
-template <typename IndexType, typename ValueType, typename UnaryOperator>
+template <typename ValueType, typename IndexType, typename UnaryOperator>
 inline void convert_csr_to_csc(size_type num_rows, const IndexType *row_ptrs,
                                const IndexType *col_idxs,
                                const ValueType *csr_vals, IndexType *row_idxs,

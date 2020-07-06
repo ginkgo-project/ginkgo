@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
@@ -57,7 +58,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/format_conversion.hip.hpp"
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
-#include "hip/components/zero_array.hip.hpp"
 
 
 namespace gko {
@@ -214,7 +214,8 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
      */
     const int info = (!atomic) * num_thread_per_worker;
     if (atomic) {
-        zero_array(c->get_num_stored_elements(), c->get_values());
+        components::fill_array(exec, c->get_values(),
+                               c->get_num_stored_elements(), zero<ValueType>());
     }
     select_abstract_spmv(
         compiled_kernels(),
@@ -317,7 +318,7 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
     size_type grid_dim = ceildiv(num_rows + 1, default_block_size);
     auto add_values = Array<IndexType>(exec, grid_dim);
 
-    prefix_sum(exec, row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, row_ptrs, num_rows + 1);
 
     hipLaunchKernelGGL(
         kernel::fill_in_csr, dim3(grid_dim), dim3(default_block_size), 0, 0,

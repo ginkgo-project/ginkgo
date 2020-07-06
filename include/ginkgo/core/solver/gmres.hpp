@@ -69,12 +69,15 @@ constexpr size_type default_krylov_dim = 100u;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Gmres : public EnableLinOp<Gmres<ValueType>>, public Preconditionable {
+class Gmres : public EnableLinOp<Gmres<ValueType>>,
+              public Preconditionable,
+              public Transposable {
     friend class EnableLinOp<Gmres>;
     friend class EnablePolymorphicObject<Gmres, LinOp>;
 
 public:
     using value_type = ValueType;
+    using transposed_type = Gmres<ValueType>;
 
     /**
      * Gets the system operator (matrix) of the linear system.
@@ -86,12 +89,52 @@ public:
         return system_matrix_;
     }
 
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
+
     /**
-     * Returns the krylov dimension.
+     * Return true as iterative solvers use the data in x as an initial guess.
+     *
+     * @return true as iterative solvers use the data in x as an initial guess.
+     */
+    bool apply_uses_initial_guess() const override { return true; }
+
+    /**
+     * Gets the krylov dimension of the solver
      *
      * @return the krylov dimension
      */
     size_type get_krylov_dim() const { return krylov_dim_; }
+
+    /**
+     * Sets the krylov dimension
+     *
+     * @param other  the new krylov dimension
+     */
+    void set_krylov_dim(const size_type &other) { krylov_dim_ = other; }
+
+    /**
+     * Gets the stopping criterion factory of the solver.
+     *
+     * @return the stopping criterion factory
+     */
+    std::shared_ptr<const stop::CriterionFactory> get_stop_criterion_factory()
+        const
+    {
+        return stop_criterion_factory_;
+    }
+
+    /**
+     * Sets the stopping criterion of the solver.
+     *
+     * @param other  the new stopping criterion factory
+     */
+    void set_stop_criterion_factory(
+        std::shared_ptr<const stop::CriterionFactory> other)
+    {
+        stop_criterion_factory_ = std::move(other);
+    }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -135,7 +178,7 @@ protected:
     explicit Gmres(const Factory *factory,
                    std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Gmres>(factory->get_executor(),
-                             transpose(system_matrix->get_size())),
+                             gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {

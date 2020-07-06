@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -166,6 +166,12 @@ TYPED_TEST(Cg, CanBeCleared)
 }
 
 
+TYPED_TEST(Cg, ApplyUsesInitialGuessReturnsTrue)
+{
+    ASSERT_TRUE(this->solver->apply_uses_initial_guess());
+}
+
+
 TYPED_TEST(Cg, CanSetPreconditionerGenerator)
 {
     using Solver = typename TestFixture::Solver;
@@ -178,7 +184,12 @@ TYPED_TEST(Cg, CanSetPreconditionerGenerator)
                     .with_reduction_factor(
                         gko::remove_complex<value_type>(1e-6))
                     .on(this->exec))
-            .with_preconditioner(Solver::build().on(this->exec))
+            .with_preconditioner(
+                Solver::build()
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(3u).on(
+                            this->exec))
+                    .on(this->exec))
             .on(this->exec);
     auto solver = cg_factory->generate(this->mtx);
     auto precond = dynamic_cast<const gko::solver::Cg<value_type> *>(
@@ -213,6 +224,30 @@ TYPED_TEST(Cg, CanSetPreconditionerInFactory)
 
     ASSERT_NE(precond.get(), nullptr);
     ASSERT_EQ(precond.get(), cg_precond.get());
+}
+
+
+TYPED_TEST(Cg, CanSetCriteriaAgain)
+{
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<gko::stop::CriterionFactory> init_crit =
+        gko::stop::Iteration::build().with_max_iters(3u).on(this->exec);
+    auto cg_factory = Solver::build().with_criteria(init_crit).on(this->exec);
+
+    ASSERT_EQ((cg_factory->get_parameters().criteria).back(), init_crit);
+
+    auto solver = cg_factory->generate(this->mtx);
+    std::shared_ptr<gko::stop::CriterionFactory> new_crit =
+        gko::stop::Iteration::build().with_max_iters(5u).on(this->exec);
+
+    solver->set_stop_criterion_factory(new_crit);
+    auto new_crit_fac = solver->get_stop_criterion_factory();
+    auto niter =
+        static_cast<const gko::stop::Iteration::Factory *>(new_crit_fac.get())
+            ->get_parameters()
+            .max_iters;
+
+    ASSERT_EQ(niter, 5);
 }
 
 

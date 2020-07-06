@@ -49,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -66,7 +67,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/segment_scan.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
 #include "hip/components/uninitialized_array.hip.hpp"
-#include "hip/components/zero_array.hip.hpp"
 
 
 namespace gko {
@@ -181,8 +181,8 @@ int compute_items_per_thread(std::shared_ptr<const HipExecutor> exec)
 #if GINKGO_HIP_PLATFORM_NVCC
 
 
-    const int version = exec->get_major_version()
-                        << 4 + exec->get_minor_version();
+    const int version =
+        (exec->get_major_version() << 4) + exec->get_minor_version();
     // The num_item is decided to make the occupancy 100%
     // TODO: Extend this list when new GPU is released
     //       Tune this parameter
@@ -283,7 +283,8 @@ void spmv(std::shared_ptr<const HipExecutor> exec,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
     if (a->get_strategy()->get_name() == "load_balance") {
-        zero_array(c->get_num_stored_elements(), c->get_values());
+        components::fill_array(exec, c->get_values(),
+                               c->get_num_stored_elements(), zero<ValueType>());
         const IndexType nwarps = a->get_num_srow_elements();
         if (nwarps > 0) {
             const dim3 csr_block(config::warp_size, warps_in_block, 1);
@@ -535,9 +536,9 @@ namespace {
 
 template <int subwarp_size, typename ValueType, typename IndexType>
 void spgeam(syn::value_list<int, subwarp_size>,
-            std::shared_ptr<const HipExecutor> exec, ValueType alpha,
+            std::shared_ptr<const HipExecutor> exec, const ValueType *alpha,
             const IndexType *a_row_ptrs, const IndexType *a_col_idxs,
-            const ValueType *a_vals, ValueType beta,
+            const ValueType *a_vals, const ValueType *beta,
             const IndexType *b_row_ptrs, const IndexType *b_col_idxs,
             const ValueType *b_vals, matrix::Csr<ValueType, IndexType> *c)
 {
@@ -552,12 +553,11 @@ void spgeam(syn::value_list<int, subwarp_size>,
                        c_row_ptrs);
 
     // build row pointers
-    prefix_sum(exec, c_row_ptrs, m + 1);
+    components::prefix_sum(exec, c_row_ptrs, m + 1);
 
     // accumulate non-zeros for alpha * A + beta * B
     matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    IndexType c_nnz{};
-    exec->get_master()->copy_from(exec.get(), 1, c_row_ptrs + m, &c_nnz);
+    auto c_nnz = exec->copy_val_to_host(c_row_ptrs + m);
     c_builder.get_col_idx_array().resize_and_reset(c_nnz);
     c_builder.get_value_array().resize_and_reset(c_nnz);
     auto c_col_idxs = c->get_col_idxs();
@@ -569,7 +569,6 @@ void spgeam(syn::value_list<int, subwarp_size>,
                        b_col_idxs, as_hip_type(b_vals), m, c_row_ptrs,
                        c_col_idxs, as_hip_type(c_vals));
 }
-
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_spgeam, spgeam);
 
@@ -650,22 +649,18 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
         hipsparse::destroy(b_descr);
         hipsparse::destroy(a_descr);
 
-        ValueType valpha{};
-        ValueType vbeta{};
-        exec->get_master()->copy_from(exec.get(), 1, alpha->get_const_values(),
-                                      &valpha);
-        exec->get_master()->copy_from(exec.get(), 1, beta->get_const_values(),
-                                      &vbeta);
         auto total_nnz = c_nnz + d->get_num_stored_elements();
         auto nnz_per_row = total_nnz / m;
-        select_spgeam(spgeam_kernels(),
-                      [&](int compiled_subwarp_size) {
-                          return compiled_subwarp_size >= nnz_per_row ||
-                                 compiled_subwarp_size == config::warp_size;
-                      },
-                      syn::value_list<int>(), syn::type_list<>(), exec, valpha,
-                      c_tmp_row_ptrs, c_tmp_col_idxs, c_tmp_vals, vbeta,
-                      d_row_ptrs, d_col_idxs, d_vals, c);
+        select_spgeam(
+            spgeam_kernels(),
+            [&](int compiled_subwarp_size) {
+                return compiled_subwarp_size >= nnz_per_row ||
+                       compiled_subwarp_size == config::warp_size;
+            },
+            syn::value_list<int>(), syn::type_list<>(), exec,
+            alpha->get_const_values(), c_tmp_row_ptrs, c_tmp_col_idxs,
+            c_tmp_vals, beta->get_const_values(), d_row_ptrs, d_col_idxs,
+            d_vals, c);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -673,6 +668,33 @@ void advanced_spgemm(std::shared_ptr<const HipExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void spgeam(std::shared_ptr<const DefaultExecutor> exec,
+            const matrix::Dense<ValueType> *alpha,
+            const matrix::Csr<ValueType, IndexType> *a,
+            const matrix::Dense<ValueType> *beta,
+            const matrix::Csr<ValueType, IndexType> *b,
+            matrix::Csr<ValueType, IndexType> *c)
+{
+    auto total_nnz =
+        a->get_num_stored_elements() + b->get_num_stored_elements();
+    auto nnz_per_row = total_nnz / a->get_size()[0];
+    select_spgeam(
+        spgeam_kernels(),
+        [&](int compiled_subwarp_size) {
+            return compiled_subwarp_size >= nnz_per_row ||
+                   compiled_subwarp_size == config::warp_size;
+        },
+        syn::value_list<int>(), syn::type_list<>(), exec,
+        alpha->get_const_values(), a->get_const_row_ptrs(),
+        a->get_const_col_idxs(), a->get_const_values(),
+        beta->get_const_values(), b->get_const_row_ptrs(),
+        b->get_const_col_idxs(), b->get_const_values(), c);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 
 template <typename IndexType>
@@ -776,7 +798,7 @@ void convert_to_sellp(std::shared_ptr<const HipExecutor> exec,
                        stride_factor, as_hip_type(nnz_per_row.get_const_data()),
                        as_hip_type(slice_lengths), as_hip_type(slice_sets));
 
-    prefix_sum(exec, slice_sets, slice_num + 1);
+    components::prefix_sum(exec, slice_sets, slice_num + 1);
 
     grid_dim = ceildiv(num_rows, default_block_size);
     hipLaunchKernelGGL(kernel::fill_in_sellp, dim3(grid_dim),
@@ -870,8 +892,7 @@ void calculate_total_cols(std::shared_ptr<const HipExecutor> exec,
                        as_hip_type(block_results.get_const_data()),
                        as_hip_type(d_result.get_data()));
 
-    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
-                                  result);
+    *result = exec->copy_val_to_host(d_result.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1006,8 +1027,7 @@ void calculate_max_nnz_per_row(std::shared_ptr<const HipExecutor> exec,
                        as_hip_type(block_results.get_const_data()),
                        as_hip_type(d_result.get_data()));
 
-    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
-                                  result);
+    *result = exec->copy_val_to_host(d_result.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1042,7 +1062,7 @@ void convert_to_hybrid(std::shared_ptr<const HipExecutor> exec,
                        as_hip_type(source->get_const_row_ptrs()),
                        as_hip_type(coo_offset.get_data()));
 
-    prefix_sum(exec, coo_offset.get_data(), num_rows);
+    components::prefix_sum(exec, coo_offset.get_data(), num_rows);
 
     grid_dim = ceildiv(num_rows * config::warp_size, default_block_size);
     hipLaunchKernelGGL(kernel::fill_in_hybrid, dim3(grid_dim),
@@ -1094,7 +1114,7 @@ void sort_by_column_index(std::shared_ptr<const HipExecutor> exec,
 
         // copy values
         Array<ValueType> tmp_vals_array(exec, nnz);
-        exec->copy_from(exec.get(), nnz, vals, tmp_vals_array.get_data());
+        exec->copy(nnz, vals, tmp_vals_array.get_data());
         auto tmp_vals = tmp_vals_array.get_const_data();
 
         // init identity permutation

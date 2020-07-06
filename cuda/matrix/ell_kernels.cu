@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
@@ -54,7 +55,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/format_conversion.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/thread_ids.cuh"
-#include "cuda/components/zero_array.hpp"
 
 
 namespace gko {
@@ -211,7 +211,8 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
      */
     const int info = (!atomic) * num_thread_per_worker;
     if (atomic) {
-        zero_array(c->get_num_stored_elements(), c->get_values());
+        components::fill_array(exec, c->get_values(),
+                               c->get_num_stored_elements(), zero<ValueType>());
     }
     select_abstract_spmv(
         compiled_kernels(),
@@ -308,7 +309,7 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
         num_rows, max_nnz_per_row, stride,
         as_cuda_type(source->get_const_values()), as_cuda_type(row_ptrs));
 
-    prefix_sum(exec, row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, row_ptrs, num_rows + 1);
 
     size_type grid_dim = ceildiv(num_rows, default_block_size);
 

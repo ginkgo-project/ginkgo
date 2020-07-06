@@ -43,7 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 
 
 #include "core/test/utils.hpp"
@@ -165,6 +165,12 @@ TYPED_TEST(Ir, CanBeCleared)
 }
 
 
+TYPED_TEST(Ir, ApplyUsesInitialGuessReturnsTrue)
+{
+    ASSERT_TRUE(this->solver->apply_uses_initial_guess());
+}
+
+
 TYPED_TEST(Ir, CanSetInnerSolverInFactory)
 {
     using Solver = typename TestFixture::Solver;
@@ -176,7 +182,12 @@ TYPED_TEST(Ir, CanSetInnerSolverInFactory)
                 gko::stop::ResidualNormReduction<value_type>::build()
                     .with_reduction_factor(r<value_type>::value)
                     .on(this->exec))
-            .with_solver(Solver::build().on(this->exec))
+            .with_solver(
+                Solver::build()
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(3u).on(
+                            this->exec))
+                    .on(this->exec))
             .on(this->exec);
     auto solver = ir_factory->generate(this->mtx);
     auto inner_solver = dynamic_cast<const Solver *>(
@@ -209,6 +220,30 @@ TYPED_TEST(Ir, CanSetGeneratedInnerSolverInFactory)
 
     ASSERT_NE(inner_solver.get(), nullptr);
     ASSERT_EQ(inner_solver.get(), ir_solver.get());
+}
+
+
+TYPED_TEST(Ir, CanSetCriteriaAgain)
+{
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<gko::stop::CriterionFactory> init_crit =
+        gko::stop::Iteration::build().with_max_iters(3u).on(this->exec);
+    auto ir_factory = Solver::build().with_criteria(init_crit).on(this->exec);
+
+    ASSERT_EQ((ir_factory->get_parameters().criteria).back(), init_crit);
+
+    auto solver = ir_factory->generate(this->mtx);
+    std::shared_ptr<gko::stop::CriterionFactory> new_crit =
+        gko::stop::Iteration::build().with_max_iters(5u).on(this->exec);
+
+    solver->set_stop_criterion_factory(new_crit);
+    auto new_crit_fac = solver->get_stop_criterion_factory();
+    auto niter =
+        static_cast<const gko::stop::Iteration::Factory *>(new_crit_fac.get())
+            ->get_parameters()
+            .max_iters;
+
+    ASSERT_EQ(niter, 5);
 }
 
 
@@ -281,6 +316,45 @@ TYPED_TEST(Ir, ThrowOnWrongInnerSolverSet)
     auto solver = ir_factory->generate(this->mtx);
 
     ASSERT_THROW(solver->set_solver(ir_solver), gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Ir, DefaultRelaxationFactor)
+{
+    using value_type = typename TestFixture::value_type;
+    const value_type relaxation_factor{0.5};
+
+    auto richardson =
+        gko::solver::Richardson<value_type>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
+                gko::stop::ResidualNormReduction<value_type>::build()
+                    .with_reduction_factor(r<value_type>::value)
+                    .on(this->exec))
+            .on(this->exec)
+            ->generate(this->mtx);
+
+    ASSERT_EQ(richardson->get_parameters().relaxation_factor, value_type{1});
+}
+
+
+TYPED_TEST(Ir, UseAsRichardson)
+{
+    using value_type = typename TestFixture::value_type;
+    const value_type relaxation_factor{0.5};
+
+    auto richardson =
+        gko::solver::Richardson<value_type>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec),
+                gko::stop::ResidualNormReduction<value_type>::build()
+                    .with_reduction_factor(r<value_type>::value)
+                    .on(this->exec))
+            .with_relaxation_factor(relaxation_factor)
+            .on(this->exec)
+            ->generate(this->mtx);
+
+    ASSERT_EQ(richardson->get_parameters().relaxation_factor, value_type{0.5});
 }
 
 

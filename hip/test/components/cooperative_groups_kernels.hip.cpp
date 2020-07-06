@@ -311,7 +311,7 @@ TEST_F(CooperativeGroups, ShuffleSumDouble)
                        dim3(config::warp_size), 0, 0, num, dvalue.get_data());
 
     value = dvalue;
-    GKO_ASSERT_ARRAY_EQ(&value, &answer);
+    GKO_ASSERT_ARRAY_EQ(value, answer);
 }
 
 
@@ -336,7 +336,7 @@ TEST_F(CooperativeGroups, ShuffleSumComplexDouble)
                        as_hip_type(dvalue.get_data()));
 
     value = dvalue;
-    GKO_ASSERT_ARRAY_EQ(&value, &answer);
+    GKO_ASSERT_ARRAY_EQ(value, answer);
 }
 
 

@@ -98,6 +98,48 @@ protected:
 TYPED_TEST_CASE(Coo, gko::test::ValueIndexTypes);
 
 
+TYPED_TEST(Coo, ConvertsToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Coo = typename TestFixture::Mtx;
+    using OtherCoo = gko::matrix::Coo<OtherType, IndexType>;
+    auto tmp = OtherCoo::create(this->exec);
+    auto res = Coo::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    this->mtx->convert_to(tmp.get());
+    tmp->convert_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx, res, residual);
+}
+
+
+TYPED_TEST(Coo, MovesToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Coo = typename TestFixture::Mtx;
+    using OtherCoo = gko::matrix::Coo<OtherType, IndexType>;
+    auto tmp = OtherCoo::create(this->exec);
+    auto res = Coo::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    this->mtx->move_to(tmp.get());
+    tmp->move_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx, res, residual);
+}
+
+
 TYPED_TEST(Coo, ConvertsToCsr)
 {
     using value_type = typename TestFixture::value_type;
@@ -113,8 +155,8 @@ TYPED_TEST(Coo, ConvertsToCsr)
 
     this->assert_equal_to_mtx_in_csr_format(csr_mtx_c.get());
     this->assert_equal_to_mtx_in_csr_format(csr_mtx_m.get());
-    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
-    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
+    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
+    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
 }
 
 
@@ -134,8 +176,8 @@ TYPED_TEST(Coo, MovesToCsr)
 
     this->assert_equal_to_mtx_in_csr_format(csr_mtx_c.get());
     this->assert_equal_to_mtx_in_csr_format(csr_mtx_m.get());
-    ASSERT_EQ(csr_mtx_c->get_strategy(), csr_s_classical);
-    ASSERT_EQ(csr_mtx_m->get_strategy(), csr_s_merge);
+    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
+    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
 }
 
 
@@ -169,6 +211,104 @@ TYPED_TEST(Coo, MovesToDense)
                     l({{1.0, 3.0, 2.0},
                        {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
+}
+
+
+TYPED_TEST(Coo, ConvertsEmptyToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Coo = typename TestFixture::Mtx;
+    using OtherCoo = gko::matrix::Coo<OtherType, IndexType>;
+    auto empty = OtherCoo::create(this->exec);
+    auto res = Coo::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Coo, MovesEmptyToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Coo = typename TestFixture::Mtx;
+    using OtherCoo = gko::matrix::Coo<OtherType, IndexType>;
+    auto empty = OtherCoo::create(this->exec);
+    auto res = Coo::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Coo, ConvertsEmptyToCsr)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Coo = typename TestFixture::Mtx;
+    using Csr = gko::matrix::Csr<ValueType, IndexType>;
+    auto empty = Coo::create(this->exec);
+    auto res = Csr::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Coo, MovesEmptyToCsr)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Coo = typename TestFixture::Mtx;
+    using Csr = gko::matrix::Csr<ValueType, IndexType>;
+    auto empty = Coo::create(this->exec);
+    auto res = Csr::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Coo, ConvertsEmptyToDense)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Coo = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<ValueType>;
+    auto empty = Coo::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Coo, MovesEmptyToDense)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Coo = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<ValueType>;
+    auto empty = Coo::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
 }
 
 

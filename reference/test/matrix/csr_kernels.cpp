@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -483,91 +484,35 @@ TYPED_TEST(Csr, AppliesLinearCombinationToCsrMatrix)
 }
 
 
-TYPED_TEST(Csr, AppliesZeroLinearCombinationToCsrMatrixWithZeroAlpha)
+TYPED_TEST(Csr, AppliesLinearCombinationToIdentityMatrix)
 {
-    using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
-    auto alpha = gko::initialize<Vec>({0.0}, this->exec);
+    using Vec = typename TestFixture::Vec;
+    using Mtx = typename TestFixture::Mtx;
+    auto alpha = gko::initialize<Vec>({-3.0}, this->exec);
     auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    auto a = gko::initialize<Mtx>(
+        {I<T>{2.0, 0.0, 3.0}, I<T>{0.0, 1.0, -1.5}, I<T>{0.0, -2.0, 0.0},
+         I<T>{5.0, 0.0, 0.0}, I<T>{1.0, 0.0, 4.0}, I<T>{2.0, -2.0, 0.0},
+         I<T>{0.0, 0.0, 0.0}},
+        this->exec);
+    auto b = gko::initialize<Mtx>(
+        {I<T>{2.0, -2.0, 0.0}, I<T>{1.0, 0.0, 4.0}, I<T>{2.0, 0.0, 3.0},
+         I<T>{0.0, 1.0, -1.5}, I<T>{1.0, 0.0, 0.0}, I<T>{0.0, 0.0, 0.0},
+         I<T>{0.0, 0.0, 0.0}},
+        this->exec);
+    auto expect = gko::initialize<Mtx>(
+        {I<T>{-2.0, -4.0, -9.0}, I<T>{2.0, -3.0, 12.5}, I<T>{4.0, 6.0, 6.0},
+         I<T>{-15.0, 2.0, -3.0}, I<T>{-1.0, 0.0, -12.0}, I<T>{-6.0, 6.0, 0.0},
+         I<T>{0.0, 0.0, 0.0}},
+        this->exec);
+    auto id = gko::matrix::Identity<T>::create(this->exec, a->get_size()[1]);
 
-    this->mtx->apply(alpha.get(), this->mtx3_unsorted.get(), beta.get(),
-                     this->mtx2.get());
+    a->apply(gko::lend(alpha), gko::lend(id), gko::lend(beta), gko::lend(b));
 
-    ASSERT_EQ(this->mtx2->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(this->mtx2->get_num_stored_elements(), 5);
-    this->mtx2->sort_by_column_index();
-    auto r = this->mtx2->get_const_row_ptrs();
-    auto c = this->mtx2->get_const_col_idxs();
-    auto v = this->mtx2->get_const_values();
-    //  2  6  4
-    // {0} 10 0
-    EXPECT_EQ(r[0], 0);
-    EXPECT_EQ(r[1], 3);
-    EXPECT_EQ(r[2], 5);
-    EXPECT_EQ(c[0], 0);
-    EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 2);
-    EXPECT_EQ(c[3], 0);
-    EXPECT_EQ(c[4], 1);
-    EXPECT_EQ(v[0], T{2});
-    EXPECT_EQ(v[1], T{6});
-    EXPECT_EQ(v[2], T{4});
-    EXPECT_EQ(v[3], T{0});
-    EXPECT_EQ(v[4], T{T{10}});
-}
-
-
-TYPED_TEST(Csr, AppliesLinearCombinationToCsrMatrixWithZeroBeta)
-{
-    using Vec = typename TestFixture::Vec;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
-    auto beta = gko::initialize<Vec>({0.0}, this->exec);
-
-    this->mtx->apply(alpha.get(), this->mtx3_unsorted.get(), beta.get(),
-                     this->mtx2.get());
-
-    ASSERT_EQ(this->mtx2->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(this->mtx2->get_num_stored_elements(), 6);
-    this->mtx2->sort_by_column_index();
-    auto r = this->mtx2->get_const_row_ptrs();
-    auto c = this->mtx2->get_const_col_idxs();
-    auto v = this->mtx2->get_const_values();
-    // -13  -5 -31
-    // -15  -5 -40
-    EXPECT_EQ(r[0], 0);
-    EXPECT_EQ(r[1], 3);
-    EXPECT_EQ(r[2], 6);
-    EXPECT_EQ(c[0], 0);
-    EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], 2);
-    EXPECT_EQ(c[3], 0);
-    EXPECT_EQ(c[4], 1);
-    EXPECT_EQ(c[5], 2);
-    EXPECT_EQ(v[0], T{-13});
-    EXPECT_EQ(v[1], T{-5});
-    EXPECT_EQ(v[2], T{-31});
-    EXPECT_EQ(v[3], T{-15});
-    EXPECT_EQ(v[4], T{-5});
-    EXPECT_EQ(v[5], T{-40});
-}
-
-
-TYPED_TEST(Csr, AppliesLinearCombinationToCsrMatrixWithZeroAlphaBeta)
-{
-    using Vec = typename TestFixture::Vec;
-    auto alpha = gko::initialize<Vec>({0.0}, this->exec);
-    auto beta = gko::initialize<Vec>({0.0}, this->exec);
-
-    this->mtx->apply(alpha.get(), this->mtx3_unsorted.get(), beta.get(),
-                     this->mtx2.get());
-
-    ASSERT_EQ(this->mtx2->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(this->mtx2->get_num_stored_elements(), 0);
-    auto r = this->mtx2->get_const_row_ptrs();
-    EXPECT_EQ(r[0], 0);
-    EXPECT_EQ(r[1], 0);
-    EXPECT_EQ(r[2], 0);
+    GKO_ASSERT_MTX_NEAR(b, expect, r<T>::value);
+    GKO_ASSERT_MTX_EQ_SPARSITY(b, expect);
+    ASSERT_TRUE(b->is_sorted_by_column_index());
 }
 
 
@@ -598,6 +543,54 @@ TYPED_TEST(Csr, ApplyFailsOnWrongNumberOfCols)
     auto y = Vec::create(this->exec, gko::dim<2>{2});
 
     ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Csr, ConvertsToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Csr = typename TestFixture::Mtx;
+    using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
+    auto tmp = OtherCsr::create(this->exec);
+    auto res = Csr::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    // use mtx2 as mtx's strategy would involve creating a CudaExecutor
+    this->mtx2->convert_to(tmp.get());
+    tmp->convert_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx2, res, residual);
+    ASSERT_EQ(typeid(*this->mtx2->get_strategy()),
+              typeid(*res->get_strategy()));
+}
+
+
+TYPED_TEST(Csr, MovesToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Csr = typename TestFixture::Mtx;
+    using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
+    auto tmp = OtherCsr::create(this->exec);
+    auto res = Csr::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    // use mtx2 as mtx's strategy would involve creating a CudaExecutor
+    this->mtx2->move_to(tmp.get());
+    tmp->move_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx2, res, residual);
+    ASSERT_EQ(typeid(*this->mtx2->get_strategy()),
+              typeid(*res->get_strategy()));
 }
 
 
@@ -753,6 +746,236 @@ TYPED_TEST(Csr, MovesToHybridByColumn2)
 }
 
 
+TYPED_TEST(Csr, ConvertsEmptyToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Csr = typename TestFixture::Mtx;
+    using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
+    auto empty = OtherCsr::create(this->exec);
+    empty->get_row_ptrs()[0] = 0;
+    auto res = Csr::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Csr = typename TestFixture::Mtx;
+    using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
+    auto empty = OtherCsr::create(this->exec);
+    empty->get_row_ptrs()[0] = 0;
+    auto res = Csr::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, ConvertsEmptyToDense)
+{
+    using ValueType = typename TestFixture::value_type;
+    using Csr = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<ValueType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToDense)
+{
+    using ValueType = typename TestFixture::value_type;
+    using Csr = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<ValueType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, ConvertsEmptyToCoo)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Coo = gko::matrix::Coo<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Coo::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToCoo)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Coo = gko::matrix::Coo<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Coo::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, ConvertsEmptyToEll)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Ell = gko::matrix::Ell<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Ell::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToEll)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Ell = gko::matrix::Ell<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Ell::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, ConvertsEmptyToSellp)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Sellp = gko::matrix::Sellp<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Sellp::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_slice_sets(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToSellp)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Sellp = gko::matrix::Sellp<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Sellp::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_slice_sets(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, ConvertsEmptyToSparsityCsr)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using SparsityCsr = gko::matrix::SparsityCsr<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    empty->get_row_ptrs()[0] = 0;
+    auto res = SparsityCsr::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_nonzeros(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToSparsityCsr)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using SparsityCsr = gko::matrix::SparsityCsr<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    empty->get_row_ptrs()[0] = 0;
+    auto res = SparsityCsr::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_nonzeros(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+}
+
+
+TYPED_TEST(Csr, ConvertsEmptyToHybrid)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Hybrid = gko::matrix::Hybrid<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Hybrid::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToHybrid)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Hybrid = gko::matrix::Hybrid<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Hybrid::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
 TYPED_TEST(Csr, CalculatesNonzerosPerRow)
 {
     gko::Array<gko::size_type> row_nnz(this->exec, this->mtx->get_size()[0]);
@@ -842,6 +1065,7 @@ TYPED_TEST(Csr, NonSquareMtxIsTransposable)
                        {2.0, 0.0}}), 0.0);
     // clang-format on
 }
+
 
 TYPED_TEST(Csr, SquareMatrixIsRowPermutable)
 {
@@ -1015,8 +1239,8 @@ TYPED_TEST(Csr, NonSquareMatrixIsInverseColPermutable)
     using Csr = typename TestFixture::Mtx;
     using index_type = typename TestFixture::index_type;
     // clang-format off
-  auto inverse_p_mtx = gko::initialize<Csr>({{1.0, 3.0, 2.0},
-                                             {0.0, 5.0, 0.0}}, this->exec);
+    auto inverse_p_mtx = gko::initialize<Csr>({{1.0, 3.0, 2.0},
+                                              {0.0, 5.0, 0.0}}, this->exec);
     // clang-format on
     gko::Array<index_type> inverse_permute_idxs{this->exec, {1, 2, 0}};
 

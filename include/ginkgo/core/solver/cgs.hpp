@@ -66,12 +66,15 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Cgs : public EnableLinOp<Cgs<ValueType>>, public Preconditionable {
+class Cgs : public EnableLinOp<Cgs<ValueType>>,
+            public Preconditionable,
+            public Transposable {
     friend class EnableLinOp<Cgs>;
     friend class EnablePolymorphicObject<Cgs, LinOp>;
 
 public:
     using value_type = ValueType;
+    using transposed_type = Cgs<ValueType>;
 
     /**
      * Gets the system operator (matrix) of the linear system.
@@ -81,6 +84,39 @@ public:
     std::shared_ptr<const LinOp> get_system_matrix() const
     {
         return system_matrix_;
+    }
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
+
+    /**
+     * Return true as iterative solvers use the data in x as an initial guess.
+     *
+     * @return true as iterative solvers use the data in x as an initial guess.
+     */
+    bool apply_uses_initial_guess() const override { return true; }
+
+    /**
+     * Gets the stopping criterion factory of the solver.
+     *
+     * @return the stopping criterion factory
+     */
+    std::shared_ptr<const stop::CriterionFactory> get_stop_criterion_factory()
+        const
+    {
+        return stop_criterion_factory_;
+    }
+
+    /**
+     * Sets the stopping criterion of the solver.
+     *
+     * @param other  the new stopping criterion factory
+     */
+    void set_stop_criterion_factory(
+        std::shared_ptr<const stop::CriterionFactory> other)
+    {
+        stop_criterion_factory_ = std::move(other);
     }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -120,7 +156,7 @@ protected:
     explicit Cgs(const Factory *factory,
                  std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<Cgs>(factory->get_executor(),
-                           transpose(system_matrix->get_size())),
+                           gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {

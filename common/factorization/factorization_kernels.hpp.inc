@@ -243,11 +243,13 @@ __global__ __launch_bounds__(default_block_size) void count_nnz_per_l_u_row(
         IndexType u_row_nnz{};
         for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
             auto col = col_idxs[idx];
-            l_row_nnz += (col <= row);
-            u_row_nnz += (row <= col);
+            // skip diagonal
+            l_row_nnz += (col < row);
+            u_row_nnz += (row < col);
         }
-        l_nnz_row[row] = l_row_nnz;
-        u_nnz_row[row] = u_row_nnz;
+        // add the diagonal entry
+        l_nnz_row[row] = l_row_nnz + 1;
+        u_nnz_row[row] = u_row_nnz + 1;
     }
 }
 
@@ -265,21 +267,96 @@ __global__ __launch_bounds__(default_block_size) void initialize_l_u(
     const auto row = thread::get_thread_id_flat<IndexType>();
     if (row < num_rows) {
         auto l_idx = l_row_ptrs[row];
-        auto u_idx = u_row_ptrs[row];
+        auto u_idx = u_row_ptrs[row] + 1;  // we treat the diagonal separately
+        // default diagonal to one
+        auto diag_val = one<ValueType>();
         for (size_type i = row_ptrs[row]; i < row_ptrs[row + 1]; ++i) {
             const auto col = col_idxs[i];
             const auto val = values[i];
-            if (col <= row) {
+            // save diagonal entry for later
+            if (col == row) {
+                diag_val = val;
+            }
+            if (col < row) {
                 l_col_idxs[l_idx] = col;
-                l_values[l_idx] = (col == row ? one<ValueType>() : val);
+                l_values[l_idx] = val;
                 ++l_idx;
             }
-            if (row <= col) {
+            if (row < col) {
                 u_col_idxs[u_idx] = col;
                 u_values[u_idx] = val;
                 ++u_idx;
             }
         }
+        // store diagonal entries
+        auto l_diag_idx = l_row_ptrs[row + 1] - 1;
+        auto u_diag_idx = u_row_ptrs[row];
+        l_col_idxs[l_diag_idx] = row;
+        u_col_idxs[u_diag_idx] = row;
+        l_values[l_diag_idx] = one<ValueType>();
+        u_values[u_diag_idx] = diag_val;
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void count_nnz_per_l_row(
+    size_type num_rows, const IndexType *__restrict__ row_ptrs,
+    const IndexType *__restrict__ col_idxs,
+    const ValueType *__restrict__ values, IndexType *__restrict__ l_nnz_row)
+{
+    const auto row = thread::get_thread_id_flat<IndexType>();
+    if (row < num_rows) {
+        IndexType l_row_nnz{};
+        for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
+            auto col = col_idxs[idx];
+            // skip the diagonal entry
+            l_row_nnz += col < row;
+        }
+        // add the diagonal entry
+        l_nnz_row[row] = l_row_nnz + 1;
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void initialize_l(
+    size_type num_rows, const IndexType *__restrict__ row_ptrs,
+    const IndexType *__restrict__ col_idxs,
+    const ValueType *__restrict__ values,
+    const IndexType *__restrict__ l_row_ptrs,
+    IndexType *__restrict__ l_col_idxs, ValueType *__restrict__ l_values,
+    bool use_sqrt)
+{
+    const auto row = thread::get_thread_id_flat<IndexType>();
+    if (row < num_rows) {
+        auto l_idx = l_row_ptrs[row];
+        // if there was no diagonal entry, default to one
+        auto diag_val = one<ValueType>();
+        for (size_type i = row_ptrs[row]; i < row_ptrs[row + 1]; ++i) {
+            const auto col = col_idxs[i];
+            const auto val = values[i];
+            // save diagonal entry for later
+            if (col == row) {
+                diag_val = val;
+            }
+            if (col < row) {
+                l_col_idxs[l_idx] = col;
+                l_values[l_idx] = val;
+                ++l_idx;
+            }
+        }
+        // store diagonal entries
+        auto l_diag_idx = l_row_ptrs[row + 1] - 1;
+        l_col_idxs[l_diag_idx] = row;
+        // compute square root with sentinel
+        if (use_sqrt) {
+            diag_val = sqrt(diag_val);
+            if (!is_finite(diag_val)) {
+                diag_val = one<ValueType>();
+            }
+        }
+        l_values[l_diag_idx] = diag_val;
     }
 }
 

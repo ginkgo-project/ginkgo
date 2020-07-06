@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/extended_float.hpp"
+#include "core/components/fill_array.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "cuda/base/config.hpp"
@@ -48,7 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
 #include "cuda/components/warp_blas.cuh"
-#include "cuda/components/zero_array.hpp"
 #include "cuda/preconditioner/jacobi_common.hpp"
 
 
@@ -122,16 +122,17 @@ void generate(std::shared_ptr<const CudaExecutor> exec,
               Array<precision_reduction> &block_precisions,
               const Array<IndexType> &block_pointers, Array<ValueType> &blocks)
 {
-    zero_array(blocks.get_num_elems(), blocks.get_data());
-    select_generate(compiled_kernels(),
-                    [&](int compiled_block_size) {
-                        return max_block_size <= compiled_block_size;
-                    },
-                    syn::value_list<int, config::min_warps_per_block>(),
-                    syn::type_list<>(), system_matrix, accuracy,
-                    blocks.get_data(), storage_scheme, conditioning.get_data(),
-                    block_precisions.get_data(),
-                    block_pointers.get_const_data(), num_blocks);
+    components::fill_array(exec, blocks.get_data(), blocks.get_num_elems(),
+                           zero<ValueType>());
+    select_generate(
+        compiled_kernels(),
+        [&](int compiled_block_size) {
+            return max_block_size <= compiled_block_size;
+        },
+        syn::value_list<int, config::min_warps_per_block>(), syn::type_list<>(),
+        system_matrix, accuracy, blocks.get_data(), storage_scheme,
+        conditioning.get_data(), block_precisions.get_data(),
+        block_pointers.get_const_data(), num_blocks);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

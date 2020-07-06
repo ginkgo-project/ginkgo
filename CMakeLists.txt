@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 
-project(Ginkgo LANGUAGES C CXX VERSION 1.1.1 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
+project(Ginkgo LANGUAGES C CXX VERSION 1.2.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 
@@ -26,6 +26,9 @@ option(GINKGO_EXPORT_BUILD_DIR
     OFF)
 option(GINKGO_WITH_CLANG_TIDY "Make Ginkgo call `clang-tidy` to find programming issues." OFF)
 option(GINKGO_WITH_IWYU "Make Ginkgo call `iwyu` (Include What You Use) to find include issues." OFF)
+option(GINKGO_CHECK_CIRCULAR_DEPS
+    "Enable compile-time checks detecting circular dependencies between libraries and non-self-sufficient headers."
+    OFF)
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
     "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
 if(MSVC)
@@ -45,7 +48,9 @@ set(GINKGO_HIP_COMPILER_FLAGS "" CACHE STRING
 set(GINKGO_HIP_NVCC_COMPILER_FLAGS "" CACHE STRING
     "Set the required HIP nvcc compiler flags. Current default is an empty string.")
 set(GINKGO_HIP_HCC_COMPILER_FLAGS "" CACHE STRING
-    "Set the required HIPC HCC compiler flags. Current default is an empty string.")
+    "Set the required HIP HCC compiler flags. Current default is an empty string.")
+set(GINKGO_HIP_CLANG_COMPILER_FLAGS "" CACHE STRING
+    "Set the required HIP CLANG compiler flags. Current default is an empty string.")
 set(GINKGO_HIP_AMDGPU "" CACHE STRING
     "The amdgpu_target(s) variable passed to hipcc. The default is none (auto).")
 option(GINKGO_JACOBI_FULL_OPTIMIZATIONS "Use all the optimizations for the CUDA Jacobi algorithm" OFF)
@@ -71,8 +76,8 @@ if(GINKGO_BUILD_TESTS AND (GINKGO_BUILD_CUDA OR GINKGO_BUILD_OMP OR GINKGO_BUILD
 endif()
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  message(STATUS "Setting build type to 'Release' as none was specified.")
-  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+    message(STATUS "Setting build type to 'Release' as none was specified.")
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
 endif()
 
 if(BUILD_SHARED_LIBS)
@@ -100,11 +105,11 @@ if(GINKGO_BUILD_TESTS)
 endif()
 
 if(GINKGO_WITH_CLANG_TIDY)
-  find_program(GINKGO_CLANG_TIDY_PATH clang-tidy)
+    find_program(GINKGO_CLANG_TIDY_PATH clang-tidy)
 endif()
 
 if(GINKGO_WITH_IWYU)
-  find_program(GINKGO_IWYU_PATH iwyu)
+    find_program(GINKGO_IWYU_PATH iwyu)
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules/")
@@ -126,10 +131,10 @@ set(GINKGO_HIP_PLATFORM_HCC 0)
 
 if(GINKGO_BUILD_HIP)
     # GINKGO_HIPCONFIG_PATH and HIP_PATH are set in cmake/hip_path.cmake
-    if(GINKGO_HIPCONFIG_PATH)
-        execute_process(COMMAND ${GINKGO_HIPCONFIG_PATH} --platform OUTPUT_VARIABLE GINKGO_HIP_PLATFORM)
-    elseif(DEFINED ENV{HIP_PLATFORM})
+    if(DEFINED ENV{HIP_PLATFORM})
         set(GINKGO_HIP_PLATFORM "$ENV{HIP_PLATFORM}")
+    elseif(GINKGO_HIPCONFIG_PATH)
+        execute_process(COMMAND ${GINKGO_HIPCONFIG_PATH} --platform OUTPUT_VARIABLE GINKGO_HIP_PLATFORM)
     else()
         message(FATAL_ERROR "No platform could be found for HIP. "
             "Set and export the environment variable HIP_PLATFORM.")
@@ -179,6 +184,7 @@ if(GINKGO_BUILD_CUDA)
     add_subdirectory(cuda)       # High-performance kernels for NVIDIA GPUs
 endif()
 add_subdirectory(core)           # Core Ginkgo types and top-level functions
+add_subdirectory(include)        # Public API self-contained check
 if (GINKGO_BUILD_REFERENCE)
     add_subdirectory(reference)  # Reference kernel implementations
 endif()
@@ -227,13 +233,13 @@ if(NOT "${BASH}" STREQUAL "BASH-NOTFOUND" AND GINKGO_DEVEL_TOOLS)
     endif()
     unset(GIT CACHE)
     add_custom_target(format_header_all
-            COMMAND echo "format header on all code files except build/examples/third_party/ginkgo.hpp"
-            COMMAND bash -c "find * -type f | \
+        COMMAND echo "format header on all code files except build/examples/third_party/ginkgo.hpp"
+        COMMAND bash -c "find * -type f | \
                 grep -Ev 'build|examples|third_party|ginkgo.hpp' | \
                 grep -E '(\.hip)?\.(cu|hpp|cuh|cpp)$' | \
                 xargs -r -n1 ${Ginkgo_SOURCE_DIR}/dev_tools/scripts/format_header.sh"
-            WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR}
-            VERBATIM)
+        WORKING_DIRECTORY ${Ginkgo_SOURCE_DIR}
+        VERBATIM)
 endif()
 unset(BASH CACHE)
 
@@ -270,9 +276,10 @@ else()
 endif()
 add_custom_target(test_install
     COMMAND ${CMAKE_COMMAND} -G${CMAKE_GENERATOR} -H${Ginkgo_SOURCE_DIR}/test_install
-        -B${Ginkgo_BINARY_DIR}/test_install
-        -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_CONFIG_DIR}
-        -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+    -B${Ginkgo_BINARY_DIR}/test_install
+    -DCMAKE_PREFIX_PATH=${CMAKE_INSTALL_PREFIX}/${GINKGO_INSTALL_CONFIG_DIR}
+    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+    -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
     # `--config cfg` is ignored by single-configuration generator.
     # `$<CONFIG>` is always be the same as `CMAKE_BUILD_TYPE` in single-configuration generator.
     COMMAND ${CMAKE_COMMAND} --build ${Ginkgo_BINARY_DIR}/test_install --config $<CONFIG>

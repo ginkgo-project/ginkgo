@@ -186,6 +186,7 @@ TYPED_TEST(Coo, CanBeCloned)
     this->assert_equal_to_original_mtx(dynamic_cast<Mtx *>(clone.get()));
 }
 
+
 TYPED_TEST(Coo, CanBeCleared)
 {
     this->mtx->clear();

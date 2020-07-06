@@ -185,7 +185,7 @@ public:
      */
     static std::shared_ptr<Papi> create(
         std::shared_ptr<const gko::Executor> exec,
-        const Logger::mask_type &enabled_events)
+        const Logger::mask_type &enabled_events = Logger::all_events_mask)
     {
         return std::shared_ptr<Papi>(new Papi(exec, enabled_events));
     }

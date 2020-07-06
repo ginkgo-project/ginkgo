@@ -150,7 +150,6 @@ void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
                        as_hip_type(result->get_values()));
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_CONVERT_TO_DENSE_KERNEL);
 
@@ -180,7 +179,7 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
         0, num_rows, slice_size, as_hip_type(source_slice_sets),
         as_hip_type(source_values), as_hip_type(result_row_ptrs));
 
-    prefix_sum(exec, result_row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, result_row_ptrs, num_rows + 1);
 
     grid_dim = ceildiv(num_rows, default_block_size);
 

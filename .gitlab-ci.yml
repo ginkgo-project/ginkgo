@@ -15,6 +15,7 @@ stages:
   BENCHMARK_SERVER: "FINECI"
   C_COMPILER: "gcc"
   CXX_COMPILER: "g++"
+  CUDA_COMPILER: "nvcc"
   BUILD_TYPE: "Debug"
   BUILD_SHARED_LIBS: "ON"
   BUILD_REFERENCE: "ON"
@@ -25,7 +26,7 @@ stages:
   EXTRA_CMAKE_FLAGS: ""
 
 .before_script_template: &default_before_script
-  - export NUM_CORES=4
+  - export NUM_CORES=${CI_PARALLELISM}
   - export OMP_NUM_THREADS=${NUM_CORES}
   - export CUDA_VISIBLE_DEVICES=0
 
@@ -49,15 +50,16 @@ stages:
       CUDA_HOST_STR=-DCMAKE_CUDA_HOST_COMPILER=$(which ${CXX_COMPILER});
       fi
     - cmake ${CI_PROJECT_DIR}
+        -GNinja
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
-        -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_FLAGS="${CXX_FLAGS}"
-        -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} ${EXTRA_CMAKE_FLAGS}
-        ${CUDA_ARCH_STR} ${CUDA_HOST_STR}
+        -DCMAKE_CUDA_COMPILER=${CUDA_COMPILER} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+        ${EXTRA_CMAKE_FLAGS} ${CUDA_ARCH_STR} ${CUDA_HOST_STR}
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
-    - make -j${NUM_CORES}
+    - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT}
   dependencies: []
   except:
       - schedules
@@ -73,19 +75,20 @@ stages:
       CUDA_HOST_STR=-DCMAKE_CUDA_HOST_COMPILER=$(which ${CXX_COMPILER});
       fi
     - cmake ${CI_PROJECT_DIR}
+        -GNinja
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
-        -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_FLAGS="${CXX_FLAGS}"
-        -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} ${EXTRA_CMAKE_FLAGS}
-        ${CUDA_ARCH_STR} ${CUDA_HOST_STR}
+        -DCMAKE_CUDA_COMPILER=${CUDA_COMPILER} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+        ${EXTRA_CMAKE_FLAGS} ${CUDA_ARCH_STR} ${CUDA_HOST_STR}
         -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=${BUILD_REFERENCE}
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
-    - make -j${NUM_CORES} install
+    - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
     - ctest -V
-    - make test_install
+    - ninja test_install
   dependencies: []
   except:
       - schedules
@@ -125,6 +128,9 @@ build/cuda90/gcc/all/debug/shared:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
     CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -143,6 +149,9 @@ build/cuda90/clang/all/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -160,6 +169,9 @@ build/cuda91/gcc/all/debug/static:
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -177,6 +189,9 @@ build/cuda91/clang/all/release/shared:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -194,6 +209,9 @@ build/cuda92/gcc/all/release/shared:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -212,6 +230,9 @@ build/cuda92/clang/all/debug/static:
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -229,6 +250,9 @@ build/cuda92/intel/cuda/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -245,6 +269,9 @@ build/cuda100/gcc/all/debug/shared:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
     CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -263,6 +290,9 @@ build/cuda100/clang/all/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -279,6 +309,9 @@ build/cuda100/intel/cuda/release/shared:
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Release"
     CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -295,6 +328,9 @@ build/cuda101/gcc/all/debug/shared:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
     CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -310,8 +346,12 @@ build/cuda101/clang/all/release/static:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
-    BUILD_TYPE: "Debug"
+    BUILD_TYPE: "Release"
+    BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -327,7 +367,52 @@ build/cuda101/intel/cuda/debug/static:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_TYPE: "Debug"
+    BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
+  tags:
+    - private_ci
+    - cuda
+    - gpu
+
+# clang-cuda with cuda 10.1 and friends
+build/clang-cuda101/gcc/all/release/shared:
+  <<: *default_build_with_test
+  image: localhost:5000/gko-cuda101-gnu8-llvm10-intel2019
+  variables:
+    <<: *default_variables
+    CUDA_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_HIP: "ON"
+    BUILD_TYPE: "Release"
+    CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
+  tags:
+    - private_ci
+    - cuda
+    - gpu
+
+build/clang-cuda101/clang/cuda/debug/static:
+  <<: *default_build_with_test
+  image: localhost:5000/gko-cuda101-gnu8-llvm10-intel2019
+  variables:
+    <<: *default_variables
+    C_COMPILER: "clang"
+    CXX_COMPILER: "clang++"
+    CUDA_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    BUILD_CUDA: "ON"
+    BUILD_TYPE: "Debug"
+    BUILD_SHARED_LIBS: "OFF"
+    CUDA_ARCH: 35
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -336,12 +421,15 @@ build/cuda101/intel/cuda/debug/static:
 # HIP AMD
 build/amd/gcc/hip/debug/shared:
   <<: *default_build_with_test
-  image: localhost:5000/gko-amd-gnu7-llvm60
+  image: localhost:5000/gko-amd-gnu8-llvm7
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Debug"
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - amd
@@ -349,7 +437,7 @@ build/amd/gcc/hip/debug/shared:
 
 build/amd/clang/hip/release/static:
   <<: *default_build_with_test
-  image: localhost:5000/gko-amd-gnu7-llvm60
+  image: localhost:5000/gko-amd-gnu8-llvm7
   variables:
     <<: *default_variables
     C_COMPILER: "clang"
@@ -358,6 +446,9 @@ build/amd/clang/hip/release/static:
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - amd
@@ -372,6 +463,9 @@ build/nocuda/gcc/core/debug/static:
     BUILD_REFERENCE: "OFF"
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "OFF"
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cpu
@@ -385,6 +479,9 @@ build/nocuda/clang/core/release/shared:
     CXX_COMPILER: "clang++"
     BUILD_REFERENCE: "OFF"
     BUILD_TYPE: "Release"
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cpu
@@ -398,6 +495,9 @@ build/nocuda/intel/core/debug/shared:
     CXX_COMPILER: "icpc"
     BUILD_REFERENCE: "OFF"
     BUILD_TYPE: "Debug"
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -410,6 +510,9 @@ build/nocuda/gcc/omp/release/shared:
     <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cpu
@@ -424,6 +527,9 @@ build/nocuda/clang/omp/debug/static:
     BUILD_OMP: "ON"
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "OFF"
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cpu
@@ -438,6 +544,9 @@ build/nocuda/intel/omp/release/static:
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
+  only:
+    variables:
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -455,6 +564,9 @@ warnings:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     CXX_FLAGS: "-Werror=pedantic -pedantic-errors"
+  only:
+    variables:
+      - $RUN_CI_TAG
   dependencies: []
   allow_failure: yes
   tags:
@@ -473,6 +585,9 @@ no-circular-deps:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_CHECK_CIRCULAR_DEPS=on'
+  only:
+    variables:
+      - $RUN_CI_TAG
   dependencies: []
   allow_failure: no
   tags:
@@ -491,6 +606,9 @@ clang-tidy:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_CLANG_TIDY=ON'
+  only:
+    variables:
+      - $RUN_CI_TAG
   dependencies: []
   allow_failure: yes
   tags:
@@ -508,6 +626,9 @@ iwyu:
     BUILD_CUDA: "ON"
     BUILD_CUDA: "HIP"
     EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_IWYU=ON'
+  only:
+    variables:
+      - $RUN_CI_TAG
   dependencies: []
   allow_failure: yes
   tags:
@@ -550,7 +671,7 @@ sonarqube_cov_:
       - tags
   only:
     variables:
-      - $PUBLIC_CI_TAG
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -577,7 +698,7 @@ sonarqube_cov:
       - master
       - tags
     variables:
-      - $PUBLIC_CI_TAG
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -597,10 +718,10 @@ gh-pages:
     - mkdir -p ${CI_JOB_NAME} && pushd ${CI_JOB_NAME}
     - cmake ${CI_PROJECT_DIR}
         -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${CXX_COMPILER}
-        -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DBUILD_SHARED_LIBS=ON
-        ${EXTRA_CMAKE_FLAGS} -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_REFERENCE=OFF
-        -DGINKGO_BUILD_OMP=OFF -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_HIP=OFF
-        -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_EXAMPLES=OFF
+        -DCMAKE_CUDA_COMPILER=${CUDA_COMPILER} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        -DBUILD_SHARED_LIBS=ON ${EXTRA_CMAKE_FLAGS} -DGINKGO_DEVEL_TOOLS=OFF
+        -DGINKGO_BUILD_REFERENCE=OFF -DGINKGO_BUILD_OMP=OFF -DGINKGO_BUILD_CUDA=OFF
+        -DGINKGO_BUILD_HIP=OFF -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_EXAMPLES=OFF
         -DGINKGO_BUILD_DOC=ON -DGINKGO_DOC_GENERATE_PDF=ON
     - make usr
     - make pdf
@@ -624,7 +745,7 @@ gh-pages:
       - master
       - tags
     variables:
-      - $PUBLIC_CI_TAG
+      - $RUN_CI_TAG
   except:
       - schedules
   tags:
@@ -634,10 +755,15 @@ gh-pages:
 
 threadsanitizer:
   stage: QoS_tools
-  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm10-intel2019
   before_script: *default_before_script
   script:
-    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=TSAN -DCTEST_MEMORYCHECK_TYPE=ThreadSanitizer
+    - LD_PRELOAD=/usr/local/lib/libomp.so
+      CC=clang CXX=clang++
+        ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=TSAN
+        -DCTEST_MEMORYCHECK_TYPE=ThreadSanitizer
+        -DCTEST_MEMORYCHECK_SANITIZER_OPTIONS=ignore_noninstrumented_modules=1
+        --timeout 6000
   dependencies: []
   only:
     refs:
@@ -645,7 +771,7 @@ threadsanitizer:
       - develop
       - tags
     variables:
-      - $PUBLIC_CI_TAG
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -653,7 +779,7 @@ threadsanitizer:
 
 leaksanitizer:
   stage: QoS_tools
-  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm10-intel2019
   before_script: *default_before_script
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=LSAN
@@ -665,7 +791,7 @@ leaksanitizer:
       - develop
       - tags
     variables:
-      - $PUBLIC_CI_TAG
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -673,7 +799,7 @@ leaksanitizer:
 
 addresssanitizer:
   stage: QoS_tools
-  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm10-intel2019
   before_script: *default_before_script
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=ASAN
@@ -685,27 +811,7 @@ addresssanitizer:
       - develop
       - tags
     variables:
-      - $PUBLIC_CI_TAG
-  tags:
-    - private_ci
-    - cuda
-    - gpu
-
-leaksanitizer:
-  stage: QoS_tools
-  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
-  before_script: *default_before_script
-  script:
-    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=LSAN
-      -DCTEST_MEMORYCHECK_TYPE=LeakSanitizer
-  dependencies: []
-  only:
-    refs:
-      - master
-      - develop
-      - tags
-    variables:
-      - $PUBLIC_CI_TAG
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -713,7 +819,7 @@ leaksanitizer:
 
 undefinedsanitizer:
   stage: QoS_tools
-  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
+  image: localhost:5000/gko-cuda101-gnu8-llvm10-intel2019
   before_script: *default_before_script
   script:
     # the Gold linker is required because of a linker flag issues given by UBsan
@@ -727,7 +833,7 @@ undefinedsanitizer:
       - develop
       - tags
     variables:
-      - $PUBLIC_CI_TAG
+      - $RUN_CI_TAG
   tags:
     - private_ci
     - cuda
@@ -787,7 +893,7 @@ fineci-benchmark-build:
                   -DGINKGO_BUILD_HIP=${BUILD_HIP} \\
                   -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_EXAMPLES=OFF \\
                   -DGINKGO_BUILD_BENCHMARKS=ON
-        make -j4
+        make -j${CI_PARALLELISM}
       EOT
   dependencies: []
   only:

@@ -48,18 +48,27 @@ namespace gko {
  * The Composition class can be used to compose linear operators `op1, op2, ...,
  * opn` and obtain the operator `op1 * op2 * ... * opn`.
  *
+ * All LinOps of the Composition must operate on Dense inputs.
+ * For an operator `op_k` that require an initial guess for their `apply`,
+ * Composition provides either
+ * * the output of the previous `op_{k+1}->apply` if `op_k` has square dimension
+ * * zero if `op_k` is rectangular
+ * as an initial guess.
+ *
  * @tparam ValueType  precision of input and result vectors
  *
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
 class Composition : public EnableLinOp<Composition<ValueType>>,
-                    public EnableCreateMethod<Composition<ValueType>> {
+                    public EnableCreateMethod<Composition<ValueType>>,
+                    public Transposable {
     friend class EnablePolymorphicObject<Composition, LinOp>;
     friend class EnableCreateMethod<Composition>;
 
 public:
     using value_type = ValueType;
+    using transposed_type = Composition<ValueType>;
 
     /**
      * Returns a list of operators of the composition.
@@ -72,6 +81,10 @@ public:
         return operators_;
     }
 
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
+
 protected:
     /**
      * Creates an empty operator composition (0x0 operator).
@@ -79,7 +92,7 @@ protected:
      * @param exec  Executor associated to the composition
      */
     explicit Composition(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Composition>(exec)
+        : EnableLinOp<Composition>(exec), storage_{exec}
     {}
 
     /**
@@ -101,6 +114,7 @@ protected:
               }
               return (*begin)->get_executor();
           }()),
+          storage_{(*begin)->get_executor()},
           operators_(begin, end)
     {
         this->set_size(gko::dim<2>{operators_.front()->get_size()[0],
@@ -138,7 +152,8 @@ protected:
      */
     explicit Composition(std::shared_ptr<const LinOp> oper)
         : EnableLinOp<Composition>(oper->get_executor(), oper->get_size()),
-          operators_{oper}
+          operators_{oper},
+          storage_{oper->get_executor()}
     {}
 
     void apply_impl(const LinOp *b, LinOp *x) const override;
@@ -148,18 +163,7 @@ protected:
 
 private:
     std::vector<std::shared_ptr<const LinOp>> operators_;
-
-    // TODO: solve race conditions when multithreading
-    mutable struct cache_struct {
-        cache_struct() = default;
-        ~cache_struct() = default;
-        cache_struct(const cache_struct &other) {}
-        cache_struct &operator=(const cache_struct &other) { return *this; }
-
-        // TODO: reduce the amount of intermediate vectors we need (careful --
-        //       not all of them are of the same size)
-        std::vector<std::unique_ptr<LinOp>> intermediate;
-    } cache_;
+    mutable Array<ValueType> storage_;
 };
 
 

@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/components/prefix_sum.hpp"
 #include "core/matrix/csr_builder.hpp"
 
 
@@ -60,10 +61,30 @@ namespace omp {
 namespace isai {
 
 
+template <typename IndexType, typename Callback>
+void forall_matching(const IndexType *fst, IndexType fst_size,
+                     const IndexType *snd, IndexType snd_size, Callback cb)
+{
+    IndexType fst_idx{};
+    IndexType snd_idx{};
+    while (fst_idx < fst_size && snd_idx < snd_size) {
+        const auto fst_val = fst[fst_idx];
+        const auto snd_val = snd[snd_idx];
+        if (fst_val == snd_val) {
+            cb(fst_val, fst_idx, snd_idx);
+        }
+        // advance the smaller entrie(s)
+        fst_idx += (fst_val <= snd_val);
+        snd_idx += (fst_val >= snd_val);
+    }
+}
+
+
 template <typename ValueType, typename IndexType, typename Callable>
 void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType> *mtx,
                       matrix::Csr<ValueType, IndexType> *inverse_mtx,
+                      IndexType *excess_rhs_ptrs, IndexType *excess_nz_ptrs,
                       Callable trs_solve)
 {
     /*
@@ -84,174 +105,225 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
     const auto m_row_ptrs = mtx->get_const_row_ptrs();
     const auto m_cols = mtx->get_const_col_idxs();
     const auto m_vals = mtx->get_const_values();
-    auto i_row_ptrs = inverse_mtx->get_row_ptrs();
-    auto i_cols = inverse_mtx->get_col_idxs();
+    const auto i_row_ptrs = inverse_mtx->get_const_row_ptrs();
+    const auto i_cols = inverse_mtx->get_const_col_idxs();
     auto i_vals = inverse_mtx->get_values();
 
-    // expect mtx and inverse_mtx to have the same number of elems
-    const auto num_elems = mtx->get_num_stored_elements();
-    // Copy sparsity pattern of original into the inverse of L
-    std::copy_n(m_row_ptrs, num_rows + 1, i_row_ptrs);
-    std::copy_n(m_cols, num_elems, i_cols);
+    auto num_threads = static_cast<size_type>(omp_get_max_threads());
+    // RHS for local trisystem
+    gko::Array<ValueType> rhs_array{exec, row_size_limit * num_threads};
+    // memory for dense trisystem
+    gko::Array<ValueType> trisystem_array{
+        exec, row_size_limit * row_size_limit * num_threads};
 
-    gko::Array<ValueType> rhs_array{exec};  // RHS for local trisystem
-    // memory for dense trisystem in column major:
-    gko::Array<ValueType> trisystem_array{exec};
-    IndexType buffer_size{};
+#pragma omp parallel
+    {
+        auto thread_num = static_cast<size_type>(omp_get_thread_num());
 
-#pragma omp parallel for firstprivate(trisystem_array, rhs_array, buffer_size)
-    for (size_type row = 0; row < num_rows; ++row) {
-        const auto i_row_begin = i_row_ptrs[row];
-        const auto i_row_end = i_row_ptrs[row + 1];
-        const auto i_row_elems = i_row_end - i_row_begin;
+        auto rhs = rhs_array.get_data() + thread_num * row_size_limit;
+        auto trisystem_ptr = trisystem_array.get_data() +
+                             thread_num * row_size_limit * row_size_limit;
 
-        if (buffer_size < i_row_elems) {
-            trisystem_array.resize_and_reset(i_row_elems * i_row_elems);
-            rhs_array.resize_and_reset(i_row_elems);
-            buffer_size = i_row_elems;
+#pragma omp for
+        for (size_type row = 0; row < num_rows; ++row) {
+            const auto i_begin = i_row_ptrs[row];
+            const auto i_size = i_row_ptrs[row + 1] - i_begin;
+
+            if (i_size <= row_size_limit) {
+                // short rows: treat directly as dense system
+                excess_rhs_ptrs[row] = 0;
+                excess_nz_ptrs[row] = 0;
+                auto trisystem = range<accessor::row_major<ValueType, 2>>(
+                    trisystem_ptr, static_cast<size_type>(i_size),
+                    static_cast<size_type>(i_size),
+                    static_cast<size_type>(i_size));
+                std::fill_n(trisystem_ptr, i_size * i_size, zero<ValueType>());
+
+                for (size_type i = 0; i < i_size; ++i) {
+                    const auto col = i_cols[i_begin + i];
+                    const auto m_begin = m_row_ptrs[col];
+                    const auto m_size = m_row_ptrs[col + 1] - m_begin;
+                    forall_matching(
+                        m_cols + m_begin, m_size, i_cols + i_begin, i_size,
+                        [&](IndexType, IndexType m_idx, IndexType i_idx) {
+                            trisystem(i, i_idx) = m_vals[m_idx + m_begin];
+                        });
+                }
+
+                // solve dense triangular system
+                trs_solve(trisystem, rhs);
+
+                // write triangular solution to inverse
+                for (size_type i = 0; i < i_size; ++i) {
+                    const auto new_val = rhs[i];
+                    const auto idx = i_begin + i;
+                    // check for non-finite elements which should not be copied
+                    // over
+                    if (is_finite(new_val)) {
+                        i_vals[idx] = new_val;
+                    } else {
+                        // ensure the preconditioner does not prevent
+                        // convergence
+                        i_vals[idx] = i_cols[idx] == row ? one<ValueType>()
+                                                         : zero<ValueType>();
+                    }
+                }
+            } else {
+                // count non-zeros and dimension in the excess system
+                IndexType count{};
+                for (size_type i = 0; i < i_size; ++i) {
+                    const auto col = i_cols[i_begin + i];
+                    const auto m_begin = m_row_ptrs[col];
+                    const auto m_size = m_row_ptrs[col + 1] - m_begin;
+                    forall_matching(
+                        m_cols + m_begin, m_size, i_cols + i_begin, i_size,
+                        [&](IndexType, IndexType, IndexType) { ++count; });
+                }
+                excess_rhs_ptrs[row] = i_size;
+                excess_nz_ptrs[row] = count;
+            }
         }
-        auto trisystem = trisystem_array.get_data();
-        std::fill_n(trisystem, i_row_elems * i_row_elems, zero<ValueType>());
+    }
+    components::prefix_sum(exec, excess_rhs_ptrs, num_rows + 1);
+    components::prefix_sum(exec, excess_nz_ptrs, num_rows + 1);
+}
 
-        for (size_type i = 0; i < i_row_elems; ++i) {
-            const auto col = i_cols[i_row_begin + i];
-            const auto m_row_end = m_row_ptrs[col + 1];
-            auto m_row_ptr = m_row_ptrs[col];
-            auto i_row_ptr = i_row_begin;
-            // Values in `trisystem` will be stored in transposed order
-            // to prevent the need for an explicit transpose.
-            // Since `trisystem` stores in column major, this is equivalent
-            // to storing it in row-major and reading in column major.
-            auto idx = i * i_row_elems;
-            while (m_row_ptr < m_row_end && i_row_ptr < i_row_end) {
-                const auto sparsity_col = i_cols[i_row_ptr];
-                const auto m_col = m_cols[m_row_ptr];
-                if (sparsity_col == m_col) {
-                    trisystem[idx] = m_vals[m_row_ptr];
-                    ++m_row_ptr;
-                    ++i_row_ptr;
-                    ++idx;
-                } else if (m_col < sparsity_col) {
-                    ++m_row_ptr;
-                } else {  // element not present -> leave value at 0
-                    ++i_row_ptr;
-                    ++idx;
+
+template <typename ValueType, typename IndexType>
+void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
+                          const matrix::Csr<ValueType, IndexType> *mtx,
+                          matrix::Csr<ValueType, IndexType> *inverse_mtx,
+                          IndexType *excess_rhs_ptrs, IndexType *excess_nz_ptrs,
+                          bool lower)
+{
+    auto trs_solve =
+        [lower](const range<accessor::row_major<ValueType, 2>> trisystem,
+                ValueType *rhs) {
+            const IndexType size = trisystem.length(0);
+            if (size <= 0) {
+                return;
+            }
+            // RHS is the identity: zero everywhere except for the diagonal
+            // entry
+            std::fill_n(rhs, size, zero<ValueType>());
+            rhs[lower ? size - 1 : 0] = one<ValueType>();
+
+            // solve transposed triangular system
+            if (lower) {
+                for (auto col = size - 1; col >= 0; --col) {
+                    const auto diag = trisystem(col, col);
+                    const auto bot = rhs[col] / diag;
+                    rhs[col] = bot;
+                    // do a backwards substitution
+                    for (auto row = col - 1; row >= 0; --row) {
+                        rhs[row] -= bot * trisystem(col, row);
+                    }
+                }
+            } else {
+                for (IndexType col = 0; col < size; ++col) {
+                    const auto diag = trisystem(col, col);
+                    const auto top = rhs[col] / diag;
+                    rhs[col] = top;
+                    // do a forward substitution
+                    for (auto row = col + 1; row < size; ++row) {
+                        rhs[row] -= top * trisystem(col, row);
+                    }
                 }
             }
-        }
+        };
 
-        auto rhs = rhs_array.get_data();
-
-        trs_solve(i_row_elems, trisystem, rhs);
-
-        // Drop RHS as a row to memory (since that is the computed inverse)
-        for (size_type i = 0; i < i_row_elems; ++i) {
-            const auto new_val = rhs[i];
-            auto idx = i_row_begin + i;
-            // Check for non-finite elements which should not be copied over
-            if (gko::isfinite(new_val)) {
-                i_vals[idx] = new_val;
-            } else {
-                // The diagonal elements should be set to 1, so the
-                // preconditioner does not prevent convergence
-                i_vals[idx] =
-                    i_cols[idx] == row ? one<ValueType>() : zero<ValueType>();
-            }
-        }
-    }
-
-    // Call make_srow
-    matrix::CsrBuilder<ValueType, IndexType>{inverse_mtx};
-}
-
-
-template <typename ValueType, typename IndexType>
-void generate_l_inverse(std::shared_ptr<const DefaultExecutor> exec,
-                        const matrix::Csr<ValueType, IndexType> *l_csr,
-                        matrix::Csr<ValueType, IndexType> *inverse_l)
-{
-    auto trs_solve = [](IndexType size, const ValueType *trisystem,
-                        ValueType *rhs) {
-        if (size <= 0) {
-            return;
-        }
-        // RHS is the identity: zero everywhere except for the last entry
-        // since that is the row we are searching the inverse for
-        std::fill_n(rhs, size - 1, zero<ValueType>());
-        rhs[size - 1] = one<ValueType>();
-
-        // Note: `trisystem` is an upper triangular matrix here (stored in
-        //       colum major)
-        for (IndexType d_col = size - 1; d_col >= 0; --d_col) {
-            const auto diag = trisystem[d_col * size + d_col];
-            const auto bot = rhs[d_col] / diag;
-            rhs[d_col] = bot;
-            // do a backwards substitution
-            for (IndexType d_row = d_col - 1; d_row >= 0; --d_row) {
-                rhs[d_row] -= bot * trisystem[d_col * size + d_row];
-            }
-        }
-    };
-
-    generic_generate(exec, l_csr, inverse_l, trs_solve);
+    generic_generate(exec, mtx, inverse_mtx, excess_rhs_ptrs, excess_nz_ptrs,
+                     trs_solve);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ISAI_GENERATE_L_INVERSE_KERNEL);
+    GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void generate_u_inverse(std::shared_ptr<const DefaultExecutor> exec,
-                        const matrix::Csr<ValueType, IndexType> *u_csr,
-                        matrix::Csr<ValueType, IndexType> *inverse_u)
+void generate_excess_system(std::shared_ptr<const DefaultExecutor>,
+                            const matrix::Csr<ValueType, IndexType> *input,
+                            const matrix::Csr<ValueType, IndexType> *inverse,
+                            const IndexType *excess_rhs_ptrs,
+                            const IndexType *excess_nz_ptrs,
+                            matrix::Csr<ValueType, IndexType> *excess_system,
+                            matrix::Dense<ValueType> *excess_rhs)
 {
-    auto trs_solve = [](IndexType size, const ValueType *trisystem,
-                        ValueType *rhs) {
-        if (size <= 0) {
-            return;
-        }
-        // RHS is the identity: zero everywhere except for the first entry
-        // since that is the row we are searching the inverse for
-        std::fill_n(rhs, size, zero<ValueType>());
-        rhs[0] = one<ValueType>();
+    const auto num_rows = input->get_size()[0];
+    const auto m_row_ptrs = input->get_const_row_ptrs();
+    const auto m_cols = input->get_const_col_idxs();
+    const auto m_vals = input->get_const_values();
+    const auto i_row_ptrs = inverse->get_const_row_ptrs();
+    const auto i_cols = inverse->get_const_col_idxs();
+    const auto e_dim = excess_rhs->get_size()[0];
+    auto e_row_ptrs = excess_system->get_row_ptrs();
+    auto e_cols = excess_system->get_col_idxs();
+    auto e_vals = excess_system->get_values();
+    auto e_rhs = excess_rhs->get_values();
 
-        // Note: `trisystem` is a lower triangular matrix here (stored in
-        //       colum major)
-        for (IndexType d_col = 0; d_col < size; ++d_col) {
-            const auto diag = trisystem[d_col * size + d_col];
-            const auto top = rhs[d_col] / diag;
-            rhs[d_col] = top;
-            // do a forward substitution
-            for (IndexType d_row = d_col + 1; d_row < size; ++d_row) {
-                rhs[d_row] -= top * trisystem[d_col * size + d_row];
-            }
-        }
-    };
-    generic_generate(exec, u_csr, inverse_u, trs_solve);
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ISAI_GENERATE_U_INVERSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void identity_triangle(std::shared_ptr<const DefaultExecutor> exec,
-                       matrix::Csr<ValueType, IndexType> *mtx, bool lower)
-{
-    auto num_rows = mtx->get_size()[0];
-    auto row_ptrs = mtx->get_const_row_ptrs();
-    auto vals = mtx->get_values();
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
-        auto diagonal_nz = lower ? row_ptrs[row + 1] - 1 : row_ptrs[row];
-        for (size_type nz = row_ptrs[row]; nz < row_ptrs[row + 1]; ++nz) {
-            vals[nz] = nz == diagonal_nz ? one<ValueType>() : zero<ValueType>();
+        const auto i_begin = i_row_ptrs[row];
+        const auto i_size = i_row_ptrs[row + 1] - i_begin;
+        // first row index of the sparse block in the excess system
+        auto e_begin = excess_rhs_ptrs[row];
+        // first non-zero index in the sparse block
+        auto e_nz = excess_nz_ptrs[row];
+
+        if (i_size > row_size_limit) {
+            // count non-zeros and dimension in the excess system
+            for (size_type i = 0; i < i_size; ++i) {
+                // current row in the excess system
+                const auto e_row = e_begin + i;
+                const auto col = i_cols[i_begin + i];
+                const auto m_begin = m_row_ptrs[col];
+                const auto m_size = m_row_ptrs[col + 1] - m_begin;
+                // store row pointers: one row per non-zero of inverse row
+                e_row_ptrs[e_row] = e_nz;
+                // build right-hand side: identity row
+                e_rhs[e_row] =
+                    row == col ? one<ValueType>() : zero<ValueType>();
+                // build sparse block
+                forall_matching(
+                    m_cols + m_begin, m_size, i_cols + i_begin, i_size,
+                    [&](IndexType, IndexType m_idx, IndexType i_idx) {
+                        // trisystem(i, i_idx) = m_vals[m_idx + m_begin]
+                        // just in sparse
+                        e_cols[e_nz] = i_idx + e_begin;
+                        e_vals[e_nz] = m_vals[m_idx + m_begin];
+                        ++e_nz;
+                    });
+            }
         }
+    }
+    e_row_ptrs[e_dim] = excess_nz_ptrs[num_rows];
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void scatter_excess_solution(std::shared_ptr<const DefaultExecutor>,
+                             const IndexType *excess_block_ptrs,
+                             const matrix::Dense<ValueType> *excess_solution,
+                             matrix::Csr<ValueType, IndexType> *inverse)
+{
+    const auto num_rows = inverse->get_size()[0];
+    auto excess_values = excess_solution->get_const_values();
+    auto values = inverse->get_values();
+    auto row_ptrs = inverse->get_const_row_ptrs();
+#pragma omp parallel for
+    for (size_type row = 0; row < num_rows; ++row) {
+        const auto excess_begin = excess_values + excess_block_ptrs[row];
+        const auto excess_end = excess_values + excess_block_ptrs[row + 1];
+        auto values_begin = values + row_ptrs[row];
+        std::copy(excess_begin, excess_end, values_begin);
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ISAI_IDENTITY_TRIANGLE_KERNEL);
+    GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL);
 
 
 }  // namespace isai

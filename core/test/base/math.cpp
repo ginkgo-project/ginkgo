@@ -54,29 +54,29 @@ static_assert(
 
 
 template <typename T>
-void test_real_isfinite()
+void test_real_is_finite()
 {
     using limits = std::numeric_limits<T>;
     constexpr auto inf = limits::infinity();
     // Use volatile to avoid MSVC report divided by zero.
     volatile const T zero{0};
-    ASSERT_TRUE(gko::isfinite(T{0}));
-    ASSERT_TRUE(gko::isfinite(-T{0}));
-    ASSERT_TRUE(gko::isfinite(T{1}));
-    ASSERT_FALSE(gko::isfinite(inf));
-    ASSERT_FALSE(gko::isfinite(-inf));
-    ASSERT_FALSE(gko::isfinite(limits::quiet_NaN()));
-    ASSERT_FALSE(gko::isfinite(limits::signaling_NaN()));
-    ASSERT_FALSE(gko::isfinite(inf - inf));    // results in nan
-    ASSERT_FALSE(gko::isfinite(inf / inf));    // results in nan
-    ASSERT_FALSE(gko::isfinite(inf * T{2}));   // results in inf
-    ASSERT_FALSE(gko::isfinite(T{1} / zero));  // results in inf
-    ASSERT_FALSE(gko::isfinite(T{0} / zero));  // results in nan
+    ASSERT_TRUE(gko::is_finite(T{0}));
+    ASSERT_TRUE(gko::is_finite(-T{0}));
+    ASSERT_TRUE(gko::is_finite(T{1}));
+    ASSERT_FALSE(gko::is_finite(inf));
+    ASSERT_FALSE(gko::is_finite(-inf));
+    ASSERT_FALSE(gko::is_finite(limits::quiet_NaN()));
+    ASSERT_FALSE(gko::is_finite(limits::signaling_NaN()));
+    ASSERT_FALSE(gko::is_finite(inf - inf));    // results in nan
+    ASSERT_FALSE(gko::is_finite(inf / inf));    // results in nan
+    ASSERT_FALSE(gko::is_finite(inf * T{2}));   // results in inf
+    ASSERT_FALSE(gko::is_finite(T{1} / zero));  // results in inf
+    ASSERT_FALSE(gko::is_finite(T{0} / zero));  // results in nan
 }
 
 
 template <typename ComplexType>
-void test_complex_isfinite()
+void test_complex_is_finite()
 {
     static_assert(gko::is_complex_s<ComplexType>::value,
                   "Template type must be a complex type.");
@@ -87,31 +87,34 @@ void test_complex_isfinite()
     constexpr auto quiet_nan = limits::quiet_NaN();
     constexpr auto signaling_nan = limits::signaling_NaN();
 
-    ASSERT_TRUE(gko::isfinite(c_type{T{0}, T{0}}));
-    ASSERT_TRUE(gko::isfinite(c_type{-T{0}, -T{0}}));
-    ASSERT_TRUE(gko::isfinite(c_type{T{1}, T{0}}));
-    ASSERT_TRUE(gko::isfinite(c_type{T{0}, T{1}}));
-    ASSERT_FALSE(gko::isfinite(c_type{inf, T{0}}));
-    ASSERT_FALSE(gko::isfinite(c_type{-inf, T{0}}));
-    ASSERT_FALSE(gko::isfinite(c_type{quiet_nan, T{0}}));
-    ASSERT_FALSE(gko::isfinite(c_type{signaling_nan, T{0}}));
-    ASSERT_FALSE(gko::isfinite(c_type{T{0}, inf}));
-    ASSERT_FALSE(gko::isfinite(c_type{T{0}, -inf}));
-    ASSERT_FALSE(gko::isfinite(c_type{T{0}, quiet_nan}));
-    ASSERT_FALSE(gko::isfinite(c_type{T{0}, signaling_nan}));
+    ASSERT_TRUE(gko::is_finite(c_type{T{0}, T{0}}));
+    ASSERT_TRUE(gko::is_finite(c_type{-T{0}, -T{0}}));
+    ASSERT_TRUE(gko::is_finite(c_type{T{1}, T{0}}));
+    ASSERT_TRUE(gko::is_finite(c_type{T{0}, T{1}}));
+    ASSERT_FALSE(gko::is_finite(c_type{inf, T{0}}));
+    ASSERT_FALSE(gko::is_finite(c_type{-inf, T{0}}));
+    ASSERT_FALSE(gko::is_finite(c_type{quiet_nan, T{0}}));
+    ASSERT_FALSE(gko::is_finite(c_type{signaling_nan, T{0}}));
+    ASSERT_FALSE(gko::is_finite(c_type{T{0}, inf}));
+    ASSERT_FALSE(gko::is_finite(c_type{T{0}, -inf}));
+    ASSERT_FALSE(gko::is_finite(c_type{T{0}, quiet_nan}));
+    ASSERT_FALSE(gko::is_finite(c_type{T{0}, signaling_nan}));
 }
 
 
-TEST(IsFinite, Float) { test_real_isfinite<float>(); }
+TEST(IsFinite, Float) { test_real_is_finite<float>(); }
 
 
-TEST(IsFinite, Double) { test_real_isfinite<double>(); }
+TEST(IsFinite, Double) { test_real_is_finite<double>(); }
 
 
-TEST(IsFinite, FloatComplex) { test_complex_isfinite<std::complex<float>>(); }
+TEST(IsFinite, FloatComplex) { test_complex_is_finite<std::complex<float>>(); }
 
 
-TEST(IsFinite, DoubleComplex) { test_complex_isfinite<std::complex<double>>(); }
+TEST(IsFinite, DoubleComplex)
+{
+    test_complex_is_finite<std::complex<double>>();
+}
 
 
 TEST(Conjugate, FloatComplex)

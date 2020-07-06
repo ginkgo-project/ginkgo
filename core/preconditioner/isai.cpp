@@ -42,6 +42,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/solver/lower_trs.hpp>
+#include <ginkgo/core/solver/upper_trs.hpp>
 
 
 #include "core/preconditioner/isai_kernels.hpp"
@@ -52,9 +54,9 @@ namespace preconditioner {
 namespace isai {
 
 
-GKO_REGISTER_OPERATION(identity_triangle, isai::identity_triangle);
-GKO_REGISTER_OPERATION(generate_l_inverse, isai::generate_l_inverse);
-GKO_REGISTER_OPERATION(generate_u_inverse, isai::generate_u_inverse);
+GKO_REGISTER_OPERATION(generate_tri_inverse, isai::generate_tri_inverse);
+GKO_REGISTER_OPERATION(generate_excess_system, isai::generate_excess_system);
+GKO_REGISTER_OPERATION(scatter_excess_solution, isai::scatter_excess_solution);
 
 
 }  // namespace isai
@@ -92,7 +94,7 @@ std::shared_ptr<const Csr> convert_to_csr_and_sort(
         }
     }
     auto copy = Csr::create(exec);
-    as<ConvertibleTo<Csr>>(mtx)->convert_to(copy.get());
+    as<ConvertibleTo<Csr>>(mtx)->convert_to(lend(copy));
     // Here, we assume that a sorted matrix converted to CSR will also be
     // sorted
     if (!skip_sorting) {
@@ -112,67 +114,122 @@ std::shared_ptr<const Csr> convert_to_csr_and_sort(
  * If `power` is 1, the matrix will be returned unchanged.
  */
 template <typename Csr>
-std::shared_ptr<const Csr> extend_sparsity(
-    std::shared_ptr<const Executor> &exec, std::shared_ptr<const Csr> mtx,
-    int power, bool lower)
+std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor> &exec,
+                                     std::shared_ptr<const Csr> mtx, int power)
 {
     GKO_ASSERT_EQ(power >= 1, true);
     if (power == 1) {
-        return mtx;
+        // copy the matrix, as it will be used to store the inverse
+        return {std::move(mtx->clone())};
     }
-    auto id = mtx->clone();
-    exec->run(isai::make_identity_triangle(id.get(), lower));
-    auto id_power = id->clone();
+    auto id_power = mtx->clone();
     auto tmp = Csr::create(exec, mtx->get_size());
-    // compute id^(n-1) and then multiply it with mtx
-    // TODO replace this by a square-and-multiply algorithm
-    for (int i = 1; i < power - 1; ++i) {
-        id->apply(id_power.get(), tmp.get());
+    // accumulates mtx * the remainder from odd powers
+    auto acc = mtx->clone();
+    // compute id^(n-1) using square-and-multiply
+    int i = power - 1;
+    while (i > 1) {
+        if (i % 2 != 0) {
+            // store one power in acc:
+            // i^(2n+1) -> i*i^2n
+            id_power->apply(lend(acc), lend(tmp));
+            std::swap(acc, tmp);
+            i--;
+        }
+        // square id_power: i^2n -> (i^2)^n
+        id_power->apply(lend(id_power), lend(tmp));
         std::swap(id_power, tmp);
+        i /= 2;
     }
-    // finally compute id^(n-1) * mtx
-    id_power->apply(mtx.get(), tmp.get());
+    // combine acc and id_power again
+    id_power->apply(lend(acc), lend(tmp));
     return {std::move(tmp)};
 }
 
 
 template <isai_type IsaiType, typename ValueType, typename IndexType>
-void Isai<IsaiType, ValueType, IndexType>::generate_l_inverse(
-    std::shared_ptr<const LinOp> to_invert_l, bool skip_sorting, int power)
+void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
+    std::shared_ptr<const LinOp> input, bool skip_sorting, int power)
 {
-    GKO_ASSERT_IS_SQUARE_MATRIX(to_invert_l);
+    using Dense = matrix::Dense<ValueType>;
+    using LowerTrs = solver::LowerTrs<ValueType, IndexType>;
+    using UpperTrs = solver::UpperTrs<ValueType, IndexType>;
+    GKO_ASSERT_IS_SQUARE_MATRIX(input);
     auto exec = this->get_executor();
-    auto csr_l = convert_to_csr_and_sort<Csr>(exec, to_invert_l, skip_sorting);
-    auto strategy = csr_l->get_strategy();
-    auto csr_extended_l = extend_sparsity(exec, csr_l, power, true);
-    const auto num_elems = csr_extended_l->get_num_stored_elements();
+    auto to_invert = convert_to_csr_and_sort<Csr>(exec, input, skip_sorting);
+    auto inverted = extend_sparsity(exec, to_invert, power);
+    auto num_rows = inverted->get_size()[0];
+    auto is_lower = IsaiType == isai_type::lower;
 
-    std::shared_ptr<Csr> inverted_l =
-        Csr::create(exec, csr_extended_l->get_size(), num_elems, strategy);
-    exec->run(
-        isai::make_generate_l_inverse(csr_extended_l.get(), inverted_l.get()));
+    // This stores the beginning of the RHS for the sparse block associated with
+    // each row of inverted_l
+    Array<IndexType> excess_block_ptrs{exec, num_rows + 1};
+    // This stores the beginning of the non-zeros belonging to each row in the
+    // system of excess blocks
+    Array<IndexType> excess_row_ptrs_full{exec, num_rows + 1};
 
-    approximate_inverse_ = std::move(inverted_l);
+    exec->run(isai::make_generate_tri_inverse(
+        lend(to_invert), lend(inverted), excess_block_ptrs.get_data(),
+        excess_row_ptrs_full.get_data(), is_lower));
+
+    auto excess_dim =
+        exec->copy_val_to_host(excess_block_ptrs.get_const_data() + num_rows);
+    // if we had long rows:
+    if (excess_dim > 0) {
+        // build the excess sparse triangular system
+        auto excess_nnz = exec->copy_val_to_host(
+            excess_row_ptrs_full.get_const_data() + num_rows);
+        auto excess_system =
+            Csr::create(exec, dim<2>(excess_dim, excess_dim), excess_nnz);
+        auto excess_rhs = Dense::create(exec, dim<2>(excess_dim, 1));
+        auto excess_solution = Dense::create(exec, dim<2>(excess_dim, 1));
+        exec->run(isai::make_generate_excess_system(
+            lend(to_invert), lend(inverted), excess_block_ptrs.get_const_data(),
+            excess_row_ptrs_full.get_const_data(), lend(excess_system),
+            lend(excess_rhs)));
+        // solve it after transposing
+        std::unique_ptr<LinOpFactory> trs_factory;
+        if (is_lower) {
+            trs_factory = UpperTrs::build().on(exec);
+        } else {
+            trs_factory = LowerTrs::build().on(exec);
+        }
+        trs_factory->generate(share(excess_system->transpose()))
+            ->apply(lend(excess_rhs), lend(excess_solution));
+        // and copy the results back to the original ISAI
+        exec->run(isai::make_scatter_excess_solution(
+            excess_block_ptrs.get_const_data(), lend(excess_solution),
+            lend(inverted)));
+    }
+
+    approximate_inverse_ = std::move(inverted);
 }
 
 
 template <isai_type IsaiType, typename ValueType, typename IndexType>
-void Isai<IsaiType, ValueType, IndexType>::generate_u_inverse(
-    std::shared_ptr<const LinOp> to_invert_u, bool skip_sorting, int power)
+std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::transpose() const
 {
-    GKO_ASSERT_IS_SQUARE_MATRIX(to_invert_u);
-    auto exec = this->get_executor();
-    auto csr_u = convert_to_csr_and_sort<Csr>(exec, to_invert_u, skip_sorting);
-    auto strategy = csr_u->get_strategy();
-    auto csr_extended_u = extend_sparsity(exec, csr_u, power, false);
-    const auto num_elems = csr_extended_u->get_num_stored_elements();
+    std::unique_ptr<transposed_type> transp{
+        new transposed_type{this->get_executor()}};
+    transp->set_size(gko::transpose(this->get_size()));
+    transp->approximate_inverse_ =
+        share(as<Csr>(this->get_approximate_inverse()->transpose()));
 
-    std::shared_ptr<Csr> inverted_u =
-        Csr::create(exec, csr_extended_u->get_size(), num_elems, strategy);
-    exec->run(
-        isai::make_generate_u_inverse(csr_extended_u.get(), inverted_u.get()));
+    return std::move(transp);
+}
 
-    approximate_inverse_ = std::move(inverted_u);
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::conj_transpose()
+    const
+{
+    std::unique_ptr<transposed_type> transp{
+        new transposed_type{this->get_executor()}};
+    transp->set_size(gko::transpose(this->get_size()));
+    transp->approximate_inverse_ =
+        share(as<Csr>(this->get_approximate_inverse()->conj_transpose()));
+
+    return std::move(transp);
 }
 
 

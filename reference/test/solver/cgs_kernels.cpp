@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
 
@@ -281,6 +281,39 @@ TYPED_TEST(Cgs, SolvesMultipleDenseSystems)
     // Not sure if this is necessary, the assertions above should cover what is
     // needed.
     GKO_ASSERT_MTX_NEAR(xc, mergedRes, r<value_type>::value);
+}
+
+
+TYPED_TEST(Cgs, SolvesTransposedBigDenseSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->cgs_factory_big->generate(this->mtx_big->transpose());
+    auto b = gko::initialize<Mtx>(
+        {764.0, -4032.0, -11855.0, 7111.0, -12765.0, -4589}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->transpose()->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({-13.0, -49.0, 69.0, -33.0, -82.0, -39.0}),
+                        r<value_type>::value * 1e3);
+}
+
+
+TYPED_TEST(Cgs, SolvesConjTransposedBigDenseSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver =
+        this->cgs_factory_big->generate(this->mtx_big->conj_transpose());
+    auto b = gko::initialize<Mtx>(
+        {764.0, -4032.0, -11855.0, 7111.0, -12765.0, -4589}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->conj_transpose()->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({-13.0, -49.0, 69.0, -33.0, -82.0, -39.0}),
+                        r<value_type>::value * 1e3);
 }
 
 

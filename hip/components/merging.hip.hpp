@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_COMPONENTS_MERGING_HIP_HPP_
 
 
+#include "core/base/utils.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/components/intrinsics.hip.hpp"
 #include "hip/components/searching.hip.hpp"

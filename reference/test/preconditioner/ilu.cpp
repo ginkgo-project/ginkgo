@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
 
@@ -242,6 +242,50 @@ TYPED_TEST(Ilu, CanBeCloned)
 
     ASSERT_EQ(before_l_solver.get(), clone->get_l_solver().get());
     ASSERT_EQ(before_u_solver.get(), clone->get_u_solver().get());
+}
+
+
+TYPED_TEST(Ilu, CanBeTransposed)
+{
+    using Ilu = typename TestFixture::ilu_prec_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto ilu = this->ilu_pre_factory->generate(this->l_u_composition);
+    auto l_ref = gko::as<Mtx>(ilu->get_l_solver()->get_system_matrix());
+    auto u_ref = gko::as<Mtx>(ilu->get_u_solver()->get_system_matrix());
+
+    auto transp = gko::as<Ilu>(ilu->transpose());
+
+    auto l_transp = gko::as<Mtx>(
+        gko::as<Mtx>(transp->get_u_solver()->get_system_matrix())->transpose());
+    auto u_transp = gko::as<Mtx>(
+        gko::as<Mtx>(transp->get_l_solver()->get_system_matrix())->transpose());
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_transp);
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_transp);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_transp, 0);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_transp, 0);
+}
+
+
+TYPED_TEST(Ilu, CanBeConjTransposed)
+{
+    using Ilu = typename TestFixture::ilu_prec_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto ilu = this->ilu_pre_factory->generate(this->l_u_composition);
+    auto l_ref = gko::as<Mtx>(ilu->get_l_solver()->get_system_matrix());
+    auto u_ref = gko::as<Mtx>(ilu->get_u_solver()->get_system_matrix());
+
+    auto transp = gko::as<Ilu>(ilu->conj_transpose());
+
+    auto l_transp =
+        gko::as<Mtx>(gko::as<Mtx>(transp->get_u_solver()->get_system_matrix())
+                         ->conj_transpose());
+    auto u_transp =
+        gko::as<Mtx>(gko::as<Mtx>(transp->get_l_solver()->get_system_matrix())
+                         ->conj_transpose());
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_transp);
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_transp);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_transp, 0);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_transp, 0);
 }
 
 

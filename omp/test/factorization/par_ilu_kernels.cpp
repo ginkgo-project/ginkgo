@@ -173,14 +173,14 @@ protected:
         *l_omp = Csr::create(omp, csr_omp->get_size(), l_nnz);
         *u_omp = Csr::create(omp, csr_omp->get_size(), u_nnz);
         // Copy the already initialized `row_ptrs` to the new matrices
-        ref->copy_from(gko::lend(ref), num_row_ptrs, l_row_ptrs_ref.get_data(),
-                       (*l_ref)->get_row_ptrs());
-        ref->copy_from(gko::lend(ref), num_row_ptrs, u_row_ptrs_ref.get_data(),
-                       (*u_ref)->get_row_ptrs());
-        omp->copy_from(gko::lend(omp), num_row_ptrs, l_row_ptrs_omp.get_data(),
-                       (*l_omp)->get_row_ptrs());
-        omp->copy_from(gko::lend(omp), num_row_ptrs, u_row_ptrs_omp.get_data(),
-                       (*u_omp)->get_row_ptrs());
+        ref->copy(num_row_ptrs, l_row_ptrs_ref.get_data(),
+                  (*l_ref)->get_row_ptrs());
+        ref->copy(num_row_ptrs, u_row_ptrs_ref.get_data(),
+                  (*u_ref)->get_row_ptrs());
+        omp->copy(num_row_ptrs, l_row_ptrs_omp.get_data(),
+                  (*l_omp)->get_row_ptrs());
+        omp->copy(num_row_ptrs, u_row_ptrs_omp.get_data(),
+                  (*u_omp)->get_row_ptrs());
 
         gko::kernels::reference::factorization::initialize_l_u(
             ref, gko::lend(csr_ref), gko::lend(*l_ref), gko::lend(*u_ref));
@@ -356,7 +356,7 @@ TYPED_TEST(ParIlu, KernelComputeParILUWithMoreIterationsIsEquivalentToRef)
     std::unique_ptr<Csr> u_ref{};
     std::unique_ptr<Csr> l_omp{};
     std::unique_ptr<Csr> u_omp{};
-    gko::size_type iterations{20};
+    gko::size_type iterations{30};
 
     this->compute_lu(&l_ref, &u_ref, &l_omp, &u_omp, iterations);
 

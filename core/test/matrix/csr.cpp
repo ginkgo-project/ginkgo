@@ -106,7 +106,7 @@ protected:
         ASSERT_EQ(m->get_num_stored_elements(), 0);
         ASSERT_EQ(m->get_const_values(), nullptr);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
-        ASSERT_EQ(m->get_const_row_ptrs(), nullptr);
+        ASSERT_NE(m->get_const_row_ptrs(), nullptr);
         ASSERT_EQ(m->get_const_srow(), nullptr);
     }
 };

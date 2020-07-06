@@ -96,7 +96,7 @@ class GkoArrayPrinter:
         def __next__(self):
             count = self.count
             self.count = self.count + 1
-            if self.count >= self.size:
+            if self.count > self.size:
                 raise StopIteration
             elt = self.item.dereference()
             self.item = self.item + 1

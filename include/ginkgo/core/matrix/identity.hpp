@@ -71,6 +71,7 @@ public:
     using EnableLinOp<Identity>::move_to;
 
     using value_type = ValueType;
+    using transposed_type = Identity<ValueType>;
 
     std::unique_ptr<LinOp> transpose() const override;
 

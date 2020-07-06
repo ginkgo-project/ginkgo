@@ -49,9 +49,9 @@ gko::ReferenceExecutor,0x55ae09d8f2a0]
 [LOG] >>> check started for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x55ae09d99260] at iteration 0 with ID 1 and finalized set to 1
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffcab765740] started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0]
 [LOG] >>> Operation[gko::matrix::dense::compute_norm2_operation<gko::matrix::Dense<double> const*, gko::matrix::Dense<double>*>,0x7ffcab765740] completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0]
-[LOG] >>> Operation[gko::stop::residual_norm_reduction::residual_norm_reduction_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffcab765980]
+[LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffcab765980]
  started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0]
-[LOG] >>> Operation[gko::stop::residual_norm_reduction::residual_norm_reduction_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffcab765980]
+[LOG] >>> Operation[gko::stop::residual_norm::residual_norm_operation<gko::matrix::Dense<double> const*&, gko::matrix::Dense<double>*, double&, unsigned char&, bool&, gko::Array<gko::stopping_status>*&, gko::Array<bool>*, bool*, bool*&>,0x7ffcab765980]
  completed on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0]
 [LOG] >>> check completed for stop::Criterion[gko::stop::ResidualNormReduction<double>,0x55ae09d99260] at iteration 0 with ID 1 and finalized set to 1. It changed one RHS 0, stopped the iteration process 0
 [LOG] >>> allocation started on Executor[gko::ReferenceExecutor,0x55ae09d8f2a0] with Bytes[152]

@@ -114,12 +114,11 @@ void add_diagonal_elements(std::shared_ptr<const HipExecutor> exec,
         return;
     }
 
-    prefix_sum(exec, hip_row_ptrs_add, row_ptrs_size);
+    components::prefix_sum(exec, hip_row_ptrs_add, row_ptrs_size);
     exec->synchronize();
 
-    IndexType total_additions{};
-    exec->get_master()->copy_from(
-        exec.get(), 1, hip_row_ptrs_add + row_ptrs_size - 1, &total_additions);
+    auto total_additions =
+        exec->copy_val_to_host(hip_row_ptrs_add + row_ptrs_size - 1);
     size_type new_num_elems = static_cast<size_type>(total_additions) +
                               mtx->get_num_stored_elements();
 
@@ -169,8 +168,8 @@ void initialize_row_ptrs_l_u(
                        as_hip_type(system_matrix->get_const_values()),
                        as_hip_type(l_row_ptrs), as_hip_type(u_row_ptrs));
 
-    prefix_sum(exec, l_row_ptrs, num_rows + 1);
-    prefix_sum(exec, u_row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, l_row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, u_row_ptrs, num_rows + 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -202,6 +201,58 @@ void initialize_l_u(std::shared_ptr<const HipExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void initialize_row_ptrs_l(
+    std::shared_ptr<const HipExecutor> exec,
+    const matrix::Csr<ValueType, IndexType> *system_matrix,
+    IndexType *l_row_ptrs)
+{
+    const size_type num_rows{system_matrix->get_size()[0]};
+
+    const dim3 block_size{default_block_size, 1, 1};
+    const uint32 number_blocks =
+        ceildiv(num_rows, static_cast<size_type>(block_size.x));
+    const dim3 grid_dim{number_blocks, 1, 1};
+
+    hipLaunchKernelGGL(kernel::count_nnz_per_l_row, dim3(grid_dim),
+                       dim3(block_size), 0, 0, num_rows,
+                       as_hip_type(system_matrix->get_const_row_ptrs()),
+                       as_hip_type(system_matrix->get_const_col_idxs()),
+                       as_hip_type(system_matrix->get_const_values()),
+                       as_hip_type(l_row_ptrs));
+
+    components::prefix_sum(exec, l_row_ptrs, num_rows + 1);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void initialize_l(std::shared_ptr<const HipExecutor> exec,
+                  const matrix::Csr<ValueType, IndexType> *system_matrix,
+                  matrix::Csr<ValueType, IndexType> *csr_l, bool diag_sqrt)
+{
+    const size_type num_rows{system_matrix->get_size()[0]};
+    const dim3 block_size{default_block_size, 1, 1};
+    const dim3 grid_dim{static_cast<uint32>(ceildiv(
+                            num_rows, static_cast<size_type>(block_size.x))),
+                        1, 1};
+
+    hipLaunchKernelGGL(kernel::initialize_l, dim3(grid_dim), dim3(block_size),
+                       0, 0, num_rows,
+                       as_hip_type(system_matrix->get_const_row_ptrs()),
+                       as_hip_type(system_matrix->get_const_col_idxs()),
+                       as_hip_type(system_matrix->get_const_values()),
+                       as_hip_type(csr_l->get_const_row_ptrs()),
+                       as_hip_type(csr_l->get_col_idxs()),
+                       as_hip_type(csr_l->get_values()), diag_sqrt);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL);
 
 
 }  // namespace factorization

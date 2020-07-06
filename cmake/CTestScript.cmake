@@ -50,7 +50,8 @@
 # A string to describe the machine this is ran on. Default FineCI.
 #
 # ``CTEST_CMAKE_GENERATOR``
-# Which generator should be used for the build. Default `Unix Makefiles`
+# Which generator should be used for the build. Default `Ninja`, except
+# for COVERAGE builds where `Unix Makefiles` is used.
 #
 # ``CTEST_BUILD_CONFIGURATION``
 # Which configuration should Ginkgo be built with. Default `DEBUG`.
@@ -84,7 +85,11 @@ if (NOT DEFINED CTEST_SITE)
 endif()
 
 if (NOT DEFINED CTEST_CMAKE_GENERATOR)
-    set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+    if (CTEST_BUILD_CONFIGURATION STREQUAL "COVERAGE")
+        set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+    else()
+        set(CTEST_CMAKE_GENERATOR "Ninja")
+    endif()
 endif()
 
 # Supported: COVERAGE, ASAN, LSAN, TSAN, UBSAN, DEBUG and RELEASE
@@ -119,14 +124,18 @@ if(CTEST_BUILD_CONFIGURATION STREQUAL "COVERAGE")
 endif()
 
 if(NOT CTEST_MEMORYCHECK_TYPE STREQUAL "Valgrind")
-    set(CTEST_MEMORYCHECK_SANITIZER_OPTIONS "verbosity=1")
+    set(CTEST_MEMORYCHECK_SANITIZER_OPTIONS "${CTEST_MEMORYCHECK_SANITIZER_OPTIONS}:allocator_may_return_null=1:verbosity=1")
 endif()
 
 include(ProcessorCount)
 ProcessorCount(PROC_COUNT)
 if(NOT PROC_COUNT EQUAL 0)
-    if (PROC_COUNT GREATER 10)
-        set(PROCT_COUNT 10)
+    if (DEFINED ENV{CI_PARALLELISM})
+        set(PROC_COUNT "$ENV{CI_PARALLELISM}")
+    elseif(PROC_COUNT LESS 4)
+        set(PROC_COUNT 1)
+    else()
+        set(PROC_COUNT 4)
     endif()
     if(NOT WIN32)
         set(CTEST_BUILD_FLAGS "-j${PROC_COUNT}")

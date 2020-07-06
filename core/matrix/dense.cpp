@@ -113,21 +113,12 @@ inline void conversion_helper(Csr<ValueType, IndexType> *result,
 {
     auto exec = source->get_executor();
 
-    if (source->get_size()) {
-        size_type num_stored_nonzeros = 0;
-        exec->run(dense::make_count_nonzeros(source, &num_stored_nonzeros));
-        auto tmp = Csr<ValueType, IndexType>::create(exec, source->get_size(),
-                                                     num_stored_nonzeros,
-                                                     result->get_strategy());
-        exec->run(op(source, tmp.get()));
-        tmp->move_to(result);
-    }
-    // If source is empty, there is no need to copy data or to call kernels
-    else {
-        auto tmp =
-            Csr<ValueType, IndexType>::create(exec, result->get_strategy());
-        tmp->move_to(result);
-    }
+    size_type num_stored_nonzeros = 0;
+    exec->run(dense::make_count_nonzeros(source, &num_stored_nonzeros));
+    auto tmp = Csr<ValueType, IndexType>::create(
+        exec, source->get_size(), num_stored_nonzeros, result->get_strategy());
+    exec->run(op(source, tmp.get()));
+    tmp->move_to(result);
 }
 
 
@@ -276,10 +267,28 @@ void Dense<ValueType>::compute_dot_impl(const LinOp *b, LinOp *result) const
 template <typename ValueType>
 void Dense<ValueType>::compute_norm2_impl(LinOp *result) const
 {
+    using NormVector = Dense<remove_complex<ValueType>>;
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     exec->run(dense::make_compute_norm2(as<Dense<ValueType>>(this),
-                                        as<Dense<ValueType>>(result)));
+                                        as<NormVector>(result)));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::convert_to(
+    Dense<next_precision<ValueType>> *result) const
+{
+    result->values_ = this->values_;
+    result->stride_ = this->stride_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Dense<next_precision<ValueType>> *result)
+{
+    this->convert_to(result);
 }
 
 

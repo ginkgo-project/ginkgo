@@ -59,6 +59,32 @@ GKO_REGISTER_OPERATION(finalize, bicgstab::finalize);
 
 
 template <typename ValueType>
+std::unique_ptr<LinOp> Bicgstab<ValueType>::transpose() const
+{
+    return build()
+        .with_generated_preconditioner(
+            share(as<Transposable>(this->get_preconditioner())->transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .on(this->get_executor())
+        ->generate(
+            share(as<Transposable>(this->get_system_matrix())->transpose()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Bicgstab<ValueType>::conj_transpose() const
+{
+    return build()
+        .with_generated_preconditioner(share(
+            as<Transposable>(this->get_preconditioner())->conj_transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .on(this->get_executor())
+        ->generate(share(
+            as<Transposable>(this->get_system_matrix())->conj_transpose()));
+}
+
+
+template <typename ValueType>
 void Bicgstab<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using std::swap;

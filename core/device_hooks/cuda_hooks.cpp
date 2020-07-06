@@ -30,8 +30,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#include <memory>
+#include <string>
+
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/version.hpp>
 
 
@@ -50,10 +55,10 @@ version version_info::get_cuda_version() noexcept
 
 
 std::shared_ptr<CudaExecutor> CudaExecutor::create(
-    int device_id, std::shared_ptr<Executor> master)
+    int device_id, std::shared_ptr<Executor> master, bool device_reset)
 {
     return std::shared_ptr<CudaExecutor>(
-        new CudaExecutor(device_id, std::move(master)));
+        new CudaExecutor(device_id, std::move(master), device_reset));
 }
 
 

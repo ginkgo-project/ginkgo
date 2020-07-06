@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/lower_trs.hpp>
 
 
 #include "core/solver/upper_trs_kernels.hpp"
@@ -59,6 +60,26 @@ GKO_REGISTER_OPERATION(solve, upper_trs::solve);
 
 
 }  // namespace upper_trs
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> UpperTrs<ValueType, IndexType>::transpose() const
+{
+    return transposed_type::build()
+        .with_num_rhs(this->parameters_.num_rhs)
+        .on(this->get_executor())
+        ->generate(share(this->get_system_matrix()->transpose()));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> UpperTrs<ValueType, IndexType>::conj_transpose() const
+{
+    return transposed_type::build()
+        .with_num_rhs(this->parameters_.num_rhs)
+        .on(this->get_executor())
+        ->generate(share(this->get_system_matrix()->conj_transpose()));
+}
 
 
 template <typename ValueType, typename IndexType>

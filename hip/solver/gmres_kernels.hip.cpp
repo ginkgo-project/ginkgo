@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "hip/base/config.hip.hpp"
 #include "hip/base/hipblas_bindings.hip.hpp"
 #include "hip/base/math.hip.hpp"
@@ -80,7 +81,6 @@ constexpr int default_dot_size = default_dot_dim * default_dot_dim;
 template <typename ValueType>
 void initialize_1(std::shared_ptr<const HipExecutor> exec,
                   const matrix::Dense<ValueType> *b,
-                  matrix::Dense<ValueType> *b_norm,
                   matrix::Dense<ValueType> *residual,
                   matrix::Dense<ValueType> *givens_sin,
                   matrix::Dense<ValueType> *givens_cos,
@@ -92,7 +92,6 @@ void initialize_1(std::shared_ptr<const HipExecutor> exec,
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
 
-    b->compute_norm2(b_norm);
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(initialize_1_kernel<block_size>), dim3(grid_dim),
         dim3(block_dim), 0, 0, b->get_size()[0], b->get_size()[1], krylov_dim,
@@ -109,27 +108,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_1_KERNEL);
 template <typename ValueType>
 void initialize_2(std::shared_ptr<const HipExecutor> exec,
                   const matrix::Dense<ValueType> *residual,
-                  matrix::Dense<ValueType> *residual_norm,
+                  matrix::Dense<remove_complex<ValueType>> *residual_norm,
                   matrix::Dense<ValueType> *residual_norm_collection,
                   matrix::Dense<ValueType> *krylov_bases,
-                  matrix::Dense<ValueType> *next_krylov_basis,
                   Array<size_type> *final_iter_nums, size_type krylov_dim)
 {
     const auto num_rows = residual->get_size()[0];
     const auto num_rhs = residual->get_size()[1];
     const dim3 grid_dim_1(
-        ceildiv(num_rows * krylov_bases->get_stride(), default_block_size), 1,
-        1);
+        ceildiv(krylov_bases->get_size()[0] * krylov_bases->get_stride(),
+                default_block_size),
+        1, 1);
     const dim3 block_dim(default_block_size, 1, 1);
     constexpr auto block_size = default_block_size;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(initialize_2_1_kernel<block_size>),
-                       dim3(grid_dim_1), dim3(block_dim), 0, 0,
-                       residual->get_size()[0], residual->get_size()[1],
-                       krylov_dim, as_hip_type(krylov_bases->get_values()),
-                       krylov_bases->get_stride(),
-                       as_hip_type(residual_norm_collection->get_values()),
-                       residual_norm_collection->get_stride());
     residual->compute_norm2(residual_norm);
 
     const dim3 grid_dim_2(ceildiv(num_rows * num_rhs, default_block_size), 1,
@@ -141,8 +133,6 @@ void initialize_2(std::shared_ptr<const HipExecutor> exec,
         as_hip_type(residual_norm->get_const_values()),
         as_hip_type(residual_norm_collection->get_values()),
         as_hip_type(krylov_bases->get_values()), krylov_bases->get_stride(),
-        as_hip_type(next_krylov_basis->get_values()),
-        next_krylov_basis->get_stride(),
         as_hip_type(final_iter_nums->get_data()));
 }
 
@@ -150,36 +140,49 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_INITIALIZE_2_KERNEL);
 
 
 template <typename ValueType>
-void finish_arnoldi(std::shared_ptr<const HipExecutor> exec,
-                    matrix::Dense<ValueType> *next_krylov_basis,
+void finish_arnoldi(std::shared_ptr<const HipExecutor> exec, size_type num_rows,
                     matrix::Dense<ValueType> *krylov_bases,
                     matrix::Dense<ValueType> *hessenberg_iter, size_type iter,
                     const stopping_status *stop_status)
 {
-    const auto stride_next_krylov = next_krylov_basis->get_stride();
     const auto stride_krylov = krylov_bases->get_stride();
     const auto stride_hessenberg = hessenberg_iter->get_stride();
-    const auto dim_size = next_krylov_basis->get_size();
     auto hipblas_handle = exec->get_hipblas_handle();
-    const dim3 grid_size(ceildiv(dim_size[1], default_dot_dim),
-                         exec->get_num_multiprocessor() * 2);
+    const dim3 grid_size(
+        ceildiv(hessenberg_iter->get_size()[1], default_dot_dim),
+        exec->get_num_multiprocessor() * 2);
     const dim3 block_size(default_dot_dim, default_dot_dim);
+    auto next_krylov_basis =
+        krylov_bases->get_values() +
+        (iter + 1) * num_rows * hessenberg_iter->get_size()[1];
     for (size_type k = 0; k < iter + 1; ++k) {
-        zero_array(dim_size[1],
-                   hessenberg_iter->get_values() + k * stride_hessenberg);
-        hipLaunchKernelGGL(
-            multidot_kernel, dim3(grid_size), dim3(block_size), 0, 0, k,
-            dim_size[0], dim_size[1],
-            as_hip_type(next_krylov_basis->get_const_values()),
-            stride_next_krylov, as_hip_type(krylov_bases->get_const_values()),
-            stride_krylov, as_hip_type(hessenberg_iter->get_values()),
-            stride_hessenberg, as_hip_type(stop_status));
+        const auto k_krylov_bases =
+            krylov_bases->get_const_values() +
+            k * num_rows * hessenberg_iter->get_size()[1];
+        if (hessenberg_iter->get_size()[1] > 1) {
+            // TODO: this condition should be tuned
+            // single rhs will use vendor's dot, otherwise, use our own
+            // multidot_kernel which parallelize multiple rhs.
+            components::fill_array(
+                exec, hessenberg_iter->get_values() + k * stride_hessenberg,
+                hessenberg_iter->get_size()[1], zero<ValueType>());
+            hipLaunchKernelGGL(
+                multidot_kernel, dim3(grid_size), dim3(block_size), 0, 0, k,
+                num_rows, hessenberg_iter->get_size()[1],
+                as_hip_type(k_krylov_bases), as_hip_type(next_krylov_basis),
+                stride_krylov, as_hip_type(hessenberg_iter->get_values()),
+                stride_hessenberg, as_hip_type(stop_status));
+        } else {
+            hipblas::dot(exec->get_hipblas_handle(), num_rows, k_krylov_bases,
+                         stride_krylov, next_krylov_basis, stride_krylov,
+                         hessenberg_iter->get_values() + k * stride_hessenberg);
+        }
         hipLaunchKernelGGL(
             HIP_KERNEL_NAME(update_next_krylov_kernel<default_block_size>),
-            dim3(ceildiv(dim_size[0] * stride_next_krylov, default_block_size)),
-            dim3(default_block_size), 0, 0, k, dim_size[0], dim_size[1],
-            as_hip_type(next_krylov_basis->get_values()), stride_next_krylov,
-            as_hip_type(krylov_bases->get_const_values()), stride_krylov,
+            dim3(ceildiv(num_rows * stride_krylov, default_block_size)),
+            dim3(default_block_size), 0, 0, k, num_rows,
+            hessenberg_iter->get_size()[1], as_hip_type(k_krylov_bases),
+            as_hip_type(next_krylov_basis), stride_krylov,
             as_hip_type(hessenberg_iter->get_const_values()), stride_hessenberg,
             as_hip_type(stop_status));
     }
@@ -191,21 +194,20 @@ void finish_arnoldi(std::shared_ptr<const HipExecutor> exec,
 
     hipLaunchKernelGGL(
         HIP_KERNEL_NAME(update_hessenberg_2_kernel<default_block_size>),
-        dim3(dim_size[1]), dim3(default_block_size), 0, 0, iter, dim_size[0],
-        dim_size[1], as_hip_type(next_krylov_basis->get_const_values()),
-        stride_next_krylov, as_hip_type(hessenberg_iter->get_values()),
-        stride_hessenberg, as_hip_type(stop_status));
+        dim3(hessenberg_iter->get_size()[1]), dim3(default_block_size), 0, 0,
+        iter, num_rows, hessenberg_iter->get_size()[1],
+        as_hip_type(next_krylov_basis), stride_krylov,
+        as_hip_type(hessenberg_iter->get_values()), stride_hessenberg,
+        as_hip_type(stop_status));
 
     hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(update_krylov_next_krylov_kernel<default_block_size>),
-        dim3(ceildiv(dim_size[0] * stride_next_krylov, default_block_size)),
-        dim3(default_block_size), 0, 0, iter, dim_size[0], dim_size[1],
-        as_hip_type(next_krylov_basis->get_values()), stride_next_krylov,
-        as_hip_type(krylov_bases->get_values()), stride_krylov,
-        as_hip_type(hessenberg_iter->get_const_values()), stride_hessenberg,
-        as_hip_type(stop_status));
+        HIP_KERNEL_NAME(update_krylov_kernel<default_block_size>),
+        dim3(ceildiv(num_rows * stride_krylov, default_block_size)),
+        dim3(default_block_size), 0, 0, iter, num_rows,
+        hessenberg_iter->get_size()[1], as_hip_type(next_krylov_basis),
+        stride_krylov, as_hip_type(hessenberg_iter->get_const_values()),
+        stride_hessenberg, as_hip_type(stop_status));
     // next_krylov_basis /= hessenberg(iter, iter + 1)
-    // krylov_bases(:, iter + 1) = next_krylov_basis
     // End of arnoldi
 }
 
@@ -215,10 +217,9 @@ void givens_rotation(std::shared_ptr<const HipExecutor> exec,
                      matrix::Dense<ValueType> *givens_sin,
                      matrix::Dense<ValueType> *givens_cos,
                      matrix::Dense<ValueType> *hessenberg_iter,
-                     matrix::Dense<ValueType> *residual_norm,
+                     matrix::Dense<remove_complex<ValueType>> *residual_norm,
                      matrix::Dense<ValueType> *residual_norm_collection,
-                     const matrix::Dense<ValueType> *b_norm, size_type iter,
-                     const Array<stopping_status> *stop_status)
+                     size_type iter, const Array<stopping_status> *stop_status)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
@@ -237,21 +238,18 @@ void givens_rotation(std::shared_ptr<const HipExecutor> exec,
         givens_cos->get_stride(), as_hip_type(residual_norm->get_values()),
         as_hip_type(residual_norm_collection->get_values()),
         residual_norm_collection->get_stride(),
-        as_hip_type(b_norm->get_const_values()),
         as_hip_type(stop_status->get_const_data()));
 }
 
 
 template <typename ValueType>
-void step_1(std::shared_ptr<const HipExecutor> exec,
-            matrix::Dense<ValueType> *next_krylov_basis,
+void step_1(std::shared_ptr<const HipExecutor> exec, size_type num_rows,
             matrix::Dense<ValueType> *givens_sin,
             matrix::Dense<ValueType> *givens_cos,
-            matrix::Dense<ValueType> *residual_norm,
+            matrix::Dense<remove_complex<ValueType>> *residual_norm,
             matrix::Dense<ValueType> *residual_norm_collection,
             matrix::Dense<ValueType> *krylov_bases,
-            matrix::Dense<ValueType> *hessenberg_iter,
-            const matrix::Dense<ValueType> *b_norm, size_type iter,
+            matrix::Dense<ValueType> *hessenberg_iter, size_type iter,
             Array<size_type> *final_iter_nums,
             const Array<stopping_status> *stop_status)
 {
@@ -263,11 +261,10 @@ void step_1(std::shared_ptr<const HipExecutor> exec,
         as_hip_type(final_iter_nums->get_data()),
         as_hip_type(stop_status->get_const_data()),
         final_iter_nums->get_num_elems());
-    finish_arnoldi(exec, next_krylov_basis, krylov_bases, hessenberg_iter, iter,
+    finish_arnoldi(exec, num_rows, krylov_bases, hessenberg_iter, iter,
                    stop_status->get_const_data());
     givens_rotation(exec, givens_sin, givens_cos, hessenberg_iter,
-                    residual_norm, residual_norm_collection, b_norm, iter,
-                    stop_status);
+                    residual_norm, residual_norm_collection, iter, stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_STEP_1_KERNEL);

@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -370,6 +371,27 @@ TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
+    auto a = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
+    auto b = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
+    auto da = Mtx::create(hip);
+    auto db = Mtx::create(hip);
+    da->copy_from(a.get());
+    db->copy_from(b.get());
+    auto id = gko::matrix::Identity<Mtx::value_type>::create(ref, mtx_size[1]);
+    auto did = gko::matrix::Identity<Mtx::value_type>::create(hip, mtx_size[1]);
+
+    a->apply(alpha.get(), id.get(), beta.get(), b.get());
+    da->apply(dalpha.get(), did.get(), dbeta.get(), db.get());
+
+    GKO_ASSERT_MTX_NEAR(b, db, 1e-14);
+    GKO_ASSERT_MTX_EQ_SPARSITY(b, db);
+    ASSERT_TRUE(db->is_sorted_by_column_index());
+}
+
+
 TEST_F(Csr, TransposeIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
@@ -433,6 +455,7 @@ TEST_F(Csr, MoveToEllIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(ell_mtx.get(), dell_mtx.get(), 1e-14);
 }
 
+
 TEST_F(Csr, ConvertToSparsityCsrIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
@@ -456,6 +479,18 @@ TEST_F(Csr, MoveToSparsityCsrIsEquivalentToRef)
     dmtx->move_to(d_sparsity_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(sparsity_mtx.get(), d_sparsity_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Csr, ConvertsEmptyToSellp)
+{
+    auto dempty_mtx = Mtx::create(hip);
+    auto dsellp_mtx = gko::matrix::Sellp<>::create(hip);
+
+    dempty_mtx->convert_to(dsellp_mtx.get());
+
+    ASSERT_EQ(hip->copy_val_to_host(dsellp_mtx->get_const_slice_sets()), 0);
+    ASSERT_FALSE(dsellp_mtx->get_size());
 }
 
 
@@ -552,7 +587,7 @@ TEST_F(Csr, CalculatesNonzerosPerRow)
     gko::kernels::hip::csr::calculate_nonzeros_per_row(hip, dmtx.get(),
                                                        &drow_nnz);
 
-    GKO_ASSERT_ARRAY_EQ(&row_nnz, &drow_nnz);
+    GKO_ASSERT_ARRAY_EQ(row_nnz, drow_nnz);
 }
 
 
@@ -635,6 +670,31 @@ TEST_F(Csr, SortUnsortedMatrixIsEquivalentToRef)
 
     // Values must be unchanged, therefore, tolerance is `0`
     GKO_ASSERT_MTX_NEAR(uns_mtx.ref, uns_mtx.hip, 0);
+}
+
+
+TEST_F(Csr, OneAutomaticalWorksWithDifferentMatrices)
+{
+    auto automatical = std::make_shared<Mtx::automatical>(hip);
+    auto row_len_limit = std::max(automatical->nvidia_row_len_limit,
+                                  automatical->amd_row_len_limit);
+    auto load_balance_mtx = Mtx::create(ref);
+    auto classical_mtx = Mtx::create(ref);
+    load_balance_mtx->copy_from(
+        gen_mtx<Vec>(1, row_len_limit + 1000, row_len_limit + 1));
+    classical_mtx->copy_from(gen_mtx<Vec>(50, 50, 1));
+    auto load_balance_mtx_d = Mtx::create(hip);
+    auto classical_mtx_d = Mtx::create(hip);
+    load_balance_mtx_d->copy_from(load_balance_mtx.get());
+    classical_mtx_d->copy_from(classical_mtx.get());
+
+    load_balance_mtx_d->set_strategy(automatical);
+    classical_mtx_d->set_strategy(automatical);
+
+    EXPECT_EQ("load_balance", load_balance_mtx_d->get_strategy()->get_name());
+    EXPECT_EQ("classical", classical_mtx_d->get_strategy()->get_name());
+    ASSERT_NE(load_balance_mtx_d->get_strategy().get(),
+              classical_mtx_d->get_strategy().get());
 }
 
 

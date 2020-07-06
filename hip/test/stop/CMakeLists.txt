@@ -1,2 +1,2 @@
 ginkgo_create_hip_test(criterion_kernels)
-ginkgo_create_hip_test(residual_norm_reduction_kernels)
+ginkgo_create_hip_test_special_linkage(residual_norm_kernels)

@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
@@ -51,7 +52,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/components/reduction.hip.hpp"
 #include "hip/components/segment_scan.hip.hpp"
 #include "hip/components/thread_ids.hip.hpp"
-#include "hip/components/zero_array.hip.hpp"
 
 
 namespace gko {
@@ -108,14 +108,15 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
     auto row_ptrs = result->get_row_ptrs();
     auto coo_row_ptrs = Array<IndexType>(exec, num_rows);
 
-    zero_array(num_rows + 1, row_ptrs);
+    components::fill_array(exec, row_ptrs, num_rows + 1, zero<IndexType>());
     grid_num = ceildiv(num_rows, warps_in_block);
     hipLaunchKernelGGL(ell::kernel::count_nnz_per_row, dim3(grid_num),
                        dim3(default_block_size), 0, 0, num_rows,
                        max_nnz_per_row, stride, as_hip_type(ell_val),
                        as_hip_type(row_ptrs));
 
-    zero_array(num_rows, coo_row_ptrs.get_data());
+    components::fill_array(exec, coo_row_ptrs.get_data(), num_rows,
+                           zero<IndexType>());
 
     auto nwarps =
         coo::host_kernel::calculate_nwarps(exec, coo_num_stored_elements);
@@ -135,7 +136,7 @@ void convert_to_csr(std::shared_ptr<const HipExecutor> exec,
                        0, num_rows, as_hip_type(row_ptrs),
                        as_hip_type(coo_row_ptrs.get_const_data()));
 
-    prefix_sum(exec, row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, row_ptrs, num_rows + 1);
 
     // Fill the value
     grid_num = ceildiv(num_rows, default_block_size);
@@ -168,7 +169,8 @@ void count_nonzeros(std::shared_ptr<const HipExecutor> exec,
         const dim3 coo_grid(ceildiv(nwarps, warps_in_block), 1);
         const auto num_rows = source->get_size()[0];
         auto nnz_per_row = Array<IndexType>(exec, num_rows);
-        zero_array(num_rows, nnz_per_row.get_data());
+        components::fill_array(exec, nnz_per_row.get_data(), num_rows,
+                               zero<IndexType>());
         hipLaunchKernelGGL(kernel::count_coo_row_nnz, dim3(coo_grid),
                            dim3(coo_block), 0, 0, nnz, num_lines,
                            as_hip_type(source->get_coo()->get_const_values()),

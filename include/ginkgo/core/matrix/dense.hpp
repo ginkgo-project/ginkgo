@@ -87,6 +87,7 @@ class SparsityCsr;
 template <typename ValueType = default_precision>
 class Dense : public EnableLinOp<Dense<ValueType>>,
               public EnableCreateMethod<Dense<ValueType>>,
+              public ConvertibleTo<Dense<next_precision<ValueType>>>,
               public ConvertibleTo<Coo<ValueType, int32>>,
               public ConvertibleTo<Coo<ValueType, int64>>,
               public ConvertibleTo<Csr<ValueType, int32>>,
@@ -127,6 +128,7 @@ public:
 
     using value_type = ValueType;
     using index_type = int64;
+    using transposed_type = Dense<ValueType>;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
 
@@ -145,6 +147,12 @@ public:
         // Otherwise, it results in a compile error.
         return (*other).create_with_same_config();
     }
+
+    friend class Dense<next_precision<ValueType>>;
+
+    void convert_to(Dense<next_precision<ValueType>> *result) const override;
+
+    void move_to(Dense<next_precision<ValueType>> *result) override;
 
     void convert_to(Coo<ValueType, int32> *result) const override;
 

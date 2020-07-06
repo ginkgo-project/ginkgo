@@ -60,6 +60,32 @@ GKO_REGISTER_OPERATION(step_2, cg::step_2);
 
 
 template <typename ValueType>
+std::unique_ptr<LinOp> Cg<ValueType>::transpose() const
+{
+    return build()
+        .with_generated_preconditioner(
+            share(as<Transposable>(this->get_preconditioner())->transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .on(this->get_executor())
+        ->generate(
+            share(as<Transposable>(this->get_system_matrix())->transpose()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Cg<ValueType>::conj_transpose() const
+{
+    return build()
+        .with_generated_preconditioner(share(
+            as<Transposable>(this->get_preconditioner())->conj_transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .on(this->get_executor())
+        ->generate(share(
+            as<Transposable>(this->get_system_matrix())->conj_transpose()));
+}
+
+
+template <typename ValueType>
 void Cg<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using std::swap;

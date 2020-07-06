@@ -59,17 +59,25 @@ namespace {
 class ExampleOperation : public gko::Operation {
 public:
     explicit ExampleOperation(int &val) : value(val) {}
+
     void run(std::shared_ptr<const gko::OmpExecutor>) const override
     {
         value = -1;
     }
-    void run(std::shared_ptr<const gko::HipExecutor>) const override
-    {
-        hipGetDevice(&value);
-    }
+
     void run(std::shared_ptr<const gko::ReferenceExecutor>) const override
     {
         value = -2;
+    }
+
+    void run(std::shared_ptr<const gko::CudaExecutor>) const override
+    {
+        value = -3;
+    }
+
+    void run(std::shared_ptr<const gko::HipExecutor>) const override
+    {
+        hipGetDevice(&value);
     }
 
     int &value;

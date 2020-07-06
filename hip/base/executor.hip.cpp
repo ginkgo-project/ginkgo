@@ -56,13 +56,14 @@ namespace gko {
 
 
 std::shared_ptr<HipExecutor> HipExecutor::create(
-    int device_id, std::shared_ptr<Executor> master)
+    int device_id, std::shared_ptr<Executor> master, bool device_reset)
 {
     return std::shared_ptr<HipExecutor>(
-        new HipExecutor(device_id, std::move(master)),
+        new HipExecutor(device_id, std::move(master), device_reset),
         [device_id](HipExecutor *exec) {
             delete exec;
-            if (!HipExecutor::get_num_execs(device_id)) {
+            if (!HipExecutor::get_num_execs(device_id) &&
+                exec->get_device_reset()) {
                 hip::device_guard g(device_id);
                 hipDeviceReset();
             }
@@ -73,9 +74,11 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
 void OmpExecutor::raw_copy_to(const HipExecutor *dest, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
-    hip::device_guard g(dest->get_device_id());
-    GKO_ASSERT_NO_HIP_ERRORS(
-        hipMemcpy(dest_ptr, src_ptr, num_bytes, hipMemcpyHostToDevice));
+    if (num_bytes > 0) {
+        hip::device_guard g(dest->get_device_id());
+        GKO_ASSERT_NO_HIP_ERRORS(
+            hipMemcpy(dest_ptr, src_ptr, num_bytes, hipMemcpyHostToDevice));
+    }
 }
 
 
@@ -112,9 +115,11 @@ void *HipExecutor::raw_alloc(size_type num_bytes) const
 void HipExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
-    hip::device_guard g(this->get_device_id());
-    GKO_ASSERT_NO_HIP_ERRORS(
-        hipMemcpy(dest_ptr, src_ptr, num_bytes, hipMemcpyDeviceToHost));
+    if (num_bytes > 0) {
+        hip::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_HIP_ERRORS(
+            hipMemcpy(dest_ptr, src_ptr, num_bytes, hipMemcpyDeviceToHost));
+    }
 }
 
 
@@ -122,9 +127,12 @@ void HipExecutor::raw_copy_to(const CudaExecutor *src, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
 #if GINKGO_HIP_PLATFORM_NVCC == 1
-    hip::device_guard g(this->get_device_id());
-    GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, this->device_id_, src_ptr,
-                                           src->get_device_id(), num_bytes));
+    if (num_bytes > 0) {
+        hip::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, this->device_id_,
+                                               src_ptr, src->get_device_id(),
+                                               num_bytes));
+    }
 #else
     GKO_NOT_SUPPORTED(this);
 #endif
@@ -134,9 +142,12 @@ void HipExecutor::raw_copy_to(const CudaExecutor *src, size_type num_bytes,
 void HipExecutor::raw_copy_to(const HipExecutor *src, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
-    hip::device_guard g(this->get_device_id());
-    GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, this->device_id_, src_ptr,
-                                           src->get_device_id(), num_bytes));
+    if (num_bytes > 0) {
+        hip::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, this->device_id_,
+                                               src_ptr, src->get_device_id(),
+                                               num_bytes));
+    }
 }
 
 

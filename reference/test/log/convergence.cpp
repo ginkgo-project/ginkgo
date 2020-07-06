@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
@@ -64,6 +65,7 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompleted)
     constexpr gko::uint8 RelativeStoppingId{42};
     gko::Array<gko::stopping_status> stop_status(exec, 1);
     using Mtx = gko::matrix::Dense<TypeParam>;
+    using NormVector = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
     auto residual = gko::initialize<Mtx>({1.0, 2.0, 2.0}, exec);
 
     logger->template on<gko::log::Logger::criterion_check_completed>(
@@ -73,8 +75,8 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompleted)
     ASSERT_EQ(logger->get_num_iterations(), 1);
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_residual()),
                         l({1.0, 2.0, 2.0}), 0.0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_residual_norm()), l({3.0}),
-                        0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<NormVector>(logger->get_residual_norm()),
+                        l({3.0}), 0.0);
 }
 
 

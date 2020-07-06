@@ -47,9 +47,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 int main(int argc, char *argv[])
 {
-    using vec = gko::matrix::Dense<>;
-    using mtx = gko::matrix::Dense<>;
-    using cg = gko::solver::Cg<>;
+    using ValueType = double;
+    using IndexType = int;
+
+    using vec = gko::matrix::Dense<ValueType>;
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
+    using cg = gko::solver::Cg<ValueType>;
 
     long unsigned num_iters = 1000000;
     if (argc > 2) {
@@ -87,8 +90,11 @@ int main(int argc, char *argv[])
     auto time = std::chrono::duration_cast<std::chrono::nanoseconds>(tac - tic);
     std::cout << "Running " << num_iters
               << " iterations of the CG solver took a total of "
-              << 1.0 * time.count() / std::nano::den << " seconds." << std::endl
+              << static_cast<double>(time.count()) /
+                     static_cast<double>(std::nano::den)
+              << " seconds." << std::endl
               << "\tAverage library overhead:     "
-              << 1.0 * time.count() / num_iters << " [nanoseconds / iteration]"
-              << std::endl;
+              << static_cast<double>(time.count()) /
+                     static_cast<double>(num_iters)
+              << " [nanoseconds / iteration]" << std::endl;
 }

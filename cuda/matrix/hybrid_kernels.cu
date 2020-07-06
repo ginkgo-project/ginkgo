@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/ell.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "core/components/prefix_sum.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
@@ -48,7 +49,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/segment_scan.cuh"
 #include "cuda/components/thread_ids.cuh"
-#include "cuda/components/zero_array.hpp"
 
 
 namespace gko {
@@ -104,13 +104,14 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
     auto row_ptrs = result->get_row_ptrs();
     auto coo_row_ptrs = Array<IndexType>(exec, num_rows);
 
-    zero_array(num_rows + 1, row_ptrs);
+    components::fill_array(exec, row_ptrs, num_rows + 1, zero<IndexType>());
     grid_num = ceildiv(num_rows, warps_in_block);
     ell::kernel::count_nnz_per_row<<<grid_num, default_block_size>>>(
         num_rows, max_nnz_per_row, stride, as_cuda_type(ell_val),
         as_cuda_type(row_ptrs));
 
-    zero_array(num_rows, coo_row_ptrs.get_data());
+    components::fill_array(exec, coo_row_ptrs.get_data(), num_rows,
+                           zero<IndexType>());
 
     auto nwarps =
         coo::host_kernel::calculate_nwarps(exec, coo_num_stored_elements);
@@ -129,7 +130,7 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
         num_rows, as_cuda_type(row_ptrs),
         as_cuda_type(coo_row_ptrs.get_const_data()));
 
-    prefix_sum(exec, row_ptrs, num_rows + 1);
+    components::prefix_sum(exec, row_ptrs, num_rows + 1);
 
     // Fill the value
     grid_num = ceildiv(num_rows, default_block_size);
@@ -162,7 +163,8 @@ void count_nonzeros(std::shared_ptr<const CudaExecutor> exec,
         const dim3 coo_grid(ceildiv(nwarps, warps_in_block), 1);
         const auto num_rows = source->get_size()[0];
         auto nnz_per_row = Array<IndexType>(exec, num_rows);
-        zero_array(num_rows, nnz_per_row.get_data());
+        components::fill_array(exec, nnz_per_row.get_data(), num_rows,
+                               zero<IndexType>());
         kernel::count_coo_row_nnz<<<coo_grid, coo_block>>>(
             nnz, num_lines, as_cuda_type(source->get_coo()->get_const_values()),
             as_cuda_type(source->get_coo()->get_const_row_idxs()),
