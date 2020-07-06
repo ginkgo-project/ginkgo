@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
 
 
 #include "core/matrix/csr_builder.hpp"
@@ -92,23 +93,35 @@ template <typename ValueType, typename IndexType>
 void AmgxPgm<ValueType, IndexType>::generate()
 {
     using matrix_type = matrix::Csr<ValueType, IndexType>;
+    using rmc_value_type = remove_complex<ValueType>;
+    using weight_matrix_type = remove_complex<matrix_type>;
     auto exec = this->get_executor();
     const auto num = this->system_matrix_->get_size()[0];
-    Array<ValueType> diag(this->get_executor(), num);
+    Array<rmc_value_type> diag(this->get_executor(), num);
     Array<IndexType> strongest_neighbor(this->get_executor(), num);
     Array<IndexType> intermediate_agg(this->get_executor(),
                                       parameters_.deterministic * num);
     const auto amgxpgm_op = gko::as<matrix_type>(this->system_matrix_.get());
     // Initial agg = -1
     exec->run(amgx_pgm::make_initial(agg_));
-    // Extract the diagonal value of matrix
-    exec->run(amgx_pgm::make_extract_diag(amgxpgm_op, diag));
     size_type num_unagg{0};
     size_type num_unagg_prev{0};
+    // TODO: if mtx is a hermitian matrix, weight_mtx = abs(mtx)
+    // compute weight_mtx = (abs(mtx) + abs(mtx'))/2;
+    auto abs_mtx = amgxpgm_op->compute_absolute();
+    // abs_mtx is already real valuetype, so transpose is enough
+    auto weight_mtx = gko::as<weight_matrix_type>(abs_mtx->transpose());
+    auto half_scaler = initialize<matrix::Dense<rmc_value_type>>({0.5}, exec);
+    auto identity = matrix::Identity<rmc_value_type>::create(exec, num);
+    // W = (abs_mtx + transpose(abs_mtx))/2
+    abs_mtx->apply(lend(half_scaler), lend(identity), lend(half_scaler),
+                   lend(weight_mtx));
+    // Extract the diagonal value of matrix
+    exec->run(amgx_pgm::make_extract_diag(weight_mtx.get(), diag));
     for (int i = 0; i < parameters_.max_iterations; i++) {
         // Find the strongest neighbor of each row
-        exec->run(amgx_pgm::make_find_strongest_neighbor(amgxpgm_op, diag, agg_,
-                                                         strongest_neighbor));
+        exec->run(amgx_pgm::make_find_strongest_neighbor(
+            weight_mtx.get(), diag, agg_, strongest_neighbor));
         // Match edges
         exec->run(amgx_pgm::make_match_edge(strongest_neighbor, agg_));
         // Get the num_unagg
@@ -116,8 +129,7 @@ void AmgxPgm<ValueType, IndexType>::generate()
         // no new match, all match, or the ratio of num_unagg/num is lower
         // than parameter.max_unassigned_percentage
         if (num_unagg == 0 || num_unagg == num_unagg_prev ||
-            static_cast<double>(num_unagg) / num <
-                parameters_.max_unassigned_percentage) {
+            num_unagg < parameters_.max_unassigned_percentage * num) {
             break;
         }
         num_unagg_prev = num_unagg;
@@ -128,8 +140,8 @@ void AmgxPgm<ValueType, IndexType>::generate()
         intermediate_agg = agg_;
     }
     while (num_unagg != 0) {
-        exec->run(amgx_pgm::make_assign_to_exist_agg(amgxpgm_op, diag, agg_,
-                                                     intermediate_agg));
+        exec->run(amgx_pgm::make_assign_to_exist_agg(weight_mtx.get(), diag,
+                                                     agg_, intermediate_agg));
         exec->run(amgx_pgm::make_count_unagg(agg_, &num_unagg));
     }
     size_type num_agg;

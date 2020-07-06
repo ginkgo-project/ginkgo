@@ -120,34 +120,34 @@ void extract_diag(std::shared_ptr<const HipExecutor> exec,
     GKO_NOT_IMPLEMENTED;
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_AMGX_PGM_EXTRACT_DIAG);
 
 
 template <typename ValueType, typename IndexType>
-void find_strongest_neighbor(std::shared_ptr<const HipExecutor> exec,
-                             const matrix::Csr<ValueType, IndexType> *source,
-                             const Array<ValueType> &diag,
-                             Array<IndexType> &agg,
-                             Array<IndexType> &strongest_neighbor)
+void find_strongest_neighbor(
+    std::shared_ptr<const HipExecutor> exec,
+    const matrix::Csr<ValueType, IndexType> *weight_mtx,
+    const Array<ValueType> &diag, Array<IndexType> &agg,
+    Array<IndexType> &strongest_neighbor)
 {
     GKO_NOT_IMPLEMENTED;
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_AMGX_PGM_FIND_STRONGEST_NEIGHBOR);
 
 
 template <typename ValueType, typename IndexType>
 void assign_to_exist_agg(std::shared_ptr<const HipExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType> *source,
+                         const matrix::Csr<ValueType, IndexType> *weight_mtx,
                          const Array<ValueType> &diag, Array<IndexType> &agg,
                          Array<IndexType> &intermediate_agg)
 {
     GKO_NOT_IMPLEMENTED;
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_AMGX_PGM_ASSIGN_TO_EXIST_AGG);
 
 

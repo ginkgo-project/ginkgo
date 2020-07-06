@@ -85,16 +85,16 @@ namespace amgx_pgm {
 #define GKO_DECLARE_AMGX_PGM_FIND_STRONGEST_NEIGHBOR(ValueType, IndexType) \
     void find_strongest_neighbor(                                          \
         std::shared_ptr<const DefaultExecutor> exec,                       \
-        const matrix::Csr<ValueType, IndexType> *source,                   \
+        const matrix::Csr<ValueType, IndexType> *weight_mtx,               \
         const Array<ValueType> &diag, Array<IndexType> &agg,               \
         Array<IndexType> &strongest_neighbor)
 
-#define GKO_DECLARE_AMGX_PGM_ASSIGN_TO_EXIST_AGG(ValueType, IndexType)        \
-    void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,     \
-                             const matrix::Csr<ValueType, IndexType> *source, \
-                             const Array<ValueType> &diag,                    \
-                             Array<IndexType> &agg,                           \
-                             Array<IndexType> &intermediate_agg)
+#define GKO_DECLARE_AMGX_PGM_ASSIGN_TO_EXIST_AGG(ValueType, IndexType) \
+    void assign_to_exist_agg(                                          \
+        std::shared_ptr<const DefaultExecutor> exec,                   \
+        const matrix::Csr<ValueType, IndexType> *weight_mtx,           \
+        const Array<ValueType> &diag, Array<IndexType> &agg,           \
+        Array<IndexType> &intermediate_agg)
 
 #define GKO_DECLARE_AMGX_PGM_GENERATE(ValueType, IndexType)                 \
     void amgx_pgm_generate(std::shared_ptr<const DefaultExecutor> exec,     \
