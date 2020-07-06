@@ -325,18 +325,18 @@ There are two main steps\+:
 
 
 \begin{DoxyEnumerate}
-\item First, you can just copy over the \href{https://github.com/ginkgo-project/ginkgo/tree/develop/examples/simple-solver}{\texttt{ {\ttfamily doc/}}} folder (you can copy it from the example most relevant to you) and adapt your example names and such, then you can modify the actual documentation.
+\item First, you can just copy over the \href{https://github.com/ginkgo-project/ginkgo/tree/master/examples/simple-solver}{\texttt{ {\ttfamily doc/}}} folder (you can copy it from the example most relevant to you) and adapt your example names and such, then you can modify the actual documentation.
 \end{DoxyEnumerate}
 \begin{DoxyItemize}
 \item In {\ttfamily tooltip}\+: A short description of the example.
 \item In {\ttfamily short-\/intro}\+: The name of the example.
 \item In {\ttfamily results.\+dox}\+: Run the example and write the output you get.
-\item In {\ttfamily kind}\+: The kind of the example. For different kinds see \href{https://ginkgo-project.github.io/ginkgo/doc/develop/Examples.html}{\texttt{ the documentation}}. Examples can be of {\ttfamily basic}, {\ttfamily techniques}, {\ttfamily logging}, {\ttfamily stopping\+\_\+criteria} or {\ttfamily preconditioners}. If your example does not fit any of these categories, feel free to create one.
+\item In {\ttfamily kind}\+: The kind of the example. For different kinds see \href{https://ginkgo-project.github.io/ginkgo/doc/master/Examples.html}{\texttt{ the documentation}}. Examples can be of {\ttfamily basic}, {\ttfamily techniques}, {\ttfamily logging}, {\ttfamily stopping\+\_\+criteria} or {\ttfamily preconditioners}. If your example does not fit any of these categories, feel free to create one.
 \item In {\ttfamily intro.\+dox}\+: You write an explanation of your code with some introduction similar to what you see in an existing example most relevant to you.
 \item In {\ttfamily builds-\/on}\+: You write the examples it builds on.
 \end{DoxyItemize}
 \begin{DoxyEnumerate}
-\item You also need to modify the \href{https://github.com/ginkgo-project/ginkgo/blob/develop/doc/examples/examples.hpp.in}{\texttt{ examples.\+hpp.\+in}} file. You add the name of the example in the main section and in the section that you specified in the {\ttfamily doc/kind} file in the example documentation.
+\item You also need to modify the \href{https://github.com/ginkgo-project/ginkgo/blob/master/doc/examples/examples.hpp.in}{\texttt{ examples.\+hpp.\+in}} file. You add the name of the example in the main section and in the section that you specified in the {\ttfamily doc/kind} file in the example documentation.
 \end{DoxyEnumerate}\hypertarget{contributing_guidelines_autotoc_md57}{}\doxysection{Other programming comments}\label{contributing_guidelines_autotoc_md57}
 \hypertarget{contributing_guidelines_autotoc_md58}{}\doxysubsection{C++ standard stream objects}\label{contributing_guidelines_autotoc_md58}
 These are global objects and are shared inside the same translation unit. Therefore, whenever its state or formatting is changed (e.\+g. using {\ttfamily std\+::hex} or floating point formatting) inside library code, make sure to restore the state before returning the control to the user. See this \href{https://stackoverflow.com/questions/2273330/restore-the-state-of-stdcout-after-manipulating-it}{\texttt{ stackoverflow question}} for examples on how to do it correctly. This is extremely important for header files.\hypertarget{contributing_guidelines_autotoc_md59}{}\doxysubsection{Warnings}\label{contributing_guidelines_autotoc_md59}

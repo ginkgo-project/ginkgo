@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/162461984 branch based on develop. Ginkgo version 1.2.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/163537343 branch based on master. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -412,18 +412,18 @@ After named tags such as &lt;tt&gt;@param foo&lt;/tt&gt;</h3>
 Documenting examples</h2>
 <p>There are two main steps:</p>
 <ol type="1">
-<li>First, you can just copy over the <a href="https://github.com/ginkgo-project/ginkgo/tree/develop/examples/simple-solver"><code>doc/</code></a> folder (you can copy it from the example most relevant to you) and adapt your example names and such, then you can modify the actual documentation.</li>
+<li>First, you can just copy over the <a href="https://github.com/ginkgo-project/ginkgo/tree/master/examples/simple-solver"><code>doc/</code></a> folder (you can copy it from the example most relevant to you) and adapt your example names and such, then you can modify the actual documentation.</li>
 </ol>
 <ul>
 <li>In <code>tooltip</code>: A short description of the example.</li>
 <li>In <code>short-intro</code>: The name of the example.</li>
 <li>In <code>results.dox</code>: Run the example and write the output you get.</li>
-<li>In <code>kind</code>: The kind of the example. For different kinds see <a href="https://ginkgo-project.github.io/ginkgo/doc/develop/Examples.html">the documentation</a>. Examples can be of <code>basic</code>, <code>techniques</code>, <code>logging</code>, <code>stopping_criteria</code> or <code>preconditioners</code>. If your example does not fit any of these categories, feel free to create one.</li>
+<li>In <code>kind</code>: The kind of the example. For different kinds see <a href="https://ginkgo-project.github.io/ginkgo/doc/master/Examples.html">the documentation</a>. Examples can be of <code>basic</code>, <code>techniques</code>, <code>logging</code>, <code>stopping_criteria</code> or <code>preconditioners</code>. If your example does not fit any of these categories, feel free to create one.</li>
 <li>In <code>intro.dox</code>: You write an explanation of your code with some introduction similar to what you see in an existing example most relevant to you.</li>
 <li>In <code>builds-on</code>: You write the examples it builds on.</li>
 </ul>
 <ol type="1">
-<li>You also need to modify the <a href="https://github.com/ginkgo-project/ginkgo/blob/develop/doc/examples/examples.hpp.in">examples.hpp.in</a> file. You add the name of the example in the main section and in the section that you specified in the <code>doc/kind</code> file in the example documentation.</li>
+<li>You also need to modify the <a href="https://github.com/ginkgo-project/ginkgo/blob/master/doc/examples/examples.hpp.in">examples.hpp.in</a> file. You add the name of the example in the main section and in the section that you specified in the <code>doc/kind</code> file in the example documentation.</li>
 </ol>
 <h1><a class="anchor" id="autotoc_md57"></a>
 Other programming comments</h1>
