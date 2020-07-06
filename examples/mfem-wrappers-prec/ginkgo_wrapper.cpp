@@ -46,7 +46,7 @@ void GinkgoPreconditionerBase::Mult(const Vector &x, Vector &y) const
     // Create Ginkgo wrapped-vectors
     using vec = gko::matrix::Dense<double>;
     bool on_device = false;
-    if (x.GetMemory().GetMemoryType() == MemoryType::CUDA) {
+    if (x.GetMemory().GetMemoryType() == MemoryType::DEVICE) {
         on_device = true;
     }
     auto gko_x = vec::create(
@@ -56,7 +56,7 @@ void GinkgoPreconditionerBase::Mult(const Vector &x, Vector &y) const
         1);
 
     on_device = false;
-    if (y.GetMemory().GetMemoryType() == MemoryType::CUDA) {
+    if (y.GetMemory().GetMemoryType() == MemoryType::DEVICE) {
         on_device = true;
     }
     std::unique_ptr<gko::matrix::Dense<double>> gko_y;

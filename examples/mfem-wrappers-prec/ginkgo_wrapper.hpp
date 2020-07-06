@@ -46,8 +46,8 @@ protected:
         auto memclass = a.GetMemoryClass();
         if (memclass == MemoryClass::HOST) {
             std::cout << "SparseMatrix MemoryClass: HOST" << std::endl;
-        } else if (memclass == MemoryClass::CUDA) {
-            std::cout << "SparseMatrix MemoryClass: CUDA" << std::endl;
+        } else if (memclass == MemoryClass::DEVICE) {
+            std::cout << "SparseMatrix MemoryClass: DEVICE" << std::endl;
         } else {
             std::cout << "SparseMatrix MemoryClass: Unknown..." << std::endl;
         }

@@ -108,7 +108,7 @@ public:
         mfem::MemoryType mt = mfem::MemoryType::HOST;
         if (exec->get_master() != exec) {
             on_device = true;
-            mt = mfem::MemoryType::CUDA;
+            mt = mfem::MemoryType::DEVICE;
         }
         mfem::Vector *mfem_vec = new mfem::Vector(1, mt);
         return MFEMVectorWrapper::create(exec, 1, mfem_vec, on_device, true);

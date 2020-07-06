@@ -32,6 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "mfem_wrapper.hpp"
 
+#include "cuda_runtime.h"
+
 #include <ginkgo/ginkgo.hpp>
 
 void MFEMVectorWrapper::apply_impl(const gko::LinOp *b, gko::LinOp *x) const {}
@@ -79,7 +81,7 @@ void MFEMOperatorWrapper::apply_impl(const gko::LinOp *alpha,
     double beta_f;
 
     if (mfem_x->get_mfem_vec_ref().GetMemory().GetMemoryType() ==
-        mfem::MemoryType::CUDA) {
+        mfem::MemoryType::DEVICE) {
         cudaMemcpy(
             &alpha_f,
             gko::as<gko::matrix::Dense<double>>(alpha)->get_const_values(),
@@ -92,7 +94,7 @@ void MFEMOperatorWrapper::apply_impl(const gko::LinOp *alpha,
                   << std::endl;
     }
     if (mfem_x->get_mfem_vec_ref().GetMemory().GetMemoryType() ==
-        mfem::MemoryType::CUDA) {
+        mfem::MemoryType::DEVICE) {
         cudaMemcpy(
             &beta_f,
             gko::as<gko::matrix::Dense<double>>(beta)->get_const_values(),
