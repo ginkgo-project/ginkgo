@@ -1,0 +1,98 @@
+\hypertarget{classgko_1_1factorization_1_1ParIct}{}\doxysection{gko\+::factorization\+::Par\+Ict$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1factorization_1_1ParIct}\index{gko::factorization::ParIct$<$ ValueType, IndexType $>$@{gko::factorization::ParIct$<$ ValueType, IndexType $>$}}
+
+
+Par\+I\+CT is an incomplete threshold-\/based Cholesky factorization which is computed in parallel.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/factorization/par\+\_\+ict.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::factorization\+::Par\+Ict$<$ Value\+Type, Index\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1factorization_1_1ParIct__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1factorization_1_1ParIct_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1factorization_1_1ParIct_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIct_a7f1c7b483c0b04d8d9aacb44c9ad87a0}\label{classgko_1_1factorization_1_1ParIct_a7f1c7b483c0b04d8d9aacb44c9ad87a0}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIct_a5a3477d5ea66b9ee815eb73c150b90e1}\label{classgko_1_1factorization_1_1ParIct_a5a3477d5ea66b9ee815eb73c150b90e1}} 
+using {\bfseries index\+\_\+type} = Index\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIct_ae265afc4ac33799a2d9a29a1a8208216}\label{classgko_1_1factorization_1_1ParIct_ae265afc4ac33799a2d9a29a1a8208216}} 
+using {\bfseries matrix\+\_\+type} = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIct_adc827ad880fe5f5e519fc46a71076b95}\label{classgko_1_1factorization_1_1ParIct_adc827ad880fe5f5e519fc46a71076b95}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+\_\+type}} $>$ {\bfseries get\+\_\+l\+\_\+factor} () const
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIct_ab2166cde0e91c36c8b949011d21db3a5}\label{classgko_1_1factorization_1_1ParIct_ab2166cde0e91c36c8b949011d21db3a5}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+\_\+type}} $>$ {\bfseries get\+\_\+lt\+\_\+factor} () const
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIct_a8fa665af18d955f5202b894a0397f693}\label{classgko_1_1factorization_1_1ParIct_a8fa665af18d955f5202b894a0397f693}} 
+const \mbox{\hyperlink{structgko_1_1factorization_1_1ParIct_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIct_a55b72ceb4c6c577c86821744aca53aff}\label{classgko_1_1factorization_1_1ParIct_a55b72ceb4c6c577c86821744aca53aff}} 
+{\footnotesize template$<$typename... Args$>$ }\\static std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Composition}{Composition}}$<$ Value\+Type $>$ $>$ {\bfseries create} (Args \&\&... args)=delete
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIct_a1e30cf3c4c3bab35eb91980935e6ac97}\label{classgko_1_1factorization_1_1ParIct_a1e30cf3c4c3bab35eb91980935e6ac97}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1factorization_1_1ParIct_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::factorization\+::\+Par\+Ict$<$ Value\+Type, Index\+Type $>$}
+
+Par\+I\+CT is an incomplete threshold-\/based Cholesky factorization which is computed in parallel. 
+
+$L$ is a lower triangular matrix which approximates a given symmetric positive definite matrix $A$ with $A \approx LL^T$. Here, $L$ has a sparsity pattern that is improved iteratively based on its element-\/wise magnitude. The initial sparsity pattern is chosen based on the lower triangle of $A$.
+
+One iteration of the Par\+I\+CT algorithm consists of the following steps\+:
+
+
+\begin{DoxyEnumerate}
+\item Calculating the residual $R = A - LL^T$
+\item Adding new non-\/zero locations from $R$ to $L$. The new non-\/zero locations are initialized based on the corresponding residual value.
+\item Executing a fixed-\/point iteration on $L$ according to $ F(L) = \begin{cases} \frac{1}{l_{jj}} \left(a_{ij}-\sum_{k=1}^{j-1}l_{ik}l_{jk}\right), \quad & i \neq j \\ \sqrt{a_{ij}-\sum_{k=1}^{j-1}l_{ik}l_{jk}}, \quad & i = j \\ \end{cases} $
+\item Removing the smallest entries (by magnitude) from $L$
+\item Executing a fixed-\/point iteration on the (now sparser) $L$
+\end{DoxyEnumerate}
+
+This Par\+I\+CT algorithm thus improves the sparsity pattern and the approximation of $L$ simultaneously.
+
+The implementation follows the design of H. Anzt et al., Par\+I\+L\+UT -\/ A Parallel Threshold I\+LU for G\+P\+Us, 2019 I\+E\+EE International Parallel and Distributed Processing Symposium (I\+P\+D\+PS), pp. 231–241.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & Type of the values of all matrices used in this class \\
+\hline
+{\em Index\+Type} & Type of the indices of all matrices used in this class \\
+\hline
+\end{DoxyTemplParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/factorization/par\+\_\+ict.\+hpp (f933b1ea8)\end{DoxyCompactItemize}

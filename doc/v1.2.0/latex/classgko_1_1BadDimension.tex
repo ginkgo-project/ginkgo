@@ -1,0 +1,64 @@
+\hypertarget{classgko_1_1BadDimension}{}\doxysection{gko\+::Bad\+Dimension Class Reference}
+\label{classgko_1_1BadDimension}\index{gko::BadDimension@{gko::BadDimension}}
+
+
+\mbox{\hyperlink{classgko_1_1BadDimension}{Bad\+Dimension}} is thrown if an operation is being applied to a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} with bad dimensions.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/exception.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Bad\+Dimension\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=192pt]{classgko_1_1BadDimension__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classgko_1_1BadDimension_a774454482004beac61bd983f74f446c3}{Bad\+Dimension}} (const std\+::string \&file, int line, const std\+::string \&func, const std\+::string \&op\+\_\+name, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} op\+\_\+num\+\_\+rows, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} op\+\_\+num\+\_\+cols, const std\+::string \&clarification)
+\begin{DoxyCompactList}\small\item\em Initializes a bad dimension error. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\mbox{\hyperlink{classgko_1_1BadDimension}{Bad\+Dimension}} is thrown if an operation is being applied to a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} with bad dimensions. 
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classgko_1_1BadDimension_a774454482004beac61bd983f74f446c3}\label{classgko_1_1BadDimension_a774454482004beac61bd983f74f446c3}} 
+\index{gko::BadDimension@{gko::BadDimension}!BadDimension@{BadDimension}}
+\index{BadDimension@{BadDimension}!gko::BadDimension@{gko::BadDimension}}
+\doxysubsubsection{\texorpdfstring{BadDimension()}{BadDimension()}}
+{\footnotesize\ttfamily gko\+::\+Bad\+Dimension\+::\+Bad\+Dimension (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{file,  }\item[{int}]{line,  }\item[{const std\+::string \&}]{func,  }\item[{const std\+::string \&}]{op\+\_\+name,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{op\+\_\+num\+\_\+rows,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{op\+\_\+num\+\_\+cols,  }\item[{const std\+::string \&}]{clarification }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Initializes a bad dimension error. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em file} & The name of the offending source file \\
+\hline
+{\em line} & The source code line number where the error occurred \\
+\hline
+{\em func} & The function name where the error occurred \\
+\hline
+{\em op\+\_\+name} & The name of the operator \\
+\hline
+{\em op\+\_\+num\+\_\+rows} & The row dimension of the operator \\
+\hline
+{\em op\+\_\+num\+\_\+cols} & The column dimension of the operator \\
+\hline
+{\em clarification} & An additional message further describing the error \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/exception.\+hpp (e09ca219a)\end{DoxyCompactItemize}

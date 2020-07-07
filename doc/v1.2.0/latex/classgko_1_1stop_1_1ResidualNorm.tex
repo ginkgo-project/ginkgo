@@ -1,0 +1,50 @@
+\hypertarget{classgko_1_1stop_1_1ResidualNorm}{}\doxysection{gko\+::stop\+::Residual\+Norm$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1stop_1_1ResidualNorm}\index{gko::stop::ResidualNorm$<$ ValueType $>$@{gko::stop::ResidualNorm$<$ ValueType $>$}}
+
+
+The \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{Residual\+Norm}} class provides a framework for stopping criteria related to the residual norm.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/stop/residual\+\_\+norm.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::stop\+::Residual\+Norm$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1stop_1_1ResidualNorm__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1ResidualNorm_affb192af2bd946ac210ee5720551ee6b}\label{classgko_1_1stop_1_1ResidualNorm_affb192af2bd946ac210ee5720551ee6b}} 
+using {\bfseries Norm\+Vector} = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{matrix\+::\+Dense}}$<$ \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}}$<$ Value\+Type $>$ $>$
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1ResidualNorm_aac0bd59ac7da605a9005b3a905d6abd7}\label{classgko_1_1stop_1_1ResidualNorm_aac0bd59ac7da605a9005b3a905d6abd7}} 
+using {\bfseries Vector} = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{matrix\+::\+Dense}}$<$ Value\+Type $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1ResidualNorm_a3a14be71ea26b1c14cbfd04587731237}\label{classgko_1_1stop_1_1ResidualNorm_a3a14be71ea26b1c14cbfd04587731237}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Residual\+Norm$<$ Value\+Type $>$, Criterion $>$}
+\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::stop\+::\+Residual\+Norm$<$ Value\+Type $>$}
+
+The \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{Residual\+Norm}} class provides a framework for stopping criteria related to the residual norm. 
+
+These criteria differ in the way they initialize starting\+\_\+tau\+\_\+, so in the value they compare the residual norm against. 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/stop/residual\+\_\+norm.\+hpp (e69bed2e6)\end{DoxyCompactItemize}

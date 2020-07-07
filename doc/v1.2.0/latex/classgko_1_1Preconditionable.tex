@@ -1,0 +1,57 @@
+\hypertarget{classgko_1_1Preconditionable}{}\doxysection{gko\+::Preconditionable Class Reference}
+\label{classgko_1_1Preconditionable}\index{gko::Preconditionable@{gko::Preconditionable}}
+
+
+A \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} implementing this interface can be preconditioned.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/lin\+\_\+op.\+hpp$>$}
+
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+virtual std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1Preconditionable_a0e664ac0bd76c286e4bdc630e33f2cd3}{get\+\_\+preconditioner}} () const
+\begin{DoxyCompactList}\small\item\em Returns the preconditioner operator used by the \mbox{\hyperlink{classgko_1_1Preconditionable}{Preconditionable}}. \end{DoxyCompactList}\item 
+virtual void \mbox{\hyperlink{classgko_1_1Preconditionable_a95db3e56eb17efbcde951c5ed144582d}{set\+\_\+preconditioner}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ new\+\_\+precond)
+\begin{DoxyCompactList}\small\item\em Sets the preconditioner operator used by the \mbox{\hyperlink{classgko_1_1Preconditionable}{Preconditionable}}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+A \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} implementing this interface can be preconditioned. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1Preconditionable_a0e664ac0bd76c286e4bdc630e33f2cd3}\label{classgko_1_1Preconditionable_a0e664ac0bd76c286e4bdc630e33f2cd3}} 
+\index{gko::Preconditionable@{gko::Preconditionable}!get\_preconditioner@{get\_preconditioner}}
+\index{get\_preconditioner@{get\_preconditioner}!gko::Preconditionable@{gko::Preconditionable}}
+\doxysubsubsection{\texorpdfstring{get\_preconditioner()}{get\_preconditioner()}}
+{\footnotesize\ttfamily virtual std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ gko\+::\+Preconditionable\+::get\+\_\+preconditioner (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [virtual]}}
+
+
+
+Returns the preconditioner operator used by the \mbox{\hyperlink{classgko_1_1Preconditionable}{Preconditionable}}. 
+
+\begin{DoxyReturn}{Returns}
+the preconditioner operator used by the \mbox{\hyperlink{classgko_1_1Preconditionable}{Preconditionable}} 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1Preconditionable_a95db3e56eb17efbcde951c5ed144582d}\label{classgko_1_1Preconditionable_a95db3e56eb17efbcde951c5ed144582d}} 
+\index{gko::Preconditionable@{gko::Preconditionable}!set\_preconditioner@{set\_preconditioner}}
+\index{set\_preconditioner@{set\_preconditioner}!gko::Preconditionable@{gko::Preconditionable}}
+\doxysubsubsection{\texorpdfstring{set\_preconditioner()}{set\_preconditioner()}}
+{\footnotesize\ttfamily virtual void gko\+::\+Preconditionable\+::set\+\_\+preconditioner (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$}]{new\+\_\+precond }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [virtual]}}
+
+
+
+Sets the preconditioner operator used by the \mbox{\hyperlink{classgko_1_1Preconditionable}{Preconditionable}}. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em new\+\_\+precond} & the new preconditioner operator used by the \mbox{\hyperlink{classgko_1_1Preconditionable}{Preconditionable}} \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/lin\+\_\+op.\+hpp (2d58a8090)\end{DoxyCompactItemize}

@@ -1,0 +1,134 @@
+\hypertarget{group__Executor}{}\doxysection{Executors}
+\label{group__Executor}\index{Executors@{Executors}}
+
+
+A module dedicated to the implementation and usage of the executors in Ginkgo.  
+
+
+Collaboration diagram for Executors\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{group__Executor}
+\end{center}
+\end{figure}
+\doxysubsection*{Modules}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{group__exec__cuda}{C\+U\+D\+A Executor}}
+\begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the C\+U\+DA executor in Ginkgo. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{group__exec__hip}{H\+I\+P Executor}}
+\begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the H\+IP executor in Ginkgo. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{group__exec__omp}{Open\+M\+P Executor}}
+\begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the Open\+MP executor in Ginkgo. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{group__exec__ref}{Reference Executor}}
+\begin{DoxyCompactList}\small\item\em A module dedicated to the implementation and usage of the Reference executor in Ginkgo. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1Operation}{gko\+::\+Operation}}
+\begin{DoxyCompactList}\small\item\em Operations can be used to define functionalities whose implementations differ among devices. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1Executor}{gko\+::\+Executor}}
+\begin{DoxyCompactList}\small\item\em The first step in using the Ginkgo library consists of creating an executor. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1executor__deleter}{gko\+::executor\+\_\+deleter$<$ T $>$}}
+\begin{DoxyCompactList}\small\item\em This is a deleter that uses an executor\textquotesingle{}s {\ttfamily free} method to deallocate the data. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1OmpExecutor}{gko\+::\+Omp\+Executor}}
+\begin{DoxyCompactList}\small\item\em This is the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} subclass which represents the Open\+MP device (typically C\+PU). \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1ReferenceExecutor}{gko\+::\+Reference\+Executor}}
+\begin{DoxyCompactList}\small\item\em This is a specialization of the \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}}, which runs the reference implementations of the kernels used for debugging purposes. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1CudaExecutor}{gko\+::\+Cuda\+Executor}}
+\begin{DoxyCompactList}\small\item\em This is the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} subclass which represents the C\+U\+DA device. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1HipExecutor}{gko\+::\+Hip\+Executor}}
+\begin{DoxyCompactList}\small\item\em This is the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} subclass which represents the H\+IP enhanced device. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\#define \mbox{\hyperlink{group__Executor_ga7f2c119ff9f4f51c7f8e2d5dbbbbd044}{G\+K\+O\+\_\+\+R\+E\+G\+I\+S\+T\+E\+R\+\_\+\+O\+P\+E\+R\+A\+T\+I\+ON}}(\+\_\+name,  \+\_\+kernel)
+\begin{DoxyCompactList}\small\item\em Binds a set of device-\/specific kernels to an Operation. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+A module dedicated to the implementation and usage of the executors in Ginkgo. 
+
+Below, we provide a brief introduction to executors in Ginkgo, how they have been implemented, how to best make use of them and how to add new executors.\hypertarget{group__Executor_exec_1}{}\doxysubsection{Executors in Ginkgo.}\label{group__Executor_exec_1}
+The first step in using the Ginkgo library consists of creating an executor. Executors are used to specify the location for the data of linear algebra objects, and to determine where the operations will be executed. Ginkgo currently supports three different executor types\+:
+
+
+\begin{DoxyItemize}
+\item \mbox{\hyperlink{group__exec__omp}{Open\+MP Executor}} specifies that the data should be stored and the associated operations executed on an Open\+M\+P-\/supporting device (e.\+g. host C\+PU);
+\item \mbox{\hyperlink{group__exec__cuda}{C\+U\+DA Executor}} specifies that the data should be stored and the operations executed on the N\+V\+I\+D\+IA G\+PU accelerator;
+\item \mbox{\hyperlink{group__exec__hip}{H\+IP Executor}} uses the H\+IP library to compile code for either N\+V\+I\+D\+IA or A\+MD G\+PU accelerator;
+\item \mbox{\hyperlink{group__exec__ref}{Reference Executor}} executes a non-\/optimized reference implementation, which can be used to debug the library. 
+\end{DoxyItemize}
+
+\doxysubsection{Macro Definition Documentation}
+\mbox{\Hypertarget{group__Executor_ga7f2c119ff9f4f51c7f8e2d5dbbbbd044}\label{group__Executor_ga7f2c119ff9f4f51c7f8e2d5dbbbbd044}} 
+\index{Executors@{Executors}!GKO\_REGISTER\_OPERATION@{GKO\_REGISTER\_OPERATION}}
+\index{GKO\_REGISTER\_OPERATION@{GKO\_REGISTER\_OPERATION}!Executors@{Executors}}
+\doxysubsubsection{\texorpdfstring{GKO\_REGISTER\_OPERATION}{GKO\_REGISTER\_OPERATION}}
+{\footnotesize\ttfamily \#define G\+K\+O\+\_\+\+R\+E\+G\+I\+S\+T\+E\+R\+\_\+\+O\+P\+E\+R\+A\+T\+I\+ON(\begin{DoxyParamCaption}\item[{}]{\+\_\+name,  }\item[{}]{\+\_\+kernel }\end{DoxyParamCaption})}
+
+
+
+Binds a set of device-\/specific kernels to an Operation. 
+
+It also defines a helper function which creates the associated operation. Any input arguments passed to the helper function are forwarded to the kernel when the operation is executed.
+
+The kernels used to bind the operation are searched in {\ttfamily kernels\+::\+D\+E\+V\+\_\+\+T\+Y\+PE} namespace, where {\ttfamily D\+E\+V\+\_\+\+T\+Y\+PE} is replaced by {\ttfamily omp}, {\ttfamily cuda}, {\ttfamily hip} and {\ttfamily reference}.
+
+
+\begin{DoxyParams}{Parameters}
+{\em \+\_\+name} & operation name \\
+\hline
+{\em \+\_\+kernel} & kernel which will be bound to the operation\\
+\hline
+\end{DoxyParams}
+\hypertarget{group__Executor_autotoc_md64}{}\doxysubsubsection{Example}\label{group__Executor_autotoc_md64}
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ \{c++\}}
+\DoxyCodeLine{\textcolor{comment}{// define the omp, cuda, hip and reference kernels which will be bound to the}}
+\DoxyCodeLine{\textcolor{comment}{// operation}}
+\DoxyCodeLine{\textcolor{keyword}{namespace }kernels \{}
+\DoxyCodeLine{\textcolor{keyword}{namespace }omp \{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} my\_kernel(\textcolor{keywordtype}{int} x) \{}
+\DoxyCodeLine{     \textcolor{comment}{// omp code}}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{\textcolor{keyword}{namespace }cuda \{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} my\_kernel(\textcolor{keywordtype}{int} x) \{}
+\DoxyCodeLine{     \textcolor{comment}{// cuda code}}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{\textcolor{keyword}{namespace }hip \{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} my\_kernel(\textcolor{keywordtype}{int} x) \{}
+\DoxyCodeLine{     \textcolor{comment}{// hip code}}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{\textcolor{keyword}{namespace }reference \{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} my\_kernel(\textcolor{keywordtype}{int} x) \{}
+\DoxyCodeLine{    \textcolor{comment}{// reference code}}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{comment}{// Bind the kernels to the operation}}
+\DoxyCodeLine{\mbox{\hyperlink{group__Executor_ga7f2c119ff9f4f51c7f8e2d5dbbbbd044}{GKO\_REGISTER\_OPERATION}}(my\_op, my\_kernel);}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main() \{}
+\DoxyCodeLine{    \textcolor{comment}{// create executors}}
+\DoxyCodeLine{    \textcolor{keyword}{auto} omp = OmpExecutor::create();}
+\DoxyCodeLine{    \textcolor{keyword}{auto} cuda = CudaExecutor::create(omp, 0);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} hip = HipExecutor::create(omp, 0);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} ref = ReferenceExecutor::create();}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{comment}{// create the operation}}
+\DoxyCodeLine{    \textcolor{keyword}{auto} op = make\_my\_op(5); \textcolor{comment}{// x = 5}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    omp-\/>run(op);  \textcolor{comment}{// run omp kernel}}
+\DoxyCodeLine{    cuda-\/>run(op);  \textcolor{comment}{// run cuda kernel}}
+\DoxyCodeLine{    hip-\/>run(op);  \textcolor{comment}{// run hip kernel}}
+\DoxyCodeLine{    ref-\/>run(op);  \textcolor{comment}{// run reference kernel}}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+ 

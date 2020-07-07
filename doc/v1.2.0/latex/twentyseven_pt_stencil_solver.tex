@@ -1,0 +1,944 @@
+The 27-\/point stencil example..
+
+This example depends on simple-\/solver, poisson-\/solver, nine-\/pt-\/stencil-\/solver, three-\/pt-\/stencil-\/solver.
+
+ \label{_Intro}%
+ \label{_Introduction}%
+\doxysection*{Introduction}
+
+This example solves a 3D Poisson equation\+:
+
+\mbox{[} \textbackslash{}\+Omega = (0,1)$^\wedge$3 \textbackslash{} \textbackslash{}\+Omega\+\_\+b = \mbox{[}0,1\mbox{]}$^\wedge$3 \textbackslash{}text\{ (with boundary)\} \textbackslash{} \textbackslash{}partial\textbackslash{}\+Omega = \textbackslash{}\+Omega\+\_\+b \textbackslash{}backslash \textbackslash{}\+Omega \textbackslash{} u \+: \textbackslash{}\+Omega \textbackslash{}rightarrow R \textbackslash{} u\textquotesingle{}\textquotesingle{} = f \textbackslash{}in \textbackslash{}\+Omega \textbackslash{} u = u\+\_\+D \textbackslash{}in \textbackslash{}partial\textbackslash{}\+Omega \textbackslash{} \mbox{]}
+
+using a finite difference method on an equidistant grid with {\ttfamily K} discretization points ({\ttfamily K} can be controlled with a command line parameter). The discretization may be done by any order Taylor polynomial. For an equidistant grid with K \char`\"{}inner\char`\"{} discretization points ((x1,y1,z1), \textbackslash{}ldots, (xk,y1,z1),(x1,y2,z1), \textbackslash{}ldots, (xk,yk,z1), (x1,y1,z2), \textbackslash{}ldots, (xk,yk,zk)), step size (h = 1 / (K + 1)) and a stencil (\textbackslash{}in \textbackslash{}mathbb\{R\}$^\wedge$\{3 \textbackslash{}times 3 \textbackslash{}times 3\}), the formula produces a system of linear equations
+
+(\textbackslash{}sum\+\_\+\{a,b,c=-\/1\}$^\wedge$1 stencil(a,b,c) $\ast$ u\+\_\+\{(i+a,j+b,k+c\} = -\/f\+\_\+k h$^\wedge$2), on any inner node with a neighborhood of inner nodes
+
+On any node, where neighbor is on the border, the neighbor is replaced with a (-\/stencil(a,b,c) $\ast$ u\+\_\+\{i+a,j+b,k+c\}) and added to the right hand side vector. For example a node with a neighborhood of only face nodes may look like this
+
+\mbox{[} \textbackslash{}sum\+\_\+\{a,b,c=-\/1\}$^\wedge$(1,1,0) stencil(a,b,c) $\ast$ u\+\_\+\{(i+a,j+b,k+c\} = -\/f\+\_\+k h$^\wedge$2
+\begin{DoxyItemize}
+\item \textbackslash{}sum\+\_\+\{a,b=-\/1\}$^\wedge$(1,1) stencil(a,b,1) $\ast$ u\+\_\+\{(i+a,j+b,k+1\} \mbox{]}
+\end{DoxyItemize}
+
+which is then solved using Ginkgo\textquotesingle{}s implementation of the CG method preconditioned with block-\/\+Jacobi. It is also possible to specify on which executor Ginkgo will solve the system via the command line. The function {\ttfamily f} is set to (f(x,y,z) = 6x + 6y + 6z) (making the solution (u(x,y,z) = x$^\wedge$3 + y$^\wedge$3 + z$^\wedge$3)), but that can be changed in the {\ttfamily main} function. Also the stencil values for the core, the faces, the edge and the corners can be changed when passing additional parameters.
+
+The intention of this is to show how generation of stencil values and the right hand side vector changes when increasing the dimension.
+
+\label{_Abouttheexample}%
+\doxysubsubsection*{About the example }
+
+\label{_CommProg}%
+ \doxysection*{The commented program}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{/ *****************************<DESCRIPTION>***********************************}
+\DoxyCodeLine{This example solves a 3D Poisson equation:}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \(\backslash\)Omega = (0,1)\string^3}
+\DoxyCodeLine{    \(\backslash\)Omega\_b = [0,1]\string^3   (with boundary)}
+\DoxyCodeLine{    \(\backslash\)partial\(\backslash\)Omega = \(\backslash\)Omega\_b \(\backslash\)backslash \(\backslash\)Omega}
+\DoxyCodeLine{    u : \(\backslash\)Omega\_b -\/> R}
+\DoxyCodeLine{    u\textcolor{stringliteral}{''} = f in \(\backslash\)Omega}
+\DoxyCodeLine{    u = u\_D on \(\backslash\)partial\(\backslash\)Omega}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{using} a finite difference method on an equidistant grid with `K` discretization}
+\DoxyCodeLine{points (`K` can be controlled with a command line parameter). The discretization}
+\DoxyCodeLine{may be done by any order Taylor polynomial.}
+\DoxyCodeLine{For an equidistant grid with K \textcolor{stringliteral}{"inner"} discretization points (x1,y1,z1), ...,}
+\DoxyCodeLine{(xk,y1,z1),(x1,y2,z1), ..., (xk,yk,z1), (x1,y1,z2), ..., (xk,yk,zk), step size h}
+\DoxyCodeLine{= 1 / (K + 1) and a stencil \(\backslash\)in \(\backslash\)R\string^\{3 x 3 x 3\}, the formula produces a system of}
+\DoxyCodeLine{linear equations}
+\DoxyCodeLine{}
+\DoxyCodeLine{\(\backslash\)sum\_\{a,b,c=-\/1\}\string^1 stencil(a,b,c) * u\_\{(i+a,j+b,k+c\} = -\/f\_k h\string^2,  on any inner}
+\DoxyCodeLine{node with a neighborhood of inner nodes}
+\DoxyCodeLine{}
+\DoxyCodeLine{On any node, where neighbor is on the border, the neighbor is replaced with a}
+\DoxyCodeLine{\textcolor{stringliteral}{'-\/stencil(a,b,c) * u\_\{i+a,j+b,k+c\}'} and added to the right hand side vector.}
+\DoxyCodeLine{For example a node with a neighborhood of only face nodes may look like this}
+\DoxyCodeLine{}
+\DoxyCodeLine{\(\backslash\)sum\_\{a,b,c=-\/1\}\string^(1,1,0) stencil(a,b,c) * u\_\{(i+a,j+b,k+c\} = -\/f\_k h\string^2 -\/}
+\DoxyCodeLine{\(\backslash\)sum\_\{a,b=-\/1\}\string^(1,1) stencil(a,b,1) * u\_\{(i+a,j+b,k+1\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{which is then solved \textcolor{keyword}{using} Ginkgo\textcolor{stringliteral}{'s implementation of the CG method}}
+\DoxyCodeLine{\textcolor{stringliteral}{preconditioned with block-\/Jacobi. It is also possible to specify on which}}
+\DoxyCodeLine{\textcolor{stringliteral}{executor Ginkgo will solve the system via the command line.}}
+\DoxyCodeLine{\textcolor{stringliteral}{The function `f` is set to `f(x,y,z) = 6x + 6y + 6z` (making the solution}}
+\DoxyCodeLine{\textcolor{stringliteral}{`u(x,y,z) = x\string^3 + y\string^3 + z\string^3`), but that can be changed in the `main` function.}}
+\DoxyCodeLine{\textcolor{stringliteral}{Also the stencil values for the core, the faces, the edge and the corners can be}}
+\DoxyCodeLine{\textcolor{stringliteral}{changed when passing additional parameters.}}
+\DoxyCodeLine{\textcolor{stringliteral}{}}
+\DoxyCodeLine{\textcolor{stringliteral}{The intention of this is to show how generation of stencil values and the right}}
+\DoxyCodeLine{\textcolor{stringliteral}{hand side vector changes when increasing the dimension.}}
+\DoxyCodeLine{\textcolor{stringliteral}{*****************************<DESCRIPTION>********************************** /}}
+\DoxyCodeLine{\textcolor{stringliteral}{}}
+\DoxyCodeLine{\textcolor{stringliteral}{\#include <array>}}
+\DoxyCodeLine{\textcolor{stringliteral}{\#include <chrono>}}
+\DoxyCodeLine{\textcolor{stringliteral}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{\textcolor{stringliteral}{\#include <iostream>}}
+\DoxyCodeLine{\textcolor{stringliteral}{\#include <map>}}
+\DoxyCodeLine{\textcolor{stringliteral}{\#include <string>}}
+\DoxyCodeLine{\textcolor{stringliteral}{\#include <vector>}}
+\end{DoxyCode}
+
+
+Can be changed by passing additional parameters when executing the program
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{constexpr \textcolor{keywordtype}{double} default\_alpha = 38 / 6.0;}
+\DoxyCodeLine{constexpr \textcolor{keywordtype}{double} default\_beta = -\/4.0 / 6.0;}
+\DoxyCodeLine{constexpr \textcolor{keywordtype}{double} default\_gamma = -\/1.0 / 6.0;}
+\DoxyCodeLine{constexpr \textcolor{keywordtype}{double} default\_delta = -\/1.0 / 24.0;}
+\DoxyCodeLine{}
+\DoxyCodeLine{/ * Possible alternative values can be \textcolor{keywordflow}{for} example}
+\DoxyCodeLine{ * default\_alpha = 28.0;}
+\DoxyCodeLine{ * default\_beta = -\/1.0;}
+\DoxyCodeLine{ * default\_gamma = -\/1.0;}
+\DoxyCodeLine{ * default\_delta = -\/1.0;}
+\DoxyCodeLine{ * /}
+\end{DoxyCode}
+
+
+Creates a stencil matrix in C\+SR format for the given number of discretization points.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType, \textcolor{keyword}{typename} IndexType>}
+\DoxyCodeLine{\textcolor{keywordtype}{void} generate\_stencil\_matrix(IndexType dp, IndexType *row\_ptrs,}
+\DoxyCodeLine{                             IndexType *col\_idxs, ValueType *values,}
+\DoxyCodeLine{                             ValueType *coefs)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    IndexType pos = 0;}
+\DoxyCodeLine{    row\_ptrs[0] = pos;}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (int64\_t z = 0; z < dp; ++z) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (int64\_t y = 0; y < dp; ++y) \{}
+\DoxyCodeLine{            \textcolor{keywordflow}{for} (int64\_t x = 0; x < dp; ++x) \{}
+\DoxyCodeLine{                \textcolor{keyword}{const} \textcolor{keyword}{auto} index = x + dp * (y + dp * z);}
+\DoxyCodeLine{                \textcolor{keywordflow}{for} (IndexType k = -\/1; k <= 1; ++k) \{}
+\DoxyCodeLine{                    \textcolor{keywordflow}{for} (IndexType j = -\/1; j <= 1; ++j) \{}
+\DoxyCodeLine{                        \textcolor{keywordflow}{for} (IndexType i = -\/1; i <= 1; ++i) \{}
+\DoxyCodeLine{                            \textcolor{keyword}{const} int64\_t offset =}
+\DoxyCodeLine{                                i + 1 + 3 * (j + 1 + 3 * (k + 1));}
+\DoxyCodeLine{                            \textcolor{keywordflow}{if} ((x + i) >= 0 \&\& (x + i) < dp \&\& (y + j) >= 0 \&\&}
+\DoxyCodeLine{                                (y + j) < dp \&\& (z + k) >= 0 \&\& (z + k) < dp) \{}
+\DoxyCodeLine{                                values[pos] = coefs[offset];}
+\DoxyCodeLine{                                col\_idxs[pos] = index + i + dp * (j + dp * k);}
+\DoxyCodeLine{                                ++pos;}
+\DoxyCodeLine{                            \}}
+\DoxyCodeLine{                        \}}
+\DoxyCodeLine{                    \}}
+\DoxyCodeLine{                \}}
+\DoxyCodeLine{                row\_ptrs[index + 1] = pos;}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+Generates the R\+HS vector given {\ttfamily f} and the boundary conditions.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure, \textcolor{keyword}{typename} ClosureT, \textcolor{keyword}{typename} ValueType,}
+\DoxyCodeLine{          \textcolor{keyword}{typename} IndexType>}
+\DoxyCodeLine{\textcolor{keywordtype}{void} generate\_rhs(IndexType dp, Closure f, ClosureT u, ValueType *rhs,}
+\DoxyCodeLine{                  ValueType *coefs)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{const} ValueType h = 1.0 / (dp + 1.0);}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} k = 0; k < dp; ++k) \{}
+\DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} zi = ValueType(k + 1) * h;}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} j = 0; j < dp; ++j) \{}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} yi = ValueType(j + 1) * h;}
+\DoxyCodeLine{            \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < dp; ++i) \{}
+\DoxyCodeLine{                \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = ValueType(i + 1) * h;}
+\DoxyCodeLine{                \textcolor{keyword}{const} \textcolor{keyword}{auto} index = i + dp * (j + dp * k);}
+\DoxyCodeLine{                rhs[index] = -\/f(xi, yi, zi) * h * h;}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\end{DoxyCode}
+
+
+This is the iteration over the surface of left and right side of the cube x -\/ ortho to left, right y -\/ ortho to top, bottom z -\/ ortho to front, back
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} j = 0; j < dp; ++j) \{}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} k = 0; k < dp; ++k) \{}
+\DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} yi = ValueType(j + 1) * h;}
+\DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} zi = ValueType(k + 1) * h;}
+\DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_left = dp * j + dp * dp * k;}
+\DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_right = dp * j + dp * dp * k + (dp -\/ 1);}
+\DoxyCodeLine{}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (IndexType b = -\/1; b <= 1; ++b) \{}
+\DoxyCodeLine{            \textcolor{keywordflow}{for} (IndexType c = -\/1; c <= 1; ++c) \{}
+\DoxyCodeLine{                rhs[index\_left] -\/=}
+\DoxyCodeLine{                    u(0.0, yi + ValueType(b) * h, zi + ValueType(c) * h) *}
+\DoxyCodeLine{                    coefs[3 * (b + 1) + 3 * 3 * (c + 1)];}
+\DoxyCodeLine{                rhs[index\_right] -\/=}
+\DoxyCodeLine{                    u(1.0, yi + ValueType(b) * h, zi + ValueType(c) * h) *}
+\DoxyCodeLine{                    coefs[3 * (b + 1) + 3 * 3 * (c + 1) + 2];}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+To avoid double counting we have to check if our previous calculations included this case
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < dp; ++i) \{}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} k = 0; k < dp; ++k) \{}
+\DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = ValueType(i + 1) * h;}
+\DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} zi = ValueType(k + 1) * h;}
+\DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_top = i + dp * dp * k;}
+\DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_bot = i + dp * dp * k + dp * (dp -\/ 1);}
+\DoxyCodeLine{}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (IndexType a = -\/1; a <= 1; ++a) \{}
+\DoxyCodeLine{            \textcolor{keywordflow}{if} ((i < (dp -\/ 1) || a < 1) \&\& (i > 0 || a > -\/1)) \{}
+\DoxyCodeLine{                \textcolor{keywordflow}{for} (IndexType c = -\/1; c <= 1; ++c) \{}
+\DoxyCodeLine{                    rhs[index\_top] -\/= u(xi + ValueType(a) * h, 0.0,}
+\DoxyCodeLine{                                        zi + ValueType(c) * h) *}
+\DoxyCodeLine{                                      coefs[(a + 1) + 3 * 3 * (c + 1)];}
+\DoxyCodeLine{                    rhs[index\_bot] -\/=}
+\DoxyCodeLine{                        u(xi + ValueType(a) * h, 1.0,}
+\DoxyCodeLine{                          zi + ValueType(c) * h) *}
+\DoxyCodeLine{                        coefs[(a + 1) + 3 * 3 * (c + 1) + 3 * 2];}
+\DoxyCodeLine{                \}}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+Now every side has to be checked
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < dp; ++i) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} j = 0; j < dp; ++j) \{}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = ValueType(i + 1) * h;}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} yi = ValueType(j + 1) * h;}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_front = i + dp * j;}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_back = i + dp * j + dp * dp * (dp -\/ 1);}
+\DoxyCodeLine{}
+\DoxyCodeLine{            \textcolor{keywordflow}{for} (IndexType a = -\/1; a <= 1; ++a) \{}
+\DoxyCodeLine{                \textcolor{keywordflow}{if} ((i < (dp -\/ 1) || a < 1) \&\& (i > 0 || a > -\/1)) \{}
+\DoxyCodeLine{                    \textcolor{keywordflow}{for} (IndexType b = -\/1; b <= 1; ++b) \{}
+\DoxyCodeLine{                        \textcolor{keywordflow}{if} ((j < (dp -\/ 1) || b < 1) \&\& (j > 0 || j > -\/1)) \{}
+\DoxyCodeLine{                            rhs[index\_front] -\/= u(xi + ValueType(a) * h,}
+\DoxyCodeLine{                                                  yi + ValueType(b) * h, 0.0) *}
+\DoxyCodeLine{                                                coefs[(a + 1) + 3 * (b + 1)];}
+\DoxyCodeLine{                            rhs[index\_back] -\/=}
+\DoxyCodeLine{                                u(xi + ValueType(a) * h, yi + ValueType(b) * h,}
+\DoxyCodeLine{                                  1.0) *}
+\DoxyCodeLine{                                coefs[(a + 1) + 3 * (b + 1) + 3 * 3 * 2];}
+\DoxyCodeLine{                        \}}
+\DoxyCodeLine{                    \}}
+\DoxyCodeLine{                \}}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+Prints the solution {\ttfamily u}.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType, \textcolor{keyword}{typename} IndexType>}
+\DoxyCodeLine{\textcolor{keywordtype}{void} print\_solution(IndexType dp, \textcolor{keyword}{const} ValueType *u)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} k = 0; k < dp; ++k) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} j = 0; j < dp; ++j) \{}
+\DoxyCodeLine{            \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < dp; ++i) \{}
+\DoxyCodeLine{                std::cout << u[i + dp * (j + dp * k)] << \textcolor{charliteral}{' '};}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{            std::cout << \textcolor{charliteral}{'\(\backslash\)n'};}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        std::cout << \textcolor{stringliteral}{":\(\backslash\)n"};}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    std::cout << std::endl;}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+Computes the 1-\/norm of the error given the computed {\ttfamily u} and the correct solution function {\ttfamily correct\+\_\+u}.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure, \textcolor{keyword}{typename} ValueType, \textcolor{keyword}{typename} IndexType>}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} calculate\_error(IndexType dp, \textcolor{keyword}{const} ValueType *u,}
+\DoxyCodeLine{                                               Closure correct\_u)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{using} std::abs;}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} h = 1.0 / (dp + 1);}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} error = 0.0;}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (IndexType k = 0; k < dp; ++k) \{}
+\DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} zi = ValueType(k + 1) * h;}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (IndexType j = 0; j < dp; ++j) \{}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} yi = ValueType(j + 1) * h;}
+\DoxyCodeLine{            \textcolor{keywordflow}{for} (IndexType i = 0; i < dp; ++i) \{}
+\DoxyCodeLine{                \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = ValueType(i + 1) * h;}
+\DoxyCodeLine{                error +=}
+\DoxyCodeLine{                    \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(u[k * dp * dp + i * dp + j] -\/ correct\_u(xi, yi, zi)) /}
+\DoxyCodeLine{                    \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(correct\_u(xi, yi, zi));}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} error;}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType, \textcolor{keyword}{typename} IndexType>}
+\DoxyCodeLine{\textcolor{keywordtype}{void} solve\_system(\textcolor{keyword}{const} std::string \&executor\_string,}
+\DoxyCodeLine{                  IndexType discretization\_points, IndexType *row\_ptrs,}
+\DoxyCodeLine{                  IndexType *col\_idxs, ValueType *values, ValueType *rhs,}
+\DoxyCodeLine{                  ValueType *u, \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor)}
+\DoxyCodeLine{\{}
+\end{DoxyCode}
+
+
+Some shortcuts
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<ValueType>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} bj = \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko::preconditioner::Jacobi<ValueType, IndexType>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} val\_array = \mbox{\hyperlink{classgko_1_1Array}{gko::Array<ValueType>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} idx\_array = \mbox{\hyperlink{classgko_1_1Array}{gko::Array<IndexType>}};}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} \&dp = discretization\_points;}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} dp\_3 = dp * dp * dp;}
+\end{DoxyCode}
+
+
+Figure out where to run the code
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} omp = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\DoxyCodeLine{std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{}
+\DoxyCodeLine{    \{\textcolor{stringliteral}{"omp"}, omp\},}
+\DoxyCodeLine{    \{\textcolor{stringliteral}{"cuda"}, \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, omp, \textcolor{keyword}{true})\},}
+\DoxyCodeLine{    \{\textcolor{stringliteral}{"hip"}, \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(0, omp, \textcolor{keyword}{true})\},}
+\DoxyCodeLine{    \{\textcolor{stringliteral}{"reference"}, gko::ReferenceExecutor::create()\}\};}
+\end{DoxyCode}
+
+
+executor where Ginkgo will perform the computation
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string);  \textcolor{comment}{// throws if not valid}}
+\end{DoxyCode}
+
+
+executor where the application initialized the data
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec\_map[\textcolor{stringliteral}{"omp"}];}
+\end{DoxyCode}
+
+
+Tell Ginkgo to use the data in our application
+
+Matrix\+: we have to set the executor of the matrix to the one where we want Sp\+M\+Vs to run (in this case {\ttfamily exec}). When creating array views, we have to specify the executor where the data is (in this case {\ttfamily app\+\_\+exec}).
+
+If the two do not match, Ginkgo will automatically create a copy of the data on {\ttfamily exec} (however, it will not copy the data back once it is done
+\begin{DoxyItemize}
+\item here this is not important since we are not modifying the matrix).
+\end{DoxyItemize}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} matrix = mtx::create(}
+\DoxyCodeLine{    exec, \mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}(dp\_3),}
+\DoxyCodeLine{    val\_array::view(app\_exec, (3 * dp -\/ 2) * (3 * dp -\/ 2) * (3 * dp -\/ 2),}
+\DoxyCodeLine{                    values),}
+\DoxyCodeLine{    idx\_array::view(app\_exec, (3 * dp -\/ 2) * (3 * dp -\/ 2) * (3 * dp -\/ 2),}
+\DoxyCodeLine{                    col\_idxs),}
+\DoxyCodeLine{    idx\_array::view(app\_exec, dp\_3 + 1, row\_ptrs));}
+\end{DoxyCode}
+
+
+R\+HS\+: similar to matrix
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} b = vec::create(exec, \mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}(dp\_3, 1),}
+\DoxyCodeLine{                     val\_array::view(app\_exec, dp\_3, rhs), 1);}
+\end{DoxyCode}
+
+
+Solution\+: we have to be careful here -\/ if the executors are different, once we compute the solution the array will not be automatically copied back to the original memory locations. Fortunately, whenever {\ttfamily apply} is called on a linear operator (e.\+g. matrix, solver) the arguments automatically get copied to the executor where the operator is, and copied back once the operation is completed. Thus, in this case, we can just define the solution on {\ttfamily app\+\_\+exec}, and it will be automatically transferred to/from {\ttfamily exec} if needed.
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} x = vec::create(app\_exec, \mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}(dp\_3, 1),}
+\DoxyCodeLine{                     val\_array::view(app\_exec, dp\_3, u), 1);}
+\end{DoxyCode}
+
+
+Generate solver
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} solver\_gen =}
+\DoxyCodeLine{    cg::build()}
+\DoxyCodeLine{        .with\_criteria(}
+\DoxyCodeLine{            gko::stop::Iteration::build().with\_max\_iters(dp\_3).on(exec),}
+\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<ValueType>::build}}()}
+\DoxyCodeLine{                .with\_reduction\_factor(reduction\_factor)}
+\DoxyCodeLine{                .on(exec))}
+\DoxyCodeLine{        .with\_preconditioner(bj::build().on(exec))}
+\DoxyCodeLine{        .on(exec);}
+\DoxyCodeLine{\textcolor{keyword}{auto} solver = solver\_gen-\/>generate(\mbox{\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{gko::give}}(matrix));}
+\end{DoxyCode}
+
+
+Solve system
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(x));}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc < 2) \{}
+\DoxyCodeLine{        std::cerr}
+\DoxyCodeLine{            << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" DISCRETIZATION\_POINTS [executor]"}}
+\DoxyCodeLine{            << \textcolor{stringliteral}{" [stencil\_alpha] [stencil\_beta] [stencil\_gamma] [stencil\_delta]"}}
+\DoxyCodeLine{            << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{const} IndexType discretization\_points =}
+\DoxyCodeLine{        argc >= 2 ? std::atoi(argv[1]) : 100;}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} executor\_string = argc >= 3 ? argv[2] : \textcolor{stringliteral}{"reference"};}
+\DoxyCodeLine{    \textcolor{keyword}{const} ValueType alpha\_c = argc >= 4 ? std::atof(argv[3]) : default\_alpha;}
+\DoxyCodeLine{    \textcolor{keyword}{const} ValueType beta\_c = argc >= 5 ? std::atof(argv[4]) : default\_beta;}
+\DoxyCodeLine{    \textcolor{keyword}{const} ValueType gamma\_c = argc >= 6 ? std::atof(argv[5]) : default\_gamma;}
+\DoxyCodeLine{    \textcolor{keyword}{const} ValueType delta\_c = argc >= 7 ? std::atof(argv[6]) : default\_delta;}
+\end{DoxyCode}
+
+
+clang-\/format off
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::array<ValueType,27> coefs\{}
+\DoxyCodeLine{    delta\_c, gamma\_c, delta\_c,}
+\DoxyCodeLine{    gamma\_c, beta\_c, gamma\_c,}
+\DoxyCodeLine{    delta\_c, gamma\_c, delta\_c,}
+\DoxyCodeLine{}
+\DoxyCodeLine{    gamma\_c, beta\_c,  gamma\_c,}
+\DoxyCodeLine{    beta\_c,  alpha\_c, beta\_c,}
+\DoxyCodeLine{    gamma\_c, beta\_c,  gamma\_c,}
+\DoxyCodeLine{}
+\DoxyCodeLine{    delta\_c, gamma\_c, delta\_c,}
+\DoxyCodeLine{    gamma\_c, beta\_c, gamma\_c,}
+\DoxyCodeLine{    delta\_c, gamma\_c, delta\_c}
+\DoxyCodeLine{\};}
+\end{DoxyCode}
+
+
+clang-\/format on
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} dp = discretization\_points;}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} dp\_2 = dp * dp;}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} dp\_3 = dp * dp * dp;}
+\end{DoxyCode}
+
+
+problem\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} correct\_u = [](ValueType x, ValueType y, ValueType z) \{}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} x * x * x + y * y * y + z * z * z;}
+\DoxyCodeLine{\};}
+\DoxyCodeLine{\textcolor{keyword}{auto} f = [](ValueType x, ValueType y, ValueType z) \{}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} ValueType(6) * x + ValueType(6) * y + ValueType(6) * z;}
+\DoxyCodeLine{\};}
+\end{DoxyCode}
+
+
+matrix
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::vector<IndexType> row\_ptrs(dp\_3 + 1);}
+\DoxyCodeLine{std::vector<IndexType> col\_idxs((3 * dp -\/ 2) * (3 * dp -\/ 2) * (3 * dp -\/ 2));}
+\DoxyCodeLine{std::vector<ValueType> values((3 * dp -\/ 2) * (3 * dp -\/ 2) * (3 * dp -\/ 2));}
+\end{DoxyCode}
+
+
+right hand side
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::vector<ValueType> rhs(dp\_3);}
+\end{DoxyCode}
+
+
+solution
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::vector<ValueType> u(dp\_3, 0.0);}
+\DoxyCodeLine{}
+\DoxyCodeLine{generate\_stencil\_matrix(dp, row\_ptrs.data(), col\_idxs.data(), values.data(),}
+\DoxyCodeLine{                        coefs.data());}
+\end{DoxyCode}
+
+
+looking for solution u = x$^\wedge$3\+: f = 6x, u(0) = 0, u(1) = 1
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    generate\_rhs(dp, f, correct\_u, rhs.data(), coefs.data());}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} start\_time = std::chrono::steady\_clock::now();}
+\DoxyCodeLine{    solve\_system(executor\_string, dp, row\_ptrs.data(), col\_idxs.data(),}
+\DoxyCodeLine{                 values.data(), rhs.data(), u.data(), reduction\_factor);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} stop\_time = std::chrono::steady\_clock::now();}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} runtime\_duration =}
+\DoxyCodeLine{        static\_cast<double>(}
+\DoxyCodeLine{            std::chrono::duration\_cast<std::chrono::nanoseconds>(stop\_time -\/}
+\DoxyCodeLine{                                                                 start\_time)}
+\DoxyCodeLine{                .count()) *}
+\DoxyCodeLine{        1e-\/6;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    print\_solution<ValueType, IndexType>(dp, u.data());}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"The average relative error is "}}
+\DoxyCodeLine{              << calculate\_error(dp, u.data(), correct\_u) /}
+\DoxyCodeLine{                     \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}}\textcolor{keyword}{>}(dp\_3)}
+\DoxyCodeLine{              << std::endl;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"The runtime is "} << std::to\_string(runtime\_duration) << \textcolor{stringliteral}{" ms"}}
+\DoxyCodeLine{              << std::endl;}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+ \label{_Results}%
+\doxysection*{Results}
+
+The expected output of the relative error at K=10 should be
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{The average relative error is 1.87318e-\/15}
+\end{DoxyCode}
+
+
+\label{_Commentsaboutprogramminganddebugging}%
+\doxysubsubsection*{Comments about programming and debugging }
+
+\label{_PlainProg}%
+ \doxysection*{The plain program}
+
+
+\begin{DoxyCodeInclude}{0}
+\DoxyCodeLine{\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}}
+\DoxyCodeLine{\textcolor{comment}{Copyright (c) 2017-\/2020, the Ginkgo authors}}
+\DoxyCodeLine{\textcolor{comment}{All rights reserved.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{Redistribution and use in source and binary forms, with or without}}
+\DoxyCodeLine{\textcolor{comment}{modification, are permitted provided that the following conditions}}
+\DoxyCodeLine{\textcolor{comment}{are met:}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{1. Redistributions of source code must retain the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{2. Redistributions in binary form must reproduce the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer in the}}
+\DoxyCodeLine{\textcolor{comment}{documentation and/or other materials provided with the distribution.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{3. Neither the name of the copyright holder nor the names of its}}
+\DoxyCodeLine{\textcolor{comment}{contributors may be used to endorse or promote products derived from}}
+\DoxyCodeLine{\textcolor{comment}{this software without specific prior written permission.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS}}
+\DoxyCodeLine{\textcolor{comment}{IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED}}
+\DoxyCodeLine{\textcolor{comment}{TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A}}
+\DoxyCodeLine{\textcolor{comment}{PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT}}
+\DoxyCodeLine{\textcolor{comment}{HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,}}
+\DoxyCodeLine{\textcolor{comment}{SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT}}
+\DoxyCodeLine{\textcolor{comment}{LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,}}
+\DoxyCodeLine{\textcolor{comment}{DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY}}
+\DoxyCodeLine{\textcolor{comment}{THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}}
+\DoxyCodeLine{\textcolor{comment}{(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}}
+\DoxyCodeLine{\textcolor{comment}{OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}}
+\DoxyCodeLine{\textcolor{comment}{******************************<GINKGO LICENSE>*******************************/}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{comment}{/*****************************<DESCRIPTION>***********************************}}
+\DoxyCodeLine{\textcolor{comment}{This example solves a 3D Poisson equation:}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{    \(\backslash\)Omega = (0,1)\string^3}}
+\DoxyCodeLine{\textcolor{comment}{    \(\backslash\)Omega\_b = [0,1]\string^3   (with boundary)}}
+\DoxyCodeLine{\textcolor{comment}{    \(\backslash\)partial\(\backslash\)Omega = \(\backslash\)Omega\_b \(\backslash\)backslash \(\backslash\)Omega}}
+\DoxyCodeLine{\textcolor{comment}{    u : \(\backslash\)Omega\_b -\/> R}}
+\DoxyCodeLine{\textcolor{comment}{    u'' = f in \(\backslash\)Omega}}
+\DoxyCodeLine{\textcolor{comment}{    u = u\_D on \(\backslash\)partial\(\backslash\)Omega}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{using a finite difference method on an equidistant grid with `K` discretization}}
+\DoxyCodeLine{\textcolor{comment}{points (`K` can be controlled with a command line parameter). The discretization}}
+\DoxyCodeLine{\textcolor{comment}{may be done by any order Taylor polynomial.}}
+\DoxyCodeLine{\textcolor{comment}{For an equidistant grid with K "inner" discretization points (x1,y1,z1), ...,}}
+\DoxyCodeLine{\textcolor{comment}{(xk,y1,z1),(x1,y2,z1), ..., (xk,yk,z1), (x1,y1,z2), ..., (xk,yk,zk), step size h}}
+\DoxyCodeLine{\textcolor{comment}{= 1 / (K + 1) and a stencil \(\backslash\)in \(\backslash\)R\string^\{3 x 3 x 3\}, the formula produces a system of}}
+\DoxyCodeLine{\textcolor{comment}{linear equations}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{\(\backslash\)sum\_\{a,b,c=-\/1\}\string^1 stencil(a,b,c) * u\_\{(i+a,j+b,k+c\} = -\/f\_k h\string^2,  on any inner}}
+\DoxyCodeLine{\textcolor{comment}{node with a neighborhood of inner nodes}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{On any node, where neighbor is on the border, the neighbor is replaced with a}}
+\DoxyCodeLine{\textcolor{comment}{'-\/stencil(a,b,c) * u\_\{i+a,j+b,k+c\}' and added to the right hand side vector.}}
+\DoxyCodeLine{\textcolor{comment}{For example a node with a neighborhood of only face nodes may look like this}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{\(\backslash\)sum\_\{a,b,c=-\/1\}\string^(1,1,0) stencil(a,b,c) * u\_\{(i+a,j+b,k+c\} = -\/f\_k h\string^2 -\/}}
+\DoxyCodeLine{\textcolor{comment}{\(\backslash\)sum\_\{a,b=-\/1\}\string^(1,1) stencil(a,b,1) * u\_\{(i+a,j+b,k+1\}}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{which is then solved using Ginkgo's implementation of the CG method}}
+\DoxyCodeLine{\textcolor{comment}{preconditioned with block-\/Jacobi. It is also possible to specify on which}}
+\DoxyCodeLine{\textcolor{comment}{executor Ginkgo will solve the system via the command line.}}
+\DoxyCodeLine{\textcolor{comment}{The function `f` is set to `f(x,y,z) = 6x + 6y + 6z` (making the solution}}
+\DoxyCodeLine{\textcolor{comment}{`u(x,y,z) = x\string^3 + y\string^3 + z\string^3`), but that can be changed in the `main` function.}}
+\DoxyCodeLine{\textcolor{comment}{Also the stencil values for the core, the faces, the edge and the corners can be}}
+\DoxyCodeLine{\textcolor{comment}{changed when passing additional parameters.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{The intention of this is to show how generation of stencil values and the right}}
+\DoxyCodeLine{\textcolor{comment}{hand side vector changes when increasing the dimension.}}
+\DoxyCodeLine{\textcolor{comment}{*****************************<DESCRIPTION>**********************************/}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <array>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <chrono>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <map>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <vector>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{constexpr \textcolor{keywordtype}{double} default\_alpha = 38 / 6.0;}
+\DoxyCodeLine{constexpr \textcolor{keywordtype}{double} default\_beta = -\/4.0 / 6.0;}
+\DoxyCodeLine{constexpr \textcolor{keywordtype}{double} default\_gamma = -\/1.0 / 6.0;}
+\DoxyCodeLine{constexpr \textcolor{keywordtype}{double} default\_delta = -\/1.0 / 24.0;}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{comment}{/* Possible alternative values can be for example}}
+\DoxyCodeLine{\textcolor{comment}{ * default\_alpha = 28.0;}}
+\DoxyCodeLine{\textcolor{comment}{ * default\_beta = -\/1.0;}}
+\DoxyCodeLine{\textcolor{comment}{ * default\_gamma = -\/1.0;}}
+\DoxyCodeLine{\textcolor{comment}{ * default\_delta = -\/1.0;}}
+\DoxyCodeLine{\textcolor{comment}{ */}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType, \textcolor{keyword}{typename} IndexType>}
+\DoxyCodeLine{\textcolor{keywordtype}{void} generate\_stencil\_matrix(IndexType dp, IndexType *row\_ptrs,}
+\DoxyCodeLine{                             IndexType *col\_idxs, ValueType *values,}
+\DoxyCodeLine{                             ValueType *coefs)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    IndexType pos = 0;}
+\DoxyCodeLine{    row\_ptrs[0] = pos;}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (int64\_t z = 0; z < dp; ++z) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (int64\_t y = 0; y < dp; ++y) \{}
+\DoxyCodeLine{            \textcolor{keywordflow}{for} (int64\_t x = 0; x < dp; ++x) \{}
+\DoxyCodeLine{                \textcolor{keyword}{const} \textcolor{keyword}{auto} index = x + dp * (y + dp * z);}
+\DoxyCodeLine{                \textcolor{keywordflow}{for} (IndexType k = -\/1; k <= 1; ++k) \{}
+\DoxyCodeLine{                    \textcolor{keywordflow}{for} (IndexType j = -\/1; j <= 1; ++j) \{}
+\DoxyCodeLine{                        \textcolor{keywordflow}{for} (IndexType i = -\/1; i <= 1; ++i) \{}
+\DoxyCodeLine{                            \textcolor{keyword}{const} int64\_t offset =}
+\DoxyCodeLine{                                i + 1 + 3 * (j + 1 + 3 * (k + 1));}
+\DoxyCodeLine{                            \textcolor{keywordflow}{if} ((x + i) >= 0 \&\& (x + i) < dp \&\& (y + j) >= 0 \&\&}
+\DoxyCodeLine{                                (y + j) < dp \&\& (z + k) >= 0 \&\& (z + k) < dp) \{}
+\DoxyCodeLine{                                values[pos] = coefs[offset];}
+\DoxyCodeLine{                                col\_idxs[pos] = index + i + dp * (j + dp * k);}
+\DoxyCodeLine{                                ++pos;}
+\DoxyCodeLine{                            \}}
+\DoxyCodeLine{                        \}}
+\DoxyCodeLine{                    \}}
+\DoxyCodeLine{                \}}
+\DoxyCodeLine{                row\_ptrs[index + 1] = pos;}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure, \textcolor{keyword}{typename} ClosureT, \textcolor{keyword}{typename} ValueType,}
+\DoxyCodeLine{          \textcolor{keyword}{typename} IndexType>}
+\DoxyCodeLine{\textcolor{keywordtype}{void} generate\_rhs(IndexType dp, Closure f, ClosureT u, ValueType *rhs,}
+\DoxyCodeLine{                  ValueType *coefs)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{const} ValueType h = 1.0 / (dp + 1.0);}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} k = 0; k < dp; ++k) \{}
+\DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} zi = ValueType(k + 1) * h;}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} j = 0; j < dp; ++j) \{}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} yi = ValueType(j + 1) * h;}
+\DoxyCodeLine{            \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < dp; ++i) \{}
+\DoxyCodeLine{                \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = ValueType(i + 1) * h;}
+\DoxyCodeLine{                \textcolor{keyword}{const} \textcolor{keyword}{auto} index = i + dp * (j + dp * k);}
+\DoxyCodeLine{                rhs[index] = -\/f(xi, yi, zi) * h * h;}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} j = 0; j < dp; ++j) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} k = 0; k < dp; ++k) \{}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} yi = ValueType(j + 1) * h;}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} zi = ValueType(k + 1) * h;}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_left = dp * j + dp * dp * k;}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_right = dp * j + dp * dp * k + (dp -\/ 1);}
+\DoxyCodeLine{}
+\DoxyCodeLine{            \textcolor{keywordflow}{for} (IndexType b = -\/1; b <= 1; ++b) \{}
+\DoxyCodeLine{                \textcolor{keywordflow}{for} (IndexType c = -\/1; c <= 1; ++c) \{}
+\DoxyCodeLine{                    rhs[index\_left] -\/=}
+\DoxyCodeLine{                        u(0.0, yi + ValueType(b) * h, zi + ValueType(c) * h) *}
+\DoxyCodeLine{                        coefs[3 * (b + 1) + 3 * 3 * (c + 1)];}
+\DoxyCodeLine{                    rhs[index\_right] -\/=}
+\DoxyCodeLine{                        u(1.0, yi + ValueType(b) * h, zi + ValueType(c) * h) *}
+\DoxyCodeLine{                        coefs[3 * (b + 1) + 3 * 3 * (c + 1) + 2];}
+\DoxyCodeLine{                \}}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < dp; ++i) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} k = 0; k < dp; ++k) \{}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = ValueType(i + 1) * h;}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} zi = ValueType(k + 1) * h;}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_top = i + dp * dp * k;}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_bot = i + dp * dp * k + dp * (dp -\/ 1);}
+\DoxyCodeLine{}
+\DoxyCodeLine{            \textcolor{keywordflow}{for} (IndexType a = -\/1; a <= 1; ++a) \{}
+\DoxyCodeLine{                \textcolor{keywordflow}{if} ((i < (dp -\/ 1) || a < 1) \&\& (i > 0 || a > -\/1)) \{}
+\DoxyCodeLine{                    \textcolor{keywordflow}{for} (IndexType c = -\/1; c <= 1; ++c) \{}
+\DoxyCodeLine{                        rhs[index\_top] -\/= u(xi + ValueType(a) * h, 0.0,}
+\DoxyCodeLine{                                            zi + ValueType(c) * h) *}
+\DoxyCodeLine{                                          coefs[(a + 1) + 3 * 3 * (c + 1)];}
+\DoxyCodeLine{                        rhs[index\_bot] -\/=}
+\DoxyCodeLine{                            u(xi + ValueType(a) * h, 1.0,}
+\DoxyCodeLine{                              zi + ValueType(c) * h) *}
+\DoxyCodeLine{                            coefs[(a + 1) + 3 * 3 * (c + 1) + 3 * 2];}
+\DoxyCodeLine{                    \}}
+\DoxyCodeLine{                \}}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < dp; ++i) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} j = 0; j < dp; ++j) \{}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = ValueType(i + 1) * h;}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} yi = ValueType(j + 1) * h;}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_front = i + dp * j;}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} index\_back = i + dp * j + dp * dp * (dp -\/ 1);}
+\DoxyCodeLine{}
+\DoxyCodeLine{            \textcolor{keywordflow}{for} (IndexType a = -\/1; a <= 1; ++a) \{}
+\DoxyCodeLine{                \textcolor{keywordflow}{if} ((i < (dp -\/ 1) || a < 1) \&\& (i > 0 || a > -\/1)) \{}
+\DoxyCodeLine{                    \textcolor{keywordflow}{for} (IndexType b = -\/1; b <= 1; ++b) \{}
+\DoxyCodeLine{                        \textcolor{keywordflow}{if} ((j < (dp -\/ 1) || b < 1) \&\& (j > 0 || j > -\/1)) \{}
+\DoxyCodeLine{                            rhs[index\_front] -\/= u(xi + ValueType(a) * h,}
+\DoxyCodeLine{                                                  yi + ValueType(b) * h, 0.0) *}
+\DoxyCodeLine{                                                coefs[(a + 1) + 3 * (b + 1)];}
+\DoxyCodeLine{                            rhs[index\_back] -\/=}
+\DoxyCodeLine{                                u(xi + ValueType(a) * h, yi + ValueType(b) * h,}
+\DoxyCodeLine{                                  1.0) *}
+\DoxyCodeLine{                                coefs[(a + 1) + 3 * (b + 1) + 3 * 3 * 2];}
+\DoxyCodeLine{                        \}}
+\DoxyCodeLine{                    \}}
+\DoxyCodeLine{                \}}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType, \textcolor{keyword}{typename} IndexType>}
+\DoxyCodeLine{\textcolor{keywordtype}{void} print\_solution(IndexType dp, \textcolor{keyword}{const} ValueType *u)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} k = 0; k < dp; ++k) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} j = 0; j < dp; ++j) \{}
+\DoxyCodeLine{            \textcolor{keywordflow}{for} (\textcolor{keywordtype}{size\_t} i = 0; i < dp; ++i) \{}
+\DoxyCodeLine{                std::cout << u[i + dp * (j + dp * k)] << \textcolor{charliteral}{' '};}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{            std::cout << \textcolor{charliteral}{'\(\backslash\)n'};}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        std::cout << \textcolor{stringliteral}{":\(\backslash\)n"};}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    std::cout << std::endl;}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} Closure, \textcolor{keyword}{typename} ValueType, \textcolor{keyword}{typename} IndexType>}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} calculate\_error(IndexType dp, \textcolor{keyword}{const} ValueType *u,}
+\DoxyCodeLine{                                               Closure correct\_u)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{using} std::abs;}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} h = 1.0 / (dp + 1);}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} error = 0.0;}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (IndexType k = 0; k < dp; ++k) \{}
+\DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} zi = ValueType(k + 1) * h;}
+\DoxyCodeLine{        \textcolor{keywordflow}{for} (IndexType j = 0; j < dp; ++j) \{}
+\DoxyCodeLine{            \textcolor{keyword}{const} \textcolor{keyword}{auto} yi = ValueType(j + 1) * h;}
+\DoxyCodeLine{            \textcolor{keywordflow}{for} (IndexType i = 0; i < dp; ++i) \{}
+\DoxyCodeLine{                \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = ValueType(i + 1) * h;}
+\DoxyCodeLine{                error +=}
+\DoxyCodeLine{                    \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(u[k * dp * dp + i * dp + j] -\/ correct\_u(xi, yi, zi)) /}
+\DoxyCodeLine{                    \mbox{\hyperlink{namespacegko_a57797fc0a00fd4b7ff34ca4bfc84bc51}{abs}}(correct\_u(xi, yi, zi));}
+\DoxyCodeLine{            \}}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} error;}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType, \textcolor{keyword}{typename} IndexType>}
+\DoxyCodeLine{\textcolor{keywordtype}{void} solve\_system(\textcolor{keyword}{const} std::string \&executor\_string,}
+\DoxyCodeLine{                  IndexType discretization\_points, IndexType *row\_ptrs,}
+\DoxyCodeLine{                  IndexType *col\_idxs, ValueType *values, ValueType *rhs,}
+\DoxyCodeLine{                  ValueType *u, \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<ValueType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} bj = \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko::preconditioner::Jacobi<ValueType, IndexType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} val\_array = \mbox{\hyperlink{classgko_1_1Array}{gko::Array<ValueType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} idx\_array = \mbox{\hyperlink{classgko_1_1Array}{gko::Array<IndexType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} \&dp = discretization\_points;}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} dp\_3 = dp * dp * dp;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} omp = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
+\DoxyCodeLine{    std::map<std::string, std::shared\_ptr<gko::Executor>> exec\_map\{}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"omp"}, omp\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"cuda"}, \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, omp, \textcolor{keyword}{true})\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"hip"}, \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(0, omp, \textcolor{keyword}{true})\},}
+\DoxyCodeLine{        \{\textcolor{stringliteral}{"reference"}, gko::ReferenceExecutor::create()\}\};}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} exec = exec\_map.at(executor\_string);  \textcolor{comment}{// throws if not valid}}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec\_map[\textcolor{stringliteral}{"omp"}];}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} matrix = mtx::create(}
+\DoxyCodeLine{        exec, \mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}(dp\_3),}
+\DoxyCodeLine{        val\_array::view(app\_exec, (3 * dp -\/ 2) * (3 * dp -\/ 2) * (3 * dp -\/ 2),}
+\DoxyCodeLine{                        values),}
+\DoxyCodeLine{        idx\_array::view(app\_exec, (3 * dp -\/ 2) * (3 * dp -\/ 2) * (3 * dp -\/ 2),}
+\DoxyCodeLine{                        col\_idxs),}
+\DoxyCodeLine{        idx\_array::view(app\_exec, dp\_3 + 1, row\_ptrs));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} b = vec::create(exec, \mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}(dp\_3, 1),}
+\DoxyCodeLine{                         val\_array::view(app\_exec, dp\_3, rhs), 1);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} x = vec::create(app\_exec, \mbox{\hyperlink{structgko_1_1dim}{gko::dim<2>}}(dp\_3, 1),}
+\DoxyCodeLine{                         val\_array::view(app\_exec, dp\_3, u), 1);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} solver\_gen =}
+\DoxyCodeLine{        cg::build()}
+\DoxyCodeLine{            .with\_criteria(}
+\DoxyCodeLine{                gko::stop::Iteration::build().with\_max\_iters(dp\_3).on(exec),}
+\DoxyCodeLine{                \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<ValueType>::build}}()}
+\DoxyCodeLine{                    .with\_reduction\_factor(reduction\_factor)}
+\DoxyCodeLine{                    .on(exec))}
+\DoxyCodeLine{            .with\_preconditioner(bj::build().on(exec))}
+\DoxyCodeLine{            .on(exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} solver = solver\_gen-\/>generate(\mbox{\hyperlink{namespacegko_acbd3fd6d07e498892881e8e2ab0b4167}{gko::give}}(matrix));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(x));}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc < 2) \{}
+\DoxyCodeLine{        std::cerr}
+\DoxyCodeLine{            << \textcolor{stringliteral}{"Usage: "} << argv[0] << \textcolor{stringliteral}{" DISCRETIZATION\_POINTS [executor]"}}
+\DoxyCodeLine{            << \textcolor{stringliteral}{" [stencil\_alpha] [stencil\_beta] [stencil\_gamma] [stencil\_delta]"}}
+\DoxyCodeLine{            << std::endl;}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{const} IndexType discretization\_points =}
+\DoxyCodeLine{        argc >= 2 ? std::atoi(argv[1]) : 100;}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} executor\_string = argc >= 3 ? argv[2] : \textcolor{stringliteral}{"reference"};}
+\DoxyCodeLine{    \textcolor{keyword}{const} ValueType alpha\_c = argc >= 4 ? std::atof(argv[3]) : default\_alpha;}
+\DoxyCodeLine{    \textcolor{keyword}{const} ValueType beta\_c = argc >= 5 ? std::atof(argv[4]) : default\_beta;}
+\DoxyCodeLine{    \textcolor{keyword}{const} ValueType gamma\_c = argc >= 6 ? std::atof(argv[5]) : default\_gamma;}
+\DoxyCodeLine{    \textcolor{keyword}{const} ValueType delta\_c = argc >= 7 ? std::atof(argv[6]) : default\_delta;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::array<ValueType,27> coefs\{}
+\DoxyCodeLine{        delta\_c, gamma\_c, delta\_c,}
+\DoxyCodeLine{        gamma\_c, beta\_c, gamma\_c,}
+\DoxyCodeLine{        delta\_c, gamma\_c, delta\_c,}
+\DoxyCodeLine{}
+\DoxyCodeLine{        gamma\_c, beta\_c,  gamma\_c,}
+\DoxyCodeLine{        beta\_c,  alpha\_c, beta\_c,}
+\DoxyCodeLine{        gamma\_c, beta\_c,  gamma\_c,}
+\DoxyCodeLine{}
+\DoxyCodeLine{        delta\_c, gamma\_c, delta\_c,}
+\DoxyCodeLine{        gamma\_c, beta\_c, gamma\_c,}
+\DoxyCodeLine{        delta\_c, gamma\_c, delta\_c}
+\DoxyCodeLine{    \};}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} dp = discretization\_points;}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} dp\_2 = dp * dp;}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keywordtype}{size\_t} dp\_3 = dp * dp * dp;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} correct\_u = [](ValueType x, ValueType y, ValueType z) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{return} x * x * x + y * y * y + z * z * z;}
+\DoxyCodeLine{    \};}
+\DoxyCodeLine{    \textcolor{keyword}{auto} f = [](ValueType x, ValueType y, ValueType z) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{return} ValueType(6) * x + ValueType(6) * y + ValueType(6) * z;}
+\DoxyCodeLine{    \};}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::vector<IndexType> row\_ptrs(dp\_3 + 1);}
+\DoxyCodeLine{    std::vector<IndexType> col\_idxs((3 * dp -\/ 2) * (3 * dp -\/ 2) * (3 * dp -\/ 2));}
+\DoxyCodeLine{    std::vector<ValueType> values((3 * dp -\/ 2) * (3 * dp -\/ 2) * (3 * dp -\/ 2));}
+\DoxyCodeLine{    std::vector<ValueType> rhs(dp\_3);}
+\DoxyCodeLine{    std::vector<ValueType> u(dp\_3, 0.0);}
+\DoxyCodeLine{}
+\DoxyCodeLine{    generate\_stencil\_matrix(dp, row\_ptrs.data(), col\_idxs.data(), values.data(),}
+\DoxyCodeLine{                            coefs.data());}
+\DoxyCodeLine{    generate\_rhs(dp, f, correct\_u, rhs.data(), coefs.data());}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/7;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} start\_time = std::chrono::steady\_clock::now();}
+\DoxyCodeLine{    solve\_system(executor\_string, dp, row\_ptrs.data(), col\_idxs.data(),}
+\DoxyCodeLine{                 values.data(), rhs.data(), u.data(), reduction\_factor);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} stop\_time = std::chrono::steady\_clock::now();}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} runtime\_duration =}
+\DoxyCodeLine{        static\_cast<double>(}
+\DoxyCodeLine{            std::chrono::duration\_cast<std::chrono::nanoseconds>(stop\_time -\/}
+\DoxyCodeLine{                                                                 start\_time)}
+\DoxyCodeLine{                .count()) *}
+\DoxyCodeLine{        1e-\/6;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    print\_solution<ValueType, IndexType>(dp, u.data());}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"The average relative error is "}}
+\DoxyCodeLine{              << calculate\_error(dp, u.data(), correct\_u) /}
+\DoxyCodeLine{                     \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}}\textcolor{keyword}{>}(dp\_3)}
+\DoxyCodeLine{              << std::endl;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"The runtime is "} << std::to\_string(runtime\_duration) << \textcolor{stringliteral}{" ms"}}
+\DoxyCodeLine{              << std::endl;}
+\DoxyCodeLine{\}}
+\end{DoxyCodeInclude}
+ 

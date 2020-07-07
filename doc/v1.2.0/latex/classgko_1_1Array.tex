@@ -1,0 +1,610 @@
+\hypertarget{classgko_1_1Array}{}\doxysection{gko\+::Array$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1Array}\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+
+
+An \mbox{\hyperlink{classgko_1_1Array}{Array}} is a container which encapsulates fixed-\/sized arrays, stored on the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} tied to the \mbox{\hyperlink{classgko_1_1Array}{Array}}.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/array.\+hpp$>$}
+
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1Array_ad40c95e429262175cae51bcabd291a5b}\label{classgko_1_1Array_ad40c95e429262175cae51bcabd291a5b}} 
+using \mbox{\hyperlink{classgko_1_1Array_ad40c95e429262175cae51bcabd291a5b}{value\+\_\+type}} = Value\+Type
+\begin{DoxyCompactList}\small\item\em The type of elements stored in the array. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1Array_a39498b9cc303f4fa5685b2f98bb8ff4e}\label{classgko_1_1Array_a39498b9cc303f4fa5685b2f98bb8ff4e}} 
+using \mbox{\hyperlink{classgko_1_1Array_a39498b9cc303f4fa5685b2f98bb8ff4e}{default\+\_\+deleter}} = \mbox{\hyperlink{classgko_1_1executor__deleter}{executor\+\_\+deleter}}$<$ \mbox{\hyperlink{classgko_1_1Array_ad40c95e429262175cae51bcabd291a5b}{value\+\_\+type}}\mbox{[}$\,$\mbox{]}$>$
+\begin{DoxyCompactList}\small\item\em The default deleter type used by \mbox{\hyperlink{classgko_1_1Array}{Array}}. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1Array_af870dd6ab4ad4f7e0e20471cb17f4ad1}\label{classgko_1_1Array_af870dd6ab4ad4f7e0e20471cb17f4ad1}} 
+using \mbox{\hyperlink{classgko_1_1Array_af870dd6ab4ad4f7e0e20471cb17f4ad1}{view\+\_\+deleter}} = \mbox{\hyperlink{classgko_1_1null__deleter}{null\+\_\+deleter}}$<$ \mbox{\hyperlink{classgko_1_1Array_ad40c95e429262175cae51bcabd291a5b}{value\+\_\+type}}\mbox{[}$\,$\mbox{]}$>$
+\begin{DoxyCompactList}\small\item\em The deleter type used for views. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classgko_1_1Array_a6048d48c206e8dcae55e776b7adba06a}{Array}} () noexcept
+\begin{DoxyCompactList}\small\item\em Creates an empty \mbox{\hyperlink{classgko_1_1Array}{Array}} not tied to any executor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classgko_1_1Array_ae64e4c698ecef2cfbe3ceb3dfd07dbaf}{Array}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec) noexcept
+\begin{DoxyCompactList}\small\item\em Creates an empty \mbox{\hyperlink{classgko_1_1Array}{Array}} tied to the specified \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classgko_1_1Array_a2cf49c2f39cbad160982d731fcf74031}{Array}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} num\+\_\+elems)
+\begin{DoxyCompactList}\small\item\em Creates an \mbox{\hyperlink{classgko_1_1Array}{Array}} on the specified \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename Deleter\+Type $>$ }\\\mbox{\hyperlink{classgko_1_1Array_a4aa436a039fe6a6391b810a44d0ca9c7}{Array}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} num\+\_\+elems, \mbox{\hyperlink{classgko_1_1Array_ad40c95e429262175cae51bcabd291a5b}{value\+\_\+type}} $\ast$data, Deleter\+Type deleter)
+\begin{DoxyCompactList}\small\item\em Creates an \mbox{\hyperlink{classgko_1_1Array}{Array}} from existing memory. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classgko_1_1Array_afdf9ea91228cf272e3b5f18cc5dff2a8}{Array}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} num\+\_\+elems, \mbox{\hyperlink{classgko_1_1Array_ad40c95e429262175cae51bcabd291a5b}{value\+\_\+type}} $\ast$data)
+\begin{DoxyCompactList}\small\item\em Creates an \mbox{\hyperlink{classgko_1_1Array}{Array}} from existing memory. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename Random\+Access\+Iterator $>$ }\\\mbox{\hyperlink{classgko_1_1Array_a473ac8d0d3fa05918064cb5f26c3a540}{Array}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec, Random\+Access\+Iterator begin, Random\+Access\+Iterator end)
+\begin{DoxyCompactList}\small\item\em Creates an array on the specified \mbox{\hyperlink{classgko_1_1Executor}{Executor}} and initializes it with values. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\\mbox{\hyperlink{classgko_1_1Array_aa0aa5ae24d1006778bba7ef7419439b2}{Array}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec, std\+::initializer\+\_\+list$<$ T $>$ init\+\_\+list)
+\begin{DoxyCompactList}\small\item\em Creates an array on the specified \mbox{\hyperlink{classgko_1_1Executor}{Executor}} and initializes it with values. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classgko_1_1Array_ad03ebd9c7e7d63fc3b8b7a0a9ba8d16b}{Array}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec, const \mbox{\hyperlink{classgko_1_1Array}{Array}} \&other)
+\begin{DoxyCompactList}\small\item\em Creates a copy of another array on a different executor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classgko_1_1Array_ab5c0cdf59d9920d0f72f4018a5e4a8ab}{Array}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}} \&other)
+\begin{DoxyCompactList}\small\item\em Creates a copy of another array. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classgko_1_1Array_a7e5b32002ac86e0534b91a4808212e28}{Array}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec, \mbox{\hyperlink{classgko_1_1Array}{Array}} \&\&other)
+\begin{DoxyCompactList}\small\item\em Moves another array to a different executor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classgko_1_1Array_a29da5ccbf776b7c85dbda0e8b4f20647}{Array}} (\mbox{\hyperlink{classgko_1_1Array}{Array}} \&\&other)
+\begin{DoxyCompactList}\small\item\em Moves another array. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classgko_1_1Array}{Array}} \& \mbox{\hyperlink{classgko_1_1Array_a841412d7a03b8210ba39e77b3bd05ce3}{operator=}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}} \&other)
+\begin{DoxyCompactList}\small\item\em Copies data from another array or view. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classgko_1_1Array}{Array}} \& \mbox{\hyperlink{classgko_1_1Array_a62d5346849e3943a5fcac962e344ab58}{operator=}} (\mbox{\hyperlink{classgko_1_1Array}{Array}} \&\&other)
+\begin{DoxyCompactList}\small\item\em Moves data from another array or view. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename Other\+Value\+Type $>$ }\\xstd\+::enable\+\_\+if\+\_\+t$<$!std\+::is\+\_\+same$<$ Value\+Type, Other\+Value\+Type $>$\+::value, \mbox{\hyperlink{classgko_1_1Array}{Array}} $>$ \& \mbox{\hyperlink{classgko_1_1Array_ad27c8f6831d9a360d8f11b25ce274acc}{operator=}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ Other\+Value\+Type $>$ \&other)
+\begin{DoxyCompactList}\small\item\em Copies and converts data from another array with another data type. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1Array_a64f7e9f19c4e8cff8adb402da70476c3}{clear}} () noexcept
+\begin{DoxyCompactList}\small\item\em Deallocates all data used by the \mbox{\hyperlink{classgko_1_1Array}{Array}}. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1Array_ab42114c635a05ecff66e1ab5e5074d14}{resize\+\_\+and\+\_\+reset}} (\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} num\+\_\+elems)
+\begin{DoxyCompactList}\small\item\em Resizes the array so it is able to hold the specified number of elements. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1Array_ad4a2aa179d350634e6579f144b6b2cf0}{get\+\_\+num\+\_\+elems}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the number of elements in the \mbox{\hyperlink{classgko_1_1Array}{Array}}. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classgko_1_1Array_ad40c95e429262175cae51bcabd291a5b}{value\+\_\+type}} $\ast$ \mbox{\hyperlink{classgko_1_1Array_a9acf29878703bb8767e3cea2ba499dae}{get\+\_\+data}} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns a pointer to the block of memory used to store the elements of the \mbox{\hyperlink{classgko_1_1Array}{Array}}. \end{DoxyCompactList}\item 
+const \mbox{\hyperlink{classgko_1_1Array_ad40c95e429262175cae51bcabd291a5b}{value\+\_\+type}} $\ast$ \mbox{\hyperlink{classgko_1_1Array_a5a46e0920b649cdb062f5e415922d1aa}{get\+\_\+const\+\_\+data}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns a constant pointer to the block of memory used to store the elements of the \mbox{\hyperlink{classgko_1_1Array}{Array}}. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ \mbox{\hyperlink{classgko_1_1Array_a820e5930cb5072acc7673fdb2d11efcd}{get\+\_\+executor}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} associated with the array. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1Array_a44dd24e909f518f08320c3065e087d85}{set\+\_\+executor}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec)
+\begin{DoxyCompactList}\small\item\em Changes the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} of the \mbox{\hyperlink{classgko_1_1Array}{Array}}, moving the allocated data to the new \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classgko_1_1Array_a18164d25e9e87bdc6b8af7ce9956199a}{is\+\_\+owning}} ()
+\begin{DoxyCompactList}\small\item\em Tells whether this \mbox{\hyperlink{classgko_1_1Array}{Array}} owns its data or not. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static \mbox{\hyperlink{classgko_1_1Array}{Array}} \mbox{\hyperlink{classgko_1_1Array_ae8e2b4841e60741227daf3367de6ecde}{view}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ exec, \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} num\+\_\+elems, \mbox{\hyperlink{classgko_1_1Array_ad40c95e429262175cae51bcabd291a5b}{value\+\_\+type}} $\ast$data)
+\begin{DoxyCompactList}\small\item\em Creates an \mbox{\hyperlink{classgko_1_1Array}{Array}} from existing memory. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1Array_ab1a595168ea1870ce436dfd2d8e69b6d}\label{classgko_1_1Array_ab1a595168ea1870ce436dfd2d8e69b6d}} 
+{\footnotesize template$<$typename Other\+Value\+Type $>$ }\\class {\bfseries Array}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type$>$\newline
+class gko\+::\+Array$<$ Value\+Type $>$}
+
+An \mbox{\hyperlink{classgko_1_1Array}{Array}} is a container which encapsulates fixed-\/sized arrays, stored on the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} tied to the \mbox{\hyperlink{classgko_1_1Array}{Array}}. 
+
+The array stores and transfers its data as {\bfseries{raw}} memory, which means that the constructors of its elements are not called when constructing, copying or moving the \mbox{\hyperlink{classgko_1_1Array}{Array}}. Thus, the \mbox{\hyperlink{classgko_1_1Array}{Array}} class is most suitable for storing P\+OD types.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & the type of elements stored in the array \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classgko_1_1Array_a6048d48c206e8dcae55e776b7adba06a}\label{classgko_1_1Array_a6048d48c206e8dcae55e776b7adba06a}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!Array@{Array}}
+\index{Array@{Array}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{Array()}{Array()}\hspace{0.1cm}{\footnotesize\ttfamily [1/11]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+\mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::\mbox{\hyperlink{classgko_1_1Array}{Array}} (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Creates an empty \mbox{\hyperlink{classgko_1_1Array}{Array}} not tied to any executor. 
+
+An array without an assigned executor can only be empty. Attempts to change its size (e.\+g. via the resize\+\_\+and\+\_\+reset method) will result in an exception. If such an array is used as the right hand side of an assignment or move assignment expression, the data of the target array will be cleared, but its executor will not be modified.
+
+The executor can later be set by using the set\+\_\+executor method. If an \mbox{\hyperlink{classgko_1_1Array}{Array}} with no assigned executor is assigned or moved to, it will inherit the executor of the source \mbox{\hyperlink{classgko_1_1Array}{Array}}. \mbox{\Hypertarget{classgko_1_1Array_ae64e4c698ecef2cfbe3ceb3dfd07dbaf}\label{classgko_1_1Array_ae64e4c698ecef2cfbe3ceb3dfd07dbaf}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!Array@{Array}}
+\index{Array@{Array}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{Array()}{Array()}\hspace{0.1cm}{\footnotesize\ttfamily [2/11]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+\mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::\mbox{\hyperlink{classgko_1_1Array}{Array}} (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{exec }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Creates an empty \mbox{\hyperlink{classgko_1_1Array}{Array}} tied to the specified \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} where the array data is allocated \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1Array_a2cf49c2f39cbad160982d731fcf74031}\label{classgko_1_1Array_a2cf49c2f39cbad160982d731fcf74031}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!Array@{Array}}
+\index{Array@{Array}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{Array()}{Array()}\hspace{0.1cm}{\footnotesize\ttfamily [3/11]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+\mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::\mbox{\hyperlink{classgko_1_1Array}{Array}} (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{exec,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{num\+\_\+elems }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Creates an \mbox{\hyperlink{classgko_1_1Array}{Array}} on the specified \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} where the array data will be allocated \\
+\hline
+{\em num\+\_\+elems} & the amount of memory (expressed as the number of {\ttfamily value\+\_\+type} elements) allocated on the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1Array_a4aa436a039fe6a6391b810a44d0ca9c7}\label{classgko_1_1Array_a4aa436a039fe6a6391b810a44d0ca9c7}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!Array@{Array}}
+\index{Array@{Array}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{Array()}{Array()}\hspace{0.1cm}{\footnotesize\ttfamily [4/11]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+template$<$typename Deleter\+Type $>$ \\
+\mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::\mbox{\hyperlink{classgko_1_1Array}{Array}} (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{exec,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{num\+\_\+elems,  }\item[{\mbox{\hyperlink{classgko_1_1Array_ad40c95e429262175cae51bcabd291a5b}{value\+\_\+type}} $\ast$}]{data,  }\item[{Deleter\+Type}]{deleter }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Creates an \mbox{\hyperlink{classgko_1_1Array}{Array}} from existing memory. 
+
+The memory will be managed by the array, and deallocated using the specified deleter (e.\+g. use std\+::default\+\_\+delete for data allocated with new).
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Deleter\+Type} & type of the deleter\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & executor where {\ttfamily data} is located \\
+\hline
+{\em num\+\_\+elems} & number of elements in {\ttfamily data} \\
+\hline
+{\em data} & chunk of memory used to create the array \\
+\hline
+{\em deleter} & the deleter used to free the memory\\
+\hline
+\end{DoxyParams}
+\begin{DoxySeeAlso}{See also}
+\mbox{\hyperlink{classgko_1_1Array_ae8e2b4841e60741227daf3367de6ecde}{Array\+::view()}} to create an \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5}{array}} that does not deallocate memory 
+
+Array(std\+::shared\+\_\+ptr$<$cont Executor$>$, size\+\_\+type, value\+\_\+type$\ast$) to deallocate the memory using \mbox{\hyperlink{classgko_1_1Executor_a0befe43d21c93e199d1620eaae4ccc0c}{Executor\+::free()}} method 
+\end{DoxySeeAlso}
+\mbox{\Hypertarget{classgko_1_1Array_afdf9ea91228cf272e3b5f18cc5dff2a8}\label{classgko_1_1Array_afdf9ea91228cf272e3b5f18cc5dff2a8}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!Array@{Array}}
+\index{Array@{Array}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{Array()}{Array()}\hspace{0.1cm}{\footnotesize\ttfamily [5/11]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+\mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::\mbox{\hyperlink{classgko_1_1Array}{Array}} (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{exec,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{num\+\_\+elems,  }\item[{\mbox{\hyperlink{classgko_1_1Array_ad40c95e429262175cae51bcabd291a5b}{value\+\_\+type}} $\ast$}]{data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Creates an \mbox{\hyperlink{classgko_1_1Array}{Array}} from existing memory. 
+
+The memory will be managed by the array, and deallocated using the \mbox{\hyperlink{classgko_1_1Executor_a0befe43d21c93e199d1620eaae4ccc0c}{Executor\+::free}} method.
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & executor where {\ttfamily data} is located \\
+\hline
+{\em num\+\_\+elems} & number of elements in {\ttfamily data} \\
+\hline
+{\em data} & chunk of memory used to create the array \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1Array_a473ac8d0d3fa05918064cb5f26c3a540}\label{classgko_1_1Array_a473ac8d0d3fa05918064cb5f26c3a540}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!Array@{Array}}
+\index{Array@{Array}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{Array()}{Array()}\hspace{0.1cm}{\footnotesize\ttfamily [6/11]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+template$<$typename Random\+Access\+Iterator $>$ \\
+\mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::\mbox{\hyperlink{classgko_1_1Array}{Array}} (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{exec,  }\item[{Random\+Access\+Iterator}]{begin,  }\item[{Random\+Access\+Iterator}]{end }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Creates an array on the specified \mbox{\hyperlink{classgko_1_1Executor}{Executor}} and initializes it with values. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Random\+Access\+Iterator} & type of the iterators\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} where the array data will be allocated \\
+\hline
+{\em begin} & start of range of values \\
+\hline
+{\em end} & end of range of values \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1Array_aa0aa5ae24d1006778bba7ef7419439b2}\label{classgko_1_1Array_aa0aa5ae24d1006778bba7ef7419439b2}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!Array@{Array}}
+\index{Array@{Array}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{Array()}{Array()}\hspace{0.1cm}{\footnotesize\ttfamily [7/11]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+template$<$typename T $>$ \\
+\mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::\mbox{\hyperlink{classgko_1_1Array}{Array}} (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{exec,  }\item[{std\+::initializer\+\_\+list$<$ T $>$}]{init\+\_\+list }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Creates an array on the specified \mbox{\hyperlink{classgko_1_1Executor}{Executor}} and initializes it with values. 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & type of values used to initialize the array (T has to be implicitly convertible to value\+\_\+type)\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} where the array data will be allocated \\
+\hline
+{\em init\+\_\+list} & list of values used to initialize the \mbox{\hyperlink{classgko_1_1Array}{Array}} \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1Array_ad03ebd9c7e7d63fc3b8b7a0a9ba8d16b}\label{classgko_1_1Array_ad03ebd9c7e7d63fc3b8b7a0a9ba8d16b}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!Array@{Array}}
+\index{Array@{Array}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{Array()}{Array()}\hspace{0.1cm}{\footnotesize\ttfamily [8/11]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+\mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::\mbox{\hyperlink{classgko_1_1Array}{Array}} (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{exec,  }\item[{const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ Value\+Type $>$ \&}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Creates a copy of another array on a different executor. 
+
+This does not invoke the constructors of the elements, instead they are copied as P\+OD types.
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor where the new array will be created \\
+\hline
+{\em other} & the \mbox{\hyperlink{classgko_1_1Array}{Array}} to copy from \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1Array_ab5c0cdf59d9920d0f72f4018a5e4a8ab}\label{classgko_1_1Array_ab5c0cdf59d9920d0f72f4018a5e4a8ab}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!Array@{Array}}
+\index{Array@{Array}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{Array()}{Array()}\hspace{0.1cm}{\footnotesize\ttfamily [9/11]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+\mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::\mbox{\hyperlink{classgko_1_1Array}{Array}} (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ Value\+Type $>$ \&}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Creates a copy of another array. 
+
+This does not invoke the constructors of the elements, instead they are copied as P\+OD types.
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the \mbox{\hyperlink{classgko_1_1Array}{Array}} to copy from \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1Array_a7e5b32002ac86e0534b91a4808212e28}\label{classgko_1_1Array_a7e5b32002ac86e0534b91a4808212e28}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!Array@{Array}}
+\index{Array@{Array}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{Array()}{Array()}\hspace{0.1cm}{\footnotesize\ttfamily [10/11]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+\mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::\mbox{\hyperlink{classgko_1_1Array}{Array}} (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{exec,  }\item[{\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ Value\+Type $>$ \&\&}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Moves another array to a different executor. 
+
+This does not invoke the constructors of the elements, instead they are copied as P\+OD types.
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the executor where the new array will be moved \\
+\hline
+{\em other} & the \mbox{\hyperlink{classgko_1_1Array}{Array}} to move \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1Array_a29da5ccbf776b7c85dbda0e8b4f20647}\label{classgko_1_1Array_a29da5ccbf776b7c85dbda0e8b4f20647}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!Array@{Array}}
+\index{Array@{Array}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{Array()}{Array()}\hspace{0.1cm}{\footnotesize\ttfamily [11/11]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+\mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::\mbox{\hyperlink{classgko_1_1Array}{Array}} (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ Value\+Type $>$ \&\&}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Moves another array. 
+
+This does not invoke the constructors of the elements, instead they are copied as P\+OD types.
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the \mbox{\hyperlink{classgko_1_1Array}{Array}} to move \\
+\hline
+\end{DoxyParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1Array_a64f7e9f19c4e8cff8adb402da70476c3}\label{classgko_1_1Array_a64f7e9f19c4e8cff8adb402da70476c3}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!clear@{clear}}
+\index{clear@{clear}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{clear()}{clear()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+void \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::clear (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Deallocates all data used by the \mbox{\hyperlink{classgko_1_1Array}{Array}}. 
+
+The array is left in a valid, but empty state, so the same array can be used to allocate new memory. Calls to \mbox{\hyperlink{classgko_1_1Array_a9acf29878703bb8767e3cea2ba499dae}{Array\+::get\+\_\+data()}} will return a {\ttfamily nullptr}. 
+
+Referenced by gko\+::\+Array$<$ index\+\_\+type $>$\+::operator=(), and gko\+::\+Array$<$ index\+\_\+type $>$\+::resize\+\_\+and\+\_\+reset().
+
+\mbox{\Hypertarget{classgko_1_1Array_a5a46e0920b649cdb062f5e415922d1aa}\label{classgko_1_1Array_a5a46e0920b649cdb062f5e415922d1aa}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!get\_const\_data@{get\_const\_data}}
+\index{get\_const\_data@{get\_const\_data}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_const\_data()}{get\_const\_data()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+const \mbox{\hyperlink{classgko_1_1Array_ad40c95e429262175cae51bcabd291a5b}{value\+\_\+type}}$\ast$ \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns a constant pointer to the block of memory used to store the elements of the \mbox{\hyperlink{classgko_1_1Array}{Array}}. 
+
+\begin{DoxyReturn}{Returns}
+a constant pointer to the block of memory used to store the elements of the \mbox{\hyperlink{classgko_1_1Array}{Array}} 
+\end{DoxyReturn}
+
+
+Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::at(), gko\+::preconditioner\+::\+Jacobi$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+blocks(), gko\+::preconditioner\+::\+Jacobi$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+conditioning(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Permutation$<$ Index\+Type $>$\+::get\+\_\+const\+\_\+permutation(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+row\+\_\+idxs(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+row\+\_\+ptrs(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+row\+\_\+ptrs(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+slice\+\_\+lengths(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+slice\+\_\+sets(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+srow(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+value(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+values(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+values(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+values(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+values(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+const\+\_\+values(), gko\+::\+Array$<$ index\+\_\+type $>$\+::operator=(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::classical\+::process(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+::process(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::automatical\+::process(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::val\+\_\+at(), and gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::val\+\_\+at().
+
+\mbox{\Hypertarget{classgko_1_1Array_a9acf29878703bb8767e3cea2ba499dae}\label{classgko_1_1Array_a9acf29878703bb8767e3cea2ba499dae}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!get\_data@{get\_data}}
+\index{get\_data@{get\_data}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_data()}{get\_data()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+\mbox{\hyperlink{classgko_1_1Array_ad40c95e429262175cae51bcabd291a5b}{value\+\_\+type}}$\ast$ \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::get\+\_\+data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns a pointer to the block of memory used to store the elements of the \mbox{\hyperlink{classgko_1_1Array}{Array}}. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the block of memory used to store the elements of the \mbox{\hyperlink{classgko_1_1Array}{Array}} 
+\end{DoxyReturn}
+
+
+Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::at(), gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+limit\+::compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+col\+\_\+idxs(), gko\+::matrix\+::\+Permutation$<$ Index\+Type $>$\+::get\+\_\+permutation(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+row\+\_\+idxs(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+row\+\_\+ptrs(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+row\+\_\+ptrs(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+slice\+\_\+lengths(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+slice\+\_\+sets(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+srow(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+value(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+values(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+values(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+values(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::get\+\_\+values(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+values(), gko\+::\+Array$<$ index\+\_\+type $>$\+::operator=(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+::process(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::val\+\_\+at(), and gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::val\+\_\+at().
+
+\mbox{\Hypertarget{classgko_1_1Array_a820e5930cb5072acc7673fdb2d11efcd}\label{classgko_1_1Array_a820e5930cb5072acc7673fdb2d11efcd}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!get\_executor@{get\_executor}}
+\index{get\_executor@{get\_executor}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_executor()}{get\_executor()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1Executor}{Executor}}$>$ \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::get\+\_\+executor (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} associated with the array. 
+
+\begin{DoxyReturn}{Returns}
+the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} associated with the array 
+\end{DoxyReturn}
+
+
+Referenced by gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type\+::compute\+\_\+hybrid\+\_\+config(), gko\+::\+Array$<$ index\+\_\+type $>$\+::operator=(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::classical\+::process(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+::process(), and gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::automatical\+::process().
+
+\mbox{\Hypertarget{classgko_1_1Array_ad4a2aa179d350634e6579f144b6b2cf0}\label{classgko_1_1Array_ad4a2aa179d350634e6579f144b6b2cf0}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!get\_num\_elems@{get\_num\_elems}}
+\index{get\_num\_elems@{get\_num\_elems}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_num\_elems()}{get\_num\_elems()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::get\+\_\+num\+\_\+elems (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the number of elements in the \mbox{\hyperlink{classgko_1_1Array}{Array}}. 
+
+\begin{DoxyReturn}{Returns}
+the number of elements in the \mbox{\hyperlink{classgko_1_1Array}{Array}} 
+\end{DoxyReturn}
+
+
+Referenced by gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+limit\+::compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row(), gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::imbalance\+\_\+bounded\+\_\+limit\+::compute\+\_\+ell\+\_\+num\+\_\+stored\+\_\+elements\+\_\+per\+\_\+row(), gko\+::matrix\+::\+Hybrid$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type\+::compute\+\_\+hybrid\+\_\+config(), gko\+::matrix\+::\+Sparsity\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+num\+\_\+nonzeros(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+num\+\_\+srow\+\_\+elements(), gko\+::matrix\+::\+Ell$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+num\+\_\+stored\+\_\+elements(), gko\+::matrix\+::\+Coo$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+num\+\_\+stored\+\_\+elements(), gko\+::matrix\+::\+Sellp$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+num\+\_\+stored\+\_\+elements(), gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::get\+\_\+num\+\_\+stored\+\_\+elements(), gko\+::preconditioner\+::\+Jacobi$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+num\+\_\+stored\+\_\+elements(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+num\+\_\+stored\+\_\+elements(), gko\+::matrix\+::\+Permutation$<$ Index\+Type $>$\+::get\+\_\+permutation\+\_\+size(), gko\+::\+Array$<$ index\+\_\+type $>$\+::operator=(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::classical\+::process(), gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+::process(), and gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::automatical\+::process().
+
+\mbox{\Hypertarget{classgko_1_1Array_a18164d25e9e87bdc6b8af7ce9956199a}\label{classgko_1_1Array_a18164d25e9e87bdc6b8af7ce9956199a}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!is\_owning@{is\_owning}}
+\index{is\_owning@{is\_owning}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{is\_owning()}{is\_owning()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+bool \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::is\+\_\+owning (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Tells whether this \mbox{\hyperlink{classgko_1_1Array}{Array}} owns its data or not. 
+
+Views do not own their data and this has multiple implications. They cannot be resized since the data is not owned by the \mbox{\hyperlink{classgko_1_1Array}{Array}} which stores a view. It is also unclear whether custom deleter types are owning types as they could be a user-\/created view-\/type, therefore only proper \mbox{\hyperlink{classgko_1_1Array}{Array}} which use the {\ttfamily default\+\_\+deleter} are considered owning types.
+
+\begin{DoxyReturn}{Returns}
+whether this \mbox{\hyperlink{classgko_1_1Array}{Array}} can be resized or not. 
+\end{DoxyReturn}
+
+
+Referenced by gko\+::\+Array$<$ index\+\_\+type $>$\+::operator=(), and gko\+::\+Array$<$ index\+\_\+type $>$\+::resize\+\_\+and\+\_\+reset().
+
+\mbox{\Hypertarget{classgko_1_1Array_a62d5346849e3943a5fcac962e344ab58}\label{classgko_1_1Array_a62d5346849e3943a5fcac962e344ab58}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!operator=@{operator=}}
+\index{operator=@{operator=}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{operator=()}{operator=()}\hspace{0.1cm}{\footnotesize\ttfamily [1/3]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+\mbox{\hyperlink{classgko_1_1Array}{Array}}\& \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::operator= (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ Value\+Type $>$ \&\&}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Moves data from another array or view. 
+
+Only the pointer and deleter type change, a copy only happens when targeting another executor\textquotesingle{}s data. This means that in the following situation\+: 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\mbox{\hyperlink{classgko_1_1Array}{gko::Array<int>}} a; \textcolor{comment}{// an existing array or view}}
+\DoxyCodeLine{\mbox{\hyperlink{classgko_1_1Array}{gko::Array<int>}} b; \textcolor{comment}{// an existing array or view}}
+\DoxyCodeLine{b = std::move(a);}
+\end{DoxyCode}
+ Depending on whether {\ttfamily a} and {\ttfamily b} are array or view, this happens\+:
+\begin{DoxyItemize}
+\item {\ttfamily a} and {\ttfamily b} are views, {\ttfamily b} becomes the only valid view of {\ttfamily a};
+\item {\ttfamily a} and {\ttfamily b} are arrays, {\ttfamily b} becomes the only valid array of {\ttfamily a};
+\item {\ttfamily a} is a view and {\ttfamily b} is an array, {\ttfamily b} frees its data and becomes the only valid view of {\ttfamily a} ();
+\item {\ttfamily a} is an array and {\ttfamily b} is a view, {\ttfamily b} becomes the only valid array of {\ttfamily a}.
+\end{DoxyItemize}
+
+In all the previous cases, {\ttfamily a} becomes invalid (e.\+g., a {\ttfamily nullptr}).
+
+This does not invoke the constructors of the elements, instead they are copied as P\+OD types.
+
+The executor of this is preserved. In case this does not have an assigned executor, it will inherit the executor of other.
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the \mbox{\hyperlink{classgko_1_1Array}{Array}} to move data from\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+this 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1Array_a841412d7a03b8210ba39e77b3bd05ce3}\label{classgko_1_1Array_a841412d7a03b8210ba39e77b3bd05ce3}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!operator=@{operator=}}
+\index{operator=@{operator=}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{operator=()}{operator=()}\hspace{0.1cm}{\footnotesize\ttfamily [2/3]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+\mbox{\hyperlink{classgko_1_1Array}{Array}}\& \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::operator= (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ Value\+Type $>$ \&}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Copies data from another array or view. 
+
+In the case of an array target, the array is resized to match the source\textquotesingle{}s size. In the case of a view target, if the dimensions are not compatible a \mbox{\hyperlink{classgko_1_1OutOfBoundsError}{gko\+::\+Out\+Of\+Bounds\+Error}} is thrown.
+
+This does not invoke the constructors of the elements, instead they are copied as P\+OD types.
+
+The executor of this is preserved. In case this does not have an assigned executor, it will inherit the executor of other.
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the \mbox{\hyperlink{classgko_1_1Array}{Array}} to copy from\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+this 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1Array_ad27c8f6831d9a360d8f11b25ce274acc}\label{classgko_1_1Array_ad27c8f6831d9a360d8f11b25ce274acc}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!operator=@{operator=}}
+\index{operator=@{operator=}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{operator=()}{operator=()}\hspace{0.1cm}{\footnotesize\ttfamily [3/3]}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+template$<$typename Other\+Value\+Type $>$ \\
+xstd\+::enable\+\_\+if\+\_\+t$<$!std\+::is\+\_\+same$<$Value\+Type, Other\+Value\+Type$>$\+::value, \mbox{\hyperlink{classgko_1_1Array}{Array}}$>$\& \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::operator= (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ Other\+Value\+Type $>$ \&}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Copies and converts data from another array with another data type. 
+
+In the case of an array target, the array is resized to match the source\textquotesingle{}s size. In the case of a view target, if the dimensions are not compatible a \mbox{\hyperlink{classgko_1_1OutOfBoundsError}{gko\+::\+Out\+Of\+Bounds\+Error}} is thrown.
+
+This does not invoke the constructors of the elements, instead they are copied as P\+OD types.
+
+The executor of this is preserved. In case this does not have an assigned executor, it will inherit the executor of other.
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the \mbox{\hyperlink{classgko_1_1Array}{Array}} to copy from \\
+\hline
+\end{DoxyParams}
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Other\+Value\+Type} & the value type of {\ttfamily other}\\
+\hline
+\end{DoxyTemplParams}
+\begin{DoxyReturn}{Returns}
+this 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1Array_ab42114c635a05ecff66e1ab5e5074d14}\label{classgko_1_1Array_ab42114c635a05ecff66e1ab5e5074d14}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!resize\_and\_reset@{resize\_and\_reset}}
+\index{resize\_and\_reset@{resize\_and\_reset}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{resize\_and\_reset()}{resize\_and\_reset()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+void \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::resize\+\_\+and\+\_\+reset (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{num\+\_\+elems }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Resizes the array so it is able to hold the specified number of elements. 
+
+For a view and other non-\/owning \mbox{\hyperlink{classgko_1_1Array}{Array}} types, this throws an exception since these types cannot be resized.
+
+All data stored in the array will be lost.
+
+If the \mbox{\hyperlink{classgko_1_1Array}{Array}} is not assigned an executor, an exception will be thrown.
+
+
+\begin{DoxyParams}{Parameters}
+{\em num\+\_\+elems} & the amount of memory (expressed as the number of {\ttfamily value\+\_\+type} elements) allocated on the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} \\
+\hline
+\end{DoxyParams}
+
+
+Referenced by gko\+::\+Array$<$ index\+\_\+type $>$\+::operator=().
+
+\mbox{\Hypertarget{classgko_1_1Array_a44dd24e909f518f08320c3065e087d85}\label{classgko_1_1Array_a44dd24e909f518f08320c3065e087d85}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!set\_executor@{set\_executor}}
+\index{set\_executor@{set\_executor}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{set\_executor()}{set\_executor()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+void \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::set\+\_\+executor (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{exec }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Changes the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} of the \mbox{\hyperlink{classgko_1_1Array}{Array}}, moving the allocated data to the new \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} where the data will be moved to \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1Array_ae8e2b4841e60741227daf3367de6ecde}\label{classgko_1_1Array_ae8e2b4841e60741227daf3367de6ecde}} 
+\index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!view@{view}}
+\index{view@{view}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{view()}{view()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
+static \mbox{\hyperlink{classgko_1_1Array}{Array}} \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::view (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{exec,  }\item[{\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}}}]{num\+\_\+elems,  }\item[{\mbox{\hyperlink{classgko_1_1Array_ad40c95e429262175cae51bcabd291a5b}{value\+\_\+type}} $\ast$}]{data }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [static]}}
+
+
+
+Creates an \mbox{\hyperlink{classgko_1_1Array}{Array}} from existing memory. 
+
+The \mbox{\hyperlink{classgko_1_1Array}{Array}} does not take ownership of the memory, and will not deallocate it once it goes out of scope. This array type cannot use the function {\ttfamily resize\+\_\+and\+\_\+reset} since it does not own the data it should resize.
+
+
+\begin{DoxyParams}{Parameters}
+{\em exec} & executor where {\ttfamily data} is located \\
+\hline
+{\em num\+\_\+elems} & number of elements in {\ttfamily data} \\
+\hline
+{\em data} & chunk of memory used to create the array\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+an \mbox{\hyperlink{classgko_1_1Array}{Array}} constructed from {\ttfamily data} 
+\end{DoxyReturn}
+
+
+Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+submatrix().
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/array.\+hpp (f00144876)\end{DoxyCompactItemize}

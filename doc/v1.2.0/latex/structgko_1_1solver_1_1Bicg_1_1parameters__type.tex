@@ -1,0 +1,55 @@
+\hypertarget{structgko_1_1solver_1_1Bicg_1_1parameters__type}{}\doxysection{gko\+::solver\+::Bicg$<$ Value\+Type $>$\+::parameters\+\_\+type Struct Reference}
+\label{structgko_1_1solver_1_1Bicg_1_1parameters__type}\index{gko::solver::Bicg$<$ ValueType $>$::parameters\_type@{gko::solver::Bicg$<$ ValueType $>$::parameters\_type}}
+
+
+Collaboration diagram for gko\+::solver\+::Bicg$<$ Value\+Type $>$\+::parameters\+\_\+type\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{structgko_1_1solver_1_1Bicg_1_1parameters__type__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1Bicg_1_1parameters__type_a2683cd42682c1bcbbe8ab8e5fa51c7ff}\label{structgko_1_1solver_1_1Bicg_1_1parameters__type_a2683cd42682c1bcbbe8ab8e5fa51c7ff}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+criteria} (Args \&\&... \+\_\+value) const -\/$>$ const \+::gko\+::xstd\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1Bicg_1_1parameters__type_a5e2f7e9e5bbb64857f6ffe1adde4ad51}\label{structgko_1_1solver_1_1Bicg_1_1parameters__type_a5e2f7e9e5bbb64857f6ffe1adde4ad51}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+preconditioner} (Args \&\&... \+\_\+value) const -\/$>$ const \+::gko\+::xstd\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1Bicg_1_1parameters__type_a3d9ffb491eb3a8eed585f06434fc6291}\label{structgko_1_1solver_1_1Bicg_1_1parameters__type_a3d9ffb491eb3a8eed585f06434fc6291}} 
+{\footnotesize template$<$typename... Args$>$ }\\auto {\bfseries with\+\_\+generated\+\_\+preconditioner} (Args \&\&... \+\_\+value) const -\/$>$ const \+::gko\+::xstd\+::decay\+\_\+t$<$ decltype($\ast$this)$>$ \&
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1Bicg_1_1parameters__type_af67683ce30171665a0d3a2c4bcaabe86}\label{structgko_1_1solver_1_1Bicg_1_1parameters__type_af67683ce30171665a0d3a2c4bcaabe86}} 
+std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}} $>$ $>$ \mbox{\hyperlink{structgko_1_1solver_1_1Bicg_1_1parameters__type_af67683ce30171665a0d3a2c4bcaabe86}{criteria}} \{ nullptr \}
+\begin{DoxyCompactList}\small\item\em Criterion factories. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{structgko_1_1solver_1_1Bicg_1_1parameters__type_a76eeea5d02b18de6c38d32110dd00646}\label{structgko_1_1solver_1_1Bicg_1_1parameters__type_a76eeea5d02b18de6c38d32110dd00646}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOpFactory}{Lin\+Op\+Factory}} $>$ \mbox{\hyperlink{structgko_1_1solver_1_1Bicg_1_1parameters__type_a76eeea5d02b18de6c38d32110dd00646}{preconditioner}} \{ nullptr \}
+\begin{DoxyCompactList}\small\item\em Preconditioner factory. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{structgko_1_1solver_1_1Bicg_1_1parameters__type_aaa29c19ddf8a61cf24f660b363468b17}{generated\+\_\+preconditioner}} \{ nullptr \}
+\begin{DoxyCompactList}\small\item\em Already generated preconditioner. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structgko_1_1solver_1_1Bicg_1_1parameters__type_aaa29c19ddf8a61cf24f660b363468b17}\label{structgko_1_1solver_1_1Bicg_1_1parameters__type_aaa29c19ddf8a61cf24f660b363468b17}} 
+\index{gko::solver::Bicg$<$ ValueType $>$::parameters\_type@{gko::solver::Bicg$<$ ValueType $>$::parameters\_type}!generated\_preconditioner@{generated\_preconditioner}}
+\index{generated\_preconditioner@{generated\_preconditioner}!gko::solver::Bicg$<$ ValueType $>$::parameters\_type@{gko::solver::Bicg$<$ ValueType $>$::parameters\_type}}
+\doxysubsubsection{\texorpdfstring{generated\_preconditioner}{generated\_preconditioner}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Bicg}{gko\+::solver\+::\+Bicg}}$<$ Value\+Type $>$\+::parameters\+\_\+type\+::generated\+\_\+preconditioner \{ nullptr \}\hspace{0.3cm}{\ttfamily [mutable]}}
+
+
+
+Already generated preconditioner. 
+
+If one is provided, the factory {\ttfamily preconditioner} will be ignored. 
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/solver/bicg.\+hpp (5bb6c1e23)\end{DoxyCompactItemize}

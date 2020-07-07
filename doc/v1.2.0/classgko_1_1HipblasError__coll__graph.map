@@ -1,0 +1,5 @@
+<map id="gko::HipblasError" name="gko::HipblasError">
+<area shape="rect" id="node1" title="HipblasError is thrown when a hipBLAS routine throws a non&#45;zero error code." alt="" coords="5,155,140,181"/>
+<area shape="rect" id="node2" href="$classgko_1_1Error.html" title="The Error class is used to report exceptional behaviour in library functions." alt="" coords="30,80,115,107"/>
+<area shape="rect" id="node3" title="STL class." alt="" coords="15,5,130,32"/>
+</map>

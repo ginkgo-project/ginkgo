@@ -1,0 +1,101 @@
+\hypertarget{classgko_1_1factorization_1_1ParIlut}{}\doxysection{gko\+::factorization\+::Par\+Ilut$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1factorization_1_1ParIlut}\index{gko::factorization::ParIlut$<$ ValueType, IndexType $>$@{gko::factorization::ParIlut$<$ ValueType, IndexType $>$}}
+
+
+Par\+I\+L\+UT is an incomplete threshold-\/based LU factorization which is computed in parallel.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/factorization/par\+\_\+ilut.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::factorization\+::Par\+Ilut$<$ Value\+Type, Index\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1factorization_1_1ParIlut__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlut_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1factorization_1_1ParIlut_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlut_aa6087b2188cf49981cd3a649fc6207ec}\label{classgko_1_1factorization_1_1ParIlut_aa6087b2188cf49981cd3a649fc6207ec}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlut_ad1bc0c38ed5dded2d0225447f111d689}\label{classgko_1_1factorization_1_1ParIlut_ad1bc0c38ed5dded2d0225447f111d689}} 
+using {\bfseries index\+\_\+type} = Index\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlut_aa019157fc1a84fca8183ba9bfaf02910}\label{classgko_1_1factorization_1_1ParIlut_aa019157fc1a84fca8183ba9bfaf02910}} 
+using {\bfseries l\+\_\+matrix\+\_\+type} = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlut_a09b885b364d3bb4e4a12b623a1351ebc}\label{classgko_1_1factorization_1_1ParIlut_a09b885b364d3bb4e4a12b623a1351ebc}} 
+using {\bfseries u\+\_\+matrix\+\_\+type} = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlut_a13458096d373c1b3b29ad474cef96df8}\label{classgko_1_1factorization_1_1ParIlut_a13458096d373c1b3b29ad474cef96df8}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{l\+\_\+matrix\+\_\+type}} $>$ {\bfseries get\+\_\+l\+\_\+factor} () const
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlut_a714493ee6b99bbfe1b74ebc6294949d0}\label{classgko_1_1factorization_1_1ParIlut_a714493ee6b99bbfe1b74ebc6294949d0}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{u\+\_\+matrix\+\_\+type}} $>$ {\bfseries get\+\_\+u\+\_\+factor} () const
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlut_a5ff5e8a2d129f142a8dccfa811a2001f}\label{classgko_1_1factorization_1_1ParIlut_a5ff5e8a2d129f142a8dccfa811a2001f}} 
+const \mbox{\hyperlink{structgko_1_1factorization_1_1ParIlut_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlut_ad31db25140f25c686fcce81f20f33593}\label{classgko_1_1factorization_1_1ParIlut_ad31db25140f25c686fcce81f20f33593}} 
+{\footnotesize template$<$typename... Args$>$ }\\static std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Composition}{Composition}}$<$ Value\+Type $>$ $>$ {\bfseries create} (Args \&\&... args)=delete
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlut_a90b37df2d7296cf372e35fca9b8006c1}\label{classgko_1_1factorization_1_1ParIlut_a90b37df2d7296cf372e35fca9b8006c1}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1factorization_1_1ParIlut_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::factorization\+::\+Par\+Ilut$<$ Value\+Type, Index\+Type $>$}
+
+Par\+I\+L\+UT is an incomplete threshold-\/based LU factorization which is computed in parallel. 
+
+$L$ is a lower unitriangular, while $U$ is an upper triangular matrix, which approximate a given matrix $A$ with $A \approx LU$. Here, $L$ and $U$ have a sparsity pattern that is improved iteratively based on their element-\/wise magnitude. The initial sparsity pattern is chosen based on the $ILU(0)$ factorization of $A$.
+
+One iteration of the Par\+I\+L\+UT algorithm consists of the following steps\+:
+
+
+\begin{DoxyEnumerate}
+\item Calculating the residual $R = A - LU$
+\item Adding new non-\/zero locations from $R$ to $L$ and $U$. The new non-\/zero locations are initialized based on the corresponding residual value.
+\item Executing a fixed-\/point iteration on $L$ and $U$ according to $ F(L, U) = \begin{cases} \frac{1}{u_{jj}} \left(a_{ij}-\sum_{k=1}^{j-1}l_{ik}u_{kj}\right), \quad & i>j \\ a_{ij}-\sum_{k=1}^{i-1}l_{ik}u_{kj}, \quad & i\leq j \end{cases} $ For a more detailed description of the fixed-\/point iteration, see \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlu}{Par\+Ilu}}.
+\item Removing the smallest entries (by magnitude) from $L$ and $U$
+\item Executing a fixed-\/point iteration on the (now sparser) $L$ and $U$
+\end{DoxyEnumerate}
+
+This Par\+I\+L\+UT algorithm thus improves the sparsity pattern and the approximation of $L$ and $U$ simultaneously.
+
+The implementation follows the design of H. Anzt et al., Par\+I\+L\+UT -\/ A Parallel Threshold I\+LU for G\+P\+Us, 2019 I\+E\+EE International Parallel and Distributed Processing Symposium (I\+P\+D\+PS), pp. 231–241.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & Type of the values of all matrices used in this class \\
+\hline
+{\em Index\+Type} & Type of the indices of all matrices used in this class \\
+\hline
+\end{DoxyTemplParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/factorization/par\+\_\+ilut.\+hpp (f933b1ea8)\end{DoxyCompactItemize}

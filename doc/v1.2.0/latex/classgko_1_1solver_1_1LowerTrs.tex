@@ -1,0 +1,148 @@
+\hypertarget{classgko_1_1solver_1_1LowerTrs}{}\doxysection{gko\+::solver\+::Lower\+Trs$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1solver_1_1LowerTrs}\index{gko::solver::LowerTrs$<$ ValueType, IndexType $>$@{gko::solver::LowerTrs$<$ ValueType, IndexType $>$}}
+
+
+\mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs}{Lower\+Trs}} is the triangular solver which solves the system L x = b, when L is a lower triangular matrix.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/solver/lower\+\_\+trs.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::solver\+::Lower\+Trs$<$ Value\+Type, Index\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1solver_1_1LowerTrs__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1solver_1_1LowerTrs_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_af9fd3dacca99c98ff60f8b298c0203d4}\label{classgko_1_1solver_1_1LowerTrs_af9fd3dacca99c98ff60f8b298c0203d4}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_af62154ef2a638549c3b445a011c0d26a}\label{classgko_1_1solver_1_1LowerTrs_af62154ef2a638549c3b445a011c0d26a}} 
+using {\bfseries index\+\_\+type} = Index\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_a7c9ef524e3455a59319ab66465d67d6c}\label{classgko_1_1solver_1_1LowerTrs_a7c9ef524e3455a59319ab66465d67d6c}} 
+using {\bfseries transposed\+\_\+type} = \mbox{\hyperlink{classgko_1_1solver_1_1UpperTrs}{Upper\+Trs}}$<$ Value\+Type, Index\+Type $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$ $>$ \mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs_a1f18336cc86c363eb41da44c2d282497}{get\+\_\+system\+\_\+matrix}} () const
+\begin{DoxyCompactList}\small\item\em Gets the system operator (C\+SR matrix) of the linear system. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs_a59f10799ed90ce8a2fbfd61447bfd60a}{transpose}} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs_ab6be11d9f77f83e14f6a834299297526}{conj\+\_\+transpose}} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_a1dd87ee6836fff7e9a62f2971f7cc5e1}\label{classgko_1_1solver_1_1LowerTrs_a1dd87ee6836fff7e9a62f2971f7cc5e1}} 
+const \mbox{\hyperlink{structgko_1_1solver_1_1LowerTrs_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_a0e54d12a1ae4dd748921c30bfba3c035}\label{classgko_1_1solver_1_1LowerTrs_a0e54d12a1ae4dd748921c30bfba3c035}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_a5c81503df42d4ccbfaffe2853edfb9d3}\label{classgko_1_1solver_1_1LowerTrs_a5c81503df42d4ccbfaffe2853edfb9d3}} 
+class {\bfseries Enable\+Lin\+Op$<$ Lower\+Trs $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_ab80a792714a7414ceed81c40078f3cc3}\label{classgko_1_1solver_1_1LowerTrs_ab80a792714a7414ceed81c40078f3cc3}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Lower\+Trs, Lin\+Op $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_a2b25394784d1157cee4e2d6bcc939fa7}\label{classgko_1_1solver_1_1LowerTrs_a2b25394784d1157cee4e2d6bcc939fa7}} 
+class {\bfseries Upper\+Trs$<$ Value\+Type, Index\+Type $>$}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::solver\+::\+Lower\+Trs$<$ Value\+Type, Index\+Type $>$}
+
+\mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs}{Lower\+Trs}} is the triangular solver which solves the system L x = b, when L is a lower triangular matrix. 
+
+It works best when passing in a matrix in C\+SR format. If the matrix is not in C\+SR, then the generate step converts it into a C\+SR matrix. The generation fails if the matrix is not convertible to C\+SR.
+
+\begin{DoxyNote}{Note}
+As the constructor uses the copy and convert functionality, it is not possible to create a empty solver or a solver with a matrix in any other format other than C\+SR, if none of the executor modules are being compiled with.
+\end{DoxyNote}
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of matrix elements \\
+\hline
+{\em Index\+Type} & precision of matrix indices \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_ab6be11d9f77f83e14f6a834299297526}\label{classgko_1_1solver_1_1LowerTrs_ab6be11d9f77f83e14f6a834299297526}} 
+\index{gko::solver::LowerTrs$<$ ValueType, IndexType $>$@{gko::solver::LowerTrs$<$ ValueType, IndexType $>$}!conj\_transpose@{conj\_transpose}}
+\index{conj\_transpose@{conj\_transpose}!gko::solver::LowerTrs$<$ ValueType, IndexType $>$@{gko::solver::LowerTrs$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{conj\_transpose()}{conj\_transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs}{gko\+::solver\+::\+Lower\+Trs}}$<$ Value\+Type, Index\+Type $>$\+::conj\+\_\+transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new conjugate transposed object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Transposable_ab41b669288740cf2a6f7bf76e875b077}{gko\+::\+Transposable}}.
+
+\mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_a1f18336cc86c363eb41da44c2d282497}\label{classgko_1_1solver_1_1LowerTrs_a1f18336cc86c363eb41da44c2d282497}} 
+\index{gko::solver::LowerTrs$<$ ValueType, IndexType $>$@{gko::solver::LowerTrs$<$ ValueType, IndexType $>$}!get\_system\_matrix@{get\_system\_matrix}}
+\index{get\_system\_matrix@{get\_system\_matrix}!gko::solver::LowerTrs$<$ ValueType, IndexType $>$@{gko::solver::LowerTrs$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_system\_matrix()}{get\_system\_matrix()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$Value\+Type, Index\+Type$>$ $>$ \mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs}{gko\+::solver\+::\+Lower\+Trs}}$<$ Value\+Type, Index\+Type $>$\+::get\+\_\+system\+\_\+matrix (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the system operator (C\+SR matrix) of the linear system. 
+
+\begin{DoxyReturn}{Returns}
+the system operator (C\+SR matrix) 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1solver_1_1LowerTrs_a59f10799ed90ce8a2fbfd61447bfd60a}\label{classgko_1_1solver_1_1LowerTrs_a59f10799ed90ce8a2fbfd61447bfd60a}} 
+\index{gko::solver::LowerTrs$<$ ValueType, IndexType $>$@{gko::solver::LowerTrs$<$ ValueType, IndexType $>$}!transpose@{transpose}}
+\index{transpose@{transpose}!gko::solver::LowerTrs$<$ ValueType, IndexType $>$@{gko::solver::LowerTrs$<$ ValueType, IndexType $>$}}
+\doxysubsubsection{\texorpdfstring{transpose()}{transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1LowerTrs}{gko\+::solver\+::\+Lower\+Trs}}$<$ Value\+Type, Index\+Type $>$\+::transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new transposed object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Transposable_a5c6b778b71b47d53e0bda6ccf894d318}{gko\+::\+Transposable}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/solver/lower\+\_\+trs.\+hpp (5bb6c1e23)\end{DoxyCompactItemize}

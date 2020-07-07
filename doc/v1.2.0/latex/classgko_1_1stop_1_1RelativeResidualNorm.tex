@@ -1,0 +1,67 @@
+\hypertarget{classgko_1_1stop_1_1RelativeResidualNorm}{}\doxysection{gko\+::stop\+::Relative\+Residual\+Norm$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1stop_1_1RelativeResidualNorm}\index{gko::stop::RelativeResidualNorm$<$ ValueType $>$@{gko::stop::RelativeResidualNorm$<$ ValueType $>$}}
+
+
+The \mbox{\hyperlink{classgko_1_1stop_1_1RelativeResidualNorm}{Relative\+Residual\+Norm}} class is a stopping criterion which stops the iteration process when the residual norm is below a certain threshold relative to the norm of the right-\/hand side, i.\+e.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/stop/residual\+\_\+norm.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::stop\+::Relative\+Residual\+Norm$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1stop_1_1RelativeResidualNorm__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1RelativeResidualNorm_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1stop_1_1RelativeResidualNorm_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1RelativeResidualNorm_a8c081e85823e450bdd00fab266b94cf6}\label{classgko_1_1stop_1_1RelativeResidualNorm_a8c081e85823e450bdd00fab266b94cf6}} 
+using {\bfseries Norm\+Vector} = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{matrix\+::\+Dense}}$<$ \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}}$<$ Value\+Type $>$ $>$
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1RelativeResidualNorm_a9270230b90728ceac4b6ceb5314d627f}\label{classgko_1_1stop_1_1RelativeResidualNorm_a9270230b90728ceac4b6ceb5314d627f}} 
+using {\bfseries Vector} = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{matrix\+::\+Dense}}$<$ Value\+Type $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1RelativeResidualNorm_a71abb39ef4140db1c5f98d58a6eabb76}\label{classgko_1_1stop_1_1RelativeResidualNorm_a71abb39ef4140db1c5f98d58a6eabb76}} 
+const \mbox{\hyperlink{structgko_1_1stop_1_1RelativeResidualNorm_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1stop_1_1RelativeResidualNorm_a375e9b245709ca6eb9588c591d2f743b}\label{classgko_1_1stop_1_1RelativeResidualNorm_a375e9b245709ca6eb9588c591d2f743b}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1stop_1_1RelativeResidualNorm_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::stop\+::\+Relative\+Residual\+Norm$<$ Value\+Type $>$}
+
+The \mbox{\hyperlink{classgko_1_1stop_1_1RelativeResidualNorm}{Relative\+Residual\+Norm}} class is a stopping criterion which stops the iteration process when the residual norm is below a certain threshold relative to the norm of the right-\/hand side, i.\+e. 
+
+when norm(residual) / norm(right\+\_\+hand\+\_\+side) $<$ threshold. For better performance, the checks are run thanks to kernels on the executor where the algorithm is executed.
+
+\begin{DoxyNote}{Note}
+To use this stopping criterion there are some dependencies. The constructor depends on {\ttfamily b} in order to compute the norm of the right-\/hand side. If this is not correctly provided, an exception \+::gko\+::\+Not\+Supported() is thrown. 
+\end{DoxyNote}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/stop/residual\+\_\+norm.\+hpp (e69bed2e6)\end{DoxyCompactItemize}

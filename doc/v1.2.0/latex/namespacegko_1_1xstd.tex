@@ -1,0 +1,161 @@
+\hypertarget{namespacegko_1_1xstd}{}\doxysection{gko\+::xstd Namespace Reference}
+\label{namespacegko_1_1xstd}\index{gko::xstd@{gko::xstd}}
+
+
+The namespace for functionalities after C++11 standard.  
+
+
+\doxysubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{namespacegko_1_1xstd_a185b5a0964814a042089d2a6b994d8e9}\label{namespacegko_1_1xstd_a185b5a0964814a042089d2a6b994d8e9}} 
+{\footnotesize template$<$typename... Ts$>$ }\\using {\bfseries void\+\_\+t} = typename detail\+::make\+\_\+void$<$ Ts... $>$\+::type
+\item 
+\mbox{\Hypertarget{namespacegko_1_1xstd_a77a8d29b686548e0d6ae0af42db8987e}\label{namespacegko_1_1xstd_a77a8d29b686548e0d6ae0af42db8987e}} 
+{\footnotesize template$<$bool B, typename T  = void$>$ }\\using {\bfseries enable\+\_\+if\+\_\+t} = typename std\+::enable\+\_\+if$<$ B, T $>$\+::type
+\item 
+\mbox{\Hypertarget{namespacegko_1_1xstd_a24a624e1b4136f6766e028fc7e211469}\label{namespacegko_1_1xstd_a24a624e1b4136f6766e028fc7e211469}} 
+{\footnotesize template$<$bool B, typename T , typename F $>$ }\\using {\bfseries conditional\+\_\+t} = typename std\+::conditional$<$ B, T, F $>$\+::type
+\item 
+\mbox{\Hypertarget{namespacegko_1_1xstd_ae8af2095a8c816557f201ecedfa50600}\label{namespacegko_1_1xstd_ae8af2095a8c816557f201ecedfa50600}} 
+{\footnotesize template$<$typename T $>$ }\\using {\bfseries decay\+\_\+t} = typename std\+::decay$<$ T $>$\+::type
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\footnotesize template$<$typename T $>$ }\\constexpr bool \mbox{\hyperlink{namespacegko_1_1xstd_a9b0471652d383f73d20733fdfc24b6f0}{greater}} (const T \&\&lhs, const T \&\&rhs)
+\begin{DoxyCompactList}\small\item\em constexpr helper which checks if lhs $>$ rhs. \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\constexpr bool \mbox{\hyperlink{namespacegko_1_1xstd_a315162403fa8c26c2e21d150e1d29d6c}{greater\+\_\+equal}} (const T \&\&lhs, const T \&\&rhs)
+\begin{DoxyCompactList}\small\item\em constexpr helper checking if lhs $>$= rhs \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\constexpr bool \mbox{\hyperlink{namespacegko_1_1xstd_a9b82f6832c0e6e374d86387f70c603fd}{less}} (const T \&\&lhs, const T \&\&rhs)
+\begin{DoxyCompactList}\small\item\em constexpr helper checking if lhs $<$ rhs \end{DoxyCompactList}\item 
+{\footnotesize template$<$typename T $>$ }\\constexpr bool \mbox{\hyperlink{namespacegko_1_1xstd_ad459f9d65cc6d1038d585033fae19beb}{less\+\_\+equal}} (const T \&\&lhs, const T \&\&rhs)
+\begin{DoxyCompactList}\small\item\em constexpr helper checking if lhs $<$= rhs \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+The namespace for functionalities after C++11 standard. 
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{namespacegko_1_1xstd_a9b0471652d383f73d20733fdfc24b6f0}\label{namespacegko_1_1xstd_a9b0471652d383f73d20733fdfc24b6f0}} 
+\index{gko::xstd@{gko::xstd}!greater@{greater}}
+\index{greater@{greater}!gko::xstd@{gko::xstd}}
+\doxysubsubsection{\texorpdfstring{greater()}{greater()}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+constexpr bool gko\+::xstd\+::greater (\begin{DoxyParamCaption}\item[{const T \&\&}]{lhs,  }\item[{const T \&\&}]{rhs }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [constexpr]}}
+
+
+
+constexpr helper which checks if lhs $>$ rhs. 
+
+This is helpful within template declarations since \char`\"{}$>$\char`\"{} cannot directly be used. Note that std\+::greater is available as constexpr only since C++14. This does not implement all the functionality of C++14, only what is needed so far.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & type of both values which are checked\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em lhs} & first operand \\
+\hline
+{\em rhs} & second operand\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+whether lhs $>$ rhs 
+\end{DoxyReturn}
+
+
+Referenced by less\+\_\+equal().
+
+\mbox{\Hypertarget{namespacegko_1_1xstd_a315162403fa8c26c2e21d150e1d29d6c}\label{namespacegko_1_1xstd_a315162403fa8c26c2e21d150e1d29d6c}} 
+\index{gko::xstd@{gko::xstd}!greater\_equal@{greater\_equal}}
+\index{greater\_equal@{greater\_equal}!gko::xstd@{gko::xstd}}
+\doxysubsubsection{\texorpdfstring{greater\_equal()}{greater\_equal()}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+constexpr bool gko\+::xstd\+::greater\+\_\+equal (\begin{DoxyParamCaption}\item[{const T \&\&}]{lhs,  }\item[{const T \&\&}]{rhs }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [constexpr]}}
+
+
+
+constexpr helper checking if lhs $>$= rhs 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & type of both values which are checked\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em lhs} & first operand \\
+\hline
+{\em rhs} & second operand\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+whether lhs $>$= rhs 
+\end{DoxyReturn}
+
+
+Referenced by less().
+
+\mbox{\Hypertarget{namespacegko_1_1xstd_a9b82f6832c0e6e374d86387f70c603fd}\label{namespacegko_1_1xstd_a9b82f6832c0e6e374d86387f70c603fd}} 
+\index{gko::xstd@{gko::xstd}!less@{less}}
+\index{less@{less}!gko::xstd@{gko::xstd}}
+\doxysubsubsection{\texorpdfstring{less()}{less()}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+constexpr bool gko\+::xstd\+::less (\begin{DoxyParamCaption}\item[{const T \&\&}]{lhs,  }\item[{const T \&\&}]{rhs }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [constexpr]}}
+
+
+
+constexpr helper checking if lhs $<$ rhs 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & type of both values which are checked\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em lhs} & first operand \\
+\hline
+{\em rhs} & second operand\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+whether lhs $<$ rhs 
+\end{DoxyReturn}
+
+
+References greater\+\_\+equal().
+
+\mbox{\Hypertarget{namespacegko_1_1xstd_ad459f9d65cc6d1038d585033fae19beb}\label{namespacegko_1_1xstd_ad459f9d65cc6d1038d585033fae19beb}} 
+\index{gko::xstd@{gko::xstd}!less\_equal@{less\_equal}}
+\index{less\_equal@{less\_equal}!gko::xstd@{gko::xstd}}
+\doxysubsubsection{\texorpdfstring{less\_equal()}{less\_equal()}}
+{\footnotesize\ttfamily template$<$typename T $>$ \\
+constexpr bool gko\+::xstd\+::less\+\_\+equal (\begin{DoxyParamCaption}\item[{const T \&\&}]{lhs,  }\item[{const T \&\&}]{rhs }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [constexpr]}}
+
+
+
+constexpr helper checking if lhs $<$= rhs 
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em T} & type of both values which are checked\\
+\hline
+\end{DoxyTemplParams}
+
+\begin{DoxyParams}{Parameters}
+{\em lhs} & first operand \\
+\hline
+{\em rhs} & second operand\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+whether lhs $<$= rhs 
+\end{DoxyReturn}
+
+
+References greater().
+

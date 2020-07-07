@@ -1,0 +1,94 @@
+\hypertarget{classgko_1_1factorization_1_1ParIlu}{}\doxysection{gko\+::factorization\+::Par\+Ilu$<$ Value\+Type, Index\+Type $>$ Class Template Reference}
+\label{classgko_1_1factorization_1_1ParIlu}\index{gko::factorization::ParIlu$<$ ValueType, IndexType $>$@{gko::factorization::ParIlu$<$ ValueType, IndexType $>$}}
+
+
+Par\+I\+LU is an incomplete LU factorization which is computed in parallel.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/factorization/par\+\_\+ilu.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::factorization\+::Par\+Ilu$<$ Value\+Type, Index\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1factorization_1_1ParIlu__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlu_1_1Factory}{Factory}}
+\item 
+struct \mbox{\hyperlink{structgko_1_1factorization_1_1ParIlu_1_1parameters__type}{parameters\+\_\+type}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_acad8911da0088ca766a1cef155e5e405}\label{classgko_1_1factorization_1_1ParIlu_acad8911da0088ca766a1cef155e5e405}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a261e5d91114bf308e98fc50141615618}\label{classgko_1_1factorization_1_1ParIlu_a261e5d91114bf308e98fc50141615618}} 
+using {\bfseries index\+\_\+type} = Index\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a125b96d5b1c81df5b2dd4479d8eb7854}\label{classgko_1_1factorization_1_1ParIlu_a125b96d5b1c81df5b2dd4479d8eb7854}} 
+using {\bfseries l\+\_\+matrix\+\_\+type} = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a42829761e1a7a7713cbace50a8197811}\label{classgko_1_1factorization_1_1ParIlu_a42829761e1a7a7713cbace50a8197811}} 
+using {\bfseries u\+\_\+matrix\+\_\+type} = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a237f590d6f802b732936b6da20dae86c}\label{classgko_1_1factorization_1_1ParIlu_a237f590d6f802b732936b6da20dae86c}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{l\+\_\+matrix\+\_\+type}} $>$ {\bfseries get\+\_\+l\+\_\+factor} () const
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a75d0504d863b0dc2a8fd8efa395b2a39}\label{classgko_1_1factorization_1_1ParIlu_a75d0504d863b0dc2a8fd8efa395b2a39}} 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{u\+\_\+matrix\+\_\+type}} $>$ {\bfseries get\+\_\+u\+\_\+factor} () const
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a1055caaa79b253fad67fa4e6d584c420}\label{classgko_1_1factorization_1_1ParIlu_a1055caaa79b253fad67fa4e6d584c420}} 
+const \mbox{\hyperlink{structgko_1_1factorization_1_1ParIlu_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
+\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_abb7e4c208a809f3101b87713dfe867d3}\label{classgko_1_1factorization_1_1ParIlu_abb7e4c208a809f3101b87713dfe867d3}} 
+{\footnotesize template$<$typename... Args$>$ }\\static std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Composition}{Composition}}$<$ Value\+Type $>$ $>$ {\bfseries create} (Args \&\&... args)=delete
+\item 
+\mbox{\Hypertarget{classgko_1_1factorization_1_1ParIlu_a304722cc01ca9d5fd33ac988c0949b5e}\label{classgko_1_1factorization_1_1ParIlu_a304722cc01ca9d5fd33ac988c0949b5e}} 
+static auto {\bfseries build} () -\/$>$ decltype(\mbox{\hyperlink{classgko_1_1factorization_1_1ParIlu_1_1Factory}{Factory}} \+::create())
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::factorization\+::\+Par\+Ilu$<$ Value\+Type, Index\+Type $>$}
+
+Par\+I\+LU is an incomplete LU factorization which is computed in parallel. 
+
+$L$ is a lower unitriangular, while $U$ is an upper triangular matrix, which approximate a given matrix $A$ with $A \approx LU$. Here, $L$ and $U$ have the same sparsity pattern as $A$, which is also called I\+L\+U(0).
+
+The Par\+I\+LU algorithm generates the incomplete factors iteratively, using a fixed-\/point iteration of the form
+
+$ F(L, U) = \begin{cases} \frac{1}{u_{jj}} \left(a_{ij}-\sum_{k=1}^{j-1}l_{ik}u_{kj}\right), \quad & i>j \\ a_{ij}-\sum_{k=1}^{i-1}l_{ik}u_{kj}, \quad & i\leq j \end{cases} $
+
+In general, the entries of $L$ and $U$ can be iterated in parallel and in asynchronous fashion, the algorithm asymptotically converges to the incomplete factors $L$ and $U$ fulfilling $\left(R = A - L \cdot U\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$ where $\mathcal{S}$ is the pre-\/defined sparsity pattern (in case of I\+L\+U(0) the sparsity pattern of the system matrix $A$). The number of Par\+I\+LU sweeps needed for convergence depends on the parallelism level\+: For sequential execution, a single sweep is sufficient, for fine-\/grained parallelism, 3 sweeps are typically generating a good approximation.
+
+The Par\+I\+LU algorithm in Ginkgo follows the design of E. Chow and A. Patel, Fine-\/grained Parallel Incomplete LU Factorization, S\+I\+AM Journal on Scientific Computing, 37, C169-\/\+C193 (2015).
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & Type of the values of all matrices used in this class \\
+\hline
+{\em Index\+Type} & Type of the indices of all matrices used in this class \\
+\hline
+\end{DoxyTemplParams}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/factorization/par\+\_\+ilu.\+hpp (db60b9179)\end{DoxyCompactItemize}
