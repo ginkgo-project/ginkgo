@@ -502,7 +502,6 @@ __global__ __launch_bounds__(default_block_size) void extract_diagonal(
     size_type problem_size, const ValueType *__restrict__ orig,
     size_type stride_orig, ValueType *__restrict__ diag, size_type stride_diag)
 {
-    constexpr auto warps_per_block = default_block_size / config::warp_size;
     const auto tidx = thread::get_thread_id_flat();
 
     if (tidx < problem_size) {
