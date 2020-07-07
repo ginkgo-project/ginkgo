@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,8 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_PRECONDITIONER_JACOBI_KERNELS_HPP_
 
 
-#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+
+
+#include <ginkgo/core/matrix/csr.hpp>
 
 
 namespace gko {
@@ -83,6 +85,28 @@ namespace kernels {
         const Array<ValueType> &blocks, const matrix::Dense<ValueType> *b, \
         matrix::Dense<ValueType> *x)
 
+#define GKO_DECLARE_JACOBI_TRANSPOSE_KERNEL(ValueType, IndexType)          \
+    void transpose_jacobi(                                                 \
+        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks, \
+        uint32 max_block_size,                                             \
+        const Array<precision_reduction> &block_precisions,                \
+        const Array<IndexType> &block_pointers,                            \
+        const Array<ValueType> &blocks,                                    \
+        const preconditioner::block_interleaved_storage_scheme<IndexType>  \
+            &storage_scheme,                                               \
+        Array<ValueType> &out_blocks)
+
+#define GKO_DECLARE_JACOBI_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)     \
+    void conj_transpose_jacobi(                                            \
+        std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks, \
+        uint32 max_block_size,                                             \
+        const Array<precision_reduction> &block_precisions,                \
+        const Array<IndexType> &block_pointers,                            \
+        const Array<ValueType> &blocks,                                    \
+        const preconditioner::block_interleaved_storage_scheme<IndexType>  \
+            &storage_scheme,                                               \
+        Array<ValueType> &out_blocks)
+
 #define GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)   \
     void convert_to_dense(                                                 \
         std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks, \
@@ -107,6 +131,10 @@ namespace kernels {
     GKO_DECLARE_JACOBI_APPLY_KERNEL(ValueType, IndexType);            \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_JACOBI_TRANSPOSE_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_JACOBI_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType);   \
     template <typename ValueType, typename IndexType>                 \
     GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
     GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL()
@@ -137,6 +165,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace jacobi
 }  // namespace reference
+
+
+namespace hip {
+namespace jacobi {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace jacobi
+}  // namespace hip
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

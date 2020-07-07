@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -76,7 +76,6 @@ void initialize(std::shared_ptr<const OmpExecutor> exec,
         }
     }
 }
-
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_INITIALIZE_KERNEL);
 

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,21 +33,23 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/bicgstab.hpp>
 
 
-#include <gtest/gtest.h>
-
-
 #include <random>
 
 
-#include <core/solver/bicgstab_kernels.hpp>
-#include <core/test/utils.hpp>
+#include <gtest/gtest.h>
+
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
+
+
+#include "core/solver/bicgstab_kernels.hpp"
+#include "cuda/test/utils.hpp"
 
 
 namespace {
@@ -146,8 +148,6 @@ protected:
         d_beta = Mtx::create(cuda);
         d_gamma = Mtx::create(cuda);
         d_omega = Mtx::create(cuda);
-        d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
-            new gko::Array<gko::stopping_status>(cuda));
         d_stop_status = std::unique_ptr<gko::Array<gko::stopping_status>>(
             new gko::Array<gko::stopping_status>(cuda));
 
@@ -259,7 +259,7 @@ TEST_F(Bicgstab, CudaBicgstabInitializeIsEquivalentToRef)
     GKO_EXPECT_MTX_NEAR(d_beta, beta, 1e-14);
     GKO_EXPECT_MTX_NEAR(d_gamma, gamma, 1e-14);
     GKO_EXPECT_MTX_NEAR(d_omega, omega, 1e-14);
-    GKO_ASSERT_ARRAY_EQ(d_stop_status, stop_status);
+    GKO_ASSERT_ARRAY_EQ(*d_stop_status, *stop_status);
 }
 
 

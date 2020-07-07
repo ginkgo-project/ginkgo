@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -66,7 +66,10 @@ int main(int argc, char *argv[])
         exec = gko::OmpExecutor::create();
     } else if (argc == 2 && std::string(argv[1]) == "cuda" &&
                gko::CudaExecutor::get_num_devices() > 0) {
-        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
+    } else if (argc == 2 && std::string(argv[1]) == "hip" &&
+               gko::HipExecutor::get_num_devices() > 0) {
+        exec = gko::HipExecutor::create(0, gko::OmpExecutor::create(), true);
     } else {
         std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
         std::exit(-1);

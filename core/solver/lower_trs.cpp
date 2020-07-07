@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/upper_trs.hpp>
 
 
 #include "core/solver/lower_trs_kernels.hpp"
@@ -59,6 +60,26 @@ GKO_REGISTER_OPERATION(solve, lower_trs::solve);
 
 
 }  // namespace lower_trs
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> LowerTrs<ValueType, IndexType>::transpose() const
+{
+    return transposed_type::build()
+        .with_num_rhs(this->parameters_.num_rhs)
+        .on(this->get_executor())
+        ->generate(share(this->get_system_matrix()->transpose()));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> LowerTrs<ValueType, IndexType>::conj_transpose() const
+{
+    return transposed_type::build()
+        .with_num_rhs(this->parameters_.num_rhs)
+        .on(this->get_executor())
+        ->generate(share(this->get_system_matrix()->conj_transpose()));
+}
 
 
 template <typename ValueType, typename IndexType>

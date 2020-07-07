@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,16 +36,25 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include "core/test/utils.hpp"
+
+
 namespace {
 
 
+template <typename ValueIndexType>
 class Sellp : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Sellp<>;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Mtx = gko::matrix::Sellp<value_type, index_type>;
 
     Sellp()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::matrix::Sellp<>::create(exec, gko::dim<2>{2, 3}, 3))
+          mtx(gko::matrix::Sellp<value_type, index_type>::create(
+              exec, gko::dim<2>{2, 3}, 3))
     {
         mtx->read(
             {{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
@@ -77,12 +86,12 @@ protected:
         EXPECT_EQ(c[gko::matrix::default_slice_size + 1], 0);
         EXPECT_EQ(c[2 * gko::matrix::default_slice_size], 2);
         EXPECT_EQ(c[2 * gko::matrix::default_slice_size + 1], 0);
-        EXPECT_EQ(v[0], 1.0);
-        EXPECT_EQ(v[1], 5.0);
-        EXPECT_EQ(v[gko::matrix::default_slice_size], 3.0);
-        EXPECT_EQ(v[gko::matrix::default_slice_size + 1], 0.0);
-        EXPECT_EQ(v[2 * gko::matrix::default_slice_size], 2.0);
-        EXPECT_EQ(v[2 * gko::matrix::default_slice_size + 1], 0.0);
+        EXPECT_EQ(v[0], value_type{1.0});
+        EXPECT_EQ(v[1], value_type{5.0});
+        EXPECT_EQ(v[gko::matrix::default_slice_size], value_type{3.0});
+        EXPECT_EQ(v[gko::matrix::default_slice_size + 1], value_type{0.0});
+        EXPECT_EQ(v[2 * gko::matrix::default_slice_size], value_type{2.0});
+        EXPECT_EQ(v[2 * gko::matrix::default_slice_size + 1], value_type{0.0});
     }
 
     void assert_equal_to_original_mtx_with_slice_size_and_stride_factor(
@@ -109,12 +118,12 @@ protected:
         EXPECT_EQ(c[3], 0);
         EXPECT_EQ(c[4], 2);
         EXPECT_EQ(c[5], 0);
-        EXPECT_EQ(v[0], 1.0);
-        EXPECT_EQ(v[1], 5.0);
-        EXPECT_EQ(v[2], 3.0);
-        EXPECT_EQ(v[3], 0.0);
-        EXPECT_EQ(v[4], 2.0);
-        EXPECT_EQ(v[5], 0.0);
+        EXPECT_EQ(v[0], value_type{1.0});
+        EXPECT_EQ(v[1], value_type{5.0});
+        EXPECT_EQ(v[2], value_type{3.0});
+        EXPECT_EQ(v[3], value_type{0.0});
+        EXPECT_EQ(v[4], value_type{2.0});
+        EXPECT_EQ(v[5], value_type{0.0});
     }
 
     void assert_empty(const Mtx *m)
@@ -125,34 +134,43 @@ protected:
         ASSERT_EQ(m->get_const_values(), nullptr);
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
         ASSERT_EQ(m->get_const_slice_lengths(), nullptr);
-        ASSERT_EQ(m->get_const_slice_sets(), nullptr);
+        ASSERT_NE(m->get_const_slice_sets(), nullptr);
     }
 };
 
+TYPED_TEST_CASE(Sellp, gko::test::ValueIndexTypes);
 
-TEST_F(Sellp, KnowsItsSize)
+
+TYPED_TEST(Sellp, KnowsItsSize)
 {
-    ASSERT_EQ(mtx->get_size(), gko::dim<2>(2, 3));
-    ASSERT_EQ(mtx->get_num_stored_elements(), 192);
-    ASSERT_EQ(mtx->get_slice_size(), gko::matrix::default_slice_size);
-    ASSERT_EQ(mtx->get_stride_factor(), gko::matrix::default_stride_factor);
-    ASSERT_EQ(mtx->get_total_cols(), 3);
+    ASSERT_EQ(this->mtx->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(this->mtx->get_num_stored_elements(), 192);
+    ASSERT_EQ(this->mtx->get_slice_size(), gko::matrix::default_slice_size);
+    ASSERT_EQ(this->mtx->get_stride_factor(),
+              gko::matrix::default_stride_factor);
+    ASSERT_EQ(this->mtx->get_total_cols(), 3);
 }
 
 
-TEST_F(Sellp, ContainsCorrectData) { assert_equal_to_original_mtx(mtx.get()); }
-
-
-TEST_F(Sellp, CanBeEmpty)
+TYPED_TEST(Sellp, ContainsCorrectData)
 {
-    auto mtx = Mtx::create(exec);
-
-    assert_empty(mtx.get());
+    this->assert_equal_to_original_mtx(this->mtx.get());
 }
 
-TEST_F(Sellp, CanBeConstructedWithSliceSizeAndStrideFactor)
+
+TYPED_TEST(Sellp, CanBeEmpty)
 {
-    auto mtx = Mtx::create(exec, gko::dim<2>{2, 3}, 2, 2, 3);
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = Mtx::create(this->exec);
+
+    this->assert_empty(mtx.get());
+}
+
+
+TYPED_TEST(Sellp, CanBeConstructedWithSliceSizeAndStrideFactor)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = Mtx::create(this->exec, gko::dim<2>{2, 3}, 2, 2, 3);
 
     ASSERT_EQ(mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(mtx->get_num_stored_elements(), 6);
@@ -162,49 +180,53 @@ TEST_F(Sellp, CanBeConstructedWithSliceSizeAndStrideFactor)
 }
 
 
-TEST_F(Sellp, CanBeCopied)
+TYPED_TEST(Sellp, CanBeCopied)
 {
-    auto copy = Mtx::create(exec);
+    using Mtx = typename TestFixture::Mtx;
+    auto copy = Mtx::create(this->exec);
 
-    copy->copy_from(mtx.get());
+    copy->copy_from(this->mtx.get());
 
-    assert_equal_to_original_mtx(mtx.get());
-    mtx->get_values()[1] = 5.0;
-    assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->mtx->get_values()[1] = 5.0;
+    this->assert_equal_to_original_mtx(copy.get());
 }
 
 
-TEST_F(Sellp, CanBeMoved)
+TYPED_TEST(Sellp, CanBeMoved)
 {
-    auto copy = Mtx::create(exec);
+    using Mtx = typename TestFixture::Mtx;
+    auto copy = Mtx::create(this->exec);
 
-    copy->copy_from(std::move(mtx));
+    copy->copy_from(std::move(this->mtx));
 
-    assert_equal_to_original_mtx(copy.get());
+    this->assert_equal_to_original_mtx(copy.get());
 }
 
 
-TEST_F(Sellp, CanBeCloned)
+TYPED_TEST(Sellp, CanBeCloned)
 {
-    auto clone = mtx->clone();
+    using Mtx = typename TestFixture::Mtx;
+    auto clone = this->mtx->clone();
 
-    assert_equal_to_original_mtx(mtx.get());
-    mtx->get_values()[1] = 5.0;
-    assert_equal_to_original_mtx(dynamic_cast<Mtx *>(clone.get()));
+    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->mtx->get_values()[1] = 5.0;
+    this->assert_equal_to_original_mtx(dynamic_cast<Mtx *>(clone.get()));
 }
 
 
-TEST_F(Sellp, CanBeCleared)
+TYPED_TEST(Sellp, CanBeCleared)
 {
-    mtx->clear();
+    this->mtx->clear();
 
-    assert_empty(mtx.get());
+    this->assert_empty(this->mtx.get());
 }
 
 
-TEST_F(Sellp, CanBeReadFromMatrixData)
+TYPED_TEST(Sellp, CanBeReadFromMatrixData)
 {
-    auto m = Mtx::create(exec);
+    using Mtx = typename TestFixture::Mtx;
+    auto m = Mtx::create(this->exec);
     m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
@@ -213,12 +235,14 @@ TEST_F(Sellp, CanBeReadFromMatrixData)
               {1, 1, 5.0},
               {1, 2, 0.0}}});
 
-    assert_equal_to_original_mtx(m.get());
+    this->assert_equal_to_original_mtx(m.get());
 }
 
-TEST_F(Sellp, CanBeReadFromMatrixDataWithSliceSizeAndStrideFactor)
+
+TYPED_TEST(Sellp, CanBeReadFromMatrixDataWithSliceSizeAndStrideFactor)
 {
-    auto m = Mtx::create(exec, gko::dim<2>{2, 3}, 2, 2, 3);
+    using Mtx = typename TestFixture::Mtx;
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, 2, 2, 3);
     m->read({{2, 3},
              {{0, 0, 1.0},
               {0, 1, 3.0},
@@ -227,22 +251,26 @@ TEST_F(Sellp, CanBeReadFromMatrixDataWithSliceSizeAndStrideFactor)
               {1, 1, 5.0},
               {1, 2, 0.0}}});
 
-    assert_equal_to_original_mtx_with_slice_size_and_stride_factor(m.get());
+    this->assert_equal_to_original_mtx_with_slice_size_and_stride_factor(
+        m.get());
 }
 
-TEST_F(Sellp, GeneratesCorrectMatrixData)
-{
-    using tpl = gko::matrix_data<>::nonzero_type;
-    gko::matrix_data<> data;
 
-    mtx->write(data);
+TYPED_TEST(Sellp, GeneratesCorrectMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
+    gko::matrix_data<value_type, index_type> data;
+
+    this->mtx->write(data);
 
     ASSERT_EQ(data.size, gko::dim<2>(2, 3));
     ASSERT_EQ(data.nonzeros.size(), 4);
-    EXPECT_EQ(data.nonzeros[0], tpl(0, 0, 1.0));
-    EXPECT_EQ(data.nonzeros[1], tpl(0, 1, 3.0));
-    EXPECT_EQ(data.nonzeros[2], tpl(0, 2, 2.0));
-    EXPECT_EQ(data.nonzeros[3], tpl(1, 1, 5.0));
+    EXPECT_EQ(data.nonzeros[0], tpl(0, 0, value_type{1.0}));
+    EXPECT_EQ(data.nonzeros[1], tpl(0, 1, value_type{3.0}));
+    EXPECT_EQ(data.nonzeros[2], tpl(0, 2, value_type{2.0}));
+    EXPECT_EQ(data.nonzeros[3], tpl(1, 1, value_type{5.0}));
 }
 
 

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,16 +33,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/combined.hpp>
 
 
-#include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/time.hpp>
-
-
-#include <gtest/gtest.h>
 #include <chrono>
 #include <thread>
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <windows.h>
 #endif
+
+
+#include <gtest/gtest.h>
+
+
+#include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/time.hpp>
 
 
 namespace {

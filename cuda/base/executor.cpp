@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,76 +43,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "cuda/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/device_guard.hpp"
 
 
 namespace gko {
-namespace {
 
 
-// The function is copied from _ConvertSMVer2Cores of
-// cuda-9.2/samples/common/inc/helper_cuda.h
-inline int convert_sm_ver_to_cores(int major, int minor)
-{
-    // Defines for GPU Architecture types (using the SM version to determine
-    // the # of cores per SM
-    typedef struct {
-        int SM;  // 0xMm (hexidecimal notation), M = SM Major version,
-        // and m = SM minor version
-        int Cores;
-    } sSMtoCores;
-
-    sSMtoCores nGpuArchCoresPerSM[] = {
-        {0x30, 192},  // Kepler Generation (SM 3.0) GK10x class
-        {0x32, 192},  // Kepler Generation (SM 3.2) GK10x class
-        {0x35, 192},  // Kepler Generation (SM 3.5) GK11x class
-        {0x37, 192},  // Kepler Generation (SM 3.7) GK21x class
-        {0x50, 128},  // Maxwell Generation (SM 5.0) GM10x class
-        {0x52, 128},  // Maxwell Generation (SM 5.2) GM20x class
-        {0x53, 128},  // Maxwell Generation (SM 5.3) GM20x class
-        {0x60, 64},   // Pascal Generation (SM 6.0) GP100 class
-        {0x61, 128},  // Pascal Generation (SM 6.1) GP10x class
-        {0x62, 128},  // Pascal Generation (SM 6.2) GP10x class
-        {0x70, 64},   // Volta Generation (SM 7.0) GV100 class
-        {0x72, 64},   // Volta Generation (SM 7.2) GV11b class
-        {0x75, 64},   // Turing Generation (SM 7.5) TU1xx class
-        {-1, -1}};
-
-    int index = 0;
-
-    while (nGpuArchCoresPerSM[index].SM != -1) {
-        if (nGpuArchCoresPerSM[index].SM == ((major << 4) + minor)) {
-            return nGpuArchCoresPerSM[index].Cores;
-        }
-        index++;
-    }
-
-#if GKO_VERBOSE_LEVEL >= 1
-    // If we don't find the values, we use the last valid value by default
-    // to allow proper execution
-    std::cerr << "MapSMtoCores for SM " << major << "." << minor
-              << "is undefined. The default value of "
-              << nGpuArchCoresPerSM[index - 1].Cores << " Cores/SM is used."
-              << std::endl;
-#endif
-    return nGpuArchCoresPerSM[index - 1].Cores;
-}
-
-
-}  // namespace
+#include "common/base/executor.hpp.inc"
 
 
 std::shared_ptr<CudaExecutor> CudaExecutor::create(
-    int device_id, std::shared_ptr<Executor> master)
+    int device_id, std::shared_ptr<Executor> master, bool device_reset)
 {
     return std::shared_ptr<CudaExecutor>(
-        new CudaExecutor(device_id, std::move(master)),
+        new CudaExecutor(device_id, std::move(master), device_reset),
         [device_id](CudaExecutor *exec) {
             delete exec;
-            if (!CudaExecutor::get_num_execs(device_id)) {
-                device_guard g(device_id);
+            if (!CudaExecutor::get_num_execs(device_id) &&
+                exec->get_device_reset()) {
+                cuda::device_guard g(device_id);
                 cudaDeviceReset();
             }
         });
@@ -122,15 +74,17 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
 void OmpExecutor::raw_copy_to(const CudaExecutor *dest, size_type num_bytes,
                               const void *src_ptr, void *dest_ptr) const
 {
-    device_guard g(dest->get_device_id());
-    GKO_ASSERT_NO_CUDA_ERRORS(
-        cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice));
+    if (num_bytes > 0) {
+        cuda::device_guard g(dest->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyHostToDevice));
+    }
 }
 
 
 void CudaExecutor::raw_free(void *ptr) const noexcept
 {
-    device_guard g(this->get_device_id());
+    cuda::device_guard g(this->get_device_id());
     auto error_code = cudaFree(ptr);
     if (error_code != cudaSuccess) {
 #if GKO_VERBOSE_LEVEL >= 1
@@ -148,7 +102,7 @@ void CudaExecutor::raw_free(void *ptr) const noexcept
 void *CudaExecutor::raw_alloc(size_type num_bytes) const
 {
     void *dev_ptr = nullptr;
-    device_guard g(this->get_device_id());
+    cuda::device_guard g(this->get_device_id());
     auto error_code = cudaMalloc(&dev_ptr, num_bytes);
     if (error_code != cudaErrorMemoryAllocation) {
         GKO_ASSERT_NO_CUDA_ERRORS(error_code);
@@ -161,24 +115,45 @@ void *CudaExecutor::raw_alloc(size_type num_bytes) const
 void CudaExecutor::raw_copy_to(const OmpExecutor *, size_type num_bytes,
                                const void *src_ptr, void *dest_ptr) const
 {
-    device_guard g(this->get_device_id());
-    GKO_ASSERT_NO_CUDA_ERRORS(
-        cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost));
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost));
+    }
 }
 
 
 void CudaExecutor::raw_copy_to(const CudaExecutor *src, size_type num_bytes,
                                const void *src_ptr, void *dest_ptr) const
 {
-    device_guard g(this->get_device_id());
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(
-        dest_ptr, this->device_id_, src_ptr, src->get_device_id(), num_bytes));
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, this->device_id_,
+                                                 src_ptr, src->get_device_id(),
+                                                 num_bytes));
+    }
+}
+
+
+void CudaExecutor::raw_copy_to(const HipExecutor *src, size_type num_bytes,
+                               const void *src_ptr, void *dest_ptr) const
+{
+#if GINKGO_HIP_PLATFORM_NVCC == 1
+    if (num_bytes > 0) {
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, this->device_id_,
+                                                 src_ptr, src->get_device_id(),
+                                                 num_bytes));
+    }
+#else
+    GKO_NOT_SUPPORTED(this);
+#endif
 }
 
 
 void CudaExecutor::synchronize() const
 {
-    device_guard g(this->get_device_id());
+    cuda::device_guard g(this->get_device_id());
     GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceSynchronize());
 }
 
@@ -186,7 +161,7 @@ void CudaExecutor::synchronize() const
 void CudaExecutor::run(const Operation &op) const
 {
     this->template log<log::Logger::operation_launched>(this, &op);
-    device_guard g(this->get_device_id());
+    cuda::device_guard g(this->get_device_id());
     op.run(
         std::static_pointer_cast<const CudaExecutor>(this->shared_from_this()));
     this->template log<log::Logger::operation_completed>(this, &op);
@@ -208,14 +183,16 @@ int CudaExecutor::get_num_devices()
 void CudaExecutor::set_gpu_property()
 {
     if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
-        device_guard g(this->get_device_id());
+        cuda::device_guard g(this->get_device_id());
         GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
             &major_, cudaDevAttrComputeCapabilityMajor, device_id_));
         GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
             &minor_, cudaDevAttrComputeCapabilityMinor, device_id_));
         GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceGetAttribute(
             &num_multiprocessor_, cudaDevAttrMultiProcessorCount, device_id_));
-        num_cores_per_sm_ = convert_sm_ver_to_cores(major_, minor_);
+        num_warps_per_sm_ = convert_sm_ver_to_cores(major_, minor_) /
+                            kernels::cuda::config::warp_size;
+        warp_size_ = kernels::cuda::config::warp_size;
     }
 }
 
@@ -224,15 +201,15 @@ void CudaExecutor::init_handles()
 {
     if (device_id_ < this->get_num_devices() && device_id_ >= 0) {
         const auto id = this->get_device_id();
-        device_guard g(id);
+        cuda::device_guard g(id);
         this->cublas_handle_ = handle_manager<cublasContext>(
             kernels::cuda::cublas::init(), [id](cublasHandle_t handle) {
-                device_guard g(id);
+                cuda::device_guard g(id);
                 kernels::cuda::cublas::destroy(handle);
             });
         this->cusparse_handle_ = handle_manager<cusparseContext>(
             kernels::cuda::cusparse::init(), [id](cusparseHandle_t handle) {
-                device_guard g(id);
+                cuda::device_guard g(id);
                 kernels::cuda::cusparse::destroy(handle);
             });
     }

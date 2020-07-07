@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/math.hpp>
 
 
+#include "cuda/components/thread_ids.cuh"
+
+
 namespace gko {
 namespace kernels {
 namespace cuda {
@@ -50,16 +53,7 @@ namespace ir {
 constexpr int default_block_size = 512;
 
 
-__global__ __launch_bounds__(default_block_size) void initialize_kernel(
-    size_type num_cols, stopping_status *stop_status)
-{
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-
-    if (tidx < num_cols) {
-        stop_status[tidx].reset();
-    }
-}
+#include "common/solver/ir_kernels.hpp.inc"
 
 
 void initialize(std::shared_ptr<const CudaExecutor> exec,

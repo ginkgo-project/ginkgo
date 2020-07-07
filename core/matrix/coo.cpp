@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,21 +31,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
 #include <ginkgo/core/matrix/coo.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
+
+
+#include <algorithm>
+#include <numeric>
 
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
 #include "core/matrix/coo_kernels.hpp"
-
-
-#include <algorithm>
-#include <numeric>
 
 
 namespace gko {
@@ -105,6 +105,25 @@ void Coo<ValueType, IndexType>::apply2_impl(const LinOp *alpha, const LinOp *b,
 
 template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::convert_to(
+    Coo<next_precision<ValueType>, IndexType> *result) const
+{
+    result->values_ = this->values_;
+    result->row_idxs_ = this->row_idxs_;
+    result->col_idxs_ = this->col_idxs_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::move_to(
+    Coo<next_precision<ValueType>, IndexType> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType> *result) const
 {
     auto exec = this->get_executor();
@@ -113,7 +132,7 @@ void Coo<ValueType, IndexType>::convert_to(
         result->get_strategy());
     tmp->values_ = this->values_;
     tmp->col_idxs_ = this->col_idxs_;
-    exec->run(coo::make_convert_to_csr(tmp.get(), this));
+    exec->run(coo::make_convert_to_csr(this, tmp.get()));
     tmp->make_srow();
     tmp->move_to(result);
 }
@@ -128,7 +147,7 @@ void Coo<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
         result->get_strategy());
     tmp->values_ = std::move(this->values_);
     tmp->col_idxs_ = std::move(this->col_idxs_);
-    exec->run(coo::make_convert_to_csr(tmp.get(), this));
+    exec->run(coo::make_convert_to_csr(this, tmp.get()));
     tmp->make_srow();
     tmp->move_to(result);
 }
@@ -139,7 +158,7 @@ void Coo<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(coo::make_convert_to_dense(tmp.get(), this));
+    exec->run(coo::make_convert_to_dense(this, tmp.get()));
     tmp->move_to(result);
 }
 

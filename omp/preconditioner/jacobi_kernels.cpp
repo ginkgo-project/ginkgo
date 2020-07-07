@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <numeric>
 #include <vector>
 
@@ -48,6 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/allocator.hpp"
 #include "core/base/extended_float.hpp"
 #include "core/preconditioner/jacobi_utils.hpp"
 #include "omp/components/matrix_operations.hpp"
@@ -83,15 +85,9 @@ inline bool has_same_nonzero_pattern(const IndexType *prev_row_ptr,
                                      const IndexType *curr_row_ptr,
                                      const IndexType *next_row_ptr)
 {
-    if (next_row_ptr - curr_row_ptr != curr_row_ptr - prev_row_ptr) {
-        return false;
-    }
-    for (; curr_row_ptr < next_row_ptr; ++prev_row_ptr, ++curr_row_ptr) {
-        if (*curr_row_ptr != *prev_row_ptr) {
-            return false;
-        }
-    }
-    return true;
+    return std::distance(curr_row_ptr, next_row_ptr) ==
+               std::distance(prev_row_ptr, curr_row_ptr) &&
+           std::equal(curr_row_ptr, next_row_ptr, prev_row_ptr);
 }
 
 
@@ -274,6 +270,24 @@ template <typename SourceValueType, typename ResultValueType,
           typename IndexType,
           typename ValueConverter =
               default_converter<SourceValueType, ResultValueType>>
+inline void conj_transpose_block(IndexType block_size,
+                                 const SourceValueType *from,
+                                 size_type from_stride, ResultValueType *to,
+                                 size_type to_stride,
+                                 ValueConverter converter = {}) noexcept
+{
+    for (IndexType i = 0; i < block_size; ++i) {
+        for (IndexType j = 0; j < block_size; ++j) {
+            to[i * to_stride + j] = conj(converter(from[i + j * from_stride]));
+        }
+    }
+}
+
+
+template <typename SourceValueType, typename ResultValueType,
+          typename IndexType,
+          typename ValueConverter =
+              default_converter<SourceValueType, ResultValueType>>
 inline void permute_and_transpose_block(IndexType block_size,
                                         const IndexType *col_perm,
                                         const SourceValueType *source,
@@ -312,13 +326,13 @@ inline bool invert_block(IndexType block_size, IndexType *perm,
 
 
 template <typename ReducedType, typename ValueType, typename IndexType>
-inline bool validate_precision_reduction_feasibility(IndexType block_size,
-                                                     const ValueType *block,
-                                                     size_type stride)
+inline bool validate_precision_reduction_feasibility(
+    std::shared_ptr<const OmpExecutor> exec, IndexType block_size,
+    const ValueType *block, size_type stride)
 {
     using gko::detail::float_traits;
-    std::vector<ValueType> tmp(block_size * block_size);
-    std::vector<IndexType> perm(block_size);
+    vector<ValueType> tmp(block_size * block_size, {}, exec);
+    vector<IndexType> perm(block_size, {}, exec);
     std::iota(begin(perm), end(perm), IndexType{0});
     for (IndexType i = 0; i < block_size; ++i) {
         for (IndexType j = 0; j < block_size; ++j) {
@@ -359,9 +373,9 @@ void generate(std::shared_ptr<const OmpExecutor> exec,
     const auto cond = conditioning.get_data();
 #pragma omp parallel for
     for (size_type g = 0; g < num_blocks; g += group_size) {
-        std::vector<Array<ValueType>> block(group_size);
-        std::vector<Array<IndexType>> perm(group_size);
-        std::vector<uint32> pr_descriptors(group_size, uint32{} - 1);
+        vector<Array<ValueType>> block(group_size, {}, exec);
+        vector<Array<IndexType>> perm(group_size, {}, exec);
+        vector<uint32> pr_descriptors(group_size, uint32{} - 1, exec);
         // extract group of blocks, invert them, figure out storage precision
         for (size_type b = 0; b < group_size; ++b) {
             if (b + g >= num_blocks) {
@@ -391,16 +405,18 @@ void generate(std::shared_ptr<const OmpExecutor> exec,
                 using preconditioner::detail::get_supported_storage_reductions;
                 pr_descriptors[b] = get_supported_storage_reductions<ValueType>(
                     accuracy, cond[g + b],
-                    [&block_size, &block, &b] {
+                    [&exec, &block_size, &block, &b] {
                         using target = reduce_precision<ValueType>;
                         return validate_precision_reduction_feasibility<target>(
-                            block_size, block[b].get_const_data(), block_size);
+                            exec, block_size, block[b].get_const_data(),
+                            block_size);
                     },
-                    [&block_size, &block, &b] {
+                    [&exec, &block_size, &block, &b] {
                         using target =
                             reduce_precision<reduce_precision<ValueType>>;
                         return validate_precision_reduction_feasibility<target>(
-                            block_size, block[b].get_const_data(), block_size);
+                            exec, block_size, block[b].get_const_data(),
+                            block_size);
                     });
             } else {
                 pr_descriptors[b] = preconditioner::detail::
@@ -551,6 +567,80 @@ void simple_apply(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void transpose_jacobi(
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
+    uint32 max_block_size, const Array<precision_reduction> &block_precisions,
+    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
+    Array<ValueType> &out_blocks)
+{
+    const auto ptrs = block_pointers.get_const_data();
+    const auto prec = block_precisions.get_const_data();
+    const size_type matrix_size = ptrs[num_blocks];
+
+#pragma omp parallel for
+    for (size_type i = 0; i < num_blocks; ++i) {
+        const auto group_ofs = storage_scheme.get_group_offset(i);
+        const auto block_ofs = storage_scheme.get_block_offset(i);
+        const auto block_stride = storage_scheme.get_stride();
+        const auto group = blocks.get_const_data() + group_ofs;
+        auto out_group = out_blocks.get_data() + group_ofs;
+        const auto block_size = ptrs[i + 1] - ptrs[i];
+        const auto p = prec ? prec[i] : precision_reduction();
+        GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
+            ValueType, p,
+            transpose_block(
+                block_size,
+                reinterpret_cast<const resolved_precision *>(group) + block_ofs,
+                block_stride,
+                reinterpret_cast<resolved_precision *>(out_group) + block_ofs,
+                block_stride));
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_JACOBI_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void conj_transpose_jacobi(
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
+    uint32 max_block_size, const Array<precision_reduction> &block_precisions,
+    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
+    Array<ValueType> &out_blocks)
+{
+    const auto ptrs = block_pointers.get_const_data();
+    const auto prec = block_precisions.get_const_data();
+    const size_type matrix_size = ptrs[num_blocks];
+
+#pragma omp parallel for
+    for (size_type i = 0; i < num_blocks; ++i) {
+        const auto group_ofs = storage_scheme.get_group_offset(i);
+        const auto block_ofs = storage_scheme.get_block_offset(i);
+        const auto block_stride = storage_scheme.get_stride();
+        const auto group = blocks.get_const_data() + group_ofs;
+        auto out_group = out_blocks.get_data() + group_ofs;
+        const auto block_size = ptrs[i + 1] - ptrs[i];
+        const auto p = prec ? prec[i] : precision_reduction();
+        GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
+            ValueType, p,
+            conj_transpose_block(
+                block_size,
+                reinterpret_cast<const resolved_precision *>(group) + block_ofs,
+                block_stride,
+                reinterpret_cast<resolved_precision *>(out_group) + block_ofs,
+                block_stride));
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_JACOBI_CONJ_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,6 +51,34 @@ GKO_REGISTER_OPERATION(initialize, ir::initialize);
 
 
 template <typename ValueType>
+std::unique_ptr<LinOp> Ir<ValueType>::transpose() const
+{
+    return build()
+        .with_generated_solver(
+            share(as<Transposable>(this->get_solver())->transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .with_relaxation_factor(parameters_.relaxation_factor)
+        .on(this->get_executor())
+        ->generate(
+            share(as<Transposable>(this->get_system_matrix())->transpose()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Ir<ValueType>::conj_transpose() const
+{
+    return build()
+        .with_generated_solver(
+            share(as<Transposable>(this->get_solver())->conj_transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .with_relaxation_factor(conj(parameters_.relaxation_factor))
+        .on(this->get_executor())
+        ->generate(share(
+            as<Transposable>(this->get_system_matrix())->conj_transpose()));
+}
+
+
+template <typename ValueType>
 void Ir<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     using Vector = matrix::Dense<ValueType>;
@@ -63,6 +91,7 @@ void Ir<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
     auto dense_b = as<const Vector>(b);
     auto dense_x = as<Vector>(x);
     auto residual = Vector::create_with_config_of(dense_b);
+    auto inner_solution = Vector::create_with_config_of(dense_b);
 
     bool one_changed{};
     Array<stopping_status> stop_status(exec, dense_b->get_size()[1]);
@@ -91,10 +120,30 @@ void Ir<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
             break;
         }
 
-        solver_->apply(lend(one_op), lend(residual), lend(one_op), dense_x);
-        residual->copy_from(dense_b);
-        system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
-                              lend(residual));
+        if (solver_->apply_uses_initial_guess()) {
+            // Use the inner solver to solve
+            // A * inner_solution = residual
+            // with residual as initial guess.
+            inner_solution->copy_from(lend(residual));
+            solver_->apply(lend(residual), lend(inner_solution));
+
+            // x = x + relaxation_factor * inner_solution
+            dense_x->add_scaled(lend(relaxation_factor_), lend(inner_solution));
+
+            // residual = b - A * x
+            residual->copy_from(dense_b);
+            system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
+                                  lend(residual));
+        } else {
+            // x = x + relaxation_factor * A \ residual
+            solver_->apply(lend(relaxation_factor_), lend(residual),
+                           lend(one_op), dense_x);
+
+            // residual = b - A * x
+            residual->copy_from(dense_b);
+            system_matrix_->apply(lend(neg_one_op), dense_x, lend(one_op),
+                                  lend(residual));
+        }
     }
 }
 

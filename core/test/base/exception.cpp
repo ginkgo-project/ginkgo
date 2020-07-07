@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -93,6 +93,30 @@ TEST(ExceptionClasses, CublasErrorReturnsCorrectWhatMessage)
 TEST(ExceptionClasses, CusparseErrorReturnsCorrectWhatMessage)
 {
     gko::CusparseError error("test_file.cpp", 123, "test_func", 1);
+    std::string expected = "test_file.cpp:123: test_func: ";
+    ASSERT_EQ(expected, std::string(error.what()).substr(0, expected.size()));
+}
+
+
+TEST(ExceptionClasses, HipErrorReturnsCorrectWhatMessage)
+{
+    gko::HipError error("test_file.cpp", 123, "test_func", 1);
+    std::string expected = "test_file.cpp:123: test_func: ";
+    ASSERT_EQ(expected, std::string(error.what()).substr(0, expected.size()));
+}
+
+
+TEST(ExceptionClasses, HipblasErrorReturnsCorrectWhatMessage)
+{
+    gko::HipblasError error("test_file.cpp", 123, "test_func", 1);
+    std::string expected = "test_file.cpp:123: test_func: ";
+    ASSERT_EQ(expected, std::string(error.what()).substr(0, expected.size()));
+}
+
+
+TEST(ExceptionClasses, HipsparseErrorReturnsCorrectWhatMessage)
+{
+    gko::HipsparseError error("test_file.cpp", 123, "test_func", 1);
     std::string expected = "test_file.cpp:123: test_func: ";
     ASSERT_EQ(expected, std::string(error.what()).substr(0, expected.size()));
 }

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
+
 
 namespace gko {
 namespace kernels {
@@ -125,6 +126,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace reference
 
 
+namespace hip {
+namespace cgs {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace cgs
+}  // namespace hip
+
+
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
@@ -132,4 +142,4 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_CGS_KERNELS_HPP
+#endif  // GKO_CORE_SOLVER_CGS_KERNELS_HPP_

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/sparsity_csr_kernels.hpp"
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 #include <memory>
@@ -44,9 +44,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/matrix/sparsity_csr_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -117,7 +117,7 @@ protected:
 
     matrix_pair gen_unsorted_mtx()
     {
-        constexpr int min_nnz_per_row = 2;  // Must be larger/equal than 2
+        constexpr int min_nnz_per_row = 2;  // Must be at least 2
         auto local_mtx_ref =
             gen_mtx<Mtx>(mtx_size[0], mtx_size[1], min_nnz_per_row);
         for (size_t row = 0; row < mtx_size[0]; ++row) {
@@ -245,10 +245,10 @@ TEST_F(SparsityCsr, RemovesDiagElementsKernelIsEquivalentToRef)
                              dmtx->get_num_nonzeros() - num_diags);
 
     gko::kernels::reference::sparsity_csr::remove_diagonal_elements(
-        ref, tmp.get(), mtx->get_const_row_ptrs(), mtx->get_const_col_idxs());
+        ref, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(), tmp.get());
     gko::kernels::omp::sparsity_csr::remove_diagonal_elements(
-        omp, d_tmp.get(), dmtx->get_const_row_ptrs(),
-        dmtx->get_const_col_idxs());
+        omp, dmtx->get_const_row_ptrs(), dmtx->get_const_col_idxs(),
+        d_tmp.get());
 
     GKO_ASSERT_MTX_NEAR(tmp.get(), d_tmp.get(), 0.0);
 }

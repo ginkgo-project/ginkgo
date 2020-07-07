@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,15 +43,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/bicgstab.hpp>
 
 
-#include "core/test/utils/assertions.hpp"
+#include "core/test/utils.hpp"
 
 
 namespace {
 
 
+template <typename T>
 class IluFactory : public ::testing::Test {
 protected:
-    using value_type = double;
+    using value_type = T;
     using l_solver_type = gko::solver::Bicgstab<value_type>;
     using u_solver_type = gko::solver::Bicgstab<value_type>;
     using ilu_prec_type =
@@ -64,34 +65,41 @@ protected:
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<l_solver_type::Factory> l_factory;
-    std::shared_ptr<u_solver_type::Factory> u_factory;
+    std::shared_ptr<typename l_solver_type::Factory> l_factory;
+    std::shared_ptr<typename u_solver_type::Factory> u_factory;
 };
 
+TYPED_TEST_CASE(IluFactory, gko::test::ValueTypes);
 
-TEST_F(IluFactory, KnowsItsExecutor)
+
+TYPED_TEST(IluFactory, KnowsItsExecutor)
 {
-    auto ilu_factory = ilu_prec_type::build().on(exec);
+    using ilu_prec_type = typename TestFixture::ilu_prec_type;
+    auto ilu_factory = ilu_prec_type::build().on(this->exec);
 
-    ASSERT_EQ(ilu_factory->get_executor(), exec);
+    ASSERT_EQ(ilu_factory->get_executor(), this->exec);
 }
 
 
-TEST_F(IluFactory, CanSetLSolverFactory)
+TYPED_TEST(IluFactory, CanSetLSolverFactory)
 {
-    auto ilu_factory =
-        ilu_prec_type::build().with_l_solver_factory(l_factory).on(exec);
+    using ilu_prec_type = typename TestFixture::ilu_prec_type;
+    auto ilu_factory = ilu_prec_type::build()
+                           .with_l_solver_factory(this->l_factory)
+                           .on(this->exec);
 
-    ASSERT_EQ(ilu_factory->get_parameters().l_solver_factory, l_factory);
+    ASSERT_EQ(ilu_factory->get_parameters().l_solver_factory, this->l_factory);
 }
 
 
-TEST_F(IluFactory, CanSetUSolverFactory)
+TYPED_TEST(IluFactory, CanSetUSolverFactory)
 {
-    auto ilu_factory =
-        ilu_prec_type::build().with_u_solver_factory(u_factory).on(exec);
+    using ilu_prec_type = typename TestFixture::ilu_prec_type;
+    auto ilu_factory = ilu_prec_type::build()
+                           .with_u_solver_factory(this->u_factory)
+                           .on(this->exec);
 
-    ASSERT_EQ(ilu_factory->get_parameters().u_solver_factory, u_factory);
+    ASSERT_EQ(ilu_factory->get_parameters().u_solver_factory, this->u_factory);
 }
 
 

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/csr_kernels.hpp"
+#include <ginkgo/core/matrix/csr.hpp>
 
 
 #include <algorithm>
@@ -43,41 +43,47 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
-#include "core/test/utils/assertions.hpp"
+#include "core/matrix/csr_kernels.hpp"
+#include "core/test/utils.hpp"
 
 
 namespace {
 
 
+template <typename ValueIndexType>
 class Csr : public ::testing::Test {
 protected:
-    using Coo = gko::matrix::Coo<>;
-    using Mtx = gko::matrix::Csr<>;
-    using Sellp = gko::matrix::Sellp<>;
-    using SparsityCsr = gko::matrix::SparsityCsr<>;
-    using Ell = gko::matrix::Ell<>;
-    using Hybrid = gko::matrix::Hybrid<>;
-    using ComplexMtx = gko::matrix::Csr<std::complex<double>>;
-    using Vec = gko::matrix::Dense<>;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Coo = gko::matrix::Coo<value_type, index_type>;
+    using Mtx = gko::matrix::Csr<value_type, index_type>;
+    using Sellp = gko::matrix::Sellp<value_type, index_type>;
+    using SparsityCsr = gko::matrix::SparsityCsr<value_type, index_type>;
+    using Ell = gko::matrix::Ell<value_type, index_type>;
+    using Hybrid = gko::matrix::Hybrid<value_type, index_type>;
+    using Vec = gko::matrix::Dense<value_type>;
 
     Csr()
         : exec(gko::ReferenceExecutor::create()),
           mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4,
-                          std::make_shared<Mtx::load_balance>(2))),
+                          std::make_shared<typename Mtx::load_balance>(2))),
           mtx2(Mtx::create(exec, gko::dim<2>{2, 3}, 5,
-                           std::make_shared<Mtx::classical>())),
+                           std::make_shared<typename Mtx::classical>())),
           mtx3_sorted(Mtx::create(exec, gko::dim<2>(3, 3), 7,
-                                  std::make_shared<Mtx::classical>())),
-          mtx3_unsorted(Mtx::create(exec, gko::dim<2>(3, 3), 7,
-                                    std::make_shared<Mtx::classical>()))
+                                  std::make_shared<typename Mtx::classical>())),
+          mtx3_unsorted(
+              Mtx::create(exec, gko::dim<2>(3, 3), 7,
+                          std::make_shared<typename Mtx::classical>()))
     {
         this->create_mtx(mtx.get());
         this->create_mtx2(mtx2.get());
@@ -86,9 +92,9 @@ protected:
 
     void create_mtx(Mtx *m)
     {
-        Mtx::value_type *v = m->get_values();
-        Mtx::index_type *c = m->get_col_idxs();
-        Mtx::index_type *r = m->get_row_ptrs();
+        value_type *v = m->get_values();
+        index_type *c = m->get_col_idxs();
+        index_type *r = m->get_row_ptrs();
         auto *s = m->get_srow();
         /*
          * 1   3   2
@@ -110,9 +116,9 @@ protected:
 
     void create_mtx2(Mtx *m)
     {
-        Mtx::value_type *v = m->get_values();
-        Mtx::index_type *c = m->get_col_idxs();
-        Mtx::index_type *r = m->get_row_ptrs();
+        value_type *v = m->get_values();
+        index_type *c = m->get_col_idxs();
+        index_type *r = m->get_row_ptrs();
         // It keeps an explict zero
         /*
          *  1    3   2
@@ -206,10 +212,10 @@ protected:
         EXPECT_EQ(c[1], 1);
         EXPECT_EQ(c[2], 2);
         EXPECT_EQ(c[3], 1);
-        EXPECT_EQ(v[0], 1.0);
-        EXPECT_EQ(v[1], 3.0);
-        EXPECT_EQ(v[2], 2.0);
-        EXPECT_EQ(v[3], 5.0);
+        EXPECT_EQ(v[0], value_type{1.0});
+        EXPECT_EQ(v[1], value_type{3.0});
+        EXPECT_EQ(v[2], value_type{2.0});
+        EXPECT_EQ(v[3], value_type{5.0});
     }
 
     void assert_equal_to_mtx(const Sellp *m)
@@ -232,12 +238,12 @@ protected:
         EXPECT_EQ(c[65], 0);
         EXPECT_EQ(c[128], 2);
         EXPECT_EQ(c[129], 0);
-        EXPECT_EQ(v[0], 1.0);
-        EXPECT_EQ(v[1], 5.0);
-        EXPECT_EQ(v[64], 3.0);
-        EXPECT_EQ(v[65], 0.0);
-        EXPECT_EQ(v[128], 2.0);
-        EXPECT_EQ(v[129], 0.0);
+        EXPECT_EQ(v[0], value_type{1.0});
+        EXPECT_EQ(v[1], value_type{5.0});
+        EXPECT_EQ(v[64], value_type{3.0});
+        EXPECT_EQ(v[65], value_type{0.0});
+        EXPECT_EQ(v[128], value_type{2.0});
+        EXPECT_EQ(v[129], value_type{0.0});
     }
 
     void assert_equal_to_mtx(const SparsityCsr *m)
@@ -269,12 +275,12 @@ protected:
         EXPECT_EQ(c[3], 0);
         EXPECT_EQ(c[4], 2);
         EXPECT_EQ(c[5], 0);
-        EXPECT_EQ(v[0], 1.0);
-        EXPECT_EQ(v[1], 5.0);
-        EXPECT_EQ(v[2], 3.0);
-        EXPECT_EQ(v[3], 0.0);
-        EXPECT_EQ(v[4], 2.0);
-        EXPECT_EQ(v[5], 0.0);
+        EXPECT_EQ(v[0], value_type{1.0});
+        EXPECT_EQ(v[1], value_type{5.0});
+        EXPECT_EQ(v[2], value_type{3.0});
+        EXPECT_EQ(v[3], value_type{0.0});
+        EXPECT_EQ(v[4], value_type{2.0});
+        EXPECT_EQ(v[5], value_type{0.0});
     }
 
     void assert_equal_to_mtx(const Hybrid *m)
@@ -298,10 +304,10 @@ protected:
         EXPECT_EQ(c[1], 1);
         EXPECT_EQ(c[2], 2);
         EXPECT_EQ(c[3], 1);
-        EXPECT_EQ(v[0], 1.0);
-        EXPECT_EQ(v[1], 3.0);
-        EXPECT_EQ(v[2], 2.0);
-        EXPECT_EQ(v[3], 5.0);
+        EXPECT_EQ(v[0], value_type{1.0});
+        EXPECT_EQ(v[1], value_type{3.0});
+        EXPECT_EQ(v[2], value_type{2.0});
+        EXPECT_EQ(v[3], value_type{5.0});
     }
 
     void assert_equal_to_mtx2(const Hybrid *m)
@@ -319,22 +325,21 @@ protected:
         ASSERT_EQ(m->get_coo_num_stored_elements(), 1);
         EXPECT_EQ(r[0], 0);
         EXPECT_EQ(c[0], 2);
-        EXPECT_EQ(v[0], 2.0);
+        EXPECT_EQ(v[0], value_type{2.0});
         // Test Ell values
         ASSERT_EQ(m->get_ell_num_stored_elements(), 4);
         EXPECT_EQ(n, 2);
         EXPECT_EQ(p, 2);
-        EXPECT_EQ(ell_v[0], 1);
-        EXPECT_EQ(ell_v[1], 0);
-        EXPECT_EQ(ell_v[2], 3);
-        EXPECT_EQ(ell_v[3], 5);
+        EXPECT_EQ(ell_v[0], value_type{1});
+        EXPECT_EQ(ell_v[1], value_type{0});
+        EXPECT_EQ(ell_v[2], value_type{3});
+        EXPECT_EQ(ell_v[3], value_type{5});
         EXPECT_EQ(ell_c[0], 0);
         EXPECT_EQ(ell_c[1], 0);
         EXPECT_EQ(ell_c[2], 1);
         EXPECT_EQ(ell_c[3], 1);
     }
 
-    std::complex<double> i{0, 1};
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Mtx> mtx2;
@@ -342,232 +347,641 @@ protected:
     std::unique_ptr<Mtx> mtx3_unsorted;
 };
 
+TYPED_TEST_CASE(Csr, gko::test::ValueIndexTypes);
 
-TEST_F(Csr, AppliesToDenseVector)
+
+TYPED_TEST(Csr, AppliesToDenseVector)
 {
-    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
-    auto y = Vec::create(exec, gko::dim<2>{2, 1});
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
 
-    mtx->apply(x.get(), y.get());
+    this->mtx->apply(x.get(), y.get());
 
-    EXPECT_EQ(y->at(0), 13.0);
-    EXPECT_EQ(y->at(1), 5.0);
+    EXPECT_EQ(y->at(0), T{13.0});
+    EXPECT_EQ(y->at(1), T{5.0});
 }
 
 
-TEST_F(Csr, AppliesToDenseMatrix)
+TYPED_TEST(Csr, AppliesToDenseMatrix)
 {
-    auto x = gko::initialize<Vec>({{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}}, exec);
-    auto y = Vec::create(exec, gko::dim<2>{2});
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto x = gko::initialize<Vec>(
+        {I<T>{2.0, 3.0}, I<T>{1.0, -1.5}, I<T>{4.0, 2.5}}, this->exec);
+    auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    mtx->apply(x.get(), y.get());
+    this->mtx->apply(x.get(), y.get());
 
-    EXPECT_EQ(y->at(0, 0), 13.0);
-    EXPECT_EQ(y->at(1, 0), 5.0);
-    EXPECT_EQ(y->at(0, 1), 3.5);
-    EXPECT_EQ(y->at(1, 1), -7.5);
+    EXPECT_EQ(y->at(0, 0), T{13.0});
+    EXPECT_EQ(y->at(1, 0), T{5.0});
+    EXPECT_EQ(y->at(0, 1), T{3.5});
+    EXPECT_EQ(y->at(1, 1), T{-7.5});
 }
 
 
-TEST_F(Csr, AppliesLinearCombinationToDenseVector)
+TYPED_TEST(Csr, AppliesLinearCombinationToDenseVector)
 {
-    auto alpha = gko::initialize<Vec>({-1.0}, exec);
-    auto beta = gko::initialize<Vec>({2.0}, exec);
-    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, exec);
-    auto y = gko::initialize<Vec>({1.0, 2.0}, exec);
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
+    auto y = gko::initialize<Vec>({1.0, 2.0}, this->exec);
 
-    mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
 
-    EXPECT_EQ(y->at(0), -11.0);
-    EXPECT_EQ(y->at(1), -1.0);
+    EXPECT_EQ(y->at(0), T{-11.0});
+    EXPECT_EQ(y->at(1), T{-1.0});
 }
 
 
-TEST_F(Csr, AppliesLinearCombinationToDenseMatrix)
+TYPED_TEST(Csr, AppliesLinearCombinationToDenseMatrix)
 {
-    auto alpha = gko::initialize<Vec>({-1.0}, exec);
-    auto beta = gko::initialize<Vec>({2.0}, exec);
-    auto x = gko::initialize<Vec>({{2.0, 3.0}, {1.0, -1.5}, {4.0, 2.5}}, exec);
-    auto y = gko::initialize<Vec>({{1.0, 0.5}, {2.0, -1.5}}, exec);
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    auto x = gko::initialize<Vec>(
+        {I<T>{2.0, 3.0}, I<T>{1.0, -1.5}, I<T>{4.0, 2.5}}, this->exec);
+    auto y =
+        gko::initialize<Vec>({I<T>{1.0, 0.5}, I<T>{2.0, -1.5}}, this->exec);
 
-    mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
+    this->mtx->apply(alpha.get(), x.get(), beta.get(), y.get());
 
-    EXPECT_EQ(y->at(0, 0), -11.0);
-    EXPECT_EQ(y->at(1, 0), -1.0);
-    EXPECT_EQ(y->at(0, 1), -2.5);
-    EXPECT_EQ(y->at(1, 1), 4.5);
+    EXPECT_EQ(y->at(0, 0), T{-11.0});
+    EXPECT_EQ(y->at(1, 0), T{-1.0});
+    EXPECT_EQ(y->at(0, 1), T{-2.5});
+    EXPECT_EQ(y->at(1, 1), T{4.5});
 }
 
 
-TEST_F(Csr, ApplyFailsOnWrongInnerDimension)
+TYPED_TEST(Csr, AppliesToCsrMatrix)
 {
-    auto x = Vec::create(exec, gko::dim<2>{2});
-    auto y = Vec::create(exec, gko::dim<2>{2});
+    using T = typename TestFixture::value_type;
+    this->mtx->apply(this->mtx3_unsorted.get(), this->mtx2.get());
 
-    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    ASSERT_EQ(this->mtx2->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(this->mtx2->get_num_stored_elements(), 6);
+    ASSERT_TRUE(this->mtx2->is_sorted_by_column_index());
+    auto r = this->mtx2->get_const_row_ptrs();
+    auto c = this->mtx2->get_const_col_idxs();
+    auto v = this->mtx2->get_const_values();
+    // 13  5 31
+    // 15  5 40
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 3);
+    EXPECT_EQ(r[2], 6);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[4], 1);
+    EXPECT_EQ(c[5], 2);
+    EXPECT_EQ(v[0], T{13});
+    EXPECT_EQ(v[1], T{5});
+    EXPECT_EQ(v[2], T{31});
+    EXPECT_EQ(v[3], T{15});
+    EXPECT_EQ(v[4], T{5});
+    EXPECT_EQ(v[5], T{40});
 }
 
 
-TEST_F(Csr, ApplyFailsOnWrongNumberOfRows)
+TYPED_TEST(Csr, AppliesLinearCombinationToCsrMatrix)
 {
-    auto x = Vec::create(exec, gko::dim<2>{3, 2});
-    auto y = Vec::create(exec, gko::dim<2>{3, 2});
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
 
-    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    this->mtx->apply(alpha.get(), this->mtx3_unsorted.get(), beta.get(),
+                     this->mtx2.get());
+
+    ASSERT_EQ(this->mtx2->get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(this->mtx2->get_num_stored_elements(), 6);
+    ASSERT_TRUE(this->mtx2->is_sorted_by_column_index());
+    auto r = this->mtx2->get_const_row_ptrs();
+    auto c = this->mtx2->get_const_col_idxs();
+    auto v = this->mtx2->get_const_values();
+    // -11 1 -27
+    // -15 5 -40
+    EXPECT_EQ(r[0], 0);
+    EXPECT_EQ(r[1], 3);
+    EXPECT_EQ(r[2], 6);
+    EXPECT_EQ(c[0], 0);
+    EXPECT_EQ(c[1], 1);
+    EXPECT_EQ(c[2], 2);
+    EXPECT_EQ(c[3], 0);
+    EXPECT_EQ(c[4], 1);
+    EXPECT_EQ(c[5], 2);
+    EXPECT_EQ(v[0], T{-11});
+    EXPECT_EQ(v[1], T{1});
+    EXPECT_EQ(v[2], T{-27});
+    EXPECT_EQ(v[3], T{-15});
+    EXPECT_EQ(v[4], T{5});
+    EXPECT_EQ(v[5], T{-40});
 }
 
 
-TEST_F(Csr, ApplyFailsOnWrongNumberOfCols)
+TYPED_TEST(Csr, AppliesLinearCombinationToIdentityMatrix)
 {
-    auto x = Vec::create(exec, gko::dim<2>{3});
-    auto y = Vec::create(exec, gko::dim<2>{2});
+    using T = typename TestFixture::value_type;
+    using Vec = typename TestFixture::Vec;
+    using Mtx = typename TestFixture::Mtx;
+    auto alpha = gko::initialize<Vec>({-3.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    auto a = gko::initialize<Mtx>(
+        {I<T>{2.0, 0.0, 3.0}, I<T>{0.0, 1.0, -1.5}, I<T>{0.0, -2.0, 0.0},
+         I<T>{5.0, 0.0, 0.0}, I<T>{1.0, 0.0, 4.0}, I<T>{2.0, -2.0, 0.0},
+         I<T>{0.0, 0.0, 0.0}},
+        this->exec);
+    auto b = gko::initialize<Mtx>(
+        {I<T>{2.0, -2.0, 0.0}, I<T>{1.0, 0.0, 4.0}, I<T>{2.0, 0.0, 3.0},
+         I<T>{0.0, 1.0, -1.5}, I<T>{1.0, 0.0, 0.0}, I<T>{0.0, 0.0, 0.0},
+         I<T>{0.0, 0.0, 0.0}},
+        this->exec);
+    auto expect = gko::initialize<Mtx>(
+        {I<T>{-2.0, -4.0, -9.0}, I<T>{2.0, -3.0, 12.5}, I<T>{4.0, 6.0, 6.0},
+         I<T>{-15.0, 2.0, -3.0}, I<T>{-1.0, 0.0, -12.0}, I<T>{-6.0, 6.0, 0.0},
+         I<T>{0.0, 0.0, 0.0}},
+        this->exec);
+    auto id = gko::matrix::Identity<T>::create(this->exec, a->get_size()[1]);
 
-    ASSERT_THROW(mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+    a->apply(gko::lend(alpha), gko::lend(id), gko::lend(beta), gko::lend(b));
+
+    GKO_ASSERT_MTX_NEAR(b, expect, r<T>::value);
+    GKO_ASSERT_MTX_EQ_SPARSITY(b, expect);
+    ASSERT_TRUE(b->is_sorted_by_column_index());
 }
 
 
-TEST_F(Csr, ConvertsToDense)
+TYPED_TEST(Csr, ApplyFailsOnWrongInnerDimension)
 {
-    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
-    auto dense_other = gko::initialize<gko::matrix::Dense<>>(
-        4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, exec);
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{2});
+    auto y = Vec::create(this->exec, gko::dim<2>{2});
 
-    mtx->convert_to(dense_mtx.get());
+    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Csr, ApplyFailsOnWrongNumberOfRows)
+{
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{3, 2});
+    auto y = Vec::create(this->exec, gko::dim<2>{3, 2});
+
+    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Csr, ApplyFailsOnWrongNumberOfCols)
+{
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{3});
+    auto y = Vec::create(this->exec, gko::dim<2>{2});
+
+    ASSERT_THROW(this->mtx->apply(x.get(), y.get()), gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Csr, ConvertsToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Csr = typename TestFixture::Mtx;
+    using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
+    auto tmp = OtherCsr::create(this->exec);
+    auto res = Csr::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    // use mtx2 as mtx's strategy would involve creating a CudaExecutor
+    this->mtx2->convert_to(tmp.get());
+    tmp->convert_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx2, res, residual);
+    ASSERT_EQ(typeid(*this->mtx2->get_strategy()),
+              typeid(*res->get_strategy()));
+}
+
+
+TYPED_TEST(Csr, MovesToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Csr = typename TestFixture::Mtx;
+    using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
+    auto tmp = OtherCsr::create(this->exec);
+    auto res = Csr::create(this->exec);
+    // If OtherType is more precise: 0, otherwise r
+    auto residual = r<OtherType>::value < r<ValueType>::value
+                        ? gko::remove_complex<ValueType>{0}
+                        : gko::remove_complex<ValueType>{r<OtherType>::value};
+
+    // use mtx2 as mtx's strategy would involve creating a CudaExecutor
+    this->mtx2->move_to(tmp.get());
+    tmp->move_to(res.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx2, res, residual);
+    ASSERT_EQ(typeid(*this->mtx2->get_strategy()),
+              typeid(*res->get_strategy()));
+}
+
+
+TYPED_TEST(Csr, ConvertsToDense)
+{
+    using Dense = typename TestFixture::Vec;
+    auto dense_mtx = Dense::create(this->mtx->get_executor());
+    auto dense_other = gko::initialize<Dense>(
+        4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, this->exec);
+
+    this->mtx->convert_to(dense_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
 }
 
 
-TEST_F(Csr, MovesToDense)
+TYPED_TEST(Csr, MovesToDense)
 {
-    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
-    auto dense_other = gko::initialize<gko::matrix::Dense<>>(
-        4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, exec);
+    using Dense = typename TestFixture::Vec;
+    auto dense_mtx = Dense::create(this->mtx->get_executor());
+    auto dense_other = gko::initialize<Dense>(
+        4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, this->exec);
 
-    mtx->move_to(dense_mtx.get());
+    this->mtx->move_to(dense_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(dense_mtx, dense_other, 0.0);
 }
 
 
-TEST_F(Csr, ConvertsToCoo)
+TYPED_TEST(Csr, ConvertsToCoo)
 {
-    auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());
+    using Coo = typename TestFixture::Coo;
+    auto coo_mtx = Coo::create(this->mtx->get_executor());
 
-    mtx->convert_to(coo_mtx.get());
+    this->mtx->convert_to(coo_mtx.get());
 
-    assert_equal_to_mtx(coo_mtx.get());
+    this->assert_equal_to_mtx(coo_mtx.get());
 }
 
 
-TEST_F(Csr, MovesToCoo)
+TYPED_TEST(Csr, MovesToCoo)
 {
-    auto coo_mtx = gko::matrix::Coo<>::create(mtx->get_executor());
+    using Coo = typename TestFixture::Coo;
+    auto coo_mtx = Coo::create(this->mtx->get_executor());
 
-    mtx->move_to(coo_mtx.get());
+    this->mtx->move_to(coo_mtx.get());
 
-    assert_equal_to_mtx(coo_mtx.get());
+    this->assert_equal_to_mtx(coo_mtx.get());
 }
 
 
-TEST_F(Csr, ConvertsToSellp)
+TYPED_TEST(Csr, ConvertsToSellp)
 {
-    auto sellp_mtx = gko::matrix::Sellp<>::create(mtx->get_executor());
+    using Sellp = typename TestFixture::Sellp;
+    auto sellp_mtx = Sellp::create(this->mtx->get_executor());
 
-    mtx->convert_to(sellp_mtx.get());
+    this->mtx->convert_to(sellp_mtx.get());
 
-    assert_equal_to_mtx(sellp_mtx.get());
+    this->assert_equal_to_mtx(sellp_mtx.get());
 }
 
 
-TEST_F(Csr, MovesToSellp)
+TYPED_TEST(Csr, MovesToSellp)
 {
-    auto sellp_mtx = gko::matrix::Sellp<>::create(mtx->get_executor());
-    auto csr_ref = gko::matrix::Csr<>::create(mtx->get_executor());
+    using Sellp = typename TestFixture::Sellp;
+    using Csr = typename TestFixture::Mtx;
+    auto sellp_mtx = Sellp::create(this->mtx->get_executor());
+    auto csr_ref = Csr::create(this->mtx->get_executor());
 
-    csr_ref->copy_from(mtx.get());
+    csr_ref->copy_from(this->mtx.get());
     csr_ref->move_to(sellp_mtx.get());
 
-    assert_equal_to_mtx(sellp_mtx.get());
+    this->assert_equal_to_mtx(sellp_mtx.get());
 }
 
 
-TEST_F(Csr, ConvertsToSparsityCsr)
+TYPED_TEST(Csr, ConvertsToSparsityCsr)
 {
-    auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(mtx->get_executor());
+    using SparsityCsr = typename TestFixture::SparsityCsr;
+    auto sparsity_mtx = SparsityCsr::create(this->mtx->get_executor());
 
-    mtx->convert_to(sparsity_mtx.get());
+    this->mtx->convert_to(sparsity_mtx.get());
 
-    assert_equal_to_mtx(sparsity_mtx.get());
+    this->assert_equal_to_mtx(sparsity_mtx.get());
 }
 
 
-TEST_F(Csr, MovesToSparsityCsr)
+TYPED_TEST(Csr, MovesToSparsityCsr)
 {
-    auto sparsity_mtx = gko::matrix::SparsityCsr<>::create(mtx->get_executor());
-    auto csr_ref = gko::matrix::Csr<>::create(mtx->get_executor());
+    using SparsityCsr = typename TestFixture::SparsityCsr;
+    using Csr = typename TestFixture::Mtx;
+    auto sparsity_mtx = SparsityCsr::create(this->mtx->get_executor());
+    auto csr_ref = Csr::create(this->mtx->get_executor());
 
-    csr_ref->copy_from(mtx.get());
+    csr_ref->copy_from(this->mtx.get());
     csr_ref->move_to(sparsity_mtx.get());
 
-    assert_equal_to_mtx(sparsity_mtx.get());
+    this->assert_equal_to_mtx(sparsity_mtx.get());
 }
 
 
-TEST_F(Csr, ConvertsToHybridAutomatically)
+TYPED_TEST(Csr, ConvertsToHybridAutomatically)
 {
-    auto hybrid_mtx = gko::matrix::Hybrid<>::create(mtx->get_executor());
+    using Hybrid = typename TestFixture::Hybrid;
+    auto hybrid_mtx = Hybrid::create(this->mtx->get_executor());
 
-    mtx->convert_to(hybrid_mtx.get());
+    this->mtx->convert_to(hybrid_mtx.get());
 
-    assert_equal_to_mtx(hybrid_mtx.get());
+    this->assert_equal_to_mtx(hybrid_mtx.get());
 }
 
 
-TEST_F(Csr, MovesToHybridAutomatically)
+TYPED_TEST(Csr, MovesToHybridAutomatically)
 {
-    auto hybrid_mtx = gko::matrix::Hybrid<>::create(mtx->get_executor());
-    auto csr_ref = gko::matrix::Csr<>::create(mtx->get_executor());
+    using Hybrid = typename TestFixture::Hybrid;
+    using Csr = typename TestFixture::Mtx;
+    auto hybrid_mtx = Hybrid::create(this->mtx->get_executor());
+    auto csr_ref = Csr::create(this->mtx->get_executor());
 
-    csr_ref->copy_from(mtx.get());
+    csr_ref->copy_from(this->mtx.get());
     csr_ref->move_to(hybrid_mtx.get());
 
-    assert_equal_to_mtx(hybrid_mtx.get());
+    this->assert_equal_to_mtx(hybrid_mtx.get());
 }
 
 
-TEST_F(Csr, ConvertsToHybridByColumn2)
+TYPED_TEST(Csr, ConvertsToHybridByColumn2)
 {
-    auto hybrid_mtx = gko::matrix::Hybrid<>::create(
-        mtx2->get_executor(),
-        std::make_shared<gko::matrix::Hybrid<>::column_limit>(2));
+    using Hybrid = typename TestFixture::Hybrid;
+    auto hybrid_mtx =
+        Hybrid::create(this->mtx2->get_executor(),
+                       std::make_shared<typename Hybrid::column_limit>(2));
 
-    mtx2->convert_to(hybrid_mtx.get());
+    this->mtx2->convert_to(hybrid_mtx.get());
 
-    assert_equal_to_mtx2(hybrid_mtx.get());
+    this->assert_equal_to_mtx2(hybrid_mtx.get());
 }
 
 
-TEST_F(Csr, MovesToHybridByColumn2)
+TYPED_TEST(Csr, MovesToHybridByColumn2)
 {
-    auto hybrid_mtx = gko::matrix::Hybrid<>::create(
-        mtx2->get_executor(),
-        std::make_shared<gko::matrix::Hybrid<>::column_limit>(2));
-    auto csr_ref = gko::matrix::Csr<>::create(mtx2->get_executor());
+    using Hybrid = typename TestFixture::Hybrid;
+    using Csr = typename TestFixture::Mtx;
+    auto hybrid_mtx =
+        Hybrid::create(this->mtx2->get_executor(),
+                       std::make_shared<typename Hybrid::column_limit>(2));
+    auto csr_ref = Csr::create(this->mtx2->get_executor());
 
-    csr_ref->copy_from(mtx2.get());
+    csr_ref->copy_from(this->mtx2.get());
     csr_ref->move_to(hybrid_mtx.get());
 
-    assert_equal_to_mtx2(hybrid_mtx.get());
+    this->assert_equal_to_mtx2(hybrid_mtx.get());
 }
 
 
-TEST_F(Csr, CalculatesNonzerosPerRow)
+TYPED_TEST(Csr, ConvertsEmptyToPrecision)
 {
-    gko::Array<gko::size_type> row_nnz(exec, mtx->get_size()[0]);
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Csr = typename TestFixture::Mtx;
+    using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
+    auto empty = OtherCsr::create(this->exec);
+    empty->get_row_ptrs()[0] = 0;
+    auto res = Csr::create(this->exec);
 
-    gko::kernels::reference::csr::calculate_nonzeros_per_row(exec, mtx.get(),
-                                                             &row_nnz);
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToPrecision)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using OtherType = typename gko::next_precision<ValueType>;
+    using Csr = typename TestFixture::Mtx;
+    using OtherCsr = gko::matrix::Csr<OtherType, IndexType>;
+    auto empty = OtherCsr::create(this->exec);
+    empty->get_row_ptrs()[0] = 0;
+    auto res = Csr::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, ConvertsEmptyToDense)
+{
+    using ValueType = typename TestFixture::value_type;
+    using Csr = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<ValueType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToDense)
+{
+    using ValueType = typename TestFixture::value_type;
+    using Csr = typename TestFixture::Mtx;
+    using Dense = gko::matrix::Dense<ValueType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Dense::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, ConvertsEmptyToCoo)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Coo = gko::matrix::Coo<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Coo::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToCoo)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Coo = gko::matrix::Coo<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Coo::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, ConvertsEmptyToEll)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Ell = gko::matrix::Ell<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Ell::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToEll)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Ell = gko::matrix::Ell<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Ell::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, ConvertsEmptyToSellp)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Sellp = gko::matrix::Sellp<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Sellp::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_slice_sets(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToSellp)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Sellp = gko::matrix::Sellp<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Sellp::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_EQ(*res->get_const_slice_sets(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, ConvertsEmptyToSparsityCsr)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using SparsityCsr = gko::matrix::SparsityCsr<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    empty->get_row_ptrs()[0] = 0;
+    auto res = SparsityCsr::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_nonzeros(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToSparsityCsr)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using SparsityCsr = gko::matrix::SparsityCsr<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    empty->get_row_ptrs()[0] = 0;
+    auto res = SparsityCsr::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_nonzeros(), 0);
+    ASSERT_EQ(*res->get_const_row_ptrs(), 0);
+}
+
+
+TYPED_TEST(Csr, ConvertsEmptyToHybrid)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Hybrid = gko::matrix::Hybrid<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Hybrid::create(this->exec);
+
+    empty->convert_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, MovesEmptyToHybrid)
+{
+    using ValueType = typename TestFixture::value_type;
+    using IndexType = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Mtx;
+    using Hybrid = gko::matrix::Hybrid<ValueType, IndexType>;
+    auto empty = Csr::create(this->exec);
+    auto res = Hybrid::create(this->exec);
+
+    empty->move_to(res.get());
+
+    ASSERT_EQ(res->get_num_stored_elements(), 0);
+    ASSERT_FALSE(res->get_size());
+}
+
+
+TYPED_TEST(Csr, CalculatesNonzerosPerRow)
+{
+    gko::Array<gko::size_type> row_nnz(this->exec, this->mtx->get_size()[0]);
+
+    gko::kernels::reference::csr::calculate_nonzeros_per_row(
+        this->exec, this->mtx.get(), &row_nnz);
 
     auto row_nnz_val = row_nnz.get_data();
     ASSERT_EQ(row_nnz_val[0], 3);
@@ -575,54 +989,59 @@ TEST_F(Csr, CalculatesNonzerosPerRow)
 }
 
 
-TEST_F(Csr, CalculatesTotalCols)
+TYPED_TEST(Csr, CalculatesTotalCols)
 {
     gko::size_type total_cols;
     gko::size_type stride_factor = gko::matrix::default_stride_factor;
     gko::size_type slice_size = gko::matrix::default_slice_size;
 
     gko::kernels::reference::csr::calculate_total_cols(
-        exec, mtx.get(), &total_cols, stride_factor, slice_size);
+        this->exec, this->mtx.get(), &total_cols, stride_factor, slice_size);
 
     ASSERT_EQ(total_cols, 3);
 }
 
 
-TEST_F(Csr, ConvertsToEll)
+TYPED_TEST(Csr, ConvertsToEll)
 {
-    auto ell_mtx = gko::matrix::Ell<>::create(mtx->get_executor());
-    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
-    auto ref_dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+    using Ell = typename TestFixture::Ell;
+    using Dense = typename TestFixture::Vec;
+    auto ell_mtx = Ell::create(this->mtx->get_executor());
+    auto dense_mtx = Dense::create(this->mtx->get_executor());
+    auto ref_dense_mtx = Dense::create(this->mtx->get_executor());
 
-    mtx->convert_to(ell_mtx.get());
+    this->mtx->convert_to(ell_mtx.get());
 
-    assert_equal_to_mtx(ell_mtx.get());
+    this->assert_equal_to_mtx(ell_mtx.get());
 }
 
 
-TEST_F(Csr, MovesToEll)
+TYPED_TEST(Csr, MovesToEll)
 {
-    auto ell_mtx = gko::matrix::Ell<>::create(mtx->get_executor());
-    auto dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
-    auto ref_dense_mtx = gko::matrix::Dense<>::create(mtx->get_executor());
+    using Ell = typename TestFixture::Ell;
+    using Dense = typename TestFixture::Vec;
+    auto ell_mtx = Ell::create(this->mtx->get_executor());
+    auto dense_mtx = Dense::create(this->mtx->get_executor());
+    auto ref_dense_mtx = Dense::create(this->mtx->get_executor());
 
-    mtx->move_to(ell_mtx.get());
+    this->mtx->move_to(ell_mtx.get());
 
-    assert_equal_to_mtx(ell_mtx.get());
+    this->assert_equal_to_mtx(ell_mtx.get());
 }
 
 
-TEST_F(Csr, SquareMtxIsTransposable)
+TYPED_TEST(Csr, SquareMtxIsTransposable)
 {
+    using Csr = typename TestFixture::Mtx;
     // clang-format off
-    auto mtx2 = gko::initialize<gko::matrix::Csr<>>(
+    auto mtx2 = gko::initialize<Csr>(
                 {{1.0, 3.0, 2.0},
                  {0.0, 5.0, 0.0},
-                 {0.0, 1.5, 2.0}}, exec);
+                 {0.0, 1.5, 2.0}}, this->exec);
     // clang-format on
 
     auto trans = mtx2->transpose();
-    auto trans_as_csr = static_cast<gko::matrix::Csr<> *>(trans.get());
+    auto trans_as_csr = static_cast<Csr *>(trans.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(trans_as_csr,
@@ -633,10 +1052,11 @@ TEST_F(Csr, SquareMtxIsTransposable)
 }
 
 
-TEST_F(Csr, NonSquareMtxIsTransposable)
+TYPED_TEST(Csr, NonSquareMtxIsTransposable)
 {
-    auto trans = mtx->transpose();
-    auto trans_as_csr = static_cast<gko::matrix::Csr<> *>(trans.get());
+    using Csr = typename TestFixture::Mtx;
+    auto trans = this->mtx->transpose();
+    auto trans_as_csr = static_cast<Csr *>(trans.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(trans_as_csr,
@@ -647,59 +1067,266 @@ TEST_F(Csr, NonSquareMtxIsTransposable)
 }
 
 
-TEST_F(Csr, MtxIsConjugateTransposable)
+TYPED_TEST(Csr, SquareMatrixIsRowPermutable)
 {
+    using Csr = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
     // clang-format off
-    auto mtx2 = gko::initialize<gko::matrix::Csr<std::complex<double>>>(
-        {{1.0 + 2.0 * i, 3.0 + 0.0 * i, 2.0 + 0.0 * i},
-         {0.0 + 0.0 * i, 5.0 - 3.5 * i, 0.0 + 0.0 * i},
-         {0.0 + 0.0 * i, 0.0 + 1.5 * i, 2.0 + 0.0 * i}}, exec);
+    auto p_mtx = gko::initialize<Csr>({{1.0, 3.0, 2.0},
+                                       {0.0, 5.0, 0.0},
+                                       {0.0, 1.5, 2.0}}, this->exec);
+    // clang-format on
+    gko::Array<index_type> permute_idxs{this->exec, {1, 2, 0}};
+
+    auto row_permute = p_mtx->row_permute(&permute_idxs);
+
+    auto row_permute_csr = static_cast<Csr *>(row_permute.get());
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(row_permute_csr,
+                        l({{0.0, 5.0, 0.0},
+                           {0.0, 1.5, 2.0},
+                           {1.0, 3.0, 2.0}}),
+                        0.0);
+    // clang-format on
+}
+
+
+TYPED_TEST(Csr, NonSquareMatrixIsRowPermutable)
+{
+    using Csr = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+    // clang-format off
+    auto p_mtx = gko::initialize<Csr>({{1.0, 3.0, 2.0},
+                                       {0.0, 5.0, 0.0}}, this->exec);
+    // clang-format on
+    gko::Array<index_type> permute_idxs{this->exec, {1, 0}};
+
+    auto row_permute = p_mtx->row_permute(&permute_idxs);
+
+    auto row_permute_csr = static_cast<Csr *>(row_permute.get());
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(row_permute_csr,
+                        l({{0.0, 5.0, 0.0},
+                           {1.0, 3.0, 2.0}}),
+                        0.0);
+    // clang-format on
+}
+
+
+TYPED_TEST(Csr, SquareMatrixIsColPermutable)
+{
+    using Csr = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+    // clang-format off
+    auto p_mtx = gko::initialize<Csr>({{1.0, 3.0, 2.0},
+                                       {0.0, 5.0, 0.0},
+                                       {0.0, 1.5, 2.0}}, this->exec);
+    // clang-format on
+    gko::Array<index_type> permute_idxs{this->exec, {1, 2, 0}};
+
+    auto c_permute = p_mtx->column_permute(&permute_idxs);
+
+    auto c_permute_csr = static_cast<Csr *>(c_permute.get());
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(c_permute_csr,
+                        l({{3.0, 2.0, 1.0},
+                           {5.0, 0.0, 0.0},
+                           {1.5, 2.0, 0.0}}),
+                        0.0);
+    // clang-format on
+}
+
+
+TYPED_TEST(Csr, NonSquareMatrixIsColPermutable)
+{
+    using Csr = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+    // clang-format off
+    auto p_mtx = gko::initialize<Csr>({{1.0, 0.0, 2.0},
+                                       {0.0, 5.0, 0.0}}, this->exec);
+    // clang-format on
+    gko::Array<index_type> permute_idxs{this->exec, {1, 2, 0}};
+
+    auto c_permute = p_mtx->column_permute(&permute_idxs);
+
+    auto c_permute_csr = static_cast<Csr *>(c_permute.get());
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(c_permute_csr,
+                        l({{0.0, 2.0, 1.0},
+                           {5.0, 0.0, 0.0}}),
+                        0.0);
+    // clang-format on
+}
+
+
+TYPED_TEST(Csr, SquareMatrixIsInverseRowPermutable)
+{
+    using Csr = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+    // clang-format off
+    auto inverse_p_mtx = gko::initialize<Csr>({{1.0, 3.0, 2.0},
+                                               {0.0, 5.0, 0.0},
+                                               {0.0, 1.5, 2.0}}, this->exec);
+    // clang-format on
+    gko::Array<index_type> inverse_permute_idxs{this->exec, {1, 2, 0}};
+
+    auto inverse_row_permute =
+        inverse_p_mtx->inverse_row_permute(&inverse_permute_idxs);
+
+    auto inverse_row_permute_csr =
+        static_cast<Csr *>(inverse_row_permute.get());
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(inverse_row_permute_csr,
+                        l({{0.0, 1.5, 2.0},
+                           {1.0, 3.0, 2.0},
+                           {0.0, 5.0, 0.0}}),
+                        0.0);
+    // clang-format on
+}
+
+
+TYPED_TEST(Csr, NonSquareMatrixIsInverseRowPermutable)
+{
+    using Csr = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+    // clang-format off
+    auto inverse_p_mtx = gko::initialize<Csr>({{1.0, 3.0, 2.0},
+                                               {0.0, 5.0, 0.0}}, this->exec);
+    // clang-format on
+    gko::Array<index_type> inverse_permute_idxs{this->exec, {1, 0}};
+
+    auto inverse_row_permute =
+        inverse_p_mtx->inverse_row_permute(&inverse_permute_idxs);
+
+    auto inverse_row_permute_csr =
+        static_cast<Csr *>(inverse_row_permute.get());
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(inverse_row_permute_csr,
+                        l({{0.0, 5.0, 0.0},
+                           {1.0, 3.0, 2.0}}),
+                        0.0);
+    // clang-format on
+}
+
+
+TYPED_TEST(Csr, SquareMatrixIsInverseColPermutable)
+{
+    using Csr = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+    // clang-format off
+    auto inverse_p_mtx = gko::initialize<Csr>({{1.0, 3.0, 2.0},
+                                               {0.0, 5.0, 0.0},
+                                               {0.0, 1.5, 2.0}}, this->exec);
+    // clang-format on
+    gko::Array<index_type> inverse_permute_idxs{this->exec, {1, 2, 0}};
+
+    auto inverse_c_permute =
+        inverse_p_mtx->inverse_column_permute(&inverse_permute_idxs);
+
+    auto inverse_c_permute_csr = static_cast<Csr *>(inverse_c_permute.get());
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(inverse_c_permute_csr,
+                        l({{2.0, 1.0, 3.0},
+                           {0.0, 0.0, 5.0},
+                           {2.0, 0.0, 1.5}}),
+                        0.0);
+    // clang-format on
+}
+
+
+TYPED_TEST(Csr, NonSquareMatrixIsInverseColPermutable)
+{
+    using Csr = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+    // clang-format off
+    auto inverse_p_mtx = gko::initialize<Csr>({{1.0, 3.0, 2.0},
+                                              {0.0, 5.0, 0.0}}, this->exec);
+    // clang-format on
+    gko::Array<index_type> inverse_permute_idxs{this->exec, {1, 2, 0}};
+
+    auto inverse_c_permute =
+        inverse_p_mtx->inverse_column_permute(&inverse_permute_idxs);
+
+    auto inverse_c_permute_csr = static_cast<Csr *>(inverse_c_permute.get());
+    // clang-format off
+    GKO_ASSERT_MTX_NEAR(inverse_c_permute_csr,
+                        l({{2.0, 1.0, 3.0},
+                           {0.0, 0.0, 5.0}}),
+                        0.0);
+    // clang-format on
+}
+
+
+TYPED_TEST(Csr, RecognizeSortedMatrix)
+{
+    ASSERT_TRUE(this->mtx->is_sorted_by_column_index());
+    ASSERT_TRUE(this->mtx2->is_sorted_by_column_index());
+    ASSERT_TRUE(this->mtx3_sorted->is_sorted_by_column_index());
+}
+
+
+TYPED_TEST(Csr, RecognizeUnsortedMatrix)
+{
+    ASSERT_FALSE(this->mtx3_unsorted->is_sorted_by_column_index());
+}
+
+
+TYPED_TEST(Csr, SortSortedMatrix)
+{
+    auto matrix = this->mtx3_sorted->clone();
+
+    matrix->sort_by_column_index();
+
+    GKO_ASSERT_MTX_NEAR(matrix, this->mtx3_sorted, 0.0);
+}
+
+
+TYPED_TEST(Csr, SortUnsortedMatrix)
+{
+    auto matrix = this->mtx3_unsorted->clone();
+
+    matrix->sort_by_column_index();
+
+    GKO_ASSERT_MTX_NEAR(matrix, this->mtx3_sorted, 0.0);
+}
+
+
+template <typename ValueIndexType>
+class CsrComplex : public ::testing::Test {
+protected:
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Mtx = gko::matrix::Csr<value_type, index_type>;
+};
+
+TYPED_TEST_CASE(CsrComplex, gko::test::ComplexValueIndexTypes);
+
+
+TYPED_TEST(CsrComplex, MtxIsConjugateTransposable)
+{
+    using Csr = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using value_type = typename TestFixture::value_type;
+
+    auto exec = gko::ReferenceExecutor::create();
+    // clang-format off
+        auto mtx2 = gko::initialize<Csr>(
+            {{T{1.0, 2.0}, T{3.0, 0.0}, T{2.0, 0.0}},
+             {T{0.0, 0.0}, T{5.0, - 3.5}, T{0.0,0.0}},
+             {T{0.0, 0.0}, T{0.0, 1.5}, T{2.0,0.0}}}, exec);
     // clang-format on
 
     auto trans = mtx2->conj_transpose();
-    auto trans_as_csr =
-        static_cast<gko::matrix::Csr<std::complex<double>> *>(trans.get());
+    auto trans_as_csr = static_cast<Csr *>(trans.get());
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(trans_as_csr,
-                    l({{1.0 - 2.0 * i, 0.0 + 0.0 * i, 0.0 + 0.0 * i},
-                       {3.0 + 0.0 * i, 5.0 + 3.5 * i, 0.0 - 1.5 * i},
-                       {2.0 + 0.0 * i, 0.0 + 0.0 * i, 2.0 + 0.0 * i}}), 0.0);
+                        l({{T{1.0, - 2.0}, T{0.0, 0.0}, T{0.0, 0.0}},
+                           {T{3.0, 0.0}, T{5.0, 3.5}, T{0.0, - 1.5}},
+                           {T{2.0, 0.0}, T{0.0, 0.0}, T{2.0 + 0.0}}}), 0.0);
     // clang-format on
-}
-
-
-TEST_F(Csr, RecognizeSortedMatrix)
-{
-    ASSERT_TRUE(mtx->is_sorted_by_column_index());
-    ASSERT_TRUE(mtx2->is_sorted_by_column_index());
-    ASSERT_TRUE(mtx3_sorted->is_sorted_by_column_index());
-}
-
-
-TEST_F(Csr, RecognizeUnsortedMatrix)
-{
-    ASSERT_FALSE(mtx3_unsorted->is_sorted_by_column_index());
-}
-
-
-TEST_F(Csr, SortSortedMatrix)
-{
-    auto matrix = mtx3_sorted->clone();
-
-    matrix->sort_by_column_index();
-
-    GKO_ASSERT_MTX_NEAR(matrix, mtx3_sorted, 0.0);
-}
-
-
-TEST_F(Csr, SortUnsortedMatrix)
-{
-    auto matrix = mtx3_unsorted->clone();
-
-    matrix->sort_by_column_index();
-
-    GKO_ASSERT_MTX_NEAR(matrix, mtx3_sorted, 0.0);
 }
 
 

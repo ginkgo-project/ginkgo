@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -55,6 +55,10 @@ template <typename ValueType>
 class Dense;
 
 
+template <typename ValueType, typename IndexType>
+class CooBuilder;
+
+
 /**
  * COO stores a matrix in the coordinate matrix format.
  *
@@ -72,6 +76,7 @@ class Dense;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
             public EnableCreateMethod<Coo<ValueType, IndexType>>,
+            public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public ReadableFromMatrixData<ValueType, IndexType>,
@@ -80,6 +85,7 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
     friend class EnablePolymorphicObject<Coo, LinOp>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
+    friend class CooBuilder<ValueType, IndexType>;
 
 public:
     using EnableLinOp<Coo>::convert_to;
@@ -88,6 +94,13 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
+
+    friend class Coo<next_precision<ValueType>, IndexType>;
+
+    void convert_to(
+        Coo<next_precision<ValueType>, IndexType> *result) const override;
+
+    void move_to(Coo<next_precision<ValueType>, IndexType> *result) override;
 
     void convert_to(Csr<ValueType, IndexType> *other) const override;
 

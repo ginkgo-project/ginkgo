@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,8 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_MATRIX_DENSE_KERNELS_HPP_
 
 
-#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
@@ -71,37 +74,37 @@ namespace kernels {
 #define GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL(_type)               \
     void compute_norm2(std::shared_ptr<const DefaultExecutor> exec, \
                        const matrix::Dense<_type> *x,               \
-                       matrix::Dense<_type> *result)
+                       matrix::Dense<remove_complex<_type>> *result)
 
 #define GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(_type, _prec)        \
     void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec, \
-                        matrix::Coo<_type, _prec> *other,            \
-                        const matrix::Dense<_type> *source)
+                        const matrix::Dense<_type> *source,          \
+                        matrix::Coo<_type, _prec> *other)
 
 #define GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(_type, _prec)        \
     void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec, \
-                        matrix::Csr<_type, _prec> *other,            \
-                        const matrix::Dense<_type> *source)
+                        const matrix::Dense<_type> *source,          \
+                        matrix::Csr<_type, _prec> *other)
 
 #define GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL(_type, _prec)        \
     void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec, \
-                        matrix::Ell<_type, _prec> *other,            \
-                        const matrix::Dense<_type> *source)
+                        const matrix::Dense<_type> *source,          \
+                        matrix::Ell<_type, _prec> *other)
 
 #define GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL(_type, _prec)        \
     void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec, \
-                           matrix::Hybrid<_type, _prec> *other,         \
-                           const matrix::Dense<_type> *source)
+                           const matrix::Dense<_type> *source,          \
+                           matrix::Hybrid<_type, _prec> *other)
 
 #define GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL(_type, _prec)        \
     void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec, \
-                          matrix::Sellp<_type, _prec> *other,          \
-                          const matrix::Dense<_type> *source)
+                          const matrix::Dense<_type> *source,          \
+                          matrix::Sellp<_type, _prec> *other)
 
 #define GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_CSR_KERNEL(_type, _prec)        \
     void convert_to_sparsity_csr(std::shared_ptr<const DefaultExecutor> exec, \
-                                 matrix::SparsityCsr<_type, _prec> *other,    \
-                                 const matrix::Dense<_type> *source)
+                                 const matrix::Dense<_type> *source,          \
+                                 matrix::SparsityCsr<_type, _prec> *other)
 
 #define GKO_DECLARE_DENSE_COUNT_NONZEROS_KERNEL(_type)               \
     void count_nonzeros(std::shared_ptr<const DefaultExecutor> exec, \
@@ -125,13 +128,37 @@ namespace kernels {
 
 #define GKO_DECLARE_TRANSPOSE_KERNEL(_type)                     \
     void transpose(std::shared_ptr<const DefaultExecutor> exec, \
-                   matrix::Dense<_type> *trans,                 \
-                   const matrix::Dense<_type> *orig)
+                   const matrix::Dense<_type> *orig,            \
+                   matrix::Dense<_type> *trans)
 
 #define GKO_DECLARE_CONJ_TRANSPOSE_KERNEL(_type)                     \
     void conj_transpose(std::shared_ptr<const DefaultExecutor> exec, \
-                        matrix::Dense<_type> *trans,                 \
-                        const matrix::Dense<_type> *orig)
+                        const matrix::Dense<_type> *orig,            \
+                        matrix::Dense<_type> *trans)
+
+#define GKO_DECLARE_ROW_PERMUTE_KERNEL(_vtype, _itype)            \
+    void row_permute(std::shared_ptr<const DefaultExecutor> exec, \
+                     const Array<_itype> *permutation_indices,    \
+                     const matrix::Dense<_vtype> *orig,           \
+                     matrix::Dense<_vtype> *row_permuted)
+
+#define GKO_DECLARE_COLUMN_PERMUTE_KERNEL(_vtype, _itype)            \
+    void column_permute(std::shared_ptr<const DefaultExecutor> exec, \
+                        const Array<_itype> *permutation_indices,    \
+                        const matrix::Dense<_vtype> *orig,           \
+                        matrix::Dense<_vtype> *column_permuted)
+
+#define GKO_DECLARE_INVERSE_ROW_PERMUTE_KERNEL(_vtype, _itype)            \
+    void inverse_row_permute(std::shared_ptr<const DefaultExecutor> exec, \
+                             const Array<_itype> *permutation_indices,    \
+                             const matrix::Dense<_vtype> *orig,           \
+                             matrix::Dense<_vtype> *row_permuted)
+
+#define GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL(_vtype, _itype)            \
+    void inverse_column_permute(std::shared_ptr<const DefaultExecutor> exec, \
+                                const Array<_itype> *permutation_indices,    \
+                                const matrix::Dense<_vtype> *orig,           \
+                                matrix::Dense<_vtype> *column_permuted)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
     template <typename ValueType>                                           \
@@ -169,7 +196,15 @@ namespace kernels {
     template <typename ValueType>                                           \
     GKO_DECLARE_TRANSPOSE_KERNEL(ValueType);                                \
     template <typename ValueType>                                           \
-    GKO_DECLARE_CONJ_TRANSPOSE_KERNEL(ValueType)
+    GKO_DECLARE_CONJ_TRANSPOSE_KERNEL(ValueType);                           \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_ROW_PERMUTE_KERNEL(ValueType, IndexType);                   \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType);                \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_INVERSE_ROW_PERMUTE_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType)
 
 
 namespace omp {
@@ -197,6 +232,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace dense
 }  // namespace reference
+
+
+namespace hip {
+namespace dense {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace dense
+}  // namespace hip
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -382,7 +382,7 @@ public:
         return *this;
     }
 
-    GKO_ATTRIBUTES range(const range &other) = default;
+    range(const range &other) = default;
 
     /**
      * Returns the length of the specified dimension of the range.

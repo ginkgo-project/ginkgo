@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,9 +52,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 DEFINE_uint32(max_block_size, 32,
               "Maximal block size of the block-Jacobi preconditioner");
 
-DEFINE_string(preconditioners, "jacobi",
-              "A comma-separated list of solvers to run."
-              "Supported values are: jacobi");
+DEFINE_uint32(num_iterations, 5,
+              "Number of iterations for the ParICT/ParILU(T) preconditioner");
+
+DEFINE_bool(
+    approx_select, true,
+    "Use approximate selection for the threshold filtering in ParICT/ParILUT");
+
+DEFINE_double(fill_limit, 2.0, "The fill-in limit used in ParICT/ParILUT");
+
+DEFINE_string(preconditioners, "jacobi,parilu,parilut,ilu",
+              "A comma-separated list of preconditioners to run."
+              "Supported values are: jacobi, parict, parilu, parilut, ilu");
 
 DEFINE_string(storage_optimization, "0,0",
               "Defines the kind of storage optimization to perform on "
@@ -90,12 +99,54 @@ gko::precision_reduction parse_storage_optimization(const std::string &flag)
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                                 std::shared_ptr<const gko::Executor> exec)>>
     precond_factory{
-        {"jacobi", [](std::shared_ptr<const gko::Executor> exec) {
+        {"jacobi",
+         [](std::shared_ptr<const gko::Executor> exec) {
              return gko::preconditioner::Jacobi<etype>::build()
                  .with_max_block_size(FLAGS_max_block_size)
                  .with_storage_optimization(
                      parse_storage_optimization(FLAGS_storage_optimization))
                  .with_accuracy(FLAGS_accuracy)
+                 .on(exec);
+         }},
+        {"parict",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto ict_fact = std::shared_ptr<gko::LinOpFactory>(
+                 gko::factorization::ParIct<etype>::build()
+                     .with_iterations(FLAGS_num_iterations)
+                     .with_approximate_select(FLAGS_approx_select)
+                     .with_fill_in_limit(FLAGS_fill_limit)
+                     .on(exec));
+             return gko::preconditioner::Ilu<>::build()
+                 .with_factorization_factory(ict_fact)
+                 .on(exec);
+         }},
+        {"parilu",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto ilu_fact = std::shared_ptr<gko::LinOpFactory>(
+                 gko::factorization::ParIlu<etype>::build()
+                     .with_iterations(FLAGS_num_iterations)
+                     .on(exec));
+             return gko::preconditioner::Ilu<>::build()
+                 .with_factorization_factory(ilu_fact)
+                 .on(exec);
+         }},
+        {"parilut",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto ilut_fact = std::shared_ptr<gko::LinOpFactory>(
+                 gko::factorization::ParIlut<etype>::build()
+                     .with_iterations(FLAGS_num_iterations)
+                     .with_approximate_select(FLAGS_approx_select)
+                     .with_fill_in_limit(FLAGS_fill_limit)
+                     .on(exec));
+             return gko::preconditioner::Ilu<>::build()
+                 .with_factorization_factory(ilut_fact)
+                 .on(exec);
+         }},
+        {"ilu", [](std::shared_ptr<const gko::Executor> exec) {
+             auto ilu_fact = std::shared_ptr<gko::LinOpFactory>(
+                 gko::factorization::Ilu<etype>::build().on(exec));
+             return gko::preconditioner::Ilu<>::build()
+                 .with_factorization_factory(ilu_fact)
                  .on(exec);
          }}};
 
@@ -105,12 +156,34 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
 std::string encode_parameters(const char *precond_name)
 {
     static std::map<std::string, std::string (*)()> encoder{
-        {"jacobi", [] {
+        {"jacobi",
+         [] {
              std::ostringstream oss;
              oss << "jacobi-" << FLAGS_max_block_size << "-"
                  << FLAGS_storage_optimization;
              return oss.str();
-         }}};
+         }},
+        {"parict",
+         [] {
+             std::ostringstream oss;
+             oss << "parict-" << FLAGS_num_iterations << '-'
+                 << FLAGS_approx_select << '-' << FLAGS_fill_limit;
+             return oss.str();
+         }},
+        {"parilu",
+         [] {
+             std::ostringstream oss;
+             oss << "parilu-" << FLAGS_num_iterations;
+             return oss.str();
+         }},
+        {"parilut",
+         [] {
+             std::ostringstream oss;
+             oss << "parilut-" << FLAGS_num_iterations << '-'
+                 << FLAGS_approx_select << '-' << FLAGS_fill_limit;
+             return oss.str();
+         }},
+        {"ilu", [] { return std::string{"ilu"}; }}};
     return encoder[precond_name]();
 }
 
@@ -196,7 +269,8 @@ void run_preconditioner(const char *precond_name,
             auto x_clone = clone(x);
             auto precond = precond_factory.at(precond_name)(exec);
 
-            auto gen_logger = std::make_shared<OperationLogger>(exec);
+            auto gen_logger =
+                std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(gen_logger);
             std::unique_ptr<gko::LinOp> precond_op;
             for (auto i = 0u; i < FLAGS_repetitions; ++i) {
@@ -207,7 +281,8 @@ void run_preconditioner(const char *precond_name,
             gen_logger->write_data(this_precond_data["generate"]["components"],
                                    allocator, FLAGS_repetitions);
 
-            auto apply_logger = std::make_shared<OperationLogger>(exec);
+            auto apply_logger =
+                std::make_shared<OperationLogger>(exec, FLAGS_nested_names);
             exec->add_logger(apply_logger);
             for (auto i = 0u; i < FLAGS_repetitions; ++i) {
                 precond_op->apply(lend(b), lend(x_clone));
@@ -310,5 +385,5 @@ int main(int argc, char *argv[])
         }
     }
 
-    std::cout << test_cases;
+    std::cout << test_cases << std::endl;
 }

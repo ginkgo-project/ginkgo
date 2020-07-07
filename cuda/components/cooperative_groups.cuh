@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/std_extensions.hpp>
 
 
+#include "cuda/base/config.hpp"
+
+
 namespace gko {
+namespace kernels {
+namespace cuda {
 
 
 /**
@@ -59,7 +64,7 @@ namespace gko {
  * A cooperative group (both from standard CUDA and from Ginkgo) is not a
  * specific type, but a concept. That is, any type  satisfying the interface
  * imposed by the cooperative groups API is considered a cooperative
- * group (a.k.a. "duck typing"). To maximize the generality of components than
+ * group (a.k.a. "duck typing"). To maximize the generality of components that
  * need cooperative groups, instead of creating the group manually, consider
  * requesting one as an input parameter. Make sure its type is a template
  * parameter to maximize the set of groups for which your algorithm can be
@@ -228,19 +233,18 @@ public:
     __device__ unsigned thread_rank() const noexcept { return data_.rank; }
 
 private:
+    // clang-format off
     __device__ grid_group()
-        : data_{blockDim.x * blockDim.y * blockDim.z * gridDim.x * gridDim.y *
-                    gridDim.z,
-                threadIdx.x +
-                    blockDim.x *
-                        (threadIdx.y +
-                         blockDim.y *
-                             (threadIdx.z +
-                              blockDim.z *
-                                  (blockIdx.x +
-                                   gridDim.x *
-                                       (blockIdx.y + gridDim.y * blockIdx.z))))}
+        : data_{
+                blockDim.x * blockDim.y * blockDim.z *
+                    gridDim.x * gridDim.y * gridDim.z,
+                threadIdx.x + blockDim.x *
+                    (threadIdx.y + blockDim.y *
+                        (threadIdx.z + blockDim.z *
+                            (blockIdx.x + gridDim.x *
+                                (blockIdx.y + gridDim.y * blockIdx.z))))}                      
     {}
+    // clang-format on
 
     struct alignas(8) {
         unsigned size;
@@ -341,7 +345,7 @@ private:
     template <typename ShuffleOperator, typename ValueType,
               typename SelectorType>
     static __device__ __forceinline__ ValueType
-    shuffle_impl(ShuffleOperator intrinsic_shuffle, const ValueType &var,
+    shuffle_impl(ShuffleOperator intrinsic_shuffle, const ValueType var,
                  SelectorType selector)
     {
         static_assert(sizeof(ValueType) % sizeof(uint32) == 0,
@@ -450,15 +454,23 @@ __device__ __forceinline__ auto tiled_partition(const Group &g)
 }
 
 
+// Only support tile_partition with 1, 2, 4, 8, 16, 32.
+// Reference:
+// https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#warp-notes
 template <size_type Size, typename Group>
-__device__ __forceinline__ thread_block_tile<Size> tiled_partition(
-    const Group &)
+__device__ __forceinline__ gko::xstd::enable_if_t<
+    (Size <= kernels::cuda::config::warp_size) && (Size > 0) &&
+        (kernels::cuda::config::warp_size % Size == 0),
+    thread_block_tile<Size>>
+tiled_partition(const Group &)
 {
     return thread_block_tile<Size>();
 }
 
 
 }  // namespace group
+}  // namespace cuda
+}  // namespace kernels
 }  // namespace gko
 
 

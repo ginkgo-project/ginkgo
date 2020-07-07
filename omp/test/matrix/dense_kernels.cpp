@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,26 +30,29 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/matrix/dense_kernels.hpp"
+#include <ginkgo/core/matrix/dense.hpp>
 
 
-#include <iostream>
+#include <algorithm>
+#include <numeric>
 #include <random>
+#include <vector>
 
 
 #include <gtest/gtest.h>
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
+#include "core/matrix/dense_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -59,6 +62,8 @@ namespace {
 class Dense : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::Dense<>;
+    using NormVector = gko::matrix::Dense<gko::remove_complex<Mtx::value_type>>;
+    using Arr = gko::Array<int>;
     using ComplexMtx = gko::matrix::Dense<std::complex<double>>;
 
     Dense() : rand_engine(15) {}
@@ -135,6 +140,22 @@ protected:
         dalpha->copy_from(alpha.get());
         dbeta = Mtx::create(omp);
         dbeta->copy_from(beta.get());
+
+        std::vector<int> tmp(x->get_size()[0], 0);
+        auto rng = std::default_random_engine{};
+        std::iota(tmp.begin(), tmp.end(), 0);
+        std::shuffle(tmp.begin(), tmp.end(), rng);
+        std::vector<int> tmp2(x->get_size()[1], 0);
+        std::iota(tmp2.begin(), tmp2.end(), 0);
+        std::shuffle(tmp2.begin(), tmp2.end(), rng);
+        rpermute_idxs =
+            std::unique_ptr<Arr>(new Arr{ref, tmp.begin(), tmp.end()});
+        drpermute_idxs =
+            std::unique_ptr<Arr>(new Arr{omp, tmp.begin(), tmp.end()});
+        cpermute_idxs =
+            std::unique_ptr<Arr>(new Arr{ref, tmp2.begin(), tmp2.end()});
+        dcpermute_idxs =
+            std::unique_ptr<Arr>(new Arr{omp, tmp2.begin(), tmp2.end()});
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
@@ -154,6 +175,10 @@ protected:
     std::unique_ptr<Mtx> dy;
     std::unique_ptr<Mtx> dalpha;
     std::unique_ptr<Mtx> dbeta;
+    std::unique_ptr<Arr> rpermute_idxs;
+    std::unique_ptr<Arr> drpermute_idxs;
+    std::unique_ptr<Arr> cpermute_idxs;
+    std::unique_ptr<Arr> dcpermute_idxs;
 };
 
 
@@ -250,11 +275,14 @@ TEST_F(Dense, MultipleVectorOmpComputeDotIsEquivalentToRef)
 TEST_F(Dense, ComputesNorm2IsEquivalentToRef)
 {
     set_up_vector_data(20);
+    auto norm_size = gko::dim<2>{1, x->get_size()[1]};
+    auto norm_expected = NormVector::create(this->ref, norm_size);
+    auto dnorm = NormVector::create(this->omp, norm_size);
 
-    x->compute_norm2(expected.get());
-    dx->compute_norm2(dresult.get());
+    x->compute_norm2(norm_expected.get());
+    dx->compute_norm2(dnorm.get());
 
-    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+    GKO_ASSERT_MTX_NEAR(norm_expected, dnorm, 1e-14);
 }
 
 
@@ -524,6 +552,18 @@ TEST_F(Dense, MoveToSellpIsEquivalentToRef)
 }
 
 
+TEST_F(Dense, ConvertsEmptyToSellp)
+{
+    auto dempty_mtx = Mtx::create(omp);
+    auto dsellp_mtx = gko::matrix::Sellp<>::create(omp);
+
+    dempty_mtx->convert_to(dsellp_mtx.get());
+
+    ASSERT_EQ(*dsellp_mtx->get_const_slice_sets(), 0);
+    ASSERT_FALSE(dsellp_mtx->get_size());
+}
+
+
 TEST_F(Dense, CalculateMaxNNZPerRowIsEquivalentToRef)
 {
     std::size_t ref_max_nnz_per_row = 0;
@@ -579,6 +619,50 @@ TEST_F(Dense, IsConjugateTransposable)
 
     GKO_ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(dtrans.get()),
                         static_cast<ComplexMtx *>(trans.get()), 0);
+}
+
+
+TEST_F(Dense, IsRowPermutable)
+{
+    set_up_apply_data();
+    auto r_permute = x->row_permute(rpermute_idxs.get());
+    auto dr_permute = dx->row_permute(drpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(r_permute.get()),
+                        static_cast<Mtx *>(dr_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsColPermutable)
+{
+    set_up_apply_data();
+    auto c_permute = x->column_permute(cpermute_idxs.get());
+    auto dc_permute = dx->column_permute(dcpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(c_permute.get()),
+                        static_cast<Mtx *>(dc_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsInverseRowPermutable)
+{
+    set_up_apply_data();
+    auto inverse_r_permute = x->inverse_row_permute(rpermute_idxs.get());
+    auto d_inverse_r_permute = dx->inverse_row_permute(drpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(inverse_r_permute.get()),
+                        static_cast<Mtx *>(d_inverse_r_permute.get()), 0);
+}
+
+
+TEST_F(Dense, IsInverseColPermutable)
+{
+    set_up_apply_data();
+    auto inverse_c_permute = x->inverse_column_permute(cpermute_idxs.get());
+    auto d_inverse_c_permute = dx->inverse_column_permute(dcpermute_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(inverse_c_permute.get()),
+                        static_cast<Mtx *>(d_inverse_c_permute.get()), 0);
 }
 
 

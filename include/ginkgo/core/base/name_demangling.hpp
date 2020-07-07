@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,11 +30,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_NAME_DEMANGLING_HPP
-#define GKO_CORE_NAME_DEMANGLING_HPP
+#ifndef GKO_CORE_BASE_NAME_DEMANGLING_HPP_
+#define GKO_CORE_BASE_NAME_DEMANGLING_HPP_
 
 
 #include <ginkgo/config.hpp>
+
 
 #ifdef GKO_HAVE_CXXABI_H
 #include <cxxabi.h>
@@ -140,4 +141,4 @@ std::string get_enclosing_scope(const T &)
 }  // namespace gko
 
 
-#endif  //  GKO_CORE_NAME_DEMANGLING_HPP
+#endif  // GKO_CORE_BASE_NAME_DEMANGLING_HPP_

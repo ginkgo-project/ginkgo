@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <fstream>
 #include <memory>
+#include <random>
 #include <string>
 
 
@@ -44,11 +45,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/factorization/factorization_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "matrices/config.hpp"
 
@@ -56,16 +59,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
+template <typename ValueIndexType>
 class ParIlu : public ::testing::Test {
 protected:
-    using value_type = gko::default_precision;
-    using index_type = gko::int32;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Dense = gko::matrix::Dense<value_type>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
 
+    std::ranlux48 rand_engine;
+    std::shared_ptr<gko::ReferenceExecutor> ref;
+    std::shared_ptr<gko::OmpExecutor> omp;
+    std::shared_ptr<const Csr> csr_ref;
+    std::shared_ptr<const Csr> csr_omp;
+
     ParIlu()
-        : ref(gko::ReferenceExecutor::create()),
+        : rand_engine(17),
+          ref(gko::ReferenceExecutor::create()),
           omp(gko::OmpExecutor::create()),
           csr_ref(nullptr),
           csr_omp(nullptr)
@@ -79,25 +92,62 @@ protected:
             FAIL() << "Could not find the file \"" << file_name
                    << "\", which is required for this test.\n";
         }
-        csr_ref = gko::read<Csr>(input_file, ref);
+        auto csr_ref_temp = gko::read<Csr>(input_file, ref);
         auto csr_omp_temp = Csr::create(omp);
-        csr_omp_temp->copy_from(gko::lend(csr_ref));
+        csr_omp_temp->copy_from(gko::lend(csr_ref_temp));
+        // Make sure there are diagonal elements present
+        gko::kernels::reference::factorization::add_diagonal_elements(
+            ref, gko::lend(csr_ref_temp), false);
+        gko::kernels::omp::factorization::add_diagonal_elements(
+            omp, gko::lend(csr_omp_temp), false);
+        csr_ref = gko::give(csr_ref_temp);
         csr_omp = gko::give(csr_omp_temp);
     }
 
-    std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<gko::OmpExecutor> omp;
-    std::shared_ptr<const Csr> csr_ref;
-    std::shared_ptr<const Csr> csr_omp;
+    template <typename Mtx>
+    std::unique_ptr<Mtx> gen_mtx(index_type num_rows, index_type num_cols)
+    {
+        return gko::test::generate_random_matrix<Mtx>(
+            num_rows, num_cols,
+            std::uniform_int_distribution<index_type>(0, num_cols - 1),
+            std::normal_distribution<gko::remove_complex<value_type>>(0.0, 1.0),
+            rand_engine, ref);
+    }
+
+    std::unique_ptr<Csr> gen_unsorted_mtx(index_type num_rows,
+                                          index_type num_cols)
+    {
+        using std::swap;
+        auto mtx = gen_mtx<Csr>(num_rows, num_cols);
+        auto values = mtx->get_values();
+        auto col_idxs = mtx->get_col_idxs();
+        const auto row_ptrs = mtx->get_const_row_ptrs();
+        for (int row = 0; row < num_rows; ++row) {
+            const auto row_start = row_ptrs[row];
+            const auto row_end = row_ptrs[row + 1];
+            const int num_row_elements = row_end - row_start;
+            auto idx_dist = std::uniform_int_distribution<index_type>(
+                row_start, row_end - 1);
+            for (int i = 0; i < num_row_elements / 2; ++i) {
+                auto idx1 = idx_dist(rand_engine);
+                auto idx2 = idx_dist(rand_engine);
+                if (idx1 != idx2) {
+                    swap(values[idx1], values[idx2]);
+                    swap(col_idxs[idx1], col_idxs[idx2]);
+                }
+            }
+        }
+        return mtx;
+    }
 
     void initialize_row_ptrs(index_type *l_row_ptrs_ref,
                              index_type *u_row_ptrs_ref,
                              index_type *l_row_ptrs_omp,
                              index_type *u_row_ptrs_omp)
     {
-        gko::kernels::reference::par_ilu_factorization::initialize_row_ptrs_l_u(
+        gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
             ref, gko::lend(csr_ref), l_row_ptrs_ref, u_row_ptrs_ref);
-        gko::kernels::omp::par_ilu_factorization::initialize_row_ptrs_l_u(
+        gko::kernels::omp::factorization::initialize_row_ptrs_l_u(
             omp, gko::lend(csr_omp), l_row_ptrs_omp, u_row_ptrs_omp);
     }
 
@@ -123,18 +173,18 @@ protected:
         *l_omp = Csr::create(omp, csr_omp->get_size(), l_nnz);
         *u_omp = Csr::create(omp, csr_omp->get_size(), u_nnz);
         // Copy the already initialized `row_ptrs` to the new matrices
-        ref->copy_from(gko::lend(ref), num_row_ptrs, l_row_ptrs_ref.get_data(),
-                       (*l_ref)->get_row_ptrs());
-        ref->copy_from(gko::lend(ref), num_row_ptrs, u_row_ptrs_ref.get_data(),
-                       (*u_ref)->get_row_ptrs());
-        omp->copy_from(gko::lend(omp), num_row_ptrs, l_row_ptrs_omp.get_data(),
-                       (*l_omp)->get_row_ptrs());
-        omp->copy_from(gko::lend(omp), num_row_ptrs, u_row_ptrs_omp.get_data(),
-                       (*u_omp)->get_row_ptrs());
+        ref->copy(num_row_ptrs, l_row_ptrs_ref.get_data(),
+                  (*l_ref)->get_row_ptrs());
+        ref->copy(num_row_ptrs, u_row_ptrs_ref.get_data(),
+                  (*u_ref)->get_row_ptrs());
+        omp->copy(num_row_ptrs, l_row_ptrs_omp.get_data(),
+                  (*l_omp)->get_row_ptrs());
+        omp->copy(num_row_ptrs, u_row_ptrs_omp.get_data(),
+                  (*u_omp)->get_row_ptrs());
 
-        gko::kernels::reference::par_ilu_factorization::initialize_l_u(
+        gko::kernels::reference::factorization::initialize_l_u(
             ref, gko::lend(csr_ref), gko::lend(*l_ref), gko::lend(*u_ref));
-        gko::kernels::omp::par_ilu_factorization::initialize_l_u(
+        gko::kernels::omp::factorization::initialize_l_u(
             omp, gko::lend(csr_omp), gko::lend(*l_omp), gko::lend(*u_omp));
     }
 
@@ -174,21 +224,87 @@ protected:
     }
 };
 
+TYPED_TEST_CASE(ParIlu, gko::test::ValueIndexTypes);
 
-TEST_F(ParIlu, OmpKernelInitializeRowPtrsLUEquivalentToRef)
+
+TYPED_TEST(ParIlu, OmpKernelAddDiagonalElementsSortedEquivalentToRef)
 {
-    auto num_row_ptrs = csr_ref->get_size()[0] + 1;
-    gko::Array<index_type> l_row_ptrs_array_ref(ref, num_row_ptrs);
-    gko::Array<index_type> u_row_ptrs_array_ref(ref, num_row_ptrs);
-    gko::Array<index_type> l_row_ptrs_array_omp(omp, num_row_ptrs);
-    gko::Array<index_type> u_row_ptrs_array_omp(omp, num_row_ptrs);
+    using index_type = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Csr;
+    index_type num_rows{200};
+    index_type num_cols{200};
+    auto mtx_ref = this->template gen_mtx<Csr>(num_rows, num_cols);
+    auto mtx_omp = Csr::create(this->omp);
+    mtx_omp->copy_from(gko::lend(mtx_ref));
+
+    gko::kernels::reference::factorization::add_diagonal_elements(
+        this->ref, gko::lend(mtx_ref), true);
+    gko::kernels::omp::factorization::add_diagonal_elements(
+        this->omp, gko::lend(mtx_omp), true);
+
+    ASSERT_TRUE(mtx_ref->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_NEAR(mtx_ref, mtx_omp, 0.);
+    GKO_ASSERT_MTX_EQ_SPARSITY(mtx_ref, mtx_omp);
+}
+
+
+TYPED_TEST(ParIlu, OmpKernelAddDiagonalElementsUnsortedEquivalentToRef)
+{
+    using index_type = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Csr;
+    index_type num_rows{200};
+    index_type num_cols{200};
+    auto mtx_ref = this->gen_unsorted_mtx(num_rows, num_cols);
+    auto mtx_omp = Csr::create(this->omp);
+    mtx_omp->copy_from(gko::lend(mtx_ref));
+
+    gko::kernels::reference::factorization::add_diagonal_elements(
+        this->ref, gko::lend(mtx_ref), false);
+    gko::kernels::omp::factorization::add_diagonal_elements(
+        this->omp, gko::lend(mtx_omp), false);
+
+    ASSERT_FALSE(mtx_ref->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_NEAR(mtx_ref, mtx_omp, 0.);
+    GKO_ASSERT_MTX_EQ_SPARSITY(mtx_ref, mtx_omp);
+}
+
+
+TYPED_TEST(ParIlu, OmpKernelAddDiagonalElementsNonSquareEquivalentToRef)
+{
+    using index_type = typename TestFixture::index_type;
+    using Csr = typename TestFixture::Csr;
+    index_type num_rows{200};
+    index_type num_cols{100};
+    auto mtx_ref = this->template gen_mtx<Csr>(num_rows, num_cols);
+    auto mtx_omp = Csr::create(this->omp);
+    mtx_omp->copy_from(gko::lend(mtx_ref));
+
+    gko::kernels::reference::factorization::add_diagonal_elements(
+        this->ref, gko::lend(mtx_ref), true);
+    gko::kernels::omp::factorization::add_diagonal_elements(
+        this->omp, gko::lend(mtx_omp), true);
+
+    ASSERT_TRUE(mtx_ref->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_NEAR(mtx_ref, mtx_omp, 0.);
+    GKO_ASSERT_MTX_EQ_SPARSITY(mtx_ref, mtx_omp);
+}
+
+
+TYPED_TEST(ParIlu, OmpKernelInitializeRowPtrsLUEquivalentToRef)
+{
+    using index_type = typename TestFixture::index_type;
+    auto num_row_ptrs = this->csr_ref->get_size()[0] + 1;
+    gko::Array<index_type> l_row_ptrs_array_ref(this->ref, num_row_ptrs);
+    gko::Array<index_type> u_row_ptrs_array_ref(this->ref, num_row_ptrs);
+    gko::Array<index_type> l_row_ptrs_array_omp(this->omp, num_row_ptrs);
+    gko::Array<index_type> u_row_ptrs_array_omp(this->omp, num_row_ptrs);
     auto l_row_ptrs_ref = l_row_ptrs_array_ref.get_data();
     auto u_row_ptrs_ref = u_row_ptrs_array_ref.get_data();
     auto l_row_ptrs_omp = l_row_ptrs_array_omp.get_data();
     auto u_row_ptrs_omp = u_row_ptrs_array_omp.get_data();
 
-    initialize_row_ptrs(l_row_ptrs_ref, u_row_ptrs_ref, l_row_ptrs_omp,
-                        u_row_ptrs_omp);
+    this->initialize_row_ptrs(l_row_ptrs_ref, u_row_ptrs_ref, l_row_ptrs_omp,
+                              u_row_ptrs_omp);
 
     ASSERT_TRUE(std::equal(l_row_ptrs_ref, l_row_ptrs_ref + num_row_ptrs,
                            l_row_ptrs_omp));
@@ -197,46 +313,57 @@ TEST_F(ParIlu, OmpKernelInitializeRowPtrsLUEquivalentToRef)
 }
 
 
-TEST_F(ParIlu, KernelInitializeParILUIsEquivalentToRef)
+TYPED_TEST(ParIlu, KernelInitializeParILUIsEquivalentToRef)
 {
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
     std::unique_ptr<Csr> l_ref{};
     std::unique_ptr<Csr> u_ref{};
     std::unique_ptr<Csr> l_omp{};
     std::unique_ptr<Csr> u_omp{};
 
-    initialize_lu(&l_ref, &u_ref, &l_omp, &u_omp);
+    this->initialize_lu(&l_ref, &u_ref, &l_omp, &u_omp);
 
-    GKO_ASSERT_MTX_NEAR(l_ref, l_omp, 1e-14);
-    GKO_ASSERT_MTX_NEAR(u_ref, u_omp, 1e-14);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_omp, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_omp, r<value_type>::value);
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_omp);
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_omp);
 }
 
 
-TEST_F(ParIlu, KernelComputeParILUIsEquivalentToRef)
+TYPED_TEST(ParIlu, KernelComputeParILUIsEquivalentToRef)
 {
+    using Csr = typename TestFixture::Csr;
     std::unique_ptr<Csr> l_ref{};
     std::unique_ptr<Csr> u_ref{};
     std::unique_ptr<Csr> l_omp{};
     std::unique_ptr<Csr> u_omp{};
 
-    compute_lu(&l_ref, &u_ref, &l_omp, &u_omp);
+    this->compute_lu(&l_ref, &u_ref, &l_omp, &u_omp);
 
     GKO_ASSERT_MTX_NEAR(l_ref, l_omp, 5e-2);
     GKO_ASSERT_MTX_NEAR(u_ref, u_omp, 5e-2);
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_omp);
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_omp);
 }
 
 
-TEST_F(ParIlu, KernelComputeParILUWithMoreIterationsIsEquivalentToRef)
+TYPED_TEST(ParIlu, KernelComputeParILUWithMoreIterationsIsEquivalentToRef)
 {
+    using Csr = typename TestFixture::Csr;
+    using value_type = typename TestFixture::value_type;
     std::unique_ptr<Csr> l_ref{};
     std::unique_ptr<Csr> u_ref{};
     std::unique_ptr<Csr> l_omp{};
     std::unique_ptr<Csr> u_omp{};
-    gko::size_type iterations{20};
+    gko::size_type iterations{30};
 
-    compute_lu(&l_ref, &u_ref, &l_omp, &u_omp, iterations);
+    this->compute_lu(&l_ref, &u_ref, &l_omp, &u_omp, iterations);
 
-    GKO_ASSERT_MTX_NEAR(l_ref, l_omp, 1e-14);
-    GKO_ASSERT_MTX_NEAR(u_ref, u_omp, 1e-14);
+    GKO_ASSERT_MTX_NEAR(l_ref, l_omp, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(u_ref, u_omp, r<value_type>::value);
+    GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_omp);
+    GKO_ASSERT_MTX_EQ_SPARSITY(u_ref, u_omp);
 }
 
 

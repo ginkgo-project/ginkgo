@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -59,9 +59,13 @@ public:
     {
         value = 2;
     }
-    void run(std::shared_ptr<const gko::ReferenceExecutor>) const override
+    void run(std::shared_ptr<const gko::HipExecutor>) const override
     {
         value = 3;
+    }
+    void run(std::shared_ptr<const gko::ReferenceExecutor>) const override
+    {
+        value = 4;
     }
 
     int &value;
@@ -83,9 +87,10 @@ TEST(OmpExecutor, RunsCorrectLambdaOperation)
     int value = 0;
     auto omp_lambda = [&value]() { value = 1; };
     auto cuda_lambda = [&value]() { value = 2; };
+    auto hip_lambda = [&value]() { value = 3; };
     exec_ptr omp = gko::OmpExecutor::create();
 
-    omp->run(omp_lambda, cuda_lambda);
+    omp->run(omp_lambda, cuda_lambda, hip_lambda);
     ASSERT_EQ(1, value);
 }
 
@@ -128,7 +133,7 @@ TEST(OmpExecutor, CopiesData)
     int *copy = omp->alloc<int>(num_elems);
 
     // user code is run on the OMP, so local variables are in OMP memory
-    omp->copy_from(omp.get(), num_elems, orig, copy);
+    omp->copy(num_elems, orig, copy);
     EXPECT_EQ(3, copy[0]);
     EXPECT_EQ(8, copy[1]);
 
@@ -150,7 +155,7 @@ TEST(ReferenceExecutor, RunsCorrectOperation)
     exec_ptr ref = gko::ReferenceExecutor::create();
 
     ref->run(ExampleOperation(value));
-    ASSERT_EQ(3, value);
+    ASSERT_EQ(4, value);
 }
 
 
@@ -159,9 +164,10 @@ TEST(ReferenceExecutor, RunsCorrectLambdaOperation)
     int value = 0;
     auto omp_lambda = [&value]() { value = 1; };
     auto cuda_lambda = [&value]() { value = 2; };
+    auto hip_lambda = [&value]() { value = 3; };
     exec_ptr ref = gko::ReferenceExecutor::create();
 
-    ref->run(omp_lambda, cuda_lambda);
+    ref->run(omp_lambda, cuda_lambda, hip_lambda);
     ASSERT_EQ(1, value);
 }
 
@@ -204,11 +210,23 @@ TEST(ReferenceExecutor, CopiesData)
     int *copy = ref->alloc<int>(num_elems);
 
     // ReferenceExecutor is a type of OMP executor, so this is O.K.
-    ref->copy_from(ref.get(), num_elems, orig, copy);
+    ref->copy(num_elems, orig, copy);
     EXPECT_EQ(3, copy[0]);
     EXPECT_EQ(8, copy[1]);
 
     ref->free(copy);
+}
+
+
+TEST(ReferenceExecutor, CopiesSingleValue)
+{
+    exec_ptr ref = gko::ReferenceExecutor::create();
+    int *el = ref->alloc<int>(1);
+    el[0] = 83683;
+
+    EXPECT_EQ(83683, ref->copy_val_to_host(el));
+
+    ref->free(el);
 }
 
 
@@ -257,7 +275,8 @@ TEST(ReferenceExecutor, IsItsOwnMaster)
 TEST(CudaExecutor, RunsCorrectOperation)
 {
     int value = 0;
-    exec_ptr cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    exec_ptr cuda =
+        gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
 
     cuda->run(ExampleOperation(value));
     ASSERT_EQ(2, value);
@@ -269,9 +288,11 @@ TEST(CudaExecutor, RunsCorrectLambdaOperation)
     int value = 0;
     auto omp_lambda = [&value]() { value = 1; };
     auto cuda_lambda = [&value]() { value = 2; };
-    exec_ptr cuda = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    auto hip_lambda = [&value]() { value = 3; };
+    exec_ptr cuda =
+        gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
 
-    cuda->run(omp_lambda, cuda_lambda);
+    cuda->run(omp_lambda, cuda_lambda, hip_lambda);
     ASSERT_EQ(2, value);
 }
 
@@ -291,6 +312,105 @@ TEST(CudaExecutor, KnowsItsDeviceId)
     auto cuda = gko::CudaExecutor::create(0, omp);
 
     ASSERT_EQ(0, cuda->get_device_id());
+}
+
+
+TEST(CudaExecutor, CanGetDeviceResetBoolean)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto cuda = gko::CudaExecutor::create(0, omp);
+
+    ASSERT_EQ(false, cuda->get_device_reset());
+}
+
+
+TEST(CudaExecutor, CanSetDefaultDeviceResetBoolean)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto cuda = gko::CudaExecutor::create(0, omp, true);
+
+    ASSERT_EQ(true, cuda->get_device_reset());
+}
+
+
+TEST(CudaExecutor, CanSetDeviceResetBoolean)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto cuda = gko::CudaExecutor::create(0, omp);
+
+    cuda->set_device_reset(true);
+
+    ASSERT_EQ(true, cuda->get_device_reset());
+}
+
+
+TEST(HipExecutor, RunsCorrectOperation)
+{
+    int value = 0;
+    exec_ptr hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
+
+    hip->run(ExampleOperation(value));
+    ASSERT_EQ(3, value);
+}
+
+
+TEST(HipExecutor, RunsCorrectLambdaOperation)
+{
+    int value = 0;
+    auto omp_lambda = [&value]() { value = 1; };
+    auto cuda_lambda = [&value]() { value = 2; };
+    auto hip_lambda = [&value]() { value = 3; };
+    exec_ptr hip = gko::HipExecutor::create(0, gko::OmpExecutor::create());
+
+    hip->run(omp_lambda, cuda_lambda, hip_lambda);
+    ASSERT_EQ(3, value);
+}
+
+
+TEST(HipExecutor, KnowsItsMaster)
+{
+    auto omp = gko::OmpExecutor::create();
+    exec_ptr hip = gko::HipExecutor::create(0, omp);
+
+    ASSERT_EQ(omp, hip->get_master());
+}
+
+
+TEST(HipExecutor, KnowsItsDeviceId)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto hip = gko::HipExecutor::create(0, omp);
+
+    ASSERT_EQ(0, hip->get_device_id());
+}
+
+
+TEST(HipExecutor, CanGetDeviceResetBoolean)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto hip = gko::HipExecutor::create(0, omp);
+
+    ASSERT_EQ(false, hip->get_device_reset());
+}
+
+
+TEST(HipExecutor, CanSetDefaultDeviceResetBoolean)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto hip = gko::HipExecutor::create(0, omp, true);
+
+    ASSERT_EQ(true, hip->get_device_reset());
+}
+
+
+TEST(HipExecutor, CanSetDeviceResetBoolean)
+{
+    auto omp = gko::OmpExecutor::create();
+    auto hip = gko::HipExecutor::create(0, omp);
+
+    hip->set_device_reset(true);
+
+    ASSERT_EQ(true, hip->get_device_reset());
 }
 
 

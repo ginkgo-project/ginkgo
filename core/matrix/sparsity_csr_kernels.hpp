@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,9 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_MATRIX_SPARSITY_CSR_KERNELS_HPP_
 
 
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
+
+
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 
 namespace gko {
@@ -60,8 +62,8 @@ namespace kernels {
                                                                  IndexType) \
     void remove_diagonal_elements(                                          \
         std::shared_ptr<const DefaultExecutor> exec,                        \
-        matrix::SparsityCsr<ValueType, IndexType> *matrix,                  \
-        const IndexType *row_ptrs, const IndexType *col_idxs)
+        const IndexType *row_ptrs, const IndexType *col_idxs,               \
+        matrix::SparsityCsr<ValueType, IndexType> *matrix)
 
 #define GKO_DECLARE_SPARSITY_CSR_COUNT_NUM_DIAGONAL_ELEMENTS_KERNEL(ValueType, \
                                                                     IndexType) \
@@ -70,10 +72,10 @@ namespace kernels {
         const matrix::SparsityCsr<ValueType, IndexType> *matrix,               \
         size_type *num_diagonal_elements)
 
-#define GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL(ValueType, IndexType) \
-    void transpose(std::shared_ptr<const DefaultExecutor> exec,         \
-                   matrix::SparsityCsr<ValueType, IndexType> *trans,    \
-                   const matrix::SparsityCsr<ValueType, IndexType> *orig)
+#define GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL(ValueType, IndexType)   \
+    void transpose(std::shared_ptr<const DefaultExecutor> exec,           \
+                   const matrix::SparsityCsr<ValueType, IndexType> *orig, \
+                   matrix::SparsityCsr<ValueType, IndexType> *trans)
 
 #define GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType) \
     void sort_by_column_index(                                              \
@@ -131,6 +133,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace sparsity_csr
 }  // namespace reference
+
+
+namespace hip {
+namespace sparsity_csr {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace sparsity_csr
+}  // namespace hip
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

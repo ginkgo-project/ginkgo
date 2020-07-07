@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_STD_EXTENSIONS_HPP_
-#define GKO_CORE_STD_EXTENSIONS_HPP_
+#ifndef GKO_CORE_BASE_STD_EXTENSIONS_HPP_
+#define GKO_CORE_BASE_STD_EXTENSIONS_HPP_
 
 
 #include <memory>
@@ -79,8 +79,78 @@ template <typename T>
 using decay_t = typename std::decay<T>::type;
 
 
+/**
+ * constexpr helper which checks if lhs > rhs. This is helpful within template
+ * declarations since ">" cannot directly be used. Note that std::greater is
+ * available as constexpr only since C++14. This does not implement all the
+ * functionality of C++14, only what is needed so far.
+ *
+ * @tparam T  type of both values which are checked
+ *
+ * @param lhs  first operand
+ * @param rhs  second operand
+ *
+ * @return whether lhs > rhs
+ */
+template <typename T>
+constexpr bool greater(const T &&lhs, const T &&rhs)
+{
+    return lhs > rhs;
+}
+
+/**
+ * constexpr helper checking if lhs >= rhs
+ *
+ * @tparam T  type of both values which are checked
+ *
+ * @param lhs  first operand
+ * @param rhs  second operand
+ *
+ * @return whether lhs >= rhs
+ */
+template <typename T>
+constexpr bool greater_equal(const T &&lhs, const T &&rhs)
+{
+    return lhs >= rhs;
+}
+
+
+/**
+ * constexpr helper checking if lhs < rhs
+ *
+ * @tparam T  type of both values which are checked
+ *
+ * @param lhs  first operand
+ * @param rhs  second operand
+ *
+ * @return whether lhs < rhs
+ */
+template <typename T>
+constexpr bool less(const T &&lhs, const T &&rhs)
+{
+    return !greater_equal(lhs, rhs);
+}
+
+
+/**
+ * constexpr helper checking if lhs <= rhs
+ *
+ * @tparam T  type of both values which are checked
+ *
+ * @param lhs  first operand
+ * @param rhs  second operand
+ *
+ * @return whether lhs <= rhs
+ */
+template <typename T>
+constexpr bool less_equal(const T &&lhs, const T &&rhs)
+{
+    return !greater(lhs, rhs);
+}
+
+
 }  // namespace xstd
 }  // namespace gko
 
 
-#endif  // GKO_CORE_STD_EXTENSIONS_HPP_
+#endif  // GKO_CORE_BASE_STD_EXTENSIONS_HPP_

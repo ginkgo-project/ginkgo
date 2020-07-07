@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_MATRIX_DENSE_HPP_
 
 
+#include <initializer_list>
+
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
@@ -41,9 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
-
-
-#include <initializer_list>
 
 
 namespace gko {
@@ -87,6 +87,7 @@ class SparsityCsr;
 template <typename ValueType = default_precision>
 class Dense : public EnableLinOp<Dense<ValueType>>,
               public EnableCreateMethod<Dense<ValueType>>,
+              public ConvertibleTo<Dense<next_precision<ValueType>>>,
               public ConvertibleTo<Coo<ValueType, int32>>,
               public ConvertibleTo<Coo<ValueType, int64>>,
               public ConvertibleTo<Csr<ValueType, int32>>,
@@ -103,7 +104,9 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
               public ReadableFromMatrixData<ValueType, int64>,
               public WritableToMatrixData<ValueType, int32>,
               public WritableToMatrixData<ValueType, int64>,
-              public Transposable {
+              public Transposable,
+              public Permutable<int32>,
+              public Permutable<int64> {
     friend class EnableCreateMethod<Dense>;
     friend class EnablePolymorphicObject<Dense, LinOp>;
     friend class Coo<ValueType, int32>;
@@ -125,6 +128,7 @@ public:
 
     using value_type = ValueType;
     using index_type = int64;
+    using transposed_type = Dense<ValueType>;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
 
@@ -141,10 +145,14 @@ public:
         // using operator `->`) is currently required to be compatible with
         // CUDA 10.1.
         // Otherwise, it results in a compile error.
-        // TODO Check if the compiler error is fixed and revert to `operator->`.
-        return Dense::create((*other).get_executor(), (*other).get_size(),
-                             (*other).get_stride());
+        return (*other).create_with_same_config();
     }
+
+    friend class Dense<next_precision<ValueType>>;
+
+    void convert_to(Dense<next_precision<ValueType>> *result) const override;
+
+    void move_to(Dense<next_precision<ValueType>> *result) override;
 
     void convert_to(Coo<ValueType, int32> *result) const override;
 
@@ -205,6 +213,31 @@ public:
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    std::unique_ptr<LinOp> row_permute(
+        const Array<int32> *permutation_indices) const override;
+
+    std::unique_ptr<LinOp> row_permute(
+        const Array<int64> *permutation_indices) const override;
+
+    std::unique_ptr<LinOp> column_permute(
+        const Array<int32> *permutation_indices) const override;
+
+    std::unique_ptr<LinOp> column_permute(
+        const Array<int64> *permutation_indices) const override;
+
+    std::unique_ptr<LinOp> inverse_row_permute(
+        const Array<int32> *inverse_permutation_indices) const override;
+
+    std::unique_ptr<LinOp> inverse_row_permute(
+        const Array<int64> *inverse_permutation_indices) const override;
+
+    std::unique_ptr<LinOp> inverse_column_permute(
+        const Array<int32> *inverse_permutation_indices) const override;
+
+    std::unique_ptr<LinOp> inverse_column_permute(
+        const Array<int64> *inverse_permutation_indices) const override;
+
 
     /**
      * Returns a pointer to the array of values of the matrix.
@@ -446,6 +479,17 @@ protected:
     {
         GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
                              values_.get_num_elems());
+    }
+
+    /**
+     * Creates a Dense matrix with the same configuration as the callers matrix.
+     *
+     * @returns a Dense matrix with the same configuration as the caller.
+     */
+    virtual std::unique_ptr<Dense> create_with_same_config() const
+    {
+        return Dense::create(this->get_executor(), this->get_size(),
+                             this->get_stride());
     }
 
     /**

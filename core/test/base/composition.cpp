@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include "core/test/utils.hpp"
+
+
 namespace {
 
 
@@ -56,6 +59,7 @@ struct DummyOperator : public gko::EnableLinOp<DummyOperator> {
 };
 
 
+template <typename T>
 class Composition : public ::testing::Test {
 protected:
     Composition()
@@ -68,35 +72,39 @@ protected:
     std::vector<std::shared_ptr<gko::LinOp>> operators;
 };
 
+TYPED_TEST_CASE(Composition, gko::test::ValueTypes);
 
-TEST_F(Composition, CanBeEmpty)
+
+TYPED_TEST(Composition, CanBeEmpty)
 {
-    auto cmp = gko::Composition<>::create(exec);
+    auto cmp = gko::Composition<TypeParam>::create(this->exec);
 
     ASSERT_EQ(cmp->get_size(), gko::dim<2>(0, 0));
     ASSERT_EQ(cmp->get_operators().size(), 0);
 }
 
 
-TEST_F(Composition, CanCreateFromIterators)
+TYPED_TEST(Composition, CanCreateFromIterators)
 {
-    auto cmp = gko::Composition<>::create(begin(operators), end(operators));
+    auto cmp = gko::Composition<TypeParam>::create(begin(this->operators),
+                                                   end(this->operators));
 
     ASSERT_EQ(cmp->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(cmp->get_operators().size(), 2);
-    ASSERT_EQ(cmp->get_operators()[0], operators[0]);
-    ASSERT_EQ(cmp->get_operators()[1], operators[1]);
+    ASSERT_EQ(cmp->get_operators()[0], this->operators[0]);
+    ASSERT_EQ(cmp->get_operators()[1], this->operators[1]);
 }
 
 
-TEST_F(Composition, CanCreateFromList)
+TYPED_TEST(Composition, CanCreateFromList)
 {
-    auto cmp = gko::Composition<>::create(operators[0], operators[1]);
+    auto cmp = gko::Composition<TypeParam>::create(this->operators[0],
+                                                   this->operators[1]);
 
     ASSERT_EQ(cmp->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(cmp->get_operators().size(), 2);
-    ASSERT_EQ(cmp->get_operators()[0], operators[0]);
-    ASSERT_EQ(cmp->get_operators()[1], operators[1]);
+    ASSERT_EQ(cmp->get_operators()[0], this->operators[0]);
+    ASSERT_EQ(cmp->get_operators()[1], this->operators[1]);
 }
 
 

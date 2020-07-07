@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include <memory>
 #include <type_traits>
 
 
@@ -43,23 +44,34 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "cuda/test/utils.hpp"
+
+
 namespace {
 
 
 class ExampleOperation : public gko::Operation {
 public:
     explicit ExampleOperation(int &val) : value(val) {}
+
     void run(std::shared_ptr<const gko::OmpExecutor>) const override
     {
         value = -1;
     }
-    void run(std::shared_ptr<const gko::CudaExecutor> cuda) const override
-    {
-        cudaGetDevice(&value);
-    }
+
     void run(std::shared_ptr<const gko::ReferenceExecutor>) const override
     {
         value = -2;
+    }
+
+    void run(std::shared_ptr<const gko::HipExecutor>) const override
+    {
+        value = -3;
+    }
+
+    void run(std::shared_ptr<const gko::CudaExecutor>) const override
+    {
+        cudaGetDevice(&value);
     }
 
     int &value;
@@ -107,7 +119,10 @@ TEST_F(CudaExecutor, MasterKnowsNumberOfDevices)
 {
     int count = 0;
     cudaGetDeviceCount(&count);
-    ASSERT_EQ(count, gko::CudaExecutor::get_num_devices());
+
+    auto num_devices = gko::CudaExecutor::get_num_devices();
+
+    ASSERT_EQ(count, num_devices);
 }
 
 
@@ -175,6 +190,7 @@ TEST_F(CudaExecutor, CopiesDataFromCuda)
     cuda->free(orig);
 }
 
+
 /* Properly checks if it works only when multiple GPUs exist */
 TEST_F(CudaExecutor, PreservesDeviceSettings)
 {
@@ -190,13 +206,17 @@ TEST_F(CudaExecutor, PreservesDeviceSettings)
     ASSERT_EQ(current_device, previous_device);
 }
 
+
 TEST_F(CudaExecutor, RunsOnProperDevice)
 {
     int value = -1;
+
     GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
     cuda2->run(ExampleOperation(value));
+
     ASSERT_EQ(value, cuda2->get_device_id());
 }
+
 
 TEST_F(CudaExecutor, CopiesDataFromCudaToCuda)
 {
@@ -215,14 +235,14 @@ TEST_F(CudaExecutor, CopiesDataFromCudaToCuda)
     GKO_ASSERT_NO_CUDA_ERRORS(cudaSetDevice(0));
     cuda2->run(ExampleOperation(value));
     ASSERT_EQ(value, cuda2->get_device_id());
-
+    // Put the results on OpenMP and run CPU side assertions
     omp->copy_from(cuda2.get(), 2, copy_cuda2, copy);
-
     EXPECT_EQ(3, copy[0]);
     ASSERT_EQ(8, copy[1]);
     cuda->free(copy_cuda2);
     cuda->free(orig);
 }
+
 
 TEST_F(CudaExecutor, Synchronizes)
 {

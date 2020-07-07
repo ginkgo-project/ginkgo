@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,10 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_STOP_TIME_HPP_
 
 
-#include <ginkgo/core/stop/criterion.hpp>
-
-
 #include <chrono>
+
+
+#include <ginkgo/core/stop/criterion.hpp>
 
 
 namespace gko {
@@ -58,10 +58,10 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * Amount of seconds to wait
+         * Amount of seconds to wait (default value: 10 seconds)
          */
-        std::chrono::nanoseconds GKO_FACTORY_PARAMETER(
-            time_limit, std::chrono::seconds(10));
+        std::chrono::nanoseconds GKO_FACTORY_PARAMETER(time_limit,
+                                                       10000000000LL);
     };
     GKO_ENABLE_CRITERION_FACTORY(Time, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -72,7 +72,9 @@ protected:
                     const Updater &) override;
 
     explicit Time(std::shared_ptr<const gko::Executor> exec)
-        : EnablePolymorphicObject<Time, Criterion>(std::move(exec))
+        : EnablePolymorphicObject<Time, Criterion>(std::move(exec)),
+          time_limit_{},
+          start_{}
     {}
 
     explicit Time(const Factory *factory, const CriterionArgs args)
@@ -89,8 +91,8 @@ private:
      * parameters and here properly convert the double to a
      * std::chrono::duration type
      */
-    std::chrono::duration<double> time_limit_{};
-    clock::time_point start_{};
+    std::chrono::duration<double> time_limit_;
+    clock::time_point start_;
 };
 
 

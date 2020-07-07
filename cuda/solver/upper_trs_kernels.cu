@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/upper_trs.hpp>
 
 
-#include "core/solver/upper_trs_kernels.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"

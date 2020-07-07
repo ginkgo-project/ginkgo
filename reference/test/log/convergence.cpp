@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,37 +36,47 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
+
+
+#include "core/test/utils.hpp"
 
 
 namespace {
 
 
-TEST(Record, CatchesCriterionCheckCompleted)
+template <typename T>
+class Convergence : public ::testing::Test {};
+
+TYPED_TEST_CASE(Convergence, gko::test::ValueTypes);
+
+
+TYPED_TEST(Convergence, CatchesCriterionCheckCompleted)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::Convergence<>::create(
+    auto logger = gko::log::Convergence<TypeParam>::create(
         exec, gko::log::Logger::criterion_check_completed_mask);
     auto criterion =
         gko::stop::Iteration::build().with_max_iters(3u).on(exec)->generate(
             nullptr, nullptr, nullptr);
     constexpr gko::uint8 RelativeStoppingId{42};
     gko::Array<gko::stopping_status> stop_status(exec, 1);
-    using Mtx = gko::matrix::Dense<>;
+    using Mtx = gko::matrix::Dense<TypeParam>;
+    using NormVector = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
     auto residual = gko::initialize<Mtx>({1.0, 2.0, 2.0}, exec);
 
-    logger->on<gko::log::Logger::criterion_check_completed>(
+    logger->template on<gko::log::Logger::criterion_check_completed>(
         criterion.get(), 1, residual.get(), nullptr, nullptr,
         RelativeStoppingId, true, &stop_status, true, true);
 
     ASSERT_EQ(logger->get_num_iterations(), 1);
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_residual()),
                         l({1.0, 2.0, 2.0}), 0.0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(logger->get_residual_norm()), l({3.0}),
-                        0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<NormVector>(logger->get_residual_norm()),
+                        l({3.0}), 0.0);
 }
 
 

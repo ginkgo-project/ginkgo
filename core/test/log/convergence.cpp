@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,13 +39,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/executor.hpp>
 
 
+#include "core/test/utils.hpp"
+
+
 namespace {
 
+template <typename T>
+class Convergence : public ::testing::Test {};
 
-TEST(Record, CanGetData)
+TYPED_TEST_CASE(Convergence, gko::test::ValueTypes);
+
+
+TYPED_TEST(Convergence, CanGetData)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::Convergence<>::create(
+    auto logger = gko::log::Convergence<TypeParam>::create(
         exec, gko::log::Logger::iteration_complete_mask);
 
     ASSERT_EQ(logger->get_num_iterations(), 0);

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,11 +30,11 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 #include <ginkgo/core/log/convergence.hpp>
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 
@@ -60,7 +60,8 @@ void Convergence<ValueType>::on_criterion_check_completed(
             this->residual_norm_.reset(residual_norm->clone().release());
         } else if (residual != nullptr) {
             using Vector = matrix::Dense<ValueType>;
-            this->residual_norm_ = Vector::create(
+            using NormVector = matrix::Dense<remove_complex<ValueType>>;
+            this->residual_norm_ = NormVector::create(
                 residual->get_executor(), dim<2>{1, residual->get_size()[1]});
             auto dense_r = as<Vector>(residual);
             dense_r->compute_norm2(this->residual_norm_.get());

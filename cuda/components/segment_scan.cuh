@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/thread_ids.cuh"
 
 
 namespace gko {
@@ -46,36 +45,7 @@ namespace kernels {
 namespace cuda {
 
 
-/**
- * @internal
- *
- * Compute a segement scan using add operation (+) of a subwarp. Each segment
- * performs suffix sum. Works on the source array and returns whether the thread
- * is the first element of its segment with same `ind`.
- */
-template <size_type subwarp_size, typename ValueType, typename IndexType>
-__device__ __forceinline__ bool segment_scan(
-    const group::thread_block_tile<subwarp_size> &group, const IndexType ind,
-    ValueType *__restrict__ val)
-{
-    bool head = true;
-#pragma unroll
-    for (int i = 1; i < subwarp_size; i <<= 1) {
-        const IndexType add_ind = group.shfl_up(ind, i);
-        ValueType add_val = zero<ValueType>();
-        if (add_ind == ind && threadIdx.x >= i) {
-            add_val = *val;
-            if (i == 1) {
-                head = false;
-            }
-        }
-        add_val = group.shfl_down(add_val, i);
-        if (threadIdx.x < subwarp_size - i) {
-            *val += add_val;
-        }
-    }
-    return head;
-}
+#include "common/components/segment_scan.hpp.inc"
 
 
 }  // namespace cuda

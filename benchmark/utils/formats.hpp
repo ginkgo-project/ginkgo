@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,8 +45,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #ifdef HAS_CUDA
-#include "cuda_linops.hpp"
+#include "benchmark/utils/cuda_linops.hpp"
 #endif  // HAS_CUDA
+#ifdef HAS_HIP
+#include "benchmark/utils/hip_linops.hip.hpp"
+#endif  // HAS_HIP
 
 
 namespace formats {
@@ -60,6 +63,9 @@ std::string available_format =
     ", cusp_csr, cusp_csrex, cusp_csrmp, cusp_csrmm, cusp_coo, cusp_ell, "
     "cusp_hybrid"
 #endif  // HAS_CUDA
+#ifdef HAS_HIP
+    ", hipsp_csr, hipsp_csrmm, hipsp_coo, hipsp_ell, hipsp_hybrid"
+#endif  // HAS_HIP
     ".\n";
 
 std::string format_description =
@@ -91,7 +97,28 @@ std::string format_description =
     "cusp_csrex: benchmark CuSPARSE with the cusparseXcsrmvEx function.\n"
     "cusp_csrmp: benchmark CuSPARSE with the cusparseXcsrmv_mp function.\n"
     "cusp_csrmm: benchmark CuSPARSE with the cusparseXcsrmv_mm function."
+#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) && \
+    !(defined(_WIN32) || defined(__CYGWIN__))
+    "\n"
+    "cusp_gcsr: benchmark CuSPARSE with the generic csr with default "
+    "algorithm.\n"
+    "cusp_gcsr2: benchmark CuSPARSE with the generic csr with "
+    "CUSPARSE_CSRMV_ALG2.\n"
+    "cusp_gcoo: benchmark CuSPARSE with the generic coo with default "
+    "algorithm.\n"
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) &&
+        // !(defined(_WIN32) || defined(__CYGWIN__))
 #endif  // HAS_CUDA
+#ifdef HAS_HIP
+    "\n"
+    "hipsp_csr: benchmark HipSPARSE with the hipsparseXcsrmv function.\n"
+    "hipsp_csrmm: benchmark HipSPARSE with the hipsparseXcsrmv_mm function.\n"
+    "hipsp_hybrid: benchmark HipSPARSE spmv with hipsparseXhybmv and an "
+    "automatic partition.\n"
+    "hipsp_coo: use hipsparseXhybmv with a HIPSPARSE_HYB_PARTITION_USER "
+    "partition.\n"
+    "hipsp_ell: use hipsparseXhybmv with HIPSPARSE_HYB_PARTITION_MAX partition."
+#endif  // HAS_HIP
     ;
 
 std::string format_command =
@@ -148,6 +175,7 @@ std::unique_ptr<MatrixType> read_matrix_from_data(
     }
 
 
+// clang-format off
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>,
                                 const gko::matrix_data<> &)>>
@@ -166,7 +194,21 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"cusp_hybrid", read_matrix_from_data<cusp_hybrid>},
         {"cusp_coo", read_matrix_from_data<cusp_coo>},
         {"cusp_ell", read_matrix_from_data<cusp_ell>},
+#if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) && \
+    !(defined(_WIN32) || defined(__CYGWIN__))
+        {"cusp_gcsr", read_matrix_from_data<cusp_gcsr>},
+        {"cusp_gcsr2", read_matrix_from_data<cusp_gcsr2>},
+        {"cusp_gcoo", read_matrix_from_data<cusp_gcoo>},
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) &&
+        // !(defined(_WIN32) || defined(__CYGWIN__))
 #endif  // HAS_CUDA
+#ifdef HAS_HIP
+        {"hipsp_csr", read_matrix_from_data<hipsp_csr>},
+        {"hipsp_csrmm", read_matrix_from_data<hipsp_csrmm>},
+        {"hipsp_hybrid", read_matrix_from_data<hipsp_hybrid>},
+        {"hipsp_coo", read_matrix_from_data<hipsp_coo>},
+        {"hipsp_ell", read_matrix_from_data<hipsp_ell>},
+#endif  // HAS_HIP
         {"hybrid", read_matrix_from_data<hybrid>},
         {"hybrid0",
          READ_MATRIX(hybrid, std::make_shared<hybrid::imbalance_limit>(0))},
@@ -194,6 +236,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
          READ_MATRIX(hybrid,
                      std::make_shared<hybrid::minimal_storage_limit>())},
         {"sellp", read_matrix_from_data<gko::matrix::Sellp<>>}};
+// clang-format on
 
 
 }  // namespace formats

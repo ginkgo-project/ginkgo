@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -61,7 +61,8 @@ namespace matrix {
  */
 template <typename ValueType = default_precision>
 class Identity : public EnableLinOp<Identity<ValueType>>,
-                 public EnableCreateMethod<Identity<ValueType>> {
+                 public EnableCreateMethod<Identity<ValueType>>,
+                 public Transposable {
     friend class EnablePolymorphicObject<Identity, LinOp>;
     friend class EnableCreateMethod<Identity>;
 
@@ -70,6 +71,12 @@ public:
     using EnableLinOp<Identity>::move_to;
 
     using value_type = ValueType;
+    using transposed_type = Identity<ValueType>;
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
+
 
 protected:
     /**

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,17 +36,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/test/utils.hpp"
 
 
 namespace {
 
 
+template <typename T>
 class Identity : public ::testing::Test {
 protected:
-    using Id = gko::matrix::Identity<>;
-    using Vec = gko::matrix::Dense<>;
+    using value_type = T;
+    using Id = gko::matrix::Identity<value_type>;
+    using Vec = gko::matrix::Dense<value_type>;
 
     Identity() : exec(gko::ReferenceExecutor::create()) {}
 
@@ -54,13 +58,18 @@ protected:
 };
 
 
-TEST_F(Identity, AppliesLinearCombinationToVector)
+TYPED_TEST_CASE(Identity, gko::test::ValueTypes);
+
+
+TYPED_TEST(Identity, AppliesLinearCombinationToVector)
 {
-    auto identity = Id::create(exec, 3);
-    auto alpha = gko::initialize<Vec>({2.0}, exec);
-    auto beta = gko::initialize<Vec>({1.0}, exec);
-    auto x = gko::initialize<Vec>({3.0, -1.0, 2.0}, exec);
-    auto b = gko::initialize<Vec>({2.0, 1.0, 5.0}, exec);
+    using Id = typename TestFixture::Id;
+    using Vec = typename TestFixture::Vec;
+    auto identity = Id::create(this->exec, 3);
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({1.0}, this->exec);
+    auto x = gko::initialize<Vec>({3.0, -1.0, 2.0}, this->exec);
+    auto b = gko::initialize<Vec>({2.0, 1.0, 5.0}, this->exec);
 
     identity->apply(alpha.get(), b.get(), beta.get(), x.get());
 
@@ -68,19 +77,22 @@ TEST_F(Identity, AppliesLinearCombinationToVector)
 }
 
 
-TEST_F(Identity, AppliesLinearCombinationToMultipleVectors)
+TYPED_TEST(Identity, AppliesLinearCombinationToMultipleVectors)
 {
-    auto identity = Id::create(exec, 3);
-    auto alpha = gko::initialize<Vec>({2.0}, exec);
-    auto beta = gko::initialize<Vec>({1.0}, exec);
-    auto x =
-        gko::initialize<Vec>(3, {{3.0, 0.5}, {-1.0, 2.5}, {2.0, 3.4}}, exec);
-    auto b =
-        gko::initialize<Vec>(3, {{2.0, 3.0}, {1.0, 2.0}, {5.0, -1.0}}, exec);
+    using Id = typename TestFixture::Id;
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto identity = Id::create(this->exec, 3);
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({1.0}, this->exec);
+    auto x = gko::initialize<Vec>(
+        3, {I<T>{3.0, 0.5}, I<T>{-1.0, 2.5}, I<T>{2.0, 3.5}}, this->exec);
+    auto b = gko::initialize<Vec>(
+        3, {I<T>{2.0, 3.0}, I<T>{1.0, 2.0}, I<T>{5.0, -1.0}}, this->exec);
 
     identity->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({{7.0, 6.5}, {1.0, 6.5}, {12.0, 1.4}}), 0.0);
+    GKO_ASSERT_MTX_NEAR(x, l({{7.0, 6.5}, {1.0, 6.5}, {12.0, 1.5}}), 0.0);
 }
 
 

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,17 +34,75 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_MATH_HPP_
 
 
+#include <cmath>
+#include <complex>
+#include <cstdlib>
+#include <limits>
+
+
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
 
-#include <cmath>
-#include <complex>
-#include <cstdlib>
-
-
 namespace gko {
+
+
+// HIP should not see std::abs or std::sqrt, we want the custom implementation.
+// Hence, provide the using declaration only for some cases
+namespace kernels {
+namespace reference {
+
+
+using std::abs;
+
+
+using std::sqrt;
+
+
+}  // namespace reference
+}  // namespace kernels
+
+
+namespace kernels {
+namespace omp {
+
+
+using std::abs;
+
+
+using std::sqrt;
+
+
+}  // namespace omp
+}  // namespace kernels
+
+
+namespace kernels {
+namespace cuda {
+
+
+using std::abs;
+
+
+using std::sqrt;
+
+
+}  // namespace cuda
+}  // namespace kernels
+
+
+namespace test {
+
+
+using std::abs;
+
+
+using std::sqrt;
+
+
+}  // namespace test
 
 
 // type manipulations
@@ -87,6 +145,29 @@ struct is_complex_impl<std::complex<T>>
 
 
 /**
+ * Access the underlying real type of a complex number.
+ *
+ * @tparam T  the type being checked.
+ */
+template <typename T>
+struct cpx_real_type {
+    /** The type. When the type is not complex, return the type itself.*/
+    using type = T;
+};
+
+/**
+ * Specialization for complex types.
+ *
+ * @copydoc cpx_real_type
+ */
+template <typename T>
+struct cpx_real_type<std::complex<T>> {
+    /** The type. When the type is complex, return the underlying value_type.*/
+    using type = typename std::complex<T>::value_type;
+};
+
+
+/**
  * Obtains a real counterpart of a std::complex type, and leaves the type
  * unchanged if it is not a complex type.
  */
@@ -120,6 +201,26 @@ GKO_INLINE GKO_ATTRIBUTES constexpr bool is_complex()
 
 
 namespace detail {
+
+
+// singly linked list of all our supported precisions
+template <typename T>
+struct next_precision_impl {};
+
+template <>
+struct next_precision_impl<float> {
+    using type = double;
+};
+
+template <>
+struct next_precision_impl<double> {
+    using type = float;
+};
+
+template <typename T>
+struct next_precision_impl<std::complex<T>> {
+    using type = std::complex<typename next_precision_impl<T>::type>;
+};
 
 
 template <typename T>
@@ -164,7 +265,22 @@ struct increase_precision_impl<half> {
 };
 
 
+template <typename T>
+struct infinity_impl {
+    // CUDA doesn't allow us to call std::numeric_limits functions
+    // so we need to store the value instead.
+    static constexpr auto value = std::numeric_limits<T>::infinity();
+};
+
+
 }  // namespace detail
+
+
+/**
+ * Obtains the next type in the singly-linked precision list.
+ */
+template <typename T>
+using next_precision = typename detail::next_precision_impl<T>::type;
 
 
 /**
@@ -295,15 +411,18 @@ GKO_INLINE GKO_ATTRIBUTES constexpr int64 ceildiv(int64 num, int64 den)
 }
 
 
+#if defined(__HIPCC__) && GINKGO_HIP_PLATFORM_HCC
+
+
 /**
  * Returns the additive identity for T.
  *
  * @return additive identity for T
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr T zero()
+GKO_INLINE __host__ constexpr T zero()
 {
-    return T(0);
+    return T{};
 }
 
 
@@ -312,8 +431,128 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T zero()
  *
  * @return additive identity for T
  *
- * @note This version takes an unused reference argument to avoid complicated
- *       calls like `zero<decltype(x)>()`. Instead, it allows `zero(x)`.
+ * @note This version takes an unused reference argument to avoid
+ *       complicated calls like `zero<decltype(x)>()`. Instead, it allows
+ *       `zero(x)`.
+ */
+template <typename T>
+GKO_INLINE __host__ constexpr T zero(const T &)
+{
+    return zero<T>();
+}
+
+
+/**
+ * Returns the multiplicative identity for T.
+ *
+ * @return the multiplicative identity for T
+ */
+template <typename T>
+GKO_INLINE __host__ constexpr T one()
+{
+    return T(1);
+}
+
+
+/**
+ * Returns the multiplicative identity for T.
+ *
+ * @return the multiplicative identity for T
+ *
+ * @note This version takes an unused reference argument to avoid
+ *       complicated calls like `one<decltype(x)>()`. Instead, it allows
+ *       `one(x)`.
+ */
+template <typename T>
+GKO_INLINE __host__ constexpr T one(const T &)
+{
+    return one<T>();
+}
+
+
+/**
+ * Returns the additive identity for T.
+ *
+ * @return additive identity for T
+ */
+template <typename T>
+GKO_INLINE __device__ constexpr xstd::enable_if_t<
+    !std::is_same<T, std::complex<remove_complex<T>>>::value, T>
+zero()
+{
+    return T{};
+}
+
+
+/**
+ * Returns the additive identity for T.
+ *
+ * @return additive identity for T
+ *
+ * @note This version takes an unused reference argument to avoid
+ *       complicated calls like `zero<decltype(x)>()`. Instead, it allows
+ *       `zero(x)`.
+ */
+template <typename T>
+GKO_INLINE __device__ constexpr T zero(const T &)
+{
+    return zero<T>();
+}
+
+
+/**
+ * Returns the multiplicative identity for T.
+ *
+ * @return the multiplicative identity for T
+ */
+template <typename T>
+GKO_INLINE __device__ constexpr xstd::enable_if_t<
+    !std::is_same<T, std::complex<remove_complex<T>>>::value, T>
+one()
+{
+    return T(1);
+}
+
+
+/**
+ * Returns the multiplicative identity for T.
+ *
+ * @return the multiplicative identity for T
+ *
+ * @note This version takes an unused reference argument to avoid
+ *       complicated calls like `one<decltype(x)>()`. Instead, it allows
+ *       `one(x)`.
+ */
+template <typename T>
+GKO_INLINE __device__ constexpr T one(const T &)
+{
+    return one<T>();
+}
+
+
+#else
+
+
+/**
+ * Returns the additive identity for T.
+ *
+ * @return additive identity for T
+ */
+template <typename T>
+GKO_INLINE GKO_ATTRIBUTES constexpr T zero()
+{
+    return T{};
+}
+
+
+/**
+ * Returns the additive identity for T.
+ *
+ * @return additive identity for T
+ *
+ * @note This version takes an unused reference argument to avoid
+ *       complicated calls like `zero<decltype(x)>()`. Instead, it allows
+ *       `zero(x)`.
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES constexpr T zero(const T &)
@@ -339,14 +578,21 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T one()
  *
  * @return the multiplicative identity for T
  *
- * @note This version takes an unused reference argument to avoid complicated
- *       calls like `one<decltype(x)>()`. Instead, it allows `one(x)`.
+ * @note This version takes an unused reference argument to avoid
+ *       complicated calls like `one<decltype(x)>()`. Instead, it allows
+ *       `one(x)`.
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES constexpr T one(const T &)
 {
     return one<T>();
 }
+
+
+#endif  // defined(__HIPCC__) && GINKGO_HIP_PLATFORM_HCC
+
+
+#undef GKO_BIND_ZERO_ONE
 
 
 /**
@@ -363,9 +609,6 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T abs(const T &x)
 {
     return x >= zero<T>() ? x : -x;
 }
-
-
-using std::abs;  // use optimized abs functions for basic types
 
 
 /**
@@ -418,9 +661,19 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T min(const T &x, const T &y)
  * @return real part of the object (by default, the object itself)
  */
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr T real(const T &x)
+GKO_ATTRIBUTES
+    GKO_INLINE constexpr xstd::enable_if_t<!is_complex_s<T>::value, T>
+    real(const T &x)
 {
     return x;
+}
+
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr xstd::enable_if_t<is_complex_s<T>::value,
+                                                      remove_complex<T>>
+real(const T &x)
+{
+    return x.real();
 }
 
 
@@ -434,9 +687,19 @@ GKO_ATTRIBUTES GKO_INLINE constexpr T real(const T &x)
  * @return imaginary part of the object (by default, zero<T>())
  */
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr T imag(const T &)
+GKO_ATTRIBUTES
+    GKO_INLINE constexpr xstd::enable_if_t<!is_complex_s<T>::value, T>
+    imag(const T &)
 {
     return zero<T>();
+}
+
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE constexpr xstd::enable_if_t<is_complex_s<T>::value,
+                                                      remove_complex<T>>
+imag(const T &x)
+{
+    return x.imag();
 }
 
 
@@ -448,13 +711,18 @@ GKO_ATTRIBUTES GKO_INLINE constexpr T imag(const T &)
  * @return  conjugate of the object (by default, the object itself)
  */
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE T conj(const T &x)
+GKO_ATTRIBUTES GKO_INLINE xstd::enable_if_t<!is_complex_s<T>::value, T> conj(
+    const T &x)
 {
     return x;
 }
 
-
-using std::sqrt;  // use standard sqrt functions for basic types
+template <typename T>
+GKO_ATTRIBUTES GKO_INLINE xstd::enable_if_t<is_complex_s<T>::value, T> conj(
+    const T &x)
+{
+    return T{x.real(), -x.imag()};
+}
 
 
 /**
@@ -485,8 +753,7 @@ GKO_INLINE GKO_ATTRIBUTES constexpr auto squared_norm(const T &x)
  * @return maximum of `hint` and the significant bit position of `n`
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr uint32 get_significant_bit(
-    const T &n, uint32 hint = 0u) noexcept
+constexpr uint32 get_significant_bit(const T &n, uint32 hint = 0u) noexcept
 {
     return (T{1} << (hint + 1)) > n ? hint : get_significant_bit(n, hint + 1u);
 }
@@ -504,28 +771,31 @@ GKO_INLINE GKO_ATTRIBUTES constexpr uint32 get_significant_bit(
  * @return the smallest power of `base` not smaller than `limit`
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES constexpr T get_superior_power(
-    const T &base, const T &limit, const T &hint = T{1}) noexcept
+constexpr T get_superior_power(const T &base, const T &limit,
+                               const T &hint = T{1}) noexcept
 {
     return hint >= limit ? hint : get_superior_power(base, limit, hint * base);
 }
 
 
-#if !defined(__CUDA_ARCH__)
-
-
-// Since a lot of compiler in combination with CUDA seem to have difficulties
-// distinguishing between the CUDA `isfinite` and the `std::isfinite` when
-// it is put into the `gko` namespace, only enable `std::isfinite` when
-// compiling host code.
+/**
+ * Checks if a floating point number is finite, meaning it is
+ * neither +/- infinity nor NaN.
+ *
+ * @tparam T  type of the value to check
+ *
+ * @param value  value to check
+ *
+ * @return `true` if the value is finite, meaning it are neither
+ *         +/- infinity nor NaN.
+ */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<!is_complex_s<T>::value, bool>
-isfinite(const T &value)
+is_finite(const T &value)
 {
-    return std::isfinite(value);
+    constexpr T infinity{detail::infinity_impl<T>::value};
+    return abs(value) < infinity;
 }
-
-#endif  // defined(__CUDA_ARCH__)
 
 
 /**
@@ -536,14 +806,14 @@ isfinite(const T &value)
  *
  * @param value  complex value to check
  *
- * returns `true` if both components of the given value are finite, meaning
+ * @return `true` if both components of the given value are finite, meaning
  *         they are neither +/- infinity nor NaN.
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<is_complex_s<T>::value, bool>
-isfinite(const T &value)
+is_finite(const T &value)
 {
-    return isfinite(value.real()) && isfinite(value.imag());
+    return is_finite(value.real()) && is_finite(value.imag());
 }
 
 

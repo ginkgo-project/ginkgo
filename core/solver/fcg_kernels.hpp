@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -109,6 +109,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace fcg
 }  // namespace reference
+
+
+namespace hip {
+namespace fcg {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace fcg
+}  // namespace hip
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

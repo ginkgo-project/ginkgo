@@ -6,7 +6,7 @@ option(GINKGO_DOC_GENERATE_PDF "Generate PDF documentation" OFF)
 option(GINKGO_DOC_GENERATE_DEV "Generate internal documentation" OFF)
 option(GINKGO_DOC_GENERATE_EXAMPLES "Generate example documentation" ON)
 if(GINKGO_DOC_GENERATE_EXAMPLES)
-  add_subdirectory(examples)
+    add_subdirectory(examples)
 endif()
 
 if (GINKGO_DOC_GENERATE_PDF)

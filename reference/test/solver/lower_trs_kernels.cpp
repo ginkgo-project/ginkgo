@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,20 +45,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
 
 #include "core/solver/lower_trs_kernels.hpp"
-#include "core/test/utils/assertions.hpp"
+#include "core/test/utils.hpp"
 
 
 namespace {
 
 
+template <typename ValueIndexType>
 class LowerTrs : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Mtx = gko::matrix::Dense<value_type>;
+    using Solver = gko::solver::LowerTrs<value_type, index_type>;
     LowerTrs()
         : exec(gko::ReferenceExecutor::create()),
           ref(gko::ReferenceExecutor::create()),
@@ -66,16 +72,15 @@ protected:
               {{1, 0.0, 0.0}, {3.0, 1, 0.0}, {1.0, 2.0, 1}}, exec)),
           mtx2(gko::initialize<Mtx>(
               {{2, 0.0, 0.0}, {3.0, 3, 0.0}, {1.0, 2.0, 4}}, exec)),
-          lower_trs_factory(gko::solver::LowerTrs<>::build().on(exec)),
-          lower_trs_factory_mrhs(
-              gko::solver::LowerTrs<>::build().with_num_rhs(2u).on(exec)),
+          lower_trs_factory(Solver::build().on(exec)),
+          lower_trs_factory_mrhs(Solver::build().with_num_rhs(2u).on(exec)),
           mtx_big(gko::initialize<Mtx>({{124.0, 0.0, 0.0, 0.0, 0.0},
                                         {43.0, -789.0, 0.0, 0.0, 0.0},
                                         {134.5, -651.0, 654.0, 0.0, 0.0},
                                         {-642.0, 684.0, 68.0, 387.0, 0.0},
                                         {365.0, 97.0, -654.0, 8.0, 91.0}},
                                        exec)),
-          lower_trs_factory_big(gko::solver::LowerTrs<>::build().on(exec))
+          lower_trs_factory_big(Solver::build().on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -83,101 +88,149 @@ protected:
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<Mtx> mtx2;
     std::shared_ptr<Mtx> mtx_big;
-    std::unique_ptr<gko::solver::LowerTrs<>::Factory> lower_trs_factory;
-    std::unique_ptr<gko::solver::LowerTrs<>::Factory> lower_trs_factory_mrhs;
-    std::unique_ptr<gko::solver::LowerTrs<>::Factory> lower_trs_factory_big;
+    std::unique_ptr<typename Solver::Factory> lower_trs_factory;
+    std::unique_ptr<typename Solver::Factory> lower_trs_factory_mrhs;
+    std::unique_ptr<typename Solver::Factory> lower_trs_factory_big;
 };
 
+TYPED_TEST_CASE(LowerTrs, gko::test::ValueIndexTypes);
 
-TEST_F(LowerTrs, RefLowerTrsFlagCheckIsCorrect)
+
+TYPED_TEST(LowerTrs, RefLowerTrsFlagCheckIsCorrect)
 {
     bool trans_flag = true;
     bool expected_flag = false;
 
-    gko::kernels::reference::lower_trs::should_perform_transpose(ref,
+    gko::kernels::reference::lower_trs::should_perform_transpose(this->ref,
                                                                  trans_flag);
 
     ASSERT_EQ(expected_flag, trans_flag);
 }
 
 
-TEST_F(LowerTrs, SolvesTriangularSystem)
+TYPED_TEST(LowerTrs, SolvesTriangularSystem)
 {
-    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
-    auto solver = lower_trs_factory->generate(mtx);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    auto solver = this->lower_trs_factory->generate(this->mtx);
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 2.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 2.0}), r<value_type>::value);
 }
 
 
-TEST_F(LowerTrs, SolvesMultipleTriangularSystems)
+TYPED_TEST(LowerTrs, SolvesMultipleTriangularSystems)
 {
-    std::shared_ptr<Mtx> b =
-        gko::initialize<Mtx>({{3.0, 4.0}, {1.0, 0.0}, {1.0, -1.0}}, exec);
-    auto x = gko::initialize<Mtx>({{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}}, exec);
-    auto solver = lower_trs_factory_mrhs->generate(mtx);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using T = value_type;
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>(
+        {I<T>{3.0, 4.0}, I<T>{1.0, 0.0}, I<T>{1.0, -1.0}}, this->exec);
+    auto x = gko::initialize<Mtx>(
+        {I<T>{0.0, 0.0}, I<T>{0.0, 0.0}, I<T>{0.0, 0.0}}, this->exec);
+    auto solver = this->lower_trs_factory_mrhs->generate(this->mtx);
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({{3.0, 4.0}, {-8.0, -12.0}, {14.0, 19.0}}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({{3.0, 4.0}, {-8.0, -12.0}, {14.0, 19.0}}),
+                        r<value_type>::value);
 }
 
 
-TEST_F(LowerTrs, SolvesNonUnitTriangularSystem)
+TYPED_TEST(LowerTrs, SolvesNonUnitTriangularSystem)
 {
-    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({2.0, 12.0, 3.0}, exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
-    auto solver = lower_trs_factory->generate(mtx2);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({2.0, 12.0, 3.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    auto solver = this->lower_trs_factory->generate(this->mtx2);
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, -1.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, -1.0}), r<value_type>::value);
 }
 
-TEST_F(LowerTrs, SolvesTriangularSystemUsingAdvancedApply)
+
+TYPED_TEST(LowerTrs, SolvesTriangularSystemUsingAdvancedApply)
 {
-    auto alpha = gko::initialize<Mtx>({2.0}, exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, exec);
-    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, exec);
-    auto x = gko::initialize<Mtx>({1.0, -1.0, 1.0}, exec);
-    auto solver = lower_trs_factory->generate(mtx);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({1.0, -1.0, 1.0}, this->exec);
+    auto solver = this->lower_trs_factory->generate(this->mtx);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 3.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, -1.0, 3.0}), r<value_type>::value);
 }
 
 
-TEST_F(LowerTrs, SolvesMultipleTriangularSystemsUsingAdvancedApply)
+TYPED_TEST(LowerTrs, SolvesMultipleTriangularSystemsUsingAdvancedApply)
 {
-    auto alpha = gko::initialize<Mtx>({-1.0}, exec);
-    auto beta = gko::initialize<Mtx>({2.0}, exec);
-    std::shared_ptr<Mtx> b =
-        gko::initialize<Mtx>({{3.0, 4.0}, {1.0, 0.0}, {1.0, -1.0}}, exec);
-    auto x =
-        gko::initialize<Mtx>({{1.0, 2.0}, {-1.0, -1.0}, {0.0, -2.0}}, exec);
-    auto solver = lower_trs_factory_mrhs->generate(mtx);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using T = value_type;
+    auto alpha = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({2.0}, this->exec);
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>(
+        {I<T>{3.0, 4.0}, I<T>{1.0, 0.0}, I<T>{1.0, -1.0}}, this->exec);
+    auto x = gko::initialize<Mtx>(
+        {I<T>{1.0, 2.0}, I<T>{-1.0, -1.0}, I<T>{0.0, -2.0}}, this->exec);
+    auto solver = this->lower_trs_factory_mrhs->generate(this->mtx);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({{-1.0, 0.0}, {6.0, 10.0}, {-14.0, -23.0}}),
-                        1e-14);
+                        r<value_type>::value);
 }
 
 
-TEST_F(LowerTrs, SolvesBigDenseSystem)
+TYPED_TEST(LowerTrs, SolvesBigDenseSystem)
 {
-    std::shared_ptr<Mtx> b =
-        gko::initialize<Mtx>({-124.0, -3199.0, 3147.5, 5151.0, -6021.0}, exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, exec);
-    auto solver = lower_trs_factory_big->generate(mtx_big);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>(
+        {-124.0, -3199.0, 3147.5, 5151.0, -6021.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto solver = this->lower_trs_factory_big->generate(this->mtx_big);
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({-1.0, 4.0, 9.0, 3.0, -2.0}), 1e-10);
+    GKO_ASSERT_MTX_NEAR(x, l({-1.0, 4.0, 9.0, 3.0, -2.0}),
+                        r<value_type>::value * 1e3);
+}
+
+
+TYPED_TEST(LowerTrs, SolvesTransposedTriangularSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    auto solver = this->lower_trs_factory->generate(this->mtx);
+
+    solver->transpose()->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({0.0, 0.0, 1.0}), r<value_type>::value);
+}
+
+
+TYPED_TEST(LowerTrs, SolvesConjTransposedTriangularSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    std::shared_ptr<Mtx> b = gko::initialize<Mtx>({1.0, 2.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    auto solver = this->lower_trs_factory->generate(this->mtx);
+
+    solver->conj_transpose()->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({0.0, 0.0, 1.0}), r<value_type>::value);
 }
 
 

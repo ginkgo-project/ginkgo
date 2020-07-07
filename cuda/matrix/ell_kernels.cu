@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,16 +43,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/components/fill_array.hpp"
+#include "core/components/prefix_sum.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
+#include "cuda/base/config.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
 #include "cuda/components/format_conversion.cuh"
-#include "cuda/components/prefix_sum.cuh"
 #include "cuda/components/reduction.cuh"
-#include "cuda/components/zero_array.hpp"
+#include "cuda/components/thread_ids.cuh"
 
 
 namespace gko {
@@ -75,6 +77,8 @@ constexpr int default_block_size = 512;
  * `num_threads_per_core` threads assigned to each physical core.
  */
 constexpr int num_threads_per_core = 4;
+
+
 /**
  * ratio is the parameter to decide when to use threads to do reduction on each
  * row. (#cols/#rows > ratio)
@@ -83,127 +87,29 @@ constexpr double ratio = 1e-2;
 
 
 /**
+ * max_thread_per_worker is the max number of thread per worker. The
+ * `compiled_kernels` must be a list <0, 1, 2, ..., max_thread_per_worker>
+ */
+constexpr int max_thread_per_worker = 32;
+
+
+/**
  * A compile-time list of sub-warp sizes for which the spmv kernels should be
  * compiled.
  * 0 is a special case where it uses a sub-warp size of warp_size in
  * combination with atomic_adds.
  */
-using compiled_kernels =
-    syn::value_list<int, 0, 1, 2, 4, 8, 16, 32, cuda_config::warp_size>;
+using compiled_kernels = syn::value_list<int, 0, 1, 2, 4, 8, 16, 32>;
 
 
-namespace kernel {
-namespace {
-
-
-template <int subwarp_size, bool atomic, typename ValueType, typename IndexType,
-          typename Closure>
-__device__ void spmv_kernel(const size_type num_rows, const int nwarps_per_row,
-                            const ValueType *__restrict__ val,
-                            const IndexType *__restrict__ col,
-                            const size_type stride,
-                            const size_type num_stored_elements_per_row,
-                            const ValueType *__restrict__ b,
-                            const size_type b_stride, ValueType *__restrict__ c,
-                            const size_type c_stride, Closure op)
-{
-    const auto tidx =
-        static_cast<IndexType>(blockDim.x) * blockIdx.x + threadIdx.x;
-    const IndexType x = tidx / subwarp_size / nwarps_per_row;
-    const auto warp_id = tidx / subwarp_size % nwarps_per_row;
-    const auto y_start = tidx % subwarp_size +
-                         num_stored_elements_per_row * warp_id / nwarps_per_row;
-    const auto y_end =
-        num_stored_elements_per_row * (warp_id + 1) / nwarps_per_row;
-    if (x < num_rows) {
-        const auto tile_block =
-            group::tiled_partition<subwarp_size>(group::this_thread_block());
-        ValueType temp = zero<ValueType>();
-        const auto column_id = blockIdx.y;
-        for (IndexType idx = y_start; idx < y_end; idx += subwarp_size) {
-            const auto ind = x + idx * stride;
-            const auto col_idx = col[ind];
-            if (col_idx < idx) {
-                break;
-            } else {
-                temp += val[ind] * b[col_idx * b_stride + column_id];
-            }
-        }
-        const auto answer = reduce(
-            tile_block, temp, [](ValueType x, ValueType y) { return x + y; });
-        if (tile_block.thread_rank() == 0) {
-            if (atomic) {
-                atomic_add(&(c[x * c_stride + column_id]),
-                           op(answer, c[x * c_stride + column_id]));
-            } else {
-                c[x * c_stride + column_id] =
-                    op(answer, c[x * c_stride + column_id]);
-            }
-        }
-    }
-}
-
-
-template <int subwarp_size, bool atomic = false, typename ValueType,
-          typename IndexType>
-__global__ __launch_bounds__(default_block_size) void spmv(
-    const size_type num_rows, const int nwarps_per_row,
-    const ValueType *__restrict__ val, const IndexType *__restrict__ col,
-    const size_type stride, const size_type num_stored_elements_per_row,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    ValueType *__restrict__ c, const size_type c_stride)
-{
-    spmv_kernel<subwarp_size, atomic>(
-        num_rows, nwarps_per_row, val, col, stride, num_stored_elements_per_row,
-        b, b_stride, c, c_stride,
-        [](const ValueType &x, const ValueType &y) { return x; });
-}
-
-
-template <int subwarp_size, bool atomic = false, typename ValueType,
-          typename IndexType>
-__global__ __launch_bounds__(default_block_size) void spmv(
-    const size_type num_rows, const int nwarps_per_row,
-    const ValueType *__restrict__ alpha, const ValueType *__restrict__ val,
-    const IndexType *__restrict__ col, const size_type stride,
-    const size_type num_stored_elements_per_row,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    const ValueType *__restrict__ beta, ValueType *__restrict__ c,
-    const size_type c_stride)
-{
-    const ValueType alpha_val = alpha[0];
-    const ValueType beta_val = beta[0];
-    // Because the atomic operation changes the values of c during computation,
-    // it can not do the right alpha * a * b + beta * c operation.
-    // Thus, the cuda kernel only computes alpha * a * b when it uses atomic
-    // operation.
-    if (atomic) {
-        spmv_kernel<subwarp_size, atomic>(
-            num_rows, nwarps_per_row, val, col, stride,
-            num_stored_elements_per_row, b, b_stride, c, c_stride,
-            [&alpha_val](const ValueType &x, const ValueType &y) {
-                return alpha_val * x;
-            });
-    } else {
-        spmv_kernel<subwarp_size, atomic>(
-            num_rows, nwarps_per_row, val, col, stride,
-            num_stored_elements_per_row, b, b_stride, c, c_stride,
-            [&alpha_val, &beta_val](const ValueType &x, const ValueType &y) {
-                return alpha_val * x + beta_val * y;
-            });
-    }
-}
-
-
-}  // namespace
-}  // namespace kernel
+#include "common/matrix/ell_kernels.hpp.inc"
 
 
 namespace {
 
 
 template <int info, typename ValueType, typename IndexType>
-void abstract_spmv(syn::value_list<int, info>, int nwarps_per_row,
+void abstract_spmv(syn::value_list<int, info>, int num_worker_per_row,
                    const matrix::Ell<ValueType, IndexType> *a,
                    const matrix::Dense<ValueType> *b,
                    matrix::Dense<ValueType> *c,
@@ -211,27 +117,31 @@ void abstract_spmv(syn::value_list<int, info>, int nwarps_per_row,
                    const matrix::Dense<ValueType> *beta = nullptr)
 {
     const auto nrows = a->get_size()[0];
-    constexpr int subwarp_size = (info == 0) ? cuda_config::warp_size : info;
+    constexpr int num_thread_per_worker =
+        (info == 0) ? max_thread_per_worker : info;
     constexpr bool atomic = (info == 0);
-    const dim3 block_size(default_block_size, 1, 1);
-    const dim3 grid_size(
-        ceildiv(nrows * subwarp_size * nwarps_per_row, block_size.x),
-        b->get_size()[1], 1);
+    const dim3 block_size(default_block_size / num_thread_per_worker,
+                          num_thread_per_worker, 1);
+    const dim3 grid_size(ceildiv(nrows * num_worker_per_row, block_size.x),
+                         b->get_size()[1], 1);
     if (alpha == nullptr && beta == nullptr) {
-        kernel::spmv<subwarp_size, atomic><<<grid_size, block_size, 0, 0>>>(
-            nrows, nwarps_per_row, as_cuda_type(a->get_const_values()),
-            a->get_const_col_idxs(), a->get_stride(),
-            a->get_num_stored_elements_per_row(),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(c->get_values()), c->get_stride());
+        kernel::spmv<num_thread_per_worker, atomic>
+            <<<grid_size, block_size, 0, 0>>>(
+                nrows, num_worker_per_row, as_cuda_type(a->get_const_values()),
+                a->get_const_col_idxs(), a->get_stride(),
+                a->get_num_stored_elements_per_row(),
+                as_cuda_type(b->get_const_values()), b->get_stride(),
+                as_cuda_type(c->get_values()), c->get_stride());
     } else if (alpha != nullptr && beta != nullptr) {
-        kernel::spmv<subwarp_size, atomic><<<grid_size, block_size, 0, 0>>>(
-            nrows, nwarps_per_row, as_cuda_type(alpha->get_const_values()),
-            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-            a->get_stride(), a->get_num_stored_elements_per_row(),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(beta->get_const_values()),
-            as_cuda_type(c->get_values()), c->get_stride());
+        kernel::spmv<num_thread_per_worker, atomic>
+            <<<grid_size, block_size, 0, 0>>>(
+                nrows, num_worker_per_row,
+                as_cuda_type(alpha->get_const_values()),
+                as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+                a->get_stride(), a->get_num_stored_elements_per_row(),
+                as_cuda_type(b->get_const_values()), b->get_stride(),
+                as_cuda_type(beta->get_const_values()),
+                as_cuda_type(c->get_values()), c->get_stride());
     } else {
         GKO_KERNEL_NOT_FOUND;
     }
@@ -241,42 +151,43 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_abstract_spmv, abstract_spmv);
 
 
 template <typename ValueType, typename IndexType>
-std::array<int, 3> compute_subwarp_size_and_atomicity(
+std::array<int, 3> compute_thread_worker_and_atomicity(
     std::shared_ptr<const CudaExecutor> exec,
     const matrix::Ell<ValueType, IndexType> *a)
 {
-    int subwarp_size = 1;
+    int num_thread_per_worker = 1;
     int atomic = 0;
-    int nwarps_per_row = 1;
+    int num_worker_per_row = 1;
 
     const auto nrows = a->get_size()[0];
     const auto ell_ncols = a->get_num_stored_elements_per_row();
-    const auto nwarps = exec->get_num_cores_per_sm() / cuda_config::warp_size *
+    // TODO: num_threads_per_core should be tuned for AMD gpu
+    const auto nwarps = exec->get_num_warps_per_sm() *
                         exec->get_num_multiprocessor() * num_threads_per_core;
 
     // Use multithreads to perform the reduction on each row when the matrix is
     // wide.
     // To make every thread have computation, so pick the value which is the
-    // power of 2 less than warp_size and is less than or equal to ell_ncols. If
-    // the subwarp_size is warp_size and allow more than one warps to work on
-    // the same row, use atomic add to handle the warps write the value into the
-    // same position. The #warps is decided according to the number of warps
-    // allowed on GPU.
+    // power of 2 less than max_thread_per_worker and is less than or equal to
+    // ell_ncols. If the num_thread_per_worker is max_thread_per_worker and
+    // allow more than one worker to work on the same row, use atomic add to
+    // handle the worker write the value into the same position. The #worker is
+    // decided according to the number of worker allowed on GPU.
     if (static_cast<double>(ell_ncols) / nrows > ratio) {
-        while (subwarp_size < cuda_config::warp_size &&
-               (subwarp_size << 1) <= ell_ncols) {
-            subwarp_size <<= 1;
+        while (num_thread_per_worker < max_thread_per_worker &&
+               (num_thread_per_worker << 1) <= ell_ncols) {
+            num_thread_per_worker <<= 1;
         }
-        if (subwarp_size == cuda_config::warp_size) {
-            nwarps_per_row =
-                std::min(ell_ncols / cuda_config::warp_size, nwarps / nrows);
-            nwarps_per_row = std::max(nwarps_per_row, 1);
+        if (num_thread_per_worker == max_thread_per_worker) {
+            num_worker_per_row =
+                std::min(ell_ncols / max_thread_per_worker, nwarps / nrows);
+            num_worker_per_row = std::max(num_worker_per_row, 1);
         }
-        if (nwarps_per_row > 1) {
+        if (num_worker_per_row > 1) {
             atomic = 1;
         }
     }
-    return {subwarp_size, atomic, nwarps_per_row};
+    return {num_thread_per_worker, atomic, num_worker_per_row};
 }
 
 
@@ -288,24 +199,26 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Ell<ValueType, IndexType> *a,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
-    const auto data = compute_subwarp_size_and_atomicity(exec, a);
-    const int subwarp_size = std::get<0>(data);
+    const auto data = compute_thread_worker_and_atomicity(exec, a);
+    const int num_thread_per_worker = std::get<0>(data);
     const int atomic = std::get<1>(data);
-    const int nwarps_per_row = std::get<2>(data);
+    const int num_worker_per_row = std::get<2>(data);
 
     /**
      * info is the parameter for selecting the cuda kernel.
      * for info == 0, it uses the kernel by warp_size threads with atomic
      * operation for other value, it uses the kernel without atomic_add
      */
-    const int info = (!atomic) * subwarp_size;
+    const int info = (!atomic) * num_thread_per_worker;
     if (atomic) {
-        zero_array(c->get_num_stored_elements(), c->get_values());
+        components::fill_array(exec, c->get_values(),
+                               c->get_num_stored_elements(), zero<ValueType>());
     }
     select_abstract_spmv(
         compiled_kernels(),
         [&info](int compiled_info) { return info == compiled_info; },
-        syn::value_list<int>(), syn::type_list<>(), nwarps_per_row, a, b, c);
+        syn::value_list<int>(), syn::type_list<>(), num_worker_per_row, a, b,
+        c);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_SPMV_KERNEL);
@@ -319,24 +232,24 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                    const matrix::Dense<ValueType> *beta,
                    matrix::Dense<ValueType> *c)
 {
-    const auto data = compute_subwarp_size_and_atomicity(exec, a);
-    const int subwarp_size = std::get<0>(data);
+    const auto data = compute_thread_worker_and_atomicity(exec, a);
+    const int num_thread_per_worker = std::get<0>(data);
     const int atomic = std::get<1>(data);
-    const int nwarps_per_row = std::get<2>(data);
+    const int num_worker_per_row = std::get<2>(data);
 
     /**
      * info is the parameter for selecting the cuda kernel.
      * for info == 0, it uses the kernel by warp_size threads with atomic
      * operation for other value, it uses the kernel without atomic_add
      */
-    const int info = (!atomic) * subwarp_size;
+    const int info = (!atomic) * num_thread_per_worker;
     if (atomic) {
         dense::scale(exec, beta, c);
     }
     select_abstract_spmv(
         compiled_kernels(),
         [&info](int compiled_info) { return info == compiled_info; },
-        syn::value_list<int>(), syn::type_list<>(), nwarps_per_row, a, b, c,
+        syn::value_list<int>(), syn::type_list<>(), num_worker_per_row, a, b, c,
         alpha, beta);
 }
 
@@ -344,48 +257,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
 
 
-namespace kernel {
-
-
-template <typename ValueType>
-__global__
-    __launch_bounds__(cuda_config::max_block_size) void initialize_zero_dense(
-        size_type num_rows, size_type num_cols, size_type stride,
-        ValueType *__restrict__ result)
-{
-    const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
-    const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
-    if (tidx_x < num_cols && tidx_y < num_rows) {
-        result[tidx_y * stride + tidx_x] = zero<ValueType>();
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void fill_in_dense(
-    size_type num_rows, size_type nnz, size_type source_stride,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values, size_type result_stride,
-    ValueType *__restrict__ result)
-{
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    if (tidx < num_rows) {
-        for (auto col = 0; col < nnz; col++) {
-            result[tidx * result_stride +
-                   col_idxs[tidx + col * source_stride]] +=
-                values[tidx + col * source_stride];
-        }
-    }
-}
-
-
-}  // namespace kernel
-
-
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
-                      matrix::Dense<ValueType> *result,
-                      const matrix::Ell<ValueType, IndexType> *source)
+                      const matrix::Ell<ValueType, IndexType> *source,
+                      matrix::Dense<ValueType> *result)
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
@@ -394,9 +269,8 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
     const auto vals = source->get_const_values();
     const auto source_stride = source->get_stride();
 
-    const dim3 block_size(cuda_config::warp_size,
-                          cuda_config::max_block_size / cuda_config::warp_size,
-                          1);
+    const dim3 block_size(config::warp_size,
+                          config::max_block_size / config::warp_size, 1);
     const dim3 init_grid_dim(ceildiv(result_stride, block_size.x),
                              ceildiv(num_rows, block_size.y), 1);
     kernel::initialize_zero_dense<<<init_grid_dim, block_size>>>(
@@ -413,68 +287,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL);
 
 
-namespace kernel {
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void count_nnz_per_row(
-    size_type num_rows, size_type max_nnz_per_row, size_type stride,
-    const ValueType *__restrict__ values, IndexType *__restrict__ result)
-{
-    constexpr auto warp_size = cuda_config::warp_size;
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    const auto row_idx = tidx / warp_size;
-
-    if (row_idx < num_rows) {
-        IndexType part_result{};
-        for (auto i = threadIdx.x % warp_size; i < max_nnz_per_row;
-             i += warp_size) {
-            if (values[stride * i + row_idx] != zero<ValueType>()) {
-                part_result += 1;
-            }
-        }
-
-        auto warp_tile =
-            group::tiled_partition<warp_size>(group::this_thread_block());
-        result[row_idx] = reduce(
-            warp_tile, part_result,
-            [](const size_type &a, const size_type &b) { return a + b; });
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void fill_in_csr(
-    size_type num_rows, size_type max_nnz_per_row, size_type stride,
-    const ValueType *__restrict__ source_values,
-    const IndexType *__restrict__ source_col_idxs,
-    IndexType *__restrict__ result_row_ptrs,
-    IndexType *__restrict__ result_col_idxs,
-    ValueType *__restrict__ result_values)
-{
-    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
-
-    if (tidx < num_rows) {
-        auto write_to = result_row_ptrs[tidx];
-        for (auto i = 0; i < max_nnz_per_row; i++) {
-            const auto source_idx = tidx + stride * i;
-            if (source_values[source_idx] != zero<ValueType>()) {
-                result_values[write_to] = source_values[source_idx];
-                result_col_idxs[write_to] = source_col_idxs[source_idx];
-                write_to++;
-            }
-        }
-    }
-}
-
-
-}  // namespace kernel
-
-
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
-                    matrix::Csr<ValueType, IndexType> *result,
-                    const matrix::Ell<ValueType, IndexType> *source)
+                    const matrix::Ell<ValueType, IndexType> *source,
+                    matrix::Csr<ValueType, IndexType> *result)
 {
     auto num_rows = result->get_size()[0];
 
@@ -486,31 +302,22 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
     const auto max_nnz_per_row = source->get_num_stored_elements_per_row();
 
     constexpr auto rows_per_block =
-        ceildiv(default_block_size, cuda_config::warp_size);
+        ceildiv(default_block_size, config::warp_size);
     const auto grid_dim_nnz = ceildiv(source->get_size()[0], rows_per_block);
 
     kernel::count_nnz_per_row<<<grid_dim_nnz, default_block_size>>>(
         num_rows, max_nnz_per_row, stride,
         as_cuda_type(source->get_const_values()), as_cuda_type(row_ptrs));
 
-    size_type grid_dim = ceildiv(num_rows + 1, default_block_size);
-    auto add_values = Array<IndexType>(exec, grid_dim);
+    components::prefix_sum(exec, row_ptrs, num_rows + 1);
 
-    start_prefix_sum<default_block_size>
-        <<<grid_dim, default_block_size>>>(num_rows + 1, as_cuda_type(row_ptrs),
-                                           as_cuda_type(add_values.get_data()));
-
-    finalize_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
-        num_rows + 1, as_cuda_type(row_ptrs),
-        as_cuda_type(add_values.get_const_data()));
+    size_type grid_dim = ceildiv(num_rows, default_block_size);
 
     kernel::fill_in_csr<<<grid_dim, default_block_size>>>(
         num_rows, max_nnz_per_row, stride,
         as_cuda_type(source->get_const_values()),
         as_cuda_type(source->get_const_col_idxs()), as_cuda_type(row_ptrs),
         as_cuda_type(col_idxs), as_cuda_type(values));
-
-    add_values.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -528,7 +335,6 @@ void count_nonzeros(std::shared_ptr<const CudaExecutor> exec,
     calculate_nonzeros_per_row(exec, source, &nnz_per_row);
 
     *result = reduce_add_array(exec, num_rows, nnz_per_row.get_const_data());
-    nnz_per_row.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -545,7 +351,7 @@ void calculate_nonzeros_per_row(std::shared_ptr<const CudaExecutor> exec,
     const auto stride = source->get_stride();
     const auto values = source->get_const_values();
 
-    const auto warp_size = cuda_config::warp_size;
+    const auto warp_size = config::warp_size;
     const auto grid_dim = ceildiv(num_rows * warp_size, default_block_size);
 
     kernel::count_nnz_per_row<<<grid_dim, default_block_size>>>(

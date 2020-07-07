@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,9 +37,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "core/base/extended_float.hpp"
+#include "core/preconditioner/jacobi_utils.hpp"
+#include "core/synthesizer/implementation_selection.hpp"
+#include "cuda/base/config.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/cooperative_groups.cuh"
+#include "cuda/components/thread_ids.cuh"
+#include "cuda/preconditioner/jacobi_common.hpp"
 
 
 namespace gko {
@@ -55,98 +60,13 @@ namespace {
 
 
 // a total of 32 warps (1024 threads)
-constexpr int default_block_size = 32;
+constexpr int default_num_warps = 32;
 // with current architectures, at most 32 warps can be scheduled per SM (and
 // current GPUs have at most 84 SMs)
 constexpr int default_grid_size = 32 * 32 * 128;
 
 
-template <int warps_per_block>
-__global__
-__launch_bounds__(warps_per_block *cuda_config::warp_size) void duplicate_array(
-    const precision_reduction *__restrict__ source, size_type source_size,
-    precision_reduction *__restrict__ dest, size_type dest_size)
-{
-    auto grid = group::this_grid();
-    if (grid.thread_rank() >= dest_size) {
-        return;
-    }
-    for (auto i = grid.thread_rank(); i < dest_size; i += grid.size()) {
-        dest[i] = source[i % source_size];
-    }
-}
-
-
-template <typename IndexType>
-__global__ void compare_adjacent_rows(size_type num_rows, int32 max_block_size,
-                                      const IndexType *__restrict__ row_ptrs,
-                                      const IndexType *__restrict__ col_idx,
-                                      bool *__restrict__ matching_next_row)
-{
-    const auto global_tid = blockDim.x * blockIdx.x + threadIdx.x;
-    const auto local_tid = threadIdx.x % cuda_config::warp_size;
-    const auto warp_id = global_tid / cuda_config::warp_size;
-    const auto warp = group::tiled_partition<cuda_config::warp_size>(
-        group::this_thread_block());
-
-    if (warp_id >= num_rows - 1) {
-        return;
-    }
-
-    const auto curr_row_start = row_ptrs[warp_id];
-    const auto next_row_start = row_ptrs[warp_id + 1];
-    const auto next_row_end = row_ptrs[warp_id + 2];
-
-    const auto nz_this_row = next_row_end - next_row_start;
-    const auto nz_prev_row = next_row_start - curr_row_start;
-
-    if (nz_this_row != nz_prev_row) {
-        matching_next_row[warp_id] = false;
-        return;
-    }
-    size_type steps = ceildiv(nz_this_row, cuda_config::warp_size);
-    for (size_type i = 0; i < steps; i++) {
-        auto j = local_tid + i * cuda_config::warp_size;
-        auto prev_col = (curr_row_start + j < next_row_start)
-                            ? col_idx[curr_row_start + j]
-                            : 0;
-        auto this_col = (curr_row_start + j < next_row_start)
-                            ? col_idx[next_row_start + j]
-                            : 0;
-        if (warp.any(prev_col != this_col)) {
-            matching_next_row[warp_id] = false;
-            return;
-        }
-    }
-    matching_next_row[warp_id] = true;
-}
-
-
-template <typename IndexType>
-__global__ void generate_natural_block_pointer(
-    size_type num_rows, int32 max_block_size,
-    const bool *__restrict__ matching_next_row,
-    IndexType *__restrict__ block_ptrs, size_type *__restrict__ num_blocks_arr)
-{
-    block_ptrs[0] = 0;
-    if (num_rows == 0) {
-        return;
-    }
-    size_type num_blocks = 1;
-    int32 current_block_size = 1;
-    for (size_type i = 0; i < num_rows - 1; ++i) {
-        if ((matching_next_row[i]) && (current_block_size < max_block_size)) {
-            ++current_block_size;
-        } else {
-            block_ptrs[num_blocks] =
-                block_ptrs[num_blocks - 1] + current_block_size;
-            ++num_blocks;
-            current_block_size = 1;
-        }
-    }
-    block_ptrs[num_blocks] = block_ptrs[num_blocks - 1] + current_block_size;
-    num_blocks_arr[0] = num_blocks;
-}
+#include "common/preconditioner/jacobi_kernels.hpp.inc"
 
 
 template <typename ValueType, typename IndexType>
@@ -159,10 +79,9 @@ size_type find_natural_blocks(std::shared_ptr<const CudaExecutor> exec,
 
     Array<bool> matching_next_row(exec, mtx->get_size()[0] - 1);
 
-    const dim3 block_size(default_block_size, 1, 1);
+    const dim3 block_size(config::warp_size, 1, 1);
     const dim3 grid_size(
-        ceildiv(mtx->get_size()[0] * cuda_config::warp_size, block_size.x), 1,
-        1);
+        ceildiv(mtx->get_size()[0] * config::warp_size, block_size.x), 1, 1);
     compare_adjacent_rows<<<grid_size, block_size, 0, 0>>>(
         mtx->get_size()[0], max_block_size, mtx->get_const_row_ptrs(),
         mtx->get_const_col_idxs(), matching_next_row.get_data());
@@ -171,32 +90,6 @@ size_type find_natural_blocks(std::shared_ptr<const CudaExecutor> exec,
         block_ptrs, nums.get_data());
     nums.set_executor(exec->get_master());
     return nums.get_const_data()[0];
-}
-
-
-template <typename IndexType>
-__global__ void agglomerate_supervariables_kernel(
-    int32 max_block_size, size_type num_natural_blocks,
-    IndexType *__restrict__ block_ptrs, size_type *__restrict__ num_blocks_arr)
-{
-    num_blocks_arr[0] = 0;
-    if (num_natural_blocks == 0) {
-        return;
-    }
-    size_type num_blocks = 1;
-    int32 current_block_size = block_ptrs[1] - block_ptrs[0];
-    for (size_type i = 1; i < num_natural_blocks; ++i) {
-        const int32 block_size = block_ptrs[i + 1] - block_ptrs[i];
-        if (current_block_size + block_size <= max_block_size) {
-            current_block_size += block_size;
-        } else {
-            block_ptrs[num_blocks] = block_ptrs[i];
-            ++num_blocks;
-            current_block_size = block_size;
-        }
-    }
-    block_ptrs[num_blocks] = block_ptrs[num_natural_blocks];
-    num_blocks_arr[0] = num_blocks;
 }
 
 
@@ -222,11 +115,11 @@ void initialize_precisions(std::shared_ptr<const CudaExecutor> exec,
                            const Array<precision_reduction> &source,
                            Array<precision_reduction> &precisions)
 {
-    const auto block_size = default_block_size * cuda_config::warp_size;
+    const auto block_size = default_num_warps * config::warp_size;
     const auto grid_size = min(
         default_grid_size,
         static_cast<int32>(ceildiv(precisions.get_num_elems(), block_size)));
-    duplicate_array<default_block_size><<<grid_size, block_size>>>(
+    duplicate_array<default_num_warps><<<grid_size, block_size>>>(
         source.get_const_data(), source.get_num_elems(), precisions.get_data(),
         precisions.get_num_elems());
 }
@@ -246,6 +139,93 @@ void find_blocks(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL);
+
+
+namespace {
+
+
+template <bool conjugate, int warps_per_block, int max_block_size,
+          typename ValueType, typename IndexType>
+void transpose_jacobi(
+    syn::value_list<int, max_block_size>, size_type num_blocks,
+    const precision_reduction *block_precisions,
+    const IndexType *block_pointers, const ValueType *blocks,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
+    ValueType *out_blocks)
+{
+    constexpr int subwarp_size = get_larger_power(max_block_size);
+    constexpr int blocks_per_warp = config::warp_size / subwarp_size;
+    const dim3 grid_size(ceildiv(num_blocks, warps_per_block * blocks_per_warp),
+                         1, 1);
+    const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
+
+    if (block_precisions) {
+        adaptive_transpose_jacobi<conjugate, max_block_size, subwarp_size,
+                                  warps_per_block>
+            <<<grid_size, block_size, 0, 0>>>(
+                as_cuda_type(blocks), storage_scheme, block_precisions,
+                block_pointers, num_blocks, as_cuda_type(out_blocks));
+    } else {
+        transpose_jacobi<conjugate, max_block_size, subwarp_size,
+                         warps_per_block><<<grid_size, block_size, 0, 0>>>(
+            as_cuda_type(blocks), storage_scheme, block_pointers, num_blocks,
+            as_cuda_type(out_blocks));
+    }
+}
+
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_transpose_jacobi, transpose_jacobi);
+
+
+}  // namespace
+
+
+template <typename ValueType, typename IndexType>
+void transpose_jacobi(
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
+    uint32 max_block_size, const Array<precision_reduction> &block_precisions,
+    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
+    Array<ValueType> &out_blocks)
+{
+    select_transpose_jacobi(
+        compiled_kernels(),
+        [&](int compiled_block_size) {
+            return max_block_size <= compiled_block_size;
+        },
+        syn::value_list<int, false, config::min_warps_per_block>(),
+        syn::type_list<>(), num_blocks, block_precisions.get_const_data(),
+        block_pointers.get_const_data(), blocks.get_const_data(),
+        storage_scheme, out_blocks.get_data());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_JACOBI_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void conj_transpose_jacobi(
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
+    uint32 max_block_size, const Array<precision_reduction> &block_precisions,
+    const Array<IndexType> &block_pointers, const Array<ValueType> &blocks,
+    const preconditioner::block_interleaved_storage_scheme<IndexType>
+        &storage_scheme,
+    Array<ValueType> &out_blocks)
+{
+    select_transpose_jacobi(
+        compiled_kernels(),
+        [&](int compiled_block_size) {
+            return max_block_size <= compiled_block_size;
+        },
+        syn::value_list<int, true, config::min_warps_per_block>(),
+        syn::type_list<>(), num_blocks, block_precisions.get_const_data(),
+        block_pointers.get_const_data(), blocks.get_const_data(),
+        storage_scheme, out_blocks.get_data());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_JACOBI_CONJ_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

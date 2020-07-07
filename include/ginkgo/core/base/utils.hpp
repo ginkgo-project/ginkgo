@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,14 +34,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_UTILS_HPP_
 
 
-#include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/base/std_extensions.hpp>
-#include <ginkgo/core/base/types.hpp>
-
-
 #include <functional>
 #include <memory>
 #include <type_traits>
+
+
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 #ifndef NDEBUG
@@ -290,7 +291,10 @@ inline typename std::decay<T>::type *as(U *obj)
     if (auto p = dynamic_cast<typename std::decay<T>::type *>(obj)) {
         return p;
     } else {
-        throw NotSupported(__FILE__, __LINE__, __func__, typeid(obj).name());
+        throw NotSupported(__FILE__, __LINE__,
+                           std::string{"gko::as<"} +
+                               name_demangling::get_type_name(typeid(T)) + ">",
+                           name_demangling::get_type_name(typeid(*obj)));
     }
 }
 
@@ -313,7 +317,88 @@ inline const typename std::decay<T>::type *as(const U *obj)
     if (auto p = dynamic_cast<const typename std::decay<T>::type *>(obj)) {
         return p;
     } else {
-        throw NotSupported(__FILE__, __LINE__, __func__, typeid(obj).name());
+        throw NotSupported(__FILE__, __LINE__,
+                           std::string{"gko::as<"} +
+                               name_demangling::get_type_name(typeid(T)) + ">",
+                           name_demangling::get_type_name(typeid(*obj)));
+    }
+}
+
+
+/**
+ * Performs polymorphic type conversion of a unique_ptr.
+ *
+ * @tparam T  requested result type
+ * @tparam U  static type of the passed object
+ *
+ * @param obj  the unique_ptr to the object which should be converted.
+ *             If successful, it will be reset to a nullptr.
+ *
+ * @return If successful, returns a unique_ptr to the subtype, otherwise throws
+ *         NotSupported.
+ */
+template <typename T, typename U>
+inline std::unique_ptr<typename std::decay<T>::type> as(
+    std::unique_ptr<U> &&obj)
+{
+    if (auto p = dynamic_cast<typename std::decay<T>::type *>(obj.get())) {
+        obj.release();
+        return std::unique_ptr<typename std::decay<T>::type>{p};
+    } else {
+        throw NotSupported(__FILE__, __LINE__, __func__,
+                           name_demangling::get_type_name(typeid(*obj)));
+    }
+}
+
+
+/**
+ * Performs polymorphic type conversion of a shared_ptr.
+ *
+ * @tparam T  requested result type
+ * @tparam U  static type of the passed object
+ *
+ * @param obj  the shared_ptr to the object which should be converted.
+ *
+ * @return If successful, returns a shared_ptr to the subtype, otherwise throws
+ *         NotSupported. This pointer shares ownership with the input pointer.
+ */
+template <typename T, typename U>
+inline std::shared_ptr<typename std::decay<T>::type> as(std::shared_ptr<U> obj)
+{
+    auto ptr = std::dynamic_pointer_cast<typename std::decay<T>::type>(obj);
+    if (ptr) {
+        return ptr;
+    } else {
+        throw NotSupported(__FILE__, __LINE__, __func__,
+                           name_demangling::get_type_name(typeid(*obj)));
+    }
+}
+
+
+/**
+ * Performs polymorphic type conversion of a shared_ptr.
+ *
+ * This is the constant version of the function.
+ *
+ * @tparam T  requested result type
+ * @tparam U  static type of the passed object
+ *
+ * @param obj  the shared_ptr to the object which should be converted.
+ *
+ * @return If successful, returns a shared_ptr to the subtype, otherwise throws
+ *         NotSupported. This pointer shares ownership with the input pointer.
+ */
+template <typename T, typename U>
+inline std::shared_ptr<const typename std::decay<T>::type> as(
+    std::shared_ptr<const U> obj)
+{
+    auto ptr =
+        std::dynamic_pointer_cast<const typename std::decay<T>::type>(obj);
+    if (ptr) {
+        return ptr;
+    } else {
+        throw NotSupported(__FILE__, __LINE__, __func__,
+                           name_demangling::get_type_name(typeid(*obj)));
     }
 }
 

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -55,11 +55,48 @@ TEST(NotCompiled, ThrowsWhenUsed)
 }
 
 
-void does_not_support_int() { GKO_NOT_SUPPORTED(int); }
-
-TEST(NotSupported, ReturnsNotSupportedException)
+template <typename Expected, typename T>
+void test_not_supported_impl(const T &obj)
 {
-    ASSERT_THROW(does_not_support_int(), gko::NotSupported);
+    try {
+        GKO_NOT_SUPPORTED(obj);
+        FAIL();
+    } catch (gko::NotSupported &m) {
+        // check for equal suffix
+        std::string msg{m.what()};
+        auto expected = gko::name_demangling::get_type_name(typeid(Expected));
+        ASSERT_TRUE(
+            std::equal(expected.rbegin(), expected.rend(), msg.rbegin()));
+    }
+}
+
+
+TEST(NotSupported, ReturnsIntNotSupportedException)
+{
+    test_not_supported_impl<int>(int{});
+}
+
+
+struct Base {
+    virtual ~Base() = default;
+};
+
+struct Derived : Base {};
+
+
+TEST(NotSupported, ReturnsPtrNotSupportedException)
+{
+    Derived d;
+    Base *b = &d;
+    test_not_supported_impl<Derived>(b);
+}
+
+
+TEST(NotSupported, ReturnsRefNotSupportedException)
+{
+    Derived d;
+    Base &b = d;
+    test_not_supported_impl<Derived>(b);
 }
 
 
@@ -84,6 +121,30 @@ void throws_cusparse_error() { throw GKO_CUSPARSE_ERROR(0); }
 TEST(CudaError, ReturnsCusparseError)
 {
     ASSERT_THROW(throws_cusparse_error(), gko::CusparseError);
+}
+
+
+void throws_hip_error() { throw GKO_HIP_ERROR(0); }
+
+TEST(HipError, ReturnsHipError)
+{
+    ASSERT_THROW(throws_hip_error(), gko::HipError);
+}
+
+
+void throws_hipblas_error() { throw GKO_HIPBLAS_ERROR(0); }
+
+TEST(HipError, ReturnsHipblasError)
+{
+    ASSERT_THROW(throws_hipblas_error(), gko::HipblasError);
+}
+
+
+void throws_hipsparse_error() { throw GKO_HIPSPARSE_ERROR(0); }
+
+TEST(HipError, ReturnsHipsparseError)
+{
+    ASSERT_THROW(throws_hipsparse_error(), gko::HipsparseError);
 }
 
 

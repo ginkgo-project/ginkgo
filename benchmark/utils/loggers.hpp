@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <chrono>
+#include <mutex>
 #include <regex>
 #include <unordered_map>
 
@@ -104,6 +105,7 @@ struct OperationLogger : gko::log::Logger {
                     rapidjson::MemoryPoolAllocator<> &alloc,
                     gko::uint32 repetitions)
     {
+        const std::lock_guard<std::mutex> lock(mutex);
         for (const auto &entry : total) {
             add_or_set_member(
                 object, entry.first.c_str(),
@@ -115,37 +117,48 @@ struct OperationLogger : gko::log::Logger {
         }
     }
 
-    OperationLogger(std::shared_ptr<const gko::Executor> exec)
-        : gko::log::Logger(exec)
+    OperationLogger(std::shared_ptr<const gko::Executor> exec, bool nested_name)
+        : gko::log::Logger(exec), use_nested_name{nested_name}
     {}
 
 private:
     void start_operation(const gko::Executor *exec,
                          const std::string &name) const
     {
-        nested.emplace_back(0);
         exec->synchronize();
-        start[name] = std::chrono::steady_clock::now();
+        const std::lock_guard<std::mutex> lock(mutex);
+        auto nested_name = nested.empty() || !use_nested_name
+                               ? name
+                               : nested.back().first + "::" + name;
+        nested.emplace_back(nested_name, std::chrono::steady_clock::duration{});
+        start[nested_name] = std::chrono::steady_clock::now();
     }
 
     void end_operation(const gko::Executor *exec, const std::string &name) const
     {
         exec->synchronize();
+        const std::lock_guard<std::mutex> lock(mutex);
+        // if operations are properly nested, nested_name now ends with name
+        auto nested_name = nested.back().first;
         const auto end = std::chrono::steady_clock::now();
-        const auto diff = end - start[name];
+        const auto diff = end - start[nested_name];
         // make sure timings for nested operations are not counted twice
-        total[name] += diff - nested.back();
+        total[nested_name] += diff - nested.back().second;
         nested.pop_back();
-        if (nested.size() > 0) {
-            nested.back() += diff;
+        if (!nested.empty()) {
+            nested.back().second += diff;
         }
     }
 
+    bool use_nested_name;
+    mutable std::mutex mutex;
     mutable std::map<std::string, std::chrono::steady_clock::time_point> start;
     mutable std::map<std::string, std::chrono::steady_clock::duration> total;
     // the position i of this vector holds the total time spend on child
     // operations on nesting level i
-    mutable std::vector<std::chrono::steady_clock::duration> nested;
+    mutable std::vector<
+        std::pair<std::string, std::chrono::steady_clock::duration>>
+        nested;
 };
 
 
@@ -154,18 +167,21 @@ struct StorageLogger : gko::log::Logger {
                                  const gko::size_type &num_bytes,
                                  const gko::uintptr &location) const override
     {
+        const std::lock_guard<std::mutex> lock(mutex);
         storage[location] = num_bytes;
     }
 
     void on_free_completed(const gko::Executor *,
                            const gko::uintptr &location) const override
     {
+        const std::lock_guard<std::mutex> lock(mutex);
         storage[location] = 0;
     }
 
     void write_data(rapidjson::Value &output,
                     rapidjson::MemoryPoolAllocator<> &allocator)
     {
+        const std::lock_guard<std::mutex> lock(mutex);
         gko::size_type total{};
         for (const auto &e : storage) {
             total += e.second;
@@ -178,6 +194,7 @@ struct StorageLogger : gko::log::Logger {
     {}
 
 private:
+    mutable std::mutex mutex;
     mutable std::unordered_map<gko::uintptr, gko::size_type> storage;
 };
 
@@ -190,12 +207,17 @@ struct ResidualLogger : gko::log::Logger {
                                const gko::LinOp *solution,
                                const gko::LinOp *residual_norm) const override
     {
+        timestamps.PushBack(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::steady_clock::now() - start)
+                .count(),
+            alloc);
         if (residual_norm) {
             rec_res_norms.PushBack(
                 get_norm(gko::as<vec<ValueType>>(residual_norm)), alloc);
         } else {
             rec_res_norms.PushBack(
-                compute_norm(gko::as<vec<ValueType>>(residual)), alloc);
+                compute_norm2(gko::as<vec<ValueType>>(residual)), alloc);
         }
         if (solution) {
             true_res_norms.PushBack(
@@ -211,21 +233,51 @@ struct ResidualLogger : gko::log::Logger {
                    const gko::LinOp *matrix, const vec<ValueType> *b,
                    rapidjson::Value &rec_res_norms,
                    rapidjson::Value &true_res_norms,
+                   rapidjson::Value &timestamps,
                    rapidjson::MemoryPoolAllocator<> &alloc)
         : gko::log::Logger(exec, gko::log::Logger::iteration_complete_mask),
           matrix{matrix},
           b{b},
+          start{std::chrono::steady_clock::now()},
           rec_res_norms{rec_res_norms},
           true_res_norms{true_res_norms},
+          timestamps{timestamps},
           alloc{alloc}
     {}
 
 private:
     const gko::LinOp *matrix;
     const vec<ValueType> *b;
+    std::chrono::steady_clock::time_point start;
     rapidjson::Value &rec_res_norms;
     rapidjson::Value &true_res_norms;
+    rapidjson::Value &timestamps;
     rapidjson::MemoryPoolAllocator<> &alloc;
+};
+
+
+// Logs the number of iteration executed
+struct IterationLogger : gko::log::Logger {
+    void on_iteration_complete(const gko::LinOp *,
+                               const gko::size_type &num_iterations,
+                               const gko::LinOp *, const gko::LinOp *,
+                               const gko::LinOp *) const override
+    {
+        this->num_iters = num_iterations;
+    }
+
+    IterationLogger(std::shared_ptr<const gko::Executor> exec)
+        : gko::log::Logger(exec, gko::log::Logger::iteration_complete_mask)
+    {}
+
+    void write_data(rapidjson::Value &output,
+                    rapidjson::MemoryPoolAllocator<> &allocator)
+    {
+        add_or_set_member(output, "iterations", this->num_iters, allocator);
+    }
+
+private:
+    mutable gko::size_type num_iters{0};
 };
 
 

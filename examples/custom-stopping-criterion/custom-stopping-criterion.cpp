@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -93,9 +93,12 @@ void run_solver(volatile bool *stop_iteration_process,
                 std::shared_ptr<gko::Executor> exec)
 {
     // Some shortcuts
-    using mtx = gko::matrix::Csr<>;
-    using vec = gko::matrix::Dense<>;
-    using bicg = gko::solver::Bicgstab<>;
+    using ValueType = double;
+    using IndexType = int;
+
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
+    using vec = gko::matrix::Dense<ValueType>;
+    using bicg = gko::solver::Bicgstab<ValueType>;
 
     // Read Data
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
@@ -110,7 +113,7 @@ void run_solver(volatile bool *stop_iteration_process,
                                          .on(exec))
                       .on(exec)
                       ->generate(A);
-    solver->add_logger(gko::log::Stream<>::create(
+    solver->add_logger(gko::log::Stream<ValueType>::create(
         exec, gko::log::Logger::iteration_complete_mask, std::cout, true));
     solver->apply(lend(b), lend(x));
 
@@ -145,7 +148,10 @@ int main(int argc, char *argv[])
         exec = gko::OmpExecutor::create();
     } else if (argc == 2 && std::string(argv[1]) == "cuda" &&
                gko::CudaExecutor::get_num_devices() > 0) {
-        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
+    } else if (argc == 2 && std::string(argv[1]) == "hip" &&
+               gko::HipExecutor::get_num_devices() > 0) {
+        exec = gko::HipExecutor::create(0, gko::OmpExecutor::create(), true);
     } else {
         std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
         std::exit(-1);

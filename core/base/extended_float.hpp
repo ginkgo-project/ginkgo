@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <cuda_fp16.h>
+
+
+#elif defined(__HIP_DEVICE_COMPILE__)
+
+
+#include <hip/hip_fp16.h>
 
 
 #endif  // __CUDA_ARCH__
@@ -301,16 +307,16 @@ private:
  */
 class half {
 public:
-    GKO_ATTRIBUTES half() noexcept = default;
+    half() noexcept = default;
 
     GKO_ATTRIBUTES half(float32 val) noexcept
     {
-#ifdef __CUDA_ARCH__
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         const auto tmp = __float2half_rn(val);
         data_ = reinterpret_cast<const uint16 &>(tmp);
-#else   // __CUDA_ARCH__
+#else   // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         data_ = float2half(reinterpret_cast<const uint32 &>(val));
-#endif  // __CUDA_ARCH__
+#endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     }
 
     GKO_ATTRIBUTES half(float64 val) noexcept : half(static_cast<float32>(val))
@@ -318,17 +324,25 @@ public:
 
     GKO_ATTRIBUTES operator float32() const noexcept
     {
-#ifdef __CUDA_ARCH__
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         return __half2float(reinterpret_cast<const __half &>(data_));
-#else   // __CUDA_ARCH__
+#else   // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
         const auto bits = half2float(data_);
         return reinterpret_cast<const float32 &>(bits);
-#endif  // __CUDA_ARCH__
+#endif  // defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
     }
 
     GKO_ATTRIBUTES operator float64() const noexcept
     {
         return static_cast<float64>(static_cast<float32>(*this));
+    }
+
+    GKO_ATTRIBUTES half operator-() const noexcept
+    {
+        auto res = *this;
+        // flip sign bit
+        res.data_ ^= f16_traits::sign_mask;
+        return res;
     }
 
 private:
@@ -434,7 +448,7 @@ public:
     static_assert(component_id < num_components,
                   "This type doesn't have that many components");
 
-    GKO_ATTRIBUTES truncated() noexcept = default;
+    truncated() noexcept = default;
 
     GKO_ATTRIBUTES explicit truncated(const float_type &val) noexcept
     {
@@ -448,6 +462,16 @@ public:
         const auto bits = static_cast<full_bits_type>(data_)
                           << component_position;
         return reinterpret_cast<const float_type &>(bits);
+    }
+
+    GKO_ATTRIBUTES truncated operator-() const noexcept
+    {
+        auto res = *this;
+        // flip sign bit
+        if (ComponentId == 0) {
+            res.data_ ^= bits_type{1} << (8 * sizeof(bits_type) - 1);
+        }
+        return res;
     }
 
 private:

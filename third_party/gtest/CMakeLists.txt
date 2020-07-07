@@ -10,7 +10,8 @@ else()
         "https://github.com/google/googletest.git"
         "df428ec11891f12c81e2872c0432e342b5403a34"
         # Work around the linking errors when compiling gtest with CUDA
-        "-Dgtest_disable_pthreads=ON")
+        "-Dgtest_disable_pthreads=ON"
+        "-DCMAKE_CXX_FLAGS=-fPIC")
 endif()
 
 ginkgo_add_external_target(GTest::GTest gtest src/googletest/include build/googlemock/gtest

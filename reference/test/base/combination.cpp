@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,23 +39,27 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/test/utils.hpp"
 
 
 namespace {
 
 
+template <typename T>
 class Combination : public ::testing::Test {
 protected:
-    using mtx = gko::matrix::Dense<>;
+    using Mtx = gko::matrix::Dense<T>;
 
     Combination()
         : exec{gko::ReferenceExecutor::create()},
-          coefficients{gko::initialize<mtx>({1}, exec),
-                       gko::initialize<mtx>({2}, exec)},
-          operators{gko::initialize<mtx>({{2.0, 3.0}, {1.0, 4.0}}, exec),
-                    gko::initialize<mtx>({{3.0, 2.0}, {2.0, 0.0}}, exec)}
+          coefficients{gko::initialize<Mtx>({1}, exec),
+                       gko::initialize<Mtx>({2}, exec)},
+          operators{
+              gko::initialize<Mtx>({I<T>({2.0, 3.0}), I<T>({1.0, 4.0})}, exec),
+              gko::initialize<Mtx>({I<T>({3.0, 2.0}), I<T>({2.0, 0.0})}, exec)}
     {}
 
     std::shared_ptr<const gko::Executor> exec;
@@ -63,40 +67,46 @@ protected:
     std::vector<std::shared_ptr<gko::LinOp>> operators;
 };
 
+TYPED_TEST_CASE(Combination, gko::test::ValueTypes);
 
-TEST_F(Combination, AppliesToVector)
+
+TYPED_TEST(Combination, AppliesToVector)
 {
     /*
         cmb = [ 8 7 ]
               [ 5 4 ]
     */
-    auto cmb = gko::Combination<>::create(coefficients[0], operators[0],
-                                          coefficients[1], operators[1]);
-    auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
+    using Mtx = typename TestFixture::Mtx;
+    auto cmb = gko::Combination<TypeParam>::create(
+        this->coefficients[0], this->operators[0], this->coefficients[1],
+        this->operators[1]);
+    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmb->apply(lend(x), lend(res));
 
-    GKO_ASSERT_MTX_NEAR(res, l({22.0, 13.0}), 1e-15);
+    GKO_ASSERT_MTX_NEAR(res, l({22.0, 13.0}), r<TypeParam>::value);
 }
 
 
-TEST_F(Combination, AppliesLinearCombinationToVector)
+TYPED_TEST(Combination, AppliesLinearCombinationToVector)
 {
     /*
         cmb = [ 8 7 ]
               [ 5 4 ]
     */
-    auto cmb = gko::Combination<>::create(coefficients[0], operators[0],
-                                          coefficients[1], operators[1]);
-    auto alpha = gko::initialize<mtx>({3.0}, exec);
-    auto beta = gko::initialize<mtx>({-1.0}, exec);
-    auto x = gko::initialize<mtx>({1.0, 2.0}, exec);
+    using Mtx = typename TestFixture::Mtx;
+    auto cmb = gko::Combination<TypeParam>::create(
+        this->coefficients[0], this->operators[0], this->coefficients[1],
+        this->operators[1]);
+    auto alpha = gko::initialize<Mtx>({3.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmb->apply(lend(alpha), lend(x), lend(beta), lend(res));
 
-    GKO_ASSERT_MTX_NEAR(res, l({65.0, 37.0}), 1e-15);
+    GKO_ASSERT_MTX_NEAR(res, l({65.0, 37.0}), r<TypeParam>::value);
 }
 
 

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -148,9 +148,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void remove_diagonal_elements(std::shared_ptr<const OmpExecutor> exec,
-                              matrix::SparsityCsr<ValueType, IndexType> *matrix,
                               const IndexType *row_ptrs,
-                              const IndexType *col_idxs)
+                              const IndexType *col_idxs,
+                              matrix::SparsityCsr<ValueType, IndexType> *matrix)
 {
     auto num_rows = matrix->get_size()[0];
     auto adj_ptrs = matrix->get_row_ptrs();
@@ -221,8 +221,8 @@ void transpose_and_transform(
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const OmpExecutor> exec,
-               matrix::SparsityCsr<ValueType, IndexType> *trans,
-               const matrix::SparsityCsr<ValueType, IndexType> *orig)
+               const matrix::SparsityCsr<ValueType, IndexType> *orig,
+               matrix::SparsityCsr<ValueType, IndexType> *trans)
 {
     transpose_and_transform(exec, trans, orig);
 }

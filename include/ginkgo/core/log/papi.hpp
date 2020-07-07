@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -46,16 +46,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 
 
+#include <papi.h>
+
+
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/log/logger.hpp>
+
+
 #include "third_party/papi_sde/papi_sde_interface.h"
-
-
-#include <papi.h>
 
 
 namespace gko {
 namespace log {
+
+
+static size_type papi_logger_count = 0;
+static std::mutex papi_count_mutex;
 
 
 /**
@@ -179,7 +185,7 @@ public:
      */
     static std::shared_ptr<Papi> create(
         std::shared_ptr<const gko::Executor> exec,
-        const Logger::mask_type &enabled_events)
+        const Logger::mask_type &enabled_events = Logger::all_events_mask)
     {
         return std::shared_ptr<Papi>(new Papi(exec, enabled_events));
     }
@@ -200,11 +206,11 @@ protected:
     {
         std::ostringstream os;
 
-        std::lock_guard<std::mutex> guard(count_mutex);
-        os << "ginkgo" << logger_count;
+        std::lock_guard<std::mutex> guard(papi_count_mutex);
+        os << "ginkgo" << papi_logger_count;
         name = os.str();
         papi_handle = papi_sde_init(name.c_str());
-        logger_count++;
+        papi_logger_count++;
     }
 
 private:
@@ -301,8 +307,6 @@ private:
     mutable papi_queue<LinOp> iteration_complete{&papi_handle,
                                                  "iteration_complete"};
 
-    static size_type logger_count;
-    std::mutex count_mutex;
 
     std::string name{"ginkgo"};
     papi_handle_t papi_handle;
@@ -314,4 +318,4 @@ private:
 
 
 #endif  // GKO_HAVE_PAPI_SDE
-#endif  // GKO_CORE_LOG_OSTREAM_HPP_
+#endif  // GKO_CORE_LOG_PAPI_HPP_

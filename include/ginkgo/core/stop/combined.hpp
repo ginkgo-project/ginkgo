@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,10 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_STOP_COMBINED_HPP_
 
 
-#include <ginkgo/core/stop/criterion.hpp>
-
-
 #include <vector>
+
+
+#include <ginkgo/core/stop/criterion.hpp>
 
 
 namespace gko {
@@ -87,7 +87,14 @@ protected:
           parameters_{factory->get_parameters()}
     {
         for (const auto &f : parameters_.criteria) {
-            criteria_.push_back(f->generate(args));
+            // Ignore the nullptr from the list
+            if (f != nullptr) {
+                criteria_.push_back(f->generate(args));
+            }
+        }
+        // If the list are empty or all nullptr, throw gko::NotSupported
+        if (criteria_.size() == 0) {
+            GKO_NOT_SUPPORTED(this);
         }
     }
 
@@ -120,12 +127,21 @@ std::shared_ptr<const CriterionFactory> combine(FactoryContainer &&factories)
         GKO_NOT_SUPPORTED(nullptr);
         return nullptr;
     case 1:
+        if (factories[0] == nullptr) {
+            GKO_NOT_SUPPORTED(nullptr);
+        }
         return factories[0];
     default:
-        auto exec = factories[0]->get_executor();
-        return Combined::build()
-            .with_criteria(std::forward<FactoryContainer>(factories))
-            .on(exec);
+        if (factories[0] == nullptr) {
+            // first factory must be valid to capture executor
+            GKO_NOT_SUPPORTED(nullptr);
+            return nullptr;
+        } else {
+            auto exec = factories[0]->get_executor();
+            return Combined::build()
+                .with_criteria(std::forward<FactoryContainer>(factories))
+                .on(exec);
+        }
     }
 }
 

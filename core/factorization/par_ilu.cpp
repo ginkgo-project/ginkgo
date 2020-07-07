@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/csr.hpp>
 
 
+#include "core/factorization/factorization_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 
@@ -53,9 +54,11 @@ namespace factorization {
 namespace par_ilu_factorization {
 
 
+GKO_REGISTER_OPERATION(add_diagonal_elements,
+                       factorization::add_diagonal_elements);
 GKO_REGISTER_OPERATION(initialize_row_ptrs_l_u,
-                       par_ilu_factorization::initialize_row_ptrs_l_u);
-GKO_REGISTER_OPERATION(initialize_l_u, par_ilu_factorization::initialize_l_u);
+                       factorization::initialize_row_ptrs_l_u);
+GKO_REGISTER_OPERATION(initialize_l_u, factorization::initialize_l_u);
 GKO_REGISTER_OPERATION(compute_l_u_factors,
                        par_ilu_factorization::compute_l_u_factors);
 GKO_REGISTER_OPERATION(csr_transpose, csr::transpose);
@@ -67,7 +70,9 @@ GKO_REGISTER_OPERATION(csr_transpose, csr::transpose);
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>>
 ParIlu<ValueType, IndexType>::generate_l_u(
-    const std::shared_ptr<const LinOp> &system_matrix, bool skip_sorting) const
+    const std::shared_ptr<const LinOp> &system_matrix, bool skip_sorting,
+    std::shared_ptr<typename l_matrix_type::strategy_type> l_strategy,
+    std::shared_ptr<typename u_matrix_type::strategy_type> u_strategy) const
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
     using CooMatrix = matrix::Coo<ValueType, IndexType>;
@@ -75,32 +80,21 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
 
     const auto exec = this->get_executor();
-    const auto host_exec = exec->get_master();
 
-    // If required, it is also possible to make this a Factory parameter
-    auto csr_strategy = std::make_shared<typename CsrMatrix::cusparse>();
-
-    // Only copies the matrix if it is not on the same executor or was not in
-    // the right format. Throws an exception if it is not convertable.
-    std::unique_ptr<CsrMatrix> csr_system_matrix_unique_ptr{};
-    auto csr_system_matrix =
-        dynamic_cast<const CsrMatrix *>(system_matrix.get());
-    if (csr_system_matrix == nullptr ||
-        csr_system_matrix->get_executor() != exec) {
-        csr_system_matrix_unique_ptr = CsrMatrix::create(exec);
-        as<ConvertibleTo<CsrMatrix>>(system_matrix.get())
-            ->convert_to(csr_system_matrix_unique_ptr.get());
-        csr_system_matrix = csr_system_matrix_unique_ptr.get();
-    }
-    // If it needs to be sorted, copy it if necessary and sort it
+    // Converts the system matrix to CSR.
+    // Throws an exception if it is not convertible.
+    auto csr_system_matrix_unique_ptr = CsrMatrix::create(exec);
+    as<ConvertibleTo<CsrMatrix>>(system_matrix.get())
+        ->convert_to(csr_system_matrix_unique_ptr.get());
+    auto csr_system_matrix = csr_system_matrix_unique_ptr.get();
+    // If necessary, sort it
     if (!skip_sorting) {
-        if (csr_system_matrix_unique_ptr == nullptr) {
-            csr_system_matrix_unique_ptr = CsrMatrix::create(exec);
-            csr_system_matrix_unique_ptr->copy_from(csr_system_matrix);
-        }
-        csr_system_matrix_unique_ptr->sort_by_column_index();
-        csr_system_matrix = csr_system_matrix_unique_ptr.get();
+        csr_system_matrix->sort_by_column_index();
     }
+
+    // Add explicit diagonal zero elements if they are missing
+    exec->run(par_ilu_factorization::make_add_diagonal_elements(
+        csr_system_matrix, true));
 
     const auto matrix_size = csr_system_matrix->get_size();
     const auto number_rows = matrix_size[0];
@@ -109,15 +103,11 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     exec->run(par_ilu_factorization::make_initialize_row_ptrs_l_u(
         csr_system_matrix, l_row_ptrs.get_data(), u_row_ptrs.get_data()));
 
-    IndexType l_nnz_it;
-    IndexType u_nnz_it;
-    // Since nnz is always at row_ptrs[m], it can be extracted easily
-    host_exec->copy_from(exec.get(), 1, l_row_ptrs.get_data() + number_rows,
-                         &l_nnz_it);
-    host_exec->copy_from(exec.get(), 1, u_row_ptrs.get_data() + number_rows,
-                         &u_nnz_it);
-    auto l_nnz = static_cast<size_type>(l_nnz_it);
-    auto u_nnz = static_cast<size_type>(u_nnz_it);
+    // Get nnz from device memory
+    auto l_nnz = static_cast<size_type>(
+        exec->copy_val_to_host(l_row_ptrs.get_data() + number_rows));
+    auto u_nnz = static_cast<size_type>(
+        exec->copy_val_to_host(u_row_ptrs.get_data() + number_rows));
 
     // Since `row_ptrs` of L and U is already created, the matrix can be
     // directly created with it
@@ -125,12 +115,12 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     Array<ValueType> l_vals{exec, l_nnz};
     std::shared_ptr<CsrMatrix> l_factor = l_matrix_type::create(
         exec, matrix_size, std::move(l_vals), std::move(l_col_idxs),
-        std::move(l_row_ptrs), csr_strategy);
+        std::move(l_row_ptrs), l_strategy);
     Array<IndexType> u_col_idxs{exec, u_nnz};
     Array<ValueType> u_vals{exec, u_nnz};
     std::shared_ptr<CsrMatrix> u_factor = u_matrix_type::create(
         exec, matrix_size, std::move(u_vals), std::move(u_col_idxs),
-        std::move(u_row_ptrs), csr_strategy);
+        std::move(u_row_ptrs), u_strategy);
 
     exec->run(par_ilu_factorization::make_initialize_l_u(
         csr_system_matrix, l_factor.get(), u_factor.get()));
@@ -173,8 +163,8 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     // Since the transposed version has the exact same non-zero positions
     // as `u_factor`, we can both skip the allocation and the `make_srow()`
     // call from CSR, leaving just the `transpose()` kernel call
-    exec->run(par_ilu_factorization::make_csr_transpose(u_factor.get(),
-                                                        u_factor_transpose));
+    exec->run(par_ilu_factorization::make_csr_transpose(u_factor_transpose,
+                                                        u_factor.get()));
 
     return Composition<ValueType>::create(std::move(l_factor),
                                           std::move(u_factor));

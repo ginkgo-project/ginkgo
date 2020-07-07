@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,27 +39,35 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/base/extended_float.hpp>
-#include <core/preconditioner/jacobi_utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+
+#include "core/base/extended_float.hpp"
+#include "core/preconditioner/jacobi_utils.hpp"
+#include "core/test/utils.hpp"
 
 
 namespace {
 
 
+template <typename ValueIndexType>
 class Jacobi : public ::testing::Test {
 protected:
-    using Bj = gko::preconditioner::Jacobi<>;
-    using Mtx = gko::matrix::Csr<>;
-    using Vec = gko::matrix::Dense<>;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Bj = gko::preconditioner::Jacobi<value_type, index_type>;
+    using Mtx = gko::matrix::Csr<value_type, index_type>;
+    using Vec = gko::matrix::Dense<value_type>;
 
     Jacobi()
         : exec(gko::ReferenceExecutor::create()),
           bj_factory(Bj::build().with_max_block_size(3u).on(exec)),
           block_pointers(exec, 3),
           block_precisions(exec, 2),
-          mtx(gko::matrix::Csr<>::create(exec, gko::dim<2>{5}, 13))
+          mtx(Mtx::create(exec, gko::dim<2>{5}, 13))
     {
         block_pointers.get_data()[0] = 0;
         block_pointers.get_data()[1] = 2;
@@ -74,11 +82,12 @@ protected:
                   |-1   4  -2
            -1     |    -1   4
          */
-        init_array(mtx->get_row_ptrs(), {0, 3, 5, 7, 10, 13});
-        init_array(mtx->get_col_idxs(),
-                   {0, 1, 4, 0, 1, 2, 3, 2, 3, 4, 0, 3, 4});
-        init_array(mtx->get_values(), {4.0, -2.0, -2.0, -1.0, 4.0, 4.0, -2.0,
-                                       -1.0, 4.0, -2.0, -1.0, -1.0, 4.0});
+        init_array<index_type>(mtx->get_row_ptrs(), {0, 3, 5, 7, 10, 13});
+        init_array<index_type>(mtx->get_col_idxs(),
+                               {0, 1, 4, 0, 1, 2, 3, 2, 3, 4, 0, 3, 4});
+        init_array<value_type>(mtx->get_values(),
+                               {4.0, -2.0, -2.0, -1.0, 4.0, 4.0, -2.0, -1.0,
+                                4.0, -2.0, -1.0, -1.0, 4.0});
         bj_factory = Bj::build()
                          .with_max_block_size(3u)
                          .with_block_pointers(block_pointers)
@@ -109,8 +118,8 @@ protected:
     {
         for (int i = 0; i < block_size; ++i) {
             for (int j = 0; j < block_size; ++j) {
-                EXPECT_EQ(static_cast<double>(ptr_a[i * stride_a + j]),
-                          static_cast<double>(ptr_b[i * stride_b + j]))
+                EXPECT_EQ(static_cast<value_type>(ptr_a[i * stride_a + j]),
+                          static_cast<value_type>(ptr_b[i * stride_b + j]))
                     << "Mismatch at position (" << i << ", " << j << ")";
             }
         }
@@ -143,7 +152,7 @@ protected:
             ASSERT_EQ(prec_a, prec_b);
             auto scheme = a->get_storage_scheme();
             GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
-                Bj::value_type, prec_a,
+                value_type, prec_a,
                 assert_same_block(
                     b_ptr_a[i + 1] - b_ptr_a[i],
                     reinterpret_cast<const resolved_precision *>(
@@ -158,19 +167,21 @@ protected:
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<Bj::Factory> bj_factory;
-    std::unique_ptr<Bj::Factory> adaptive_bj_factory;
-    gko::Array<gko::int32> block_pointers;
+    std::unique_ptr<typename Bj::Factory> bj_factory;
+    std::unique_ptr<typename Bj::Factory> adaptive_bj_factory;
+    gko::Array<index_type> block_pointers;
     gko::Array<gko::precision_reduction> block_precisions;
-    std::shared_ptr<gko::matrix::Csr<>> mtx;
+    std::shared_ptr<Mtx> mtx;
     std::unique_ptr<Bj> bj;
     std::unique_ptr<Bj> adaptive_bj;
 };
 
+TYPED_TEST_CASE(Jacobi, gko::test::ValueIndexTypes);
 
-TEST_F(Jacobi, GeneratesCorrectStorageScheme)
+
+TYPED_TEST(Jacobi, GeneratesCorrectStorageScheme)
 {
-    auto scheme = bj->get_storage_scheme();
+    auto scheme = this->bj->get_storage_scheme();
 
     ASSERT_EQ(scheme.group_power, 3);  // 8 3-by-3 blocks fit into 32-wide group
     ASSERT_EQ(scheme.block_offset, 3);
@@ -178,156 +189,185 @@ TEST_F(Jacobi, GeneratesCorrectStorageScheme)
 }
 
 
-TEST_F(Jacobi, CanBeCloned)
+TYPED_TEST(Jacobi, CanBeCloned)
 {
-    auto bj_clone = clone(bj);
+    auto bj_clone = clone(this->bj);
 
-    assert_same_precond(lend(bj_clone), lend(bj));
+    this->assert_same_precond(lend(bj_clone), lend(this->bj));
 }
 
 
-TEST_F(Jacobi, CanBeClonedWithAdaptvePrecision)
+TYPED_TEST(Jacobi, CanBeClonedWithAdaptvePrecision)
 {
-    auto bj_clone = clone(adaptive_bj);
-    assert_same_precond(lend(bj_clone), lend(adaptive_bj));
+    auto bj_clone = clone(this->adaptive_bj);
+    this->assert_same_precond(lend(bj_clone), lend(this->adaptive_bj));
 }
 
 
-TEST_F(Jacobi, CanBeCopied)
+TYPED_TEST(Jacobi, CanBeCopied)
 {
-    gko::Array<gko::int32> empty(exec, 1);
+    using Bj = typename TestFixture::Bj;
+    using Mtx = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+    gko::Array<index_type> empty(this->exec, 1);
     empty.get_data()[0] = 0;
-    auto copy = Bj::build().with_block_pointers(empty).on(exec)->generate(
-        Mtx::create(exec));
+    auto copy = Bj::build()
+                    .with_block_pointers(empty)
+                    .on(this->exec)
+                    ->generate(Mtx::create(this->exec));
 
-    copy->copy_from(lend(bj));
+    copy->copy_from(lend(this->bj));
 
-    assert_same_precond(lend(copy), lend(bj));
+    this->assert_same_precond(lend(copy), lend(this->bj));
 }
 
 
-TEST_F(Jacobi, CanBeCopiedWithAdaptivePrecision)
+TYPED_TEST(Jacobi, CanBeCopiedWithAdaptivePrecision)
 {
-    gko::Array<gko::int32> empty(exec, 1);
+    using Bj = typename TestFixture::Bj;
+    using Mtx = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+    gko::Array<index_type> empty(this->exec, 1);
     empty.get_data()[0] = 0;
-    auto copy = Bj::build().with_block_pointers(empty).on(exec)->generate(
-        Mtx::create(exec));
+    auto copy = Bj::build()
+                    .with_block_pointers(empty)
+                    .on(this->exec)
+                    ->generate(Mtx::create(this->exec));
 
-    copy->copy_from(lend(adaptive_bj));
+    copy->copy_from(lend(this->adaptive_bj));
 
-    assert_same_precond(lend(copy), lend(adaptive_bj));
+    this->assert_same_precond(lend(copy), lend(this->adaptive_bj));
 }
 
 
-TEST_F(Jacobi, CanBeMoved)
+TYPED_TEST(Jacobi, CanBeMoved)
 {
-    auto tmp = clone(bj);
-    gko::Array<gko::int32> empty(exec, 1);
+    using Bj = typename TestFixture::Bj;
+    using Mtx = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+    auto tmp = clone(this->bj);
+    gko::Array<index_type> empty(this->exec, 1);
     empty.get_data()[0] = 0;
-    auto copy = Bj::build().with_block_pointers(empty).on(exec)->generate(
-        Mtx::create(exec));
+    auto copy = Bj::build()
+                    .with_block_pointers(empty)
+                    .on(this->exec)
+                    ->generate(Mtx::create(this->exec));
 
-    copy->copy_from(give(bj));
+    copy->copy_from(give(this->bj));
 
-    assert_same_precond(lend(copy), lend(tmp));
+    this->assert_same_precond(lend(copy), lend(tmp));
 }
 
 
-TEST_F(Jacobi, CanBeMovedWithAdaptivePrecision)
+TYPED_TEST(Jacobi, CanBeMovedWithAdaptivePrecision)
 {
-    auto tmp = clone(adaptive_bj);
-    gko::Array<gko::int32> empty(exec, 1);
+    using Bj = typename TestFixture::Bj;
+    using Mtx = typename TestFixture::Mtx;
+    using index_type = typename TestFixture::index_type;
+    auto tmp = clone(this->adaptive_bj);
+    gko::Array<index_type> empty(this->exec, 1);
     empty.get_data()[0] = 0;
-    auto copy = Bj::build().with_block_pointers(empty).on(exec)->generate(
-        Mtx::create(exec));
+    auto copy = Bj::build()
+                    .with_block_pointers(empty)
+                    .on(this->exec)
+                    ->generate(Mtx::create(this->exec));
 
-    copy->copy_from(give(adaptive_bj));
+    copy->copy_from(give(this->adaptive_bj));
 
-    assert_same_precond(lend(copy), lend(tmp));
+    this->assert_same_precond(lend(copy), lend(tmp));
 }
 
 
-TEST_F(Jacobi, CanBeCleared)
+TYPED_TEST(Jacobi, CanBeCleared)
 {
-    bj->clear();
+    this->bj->clear();
 
-    ASSERT_EQ(bj->get_size(), gko::dim<2>(0, 0));
-    ASSERT_EQ(bj->get_num_stored_elements(), 0);
-    ASSERT_EQ(bj->get_parameters().max_block_size, 32);
-    ASSERT_EQ(bj->get_parameters().block_pointers.get_const_data(), nullptr);
-    ASSERT_EQ(bj->get_blocks(), nullptr);
-}
-
-
-TEST_F(Jacobi, CanBeClearedWithAdaptivePrecision)
-{
-    adaptive_bj->clear();
-
-    ASSERT_EQ(adaptive_bj->get_size(), gko::dim<2>(0, 0));
-    ASSERT_EQ(adaptive_bj->get_num_stored_elements(), 0);
-    ASSERT_EQ(adaptive_bj->get_parameters().max_block_size, 32);
-    ASSERT_EQ(adaptive_bj->get_parameters().block_pointers.get_const_data(),
+    ASSERT_EQ(this->bj->get_size(), gko::dim<2>(0, 0));
+    ASSERT_EQ(this->bj->get_num_stored_elements(), 0);
+    ASSERT_EQ(this->bj->get_parameters().max_block_size, 32);
+    ASSERT_EQ(this->bj->get_parameters().block_pointers.get_const_data(),
               nullptr);
-    ASSERT_EQ(adaptive_bj->get_parameters()
+    ASSERT_EQ(this->bj->get_blocks(), nullptr);
+}
+
+
+TYPED_TEST(Jacobi, CanBeClearedWithAdaptivePrecision)
+{
+    this->adaptive_bj->clear();
+
+    ASSERT_EQ(this->adaptive_bj->get_size(), gko::dim<2>(0, 0));
+    ASSERT_EQ(this->adaptive_bj->get_num_stored_elements(), 0);
+    ASSERT_EQ(this->adaptive_bj->get_parameters().max_block_size, 32);
+    ASSERT_EQ(
+        this->adaptive_bj->get_parameters().block_pointers.get_const_data(),
+        nullptr);
+    ASSERT_EQ(this->adaptive_bj->get_parameters()
                   .storage_optimization.block_wise.get_const_data(),
               nullptr);
-    ASSERT_EQ(adaptive_bj->get_blocks(), nullptr);
+    ASSERT_EQ(this->adaptive_bj->get_blocks(), nullptr);
 }
 
 
 #define GKO_EXPECT_NONZERO_NEAR(first, second, tol) \
     EXPECT_EQ(first.row, second.row);               \
     EXPECT_EQ(first.column, second.column);         \
-    EXPECT_NEAR(first.value, second.value, tol)
+    GKO_EXPECT_NEAR(first.value, second.value, tol)
 
 
-TEST_F(Jacobi, GeneratesCorrectMatrixData)
+TYPED_TEST(Jacobi, GeneratesCorrectMatrixData)
 {
-    using tpl = gko::matrix_data<>::nonzero_type;
-    gko::matrix_data<> data;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
+    auto tol = r<value_type>::value;
+    gko::matrix_data<value_type, index_type> data;
 
-    bj->write(data);
+    this->bj->write(data);
 
     ASSERT_EQ(data.size, gko::dim<2>{5});
     ASSERT_EQ(data.nonzeros.size(), 13);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[0], tpl(0, 0, 4.0 / 14), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[1], tpl(0, 1, 2.0 / 14), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[2], tpl(1, 0, 1.0 / 14), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[3], tpl(1, 1, 4.0 / 14), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[4], tpl(2, 2, 14.0 / 48), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[5], tpl(2, 3, 8.0 / 48), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[6], tpl(2, 4, 4.0 / 48), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[7], tpl(3, 2, 4.0 / 48), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[8], tpl(3, 3, 16.0 / 48), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[9], tpl(3, 4, 8.0 / 48), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[10], tpl(4, 2, 1.0 / 48), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[11], tpl(4, 3, 4.0 / 48), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[12], tpl(4, 4, 14.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[0], tpl(0, 0, 4.0 / 14), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[1], tpl(0, 1, 2.0 / 14), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[2], tpl(1, 0, 1.0 / 14), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[3], tpl(1, 1, 4.0 / 14), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[4], tpl(2, 2, 14.0 / 48), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[5], tpl(2, 3, 8.0 / 48), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[6], tpl(2, 4, 4.0 / 48), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[7], tpl(3, 2, 4.0 / 48), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[8], tpl(3, 3, 16.0 / 48), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[9], tpl(3, 4, 8.0 / 48), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[10], tpl(4, 2, 1.0 / 48), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[11], tpl(4, 3, 4.0 / 48), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[12], tpl(4, 4, 14.0 / 48), tol);
 }
 
 
-TEST_F(Jacobi, GeneratesCorrectMatrixDataWithAdaptivePrecision)
+TYPED_TEST(Jacobi, GeneratesCorrectMatrixDataWithAdaptivePrecision)
 {
-    using tpl = gko::matrix_data<>::nonzero_type;
-    gko::matrix_data<> data;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
+    gko::matrix_data<value_type, index_type> data;
+    auto tol = r<value_type>::value;
+    auto half_tol = std::sqrt(r<value_type>::value);
 
-    adaptive_bj->write(data);
+    this->adaptive_bj->write(data);
 
     ASSERT_EQ(data.size, gko::dim<2>{5});
     ASSERT_EQ(data.nonzeros.size(), 13);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[0], tpl(0, 0, 4.0 / 14), 1e-7);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[1], tpl(0, 1, 2.0 / 14), 1e-7);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[2], tpl(1, 0, 1.0 / 14), 1e-7);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[3], tpl(1, 1, 4.0 / 14), 1e-7);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[4], tpl(2, 2, 14.0 / 48), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[5], tpl(2, 3, 8.0 / 48), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[6], tpl(2, 4, 4.0 / 48), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[7], tpl(3, 2, 4.0 / 48), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[8], tpl(3, 3, 16.0 / 48), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[9], tpl(3, 4, 8.0 / 48), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[10], tpl(4, 2, 1.0 / 48), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[11], tpl(4, 3, 4.0 / 48), 1e-14);
-    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[12], tpl(4, 4, 14.0 / 48), 1e-14);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[0], tpl(0, 0, 4.0 / 14), half_tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[1], tpl(0, 1, 2.0 / 14), half_tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[2], tpl(1, 0, 1.0 / 14), half_tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[3], tpl(1, 1, 4.0 / 14), half_tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[4], tpl(2, 2, 14.0 / 48), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[5], tpl(2, 3, 8.0 / 48), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[6], tpl(2, 4, 4.0 / 48), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[7], tpl(3, 2, 4.0 / 48), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[8], tpl(3, 3, 16.0 / 48), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[9], tpl(3, 4, 8.0 / 48), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[10], tpl(4, 2, 1.0 / 48), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[11], tpl(4, 3, 4.0 / 48), tol);
+    GKO_EXPECT_NONZERO_NEAR(data.nonzeros[12], tpl(4, 4, 14.0 / 48), tol);
 }
 
 

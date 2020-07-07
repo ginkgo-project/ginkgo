@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,19 +48,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 
-
-#define GKO_DECLARE_PAR_ILU_INITIALIZE_ROW_PTRS_L_U_KERNEL(ValueType, \
-                                                           IndexType) \
-    void initialize_row_ptrs_l_u(                                     \
-        std::shared_ptr<const DefaultExecutor> exec,                  \
-        const matrix::Csr<ValueType, IndexType> *system_matrix,       \
-        IndexType *l_row_ptrs, IndexType *u_row_ptrs)
-#define GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL(ValueType, IndexType) \
-    void initialize_l_u(                                                \
-        std::shared_ptr<const DefaultExecutor> exec,                    \
-        const matrix::Csr<ValueType, IndexType> *system_matrix,         \
-        matrix::Csr<ValueType, IndexType> *l_factor,                    \
-        matrix::Csr<ValueType, IndexType> *u_factor)
 #define GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL(ValueType, IndexType) \
     void compute_l_u_factors(                                                \
         std::shared_ptr<const DefaultExecutor> exec, size_type iterations,   \
@@ -69,12 +56,8 @@ namespace kernels {
         matrix::Csr<ValueType, IndexType> *u_factor)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                          \
-    template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_PAR_ILU_INITIALIZE_ROW_PTRS_L_U_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>                         \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
+    template <typename ValueType, typename IndexType> \
     GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL(ValueType, IndexType)
 
 
@@ -103,6 +86,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace par_ilu_factorization
 }  // namespace reference
+
+
+namespace hip {
+namespace par_ilu_factorization {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace par_ilu_factorization
+}  // namespace hip
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

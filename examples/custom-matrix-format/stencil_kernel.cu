@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,13 +32,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdlib>
 
+#include <ginkgo/ginkgo.hpp>
+
+
+#define INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro) \
+    template _macro(float);                     \
+    template _macro(double);
+
+
+#define STENCIL_KERNEL(_type)                                                 \
+    void stencil_kernel(std::size_t size, const _type *coefs, const _type *b, \
+                        _type *x);
+
 
 namespace {
 
 
 // a parallel CUDA kernel that computes the application of a 3 point stencil
-__global__ void stencil_kernel_impl(std::size_t size, const double *coefs,
-                                    const double *b, double *x)
+template <typename ValueType>
+__global__ void stencil_kernel_impl(std::size_t size, const ValueType *coefs,
+                                    const ValueType *b, ValueType *x)
 {
     const auto thread_id = blockIdx.x * blockDim.x + threadIdx.x;
     if (thread_id >= size) {
@@ -58,10 +71,13 @@ __global__ void stencil_kernel_impl(std::size_t size, const double *coefs,
 }  // namespace
 
 
-void stencil_kernel(std::size_t size, const double *coefs, const double *b,
-                    double *x)
+template <typename ValueType>
+void stencil_kernel(std::size_t size, const ValueType *coefs,
+                    const ValueType *b, ValueType *x)
 {
     constexpr auto block_size = 512;
     const auto grid_size = (size + block_size - 1) / block_size;
     stencil_kernel_impl<<<grid_size, block_size>>>(size, coefs, b, x);
 }
+
+INSTANTIATE_FOR_EACH_VALUE_TYPE(STENCIL_KERNEL);

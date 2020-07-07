@@ -8,13 +8,17 @@
 # CDash dashboard. The supported runs are:
 # + With or without coverage, requires the gcov tool.
 # + With or without address sanitizers.
+# + With or without memory sanitizers.
 # + With or without thread sanitizers.
+# + With or without leak sanitizers.
+# + With or without undefined behavior (UB) sanitizers.
 # + With or without valgrind, requires the valgrind tool.
 #
 # Note that only one of these can be ran at once, as the build types
-# conflict. Ginkgo is always configured with CUDA, OpenMP and Reference
-# support. The results are always sent to the dashboard:
-# https://my.cdash.org/index.php?project=Ginkgo+Project
+# conflict. Ginkgo is always configured with CUDA, HIP, OpenMP and Reference
+# support, except for ThreadSanitizer, AddressSanitizer, LeakSanitizer,
+# UndefinedBehaviorSanitizer builds. The results are always sent to the
+# dashboard: https://my.cdash.org/index.php?project=Ginkgo+Project
 #
 # Running the script
 # ^^^^^^^^^^^^^^^^^^
@@ -46,11 +50,13 @@
 # A string to describe the machine this is ran on. Default FineCI.
 #
 # ``CTEST_CMAKE_GENERATOR``
-# Which generator should be used for the build. Default `Unix Makefiles`
+# Which generator should be used for the build. Default `Ninja`, except
+# for COVERAGE builds where `Unix Makefiles` is used.
 #
 # ``CTEST_BUILD_CONFIGURATION``
 # Which configuration should Ginkgo be built with. Default `DEBUG`.
-# The supported values are: COVERAGE, ASAN, TSAN, DEBUG and RELEASE.
+# The supported values are: COVERAGE, TSAN, UBSAN, DEBUG, and
+# RELEASE.
 #
 # ``CTEST_TEST_MODEL``
 # Which CTest test model should be used. Default `Continuous`.
@@ -61,8 +67,9 @@
 # The name of the build being ran. Default: `CTEST_BUILD_CONFIGURATION`
 #
 # ``CTEST_MEMORYCHECK_TYPE``
-# Whether memorycheck should be ran. Default: `None`. Supported values are:
-# Valgrind, ThreadSanitizer, AddressSanitizer and None.
+# Whether memorycheck should be ran. Default: `NONE`. Supported values are:
+# Valgrind, AddressSanitizer, LeakSanitizer, ThreadSanitizer,
+# UndefinedBehaviorSanitizer and NONE.
 #
 
 if (NOT DEFINED CTEST_SOURCE_DIRECTORY)
@@ -78,10 +85,14 @@ if (NOT DEFINED CTEST_SITE)
 endif()
 
 if (NOT DEFINED CTEST_CMAKE_GENERATOR)
-    set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+    if (CTEST_BUILD_CONFIGURATION STREQUAL "COVERAGE")
+        set(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+    else()
+        set(CTEST_CMAKE_GENERATOR "Ninja")
+    endif()
 endif()
 
-# Supported: COVERAGE, ASAN, TSAN, DEBUG and RELEASE
+# Supported: COVERAGE, ASAN, LSAN, TSAN, UBSAN, DEBUG and RELEASE
 if (NOT DEFINED CTEST_BUILD_CONFIGURATION)
     set(CTEST_BUILD_CONFIGURATION "DEBUG")
 endif()
@@ -94,9 +105,10 @@ if (NOT DEFINED CTEST_BUILD_NAME)
     set(CTEST_BUILD_NAME "${CTEST_BUILD_CONFIGURATION}")
 endif()
 
-#Supported: Valgrind, ThreadSanitizer, AddressSanitizer.
+#Supported: Valgrind, ThreadSanitizer, AddressSanitizer, LeakSanitizer
+#and UndefinedBehaviorSanitizer.
 if (NOT DEFINED CTEST_MEMORYCHECK_TYPE)
-    set(CTEST_MEMORYCHECK_TYPE "None")
+    set(CTEST_MEMORYCHECK_TYPE "NONE")
 endif()
 
 # Find coverage and valgrind tools
@@ -112,28 +124,39 @@ if(CTEST_BUILD_CONFIGURATION STREQUAL "COVERAGE")
 endif()
 
 if(NOT CTEST_MEMORYCHECK_TYPE STREQUAL "Valgrind")
-    set(CTEST_MEMORYCHECK_SANITIZER_OPTIONS "verbosity=1")
+    set(CTEST_MEMORYCHECK_SANITIZER_OPTIONS "${CTEST_MEMORYCHECK_SANITIZER_OPTIONS}:allocator_may_return_null=1:verbosity=1")
 endif()
 
 include(ProcessorCount)
 ProcessorCount(PROC_COUNT)
 if(NOT PROC_COUNT EQUAL 0)
-    if (PROC_COUNT GREATER 10)
-        set(PROCT_COUNT 10)
+    if (DEFINED ENV{CI_PARALLELISM})
+        set(PROC_COUNT "$ENV{CI_PARALLELISM}")
+    elseif(PROC_COUNT LESS 4)
+        set(PROC_COUNT 1)
+    else()
+        set(PROC_COUNT 4)
     endif()
     if(NOT WIN32)
         set(CTEST_BUILD_FLAGS "-j${PROC_COUNT}")
     endif(NOT WIN32)
 endif()
 
+
 ctest_start("${CTEST_TEST_MODEL}")
 ctest_submit(PARTS Start)
 
-if(CTEST_MEMORYCHECK_TYPE STREQUAL "AddressSanitizer" OR CTEST_MEMORYCHECK_TYPE STREQUAL "ThreadSanitizer")
-    set(GINKGO_CONFIGURE_OPTIONS "-DGINKGO_BUILD_REFERENCE=ON;-DGINKGO_BUILD_OMP=ON;-DCMAKE_BUILD_TYPE=${CTEST_BUILD_CONFIGURATION}")
+if((NOT CTEST_MEMORYCHECK_TYPE STREQUAL "NONE" AND NOT CTEST_MEMORYCHECK_TYPE STREQUAL "Valgrind") OR CTEST_BUILD_CONFIGURATION STREQUAL "COVERAGE")
+    set(GINKGO_CONFIGURE_OPTIONS "-DGINKGO_DEVEL_TOOLS=OFF;-DGINKGO_BUILD_REFERENCE=ON;-DGINKGO_BUILD_OMP=ON;-DGINKGO_BUILD_CUDA=OFF;-DGINKGO_BUILD_HIP=OFF;-DCMAKE_BUILD_TYPE=${CTEST_BUILD_CONFIGURATION}")
 else()
-    set(GINKGO_CONFIGURE_OPTIONS "-DGINKGO_BUILD_REFERENCE=ON;-DGINKGO_BUILD_OMP=ON;-DGINKGO_BUILD_CUDA=ON;-DCMAKE_BUILD_TYPE=${CTEST_BUILD_CONFIGURATION}")
+    set(GINKGO_CONFIGURE_OPTIONS "-DGINKGO_DEVEL_TOOLS=OFF;-DGINKGO_BUILD_REFERENCE=ON;-DGINKGO_BUILD_OMP=ON;-DGINKGO_BUILD_CUDA=ON;-DGINKGO_BUILD_HIP=ON;-DCMAKE_BUILD_TYPE=${CTEST_BUILD_CONFIGURATION}")
 endif()
+
+# UBSAN needs gold linker
+if (CTEST_MEMORYCHECK_TYPE STREQUAL "UndefinedBehaviorSanitizer")
+    set(GINKGO_CONFIGURE_OPTIONS "${GINKGO_CONFIGURE_OPTIONS};-DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=gold;-DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=gold")
+endif()
+
 ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" OPTIONS "${GINKGO_CONFIGURE_OPTIONS}" APPEND)
 ctest_submit(PARTS Configure)
 
@@ -146,7 +169,7 @@ ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" APPEND)
 ctest_submit(PARTS Build)
 
 
-if (CTEST_MEMORYCHECK_TYPE STREQUAL "None")
+if (CTEST_MEMORYCHECK_TYPE STREQUAL "NONE")
     ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" APPEND)
     ctest_submit(PARTS Test)
 endif()
@@ -156,7 +179,7 @@ if (CTEST_BUILD_CONFIGURATION STREQUAL "COVERAGE")
     ctest_submit(PARTS Coverage)
 endif()
 
-if(NOT CTEST_MEMORYCHECK_TYPE STREQUAL "None")
+if(NOT CTEST_MEMORYCHECK_TYPE STREQUAL "NONE")
     ctest_memcheck(BUILD "${CTEST_BINARY_DIRECTORY}" APPEND)
     ctest_submit(PARTS MemCheck)
 endif()

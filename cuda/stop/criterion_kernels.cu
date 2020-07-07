@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
+#include "cuda/components/thread_ids.cuh"
 
 
 namespace gko {
@@ -60,8 +61,7 @@ __global__ __launch_bounds__(default_block_size) void set_all_statuses(
     size_type num_elems, uint8 stoppingId, bool setFinalized,
     stopping_status *stop_status)
 {
-    const auto tidx =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
+    const auto tidx = thread::get_thread_id_flat();
     if (tidx < num_elems) {
         stop_status[tidx].stop(stoppingId, setFinalized);
     }

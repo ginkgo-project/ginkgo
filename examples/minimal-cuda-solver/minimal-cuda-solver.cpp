@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 int main()
 {
     // Instantiate a CUDA executor
-    auto gpu = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+    auto gpu = gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
     // Read data
     auto A = gko::read<gko::matrix::Csr<>>(std::cin, gpu);
     auto b = gko::read<gko::matrix::Dense<>>(std::cin, gpu);

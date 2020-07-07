@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_BENCHMARK_UTILS_SPMV_COMMON_HPP_
 #define GKO_BENCHMARK_UTILS_SPMV_COMMON_HPP_
 
+
 #include <ginkgo/ginkgo.hpp>
 
 
@@ -50,7 +51,8 @@ using csr = gko::matrix::Csr<>;
 /**
  * Function which outputs the input format for benchmarks similar to the spmv.
  */
-[[noreturn]] void print_config_error_and_exit() {
+[[noreturn]] void print_config_error_and_exit()
+{
     std::cerr << "Input has to be a JSON array of matrix configurations:\n"
               << "  [\n"
               << "    { \"filename\": \"my_file.mtx\" },\n"

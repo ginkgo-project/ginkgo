@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,9 +50,15 @@ struct Base {
 struct Derived : Base {};
 
 
-struct NonRelated {
-    virtual ~NonRelated() = default;
+struct NonRelated : Base {};
+
+
+struct Base2 {
+    virtual ~Base2() = default;
 };
+
+
+struct MultipleDerived : Base, Base2 {};
 
 
 struct ClonableDerived : Base {
@@ -248,7 +254,15 @@ TEST(As, FailsToConvertIfNotRelated)
     Derived d;
     Base *b = &d;
 
-    ASSERT_THROW(gko::as<NonRelated>(b), gko::NotSupported);
+    try {
+        gko::as<NonRelated>(b);
+        FAIL();
+    } catch (gko::NotSupported &m) {
+        std::string msg{m.what()};
+        auto expected = gko::name_demangling::get_type_name(typeid(Derived));
+        ASSERT_TRUE(
+            std::equal(expected.rbegin(), expected.rend(), msg.rbegin()));
+    }
 }
 
 
@@ -266,7 +280,98 @@ TEST(As, FailsToConvertConstantIfNotRelated)
     Derived d;
     const Base *b = &d;
 
-    ASSERT_THROW(gko::as<NonRelated>(b), gko::NotSupported);
+    try {
+        gko::as<NonRelated>(b);
+        FAIL();
+    } catch (gko::NotSupported &m) {
+        std::string msg{m.what()};
+        auto expected = gko::name_demangling::get_type_name(typeid(Derived));
+        ASSERT_TRUE(
+            std::equal(expected.rbegin(), expected.rend(), msg.rbegin()));
+    }
+}
+
+
+TEST(As, ConvertsPolymorphicTypeUniquePtr)
+{
+    auto expected = new Derived{};
+
+    ASSERT_EQ(gko::as<Derived>(std::unique_ptr<Base>{expected}).get(),
+              expected);
+}
+
+
+TEST(As, FailsToConvertUniquePtrIfNotRelated)
+{
+    auto expected = new Derived{};
+
+    ASSERT_THROW(gko::as<NonRelated>(std::unique_ptr<Base>{expected}),
+                 gko::NotSupported);
+}
+
+
+TEST(As, ConvertsPolymorphicTypeSharedPtr)
+{
+    auto expected = new Derived{};
+
+    ASSERT_EQ(gko::as<Derived>(std::shared_ptr<Base>{expected}).get(),
+              expected);
+}
+
+
+TEST(As, FailsToConvertSharedPtrIfNotRelated)
+{
+    auto expected = new Derived{};
+
+    ASSERT_THROW(gko::as<NonRelated>(std::shared_ptr<Base>{expected}),
+                 gko::NotSupported);
+}
+
+
+TEST(As, ConvertsConstPolymorphicTypeSharedPtr)
+{
+    auto expected = new Derived{};
+
+    ASSERT_EQ(gko::as<Derived>(std::shared_ptr<const Base>{expected}).get(),
+              expected);
+}
+
+
+TEST(As, FailsToConvertConstSharedPtrIfNotRelated)
+{
+    auto expected = new Derived{};
+
+    ASSERT_THROW(gko::as<NonRelated>(std::shared_ptr<const Base>{expected}),
+                 gko::NotSupported);
+}
+
+
+TEST(As, CanCrossCastUniquePtr)
+{
+    auto obj = std::unique_ptr<MultipleDerived>(new MultipleDerived{});
+    auto ptr = obj.get();
+    auto base = gko::as<Base>(std::move(obj));
+
+    ASSERT_EQ(gko::as<MultipleDerived>(gko::as<Base2>(std::move(base))).get(),
+              ptr);
+}
+
+
+TEST(As, CanCrossCastSharedPtr)
+{
+    auto obj = std::make_shared<MultipleDerived>();
+    auto base = gko::as<Base>(obj);
+
+    ASSERT_EQ(gko::as<MultipleDerived>(gko::as<Base2>(base)), base);
+}
+
+
+TEST(As, CanCrossCastConstSharedPtr)
+{
+    auto obj = std::make_shared<const MultipleDerived>();
+    auto base = gko::as<const Base>(obj);
+
+    ASSERT_EQ(gko::as<const MultipleDerived>(gko::as<const Base2>(base)), base);
 }
 
 

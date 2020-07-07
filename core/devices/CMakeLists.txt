@@ -8,4 +8,5 @@ endfunction()
 
 add_subdirectory(omp)
 add_subdirectory(cuda)
+add_subdirectory(hip)
 add_subdirectory(reference)

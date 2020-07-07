@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,10 +41,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/dense.hpp>
 
 
+#include "core/base/allocator.hpp"
 #include "core/matrix/sellp_kernels.hpp"
-
-
-#include <vector>
 
 
 namespace gko {
@@ -69,7 +67,7 @@ template <typename ValueType, typename IndexType>
 size_type calculate_total_cols(const matrix_data<ValueType, IndexType> &data,
                                const size_type slice_size,
                                const size_type stride_factor,
-                               std::vector<size_type> &slice_lengths)
+                               vector<size_type> &slice_lengths)
 {
     size_type nonzeros_per_row = 0;
     IndexType current_row = 0;
@@ -123,11 +121,34 @@ void Sellp<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType, typename IndexType>
+void Sellp<ValueType, IndexType>::convert_to(
+    Sellp<next_precision<ValueType>, IndexType> *result) const
+{
+    result->values_ = this->values_;
+    result->col_idxs_ = this->col_idxs_;
+    result->slice_lengths_ = this->slice_lengths_;
+    result->slice_sets_ = this->slice_sets_;
+    result->slice_size_ = this->slice_size_;
+    result->stride_factor_ = this->stride_factor_;
+    result->total_cols_ = this->total_cols_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Sellp<ValueType, IndexType>::move_to(
+    Sellp<next_precision<ValueType>, IndexType> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(sellp::make_convert_to_dense(tmp.get(), this));
+    exec->run(sellp::make_convert_to_dense(this, tmp.get()));
     tmp->move_to(result);
 }
 
@@ -149,7 +170,7 @@ void Sellp<ValueType, IndexType>::convert_to(
     exec->run(sellp::make_count_nonzeros(this, &num_stored_nonzeros));
     auto tmp = Csr<ValueType, IndexType>::create(
         exec, this->get_size(), num_stored_nonzeros, result->get_strategy());
-    exec->run(sellp::make_convert_to_csr(tmp.get(), this));
+    exec->run(sellp::make_convert_to_csr(this, tmp.get()));
     tmp->make_srow();
     tmp->move_to(result);
 }
@@ -175,7 +196,7 @@ void Sellp<ValueType, IndexType>::read(const mat_data &data)
     // Allocate space for slice_cols.
     size_type slice_num =
         static_cast<index_type>((data.size[0] + slice_size - 1) / slice_size);
-    std::vector<size_type> slice_lengths(slice_num, 0);
+    vector<size_type> slice_lengths(slice_num, 0, {this->get_executor()});
 
     // Get the number of maximum columns for every slice.
     auto total_cols =

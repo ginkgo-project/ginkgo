@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,8 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_MATRIX_COO_KERNELS_HPP_
 
 
-#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
+
+
+#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -69,15 +71,15 @@ namespace kernels {
                         const matrix::Dense<ValueType> *b,           \
                         matrix::Dense<ValueType> *c)
 
-#define GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)  \
-    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
-                          matrix::Dense<ValueType> *result,            \
-                          const matrix::Coo<ValueType, IndexType> *source)
+#define GKO_DECLARE_COO_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)      \
+    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,     \
+                          const matrix::Coo<ValueType, IndexType> *source, \
+                          matrix::Dense<ValueType> *result)
 
-#define GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)  \
-    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec, \
-                        matrix::Csr<ValueType, IndexType> *result,   \
-                        const matrix::Coo<ValueType, IndexType> *source)
+#define GKO_DECLARE_COO_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)      \
+    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,     \
+                        const matrix::Coo<ValueType, IndexType> *source, \
+                        matrix::Csr<ValueType, IndexType> *result)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                             \
     template <typename ValueType, typename IndexType>            \
@@ -119,6 +121,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace coo
 }  // namespace reference
+
+
+namespace hip {
+namespace coo {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace coo
+}  // namespace hip
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

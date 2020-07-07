@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -147,6 +147,20 @@ public:
          * incorrect.
          */
         bool GKO_FACTORY_PARAMETER(skip_sorting, false);
+
+        /**
+         * Strategy which will be used by the L matrix. The default value
+         * `nullptr` will result in the strategy `classical`.
+         */
+        std::shared_ptr<typename l_matrix_type::strategy_type>
+            GKO_FACTORY_PARAMETER(l_strategy, nullptr);
+
+        /**
+         * Strategy which will be used by the U matrix. The default value
+         * `nullptr` will result in the strategy `classical`.
+         */
+        std::shared_ptr<typename u_matrix_type::strategy_type>
+            GKO_FACTORY_PARAMETER(u_strategy, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(ParIlu, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -157,7 +171,17 @@ protected:
         : Composition<ValueType>(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
-        generate_l_u(system_matrix, parameters_.skip_sorting)->move_to(this);
+        if (parameters_.l_strategy == nullptr) {
+            parameters_.l_strategy =
+                std::make_shared<typename l_matrix_type::classical>();
+        }
+        if (parameters_.u_strategy == nullptr) {
+            parameters_.u_strategy =
+                std::make_shared<typename u_matrix_type::classical>();
+        }
+        generate_l_u(system_matrix, parameters_.skip_sorting,
+                     parameters_.l_strategy, parameters_.u_strategy)
+            ->move_to(this);
     }
 
     /**
@@ -167,17 +191,21 @@ protected:
      * while the dynamic type of U is u_matrix_type.
      *
      * @param system_matrix  the source matrix used to generate the factors.
-     *                       @note: system_matrix must be convertable to a Csr
+     *                       @note: system_matrix must be convertible to a Csr
      *                              Matrix, otherwise, an exception is thrown.
      * @param skip_sorting  if set to `true`, the sorting will be skipped.
      *                      @note: If the matrix is not sorted, the
      *                             factorization fails.
+     * @param l_strategy  Strategy, which will be used by the L matrix.
+     * @param u_strategy  Strategy, which will be used by the U matrix.
      * @return  A Composition, containing the incomplete LU factors for the
      *          given system_matrix (first element is L, then U)
      */
     std::unique_ptr<Composition<ValueType>> generate_l_u(
-        const std::shared_ptr<const LinOp> &system_matrix,
-        bool skip_sorting) const;
+        const std::shared_ptr<const LinOp> &system_matrix, bool skip_sorting,
+        std::shared_ptr<typename l_matrix_type::strategy_type> l_strategy,
+        std::shared_ptr<typename u_matrix_type::strategy_type> u_strategy)
+        const;
 };
 
 

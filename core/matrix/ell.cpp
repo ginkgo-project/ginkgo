@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -109,11 +109,31 @@ void Ell<ValueType, IndexType>::apply_impl(const LinOp *alpha, const LinOp *b,
 
 
 template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::convert_to(
+    Ell<next_precision<ValueType>, IndexType> *result) const
+{
+    result->values_ = this->values_;
+    result->col_idxs_ = this->col_idxs_;
+    result->num_stored_elements_per_row_ = this->num_stored_elements_per_row_;
+    result->stride_ = this->stride_;
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::move_to(
+    Ell<next_precision<ValueType>, IndexType> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(ell::make_convert_to_dense(tmp.get(), this));
+    exec->run(ell::make_convert_to_dense(this, tmp.get()));
     tmp->move_to(result);
 }
 
@@ -136,7 +156,7 @@ void Ell<ValueType, IndexType>::convert_to(
 
     auto tmp = Csr<ValueType, IndexType>::create(
         exec, this->get_size(), num_stored_elements, result->get_strategy());
-    exec->run(ell::make_convert_to_csr(tmp.get(), this));
+    exec->run(ell::make_convert_to_csr(this, tmp.get()));
 
     tmp->make_srow();
     tmp->move_to(result);

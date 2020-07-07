@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,9 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_MATRIX_ELL_KERNELS_HPP_
 
 
+#include <ginkgo/core/matrix/ell.hpp>
+
+
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
 
 
 namespace gko {
@@ -56,15 +58,15 @@ namespace kernels {
                        const matrix::Dense<ValueType> *beta,        \
                        matrix::Dense<ValueType> *c)
 
-#define GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)  \
-    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
-                          matrix::Dense<ValueType> *result,            \
-                          const matrix::Ell<ValueType, IndexType> *source)
+#define GKO_DECLARE_ELL_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)      \
+    void convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,     \
+                          const matrix::Ell<ValueType, IndexType> *source, \
+                          matrix::Dense<ValueType> *result)
 
-#define GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)  \
-    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec, \
-                        matrix::Csr<ValueType, IndexType> *result,   \
-                        const matrix::Ell<ValueType, IndexType> *source)
+#define GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)      \
+    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,     \
+                        const matrix::Ell<ValueType, IndexType> *source, \
+                        matrix::Csr<ValueType, IndexType> *result)
 
 #define GKO_DECLARE_ELL_COUNT_NONZEROS_KERNEL(ValueType, IndexType)      \
     void count_nonzeros(std::shared_ptr<const DefaultExecutor> exec,     \
@@ -118,6 +120,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES;
 
 }  // namespace ell
 }  // namespace reference
+
+
+namespace hip {
+namespace ell {
+
+GKO_DECLARE_ALL_AS_TEMPLATES;
+
+}  // namespace ell
+}  // namespace hip
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

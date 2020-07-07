@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,32 +30,36 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_TYPES_HPP_
-#define GKO_CORE_TYPES_HPP_
+#ifndef GKO_CORE_BASE_TYPES_HPP_
+#define GKO_CORE_BASE_TYPES_HPP_
 
 
 #include <cassert>
 #include <climits>
+#include <complex>
 #include <cstddef>
 #include <cstdint>
-
-
-#include <complex>
+#include <limits>
 #include <type_traits>
 
 
-// Macros for handling different compilers / architectures uniformly
+#ifdef __HIPCC__
+#include <hip/hip_runtime.h>
+#endif
 
-#ifdef __CUDACC__
+
+// Macros for handling different compilers / architectures uniformly
+#if defined(__CUDACC__) || defined(__HIPCC__)
 #define GKO_ATTRIBUTES __host__ __device__
 #define GKO_INLINE __forceinline__
 #else
 #define GKO_ATTRIBUTES
 #define GKO_INLINE inline
-#endif  // __CUDACC__
+#endif  // defined(__CUDACC__) || defined(__HIPCC__)
 
 
-#if defined(__CUDA_ARCH__) && defined(__APPLE__)
+#if (defined(__CUDA_ARCH__) && defined(__APPLE__)) || \
+    defined(__HIP_DEVICE_COMPILE__)
 
 #ifdef NDEBUG
 #define GKO_ASSERT(condition) ((void)0)
@@ -69,12 +73,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
                          __FILE__, __LINE__, __func__)))
 #endif  // NDEBUG
 
-#else  // defined(__CUDA_ARCH__) && defined(__APPLE__)
+#else  // (defined(__CUDA_ARCH__) && defined(__APPLE__)) ||
+       // defined(__HIP_DEVICE_COMPILE__)
 
 // Handle assertions normally on other systems
 #define GKO_ASSERT(condition) assert(condition)
 
-#endif  // defined(__CUDA_ARCH__) && defined(__APPLE__)
+#endif  // (defined(__CUDA_ARCH__) && defined(__APPLE__)) ||
+        // defined(__HIP_DEVICE_COMPILE__)
 
 
 // Handle deprecated notices correctly on different systems
@@ -385,7 +391,21 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  */
 #define GKO_ENABLE_FOR_ALL_EXECUTORS(_enable_macro) \
     _enable_macro(OmpExecutor, omp);                \
+    _enable_macro(HipExecutor, hip);                \
     _enable_macro(CudaExecutor, cuda)
+
+
+/**
+ * Instantiates a template for each non-complex value type compiled by Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take one argument, which is replaced by the
+ *                value type.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro) \
+    template _macro(float);                                     \
+    template _macro(double)
 
 
 /**
@@ -396,10 +416,9 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take one argument, which is replaced by the
  *                value type.
  */
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro) \
-    template _macro(float);                         \
-    template _macro(double);                        \
-    template _macro(std::complex<float>);           \
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro)          \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro); \
+    template _macro(std::complex<float>);                    \
     template _macro(std::complex<double>)
 
 
@@ -435,7 +454,23 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     template _macro(std::complex<double>, int64)
 
 
+/**
+ * Instantiates a template for each value type conversion pair compiled by
+ * Ginkgo.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments `src` and `dst`, which
+ *                are replaced by the source and destination value type.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)       \
+    template _macro(float, double);                             \
+    template _macro(double, float);                             \
+    template _macro(std::complex<float>, std::complex<double>); \
+    template _macro(std::complex<double>, std::complex<float>)
+
+
 }  // namespace gko
 
 
-#endif  // GKO_CORE_TYPES_HPP_
+#endif  // GKO_CORE_BASE_TYPES_HPP_

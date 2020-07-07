@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,9 +33,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception.hpp>
 
 
+#include <string>
+
+
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <cusparse.h>
+
+
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
@@ -67,6 +73,8 @@ std::string CublasError::get_error(int64 error_code)
     GKO_REGISTER_CUBLAS_ERROR(CUBLAS_STATUS_NOT_SUPPORTED);
     GKO_REGISTER_CUBLAS_ERROR(CUBLAS_STATUS_LICENSE_ERROR);
     return "Unknown error";
+
+#undef GKO_REGISTER_CUBLAS_ERROR
 }
 
 
@@ -86,6 +94,8 @@ std::string CusparseError::get_error(int64 error_code)
     GKO_REGISTER_CUSPARSE_ERROR(CUSPARSE_STATUS_INTERNAL_ERROR);
     GKO_REGISTER_CUSPARSE_ERROR(CUSPARSE_STATUS_MATRIX_TYPE_NOT_SUPPORTED);
     return "Unknown error";
+
+#undef GKO_REGISTER_CUSPARSE_ERROR
 }
 
 

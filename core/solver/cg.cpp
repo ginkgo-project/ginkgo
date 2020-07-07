@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -57,6 +57,32 @@ GKO_REGISTER_OPERATION(step_2, cg::step_2);
 
 
 }  // namespace cg
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Cg<ValueType>::transpose() const
+{
+    return build()
+        .with_generated_preconditioner(
+            share(as<Transposable>(this->get_preconditioner())->transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .on(this->get_executor())
+        ->generate(
+            share(as<Transposable>(this->get_system_matrix())->transpose()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<LinOp> Cg<ValueType>::conj_transpose() const
+{
+    return build()
+        .with_generated_preconditioner(share(
+            as<Transposable>(this->get_preconditioner())->conj_transpose()))
+        .with_criteria(this->stop_criterion_factory_)
+        .on(this->get_executor())
+        ->generate(share(
+            as<Transposable>(this->get_system_matrix())->conj_transpose()));
+}
 
 
 template <typename ValueType>

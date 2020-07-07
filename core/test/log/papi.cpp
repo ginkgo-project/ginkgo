@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,28 +30,32 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-
 #include <ginkgo/core/log/papi.hpp>
+
+
+#include <stdexcept>
 
 
 #include <gtest/gtest.h>
 #include <papi.h>
-#include <stdexcept>
 
 
-#include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
 
+#include "core/test/utils.hpp"
+
+
 namespace {
 
 
+template <typename T>
 class Papi : public ::testing::Test {
 protected:
-    using Dense = gko::matrix::Dense<>;
+    using Dense = gko::matrix::Dense<T>;
 
     Papi() : exec(gko::ReferenceExecutor::create()), eventset(PAPI_NULL) {}
 
@@ -69,11 +73,11 @@ protected:
 
     void TearDown() { eventset = PAPI_NULL; }
 
-    template <typename T>
+    template <typename U>
     const std::string init(const gko::log::Logger::mask_type &event,
-                           const std::string &event_name, T *ptr)
+                           const std::string &event_name, U *ptr)
     {
-        logger = gko::log::Papi<>::create(exec, event);
+        logger = gko::log::Papi<T>::create(exec, event);
         std::ostringstream os;
         os << "sde:::" << logger->get_handle_name() << "::" << event_name
            << "::" << reinterpret_cast<gko::uintptr>(ptr);
@@ -110,352 +114,377 @@ protected:
         }
     }
 
-    std::shared_ptr<const gko::log::Papi<>> logger;
+    std::shared_ptr<const gko::log::Papi<T>> logger;
     std::shared_ptr<const gko::Executor> exec;
     int eventset;
 };
 
+TYPED_TEST_CASE(Papi, gko::test::ValueTypes);
 
-TEST_F(Papi, CatchesAllocationStarted)
+
+TYPED_TEST(Papi, CatchesAllocationStarted)
 {
     int logged_value = 42;
-    auto str = init(gko::log::Logger::allocation_started_mask,
-                    "allocation_started", exec.get());
-    add_event(str);
+    auto str = this->init(gko::log::Logger::allocation_started_mask,
+                          "allocation_started", this->exec.get());
+    this->add_event(str);
 
-    start();
-    logger->on<gko::log::Logger::allocation_started>(exec.get(), logged_value);
+    this->start();
+    this->logger->template on<gko::log::Logger::allocation_started>(
+        this->exec.get(), logged_value);
     long long int value = 0;
-    stop(&value);
+    this->stop(&value);
 
     ASSERT_EQ(value, logged_value);
 }
 
 
-TEST_F(Papi, CatchesAllocationCompleted)
+TYPED_TEST(Papi, CatchesAllocationCompleted)
 {
     int logged_value = 42;
-    auto str = init(gko::log::Logger::allocation_completed_mask,
-                    "allocation_completed", exec.get());
-    add_event(str);
+    auto str = this->init(gko::log::Logger::allocation_completed_mask,
+                          "allocation_completed", this->exec.get());
+    this->add_event(str);
 
-    start();
-    logger->on<gko::log::Logger::allocation_completed>(exec.get(), logged_value,
-                                                       0);
+    this->start();
+    this->logger->template on<gko::log::Logger::allocation_completed>(
+        this->exec.get(), logged_value, 0);
     long long int value = 0;
-    stop(&value);
+    this->stop(&value);
 
     ASSERT_EQ(value, logged_value);
 }
 
 
-TEST_F(Papi, CatchesFreeStarted)
+TYPED_TEST(Papi, CatchesFreeStarted)
+{
+    auto str = this->init(gko::log::Logger::free_started_mask, "free_started",
+                          this->exec.get());
+    this->add_event(str);
+
+    this->start();
+    this->logger->template on<gko::log::Logger::free_started>(this->exec.get(),
+                                                              0);
+    long long int value = 0;
+    this->stop(&value);
+
+    ASSERT_EQ(value, 1);
+}
+
+
+TYPED_TEST(Papi, CatchesFreeCompleted)
+{
+    auto str = this->init(gko::log::Logger::free_completed_mask,
+                          "free_completed", this->exec.get());
+    this->add_event(str);
+
+    this->start();
+    this->logger->template on<gko::log::Logger::free_completed>(
+        this->exec.get(), 0);
+    long long int value = 0;
+    this->stop(&value);
+
+    ASSERT_EQ(value, 1);
+}
+
+
+TYPED_TEST(Papi, CatchesCopyStarted)
+{
+    auto logged_value = 42;
+    auto str = this->init(gko::log::Logger::copy_started_mask,
+                          "copy_started_from", this->exec.get());
+    std::ostringstream os_out;
+    os_out << "sde:::" << this->logger->get_handle_name()
+           << "::copy_started_to::"
+           << reinterpret_cast<gko::uintptr>(this->exec.get());
+    this->add_event(str);
+    this->add_event(os_out.str());
+
+    this->start();
+    this->logger->template on<gko::log::Logger::copy_started>(
+        this->exec.get(), this->exec.get(), 0, 0, logged_value);
+    long long int values[2];
+    this->stop(values);
+
+    ASSERT_EQ(values[0], logged_value);
+    ASSERT_EQ(values[1], logged_value);
+}
+
+
+TYPED_TEST(Papi, CatchesCopyCompleted)
+{
+    auto logged_value = 42;
+    auto str = this->init(gko::log::Logger::copy_completed_mask,
+                          "copy_completed_from", this->exec.get());
+    std::ostringstream os_out;
+    os_out << "sde:::" << this->logger->get_handle_name()
+           << "::copy_completed_to::"
+           << reinterpret_cast<gko::uintptr>(this->exec.get());
+    this->add_event(str);
+    this->add_event(os_out.str());
+
+    this->start();
+    this->logger->template on<gko::log::Logger::copy_completed>(
+        this->exec.get(), this->exec.get(), 0, 0, logged_value);
+    long long int values[2];
+    this->stop(values);
+
+    ASSERT_EQ(values[0], logged_value);
+    ASSERT_EQ(values[1], logged_value);
+}
+
+
+TYPED_TEST(Papi, CatchesOperationLaunched)
+{
+    auto str = this->init(gko::log::Logger::operation_launched_mask,
+                          "operation_launched", this->exec.get());
+    this->add_event(str);
+
+    this->start();
+    this->logger->template on<gko::log::Logger::operation_launched>(
+        this->exec.get(), nullptr);
+    long long int value = 0;
+    this->stop(&value);
+
+    ASSERT_EQ(value, 1);
+}
+
+
+TYPED_TEST(Papi, CatchesOperationCompleted)
+{
+    auto str = this->init(gko::log::Logger::operation_completed_mask,
+                          "operation_completed", this->exec.get());
+    this->add_event(str);
+
+    this->start();
+    this->logger->template on<gko::log::Logger::operation_completed>(
+        this->exec.get(), nullptr);
+    long long int value = 0;
+    this->stop(&value);
+
+    ASSERT_EQ(value, 1);
+}
+
+
+TYPED_TEST(Papi, CatchesPolymorphicObjectCreateStarted)
 {
     auto str =
-        init(gko::log::Logger::free_started_mask, "free_started", exec.get());
-    add_event(str);
+        this->init(gko::log::Logger::polymorphic_object_create_started_mask,
+                   "polymorphic_object_create_started", this->exec.get());
+    this->add_event(str);
 
-    start();
-    logger->on<gko::log::Logger::free_started>(exec.get(), 0);
+    this->start();
+    this->logger
+        ->template on<gko::log::Logger::polymorphic_object_create_started>(
+            this->exec.get(), nullptr);
     long long int value = 0;
-    stop(&value);
+    this->stop(&value);
 
     ASSERT_EQ(value, 1);
 }
 
 
-TEST_F(Papi, CatchesFreeCompleted)
+TYPED_TEST(Papi, CatchesPolymorphicObjectCreateCompleted)
 {
-    auto str = init(gko::log::Logger::free_completed_mask, "free_completed",
-                    exec.get());
-    add_event(str);
+    auto str =
+        this->init(gko::log::Logger::polymorphic_object_create_completed_mask,
+                   "polymorphic_object_create_completed", this->exec.get());
+    this->add_event(str);
 
-    start();
-    logger->on<gko::log::Logger::free_completed>(exec.get(), 0);
+    this->start();
+    this->logger
+        ->template on<gko::log::Logger::polymorphic_object_create_completed>(
+            this->exec.get(), nullptr, nullptr);
     long long int value = 0;
-    stop(&value);
+    this->stop(&value);
 
     ASSERT_EQ(value, 1);
 }
 
 
-TEST_F(Papi, CatchesCopyStarted)
+TYPED_TEST(Papi, CatchesPolymorphicObjectCopyStarted)
 {
-    auto logged_value = 42;
-    auto str = init(gko::log::Logger::copy_started_mask, "copy_started_from",
-                    exec.get());
-    std::ostringstream os_out;
-    os_out << "sde:::" << logger->get_handle_name() << "::copy_started_to::"
-           << reinterpret_cast<gko::uintptr>(exec.get());
-    add_event(str);
-    add_event(os_out.str());
+    auto str =
+        this->init(gko::log::Logger::polymorphic_object_copy_started_mask,
+                   "polymorphic_object_copy_started", this->exec.get());
+    this->add_event(str);
 
-    start();
-    logger->on<gko::log::Logger::copy_started>(exec.get(), exec.get(), 0, 0,
-                                               logged_value);
-    long long int values[2];
-    stop(values);
-
-    ASSERT_EQ(values[0], logged_value);
-    ASSERT_EQ(values[1], logged_value);
-}
-
-
-TEST_F(Papi, CatchesCopyCompleted)
-{
-    auto logged_value = 42;
-    auto str = init(gko::log::Logger::copy_completed_mask,
-                    "copy_completed_from", exec.get());
-    std::ostringstream os_out;
-    os_out << "sde:::" << logger->get_handle_name() << "::copy_completed_to::"
-           << reinterpret_cast<gko::uintptr>(exec.get());
-    add_event(str);
-    add_event(os_out.str());
-
-    start();
-    logger->on<gko::log::Logger::copy_completed>(exec.get(), exec.get(), 0, 0,
-                                                 logged_value);
-    long long int values[2];
-    stop(values);
-
-    ASSERT_EQ(values[0], logged_value);
-    ASSERT_EQ(values[1], logged_value);
-}
-
-
-TEST_F(Papi, CatchesOperationLaunched)
-{
-    auto str = init(gko::log::Logger::operation_launched_mask,
-                    "operation_launched", exec.get());
-    add_event(str);
-
-    start();
-    logger->on<gko::log::Logger::operation_launched>(exec.get(), nullptr);
+    this->start();
+    this->logger
+        ->template on<gko::log::Logger::polymorphic_object_copy_started>(
+            this->exec.get(), nullptr, nullptr);
     long long int value = 0;
-    stop(&value);
+    this->stop(&value);
 
     ASSERT_EQ(value, 1);
 }
 
 
-TEST_F(Papi, CatchesOperationCompleted)
+TYPED_TEST(Papi, CatchesPolymorphicObjectCopyCompleted)
 {
-    auto str = init(gko::log::Logger::operation_completed_mask,
-                    "operation_completed", exec.get());
-    add_event(str);
+    auto str =
+        this->init(gko::log::Logger::polymorphic_object_copy_completed_mask,
+                   "polymorphic_object_copy_completed", this->exec.get());
+    this->add_event(str);
 
-    start();
-    logger->on<gko::log::Logger::operation_completed>(exec.get(), nullptr);
+    this->start();
+    this->logger
+        ->template on<gko::log::Logger::polymorphic_object_copy_completed>(
+            this->exec.get(), nullptr, nullptr);
     long long int value = 0;
-    stop(&value);
+    this->stop(&value);
 
     ASSERT_EQ(value, 1);
 }
 
 
-TEST_F(Papi, CatchesPolymorphicObjectCreateStarted)
+TYPED_TEST(Papi, CatchesPolymorphicObjectDeleted)
 {
-    auto str = init(gko::log::Logger::polymorphic_object_create_started_mask,
-                    "polymorphic_object_create_started", exec.get());
-    add_event(str);
+    auto str = this->init(gko::log::Logger::polymorphic_object_deleted_mask,
+                          "polymorphic_object_deleted", this->exec.get());
+    this->add_event(str);
 
-    start();
-    logger->on<gko::log::Logger::polymorphic_object_create_started>(exec.get(),
-                                                                    nullptr);
+    this->start();
+    this->logger->template on<gko::log::Logger::polymorphic_object_deleted>(
+        this->exec.get(), nullptr);
     long long int value = 0;
-    stop(&value);
+    this->stop(&value);
 
     ASSERT_EQ(value, 1);
 }
 
 
-TEST_F(Papi, CatchesPolymorphicObjectCreateCompleted)
+TYPED_TEST(Papi, CatchesLinOpApplyStarted)
 {
-    auto str = init(gko::log::Logger::polymorphic_object_create_completed_mask,
-                    "polymorphic_object_create_completed", exec.get());
-    add_event(str);
+    using Dense = typename TestFixture::Dense;
+    auto A = Dense::create(this->exec);
+    auto str = this->init(gko::log::Logger::linop_apply_started_mask,
+                          "linop_apply_started", A.get());
+    this->add_event(str);
 
-    start();
-    logger->on<gko::log::Logger::polymorphic_object_create_completed>(
-        exec.get(), nullptr, nullptr);
+    this->start();
+    this->logger->template on<gko::log::Logger::linop_apply_started>(
+        A.get(), nullptr, nullptr);
     long long int value = 0;
-    stop(&value);
+    this->stop(&value);
 
     ASSERT_EQ(value, 1);
 }
 
 
-TEST_F(Papi, CatchesPolymorphicObjectCopyStarted)
+TYPED_TEST(Papi, CatchesLinOpApplyCompleted)
 {
-    auto str = init(gko::log::Logger::polymorphic_object_copy_started_mask,
-                    "polymorphic_object_copy_started", exec.get());
-    add_event(str);
+    using Dense = typename TestFixture::Dense;
+    auto A = Dense::create(this->exec);
+    auto str = this->init(gko::log::Logger::linop_apply_completed_mask,
+                          "linop_apply_completed", A.get());
+    this->add_event(str);
 
-    start();
-    logger->on<gko::log::Logger::polymorphic_object_copy_started>(
-        exec.get(), nullptr, nullptr);
+    this->start();
+    this->logger->template on<gko::log::Logger::linop_apply_completed>(
+        A.get(), nullptr, nullptr);
     long long int value = 0;
-    stop(&value);
+    this->stop(&value);
 
     ASSERT_EQ(value, 1);
 }
 
 
-TEST_F(Papi, CatchesPolymorphicObjectCopyCompleted)
+TYPED_TEST(Papi, CatchesLinOpAdvancedApplyStarted)
 {
-    auto str = init(gko::log::Logger::polymorphic_object_copy_completed_mask,
-                    "polymorphic_object_copy_completed", exec.get());
-    add_event(str);
+    using Dense = typename TestFixture::Dense;
+    auto A = Dense::create(this->exec);
+    auto str = this->init(gko::log::Logger::linop_advanced_apply_started_mask,
+                          "linop_advanced_apply_started", A.get());
+    this->add_event(str);
 
-    start();
-    logger->on<gko::log::Logger::polymorphic_object_copy_completed>(
-        exec.get(), nullptr, nullptr);
-    long long int value = 0;
-    stop(&value);
-
-    ASSERT_EQ(value, 1);
-}
-
-
-TEST_F(Papi, CatchesPolymorphicObjectDeleted)
-{
-    auto str = init(gko::log::Logger::polymorphic_object_deleted_mask,
-                    "polymorphic_object_deleted", exec.get());
-    add_event(str);
-
-    start();
-    logger->on<gko::log::Logger::polymorphic_object_deleted>(exec.get(),
-                                                             nullptr);
-    long long int value = 0;
-    stop(&value);
-
-    ASSERT_EQ(value, 1);
-}
-
-
-TEST_F(Papi, CatchesLinOpApplyStarted)
-{
-    auto A = Dense::create(exec);
-    auto str = init(gko::log::Logger::linop_apply_started_mask,
-                    "linop_apply_started", A.get());
-    add_event(str);
-
-    start();
-    logger->on<gko::log::Logger::linop_apply_started>(A.get(), nullptr,
-                                                      nullptr);
-    long long int value = 0;
-    stop(&value);
-
-    ASSERT_EQ(value, 1);
-}
-
-
-TEST_F(Papi, CatchesLinOpApplyCompleted)
-{
-    auto A = Dense::create(exec);
-    auto str = init(gko::log::Logger::linop_apply_completed_mask,
-                    "linop_apply_completed", A.get());
-    add_event(str);
-
-    start();
-    logger->on<gko::log::Logger::linop_apply_completed>(A.get(), nullptr,
-                                                        nullptr);
-    long long int value = 0;
-    stop(&value);
-
-    ASSERT_EQ(value, 1);
-}
-
-
-TEST_F(Papi, CatchesLinOpAdvancedApplyStarted)
-{
-    auto A = Dense::create(exec);
-    auto str = init(gko::log::Logger::linop_advanced_apply_started_mask,
-                    "linop_advanced_apply_started", A.get());
-    add_event(str);
-
-    start();
-    logger->on<gko::log::Logger::linop_advanced_apply_started>(
+    this->start();
+    this->logger->template on<gko::log::Logger::linop_advanced_apply_started>(
         A.get(), nullptr, nullptr, nullptr, nullptr);
     long long int value = 0;
-    stop(&value);
+    this->stop(&value);
 
     ASSERT_EQ(value, 1);
 }
 
 
-TEST_F(Papi, CatchesLinOpAdvancedApplyCompleted)
+TYPED_TEST(Papi, CatchesLinOpAdvancedApplyCompleted)
 {
-    auto A = Dense::create(exec);
-    auto str = init(gko::log::Logger::linop_advanced_apply_completed_mask,
-                    "linop_advanced_apply_completed", A.get());
-    add_event(str);
+    using Dense = typename TestFixture::Dense;
+    auto A = Dense::create(this->exec);
+    auto str = this->init(gko::log::Logger::linop_advanced_apply_completed_mask,
+                          "linop_advanced_apply_completed", A.get());
+    this->add_event(str);
 
-    start();
-    logger->on<gko::log::Logger::linop_advanced_apply_completed>(
+    this->start();
+    this->logger->template on<gko::log::Logger::linop_advanced_apply_completed>(
         A.get(), nullptr, nullptr, nullptr, nullptr);
     long long int value = 0;
-    stop(&value);
+    this->stop(&value);
 
     ASSERT_EQ(value, 1);
 }
 
 
-TEST_F(Papi, CatchesLinOpFactoryGenerateStarted)
+TYPED_TEST(Papi, CatchesLinOpFactoryGenerateStarted)
 {
     auto factory =
-        gko::solver::Bicgstab<>::build()
+        gko::solver::Bicgstab<TypeParam>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .on(exec);
-    auto str = init(gko::log::Logger::linop_factory_generate_started_mask,
-                    "linop_factory_generate_started", factory.get());
-    add_event(str);
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .on(this->exec);
+    auto str = this->init(gko::log::Logger::linop_factory_generate_started_mask,
+                          "linop_factory_generate_started", factory.get());
+    this->add_event(str);
 
-    start();
-    logger->on<gko::log::Logger::linop_factory_generate_started>(factory.get(),
-                                                                 nullptr);
+    this->start();
+    this->logger->template on<gko::log::Logger::linop_factory_generate_started>(
+        factory.get(), nullptr);
     long long int value = 0;
-    stop(&value);
+    this->stop(&value);
 
     ASSERT_EQ(value, 1);
 }
 
 
-TEST_F(Papi, CatchesLinOpFactoryGenerateCompleted)
+TYPED_TEST(Papi, CatchesLinOpFactoryGenerateCompleted)
 {
     auto factory =
-        gko::solver::Bicgstab<>::build()
+        gko::solver::Bicgstab<TypeParam>::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(3u).on(exec))
-            .on(exec);
-    auto str = init(gko::log::Logger::linop_factory_generate_completed_mask,
-                    "linop_factory_generate_completed", factory.get());
-    add_event(str);
+                gko::stop::Iteration::build().with_max_iters(3u).on(this->exec))
+            .on(this->exec);
+    TypeParam dummy;
+    auto str =
+        this->init(gko::log::Logger::linop_factory_generate_completed_mask,
+                   "linop_factory_generate_completed", factory.get());
+    this->add_event(str);
 
-    start();
-    logger->on<gko::log::Logger::linop_factory_generate_completed>(
-        factory.get(), nullptr, nullptr);
+    this->start();
+    this->logger
+        ->template on<gko::log::Logger::linop_factory_generate_completed>(
+            factory.get(), nullptr, nullptr);
     long long int value = 0;
-    stop(&value);
+    this->stop(&value);
 
     ASSERT_EQ(value, 1);
 }
 
 
-TEST_F(Papi, CatchesIterationComplete)
+TYPED_TEST(Papi, CatchesIterationComplete)
 {
+    using Dense = typename TestFixture::Dense;
     int logged_value = 42;
-    auto A = Dense::create(exec);
-    auto str = init(gko::log::Logger::iteration_complete_mask,
-                    "iteration_complete", A.get());
-    add_event(str);
+    auto A = Dense::create(this->exec);
+    auto str = this->init(gko::log::Logger::iteration_complete_mask,
+                          "iteration_complete", A.get());
+    this->add_event(str);
 
-    start();
-    logger->on<gko::log::Logger::iteration_complete>(A.get(), 42, nullptr,
-                                                     nullptr, nullptr);
+    this->start();
+    this->logger->template on<gko::log::Logger::iteration_complete>(
+        A.get(), 42, nullptr, nullptr, nullptr);
     long long int value = 0;
-    stop(&value);
+    this->stop(&value);
 
     ASSERT_EQ(value, logged_value);
 }

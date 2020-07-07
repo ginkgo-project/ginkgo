@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -45,19 +46,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/sellp.hpp>
 
 
+#include "core/components/fill_array.hpp"
+#include "core/components/prefix_sum.hpp"
+#include "core/matrix/csr_builder.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
+#include "cuda/base/config.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/pointer_mode_guard.hpp"
 #include "cuda/base/types.hpp"
 #include "cuda/components/atomic.cuh"
 #include "cuda/components/cooperative_groups.cuh"
-#include "cuda/components/prefix_sum.cuh"
+#include "cuda/components/intrinsics.cuh"
+#include "cuda/components/merging.cuh"
 #include "cuda/components/reduction.cuh"
 #include "cuda/components/segment_scan.cuh"
+#include "cuda/components/thread_ids.cuh"
 #include "cuda/components/uninitialized_array.hpp"
-#include "cuda/components/zero_array.hpp"
 
 
 namespace gko {
@@ -73,9 +79,9 @@ namespace csr {
 
 constexpr int default_block_size = 512;
 constexpr int warps_in_block = 4;
-constexpr int spmv_block_size = warps_in_block * cuda_config::warp_size;
-constexpr int classical_block_size = 64;
-constexpr int wsize = cuda_config::warp_size;
+constexpr int spmv_block_size = warps_in_block * config::warp_size;
+constexpr int wsize = config::warp_size;
+constexpr int classical_overweight = 32;
 
 
 /**
@@ -84,463 +90,14 @@ constexpr int wsize = cuda_config::warp_size;
  */
 using compiled_kernels = syn::value_list<int, 3, 4, 6, 7, 8, 12, 14>;
 
+using classical_kernels =
+    syn::value_list<int, config::warp_size, 32, 16, 8, 4, 2, 1>;
 
-namespace kernel {
-
-
-template <typename T>
-__host__ __device__ __forceinline__ T ceildivT(T nom, T denom)
-{
-    return (nom + denom - 1ll) / denom;
-}
+using spgeam_kernels =
+    syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
 
-template <typename ValueType, typename IndexType>
-__device__ __forceinline__ bool block_segment_scan_reverse(
-    const IndexType *__restrict__ ind, ValueType *__restrict__ val)
-{
-    bool last = true;
-    const auto reg_ind = ind[threadIdx.x];
-#pragma unroll
-    for (int i = 1; i < spmv_block_size; i <<= 1) {
-        if (i == 1 && threadIdx.x < spmv_block_size - 1 &&
-            reg_ind == ind[threadIdx.x + 1]) {
-            last = false;
-        }
-        auto temp = zero<ValueType>();
-        if (threadIdx.x >= i && reg_ind == ind[threadIdx.x - i]) {
-            temp = val[threadIdx.x - i];
-        }
-        group::this_thread_block().sync();
-        val[threadIdx.x] += temp;
-        group::this_thread_block().sync();
-    }
-
-    return last;
-}
-
-
-template <bool overflow, typename IndexType>
-__device__ __forceinline__ void find_next_row(
-    const IndexType num_rows, const IndexType data_size, const IndexType ind,
-    IndexType *__restrict__ row, IndexType *__restrict__ row_end,
-    const IndexType row_predict, const IndexType row_predict_end,
-    const IndexType *__restrict__ row_ptr)
-{
-    if (!overflow || ind < data_size) {
-        if (ind >= *row_end) {
-            *row = row_predict;
-            *row_end = row_predict_end;
-            for (; ind >= *row_end; *row_end = row_ptr[++*row + 1])
-                ;
-        }
-
-    } else {
-        *row = num_rows - 1;
-        *row_end = data_size;
-    }
-}
-
-
-template <size_type subwarp_size, typename ValueType, typename IndexType,
-          typename Closure>
-__device__ __forceinline__ void warp_atomic_add(
-    const group::thread_block_tile<subwarp_size> &group, bool force_write,
-    ValueType *__restrict__ val, const IndexType row, ValueType *__restrict__ c,
-    const size_type c_stride, const IndexType column_id, Closure scale)
-{
-    // do a local scan to avoid atomic collisions
-    const bool need_write = segment_scan(group, row, val);
-    if (need_write && force_write) {
-        atomic_add(&(c[row * c_stride + column_id]), scale(*val));
-    }
-    if (!need_write || force_write) {
-        *val = zero<ValueType>();
-    }
-}
-
-
-template <bool last, size_type subwarp_size, typename ValueType,
-          typename IndexType, typename Closure>
-__device__ __forceinline__ void process_window(
-    const group::thread_block_tile<subwarp_size> &group,
-    const IndexType num_rows, const IndexType data_size, const IndexType ind,
-    IndexType *__restrict__ row, IndexType *__restrict__ row_end,
-    IndexType *__restrict__ nrow, IndexType *__restrict__ nrow_end,
-    ValueType *__restrict__ temp_val, const ValueType *__restrict__ val,
-    const IndexType *__restrict__ col_idxs,
-    const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
-    const size_type b_stride, ValueType *__restrict__ c,
-    const size_type c_stride, const IndexType column_id, Closure scale)
-{
-    const IndexType curr_row = *row;
-    find_next_row<last>(num_rows, data_size, ind, row, row_end, *nrow,
-                        *nrow_end, row_ptrs);
-    // segmented scan
-    if (group.any(curr_row != *row)) {
-        warp_atomic_add(group, curr_row != *row, temp_val, curr_row, c,
-                        c_stride, column_id, scale);
-        *nrow = group.shfl(*row, subwarp_size - 1);
-        *nrow_end = group.shfl(*row_end, subwarp_size - 1);
-    }
-
-    if (!last || ind < data_size) {
-        const auto col = col_idxs[ind];
-        *temp_val += val[ind] * b[col * b_stride + column_id];
-    }
-}
-
-
-template <typename IndexType>
-__device__ __forceinline__ IndexType get_warp_start_idx(
-    const IndexType nwarps, const IndexType nnz, const IndexType warp_idx)
-{
-    const long long cache_lines = ceildivT<IndexType>(nnz, wsize);
-    return (warp_idx * cache_lines / nwarps) * wsize;
-}
-
-
-template <typename ValueType, typename IndexType, typename Closure>
-__device__ __forceinline__ void spmv_kernel(
-    const IndexType nwarps, const IndexType num_rows,
-    const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
-    const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    ValueType *__restrict__ c, const size_type c_stride, Closure scale)
-{
-    const IndexType warp_idx = blockIdx.x * warps_in_block + threadIdx.y;
-    const IndexType column_id = blockIdx.y;
-    if (warp_idx >= nwarps) {
-        return;
-    }
-    const IndexType data_size = row_ptrs[num_rows];
-    const IndexType start = get_warp_start_idx(nwarps, data_size, warp_idx);
-    const IndexType end =
-        min(get_warp_start_idx(nwarps, data_size, warp_idx + 1),
-            ceildivT<IndexType>(data_size, wsize) * wsize);
-    auto row = srow[warp_idx];
-    auto row_end = row_ptrs[row + 1];
-    auto nrow = row;
-    auto nrow_end = row_end;
-    ValueType temp_val = zero<ValueType>();
-    IndexType ind = start + threadIdx.x;
-    find_next_row<true>(num_rows, data_size, ind, &row, &row_end, nrow,
-                        nrow_end, row_ptrs);
-    const IndexType ind_end = end - wsize;
-    const auto tile_block =
-        group::tiled_partition<wsize>(group::this_thread_block());
-    for (; ind < ind_end; ind += wsize) {
-        process_window<false>(tile_block, num_rows, data_size, ind, &row,
-                              &row_end, &nrow, &nrow_end, &temp_val, val,
-                              col_idxs, row_ptrs, b, b_stride, c, c_stride,
-                              column_id, scale);
-    }
-    process_window<true>(tile_block, num_rows, data_size, ind, &row, &row_end,
-                         &nrow, &nrow_end, &temp_val, val, col_idxs, row_ptrs,
-                         b, b_stride, c, c_stride, column_id, scale);
-    warp_atomic_add(tile_block, true, &temp_val, row, c, c_stride, column_id,
-                    scale);
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
-    const IndexType nwarps, const IndexType num_rows,
-    const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
-    const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    ValueType *__restrict__ c, const size_type c_stride)
-{
-    spmv_kernel(nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c,
-                c_stride, [](const ValueType &x) { return x; });
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
-    const IndexType nwarps, const IndexType num_rows,
-    const ValueType *__restrict__ alpha, const ValueType *__restrict__ val,
-    const IndexType *__restrict__ col_idxs,
-    const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    ValueType *__restrict__ c, const size_type c_stride)
-{
-    ValueType scale_factor = alpha[0];
-    spmv_kernel(nwarps, num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c,
-                c_stride, [&scale_factor](const ValueType &x) {
-                    return scale_factor * x;
-                });
-}
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void set_zero(
-    const size_type nnz, ValueType *__restrict__ val)
-{
-    const auto ind =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    if (ind < nnz) {
-        val[ind] = zero<ValueType>();
-    }
-}
-
-
-template <typename IndexType>
-__forceinline__ __device__ void merge_path_search(
-    const IndexType diagonal, const IndexType a_len, const IndexType b_len,
-    const IndexType *__restrict__ a, const IndexType offset_b,
-    IndexType *__restrict__ x, IndexType *__restrict__ y)
-{
-    auto x_min = max(diagonal - b_len, zero<IndexType>());
-    auto x_max = min(diagonal, a_len);
-    while (x_min < x_max) {
-        auto pivot = (x_min + x_max) >> 1;
-        if (a[pivot] <= offset_b + diagonal - pivot - 1) {
-            x_min = pivot + 1;
-        } else {
-            x_max = pivot;
-        }
-    }
-
-    *x = min(x_min, a_len);
-    *y = diagonal - x_min;
-}
-
-
-template <typename ValueType, typename IndexType, typename Alpha_op>
-__device__ void reduce(const IndexType nwarps,
-                       const ValueType *__restrict__ last_val,
-                       const IndexType *__restrict__ last_row,
-                       ValueType *__restrict__ c, const size_type c_stride,
-                       Alpha_op alpha_op)
-{
-    const IndexType cache_lines = ceildivT<IndexType>(nwarps, spmv_block_size);
-    const IndexType tid = threadIdx.x;
-    const IndexType start = min(tid * cache_lines, nwarps);
-    const IndexType end = min((tid + 1) * cache_lines, nwarps);
-    ValueType value = zero<ValueType>();
-    IndexType row = last_row[nwarps - 1];
-    if (start < nwarps) {
-        value = last_val[start];
-        row = last_row[start];
-        for (IndexType i = start + 1; i < end; i++) {
-            if (last_row[i] != row) {
-                c[row * c_stride] += alpha_op(value);
-                row = last_row[i];
-                value = last_val[i];
-            } else {
-                value += last_val[i];
-            }
-        }
-    }
-    __shared__ UninitializedArray<IndexType, spmv_block_size> tmp_ind;
-    __shared__ UninitializedArray<ValueType, spmv_block_size> tmp_val;
-    tmp_val[threadIdx.x] = value;
-    tmp_ind[threadIdx.x] = row;
-    group::this_thread_block().sync();
-    bool last = block_segment_scan_reverse(static_cast<IndexType *>(tmp_ind),
-                                           static_cast<ValueType *>(tmp_val));
-    group::this_thread_block().sync();
-    if (last) {
-        c[row * c_stride] += alpha_op(tmp_val[threadIdx.x]);
-    }
-}
-
-
-template <int items_per_thread, typename ValueType, typename IndexType,
-          typename Alpha_op, typename Beta_op>
-__device__ void merge_path_spmv(
-    const IndexType num_rows, const ValueType *__restrict__ val,
-    const IndexType *__restrict__ col_idxs,
-    const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    ValueType *__restrict__ c, const size_type c_stride,
-    IndexType *__restrict__ row_out, ValueType *__restrict__ val_out,
-    Alpha_op alpha_op, Beta_op beta_op)
-{
-    const auto *row_end_ptrs = row_ptrs + 1;
-    const auto nnz = row_ptrs[num_rows];
-    const IndexType num_merge_items = num_rows + nnz;
-    const auto block_items = spmv_block_size * items_per_thread;
-    __shared__ IndexType shared_row_ptrs[block_items];
-    const IndexType diagonal =
-        min(static_cast<IndexType>(block_items * blockIdx.x), num_merge_items);
-    const IndexType diagonal_end = min(diagonal + block_items, num_merge_items);
-    IndexType block_start_x;
-    IndexType block_start_y;
-    IndexType end_x;
-    IndexType end_y;
-    merge_path_search(diagonal, num_rows, nnz, row_end_ptrs, zero<IndexType>(),
-                      &block_start_x, &block_start_y);
-    merge_path_search(diagonal_end, num_rows, nnz, row_end_ptrs,
-                      zero<IndexType>(), &end_x, &end_y);
-    const IndexType block_num_rows = end_x - block_start_x;
-    const IndexType block_num_nonzeros = end_y - block_start_y;
-    for (int i = threadIdx.x;
-         i < block_num_rows && block_start_x + i < num_rows;
-         i += spmv_block_size) {
-        shared_row_ptrs[i] = row_end_ptrs[block_start_x + i];
-    }
-    group::this_thread_block().sync();
-
-    IndexType start_x;
-    IndexType start_y;
-    merge_path_search(static_cast<IndexType>(items_per_thread * threadIdx.x),
-                      block_num_rows, block_num_nonzeros, shared_row_ptrs,
-                      block_start_y, &start_x, &start_y);
-
-
-    IndexType ind = block_start_y + start_y;
-    IndexType row_i = block_start_x + start_x;
-    ValueType value = zero<ValueType>();
-#pragma unroll
-    for (IndexType i = 0; i < items_per_thread; i++) {
-        if (row_i < num_rows) {
-            if (start_x == block_num_rows || ind < shared_row_ptrs[start_x]) {
-                value += val[ind] * b[col_idxs[ind] * b_stride];
-                ind++;
-            } else {
-                c[row_i * c_stride] =
-                    alpha_op(value) + beta_op(c[row_i * c_stride]);
-                start_x++;
-                row_i++;
-                value = zero<ValueType>();
-            }
-        }
-    }
-    group::this_thread_block().sync();
-    IndexType *tmp_ind = shared_row_ptrs;
-    ValueType *tmp_val =
-        reinterpret_cast<ValueType *>(shared_row_ptrs + spmv_block_size);
-    tmp_val[threadIdx.x] = value;
-    tmp_ind[threadIdx.x] = row_i;
-    group::this_thread_block().sync();
-    bool last = block_segment_scan_reverse(static_cast<IndexType *>(tmp_ind),
-                                           static_cast<ValueType *>(tmp_val));
-    if (threadIdx.x == spmv_block_size - 1) {
-        row_out[blockIdx.x] = min(end_x, num_rows - 1);
-        val_out[blockIdx.x] = tmp_val[threadIdx.x];
-    } else if (last) {
-        c[row_i * c_stride] += alpha_op(tmp_val[threadIdx.x]);
-    }
-}
-
-template <int items_per_thread, typename ValueType, typename IndexType>
-__global__ __launch_bounds__(spmv_block_size) void abstract_merge_path_spmv(
-    const IndexType num_rows, const ValueType *__restrict__ val,
-    const IndexType *__restrict__ col_idxs,
-    const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    ValueType *__restrict__ c, const size_type c_stride,
-    IndexType *__restrict__ row_out, ValueType *__restrict__ val_out)
-{
-    merge_path_spmv<items_per_thread>(
-        num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c, c_stride,
-        row_out, val_out, [](ValueType &x) { return x; },
-        [](ValueType &x) { return zero<ValueType>(); });
-}
-
-
-template <int items_per_thread, typename ValueType, typename IndexType>
-__global__ __launch_bounds__(spmv_block_size) void abstract_merge_path_spmv(
-    const IndexType num_rows, const ValueType *__restrict__ alpha,
-    const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
-    const IndexType *__restrict__ row_ptrs, const IndexType *__restrict__ srow,
-    const ValueType *__restrict__ b, const size_type b_stride,
-    const ValueType *__restrict__ beta, ValueType *__restrict__ c,
-    const size_type c_stride, IndexType *__restrict__ row_out,
-    ValueType *__restrict__ val_out)
-{
-    const auto alpha_val = alpha[0];
-    const auto beta_val = beta[0];
-    merge_path_spmv<items_per_thread>(
-        num_rows, val, col_idxs, row_ptrs, srow, b, b_stride, c, c_stride,
-        row_out, val_out, [&alpha_val](ValueType &x) { return alpha_val * x; },
-        [&beta_val](ValueType &x) { return beta_val * x; });
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(spmv_block_size) void abstract_reduce(
-    const IndexType nwarps, const ValueType *__restrict__ last_val,
-    const IndexType *__restrict__ last_row, ValueType *__restrict__ c,
-    const size_type c_stride)
-{
-    reduce(nwarps, last_val, last_row, c, c_stride,
-           [](ValueType &x) { return x; });
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(spmv_block_size) void abstract_reduce(
-    const IndexType nwarps, const ValueType *__restrict__ last_val,
-    const IndexType *__restrict__ last_row, const ValueType *__restrict__ alpha,
-    ValueType *__restrict__ c, const size_type c_stride)
-{
-    const auto alpha_val = alpha[0];
-    reduce(nwarps, last_val, last_row, c, c_stride,
-           [&alpha_val](ValueType &x) { return alpha_val * x; });
-}
-
-
-template <typename ValueType, typename IndexType, typename Closure>
-__device__ void classical_spmv(const size_type num_rows,
-                               const ValueType *__restrict__ val,
-                               const IndexType *__restrict__ col_idxs,
-                               const IndexType *__restrict__ row_ptrs,
-                               const ValueType *__restrict__ b,
-                               const size_type b_stride,
-                               ValueType *__restrict__ c,
-                               const size_type c_stride, Closure scale)
-{
-    const auto tid =
-        static_cast<size_type>(blockDim.x) * blockIdx.x + threadIdx.x;
-    if (tid >= num_rows) {
-        return;
-    }
-    const auto column_id = blockIdx.y;
-    const auto ind_end = row_ptrs[tid + 1];
-    ValueType temp_value = zero<ValueType>();
-    for (auto ind = row_ptrs[tid]; ind < ind_end; ind++) {
-        temp_value += val[ind] * b[col_idxs[ind] * b_stride + column_id];
-    }
-    c[tid * c_stride + column_id] =
-        scale(temp_value, c[tid * c_stride + column_id]);
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(classical_block_size) void abstract_classical_spmv(
-    const size_type num_rows, const ValueType *__restrict__ val,
-    const IndexType *__restrict__ col_idxs,
-    const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
-    const size_type b_stride, ValueType *__restrict__ c,
-    const size_type c_stride)
-{
-    classical_spmv(num_rows, val, col_idxs, row_ptrs, b, b_stride, c, c_stride,
-                   [](const ValueType &x, const ValueType &y) { return x; });
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(classical_block_size) void abstract_classical_spmv(
-    const size_type num_rows, const ValueType *__restrict__ alpha,
-    const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
-    const IndexType *__restrict__ row_ptrs, const ValueType *__restrict__ b,
-    const size_type b_stride, const ValueType *__restrict__ beta,
-    ValueType *__restrict__ c, const size_type c_stride)
-{
-    const auto alpha_val = alpha[0];
-    const auto beta_val = beta[0];
-    classical_spmv(
-        num_rows, val, col_idxs, row_ptrs, b, b_stride, c, c_stride,
-        [&alpha_val, &beta_val](const ValueType &x, const ValueType &y) {
-            return alpha_val * x + beta_val * y;
-        });
-}
-
-
-}  // namespace kernel
+#include "common/matrix/csr_kernels.hpp.inc"
 
 
 namespace host_kernel {
@@ -614,8 +171,8 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_merge_path_spmv, merge_path_spmv);
 template <typename ValueType, typename IndexType>
 int compute_items_per_thread(std::shared_ptr<const CudaExecutor> exec)
 {
-    const int version = exec->get_major_version()
-                        << 4 + exec->get_minor_version();
+    const int version =
+        (exec->get_major_version() << 4) + exec->get_minor_version();
     // The num_item is decided to make the occupancy 100%
     // TODO: Extend this list when new GPU is released
     //       Tune this parameter
@@ -640,7 +197,7 @@ int compute_items_per_thread(std::shared_ptr<const CudaExecutor> exec)
     case 0x37:
         num_item = 14;
     }
-    // Ensure that satisfy:
+    // Ensure that the following is satisfied:
     // sizeof(IndexType) + sizeof(ValueType)
     // <= items_per_thread * sizeof(IndexType)
     constexpr int minimal_num =
@@ -648,6 +205,46 @@ int compute_items_per_thread(std::shared_ptr<const CudaExecutor> exec)
     int items_per_thread = num_item * 4 / sizeof(IndexType);
     return std::max(minimal_num, items_per_thread);
 }
+
+
+template <int subwarp_size, typename ValueType, typename IndexType>
+void classical_spmv(syn::value_list<int, subwarp_size>,
+                    std::shared_ptr<const CudaExecutor> exec,
+                    const matrix::Csr<ValueType, IndexType> *a,
+                    const matrix::Dense<ValueType> *b,
+                    matrix::Dense<ValueType> *c,
+                    const matrix::Dense<ValueType> *alpha = nullptr,
+                    const matrix::Dense<ValueType> *beta = nullptr)
+{
+    const auto nwarps = exec->get_num_warps_per_sm() *
+                        exec->get_num_multiprocessor() * classical_overweight;
+    const auto gridx =
+        std::min(ceildiv(a->get_size()[0], spmv_block_size / subwarp_size),
+                 int64(nwarps / warps_in_block));
+    const dim3 grid(gridx, b->get_size()[1]);
+    const dim3 block(spmv_block_size);
+
+    if (alpha == nullptr && beta == nullptr) {
+        kernel::abstract_classical_spmv<subwarp_size><<<grid, block, 0, 0>>>(
+            a->get_size()[0], as_cuda_type(a->get_const_values()),
+            a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(c->get_values()), c->get_stride());
+
+    } else if (alpha != nullptr && beta != nullptr) {
+        kernel::abstract_classical_spmv<subwarp_size><<<grid, block, 0, 0>>>(
+            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
+            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
+            as_cuda_type(a->get_const_row_ptrs()),
+            as_cuda_type(b->get_const_values()), b->get_stride(),
+            as_cuda_type(beta->get_const_values()),
+            as_cuda_type(c->get_values()), c->get_stride());
+    } else {
+        GKO_KERNEL_NOT_FOUND;
+    }
+}
+
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 
 
 }  // namespace host_kernel
@@ -659,10 +256,11 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
           const matrix::Dense<ValueType> *b, matrix::Dense<ValueType> *c)
 {
     if (a->get_strategy()->get_name() == "load_balance") {
-        zero_array(c->get_num_stored_elements(), c->get_values());
+        components::fill_array(exec, c->get_values(),
+                               c->get_num_stored_elements(), zero<ValueType>());
         const IndexType nwarps = a->get_num_srow_elements();
         if (nwarps > 0) {
-            const dim3 csr_block(cuda_config::warp_size, warps_in_block, 1);
+            const dim3 csr_block(config::warp_size, warps_in_block, 1);
             const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
                                 b->get_size()[1]);
             kernel::abstract_spmv<<<csr_grid, csr_block>>>(
@@ -686,14 +284,26 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
             },
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
     } else if (a->get_strategy()->get_name() == "classical") {
-        const dim3 grid(ceildiv(a->get_size()[0], classical_block_size),
-                        b->get_size()[1]);
-        kernel::abstract_classical_spmv<<<grid, classical_block_size>>>(
-            a->get_size()[0], as_cuda_type(a->get_const_values()),
-            a->get_const_col_idxs(), as_cuda_type(a->get_const_row_ptrs()),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(c->get_values()), c->get_stride());
-    } else if (a->get_strategy()->get_name() == "cusparse") {
+        IndexType max_length_per_row = 0;
+        using Tcsr = matrix::Csr<ValueType, IndexType>;
+        if (auto strategy =
+                std::dynamic_pointer_cast<const typename Tcsr::classical>(
+                    a->get_strategy())) {
+            max_length_per_row = strategy->get_max_length_per_row();
+        } else if (auto strategy = std::dynamic_pointer_cast<
+                       const typename Tcsr::automatical>(a->get_strategy())) {
+            max_length_per_row = strategy->get_max_length_per_row();
+        } else {
+            GKO_NOT_SUPPORTED(a->get_strategy());
+        }
+        host_kernel::select_classical_spmv(
+            classical_kernels(),
+            [&max_length_per_row](int compiled_info) {
+                return max_length_per_row >= compiled_info;
+            },
+            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
+    } else if (a->get_strategy()->get_name() == "sparselib" ||
+               a->get_strategy()->get_name() == "cusparse") {
         if (cusparse::is_supported<ValueType, IndexType>::value) {
             // TODO: add implementation for int64 and multiple RHS
             auto handle = exec->get_cusparse_handle();
@@ -739,7 +349,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         const IndexType nwarps = a->get_num_srow_elements();
 
         if (nwarps > 0) {
-            const dim3 csr_block(cuda_config::warp_size, warps_in_block, 1);
+            const dim3 csr_block(config::warp_size, warps_in_block, 1);
             const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
                                 b->get_size()[1]);
             kernel::abstract_spmv<<<csr_grid, csr_block>>>(
@@ -751,8 +361,11 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                 as_cuda_type(b->get_const_values()),
                 as_cuda_type(b->get_stride()), as_cuda_type(c->get_values()),
                 as_cuda_type(c->get_stride()));
+        } else {
+            GKO_NOT_SUPPORTED(nwarps);
         }
-    } else if (a->get_strategy()->get_name() == "cusparse") {
+    } else if (a->get_strategy()->get_name() == "sparselib" ||
+               a->get_strategy()->get_name() == "cusparse") {
         if (cusparse::is_supported<ValueType, IndexType>::value) {
             // TODO: add implementation for int64 and multiple RHS
             auto descr = cusparse::create_mat_descr();
@@ -776,15 +389,25 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
             GKO_NOT_IMPLEMENTED;
         }
     } else if (a->get_strategy()->get_name() == "classical") {
-        const dim3 grid(ceildiv(a->get_size()[0], classical_block_size),
-                        b->get_size()[1]);
-        kernel::abstract_classical_spmv<<<grid, classical_block_size>>>(
-            a->get_size()[0], as_cuda_type(alpha->get_const_values()),
-            as_cuda_type(a->get_const_values()), a->get_const_col_idxs(),
-            as_cuda_type(a->get_const_row_ptrs()),
-            as_cuda_type(b->get_const_values()), b->get_stride(),
-            as_cuda_type(beta->get_const_values()),
-            as_cuda_type(c->get_values()), c->get_stride());
+        IndexType max_length_per_row = 0;
+        using Tcsr = matrix::Csr<ValueType, IndexType>;
+        if (auto strategy =
+                std::dynamic_pointer_cast<const typename Tcsr::classical>(
+                    a->get_strategy())) {
+            max_length_per_row = strategy->get_max_length_per_row();
+        } else if (auto strategy = std::dynamic_pointer_cast<
+                       const typename Tcsr::automatical>(a->get_strategy())) {
+            max_length_per_row = strategy->get_max_length_per_row();
+        } else {
+            GKO_NOT_SUPPORTED(a->get_strategy());
+        }
+        host_kernel::select_classical_spmv(
+            classical_kernels(),
+            [&max_length_per_row](int compiled_info) {
+                return max_length_per_row >= compiled_info;
+            },
+            syn::value_list<int>(), syn::type_list<>(), exec, a, b, c, alpha,
+            beta);
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
             host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
@@ -804,24 +427,228 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
 
-namespace kernel {
-
-
-template <typename IndexType>
-__global__ __launch_bounds__(default_block_size) void convert_row_ptrs_to_idxs(
-    size_type num_rows, const IndexType *__restrict__ ptrs,
-    IndexType *__restrict__ idxs)
+template <typename ValueType, typename IndexType>
+void spgemm(std::shared_ptr<const CudaExecutor> exec,
+            const matrix::Csr<ValueType, IndexType> *a,
+            const matrix::Csr<ValueType, IndexType> *b,
+            matrix::Csr<ValueType, IndexType> *c)
 {
-    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
-    if (tidx < num_rows) {
-        for (auto i = ptrs[tidx]; i < ptrs[tidx + 1]; i++) {
-            idxs[i] = tidx;
-        }
+    if (cusparse::is_supported<ValueType, IndexType>::value) {
+        auto handle = exec->get_cusparse_handle();
+        cusparse::pointer_mode_guard pm_guard(handle);
+        auto a_descr = cusparse::create_mat_descr();
+        auto b_descr = cusparse::create_mat_descr();
+        auto c_descr = cusparse::create_mat_descr();
+        auto d_descr = cusparse::create_mat_descr();
+        auto info = cusparse::create_spgemm_info();
+
+        auto alpha = one<ValueType>();
+        auto a_nnz = IndexType(a->get_num_stored_elements());
+        auto a_vals = a->get_const_values();
+        auto a_row_ptrs = a->get_const_row_ptrs();
+        auto a_col_idxs = a->get_const_col_idxs();
+        auto b_nnz = IndexType(b->get_num_stored_elements());
+        auto b_vals = b->get_const_values();
+        auto b_row_ptrs = b->get_const_row_ptrs();
+        auto b_col_idxs = b->get_const_col_idxs();
+        auto null_value = static_cast<ValueType *>(nullptr);
+        auto null_index = static_cast<IndexType *>(nullptr);
+        auto zero_nnz = IndexType{};
+        auto m = IndexType(a->get_size()[0]);
+        auto n = IndexType(b->get_size()[1]);
+        auto k = IndexType(a->get_size()[1]);
+        auto c_row_ptrs = c->get_row_ptrs();
+        matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+        auto &c_col_idxs_array = c_builder.get_col_idx_array();
+        auto &c_vals_array = c_builder.get_value_array();
+
+        // allocate buffer
+        size_type buffer_size{};
+        cusparse::spgemm_buffer_size(
+            handle, m, n, k, &alpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
+            b_descr, b_nnz, b_row_ptrs, b_col_idxs, null_value, d_descr,
+            zero_nnz, null_index, null_index, info, buffer_size);
+        Array<char> buffer_array(exec, buffer_size);
+        auto buffer = buffer_array.get_data();
+
+        // count nnz
+        IndexType c_nnz{};
+        cusparse::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
+                             a_col_idxs, b_descr, b_nnz, b_row_ptrs, b_col_idxs,
+                             d_descr, zero_nnz, null_index, null_index, c_descr,
+                             c_row_ptrs, &c_nnz, info, buffer);
+
+        // accumulate non-zeros
+        c_col_idxs_array.resize_and_reset(c_nnz);
+        c_vals_array.resize_and_reset(c_nnz);
+        auto c_col_idxs = c_col_idxs_array.get_data();
+        auto c_vals = c_vals_array.get_data();
+        cusparse::spgemm(handle, m, n, k, &alpha, a_descr, a_nnz, a_vals,
+                         a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
+                         b_row_ptrs, b_col_idxs, null_value, d_descr, zero_nnz,
+                         null_value, null_index, null_index, c_descr, c_vals,
+                         c_row_ptrs, c_col_idxs, info, buffer);
+
+        cusparse::destroy(info);
+        cusparse::destroy(d_descr);
+        cusparse::destroy(c_descr);
+        cusparse::destroy(b_descr);
+        cusparse::destroy(a_descr);
+    } else {
+        GKO_NOT_IMPLEMENTED;
     }
 }
 
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
 
-}  // namespace kernel
+
+template <typename ValueType, typename IndexType>
+void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
+                     const matrix::Dense<ValueType> *alpha,
+                     const matrix::Csr<ValueType, IndexType> *a,
+                     const matrix::Csr<ValueType, IndexType> *b,
+                     const matrix::Dense<ValueType> *beta,
+                     const matrix::Csr<ValueType, IndexType> *d,
+                     matrix::Csr<ValueType, IndexType> *c)
+{
+    if (cusparse::is_supported<ValueType, IndexType>::value) {
+        auto handle = exec->get_cusparse_handle();
+        cusparse::pointer_mode_guard pm_guard(handle);
+        auto a_descr = cusparse::create_mat_descr();
+        auto b_descr = cusparse::create_mat_descr();
+        auto c_descr = cusparse::create_mat_descr();
+        auto d_descr = cusparse::create_mat_descr();
+        auto info = cusparse::create_spgemm_info();
+
+        auto valpha = exec->copy_val_to_host(alpha->get_const_values());
+        auto a_nnz = IndexType(a->get_num_stored_elements());
+        auto a_vals = a->get_const_values();
+        auto a_row_ptrs = a->get_const_row_ptrs();
+        auto a_col_idxs = a->get_const_col_idxs();
+        auto b_nnz = IndexType(b->get_num_stored_elements());
+        auto b_vals = b->get_const_values();
+        auto b_row_ptrs = b->get_const_row_ptrs();
+        auto b_col_idxs = b->get_const_col_idxs();
+        auto vbeta = exec->copy_val_to_host(beta->get_const_values());
+        auto d_nnz = IndexType(d->get_num_stored_elements());
+        auto d_vals = d->get_const_values();
+        auto d_row_ptrs = d->get_const_row_ptrs();
+        auto d_col_idxs = d->get_const_col_idxs();
+        auto m = IndexType(a->get_size()[0]);
+        auto n = IndexType(b->get_size()[1]);
+        auto k = IndexType(a->get_size()[1]);
+        auto c_row_ptrs = c->get_row_ptrs();
+        matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+        auto &c_col_idxs_array = c_builder.get_col_idx_array();
+        auto &c_vals_array = c_builder.get_value_array();
+
+        // allocate buffer
+        size_type buffer_size{};
+        cusparse::spgemm_buffer_size(
+            handle, m, n, k, &valpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
+            b_descr, b_nnz, b_row_ptrs, b_col_idxs, &vbeta, d_descr, d_nnz,
+            d_row_ptrs, d_col_idxs, info, buffer_size);
+        Array<char> buffer_array(exec, buffer_size);
+        auto buffer = buffer_array.get_data();
+
+        // count nnz
+        IndexType c_nnz{};
+        cusparse::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
+                             a_col_idxs, b_descr, b_nnz, b_row_ptrs, b_col_idxs,
+                             d_descr, d_nnz, d_row_ptrs, d_col_idxs, c_descr,
+                             c_row_ptrs, &c_nnz, info, buffer);
+
+        // accumulate non-zeros
+        c_col_idxs_array.resize_and_reset(c_nnz);
+        c_vals_array.resize_and_reset(c_nnz);
+        auto c_col_idxs = c_col_idxs_array.get_data();
+        auto c_vals = c_vals_array.get_data();
+        cusparse::spgemm(handle, m, n, k, &valpha, a_descr, a_nnz, a_vals,
+                         a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
+                         b_row_ptrs, b_col_idxs, &vbeta, d_descr, d_nnz, d_vals,
+                         d_row_ptrs, d_col_idxs, c_descr, c_vals, c_row_ptrs,
+                         c_col_idxs, info, buffer);
+
+        cusparse::destroy(info);
+        cusparse::destroy(d_descr);
+        cusparse::destroy(c_descr);
+        cusparse::destroy(b_descr);
+        cusparse::destroy(a_descr);
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL);
+
+
+namespace {
+
+
+template <int subwarp_size, typename ValueType, typename IndexType>
+void spgeam(syn::value_list<int, subwarp_size>,
+            std::shared_ptr<const DefaultExecutor> exec, const ValueType *alpha,
+            const IndexType *a_row_ptrs, const IndexType *a_col_idxs,
+            const ValueType *a_vals, const ValueType *beta,
+            const IndexType *b_row_ptrs, const IndexType *b_col_idxs,
+            const ValueType *b_vals, matrix::Csr<ValueType, IndexType> *c)
+{
+    auto m = static_cast<IndexType>(c->get_size()[0]);
+    auto c_row_ptrs = c->get_row_ptrs();
+    // count nnz for alpha * A + beta * B
+    auto subwarps_per_block = default_block_size / subwarp_size;
+    auto num_blocks = ceildiv(m, subwarps_per_block);
+    kernel::spgeam_nnz<subwarp_size><<<num_blocks, default_block_size>>>(
+        a_row_ptrs, a_col_idxs, b_row_ptrs, b_col_idxs, m, c_row_ptrs);
+
+    // build row pointers
+    components::prefix_sum(exec, c_row_ptrs, m + 1);
+
+    // accumulate non-zeros for alpha * A + beta * B
+    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+    auto c_nnz = exec->copy_val_to_host(c_row_ptrs + m);
+    c_builder.get_col_idx_array().resize_and_reset(c_nnz);
+    c_builder.get_value_array().resize_and_reset(c_nnz);
+    auto c_col_idxs = c->get_col_idxs();
+    auto c_vals = c->get_values();
+    kernel::spgeam<subwarp_size><<<num_blocks, default_block_size>>>(
+        as_cuda_type(alpha), a_row_ptrs, a_col_idxs, as_cuda_type(a_vals),
+        as_cuda_type(beta), b_row_ptrs, b_col_idxs, as_cuda_type(b_vals), m,
+        c_row_ptrs, c_col_idxs, as_cuda_type(c_vals));
+}
+
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_spgeam, spgeam);
+
+
+}  // namespace
+
+
+template <typename ValueType, typename IndexType>
+void spgeam(std::shared_ptr<const DefaultExecutor> exec,
+            const matrix::Dense<ValueType> *alpha,
+            const matrix::Csr<ValueType, IndexType> *a,
+            const matrix::Dense<ValueType> *beta,
+            const matrix::Csr<ValueType, IndexType> *b,
+            matrix::Csr<ValueType, IndexType> *c)
+{
+    auto total_nnz =
+        a->get_num_stored_elements() + b->get_num_stored_elements();
+    auto nnz_per_row = total_nnz / a->get_size()[0];
+    select_spgeam(
+        spgeam_kernels(),
+        [&](int compiled_subwarp_size) {
+            return compiled_subwarp_size >= nnz_per_row ||
+                   compiled_subwarp_size == config::warp_size;
+        },
+        syn::value_list<int>(), syn::type_list<>(), exec,
+        alpha->get_const_values(), a->get_const_row_ptrs(),
+        a->get_const_col_idxs(), a->get_const_values(),
+        beta->get_const_values(), b->get_const_row_ptrs(),
+        b->get_const_col_idxs(), b->get_const_values(), c);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 
 template <typename IndexType>
@@ -838,8 +665,8 @@ void convert_row_ptrs_to_idxs(std::shared_ptr<const CudaExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const CudaExecutor> exec,
-                    matrix::Coo<ValueType, IndexType> *result,
-                    const matrix::Csr<ValueType, IndexType> *source)
+                    const matrix::Csr<ValueType, IndexType> *source,
+                    matrix::Coo<ValueType, IndexType> *result)
 {
     auto num_rows = result->get_size()[0];
 
@@ -853,46 +680,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_COO_KERNEL);
 
 
-namespace kernel {
-
-
-template <typename ValueType>
-__global__
-    __launch_bounds__(cuda_config::max_block_size) void initialize_zero_dense(
-        size_type num_rows, size_type num_cols, size_type stride,
-        ValueType *__restrict__ result)
-{
-    const auto tidx_x = threadIdx.x + blockDim.x * blockIdx.x;
-    const auto tidx_y = threadIdx.y + blockDim.y * blockIdx.y;
-    if (tidx_x < num_cols && tidx_y < num_rows) {
-        result[tidx_y * stride + tidx_x] = zero<ValueType>();
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void fill_in_dense(
-    size_type num_rows, const IndexType *__restrict__ row_ptrs,
-    const IndexType *__restrict__ col_idxs,
-    const ValueType *__restrict__ values, size_type stride,
-    ValueType *__restrict__ result)
-{
-    const auto tidx = threadIdx.x + blockDim.x * blockIdx.x;
-    if (tidx < num_rows) {
-        for (auto i = row_ptrs[tidx]; i < row_ptrs[tidx + 1]; i++) {
-            result[stride * tidx + col_idxs[i]] = values[i];
-        }
-    }
-}
-
-
-}  // namespace kernel
-
-
 template <typename ValueType, typename IndexType>
 void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
-                      matrix::Dense<ValueType> *result,
-                      const matrix::Csr<ValueType, IndexType> *source)
+                      const matrix::Csr<ValueType, IndexType> *source,
+                      matrix::Dense<ValueType> *result)
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
@@ -901,9 +692,8 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
     const auto col_idxs = source->get_const_col_idxs();
     const auto vals = source->get_const_values();
 
-    const dim3 block_size(cuda_config::warp_size,
-                          cuda_config::max_block_size / cuda_config::warp_size,
-                          1);
+    const dim3 block_size(config::warp_size,
+                          config::max_block_size / config::warp_size, 1);
     const dim3 init_grid_dim(ceildiv(stride, block_size.x),
                              ceildiv(num_rows, block_size.y), 1);
     kernel::initialize_zero_dense<<<init_grid_dim, block_size>>>(
@@ -919,98 +709,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL);
 
 
-namespace kernel {
-
-
-template <typename IndexType>
-__global__ __launch_bounds__(default_block_size) void calculate_nnz_per_row(
-    size_type num_rows, const IndexType *__restrict__ row_ptrs,
-    size_type *__restrict__ nnz_per_row)
-{
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    if (tidx < num_rows) {
-        nnz_per_row[tidx] = row_ptrs[tidx + 1] - row_ptrs[tidx];
-    }
-}
-
-
-__global__
-    __launch_bounds__(cuda_config::warp_size) void calculate_slice_lengths(
-        size_type num_rows, size_type slice_size, size_type stride_factor,
-        const size_type *__restrict__ nnz_per_row,
-        size_type *__restrict__ slice_lengths,
-        size_type *__restrict__ slice_sets)
-{
-    constexpr auto warp_size = cuda_config::warp_size;
-    const auto sliceid = blockIdx.x;
-    const auto tid_in_warp = threadIdx.x;
-
-    if (sliceid * slice_size + tid_in_warp < num_rows) {
-        size_type thread_result = 0;
-        for (auto i = tid_in_warp; i < slice_size; i += warp_size) {
-            thread_result =
-                (i + slice_size * sliceid < num_rows)
-                    ? max(thread_result, nnz_per_row[sliceid * slice_size + i])
-                    : thread_result;
-        }
-
-        auto warp_tile =
-            group::tiled_partition<warp_size>(group::this_thread_block());
-        auto warp_result = gko::kernels::cuda::reduce(
-            warp_tile, thread_result,
-            [](const size_type &a, const size_type &b) { return max(a, b); });
-
-        if (tid_in_warp == 0) {
-            auto slice_length =
-                ceildiv(warp_result, stride_factor) * stride_factor;
-            slice_lengths[sliceid] = slice_length;
-            slice_sets[sliceid] = slice_length;
-        }
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void fill_in_sellp(
-    size_type num_rows, size_type slice_size,
-    const ValueType *__restrict__ source_values,
-    const IndexType *__restrict__ source_row_ptrs,
-    const IndexType *__restrict__ source_col_idxs,
-    size_type *__restrict__ slice_lengths, size_type *__restrict__ slice_sets,
-    IndexType *__restrict__ result_col_idxs,
-    ValueType *__restrict__ result_values)
-{
-    const auto global_row = threadIdx.x + blockIdx.x * blockDim.x;
-    const auto row = global_row % slice_size;
-    const auto sliceid = global_row / slice_size;
-
-    if (global_row < num_rows) {
-        size_type sellp_ind = slice_sets[sliceid] * slice_size + row;
-
-        for (size_type csr_ind = source_row_ptrs[global_row];
-             csr_ind < source_row_ptrs[global_row + 1]; csr_ind++) {
-            result_values[sellp_ind] = source_values[csr_ind];
-            result_col_idxs[sellp_ind] = source_col_idxs[csr_ind];
-            sellp_ind += slice_size;
-        }
-        for (size_type i = sellp_ind;
-             i <
-             (slice_sets[sliceid] + slice_lengths[sliceid]) * slice_size + row;
-             i += slice_size) {
-            result_col_idxs[i] = 0;
-            result_values[i] = zero<ValueType>();
-        }
-    }
-}
-
-
-}  // namespace kernel
-
-
 template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
-                      matrix::Sellp<ValueType, IndexType> *result,
-                      const matrix::Csr<ValueType, IndexType> *source)
+                      const matrix::Csr<ValueType, IndexType> *source,
+                      matrix::Sellp<ValueType, IndexType> *result)
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
@@ -1041,22 +743,12 @@ void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
 
     grid_dim = slice_num;
 
-    kernel::calculate_slice_lengths<<<grid_dim, cuda_config::warp_size>>>(
+    kernel::calculate_slice_lengths<<<grid_dim, config::warp_size>>>(
         num_rows, slice_size, stride_factor,
         as_cuda_type(nnz_per_row.get_const_data()), as_cuda_type(slice_lengths),
         as_cuda_type(slice_sets));
 
-    auto add_values =
-        Array<size_type>(exec, ceildiv(slice_num + 1, default_block_size));
-    grid_dim = ceildiv(slice_num + 1, default_block_size);
-
-    start_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
-        slice_num + 1, as_cuda_type(slice_sets),
-        as_cuda_type(add_values.get_data()));
-
-    finalize_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
-        slice_num + 1, as_cuda_type(slice_sets),
-        as_cuda_type(add_values.get_const_data()));
+    components::prefix_sum(exec, slice_sets, slice_num + 1);
 
     grid_dim = ceildiv(num_rows, default_block_size);
     kernel::fill_in_sellp<<<grid_dim, default_block_size>>>(
@@ -1064,66 +756,16 @@ void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(source_row_ptrs), as_cuda_type(source_col_idxs),
         as_cuda_type(slice_lengths), as_cuda_type(slice_sets),
         as_cuda_type(result_col_idxs), as_cuda_type(result_values));
-
-    nnz_per_row.clear();
-    add_values.clear();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL);
 
 
-namespace kernel {
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void initialize_zero_ell(
-    size_type max_nnz_per_row, size_type stride, ValueType *__restrict__ values,
-    IndexType *__restrict__ col_idxs)
-{
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-
-    if (tidx < stride * max_nnz_per_row) {
-        values[tidx] = zero<ValueType>();
-        col_idxs[tidx] = 0;
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void fill_in_ell(
-    size_type num_rows, size_type stride,
-    const ValueType *__restrict__ source_values,
-    const IndexType *__restrict__ source_row_ptrs,
-    const IndexType *__restrict__ source_col_idxs,
-    ValueType *__restrict__ result_values,
-    IndexType *__restrict__ result_col_idxs)
-{
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    constexpr auto warp_size = cuda_config::warp_size;
-    const auto row = tidx / warp_size;
-    const auto local_tidx = tidx % warp_size;
-
-    if (row < num_rows) {
-        for (size_type i = local_tidx;
-             i < source_row_ptrs[row + 1] - source_row_ptrs[row];
-             i += warp_size) {
-            const auto result_idx = row + stride * i;
-            const auto source_idx = i + source_row_ptrs[row];
-            result_values[result_idx] = source_values[source_idx];
-            result_col_idxs[result_idx] = source_col_idxs[source_idx];
-        }
-    }
-}
-
-
-}  // namespace kernel
-
-
 template <typename ValueType, typename IndexType>
 void convert_to_ell(std::shared_ptr<const CudaExecutor> exec,
-                    matrix::Ell<ValueType, IndexType> *result,
-                    const matrix::Csr<ValueType, IndexType> *source)
+                    const matrix::Csr<ValueType, IndexType> *source,
+                    matrix::Ell<ValueType, IndexType> *result)
 {
     const auto source_values = source->get_const_values();
     const auto source_row_ptrs = source->get_const_row_ptrs();
@@ -1144,7 +786,7 @@ void convert_to_ell(std::shared_ptr<const CudaExecutor> exec,
         as_cuda_type(result_col_idxs));
 
     const auto grid_dim =
-        ceildiv(num_rows * cuda_config::warp_size, default_block_size);
+        ceildiv(num_rows * config::warp_size, default_block_size);
 
     kernel::fill_in_ell<<<grid_dim, default_block_size>>>(
         num_rows, stride, as_cuda_type(source_values),
@@ -1154,57 +796,6 @@ void convert_to_ell(std::shared_ptr<const CudaExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL);
-
-
-namespace kernel {
-
-
-__global__ __launch_bounds__(default_block_size) void reduce_max_nnz_per_slice(
-    size_type num_rows, size_type slice_size, size_type stride_factor,
-    const size_type *__restrict__ nnz_per_row, size_type *__restrict__ result)
-{
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    constexpr auto warp_size = cuda_config::warp_size;
-    const auto warpid = tidx / warp_size;
-    const auto tid_in_warp = tidx % warp_size;
-    const auto slice_num = ceildiv(num_rows, slice_size);
-
-    size_type thread_result = 0;
-    for (auto i = tid_in_warp; i < slice_size; i += warp_size) {
-        if (warpid * slice_size + i < num_rows) {
-            thread_result =
-                max(thread_result, nnz_per_row[warpid * slice_size + i]);
-        }
-    }
-
-    auto warp_tile =
-        group::tiled_partition<warp_size>(group::this_thread_block());
-    auto warp_result = gko::kernels::cuda::reduce(
-        warp_tile, thread_result,
-        [](const size_type &a, const size_type &b) { return max(a, b); });
-
-    if (tid_in_warp == 0 && warpid < slice_num) {
-        result[warpid] = ceildiv(warp_result, stride_factor) * stride_factor;
-    }
-}
-
-
-__global__ __launch_bounds__(default_block_size) void reduce_total_cols(
-    size_type num_slices, const size_type *__restrict__ max_nnz_per_slice,
-    size_type *__restrict__ result)
-{
-    extern __shared__ size_type block_result[];
-
-    reduce_array(num_slices, max_nnz_per_slice, block_result,
-                 [](const size_type &x, const size_type &y) { return x + y; });
-
-    if (threadIdx.x == 0) {
-        result[blockIdx.x] = block_result[0];
-    }
-}
-
-
-}  // namespace kernel
 
 
 template <typename ValueType, typename IndexType>
@@ -1223,7 +814,7 @@ void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
     kernel::calculate_nnz_per_row<<<grid_dim, default_block_size>>>(
         num_rows, as_cuda_type(row_ptrs), as_cuda_type(nnz_per_row.get_data()));
 
-    grid_dim = ceildiv(slice_num * cuda_config::warp_size, default_block_size);
+    grid_dim = ceildiv(slice_num * config::warp_size, default_block_size);
     auto max_nnz_per_slice = Array<size_type>(exec, slice_num);
 
     kernel::reduce_max_nnz_per_slice<<<grid_dim, default_block_size>>>(
@@ -1234,25 +825,17 @@ void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
     grid_dim = ceildiv(slice_num, default_block_size);
     auto block_results = Array<size_type>(exec, grid_dim);
 
-    kernel::reduce_total_cols<<<grid_dim, default_block_size,
-                                default_block_size * sizeof(size_type)>>>(
+    kernel::reduce_total_cols<<<grid_dim, default_block_size>>>(
         slice_num, as_cuda_type(max_nnz_per_slice.get_const_data()),
         as_cuda_type(block_results.get_data()));
 
     auto d_result = Array<size_type>(exec, 1);
 
-    kernel::reduce_total_cols<<<1, default_block_size,
-                                default_block_size * sizeof(size_type)>>>(
+    kernel::reduce_total_cols<<<1, default_block_size>>>(
         grid_dim, as_cuda_type(block_results.get_const_data()),
         as_cuda_type(d_result.get_data()));
 
-    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
-                                  result);
-
-    block_results.clear();
-    nnz_per_row.clear();
-    max_nnz_per_slice.clear();
-    d_result.clear();
+    *result = exec->copy_val_to_host(d_result.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1261,8 +844,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const CudaExecutor> exec,
-               matrix::Csr<ValueType, IndexType> *trans,
-               const matrix::Csr<ValueType, IndexType> *orig)
+               const matrix::Csr<ValueType, IndexType> *orig,
+               matrix::Csr<ValueType, IndexType> *trans)
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
@@ -1279,33 +862,13 @@ void transpose(std::shared_ptr<const CudaExecutor> exec,
     }
 }
 
-
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
-
-
-namespace {
-
-
-template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void conjugate_kernel(
-    size_type num_nonzeros, ValueType *__restrict__ val)
-{
-    const auto tidx =
-        static_cast<size_type>(blockIdx.x) * default_block_size + threadIdx.x;
-
-    if (tidx < num_nonzeros) {
-        val[tidx] = conj(val[tidx]);
-    }
-}
-
-
-}  //  namespace
 
 
 template <typename ValueType, typename IndexType>
 void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
-                    matrix::Csr<ValueType, IndexType> *trans,
-                    const matrix::Csr<ValueType, IndexType> *orig)
+                    const matrix::Csr<ValueType, IndexType> *orig,
+                    matrix::Csr<ValueType, IndexType> *trans)
 {
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         const dim3 block_size(default_block_size, 1, 1);
@@ -1334,26 +897,48 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
 
 
-namespace kernel {
+template <typename ValueType, typename IndexType>
+void row_permute(std::shared_ptr<const CudaExecutor> exec,
+                 const Array<IndexType> *permutation_indices,
+                 const matrix::Csr<ValueType, IndexType> *orig,
+                 matrix::Csr<ValueType, IndexType> *row_permuted)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL);
 
 
-__global__ __launch_bounds__(default_block_size) void reduce_max_nnz(
-    size_type size, const size_type *__restrict__ nnz_per_row,
-    size_type *__restrict__ result)
-{
-    extern __shared__ size_type block_max[];
+template <typename ValueType, typename IndexType>
+void column_permute(std::shared_ptr<const CudaExecutor> exec,
+                    const Array<IndexType> *permutation_indices,
+                    const matrix::Csr<ValueType, IndexType> *orig,
+                    matrix::Csr<ValueType, IndexType> *column_permuted)
+    GKO_NOT_IMPLEMENTED;
 
-    reduce_array(
-        size, nnz_per_row, block_max,
-        [](const size_type &x, const size_type &y) { return max(x, y); });
-
-    if (threadIdx.x == 0) {
-        result[blockIdx.x] = block_max[0];
-    }
-}
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_COLUMN_PERMUTE_KERNEL);
 
 
-}  // namespace kernel
+template <typename ValueType, typename IndexType>
+void inverse_row_permute(std::shared_ptr<const CudaExecutor> exec,
+                         const Array<IndexType> *permutation_indices,
+                         const matrix::Csr<ValueType, IndexType> *orig,
+                         matrix::Csr<ValueType, IndexType> *row_permuted)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void inverse_column_permute(std::shared_ptr<const CudaExecutor> exec,
+                            const Array<IndexType> *permutation_indices,
+                            const matrix::Csr<ValueType, IndexType> *orig,
+                            matrix::Csr<ValueType, IndexType> *column_permuted)
+    GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -1374,93 +959,25 @@ void calculate_max_nnz_per_row(std::shared_ptr<const CudaExecutor> exec,
 
     const auto n = ceildiv(num_rows, default_block_size);
     const auto reduce_dim = n <= default_block_size ? n : default_block_size;
-    kernel::reduce_max_nnz<<<reduce_dim, default_block_size,
-                             default_block_size * sizeof(size_type)>>>(
+    kernel::reduce_max_nnz<<<reduce_dim, default_block_size>>>(
         num_rows, as_cuda_type(nnz_per_row.get_const_data()),
         as_cuda_type(block_results.get_data()));
 
-    kernel::reduce_max_nnz<<<1, default_block_size,
-                             default_block_size * sizeof(size_type)>>>(
+    kernel::reduce_max_nnz<<<1, default_block_size>>>(
         reduce_dim, as_cuda_type(block_results.get_const_data()),
         as_cuda_type(d_result.get_data()));
 
-    exec->get_master()->copy_from(exec.get(), 1, d_result.get_const_data(),
-                                  result);
-
-    nnz_per_row.clear();
-    block_results.clear();
-    d_result.clear();
+    *result = exec->copy_val_to_host(d_result.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL);
 
 
-namespace kernel {
-
-
-template <typename IndexType>
-__global__
-    __launch_bounds__(default_block_size) void calculate_hybrid_coo_row_nnz(
-        size_type num_rows, size_type ell_max_nnz_per_row,
-        IndexType *__restrict__ csr_row_idxs,
-        size_type *__restrict__ coo_row_nnz)
-{
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    if (tidx < num_rows) {
-        const size_type csr_nnz = csr_row_idxs[tidx + 1] - csr_row_idxs[tidx];
-        coo_row_nnz[tidx] =
-            (csr_nnz > ell_max_nnz_per_row) * (csr_nnz - ell_max_nnz_per_row);
-    }
-}
-
-
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void fill_in_hybrid(
-    size_type num_rows, size_type stride, size_type ell_max_nnz_per_row,
-    const ValueType *__restrict__ source_values,
-    const IndexType *__restrict__ source_row_ptrs,
-    const IndexType *__restrict__ source_col_idxs,
-    const size_type *__restrict__ coo_offset,
-    ValueType *__restrict__ result_ell_val,
-    IndexType *__restrict__ result_ell_col,
-    ValueType *__restrict__ result_coo_val,
-    IndexType *__restrict__ result_coo_col,
-    IndexType *__restrict__ result_coo_row)
-{
-    const auto tidx = threadIdx.x + blockIdx.x * blockDim.x;
-    constexpr auto warp_size = cuda_config::warp_size;
-    const auto row = tidx / warp_size;
-    const auto local_tidx = tidx % warp_size;
-
-    if (row < num_rows) {
-        for (size_type i = local_tidx;
-             i < source_row_ptrs[row + 1] - source_row_ptrs[row];
-             i += warp_size) {
-            const auto source_idx = i + source_row_ptrs[row];
-            if (i < ell_max_nnz_per_row) {
-                const auto result_idx = row + stride * i;
-                result_ell_val[result_idx] = source_values[source_idx];
-                result_ell_col[result_idx] = source_col_idxs[source_idx];
-            } else {
-                const auto result_idx =
-                    coo_offset[row] + i - ell_max_nnz_per_row;
-                result_coo_val[result_idx] = source_values[source_idx];
-                result_coo_col[result_idx] = source_col_idxs[source_idx];
-                result_coo_row[result_idx] = row;
-            }
-        }
-    }
-}
-
-
-}  // namespace kernel
-
-
 template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const CudaExecutor> exec,
-                       matrix::Hybrid<ValueType, IndexType> *result,
-                       const matrix::Csr<ValueType, IndexType> *source)
+                       const matrix::Csr<ValueType, IndexType> *source,
+                       matrix::Hybrid<ValueType, IndexType> *result)
 {
     auto ell_val = result->get_ell_values();
     auto ell_col = result->get_ell_col_idxs();
@@ -1482,17 +999,9 @@ void convert_to_hybrid(std::shared_ptr<const CudaExecutor> exec,
         num_rows, max_nnz_per_row, as_cuda_type(source->get_const_row_ptrs()),
         as_cuda_type(coo_offset.get_data()));
 
-    auto add_values =
-        Array<size_type>(exec, ceildiv(num_rows, default_block_size));
-    grid_dim = ceildiv(num_rows, default_block_size);
-    start_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
-        num_rows, as_cuda_type(coo_offset.get_data()),
-        as_cuda_type(add_values.get_data()));
-    finalize_prefix_sum<default_block_size><<<grid_dim, default_block_size>>>(
-        num_rows, as_cuda_type(coo_offset.get_data()),
-        as_cuda_type(add_values.get_const_data()));
+    components::prefix_sum(exec, coo_offset.get_data(), num_rows);
 
-    grid_dim = ceildiv(num_rows * cuda_config::warp_size, default_block_size);
+    grid_dim = ceildiv(num_rows * config::warp_size, default_block_size);
     kernel::fill_in_hybrid<<<grid_dim, default_block_size>>>(
         num_rows, stride, max_nnz_per_row,
         as_cuda_type(source->get_const_values()),
@@ -1527,7 +1036,46 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const CudaExecutor> exec,
                           matrix::Csr<ValueType, IndexType> *to_sort)
-    GKO_NOT_IMPLEMENTED;
+{
+    if (cusparse::is_supported<ValueType, IndexType>::value) {
+        auto handle = exec->get_cusparse_handle();
+        auto descr = cusparse::create_mat_descr();
+        auto m = IndexType(to_sort->get_size()[0]);
+        auto n = IndexType(to_sort->get_size()[1]);
+        auto nnz = IndexType(to_sort->get_num_stored_elements());
+        auto row_ptrs = to_sort->get_const_row_ptrs();
+        auto col_idxs = to_sort->get_col_idxs();
+        auto vals = to_sort->get_values();
+
+        // copy values
+        Array<ValueType> tmp_vals_array(exec, nnz);
+        exec->copy(nnz, vals, tmp_vals_array.get_data());
+        auto tmp_vals = tmp_vals_array.get_const_data();
+
+        // init identity permutation
+        Array<IndexType> permutation_array(exec, nnz);
+        auto permutation = permutation_array.get_data();
+        cusparse::create_identity_permutation(handle, nnz, permutation);
+
+        // allocate buffer
+        size_type buffer_size{};
+        cusparse::csrsort_buffer_size(handle, m, n, nnz, row_ptrs, col_idxs,
+                                      buffer_size);
+        Array<char> buffer_array{exec, buffer_size};
+        auto buffer = buffer_array.get_data();
+
+        // sort column indices
+        cusparse::csrsort(handle, m, n, nnz, descr, row_ptrs, col_idxs,
+                          permutation, buffer);
+
+        // sort values
+        cusparse::gather(handle, nnz, tmp_vals, vals, permutation);
+
+        cusparse::destroy(descr);
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_SORT_BY_COLUMN_INDEX);
@@ -1536,8 +1084,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const CudaExecutor> exec,
-    const matrix::Csr<ValueType, IndexType> *to_check,
-    bool *is_sorted) GKO_NOT_IMPLEMENTED;
+    const matrix::Csr<ValueType, IndexType> *to_check, bool *is_sorted)
+{
+    *is_sorted = true;
+    auto cpu_array = Array<bool>::view(exec->get_master(), 1, is_sorted);
+    auto gpu_array = Array<bool>{exec, cpu_array};
+    auto block_size = default_block_size;
+    auto num_rows = static_cast<IndexType>(to_check->get_size()[0]);
+    auto num_blocks = ceildiv(num_rows, block_size);
+    kernel::check_unsorted<<<num_blocks, block_size>>>(
+        to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
+        num_rows, gpu_array.get_data());
+    cpu_array = gpu_array;
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX);

@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,10 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/bicgstab_kernels.hpp"
 
 
-#include <omp.h>
-
-
 #include <algorithm>
+
+
+#include <omp.h>
 
 
 #include <ginkgo/core/base/array.hpp>
@@ -136,16 +136,25 @@ void step_2(std::shared_ptr<const OmpExecutor> exec,
             const Array<stopping_status> *stop_status)
 {
 #pragma omp parallel for
+    for (size_type j = 0; j < s->get_size()[1]; ++j) {
+        if (stop_status->get_const_data()[j].has_stopped()) {
+            continue;
+        }
+        if (beta->at(j) != zero<ValueType>()) {
+            alpha->at(j) = rho->at(j) / beta->at(j);
+        } else {
+            alpha->at(j) = zero<ValueType>();
+        }
+    }
+#pragma omp parallel for
     for (size_type i = 0; i < s->get_size()[0]; ++i) {
         for (size_type j = 0; j < s->get_size()[1]; ++j) {
             if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
             if (beta->at(j) != zero<ValueType>()) {
-                alpha->at(j) = rho->at(j) / beta->at(j);
                 s->at(i, j) = r->at(i, j) - alpha->at(j) * v->at(i, j);
             } else {
-                alpha->at(j) = zero<ValueType>();
                 s->at(i, j) = r->at(i, j);
             }
         }

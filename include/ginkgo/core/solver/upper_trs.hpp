@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -58,6 +58,10 @@ namespace solver {
 struct SolveStruct;
 
 
+template <typename ValueType, typename IndexType>
+class LowerTrs;
+
+
 /**
  * UpperTrs is the triangular solver which solves the system U x = b, when U is
  * an upper triangular matrix. It works best when passing in a matrix in CSR
@@ -76,13 +80,16 @@ struct SolveStruct;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class UpperTrs : public EnableLinOp<UpperTrs<ValueType, IndexType>> {
+class UpperTrs : public EnableLinOp<UpperTrs<ValueType, IndexType>>,
+                 public Transposable {
     friend class EnableLinOp<UpperTrs>;
     friend class EnablePolymorphicObject<UpperTrs, LinOp>;
+    friend class LowerTrs<ValueType, IndexType>;
 
 public:
     using value_type = ValueType;
     using index_type = IndexType;
+    using transposed_type = LowerTrs<ValueType, IndexType>;
 
     /**
      * Gets the system operator (CSR matrix) of the linear system.
@@ -94,6 +101,10 @@ public:
     {
         return system_matrix_;
     }
+
+    std::unique_ptr<LinOp> transpose() const override;
+
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -132,7 +143,7 @@ protected:
     explicit UpperTrs(const Factory *factory,
                       std::shared_ptr<const LinOp> system_matrix)
         : EnableLinOp<UpperTrs>(factory->get_executor(),
-                                transpose(system_matrix->get_size())),
+                                gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{}
     {
@@ -162,4 +173,4 @@ private:
 }  // namespace gko
 
 
-#endif  // GKO_CORE_SOLVER_UPPER_TRS_HPP
+#endif  // GKO_CORE_SOLVER_UPPER_TRS_HPP_

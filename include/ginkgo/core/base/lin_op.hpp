@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_BASE_LIN_OP_HPP_
 #define GKO_CORE_BASE_LIN_OP_HPP_
 
+
+#include <memory>
+#include <utility>
+
+
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -42,10 +47,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/log/logger.hpp>
-
-
-#include <memory>
-#include <utility>
 
 
 namespace gko {
@@ -219,6 +220,15 @@ public:
      * @return size of the operator
      */
     const dim<2> &get_size() const noexcept { return size_; }
+
+    /**
+     * Returns true if the linear operator uses the data given in x as
+     * an initial guess. Returns false otherwise.
+     *
+     * @return true if the linear operator uses the data given in x as
+     *         an initial guess. Returns false otherwise.
+     */
+    virtual bool apply_uses_initial_guess() const { return false; }
 
 protected:
     /**
@@ -413,6 +423,89 @@ public:
      * @return a pointer to the new conjugate transposed object
      */
     virtual std::unique_ptr<LinOp> conj_transpose() const = 0;
+};
+
+
+/**
+ * Linear operators which support permutation should implement the
+ * Permutable interface.
+ *
+ * It provides four functionalities, the row permute, the
+ * column permute, the inverse row permute and the inverse column permute.
+ *
+ * The row permute returns the permutation of the linear operator after
+ * permuting the rows of the linear operator. For example, if for a matrix A,
+ * the permuted matrix A' and the permutation array perm, the row i of the
+ * matrix A is the row perm[i] in the matrix A'. And similarly, for the inverse
+ * permutation, the row i in the matrix A' is the row perm[i] in the matrix A.
+ *
+ * The column permute returns the permutation of the linear operator after
+ * permuting the columns of the linear operator. The definitions of permute and
+ * inverse permute for the row_permute hold here as well.
+ *
+ * Example: Permuting a Csr matrix:
+ * ------------------------------------
+ *
+ * ```c++
+ * //Permuting an object of LinOp type.
+ * //The object you want to permute.
+ * auto op = matrix::Csr::create(exec);
+ * //Permute the object by first converting it to a Permutable type.
+ * auto perm = op->row_permute(permutation_indices);
+ * ```
+ */
+template <typename IndexType>
+class Permutable {
+public:
+    virtual ~Permutable() = default;
+
+    /**
+     * Returns a LinOp representing the row permutation of the Permutable
+     * object.
+     *
+     * @param permutation_indices  the array of indices contaning the
+     * permutation order.
+     *
+     * @return a pointer to the new permuted object
+     */
+    virtual std::unique_ptr<LinOp> row_permute(
+        const Array<IndexType> *permutation_indices) const = 0;
+
+    /**
+     * Returns a LinOp representing the column permutation of the Permutable
+     * object.
+     *
+     * @param permutation_indices  the array of indices contaning the
+     * permutation order.
+     *
+     * @return a pointer to the new column permuted object
+     */
+    virtual std::unique_ptr<LinOp> column_permute(
+        const Array<IndexType> *permutation_indices) const = 0;
+
+    /**
+     * Returns a LinOp representing the row permutation of the inverse permuted
+     * object.
+     *
+     * @param inverse_permutation_indices  the array of indices contaning the
+     * inverse permutation order.
+     *
+     * @return a pointer to the new inverse permuted object
+     */
+    virtual std::unique_ptr<LinOp> inverse_row_permute(
+        const Array<IndexType> *inverse_permutation_indices) const = 0;
+
+    /**
+     * Returns a LinOp representing the row permutation of the inverse permuted
+     * object.
+     *
+     * @param inverse_permutation_indices  the array of indices contaning the
+     * inverse permutation order.
+     *
+     * @return a pointer to the new inverse permuted object
+     */
+    virtual std::unique_ptr<LinOp> inverse_column_permute(
+        const Array<IndexType> *inverse_permutation_indices) const = 0;
 };
 
 
@@ -762,7 +855,7 @@ public:                                                                      \
                   "semi-colon warnings")
 
 
-#ifndef __CUDACC__
+#if !(defined(__CUDACC__) || defined(__HIPCC__))
 /**
  * Creates a factory parameter in the factory parameters structure.
  *
@@ -787,18 +880,24 @@ public:                                                                      \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
-#else  // __CUDACC__
+#else  // defined(__CUDACC__) || defined(__HIPCC__)
 // A workaround for the NVCC compiler - parameter pack expansion does not work
 // properly. You won't be able to use factories in code compiled with NVCC, but
 // at least this won't trigger a compiler error as soon as a header using it is
-// included.
-#define GKO_FACTORY_PARAMETER(_name, ...) \
-    mutable _name{__VA_ARGS__};           \
-                                          \
-    template <typename... Args>           \
-    auto with_##_name(Args &&... _value)  \
-        const->const ::gko::xstd::decay_t<decltype(*this)> &
-#endif  // __CUDACC__
+// included. To not get a linker error, we provide a dummy body.
+#define GKO_FACTORY_PARAMETER(_name, ...)                                    \
+    mutable _name{__VA_ARGS__};                                              \
+                                                                             \
+    template <typename... Args>                                              \
+    auto with_##_name(Args &&... _value)                                     \
+        const->const ::gko::xstd::decay_t<decltype(*this)> &                 \
+    {                                                                        \
+        return *this;                                                        \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+#endif  // defined(__CUDACC__) || defined(__HIPCC__)
 
 
 }  // namespace gko

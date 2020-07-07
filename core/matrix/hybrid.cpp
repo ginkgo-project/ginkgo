@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -110,11 +110,31 @@ void Hybrid<ValueType, IndexType>::apply_impl(const LinOp *alpha,
 
 
 template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::convert_to(
+    Hybrid<next_precision<ValueType>, IndexType> *result) const
+{
+    this->ell_->convert_to(result->ell_.get());
+    this->coo_->convert_to(result->coo_.get());
+    // TODO set strategy correctly
+    // There is no way to correctly clone the strategy like in Csr::convert_to
+    result->set_size(this->get_size());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Hybrid<ValueType, IndexType>::move_to(
+    Hybrid<next_precision<ValueType>, IndexType> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType> *result) const
 {
     auto exec = this->get_executor();
     auto tmp = Dense<ValueType>::create(exec, this->get_size());
-    exec->run(hybrid::make_convert_to_dense(tmp.get(), this));
+    exec->run(hybrid::make_convert_to_dense(this, tmp.get()));
     tmp->move_to(result);
 }
 
@@ -137,7 +157,7 @@ void Hybrid<ValueType, IndexType>::convert_to(
 
     auto tmp = Csr<ValueType, IndexType>::create(
         exec, this->get_size(), num_stored_elements, result->get_strategy());
-    exec->run(hybrid::make_convert_to_csr(tmp.get(), this));
+    exec->run(hybrid::make_convert_to_csr(this, tmp.get()));
 
     tmp->make_srow();
     tmp->move_to(result);

@@ -9,9 +9,11 @@ endif()
 if(MSVC)
     # MSVC can not find CUDA automatically
     # Use CUDA_COMPILER PATH to define the CUDA TOOLKIT ROOT DIR
+    string(REPLACE "/bin/nvcc.exe" "" CMAKE_CUDA_ROOT_DIR ${CMAKE_CUDA_COMPILER})
     if("${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}" STREQUAL "")
-        string(REPLACE "/bin/nvcc.exe" "" CMAKE_CUDA_ROOT_DIR ${CMAKE_CUDA_COMPILER})
         set(CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES "${CMAKE_CUDA_ROOT_DIR}/include")
+    endif()
+    if("${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES}" STREQUAL "")
         set(CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES "${CMAKE_CUDA_ROOT_DIR}/lib/x64")
     endif()
 
@@ -59,36 +61,50 @@ find_library(CUSPARSE cusparse
 add_library(ginkgo_cuda $<TARGET_OBJECTS:ginkgo_cuda_device> "")
 target_sources(ginkgo_cuda
     PRIVATE
-        base/exception.cpp
-        base/executor.cpp
-        base/version.cpp
-        components/zero_array.cu
-        factorization/par_ilu_kernels.cu
-        matrix/coo_kernels.cu
-        matrix/csr_kernels.cu
-        matrix/dense_kernels.cu
-        matrix/ell_kernels.cu
-        matrix/hybrid_kernels.cu
-        matrix/sellp_kernels.cu
-        matrix/sparsity_csr_kernels.cu
-        preconditioner/jacobi_advanced_apply_kernel.cu
-        preconditioner/jacobi_generate_kernel.cu
-        preconditioner/jacobi_kernels.cu
-        preconditioner/jacobi_simple_apply_kernel.cu
-        solver/bicgstab_kernels.cu
-        solver/cg_kernels.cu
-        solver/cgs_kernels.cu
-        solver/fcg_kernels.cu
-        solver/gmres_kernels.cu
-        solver/ir_kernels.cu
-        solver/lower_trs_kernels.cu
-        solver/upper_trs_kernels.cu
-        stop/criterion_kernels.cu
-        stop/residual_norm_reduction_kernels.cu)
+    base/exception.cpp
+    base/executor.cpp
+    base/version.cpp
+    components/fill_array.cu
+    components/precision_conversion.cu
+    components/prefix_sum.cu
+    factorization/ilu_kernels.cu
+    factorization/factorization_kernels.cu
+    factorization/par_ict_kernels.cu
+    factorization/par_ilu_kernels.cu
+    factorization/par_ilut_approx_filter_kernel.cu
+    factorization/par_ilut_filter_kernel.cu
+    factorization/par_ilut_select_kernel.cu
+    factorization/par_ilut_select_common.cu
+    factorization/par_ilut_spgeam_kernel.cu
+    factorization/par_ilut_sweep_kernel.cu
+    matrix/coo_kernels.cu
+    matrix/csr_kernels.cu
+    matrix/dense_kernels.cu
+    matrix/ell_kernels.cu
+    matrix/hybrid_kernels.cu
+    matrix/sellp_kernels.cu
+    matrix/sparsity_csr_kernels.cu
+    preconditioner/isai_kernels.cu
+    preconditioner/jacobi_advanced_apply_kernel.cu
+    preconditioner/jacobi_generate_kernel.cu
+    preconditioner/jacobi_kernels.cu
+    preconditioner/jacobi_simple_apply_kernel.cu
+    solver/bicg_kernels.cu
+    solver/bicgstab_kernels.cu
+    solver/cg_kernels.cu
+    solver/cgs_kernels.cu
+    solver/fcg_kernels.cu
+    solver/gmres_kernels.cu
+    solver/ir_kernels.cu
+    solver/lower_trs_kernels.cu
+    solver/upper_trs_kernels.cu
+    stop/criterion_kernels.cu
+    stop/residual_norm_kernels.cu)
 
 # This creates a compilation bug on nvcc 9.0.102 *with* the new array_deleter
-# merged at commit ed12b3df5d26
-if(NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")
+# merged at commit ed12b3df5d26, and the parameter is not recognized by clang-cuda
+if(CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA" AND
+   NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")
     # remove false positive CUDA warnings when calling one<T>() and zero<T>()
     target_compile_options(ginkgo_cuda
         PRIVATE
@@ -107,12 +123,19 @@ target_include_directories(ginkgo_cuda
     SYSTEM PRIVATE ${CUDA_INCLUDE_DIRS})
 target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPARSE})
 
+# Need to link against ginkgo_hip for the `raw_copy_to(HipExecutor ...)` method
+target_link_libraries(ginkgo_cuda PUBLIC ginkgo_hip)
+
 cas_target_cuda_architectures(ginkgo_cuda
     ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}
     UNSUPPORTED "20" "21")
 
 ginkgo_default_includes(ginkgo_cuda)
 ginkgo_install_library(ginkgo_cuda cuda)
+
+if (GINKGO_CHECK_CIRCULAR_DEPS)
+    ginkgo_check_headers(ginkgo_cuda)
+endif()
 
 if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)

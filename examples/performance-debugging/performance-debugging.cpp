@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -70,14 +70,14 @@ std::unique_ptr<vec<ValueType>> create_vector(
 
 // utilities for computing norms and residuals
 template <typename ValueType>
-double get_norm(const vec<ValueType> *norm)
+gko::remove_complex<ValueType> get_norm(const vec<ValueType> *norm)
 {
-    return clone(norm->get_executor()->get_master(), norm)->at(0, 0);
+    return std::real(clone(norm->get_executor()->get_master(), norm)->at(0, 0));
 }
 
 
 template <typename ValueType>
-double compute_norm(const vec<ValueType> *b)
+gko::remove_complex<ValueType> compute_norm(const vec<ValueType> *b)
 {
     auto exec = b->get_executor();
     auto b_norm = gko::initialize<vec<ValueType>>({0.0}, exec);
@@ -87,8 +87,9 @@ double compute_norm(const vec<ValueType> *b)
 
 
 template <typename ValueType>
-double compute_residual_norm(const gko::LinOp *system_matrix,
-                             const vec<ValueType> *b, const vec<ValueType> *x)
+gko::remove_complex<ValueType> compute_residual_norm(
+    const gko::LinOp *system_matrix, const vec<ValueType> *b,
+    const vec<ValueType> *x)
 {
     auto exec = system_matrix->get_executor();
     auto one = gko::initialize<vec<ValueType>>({1.0}, exec);
@@ -324,7 +325,8 @@ void print_usage(const char *filename)
 }
 
 
-void print_vector(const gko::matrix::Dense<> *vec)
+template <typename ValueType>
+void print_vector(const gko::matrix::Dense<ValueType> *vec)
 {
     auto elements_to_print = std::min(gko::size_type(10), vec->get_size()[0]);
     std::cout << "[" << std::endl;
@@ -342,23 +344,22 @@ int main(int argc, char *argv[])
 {
     // Parametrize the benchmark here
     // Pick a value type
-    using vtype = double;
+    using ValueType = double;
+    using IndexType = int;
     // Pick a matrix format
-    using mtx = gko::matrix::Csr<vtype>;
+    using mtx = gko::matrix::Csr<ValueType, IndexType>;
     // Pick a solver
-    using solver = gko::solver::Cg<vtype>;
+    using solver = gko::solver::Cg<ValueType>;
     // Pick a preconditioner type
-    using preconditioner = gko::matrix::IdentityFactory<vtype>;
+    using preconditioner = gko::matrix::IdentityFactory<ValueType>;
     // Pick a residual norm reduction value
-    auto reduction_factor = 1e-8;
-    // Pick a maximum iteration count
-    auto max_iters = 2000u;
+    const gko::remove_complex<ValueType> reduction_factor = 1e-12;
     // Pick an output file name
-    auto of_name = "log.txt";
+    const auto of_name = "log.txt";
 
 
     // Simple shortcut
-    using vec = gko::matrix::Dense<vtype>;
+    using vec = gko::matrix::Dense<ValueType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
@@ -371,7 +372,7 @@ int main(int argc, char *argv[])
         exec = gko::OmpExecutor::create();
     } else if (argc > 1 && std::string(argv[1]) == "cuda" &&
                gko::CudaExecutor::get_num_devices() > 0) {
-        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
+        exec = gko::CudaExecutor::create(0, gko::OmpExecutor::create(), true);
     } else {
         print_usage(argv[0]);
     }
@@ -392,16 +393,18 @@ int main(int argc, char *argv[])
     // Remove the storage logger
     exec->remove_logger(gko::lend(storage_logger));
 
+    // Pick a maximum iteration count
+    const auto max_iters = A->get_size()[0];
     // Generate b and x vectors
-    auto b = utils::create_vector<vtype>(exec, A->get_size()[0], 1.0);
-    auto x = utils::create_vector<vtype>(exec, A->get_size()[0], 0.0);
+    auto b = utils::create_vector<ValueType>(exec, A->get_size()[0], 1.0);
+    auto x = utils::create_vector<ValueType>(exec, A->get_size()[0], 0.0);
 
     // Declare the solver factory. The preconditioner's arguments should be
     // adapted if needed.
     auto solver_factory =
         solver::build()
             .with_criteria(
-                gko::stop::ResidualNormReduction<vtype>::build()
+                gko::stop::ResidualNormReduction<ValueType>::build()
                     .with_reduction_factor(reduction_factor)
                     .on(exec),
                 gko::stop::Iteration::build().with_max_iters(max_iters).on(
@@ -461,9 +464,6 @@ int main(int argc, char *argv[])
 
     // Log the internal operations using the OperationLogger without timing
     {
-        // Clone x to not overwrite the original one
-        auto x_clone = gko::clone(x);
-
         // Create an OperationLogger to analyze the generate step
         auto gen_logger = std::make_shared<loggers::OperationLogger>(exec);
         // Add the generate logger to the executor
@@ -480,11 +480,11 @@ int main(int argc, char *argv[])
         auto apply_logger = std::make_shared<loggers::OperationLogger>(exec);
         exec->add_logger(apply_logger);
         // Create a ResidualLogger to log the recurent residual
-        auto res_logger = std::make_shared<loggers::ResidualLogger<vtype>>(
+        auto res_logger = std::make_shared<loggers::ResidualLogger<ValueType>>(
             exec, gko::lend(A), gko::lend(b));
         generated_solver->add_logger(res_logger);
         // Solve the system
-        generated_solver->apply(gko::lend(b), gko::lend(x_clone));
+        generated_solver->apply(gko::lend(b), gko::lend(x));
         exec->remove_logger(gko::lend(apply_logger));
         // Write the data to the output file
         output_file << "Apply operations times (ns):" << std::endl;

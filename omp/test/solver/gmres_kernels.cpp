@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#include "core/solver/gmres_kernels.hpp"
+#include <ginkgo/core/solver/gmres.hpp>
 
 
 #include <random>
@@ -41,13 +41,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 
 
+#include "core/solver/gmres_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -56,7 +57,14 @@ namespace {
 
 class Gmres : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
+    using value_type = gko::default_precision;
+    using index_type = gko::int32;
+    using Mtx = gko::matrix::Dense<value_type>;
+    using norm_type = gko::remove_complex<value_type>;
+    using NormVector = gko::matrix::Dense<norm_type>;
+    template <typename T>
+    using Dense = typename gko::matrix::Dense<T>;
+
     Gmres() : rand_engine(30) {}
 
     void SetUp()
@@ -72,12 +80,13 @@ protected:
         }
     }
 
-    std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
+    template <typename ValueType = value_type, typename IndexType = index_type>
+    std::unique_ptr<Dense<ValueType>> gen_mtx(int num_rows, int num_cols)
     {
-        return gko::test::generate_random_matrix<Mtx>(
+        return gko::test::generate_random_matrix<Dense<ValueType>>(
             num_rows, num_cols,
-            std::uniform_int_distribution<>(num_cols, num_cols),
-            std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+            std::uniform_int_distribution<IndexType>(num_cols, num_cols),
+            std::normal_distribution<ValueType>(-1.0, 1.0), rand_engine, ref);
     }
 
     void initialize_data()
@@ -88,14 +97,12 @@ protected:
         y = gen_mtx(gko::solver::default_krylov_dim, n);
         before_preconditioner = Mtx::create_with_config_of(x.get());
         b = gen_mtx(m, n);
-        b_norm = gen_mtx(1, n);
-        krylov_bases = gen_mtx(m, (gko::solver::default_krylov_dim + 1) * n);
-        next_krylov_basis = gen_mtx(m, n);
+        krylov_bases = gen_mtx(m * (gko::solver::default_krylov_dim + 1), n);
         hessenberg = gen_mtx(gko::solver::default_krylov_dim + 1,
                              gko::solver::default_krylov_dim * n);
         hessenberg_iter = gen_mtx(gko::solver::default_krylov_dim + 1, n);
         residual = gen_mtx(m, n);
-        residual_norm = gen_mtx(1, n);
+        residual_norm = gen_mtx<norm_type>(1, n);
         residual_norm_collection =
             gen_mtx(gko::solver::default_krylov_dim + 1, n);
         givens_sin = gen_mtx(gko::solver::default_krylov_dim, n);
@@ -118,19 +125,15 @@ protected:
         d_y->copy_from(y.get());
         d_b = Mtx::create(omp);
         d_b->copy_from(b.get());
-        d_b_norm = Mtx::create(omp);
-        d_b_norm->copy_from(b_norm.get());
         d_krylov_bases = Mtx::create(omp);
         d_krylov_bases->copy_from(krylov_bases.get());
-        d_next_krylov_basis = Mtx::create(omp);
-        d_next_krylov_basis->copy_from(next_krylov_basis.get());
         d_hessenberg = Mtx::create(omp);
         d_hessenberg->copy_from(hessenberg.get());
         d_hessenberg_iter = Mtx::create(omp);
         d_hessenberg_iter->copy_from(hessenberg_iter.get());
         d_residual = Mtx::create(omp);
         d_residual->copy_from(residual.get());
-        d_residual_norm = Mtx::create(omp);
+        d_residual_norm = NormVector::create(omp);
         d_residual_norm->copy_from(residual_norm.get());
         d_residual_norm_collection = Mtx::create(omp);
         d_residual_norm_collection->copy_from(residual_norm_collection.get());
@@ -155,13 +158,11 @@ protected:
     std::unique_ptr<Mtx> x;
     std::unique_ptr<Mtx> y;
     std::unique_ptr<Mtx> b;
-    std::unique_ptr<Mtx> b_norm;
     std::unique_ptr<Mtx> krylov_bases;
-    std::unique_ptr<Mtx> next_krylov_basis;
     std::unique_ptr<Mtx> hessenberg;
     std::unique_ptr<Mtx> hessenberg_iter;
     std::unique_ptr<Mtx> residual;
-    std::unique_ptr<Mtx> residual_norm;
+    std::unique_ptr<NormVector> residual_norm;
     std::unique_ptr<Mtx> residual_norm_collection;
     std::unique_ptr<Mtx> givens_sin;
     std::unique_ptr<Mtx> givens_cos;
@@ -172,13 +173,11 @@ protected:
     std::unique_ptr<Mtx> d_before_preconditioner;
     std::unique_ptr<Mtx> d_y;
     std::unique_ptr<Mtx> d_b;
-    std::unique_ptr<Mtx> d_b_norm;
     std::unique_ptr<Mtx> d_krylov_bases;
-    std::unique_ptr<Mtx> d_next_krylov_basis;
     std::unique_ptr<Mtx> d_hessenberg;
     std::unique_ptr<Mtx> d_hessenberg_iter;
     std::unique_ptr<Mtx> d_residual;
-    std::unique_ptr<Mtx> d_residual_norm;
+    std::unique_ptr<NormVector> d_residual_norm;
     std::unique_ptr<Mtx> d_residual_norm_collection;
     std::unique_ptr<Mtx> d_givens_sin;
     std::unique_ptr<Mtx> d_givens_cos;
@@ -192,18 +191,17 @@ TEST_F(Gmres, OmpGmresInitialize1IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::gmres::initialize_1(
-        ref, b.get(), b_norm.get(), residual.get(), givens_sin.get(),
-        givens_cos.get(), stop_status.get(), gko::solver::default_krylov_dim);
+        ref, b.get(), residual.get(), givens_sin.get(), givens_cos.get(),
+        stop_status.get(), gko::solver::default_krylov_dim);
     gko::kernels::omp::gmres::initialize_1(
-        omp, d_b.get(), d_b_norm.get(), d_residual.get(), d_givens_sin.get(),
+        omp, d_b.get(), d_residual.get(), d_givens_sin.get(),
         d_givens_cos.get(), d_stop_status.get(),
         gko::solver::default_krylov_dim);
 
-    GKO_ASSERT_MTX_NEAR(d_b_norm, b_norm, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_residual, residual, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
-    GKO_ASSERT_ARRAY_EQ(d_stop_status, stop_status);
+    GKO_ASSERT_ARRAY_EQ(*d_stop_status, *stop_status);
 }
 
 
@@ -224,7 +222,7 @@ TEST_F(Gmres, OmpGmresInitialize2IsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
                         1e-14);
     GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, 1e-14);
-    GKO_ASSERT_ARRAY_EQ(d_final_iter_nums, final_iter_nums);
+    GKO_ASSERT_ARRAY_EQ(*d_final_iter_nums, *final_iter_nums);
 }
 
 
@@ -234,17 +232,15 @@ TEST_F(Gmres, OmpGmresStep1IsEquivalentToRef)
     int iter = 5;
 
     gko::kernels::reference::gmres::step_1(
-        ref, next_krylov_basis.get(), givens_sin.get(), givens_cos.get(),
+        ref, x->get_size()[0], givens_sin.get(), givens_cos.get(),
         residual_norm.get(), residual_norm_collection.get(), krylov_bases.get(),
-        hessenberg_iter.get(), b_norm.get(), iter, final_iter_nums.get(),
-        stop_status.get());
+        hessenberg_iter.get(), iter, final_iter_nums.get(), stop_status.get());
     gko::kernels::omp::gmres::step_1(
-        omp, d_next_krylov_basis.get(), d_givens_sin.get(), d_givens_cos.get(),
+        omp, d_x->get_size()[0], d_givens_sin.get(), d_givens_cos.get(),
         d_residual_norm.get(), d_residual_norm_collection.get(),
-        d_krylov_bases.get(), d_hessenberg_iter.get(), d_b_norm.get(), iter,
+        d_krylov_bases.get(), d_hessenberg_iter.get(), iter,
         d_final_iter_nums.get(), d_stop_status.get());
 
-    GKO_ASSERT_MTX_NEAR(d_next_krylov_basis, next_krylov_basis, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, 1e-14);
@@ -252,7 +248,7 @@ TEST_F(Gmres, OmpGmresStep1IsEquivalentToRef)
                         1e-14);
     GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_krylov_bases, krylov_bases, 1e-14);
-    GKO_ASSERT_ARRAY_EQ(d_final_iter_nums, final_iter_nums);
+    GKO_ASSERT_ARRAY_EQ(*d_final_iter_nums, *final_iter_nums);
 }
 
 

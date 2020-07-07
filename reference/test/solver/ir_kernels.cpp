@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,93 +36,277 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include <core/test/utils/assertions.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
+
+
+#include "core/test/utils.hpp"
 
 
 namespace {
 
 
+template <typename T>
 class Ir : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
+    using value_type = T;
+    using Mtx = gko::matrix::Dense<value_type>;
+    using Solver = gko::solver::Ir<value_type>;
     Ir()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{0.9, -1.0, 3.0}, {0.0, 1.0, 3.0}, {0.0, 0.0, 1.1}}, exec)),
           // Eigenvalues of mtx are 0.9, 1.0 and 1.1
-          // Richardson iteration, converges since | lambda - 1 | < 1
+          // Richardson iteration, converges since
+          // | relaxation_factor * lambda - 1 | < 1
           ir_factory(
-              gko::solver::Ir<>::build()
+              Solver::build()
                   .with_criteria(
                       gko::stop::Iteration::build().with_max_iters(30u).on(
                           exec),
-                      gko::stop::ResidualNormReduction<>::build()
-                          .with_reduction_factor(1e-15)
+                      gko::stop::ResidualNormReduction<value_type>::build()
+                          .with_reduction_factor(r<value_type>::value)
                           .on(exec))
                   .on(exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<gko::solver::Ir<>::Factory> ir_factory;
+    std::unique_ptr<typename Solver::Factory> ir_factory;
 };
 
+TYPED_TEST_CASE(Ir, gko::test::ValueTypes);
 
-TEST_F(Ir, SolvesTriangularSystem)
+
+TYPED_TEST(Ir, SolvesTriangularSystem)
 {
-    auto solver = ir_factory->generate(mtx);
-    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, exec);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->ir_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
 }
 
 
-TEST_F(Ir, SolvesMultipleTriangularSystems)
+TYPED_TEST(Ir, SolvesTriangularSystemWithIterativeInnerSolver)
 {
-    auto solver = ir_factory->generate(mtx);
-    auto b = gko::initialize<Mtx>({{3.9, 2.9}, {9.0, 4.0}, {2.2, 1.1}}, exec);
-    auto x = gko::initialize<Mtx>({{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}}, exec);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+
+    const gko::remove_complex<value_type> inner_reduction_factor = 1e-2;
+    auto inner_solver_factory =
+        gko::solver::Gmres<value_type>::build()
+            .with_criteria(gko::stop::ResidualNormReduction<value_type>::build()
+                               .with_reduction_factor(inner_reduction_factor)
+                               .on(this->exec))
+            .on(this->exec);
+
+    auto solver_factory =
+        gko::solver::Ir<value_type>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(30u).on(
+                               this->exec),
+                           gko::stop::ResidualNormReduction<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value)
+                               .on(this->exec))
+            .with_solver(gko::share(inner_solver_factory))
+            .on(this->exec);
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver_factory->generate(this->mtx)->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
+}
+
+
+TYPED_TEST(Ir, SolvesMultipleTriangularSystems)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using T = value_type;
+    auto solver = this->ir_factory->generate(this->mtx);
+    auto b = gko::initialize<Mtx>(
+        {I<T>{3.9, 2.9}, I<T>{9.0, 4.0}, I<T>{2.2, 1.1}}, this->exec);
+    auto x = gko::initialize<Mtx>(
+        {I<T>{0.0, 0.0}, I<T>{0.0, 0.0}, I<T>{0.0, 0.0}}, this->exec);
 
     solver->apply(b.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({{1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({{1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}}),
+                        r<value_type>::value * 1e1);
 }
 
 
-TEST_F(Ir, SolvesTriangularSystemUsingAdvancedApply)
+TYPED_TEST(Ir, SolvesTriangularSystemUsingAdvancedApply)
 {
-    auto solver = ir_factory->generate(mtx);
-    auto alpha = gko::initialize<Mtx>({2.0}, exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, exec);
-    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, exec);
-    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, exec);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->ir_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), r<value_type>::value);
 }
 
 
-TEST_F(Ir, SolvesMultipleStencilSystemsUsingAdvancedApply)
+TYPED_TEST(Ir, SolvesMultipleStencilSystemsUsingAdvancedApply)
 {
-    auto solver = ir_factory->generate(mtx);
-    auto alpha = gko::initialize<Mtx>({2.0}, exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, exec);
-    auto b = gko::initialize<Mtx>({{3.9, 2.9}, {9.0, 4.0}, {2.2, 1.1}}, exec);
-    auto x = gko::initialize<Mtx>({{0.5, 1.0}, {1.0, 2.0}, {2.0, 3.0}}, exec);
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using T = value_type;
+    auto solver = this->ir_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
+    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto b = gko::initialize<Mtx>(
+        {I<T>{3.9, 2.9}, I<T>{9.0, 4.0}, I<T>{2.2, 1.1}}, this->exec);
+    auto x = gko::initialize<Mtx>(
+        {I<T>{0.5, 1.0}, I<T>{1.0, 2.0}, I<T>{2.0, 3.0}}, this->exec);
 
     solver->apply(alpha.get(), b.get(), beta.get(), x.get());
 
-    GKO_ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}), 1e-14);
+    GKO_ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}),
+                        r<value_type>::value * 1e1);
+}
+
+
+TYPED_TEST(Ir, SolvesTransposedTriangularSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->ir_factory->generate(this->mtx->transpose());
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->transpose()->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
+}
+
+
+TYPED_TEST(Ir, SolvesConjTransposedTriangularSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->ir_factory->generate(this->mtx->conj_transpose());
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->conj_transpose()->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
+}
+
+
+TYPED_TEST(Ir, RichardsonSolvesTriangularSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = gko::solver::Ir<value_type>::build()
+                      .with_criteria(
+                          gko::stop::Iteration::build().with_max_iters(100u).on(
+                              this->exec),
+                          gko::stop::ResidualNormReduction<value_type>::build()
+                              .with_reduction_factor(r<value_type>::value)
+                              .on(this->exec))
+                      .with_relaxation_factor(value_type{0.9})
+                      .on(this->exec)
+                      ->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
+}
+
+
+TYPED_TEST(Ir, RichardsonSolvesTriangularSystemWithIterativeInnerSolver)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    const gko::remove_complex<value_type> inner_reduction_factor = 1e-2;
+    auto inner_solver_factory =
+        gko::solver::Gmres<value_type>::build()
+            .with_criteria(gko::stop::ResidualNormReduction<value_type>::build()
+                               .with_reduction_factor(inner_reduction_factor)
+                               .on(this->exec))
+            .on(this->exec);
+    auto solver_factory =
+        gko::solver::Ir<value_type>::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(100u).on(
+                    this->exec),
+                gko::stop::ResidualNormReduction<value_type>::build()
+                    .with_reduction_factor(r<value_type>::value)
+                    .on(this->exec))
+            .with_relaxation_factor(value_type{0.9})
+            .with_solver(gko::share(inner_solver_factory))
+            .on(this->exec);
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver_factory->generate(this->mtx)->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
+}
+
+
+TYPED_TEST(Ir, RichardsonTransposedSolvesTriangularSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver =
+        gko::solver::Ir<value_type>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(30u).on(
+                               this->exec),
+                           gko::stop::ResidualNormReduction<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value)
+                               .on(this->exec))
+            .with_relaxation_factor(value_type{0.9})
+            .on(this->exec)
+            ->generate(this->mtx->transpose());
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->transpose()->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
+}
+
+
+TYPED_TEST(Ir, RichardsonConjTransposedSolvesTriangularSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver =
+        gko::solver::Ir<value_type>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(30u).on(
+                               this->exec),
+                           gko::stop::ResidualNormReduction<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value)
+                               .on(this->exec))
+            .with_relaxation_factor(value_type{0.9})
+            .on(this->exec)
+            ->generate(this->mtx->conj_transpose());
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->conj_transpose()->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
 }
 
 

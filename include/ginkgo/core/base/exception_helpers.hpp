@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,16 +30,16 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_EXCEPTION_HELPERS_HPP_
-#define GKO_CORE_EXCEPTION_HELPERS_HPP_
+#ifndef GKO_CORE_BASE_EXCEPTION_HELPERS_HPP_
+#define GKO_CORE_BASE_EXCEPTION_HELPERS_HPP_
+
+
+#include <typeinfo>
 
 
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
-
-
-#include <typeinfo>
 
 
 namespace gko {
@@ -88,6 +88,34 @@ namespace gko {
                   "semi-colon warnings")
 
 
+namespace detail {
+
+
+template <typename T, typename T2 = void>
+struct dynamic_type_helper {
+    static const std::type_info &get(const T &obj) { return typeid(obj); }
+};
+
+template <typename T>
+struct dynamic_type_helper<T,
+                           typename std::enable_if<std::is_pointer<T>::value ||
+                                                   have_ownership<T>()>::type> {
+    static const std::type_info &get(const T &obj)
+    {
+        return obj ? typeid(*obj) : typeid(nullptr);
+    }
+};
+
+template <typename T>
+const std::type_info &get_dynamic_type(const T &obj)
+{
+    return dynamic_type_helper<T>::get(obj);
+}
+
+
+}  // namespace detail
+
+
 /**
  * Throws a NotSupported exception.
  * This macro sets the correct information about the location of the error
@@ -95,14 +123,14 @@ namespace gko {
  *
  * @param _obj  the object referenced by NotSupported exception
  */
-#define GKO_NOT_SUPPORTED(_obj)                                              \
-    {                                                                        \
-        throw ::gko::NotSupported(                                           \
-            __FILE__, __LINE__, __func__,                                    \
-            ::gko::name_demangling::get_type_name(typeid(_obj)));            \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
+#define GKO_NOT_SUPPORTED(_obj)                                                \
+    {                                                                          \
+        throw ::gko::NotSupported(__FILE__, __LINE__, __func__,                \
+                                  ::gko::name_demangling::get_type_name(       \
+                                      ::gko::detail::get_dynamic_type(_obj))); \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
 
@@ -280,7 +308,7 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 /**
  * Asserts that a cuBLAS library call completed without errors.
  *
- * @param _cuda_call  a library call expression
+ * @param _cublas_call  a library call expression
  */
 #define GKO_ASSERT_NO_CUBLAS_ERRORS(_cublas_call) \
     do {                                          \
@@ -294,7 +322,7 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 /**
  * Asserts that a cuSPARSE library call completed without errors.
  *
- * @param _cuda_call  a library call expression
+ * @param _cusparse_call  a library call expression
  */
 #define GKO_ASSERT_NO_CUSPARSE_ERRORS(_cusparse_call) \
     do {                                              \
@@ -302,6 +330,75 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
         if (_errcode != CUSPARSE_STATUS_SUCCESS) {    \
             throw GKO_CUSPARSE_ERROR(_errcode);       \
         }                                             \
+    } while (false)
+
+
+/**
+ * Instantiates a HipError.
+ *
+ * @param errcode  The error code returned from a HIP runtime API routine.
+ */
+#define GKO_HIP_ERROR(_errcode) \
+    ::gko::HipError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
+ * Instantiates a HipblasError.
+ *
+ * @param errcode  The error code returned from the HIPBLAS routine.
+ */
+#define GKO_HIPBLAS_ERROR(_errcode) \
+    ::gko::HipblasError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
+ * Instantiates a HipsparseError.
+ *
+ * @param errcode  The error code returned from the HIPSPARSE routine.
+ */
+#define GKO_HIPSPARSE_ERROR(_errcode) \
+    ::gko::HipsparseError(__FILE__, __LINE__, __func__, _errcode)
+
+
+/**
+ * Asserts that a HIP library call completed without errors.
+ *
+ * @param _hip_call  a library call expression
+ */
+#define GKO_ASSERT_NO_HIP_ERRORS(_hip_call) \
+    do {                                    \
+        auto _errcode = _hip_call;          \
+        if (_errcode != hipSuccess) {       \
+            throw GKO_HIP_ERROR(_errcode);  \
+        }                                   \
+    } while (false)
+
+
+/**
+ * Asserts that a HIPBLAS library call completed without errors.
+ *
+ * @param _hipblas_call  a library call expression
+ */
+#define GKO_ASSERT_NO_HIPBLAS_ERRORS(_hipblas_call) \
+    do {                                            \
+        auto _errcode = _hipblas_call;              \
+        if (_errcode != HIPBLAS_STATUS_SUCCESS) {   \
+            throw GKO_HIPBLAS_ERROR(_errcode);      \
+        }                                           \
+    } while (false)
+
+
+/**
+ * Asserts that a HIPSPARSE library call completed without errors.
+ *
+ * @param _hipsparse_call  a library call expression
+ */
+#define GKO_ASSERT_NO_HIPSPARSE_ERRORS(_hipsparse_call) \
+    do {                                                \
+        auto _errcode = _hipsparse_call;                \
+        if (_errcode != HIPSPARSE_STATUS_SUCCESS) {     \
+            throw GKO_HIPSPARSE_ERROR(_errcode);        \
+        }                                               \
     } while (false)
 
 
@@ -358,6 +455,25 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
 
 
 /**
+ * Ensures that two dimensions have compatible bounds, in particular before a
+ * copy operation. This means the target should have at least as much elements
+ * as the source.
+ *
+ * @param _source  the source of the expected copy operation
+ * @param _target  the destination of the expected copy operation
+ *
+ * @throw OutOfBoundsError  if `_source > _target`
+ */
+#define GKO_ENSURE_COMPATIBLE_BOUNDS(_source, _target)                       \
+    if (_source > _target) {                                                 \
+        throw ::gko::OutOfBoundsError(__FILE__, __LINE__, _source, _target); \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+/**
  * Creates a StreamError exception.
  * This macro sets the correct information about the location of the error
  * and fills the exception with data about the stream, and the reason for the
@@ -389,4 +505,4 @@ inline T ensure_allocated_impl(T ptr, const std::string &file, int line,
 }  // namespace gko
 
 
-#endif  // GKO_CORE_EXCEPTION_HELPERS_HPP_
+#endif  // GKO_CORE_BASE_EXCEPTION_HELPERS_HPP_

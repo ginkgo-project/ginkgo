@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/solver/upper_trs.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm_reduction.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 
 
 namespace gko {
@@ -109,8 +109,10 @@ namespace preconditioner {
  */
 template <typename LSolverType = solver::LowerTrs<>,
           typename USolverType = solver::UpperTrs<>, bool ReverseApply = false,
-          typename IndexTypeParIlu = int32>
-class Ilu : public EnableLinOp<Ilu<LSolverType, USolverType, ReverseApply>> {
+          typename IndexType = int32>
+class Ilu : public EnableLinOp<
+                Ilu<LSolverType, USolverType, ReverseApply, IndexType>>,
+            public Transposable {
     friend class EnableLinOp<Ilu>;
     friend class EnablePolymorphicObject<Ilu, LinOp>;
 
@@ -123,7 +125,10 @@ public:
     using l_solver_type = LSolverType;
     using u_solver_type = USolverType;
     static constexpr bool performs_reverse_apply = ReverseApply;
-    using index_type_par_ilu = IndexTypeParIlu;
+    using index_type = IndexType;
+    using transposed_type =
+        Ilu<typename USolverType::transposed_type,
+            typename LSolverType::transposed_type, ReverseApply, IndexType>;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -138,6 +143,12 @@ public:
          */
         std::shared_ptr<typename u_solver_type::Factory> GKO_FACTORY_PARAMETER(
             u_solver_factory, nullptr);
+
+        /**
+         * Factory for the factorization
+         */
+        std::shared_ptr<LinOpFactory> GKO_FACTORY_PARAMETER(
+            factorization_factory, nullptr);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Ilu, parameters, Factory);
@@ -163,15 +174,47 @@ public:
         return u_solver_;
     }
 
+    std::unique_ptr<LinOp> transpose() const override
+    {
+        std::unique_ptr<transposed_type> transposed{
+            new transposed_type{this->get_executor()}};
+        transposed->set_size(gko::transpose(this->get_size()));
+        transposed->l_solver_ =
+            share(as<typename u_solver_type::transposed_type>(
+                this->get_u_solver()->transpose()));
+        transposed->u_solver_ =
+            share(as<typename l_solver_type::transposed_type>(
+                this->get_l_solver()->transpose()));
+
+        return std::move(transposed);
+    }
+
+    std::unique_ptr<LinOp> conj_transpose() const override
+    {
+        std::unique_ptr<transposed_type> transposed{
+            new transposed_type{this->get_executor()}};
+        transposed->set_size(gko::transpose(this->get_size()));
+        transposed->l_solver_ =
+            share(as<typename u_solver_type::transposed_type>(
+                this->get_u_solver()->conj_transpose()));
+        transposed->u_solver_ =
+            share(as<typename l_solver_type::transposed_type>(
+                this->get_l_solver()->conj_transpose()));
+
+        return std::move(transposed);
+    }
+
 protected:
     void apply_impl(const LinOp *b, LinOp *x) const override
     {
         set_cache_to(b);
         if (!ReverseApply) {
             l_solver_->apply(b, cache_.intermediate.get());
+            x->copy_from(cache_.intermediate.get());
             u_solver_->apply(cache_.intermediate.get(), x);
         } else {
             u_solver_->apply(b, cache_.intermediate.get());
+            x->copy_from(cache_.intermediate.get());
             l_solver_->apply(cache_.intermediate.get(), x);
         }
     }
@@ -197,24 +240,33 @@ protected:
         : EnableLinOp<Ilu>(factory->get_executor(), lin_op->get_size()),
           parameters_{factory->get_parameters()}
     {
-        auto comp_cast =
-            dynamic_cast<const Composition<value_type> *>(lin_op.get());
+        auto comp =
+            std::dynamic_pointer_cast<const Composition<value_type>>(lin_op);
         std::shared_ptr<const LinOp> l_factor;
         std::shared_ptr<const LinOp> u_factor;
 
-        if (comp_cast == nullptr) {
+        // build factorization if we weren't passed a composition
+        if (!comp) {
             auto exec = lin_op->get_executor();
-            auto par_ilu =
-                factorization::ParIlu<value_type, index_type_par_ilu>::build()
-                    .on(exec)
-                    ->generate(lin_op);
-            l_factor = par_ilu->get_l_factor();
-            u_factor = par_ilu->get_u_factor();
-        } else if (comp_cast->get_operators().size() == 2) {
-            l_factor = comp_cast->get_operators()[0];
-            u_factor = comp_cast->get_operators()[1];
+            if (!parameters_.factorization_factory) {
+                parameters_.factorization_factory =
+                    factorization::ParIlu<value_type, index_type>::build().on(
+                        exec);
+            }
+            auto fact = std::shared_ptr<const LinOp>(
+                parameters_.factorization_factory->generate(lin_op));
+            // ensure that the result is a composition
+            comp =
+                std::dynamic_pointer_cast<const Composition<value_type>>(fact);
+            if (!comp) {
+                GKO_NOT_SUPPORTED(comp);
+            }
+        }
+        if (comp->get_operators().size() == 2) {
+            l_factor = comp->get_operators()[0];
+            u_factor = comp->get_operators()[1];
         } else {
-            GKO_NOT_SUPPORTED(comp_cast);
+            GKO_NOT_SUPPORTED(comp);
         }
         GKO_ASSERT_EQUAL_DIMENSIONS(l_factor, u_factor);
 
@@ -276,8 +328,7 @@ protected:
      *
      */
     template <typename SolverType, typename = void>
-    struct has_with_criteria : std::false_type {
-    };
+    struct has_with_criteria : std::false_type {};
 
     /**
      * @copydoc has_with_criteria
@@ -291,8 +342,7 @@ protected:
         SolverType,
         xstd::void_t<decltype(std::declval<factory_type_t<SolverType>>()
                                   .with_criteria(with_criteria_param_type()))>>
-        : std::true_type {
-    };
+        : std::true_type {};
 
 
     /**
@@ -308,7 +358,7 @@ protected:
     generate_default_solver(const std::shared_ptr<const Executor> &exec,
                             const std::shared_ptr<const LinOp> &mtx)
     {
-        constexpr value_type default_reduce_residual{1e-4};
+        constexpr gko::remove_complex<value_type> default_reduce_residual{1e-4};
         const unsigned int default_max_iters{
             static_cast<unsigned int>(mtx->get_size()[0])};
 
@@ -316,7 +366,7 @@ protected:
             .with_criteria(gko::stop::Iteration::build()
                                .with_max_iters(default_max_iters)
                                .on(exec),
-                           gko::stop::ResidualNormReduction<>::build()
+                           gko::stop::ResidualNormReduction<value_type>::build()
                                .with_reduction_factor(default_reduce_residual)
                                .on(exec))
             .on(exec)

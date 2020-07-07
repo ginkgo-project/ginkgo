@@ -5,15 +5,15 @@ list(APPEND CTEST_CUSTOM_COVERAGE_EXCLUDE
   # Exclude try_compile sources from coverage results:
   "/CMakeFiles/CMakeTmp/"
 
-  "third_party"
+  ".*/third_party/.*"
 
-  "test"
+  ".*/doc/.*"
 
-  "benchmark"
+  ".*/benchmark/.*"
 
-  "examples"
+  ".*/examples/.*"
 
-  "c\\+\\+"
+  ".*/c\\+\\+/.*"
 )
 
 set(CTEST_SOURCE_DIRECTORY "@Ginkgo_SOURCE_DIR@" CACHE STRING "" FORCE)

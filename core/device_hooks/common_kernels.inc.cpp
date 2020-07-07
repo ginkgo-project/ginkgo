@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
+#include "core/components/fill_array.hpp"
+#include "core/components/precision_conversion.hpp"
+#include "core/components/prefix_sum.hpp"
+#include "core/factorization/factorization_kernels.hpp"
+#include "core/factorization/ilu_kernels.hpp"
+#include "core/factorization/par_ict_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
+#include "core/factorization/par_ilut_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -41,7 +48,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/hybrid_kernels.hpp"
 #include "core/matrix/sellp_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
+#include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
+#include "core/solver/bicg_kernels.hpp"
 #include "core/solver/bicgstab_kernels.hpp"
 #include "core/solver/cg_kernels.hpp"
 #include "core/solver/cgs_kernels.hpp"
@@ -51,7 +60,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/solver/lower_trs_kernels.hpp"
 #include "core/solver/upper_trs_kernels.hpp"
 #include "core/stop/criterion_kernels.hpp"
-#include "core/stop/residual_norm_reduction_kernels.hpp"
+#include "core/stop/residual_norm_kernels.hpp"
 
 
 #ifndef GKO_HOOK_MODULE
@@ -62,6 +71,32 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace kernels {
 namespace GKO_HOOK_MODULE {
+namespace components {
+
+
+template <typename SourceType, typename TargetType>
+GKO_DECLARE_CONVERT_PRECISION_KERNEL(SourceType, TargetType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);
+
+template <typename IndexType>
+GKO_DECLARE_PREFIX_SUM_KERNEL(IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
+// explicitly instantiate for size_type, as this is used in the SellP format
+template GKO_DECLARE_PREFIX_SUM_KERNEL(size_type);
+
+template <typename IndexType>
+GKO_DECLARE_FILL_ARRAY_KERNEL(IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
+template GKO_DECLARE_FILL_ARRAY_KERNEL(size_type);
+
+
+}  // namespace components
+
+
 namespace dense {
 
 
@@ -164,6 +199,29 @@ GKO_DECLARE_CONJ_TRANSPOSE_KERNEL(ValueType)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONJ_TRANSPOSE_KERNEL);
 
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_ROW_PERMUTE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ROW_PERMUTE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_COLUMN_PERMUTE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_INVERSE_ROW_PERMUTE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_INVERSE_ROW_PERMUTE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_INVERSE_COLUMN_PERMUTE_KERNEL);
+
 
 }  // namespace dense
 
@@ -188,6 +246,28 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
 
 
 }  // namespace cg
+
+
+namespace bicg {
+
+
+template <typename ValueType>
+GKO_DECLARE_BICG_INITIALIZE_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_INITIALIZE_KERNEL);
+
+template <typename ValueType>
+GKO_DECLARE_BICG_STEP_1_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_STEP_1_KERNEL);
+
+template <typename ValueType>
+GKO_DECLARE_BICG_STEP_2_KERNEL(ValueType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_STEP_2_KERNEL);
+
+
+}  // namespace bicg
 
 
 namespace lower_trs {
@@ -423,6 +503,22 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
+GKO_DECLARE_CSR_SPGEMM_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_CSR_SPGEAM_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
+
+template <typename ValueType, typename IndexType>
 GKO_DECLARE_CSR_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -468,6 +564,30 @@ GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONJ_TRANSPOSE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ROW_PERMUTE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_CSR_COLUMN_PERMUTE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_COLUMN_PERMUTE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_INVERSE_ROW_PERMUTE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_INVERSE_COLUMN_PERMUTE_KERNEL);
 
 template <typename ValueType, typename IndexType>
 GKO_DECLARE_CSR_CALCULATE_MAX_NNZ_PER_ROW_KERNEL(ValueType, IndexType)
@@ -668,6 +788,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL);
 
 template <typename ValueType, typename IndexType>
+GKO_DECLARE_JACOBI_TRANSPOSE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_JACOBI_TRANSPOSE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_JACOBI_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_JACOBI_CONJ_TRANSPOSE_KERNEL);
+
+template <typename ValueType, typename IndexType>
 GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -680,20 +812,102 @@ GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 }  // namespace jacobi
 
 
+namespace isai {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL);
+
+
+}  // namespace isai
+
+
+namespace factorization {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_ELEMENTS_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_ELEMENTS_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_U_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_U_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL);
+
+
+}  // namespace factorization
+
+
+namespace ilu_factorization {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_ILU_COMPUTE_LU_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ILU_COMPUTE_LU_KERNEL);
+
+
+}  // namespace ilu_factorization
+
+
+namespace par_ict_factorization {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_PAR_ICT_ADD_CANDIDATES_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PAR_ICT_ADD_CANDIDATES_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_PAR_ICT_COMPUTE_FACTOR_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PAR_ICT_COMPUTE_FACTOR_KERNEL);
+
+
+}  // namespace par_ict_factorization
+
+
 namespace par_ilu_factorization {
 
-
-template <typename ValueType, typename IndexType>
-GKO_DECLARE_PAR_ILU_INITIALIZE_ROW_PTRS_L_U_KERNEL(ValueType, IndexType)
-GKO_NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_PAR_ILU_INITIALIZE_ROW_PTRS_L_U_KERNEL);
-
-template <typename ValueType, typename IndexType>
-GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL(ValueType, IndexType)
-GKO_NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_PAR_ILU_INITIALIZE_L_U_KERNEL);
 
 template <typename ValueType, typename IndexType>
 GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL(ValueType, IndexType)
@@ -703,6 +917,43 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 }  // namespace par_ilu_factorization
+
+
+namespace par_ilut_factorization {
+
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_PAR_ILUT_ADD_CANDIDATES_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PAR_ILUT_ADD_CANDIDATES_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_PAR_ILUT_COMPUTE_LU_FACTORS_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PAR_ILUT_COMPUTE_LU_FACTORS_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_PAR_ILUT_THRESHOLD_SELECT_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PAR_ILUT_THRESHOLD_SELECT_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_KERNEL);
+
+template <typename ValueType, typename IndexType>
+GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_APPROX_KERNEL(ValueType, IndexType)
+GKO_NOT_COMPILED(GKO_HOOK_MODULE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_APPROX_KERNEL);
+
+
+}  // namespace par_ilut_factorization
 
 
 namespace set_all_statuses {
@@ -715,16 +966,17 @@ GKO_NOT_COMPILED(GKO_HOOK_MODULE);
 }  // namespace set_all_statuses
 
 
-namespace residual_norm_reduction {
+namespace residual_norm {
 
 
 template <typename ValueType>
-GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL(ValueType)
+GKO_DECLARE_RESIDUAL_NORM_KERNEL(ValueType)
 GKO_NOT_COMPILED(GKO_HOOK_MODULE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM_REDUCTION_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
+    GKO_DECLARE_RESIDUAL_NORM_KERNEL);
 
 
-}  // namespace residual_norm_reduction
+}  // namespace residual_norm
 }  // namespace GKO_HOOK_MODULE
 }  // namespace kernels
 }  // namespace gko

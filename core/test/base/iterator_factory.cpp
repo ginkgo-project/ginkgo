@@ -1,5 +1,5 @@
 /*******************************<GINKGO LICENSE>******************************
-Copyright (c) 2017-2019, the Ginkgo authors
+Copyright (c) 2017-2020, the Ginkgo authors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,23 +40,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
-#include "core/test/utils/assertions.hpp"
+#include "core/test/utils.hpp"
 
 
 namespace {
 
 
+template <typename ValueIndexType>
 class IteratorFactory : public ::testing::Test {
 protected:
-    using int_type = int;
-    using double_type = double;
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     IteratorFactory()
-        : reversed_int{100, 50, 10, 9, 8, 7, 5, 5, 4, 3, 2, 1, 0, -1, -2},
-          ordered_int{-2, -1, 0, 1, 2, 3, 4, 5, 5, 7, 8, 9, 10, 50, 100},
-          reversed_double{15., 14., 13., 12., 11., 10., 9., 7.,
-                          7.,  6.,  5.,  4.,  3.,  2.,  -1.},
-          ordered_double{-1., 2.,  3.,  4.,  5.,  6.,  7., 7.,
-                         9.,  10., 11., 12., 13., 14., 15.}
+        : reversed_index{100, 50, 10, 9, 8, 7, 5, 5, 4, 3, 2, 1, 0, -1, -2},
+          ordered_index{-2, -1, 0, 1, 2, 3, 4, 5, 5, 7, 8, 9, 10, 50, 100},
+          reversed_value{15., 14., 13., 12., 11., 10., 9., 7.,
+                         7.,  6.,  5.,  4.,  3.,  2.,  -1.},
+          ordered_value{-1., 2.,  3.,  4.,  5.,  6.,  7., 7.,
+                        9.,  10., 11., 12., 13., 14., 15.}
     {}
 
     template <typename T1, typename T2>
@@ -87,16 +90,20 @@ protected:
         return true;
     }
 
-    const std::vector<int_type> reversed_int;
-    const std::vector<int_type> ordered_int;
-    const std::vector<double_type> reversed_double;
-    const std::vector<double_type> ordered_double;
+    const std::vector<index_type> reversed_index;
+    const std::vector<index_type> ordered_index;
+    const std::vector<value_type> reversed_value;
+    const std::vector<value_type> ordered_value;
 };
 
+TYPED_TEST_CASE(IteratorFactory, gko::test::ValueIndexTypes);
 
-TEST_F(IteratorFactory, EmptyIterator)
+
+TYPED_TEST(IteratorFactory, EmptyIterator)
 {
-    auto test_iter = gko::detail::IteratorFactory<int_type, double_type>(
+    using index_type = typename TestFixture::index_type;
+    using value_type = typename TestFixture::value_type;
+    auto test_iter = gko::detail::IteratorFactory<index_type, value_type>(
         nullptr, nullptr, 0);
 
     ASSERT_TRUE(test_iter.begin() == test_iter.end());
@@ -104,66 +111,78 @@ TEST_F(IteratorFactory, EmptyIterator)
 }
 
 
-TEST_F(IteratorFactory, SortingReversedWithIterator)
+TYPED_TEST(IteratorFactory, SortingReversedWithIterator)
 {
-    std::vector<int_type> vec1{reversed_int};
-    std::vector<double_type> vec2{ordered_double};
+    using index_type = typename TestFixture::index_type;
+    using value_type = typename TestFixture::value_type;
+    std::vector<index_type> vec1{this->reversed_index};
+    std::vector<value_type> vec2{this->ordered_value};
 
-    auto test_iter = gko::detail::IteratorFactory<int_type, double_type>(
+    auto test_iter = gko::detail::IteratorFactory<index_type, value_type>(
         vec1.data(), vec2.data(), vec1.size());
     std::sort(test_iter.begin(), test_iter.end());
 
-    check_vector_equal(vec1, ordered_int);
-    check_vector_equal(vec2, reversed_double);
+    this->check_vector_equal(vec1, this->ordered_index);
+    this->check_vector_equal(vec2, this->reversed_value);
 }
 
 
-TEST_F(IteratorFactory, SortingAlreadySortedWithIterator)
+TYPED_TEST(IteratorFactory, SortingAlreadySortedWithIterator)
 {
-    std::vector<int_type> vec1{ordered_int};
-    std::vector<double_type> vec2{ordered_double};
+    using index_type = typename TestFixture::index_type;
+    using value_type = typename TestFixture::value_type;
+    std::vector<index_type> vec1{this->ordered_index};
+    std::vector<value_type> vec2{this->ordered_value};
 
-    auto test_iter = gko::detail::IteratorFactory<int_type, double_type>(
+    auto test_iter = gko::detail::IteratorFactory<index_type, value_type>(
         vec1.data(), vec2.data(), vec1.size());
     std::sort(test_iter.begin(), test_iter.end());
 
-    check_vector_equal(vec1, ordered_int);
-    check_vector_equal(vec2, ordered_double);
+    this->check_vector_equal(vec1, this->ordered_index);
+    this->check_vector_equal(vec2, this->ordered_value);
 }
 
 
-TEST_F(IteratorFactory, IteratorReferenceOperatorSmaller)
+TYPED_TEST(IteratorFactory, IteratorReferenceOperatorSmaller)
 {
-    std::vector<int_type> vec1{reversed_int};
-    std::vector<double_type> vec2{ordered_double};
+    using index_type = typename TestFixture::index_type;
+    using value_type = typename TestFixture::value_type;
+    std::vector<index_type> vec1{this->reversed_index};
+    std::vector<value_type> vec2{this->ordered_value};
 
-    auto test_iter = gko::detail::IteratorFactory<int_type, double_type>(
+    auto test_iter = gko::detail::IteratorFactory<index_type, value_type>(
         vec1.data(), vec2.data(), vec1.size());
-    bool is_sorted = is_sorted_iterator(test_iter.begin(), test_iter.end());
+    bool is_sorted =
+        this->is_sorted_iterator(test_iter.begin(), test_iter.end());
 
     ASSERT_FALSE(is_sorted);
 }
 
 
-TEST_F(IteratorFactory, IteratorReferenceOperatorSmaller2)
+TYPED_TEST(IteratorFactory, IteratorReferenceOperatorSmaller2)
 {
-    std::vector<int_type> vec1{ordered_int};
-    std::vector<double_type> vec2{ordered_double};
+    using index_type = typename TestFixture::index_type;
+    using value_type = typename TestFixture::value_type;
+    std::vector<index_type> vec1{this->ordered_index};
+    std::vector<value_type> vec2{this->ordered_value};
 
-    auto test_iter = gko::detail::IteratorFactory<int_type, double_type>(
+    auto test_iter = gko::detail::IteratorFactory<index_type, value_type>(
         vec1.data(), vec2.data(), vec1.size());
-    bool is_sorted = is_sorted_iterator(test_iter.begin(), test_iter.end());
+    bool is_sorted =
+        this->is_sorted_iterator(test_iter.begin(), test_iter.end());
 
     ASSERT_TRUE(is_sorted);
 }
 
 
-TEST_F(IteratorFactory, IncreasingIterator)
+TYPED_TEST(IteratorFactory, IncreasingIterator)
 {
-    std::vector<int_type> vec1{reversed_int};
-    std::vector<double_type> vec2{ordered_double};
+    using index_type = typename TestFixture::index_type;
+    using value_type = typename TestFixture::value_type;
+    std::vector<index_type> vec1{this->reversed_index};
+    std::vector<value_type> vec2{this->ordered_value};
 
-    auto test_iter = gko::detail::IteratorFactory<int_type, double_type>(
+    auto test_iter = gko::detail::IteratorFactory<index_type, value_type>(
         vec1.data(), vec2.data(), vec1.size());
     auto begin = test_iter.begin();
     auto plus_2 = begin + 2;
@@ -187,12 +206,14 @@ TEST_F(IteratorFactory, IncreasingIterator)
 }
 
 
-TEST_F(IteratorFactory, DecreasingIterator)
+TYPED_TEST(IteratorFactory, DecreasingIterator)
 {
-    std::vector<int_type> vec1{reversed_int};
-    std::vector<double_type> vec2{ordered_double};
+    using index_type = typename TestFixture::index_type;
+    using value_type = typename TestFixture::value_type;
+    std::vector<index_type> vec1{this->reversed_index};
+    std::vector<value_type> vec2{this->ordered_value};
 
-    auto test_iter = gko::detail::IteratorFactory<int_type, double_type>(
+    auto test_iter = gko::detail::IteratorFactory<index_type, value_type>(
         vec1.data(), vec2.data(), vec1.size());
     auto iter = test_iter.begin() + 5;
     auto minus_2 = iter - 2;
@@ -216,16 +237,18 @@ TEST_F(IteratorFactory, DecreasingIterator)
 }
 
 
-TEST_F(IteratorFactory, CorrectDereferencing)
+TYPED_TEST(IteratorFactory, CorrectDereferencing)
 {
-    std::vector<int_type> vec1{reversed_int};
-    std::vector<double_type> vec2{ordered_double};
+    using index_type_it = typename TestFixture::index_type;
+    using value_type_it = typename TestFixture::value_type;
+    std::vector<index_type_it> vec1{this->reversed_index};
+    std::vector<value_type_it> vec2{this->ordered_value};
     constexpr int element_to_test = 3;
 
-    auto test_iter = gko::detail::IteratorFactory<int_type, double_type>(
+    auto test_iter = gko::detail::IteratorFactory<index_type_it, value_type_it>(
         vec1.data(), vec2.data(), vec1.size());
     auto begin = test_iter.begin();
-    using value_type = decltype(begin)::value_type;
+    using value_type = typename decltype(begin)::value_type;
     auto to_test_ref = *(begin + element_to_test);
     value_type to_test_pair = to_test_ref;  // Testing implicit conversion
 
@@ -236,51 +259,55 @@ TEST_F(IteratorFactory, CorrectDereferencing)
 }
 
 
-TEST_F(IteratorFactory, CorrectSwapping)
+TYPED_TEST(IteratorFactory, CorrectSwapping)
 {
-    std::vector<int_type> vec1{reversed_int};
-    std::vector<double_type> vec2{ordered_double};
+    using index_type = typename TestFixture::index_type;
+    using value_type = typename TestFixture::value_type;
+    std::vector<index_type> vec1{this->reversed_index};
+    std::vector<value_type> vec2{this->ordered_value};
 
-    auto test_iter = gko::detail::IteratorFactory<int_type, double_type>(
+    auto test_iter = gko::detail::IteratorFactory<index_type, value_type>(
         vec1.data(), vec2.data(), vec1.size());
     auto first_el_reference = *test_iter.begin();
     auto second_el_reference = *(test_iter.begin() + 1);
     swap(first_el_reference, second_el_reference);
 
-    ASSERT_TRUE(vec1[0] == reversed_int[1]);
-    ASSERT_TRUE(vec1[1] == reversed_int[0]);
-    ASSERT_TRUE(vec2[0] == ordered_double[1]);
-    ASSERT_TRUE(vec2[1] == ordered_double[0]);
+    ASSERT_TRUE(vec1[0] == this->reversed_index[1]);
+    ASSERT_TRUE(vec1[1] == this->reversed_index[0]);
+    ASSERT_TRUE(vec2[0] == this->ordered_value[1]);
+    ASSERT_TRUE(vec2[1] == this->ordered_value[0]);
     // Make sure the other values were not touched.
     for (size_t i = 2; i < vec1.size(); ++i) {
-        ASSERT_TRUE(vec1[i] == reversed_int[i]);
-        ASSERT_TRUE(vec2[i] == ordered_double[i]);
+        ASSERT_TRUE(vec1[i] == this->reversed_index[i]);
+        ASSERT_TRUE(vec2[i] == this->ordered_value[i]);
     }
 }
 
 
-TEST_F(IteratorFactory, CorrectHandWrittenSwapping)
+TYPED_TEST(IteratorFactory, CorrectHandWrittenSwapping)
 {
-    std::vector<int_type> vec1{reversed_int};
-    std::vector<double_type> vec2{ordered_double};
+    using index_type = typename TestFixture::index_type;
+    using value_type = typename TestFixture::value_type;
+    std::vector<index_type> vec1{this->reversed_index};
+    std::vector<value_type> vec2{this->ordered_value};
 
-    auto test_iter = gko::detail::IteratorFactory<int_type, double_type>(
+    auto test_iter = gko::detail::IteratorFactory<index_type, value_type>(
         vec1.data(), vec2.data(), vec1.size());
     auto first_el_reference = *test_iter.begin();
     auto second_el_reference = *(test_iter.begin() + 1);
-    auto temp = static_cast<decltype(test_iter.begin())::value_type>(
+    auto temp = static_cast<typename decltype(test_iter.begin())::value_type>(
         first_el_reference);
     first_el_reference = second_el_reference;
     second_el_reference = temp;
 
-    ASSERT_TRUE(vec1[0] == reversed_int[1]);
-    ASSERT_TRUE(vec1[1] == reversed_int[0]);
-    ASSERT_TRUE(vec2[0] == ordered_double[1]);
-    ASSERT_TRUE(vec2[1] == ordered_double[0]);
+    ASSERT_TRUE(vec1[0] == this->reversed_index[1]);
+    ASSERT_TRUE(vec1[1] == this->reversed_index[0]);
+    ASSERT_TRUE(vec2[0] == this->ordered_value[1]);
+    ASSERT_TRUE(vec2[1] == this->ordered_value[0]);
     // Make sure the other values were not touched.
     for (size_t i = 2; i < vec1.size(); ++i) {
-        ASSERT_TRUE(vec1[i] == reversed_int[i]);
-        ASSERT_TRUE(vec2[i] == ordered_double[i]);
+        ASSERT_TRUE(vec1[i] == this->reversed_index[i]);
+        ASSERT_TRUE(vec2[i] == this->ordered_value[i]);
     }
 }
 
