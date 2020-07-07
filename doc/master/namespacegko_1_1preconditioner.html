@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from tags/v1.1.1^0 branch based on master. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from tags/v1.2.0^0 branch based on master. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -70,7 +70,9 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="summary">
-<a href="#nested-classes">Classes</a>  </div>
+<a href="#nested-classes">Classes</a> &#124;
+<a href="#typedef-members">Typedefs</a> &#124;
+<a href="#enum-members">Enumerations</a>  </div>
   <div class="headertitle">
 <div class="title">gko::preconditioner Namespace Reference<div class="ingroups"><a class="el" href="group__LinOp.html">Linear Operators</a> &raquo; <a class="el" href="group__precond.html">Preconditioners</a></div></div>  </div>
 </div><!--header-->
@@ -85,15 +87,63 @@ Classes</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Defines the parameters of the interleaved block storage scheme used by block-Jacobi blocks.  <a href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Ilu.html">Ilu</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The Incomplete LU (ILU) preconditioner solves the equation <img class="formulaInl" alt="$LUx = b$" src="form_20.png"/> for a given lower triangular matrix L, an upper triangular matrix U and the right hand side b (can contain multiple right hand sides).  <a href="classgko_1_1preconditioner_1_1Ilu.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The Incomplete LU (ILU) preconditioner solves the equation <img class="formulaInl" alt="$LUx = b$" src="form_29.png"/> for a given lower triangular matrix L, an upper triangular matrix U and the right hand side b (can contain multiple right hand sides).  <a href="classgko_1_1preconditioner_1_1Ilu.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Isai.html">Isai</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The Incomplete Sparse Approximate Inverse (ISAI) Preconditioner generates an approximate inverse matrix for a given lower triangular matrix L or upper triangular matrix U.  <a href="classgko_1_1preconditioner_1_1Isai.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html">Jacobi</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">A block-Jacobi preconditioner is a block-diagonal linear operator, obtained by inverting the diagonal blocks of the source operator.  <a href="classgko_1_1preconditioner_1_1Jacobi.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
+Typedefs</h2></td></tr>
+<tr class="memitem:a4c6b8c6e439a502dfd929ad854317619"><td class="memTemplParams" colspan="2"><a id="a4c6b8c6e439a502dfd929ad854317619"></a>
+template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </td></tr>
+<tr class="memitem:a4c6b8c6e439a502dfd929ad854317619"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><b>LowerIsai</b> = <a class="el" href="classgko_1_1preconditioner_1_1Isai.html">Isai</a>&lt; isai_type::lower, ValueType, IndexType &gt;</td></tr>
+<tr class="separator:a4c6b8c6e439a502dfd929ad854317619"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a88a221de26fad0fb0461c1528eb19452"><td class="memTemplParams" colspan="2"><a id="a88a221de26fad0fb0461c1528eb19452"></a>
+template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </td></tr>
+<tr class="memitem:a88a221de26fad0fb0461c1528eb19452"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><b>UpperIsai</b> = <a class="el" href="classgko_1_1preconditioner_1_1Isai.html">Isai</a>&lt; isai_type::upper, ValueType, IndexType &gt;</td></tr>
+<tr class="separator:a88a221de26fad0fb0461c1528eb19452"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
+Enumerations</h2></td></tr>
+<tr class="memitem:a918dfc2ae55135bbd6e1e01d0c6031ab"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegko_1_1preconditioner.html#a918dfc2ae55135bbd6e1e01d0c6031ab">isai_type</a> { <b>lower</b>, 
+<b>upper</b>
+ }</td></tr>
+<tr class="memdesc:a918dfc2ae55135bbd6e1e01d0c6031ab"><td class="mdescLeft">&#160;</td><td class="mdescRight">This enum lists the types of the ISAI preconditioner.  <a href="namespacegko_1_1preconditioner.html#a918dfc2ae55135bbd6e1e01d0c6031ab">More...</a><br /></td></tr>
+<tr class="separator:a918dfc2ae55135bbd6e1e01d0c6031ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The Preconditioner namespace. </p>
-</div></div><!-- contents -->
+</div><h2 class="groupheader">Enumeration Type Documentation</h2>
+<a id="a918dfc2ae55135bbd6e1e01d0c6031ab"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a918dfc2ae55135bbd6e1e01d0c6031ab">&#9670;&nbsp;</a></span>isai_type</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="namespacegko_1_1preconditioner.html#a918dfc2ae55135bbd6e1e01d0c6031ab">gko::preconditioner::isai_type</a></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>This enum lists the types of the ISAI preconditioner. </p>
+<p>ISAI can either generate a lower triangular matrix, or an upper triangular matrix. </p>
+
+</div>
+</div>
+</div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by &#160;<a href="http://www.doxygen.org/index.html">

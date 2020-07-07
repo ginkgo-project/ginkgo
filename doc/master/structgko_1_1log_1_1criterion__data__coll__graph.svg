@@ -46,7 +46,7 @@ if (edges && edges.length) {
         </defs>
 
 <script type="text/javascript">
-var viewWidth = 1675;
+var viewWidth = 1679;
 var viewHeight = 165;
 var sectionId = 'dynsection-0';
 </script>
@@ -54,13 +54,13 @@ var sectionId = 'dynsection-0';
 <svg id="graph" class="graph">
 <g id="viewport">
 <title>gko::log::criterion_data</title>
-<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-160.5 1671,-160.5 1671,4 -4,4"/>
+<polygon fill="#ffffff" stroke="transparent" points="-4,4 -4,-160.5 1675,-160.5 1675,4 -4,4"/>
 <!-- Node1 -->
 <g id="node1" class="node">
 <title>Node1</title>
 <g id="a_node1"><a xlink:title="Struct representing Criterion related data.">
-<polygon fill="#bfbfbf" stroke="#000000" points="1538,-75.5 1538,-94.5 1667,-94.5 1667,-75.5 1538,-75.5"/>
-<text text-anchor="middle" x="1602.5" y="-82.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::log::criterion_data</text>
+<polygon fill="#bfbfbf" stroke="#000000" points="1542,-75.5 1542,-94.5 1671,-94.5 1671,-75.5 1542,-75.5"/>
+<text text-anchor="middle" x="1606.5" y="-82.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::log::criterion_data</text>
 </a>
 </g>
 </g>
@@ -68,116 +68,116 @@ var sectionId = 'dynsection-0';
 <g id="node2" class="node">
 <title>Node2</title>
 <g id="a_node2"><a xlink:href="classgko_1_1Array.html" target="_top" xlink:title=" ">
-<polygon fill="#ffffff" stroke="#000000" points="1285,-126 1285,-156 1429,-156 1429,-126 1285,-126"/>
-<text text-anchor="start" x="1293" y="-144" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::Array&lt; gko::stopping</text>
-<text text-anchor="middle" x="1357" y="-133" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">_status &gt;</text>
+<polygon fill="#ffffff" stroke="#000000" points="1289,-126 1289,-156 1433,-156 1433,-126 1289,-126"/>
+<text text-anchor="start" x="1297" y="-144" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::Array&lt; gko::stopping</text>
+<text text-anchor="middle" x="1361" y="-133" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">_status &gt;</text>
 </a>
 </g>
 </g>
 <!-- Node2&#45;&gt;Node1 -->
 <g id="edge1" class="edge">
 <title>Node2&#45;&gt;Node1</title>
-<path fill="none" stroke="#9a32cd" stroke-dasharray="5,2" d="M1439.4195,-134.0446C1465.4745,-130.7396 1494.1942,-125.935 1520,-119 1542.4411,-112.9692 1566.9082,-102.3328 1583.3225,-94.5585"/>
-<polygon fill="#9a32cd" stroke="#9a32cd" points="1438.7039,-130.6056 1429.1974,-135.283 1439.5458,-137.5548 1438.7039,-130.6056"/>
-<text text-anchor="middle" x="1483.5" y="-135" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> status</text>
+<path fill="none" stroke="#9a32cd" stroke-dasharray="5,2" d="M1443.4195,-134.0446C1469.4745,-130.7396 1498.1942,-125.935 1524,-119 1546.4411,-112.9692 1570.9082,-102.3328 1587.3225,-94.5585"/>
+<polygon fill="#9a32cd" stroke="#9a32cd" points="1442.7039,-130.6056 1433.1974,-135.283 1443.5458,-137.5548 1442.7039,-130.6056"/>
+<text text-anchor="middle" x="1487.5" y="-135" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> status</text>
 </g>
 <!-- Node3 -->
 <g id="node3" class="node">
 <title>Node3</title>
 <g id="a_node3"><a xlink:href="classgko_1_1Array.html" target="_top" xlink:title="An Array is a container which encapsulates fixed&#45;sized arrays, stored on the Executor tied to the Arr...">
-<polygon fill="#ffffff" stroke="#000000" points="965,-131.5 965,-150.5 1104,-150.5 1104,-131.5 965,-131.5"/>
-<text text-anchor="middle" x="1034.5" y="-138.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::Array&lt; ValueType &gt;</text>
+<polygon fill="#ffffff" stroke="#000000" points="969,-131.5 969,-150.5 1108,-150.5 1108,-131.5 969,-131.5"/>
+<text text-anchor="middle" x="1038.5" y="-138.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::Array&lt; ValueType &gt;</text>
 </a>
 </g>
 </g>
 <!-- Node3&#45;&gt;Node2 -->
 <g id="edge2" class="edge">
 <title>Node3&#45;&gt;Node2</title>
-<path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M1114.3049,-141C1166.5033,-141 1234.1422,-141 1284.7502,-141"/>
-<polygon fill="#ffa500" stroke="#ffa500" points="1114.0807,-137.5001 1104.0806,-141 1114.0806,-144.5001 1114.0807,-137.5001"/>
-<text text-anchor="middle" x="1203.5" y="-144" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; gko::stopping_status &gt;</text>
+<path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M1118.3049,-141C1170.5033,-141 1238.1422,-141 1288.7502,-141"/>
+<polygon fill="#ffa500" stroke="#ffa500" points="1118.0807,-137.5001 1108.0806,-141 1118.0806,-144.5001 1118.0807,-137.5001"/>
+<text text-anchor="middle" x="1207.5" y="-144" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; gko::stopping_status &gt;</text>
 </g>
 <!-- Node4 -->
 <g id="node4" class="node">
 <title>Node4</title>
 <g id="a_node4"><a xlink:title=" ">
-<polygon fill="#ffffff" stroke="#bfbfbf" points="1293.5,-74 1293.5,-104 1420.5,-104 1420.5,-74 1293.5,-74"/>
-<text text-anchor="start" x="1301.5" y="-92" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">std::unique_ptr&lt; const</text>
-<text text-anchor="middle" x="1357" y="-81" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> gko::LinOp &gt;</text>
+<polygon fill="#ffffff" stroke="#bfbfbf" points="1297.5,-74 1297.5,-104 1424.5,-104 1424.5,-74 1297.5,-74"/>
+<text text-anchor="start" x="1305.5" y="-92" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">std::unique_ptr&lt; const</text>
+<text text-anchor="middle" x="1361" y="-81" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> gko::LinOp &gt;</text>
 </a>
 </g>
 </g>
 <!-- Node4&#45;&gt;Node1 -->
 <g id="edge3" class="edge">
 <title>Node4&#45;&gt;Node1</title>
-<path fill="none" stroke="#9a32cd" stroke-dasharray="5,2" d="M1431.2028,-86.3689C1436.5484,-86.2278 1441.8566,-86.1022 1447,-86 1476.8259,-85.4071 1509.8754,-85.1397 1537.8087,-85.0273"/>
-<polygon fill="#9a32cd" stroke="#9a32cd" points="1430.8081,-82.8785 1420.9102,-86.6575 1431.0044,-89.8758 1430.8081,-82.8785"/>
-<text text-anchor="middle" x="1483.5" y="-111" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> residual_norm</text>
-<text text-anchor="middle" x="1483.5" y="-100" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">solution</text>
-<text text-anchor="middle" x="1483.5" y="-89" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">residual</text>
+<path fill="none" stroke="#9a32cd" stroke-dasharray="5,2" d="M1435.2028,-86.3689C1440.5484,-86.2278 1445.8566,-86.1022 1451,-86 1480.8259,-85.4071 1513.8754,-85.1397 1541.8087,-85.0273"/>
+<polygon fill="#9a32cd" stroke="#9a32cd" points="1434.8081,-82.8785 1424.9102,-86.6575 1435.0044,-89.8758 1434.8081,-82.8785"/>
+<text text-anchor="middle" x="1487.5" y="-111" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> residual_norm</text>
+<text text-anchor="middle" x="1487.5" y="-100" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">solution</text>
+<text text-anchor="middle" x="1487.5" y="-89" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">residual</text>
 </g>
 <!-- Node5 -->
 <g id="node5" class="node">
 <title>Node5</title>
 <g id="a_node5"><a xlink:title="STL class.">
-<polygon fill="#ffffff" stroke="#bfbfbf" points="975.5,-79.5 975.5,-98.5 1093.5,-98.5 1093.5,-79.5 975.5,-79.5"/>
-<text text-anchor="middle" x="1034.5" y="-86.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">std::unique_ptr&lt; T &gt;</text>
+<polygon fill="#ffffff" stroke="#bfbfbf" points="979.5,-79.5 979.5,-98.5 1097.5,-98.5 1097.5,-79.5 979.5,-79.5"/>
+<text text-anchor="middle" x="1038.5" y="-86.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">std::unique_ptr&lt; T &gt;</text>
 </a>
 </g>
 </g>
 <!-- Node5&#45;&gt;Node4 -->
 <g id="edge4" class="edge">
 <title>Node5&#45;&gt;Node4</title>
-<path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M1103.8744,-89C1160.0744,-89 1238.6202,-89 1293.2543,-89"/>
-<polygon fill="#ffa500" stroke="#ffa500" points="1103.6515,-85.5001 1093.6515,-89 1103.6514,-92.5001 1103.6515,-85.5001"/>
-<text text-anchor="middle" x="1203.5" y="-92" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; const gko::LinOp &gt;</text>
+<path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M1107.8744,-89C1164.0744,-89 1242.6202,-89 1297.2543,-89"/>
+<polygon fill="#ffa500" stroke="#ffa500" points="1107.6515,-85.5001 1097.6515,-89 1107.6514,-92.5001 1107.6515,-85.5001"/>
+<text text-anchor="middle" x="1207.5" y="-92" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; const gko::LinOp &gt;</text>
 </g>
 <!-- Node6 -->
 <g id="node6" class="node">
 <title>Node6</title>
 <g id="a_node6"><a xlink:href="classgko_1_1stop_1_1Criterion.html" target="_top" xlink:title="The Criterion class is a base class for all stopping criteria.">
-<polygon fill="#ffffff" stroke="#000000" points="1302,-35.5 1302,-54.5 1412,-54.5 1412,-35.5 1302,-35.5"/>
-<text text-anchor="middle" x="1357" y="-42.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::stop::Criterion</text>
+<polygon fill="#ffffff" stroke="#000000" points="1306,-35.5 1306,-54.5 1416,-54.5 1416,-35.5 1306,-35.5"/>
+<text text-anchor="middle" x="1361" y="-42.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::stop::Criterion</text>
 </a>
 </g>
 </g>
 <!-- Node6&#45;&gt;Node1 -->
 <g id="edge5" class="edge">
 <title>Node6&#45;&gt;Node1</title>
-<path fill="none" stroke="#9a32cd" stroke-dasharray="5,2" d="M1422.4166,-54.6108C1452.2151,-59.0972 1487.9225,-64.625 1520,-70 1530.1939,-71.7081 1541.0792,-73.6226 1551.4883,-75.4975"/>
-<polygon fill="#9a32cd" stroke="#9a32cd" points="1422.5471,-51.0913 1412.1385,-53.0692 1421.5088,-58.0138 1422.5471,-51.0913"/>
-<text text-anchor="middle" x="1483.5" y="-73" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> criterion</text>
+<path fill="none" stroke="#9a32cd" stroke-dasharray="5,2" d="M1426.4166,-54.6108C1456.2151,-59.0972 1491.9225,-64.625 1524,-70 1534.1939,-71.7081 1545.0792,-73.6226 1555.4883,-75.4975"/>
+<polygon fill="#9a32cd" stroke="#9a32cd" points="1426.5471,-51.0913 1416.1385,-53.0692 1425.5088,-58.0138 1426.5471,-51.0913"/>
+<text text-anchor="middle" x="1487.5" y="-73" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> criterion</text>
 </g>
 <!-- Node7 -->
 <g id="node7" class="node">
 <title>Node7</title>
 <g id="a_node7"><a xlink:href="classgko_1_1EnableAbstractPolymorphicObject.html" target="_top" xlink:title=" ">
-<polygon fill="#ffffff" stroke="#000000" points="947,-30 947,-60 1122,-60 1122,-30 947,-30"/>
-<text text-anchor="start" x="955" y="-48" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableAbstractPolymorphic</text>
-<text text-anchor="middle" x="1034.5" y="-37" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Object&lt; Criterion &gt;</text>
+<polygon fill="#ffffff" stroke="#000000" points="951,-30 951,-60 1126,-60 1126,-30 951,-30"/>
+<text text-anchor="start" x="959" y="-48" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableAbstractPolymorphic</text>
+<text text-anchor="middle" x="1038.5" y="-37" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Object&lt; Criterion &gt;</text>
 </a>
 </g>
 </g>
 <!-- Node7&#45;&gt;Node6 -->
 <g id="edge6" class="edge">
 <title>Node7&#45;&gt;Node6</title>
-<path fill="none" stroke="#191970" d="M1132.4184,-45C1187.9349,-45 1255.3591,-45 1301.7572,-45"/>
-<polygon fill="#191970" stroke="#191970" points="1132.1986,-41.5001 1122.1986,-45 1132.1985,-48.5001 1132.1986,-41.5001"/>
+<path fill="none" stroke="#191970" d="M1136.4184,-45C1191.9349,-45 1259.3591,-45 1305.7572,-45"/>
+<polygon fill="#191970" stroke="#191970" points="1136.1986,-41.5001 1126.1986,-45 1136.1985,-48.5001 1136.1986,-41.5001"/>
 </g>
 <!-- Node8 -->
 <g id="node8" class="node">
 <title>Node8</title>
 <g id="a_node8"><a xlink:href="classgko_1_1PolymorphicObject.html" target="_top" xlink:title="A PolymorphicObject is the abstract base for all &quot;heavy&quot; objects in Ginkgo that behave polymorphicall...">
-<polygon fill="#ffffff" stroke="#000000" points="679.5,-60.5 679.5,-79.5 812.5,-79.5 812.5,-60.5 679.5,-60.5"/>
-<text text-anchor="middle" x="746" y="-67.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::PolymorphicObject</text>
+<polygon fill="#ffffff" stroke="#000000" points="681.5,-60.5 681.5,-79.5 814.5,-79.5 814.5,-60.5 681.5,-60.5"/>
+<text text-anchor="middle" x="748" y="-67.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::PolymorphicObject</text>
 </a>
 </g>
 </g>
 <!-- Node8&#45;&gt;Node7 -->
 <g id="edge7" class="edge">
 <title>Node8&#45;&gt;Node7</title>
-<path fill="none" stroke="#191970" d="M822.5964,-63.3625C860.8442,-60.0482 907.2959,-56.0229 946.9493,-52.5867"/>
-<polygon fill="#191970" stroke="#191970" points="822.2104,-59.8828 812.55,-64.2331 822.8148,-66.8566 822.2104,-59.8828"/>
+<path fill="none" stroke="#191970" d="M824.826,-63.3885C863.5911,-60.0524 910.7842,-55.991 950.9488,-52.5345"/>
+<polygon fill="#191970" stroke="#191970" points="824.3096,-59.9199 814.6466,-64.2645 824.9099,-66.8941 824.3096,-59.9199"/>
 </g>
 <!-- Node9 -->
 <g id="node9" class="node">
@@ -192,8 +192,8 @@ var sectionId = 'dynsection-0';
 <!-- Node9&#45;&gt;Node8 -->
 <g id="edge8" class="edge">
 <title>Node9&#45;&gt;Node8</title>
-<path fill="none" stroke="#191970" d="M622.5087,-70C641.193,-70 661.0171,-70 679.1863,-70"/>
-<polygon fill="#191970" stroke="#191970" points="622.2636,-66.5001 612.2636,-70 622.2636,-73.5001 622.2636,-66.5001"/>
+<path fill="none" stroke="#191970" d="M622.1452,-70C641.6376,-70 662.4252,-70 681.3734,-70"/>
+<polygon fill="#191970" stroke="#191970" points="622.0866,-66.5001 612.0865,-70 622.0865,-73.5001 622.0866,-66.5001"/>
 </g>
 <!-- Node10 -->
 <g id="node10" class="node">
@@ -238,19 +238,19 @@ var sectionId = 'dynsection-0';
 <g id="node12" class="node">
 <title>Node12</title>
 <g id="a_node12"><a xlink:href="classgko_1_1EnableAbstractPolymorphicObject.html" target="_top" xlink:title="This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne...">
-<polygon fill="#ffffff" stroke="#000000" points="649,-.5 649,-41.5 843,-41.5 843,-.5 649,-.5"/>
+<polygon fill="#ffffff" stroke="#000000" points="649,-.5 649,-41.5 847,-41.5 847,-.5 649,-.5"/>
 <text text-anchor="start" x="657" y="-29.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::EnableAbstractPolymorphic</text>
-<text text-anchor="start" x="657" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Object&lt; AbstactObject, Polymorphic</text>
-<text text-anchor="middle" x="746" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Base &gt;</text>
+<text text-anchor="start" x="657" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Object&lt; AbstractObject, Polymorphic</text>
+<text text-anchor="middle" x="748" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">Base &gt;</text>
 </a>
 </g>
 </g>
 <!-- Node12&#45;&gt;Node7 -->
 <g id="edge12" class="edge">
 <title>Node12&#45;&gt;Node7</title>
-<path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M853.5971,-29.9509C884.3418,-32.5085 917.4655,-35.264 946.8612,-37.7094"/>
-<polygon fill="#ffa500" stroke="#ffa500" points="853.5265,-26.433 843.2707,-29.0918 852.9461,-33.4089 853.5265,-26.433"/>
-<text text-anchor="middle" x="895" y="-39" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; Criterion &gt;</text>
+<path fill="none" stroke="#ffa500" stroke-dasharray="5,2" d="M857.1306,-30.016C888.1138,-32.5757 921.4383,-35.3288 950.9634,-37.7681"/>
+<polygon fill="#ffa500" stroke="#ffa500" points="857.4154,-26.5276 847.1611,-29.1923 856.839,-33.5039 857.4154,-26.5276"/>
+<text text-anchor="middle" x="899" y="-39" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> &lt; Criterion &gt;</text>
 </g>
 <!-- Node13 -->
 <g id="node13" class="node">
@@ -264,8 +264,8 @@ var sectionId = 'dynsection-0';
 <!-- Node13&#45;&gt;Node12 -->
 <g id="edge13" class="edge">
 <title>Node13&#45;&gt;Node12</title>
-<path fill="none" stroke="#191970" d="M606.1844,-21C619.6965,-21 634.3508,-21 648.916,-21"/>
-<polygon fill="#191970" stroke="#191970" points="606.0947,-17.5001 596.0946,-21 606.0946,-24.5001 606.0947,-17.5001"/>
+<path fill="none" stroke="#191970" d="M606.1202,-21C619.5722,-21 634.1713,-21 648.7162,-21"/>
+<polygon fill="#191970" stroke="#191970" points="606.077,-17.5001 596.0769,-21 606.0769,-24.5001 606.077,-17.5001"/>
 </g>
 </g>
 </svg>

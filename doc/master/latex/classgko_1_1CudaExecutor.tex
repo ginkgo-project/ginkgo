@@ -34,15 +34,18 @@ void \mbox{\hyperlink{classgko_1_1CudaExecutor_a32a73a74403376d774933abf9663d59e
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_a7cfa915eadd2329eb897dc1ee2712488}\label{classgko_1_1CudaExecutor_a7cfa915eadd2329eb897dc1ee2712488}} 
 int \mbox{\hyperlink{classgko_1_1CudaExecutor_a7cfa915eadd2329eb897dc1ee2712488}{get\+\_\+device\+\_\+id}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the C\+U\+DA device id of the device associated to this executor. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{classgko_1_1CudaExecutor_a213c222fd8ef58952328fbe3a9b5ff39}\label{classgko_1_1CudaExecutor_a213c222fd8ef58952328fbe3a9b5ff39}} 
-int \mbox{\hyperlink{classgko_1_1CudaExecutor_a213c222fd8ef58952328fbe3a9b5ff39}{get\+\_\+num\+\_\+cores\+\_\+per\+\_\+sm}} () const noexcept
-\begin{DoxyCompactList}\small\item\em Get the number of cores per SM of this executor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1CudaExecutor_a245c1c35a18e6534d87ef6e9cad24f7c}\label{classgko_1_1CudaExecutor_a245c1c35a18e6534d87ef6e9cad24f7c}} 
+int \mbox{\hyperlink{classgko_1_1CudaExecutor_a245c1c35a18e6534d87ef6e9cad24f7c}{get\+\_\+num\+\_\+warps\+\_\+per\+\_\+sm}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the number of warps per SM of this executor. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_a449c2bf9c51b58a04fdb8b4a73377820}\label{classgko_1_1CudaExecutor_a449c2bf9c51b58a04fdb8b4a73377820}} 
 int \mbox{\hyperlink{classgko_1_1CudaExecutor_a449c2bf9c51b58a04fdb8b4a73377820}{get\+\_\+num\+\_\+multiprocessor}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the number of multiprocessor of this executor. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_aa9d77db0b87322a8bef12380029b5310}\label{classgko_1_1CudaExecutor_aa9d77db0b87322a8bef12380029b5310}} 
 int \mbox{\hyperlink{classgko_1_1CudaExecutor_aa9d77db0b87322a8bef12380029b5310}{get\+\_\+num\+\_\+warps}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the number of warps of this executor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1CudaExecutor_a6a3894e9f4d98b5f7523e067c88ef521}\label{classgko_1_1CudaExecutor_a6a3894e9f4d98b5f7523e067c88ef521}} 
+int \mbox{\hyperlink{classgko_1_1CudaExecutor_a6a3894e9f4d98b5f7523e067c88ef521}{get\+\_\+warp\+\_\+size}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the warp size of this executor. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_a3868f53f82b6398acb1ba1f9647a6e46}\label{classgko_1_1CudaExecutor_a3868f53f82b6398acb1ba1f9647a6e46}} 
 int \mbox{\hyperlink{classgko_1_1CudaExecutor_a3868f53f82b6398acb1ba1f9647a6e46}{get\+\_\+major\+\_\+version}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Get the major verion of compute capability. \end{DoxyCompactList}\item 
@@ -56,7 +59,7 @@ cusparse\+Context $\ast$ \mbox{\hyperlink{classgko_1_1CudaExecutor_ade84197157cc
 \doxysubsection*{Static Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-static std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}} $>$ \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{create}} (int device\+\_\+id, std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ master)
+static std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}} $>$ \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{create}} (int device\+\_\+id, std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ master, bool device\+\_\+reset=false)
 \begin{DoxyCompactList}\small\item\em Creates a new \mbox{\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}}. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}\label{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}} 
 static int \mbox{\hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{get\+\_\+num\+\_\+devices}} ()
@@ -67,11 +70,11 @@ static int \mbox{\hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c
 This is the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} subclass which represents the C\+U\+DA device. 
 
 \doxysubsection{Member Function Documentation}
-\mbox{\Hypertarget{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}\label{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}} 
+\mbox{\Hypertarget{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}\label{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}} 
 \index{gko::CudaExecutor@{gko::CudaExecutor}!create@{create}}
 \index{create@{create}!gko::CudaExecutor@{gko::CudaExecutor}}
 \doxysubsubsection{\texorpdfstring{create()}{create()}}
-{\footnotesize\ttfamily static std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}}$>$ gko\+::\+Cuda\+Executor\+::create (\begin{DoxyParamCaption}\item[{int}]{device\+\_\+id,  }\item[{std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{master }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+{\footnotesize\ttfamily static std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1CudaExecutor}{Cuda\+Executor}}$>$ gko\+::\+Cuda\+Executor\+::create (\begin{DoxyParamCaption}\item[{int}]{device\+\_\+id,  }\item[{std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{master,  }\item[{bool}]{device\+\_\+reset = {\ttfamily false} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
 
 
 
@@ -167,4 +170,4 @@ Implements \mbox{\hyperlink{classgko_1_1Executor_a1de8e2668b76e66690acf5eef9e832
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/executor.\+hpp (8f70a7c81)\end{DoxyCompactItemize}
+ginkgo/core/base/executor.\+hpp (9ea42f3a3)\end{DoxyCompactItemize}

@@ -24,6 +24,9 @@ Collaboration diagram for gko\+::Combination$<$ Value\+Type $>$\+:
 \item 
 \mbox{\Hypertarget{classgko_1_1Combination_a503b5d7f5f35f6ff697e44a850f10f9f}\label{classgko_1_1Combination_a503b5d7f5f35f6ff697e44a850f10f9f}} 
 using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1Combination_a0af10b245e9cf1131188dd8c13c4ec6d}\label{classgko_1_1Combination_a0af10b245e9cf1131188dd8c13c4ec6d}} 
+using {\bfseries transposed\+\_\+type} = \mbox{\hyperlink{classgko_1_1Combination}{Combination}}$<$ Value\+Type $>$
 \end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
@@ -31,7 +34,11 @@ using {\bfseries value\+\_\+type} = Value\+Type
 const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ $>$ \& \mbox{\hyperlink{classgko_1_1Combination_ad5844423c39d70ee90d5dc432c83261f}{get\+\_\+coefficients}} () const noexcept
 \begin{DoxyCompactList}\small\item\em Returns a list of coefficients of the combination. \end{DoxyCompactList}\item 
 const std\+::vector$<$ std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ $>$ \& \mbox{\hyperlink{classgko_1_1Combination_a75a81c2b91441ddea98949ef54f62441}{get\+\_\+operators}} () const noexcept
-\begin{DoxyCompactList}\small\item\em Returns a list of operators of the combination. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Returns a list of operators of the combination. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1Combination_a61f427d17d4b8ddae97b1f7de8d5eb3e}{transpose}} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1Combination_acc7a84511ba0e200ef728a3585183dfd}{conj\+\_\+transpose}} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Friends}
 \begin{DoxyCompactItemize}
 \item 
@@ -63,6 +70,24 @@ The \mbox{\hyperlink{classgko_1_1Combination}{Combination}} class can be used to
 
 
 \doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1Combination_acc7a84511ba0e200ef728a3585183dfd}\label{classgko_1_1Combination_acc7a84511ba0e200ef728a3585183dfd}} 
+\index{gko::Combination$<$ ValueType $>$@{gko::Combination$<$ ValueType $>$}!conj\_transpose@{conj\_transpose}}
+\index{conj\_transpose@{conj\_transpose}!gko::Combination$<$ ValueType $>$@{gko::Combination$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{conj\_transpose()}{conj\_transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1Combination}{gko\+::\+Combination}}$<$ Value\+Type $>$\+::conj\+\_\+transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new conjugate transposed object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Transposable_ab41b669288740cf2a6f7bf76e875b077}{gko\+::\+Transposable}}.
+
 \mbox{\Hypertarget{classgko_1_1Combination_ad5844423c39d70ee90d5dc432c83261f}\label{classgko_1_1Combination_ad5844423c39d70ee90d5dc432c83261f}} 
 \index{gko::Combination$<$ ValueType $>$@{gko::Combination$<$ ValueType $>$}!get\_coefficients@{get\_coefficients}}
 \index{get\_coefficients@{get\_coefficients}!gko::Combination$<$ ValueType $>$@{gko::Combination$<$ ValueType $>$}}
@@ -91,8 +116,26 @@ Returns a list of operators of the combination.
 \begin{DoxyReturn}{Returns}
 a list of operators 
 \end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1Combination_a61f427d17d4b8ddae97b1f7de8d5eb3e}\label{classgko_1_1Combination_a61f427d17d4b8ddae97b1f7de8d5eb3e}} 
+\index{gko::Combination$<$ ValueType $>$@{gko::Combination$<$ ValueType $>$}!transpose@{transpose}}
+\index{transpose@{transpose}!gko::Combination$<$ ValueType $>$@{gko::Combination$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{transpose()}{transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1Combination}{gko\+::\+Combination}}$<$ Value\+Type $>$\+::transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new transposed object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Transposable_a5c6b778b71b47d53e0bda6ccf894d318}{gko\+::\+Transposable}}.
+
 
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/combination.\+hpp (b6e1321a0)\end{DoxyCompactItemize}
+ginkgo/core/base/combination.\+hpp (5bb6c1e23)\end{DoxyCompactItemize}

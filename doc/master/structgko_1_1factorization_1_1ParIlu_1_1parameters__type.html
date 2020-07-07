@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from tags/v1.1.1^0 branch based on master. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from tags/v1.2.0^0 branch based on master. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -80,7 +80,7 @@ $(function() {
 <div class="dynheader">
 Collaboration diagram for gko::factorization::ParIlu&lt; ValueType, IndexType &gt;::parameters_type:</div>
 <div class="dyncontent">
-<div class="center"><iframe scrolling="no" frameborder="0" src="structgko_1_1factorization_1_1ParIlu_1_1parameters__type__coll__graph.svg" width="266" height="306"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe>
+<div class="center"><div class="zoom"><iframe scrolling="no" frameborder="0" src="structgko_1_1factorization_1_1ParIlu_1_1parameters__type__coll__graph.svg" width="100%" height="401"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
 </div>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
@@ -94,6 +94,14 @@ template&lt;typename... Args&gt; </td></tr>
 template&lt;typename... Args&gt; </td></tr>
 <tr class="memitem:ac4d30b8ad0bce259958e418600151e3d"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><b>with_skip_sorting</b> (Args &amp;&amp;... _value) const -&gt; const ::gko::xstd::decay_t&lt; decltype(*this)&gt; &amp;</td></tr>
 <tr class="separator:ac4d30b8ad0bce259958e418600151e3d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a83a6273d5110fec0183d7ec6daaaafb8"><td class="memTemplParams" colspan="2"><a id="a83a6273d5110fec0183d7ec6daaaafb8"></a>
+template&lt;typename... Args&gt; </td></tr>
+<tr class="memitem:a83a6273d5110fec0183d7ec6daaaafb8"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><b>with_l_strategy</b> (Args &amp;&amp;... _value) const -&gt; const ::gko::xstd::decay_t&lt; decltype(*this)&gt; &amp;</td></tr>
+<tr class="separator:a83a6273d5110fec0183d7ec6daaaafb8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aed97ed69cb29eb6eb09cfa97bf53c9cd"><td class="memTemplParams" colspan="2"><a id="aed97ed69cb29eb6eb09cfa97bf53c9cd"></a>
+template&lt;typename... Args&gt; </td></tr>
+<tr class="memitem:aed97ed69cb29eb6eb09cfa97bf53c9cd"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><b>with_u_strategy</b> (Args &amp;&amp;... _value) const -&gt; const ::gko::xstd::decay_t&lt; decltype(*this)&gt; &amp;</td></tr>
+<tr class="separator:aed97ed69cb29eb6eb09cfa97bf53c9cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_structgko_1_1enable__parameters__type"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_structgko_1_1enable__parameters__type')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="structgko_1_1enable__parameters__type.html">gko::enable_parameters_type&lt; parameters_type, Factory &gt;</a></td></tr>
 <tr class="memitem:a07bc1963e83201576761e013f22ce621 inherit pub_methods_structgko_1_1enable__parameters__type"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; Factory &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1enable__parameters__type.html#a07bc1963e83201576761e013f22ce621">on</a> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec) const</td></tr>
 <tr class="memdesc:a07bc1963e83201576761e013f22ce621 inherit pub_methods_structgko_1_1enable__parameters__type"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new factory on the specified executor.  <a href="structgko_1_1enable__parameters__type.html#a07bc1963e83201576761e013f22ce621">More...</a><br /></td></tr>
@@ -107,6 +115,12 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a89a795e164b7bbe60dbccf0484c1d411"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a89a795e164b7bbe60dbccf0484c1d411">skip_sorting</a> { false }</td></tr>
 <tr class="memdesc:a89a795e164b7bbe60dbccf0484c1d411"><td class="mdescLeft">&#160;</td><td class="mdescRight"><code>true</code> means it is known that the matrix given to this factory will be sorted first by row, then by column index, <code>false</code> means it is unknown or not sorted, so an additional sorting step will be performed during the factorization (it will not change the matrix given).  <a href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a89a795e164b7bbe60dbccf0484c1d411">More...</a><br /></td></tr>
 <tr class="separator:a89a795e164b7bbe60dbccf0484c1d411"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaf05c164c8febe00d4e93be2d80d3d02"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; typename <a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html">l_matrix_type::strategy_type</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#aaf05c164c8febe00d4e93be2d80d3d02">l_strategy</a> { nullptr }</td></tr>
+<tr class="memdesc:aaf05c164c8febe00d4e93be2d80d3d02"><td class="mdescLeft">&#160;</td><td class="mdescRight">Strategy which will be used by the L matrix.  <a href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#aaf05c164c8febe00d4e93be2d80d3d02">More...</a><br /></td></tr>
+<tr class="separator:aaf05c164c8febe00d4e93be2d80d3d02"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a124fddcb459ca8500df7709325bbf6a2"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; typename <a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html">u_matrix_type::strategy_type</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a124fddcb459ca8500df7709325bbf6a2">u_strategy</a> { nullptr }</td></tr>
+<tr class="memdesc:a124fddcb459ca8500df7709325bbf6a2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Strategy which will be used by the U matrix.  <a href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a124fddcb459ca8500df7709325bbf6a2">More...</a><br /></td></tr>
+<tr class="separator:a124fddcb459ca8500df7709325bbf6a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="inherited"></a>
 Additional Inherited Members</h2></td></tr>
@@ -143,6 +157,33 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 
 </div>
 </div>
+<a id="aaf05c164c8febe00d4e93be2d80d3d02"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaf05c164c8febe00d4e93be2d80d3d02">&#9670;&nbsp;</a></span>l_strategy</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::shared_ptr&lt;typename <a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html">l_matrix_type::strategy_type</a>&gt; <a class="el" href="classgko_1_1factorization_1_1ParIlu.html">gko::factorization::ParIlu</a>&lt; ValueType, IndexType &gt;::parameters_type::l_strategy { nullptr }</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">mutable</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Strategy which will be used by the L matrix. </p>
+<p>The default value <code>nullptr</code> will result in the strategy <code>classical</code>. </p>
+
+</div>
+</div>
 <a id="a89a795e164b7bbe60dbccf0484c1d411"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a89a795e164b7bbe60dbccf0484c1d411">&#9670;&nbsp;</a></span>skip_sorting</h2>
 
@@ -171,8 +212,35 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 
 </div>
 </div>
+<a id="a124fddcb459ca8500df7709325bbf6a2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a124fddcb459ca8500df7709325bbf6a2">&#9670;&nbsp;</a></span>u_strategy</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::shared_ptr&lt;typename <a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html">u_matrix_type::strategy_type</a>&gt; <a class="el" href="classgko_1_1factorization_1_1ParIlu.html">gko::factorization::ParIlu</a>&lt; ValueType, IndexType &gt;::parameters_type::u_strategy { nullptr }</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">mutable</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Strategy which will be used by the U matrix. </p>
+<p>The default value <code>nullptr</code> will result in the strategy <code>classical</code>. </p>
+
+</div>
+</div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
-<li>ginkgo/core/factorization/<a class="el" href="par__ilu_8hpp_source.html">par_ilu.hpp (1dbcef9a5)</a></li>
+<li>ginkgo/core/factorization/<a class="el" href="par__ilu_8hpp_source.html">par_ilu.hpp (db60b9179)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

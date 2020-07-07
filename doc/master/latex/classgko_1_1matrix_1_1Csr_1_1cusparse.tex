@@ -2,6 +2,15 @@
 \label{classgko_1_1matrix_1_1Csr_1_1cusparse}\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse@{gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse}}
 
 
+cusparse is a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} which uses the sparselib csr.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/matrix/csr.\+hpp$>$}
+
+
+
 Collaboration diagram for gko\+::matrix\+::Csr$<$ Value\+Type, Index\+Type $>$\+::cusparse\+:
 \nopagebreak
 \begin{figure}[H]
@@ -13,14 +22,91 @@ Collaboration diagram for gko\+::matrix\+::Csr$<$ Value\+Type, Index\+Type $>$\+
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1cusparse_ad913d7450cec714fda555ac1a0c781bc}\label{classgko_1_1matrix_1_1Csr_1_1cusparse_ad913d7450cec714fda555ac1a0c781bc}} 
-void {\bfseries process} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ \&mtx\+\_\+row\+\_\+ptrs, \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ $\ast$mtx\+\_\+srow)
-\item 
-\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1cusparse_a3a11fb0655b828fb590a87f5f83e9373}\label{classgko_1_1matrix_1_1Csr_1_1cusparse_a3a11fb0655b828fb590a87f5f83e9373}} 
-int64\+\_\+t {\bfseries clac\+\_\+size} (const int64\+\_\+t nnz)
-\end{DoxyCompactItemize}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1cusparse_a9aae722e5f5838291bf1f1798277a83c}\label{classgko_1_1matrix_1_1Csr_1_1cusparse_a9aae722e5f5838291bf1f1798277a83c}} 
+\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1cusparse_a9aae722e5f5838291bf1f1798277a83c}{cusparse}} ()
+\begin{DoxyCompactList}\small\item\em Creates a cusparse strategy. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1cusparse_acf64bdc81eee1fb3f46fd80f5d920939}{process}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ \&mtx\+\_\+row\+\_\+ptrs, \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ $\ast$mtx\+\_\+srow) override
+\begin{DoxyCompactList}\small\item\em Computes srow according to row pointers. \end{DoxyCompactList}\item 
+int64\+\_\+t \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1cusparse_a094614c818d821cb0a71a4266fbef2d0}{clac\+\_\+size}} (const int64\+\_\+t nnz) override
+\begin{DoxyCompactList}\small\item\em Computes the srow size according to the number of nonzeros. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1cusparse_aaa34a27d6d9fb0d7bef655ad9a4fc686}{copy}} () override
+\begin{DoxyCompactList}\small\item\em Copy a strategy. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::cusparse}
+
+cusparse is a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} which uses the sparselib csr. 
+
+\begin{DoxyNote}{Note}
+cusparse is also known to the hip executor which converts between cuda and hip. 
+\end{DoxyNote}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1cusparse_a094614c818d821cb0a71a4266fbef2d0}\label{classgko_1_1matrix_1_1Csr_1_1cusparse_a094614c818d821cb0a71a4266fbef2d0}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse@{gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse}!clac\_size@{clac\_size}}
+\index{clac\_size@{clac\_size}!gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse@{gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse}}
+\doxysubsubsection{\texorpdfstring{clac\_size()}{clac\_size()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+int64\+\_\+t \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::cusparse\+::clac\+\_\+size (\begin{DoxyParamCaption}\item[{const int64\+\_\+t}]{nnz }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Computes the srow size according to the number of nonzeros. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em nnz} & the number of nonzeros\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the size of srow 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type_a07a6dda9dd04ed8abd914f3a69f330f2}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1cusparse_aaa34a27d6d9fb0d7bef655ad9a4fc686}\label{classgko_1_1matrix_1_1Csr_1_1cusparse_aaa34a27d6d9fb0d7bef655ad9a4fc686}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse@{gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse}!copy@{copy}}
+\index{copy@{copy}!gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse@{gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse}}
+\doxysubsubsection{\texorpdfstring{copy()}{copy()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}}$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::cusparse\+::copy (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Copy a strategy. 
+
+This is a workaround until strategies are revamped, since strategies like {\ttfamily automatical} do not work when actually shared. 
+
+Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type_adf3dc78938ffb991608b272447db6a68}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1cusparse_acf64bdc81eee1fb3f46fd80f5d920939}\label{classgko_1_1matrix_1_1Csr_1_1cusparse_acf64bdc81eee1fb3f46fd80f5d920939}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse@{gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse}!process@{process}}
+\index{process@{process}!gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse@{gko::matrix::Csr$<$ ValueType, IndexType $>$::cusparse}}
+\doxysubsubsection{\texorpdfstring{process()}{process()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::cusparse\+::process (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ \&}]{mtx\+\_\+row\+\_\+ptrs,  }\item[{\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ $\ast$}]{mtx\+\_\+srow }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Computes srow according to row pointers. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em mtx\+\_\+row\+\_\+ptrs} & the row pointers of the matrix \\
+\hline
+{\em mtx\+\_\+srow} & the srow of the matrix \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type_a58bda9208766e57d861262d4059b65b4}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
+
 
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/matrix/csr.\+hpp (2f671dafa)\end{DoxyCompactItemize}
+ginkgo/core/matrix/csr.\+hpp (32a629d5b)\end{DoxyCompactItemize}

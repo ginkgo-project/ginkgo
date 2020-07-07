@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['layout_5ftype_1287',['layout_type',['../namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68',1,'gko']]]
+  ['isai_5ftype_1465',['isai_type',['../namespacegko_1_1preconditioner.html#a918dfc2ae55135bbd6e1e01d0c6031ab',1,'gko::preconditioner']]]
 ];

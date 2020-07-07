@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/factorization/par_ilu.hpp (1dbcef9a5) Source File</title>
+<title>Ginkgo: ginkgo/core/factorization/par_ilu.hpp (db60b9179) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from tags/v1.1.1^0 branch based on master. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from tags/v1.2.0^0 branch based on master. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -74,7 +74,7 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 <div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">/*******************************&lt;GINKGO LICENSE&gt;******************************</span></div>
-<div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;<span class="comment">Copyright (c) 2017-2019, the Ginkgo authors</span></div>
+<div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;<span class="comment">Copyright (c) 2017-2020, the Ginkgo authors</span></div>
 <div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment">All rights reserved.</span></div>
 <div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment"></span> </div>
 <div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment">Redistribution and use in source and binary forms, with or without</span></div>
@@ -119,7 +119,7 @@ $(function() {
 <div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160; </div>
 <div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160; </div>
 <div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespacegko.html">gko</a> {</div>
-<div class="line"><a name="l00052"></a><span class="lineno"><a class="line" href="namespacegko_1_1factorization.html">   52</a></span>&#160;<span class="keyword">namespace </span>factorization {</div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;<span class="keyword">namespace </span>factorization {</div>
 <div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160; </div>
 <div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160; </div>
 <div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType = default_precision, <span class="keyword">typename</span> IndexType = <span class="keywordtype">int</span>32&gt;</div>
@@ -155,44 +155,64 @@ $(function() {
 <div class="line"><a name="l00130"></a><span class="lineno"><a class="line" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#acf87db3479a61d53d301101b51e419c6">  130</a></span>&#160;        <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">size_type</a> <a class="code" href="group__LinOp.html#gaa037309884bbd0562b897cee95dd91c8">GKO_FACTORY_PARAMETER</a>(iterations, 0);</div>
 <div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160; </div>
 <div class="line"><a name="l00149"></a><span class="lineno"><a class="line" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a89a795e164b7bbe60dbccf0484c1d411">  149</a></span>&#160;        <span class="keywordtype">bool</span> <a class="code" href="group__LinOp.html#gaa037309884bbd0562b897cee95dd91c8">GKO_FACTORY_PARAMETER</a>(skip_sorting, <span class="keyword">false</span>);</div>
-<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;    };</div>
-<div class="line"><a name="l00151"></a><span class="lineno"><a class="line" href="classgko_1_1factorization_1_1ParIlu_1_1Factory.html">  151</a></span>&#160;    <a class="code" href="group__LinOp.html#ga8e0af90ec2414b768266f77cedffc309">GKO_ENABLE_LIN_OP_FACTORY</a>(<a class="code" href="classgko_1_1factorization_1_1ParIlu.html">ParIlu</a>, parameters, <a class="code" href="classgko_1_1factorization_1_1ParIlu_1_1Factory.html">Factory</a>);</div>
-<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;    <a class="code" href="group__LinOp.html#ga521f65604cc4cf427dcb2ecfa49b757c">GKO_ENABLE_BUILD_METHOD</a>(<a class="code" href="classgko_1_1factorization_1_1ParIlu_1_1Factory.html">Factory</a>);</div>
-<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160; </div>
-<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;<span class="keyword">protected</span>:</div>
-<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160;    <span class="keyword">explicit</span> <a class="code" href="classgko_1_1factorization_1_1ParIlu.html">ParIlu</a>(<span class="keyword">const</span> <a class="code" href="classgko_1_1factorization_1_1ParIlu_1_1Factory.html">Factory</a> *factory,</div>
-<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;                    std::shared_ptr&lt;const LinOp&gt; system_matrix)</div>
-<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;        : <a class="code" href="classgko_1_1Composition.html">Composition</a>&lt;ValueType&gt;(factory-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>()),</div>
-<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160;          parameters_{factory-&gt;<a class="code" href="classgko_1_1EnableDefaultFactory.html#ae32f2b3100640293f3a46e1280965162">get_parameters</a>()}</div>
-<div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;    {</div>
-<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;        generate_l_u(system_matrix, parameters_.<a class="code" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a89a795e164b7bbe60dbccf0484c1d411">skip_sorting</a>)-&gt;move_to(<span class="keyword">this</span>);</div>
-<div class="line"><a name="l00161"></a><span class="lineno">  161</span>&#160;    }</div>
-<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160; </div>
-<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160;    std::unique_ptr&lt;Composition&lt;ValueType&gt;&gt; generate_l_u(</div>
-<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;        <span class="keyword">const</span> std::shared_ptr&lt;const LinOp&gt; &amp;system_matrix,</div>
-<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160;        <span class="keywordtype">bool</span> skip_sorting) <span class="keyword">const</span>;</div>
-<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;};</div>
-<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160; </div>
-<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160; </div>
-<div class="line"><a name="l00184"></a><span class="lineno">  184</span>&#160;}  <span class="comment">// namespace factorization</span></div>
-<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160; </div>
+<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160;        std::shared_ptr&lt;typename l_matrix_type::strategy_type&gt;</div>
+<div class="line"><a name="l00156"></a><span class="lineno"><a class="line" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#aaf05c164c8febe00d4e93be2d80d3d02">  156</a></span>&#160;            <a class="code" href="group__LinOp.html#gaa037309884bbd0562b897cee95dd91c8">GKO_FACTORY_PARAMETER</a>(l_strategy, <span class="keyword">nullptr</span>);</div>
+<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160; </div>
+<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;        std::shared_ptr&lt;typename u_matrix_type::strategy_type&gt;</div>
+<div class="line"><a name="l00163"></a><span class="lineno"><a class="line" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a124fddcb459ca8500df7709325bbf6a2">  163</a></span>&#160;            <a class="code" href="group__LinOp.html#gaa037309884bbd0562b897cee95dd91c8">GKO_FACTORY_PARAMETER</a>(u_strategy, <span class="keyword">nullptr</span>);</div>
+<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;    };</div>
+<div class="line"><a name="l00165"></a><span class="lineno"><a class="line" href="classgko_1_1factorization_1_1ParIlu_1_1Factory.html">  165</a></span>&#160;    <a class="code" href="group__LinOp.html#ga8e0af90ec2414b768266f77cedffc309">GKO_ENABLE_LIN_OP_FACTORY</a>(<a class="code" href="classgko_1_1factorization_1_1ParIlu.html">ParIlu</a>, parameters, <a class="code" href="classgko_1_1factorization_1_1ParIlu_1_1Factory.html">Factory</a>);</div>
+<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;    <a class="code" href="group__LinOp.html#ga521f65604cc4cf427dcb2ecfa49b757c">GKO_ENABLE_BUILD_METHOD</a>(<a class="code" href="classgko_1_1factorization_1_1ParIlu_1_1Factory.html">Factory</a>);</div>
+<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160; </div>
+<div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;<span class="keyword">protected</span>:</div>
+<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160;    <span class="keyword">explicit</span> <a class="code" href="classgko_1_1factorization_1_1ParIlu.html">ParIlu</a>(<span class="keyword">const</span> <a class="code" href="classgko_1_1factorization_1_1ParIlu_1_1Factory.html">Factory</a> *factory,</div>
+<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160;                    std::shared_ptr&lt;const LinOp&gt; system_matrix)</div>
+<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;        : <a class="code" href="classgko_1_1Composition.html">Composition</a>&lt;ValueType&gt;(factory-&gt;<a class="code" href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">get_executor</a>()),</div>
+<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;          parameters_{factory-&gt;<a class="code" href="classgko_1_1EnableDefaultFactory.html#ae32f2b3100640293f3a46e1280965162">get_parameters</a>()}</div>
+<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;    {</div>
+<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160;        <span class="keywordflow">if</span> (parameters_.<a class="code" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#aaf05c164c8febe00d4e93be2d80d3d02">l_strategy</a> == <span class="keyword">nullptr</span>) {</div>
+<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;            parameters_.<a class="code" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#aaf05c164c8febe00d4e93be2d80d3d02">l_strategy</a> =</div>
+<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;                std::make_shared&lt;typename l_matrix_type::classical&gt;();</div>
+<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;        }</div>
+<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160;        <span class="keywordflow">if</span> (parameters_.<a class="code" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a124fddcb459ca8500df7709325bbf6a2">u_strategy</a> == <span class="keyword">nullptr</span>) {</div>
+<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;            parameters_.<a class="code" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a124fddcb459ca8500df7709325bbf6a2">u_strategy</a> =</div>
+<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160;                std::make_shared&lt;typename u_matrix_type::classical&gt;();</div>
+<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;        }</div>
+<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160;        generate_l_u(system_matrix, parameters_.<a class="code" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a89a795e164b7bbe60dbccf0484c1d411">skip_sorting</a>,</div>
+<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160;                     parameters_.<a class="code" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#aaf05c164c8febe00d4e93be2d80d3d02">l_strategy</a>, parameters_.<a class="code" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a124fddcb459ca8500df7709325bbf6a2">u_strategy</a>)</div>
+<div class="line"><a name="l00184"></a><span class="lineno">  184</span>&#160;            -&gt;move_to(<span class="keyword">this</span>);</div>
+<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;    }</div>
 <div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160; </div>
-<div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160; </div>
-<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_FACTORIZATION_PAR_ILU_HPP_</span></div>
+<div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160;    std::unique_ptr&lt;Composition&lt;ValueType&gt;&gt; generate_l_u(</div>
+<div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160;        <span class="keyword">const</span> std::shared_ptr&lt;const LinOp&gt; &amp;system_matrix, <span class="keywordtype">bool</span> skip_sorting,</div>
+<div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160;        std::shared_ptr&lt;typename l_matrix_type::strategy_type&gt; l_strategy,</div>
+<div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160;        std::shared_ptr&lt;typename u_matrix_type::strategy_type&gt; u_strategy)</div>
+<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160;        <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160;};</div>
+<div class="line"><a name="l00210"></a><span class="lineno">  210</span>&#160; </div>
+<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160; </div>
+<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160;}  <span class="comment">// namespace factorization</span></div>
+<div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00214"></a><span class="lineno">  214</span>&#160; </div>
+<div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160; </div>
+<div class="line"><a name="l00216"></a><span class="lineno">  216</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_FACTORIZATION_PAR_ILU_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="astructgko_1_1factorization_1_1ParIlu_1_1parameters__type_html_a89a795e164b7bbe60dbccf0484c1d411"><div class="ttname"><a href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a89a795e164b7bbe60dbccf0484c1d411">gko::factorization::ParIlu::parameters_type::skip_sorting</a></div><div class="ttdeci">bool skip_sorting</div><div class="ttdoc">true means it is known that the matrix given to this factory will be sorted first by row,...</div><div class="ttdef"><b>Definition:</b> par_ilu.hpp:149</div></div>
 <div class="ttc" id="aclassgko_1_1matrix_1_1Csr_html"><div class="ttname"><a href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a></div><div class="ttdoc">CSR is a matrix format which stores only the nonzero coefficients by compressing each row of the matr...</div><div class="ttdef"><b>Definition:</b> coo.hpp:51</div></div>
-<div class="ttc" id="agroup__LinOp_html_gaa037309884bbd0562b897cee95dd91c8"><div class="ttname"><a href="group__LinOp.html#gaa037309884bbd0562b897cee95dd91c8">GKO_FACTORY_PARAMETER</a></div><div class="ttdeci">#define GKO_FACTORY_PARAMETER(_name,...)</div><div class="ttdoc">Creates a factory parameter in the factory parameters structure.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:776</div></div>
-<div class="ttc" id="anamespacegko_html_a6e5c95df0ae4e47aab2f604a22d98ee7"><div class="ttname"><a href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a></div><div class="ttdeci">std::size_t size_type</div><div class="ttdoc">Integral type used for allocation quantities.</div><div class="ttdef"><b>Definition:</b> types.hpp:94</div></div>
+<div class="ttc" id="agroup__LinOp_html_gaa037309884bbd0562b897cee95dd91c8"><div class="ttname"><a href="group__LinOp.html#gaa037309884bbd0562b897cee95dd91c8">GKO_FACTORY_PARAMETER</a></div><div class="ttdeci">#define GKO_FACTORY_PARAMETER(_name,...)</div><div class="ttdoc">Creates a factory parameter in the factory parameters structure.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:869</div></div>
+<div class="ttc" id="astructgko_1_1factorization_1_1ParIlu_1_1parameters__type_html_aaf05c164c8febe00d4e93be2d80d3d02"><div class="ttname"><a href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#aaf05c164c8febe00d4e93be2d80d3d02">gko::factorization::ParIlu::parameters_type::l_strategy</a></div><div class="ttdeci">std::shared_ptr&lt; typename l_matrix_type::strategy_type &gt; l_strategy</div><div class="ttdoc">Strategy which will be used by the L matrix.</div><div class="ttdef"><b>Definition:</b> par_ilu.hpp:156</div></div>
+<div class="ttc" id="anamespacegko_html_a6e5c95df0ae4e47aab2f604a22d98ee7"><div class="ttname"><a href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a></div><div class="ttdeci">std::size_t size_type</div><div class="ttdoc">Integral type used for allocation quantities.</div><div class="ttdef"><b>Definition:</b> types.hpp:100</div></div>
 <div class="ttc" id="aclassgko_1_1EnableDefaultFactory_html_ae32f2b3100640293f3a46e1280965162"><div class="ttname"><a href="classgko_1_1EnableDefaultFactory.html#ae32f2b3100640293f3a46e1280965162">gko::EnableDefaultFactory::get_parameters</a></div><div class="ttdeci">const parameters_type &amp; get_parameters() const noexcept</div><div class="ttdoc">Returns the parameters of the factory.</div><div class="ttdef"><b>Definition:</b> abstract_factory.hpp:175</div></div>
 <div class="ttc" id="anamespacegko_html"><div class="ttname"><a href="namespacegko.html">gko</a></div><div class="ttdoc">The Ginkgo namespace.</div><div class="ttdef"><b>Definition:</b> abstract_factory.hpp:45</div></div>
-<div class="ttc" id="aclassgko_1_1Composition_html"><div class="ttname"><a href="classgko_1_1Composition.html">gko::Composition</a></div><div class="ttdoc">The Composition class can be used to compose linear operators op1, op2, ..., opn and obtain the opera...</div><div class="ttdef"><b>Definition:</b> composition.hpp:56</div></div>
-<div class="ttc" id="aclassgko_1_1factorization_1_1ParIlu_1_1Factory_html"><div class="ttname"><a href="classgko_1_1factorization_1_1ParIlu_1_1Factory.html">gko::factorization::ParIlu::Factory</a></div><div class="ttdef"><b>Definition:</b> par_ilu.hpp:151</div></div>
-<div class="ttc" id="agroup__LinOp_html_ga8e0af90ec2414b768266f77cedffc309"><div class="ttname"><a href="group__LinOp.html#ga8e0af90ec2414b768266f77cedffc309">GKO_ENABLE_LIN_OP_FACTORY</a></div><div class="ttdeci">#define GKO_ENABLE_LIN_OP_FACTORY(_lin_op, _parameters_name, _factory_name)</div><div class="ttdoc">This macro will generate a default implementation of a LinOpFactory for the LinOp subclass it is defi...</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:708</div></div>
-<div class="ttc" id="aclassgko_1_1Composition_html_a196507096c635aba24e1074050827c68"><div class="ttname"><a href="classgko_1_1Composition.html#a196507096c635aba24e1074050827c68">gko::Composition::get_operators</a></div><div class="ttdeci">const std::vector&lt; std::shared_ptr&lt; const LinOp &gt; &gt; &amp; get_operators() const noexcept</div><div class="ttdoc">Returns a list of operators of the composition.</div><div class="ttdef"><b>Definition:</b> composition.hpp:69</div></div>
+<div class="ttc" id="aclassgko_1_1Composition_html"><div class="ttname"><a href="classgko_1_1Composition.html">gko::Composition</a></div><div class="ttdoc">The Composition class can be used to compose linear operators op1, op2, ..., opn and obtain the opera...</div><div class="ttdef"><b>Definition:</b> composition.hpp:63</div></div>
+<div class="ttc" id="aclassgko_1_1factorization_1_1ParIlu_1_1Factory_html"><div class="ttname"><a href="classgko_1_1factorization_1_1ParIlu_1_1Factory.html">gko::factorization::ParIlu::Factory</a></div><div class="ttdef"><b>Definition:</b> par_ilu.hpp:165</div></div>
+<div class="ttc" id="agroup__LinOp_html_ga8e0af90ec2414b768266f77cedffc309"><div class="ttname"><a href="group__LinOp.html#ga8e0af90ec2414b768266f77cedffc309">GKO_ENABLE_LIN_OP_FACTORY</a></div><div class="ttdeci">#define GKO_ENABLE_LIN_OP_FACTORY(_lin_op, _parameters_name, _factory_name)</div><div class="ttdoc">This macro will generate a default implementation of a LinOpFactory for the LinOp subclass it is defi...</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:801</div></div>
+<div class="ttc" id="aclassgko_1_1Composition_html_a196507096c635aba24e1074050827c68"><div class="ttname"><a href="classgko_1_1Composition.html#a196507096c635aba24e1074050827c68">gko::Composition::get_operators</a></div><div class="ttdeci">const std::vector&lt; std::shared_ptr&lt; const LinOp &gt; &gt; &amp; get_operators() const noexcept</div><div class="ttdoc">Returns a list of operators of the composition.</div><div class="ttdef"><b>Definition:</b> composition.hpp:78</div></div>
+<div class="ttc" id="astructgko_1_1factorization_1_1ParIlu_1_1parameters__type_html_a124fddcb459ca8500df7709325bbf6a2"><div class="ttname"><a href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a124fddcb459ca8500df7709325bbf6a2">gko::factorization::ParIlu::parameters_type::u_strategy</a></div><div class="ttdeci">std::shared_ptr&lt; typename u_matrix_type::strategy_type &gt; u_strategy</div><div class="ttdoc">Strategy which will be used by the U matrix.</div><div class="ttdef"><b>Definition:</b> par_ilu.hpp:163</div></div>
 <div class="ttc" id="aclassgko_1_1factorization_1_1ParIlu_html"><div class="ttname"><a href="classgko_1_1factorization_1_1ParIlu.html">gko::factorization::ParIlu</a></div><div class="ttdoc">ParILU is an incomplete LU factorization which is computed in parallel.</div><div class="ttdef"><b>Definition:</b> par_ilu.hpp:95</div></div>
-<div class="ttc" id="agroup__LinOp_html_ga521f65604cc4cf427dcb2ecfa49b757c"><div class="ttname"><a href="group__LinOp.html#ga521f65604cc4cf427dcb2ecfa49b757c">GKO_ENABLE_BUILD_METHOD</a></div><div class="ttdeci">#define GKO_ENABLE_BUILD_METHOD(_factory_name)</div><div class="ttdoc">Defines a build method for the factory, simplifying its construction by removing the repetitive typin...</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:755</div></div>
-<div class="ttc" id="agroup__LinOp_html_ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358"><div class="ttname"><a href="group__LinOp.html#ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358">GKO_CREATE_FACTORY_PARAMETERS</a></div><div class="ttdeci">#define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name)</div><div class="ttdoc">This Macro will generate a new type containing the parameters for the factory _factory_name.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:628</div></div>
+<div class="ttc" id="agroup__LinOp_html_ga521f65604cc4cf427dcb2ecfa49b757c"><div class="ttname"><a href="group__LinOp.html#ga521f65604cc4cf427dcb2ecfa49b757c">GKO_ENABLE_BUILD_METHOD</a></div><div class="ttdeci">#define GKO_ENABLE_BUILD_METHOD(_factory_name)</div><div class="ttdoc">Defines a build method for the factory, simplifying its construction by removing the repetitive typin...</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:848</div></div>
+<div class="ttc" id="agroup__LinOp_html_ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358"><div class="ttname"><a href="group__LinOp.html#ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358">GKO_CREATE_FACTORY_PARAMETERS</a></div><div class="ttdeci">#define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name)</div><div class="ttdoc">This Macro will generate a new type containing the parameters for the factory _factory_name.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:721</div></div>
 <div class="ttc" id="aclassgko_1_1PolymorphicObject_html_ab40586bff071b7f11c2cf6b5cbf598eb"><div class="ttname"><a href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">gko::PolymorphicObject::get_executor</a></div><div class="ttdeci">std::shared_ptr&lt; const Executor &gt; get_executor() const noexcept</div><div class="ttdoc">Returns the Executor of the object.</div><div class="ttdef"><b>Definition:</b> polymorphic_object.hpp:204</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>

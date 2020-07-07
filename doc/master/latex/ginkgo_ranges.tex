@@ -85,6 +85,8 @@ a utility function for printing the factorization on screen
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
 \DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
 \end{DoxyCode}
 
 
@@ -100,7 +102,7 @@ Create some test data, add some padding just to demonstrate how to use it with r
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keywordtype}{double} data[] = \{}
+\DoxyCodeLine{ValueType data[] = \{}
 \DoxyCodeLine{    2.,  4.,  5., -\/1.0,}
 \DoxyCodeLine{    4., 11., 12., -\/1.0,}
 \DoxyCodeLine{    6., 24., 24., -\/1.0}
@@ -114,7 +116,8 @@ Create a 3-\/by-\/3 range, with a 2D row-\/major accessor using data as the unde
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{auto} A = \mbox{\hyperlink{classgko_1_1range}{gko::range<gko::accessor::row\_major<double, 2>}}>(data, 3u, 3u, 4u);}
+\DoxyCodeLine{\textcolor{keyword}{auto} A =}
+\DoxyCodeLine{    \mbox{\hyperlink{classgko_1_1range}{gko::range<gko::accessor::row\_major<ValueType, 2>}}>(data, 3u, 3u, 4u);}
 \end{DoxyCode}
 
 
@@ -163,7 +166,7 @@ This is the expected output\+:
 
 \begin{DoxyCodeInclude}{0}
 \DoxyCodeLine{\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}}
-\DoxyCodeLine{\textcolor{comment}{Copyright (c) 2017-\/2019, the Ginkgo authors}}
+\DoxyCodeLine{\textcolor{comment}{Copyright (c) 2017-\/2020, the Ginkgo authors}}
 \DoxyCodeLine{\textcolor{comment}{All rights reserved.}}
 \DoxyCodeLine{\textcolor{comment}{}}
 \DoxyCodeLine{\textcolor{comment}{Redistribution and use in source and binary forms, with or without}}
@@ -236,15 +239,19 @@ This is the expected output\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
 \DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
+\DoxyCodeLine{}
 \DoxyCodeLine{    std::cout << \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}}() << std::endl;}
 \DoxyCodeLine{}
-\DoxyCodeLine{    \textcolor{keywordtype}{double} data[] = \{}
+\DoxyCodeLine{    ValueType data[] = \{}
 \DoxyCodeLine{        2.,  4.,  5., -\/1.0,}
 \DoxyCodeLine{        4., 11., 12., -\/1.0,}
 \DoxyCodeLine{        6., 24., 24., -\/1.0}
 \DoxyCodeLine{    \};}
 \DoxyCodeLine{}
-\DoxyCodeLine{    \textcolor{keyword}{auto} A = \mbox{\hyperlink{classgko_1_1range}{gko::range<gko::accessor::row\_major<double, 2>}}>(data, 3u, 3u, 4u);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} A =}
+\DoxyCodeLine{        \mbox{\hyperlink{classgko_1_1range}{gko::range<gko::accessor::row\_major<ValueType, 2>}}>(data, 3u, 3u, 4u);}
 \DoxyCodeLine{}
 \DoxyCodeLine{    factorize(A);}
 \DoxyCodeLine{}

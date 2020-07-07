@@ -62,14 +62,14 @@ utilities for computing norms and residuals
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType>}
-\DoxyCodeLine{\textcolor{keywordtype}{double} get\_norm(\textcolor{keyword}{const} vec<ValueType> *norm)}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} get\_norm(\textcolor{keyword}{const} vec<ValueType> *norm)}
 \DoxyCodeLine{\{}
-\DoxyCodeLine{    \textcolor{keywordflow}{return} \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(norm-\/>get\_executor()-\/>get\_master(), norm)-\/>at(0, 0);}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} std::real(\mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(norm-\/>get\_executor()-\/>get\_master(), norm)-\/>at(0, 0));}
 \DoxyCodeLine{\}}
 \DoxyCodeLine{}
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType>}
-\DoxyCodeLine{\textcolor{keywordtype}{double} compute\_norm(\textcolor{keyword}{const} vec<ValueType> *b)}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} compute\_norm(\textcolor{keyword}{const} vec<ValueType> *b)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} exec = b-\/>get\_executor();}
 \DoxyCodeLine{    \textcolor{keyword}{auto} b\_norm = gko::initialize<vec<ValueType>>(\{0.0\}, exec);}
@@ -79,8 +79,9 @@ utilities for computing norms and residuals
 \DoxyCodeLine{}
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType>}
-\DoxyCodeLine{\textcolor{keywordtype}{double} compute\_residual\_norm(\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *system\_matrix,}
-\DoxyCodeLine{                             \textcolor{keyword}{const} vec<ValueType> *b, \textcolor{keyword}{const} vec<ValueType> *x)}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} compute\_residual\_norm(}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *system\_matrix, \textcolor{keyword}{const} vec<ValueType> *b,}
+\DoxyCodeLine{    \textcolor{keyword}{const} vec<ValueType> *x)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} exec = system\_matrix-\/>\mbox{\hyperlink{classgko_1_1PolymorphicObject_ab40586bff071b7f11c2cf6b5cbf598eb}{get\_executor}}();}
 \DoxyCodeLine{    \textcolor{keyword}{auto} \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} = gko::initialize<vec<ValueType>>(\{1.0\}, exec);}
@@ -370,7 +371,8 @@ Print usage help
 \DoxyCodeLine{\}}
 \DoxyCodeLine{}
 \DoxyCodeLine{}
-\DoxyCodeLine{\textcolor{keywordtype}{void} print\_vector(\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}} *vec)}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType>}
+\DoxyCodeLine{\textcolor{keywordtype}{void} print\_vector(\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}} *vec)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} elements\_to\_print = std::min(\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{gko::size\_type}}(10), vec-\/>\mbox{\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}}()[0]);}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"["} << std::endl;}
@@ -393,7 +395,8 @@ Parametrize the benchmark here Pick a value type
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{using} vtype = double;}
+\DoxyCodeLine{\textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{\textcolor{keyword}{using} IndexType = int;}
 \end{DoxyCode}
 
 
@@ -401,7 +404,7 @@ Pick a matrix format
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<vtype>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}};}
 \end{DoxyCode}
 
 
@@ -409,7 +412,7 @@ Pick a solver
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{using} solver = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<vtype>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} solver = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<ValueType>}};}
 \end{DoxyCode}
 
 
@@ -417,7 +420,7 @@ Pick a preconditioner type
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{using} preconditioner = \mbox{\hyperlink{classgko_1_1matrix_1_1IdentityFactory}{gko::matrix::IdentityFactory<vtype>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} preconditioner = \mbox{\hyperlink{classgko_1_1matrix_1_1IdentityFactory}{gko::matrix::IdentityFactory<ValueType>}};}
 \end{DoxyCode}
 
 
@@ -425,15 +428,7 @@ Pick a residual norm reduction value
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{auto} reduction\_factor = 1e-\/8;}
-\end{DoxyCode}
-
-
-Pick a maximum iteration count
-
-
-\begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{auto} max\_iters = 2000u;}
+\DoxyCodeLine{\textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/12;}
 \end{DoxyCode}
 
 
@@ -441,7 +436,7 @@ Pick an output file name
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{auto} of\_name = \textcolor{stringliteral}{"log.txt"};}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} of\_name = \textcolor{stringliteral}{"log.txt"};}
 \end{DoxyCode}
 
 
@@ -449,7 +444,7 @@ Simple shortcut
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<vtype>}};}
+\DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
 \end{DoxyCode}
 
 
@@ -472,7 +467,7 @@ Figure out where to run the code
 \DoxyCodeLine{    exec = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
 \DoxyCodeLine{\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc > 1 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"cuda"} \&\&}
 \DoxyCodeLine{           \mbox{\hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{gko::CudaExecutor::get\_num\_devices}}() > 0) \{}
-\DoxyCodeLine{    exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{    exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(), \textcolor{keyword}{true});}
 \DoxyCodeLine{\} \textcolor{keywordflow}{else} \{}
 \DoxyCodeLine{    print\_usage(argv[0]);}
 \DoxyCodeLine{\}}
@@ -522,12 +517,20 @@ Remove the storage logger
 \end{DoxyCode}
 
 
+Pick a maximum iteration count
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{const} \textcolor{keyword}{auto} max\_iters = A-\/>get\_size()[0];}
+\end{DoxyCode}
+
+
 Generate b and x vectors
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{auto} b = utils::create\_vector<vtype>(exec, A-\/>get\_size()[0], 1.0);}
-\DoxyCodeLine{\textcolor{keyword}{auto} x = utils::create\_vector<vtype>(exec, A-\/>get\_size()[0], 0.0);}
+\DoxyCodeLine{\textcolor{keyword}{auto} b = utils::create\_vector<ValueType>(exec, A-\/>get\_size()[0], 1.0);}
+\DoxyCodeLine{\textcolor{keyword}{auto} x = utils::create\_vector<ValueType>(exec, A-\/>get\_size()[0], 0.0);}
 \end{DoxyCode}
 
 
@@ -538,7 +541,7 @@ Declare the solver factory. The preconditioner\textquotesingle{}s arguments shou
 \DoxyCodeLine{\textcolor{keyword}{auto} solver\_factory =}
 \DoxyCodeLine{    solver::build()}
 \DoxyCodeLine{        .with\_criteria(}
-\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<vtype>::build}}()}
+\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<ValueType>::build}}()}
 \DoxyCodeLine{                .with\_reduction\_factor(reduction\_factor)}
 \DoxyCodeLine{                .on(exec),}
 \DoxyCodeLine{            gko::stop::Iteration::build().with\_max\_iters(max\_iters).on(}
@@ -683,14 +686,6 @@ Log the internal operations using the Operation\+Logger without timing
 \end{DoxyCode}
 
 
-Clone x to not overwrite the original one
-
-
-\begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{auto} x\_clone = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{gko::clone}}(x);}
-\end{DoxyCode}
-
-
 Create an Operation\+Logger to analyze the generate step
 
 
@@ -745,7 +740,7 @@ Create a Residual\+Logger to log the recurent residual
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{\textcolor{keyword}{auto} res\_logger = std::make\_shared<loggers::ResidualLogger<vtype>>(}
+\DoxyCodeLine{\textcolor{keyword}{auto} res\_logger = std::make\_shared<loggers::ResidualLogger<ValueType>>(}
 \DoxyCodeLine{    exec, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(A), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(b));}
 \DoxyCodeLine{generated\_solver-\/>add\_logger(res\_logger);}
 \end{DoxyCode}
@@ -755,7 +750,7 @@ Solve the system
 
 
 \begin{DoxyCode}{0}
-\DoxyCodeLine{generated\_solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(x\_clone));}
+\DoxyCodeLine{generated\_solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(x));}
 \DoxyCodeLine{exec-\/>remove\_logger(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(apply\_logger));}
 \end{DoxyCode}
 
@@ -829,7 +824,7 @@ Here is a sample output in the file log.\+txt\+:
 \DoxyCodeLine{        dense::compute\_dot\#3: 28548}
 \DoxyCodeLine{        dense::compute\_norm2\#2: 45677}
 \DoxyCodeLine{        free: 25109}
-\DoxyCodeLine{        residual\_norm\_reduction::residual\_norm\_reduction\#9: 10617}
+\DoxyCodeLine{        residual\_norm::residual\_norm\#9: 10617}
 \DoxyCodeLine{Recurrent Residual Norms:}
 \DoxyCodeLine{[}
 \DoxyCodeLine{        4.3589}
@@ -888,7 +883,7 @@ Here is a sample output in the file log.\+txt\+:
 
 \begin{DoxyCodeInclude}{0}
 \DoxyCodeLine{\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}}
-\DoxyCodeLine{\textcolor{comment}{Copyright (c) 2017-\/2019, the Ginkgo authors}}
+\DoxyCodeLine{\textcolor{comment}{Copyright (c) 2017-\/2020, the Ginkgo authors}}
 \DoxyCodeLine{\textcolor{comment}{All rights reserved.}}
 \DoxyCodeLine{\textcolor{comment}{}}
 \DoxyCodeLine{\textcolor{comment}{Redistribution and use in source and binary forms, with or without}}
@@ -957,14 +952,14 @@ Here is a sample output in the file log.\+txt\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType>}
-\DoxyCodeLine{\textcolor{keywordtype}{double} get\_norm(\textcolor{keyword}{const} vec<ValueType> *norm)}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} get\_norm(\textcolor{keyword}{const} vec<ValueType> *norm)}
 \DoxyCodeLine{\{}
-\DoxyCodeLine{    \textcolor{keywordflow}{return} \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(norm-\/>get\_executor()-\/>get\_master(), norm)-\/>at(0, 0);}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} std::real(\mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{clone}}(norm-\/>get\_executor()-\/>get\_master(), norm)-\/>at(0, 0));}
 \DoxyCodeLine{\}}
 \DoxyCodeLine{}
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType>}
-\DoxyCodeLine{\textcolor{keywordtype}{double} compute\_norm(\textcolor{keyword}{const} vec<ValueType> *b)}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} compute\_norm(\textcolor{keyword}{const} vec<ValueType> *b)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} exec = b-\/>get\_executor();}
 \DoxyCodeLine{    \textcolor{keyword}{auto} b\_norm = gko::initialize<vec<ValueType>>(\{0.0\}, exec);}
@@ -974,8 +969,9 @@ Here is a sample output in the file log.\+txt\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType>}
-\DoxyCodeLine{\textcolor{keywordtype}{double} compute\_residual\_norm(\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *system\_matrix,}
-\DoxyCodeLine{                             \textcolor{keyword}{const} vec<ValueType> *b, \textcolor{keyword}{const} vec<ValueType> *x)}
+\DoxyCodeLine{\mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} compute\_residual\_norm(}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1LinOp}{gko::LinOp}} *system\_matrix, \textcolor{keyword}{const} vec<ValueType> *b,}
+\DoxyCodeLine{    \textcolor{keyword}{const} vec<ValueType> *x)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} exec = system\_matrix-\/>\mbox{\hyperlink{classgko_1_1PolymorphicObject_ab40586bff071b7f11c2cf6b5cbf598eb}{get\_executor}}();}
 \DoxyCodeLine{    \textcolor{keyword}{auto} \mbox{\hyperlink{namespacegko_a0059e27f8f4bc348ff65c1e60caf47c8}{one}} = gko::initialize<vec<ValueType>>(\{1.0\}, exec);}
@@ -1192,7 +1188,8 @@ Here is a sample output in the file log.\+txt\+:
 \DoxyCodeLine{\}}
 \DoxyCodeLine{}
 \DoxyCodeLine{}
-\DoxyCodeLine{\textcolor{keywordtype}{void} print\_vector(\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}} *vec)}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} ValueType>}
+\DoxyCodeLine{\textcolor{keywordtype}{void} print\_vector(\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}} *vec)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} elements\_to\_print = std::min(\mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{gko::size\_type}}(10), vec-\/>\mbox{\hyperlink{classgko_1_1LinOp_a31b3c003388eb0b95393154f68c2b98d}{get\_size}}()[0]);}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"["} << std::endl;}
@@ -1208,16 +1205,16 @@ Here is a sample output in the file log.\+txt\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
 \DoxyCodeLine{\{}
-\DoxyCodeLine{    \textcolor{keyword}{using} vtype = double;}
-\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<vtype>}};}
-\DoxyCodeLine{    \textcolor{keyword}{using} solver = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<vtype>}};}
-\DoxyCodeLine{    \textcolor{keyword}{using} preconditioner = \mbox{\hyperlink{classgko_1_1matrix_1_1IdentityFactory}{gko::matrix::IdentityFactory<vtype>}};}
-\DoxyCodeLine{    \textcolor{keyword}{auto} reduction\_factor = 1e-\/8;}
-\DoxyCodeLine{    \textcolor{keyword}{auto} max\_iters = 2000u;}
-\DoxyCodeLine{    \textcolor{keyword}{auto} of\_name = \textcolor{stringliteral}{"log.txt"};}
+\DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
+\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} solver = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<ValueType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} preconditioner = \mbox{\hyperlink{classgko_1_1matrix_1_1IdentityFactory}{gko::matrix::IdentityFactory<ValueType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{const} \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} reduction\_factor = 1e-\/12;}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} of\_name = \textcolor{stringliteral}{"log.txt"};}
 \DoxyCodeLine{}
 \DoxyCodeLine{}
-\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<vtype>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
 \DoxyCodeLine{}
 \DoxyCodeLine{    std::cout << \mbox{\hyperlink{classgko_1_1version__info_a6daeb8a087cfb57fa055526fc133d8eb}{gko::version\_info::get}}() << std::endl;}
 \DoxyCodeLine{}
@@ -1228,7 +1225,7 @@ Here is a sample output in the file log.\+txt\+:
 \DoxyCodeLine{        exec = \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}();}
 \DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (argc > 1 \&\& std::string(argv[1]) == \textcolor{stringliteral}{"cuda"} \&\&}
 \DoxyCodeLine{               \mbox{\hyperlink{classgko_1_1CudaExecutor_aef0258494d14de0e56149b920c5173e5}{gko::CudaExecutor::get\_num\_devices}}() > 0) \{}
-\DoxyCodeLine{        exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_a2718a92034350650ef406ffdb60db090}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}());}
+\DoxyCodeLine{        exec = \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(0, \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(), \textcolor{keyword}{true});}
 \DoxyCodeLine{    \} \textcolor{keywordflow}{else} \{}
 \DoxyCodeLine{        print\_usage(argv[0]);}
 \DoxyCodeLine{    \}}
@@ -1243,13 +1240,14 @@ Here is a sample output in the file log.\+txt\+:
 \DoxyCodeLine{    \textcolor{keyword}{auto} A = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{gko::share}}(gko::read<mtx>(std::ifstream(input\_mtx), exec));}
 \DoxyCodeLine{    exec-\/>remove\_logger(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(storage\_logger));}
 \DoxyCodeLine{}
-\DoxyCodeLine{    \textcolor{keyword}{auto} b = utils::create\_vector<vtype>(exec, A-\/>get\_size()[0], 1.0);}
-\DoxyCodeLine{    \textcolor{keyword}{auto} x = utils::create\_vector<vtype>(exec, A-\/>get\_size()[0], 0.0);}
+\DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} max\_iters = A-\/>get\_size()[0];}
+\DoxyCodeLine{    \textcolor{keyword}{auto} b = utils::create\_vector<ValueType>(exec, A-\/>get\_size()[0], 1.0);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} x = utils::create\_vector<ValueType>(exec, A-\/>get\_size()[0], 0.0);}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} solver\_factory =}
 \DoxyCodeLine{        solver::build()}
 \DoxyCodeLine{            .with\_criteria(}
-\DoxyCodeLine{                \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<vtype>::build}}()}
+\DoxyCodeLine{                \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko::stop::ResidualNormReduction<ValueType>::build}}()}
 \DoxyCodeLine{                    .with\_reduction\_factor(reduction\_factor)}
 \DoxyCodeLine{                    .on(exec),}
 \DoxyCodeLine{                gko::stop::Iteration::build().with\_max\_iters(max\_iters).on(}
@@ -1294,8 +1292,6 @@ Here is a sample output in the file log.\+txt\+:
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \{}
-\DoxyCodeLine{        \textcolor{keyword}{auto} x\_clone = \mbox{\hyperlink{namespacegko_a1beb80750459e4201aa9d882d2d074c3}{gko::clone}}(x);}
-\DoxyCodeLine{}
 \DoxyCodeLine{        \textcolor{keyword}{auto} gen\_logger = std::make\_shared<loggers::OperationLogger>(exec);}
 \DoxyCodeLine{        exec-\/>add\_logger(gen\_logger);}
 \DoxyCodeLine{        \textcolor{keyword}{auto} generated\_solver = solver\_factory-\/>generate(A);}
@@ -1305,10 +1301,10 @@ Here is a sample output in the file log.\+txt\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{        \textcolor{keyword}{auto} apply\_logger = std::make\_shared<loggers::OperationLogger>(exec);}
 \DoxyCodeLine{        exec-\/>add\_logger(apply\_logger);}
-\DoxyCodeLine{        \textcolor{keyword}{auto} res\_logger = std::make\_shared<loggers::ResidualLogger<vtype>>(}
+\DoxyCodeLine{        \textcolor{keyword}{auto} res\_logger = std::make\_shared<loggers::ResidualLogger<ValueType>>(}
 \DoxyCodeLine{            exec, \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(A), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(b));}
 \DoxyCodeLine{        generated\_solver-\/>add\_logger(res\_logger);}
-\DoxyCodeLine{        generated\_solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(x\_clone));}
+\DoxyCodeLine{        generated\_solver-\/>apply(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(b), \mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(x));}
 \DoxyCodeLine{        exec-\/>remove\_logger(\mbox{\hyperlink{namespacegko_a4edc2273b5627ec552ea423b60493be3}{gko::lend}}(apply\_logger));}
 \DoxyCodeLine{        output\_file << \textcolor{stringliteral}{"Apply operations times (ns):"} << std::endl;}
 \DoxyCodeLine{        apply\_logger-\/>write\_data(output\_file);}

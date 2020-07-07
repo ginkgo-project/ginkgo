@@ -12,9 +12,40 @@ struct \mbox{\hyperlink{structgko_1_1preconditioner_1_1block__interleaved__stora
 \begin{DoxyCompactList}\small\item\em Defines the parameters of the interleaved block storage scheme used by block-\/\+Jacobi blocks. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Ilu}{Ilu}}
 \begin{DoxyCompactList}\small\item\em The Incomplete LU (I\+LU) preconditioner solves the equation $LUx = b$ for a given lower triangular matrix L, an upper triangular matrix U and the right hand side b (can contain multiple right hand sides). \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{Isai}}
+\begin{DoxyCompactList}\small\item\em The Incomplete Sparse Approximate Inverse (I\+S\+AI) Preconditioner generates an approximate inverse matrix for a given lower triangular matrix L or upper triangular matrix U. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{Jacobi}}
 \begin{DoxyCompactList}\small\item\em A block-\/\+Jacobi preconditioner is a block-\/diagonal linear operator, obtained by inverting the diagonal blocks of the source operator. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Typedefs}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{namespacegko_1_1preconditioner_a4c6b8c6e439a502dfd929ad854317619}\label{namespacegko_1_1preconditioner_a4c6b8c6e439a502dfd929ad854317619}} 
+{\footnotesize template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ }\\using {\bfseries Lower\+Isai} = \mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{Isai}}$<$ isai\+\_\+type\+::lower, Value\+Type, Index\+Type $>$
+\item 
+\mbox{\Hypertarget{namespacegko_1_1preconditioner_a88a221de26fad0fb0461c1528eb19452}\label{namespacegko_1_1preconditioner_a88a221de26fad0fb0461c1528eb19452}} 
+{\footnotesize template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ }\\using {\bfseries Upper\+Isai} = \mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{Isai}}$<$ isai\+\_\+type\+::upper, Value\+Type, Index\+Type $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum \mbox{\hyperlink{namespacegko_1_1preconditioner_a918dfc2ae55135bbd6e1e01d0c6031ab}{isai\+\_\+type}} \{ {\bfseries lower}, 
+{\bfseries upper}
+ \}
+\begin{DoxyCompactList}\small\item\em This enum lists the types of the I\+S\+AI preconditioner. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
 The Preconditioner namespace. 
+
+\doxysubsection{Enumeration Type Documentation}
+\mbox{\Hypertarget{namespacegko_1_1preconditioner_a918dfc2ae55135bbd6e1e01d0c6031ab}\label{namespacegko_1_1preconditioner_a918dfc2ae55135bbd6e1e01d0c6031ab}} 
+\index{gko::preconditioner@{gko::preconditioner}!isai\_type@{isai\_type}}
+\index{isai\_type@{isai\_type}!gko::preconditioner@{gko::preconditioner}}
+\doxysubsubsection{\texorpdfstring{isai\_type}{isai\_type}}
+{\footnotesize\ttfamily enum \mbox{\hyperlink{namespacegko_1_1preconditioner_a918dfc2ae55135bbd6e1e01d0c6031ab}{gko\+::preconditioner\+::isai\+\_\+type}}\hspace{0.3cm}{\ttfamily [strong]}}
+
+
+
+This enum lists the types of the I\+S\+AI preconditioner. 
+
+I\+S\+AI can either generate a lower triangular matrix, or an upper triangular matrix. 

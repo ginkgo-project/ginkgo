@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from tags/v1.1.1^0 branch based on master. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from tags/v1.2.0^0 branch based on master. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -141,6 +141,12 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1copy__back__deleter_3_01const_01T_01_4.html">copy_back_deleter&lt; const T &gt;</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structgko_1_1cpx__real__type.html">cpx_real_type</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Access the underlying real type of a complex number.  <a href="structgko_1_1cpx__real__type.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><b>cpx_real_type&lt; std::complex&lt; T &gt; &gt;</b></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Specialization for complex types. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CublasError.html">CublasError</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1CublasError.html" title="CublasError is thrown when a cuBLAS routine throws a non-zero error code.">CublasError</a> is thrown when a cuBLAS routine throws a non-zero error code.  <a href="classgko_1_1CublasError.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -196,6 +202,18 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1executor__deleter_3_01T_0f_0e_4.html">executor_deleter&lt; T[]&gt;</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1HipblasError.html">HipblasError</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1HipblasError.html" title="HipblasError is thrown when a hipBLAS routine throws a non-zero error code.">HipblasError</a> is thrown when a hipBLAS routine throws a non-zero error code.  <a href="classgko_1_1HipblasError.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1HipError.html">HipError</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1HipError.html" title="HipError is thrown when a HIP routine throws a non-zero error code.">HipError</a> is thrown when a HIP routine throws a non-zero error code.  <a href="classgko_1_1HipError.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1HipExecutor.html">HipExecutor</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">This is the <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor.">Executor</a> subclass which represents the HIP enhanced device.  <a href="classgko_1_1HipExecutor.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1HipsparseError.html">HipsparseError</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1HipsparseError.html" title="HipsparseError is thrown when a hipSPARSE routine throws a non-zero error code.">HipsparseError</a> is thrown when a hipSPARSE routine throws a non-zero error code.  <a href="classgko_1_1HipsparseError.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1KernelNotFound.html">KernelNotFound</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1KernelNotFound.html" title="KernelNotFound is thrown if Ginkgo cannot find a kernel which satisfies the criteria imposed by the i...">KernelNotFound</a> is thrown if Ginkgo cannot find a kernel which satisfies the criteria imposed by the input arguments.  <a href="classgko_1_1KernelNotFound.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -229,6 +247,9 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1OutOfBoundsError.html">OutOfBoundsError</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classgko_1_1OutOfBoundsError.html" title="OutOfBoundsError is thrown if a memory access is detected to be out-of-bounds.">OutOfBoundsError</a> is thrown if a memory access is detected to be out-of-bounds.  <a href="classgko_1_1OutOfBoundsError.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Permutable.html">Permutable</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Linear operators which support permutation should implement the <a class="el" href="classgko_1_1Permutable.html" title="Linear operators which support permutation should implement the Permutable interface.">Permutable</a> interface.  <a href="classgko_1_1Permutable.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1Perturbation.html">Perturbation</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1Perturbation.html" title="The Perturbation class can be used to construct a LinOp to represent the operation (identity + scalar...">Perturbation</a> class can be used to construct a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> to represent the operation <code>(identity + scalar * basis * projector)</code>.  <a href="classgko_1_1Perturbation.html#details">More...</a><br /></td></tr>
@@ -296,6 +317,11 @@ template&lt;typename T &gt; </td></tr>
 <tr class="memitem:aeede19206954d5c8ebd04c95cf63bb88"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a> = detail::is_complex_impl&lt; T &gt;</td></tr>
 <tr class="memdesc:aeede19206954d5c8ebd04c95cf63bb88"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allows to check if T is a complex value during compile time by accessing the <code>value</code> attribute of this struct.  <a href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">More...</a><br /></td></tr>
 <tr class="separator:aeede19206954d5c8ebd04c95cf63bb88"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6362f751c7753cf4fa0a4771d56e8ede"><td class="memTemplParams" colspan="2"><a id="a6362f751c7753cf4fa0a4771d56e8ede"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a6362f751c7753cf4fa0a4771d56e8ede"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a6362f751c7753cf4fa0a4771d56e8ede">next_precision</a> = typename detail::next_precision_impl&lt; T &gt;::type</td></tr>
+<tr class="memdesc:a6362f751c7753cf4fa0a4771d56e8ede"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtains the next type in the singly-linked precision list. <br /></td></tr>
+<tr class="separator:a6362f751c7753cf4fa0a4771d56e8ede"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab5d71c1f4bd1b654df1e561ea7a811f2"><td class="memTemplParams" colspan="2"><a id="ab5d71c1f4bd1b654df1e561ea7a811f2"></a>
 template&lt;typename T &gt; </td></tr>
 <tr class="memitem:ab5d71c1f4bd1b654df1e561ea7a811f2"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#ab5d71c1f4bd1b654df1e561ea7a811f2">reduce_precision</a> = typename detail::reduce_precision_impl&lt; T &gt;::type</td></tr>
@@ -432,20 +458,32 @@ Functions</h2></td></tr>
 <tr class="memitem:aaaf8487194bcb40b528969c187a413a0"><td class="memTemplItemLeft" align="right" valign="top">constexpr T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#aaaf8487194bcb40b528969c187a413a0">min</a> (const T &amp;x, const T &amp;y)</td></tr>
 <tr class="memdesc:aaaf8487194bcb40b528969c187a413a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the smaller of the arguments.  <a href="namespacegko.html#aaaf8487194bcb40b528969c187a413a0">More...</a><br /></td></tr>
 <tr class="separator:aaaf8487194bcb40b528969c187a413a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae23cfd886cee6e88d77bcbbbe1928b78"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
-<tr class="memitem:ae23cfd886cee6e88d77bcbbbe1928b78"><td class="memTemplItemLeft" align="right" valign="top">constexpr T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#ae23cfd886cee6e88d77bcbbbe1928b78">real</a> (const T &amp;x)</td></tr>
-<tr class="memdesc:ae23cfd886cee6e88d77bcbbbe1928b78"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the real part of the object.  <a href="namespacegko.html#ae23cfd886cee6e88d77bcbbbe1928b78">More...</a><br /></td></tr>
-<tr class="separator:ae23cfd886cee6e88d77bcbbbe1928b78"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7ff1061513b10ccd5122015d2e5f9faa"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
-<tr class="memitem:a7ff1061513b10ccd5122015d2e5f9faa"><td class="memTemplItemLeft" align="right" valign="top">constexpr T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a7ff1061513b10ccd5122015d2e5f9faa">imag</a> (const T &amp;)</td></tr>
-<tr class="memdesc:a7ff1061513b10ccd5122015d2e5f9faa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the imaginary part of the object.  <a href="namespacegko.html#a7ff1061513b10ccd5122015d2e5f9faa">More...</a><br /></td></tr>
-<tr class="separator:a7ff1061513b10ccd5122015d2e5f9faa"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acdaec5c4f959a948a6d0f3e99a57c7ea"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
-<tr class="memitem:acdaec5c4f959a948a6d0f3e99a57c7ea"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#acdaec5c4f959a948a6d0f3e99a57c7ea">conj</a> (const T &amp;x)</td></tr>
-<tr class="memdesc:acdaec5c4f959a948a6d0f3e99a57c7ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the conjugate of an object.  <a href="namespacegko.html#acdaec5c4f959a948a6d0f3e99a57c7ea">More...</a><br /></td></tr>
-<tr class="separator:acdaec5c4f959a948a6d0f3e99a57c7ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abcf6f4649ad47679a4e7768156b6dd32"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:abcf6f4649ad47679a4e7768156b6dd32"><td class="memTemplItemLeft" align="right" valign="top">constexpr xstd::enable_if_t&lt;!<a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, T &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#abcf6f4649ad47679a4e7768156b6dd32">real</a> (const T &amp;x)</td></tr>
+<tr class="memdesc:abcf6f4649ad47679a4e7768156b6dd32"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the real part of the object.  <a href="namespacegko.html#abcf6f4649ad47679a4e7768156b6dd32">More...</a><br /></td></tr>
+<tr class="separator:abcf6f4649ad47679a4e7768156b6dd32"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab6c3ac3de52997d22a1c8140131b52eb"><td class="memTemplParams" colspan="2"><a id="ab6c3ac3de52997d22a1c8140131b52eb"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:ab6c3ac3de52997d22a1c8140131b52eb"><td class="memTemplItemLeft" align="right" valign="top">constexpr xstd::enable_if_t&lt; <a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, <a class="el" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">remove_complex</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>real</b> (const T &amp;x)</td></tr>
+<tr class="separator:ab6c3ac3de52997d22a1c8140131b52eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac90fd8e4e045379f09f510baece91afd"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:ac90fd8e4e045379f09f510baece91afd"><td class="memTemplItemLeft" align="right" valign="top">constexpr xstd::enable_if_t&lt;!<a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, T &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#ac90fd8e4e045379f09f510baece91afd">imag</a> (const T &amp;)</td></tr>
+<tr class="memdesc:ac90fd8e4e045379f09f510baece91afd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the imaginary part of the object.  <a href="namespacegko.html#ac90fd8e4e045379f09f510baece91afd">More...</a><br /></td></tr>
+<tr class="separator:ac90fd8e4e045379f09f510baece91afd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a10673c73a8d2e11112584d9710475d7d"><td class="memTemplParams" colspan="2"><a id="a10673c73a8d2e11112584d9710475d7d"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a10673c73a8d2e11112584d9710475d7d"><td class="memTemplItemLeft" align="right" valign="top">constexpr xstd::enable_if_t&lt; <a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, <a class="el" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">remove_complex</a>&lt; T &gt; &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>imag</b> (const T &amp;x)</td></tr>
+<tr class="separator:a10673c73a8d2e11112584d9710475d7d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a559b814e33d9abb8952d25cbb6b7f232"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a559b814e33d9abb8952d25cbb6b7f232"><td class="memTemplItemLeft" align="right" valign="top">xstd::enable_if_t&lt;!<a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, T &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a559b814e33d9abb8952d25cbb6b7f232">conj</a> (const T &amp;x)</td></tr>
+<tr class="memdesc:a559b814e33d9abb8952d25cbb6b7f232"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the conjugate of an object.  <a href="namespacegko.html#a559b814e33d9abb8952d25cbb6b7f232">More...</a><br /></td></tr>
+<tr class="separator:a559b814e33d9abb8952d25cbb6b7f232"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad5398d87b17d21995b71a4cf8dad96b5"><td class="memTemplParams" colspan="2"><a id="ad5398d87b17d21995b71a4cf8dad96b5"></a>
+template&lt;typename T &gt; </td></tr>
+<tr class="memitem:ad5398d87b17d21995b71a4cf8dad96b5"><td class="memTemplItemLeft" align="right" valign="top">xstd::enable_if_t&lt; <a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, T &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>conj</b> (const T &amp;x)</td></tr>
+<tr class="separator:ad5398d87b17d21995b71a4cf8dad96b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abbb55709b10d707b2cbef803832aa834"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
-<tr class="memitem:abbb55709b10d707b2cbef803832aa834"><td class="memTemplItemLeft" align="right" valign="top">constexpr auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#abbb55709b10d707b2cbef803832aa834">squared_norm</a> (const T &amp;x) -&gt; decltype(<a class="el" href="namespacegko.html#ae23cfd886cee6e88d77bcbbbe1928b78">real</a>(<a class="el" href="namespacegko.html#acdaec5c4f959a948a6d0f3e99a57c7ea">conj</a>(x) *x))</td></tr>
+<tr class="memitem:abbb55709b10d707b2cbef803832aa834"><td class="memTemplItemLeft" align="right" valign="top">constexpr auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#abbb55709b10d707b2cbef803832aa834">squared_norm</a> (const T &amp;x) -&gt; decltype(<a class="el" href="namespacegko.html#abcf6f4649ad47679a4e7768156b6dd32">real</a>(<a class="el" href="namespacegko.html#a559b814e33d9abb8952d25cbb6b7f232">conj</a>(x) *x))</td></tr>
 <tr class="memdesc:abbb55709b10d707b2cbef803832aa834"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the squared norm of the object.  <a href="namespacegko.html#abbb55709b10d707b2cbef803832aa834">More...</a><br /></td></tr>
 <tr class="separator:abbb55709b10d707b2cbef803832aa834"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4eea40e4123a3fdb60fcd92f902c6d6d"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
@@ -456,14 +494,14 @@ Functions</h2></td></tr>
 <tr class="memitem:ad39645fe8148a8a812a9528865a77600"><td class="memTemplItemLeft" align="right" valign="top">constexpr T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#ad39645fe8148a8a812a9528865a77600">get_superior_power</a> (const T &amp;base, const T &amp;limit, const T &amp;hint=T{1}) noexcept</td></tr>
 <tr class="memdesc:ad39645fe8148a8a812a9528865a77600"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the smallest power of <code>base</code> not smaller than <code>limit</code>.  <a href="namespacegko.html#ad39645fe8148a8a812a9528865a77600">More...</a><br /></td></tr>
 <tr class="separator:ad39645fe8148a8a812a9528865a77600"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a23a34246f622b7e45cd5e40dc7f1f16e"><td class="memTemplParams" colspan="2"><a id="a23a34246f622b7e45cd5e40dc7f1f16e"></a>
-template&lt;typename T &gt; </td></tr>
-<tr class="memitem:a23a34246f622b7e45cd5e40dc7f1f16e"><td class="memTemplItemLeft" align="right" valign="top">xstd::enable_if_t&lt;!<a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, bool &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>isfinite</b> (const T &amp;value)</td></tr>
-<tr class="separator:a23a34246f622b7e45cd5e40dc7f1f16e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afb0f20b5d373f9439702e723d48548fa"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
-<tr class="memitem:afb0f20b5d373f9439702e723d48548fa"><td class="memTemplItemLeft" align="right" valign="top">xstd::enable_if_t&lt; <a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, bool &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#afb0f20b5d373f9439702e723d48548fa">isfinite</a> (const T &amp;value)</td></tr>
-<tr class="memdesc:afb0f20b5d373f9439702e723d48548fa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if all components of a complex value are finite, meaning they are neither +/- infinity nor NaN.  <a href="namespacegko.html#afb0f20b5d373f9439702e723d48548fa">More...</a><br /></td></tr>
-<tr class="separator:afb0f20b5d373f9439702e723d48548fa"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af0297bfcc5b3c6a69b412c328390e274"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:af0297bfcc5b3c6a69b412c328390e274"><td class="memTemplItemLeft" align="right" valign="top">xstd::enable_if_t&lt;!<a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, bool &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#af0297bfcc5b3c6a69b412c328390e274">is_finite</a> (const T &amp;value)</td></tr>
+<tr class="memdesc:af0297bfcc5b3c6a69b412c328390e274"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if a floating point number is finite, meaning it is neither +/- infinity nor NaN.  <a href="namespacegko.html#af0297bfcc5b3c6a69b412c328390e274">More...</a><br /></td></tr>
+<tr class="separator:af0297bfcc5b3c6a69b412c328390e274"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2898724536884e5cf8ea9a3bad9d83ec"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:a2898724536884e5cf8ea9a3bad9d83ec"><td class="memTemplItemLeft" align="right" valign="top">xstd::enable_if_t&lt; <a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt; T &gt;::value, bool &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a2898724536884e5cf8ea9a3bad9d83ec">is_finite</a> (const T &amp;value)</td></tr>
+<tr class="memdesc:a2898724536884e5cf8ea9a3bad9d83ec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if all components of a complex value are finite, meaning they are neither +/- infinity nor NaN.  <a href="namespacegko.html#a2898724536884e5cf8ea9a3bad9d83ec">More...</a><br /></td></tr>
+<tr class="separator:a2898724536884e5cf8ea9a3bad9d83ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0b476e0e3df616b08efe85000bff8da0"><td class="memTemplParams" colspan="2">template&lt;typename ValueType  = default_precision, typename IndexType  = int32&gt; </td></tr>
 <tr class="memitem:a0b476e0e3df616b08efe85000bff8da0"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="structgko_1_1matrix__data.html">matrix_data</a>&lt; ValueType, IndexType &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a0b476e0e3df616b08efe85000bff8da0">read_raw</a> (std::istream &amp;is)</td></tr>
 <tr class="memdesc:a0b476e0e3df616b08efe85000bff8da0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads a matrix stored in matrix market format from an input stream.  <a href="namespacegko.html#a0b476e0e3df616b08efe85000bff8da0">More...</a><br /></td></tr>
@@ -935,28 +973,40 @@ template&lt;typename FirstOperand , typename SecondAccessor &gt; </td></tr>
 <tr class="memitem:a289e84ef5dea2f579dd12f27140a1470"><td class="memTemplItemLeft" align="right" valign="top">const std::decay&lt; T &gt;::type *&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a289e84ef5dea2f579dd12f27140a1470">as</a> (const U *obj)</td></tr>
 <tr class="memdesc:a289e84ef5dea2f579dd12f27140a1470"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performs polymorphic type conversion.  <a href="namespacegko.html#a289e84ef5dea2f579dd12f27140a1470">More...</a><br /></td></tr>
 <tr class="separator:a289e84ef5dea2f579dd12f27140a1470"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1f1d94c42e7fd9103e256100d004f28a"><td class="memTemplParams" colspan="2">template&lt;typename T , typename U &gt; </td></tr>
+<tr class="memitem:a1f1d94c42e7fd9103e256100d004f28a"><td class="memTemplItemLeft" align="right" valign="top">std::unique_ptr&lt; typename std::decay&lt; T &gt;::type &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a1f1d94c42e7fd9103e256100d004f28a">as</a> (std::unique_ptr&lt; U &gt; &amp;&amp;obj)</td></tr>
+<tr class="memdesc:a1f1d94c42e7fd9103e256100d004f28a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performs polymorphic type conversion of a unique_ptr.  <a href="namespacegko.html#a1f1d94c42e7fd9103e256100d004f28a">More...</a><br /></td></tr>
+<tr class="separator:a1f1d94c42e7fd9103e256100d004f28a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a67f747ca6333526fbca64180417dc28a"><td class="memTemplParams" colspan="2">template&lt;typename T , typename U &gt; </td></tr>
+<tr class="memitem:a67f747ca6333526fbca64180417dc28a"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; typename std::decay&lt; T &gt;::type &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a67f747ca6333526fbca64180417dc28a">as</a> (std::shared_ptr&lt; U &gt; obj)</td></tr>
+<tr class="memdesc:a67f747ca6333526fbca64180417dc28a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performs polymorphic type conversion of a shared_ptr.  <a href="namespacegko.html#a67f747ca6333526fbca64180417dc28a">More...</a><br /></td></tr>
+<tr class="separator:a67f747ca6333526fbca64180417dc28a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a78a5f4822744132cfc4a21439f19a67a"><td class="memTemplParams" colspan="2">template&lt;typename T , typename U &gt; </td></tr>
+<tr class="memitem:a78a5f4822744132cfc4a21439f19a67a"><td class="memTemplItemLeft" align="right" valign="top">std::shared_ptr&lt; const typename std::decay&lt; T &gt;::type &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#a78a5f4822744132cfc4a21439f19a67a">as</a> (std::shared_ptr&lt; const U &gt; obj)</td></tr>
+<tr class="memdesc:a78a5f4822744132cfc4a21439f19a67a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performs polymorphic type conversion of a shared_ptr.  <a href="namespacegko.html#a78a5f4822744132cfc4a21439f19a67a">More...</a><br /></td></tr>
+<tr class="separator:a78a5f4822744132cfc4a21439f19a67a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa9c0782fb35cc18cb404716d9b6f2c0e"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
 <tr class="memitem:aa9c0782fb35cc18cb404716d9b6f2c0e"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classgko_1_1temporary__clone.html">temporary_clone</a>&lt; T &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">make_temporary_clone</a> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec, T *ptr)</td></tr>
 <tr class="memdesc:aa9c0782fb35cc18cb404716d9b6f2c0e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a <a class="el" href="classgko_1_1temporary__clone.html" title="A temporary_clone is a special smart pointer-like object that is designed to hold an object temporari...">temporary_clone</a>.  <a href="namespacegko.html#aa9c0782fb35cc18cb404716d9b6f2c0e">More...</a><br /></td></tr>
 <tr class="separator:aa9c0782fb35cc18cb404716d9b6f2c0e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a70e5d651d3fc23e6ed48980efd2098d3"><td class="memItemLeft" align="right" valign="top"><a id="a70e5d651d3fc23e6ed48980efd2098d3"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator&lt;</b> (const <a class="el" href="structgko_1_1version.html">version</a> &amp;first, const <a class="el" href="structgko_1_1version.html">version</a> &amp;second)</td></tr>
-<tr class="separator:a70e5d651d3fc23e6ed48980efd2098d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa3a749f76b73c3b0e161e2019ad12308"><td class="memItemLeft" align="right" valign="top"><a id="aa3a749f76b73c3b0e161e2019ad12308"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator&lt;=</b> (const <a class="el" href="structgko_1_1version.html">version</a> &amp;first, const <a class="el" href="structgko_1_1version.html">version</a> &amp;second)</td></tr>
-<tr class="separator:aa3a749f76b73c3b0e161e2019ad12308"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aeeaafa7179e5dbc1f1c02197598664fb"><td class="memItemLeft" align="right" valign="top"><a id="aeeaafa7179e5dbc1f1c02197598664fb"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator==</b> (const <a class="el" href="structgko_1_1version.html">version</a> &amp;first, const <a class="el" href="structgko_1_1version.html">version</a> &amp;second)</td></tr>
 <tr class="separator:aeeaafa7179e5dbc1f1c02197598664fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af2d150bb18c9fbdc62c2a02315bd908b"><td class="memItemLeft" align="right" valign="top"><a id="af2d150bb18c9fbdc62c2a02315bd908b"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator!=</b> (const <a class="el" href="structgko_1_1version.html">version</a> &amp;first, const <a class="el" href="structgko_1_1version.html">version</a> &amp;second)</td></tr>
 <tr class="separator:af2d150bb18c9fbdc62c2a02315bd908b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac033cb13ef2c4d291a894f26d2c64862"><td class="memItemLeft" align="right" valign="top"><a id="ac033cb13ef2c4d291a894f26d2c64862"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator&gt;=</b> (const <a class="el" href="structgko_1_1version.html">version</a> &amp;first, const <a class="el" href="structgko_1_1version.html">version</a> &amp;second)</td></tr>
-<tr class="separator:ac033cb13ef2c4d291a894f26d2c64862"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a70e5d651d3fc23e6ed48980efd2098d3"><td class="memItemLeft" align="right" valign="top"><a id="a70e5d651d3fc23e6ed48980efd2098d3"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator&lt;</b> (const <a class="el" href="structgko_1_1version.html">version</a> &amp;first, const <a class="el" href="structgko_1_1version.html">version</a> &amp;second)</td></tr>
+<tr class="separator:a70e5d651d3fc23e6ed48980efd2098d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa3a749f76b73c3b0e161e2019ad12308"><td class="memItemLeft" align="right" valign="top"><a id="aa3a749f76b73c3b0e161e2019ad12308"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator&lt;=</b> (const <a class="el" href="structgko_1_1version.html">version</a> &amp;first, const <a class="el" href="structgko_1_1version.html">version</a> &amp;second)</td></tr>
+<tr class="separator:aa3a749f76b73c3b0e161e2019ad12308"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa6724904a78b5293c610d113e3b23682"><td class="memItemLeft" align="right" valign="top"><a id="aa6724904a78b5293c610d113e3b23682"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator&gt;</b> (const <a class="el" href="structgko_1_1version.html">version</a> &amp;first, const <a class="el" href="structgko_1_1version.html">version</a> &amp;second)</td></tr>
 <tr class="separator:aa6724904a78b5293c610d113e3b23682"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac033cb13ef2c4d291a894f26d2c64862"><td class="memItemLeft" align="right" valign="top"><a id="ac033cb13ef2c4d291a894f26d2c64862"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator&gt;=</b> (const <a class="el" href="structgko_1_1version.html">version</a> &amp;first, const <a class="el" href="structgko_1_1version.html">version</a> &amp;second)</td></tr>
+<tr class="separator:ac033cb13ef2c4d291a894f26d2c64862"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae0ef652f487afe43aebcf778038ff780"><td class="memItemLeft" align="right" valign="top">std::ostream &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegko.html#ae0ef652f487afe43aebcf778038ff780">operator&lt;&lt;</a> (std::ostream &amp;os, const <a class="el" href="structgko_1_1version.html">version</a> &amp;ver)</td></tr>
 <tr class="memdesc:ae0ef652f487afe43aebcf778038ff780"><td class="mdescLeft">&#160;</td><td class="mdescRight">Prints version information to a stream.  <a href="namespacegko.html#ae0ef652f487afe43aebcf778038ff780">More...</a><br /></td></tr>
 <tr class="separator:ae0ef652f487afe43aebcf778038ff780"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1094,10 +1144,12 @@ template&lt;typename T &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>x &gt;= <a class="el" href="namespacegko.html#a70dbe01ff95c7b953d3d737424c6feb5" title="Returns the additive identity for T.">zero&lt;T&gt;()</a> ? x : -x; </dd></dl>
 
+<p class="reference">Referenced by <a class="el" href="namespacegko.html#af0297bfcc5b3c6a69b412c328390e274">is_finite()</a>.</p>
+
 </div>
 </div>
 <a id="a289e84ef5dea2f579dd12f27140a1470"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a289e84ef5dea2f579dd12f27140a1470">&#9670;&nbsp;</a></span>as() <span class="overload">[1/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a289e84ef5dea2f579dd12f27140a1470">&#9670;&nbsp;</a></span>as() <span class="overload">[1/5]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1141,8 +1193,141 @@ template&lt;typename T , typename U &gt; </div>
 
 </div>
 </div>
+<a id="a78a5f4822744132cfc4a21439f19a67a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a78a5f4822744132cfc4a21439f19a67a">&#9670;&nbsp;</a></span>as() <span class="overload">[2/5]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T , typename U &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::shared_ptr&lt;const typename std::decay&lt;T&gt;::type&gt; gko::as </td>
+          <td>(</td>
+          <td class="paramtype">std::shared_ptr&lt; const U &gt;&#160;</td>
+          <td class="paramname"><em>obj</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Performs polymorphic type conversion of a shared_ptr. </p>
+<p>This is the constant version of the function.</p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">T</td><td>requested result type </td></tr>
+    <tr><td class="paramname">U</td><td>static type of the passed object</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">obj</td><td>the shared_ptr to the object which should be converted.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>If successful, returns a shared_ptr to the subtype, otherwise throws <a class="el" href="classgko_1_1NotSupported.html" title="NotSupported is thrown in case it is not possible to perform the requested operation on the given obj...">NotSupported</a>. This pointer shares ownership with the input pointer. </dd></dl>
+
+</div>
+</div>
+<a id="a67f747ca6333526fbca64180417dc28a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a67f747ca6333526fbca64180417dc28a">&#9670;&nbsp;</a></span>as() <span class="overload">[3/5]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T , typename U &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::shared_ptr&lt;typename std::decay&lt;T&gt;::type&gt; gko::as </td>
+          <td>(</td>
+          <td class="paramtype">std::shared_ptr&lt; U &gt;&#160;</td>
+          <td class="paramname"><em>obj</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Performs polymorphic type conversion of a shared_ptr. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">T</td><td>requested result type </td></tr>
+    <tr><td class="paramname">U</td><td>static type of the passed object</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">obj</td><td>the shared_ptr to the object which should be converted.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>If successful, returns a shared_ptr to the subtype, otherwise throws <a class="el" href="classgko_1_1NotSupported.html" title="NotSupported is thrown in case it is not possible to perform the requested operation on the given obj...">NotSupported</a>. This pointer shares ownership with the input pointer. </dd></dl>
+
+</div>
+</div>
+<a id="a1f1d94c42e7fd9103e256100d004f28a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1f1d94c42e7fd9103e256100d004f28a">&#9670;&nbsp;</a></span>as() <span class="overload">[4/5]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T , typename U &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;typename std::decay&lt;T&gt;::type&gt; gko::as </td>
+          <td>(</td>
+          <td class="paramtype">std::unique_ptr&lt; U &gt; &amp;&amp;&#160;</td>
+          <td class="paramname"><em>obj</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Performs polymorphic type conversion of a unique_ptr. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">T</td><td>requested result type </td></tr>
+    <tr><td class="paramname">U</td><td>static type of the passed object</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">obj</td><td>the unique_ptr to the object which should be converted. If successful, it will be reset to a nullptr.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>If successful, returns a unique_ptr to the subtype, otherwise throws <a class="el" href="classgko_1_1NotSupported.html" title="NotSupported is thrown in case it is not possible to perform the requested operation on the given obj...">NotSupported</a>. </dd></dl>
+
+</div>
+</div>
 <a id="a73ce7e87aec389b5210630bb617b4baa"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a73ce7e87aec389b5210630bb617b4baa">&#9670;&nbsp;</a></span>as() <span class="overload">[2/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a73ce7e87aec389b5210630bb617b4baa">&#9670;&nbsp;</a></span>as() <span class="overload">[5/5]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1229,7 +1414,7 @@ template&lt;typename T , typename U &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>returns the ceiled quotient. </dd></dl>
 
-<p class="reference">Referenced by <a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#ae46b38432c1e1b87d5743a649f2cfe84">gko::preconditioner::block_interleaved_storage_scheme&lt; index_type &gt;::compute_storage_space()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="classgko_1_1matrix_1_1Csr_1_1load__balance.html#ac0413220bebe762defe180d900240fac">gko::matrix::Csr&lt; ValueType, IndexType &gt;::load_balance::clac_size()</a>, <a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#ae46b38432c1e1b87d5743a649f2cfe84">gko::preconditioner::block_interleaved_storage_scheme&lt; index_type &gt;::compute_storage_space()</a>, and <a class="el" href="classgko_1_1matrix_1_1Csr_1_1load__balance.html#aba6c8c9169c1068c30ac9df19ec862ff">gko::matrix::Csr&lt; ValueType, IndexType &gt;::load_balance::process()</a>.</p>
 
 </div>
 </div>
@@ -1334,8 +1519,8 @@ template&lt;typename Pointer &gt; </div>
 
 </div>
 </div>
-<a id="acdaec5c4f959a948a6d0f3e99a57c7ea"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acdaec5c4f959a948a6d0f3e99a57c7ea">&#9670;&nbsp;</a></span>conj()</h2>
+<a id="a559b814e33d9abb8952d25cbb6b7f232"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a559b814e33d9abb8952d25cbb6b7f232">&#9670;&nbsp;</a></span>conj()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1346,7 +1531,7 @@ template&lt;typename T &gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">T gko::conj </td>
+          <td class="memname">xstd::enable_if_t&lt;!<a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt;T&gt;::value, T&gt; gko::conj </td>
           <td>(</td>
           <td class="paramtype">const T &amp;&#160;</td>
           <td class="paramname"><em>x</em></td><td>)</td>
@@ -1600,7 +1785,7 @@ template&lt;typename T &gt; </div>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">constexpr</span><span class="mlabel">noexcept</span></span>  </td>
+<span class="mlabels"><span class="mlabel">constexpr</span><span class="mlabel">noexcept</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -1661,7 +1846,7 @@ template&lt;typename T &gt; </div>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">constexpr</span><span class="mlabel">noexcept</span></span>  </td>
+<span class="mlabels"><span class="mlabel">constexpr</span><span class="mlabel">noexcept</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -1729,8 +1914,8 @@ template&lt;typename OwningPointer &gt; </div>
 
 </div>
 </div>
-<a id="a7ff1061513b10ccd5122015d2e5f9faa"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7ff1061513b10ccd5122015d2e5f9faa">&#9670;&nbsp;</a></span>imag()</h2>
+<a id="ac90fd8e4e045379f09f510baece91afd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac90fd8e4e045379f09f510baece91afd">&#9670;&nbsp;</a></span>imag()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1741,7 +1926,7 @@ template&lt;typename T &gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr T gko::imag </td>
+          <td class="memname">constexpr xstd::enable_if_t&lt;!<a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt;T&gt;::value, T&gt; gko::imag </td>
           <td>(</td>
           <td class="paramtype">const T &amp;&#160;</td>
           <td class="paramname"></td><td>)</td>
@@ -1808,8 +1993,8 @@ template&lt;typename T &gt; </div>
 
 </div>
 </div>
-<a id="afb0f20b5d373f9439702e723d48548fa"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afb0f20b5d373f9439702e723d48548fa">&#9670;&nbsp;</a></span>isfinite()</h2>
+<a id="af0297bfcc5b3c6a69b412c328390e274"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af0297bfcc5b3c6a69b412c328390e274">&#9670;&nbsp;</a></span>is_finite() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1820,7 +2005,54 @@ template&lt;typename T &gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">xstd::enable_if_t&lt;<a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt;T&gt;::value, bool&gt; gko::isfinite </td>
+          <td class="memname">xstd::enable_if_t&lt;!<a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt;T&gt;::value, bool&gt; gko::is_finite </td>
+          <td>(</td>
+          <td class="paramtype">const T &amp;&#160;</td>
+          <td class="paramname"><em>value</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Checks if a floating point number is finite, meaning it is neither +/- infinity nor NaN. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">T</td><td>type of the value to check</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">value</td><td>value to check</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><code>true</code> if the value is finite, meaning it are neither +/- infinity nor NaN. </dd></dl>
+
+<p class="reference">References <a class="el" href="namespacegko.html#a57797fc0a00fd4b7ff34ca4bfc84bc51">abs()</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="namespacegko.html#a2898724536884e5cf8ea9a3bad9d83ec">is_finite()</a>.</p>
+
+</div>
+</div>
+<a id="a2898724536884e5cf8ea9a3bad9d83ec"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2898724536884e5cf8ea9a3bad9d83ec">&#9670;&nbsp;</a></span>is_finite() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">xstd::enable_if_t&lt;<a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt;T&gt;::value, bool&gt; gko::is_finite </td>
           <td>(</td>
           <td class="paramtype">const T &amp;&#160;</td>
           <td class="paramname"><em>value</em></td><td>)</td>
@@ -1847,7 +2079,9 @@ template&lt;typename T &gt; </div>
   </table>
   </dd>
 </dl>
-<p>returns <code>true</code> if both components of the given value are finite, meaning they are neither +/- infinity nor NaN. </p>
+<dl class="section return"><dt>Returns</dt><dd><code>true</code> if both components of the given value are finite, meaning they are neither +/- infinity nor NaN. </dd></dl>
+
+<p class="reference">References <a class="el" href="namespacegko.html#af0297bfcc5b3c6a69b412c328390e274">is_finite()</a>.</p>
 
 </div>
 </div>
@@ -2034,6 +2268,8 @@ template&lt;typename T &gt; </div>
 <dl class="section return"><dt>Returns</dt><dd>x &gt;= y ? x : y</dd></dl>
 <dl class="section note"><dt>Note</dt><dd>C++11 version of this function is not constexpr, thus we provide our own implementation. </dd></dl>
 
+<p class="reference">Referenced by <a class="el" href="classgko_1_1matrix_1_1Csr_1_1automatical.html#aefa241047539f2ee7784a54cf5051720">gko::matrix::Csr&lt; ValueType, IndexType &gt;::automatical::process()</a>.</p>
+
 </div>
 </div>
 <a id="aaaf8487194bcb40b528969c187a413a0"></a>
@@ -2088,6 +2324,8 @@ template&lt;typename T &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>x &lt;= y ? x : y</dd></dl>
 <dl class="section note"><dt>Note</dt><dd>C++11 version of this function is not <code>constexpr</code>, thus we provide our own implementation. </dd></dl>
+
+<p class="reference">Referenced by <a class="el" href="classgko_1_1matrix_1_1Csr_1_1load__balance.html#ac0413220bebe762defe180d900240fac">gko::matrix::Csr&lt; ValueType, IndexType &gt;::load_balance::clac_size()</a>.</p>
 
 </div>
 </div>
@@ -2575,8 +2813,8 @@ template&lt;typename ValueType  = default_precision, typename IndexType  = int32
 
 </div>
 </div>
-<a id="ae23cfd886cee6e88d77bcbbbe1928b78"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae23cfd886cee6e88d77bcbbbe1928b78">&#9670;&nbsp;</a></span>real()</h2>
+<a id="abcf6f4649ad47679a4e7768156b6dd32"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abcf6f4649ad47679a4e7768156b6dd32">&#9670;&nbsp;</a></span>real()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -2587,7 +2825,7 @@ template&lt;typename T &gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr T gko::real </td>
+          <td class="memname">constexpr xstd::enable_if_t&lt;!<a class="el" href="namespacegko.html#aeede19206954d5c8ebd04c95cf63bb88">is_complex_s</a>&lt;T&gt;::value, T&gt; gko::real </td>
           <td>(</td>
           <td class="paramtype">const T &amp;&#160;</td>
           <td class="paramname"><em>x</em></td><td>)</td>
@@ -2748,6 +2986,8 @@ template&lt;typename OwningPointer &gt; </div>
 </dl>
 <dl class="section note"><dt>Note</dt><dd>The original pointer <code>p</code> becomes invalid after this call. </dd></dl>
 
+<p class="reference">Referenced by <a class="el" href="classgko_1_1preconditioner_1_1Ilu.html#a730786dbc37890c71f7555d563640fec">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;::conj_transpose()</a>, and <a class="el" href="classgko_1_1preconditioner_1_1Ilu.html#a2dafdb3722dc990c5143237f40d812ba">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;::transpose()</a>.</p>
+
 </div>
 </div>
 <a id="abbb55709b10d707b2cbef803832aa834"></a>
@@ -2766,7 +3006,7 @@ template&lt;typename T &gt; </div>
           <td>(</td>
           <td class="paramtype">const T &amp;&#160;</td>
           <td class="paramname"><em>x</em></td><td>)</td>
-          <td> -&gt; decltype(<a class="el" href="namespacegko.html#ae23cfd886cee6e88d77bcbbbe1928b78">real</a>(<a class="el" href="namespacegko.html#acdaec5c4f959a948a6d0f3e99a57c7ea">conj</a>(x) * x))
+          <td> -&gt; decltype(<a class="el" href="namespacegko.html#abcf6f4649ad47679a4e7768156b6dd32">real</a>(<a class="el" href="namespacegko.html#a559b814e33d9abb8952d25cbb6b7f232">conj</a>(x) * x))
 </td>
         </tr>
       </table>
@@ -2786,7 +3026,7 @@ template&lt;typename T &gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The squared norm of the object. </dd></dl>
 
-<p class="reference">References <a class="el" href="namespacegko.html#acdaec5c4f959a948a6d0f3e99a57c7ea">conj()</a>, and <a class="el" href="namespacegko.html#ae23cfd886cee6e88d77bcbbbe1928b78">real()</a>.</p>
+<p class="reference">References <a class="el" href="namespacegko.html#a559b814e33d9abb8952d25cbb6b7f232">conj()</a>, and <a class="el" href="namespacegko.html#abcf6f4649ad47679a4e7768156b6dd32">real()</a>.</p>
 
 </div>
 </div>
@@ -2830,6 +3070,8 @@ template&lt;typename DimensionType &gt; </div>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>a <a class="el" href="structgko_1_1dim.html">dim&lt;2&gt;</a> object with its dimensions swapped </dd></dl>
+
+<p class="reference">Referenced by <a class="el" href="classgko_1_1preconditioner_1_1Ilu.html#a730786dbc37890c71f7555d563640fec">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;::conj_transpose()</a>, and <a class="el" href="classgko_1_1preconditioner_1_1Ilu.html#a2dafdb3722dc990c5143237f40d812ba">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;::transpose()</a>.</p>
 
 </div>
 </div>

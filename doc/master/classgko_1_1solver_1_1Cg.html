@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from tags/v1.1.1^0 branch based on master. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from tags/v1.2.0^0 branch based on master. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -104,6 +104,9 @@ Public Types</h2></td></tr>
 <tr class="memitem:a010f8f5b0b315108a3990052a73f80b0"><td class="memItemLeft" align="right" valign="top"><a id="a010f8f5b0b315108a3990052a73f80b0"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>value_type</b> = ValueType</td></tr>
 <tr class="separator:a010f8f5b0b315108a3990052a73f80b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a29d42ebe191a59393037297b28f9530d"><td class="memItemLeft" align="right" valign="top"><a id="a29d42ebe191a59393037297b28f9530d"></a>
+using&#160;</td><td class="memItemRight" valign="bottom"><b>transposed_type</b> = <a class="el" href="classgko_1_1solver_1_1Cg.html">Cg</a>&lt; ValueType &gt;</td></tr>
+<tr class="separator:a29d42ebe191a59393037297b28f9530d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_types_classgko_1_1EnablePolymorphicAssignment"><td colspan="2" onclick="javascript:toggleInherit('pub_types_classgko_1_1EnablePolymorphicAssignment')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="classgko_1_1EnablePolymorphicAssignment.html">gko::EnablePolymorphicAssignment&lt; Cg&lt; ValueType &gt; &gt;</a></td></tr>
 <tr class="memitem:a2e92aa4e8262a8f6625330b76a24deeb inherit pub_types_classgko_1_1EnablePolymorphicAssignment"><td class="memItemLeft" align="right" valign="top"><a id="a2e92aa4e8262a8f6625330b76a24deeb"></a>
 using&#160;</td><td class="memItemRight" valign="bottom"><b>result_type</b> = Cg&lt; ValueType &gt;</td></tr>
@@ -118,6 +121,21 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a09d50a99fdc668316757ee253386ad2a"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; const <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Cg.html#a09d50a99fdc668316757ee253386ad2a">get_system_matrix</a> () const</td></tr>
 <tr class="memdesc:a09d50a99fdc668316757ee253386ad2a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the system operator (matrix) of the linear system.  <a href="classgko_1_1solver_1_1Cg.html#a09d50a99fdc668316757ee253386ad2a">More...</a><br /></td></tr>
 <tr class="separator:a09d50a99fdc668316757ee253386ad2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a71705ea69c27dc3d9028885e1a2579e0"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Cg.html#a71705ea69c27dc3d9028885e1a2579e0">transpose</a> () const override</td></tr>
+<tr class="memdesc:a71705ea69c27dc3d9028885e1a2579e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface.">Transposable</a> object.  <a href="classgko_1_1solver_1_1Cg.html#a71705ea69c27dc3d9028885e1a2579e0">More...</a><br /></td></tr>
+<tr class="separator:a71705ea69c27dc3d9028885e1a2579e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af7d15957dcfdb5477bc899485dfa11d1"><td class="memItemLeft" align="right" valign="top">std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Cg.html#af7d15957dcfdb5477bc899485dfa11d1">conj_transpose</a> () const override</td></tr>
+<tr class="memdesc:af7d15957dcfdb5477bc899485dfa11d1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface.">Transposable</a> object.  <a href="classgko_1_1solver_1_1Cg.html#af7d15957dcfdb5477bc899485dfa11d1">More...</a><br /></td></tr>
+<tr class="separator:af7d15957dcfdb5477bc899485dfa11d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afe55c303b6b99937bae9e1c36449997d"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Cg.html#afe55c303b6b99937bae9e1c36449997d">apply_uses_initial_guess</a> () const override</td></tr>
+<tr class="memdesc:afe55c303b6b99937bae9e1c36449997d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return true as iterative solvers use the data in x as an initial guess.  <a href="classgko_1_1solver_1_1Cg.html#afe55c303b6b99937bae9e1c36449997d">More...</a><br /></td></tr>
+<tr class="separator:afe55c303b6b99937bae9e1c36449997d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a48541be9e21c056ae495214afa9a341a"><td class="memItemLeft" align="right" valign="top">std::shared_ptr&lt; const <a class="el" href="namespacegko_1_1stop.html#ab12a51109c50b35ec36dc5a393d6a9a0">stop::CriterionFactory</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Cg.html#a48541be9e21c056ae495214afa9a341a">get_stop_criterion_factory</a> () const</td></tr>
+<tr class="memdesc:a48541be9e21c056ae495214afa9a341a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the stopping criterion factory of the solver.  <a href="classgko_1_1solver_1_1Cg.html#a48541be9e21c056ae495214afa9a341a">More...</a><br /></td></tr>
+<tr class="separator:a48541be9e21c056ae495214afa9a341a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abbc672d480ec58860c4a05eafd463de2"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1solver_1_1Cg.html#abbc672d480ec58860c4a05eafd463de2">set_stop_criterion_factory</a> (std::shared_ptr&lt; const <a class="el" href="namespacegko_1_1stop.html#ab12a51109c50b35ec36dc5a393d6a9a0">stop::CriterionFactory</a> &gt; other)</td></tr>
+<tr class="memdesc:abbc672d480ec58860c4a05eafd463de2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the stopping criterion of the solver.  <a href="classgko_1_1solver_1_1Cg.html#abbc672d480ec58860c4a05eafd463de2">More...</a><br /></td></tr>
+<tr class="separator:abbc672d480ec58860c4a05eafd463de2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a548b5ff27c59e50f78eb96a0463453ae"><td class="memItemLeft" align="right" valign="top"><a id="a548b5ff27c59e50f78eb96a0463453ae"></a>
 const <a class="el" href="structgko_1_1solver_1_1Cg_1_1parameters__type.html">parameters_type</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>get_parameters</b> () const</td></tr>
 <tr class="separator:a548b5ff27c59e50f78eb96a0463453ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -135,27 +153,27 @@ const Cg&lt; ValueType &gt; *&#160;</td><td class="memItemRight" valign="bottom"
 Cg&lt; ValueType &gt; *&#160;</td><td class="memItemRight" valign="bottom"><b>apply</b> (const <a class="el" href="classgko_1_1LinOp.html">LinOp</a> *alpha, const <a class="el" href="classgko_1_1LinOp.html">LinOp</a> *b, const <a class="el" href="classgko_1_1LinOp.html">LinOp</a> *beta, <a class="el" href="classgko_1_1LinOp.html">LinOp</a> *x)</td></tr>
 <tr class="separator:ac34196c794c3b256c0007f1f97109664 inherit pub_methods_classgko_1_1EnableLinOp"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classgko_1_1EnableAbstractPolymorphicObject')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classgko_1_1EnableAbstractPolymorphicObject.html">gko::EnableAbstractPolymorphicObject&lt; Cg&lt; ValueType &gt;, LinOp &gt;</a></td></tr>
-<tr class="memitem:afe4ec718648d83a9558d3857814c9b9a inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="afe4ec718648d83a9558d3857814c9b9a"></a>
+<tr class="memitem:ac84c5033523a8c59662287fa0541c18c inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="ac84c5033523a8c59662287fa0541c18c"></a>
 std::unique_ptr&lt; Cg&lt; ValueType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>create_default</b> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec) const</td></tr>
-<tr class="separator:afe4ec718648d83a9558d3857814c9b9a inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a26c03af9356362ec0ca4f7b9c4085583 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a26c03af9356362ec0ca4f7b9c4085583"></a>
+<tr class="separator:ac84c5033523a8c59662287fa0541c18c inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5153f52a413e92a0477c0b99c5bc3b37 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a5153f52a413e92a0477c0b99c5bc3b37"></a>
 std::unique_ptr&lt; Cg&lt; ValueType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>create_default</b> () const</td></tr>
-<tr class="separator:a26c03af9356362ec0ca4f7b9c4085583 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6183560a0ccc5c8cbc4be2e9ad27c000 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a6183560a0ccc5c8cbc4be2e9ad27c000"></a>
+<tr class="separator:a5153f52a413e92a0477c0b99c5bc3b37 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab580b1eed2674cd1eda5d18086bc1944 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="ab580b1eed2674cd1eda5d18086bc1944"></a>
 std::unique_ptr&lt; Cg&lt; ValueType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>clone</b> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec) const</td></tr>
-<tr class="separator:a6183560a0ccc5c8cbc4be2e9ad27c000 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aff03b057dd81865dbbe09e708b368f36 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="aff03b057dd81865dbbe09e708b368f36"></a>
+<tr class="separator:ab580b1eed2674cd1eda5d18086bc1944 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a08485221c0ea27e9100069c65c40f5cb inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a08485221c0ea27e9100069c65c40f5cb"></a>
 std::unique_ptr&lt; Cg&lt; ValueType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>clone</b> () const</td></tr>
-<tr class="separator:aff03b057dd81865dbbe09e708b368f36 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a85130926792743e8ae61af1b4beb003c inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a85130926792743e8ae61af1b4beb003c"></a>
+<tr class="separator:a08485221c0ea27e9100069c65c40f5cb inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6a9588dfdd287538548e513c79793d5e inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a6a9588dfdd287538548e513c79793d5e"></a>
 Cg&lt; ValueType &gt; *&#160;</td><td class="memItemRight" valign="bottom"><b>copy_from</b> (const <a class="el" href="classgko_1_1PolymorphicObject.html">PolymorphicObject</a> *other)</td></tr>
-<tr class="separator:a85130926792743e8ae61af1b4beb003c inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1c021e3710785503593b7054d8c1210d inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a1c021e3710785503593b7054d8c1210d"></a>
+<tr class="separator:a6a9588dfdd287538548e513c79793d5e inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab1a690b36626761167b3fa51bd8ea06a inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="ab1a690b36626761167b3fa51bd8ea06a"></a>
 Cg&lt; ValueType &gt; *&#160;</td><td class="memItemRight" valign="bottom"><b>copy_from</b> (std::unique_ptr&lt; <a class="el" href="classgko_1_1PolymorphicObject.html">PolymorphicObject</a> &gt; other)</td></tr>
-<tr class="separator:a1c021e3710785503593b7054d8c1210d inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4f42a63eedf0bc751262d4493651146a inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a4f42a63eedf0bc751262d4493651146a"></a>
+<tr class="separator:ab1a690b36626761167b3fa51bd8ea06a inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae74d41178d0f0e6bfcada520ea3e3099 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="ae74d41178d0f0e6bfcada520ea3e3099"></a>
 Cg&lt; ValueType &gt; *&#160;</td><td class="memItemRight" valign="bottom"><b>clear</b> ()</td></tr>
-<tr class="separator:a4f42a63eedf0bc751262d4493651146a inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:ae74d41178d0f0e6bfcada520ea3e3099 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_classgko_1_1LinOp"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classgko_1_1LinOp')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classgko_1_1LinOp.html">gko::LinOp</a></td></tr>
 <tr class="memitem:a0449b2fc705d2f970855af23b5e2788e inherit pub_methods_classgko_1_1LinOp"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classgko_1_1LinOp.html">LinOp</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1LinOp.html#a0449b2fc705d2f970855af23b5e2788e">apply</a> (const <a class="el" href="classgko_1_1LinOp.html">LinOp</a> *b, <a class="el" href="classgko_1_1LinOp.html">LinOp</a> *x)</td></tr>
 <tr class="memdesc:a0449b2fc705d2f970855af23b5e2788e inherit pub_methods_classgko_1_1LinOp"><td class="mdescLeft">&#160;</td><td class="mdescRight">Applies a linear operator to a vector (or a sequence of vectors).  <a href="classgko_1_1LinOp.html#a0449b2fc705d2f970855af23b5e2788e">More...</a><br /></td></tr>
@@ -173,27 +191,27 @@ Cg&lt; ValueType &gt; *&#160;</td><td class="memItemRight" valign="bottom"><b>cl
 <tr class="memdesc:a31b3c003388eb0b95393154f68c2b98d inherit pub_methods_classgko_1_1LinOp"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the size of the operator.  <a href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">More...</a><br /></td></tr>
 <tr class="separator:a31b3c003388eb0b95393154f68c2b98d inherit pub_methods_classgko_1_1LinOp"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classgko_1_1EnableAbstractPolymorphicObject')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classgko_1_1EnableAbstractPolymorphicObject.html">gko::EnableAbstractPolymorphicObject&lt; LinOp &gt;</a></td></tr>
-<tr class="memitem:afe4ec718648d83a9558d3857814c9b9a inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="afe4ec718648d83a9558d3857814c9b9a"></a>
+<tr class="memitem:ac84c5033523a8c59662287fa0541c18c inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="ac84c5033523a8c59662287fa0541c18c"></a>
 std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>create_default</b> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec) const</td></tr>
-<tr class="separator:afe4ec718648d83a9558d3857814c9b9a inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a26c03af9356362ec0ca4f7b9c4085583 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a26c03af9356362ec0ca4f7b9c4085583"></a>
+<tr class="separator:ac84c5033523a8c59662287fa0541c18c inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5153f52a413e92a0477c0b99c5bc3b37 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a5153f52a413e92a0477c0b99c5bc3b37"></a>
 std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>create_default</b> () const</td></tr>
-<tr class="separator:a26c03af9356362ec0ca4f7b9c4085583 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6183560a0ccc5c8cbc4be2e9ad27c000 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a6183560a0ccc5c8cbc4be2e9ad27c000"></a>
+<tr class="separator:a5153f52a413e92a0477c0b99c5bc3b37 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab580b1eed2674cd1eda5d18086bc1944 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="ab580b1eed2674cd1eda5d18086bc1944"></a>
 std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>clone</b> (std::shared_ptr&lt; const <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; exec) const</td></tr>
-<tr class="separator:a6183560a0ccc5c8cbc4be2e9ad27c000 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aff03b057dd81865dbbe09e708b368f36 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="aff03b057dd81865dbbe09e708b368f36"></a>
+<tr class="separator:ab580b1eed2674cd1eda5d18086bc1944 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a08485221c0ea27e9100069c65c40f5cb inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a08485221c0ea27e9100069c65c40f5cb"></a>
 std::unique_ptr&lt; <a class="el" href="classgko_1_1LinOp.html">LinOp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>clone</b> () const</td></tr>
-<tr class="separator:aff03b057dd81865dbbe09e708b368f36 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a85130926792743e8ae61af1b4beb003c inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a85130926792743e8ae61af1b4beb003c"></a>
+<tr class="separator:a08485221c0ea27e9100069c65c40f5cb inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6a9588dfdd287538548e513c79793d5e inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a6a9588dfdd287538548e513c79793d5e"></a>
 <a class="el" href="classgko_1_1LinOp.html">LinOp</a> *&#160;</td><td class="memItemRight" valign="bottom"><b>copy_from</b> (const <a class="el" href="classgko_1_1PolymorphicObject.html">PolymorphicObject</a> *other)</td></tr>
-<tr class="separator:a85130926792743e8ae61af1b4beb003c inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1c021e3710785503593b7054d8c1210d inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a1c021e3710785503593b7054d8c1210d"></a>
+<tr class="separator:a6a9588dfdd287538548e513c79793d5e inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab1a690b36626761167b3fa51bd8ea06a inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="ab1a690b36626761167b3fa51bd8ea06a"></a>
 <a class="el" href="classgko_1_1LinOp.html">LinOp</a> *&#160;</td><td class="memItemRight" valign="bottom"><b>copy_from</b> (std::unique_ptr&lt; <a class="el" href="classgko_1_1PolymorphicObject.html">PolymorphicObject</a> &gt; other)</td></tr>
-<tr class="separator:a1c021e3710785503593b7054d8c1210d inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4f42a63eedf0bc751262d4493651146a inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="a4f42a63eedf0bc751262d4493651146a"></a>
+<tr class="separator:ab1a690b36626761167b3fa51bd8ea06a inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae74d41178d0f0e6bfcada520ea3e3099 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="ae74d41178d0f0e6bfcada520ea3e3099"></a>
 <a class="el" href="classgko_1_1LinOp.html">LinOp</a> *&#160;</td><td class="memItemRight" valign="bottom"><b>clear</b> ()</td></tr>
-<tr class="separator:a4f42a63eedf0bc751262d4493651146a inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:ae74d41178d0f0e6bfcada520ea3e3099 inherit pub_methods_classgko_1_1EnableAbstractPolymorphicObject"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_classgko_1_1PolymorphicObject"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classgko_1_1PolymorphicObject')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classgko_1_1PolymorphicObject.html">gko::PolymorphicObject</a></td></tr>
 <tr class="memitem:ab9abbed8b77c7b4b2feb2ec30dc65e47 inherit pub_methods_classgko_1_1PolymorphicObject"><td class="memItemLeft" align="right" valign="top"><a id="ab9abbed8b77c7b4b2feb2ec30dc65e47"></a>
 <a class="el" href="classgko_1_1PolymorphicObject.html">PolymorphicObject</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (const <a class="el" href="classgko_1_1PolymorphicObject.html">PolymorphicObject</a> &amp;)</td></tr>
@@ -273,6 +291,100 @@ class gko::solver::Cg&lt; ValueType &gt;</h3>
   </dd>
 </dl>
 </div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="afe55c303b6b99937bae9e1c36449997d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afe55c303b6b99937bae9e1c36449997d">&#9670;&nbsp;</a></span>apply_uses_initial_guess()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool <a class="el" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg</a>&lt; ValueType &gt;::apply_uses_initial_guess </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return true as iterative solvers use the data in x as an initial guess. </p>
+<dl class="section return"><dt>Returns</dt><dd>true as iterative solvers use the data in x as an initial guess. </dd></dl>
+
+<p>Reimplemented from <a class="el" href="classgko_1_1LinOp.html#a80967e89745c73e5df8640fe1c7e4aaa">gko::LinOp</a>.</p>
+
+</div>
+</div>
+<a id="af7d15957dcfdb5477bc899485dfa11d1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af7d15957dcfdb5477bc899485dfa11d1">&#9670;&nbsp;</a></span>conj_transpose()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;<a class="el" href="classgko_1_1LinOp.html">LinOp</a>&gt; <a class="el" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg</a>&lt; ValueType &gt;::conj_transpose </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the conjugate transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface.">Transposable</a> object. </p>
+<dl class="section return"><dt>Returns</dt><dd>a pointer to the new conjugate transposed object </dd></dl>
+
+<p>Implements <a class="el" href="classgko_1_1Transposable.html#ab41b669288740cf2a6f7bf76e875b077">gko::Transposable</a>.</p>
+
+</div>
+</div>
+<a id="a48541be9e21c056ae495214afa9a341a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a48541be9e21c056ae495214afa9a341a">&#9670;&nbsp;</a></span>get_stop_criterion_factory()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::shared_ptr&lt;const <a class="el" href="namespacegko_1_1stop.html#ab12a51109c50b35ec36dc5a393d6a9a0">stop::CriterionFactory</a>&gt; <a class="el" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg</a>&lt; ValueType &gt;::get_stop_criterion_factory </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Gets the stopping criterion factory of the solver. </p>
+<dl class="section return"><dt>Returns</dt><dd>the stopping criterion factory </dd></dl>
+
+</div>
+</div>
 <a id="a09d50a99fdc668316757ee253386ad2a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a09d50a99fdc668316757ee253386ad2a">&#9670;&nbsp;</a></span>get_system_matrix()</h2>
 
@@ -303,8 +415,76 @@ template&lt;typename ValueType  = default_precision&gt; </div>
 
 </div>
 </div>
+<a id="abbc672d480ec58860c4a05eafd463de2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abbc672d480ec58860c4a05eafd463de2">&#9670;&nbsp;</a></span>set_stop_criterion_factory()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void <a class="el" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg</a>&lt; ValueType &gt;::set_stop_criterion_factory </td>
+          <td>(</td>
+          <td class="paramtype">std::shared_ptr&lt; const <a class="el" href="namespacegko_1_1stop.html#ab12a51109c50b35ec36dc5a393d6a9a0">stop::CriterionFactory</a> &gt;&#160;</td>
+          <td class="paramname"><em>other</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Sets the stopping criterion of the solver. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">other</td><td>the new stopping criterion factory </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a71705ea69c27dc3d9028885e1a2579e0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a71705ea69c27dc3d9028885e1a2579e0">&#9670;&nbsp;</a></span>transpose()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ValueType  = default_precision&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::unique_ptr&lt;<a class="el" href="classgko_1_1LinOp.html">LinOp</a>&gt; <a class="el" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg</a>&lt; ValueType &gt;::transpose </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">override</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns a <a class="el" href="classgko_1_1LinOp.html">LinOp</a> representing the transpose of the <a class="el" href="classgko_1_1Transposable.html" title="Linear operators which support transposition should implement the Transposable interface.">Transposable</a> object. </p>
+<dl class="section return"><dt>Returns</dt><dd>a pointer to the new transposed object </dd></dl>
+
+<p>Implements <a class="el" href="classgko_1_1Transposable.html#a5c6b778b71b47d53e0bda6ccf894d318">gko::Transposable</a>.</p>
+
+</div>
+</div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/solver/<a class="el" href="cg_8hpp_source.html">cg.hpp (4d55c5d34)</a></li>
+<li>ginkgo/core/solver/<a class="el" href="cg_8hpp_source.html">cg.hpp (5bb6c1e23)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

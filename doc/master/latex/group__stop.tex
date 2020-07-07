@@ -17,17 +17,18 @@ class \mbox{\hyperlink{classgko_1_1stop_1_1Combined}{gko\+::stop\+::\+Combined}}
 \begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1Combined}{Combined}} class is used to combine multiple criterions together through an OR operation. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1stop_1_1Iteration}{gko\+::stop\+::\+Iteration}}
 \begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1Iteration}{Iteration}} class is a stopping criterion which stops the iteration process after a preset number of iterations. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{gko\+::stop\+::\+Residual\+Norm$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNorm}{Residual\+Norm}} class provides a framework for stopping criteria related to the residual norm. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{gko\+::stop\+::\+Residual\+Norm\+Reduction$<$ Value\+Type $>$}}
-\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{Residual\+Norm\+Reduction}} class is a stopping criterion which stops the iteration process when the relative residual norm is below a certain threshold. \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1ResidualNormReduction}{Residual\+Norm\+Reduction}} class is a stopping criterion which stops the iteration process when the residual norm is below a certain threshold relative to the norm of the initial residual, i.\+e. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1RelativeResidualNorm}{gko\+::stop\+::\+Relative\+Residual\+Norm$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1RelativeResidualNorm}{Relative\+Residual\+Norm}} class is a stopping criterion which stops the iteration process when the residual norm is below a certain threshold relative to the norm of the right-\/hand side, i.\+e. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1stop_1_1AbsoluteResidualNorm}{gko\+::stop\+::\+Absolute\+Residual\+Norm$<$ Value\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1AbsoluteResidualNorm}{Absolute\+Residual\+Norm}} class is a stopping criterion which stops the iteration process when the residual norm is below a certain threshold, i.\+e. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1stopping__status}{gko\+::stopping\+\_\+status}}
 \begin{DoxyCompactList}\small\item\em This class is used to keep track of the stopping status of one vector. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1stop_1_1Time}{gko\+::stop\+::\+Time}}
 \begin{DoxyCompactList}\small\item\em The \mbox{\hyperlink{classgko_1_1stop_1_1Time}{Time}} class is a stopping criterion which stops the iteration process after a certain amout of time has passed. \end{DoxyCompactList}\end{DoxyCompactItemize}
-\doxysubsection*{Macros}
-\begin{DoxyCompactItemize}
-\item 
-\#define \mbox{\hyperlink{group__stop_ga5a998013602bad749e586a5664670cae}{G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+C\+R\+I\+T\+E\+R\+I\+O\+N\+\_\+\+F\+A\+C\+T\+O\+RY}}(\+\_\+criterion,  \+\_\+parameters\+\_\+name,  \+\_\+factory\+\_\+name)
-\begin{DoxyCompactList}\small\item\em This macro will generate a default implementation of a Criterion\+Factory for the Criterion subclass it is defined in. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Functions}
 \begin{DoxyCompactItemize}
 \item 
@@ -38,30 +39,6 @@ class \mbox{\hyperlink{classgko_1_1stop_1_1Time}{gko\+::stop\+::\+Time}}
 \doxysubsection{Detailed Description}
 A module dedicated to the implementation and usage of the Stopping Criteria in Ginkgo. 
 
-
-
-\doxysubsection{Macro Definition Documentation}
-\mbox{\Hypertarget{group__stop_ga5a998013602bad749e586a5664670cae}\label{group__stop_ga5a998013602bad749e586a5664670cae}} 
-\index{Stopping criteria@{Stopping criteria}!GKO\_ENABLE\_CRITERION\_FACTORY@{GKO\_ENABLE\_CRITERION\_FACTORY}}
-\index{GKO\_ENABLE\_CRITERION\_FACTORY@{GKO\_ENABLE\_CRITERION\_FACTORY}!Stopping criteria@{Stopping criteria}}
-\doxysubsubsection{\texorpdfstring{GKO\_ENABLE\_CRITERION\_FACTORY}{GKO\_ENABLE\_CRITERION\_FACTORY}}
-{\footnotesize\ttfamily \#define G\+K\+O\+\_\+\+E\+N\+A\+B\+L\+E\+\_\+\+C\+R\+I\+T\+E\+R\+I\+O\+N\+\_\+\+F\+A\+C\+T\+O\+RY(\begin{DoxyParamCaption}\item[{}]{\+\_\+criterion,  }\item[{}]{\+\_\+parameters\+\_\+name,  }\item[{}]{\+\_\+factory\+\_\+name }\end{DoxyParamCaption})}
-
-
-
-This macro will generate a default implementation of a Criterion\+Factory for the Criterion subclass it is defined in. 
-
-This macro is very similar to the macro \#\+E\+N\+A\+B\+L\+E\+\_\+\+L\+I\+N\+\_\+\+O\+P\+\_\+\+F\+A\+C\+T\+O\+R\+Y(). A more detailed description of the use of these type of macros can be found there.
-
-
-\begin{DoxyParams}{Parameters}
-{\em \+\_\+criterion} & concrete operator for which the factory is to be created \mbox{[}C\+R\+TP parameter\mbox{]} \\
-\hline
-{\em \+\_\+parameters\+\_\+name} & name of the parameters member in the class (its type is {\ttfamily $<$\+\_\+parameters\+\_\+name$>$\+\_\+type}, the protected member\textquotesingle{}s name is {\ttfamily $<$\+\_\+parameters\+\_\+name$>$\+\_\+}, and the public getter\textquotesingle{}s name is {\ttfamily get\+\_\+$<$\+\_\+parameters\+\_\+name$>$()}) \\
-\hline
-{\em \+\_\+factory\+\_\+name} & name of the generated factory type \\
-\hline
-\end{DoxyParams}
 
 
 \doxysubsection{Function Documentation}

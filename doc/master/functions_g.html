@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from tags/v1.1.1^0 branch based on master. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from tags/v1.2.0^0 branch based on master. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -72,7 +72,8 @@ $(function() {
 : <a class="el" href="classgko_1_1AbstractFactory.html#a159c45f1db78b6b928d69cb9adf5c9ee">gko::AbstractFactory&lt; AbstractProductType, ComponentsType &gt;</a>
 </li>
 <li>generated_preconditioner
-: <a class="el" href="structgko_1_1solver_1_1Bicgstab_1_1parameters__type.html#a2a2385e1f78185e17a6ebd9bff969088">gko::solver::Bicgstab&lt; ValueType &gt;::parameters_type</a>
+: <a class="el" href="structgko_1_1solver_1_1Bicg_1_1parameters__type.html#aaa29c19ddf8a61cf24f660b363468b17">gko::solver::Bicg&lt; ValueType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1solver_1_1Bicgstab_1_1parameters__type.html#a2a2385e1f78185e17a6ebd9bff969088">gko::solver::Bicgstab&lt; ValueType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1solver_1_1Cg_1_1parameters__type.html#ad05c6600eca51def94fb1279901f9b5c">gko::solver::Cg&lt; ValueType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1solver_1_1Cgs_1_1parameters__type.html#a50e4ec6b2c0b41747bd77244147ca1f3">gko::solver::Cgs&lt; ValueType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1solver_1_1Fcg_1_1parameters__type.html#a4e8a74f4d9b83efe071e7b5252fdc1b9">gko::solver::Fcg&lt; ValueType &gt;::parameters_type</a>
@@ -88,6 +89,9 @@ $(function() {
 </li>
 <li>get_accessor()
 : <a class="el" href="classgko_1_1range.html#ac62f76256fce7442670275827e32d506">gko::range&lt; Accessor &gt;</a>
+</li>
+<li>get_approximate_inverse()
+: <a class="el" href="classgko_1_1preconditioner_1_1Isai.html#a3151e65a57c5c003aaf05c23da37d7bf">gko::preconditioner::Isai&lt; IsaiType, ValueType, IndexType &gt;</a>
 </li>
 <li>get_basis()
 : <a class="el" href="classgko_1_1Perturbation.html#a4080d4c1ea5529e5eb51eea5f85946bb">gko::Perturbation&lt; ValueType &gt;</a>
@@ -135,6 +139,9 @@ $(function() {
 </li>
 <li>get_const_ell_values()
 : <a class="el" href="classgko_1_1matrix_1_1Hybrid.html#af792e702c3650f4e77e8cb256250f21e">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;</a>
+</li>
+<li>get_const_permutation()
+: <a class="el" href="classgko_1_1matrix_1_1Permutation.html#afade97c61c352cd4fbe25ed8a4b77a90">gko::matrix::Permutation&lt; IndexType &gt;</a>
 </li>
 <li>get_const_row_idxs()
 : <a class="el" href="classgko_1_1matrix_1_1Coo.html#a0fe0f33bf492bf2f9134927c7ee90e81">gko::matrix::Coo&lt; ValueType, IndexType &gt;</a>
@@ -191,6 +198,7 @@ $(function() {
 </li>
 <li>get_device_id()
 : <a class="el" href="classgko_1_1CudaExecutor.html#a7cfa915eadd2329eb897dc1ee2712488">gko::CudaExecutor</a>
+, <a class="el" href="classgko_1_1HipExecutor.html#a37a35665c3983e56105c6acea9de73c6">gko::HipExecutor</a>
 </li>
 <li>get_ell()
 : <a class="el" href="classgko_1_1matrix_1_1Hybrid.html#afe9a3a9a801271d5ead4774fff7ffbd7">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;</a>
@@ -224,6 +232,12 @@ $(function() {
 <li>get_group_size()
 : <a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#af5eee19f00b1cd4c378ac3410be72093">gko::preconditioner::block_interleaved_storage_scheme&lt; IndexType &gt;</a>
 </li>
+<li>get_hipblas_handle()
+: <a class="el" href="classgko_1_1HipExecutor.html#a3e9de37cb851c04cd1d8f02712421f83">gko::HipExecutor</a>
+</li>
+<li>get_hipsparse_handle()
+: <a class="el" href="classgko_1_1HipExecutor.html#ac644de4030c96e20db7489957a949c49">gko::HipExecutor</a>
+</li>
 <li>get_id()
 : <a class="el" href="classgko_1_1stopping__status.html#ae3c4d0e7a01f4e1892a09f418ea0907d">gko::stopping_status</a>
 </li>
@@ -231,21 +245,25 @@ $(function() {
 : <a class="el" href="classgko_1_1solver_1_1Gmres.html#a3a808fe82cdd1e988667a89d6982e740">gko::solver::Gmres&lt; ValueType &gt;</a>
 </li>
 <li>get_l_solver()
-: <a class="el" href="classgko_1_1preconditioner_1_1Ilu.html#ad6f8264b1aa3faaaafc5b9db19fefa1a">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexTypeParIlu &gt;</a>
+: <a class="el" href="classgko_1_1preconditioner_1_1Ilu.html#a1c4d36d53f2c50c84d338369736fa64e">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;</a>
 </li>
 <li>get_major_version()
 : <a class="el" href="classgko_1_1CudaExecutor.html#a3868f53f82b6398acb1ba1f9647a6e46">gko::CudaExecutor</a>
+, <a class="el" href="classgko_1_1HipExecutor.html#a4cdda4e0d7031ab353555193927d0975">gko::HipExecutor</a>
 </li>
 <li>get_master()
 : <a class="el" href="classgko_1_1CudaExecutor.html#a59a618e0d48b42fe699e9d4cf347b491">gko::CudaExecutor</a>
 , <a class="el" href="classgko_1_1Executor.html#acaec4f999d52fc71e5e5a3d3ad93609c">gko::Executor</a>
-, <a class="el" href="classgko_1_1OmpExecutor.html#ab297a7eba78463784d4d2ca08b03c675">gko::OmpExecutor</a>
+, <a class="el" href="classgko_1_1HipExecutor.html#aad8e01fc70095ad5df48a02da9555400">gko::HipExecutor</a>
+, <a class="el" href="classgko_1_1OmpExecutor.html#a5b83349e601d473cf8768c0bdbcaca8c">gko::OmpExecutor</a>
 </li>
 <li>get_minor_version()
 : <a class="el" href="classgko_1_1CudaExecutor.html#aa7d7a5cd7aeb38b8ab8fe3e4d1538481">gko::CudaExecutor</a>
+, <a class="el" href="classgko_1_1HipExecutor.html#a78f3bfa05f6d38c286309436781a6f7a">gko::HipExecutor</a>
 </li>
 <li>get_name()
-: <a class="el" href="classgko_1_1Operation.html#ab3b940849d1daf02830f3387c52888d0">gko::Operation</a>
+: <a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html#a0c22b251b0c1dfd087a5c097488febe0">gko::matrix::Csr&lt; ValueType, IndexType &gt;::strategy_type</a>
+, <a class="el" href="classgko_1_1Operation.html#ab3b940849d1daf02830f3387c52888d0">gko::Operation</a>
 </li>
 <li>get_nonpreserving()
 : <a class="el" href="classgko_1_1precision__reduction.html#a909a01025fd490d4658abd7c5791685d">gko::precision_reduction</a>
@@ -253,11 +271,9 @@ $(function() {
 <li>get_num_blocks()
 : <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#afb44d8e560f00f65c46c6813638ce24c">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;</a>
 </li>
-<li>get_num_cores_per_sm()
-: <a class="el" href="classgko_1_1CudaExecutor.html#a213c222fd8ef58952328fbe3a9b5ff39">gko::CudaExecutor</a>
-</li>
 <li>get_num_devices()
 : <a class="el" href="classgko_1_1CudaExecutor.html#aef0258494d14de0e56149b920c5173e5">gko::CudaExecutor</a>
+, <a class="el" href="classgko_1_1HipExecutor.html#a7b34cbd84692dafa2290e6630754aa97">gko::HipExecutor</a>
 </li>
 <li>get_num_elems()
 : <a class="el" href="classgko_1_1Array.html#ad4a2aa179d350634e6579f144b6b2cf0">gko::Array&lt; ValueType &gt;</a>
@@ -267,6 +283,7 @@ $(function() {
 </li>
 <li>get_num_multiprocessor()
 : <a class="el" href="classgko_1_1CudaExecutor.html#a449c2bf9c51b58a04fdb8b4a73377820">gko::CudaExecutor</a>
+, <a class="el" href="classgko_1_1HipExecutor.html#ac69c763f9d90e948d03ed1e5ed23903c">gko::HipExecutor</a>
 </li>
 <li>get_num_nonzeros()
 : <a class="el" href="classgko_1_1matrix_1_1SparsityCsr.html#ab21b21608859367a49311f941b10ddd6">gko::matrix::SparsityCsr&lt; ValueType, IndexType &gt;</a>
@@ -288,6 +305,11 @@ $(function() {
 </li>
 <li>get_num_warps()
 : <a class="el" href="classgko_1_1CudaExecutor.html#aa9d77db0b87322a8bef12380029b5310">gko::CudaExecutor</a>
+, <a class="el" href="classgko_1_1HipExecutor.html#add2eb69abc3225f1ab7e5b01d9ebb307">gko::HipExecutor</a>
+</li>
+<li>get_num_warps_per_sm()
+: <a class="el" href="classgko_1_1CudaExecutor.html#a245c1c35a18e6534d87ef6e9cad24f7c">gko::CudaExecutor</a>
+, <a class="el" href="classgko_1_1HipExecutor.html#a43bc417378f1c0f07ef49d2856ddd37c">gko::HipExecutor</a>
 </li>
 <li>get_operators()
 : <a class="el" href="classgko_1_1Combination.html#a75a81c2b91441ddea98949ef54f62441">gko::Combination&lt; ValueType &gt;</a>
@@ -295,6 +317,15 @@ $(function() {
 </li>
 <li>get_parameters()
 : <a class="el" href="classgko_1_1EnableDefaultFactory.html#ae32f2b3100640293f3a46e1280965162">gko::EnableDefaultFactory&lt; ConcreteFactory, ProductType, ParametersType, PolymorphicBase &gt;</a>
+</li>
+<li>get_permutation()
+: <a class="el" href="classgko_1_1matrix_1_1Permutation.html#ad632f0f6b6305ef7a74d7abf260556cf">gko::matrix::Permutation&lt; IndexType &gt;</a>
+</li>
+<li>get_permutation_size()
+: <a class="el" href="classgko_1_1matrix_1_1Permutation.html#a576d006fe37902ff0b47050ecb87b416">gko::matrix::Permutation&lt; IndexType &gt;</a>
+</li>
+<li>get_permute_mask()
+: <a class="el" href="classgko_1_1matrix_1_1Permutation.html#a29fc6728ed79dda46178790bc3b32503">gko::matrix::Permutation&lt; IndexType &gt;</a>
 </li>
 <li>get_preconditioner()
 : <a class="el" href="classgko_1_1Preconditionable.html#a0e664ac0bd76c286e4bdc630e33f2cd3">gko::Preconditionable</a>
@@ -339,6 +370,15 @@ $(function() {
 <li>get_srow()
 : <a class="el" href="classgko_1_1matrix_1_1Csr.html#a919fb1efdcbde6fba7eb18bdc39ba46a">gko::matrix::Csr&lt; ValueType, IndexType &gt;</a>
 </li>
+<li>get_stop_criterion_factory()
+: <a class="el" href="classgko_1_1solver_1_1Bicg.html#a831492fd74aa8559d82f982701315706">gko::solver::Bicg&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Bicgstab.html#a3e75927cf65072e8afb9dbac57e01ba4">gko::solver::Bicgstab&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Cg.html#a48541be9e21c056ae495214afa9a341a">gko::solver::Cg&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Cgs.html#a9b79357d097dcf482365b3eb7ec2d19e">gko::solver::Cgs&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Fcg.html#a9ba17c5deb4d7deebe4a97637796d029">gko::solver::Fcg&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Gmres.html#ae764a5c6acf6d260b2d334f434b36f49">gko::solver::Gmres&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Ir.html#a3ceb918891b6dbcbae4d52bc8a831b19">gko::solver::Ir&lt; ValueType &gt;</a>
+</li>
 <li>get_storage_scheme()
 : <a class="el" href="classgko_1_1preconditioner_1_1Jacobi.html#a5e4e792eebc837d555c2df4c74a3d5dc">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;</a>
 </li>
@@ -355,7 +395,8 @@ $(function() {
 : <a class="el" href="classgko_1_1matrix_1_1Sellp.html#a34c7942cac3db5a9c4c0b609d2a5540b">gko::matrix::Sellp&lt; ValueType, IndexType &gt;</a>
 </li>
 <li>get_system_matrix()
-: <a class="el" href="classgko_1_1solver_1_1Bicgstab.html#ada73e8ca3e8924011c8780cab92f651e">gko::solver::Bicgstab&lt; ValueType &gt;</a>
+: <a class="el" href="classgko_1_1solver_1_1Bicg.html#aab3709991ffebeeb2edcd39c32426fab">gko::solver::Bicg&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Bicgstab.html#ada73e8ca3e8924011c8780cab92f651e">gko::solver::Bicgstab&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1solver_1_1Cg.html#a09d50a99fdc668316757ee253386ad2a">gko::solver::Cg&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1solver_1_1Cgs.html#aa537b2e6b7ccf95e96b4100866da1770">gko::solver::Cgs&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1solver_1_1Fcg.html#aae8c67d27df239c18750845275605c87">gko::solver::Fcg&lt; ValueType &gt;</a>
@@ -368,7 +409,7 @@ $(function() {
 : <a class="el" href="classgko_1_1matrix_1_1Sellp.html#a3e5ca0f4968f29f97b5a42aac4d08b3d">gko::matrix::Sellp&lt; ValueType, IndexType &gt;</a>
 </li>
 <li>get_u_solver()
-: <a class="el" href="classgko_1_1preconditioner_1_1Ilu.html#ab0fbd87cd4ed58f03d6bb367d539bd24">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexTypeParIlu &gt;</a>
+: <a class="el" href="classgko_1_1preconditioner_1_1Ilu.html#ade8298e19120e2f7cf97da228e6ff00d">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;</a>
 </li>
 <li>get_value()
 : <a class="el" href="classgko_1_1matrix_1_1SparsityCsr.html#abedb37b3376606db2bfbc2639a923426">gko::matrix::SparsityCsr&lt; ValueType, IndexType &gt;</a>
@@ -379,6 +420,10 @@ $(function() {
 , <a class="el" href="classgko_1_1matrix_1_1Dense.html#a3bc458e02fab8e4c9f60f70bd4d5a4f9">gko::matrix::Dense&lt; ValueType &gt;</a>
 , <a class="el" href="classgko_1_1matrix_1_1Ell.html#a4028e9629a7d96a7a483e6ea4a686a1d">gko::matrix::Ell&lt; ValueType, IndexType &gt;</a>
 , <a class="el" href="classgko_1_1matrix_1_1Sellp.html#ac9afd5f8000da345844ccb22b599acf7">gko::matrix::Sellp&lt; ValueType, IndexType &gt;</a>
+</li>
+<li>get_warp_size()
+: <a class="el" href="classgko_1_1CudaExecutor.html#a6a3894e9f4d98b5f7523e067c88ef521">gko::CudaExecutor</a>
+, <a class="el" href="classgko_1_1HipExecutor.html#ae470cdfd4273b02b2563101d6146db26">gko::HipExecutor</a>
 </li>
 <li>group_offset
 : <a class="el" href="structgko_1_1preconditioner_1_1block__interleaved__storage__scheme.html#aa8a6723ef709e69bda55eaabaeee582e">gko::preconditioner::block_interleaved_storage_scheme&lt; IndexType &gt;</a>

@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from tags/v1.1.1^0 branch based on master. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from tags/v1.2.0^0 branch based on master. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -92,12 +92,12 @@ $(function() {
 </ol> </td> </tr> </table>
  <a class="anchor" id="Intro"></a> <a class="anchor" id="Introduction"></a></p><h1>Introduction</h1>
 <p>This example solves a 1D Poisson equation:</p>
-<p><img class="formulaInl" alt="$ u : [0, 1] \rightarrow R\\ u'' = f\\ u(0) = u0\\ u(1) = u1 $" src="form_21.png"/></p>
+<p><img class="formulaInl" alt="$ u : [0, 1] \rightarrow R\\ u'' = f\\ u(0) = u0\\ u(1) = u1 $" src="form_32.png"/></p>
 <p>using a finite difference method on an equidistant grid with <code>K</code> discretization points (<code>K</code> can be controlled with a command line parameter). The discretization is done via the second order Taylor polynomial:</p>
-<p><img class="formulaInl" alt="$ u(x + h) = u(x) - u'(x)h + 1/2 u''(x)h^2 + O(h^3)\\ u(x - h) = u(x) + u'(x)h + 1/2 u''(x)h^2 + O(h^3) / +\\ ---------------------- \\ -u(x - h) + 2u(x) + -u(x + h) = -f(x)h^2 + O(h^3) $" src="form_22.png"/></p>
-<p>For an equidistant grid with K "inner" discretization points <img class="formulaInl" alt="$x1, ..., xk, $" src="form_23.png"/>and step size <img class="formulaInl" alt="$ h = 1 / (K + 1)$" src="form_24.png"/>, the formula produces a system of linear equations</p>
-<p><img class="formulaInl" alt="$ 2u_1 - u_2 = -f_1 h^2 + u0\\ -u_(k-1) + 2u_k - u_(k+1) = -f_k h^2, k = 2, ..., K - 1\\ -u_(K-1) + 2u_K = -f_K h^2 + u1\\ $" src="form_25.png"/></p>
-<p>which is then solved using Ginkgo's implementation of the CG method preconditioned with block-Jacobi. It is also possible to specify on which executor Ginkgo will solve the system via the command line. The function <img class="formulaInl" alt="$`f` $" src="form_26.png"/>is set to <img class="formulaInl" alt="$`f(x) = 6x`$" src="form_27.png"/> (making the solution <img class="formulaInl" alt="$`u(x) = x^3`$" src="form_28.png"/>), but that can be changed in the <code>main</code> function.</p>
+<p><img class="formulaInl" alt="$ u(x + h) = u(x) - u'(x)h + 1/2 u''(x)h^2 + O(h^3)\\ u(x - h) = u(x) + u'(x)h + 1/2 u''(x)h^2 + O(h^3) / +\\ ---------------------- \\ -u(x - h) + 2u(x) + -u(x + h) = -f(x)h^2 + O(h^3) $" src="form_33.png"/></p>
+<p>For an equidistant grid with K "inner" discretization points <img class="formulaInl" alt="$x1, ..., xk, $" src="form_34.png"/>and step size <img class="formulaInl" alt="$ h = 1 / (K + 1)$" src="form_35.png"/>, the formula produces a system of linear equations</p>
+<p><img class="formulaInl" alt="$ 2u_1 - u_2 = -f_1 h^2 + u0\\ -u_(k-1) + 2u_k - u_(k+1) = -f_k h^2, k = 2, ..., K - 1\\ -u_(K-1) + 2u_K = -f_K h^2 + u1\\ $" src="form_36.png"/></p>
+<p>which is then solved using Ginkgo's implementation of the CG method preconditioned with block-Jacobi. It is also possible to specify on which executor Ginkgo will solve the system via the command line. The function <img class="formulaInl" alt="$`f` $" src="form_37.png"/>is set to <img class="formulaInl" alt="$`f(x) = 6x`$" src="form_38.png"/> (making the solution <img class="formulaInl" alt="$`u(x) = x^3`$" src="form_39.png"/>), but that can be changed in the <code>main</code> function.</p>
 <p>The intention of this example is to show how a custom linear operator can be created and integrated into Ginkgo to achieve performance benefits.</p>
 <p><a class="anchor" id="Abouttheexample"></a></p><h3>About the example </h3>
 <p><a class="anchor" id="CommProg"></a> </p><h1>The commented program</h1>
@@ -109,24 +109,26 @@ $(function() {
 <div class="line"><span class="preprocessor">#include &lt;omp.h&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;ginkgo/ginkgo.hpp&gt;</span></div>
 </div><!-- fragment --><p>A CUDA kernel implementing the stencil, which will be used if running on the CUDA executor. Unfortunately, NVCC has serious problems interpreting some parts of Ginkgo's code, so the kernel has to be compiled separately.</p>
-<div class="fragment"><div class="line"><span class="keyword">extern</span> <span class="keywordtype">void</span> stencil_kernel(std::size_t size, <span class="keyword">const</span> <span class="keywordtype">double</span> *coefs,</div>
-<div class="line">                           <span class="keyword">const</span> <span class="keywordtype">double</span> *b, <span class="keywordtype">double</span> *x);</div>
+<div class="fragment"><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType&gt;</div>
+<div class="line"><span class="keywordtype">void</span> stencil_kernel(std::size_t size, <span class="keyword">const</span> ValueType *coefs,</div>
+<div class="line">                    <span class="keyword">const</span> ValueType *b, ValueType *x);</div>
 </div><!-- fragment --><p>A stencil matrix class representing the 3pt stencil linear operator. We include the <a class="el" href="classgko_1_1EnableLinOp.html" title="The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ...">gko::EnableLinOp</a> mixin which implements the entire LinOp interface, except the two apply_impl methods, which get called inside the default implementation of apply (after argument verification) to perform the actual application of the linear operator. In addition, it includes the implementation of the entire PolymorphicObject interface.</p>
 <p>It also includes the <a class="el" href="classgko_1_1EnableCreateMethod.html" title="This mixin implements a static create() method on ConcreteType that dynamically allocates the memory,...">gko::EnableCreateMethod</a> mixin which provides a default implementation of the static create method. This method will forward all its arguments to the constructor to create the object, and return an std::unique_ptr to the created object.</p>
-<div class="fragment"><div class="line"><span class="keyword">class </span>StencilMatrix : <span class="keyword">public</span> <a class="code" href="classgko_1_1EnableLinOp.html">gko::EnableLinOp</a>&lt;StencilMatrix&gt;,</div>
-<div class="line">                      <span class="keyword">public</span> <a class="code" href="classgko_1_1EnableCreateMethod.html">gko::EnableCreateMethod</a>&lt;StencilMatrix&gt; {</div>
+<div class="fragment"><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType&gt;</div>
+<div class="line"><span class="keyword">class </span>StencilMatrix : <span class="keyword">public</span> <a class="code" href="classgko_1_1EnableLinOp.html">gko::EnableLinOp</a>&lt;StencilMatrix&lt;ValueType&gt;&gt;,</div>
+<div class="line">                      <span class="keyword">public</span> <a class="code" href="classgko_1_1EnableCreateMethod.html">gko::EnableCreateMethod</a>&lt;StencilMatrix&lt;ValueType&gt;&gt; {</div>
 <div class="line"><span class="keyword">public</span>:</div>
 </div><!-- fragment --><p>This constructor will be called by the create method. Here we initialize the coefficients of the stencil.</p>
 <div class="fragment"><div class="line">    StencilMatrix(std::shared_ptr&lt;const gko::Executor&gt; exec,</div>
-<div class="line">                  <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a> size = 0, <span class="keywordtype">double</span> left = -1.0,</div>
-<div class="line">                  <span class="keywordtype">double</span> center = 2.0, <span class="keywordtype">double</span> right = -1.0)</div>
+<div class="line">                  <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a> size = 0, ValueType left = -1.0,</div>
+<div class="line">                  ValueType center = 2.0, ValueType right = -1.0)</div>
 <div class="line">        : <a class="code" href="namespacegko.html">gko</a>::EnableLinOp&lt;StencilMatrix&gt;(exec, <a class="code" href="namespacegko.html">gko</a>::dim&lt;2&gt;{size}),</div>
 <div class="line">          coefficients(exec, {left, center, right})</div>
 <div class="line">    {}</div>
 <div class="line"> </div>
 <div class="line"><span class="keyword">protected</span>:</div>
-<div class="line">    <span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;&gt;</a>;</div>
-<div class="line">    <span class="keyword">using</span> coef_type = <a class="code" href="classgko_1_1Array.html">gko::Array&lt;double&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> coef_type = <a class="code" href="classgko_1_1Array.html">gko::Array&lt;ValueType&gt;</a>;</div>
 </div><!-- fragment --><p>Here we implement the application of the linear operator, x = A * b. apply_impl will be called by the apply method, after the arguments have been moved to the correct executor and the operators checked for conforming sizes.</p>
 <p>For simplicity, we assume that there is always only one right hand side and the stride of consecutive elements in the vectors is 1 (both of these are always true in this example).</p>
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> apply_impl(<span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *b, <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *x)<span class="keyword"> const override</span></div>
@@ -188,14 +190,15 @@ $(function() {
 <div class="line">    coef_type coefficients;</div>
 <div class="line">};</div>
 </div><!-- fragment --><p>Creates a stencil matrix in CSR format for the given number of discretization points.</p>
-<div class="fragment"><div class="line"><span class="keywordtype">void</span> generate_stencil_matrix(<a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;&gt;</a> *matrix)</div>
+<div class="fragment"><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType, <span class="keyword">typename</span> IndexType&gt;</div>
+<div class="line"><span class="keywordtype">void</span> generate_stencil_matrix(<a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;ValueType, IndexType&gt;</a> *matrix)</div>
 <div class="line">{</div>
 <div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> discretization_points = matrix-&gt;<a class="code" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">get_size</a>()[0];</div>
 <div class="line">    <span class="keyword">auto</span> row_ptrs = matrix-&gt;<a class="code" href="classgko_1_1matrix_1_1Csr.html#a068e5158cf282fa977f0a137f8cd7f03">get_row_ptrs</a>();</div>
 <div class="line">    <span class="keyword">auto</span> col_idxs = matrix-&gt;<a class="code" href="classgko_1_1matrix_1_1Csr.html#a81c6294177a1be4873804c8a85a9fc64">get_col_idxs</a>();</div>
 <div class="line">    <span class="keyword">auto</span> values = matrix-&gt;<a class="code" href="classgko_1_1matrix_1_1Csr.html#a929b0a194e6aeb1252b8e6781d162e83">get_values</a>();</div>
-<div class="line">    <span class="keywordtype">int</span> pos = 0;</div>
-<div class="line">    <span class="keyword">const</span> <span class="keywordtype">double</span> coefs[] = {-1, 2, -1};</div>
+<div class="line">    IndexType pos = 0;</div>
+<div class="line">    <span class="keyword">const</span> ValueType coefs[] = {-1, 2, -1};</div>
 <div class="line">    row_ptrs[0] = pos;</div>
 <div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; discretization_points; ++i) {</div>
 <div class="line">        <span class="keywordflow">for</span> (<span class="keyword">auto</span> ofs : {-1, 0, 1}) {</div>
@@ -209,21 +212,24 @@ $(function() {
 <div class="line">    }</div>
 <div class="line">}</div>
 </div><!-- fragment --><p>Generates the RHS vector given <code>f</code> and the boundary conditions.</p>
-<div class="fragment"><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Closure&gt;</div>
-<div class="line"><span class="keywordtype">void</span> generate_rhs(Closure f, <span class="keywordtype">double</span> u0, <span class="keywordtype">double</span> u1, <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;&gt;</a> *rhs)</div>
+<div class="fragment"><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Closure, <span class="keyword">typename</span> ValueType&gt;</div>
+<div class="line"><span class="keywordtype">void</span> generate_rhs(Closure f, ValueType u0, ValueType u1,</div>
+<div class="line">                  <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a> *rhs)</div>
 <div class="line">{</div>
 <div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> discretization_points = rhs-&gt;<a class="code" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">get_size</a>()[0];</div>
 <div class="line">    <span class="keyword">auto</span> values = rhs-&gt;<a class="code" href="classgko_1_1matrix_1_1Dense.html#a3bc458e02fab8e4c9f60f70bd4d5a4f9">get_values</a>();</div>
-<div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> h = 1.0 / (discretization_points + 1);</div>
+<div class="line">    <span class="keyword">const</span> ValueType h = 1.0 / (discretization_points + 1);</div>
 <div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; discretization_points; ++i) {</div>
-<div class="line">        <span class="keyword">const</span> <span class="keyword">auto</span> xi = (i + 1) * h;</div>
+<div class="line">        <span class="keyword">const</span> ValueType xi = ValueType(i + 1) * h;</div>
 <div class="line">        values[i] = -f(xi) * h * h;</div>
 <div class="line">    }</div>
 <div class="line">    values[0] += u0;</div>
 <div class="line">    values[discretization_points - 1] += u1;</div>
 <div class="line">}</div>
 </div><!-- fragment --><p>Prints the solution <code>u</code>.</p>
-<div class="fragment"><div class="line"><span class="keywordtype">void</span> print_solution(<span class="keywordtype">double</span> u0, <span class="keywordtype">double</span> u1, <span class="keyword">const</span> <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;&gt;</a> *u)</div>
+<div class="fragment"><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType&gt;</div>
+<div class="line"><span class="keywordtype">void</span> print_solution(ValueType u0, ValueType u1,</div>
+<div class="line">                    <span class="keyword">const</span> <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a> *u)</div>
 <div class="line">{</div>
 <div class="line">    std::cout &lt;&lt; u0 &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;</div>
 <div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; u-&gt;<a class="code" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">get_size</a>()[0]; ++i) {</div>
@@ -232,8 +238,9 @@ $(function() {
 <div class="line">    std::cout &lt;&lt; u1 &lt;&lt; std::endl;</div>
 <div class="line">}</div>
 </div><!-- fragment --><p>Computes the 1-norm of the error given the computed <code>u</code> and the correct solution function <code>correct_u</code>.</p>
-<div class="fragment"><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Closure&gt;</div>
-<div class="line"><span class="keywordtype">double</span> calculate_error(<span class="keywordtype">int</span> discretization_points, <span class="keyword">const</span> <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;&gt;</a> *u,</div>
+<div class="fragment"><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Closure, <span class="keyword">typename</span> ValueType&gt;</div>
+<div class="line"><span class="keywordtype">double</span> calculate_error(<span class="keywordtype">int</span> discretization_points,</div>
+<div class="line">                       <span class="keyword">const</span> <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a> *u,</div>
 <div class="line">                       Closure correct_u)</div>
 <div class="line">{</div>
 <div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> h = 1.0 / (discretization_points + 1);</div>
@@ -251,9 +258,12 @@ $(function() {
 <div class="line"><span class="keywordtype">int</span> main(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span> *argv[])</div>
 <div class="line">{</div>
 </div><!-- fragment --><p>Some shortcuts</p>
-<div class="fragment"><div class="line"><span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;double&gt;</a>;</div>
-<div class="line"><span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;double, int&gt;</a>;</div>
-<div class="line"><span class="keyword">using</span> cg = <a class="code" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg&lt;double&gt;</a>;</div>
+<div class="fragment"><div class="line"><span class="keyword">using</span> ValueType = double;</div>
+<div class="line"><span class="keyword">using</span> IndexType = int;</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
+<div class="line"><span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;ValueType, IndexType&gt;</a>;</div>
+<div class="line"><span class="keyword">using</span> cg = <a class="code" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg&lt;ValueType&gt;</a>;</div>
 <div class="line"> </div>
 <div class="line"><span class="keywordflow">if</span> (argc &lt; 2) {</div>
 <div class="line">    std::cerr &lt;&lt; <span class="stringliteral">&quot;Usage: &quot;</span> &lt;&lt; argv[0] &lt;&lt; <span class="stringliteral">&quot; DISCRETIZATION_POINTS [executor]&quot;</span></div>
@@ -268,15 +278,16 @@ $(function() {
 <div class="fragment"><div class="line"><span class="keyword">const</span> <span class="keyword">auto</span> omp = <a class="code" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a>();</div>
 <div class="line">std::map&lt;std::string, std::shared_ptr&lt;gko::Executor&gt;&gt; exec_map{</div>
 <div class="line">    {<span class="stringliteral">&quot;omp&quot;</span>, omp},</div>
-<div class="line">    {<span class="stringliteral">&quot;cuda&quot;</span>, <a class="code" href="classgko_1_1CudaExecutor.html#a2718a92034350650ef406ffdb60db090">gko::CudaExecutor::create</a>(0, omp)},</div>
+<div class="line">    {<span class="stringliteral">&quot;cuda&quot;</span>, <a class="code" href="classgko_1_1CudaExecutor.html#aa577135e082f9be20617e9d66209ca25">gko::CudaExecutor::create</a>(0, omp, <span class="keyword">true</span>)},</div>
+<div class="line">    {<span class="stringliteral">&quot;hip&quot;</span>, <a class="code" href="classgko_1_1HipExecutor.html#abee0dc3dfc064c9edbdc02c2b3b11264">gko::HipExecutor::create</a>(0, omp, <span class="keyword">true</span>)},</div>
 <div class="line">    {<span class="stringliteral">&quot;reference&quot;</span>, gko::ReferenceExecutor::create()}};</div>
 </div><!-- fragment --><p>executor where Ginkgo will perform the computation</p>
 <div class="fragment"><div class="line"><span class="keyword">const</span> <span class="keyword">auto</span> exec = exec_map.at(executor_string);  <span class="comment">// throws if not valid</span></div>
 </div><!-- fragment --><p>executor used by the application</p>
 <div class="fragment"><div class="line"><span class="keyword">const</span> <span class="keyword">auto</span> app_exec = exec_map[<span class="stringliteral">&quot;omp&quot;</span>];</div>
 </div><!-- fragment --><p>problem:</p>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> correct_u = [](<span class="keywordtype">double</span> x) { <span class="keywordflow">return</span> x * x * x; };</div>
-<div class="line"><span class="keyword">auto</span> f = [](<span class="keywordtype">double</span> x) { <span class="keywordflow">return</span> 6 * x; };</div>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> correct_u = [](ValueType x) { <span class="keywordflow">return</span> x * x * x; };</div>
+<div class="line"><span class="keyword">auto</span> f = [](ValueType x) { <span class="keywordflow">return</span> ValueType(6) * x; };</div>
 <div class="line"><span class="keyword">auto</span> u0 = correct_u(0);</div>
 <div class="line"><span class="keyword">auto</span> u1 = correct_u(1);</div>
 </div><!-- fragment --><p>initialize vectors</p>
@@ -286,18 +297,20 @@ $(function() {
 <div class="line"><span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; u-&gt;<a class="code" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">get_size</a>()[0]; ++i) {</div>
 <div class="line">    u-&gt;<a class="code" href="classgko_1_1matrix_1_1Dense.html#a3bc458e02fab8e4c9f60f70bd4d5a4f9">get_values</a>()[i] = 0.0;</div>
 <div class="line">}</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">const</span> ValueType reduction_factor = 1e-7;</div>
 </div><!-- fragment --><p>Generate solver and solve the system</p>
 <div class="fragment"><div class="line">cg::build()</div>
 <div class="line">    .with_criteria(gko::stop::Iteration::build()</div>
 <div class="line">                       .with_max_iters(discretization_points)</div>
 <div class="line">                       .on(exec),</div>
-<div class="line">                   <a class="code" href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction&lt;&gt;::build</a>()</div>
-<div class="line">                       .with_reduction_factor(1e-6)</div>
+<div class="line">                   <a class="code" href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction&lt;ValueType&gt;::build</a>()</div>
+<div class="line">                       .with_reduction_factor(reduction_factor)</div>
 <div class="line">                       .on(exec))</div>
 <div class="line">    .on(exec)</div>
 </div><!-- fragment --><p>notice how our custom StencilMatrix can be used in the same way as any built-in type</p>
-<div class="fragment"><div class="line">        -&gt;generate(</div>
-<div class="line">            StencilMatrix::create(exec, discretization_points, -1, 2, -1))</div>
+<div class="fragment"><div class="line">        -&gt;generate(StencilMatrix&lt;ValueType&gt;::create(exec, discretization_points,</div>
+<div class="line">                                                    -1, 2, -1))</div>
 <div class="line">        -&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(rhs), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(u));</div>
 <div class="line"> </div>
 <div class="line">    print_solution(u0, u1, <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(u));</div>
@@ -310,7 +323,7 @@ $(function() {
 <p><a class="anchor" id="Commentsaboutprogramminganddebugging"></a></p><h3>Comments about programming and debugging </h3>
 <p><a class="anchor" id="PlainProg"></a> </p><h1>The plain program</h1>
 <div class="fragment"><div class="line"><span class="comment">/*******************************&lt;GINKGO LICENSE&gt;******************************</span></div>
-<div class="line"><span class="comment">Copyright (c) 2017-2019, the Ginkgo authors</span></div>
+<div class="line"><span class="comment">Copyright (c) 2017-2020, the Ginkgo authors</span></div>
 <div class="line"><span class="comment">All rights reserved.</span></div>
 <div class="line"><span class="comment"></span> </div>
 <div class="line"><span class="comment">Redistribution and use in source and binary forms, with or without</span></div>
@@ -350,23 +363,25 @@ $(function() {
 <div class="line"><span class="preprocessor">#include &lt;ginkgo/ginkgo.hpp&gt;</span></div>
 <div class="line"> </div>
 <div class="line"> </div>
-<div class="line"><span class="keyword">extern</span> <span class="keywordtype">void</span> stencil_kernel(std::size_t size, <span class="keyword">const</span> <span class="keywordtype">double</span> *coefs,</div>
-<div class="line">                           <span class="keyword">const</span> <span class="keywordtype">double</span> *b, <span class="keywordtype">double</span> *x);</div>
+<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType&gt;</div>
+<div class="line"><span class="keywordtype">void</span> stencil_kernel(std::size_t size, <span class="keyword">const</span> ValueType *coefs,</div>
+<div class="line">                    <span class="keyword">const</span> ValueType *b, ValueType *x);</div>
 <div class="line"> </div>
 <div class="line"> </div>
-<div class="line"><span class="keyword">class </span>StencilMatrix : <span class="keyword">public</span> <a class="code" href="classgko_1_1EnableLinOp.html">gko::EnableLinOp</a>&lt;StencilMatrix&gt;,</div>
-<div class="line">                      <span class="keyword">public</span> <a class="code" href="classgko_1_1EnableCreateMethod.html">gko::EnableCreateMethod</a>&lt;StencilMatrix&gt; {</div>
+<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType&gt;</div>
+<div class="line"><span class="keyword">class </span>StencilMatrix : <span class="keyword">public</span> <a class="code" href="classgko_1_1EnableLinOp.html">gko::EnableLinOp</a>&lt;StencilMatrix&lt;ValueType&gt;&gt;,</div>
+<div class="line">                      <span class="keyword">public</span> <a class="code" href="classgko_1_1EnableCreateMethod.html">gko::EnableCreateMethod</a>&lt;StencilMatrix&lt;ValueType&gt;&gt; {</div>
 <div class="line"><span class="keyword">public</span>:</div>
 <div class="line">    StencilMatrix(std::shared_ptr&lt;const gko::Executor&gt; exec,</div>
-<div class="line">                  <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a> size = 0, <span class="keywordtype">double</span> left = -1.0,</div>
-<div class="line">                  <span class="keywordtype">double</span> center = 2.0, <span class="keywordtype">double</span> right = -1.0)</div>
+<div class="line">                  <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a> size = 0, ValueType left = -1.0,</div>
+<div class="line">                  ValueType center = 2.0, ValueType right = -1.0)</div>
 <div class="line">        : <a class="code" href="namespacegko.html">gko</a>::EnableLinOp&lt;StencilMatrix&gt;(exec, <a class="code" href="namespacegko.html">gko</a>::dim&lt;2&gt;{size}),</div>
 <div class="line">          coefficients(exec, {left, center, right})</div>
 <div class="line">    {}</div>
 <div class="line"> </div>
 <div class="line"><span class="keyword">protected</span>:</div>
-<div class="line">    <span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;&gt;</a>;</div>
-<div class="line">    <span class="keyword">using</span> coef_type = <a class="code" href="classgko_1_1Array.html">gko::Array&lt;double&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> coef_type = <a class="code" href="classgko_1_1Array.html">gko::Array&lt;ValueType&gt;</a>;</div>
 <div class="line"> </div>
 <div class="line">    <span class="keywordtype">void</span> apply_impl(<span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *b, <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *x)<span class="keyword"> const override</span></div>
 <div class="line"><span class="keyword">    </span>{</div>
@@ -428,14 +443,15 @@ $(function() {
 <div class="line">};</div>
 <div class="line"> </div>
 <div class="line"> </div>
-<div class="line"><span class="keywordtype">void</span> generate_stencil_matrix(<a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;&gt;</a> *matrix)</div>
+<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType, <span class="keyword">typename</span> IndexType&gt;</div>
+<div class="line"><span class="keywordtype">void</span> generate_stencil_matrix(<a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;ValueType, IndexType&gt;</a> *matrix)</div>
 <div class="line">{</div>
 <div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> discretization_points = matrix-&gt;<a class="code" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">get_size</a>()[0];</div>
 <div class="line">    <span class="keyword">auto</span> row_ptrs = matrix-&gt;<a class="code" href="classgko_1_1matrix_1_1Csr.html#a068e5158cf282fa977f0a137f8cd7f03">get_row_ptrs</a>();</div>
 <div class="line">    <span class="keyword">auto</span> col_idxs = matrix-&gt;<a class="code" href="classgko_1_1matrix_1_1Csr.html#a81c6294177a1be4873804c8a85a9fc64">get_col_idxs</a>();</div>
 <div class="line">    <span class="keyword">auto</span> values = matrix-&gt;<a class="code" href="classgko_1_1matrix_1_1Csr.html#a929b0a194e6aeb1252b8e6781d162e83">get_values</a>();</div>
-<div class="line">    <span class="keywordtype">int</span> pos = 0;</div>
-<div class="line">    <span class="keyword">const</span> <span class="keywordtype">double</span> coefs[] = {-1, 2, -1};</div>
+<div class="line">    IndexType pos = 0;</div>
+<div class="line">    <span class="keyword">const</span> ValueType coefs[] = {-1, 2, -1};</div>
 <div class="line">    row_ptrs[0] = pos;</div>
 <div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; discretization_points; ++i) {</div>
 <div class="line">        <span class="keywordflow">for</span> (<span class="keyword">auto</span> ofs : {-1, 0, 1}) {</div>
@@ -450,14 +466,15 @@ $(function() {
 <div class="line">}</div>
 <div class="line"> </div>
 <div class="line"> </div>
-<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Closure&gt;</div>
-<div class="line"><span class="keywordtype">void</span> generate_rhs(Closure f, <span class="keywordtype">double</span> u0, <span class="keywordtype">double</span> u1, <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;&gt;</a> *rhs)</div>
+<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Closure, <span class="keyword">typename</span> ValueType&gt;</div>
+<div class="line"><span class="keywordtype">void</span> generate_rhs(Closure f, ValueType u0, ValueType u1,</div>
+<div class="line">                  <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a> *rhs)</div>
 <div class="line">{</div>
 <div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> discretization_points = rhs-&gt;<a class="code" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">get_size</a>()[0];</div>
 <div class="line">    <span class="keyword">auto</span> values = rhs-&gt;<a class="code" href="classgko_1_1matrix_1_1Dense.html#a3bc458e02fab8e4c9f60f70bd4d5a4f9">get_values</a>();</div>
-<div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> h = 1.0 / (discretization_points + 1);</div>
+<div class="line">    <span class="keyword">const</span> ValueType h = 1.0 / (discretization_points + 1);</div>
 <div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; discretization_points; ++i) {</div>
-<div class="line">        <span class="keyword">const</span> <span class="keyword">auto</span> xi = (i + 1) * h;</div>
+<div class="line">        <span class="keyword">const</span> ValueType xi = ValueType(i + 1) * h;</div>
 <div class="line">        values[i] = -f(xi) * h * h;</div>
 <div class="line">    }</div>
 <div class="line">    values[0] += u0;</div>
@@ -465,7 +482,9 @@ $(function() {
 <div class="line">}</div>
 <div class="line"> </div>
 <div class="line"> </div>
-<div class="line"><span class="keywordtype">void</span> print_solution(<span class="keywordtype">double</span> u0, <span class="keywordtype">double</span> u1, <span class="keyword">const</span> <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;&gt;</a> *u)</div>
+<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType&gt;</div>
+<div class="line"><span class="keywordtype">void</span> print_solution(ValueType u0, ValueType u1,</div>
+<div class="line">                    <span class="keyword">const</span> <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a> *u)</div>
 <div class="line">{</div>
 <div class="line">    std::cout &lt;&lt; u0 &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;</div>
 <div class="line">    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; u-&gt;<a class="code" href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">get_size</a>()[0]; ++i) {</div>
@@ -475,8 +494,9 @@ $(function() {
 <div class="line">}</div>
 <div class="line"> </div>
 <div class="line"> </div>
-<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Closure&gt;</div>
-<div class="line"><span class="keywordtype">double</span> calculate_error(<span class="keywordtype">int</span> discretization_points, <span class="keyword">const</span> <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;&gt;</a> *u,</div>
+<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Closure, <span class="keyword">typename</span> ValueType&gt;</div>
+<div class="line"><span class="keywordtype">double</span> calculate_error(<span class="keywordtype">int</span> discretization_points,</div>
+<div class="line">                       <span class="keyword">const</span> <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a> *u,</div>
 <div class="line">                       Closure correct_u)</div>
 <div class="line">{</div>
 <div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> h = 1.0 / (discretization_points + 1);</div>
@@ -493,9 +513,12 @@ $(function() {
 <div class="line"> </div>
 <div class="line"><span class="keywordtype">int</span> main(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span> *argv[])</div>
 <div class="line">{</div>
-<div class="line">    <span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;double&gt;</a>;</div>
-<div class="line">    <span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;double, int&gt;</a>;</div>
-<div class="line">    <span class="keyword">using</span> cg = <a class="code" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg&lt;double&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> ValueType = double;</div>
+<div class="line">    <span class="keyword">using</span> IndexType = int;</div>
+<div class="line"> </div>
+<div class="line">    <span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;ValueType, IndexType&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> cg = <a class="code" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg&lt;ValueType&gt;</a>;</div>
 <div class="line"> </div>
 <div class="line">    <span class="keywordflow">if</span> (argc &lt; 2) {</div>
 <div class="line">        std::cerr &lt;&lt; <span class="stringliteral">&quot;Usage: &quot;</span> &lt;&lt; argv[0] &lt;&lt; <span class="stringliteral">&quot; DISCRETIZATION_POINTS [executor]&quot;</span></div>
@@ -510,14 +533,15 @@ $(function() {
 <div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> omp = <a class="code" href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a>();</div>
 <div class="line">    std::map&lt;std::string, std::shared_ptr&lt;gko::Executor&gt;&gt; exec_map{</div>
 <div class="line">        {<span class="stringliteral">&quot;omp&quot;</span>, omp},</div>
-<div class="line">        {<span class="stringliteral">&quot;cuda&quot;</span>, <a class="code" href="classgko_1_1CudaExecutor.html#a2718a92034350650ef406ffdb60db090">gko::CudaExecutor::create</a>(0, omp)},</div>
+<div class="line">        {<span class="stringliteral">&quot;cuda&quot;</span>, <a class="code" href="classgko_1_1CudaExecutor.html#aa577135e082f9be20617e9d66209ca25">gko::CudaExecutor::create</a>(0, omp, <span class="keyword">true</span>)},</div>
+<div class="line">        {<span class="stringliteral">&quot;hip&quot;</span>, <a class="code" href="classgko_1_1HipExecutor.html#abee0dc3dfc064c9edbdc02c2b3b11264">gko::HipExecutor::create</a>(0, omp, <span class="keyword">true</span>)},</div>
 <div class="line">        {<span class="stringliteral">&quot;reference&quot;</span>, gko::ReferenceExecutor::create()}};</div>
 <div class="line"> </div>
 <div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> exec = exec_map.at(executor_string);  <span class="comment">// throws if not valid</span></div>
 <div class="line">    <span class="keyword">const</span> <span class="keyword">auto</span> app_exec = exec_map[<span class="stringliteral">&quot;omp&quot;</span>];</div>
 <div class="line"> </div>
-<div class="line">    <span class="keyword">auto</span> correct_u = [](<span class="keywordtype">double</span> x) { <span class="keywordflow">return</span> x * x * x; };</div>
-<div class="line">    <span class="keyword">auto</span> f = [](<span class="keywordtype">double</span> x) { <span class="keywordflow">return</span> 6 * x; };</div>
+<div class="line">    <span class="keyword">auto</span> correct_u = [](ValueType x) { <span class="keywordflow">return</span> x * x * x; };</div>
+<div class="line">    <span class="keyword">auto</span> f = [](ValueType x) { <span class="keywordflow">return</span> ValueType(6) * x; };</div>
 <div class="line">    <span class="keyword">auto</span> u0 = correct_u(0);</div>
 <div class="line">    <span class="keyword">auto</span> u1 = correct_u(1);</div>
 <div class="line"> </div>
@@ -528,16 +552,17 @@ $(function() {
 <div class="line">        u-&gt;<a class="code" href="classgko_1_1matrix_1_1Dense.html#a3bc458e02fab8e4c9f60f70bd4d5a4f9">get_values</a>()[i] = 0.0;</div>
 <div class="line">    }</div>
 <div class="line"> </div>
+<div class="line">    <span class="keyword">const</span> ValueType reduction_factor = 1e-7;</div>
 <div class="line">    cg::build()</div>
 <div class="line">        .with_criteria(gko::stop::Iteration::build()</div>
 <div class="line">                           .with_max_iters(discretization_points)</div>
 <div class="line">                           .on(exec),</div>
-<div class="line">                       <a class="code" href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction&lt;&gt;::build</a>()</div>
-<div class="line">                           .with_reduction_factor(1e-6)</div>
+<div class="line">                       <a class="code" href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction&lt;ValueType&gt;::build</a>()</div>
+<div class="line">                           .with_reduction_factor(reduction_factor)</div>
 <div class="line">                           .on(exec))</div>
 <div class="line">        .on(exec)</div>
-<div class="line">        -&gt;generate(</div>
-<div class="line">            StencilMatrix::create(exec, discretization_points, -1, 2, -1))</div>
+<div class="line">        -&gt;generate(StencilMatrix&lt;ValueType&gt;::create(exec, discretization_points,</div>
+<div class="line">                                                    -1, 2, -1))</div>
 <div class="line">        -&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(rhs), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(u));</div>
 <div class="line"> </div>
 <div class="line">    print_solution(u0, u1, <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(u));</div>
@@ -548,28 +573,29 @@ $(function() {
 <div class="line">}</div>
 </div><!-- fragment --> </div></div><!-- contents -->
 </div><!-- PageDoc -->
-<div class="ttc" id="anamespacegko_html_a57797fc0a00fd4b7ff34ca4bfc84bc51"><div class="ttname"><a href="namespacegko.html#a57797fc0a00fd4b7ff34ca4bfc84bc51">gko::abs</a></div><div class="ttdeci">constexpr T abs(const T &amp;x)</div><div class="ttdoc">Returns the absolute value of the object.</div><div class="ttdef"><b>Definition:</b> math.hpp:362</div></div>
-<div class="ttc" id="aclassgko_1_1matrix_1_1Csr_html_a81c6294177a1be4873804c8a85a9fc64"><div class="ttname"><a href="classgko_1_1matrix_1_1Csr.html#a81c6294177a1be4873804c8a85a9fc64">gko::matrix::Csr::get_col_idxs</a></div><div class="ttdeci">index_type * get_col_idxs() noexcept</div><div class="ttdoc">Returns the column indexes of the matrix.</div><div class="ttdef"><b>Definition:</b> csr.hpp:392</div></div>
+<div class="ttc" id="anamespacegko_html_a57797fc0a00fd4b7ff34ca4bfc84bc51"><div class="ttname"><a href="namespacegko.html#a57797fc0a00fd4b7ff34ca4bfc84bc51">gko::abs</a></div><div class="ttdeci">constexpr T abs(const T &amp;x)</div><div class="ttdoc">Returns the absolute value of the object.</div><div class="ttdef"><b>Definition:</b> math.hpp:608</div></div>
+<div class="ttc" id="aclassgko_1_1matrix_1_1Csr_html_a81c6294177a1be4873804c8a85a9fc64"><div class="ttname"><a href="classgko_1_1matrix_1_1Csr.html#a81c6294177a1be4873804c8a85a9fc64">gko::matrix::Csr::get_col_idxs</a></div><div class="ttdeci">index_type * get_col_idxs() noexcept</div><div class="ttdoc">Returns the column indexes of the matrix.</div><div class="ttdef"><b>Definition:</b> csr.hpp:734</div></div>
 <div class="ttc" id="aclassgko_1_1matrix_1_1Csr_html"><div class="ttname"><a href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr</a></div><div class="ttdoc">CSR is a matrix format which stores only the nonzero coefficients by compressing each row of the matr...</div><div class="ttdef"><b>Definition:</b> coo.hpp:51</div></div>
-<div class="ttc" id="aclassgko_1_1LinOp_html"><div class="ttname"><a href="classgko_1_1LinOp.html">gko::LinOp</a></div><div class="ttdef"><b>Definition:</b> lin_op.hpp:134</div></div>
+<div class="ttc" id="aclassgko_1_1HipExecutor_html_abee0dc3dfc064c9edbdc02c2b3b11264"><div class="ttname"><a href="classgko_1_1HipExecutor.html#abee0dc3dfc064c9edbdc02c2b3b11264">gko::HipExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; HipExecutor &gt; create(int device_id, std::shared_ptr&lt; Executor &gt; master, bool device_reset=false)</div><div class="ttdoc">Creates a new HipExecutor.</div></div>
+<div class="ttc" id="aclassgko_1_1LinOp_html"><div class="ttname"><a href="classgko_1_1LinOp.html">gko::LinOp</a></div><div class="ttdef"><b>Definition:</b> lin_op.hpp:135</div></div>
 <div class="ttc" id="aclassgko_1_1matrix_1_1Dense_html"><div class="ttname"><a href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense</a></div><div class="ttdoc">Dense is a matrix format which explicitly stores all values of the matrix.</div><div class="ttdef"><b>Definition:</b> coo.hpp:55</div></div>
-<div class="ttc" id="aclassgko_1_1CudaExecutor_html_a2718a92034350650ef406ffdb60db090"><div class="ttname"><a href="classgko_1_1CudaExecutor.html#a2718a92034350650ef406ffdb60db090">gko::CudaExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; CudaExecutor &gt; create(int device_id, std::shared_ptr&lt; Executor &gt; master)</div><div class="ttdoc">Creates a new CudaExecutor.</div></div>
+<div class="ttc" id="aclassgko_1_1CudaExecutor_html_aa577135e082f9be20617e9d66209ca25"><div class="ttname"><a href="classgko_1_1CudaExecutor.html#aa577135e082f9be20617e9d66209ca25">gko::CudaExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; CudaExecutor &gt; create(int device_id, std::shared_ptr&lt; Executor &gt; master, bool device_reset=false)</div><div class="ttdoc">Creates a new CudaExecutor.</div></div>
 <div class="ttc" id="aclassgko_1_1EnableCreateMethod_html"><div class="ttname"><a href="classgko_1_1EnableCreateMethod.html">gko::EnableCreateMethod</a></div><div class="ttdoc">This mixin implements a static create() method on ConcreteType that dynamically allocates the memory,...</div><div class="ttdef"><b>Definition:</b> polymorphic_object.hpp:640</div></div>
-<div class="ttc" id="aclassgko_1_1OmpExecutor_html_a33ca05fdd0fc928ee262fc9425304874"><div class="ttname"><a href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; OmpExecutor &gt; create()</div><div class="ttdoc">Creates a new OmpExecutor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:736</div></div>
-<div class="ttc" id="anamespacegko_html_a6e5c95df0ae4e47aab2f604a22d98ee7"><div class="ttname"><a href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a></div><div class="ttdeci">std::size_t size_type</div><div class="ttdoc">Integral type used for allocation quantities.</div><div class="ttdef"><b>Definition:</b> types.hpp:94</div></div>
-<div class="ttc" id="aclassgko_1_1stop_1_1ResidualNormReduction_html"><div class="ttname"><a href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction</a></div><div class="ttdoc">The ResidualNormReduction class is a stopping criterion which stops the iteration process when the re...</div><div class="ttdef"><b>Definition:</b> residual_norm_reduction.hpp:64</div></div>
+<div class="ttc" id="aclassgko_1_1OmpExecutor_html_a33ca05fdd0fc928ee262fc9425304874"><div class="ttname"><a href="classgko_1_1OmpExecutor.html#a33ca05fdd0fc928ee262fc9425304874">gko::OmpExecutor::create</a></div><div class="ttdeci">static std::shared_ptr&lt; OmpExecutor &gt; create()</div><div class="ttdoc">Creates a new OmpExecutor.</div><div class="ttdef"><b>Definition:</b> executor.hpp:846</div></div>
+<div class="ttc" id="anamespacegko_html_a6e5c95df0ae4e47aab2f604a22d98ee7"><div class="ttname"><a href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a></div><div class="ttdeci">std::size_t size_type</div><div class="ttdoc">Integral type used for allocation quantities.</div><div class="ttdef"><b>Definition:</b> types.hpp:100</div></div>
+<div class="ttc" id="aclassgko_1_1stop_1_1ResidualNormReduction_html"><div class="ttname"><a href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction</a></div><div class="ttdoc">The ResidualNormReduction class is a stopping criterion which stops the iteration process when the re...</div><div class="ttdef"><b>Definition:</b> residual_norm.hpp:112</div></div>
 <div class="ttc" id="anamespacegko_html"><div class="ttname"><a href="namespacegko.html">gko</a></div><div class="ttdoc">The Ginkgo namespace.</div><div class="ttdef"><b>Definition:</b> abstract_factory.hpp:45</div></div>
-<div class="ttc" id="aclassgko_1_1matrix_1_1Dense_html_a3bc458e02fab8e4c9f60f70bd4d5a4f9"><div class="ttname"><a href="classgko_1_1matrix_1_1Dense.html#a3bc458e02fab8e4c9f60f70bd4d5a4f9">gko::matrix::Dense::get_values</a></div><div class="ttdeci">value_type * get_values() noexcept</div><div class="ttdoc">Returns a pointer to the array of values of the matrix.</div><div class="ttdef"><b>Definition:</b> dense.hpp:214</div></div>
-<div class="ttc" id="aclassgko_1_1matrix_1_1Csr_html_a068e5158cf282fa977f0a137f8cd7f03"><div class="ttname"><a href="classgko_1_1matrix_1_1Csr.html#a068e5158cf282fa977f0a137f8cd7f03">gko::matrix::Csr::get_row_ptrs</a></div><div class="ttdeci">index_type * get_row_ptrs() noexcept</div><div class="ttdoc">Returns the row pointers of the matrix.</div><div class="ttdef"><b>Definition:</b> csr.hpp:411</div></div>
-<div class="ttc" id="anamespacegko_html_a4edc2273b5627ec552ea423b60493be3"><div class="ttname"><a href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">gko::lend</a></div><div class="ttdeci">std::enable_if&lt; detail::have_ownership_s&lt; Pointer &gt;::value, detail::pointee&lt; Pointer &gt; * &gt;::type lend(const Pointer &amp;p)</div><div class="ttdoc">Returns a non-owning (plain) pointer to the object pointed to by p.</div><div class="ttdef"><b>Definition:</b> utils.hpp:252</div></div>
+<div class="ttc" id="aclassgko_1_1matrix_1_1Dense_html_a3bc458e02fab8e4c9f60f70bd4d5a4f9"><div class="ttname"><a href="classgko_1_1matrix_1_1Dense.html#a3bc458e02fab8e4c9f60f70bd4d5a4f9">gko::matrix::Dense::get_values</a></div><div class="ttdeci">value_type * get_values() noexcept</div><div class="ttdoc">Returns a pointer to the array of values of the matrix.</div><div class="ttdef"><b>Definition:</b> dense.hpp:247</div></div>
+<div class="ttc" id="aclassgko_1_1matrix_1_1Csr_html_a068e5158cf282fa977f0a137f8cd7f03"><div class="ttname"><a href="classgko_1_1matrix_1_1Csr.html#a068e5158cf282fa977f0a137f8cd7f03">gko::matrix::Csr::get_row_ptrs</a></div><div class="ttdeci">index_type * get_row_ptrs() noexcept</div><div class="ttdoc">Returns the row pointers of the matrix.</div><div class="ttdef"><b>Definition:</b> csr.hpp:753</div></div>
+<div class="ttc" id="anamespacegko_html_a4edc2273b5627ec552ea423b60493be3"><div class="ttname"><a href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">gko::lend</a></div><div class="ttdeci">std::enable_if&lt; detail::have_ownership_s&lt; Pointer &gt;::value, detail::pointee&lt; Pointer &gt; * &gt;::type lend(const Pointer &amp;p)</div><div class="ttdoc">Returns a non-owning (plain) pointer to the object pointed to by p.</div><div class="ttdef"><b>Definition:</b> utils.hpp:253</div></div>
 <div class="ttc" id="astructgko_1_1dim_html"><div class="ttname"><a href="structgko_1_1dim.html">gko::dim&lt; 2 &gt;</a></div></div>
 <div class="ttc" id="aclassgko_1_1solver_1_1Cg_html"><div class="ttname"><a href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg</a></div><div class="ttdoc">CG or the conjugate gradient method is an iterative type Krylov subspace method which is suitable for...</div><div class="ttdef"><b>Definition:</b> cg.hpp:72</div></div>
-<div class="ttc" id="aclassgko_1_1Array_html"><div class="ttname"><a href="classgko_1_1Array.html">gko::Array</a></div><div class="ttdoc">An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...</div><div class="ttdef"><b>Definition:</b> array.hpp:63</div></div>
-<div class="ttc" id="aclassgko_1_1matrix_1_1Dense_html_ab83c739c1b11abaecc3bfd89506f6c9c"><div class="ttname"><a href="classgko_1_1matrix_1_1Dense.html#ab83c739c1b11abaecc3bfd89506f6c9c">gko::matrix::Dense::get_const_values</a></div><div class="ttdeci">const value_type * get_const_values() const noexcept</div><div class="ttdoc">Returns a pointer to the array of values of the matrix.</div><div class="ttdef"><b>Definition:</b> dense.hpp:223</div></div>
-<div class="ttc" id="aclassgko_1_1LinOp_html_a31b3c003388eb0b95393154f68c2b98d"><div class="ttname"><a href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">gko::LinOp::get_size</a></div><div class="ttdeci">const dim&lt; 2 &gt; &amp; get_size() const noexcept</div><div class="ttdoc">Returns the size of the operator.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:221</div></div>
-<div class="ttc" id="aclassgko_1_1EnableLinOp_html"><div class="ttname"><a href="classgko_1_1EnableLinOp.html">gko::EnableLinOp</a></div><div class="ttdoc">The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ...</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:526</div></div>
-<div class="ttc" id="aclassgko_1_1Operation_html"><div class="ttname"><a href="classgko_1_1Operation.html">gko::Operation</a></div><div class="ttdoc">Operations can be used to define functionalities whose implementations differ among devices.</div><div class="ttdef"><b>Definition:</b> executor.hpp:173</div></div>
-<div class="ttc" id="aclassgko_1_1matrix_1_1Csr_html_a929b0a194e6aeb1252b8e6781d162e83"><div class="ttname"><a href="classgko_1_1matrix_1_1Csr.html#a929b0a194e6aeb1252b8e6781d162e83">gko::matrix::Csr::get_values</a></div><div class="ttdeci">value_type * get_values() noexcept</div><div class="ttdoc">Returns the values of the matrix.</div><div class="ttdef"><b>Definition:</b> csr.hpp:373</div></div>
+<div class="ttc" id="aclassgko_1_1Array_html"><div class="ttname"><a href="classgko_1_1Array.html">gko::Array</a></div><div class="ttdoc">An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...</div><div class="ttdef"><b>Definition:</b> array.hpp:83</div></div>
+<div class="ttc" id="aclassgko_1_1matrix_1_1Dense_html_ab83c739c1b11abaecc3bfd89506f6c9c"><div class="ttname"><a href="classgko_1_1matrix_1_1Dense.html#ab83c739c1b11abaecc3bfd89506f6c9c">gko::matrix::Dense::get_const_values</a></div><div class="ttdeci">const value_type * get_const_values() const noexcept</div><div class="ttdoc">Returns a pointer to the array of values of the matrix.</div><div class="ttdef"><b>Definition:</b> dense.hpp:256</div></div>
+<div class="ttc" id="aclassgko_1_1LinOp_html_a31b3c003388eb0b95393154f68c2b98d"><div class="ttname"><a href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">gko::LinOp::get_size</a></div><div class="ttdeci">const dim&lt; 2 &gt; &amp; get_size() const noexcept</div><div class="ttdoc">Returns the size of the operator.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:222</div></div>
+<div class="ttc" id="aclassgko_1_1EnableLinOp_html"><div class="ttname"><a href="classgko_1_1EnableLinOp.html">gko::EnableLinOp</a></div><div class="ttdoc">The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ...</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:619</div></div>
+<div class="ttc" id="aclassgko_1_1Operation_html"><div class="ttname"><a href="classgko_1_1Operation.html">gko::Operation</a></div><div class="ttdoc">Operations can be used to define functionalities whose implementations differ among devices.</div><div class="ttdef"><b>Definition:</b> executor.hpp:186</div></div>
+<div class="ttc" id="aclassgko_1_1matrix_1_1Csr_html_a929b0a194e6aeb1252b8e6781d162e83"><div class="ttname"><a href="classgko_1_1matrix_1_1Csr.html#a929b0a194e6aeb1252b8e6781d162e83">gko::matrix::Csr::get_values</a></div><div class="ttdeci">value_type * get_values() noexcept</div><div class="ttdoc">Returns the values of the matrix.</div><div class="ttdef"><b>Definition:</b> csr.hpp:715</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by &#160;<a href="http://www.doxygen.org/index.html">

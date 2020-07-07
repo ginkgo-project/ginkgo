@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from tags/v1.1.1^0 branch based on master. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from tags/v1.2.0^0 branch based on master. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -68,7 +68,6 @@ $(function() {
   <div class="summary">
 <a href="#namespaces">Namespaces</a> &#124;
 <a href="#nested-classes">Classes</a> &#124;
-<a href="#define-members">Macros</a> &#124;
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">Stopping criteria</div>  </div>
@@ -92,8 +91,17 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stop_1_1Iteration.html">gko::stop::Iteration</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1stop_1_1Iteration.html" title="The Iteration class is a stopping criterion which stops the iteration process after a preset number o...">Iteration</a> class is a stopping criterion which stops the iteration process after a preset number of iterations.  <a href="classgko_1_1stop_1_1Iteration.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stop_1_1ResidualNorm.html">gko::stop::ResidualNorm&lt; ValueType &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1stop_1_1ResidualNorm.html" title="The ResidualNorm class provides a framework for stopping criteria related to the residual norm.">ResidualNorm</a> class provides a framework for stopping criteria related to the residual norm.  <a href="classgko_1_1stop_1_1ResidualNorm.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction&lt; ValueType &gt;</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1stop_1_1ResidualNormReduction.html" title="The ResidualNormReduction class is a stopping criterion which stops the iteration process when the re...">ResidualNormReduction</a> class is a stopping criterion which stops the iteration process when the relative residual norm is below a certain threshold.  <a href="classgko_1_1stop_1_1ResidualNormReduction.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1stop_1_1ResidualNormReduction.html" title="The ResidualNormReduction class is a stopping criterion which stops the iteration process when the re...">ResidualNormReduction</a> class is a stopping criterion which stops the iteration process when the residual norm is below a certain threshold relative to the norm of the initial residual, i.e.  <a href="classgko_1_1stop_1_1ResidualNormReduction.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stop_1_1RelativeResidualNorm.html">gko::stop::RelativeResidualNorm&lt; ValueType &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1stop_1_1RelativeResidualNorm.html" title="The RelativeResidualNorm class is a stopping criterion which stops the iteration process when the res...">RelativeResidualNorm</a> class is a stopping criterion which stops the iteration process when the residual norm is below a certain threshold relative to the norm of the right-hand side, i.e.  <a href="classgko_1_1stop_1_1RelativeResidualNorm.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stop_1_1AbsoluteResidualNorm.html">gko::stop::AbsoluteResidualNorm&lt; ValueType &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1stop_1_1AbsoluteResidualNorm.html" title="The AbsoluteResidualNorm class is a stopping criterion which stops the iteration process when the res...">AbsoluteResidualNorm</a> class is a stopping criterion which stops the iteration process when the residual norm is below a certain threshold, i.e.  <a href="classgko_1_1stop_1_1AbsoluteResidualNorm.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stopping__status.html">gko::stopping_status</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">This class is used to keep track of the stopping status of one vector.  <a href="classgko_1_1stopping__status.html#details">More...</a><br /></td></tr>
@@ -101,12 +109,6 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1stop_1_1Time.html">gko::stop::Time</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The <a class="el" href="classgko_1_1stop_1_1Time.html" title="The Time class is a stopping criterion which stops the iteration process after a certain amout of tim...">Time</a> class is a stopping criterion which stops the iteration process after a certain amout of time has passed.  <a href="classgko_1_1stop_1_1Time.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
-Macros</h2></td></tr>
-<tr class="memitem:ga5a998013602bad749e586a5664670cae"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__stop.html#ga5a998013602bad749e586a5664670cae">GKO_ENABLE_CRITERION_FACTORY</a>(_criterion,  _parameters_name,  _factory_name)</td></tr>
-<tr class="memdesc:ga5a998013602bad749e586a5664670cae"><td class="mdescLeft">&#160;</td><td class="mdescRight">This macro will generate a default implementation of a CriterionFactory for the Criterion subclass it is defined in.  <a href="group__stop.html#ga5a998013602bad749e586a5664670cae">More...</a><br /></td></tr>
-<tr class="separator:ga5a998013602bad749e586a5664670cae"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -117,52 +119,6 @@ Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>A module dedicated to the implementation and usage of the Stopping Criteria in Ginkgo. </p>
-<h2 class="groupheader">Macro Definition Documentation</h2>
-<a id="ga5a998013602bad749e586a5664670cae"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga5a998013602bad749e586a5664670cae">&#9670;&nbsp;</a></span>GKO_ENABLE_CRITERION_FACTORY</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define GKO_ENABLE_CRITERION_FACTORY</td>
-          <td>(</td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">_criterion, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">_parameters_name, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">_factory_name&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>This macro will generate a default implementation of a CriterionFactory for the Criterion subclass it is defined in. </p>
-<p>This macro is very similar to the macro #ENABLE_LIN_OP_FACTORY(). A more detailed description of the use of these type of macros can be found there.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">_criterion</td><td>concrete operator for which the factory is to be created [CRTP parameter] </td></tr>
-    <tr><td class="paramname">_parameters_name</td><td>name of the parameters member in the class (its type is <code>&lt;_parameters_name&gt;_type</code>, the protected member's name is <code>&lt;_parameters_name&gt;_</code>, and the public getter's name is <code>get_&lt;_parameters_name&gt;()</code>) </td></tr>
-    <tr><td class="paramname">_factory_name</td><td>name of the generated factory type </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="ga3a3325b3a7660501f3bb72d08b09f2d2"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga3a3325b3a7660501f3bb72d08b09f2d2">&#9670;&nbsp;</a></span>combine()</h2>

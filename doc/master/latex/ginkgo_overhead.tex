@@ -29,9 +29,12 @@ The ginkgo overhead measurement example..
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
 \DoxyCodeLine{\{}
-\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
-\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
-\DoxyCodeLine{    \textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<ValueType>}};}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keywordtype}{long} \textcolor{keywordtype}{unsigned} num\_iters = 1000000;}
 \DoxyCodeLine{    \textcolor{keywordflow}{if} (argc > 2) \{}
@@ -69,10 +72,13 @@ The ginkgo overhead measurement example..
 \DoxyCodeLine{    \textcolor{keyword}{auto} time = std::chrono::duration\_cast<std::chrono::nanoseconds>(tac -\/ tic);}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Running "} << num\_iters}
 \DoxyCodeLine{              << \textcolor{stringliteral}{" iterations of the CG solver took a total of "}}
-\DoxyCodeLine{              << 1.0 * time.count() / std::nano::den << \textcolor{stringliteral}{" seconds."} << std::endl}
+\DoxyCodeLine{              << static\_cast<double>(time.count()) /}
+\DoxyCodeLine{                     static\_cast<double>(std::nano::den)}
+\DoxyCodeLine{              << \textcolor{stringliteral}{" seconds."} << std::endl}
 \DoxyCodeLine{              << \textcolor{stringliteral}{"\(\backslash\)tAverage library overhead:     "}}
-\DoxyCodeLine{              << 1.0 * time.count() / num\_iters << \textcolor{stringliteral}{" [nanoseconds / iteration]"}}
-\DoxyCodeLine{              << std::endl;}
+\DoxyCodeLine{              << static\_cast<double>(time.count()) /}
+\DoxyCodeLine{                     static\_cast<double>(num\_iters)}
+\DoxyCodeLine{              << \textcolor{stringliteral}{" [nanoseconds / iteration]"} << std::endl;}
 \DoxyCodeLine{\}}
 \end{DoxyCode}
  \label{_Results}%
@@ -96,7 +102,7 @@ This is the expected output\+:
 
 \begin{DoxyCodeInclude}{0}
 \DoxyCodeLine{\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}}
-\DoxyCodeLine{\textcolor{comment}{Copyright (c) 2017-\/2019, the Ginkgo authors}}
+\DoxyCodeLine{\textcolor{comment}{Copyright (c) 2017-\/2020, the Ginkgo authors}}
 \DoxyCodeLine{\textcolor{comment}{All rights reserved.}}
 \DoxyCodeLine{\textcolor{comment}{}}
 \DoxyCodeLine{\textcolor{comment}{Redistribution and use in source and binary forms, with or without}}
@@ -144,9 +150,12 @@ This is the expected output\+:
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
 \DoxyCodeLine{\{}
-\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
-\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<>}};}
-\DoxyCodeLine{    \textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} mtx = \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<ValueType, IndexType>}};}
+\DoxyCodeLine{    \textcolor{keyword}{using} cg = \mbox{\hyperlink{classgko_1_1solver_1_1Cg}{gko::solver::Cg<ValueType>}};}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keywordtype}{long} \textcolor{keywordtype}{unsigned} num\_iters = 1000000;}
 \DoxyCodeLine{    \textcolor{keywordflow}{if} (argc > 2) \{}
@@ -184,10 +193,13 @@ This is the expected output\+:
 \DoxyCodeLine{    \textcolor{keyword}{auto} time = std::chrono::duration\_cast<std::chrono::nanoseconds>(tac -\/ tic);}
 \DoxyCodeLine{    std::cout << \textcolor{stringliteral}{"Running "} << num\_iters}
 \DoxyCodeLine{              << \textcolor{stringliteral}{" iterations of the CG solver took a total of "}}
-\DoxyCodeLine{              << 1.0 * time.count() / std::nano::den << \textcolor{stringliteral}{" seconds."} << std::endl}
+\DoxyCodeLine{              << static\_cast<double>(time.count()) /}
+\DoxyCodeLine{                     static\_cast<double>(std::nano::den)}
+\DoxyCodeLine{              << \textcolor{stringliteral}{" seconds."} << std::endl}
 \DoxyCodeLine{              << \textcolor{stringliteral}{"\(\backslash\)tAverage library overhead:     "}}
-\DoxyCodeLine{              << 1.0 * time.count() / num\_iters << \textcolor{stringliteral}{" [nanoseconds / iteration]"}}
-\DoxyCodeLine{              << std::endl;}
+\DoxyCodeLine{              << static\_cast<double>(time.count()) /}
+\DoxyCodeLine{                     static\_cast<double>(num\_iters)}
+\DoxyCodeLine{              << \textcolor{stringliteral}{" [nanoseconds / iteration]"} << std::endl;}
 \DoxyCodeLine{\}}
 \end{DoxyCodeInclude}
  

@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from tags/v1.1.1^0 branch based on master. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from tags/v1.2.0^0 branch based on master. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -74,6 +74,10 @@ $(function() {
 <li>all_events_mask
 : <a class="el" href="classgko_1_1log_1_1Logger.html#a02534863a2d2f92dfeb2c39038365532">gko::log::Logger</a>
 </li>
+<li>approximate_select
+: <a class="el" href="structgko_1_1factorization_1_1ParIct_1_1parameters__type.html#a0fbcf399e8eb618f308804c0c98f3751">gko::factorization::ParIct&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIlut_1_1parameters__type.html#a896c2b6e30c3cb0b2e797945b92f26a3">gko::factorization::ParIlut&lt; ValueType, IndexType &gt;::parameters_type</a>
+</li>
 </ul>
 
 
@@ -95,7 +99,8 @@ $(function() {
 : <a class="el" href="classgko_1_1version__info.html#a85dd2724c9c37cb7f315a99dc03f0d72">gko::version_info</a>
 </li>
 <li>criteria
-: <a class="el" href="structgko_1_1solver_1_1Bicgstab_1_1parameters__type.html#a98e25950c6dcaa68eacc241fbc8bd521">gko::solver::Bicgstab&lt; ValueType &gt;::parameters_type</a>
+: <a class="el" href="structgko_1_1solver_1_1Bicg_1_1parameters__type.html#af67683ce30171665a0d3a2c4bcaabe86">gko::solver::Bicg&lt; ValueType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1solver_1_1Bicgstab_1_1parameters__type.html#a98e25950c6dcaa68eacc241fbc8bd521">gko::solver::Bicgstab&lt; ValueType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1solver_1_1Cg_1_1parameters__type.html#af8544e18d6657180b3a13a98c79e4fa8">gko::solver::Cg&lt; ValueType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1solver_1_1Cgs_1_1parameters__type.html#a02051dffae27205cd269beeaa29f8163">gko::solver::Cgs&lt; ValueType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1solver_1_1Fcg_1_1parameters__type.html#a4d322d51e9c1908b97a868746c191683">gko::solver::Fcg&lt; ValueType &gt;::parameters_type</a>
@@ -115,6 +120,10 @@ $(function() {
 <h3><a id="index_d"></a>- d -</h3><ul>
 <li>data
 : <a class="el" href="classgko_1_1accessor_1_1row__major.html#aa83eec10535e8ac7f79c6a04c0c05b4c">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;</a>
+</li>
+<li>deterministic_sample
+: <a class="el" href="structgko_1_1factorization_1_1ParIct_1_1parameters__type.html#a703c9694aeb35d519bfea0e28710d699">gko::factorization::ParIct&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIlut_1_1parameters__type.html#aa990e68efa7bb0695ff8dc587c4084fe">gko::factorization::ParIlut&lt; ValueType, IndexType &gt;::parameters_type</a>
 </li>
 <li>dimensionality
 : <a class="el" href="classgko_1_1accessor_1_1row__major.html#ae969fbac55f5ba6e6f95f25a0aac483d">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;</a>
@@ -136,9 +145,21 @@ $(function() {
 </ul>
 
 
+<h3><a id="index_f"></a>- f -</h3><ul>
+<li>factorization_factory
+: <a class="el" href="structgko_1_1preconditioner_1_1Ilu_1_1parameters__type.html#a68e7a88f645857ec123c40deef7006ed">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;::parameters_type</a>
+</li>
+<li>fill_in_limit
+: <a class="el" href="structgko_1_1factorization_1_1ParIct_1_1parameters__type.html#a9c1f1299d890eb206bcaf0df6e58ada8">gko::factorization::ParIct&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIlut_1_1parameters__type.html#a03e53ddc63f7e4d2a957d171a4c1f717">gko::factorization::ParIlut&lt; ValueType, IndexType &gt;::parameters_type</a>
+</li>
+</ul>
+
+
 <h3><a id="index_g"></a>- g -</h3><ul>
 <li>generated_preconditioner
-: <a class="el" href="structgko_1_1solver_1_1Bicgstab_1_1parameters__type.html#a2a2385e1f78185e17a6ebd9bff969088">gko::solver::Bicgstab&lt; ValueType &gt;::parameters_type</a>
+: <a class="el" href="structgko_1_1solver_1_1Bicg_1_1parameters__type.html#aaa29c19ddf8a61cf24f660b363468b17">gko::solver::Bicg&lt; ValueType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1solver_1_1Bicgstab_1_1parameters__type.html#a2a2385e1f78185e17a6ebd9bff969088">gko::solver::Bicgstab&lt; ValueType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1solver_1_1Cg_1_1parameters__type.html#ad05c6600eca51def94fb1279901f9b5c">gko::solver::Cg&lt; ValueType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1solver_1_1Cgs_1_1parameters__type.html#a50e4ec6b2c0b41747bd77244147ca1f3">gko::solver::Cgs&lt; ValueType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1solver_1_1Fcg_1_1parameters__type.html#a4e8a74f4d9b83efe071e7b5252fdc1b9">gko::solver::Fcg&lt; ValueType &gt;::parameters_type</a>
@@ -160,12 +181,17 @@ $(function() {
 <li>header_version
 : <a class="el" href="classgko_1_1version__info.html#a5b8240b191920dc3688ccfbbd8ae3378">gko::version_info</a>
 </li>
+<li>hip_version
+: <a class="el" href="classgko_1_1version__info.html#a8934c0aa9c7d62f8168eaa3e91281182">gko::version_info</a>
+</li>
 </ul>
 
 
 <h3><a id="index_i"></a>- i -</h3><ul>
 <li>iterations
-: <a class="el" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#acf87db3479a61d53d301101b51e419c6">gko::factorization::ParIlu&lt; ValueType, IndexType &gt;::parameters_type</a>
+: <a class="el" href="structgko_1_1factorization_1_1ParIct_1_1parameters__type.html#a4d677e4243e1c6749a0bb6ada7bdaf5d">gko::factorization::ParIct&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#acf87db3479a61d53d301101b51e419c6">gko::factorization::ParIlu&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIlut_1_1parameters__type.html#aed39c89593c4e33f8473cc641fc4a44c">gko::factorization::ParIlut&lt; ValueType, IndexType &gt;::parameters_type</a>
 </li>
 </ul>
 
@@ -179,7 +205,13 @@ $(function() {
 
 <h3><a id="index_l"></a>- l -</h3><ul>
 <li>l_solver_factory
-: <a class="el" href="structgko_1_1preconditioner_1_1Ilu_1_1parameters__type.html#a2e9fb9503481ca09a2c3a5bc77381e02">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexTypeParIlu &gt;::parameters_type</a>
+: <a class="el" href="structgko_1_1preconditioner_1_1Ilu_1_1parameters__type.html#add4867e836fa4f842f216e00b6e905cf">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;::parameters_type</a>
+</li>
+<li>l_strategy
+: <a class="el" href="structgko_1_1factorization_1_1Ilu_1_1parameters__type.html#a78cb05198d399f30b435626048c23415">gko::factorization::Ilu&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIct_1_1parameters__type.html#a3d2c10eb0c925ec719c42a22dc2afebb">gko::factorization::ParIct&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#aaf05c164c8febe00d4e93be2d80d3d02">gko::factorization::ParIlu&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIlut_1_1parameters__type.html#a61304f1377aef10bae5e1c10965a783e">gko::factorization::ParIlut&lt; ValueType, IndexType &gt;::parameters_type</a>
 </li>
 <li>lengths
 : <a class="el" href="classgko_1_1accessor_1_1row__major.html#a4912695f06056d9e46cb335168bf28c9">gko::accessor::row_major&lt; ValueType, Dimensionality &gt;</a>
@@ -190,6 +222,9 @@ $(function() {
 <li>linop_factory_events_mask
 : <a class="el" href="classgko_1_1log_1_1Logger.html#ad6fb77d4d5610bc7299087f7149a7f16">gko::log::Logger</a>
 </li>
+<li>lt_strategy
+: <a class="el" href="structgko_1_1factorization_1_1ParIct_1_1parameters__type.html#aa5fd86ebf597af65410bc18ea346bc8a">gko::factorization::ParIct&lt; ValueType, IndexType &gt;::parameters_type</a>
+</li>
 </ul>
 
 
@@ -199,6 +234,9 @@ $(function() {
 </li>
 <li>max_block_size
 : <a class="el" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a7d11d10b347b25b64b5b916e6a74364e">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;::parameters_type</a>
+</li>
+<li>max_block_stride
+: <a class="el" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a042df68c54ea721101c4b064ed450a1f">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;::parameters_type</a>
 </li>
 <li>max_iters
 : <a class="el" href="structgko_1_1stop_1_1Iteration_1_1parameters__type.html#a7daf7ecb5cf107b9e7444b0898f691c4">gko::stop::Iteration::parameters_type</a>
@@ -238,7 +276,8 @@ $(function() {
 : <a class="el" href="classgko_1_1log_1_1Logger.html#a5fb997f1c06c0602103d8dab616a96bc">gko::log::Logger</a>
 </li>
 <li>preconditioner
-: <a class="el" href="structgko_1_1solver_1_1Bicgstab_1_1parameters__type.html#a758bdb82889e200ff6800e34e9a2d5c4">gko::solver::Bicgstab&lt; ValueType &gt;::parameters_type</a>
+: <a class="el" href="structgko_1_1solver_1_1Bicg_1_1parameters__type.html#a76eeea5d02b18de6c38d32110dd00646">gko::solver::Bicg&lt; ValueType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1solver_1_1Bicgstab_1_1parameters__type.html#a758bdb82889e200ff6800e34e9a2d5c4">gko::solver::Bicgstab&lt; ValueType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1solver_1_1Cg_1_1parameters__type.html#ab319c47fc1c31ad73d58c6aac4fdea6f">gko::solver::Cg&lt; ValueType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1solver_1_1Cgs_1_1parameters__type.html#abbe93702c7bcb93bc1d831d6b947a0f9">gko::solver::Cgs&lt; ValueType &gt;::parameters_type</a>
 , <a class="el" href="structgko_1_1solver_1_1Fcg_1_1parameters__type.html#afbdb7787925ef4294b12fe6851cfafd4">gko::solver::Fcg&lt; ValueType &gt;::parameters_type</a>
@@ -255,6 +294,9 @@ $(function() {
 <li>reference_version
 : <a class="el" href="classgko_1_1version__info.html#a772fcf25f93d719b733602b4bba7d7ec">gko::version_info</a>
 </li>
+<li>relaxation_factor
+: <a class="el" href="structgko_1_1solver_1_1Ir_1_1parameters__type.html#adde5da5ddad690e275111ea316757707">gko::solver::Ir&lt; ValueType &gt;::parameters_type</a>
+</li>
 </ul>
 
 
@@ -263,10 +305,16 @@ $(function() {
 : <a class="el" href="structgko_1_1matrix__data.html#a30716bd9e39a7beed52fc56d737fc07b">gko::matrix_data&lt; ValueType, IndexType &gt;</a>
 </li>
 <li>skip_sorting
-: <a class="el" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a89a795e164b7bbe60dbccf0484c1d411">gko::factorization::ParIlu&lt; ValueType, IndexType &gt;::parameters_type</a>
+: <a class="el" href="structgko_1_1factorization_1_1ParIct_1_1parameters__type.html#a31ec633347a364e086a66aae6e9522f4">gko::factorization::ParIct&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a89a795e164b7bbe60dbccf0484c1d411">gko::factorization::ParIlu&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIlut_1_1parameters__type.html#a9d9e9355e743fed16dba89eadd9db9cf">gko::factorization::ParIlut&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1preconditioner_1_1Isai_1_1parameters__type.html#a0f94fd144a00a6294ac4e2b430b1d5d1">gko::preconditioner::Isai&lt; IsaiType, ValueType, IndexType &gt;::parameters_type</a>
 </li>
 <li>solver
 : <a class="el" href="structgko_1_1solver_1_1Ir_1_1parameters__type.html#a787aaabdad4c273ef2ec9ff93672db82">gko::solver::Ir&lt; ValueType &gt;::parameters_type</a>
+</li>
+<li>sparsity_power
+: <a class="el" href="structgko_1_1preconditioner_1_1Isai_1_1parameters__type.html#a24629edfcca9106e2bb310bdbca2c28c">gko::preconditioner::Isai&lt; IsaiType, ValueType, IndexType &gt;::parameters_type</a>
 </li>
 <li>storage_optimization
 : <a class="el" href="structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type.html#a51d0eec65f99d6dd5b0ebe5ba69390dd">gko::preconditioner::Jacobi&lt; ValueType, IndexType &gt;::parameters_type</a>
@@ -284,12 +332,21 @@ $(function() {
 <li>time_limit
 : <a class="el" href="structgko_1_1stop_1_1Time_1_1parameters__type.html#aee1d09b9ec4e73561e46e94888cf885a">gko::stop::Time::parameters_type</a>
 </li>
+<li>tolerance
+: <a class="el" href="structgko_1_1stop_1_1AbsoluteResidualNorm_1_1parameters__type.html#a0f8a19b8757e2246e60cd37ae3110f70">gko::stop::AbsoluteResidualNorm&lt; ValueType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1stop_1_1RelativeResidualNorm_1_1parameters__type.html#a5bc4bf49a0b2dca7de35d3ba618ecbc9">gko::stop::RelativeResidualNorm&lt; ValueType &gt;::parameters_type</a>
+</li>
 </ul>
 
 
 <h3><a id="index_u"></a>- u -</h3><ul>
 <li>u_solver_factory
-: <a class="el" href="structgko_1_1preconditioner_1_1Ilu_1_1parameters__type.html#a6d64483a5657e7142f262be3edaf52c3">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexTypeParIlu &gt;::parameters_type</a>
+: <a class="el" href="structgko_1_1preconditioner_1_1Ilu_1_1parameters__type.html#a11298aaffe121cfd7f7e6615771e5fec">gko::preconditioner::Ilu&lt; LSolverType, USolverType, ReverseApply, IndexType &gt;::parameters_type</a>
+</li>
+<li>u_strategy
+: <a class="el" href="structgko_1_1factorization_1_1Ilu_1_1parameters__type.html#ae39206eef0cd32835df5b636e1a60236">gko::factorization::Ilu&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIlu_1_1parameters__type.html#a124fddcb459ca8500df7709325bbf6a2">gko::factorization::ParIlu&lt; ValueType, IndexType &gt;::parameters_type</a>
+, <a class="el" href="structgko_1_1factorization_1_1ParIlut_1_1parameters__type.html#ab98d2662b4742e17f89ecf2c7035b15f">gko::factorization::ParIlut&lt; ValueType, IndexType &gt;::parameters_type</a>
 </li>
 </ul>
 </div><!-- contents -->

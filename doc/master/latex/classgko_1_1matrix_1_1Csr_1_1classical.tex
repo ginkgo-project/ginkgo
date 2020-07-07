@@ -2,6 +2,15 @@
 \label{classgko_1_1matrix_1_1Csr_1_1classical}\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::classical@{gko::matrix::Csr$<$ ValueType, IndexType $>$::classical}}
 
 
+classical is a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} which uses the same number of threads on each row.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/matrix/csr.\+hpp$>$}
+
+
+
 Collaboration diagram for gko\+::matrix\+::Csr$<$ Value\+Type, Index\+Type $>$\+::classical\+:
 \nopagebreak
 \begin{figure}[H]
@@ -13,14 +22,99 @@ Collaboration diagram for gko\+::matrix\+::Csr$<$ Value\+Type, Index\+Type $>$\+
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
-\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1classical_a3d2766e56763c491948818e0f3da4356}\label{classgko_1_1matrix_1_1Csr_1_1classical_a3d2766e56763c491948818e0f3da4356}} 
-void {\bfseries process} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ \&mtx\+\_\+row\+\_\+ptrs, \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ $\ast$mtx\+\_\+srow)
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1classical_a98620198be4dc96d661b7bd1007407b2}\label{classgko_1_1matrix_1_1Csr_1_1classical_a98620198be4dc96d661b7bd1007407b2}} 
+\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1classical_a98620198be4dc96d661b7bd1007407b2}{classical}} ()
+\begin{DoxyCompactList}\small\item\em Creates a classical strategy. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1classical_a2844a228c3a3f827c8ad9cab5c0e453f}{process}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ \&mtx\+\_\+row\+\_\+ptrs, \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ $\ast$mtx\+\_\+srow) override
+\begin{DoxyCompactList}\small\item\em Computes srow according to row pointers. \end{DoxyCompactList}\item 
+int64\+\_\+t \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1classical_ae99f47abc647f84793d9f84a9605a77d}{clac\+\_\+size}} (const int64\+\_\+t nnz) override
+\begin{DoxyCompactList}\small\item\em Computes the srow size according to the number of nonzeros. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1classical_afe21530a9de0bdd806068081cda597b3}\label{classgko_1_1matrix_1_1Csr_1_1classical_afe21530a9de0bdd806068081cda597b3}} 
+index\+\_\+type {\bfseries get\+\_\+max\+\_\+length\+\_\+per\+\_\+row} () const noexcept
 \item 
-\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1classical_a790b475b079d3d97de776e968f459f41}\label{classgko_1_1matrix_1_1Csr_1_1classical_a790b475b079d3d97de776e968f459f41}} 
-int64\+\_\+t {\bfseries clac\+\_\+size} (const int64\+\_\+t nnz)
-\end{DoxyCompactItemize}
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1classical_a2202060ee33f46510308a01e5caa8234}{copy}} () override
+\begin{DoxyCompactList}\small\item\em Copy a strategy. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$\newline
+class gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::classical}
+
+classical is a \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}} which uses the same number of threads on each row. 
+
+Classical strategy uses multithreads to calculate on parts of rows and then do a reduction of these threads results. The number of threads per row depends on the max number of stored elements per row. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1classical_ae99f47abc647f84793d9f84a9605a77d}\label{classgko_1_1matrix_1_1Csr_1_1classical_ae99f47abc647f84793d9f84a9605a77d}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::classical@{gko::matrix::Csr$<$ ValueType, IndexType $>$::classical}!clac\_size@{clac\_size}}
+\index{clac\_size@{clac\_size}!gko::matrix::Csr$<$ ValueType, IndexType $>$::classical@{gko::matrix::Csr$<$ ValueType, IndexType $>$::classical}}
+\doxysubsubsection{\texorpdfstring{clac\_size()}{clac\_size()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+int64\+\_\+t \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::classical\+::clac\+\_\+size (\begin{DoxyParamCaption}\item[{const int64\+\_\+t}]{nnz }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Computes the srow size according to the number of nonzeros. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em nnz} & the number of nonzeros\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the size of srow 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type_a07a6dda9dd04ed8abd914f3a69f330f2}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1classical_a2202060ee33f46510308a01e5caa8234}\label{classgko_1_1matrix_1_1Csr_1_1classical_a2202060ee33f46510308a01e5caa8234}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::classical@{gko::matrix::Csr$<$ ValueType, IndexType $>$::classical}!copy@{copy}}
+\index{copy@{copy}!gko::matrix::Csr$<$ ValueType, IndexType $>$::classical@{gko::matrix::Csr$<$ ValueType, IndexType $>$::classical}}
+\doxysubsubsection{\texorpdfstring{copy()}{copy()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type}{strategy\+\_\+type}}$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::classical\+::copy (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Copy a strategy. 
+
+This is a workaround until strategies are revamped, since strategies like {\ttfamily automatical} do not work when actually shared. 
+
+Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type_adf3dc78938ffb991608b272447db6a68}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Csr_1_1classical_a2844a228c3a3f827c8ad9cab5c0e453f}\label{classgko_1_1matrix_1_1Csr_1_1classical_a2844a228c3a3f827c8ad9cab5c0e453f}} 
+\index{gko::matrix::Csr$<$ ValueType, IndexType $>$::classical@{gko::matrix::Csr$<$ ValueType, IndexType $>$::classical}!process@{process}}
+\index{process@{process}!gko::matrix::Csr$<$ ValueType, IndexType $>$::classical@{gko::matrix::Csr$<$ ValueType, IndexType $>$::classical}}
+\doxysubsubsection{\texorpdfstring{process()}{process()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type = default\+\_\+precision, typename Index\+Type = int32$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko\+::matrix\+::\+Csr}}$<$ Value\+Type, Index\+Type $>$\+::classical\+::process (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ \&}]{mtx\+\_\+row\+\_\+ptrs,  }\item[{\mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ index\+\_\+type $>$ $\ast$}]{mtx\+\_\+srow }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Computes srow according to row pointers. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em mtx\+\_\+row\+\_\+ptrs} & the row pointers of the matrix \\
+\hline
+{\em mtx\+\_\+srow} & the srow of the matrix \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classgko_1_1matrix_1_1Csr_1_1strategy__type_a58bda9208766e57d861262d4059b65b4}{gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::strategy\+\_\+type}}.
+
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data(), gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+executor(), and gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+num\+\_\+elems().
+
+
+
+Referenced by gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::automatical\+::process().
+
 
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/matrix/csr.\+hpp (2f671dafa)\end{DoxyCompactItemize}
+ginkgo/core/matrix/csr.\+hpp (32a629d5b)\end{DoxyCompactItemize}

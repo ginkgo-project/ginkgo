@@ -12,7 +12,7 @@
 <!-- Node1 -->
 <g id="node1" class="node">
 <title>Node1</title>
-<g id="a_node1"><a xlink:title=" ">
+<g id="a_node1"><a xlink:title="load_balance is a strategy_type which uses the load balance algorithm.">
 <polygon fill="#bfbfbf" stroke="#000000" points="0,-.5 0,-30.5 158,-30.5 158,-.5 0,-.5"/>
 <text text-anchor="start" x="8" y="-18.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Csr&lt; ValueType,</text>
 <text text-anchor="middle" x="79" y="-7.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> IndexType &gt;::load_balance</text>
@@ -22,7 +22,7 @@
 <!-- Node2 -->
 <g id="node2" class="node">
 <title>Node2</title>
-<g id="a_node2"><a xlink:href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html" target="_top" xlink:title=" ">
+<g id="a_node2"><a xlink:href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html" target="_top" xlink:title="strategy_type is to decide how to set the csr algorithm.">
 <polygon fill="#ffffff" stroke="#000000" points="0,-67.5 0,-97.5 158,-97.5 158,-67.5 0,-67.5"/>
 <text text-anchor="start" x="8" y="-85.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000">gko::matrix::Csr&lt; ValueType,</text>
 <text text-anchor="middle" x="79" y="-74.5" font-family="Helvetica,sans-Serif" font-size="10.00" fill="#000000"> IndexType &gt;::strategy_type</text>

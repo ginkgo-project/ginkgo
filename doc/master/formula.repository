@@ -14,16 +14,27 @@
 \form#13:$B = A^{T}$
 \form#14:$B = A^{H}$
 \form#15:$U$
-\form#16:$A \approx LU$
-\form#17:$ F(L, U) = \begin{cases} \frac{1}{u_{jj}} \left(a_{ij}-\sum_{k=1}^{j-1}l_{ik}u_{kj}\right), \quad & i>j \\ a_{ij}-\sum_{k=1}^{i-1}l_{ik}u_{kj}, \quad & i\leq j \end{cases} $
-\form#18:$\left(R = A - L \cdot U\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$
-\form#19:$\mathcal{S}$
-\form#20:$LUx = b$
-\form#21:$ u : [0, 1] \rightarrow R\\ u'' = f\\ u(0) = u0\\ u(1) = u1 $
-\form#22:$ u(x + h) = u(x) - u'(x)h + 1/2 u''(x)h^2 + O(h^3)\\ u(x - h) = u(x) + u'(x)h + 1/2 u''(x)h^2 + O(h^3) / +\\ ---------------------- \\ -u(x - h) + 2u(x) + -u(x + h) = -f(x)h^2 + O(h^3) $
-\form#23:$x1, ..., xk, $
-\form#24:$ h = 1 / (K + 1)$
-\form#25:$ 2u_1 - u_2 = -f_1 h^2 + u0\\ -u_(k-1) + 2u_k - u_(k+1) = -f_k h^2, k = 2, ..., K - 1\\ -u_(K-1) + 2u_K = -f_K h^2 + u1\\ $
-\form#26:$`f` $
-\form#27:$`f(x) = 6x`$
-\form#28:$`u(x) = x^3`$
+\form#16:$\mathcal S(L + U)$
+\form#17:$\mathcal S(A)$
+\form#18:$LU = A$
+\form#19:$A \approx LL^T$
+\form#20:$R = A - LL^T$
+\form#21:$R$
+\form#22:$ F(L) = \begin{cases} \frac{1}{l_{jj}} \left(a_{ij}-\sum_{k=1}^{j-1}l_{ik}l_{jk}\right), \quad & i \neq j \\ \sqrt{a_{ij}-\sum_{k=1}^{j-1}l_{ik}l_{jk}}, \quad & i = j \\ \end{cases} $
+\form#23:$A \approx LU$
+\form#24:$ F(L, U) = \begin{cases} \frac{1}{u_{jj}} \left(a_{ij}-\sum_{k=1}^{j-1}l_{ik}u_{kj}\right), \quad & i>j \\ a_{ij}-\sum_{k=1}^{i-1}l_{ik}u_{kj}, \quad & i\leq j \end{cases} $
+\form#25:$\left(R = A - L \cdot U\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$
+\form#26:$\mathcal{S}$
+\form#27:$ILU(0)$
+\form#28:$R = A - LU$
+\form#29:$LUx = b$
+\form#30:$aiU * x$
+\form#31:$aiL * x$
+\form#32:$ u : [0, 1] \rightarrow R\\ u'' = f\\ u(0) = u0\\ u(1) = u1 $
+\form#33:$ u(x + h) = u(x) - u'(x)h + 1/2 u''(x)h^2 + O(h^3)\\ u(x - h) = u(x) + u'(x)h + 1/2 u''(x)h^2 + O(h^3) / +\\ ---------------------- \\ -u(x - h) + 2u(x) + -u(x + h) = -f(x)h^2 + O(h^3) $
+\form#34:$x1, ..., xk, $
+\form#35:$ h = 1 / (K + 1)$
+\form#36:$ 2u_1 - u_2 = -f_1 h^2 + u0\\ -u_(k-1) + 2u_k - u_(k+1) = -f_k h^2, k = 2, ..., K - 1\\ -u_(K-1) + 2u_K = -f_K h^2 + u1\\ $
+\form#37:$`f` $
+\form#38:$`f(x) = 6x`$
+\form#39:$`u(x) = x^3`$

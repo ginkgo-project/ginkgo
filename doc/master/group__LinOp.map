@@ -1,8 +1,8 @@
 <map id="Linear Operators" name="Linear Operators">
-<area shape="rect" id="node1" href="$group__factor.html" title="A module dedicated to the implementation and usage of the Factorizations in Ginkgo." alt="" coords="405,30,517,55"/>
-<area shape="rect" id="node2" href="$group__precond.html" title="A module dedicated to the implementation and usage of the Preconditioners in Ginkgo." alt="" coords="399,138,522,163"/>
-<area shape="rect" id="node3" href="$group__mat__formats.html" title="A module dedicated to the implementation and usage of the various Matrix Formats in Ginkgo." alt="" coords="365,289,556,329"/>
-<area shape="rect" id="node4" href="$group__jacobi.html" title="A module dedicated to the implementation and usage of the Jacobi Preconditioner in Ginkgo." alt="" coords="381,433,540,458"/>
-<area shape="rect" id="node5" title="A module dedicated to the implementation and usage of the Linear operators in Ginkgo." alt="" coords="5,221,136,246"/>
-<area shape="rect" id="node6" href="$group__solvers.html" title="A module dedicated to the implementation and usage of the Solvers in Ginkgo." alt="" coords="425,547,496,573"/>
+<area shape="rect" id="node1" href="$group__factor.html" title="A module dedicated to the implementation and usage of the Factorizations in Ginkgo." alt="" coords="405,63,517,88"/>
+<area shape="rect" id="node2" href="$group__precond.html" title="A module dedicated to the implementation and usage of the Preconditioners in Ginkgo." alt="" coords="399,223,522,248"/>
+<area shape="rect" id="node3" href="$group__mat__formats.html" title="A module dedicated to the implementation and usage of the various Matrix Formats in Ginkgo." alt="" coords="365,404,556,444"/>
+<area shape="rect" id="node4" href="$group__jacobi.html" title="A module dedicated to the implementation and usage of the Jacobi Preconditioner in Ginkgo." alt="" coords="381,562,540,587"/>
+<area shape="rect" id="node5" title="A module dedicated to the implementation and usage of the Linear operators in Ginkgo." alt="" coords="5,320,136,346"/>
+<area shape="rect" id="node6" href="$group__solvers.html" title="A module dedicated to the implementation and usage of the Solvers in Ginkgo." alt="" coords="425,684,496,710"/>
 </map>

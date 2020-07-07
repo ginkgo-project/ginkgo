@@ -28,8 +28,10 @@ Collaboration diagram for Preconditioners\+:
 \item 
 class \mbox{\hyperlink{classgko_1_1Preconditionable}{gko\+::\+Preconditionable}}
 \begin{DoxyCompactList}\small\item\em A \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} implementing this interface can be preconditioned. \end{DoxyCompactList}\item 
-class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Ilu}{gko\+::preconditioner\+::\+Ilu$<$ L\+Solver\+Type, U\+Solver\+Type, Reverse\+Apply, Index\+Type\+Par\+Ilu $>$}}
+class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Ilu}{gko\+::preconditioner\+::\+Ilu$<$ L\+Solver\+Type, U\+Solver\+Type, Reverse\+Apply, Index\+Type $>$}}
 \begin{DoxyCompactList}\small\item\em The Incomplete LU (I\+LU) preconditioner solves the equation $LUx = b$ for a given lower triangular matrix L, an upper triangular matrix U and the right hand side b (can contain multiple right hand sides). \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko\+::preconditioner\+::\+Isai$<$ Isai\+Type, Value\+Type, Index\+Type $>$}}
+\begin{DoxyCompactList}\small\item\em The Incomplete Sparse Approximate Inverse (I\+S\+AI) Preconditioner generates an approximate inverse matrix for a given lower triangular matrix L or upper triangular matrix U. \end{DoxyCompactList}\item 
 class \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko\+::preconditioner\+::\+Jacobi$<$ Value\+Type, Index\+Type $>$}}
 \begin{DoxyCompactList}\small\item\em A block-\/\+Jacobi preconditioner is a block-\/diagonal linear operator, obtained by inverting the diagonal blocks of the source operator. \end{DoxyCompactList}\end{DoxyCompactItemize}
 

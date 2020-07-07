@@ -31,12 +31,25 @@ struct \mbox{\hyperlink{structgko_1_1solver_1_1Bicgstab_1_1parameters__type}{par
 \item 
 \mbox{\Hypertarget{classgko_1_1solver_1_1Bicgstab_ab670b7a800a5b86f4733adfe314a67a7}\label{classgko_1_1solver_1_1Bicgstab_ab670b7a800a5b86f4733adfe314a67a7}} 
 using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1solver_1_1Bicgstab_ab438a6c5ab3b435b8489a5700640b4c1}\label{classgko_1_1solver_1_1Bicgstab_ab438a6c5ab3b435b8489a5700640b4c1}} 
+using {\bfseries transposed\+\_\+type} = \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab}{Bicgstab}}$<$ Value\+Type $>$
 \end{DoxyCompactItemize}
 \doxysubsection*{Public Member Functions}
 \begin{DoxyCompactItemize}
 \item 
 std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab_ada73e8ca3e8924011c8780cab92f651e}{get\+\_\+system\+\_\+matrix}} () const
 \begin{DoxyCompactList}\small\item\em Gets the system operator (matrix) of the linear system. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab_aa0e7142db7366eb058c59c8fc3165648}{transpose}} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab_a35c92af92663aa7054e1ed6a2c85a432}{conj\+\_\+transpose}} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab_a96abb4c28be80401ff646e4b1009a630}{apply\+\_\+uses\+\_\+initial\+\_\+guess}} () const override
+\begin{DoxyCompactList}\small\item\em Return true as iterative solvers use the data in x as an initial guess. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}} $>$ \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab_a3e75927cf65072e8afb9dbac57e01ba4}{get\+\_\+stop\+\_\+criterion\+\_\+factory}} () const
+\begin{DoxyCompactList}\small\item\em Gets the stopping criterion factory of the solver. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab_a1bb734daeaa2b2218b1c14fe53565bb1}{set\+\_\+stop\+\_\+criterion\+\_\+factory}} (std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}} $>$ other)
+\begin{DoxyCompactList}\small\item\em Sets the stopping criterion of the solver. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{classgko_1_1solver_1_1Bicgstab_ad9f55802a39cbf339c400f3a5eeb7a4a}\label{classgko_1_1solver_1_1Bicgstab_ad9f55802a39cbf339c400f3a5eeb7a4a}} 
 const \mbox{\hyperlink{structgko_1_1solver_1_1Bicgstab_1_1parameters__type}{parameters\+\_\+type}} \& {\bfseries get\+\_\+parameters} () const
 \end{DoxyCompactItemize}
@@ -73,6 +86,56 @@ Being a generic solver, it is capable of solving general matrices, including non
 
 
 \doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Bicgstab_a96abb4c28be80401ff646e4b1009a630}\label{classgko_1_1solver_1_1Bicgstab_a96abb4c28be80401ff646e4b1009a630}} 
+\index{gko::solver::Bicgstab$<$ ValueType $>$@{gko::solver::Bicgstab$<$ ValueType $>$}!apply\_uses\_initial\_guess@{apply\_uses\_initial\_guess}}
+\index{apply\_uses\_initial\_guess@{apply\_uses\_initial\_guess}!gko::solver::Bicgstab$<$ ValueType $>$@{gko::solver::Bicgstab$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{apply\_uses\_initial\_guess()}{apply\_uses\_initial\_guess()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+bool \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab}{gko\+::solver\+::\+Bicgstab}}$<$ Value\+Type $>$\+::apply\+\_\+uses\+\_\+initial\+\_\+guess (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Return true as iterative solvers use the data in x as an initial guess. 
+
+\begin{DoxyReturn}{Returns}
+true as iterative solvers use the data in x as an initial guess. 
+\end{DoxyReturn}
+
+
+Reimplemented from \mbox{\hyperlink{classgko_1_1LinOp_a80967e89745c73e5df8640fe1c7e4aaa}{gko\+::\+Lin\+Op}}.
+
+\mbox{\Hypertarget{classgko_1_1solver_1_1Bicgstab_a35c92af92663aa7054e1ed6a2c85a432}\label{classgko_1_1solver_1_1Bicgstab_a35c92af92663aa7054e1ed6a2c85a432}} 
+\index{gko::solver::Bicgstab$<$ ValueType $>$@{gko::solver::Bicgstab$<$ ValueType $>$}!conj\_transpose@{conj\_transpose}}
+\index{conj\_transpose@{conj\_transpose}!gko::solver::Bicgstab$<$ ValueType $>$@{gko::solver::Bicgstab$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{conj\_transpose()}{conj\_transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab}{gko\+::solver\+::\+Bicgstab}}$<$ Value\+Type $>$\+::conj\+\_\+transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new conjugate transposed object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Transposable_ab41b669288740cf2a6f7bf76e875b077}{gko\+::\+Transposable}}.
+
+\mbox{\Hypertarget{classgko_1_1solver_1_1Bicgstab_a3e75927cf65072e8afb9dbac57e01ba4}\label{classgko_1_1solver_1_1Bicgstab_a3e75927cf65072e8afb9dbac57e01ba4}} 
+\index{gko::solver::Bicgstab$<$ ValueType $>$@{gko::solver::Bicgstab$<$ ValueType $>$}!get\_stop\_criterion\_factory@{get\_stop\_criterion\_factory}}
+\index{get\_stop\_criterion\_factory@{get\_stop\_criterion\_factory}!gko::solver::Bicgstab$<$ ValueType $>$@{gko::solver::Bicgstab$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_stop\_criterion\_factory()}{get\_stop\_criterion\_factory()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab}{gko\+::solver\+::\+Bicgstab}}$<$ Value\+Type $>$\+::get\+\_\+stop\+\_\+criterion\+\_\+factory (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Gets the stopping criterion factory of the solver. 
+
+\begin{DoxyReturn}{Returns}
+the stopping criterion factory 
+\end{DoxyReturn}
 \mbox{\Hypertarget{classgko_1_1solver_1_1Bicgstab_ada73e8ca3e8924011c8780cab92f651e}\label{classgko_1_1solver_1_1Bicgstab_ada73e8ca3e8924011c8780cab92f651e}} 
 \index{gko::solver::Bicgstab$<$ ValueType $>$@{gko::solver::Bicgstab$<$ ValueType $>$}!get\_system\_matrix@{get\_system\_matrix}}
 \index{get\_system\_matrix@{get\_system\_matrix}!gko::solver::Bicgstab$<$ ValueType $>$@{gko::solver::Bicgstab$<$ ValueType $>$}}
@@ -87,8 +150,42 @@ Gets the system operator (matrix) of the linear system.
 \begin{DoxyReturn}{Returns}
 the system operator (matrix) 
 \end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Bicgstab_a1bb734daeaa2b2218b1c14fe53565bb1}\label{classgko_1_1solver_1_1Bicgstab_a1bb734daeaa2b2218b1c14fe53565bb1}} 
+\index{gko::solver::Bicgstab$<$ ValueType $>$@{gko::solver::Bicgstab$<$ ValueType $>$}!set\_stop\_criterion\_factory@{set\_stop\_criterion\_factory}}
+\index{set\_stop\_criterion\_factory@{set\_stop\_criterion\_factory}!gko::solver::Bicgstab$<$ ValueType $>$@{gko::solver::Bicgstab$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{set\_stop\_criterion\_factory()}{set\_stop\_criterion\_factory()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+void \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab}{gko\+::solver\+::\+Bicgstab}}$<$ Value\+Type $>$\+::set\+\_\+stop\+\_\+criterion\+\_\+factory (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{namespacegko_1_1stop_ab12a51109c50b35ec36dc5a393d6a9a0}{stop\+::\+Criterion\+Factory}} $>$}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Sets the stopping criterion of the solver. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em other} & the new stopping criterion factory \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1solver_1_1Bicgstab_aa0e7142db7366eb058c59c8fc3165648}\label{classgko_1_1solver_1_1Bicgstab_aa0e7142db7366eb058c59c8fc3165648}} 
+\index{gko::solver::Bicgstab$<$ ValueType $>$@{gko::solver::Bicgstab$<$ ValueType $>$}!transpose@{transpose}}
+\index{transpose@{transpose}!gko::solver::Bicgstab$<$ ValueType $>$@{gko::solver::Bicgstab$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{transpose()}{transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1solver_1_1Bicgstab}{gko\+::solver\+::\+Bicgstab}}$<$ Value\+Type $>$\+::transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new transposed object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Transposable_a5c6b778b71b47d53e0bda6ccf894d318}{gko\+::\+Transposable}}.
+
 
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/solver/bicgstab.\+hpp (4d55c5d34)\end{DoxyCompactItemize}
+ginkgo/core/solver/bicgstab.\+hpp (5bb6c1e23)\end{DoxyCompactItemize}

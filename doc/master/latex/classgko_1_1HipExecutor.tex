@@ -1,0 +1,173 @@
+\hypertarget{classgko_1_1HipExecutor}{}\doxysection{gko\+::Hip\+Executor Class Reference}
+\label{classgko_1_1HipExecutor}\index{gko::HipExecutor@{gko::HipExecutor}}
+
+
+This is the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} subclass which represents the H\+IP enhanced device.  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/base/executor.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::Hip\+Executor\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1HipExecutor__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ \mbox{\hyperlink{classgko_1_1HipExecutor_aad8e01fc70095ad5df48a02da9555400}{get\+\_\+master}} () noexcept override
+\begin{DoxyCompactList}\small\item\em Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+std\+::shared\+\_\+ptr$<$ const \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ \mbox{\hyperlink{classgko_1_1HipExecutor_aebcc016b196aad2b8737fbf6244584b4}{get\+\_\+master}} () const noexcept override
+\begin{DoxyCompactList}\small\item\em Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1HipExecutor_a0ea0ec8722767138953110b52d325b4a}\label{classgko_1_1HipExecutor_a0ea0ec8722767138953110b52d325b4a}} 
+void \mbox{\hyperlink{classgko_1_1HipExecutor_a0ea0ec8722767138953110b52d325b4a}{synchronize}} () const override
+\begin{DoxyCompactList}\small\item\em Synchronize the operations launched on the executor with its master. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1HipExecutor_a9407dcb6c1e288e5ec3f80c8d7f581a8}{run}} (const \mbox{\hyperlink{classgko_1_1Operation}{Operation}} \&op) const override
+\begin{DoxyCompactList}\small\item\em Runs the specified \mbox{\hyperlink{classgko_1_1Operation}{Operation}} using this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1HipExecutor_a37a35665c3983e56105c6acea9de73c6}\label{classgko_1_1HipExecutor_a37a35665c3983e56105c6acea9de73c6}} 
+int \mbox{\hyperlink{classgko_1_1HipExecutor_a37a35665c3983e56105c6acea9de73c6}{get\+\_\+device\+\_\+id}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the H\+IP device id of the device associated to this executor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1HipExecutor_a43bc417378f1c0f07ef49d2856ddd37c}\label{classgko_1_1HipExecutor_a43bc417378f1c0f07ef49d2856ddd37c}} 
+int \mbox{\hyperlink{classgko_1_1HipExecutor_a43bc417378f1c0f07ef49d2856ddd37c}{get\+\_\+num\+\_\+warps\+\_\+per\+\_\+sm}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the number of warps per SM of this executor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1HipExecutor_ac69c763f9d90e948d03ed1e5ed23903c}\label{classgko_1_1HipExecutor_ac69c763f9d90e948d03ed1e5ed23903c}} 
+int \mbox{\hyperlink{classgko_1_1HipExecutor_ac69c763f9d90e948d03ed1e5ed23903c}{get\+\_\+num\+\_\+multiprocessor}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the number of multiprocessor of this executor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1HipExecutor_a4cdda4e0d7031ab353555193927d0975}\label{classgko_1_1HipExecutor_a4cdda4e0d7031ab353555193927d0975}} 
+int \mbox{\hyperlink{classgko_1_1HipExecutor_a4cdda4e0d7031ab353555193927d0975}{get\+\_\+major\+\_\+version}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the major verion of compute capability. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1HipExecutor_a78f3bfa05f6d38c286309436781a6f7a}\label{classgko_1_1HipExecutor_a78f3bfa05f6d38c286309436781a6f7a}} 
+int \mbox{\hyperlink{classgko_1_1HipExecutor_a78f3bfa05f6d38c286309436781a6f7a}{get\+\_\+minor\+\_\+version}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the minor verion of compute capability. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1HipExecutor_add2eb69abc3225f1ab7e5b01d9ebb307}\label{classgko_1_1HipExecutor_add2eb69abc3225f1ab7e5b01d9ebb307}} 
+int \mbox{\hyperlink{classgko_1_1HipExecutor_add2eb69abc3225f1ab7e5b01d9ebb307}{get\+\_\+num\+\_\+warps}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the number of warps of this executor. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1HipExecutor_ae470cdfd4273b02b2563101d6146db26}\label{classgko_1_1HipExecutor_ae470cdfd4273b02b2563101d6146db26}} 
+int \mbox{\hyperlink{classgko_1_1HipExecutor_ae470cdfd4273b02b2563101d6146db26}{get\+\_\+warp\+\_\+size}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Get the warp size of this executor. \end{DoxyCompactList}\item 
+hipblas\+Context $\ast$ \mbox{\hyperlink{classgko_1_1HipExecutor_a3e9de37cb851c04cd1d8f02712421f83}{get\+\_\+hipblas\+\_\+handle}} () const
+\begin{DoxyCompactList}\small\item\em Get the hipblas handle for this executor. \end{DoxyCompactList}\item 
+hipsparse\+Context $\ast$ \mbox{\hyperlink{classgko_1_1HipExecutor_ac644de4030c96e20db7489957a949c49}{get\+\_\+hipsparse\+\_\+handle}} () const
+\begin{DoxyCompactList}\small\item\em Get the hipsparse handle for this executor. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+static std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1HipExecutor}{Hip\+Executor}} $>$ \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{create}} (int device\+\_\+id, std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$ master, bool device\+\_\+reset=false)
+\begin{DoxyCompactList}\small\item\em Creates a new \mbox{\hyperlink{classgko_1_1HipExecutor}{Hip\+Executor}}. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1HipExecutor_a7b34cbd84692dafa2290e6630754aa97}\label{classgko_1_1HipExecutor_a7b34cbd84692dafa2290e6630754aa97}} 
+static int \mbox{\hyperlink{classgko_1_1HipExecutor_a7b34cbd84692dafa2290e6630754aa97}{get\+\_\+num\+\_\+devices}} ()
+\begin{DoxyCompactList}\small\item\em Get the number of devices present on the system. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+This is the \mbox{\hyperlink{classgko_1_1Executor}{Executor}} subclass which represents the H\+IP enhanced device. 
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}\label{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}} 
+\index{gko::HipExecutor@{gko::HipExecutor}!create@{create}}
+\index{create@{create}!gko::HipExecutor@{gko::HipExecutor}}
+\doxysubsubsection{\texorpdfstring{create()}{create()}}
+{\footnotesize\ttfamily static std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1HipExecutor}{Hip\+Executor}}$>$ gko\+::\+Hip\+Executor\+::create (\begin{DoxyParamCaption}\item[{int}]{device\+\_\+id,  }\item[{std\+::shared\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1Executor}{Executor}} $>$}]{master,  }\item[{bool}]{device\+\_\+reset = {\ttfamily false} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [static]}}
+
+
+
+Creates a new \mbox{\hyperlink{classgko_1_1HipExecutor}{Hip\+Executor}}. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em device\+\_\+id} & the H\+IP device id of this device \\
+\hline
+{\em master} & an executor on the host that is used to invoke the device kernels \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1HipExecutor_a3e9de37cb851c04cd1d8f02712421f83}\label{classgko_1_1HipExecutor_a3e9de37cb851c04cd1d8f02712421f83}} 
+\index{gko::HipExecutor@{gko::HipExecutor}!get\_hipblas\_handle@{get\_hipblas\_handle}}
+\index{get\_hipblas\_handle@{get\_hipblas\_handle}!gko::HipExecutor@{gko::HipExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_hipblas\_handle()}{get\_hipblas\_handle()}}
+{\footnotesize\ttfamily hipblas\+Context$\ast$ gko\+::\+Hip\+Executor\+::get\+\_\+hipblas\+\_\+handle (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the hipblas handle for this executor. 
+
+\begin{DoxyReturn}{Returns}
+the hipblas handle (hipblas\+Context$\ast$) for this executor 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1HipExecutor_ac644de4030c96e20db7489957a949c49}\label{classgko_1_1HipExecutor_ac644de4030c96e20db7489957a949c49}} 
+\index{gko::HipExecutor@{gko::HipExecutor}!get\_hipsparse\_handle@{get\_hipsparse\_handle}}
+\index{get\_hipsparse\_handle@{get\_hipsparse\_handle}!gko::HipExecutor@{gko::HipExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_hipsparse\_handle()}{get\_hipsparse\_handle()}}
+{\footnotesize\ttfamily hipsparse\+Context$\ast$ gko\+::\+Hip\+Executor\+::get\+\_\+hipsparse\+\_\+handle (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get the hipsparse handle for this executor. 
+
+\begin{DoxyReturn}{Returns}
+the hipsparse handle (hipsparse\+Context$\ast$) for this executor 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classgko_1_1HipExecutor_aebcc016b196aad2b8737fbf6244584b4}\label{classgko_1_1HipExecutor_aebcc016b196aad2b8737fbf6244584b4}} 
+\index{gko::HipExecutor@{gko::HipExecutor}!get\_master@{get\_master}}
+\index{get\_master@{get\_master}!gko::HipExecutor@{gko::HipExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_master()}{get\_master()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$const \mbox{\hyperlink{classgko_1_1Executor}{Executor}}$>$ gko\+::\+Hip\+Executor\+::get\+\_\+master (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+
+\begin{DoxyReturn}{Returns}
+the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Executor_a261386e439c8daa6e0d95dc331b9bfeb}{gko\+::\+Executor}}.
+
+\mbox{\Hypertarget{classgko_1_1HipExecutor_aad8e01fc70095ad5df48a02da9555400}\label{classgko_1_1HipExecutor_aad8e01fc70095ad5df48a02da9555400}} 
+\index{gko::HipExecutor@{gko::HipExecutor}!get\_master@{get\_master}}
+\index{get\_master@{get\_master}!gko::HipExecutor@{gko::HipExecutor}}
+\doxysubsubsection{\texorpdfstring{get\_master()}{get\_master()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily std\+::shared\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1Executor}{Executor}}$>$ gko\+::\+Hip\+Executor\+::get\+\_\+master (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}, {\ttfamily [noexcept]}}
+
+
+
+Returns the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+
+\begin{DoxyReturn}{Returns}
+the master \mbox{\hyperlink{classgko_1_1OmpExecutor}{Omp\+Executor}} of this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Executor_acaec4f999d52fc71e5e5a3d3ad93609c}{gko\+::\+Executor}}.
+
+\mbox{\Hypertarget{classgko_1_1HipExecutor_a9407dcb6c1e288e5ec3f80c8d7f581a8}\label{classgko_1_1HipExecutor_a9407dcb6c1e288e5ec3f80c8d7f581a8}} 
+\index{gko::HipExecutor@{gko::HipExecutor}!run@{run}}
+\index{run@{run}!gko::HipExecutor@{gko::HipExecutor}}
+\doxysubsubsection{\texorpdfstring{run()}{run()}}
+{\footnotesize\ttfamily void gko\+::\+Hip\+Executor\+::run (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Operation}{Operation}} \&}]{op }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Runs the specified \mbox{\hyperlink{classgko_1_1Operation}{Operation}} using this \mbox{\hyperlink{classgko_1_1Executor}{Executor}}. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em op} & the operation to run \\
+\hline
+\end{DoxyParams}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Executor_a1de8e2668b76e66690acf5eef9e8324d}{gko\+::\+Executor}}.
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/base/executor.\+hpp (9ea42f3a3)\end{DoxyCompactItemize}

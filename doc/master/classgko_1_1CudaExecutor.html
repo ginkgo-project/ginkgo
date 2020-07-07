@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from tags/v1.1.1^0 branch based on master. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from tags/v1.2.0^0 branch based on master. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -85,7 +85,7 @@ $(function() {
 <div class="dynheader">
 Collaboration diagram for gko::CudaExecutor:</div>
 <div class="dyncontent">
-<div class="center"><div class="zoom"><iframe scrolling="no" frameborder="0" src="classgko_1_1CudaExecutor__coll__graph.svg" width="100%" height="388"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
+<div class="center"><div class="zoom"><iframe scrolling="no" frameborder="0" src="classgko_1_1CudaExecutor__coll__graph.svg" width="100%" height="437"><p><b>This browser is not able to show SVG: try Firefox, Chrome, Safari, or Opera instead.</b></p></iframe></div>
 </div>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
@@ -108,10 +108,10 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="clas
 int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#a7cfa915eadd2329eb897dc1ee2712488">get_device_id</a> () const noexcept</td></tr>
 <tr class="memdesc:a7cfa915eadd2329eb897dc1ee2712488"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the CUDA device id of the device associated to this executor. <br /></td></tr>
 <tr class="separator:a7cfa915eadd2329eb897dc1ee2712488"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a213c222fd8ef58952328fbe3a9b5ff39"><td class="memItemLeft" align="right" valign="top"><a id="a213c222fd8ef58952328fbe3a9b5ff39"></a>
-int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#a213c222fd8ef58952328fbe3a9b5ff39">get_num_cores_per_sm</a> () const noexcept</td></tr>
-<tr class="memdesc:a213c222fd8ef58952328fbe3a9b5ff39"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the number of cores per SM of this executor. <br /></td></tr>
-<tr class="separator:a213c222fd8ef58952328fbe3a9b5ff39"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a245c1c35a18e6534d87ef6e9cad24f7c"><td class="memItemLeft" align="right" valign="top"><a id="a245c1c35a18e6534d87ef6e9cad24f7c"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#a245c1c35a18e6534d87ef6e9cad24f7c">get_num_warps_per_sm</a> () const noexcept</td></tr>
+<tr class="memdesc:a245c1c35a18e6534d87ef6e9cad24f7c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the number of warps per SM of this executor. <br /></td></tr>
+<tr class="separator:a245c1c35a18e6534d87ef6e9cad24f7c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a449c2bf9c51b58a04fdb8b4a73377820"><td class="memItemLeft" align="right" valign="top"><a id="a449c2bf9c51b58a04fdb8b4a73377820"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#a449c2bf9c51b58a04fdb8b4a73377820">get_num_multiprocessor</a> () const noexcept</td></tr>
 <tr class="memdesc:a449c2bf9c51b58a04fdb8b4a73377820"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the number of multiprocessor of this executor. <br /></td></tr>
@@ -120,6 +120,10 @@ int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class
 int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#aa9d77db0b87322a8bef12380029b5310">get_num_warps</a> () const noexcept</td></tr>
 <tr class="memdesc:aa9d77db0b87322a8bef12380029b5310"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the number of warps of this executor. <br /></td></tr>
 <tr class="separator:aa9d77db0b87322a8bef12380029b5310"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6a3894e9f4d98b5f7523e067c88ef521"><td class="memItemLeft" align="right" valign="top"><a id="a6a3894e9f4d98b5f7523e067c88ef521"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#a6a3894e9f4d98b5f7523e067c88ef521">get_warp_size</a> () const noexcept</td></tr>
+<tr class="memdesc:a6a3894e9f4d98b5f7523e067c88ef521"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the warp size of this executor. <br /></td></tr>
+<tr class="separator:a6a3894e9f4d98b5f7523e067c88ef521"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3868f53f82b6398acb1ba1f9647a6e46"><td class="memItemLeft" align="right" valign="top"><a id="a3868f53f82b6398acb1ba1f9647a6e46"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#a3868f53f82b6398acb1ba1f9647a6e46">get_major_version</a> () const noexcept</td></tr>
 <tr class="memdesc:a3868f53f82b6398acb1ba1f9647a6e46"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the major verion of compute capability. <br /></td></tr>
@@ -137,9 +141,9 @@ int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
-<tr class="memitem:a2718a92034350650ef406ffdb60db090"><td class="memItemLeft" align="right" valign="top">static std::shared_ptr&lt; <a class="el" href="classgko_1_1CudaExecutor.html">CudaExecutor</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#a2718a92034350650ef406ffdb60db090">create</a> (int device_id, std::shared_ptr&lt; <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; master)</td></tr>
-<tr class="memdesc:a2718a92034350650ef406ffdb60db090"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new <a class="el" href="classgko_1_1CudaExecutor.html" title="This is the Executor subclass which represents the CUDA device.">CudaExecutor</a>.  <a href="classgko_1_1CudaExecutor.html#a2718a92034350650ef406ffdb60db090">More...</a><br /></td></tr>
-<tr class="separator:a2718a92034350650ef406ffdb60db090"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa577135e082f9be20617e9d66209ca25"><td class="memItemLeft" align="right" valign="top">static std::shared_ptr&lt; <a class="el" href="classgko_1_1CudaExecutor.html">CudaExecutor</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#aa577135e082f9be20617e9d66209ca25">create</a> (int device_id, std::shared_ptr&lt; <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt; master, bool device_reset=false)</td></tr>
+<tr class="memdesc:aa577135e082f9be20617e9d66209ca25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new <a class="el" href="classgko_1_1CudaExecutor.html" title="This is the Executor subclass which represents the CUDA device.">CudaExecutor</a>.  <a href="classgko_1_1CudaExecutor.html#aa577135e082f9be20617e9d66209ca25">More...</a><br /></td></tr>
+<tr class="separator:aa577135e082f9be20617e9d66209ca25"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aef0258494d14de0e56149b920c5173e5"><td class="memItemLeft" align="right" valign="top"><a id="aef0258494d14de0e56149b920c5173e5"></a>
 static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classgko_1_1CudaExecutor.html#aef0258494d14de0e56149b920c5173e5">get_num_devices</a> ()</td></tr>
 <tr class="memdesc:aef0258494d14de0e56149b920c5173e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the number of devices present on the system. <br /></td></tr>
@@ -148,8 +152,8 @@ static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>This is the <a class="el" href="classgko_1_1Executor.html" title="The first step in using the Ginkgo library consists of creating an executor.">Executor</a> subclass which represents the CUDA device. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a id="a2718a92034350650ef406ffdb60db090"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2718a92034350650ef406ffdb60db090">&#9670;&nbsp;</a></span>create()</h2>
+<a id="aa577135e082f9be20617e9d66209ca25"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa577135e082f9be20617e9d66209ca25">&#9670;&nbsp;</a></span>create()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -167,7 +171,13 @@ static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">std::shared_ptr&lt; <a class="el" href="classgko_1_1Executor.html">Executor</a> &gt;&#160;</td>
-          <td class="paramname"><em>master</em>&#160;</td>
+          <td class="paramname"><em>master</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>device_reset</em> = <code>false</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -346,7 +356,7 @@ static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>ginkgo/core/base/<a class="el" href="executor_8hpp_source.html">executor.hpp (8f70a7c81)</a></li>
+<li>ginkgo/core/base/<a class="el" href="executor_8hpp_source.html">executor.hpp (9ea42f3a3)</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

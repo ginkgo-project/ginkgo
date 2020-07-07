@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from tags/v1.1.1^0 branch based on master. Ginkgo version 1.1.1</span>
+   &#160;<span id="projectnumber">Generated from tags/v1.2.0^0 branch based on master. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -74,24 +74,46 @@ $(function() {
 <li>set_executor()
 : <a class="el" href="classgko_1_1Array.html#a44dd24e909f518f08320c3065e087d85">gko::Array&lt; ValueType &gt;</a>
 </li>
+<li>set_krylov_dim()
+: <a class="el" href="classgko_1_1solver_1_1Gmres.html#aec85204e331ac7ce6832a41a5a27bc9b">gko::solver::Gmres&lt; ValueType &gt;</a>
+</li>
+<li>set_permute_mask()
+: <a class="el" href="classgko_1_1matrix_1_1Permutation.html#ad1fbbe30f0c282aa02558163a6820434">gko::matrix::Permutation&lt; IndexType &gt;</a>
+</li>
 <li>set_preconditioner()
 : <a class="el" href="classgko_1_1Preconditionable.html#a95db3e56eb17efbcde951c5ed144582d">gko::Preconditionable</a>
 </li>
 <li>set_solver()
 : <a class="el" href="classgko_1_1solver_1_1Ir.html#a1eaca6f9b06ed821c1b4a91ddf796d30">gko::solver::Ir&lt; ValueType &gt;</a>
 </li>
+<li>set_stop_criterion_factory()
+: <a class="el" href="classgko_1_1solver_1_1Bicg.html#a0010941943d8a254313a1b5d5b400b1e">gko::solver::Bicg&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Bicgstab.html#a1bb734daeaa2b2218b1c14fe53565bb1">gko::solver::Bicgstab&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Cg.html#abbc672d480ec58860c4a05eafd463de2">gko::solver::Cg&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Cgs.html#afe26bd5e3c3e8f2b6baa6064e1a77acb">gko::solver::Cgs&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Fcg.html#a89eaa4af95ea7ccc446f31ca7d6571d7">gko::solver::Fcg&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Gmres.html#a22582c251e7563c3401fd5612250b0ce">gko::solver::Gmres&lt; ValueType &gt;</a>
+, <a class="el" href="classgko_1_1solver_1_1Ir.html#a04f3617065297814de25581be76c8f8e">gko::solver::Ir&lt; ValueType &gt;</a>
+</li>
+<li>set_strategy()
+: <a class="el" href="classgko_1_1matrix_1_1Csr.html#a3e0f6f2a9d773de0551068d514bf9703">gko::matrix::Csr&lt; ValueType, IndexType &gt;</a>
+</li>
 <li>sort_by_column_index()
 : <a class="el" href="classgko_1_1matrix_1_1Csr.html#ac817665ebedfc099180a785d813db8ef">gko::matrix::Csr&lt; ValueType, IndexType &gt;</a>
 , <a class="el" href="classgko_1_1matrix_1_1SparsityCsr.html#ada754f69e64b81679d1b65df27810d07">gko::matrix::SparsityCsr&lt; ValueType, IndexType &gt;</a>
 </li>
 <li>span()
-: <a class="el" href="structgko_1_1span.html#a1566e1ab67312a6b9ece66fa4f5c8799">gko::span</a>
+: <a class="el" href="structgko_1_1span.html#a2aafb0414ef14fac91296066f7426d6d">gko::span</a>
+</li>
+<li>sparselib()
+: <a class="el" href="classgko_1_1matrix_1_1Csr_1_1sparselib.html#a2b50338d0f7679bc94b09d63341c5c6f">gko::matrix::Csr&lt; ValueType, IndexType &gt;::sparselib</a>
 </li>
 <li>stop()
 : <a class="el" href="classgko_1_1stopping__status.html#ab13d4f214328c9574fdef6168c671de0">gko::stopping_status</a>
 </li>
 <li>strategy_type()
-: <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a307425e7a1b925583cec9d6dd30be301">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::strategy_type</a>
+: <a class="el" href="classgko_1_1matrix_1_1Csr_1_1strategy__type.html#aae6804f7a0b899f03bc0d5e0f139129c">gko::matrix::Csr&lt; ValueType, IndexType &gt;::strategy_type</a>
+, <a class="el" href="classgko_1_1matrix_1_1Hybrid_1_1strategy__type.html#a307425e7a1b925583cec9d6dd30be301">gko::matrix::Hybrid&lt; ValueType, IndexType &gt;::strategy_type</a>
 </li>
 <li>StreamError()
 : <a class="el" href="classgko_1_1StreamError.html#a511af28ae0b5a98998ef96f21cf1863e">gko::StreamError</a>
@@ -99,6 +121,7 @@ $(function() {
 <li>synchronize()
 : <a class="el" href="classgko_1_1CudaExecutor.html#a903cf7e3460b14677c0bce5ca08a1b81">gko::CudaExecutor</a>
 , <a class="el" href="classgko_1_1Executor.html#a24eeee7648c0f0fd07c9866d07154875">gko::Executor</a>
+, <a class="el" href="classgko_1_1HipExecutor.html#a0ea0ec8722767138953110b52d325b4a">gko::HipExecutor</a>
 , <a class="el" href="classgko_1_1OmpExecutor.html#ad4e421dcc3d1e5c7e396167a122e57ae">gko::OmpExecutor</a>
 </li>
 </ul>
