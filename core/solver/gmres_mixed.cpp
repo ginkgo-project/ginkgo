@@ -150,9 +150,8 @@ void GmresMixed<ValueType, ValueTypeKrylovBases>::apply_impl(const LinOp *b,
     // TODO: write description what the different rows represent
     // The optional entry stores the infinity_norm of each next_krylov_vector,
     // which is only used to compute the scale
-    auto arnoldi_norm = VectorNorms::create(
-        exec, dim<2>{2 + Accessor3dHelper::Accessor::has_scale,
-                     dense_b->get_size()[1]});
+    auto arnoldi_norm =
+        VectorNorms::create(exec, dim<2>{3, dense_b->get_size()[1]});
     Array<size_type> final_iter_nums(this->get_executor(),
                                      dense_b->get_size()[1]);
     auto y = Vector::create(exec, dim<2>{krylov_dim_, dense_b->get_size()[1]});
