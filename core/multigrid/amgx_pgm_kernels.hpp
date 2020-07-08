@@ -61,10 +61,6 @@ namespace amgx_pgm {
         std::shared_ptr<const DefaultExecutor> exec, const Array<_itype> &agg, \
         const matrix::Dense<_vtype> *b, matrix::Dense<_vtype> *x)
 
-#define GKO_DECLARE_AMGX_PGM_INITIAL_KERNEL(_itype)           \
-    void initial(std::shared_ptr<const DefaultExecutor> exec, \
-                 Array<_itype> &agg)
-
 #define GKO_DECLARE_AMGX_PGM_MATCH_EDGE_KERNEL(_itype)           \
     void match_edge(std::shared_ptr<const DefaultExecutor> exec, \
                     const Array<_itype> &strongest_neighbor,     \
@@ -103,8 +99,6 @@ namespace amgx_pgm {
     GKO_DECLARE_AMGX_PGM_RESTRICT_APPLY_KERNEL(ValueType, IndexType);   \
     template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_AMGX_PGM_PROLONGATE_APPLY_KERNEL(ValueType, IndexType); \
-    template <typename IndexType>                                       \
-    GKO_DECLARE_AMGX_PGM_INITIAL_KERNEL(IndexType);                     \
     template <typename IndexType>                                       \
     GKO_DECLARE_AMGX_PGM_MATCH_EDGE_KERNEL(IndexType);                  \
     template <typename IndexType>                                       \
