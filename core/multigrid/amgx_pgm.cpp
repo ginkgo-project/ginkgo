@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/matrix/identity.hpp>
 
 
+#include "core/components/fill_array.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/multigrid/amgx_pgm_kernels.hpp"
 
@@ -55,7 +56,6 @@ namespace amgx_pgm {
 
 GKO_REGISTER_OPERATION(restrict_apply, amgx_pgm::restrict_apply);
 GKO_REGISTER_OPERATION(prolong_applyadd, amgx_pgm::prolong_applyadd);
-GKO_REGISTER_OPERATION(initial, amgx_pgm::initial);
 GKO_REGISTER_OPERATION(match_edge, amgx_pgm::match_edge);
 GKO_REGISTER_OPERATION(count_unagg, amgx_pgm::count_unagg);
 GKO_REGISTER_OPERATION(renumber, amgx_pgm::renumber);
@@ -63,6 +63,7 @@ GKO_REGISTER_OPERATION(find_strongest_neighbor,
                        amgx_pgm::find_strongest_neighbor);
 GKO_REGISTER_OPERATION(assign_to_exist_agg, amgx_pgm::assign_to_exist_agg);
 GKO_REGISTER_OPERATION(amgx_pgm_generate, amgx_pgm::amgx_pgm_generate);
+GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
 }  // namespace amgx_pgm
@@ -101,7 +102,8 @@ void AmgxPgm<ValueType, IndexType>::generate()
                                       parameters_.deterministic * num);
     const auto amgxpgm_op = gko::as<matrix_type>(this->system_matrix_.get());
     // Initial agg = -1
-    exec->run(amgx_pgm::make_initial(agg_));
+    exec->run(amgx_pgm::make_fill_array(agg_.get_data(), agg_.get_num_elems(),
+                                        -one<IndexType>()));
     size_type num_unagg{0};
     size_type num_unagg_prev{0};
     // TODO: if mtx is a hermitian matrix, weight_mtx = abs(mtx)
