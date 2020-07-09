@@ -199,7 +199,7 @@ if (GINKGO_HIP_PLATFORM MATCHES "nvcc")
     endif()
     # add gpu architecture flags
     include(CudaArchitectureSelector)
-    cas_target_cuda_architectures_plain(GINKGO_HIP_NVCC_ARCH
+    cas_variable_cuda_architectures(GINKGO_HIP_NVCC_ARCH
         ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}
         UNSUPPORTED "20" "21")
 endif()
