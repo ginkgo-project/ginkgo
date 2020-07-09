@@ -34,7 +34,7 @@ namespace {
 
 
 // The function is copied from _ConvertSMVer2Cores of
-// cuda-9.2/samples/common/inc/helper_cuda.h
+// cuda-11.0/samples/common/inc/helper_cuda.h
 inline int convert_sm_ver_to_cores(int major, int minor)
 {
     // Defines for GPU Architecture types (using the SM version to determine
@@ -59,6 +59,7 @@ inline int convert_sm_ver_to_cores(int major, int minor)
         {0x70, 64},   // Volta Generation (SM 7.0) GV100 class
         {0x72, 64},   // Volta Generation (SM 7.2) GV11b class
         {0x75, 64},   // Turing Generation (SM 7.5) TU1xx class
+        {0x80, 64},   // Ampere Generation (SM 8.0) GA100 class
         {-1, -1}};
 
     int index = 0;
