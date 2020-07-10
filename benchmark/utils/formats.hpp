@@ -194,6 +194,10 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"cusp_hybrid", read_matrix_from_data<cusp_hybrid>},
         {"cusp_coo", read_matrix_from_data<cusp_coo>},
         {"cusp_ell", read_matrix_from_data<cusp_ell>},
+#else
+        // cusp_csr, cusp_coo use the generic ones from CUDA 11
+        {"cusp_csr", read_matrix_from_data<cusp_gcsr>},
+        {"cusp_coo", read_matrix_from_data<cusp_gcoo>},
 #endif
         {"cusp_csrex", read_matrix_from_data<cusp_csrex>},
 #if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) && \
