@@ -196,7 +196,8 @@ void Sellp<ValueType, IndexType>::read(const mat_data &data)
     // Allocate space for slice_cols.
     size_type slice_num =
         static_cast<index_type>((data.size[0] + slice_size - 1) / slice_size);
-    vector<size_type> slice_lengths(slice_num, 0, {this->get_executor()});
+    vector<size_type> slice_lengths(slice_num, 0,
+                                    {this->get_executor()->get_master()});
 
     // Get the number of maximum columns for every slice.
     auto total_cols =
