@@ -53,8 +53,14 @@ else()
     set(CUDA_RUNTIME_LIBS "${CUDA_RUNTIME_LIBS_DYNAMIC}" CACHE STRING "Path to a library" FORCE)
 endif()
 
+# CUDA 10.1/10.2 put cublas, cublasLt, cudnn in /usr/lib/<arch>-linux-gnu/, but
+# others (<= 10.0 or >= 11) put them in cuda own directory
+# If the environment installs several cuda including 10.1/10.2, cmake will find
+# the 10.1/10.2 .so files when searching others cuda in the default path.
+# CMake already puts /usr/lib/<arch>-linux-gnu/ after cuda own directory in the
+# `CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES`, so we always put NO_DEFAULT_PATH here.
 find_library(CUBLAS cublas
-    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+    HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES} NO_DEFAULT_PATH)
 find_library(CUSPARSE cusparse
     HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
 
