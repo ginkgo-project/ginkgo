@@ -129,19 +129,24 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
     const dim3 init_grid_dim(ceildiv(result->get_stride(), block_size.x),
                              ceildiv(num_rows, block_size.y), 1);
 
-    kernel::initialize_zero_dense<<<init_grid_dim, block_size>>>(
-        num_rows, num_cols, result->get_stride(),
-        as_cuda_type(result->get_values()));
+    if (num_rows > 0 && result->get_stride() > 0) {
+        kernel::initialize_zero_dense<<<init_grid_dim, block_size>>>(
+            num_rows, num_cols, result->get_stride(),
+            as_cuda_type(result->get_values()));
+    }
 
     constexpr auto threads_per_row = config::warp_size;
     const auto grid_dim =
         ceildiv(slice_size * slice_num * threads_per_row, default_block_size);
 
-    kernel::fill_in_dense<threads_per_row><<<grid_dim, default_block_size>>>(
-        num_rows, num_cols, result->get_stride(), slice_size,
-        as_cuda_type(slice_lengths), as_cuda_type(slice_sets),
-        as_cuda_type(col_idxs), as_cuda_type(vals),
-        as_cuda_type(result->get_values()));
+    if (grid_dim > 0) {
+        kernel::fill_in_dense<threads_per_row>
+            <<<grid_dim, default_block_size>>>(
+                num_rows, num_cols, result->get_stride(), slice_size,
+                as_cuda_type(slice_lengths), as_cuda_type(slice_sets),
+                as_cuda_type(col_idxs), as_cuda_type(vals),
+                as_cuda_type(result->get_values()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -168,9 +173,11 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
 
     auto grid_dim = ceildiv(num_rows * config::warp_size, default_block_size);
 
-    kernel::count_nnz_per_row<<<grid_dim, default_block_size>>>(
-        num_rows, slice_size, as_cuda_type(source_slice_sets),
-        as_cuda_type(source_values), as_cuda_type(result_row_ptrs));
+    if (grid_dim > 0) {
+        kernel::count_nnz_per_row<<<grid_dim, default_block_size>>>(
+            num_rows, slice_size, as_cuda_type(source_slice_sets),
+            as_cuda_type(source_values), as_cuda_type(result_row_ptrs));
+    }
 
     grid_dim = ceildiv(num_rows + 1, default_block_size);
     auto add_values = Array<IndexType>(exec, grid_dim);
@@ -179,11 +186,13 @@ void convert_to_csr(std::shared_ptr<const CudaExecutor> exec,
 
     grid_dim = ceildiv(num_rows, default_block_size);
 
-    kernel::fill_in_csr<<<grid_dim, default_block_size>>>(
-        num_rows, slice_size, as_cuda_type(source_slice_sets),
-        as_cuda_type(source_col_idxs), as_cuda_type(source_values),
-        as_cuda_type(result_row_ptrs), as_cuda_type(result_col_idxs),
-        as_cuda_type(result_values));
+    if (grid_dim > 0) {
+        kernel::fill_in_csr<<<grid_dim, default_block_size>>>(
+            num_rows, slice_size, as_cuda_type(source_slice_sets),
+            as_cuda_type(source_col_idxs), as_cuda_type(source_values),
+            as_cuda_type(result_row_ptrs), as_cuda_type(result_col_idxs),
+            as_cuda_type(result_values));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

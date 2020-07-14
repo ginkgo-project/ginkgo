@@ -279,10 +279,9 @@ void convert_to_coo(std::shared_ptr<const HipExecutor> exec,
     auto nnz_prefix_sum = Array<size_type>(exec, num_rows);
     calculate_nonzeros_per_row(exec, source, &nnz_prefix_sum);
 
-    const size_type grid_dim = ceildiv(num_rows, default_block_size);
-    auto add_values = Array<size_type>(exec, grid_dim);
-
     components::prefix_sum(exec, nnz_prefix_sum.get_data(), num_rows);
+
+    const size_type grid_dim = ceildiv(num_rows, default_block_size);
 
     hipLaunchKernelGGL(kernel::fill_in_coo, dim3(grid_dim),
                        dim3(default_block_size), 0, 0, num_rows, num_cols,
@@ -396,20 +395,24 @@ void convert_to_sellp(std::shared_ptr<const HipExecutor> exec,
 
     auto grid_dim = slice_num;
 
-    hipLaunchKernelGGL(kernel::calculate_slice_lengths, dim3(grid_dim),
-                       dim3(config::warp_size), 0, 0, num_rows, slice_size,
-                       slice_num, stride_factor,
-                       as_hip_type(nnz_per_row.get_const_data()),
-                       as_hip_type(slice_lengths), as_hip_type(slice_sets));
+    if (grid_dim > 0) {
+        hipLaunchKernelGGL(kernel::calculate_slice_lengths, dim3(grid_dim),
+                           dim3(config::warp_size), 0, 0, num_rows, slice_size,
+                           slice_num, stride_factor,
+                           as_hip_type(nnz_per_row.get_const_data()),
+                           as_hip_type(slice_lengths), as_hip_type(slice_sets));
+    }
 
     components::prefix_sum(exec, slice_sets, slice_num + 1);
 
     grid_dim = ceildiv(num_rows, default_block_size);
-    hipLaunchKernelGGL(
-        kernel::fill_in_sellp, dim3(grid_dim), dim3(default_block_size), 0, 0,
-        num_rows, num_cols, slice_size, stride,
-        as_hip_type(source->get_const_values()), as_hip_type(slice_lengths),
-        as_hip_type(slice_sets), as_hip_type(col_idxs), as_hip_type(vals));
+    if (grid_dim > 0) {
+        hipLaunchKernelGGL(
+            kernel::fill_in_sellp, dim3(grid_dim), dim3(default_block_size), 0,
+            0, num_rows, num_cols, slice_size, stride,
+            as_hip_type(source->get_const_values()), as_hip_type(slice_lengths),
+            as_hip_type(slice_sets), as_hip_type(col_idxs), as_hip_type(vals));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -487,11 +490,13 @@ void calculate_nonzeros_per_row(std::shared_ptr<const HipExecutor> exec,
     auto rows_per_block = ceildiv(default_block_size, config::warp_size);
     const size_t grid_x = ceildiv(source->get_size()[0], rows_per_block);
     const dim3 grid_size(grid_x, 1, 1);
-    hipLaunchKernelGGL(kernel::count_nnz_per_row, dim3(grid_size),
-                       dim3(block_size), 0, 0, source->get_size()[0],
-                       source->get_size()[1], source->get_stride(),
-                       as_hip_type(source->get_const_values()),
-                       as_hip_type(result->get_data()));
+    if (grid_x > 0) {
+        hipLaunchKernelGGL(kernel::count_nnz_per_row, dim3(grid_size),
+                           dim3(block_size), 0, 0, source->get_size()[0],
+                           source->get_size()[1], source->get_stride(),
+                           as_hip_type(source->get_const_values()),
+                           as_hip_type(result->get_data()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -505,6 +510,12 @@ void calculate_total_cols(std::shared_ptr<const HipExecutor> exec,
                           size_type slice_size)
 {
     const auto num_rows = source->get_size()[0];
+
+    if (num_rows == 0) {
+        *result = 0;
+        return;
+    }
+
     const auto num_cols = source->get_size()[1];
     const auto slice_num = ceildiv(num_rows, slice_size);
 

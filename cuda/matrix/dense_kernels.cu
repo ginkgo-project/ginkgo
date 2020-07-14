@@ -378,18 +378,23 @@ void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
 
     auto grid_dim = slice_num;
 
-    kernel::calculate_slice_lengths<<<grid_dim, config::warp_size>>>(
-        num_rows, slice_size, slice_num, stride_factor,
-        as_cuda_type(nnz_per_row.get_const_data()), as_cuda_type(slice_lengths),
-        as_cuda_type(slice_sets));
+    if (grid_dim > 0) {
+        kernel::calculate_slice_lengths<<<grid_dim, config::warp_size>>>(
+            num_rows, slice_size, slice_num, stride_factor,
+            as_cuda_type(nnz_per_row.get_const_data()),
+            as_cuda_type(slice_lengths), as_cuda_type(slice_sets));
+    }
 
     components::prefix_sum(exec, slice_sets, slice_num + 1);
 
     grid_dim = ceildiv(num_rows, default_block_size);
-    kernel::fill_in_sellp<<<grid_dim, default_block_size>>>(
-        num_rows, num_cols, slice_size, stride,
-        as_cuda_type(source->get_const_values()), as_cuda_type(slice_lengths),
-        as_cuda_type(slice_sets), as_cuda_type(col_idxs), as_cuda_type(vals));
+    if (grid_dim > 0) {
+        kernel::fill_in_sellp<<<grid_dim, default_block_size>>>(
+            num_rows, num_cols, slice_size, stride,
+            as_cuda_type(source->get_const_values()),
+            as_cuda_type(slice_lengths), as_cuda_type(slice_sets),
+            as_cuda_type(col_idxs), as_cuda_type(vals));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -465,10 +470,12 @@ void calculate_nonzeros_per_row(std::shared_ptr<const CudaExecutor> exec,
     auto rows_per_block = ceildiv(default_block_size, config::warp_size);
     const size_t grid_x = ceildiv(source->get_size()[0], rows_per_block);
     const dim3 grid_size(grid_x, 1, 1);
-    kernel::count_nnz_per_row<<<grid_size, block_size>>>(
-        source->get_size()[0], source->get_size()[1], source->get_stride(),
-        as_cuda_type(source->get_const_values()),
-        as_cuda_type(result->get_data()));
+    if (grid_x > 0) {
+        kernel::count_nnz_per_row<<<grid_size, block_size>>>(
+            source->get_size()[0], source->get_size()[1], source->get_stride(),
+            as_cuda_type(source->get_const_values()),
+            as_cuda_type(result->get_data()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -482,6 +489,12 @@ void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
                           size_type slice_size)
 {
     const auto num_rows = source->get_size()[0];
+
+    if (num_rows == 0) {
+        *result = 0;
+        return;
+    }
+
     const auto num_cols = source->get_size()[1];
     const auto slice_num = ceildiv(num_rows, slice_size);
 
