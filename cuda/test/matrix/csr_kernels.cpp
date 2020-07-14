@@ -92,12 +92,19 @@ protected:
 
     template <typename MtxType>
     std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
-                                     int min_nnz_row)
+                                     int min_nnz_row, int max_nnz_row)
     {
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
-            std::uniform_int_distribution<>(min_nnz_row, num_cols),
+            std::uniform_int_distribution<>(min_nnz_row, max_nnz_row),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
+    }
+
+    template <typename MtxType>
+    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
+                                     int min_nnz_row)
+    {
+        return gen_mtx<MtxType>(num_rows, num_cols, min_nnz_row, num_cols);
     }
 
     void set_up_apply_data(std::shared_ptr<Mtx::strategy_type> strategy,
@@ -442,6 +449,23 @@ TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRefUnsorted)
 
     GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
     GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
+    ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
+}
+
+
+TEST_F(Csr, SimpleApplyToSparseCsrMatrixIsEquivalentToRef)
+{
+    set_up_apply_data(std::make_shared<Mtx::automatical>());
+    auto mtx2 =
+        gen_mtx<Mtx>(mtx->get_size()[1], square_mtx->get_size()[1], 0, 10);
+    auto dmtx2 = Mtx::create(cuda, mtx2->get_size());
+    dmtx2->copy_from(mtx2.get());
+
+    mtx->apply(mtx2.get(), square_mtx.get());
+    dmtx->apply(dmtx2.get(), square_dmtx.get());
+
+    GKO_ASSERT_MTX_EQ_SPARSITY(square_dmtx, square_mtx);
+    GKO_ASSERT_MTX_NEAR(square_dmtx, square_mtx, 1e-14);
     ASSERT_TRUE(square_dmtx->is_sorted_by_column_index());
 }
 
