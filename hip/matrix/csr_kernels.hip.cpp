@@ -786,27 +786,34 @@ void convert_to_sellp(std::shared_ptr<const HipExecutor> exec,
     auto nnz_per_row = Array<size_type>(exec, num_rows);
     auto grid_dim = ceildiv(num_rows, default_block_size);
 
-    hipLaunchKernelGGL(kernel::calculate_nnz_per_row, dim3(grid_dim),
-                       dim3(default_block_size), 0, 0, num_rows,
-                       as_hip_type(source_row_ptrs),
-                       as_hip_type(nnz_per_row.get_data()));
+    if (grid_dim > 0) {
+        hipLaunchKernelGGL(kernel::calculate_nnz_per_row, dim3(grid_dim),
+                           dim3(default_block_size), 0, 0, num_rows,
+                           as_hip_type(source_row_ptrs),
+                           as_hip_type(nnz_per_row.get_data()));
+    }
 
     grid_dim = slice_num;
 
-    hipLaunchKernelGGL(kernel::calculate_slice_lengths, dim3(grid_dim),
-                       dim3(config::warp_size), 0, 0, num_rows, slice_size,
-                       stride_factor, as_hip_type(nnz_per_row.get_const_data()),
-                       as_hip_type(slice_lengths), as_hip_type(slice_sets));
+    if (grid_dim > 0) {
+        hipLaunchKernelGGL(kernel::calculate_slice_lengths, dim3(grid_dim),
+                           dim3(config::warp_size), 0, 0, num_rows, slice_size,
+                           stride_factor,
+                           as_hip_type(nnz_per_row.get_const_data()),
+                           as_hip_type(slice_lengths), as_hip_type(slice_sets));
+    }
 
     components::prefix_sum(exec, slice_sets, slice_num + 1);
 
     grid_dim = ceildiv(num_rows, default_block_size);
-    hipLaunchKernelGGL(kernel::fill_in_sellp, dim3(grid_dim),
-                       dim3(default_block_size), 0, 0, num_rows, slice_size,
-                       as_hip_type(source_values), as_hip_type(source_row_ptrs),
-                       as_hip_type(source_col_idxs), as_hip_type(slice_lengths),
-                       as_hip_type(slice_sets), as_hip_type(result_col_idxs),
-                       as_hip_type(result_values));
+    if (grid_dim > 0) {
+        hipLaunchKernelGGL(
+            kernel::fill_in_sellp, dim3(grid_dim), dim3(default_block_size), 0,
+            0, num_rows, slice_size, as_hip_type(source_values),
+            as_hip_type(source_row_ptrs), as_hip_type(source_col_idxs),
+            as_hip_type(slice_lengths), as_hip_type(slice_sets),
+            as_hip_type(result_col_idxs), as_hip_type(result_values));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -858,6 +865,12 @@ void calculate_total_cols(std::shared_ptr<const HipExecutor> exec,
                           size_type slice_size)
 {
     const auto num_rows = source->get_size()[0];
+
+    if (num_rows == 0) {
+        *result = 0;
+        return;
+    }
+
     const auto slice_num = ceildiv(num_rows, slice_size);
     const auto row_ptrs = source->get_const_row_ptrs();
 
