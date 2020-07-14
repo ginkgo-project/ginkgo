@@ -694,7 +694,7 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
 
     const dim3 block_size(config::warp_size,
                           config::max_block_size / config::warp_size, 1);
-    const dim3 init_grid_dim(ceildiv(stride, block_size.x),
+    const dim3 init_grid_dim(ceildiv(num_cols, block_size.x),
                              ceildiv(num_rows, block_size.y), 1);
     kernel::initialize_zero_dense<<<init_grid_dim, block_size>>>(
         num_rows, num_cols, stride, as_cuda_type(result->get_values()));
