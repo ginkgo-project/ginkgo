@@ -741,7 +741,7 @@ void convert_to_dense(std::shared_ptr<const HipExecutor> exec,
 
     const dim3 block_size(config::warp_size,
                           config::max_block_size / config::warp_size, 1);
-    const dim3 init_grid_dim(ceildiv(stride, block_size.x),
+    const dim3 init_grid_dim(ceildiv(num_cols, block_size.x),
                              ceildiv(num_rows, block_size.y), 1);
     hipLaunchKernelGGL(kernel::initialize_zero_dense, dim3(init_grid_dim),
                        dim3(block_size), 0, 0, num_rows, num_cols, stride,

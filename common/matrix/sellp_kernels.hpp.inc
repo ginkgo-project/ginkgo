@@ -95,7 +95,7 @@ namespace kernel {
 
 
 template <typename ValueType>
-__global__ __launch_bounds__(default_block_size) void initialize_zero_dense(
+__global__ __launch_bounds__(config::max_block_size) void initialize_zero_dense(
     size_type num_rows, size_type num_cols, size_type stride,
     ValueType *__restrict__ result)
 {
