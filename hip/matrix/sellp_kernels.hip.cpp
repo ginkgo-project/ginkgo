@@ -210,6 +210,12 @@ void count_nonzeros(std::shared_ptr<const HipExecutor> exec,
                     size_type *result)
 {
     const auto num_rows = source->get_size()[0];
+
+    if (num_rows <= 0) {
+        *result = 0;
+        return;
+    }
+
     const auto slice_size = source->get_slice_size();
     const auto slice_sets = source->get_const_slice_sets();
     const auto values = source->get_const_values();
