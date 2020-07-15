@@ -111,12 +111,14 @@ protected:
     {
         mtx = Mtx::create(ref);
         mtx->copy_from(gen_mtx(532, 231));
+        empty = Mtx::create(ref);
         expected = gen_mtx(532, 64);
         y = gen_mtx(231, 64);
         alpha = gko::initialize<Vec>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
         dmtx = Mtx::create(hip);
         dmtx->copy_from(mtx.get());
+        dempty = Mtx::create(hip);
         dresult = Vec::create(hip);
         dresult->copy_from(expected.get());
         dy = Vec::create(hip);
@@ -133,12 +135,14 @@ protected:
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Mtx> mtx;
+    std::unique_ptr<Mtx> empty;
     std::unique_ptr<Vec> expected;
     std::unique_ptr<Vec> y;
     std::unique_ptr<Vec> alpha;
     std::unique_ptr<Vec> beta;
 
     std::unique_ptr<Mtx> dmtx;
+    std::unique_ptr<Mtx> dempty;
     std::unique_ptr<Vec> dresult;
     std::unique_ptr<Vec> dy;
     std::unique_ptr<Vec> dalpha;
@@ -277,6 +281,34 @@ TEST_F(Sellp, ConvertToCsrIsEquivalentToRef)
     dmtx->convert_to(dcsr_mtx.get());
 
     GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 1e-14);
+}
+
+
+TEST_F(Sellp, ConvertEmptyToDenseIsEquivalentToRef)
+{
+    set_up_apply_matrix();
+
+    auto dense_mtx = gko::matrix::Dense<>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<>::create(hip);
+
+    empty->convert_to(dense_mtx.get());
+    dempty->convert_to(ddense_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(dense_mtx.get(), ddense_mtx.get(), 0);
+}
+
+
+TEST_F(Sellp, ConvertEmptyToCsrIsEquivalentToRef)
+{
+    set_up_apply_matrix();
+
+    auto csr_mtx = gko::matrix::Csr<>::create(ref);
+    auto dcsr_mtx = gko::matrix::Csr<>::create(hip);
+
+    empty->convert_to(csr_mtx.get());
+    dempty->convert_to(dcsr_mtx.get());
+
+    GKO_ASSERT_MTX_NEAR(csr_mtx.get(), dcsr_mtx.get(), 0);
 }
 
 
