@@ -233,7 +233,8 @@ template <typename ValueType, typename IndexType>
 void amgx_pgm_generate(std::shared_ptr<const ReferenceExecutor> exec,
                        const matrix::Csr<ValueType, IndexType> *source,
                        const Array<IndexType> &agg,
-                       matrix::Csr<ValueType, IndexType> *coarse)
+                       matrix::Csr<ValueType, IndexType> *coarse,
+                       matrix::Csr<ValueType, IndexType> *temp)
 {
     // agg[i] -> I, agg[j] -> J
     const auto coarse_nrows = coarse->get_size()[0];

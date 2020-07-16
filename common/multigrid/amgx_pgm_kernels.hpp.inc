@@ -241,37 +241,103 @@ __global__
 }
 
 
-template <typename ValueType, typename IndexType>
-__global__ __launch_bounds__(default_block_size) void merge_col_kernel(
-    const size_type num, const IndexType *__restrict__ row_ptrs,
-    const IndexType *__restrict__ source_col,
-    const ValueType *__restrict__ source_val,
-    IndexType *__restrict__ result_col, ValueType *__restrict__ result_val)
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void get_source_row_map_kernel(
+    const size_type source_nrows, const IndexType *__restrict__ agg_val,
+    const IndexType *__restrict__ source_row_ptrs,
+    IndexType *__restrict__ result_row_ptrs, IndexType *__restrict__ row_map)
 {
     auto row = thread::get_thread_id_flat();
-    if (row >= num) {
+    if (row >= source_nrows) {
         return;
     }
-    const auto start = row_ptrs[row];
-    const auto end = row_ptrs[row + 1];
-    auto result_ind = start;
-    auto col = source_col[result_ind];
-    auto temp = source_val[result_ind];
-    for (size_type idx = start + 1; idx < end; idx++) {
-        auto temp_col = source_col[idx];
-        if (temp_col != col) {
-            result_col[result_ind] = col;
-            result_val[result_ind] = temp;
-            result_ind++;
-            col = temp_col;
-            temp = zero<ValueType>();
+    const auto num_elems = source_row_ptrs[row + 1] - source_row_ptrs[row];
+    const auto result_idx = agg_val[row];
+    // atomic_add returns the old value, so it can be the starting point.
+    row_map[row] = atomic_add(result_row_ptrs + result_idx, num_elems);
+}
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void move_row_kernel(
+    const size_type source_nrows, const IndexType *__restrict__ agg_val,
+    const IndexType *__restrict__ row_map,
+    const IndexType *__restrict__ source_row_ptrs,
+    const IndexType *__restrict__ source_col_idxs,
+    const ValueType *__restrict__ source_values,
+    const IndexType *__restrict__ result_row_ptrs,
+    IndexType *__restrict__ result_col_idxs,
+    ValueType *__restrict__ result_values)
+{
+    auto row = thread::get_thread_id_flat();
+    if (row >= source_nrows) {
+        return;
+    }
+    auto result_i = result_row_ptrs[agg_val[row]] + row_map[row];
+    for (auto i = source_row_ptrs[row]; i < source_row_ptrs[row + 1];
+         i++, result_i++) {
+        result_col_idxs[result_i] = agg_val[source_col_idxs[i]];
+        result_values[result_i] = source_values[i];
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void merge_col_kernel(
+    const size_type nrows, const IndexType *__restrict__ temp_row_ptrs,
+    IndexType *__restrict__ temp_col_idxs, ValueType *__restrict__ temp_values,
+    IndexType *__restrict__ coarse_row_ptrs)
+{
+    auto row = thread::get_thread_id_flat();
+    if (row >= nrows) {
+        return;
+    }
+
+    IndexType num_elems = zero<IndexType>();
+    const auto start = temp_row_ptrs[row];
+    const auto end = temp_row_ptrs[row + 1];
+    IndexType col = temp_col_idxs[start];
+    ValueType value = temp_values[start];
+    for (auto i = start + 1; i < end; i++) {
+        const auto current_col = temp_col_idxs[i];
+        if (current_col != col) {
+            // apply to the original data. It is sorted, so the writing position
+            // is before read position
+            temp_col_idxs[start + num_elems] = col;
+            temp_values[start + num_elems] = value;
+            value = zero<ValueType>();
+            col = current_col;
+            num_elems++;
         }
-        temp += source_val[idx];
+        value += temp_values[i];
     }
     // If start != end, need to process the final column
     if (start != end) {
-        result_col[result_ind] = col;
-        result_val[result_ind] = temp;
+        temp_col_idxs[start + num_elems] = col;
+        temp_values[start + num_elems] = value;
+        num_elems++;
+    }
+    coarse_row_ptrs[row] = num_elems;
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void copy_to_coarse_kernel(
+    const size_type nrows, const IndexType *__restrict__ temp_row_ptrs,
+    const IndexType *__restrict__ temp_col_idxs,
+    const ValueType *__restrict__ temp_values,
+    const IndexType *__restrict__ coarse_row_ptrs,
+    IndexType *__restrict__ coarse_col_idxs,
+    ValueType *__restrict__ coarse_values)
+{
+    auto row = thread::get_thread_id_flat();
+    if (row >= nrows) {
+        return;
+    }
+    auto temp_i = temp_row_ptrs[row];
+    for (auto i = coarse_row_ptrs[row]; i < coarse_row_ptrs[row + 1];
+         i++, temp_i++) {
+        coarse_col_idxs[i] = temp_col_idxs[temp_i];
+        coarse_values[i] = temp_values[temp_i];
     }
 }
 

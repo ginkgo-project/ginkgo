@@ -82,7 +82,8 @@ namespace amgx_pgm {
     void amgx_pgm_generate(std::shared_ptr<const DefaultExecutor> exec,     \
                            const matrix::Csr<ValueType, IndexType> *source, \
                            const Array<IndexType> &agg,                     \
-                           matrix::Csr<ValueType, IndexType> *coarse)
+                           matrix::Csr<ValueType, IndexType> *coarse,       \
+                           matrix::Csr<ValueType, IndexType> *temp)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
     template <typename IndexType>                                       \
