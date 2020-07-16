@@ -694,7 +694,7 @@ void convert_to_dense(std::shared_ptr<const CudaExecutor> exec,
 
     const dim3 block_size(config::warp_size,
                           config::max_block_size / config::warp_size, 1);
-    const dim3 init_grid_dim(ceildiv(stride, block_size.x),
+    const dim3 init_grid_dim(ceildiv(num_cols, block_size.x),
                              ceildiv(num_rows, block_size.y), 1);
     kernel::initialize_zero_dense<<<init_grid_dim, block_size>>>(
         num_rows, num_cols, stride, as_cuda_type(result->get_values()));
@@ -737,25 +737,31 @@ void convert_to_sellp(std::shared_ptr<const CudaExecutor> exec,
     auto nnz_per_row = Array<size_type>(exec, num_rows);
     auto grid_dim = ceildiv(num_rows, default_block_size);
 
-    kernel::calculate_nnz_per_row<<<grid_dim, default_block_size>>>(
-        num_rows, as_cuda_type(source_row_ptrs),
-        as_cuda_type(nnz_per_row.get_data()));
+    if (grid_dim > 0) {
+        kernel::calculate_nnz_per_row<<<grid_dim, default_block_size>>>(
+            num_rows, as_cuda_type(source_row_ptrs),
+            as_cuda_type(nnz_per_row.get_data()));
+    }
 
     grid_dim = slice_num;
 
-    kernel::calculate_slice_lengths<<<grid_dim, config::warp_size>>>(
-        num_rows, slice_size, stride_factor,
-        as_cuda_type(nnz_per_row.get_const_data()), as_cuda_type(slice_lengths),
-        as_cuda_type(slice_sets));
+    if (grid_dim > 0) {
+        kernel::calculate_slice_lengths<<<grid_dim, config::warp_size>>>(
+            num_rows, slice_size, stride_factor,
+            as_cuda_type(nnz_per_row.get_const_data()),
+            as_cuda_type(slice_lengths), as_cuda_type(slice_sets));
+    }
 
     components::prefix_sum(exec, slice_sets, slice_num + 1);
 
     grid_dim = ceildiv(num_rows, default_block_size);
-    kernel::fill_in_sellp<<<grid_dim, default_block_size>>>(
-        num_rows, slice_size, as_cuda_type(source_values),
-        as_cuda_type(source_row_ptrs), as_cuda_type(source_col_idxs),
-        as_cuda_type(slice_lengths), as_cuda_type(slice_sets),
-        as_cuda_type(result_col_idxs), as_cuda_type(result_values));
+    if (grid_dim > 0) {
+        kernel::fill_in_sellp<<<grid_dim, default_block_size>>>(
+            num_rows, slice_size, as_cuda_type(source_values),
+            as_cuda_type(source_row_ptrs), as_cuda_type(source_col_idxs),
+            as_cuda_type(slice_lengths), as_cuda_type(slice_sets),
+            as_cuda_type(result_col_idxs), as_cuda_type(result_values));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -805,6 +811,12 @@ void calculate_total_cols(std::shared_ptr<const CudaExecutor> exec,
                           size_type slice_size)
 {
     const auto num_rows = source->get_size()[0];
+
+    if (num_rows == 0) {
+        *result = 0;
+        return;
+    }
+
     const auto slice_num = ceildiv(num_rows, slice_size);
     const auto row_ptrs = source->get_const_row_ptrs();
 
