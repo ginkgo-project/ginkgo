@@ -47,6 +47,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "core/components/fill_array.hpp"
 #include "core/components/prefix_sum.hpp"
+#include "core/matrix/csr_builder.hpp"
+#include "core/matrix/csr_kernels.hpp"
 #include "cuda/base/cusparse_bindings.hpp"
 #include "cuda/base/math.hpp"
 #include "cuda/base/types.hpp"
@@ -170,8 +172,55 @@ template <typename ValueType, typename IndexType>
 void amgx_pgm_generate(std::shared_ptr<const CudaExecutor> exec,
                        const matrix::Csr<ValueType, IndexType> *source,
                        const Array<IndexType> &agg,
-                       matrix::Csr<ValueType, IndexType> *coarse)
-    GKO_NOT_IMPLEMENTED;
+                       matrix::Csr<ValueType, IndexType> *coarse,
+                       matrix::Csr<ValueType, IndexType> *temp)
+{
+    const auto source_nrows = source->get_size()[0];
+    const auto source_nnz = source->get_num_stored_elements();
+    const auto coarse_nrows = coarse->get_size()[0];
+    Array<IndexType> row_map(exec, source_nrows);
+    // fill coarse row pointer as zero
+    components::fill_array(exec, temp->get_row_ptrs(), coarse_nrows + 1,
+                           zero<IndexType>());
+    // compute each source row should be moved and also change column index
+    dim3 grid(ceildiv(source_nrows, default_block_size));
+    // agg source_row (for row size) coarse row source map
+    kernel::get_source_row_map_kernel<<<grid, default_block_size>>>(
+        source_nrows, agg.get_const_data(), source->get_const_row_ptrs(),
+        temp->get_row_ptrs(), row_map.get_data());
+    // prefix sum of temp_row_ptrs
+    components::prefix_sum(exec, temp->get_row_ptrs(), coarse_nrows + 1);
+    // copy source -> to coarse and change column index
+    kernel::move_row_kernel<<<grid, default_block_size>>>(
+        source_nrows, agg.get_const_data(), row_map.get_const_data(),
+        source->get_const_row_ptrs(), source->get_const_col_idxs(),
+        as_cuda_type(source->get_const_values()), temp->get_const_row_ptrs(),
+        temp->get_col_idxs(), as_cuda_type(temp->get_values()));
+    // sort csr
+    csr::sort_by_column_index(exec, temp);
+    // summation of the elements with same position
+    grid = ceildiv(coarse_nrows, default_block_size);
+    kernel::merge_col_kernel<<<grid, default_block_size>>>(
+        coarse_nrows, temp->get_const_row_ptrs(), temp->get_col_idxs(),
+        as_cuda_type(temp->get_values()), coarse->get_row_ptrs());
+    // build the coarse matrix
+    components::prefix_sum(exec, coarse->get_row_ptrs(), coarse_nrows + 1);
+    // prefix sum of coarse->get_row_ptrs
+    const auto coarse_nnz =
+        exec->copy_val_to_host(coarse->get_row_ptrs() + coarse_nrows);
+    // reallocate size of column and values
+    matrix::CsrBuilder<ValueType, IndexType> coarse_builder{coarse};
+    auto &coarse_col_idxs_array = coarse_builder.get_col_idx_array();
+    auto &coarse_vals_array = coarse_builder.get_value_array();
+    coarse_col_idxs_array.resize_and_reset(coarse_nnz);
+    coarse_vals_array.resize_and_reset(coarse_nnz);
+    // copy the result
+    kernel::copy_to_coarse_kernel<<<grid, default_block_size>>>(
+        coarse_nrows, temp->get_const_row_ptrs(), temp->get_const_col_idxs(),
+        as_cuda_type(temp->get_const_values()), coarse->get_const_row_ptrs(),
+        coarse_col_idxs_array.get_data(),
+        as_cuda_type(coarse_vals_array.get_data()));
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_AMGX_PGM_GENERATE);
 

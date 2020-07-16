@@ -34,9 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <fstream>
-#include <iostream>
 #include <random>
 #include <string>
+
 
 #include <gtest/gtest.h>
 
@@ -116,7 +116,7 @@ protected:
     void initialize_data()
     {
         int m = 597;
-        int n = 300;
+        n = 300;
         int nrhs = 3;
 
         agg = gen_array(m, 0, n - 1);
@@ -212,6 +212,8 @@ protected:
     std::unique_ptr<Mtx> d_fine_vector;
     std::unique_ptr<Mtx> d_weight_diag;
     std::unique_ptr<Csr> d_weight_csr;
+
+    int n;
 };
 
 
@@ -335,6 +337,25 @@ TEST_F(AmgxPgm, AssignToExistAggUnderteminsticIsEquivalentToRef)
 
     // only test whether all elements are aggregated.
     GKO_ASSERT_EQ(d_num_unagg, 0);
+}
+
+
+TEST_F(AmgxPgm, GenerateMtxIsEquivalentToRef)
+{
+    initialize_data();
+    auto csr_coarse = Csr::create(ref, gko::dim<2>{n, n}, 0);
+    auto d_csr_coarse = Csr::create(cuda, gko::dim<2>{n, n}, 0);
+    auto csr_temp = Csr::create(ref, gko::dim<2>{n, n},
+                                weight_csr->get_num_stored_elements());
+    auto d_csr_temp = Csr::create(cuda, gko::dim<2>{n, n},
+                                  d_weight_csr->get_num_stored_elements());
+
+    gko::kernels::cuda::amgx_pgm::amgx_pgm_generate(
+        cuda, d_weight_csr.get(), d_agg, d_csr_coarse.get(), d_csr_temp.get());
+    gko::kernels::reference::amgx_pgm::amgx_pgm_generate(
+        ref, weight_csr.get(), agg, csr_coarse.get(), csr_temp.get());
+
+    GKO_ASSERT_MTX_NEAR(d_csr_coarse, csr_coarse, 1e-14);
 }
 
 

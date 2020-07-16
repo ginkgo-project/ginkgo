@@ -79,7 +79,10 @@ std::unique_ptr<LinOp> amgx_pgm_generate(
 {
     auto coarse = matrix::Csr<ValueType, IndexType>::create(
         exec, dim<2>{num_agg, num_agg}, 0, source->get_strategy());
-    exec->run(amgx_pgm::make_amgx_pgm_generate(source, agg, coarse.get()));
+    auto temp = matrix::Csr<ValueType, IndexType>::create(
+        exec, dim<2>{num_agg, num_agg}, source->get_num_stored_elements());
+    exec->run(amgx_pgm::make_amgx_pgm_generate(source, agg, coarse.get(),
+                                               temp.get()));
     return std::move(coarse);
 }
 
