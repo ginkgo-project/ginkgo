@@ -96,7 +96,7 @@ __forceinline__ __device__ void subwarp_prefix_sum(ValueType element,
  *
  * @param elements  array on which the prefix sum is to be calculated
  * @param block_sum  array which stores the total sum of each block, requires at
- *                   least `ceildiv(num_elements, block_size)` elements
+ *                   least `ceildiv(num_elements, block_size) - 1` elements
  * @param num_elements  total number of entries in `elements`
  *
  * @tparam block_size  thread block size for this kernel, also size of blocks on
