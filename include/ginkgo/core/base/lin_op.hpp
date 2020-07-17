@@ -518,6 +518,9 @@ public:
 template <typename ValueType, typename IndexType>
 class ReadableFromMatrixData {
 public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+
     virtual ~ReadableFromMatrixData() = default;
 
     /**
@@ -538,6 +541,9 @@ public:
 template <typename ValueType, typename IndexType>
 class WritableToMatrixData {
 public:
+    using value_type = ValueType;
+    using index_type = IndexType;
+
     virtual ~WritableToMatrixData() = default;
 
     /**
