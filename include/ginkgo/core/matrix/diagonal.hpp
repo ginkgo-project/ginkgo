@@ -102,9 +102,9 @@ public:
 
     void rapply(const LinOp *b, LinOp *x) const
     {
-        GKO_ASSERT_EQ(this->get_size()[0], b->get_size()[1]);
-        GKO_ASSERT_EQ(this->get_size()[1], x->get_size()[1]);
-        GKO_ASSERT_EQ(b->get_size()[0], x->get_size()[0]);
+        GKO_ASSERT_REVERSE_CONFORMANT(this, b);
+        GKO_ASSERT_EQUAL_ROWS(b, x);
+        GKO_ASSERT_EQUAL_COLS(this, x);
 
         this->rapply_impl(b, x);
     }
