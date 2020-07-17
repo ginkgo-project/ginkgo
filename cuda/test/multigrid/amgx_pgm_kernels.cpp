@@ -213,7 +213,7 @@ protected:
     std::unique_ptr<Mtx> d_weight_diag;
     std::unique_ptr<Csr> d_weight_csr;
 
-    int n;
+    gko::size_type n;
 };
 
 
