@@ -74,11 +74,12 @@ __host__ ValueType reduce_add_array(std::shared_ptr<const HipExecutor> exec,
 {
     auto block_results_val = source;
     size_type grid_dim = size;
+    auto block_results = Array<ValueType>(exec);
     if (size > default_block_size) {
         const auto n = ceildiv(size, default_block_size);
         grid_dim = (n <= default_block_size) ? n : default_block_size;
 
-        auto block_results = Array<ValueType>(exec, grid_dim);
+        block_results.resize_and_reset(grid_dim);
 
         hipLaunchKernelGGL(
             reduce_add_array, dim3(grid_dim), dim3(default_block_size), 0, 0,

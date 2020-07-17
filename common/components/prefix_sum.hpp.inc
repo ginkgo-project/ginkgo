@@ -113,8 +113,9 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
     const auto tidx = thread::get_thread_id_flat();
     const auto element_id = threadIdx.x;
     __shared__ size_type prefix_helper[block_size];
+    // do not need to access the last element when exclusive prefix sum
     prefix_helper[element_id] =
-        (tidx < num_elements) ? elements[tidx] : zero<ValueType>();
+        (tidx < num_elements - 1) ? elements[tidx] : zero<ValueType>();
     auto this_block = group::this_thread_block();
     this_block.sync();
 
