@@ -33,9 +33,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "core/matrix/diagonal_kernels.hpp"
 
 
-#include <algorithm>
-
-
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
