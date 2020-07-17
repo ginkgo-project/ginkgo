@@ -71,13 +71,13 @@ protected:
           diag2(Diag::create(exec, 3)),
           dense1(gko::initialize<Dense>(4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}},
                                         exec)),
-          dense3(gko::initialize<Dense>(4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}},
+          dense2(gko::initialize<Dense>(4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}},
                                         exec))
     {
         csr1 = Csr::create(exec);
         csr1->copy_from(dense1.get());
-        csr3 = Csr::create(exec);
-        csr3->copy_from(dense3.get());
+        csr2 = Csr::create(exec);
+        csr2->copy_from(dense2.get());
         this->create_diag1(diag1.get());
         this->create_diag2(diag2.get());
     }
@@ -100,12 +100,10 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Csr> csr1;
     std::unique_ptr<Csr> csr2;
-    std::unique_ptr<Csr> csr3;
-    std::unique_ptr<Csr> csr4;
     std::unique_ptr<Diag> diag1;
     std::unique_ptr<Diag> diag2;
     std::unique_ptr<Dense> dense1;
-    std::unique_ptr<Dense> dense3;
+    std::unique_ptr<Dense> dense2;
 };
 
 TYPED_TEST_CASE(Diagonal, gko::test::ValueIndexTypes);
@@ -114,28 +112,100 @@ TYPED_TEST_CASE(Diagonal, gko::test::ValueIndexTypes);
 TYPED_TEST(Diagonal, AppliesToDense)
 {
     using value_type = typename TestFixture::value_type;
-    this->diag1->apply(this->dense1.get(), this->dense3.get());
+    this->diag1->apply(this->dense1.get(), this->dense2.get());
 
-    EXPECT_EQ(this->dense3->at(0, 0), value_type{2.0});
-    EXPECT_EQ(this->dense3->at(0, 1), value_type{4.0});
-    EXPECT_EQ(this->dense3->at(0, 2), value_type{6.0});
-    EXPECT_EQ(this->dense3->at(1, 0), value_type{4.5});
-    EXPECT_EQ(this->dense3->at(1, 1), value_type{7.5});
-    EXPECT_EQ(this->dense3->at(1, 2), value_type{10.5});
+    EXPECT_EQ(this->dense2->at(0, 0), value_type{2.0});
+    EXPECT_EQ(this->dense2->at(0, 1), value_type{4.0});
+    EXPECT_EQ(this->dense2->at(0, 2), value_type{6.0});
+    EXPECT_EQ(this->dense2->at(1, 0), value_type{4.5});
+    EXPECT_EQ(this->dense2->at(1, 1), value_type{7.5});
+    EXPECT_EQ(this->dense2->at(1, 2), value_type{10.5});
 }
 
 
 TYPED_TEST(Diagonal, RightAppliesToDense)
 {
     using value_type = typename TestFixture::value_type;
-    this->diag2->rapply(this->dense1.get(), this->dense3.get());
+    this->diag2->rapply(this->dense1.get(), this->dense2.get());
 
-    EXPECT_EQ(this->dense3->at(0, 0), value_type{2.0});
-    EXPECT_EQ(this->dense3->at(0, 1), value_type{6.0});
-    EXPECT_EQ(this->dense3->at(0, 2), value_type{12.0});
-    EXPECT_EQ(this->dense3->at(1, 0), value_type{3.0});
-    EXPECT_EQ(this->dense3->at(1, 1), value_type{7.5});
-    EXPECT_EQ(this->dense3->at(1, 2), value_type{14.0});
+    EXPECT_EQ(this->dense2->at(0, 0), value_type{2.0});
+    EXPECT_EQ(this->dense2->at(0, 1), value_type{6.0});
+    EXPECT_EQ(this->dense2->at(0, 2), value_type{12.0});
+    EXPECT_EQ(this->dense2->at(1, 0), value_type{3.0});
+    EXPECT_EQ(this->dense2->at(1, 1), value_type{7.5});
+    EXPECT_EQ(this->dense2->at(1, 2), value_type{14.0});
+}
+
+
+TYPED_TEST(Diagonal, ApplyToDenseFailsForWrongInnerDimensions)
+{
+    using value_type = typename TestFixture::value_type;
+    auto result =
+        gko::matrix::Dense<value_type>::create(this->exec, gko::dim<2>{3});
+
+    // 3x3 times 2x3 = 3x3 --> mismatch for inner dimensions
+    ASSERT_THROW(this->diag2->apply(this->dense1.get(), result.get()),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Diagonal, ApplyToDenseFailsForWrongNumberOfRows)
+{
+    using value_type = typename TestFixture::value_type;
+    auto result =
+        gko::matrix::Dense<value_type>::create(this->exec, gko::dim<2>{3});
+
+    // 2x2 times 2x3 = 3x3 --> mismatch for rows of diagonal and result
+    ASSERT_THROW(this->diag1->apply(this->dense1.get(), result.get()),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Diagonal, ApplyToDenseFailsForWrongNumberOfCols)
+{
+    using value_type = typename TestFixture::value_type;
+    auto result =
+        gko::matrix::Dense<value_type>::create(this->exec, gko::dim<2>{2});
+
+    // 2x2 times 2x3 = 2x2 --> mismatch for cols of dense1 and result
+    ASSERT_THROW(this->diag1->apply(this->dense1.get(), result.get()),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Diagonal, RightApplyToDenseFailsForWrongInnerDimensions)
+{
+    using value_type = typename TestFixture::value_type;
+    auto result =
+        gko::matrix::Dense<value_type>::create(this->exec, gko::dim<2>{2});
+
+    // 2x3 times 2x2 = 2x2 --> mismatch for inner DimensionMismatch
+    ASSERT_THROW(this->diag1->rapply(this->dense1.get(), result.get()),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Diagonal, RightApplyToDenseFailsForWrongNumberOfRows)
+{
+    using value_type = typename TestFixture::value_type;
+    auto result =
+        gko::matrix::Dense<value_type>::create(this->exec, gko::dim<2>{3});
+
+    // 2x3 times 3x3 = 3x3 --> mismatch for rows of dense1 and result
+    ASSERT_THROW(this->diag2->rapply(this->dense1.get(), result.get()),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Diagonal, RightApplyToDenseFailsForWrongNumberOfCols)
+{
+    using value_type = typename TestFixture::value_type;
+    auto result =
+        gko::matrix::Dense<value_type>::create(this->exec, gko::dim<2>{2});
+
+    // 2x3 times 3x3 = 2x2 --> mismatch for cols of diagonal and result
+    ASSERT_THROW(this->diag2->rapply(this->dense1.get(), result.get()),
+                 gko::DimensionMismatch);
 }
 
 
@@ -143,13 +213,13 @@ TYPED_TEST(Diagonal, AppliesToCsr)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    this->diag1->apply(this->csr1.get(), this->csr3.get());
+    this->diag1->apply(this->csr1.get(), this->csr2.get());
 
-    const auto values = this->csr3->get_const_values();
-    const auto row_ptrs = this->csr3->get_const_row_ptrs();
-    const auto col_idxs = this->csr3->get_const_col_idxs();
+    const auto values = this->csr2->get_const_values();
+    const auto row_ptrs = this->csr2->get_const_row_ptrs();
+    const auto col_idxs = this->csr2->get_const_col_idxs();
 
-    EXPECT_EQ(this->csr3->get_num_stored_elements(), 6);
+    EXPECT_EQ(this->csr2->get_num_stored_elements(), 6);
     EXPECT_EQ(values[0], value_type{2.0});
     EXPECT_EQ(values[1], value_type{4.0});
     EXPECT_EQ(values[2], value_type{6.0});
@@ -172,13 +242,13 @@ TYPED_TEST(Diagonal, RightAppliesToCsr)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    this->diag2->rapply(this->csr1.get(), this->csr3.get());
+    this->diag2->rapply(this->csr1.get(), this->csr2.get());
 
-    const auto values = this->csr3->get_const_values();
-    const auto row_ptrs = this->csr3->get_const_row_ptrs();
-    const auto col_idxs = this->csr3->get_const_col_idxs();
+    const auto values = this->csr2->get_const_values();
+    const auto row_ptrs = this->csr2->get_const_row_ptrs();
+    const auto col_idxs = this->csr2->get_const_col_idxs();
 
-    EXPECT_EQ(this->csr3->get_num_stored_elements(), 6);
+    EXPECT_EQ(this->csr2->get_num_stored_elements(), 6);
     EXPECT_EQ(values[0], value_type{2.0});
     EXPECT_EQ(values[1], value_type{6.0});
     EXPECT_EQ(values[2], value_type{12.0});
@@ -194,6 +264,84 @@ TYPED_TEST(Diagonal, RightAppliesToCsr)
     EXPECT_EQ(col_idxs[3], index_type{0});
     EXPECT_EQ(col_idxs[4], index_type{1});
     EXPECT_EQ(col_idxs[5], index_type{2});
+}
+
+
+TYPED_TEST(Diagonal, ApplyToCsrFailsForWrongInnerDimensions)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto result = gko::matrix::Csr<value_type, index_type>::create(
+        this->exec, gko::dim<2>{3});
+
+    // 3x3 times 2x3 = 3x3 --> mismatch for inner dimensions
+    ASSERT_THROW(this->diag2->apply(this->csr1.get(), result.get()),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Diagonal, ApplyToCsrFailsForWrongNumberOfRows)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto result = gko::matrix::Csr<value_type, index_type>::create(
+        this->exec, gko::dim<2>{3});
+
+    // 2x2 times 2x3 = 3x3 --> mismatch for rows of diagonal and result
+    ASSERT_THROW(this->diag1->apply(this->csr1.get(), result.get()),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Diagonal, ApplyToCsrFailsForWrongNumberOfCols)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto result = gko::matrix::Csr<value_type, index_type>::create(
+        this->exec, gko::dim<2>{2});
+
+    // 2x2 times 2x3 = 2x2 --> mismatch for cols of csr1 and result
+    ASSERT_THROW(this->diag1->apply(this->csr1.get(), result.get()),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Diagonal, RightApplyToCsrFailsForWrongInnerDimensions)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto result = gko::matrix::Csr<value_type, index_type>::create(
+        this->exec, gko::dim<2>{2});
+
+    // 2x3 times 2x2 = 2x2 --> mismatch for inner DimensionMismatch
+    ASSERT_THROW(this->diag1->rapply(this->csr1.get(), result.get()),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Diagonal, RightApplyToCsrFailsForWrongNumberOfRows)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto result = gko::matrix::Csr<value_type, index_type>::create(
+        this->exec, gko::dim<2>{3});
+
+    // 2x3 times 3x3 = 3x3 --> mismatch for rows of csr1 and result
+    ASSERT_THROW(this->diag2->rapply(this->csr1.get(), result.get()),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Diagonal, RightApplyToCsrFailsForWrongNumberOfCols)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto result = gko::matrix::Csr<value_type, index_type>::create(
+        this->exec, gko::dim<2>{2});
+
+    // 2x3 times 3x3 = 2x2 --> mismatch for cols of diagonal and result
+    ASSERT_THROW(this->diag2->rapply(this->csr1.get(), result.get()),
+                 gko::DimensionMismatch);
 }
 
 
@@ -218,5 +366,6 @@ TYPED_TEST(Diagonal, ConverstToCsr)
     EXPECT_EQ(values[0], value_type(2.0));
     EXPECT_EQ(values[1], value_type(3.0));
 }
+
 
 }  // namespace
