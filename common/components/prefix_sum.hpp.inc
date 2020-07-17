@@ -112,10 +112,10 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
 {
     const auto tidx = thread::get_thread_id_flat();
     const auto element_id = threadIdx.x;
-    __shared__ size_type prefix_helper[block_size];
+    __shared__ UninitializedArray<ValueType, block_size> prefix_helper;
     // do not need to access the last element when exclusive prefix sum
     prefix_helper[element_id] =
-        (tidx < num_elements - 1) ? elements[tidx] : zero<ValueType>();
+        (tidx + 1 < num_elements) ? elements[tidx] : zero<ValueType>();
     auto this_block = group::this_thread_block();
     this_block.sync();
 
@@ -131,8 +131,10 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
     }
 
     if (element_id == 0) {
-        // Store the total sum
-        block_sum[blockIdx.x] = prefix_helper[block_size - 1];
+        // Store the total sum except the last block
+        if (blockIdx.x + 1 < gridDim.x) {
+            block_sum[blockIdx.x] = prefix_helper[block_size - 1];
+        }
         prefix_helper[block_size - 1] = zero<ValueType>();
     }
 

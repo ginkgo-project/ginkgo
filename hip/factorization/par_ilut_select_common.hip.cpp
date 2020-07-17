@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hip/factorization/par_ilut_select_common.hip.hpp"
 
 
+#include "core/components/prefix_sum.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
 #include "hip/base/math.hip.hpp"
 #include "hip/components/atomic.hip.hpp"
@@ -64,7 +65,8 @@ namespace par_ilut_factorization {
 
 
 template <typename ValueType, typename IndexType>
-void sampleselect_count(const ValueType *values, IndexType size,
+void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,
+                        const ValueType *values, IndexType size,
                         remove_complex<ValueType> *tree, unsigned char *oracles,
                         IndexType *partial_counts, IndexType *total_counts)
 {
@@ -85,14 +87,13 @@ void sampleselect_count(const ValueType *values, IndexType size,
                        dim3(bucket_count), dim3(default_block_size), 0, 0,
                        partial_counts, total_counts, num_blocks);
     // compute prefix sum over bucket counts
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(start_prefix_sum<bucket_count>), dim3(1),
-                       dim3(bucket_count), 0, 0, bucket_count, total_counts,
-                       total_counts + bucket_count);
+    components::prefix_sum(exec, total_counts, bucket_count + 1);
 }
 
 
 #define DECLARE_SSSS_COUNT(ValueType, IndexType)                               \
-    void sampleselect_count(const ValueType *values, IndexType size,           \
+    void sampleselect_count(std::shared_ptr<const DefaultExecutor> exec,       \
+                            const ValueType *values, IndexType size,           \
                             remove_complex<ValueType> *tree,                   \
                             unsigned char *oracles, IndexType *partial_counts, \
                             IndexType *total_counts)
