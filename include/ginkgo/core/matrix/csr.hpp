@@ -218,22 +218,43 @@ public:
         void process(const Array<index_type> &mtx_row_ptrs,
                      Array<index_type> *mtx_srow) override
         {
+            // we allocate srow the maximum capacity in automatical strategy
+            // (for load_balance), so we fill zero here to avoid the initcheck
+            // report
             auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
+            auto host_srow_exec = mtx_srow->get_executor()->get_master();
             Array<index_type> row_ptrs_host(host_mtx_exec);
+            Array<index_type> mtx_srow_host(host_srow_exec);
             const bool is_mtx_on_host{host_mtx_exec ==
                                       mtx_row_ptrs.get_executor()};
+            const bool is_srow_on_host{host_srow_exec ==
+                                       mtx_srow->get_executor()};
             const index_type *row_ptrs{};
+            index_type *srow{};
             if (is_mtx_on_host) {
                 row_ptrs = mtx_row_ptrs.get_const_data();
             } else {
                 row_ptrs_host = mtx_row_ptrs;
                 row_ptrs = row_ptrs_host.get_const_data();
             }
+
+            if (is_srow_on_host) {
+                srow = mtx_srow->get_data();
+            } else {
+                mtx_srow_host.resize_and_reset(mtx_srow->get_num_elems());
+                srow = mtx_srow_host.get_data();
+            }
             auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
             max_length_per_row_ = 0;
             for (index_type i = 1; i < num_rows + 1; i++) {
                 max_length_per_row_ = std::max(max_length_per_row_,
                                                row_ptrs[i] - row_ptrs[i - 1]);
+            }
+            for (index_type i = 0; i < mtx_srow_host.get_num_elems(); i++) {
+                srow[i] = 0;
+            }
+            if (!is_srow_on_host) {
+                *mtx_srow = mtx_srow_host;
             }
         }
 
@@ -395,7 +416,7 @@ public:
                 if (is_srow_on_host) {
                     srow = mtx_srow->get_data();
                 } else {
-                    srow_host = *mtx_srow;
+                    srow_host.resize_and_reset(mtx_srow->get_num_elems());
                     srow = srow_host.get_data();
                 }
                 if (is_mtx_on_host) {
