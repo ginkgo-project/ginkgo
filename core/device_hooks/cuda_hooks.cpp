@@ -77,12 +77,15 @@ void HostMemorySpace::raw_copy_to(const CudaMemorySpace *, size_type num_bytes,
     GKO_NOT_COMPILED(cuda);
 
 
-void HostMemorySpace::raw_copy_to(const CudaUVMSpace *, size_type num_bytes,
-                                  const void *src_ptr, void *dest_ptr) const
-    GKO_NOT_COMPILED(cuda);
-
-
 void CudaMemorySpace::raw_free(void *ptr) const noexcept
+{
+    // Free must never fail, as it can be called in destructors.
+    // If the nvidia module was not compiled, the library couldn't have
+    // allocated the memory, so there is no need to deallocate it.
+}
+
+
+void CudaUVMSpace::raw_free(void *ptr) const noexcept
 {
     // Free must never fail, as it can be called in destructors.
     // If the nvidia module was not compiled, the library couldn't have
@@ -113,35 +116,43 @@ void CudaMemorySpace::raw_copy_to(const HipMemorySpace *, size_type num_bytes,
     GKO_NOT_COMPILED(cuda);
 
 
-void CudaUVMSpace::raw_copy_to(const HostMemorySpace *, size_type num_bytes,
-                               const void *src_ptr, void *dest_ptr) const
-    GKO_NOT_COMPILED(cuda);
+void CudaMemorySpace::raw_copy_to(const CudaUVMSpace *dest_mem_space,
+                                  size_type n_bytes, const void *src_ptr,
+                                  void *dest_ptr) const GKO_NOT_COMPILED(cuda);
 
 
-void CudaUVMSpace::raw_copy_to(const CudaUVMSpace *, size_type num_bytes,
-                               const void *src_ptr, void *dest_ptr) const
-    GKO_NOT_COMPILED(cuda);
+void CudaUVMSpace::raw_copy_to(const CudaUVMSpace *dest_mem_space,
+                               size_type n_bytes, const void *src_ptr,
+                               void *dest_ptr) const GKO_NOT_COMPILED(cuda);
 
 
-void CudaMemorySpace::raw_copy_to(const CudaUVMSpace *, size_type num_bytes,
-                                  const void *src_ptr, void *dest_ptr) const
-    GKO_NOT_COMPILED(cuda);
+void CudaUVMSpace::raw_copy_to(const CudaMemorySpace *dest_mem_space,
+                               size_type n_bytes, const void *src_ptr,
+                               void *dest_ptr) const GKO_NOT_COMPILED(cuda);
 
 
-void CudaUVMSpace::raw_copy_to(const CudaMemorySpace *, size_type num_bytes,
-                               const void *src_ptr, void *dest_ptr) const
-    GKO_NOT_COMPILED(cuda);
+void CudaUVMSpace::raw_copy_to(const HipMemorySpace *dest_mem_space,
+                               size_type n_bytes, const void *src_ptr,
+                               void *dest_ptr) const GKO_NOT_COMPILED(cuda);
 
 
-void CudaUVMSpace::raw_copy_to(const HipMemorySpace *, size_type num_bytes,
-                               const void *src_ptr, void *dest_ptr) const
-    GKO_NOT_COMPILED(cuda);
+void HostMemorySpace::raw_copy_to(const CudaUVMSpace *dest_mem_space,
+                                  size_type n_bytes, const void *src_ptr,
+                                  void *dest_ptr) const GKO_NOT_COMPILED(cuda);
+
+
+void CudaUVMSpace::raw_copy_to(const HostMemorySpace *dest_mem_space,
+                               size_type n_bytes, const void *src_ptr,
+                               void *dest_ptr) const GKO_NOT_COMPILED(cuda);
 
 
 void CudaExecutor::synchronize() const GKO_NOT_COMPILED(cuda);
 
 
 void CudaMemorySpace::synchronize() const GKO_NOT_COMPILED(cuda);
+
+
+void CudaUVMSpace::synchronize() const GKO_NOT_COMPILED(cuda);
 
 
 void CudaExecutor::run(const Operation &op) const
@@ -173,6 +184,9 @@ int CudaExecutor::get_num_devices() { return 0; }
 
 
 int CudaMemorySpace::get_num_devices() { return 0; }
+
+
+int CudaUVMSpace::get_num_devices() { return 0; }
 
 
 void CudaExecutor::set_gpu_property() {}

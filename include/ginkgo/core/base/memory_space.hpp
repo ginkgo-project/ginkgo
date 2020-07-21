@@ -368,8 +368,8 @@ private:
 };
 
 
-class CudaUVMSpace : public CudaMemorySpace {
-    friend class CudaMemorySpace;
+class CudaUVMSpace : public detail::MemorySpaceBase<CudaUVMSpace> {
+    friend class detail::MemorySpaceBase<CudaUVMSpace>;
 
 public:
     /**
@@ -383,9 +383,16 @@ public:
     }
 
     /**
-     * Get the HIP device id of the device associated to this memory_space.
+     * Get the CUDA device id of the device associated to this memory_space.
      */
     int get_device_id() const noexcept { return this->device_id_; }
+
+    /**
+     * Get the number of devices present on the system.
+     */
+    static int get_num_devices();
+
+    void synchronize() const override;
 
 protected:
     CudaUVMSpace() = default;
@@ -396,6 +403,8 @@ protected:
     }
 
     void *raw_alloc(size_type size) const override;
+
+    void raw_free(void *ptr) const noexcept override;
 
     GKO_ENABLE_FOR_ALL_MEMORY_SPACES(GKO_OVERRIDE_RAW_COPY_TO);
 

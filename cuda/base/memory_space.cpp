@@ -56,7 +56,26 @@ void CudaMemorySpace::synchronize() const
 }
 
 
+void CudaUVMSpace::synchronize() const
+{
+    cuda::device_guard g(this->get_device_id());
+    GKO_ASSERT_NO_CUDA_ERRORS(cudaDeviceSynchronize());
+}
+
+
 int CudaMemorySpace::get_num_devices()
+{
+    int deviceCount = 0;
+    auto error_code = cudaGetDeviceCount(&deviceCount);
+    if (error_code == cudaErrorNoDevice) {
+        return 0;
+    }
+    GKO_ASSERT_NO_CUDA_ERRORS(error_code);
+    return deviceCount;
+}
+
+
+int CudaUVMSpace::get_num_devices()
 {
     int deviceCount = 0;
     auto error_code = cudaGetDeviceCount(&deviceCount);
@@ -97,6 +116,23 @@ void CudaMemorySpace::raw_free(void *ptr) const noexcept
 }
 
 
+void CudaUVMSpace::raw_free(void *ptr) const noexcept
+{
+    cuda::device_guard g(this->get_device_id());
+    auto error_code = cudaFree(ptr);
+    if (error_code != cudaSuccess) {
+#if GKO_VERBOSE_LEVEL >= 1
+        // Unfortunately, if memory free fails, there's not much we can do
+        std::cerr << "Unrecoverable CUDA error on device " << this->device_id_
+                  << " in " << __func__ << ": " << cudaGetErrorName(error_code)
+                  << ": " << cudaGetErrorString(error_code) << std::endl
+                  << "Exiting program" << std::endl;
+#endif
+        std::exit(error_code);
+    }
+}
+
+
 void *CudaMemorySpace::raw_alloc(size_type num_bytes) const
 {
     void *dev_ptr = nullptr;
@@ -114,7 +150,7 @@ void CudaMemorySpace::raw_copy_to(const HostMemorySpace *, size_type num_bytes,
                                   const void *src_ptr, void *dest_ptr) const
 {
     if (num_bytes > 0) {
-        device_guard g(this->get_device_id());
+        cuda::device_guard g(this->get_device_id());
         GKO_ASSERT_NO_CUDA_ERRORS(
             cudaMemcpy(dest_ptr, src_ptr, num_bytes, cudaMemcpyDeviceToHost));
     }
@@ -126,10 +162,10 @@ void CudaMemorySpace::raw_copy_to(const CudaMemorySpace *dest,
                                   void *dest_ptr) const
 {
     if (num_bytes > 0) {
-        device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, dest->device_id_,
-                                                 src_ptr, this->get_device_id(),
-                                                 num_bytes));
+        cuda::device_guard g(this->get_device_id());
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpyPeer(dest_ptr, dest->get_device_id(), src_ptr,
+                           this->get_device_id(), num_bytes));
     }
 }
 
@@ -140,9 +176,9 @@ void CudaUVMSpace::raw_copy_to(const HipMemorySpace *dest, size_type num_bytes,
 #if GINKGO_HIP_PLATFORM_NVCC == 1
     if (num_bytes > 0) {
         cuda::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, dest->device_id_,
-                                                 src_ptr, this->get_device_id(),
-                                                 num_bytes));
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpyPeer(dest_ptr, dest->get_device_id(), src_ptr,
+                           this->get_device_id(), num_bytes));
     }
 #else
     GKO_NOT_SUPPORTED(this);
@@ -157,12 +193,12 @@ void CudaMemorySpace::raw_copy_to(const HipMemorySpace *dest,
 #if GINKGO_HIP_PLATFORM_NVCC == 1
     if (num_bytes > 0) {
         cuda::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, dest->device_id_,
-                                                 src_ptr, this->get_device_id(),
-                                                 num_bytes));
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpyPeer(dest_ptr, dest->get_device_id(), src_ptr,
+                           this->get_device_id(), num_bytes));
     }
 #else
-    GKO_NOT_SUPPORTED(CudaMemorySpace);
+    GKO_NOT_SUPPORTED(this);
 #endif
 }
 
@@ -172,9 +208,9 @@ void CudaMemorySpace::raw_copy_to(const CudaUVMSpace *dest, size_type num_bytes,
 {
     if (num_bytes > 0) {
         cuda::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, dest->device_id_,
-                                                 src_ptr, this->get_device_id(),
-                                                 num_bytes));
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpyPeer(dest_ptr, dest->get_device_id(), src_ptr,
+                           this->get_device_id(), num_bytes));
     }
 }
 
@@ -184,9 +220,9 @@ void CudaUVMSpace::raw_copy_to(const CudaMemorySpace *dest, size_type num_bytes,
 {
     if (num_bytes > 0) {
         cuda::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, dest->device_id_,
-                                                 src_ptr, this->get_device_id(),
-                                                 num_bytes));
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpyPeer(dest_ptr, dest->get_device_id(), src_ptr,
+                           this->get_device_id(), num_bytes));
     }
 }
 
@@ -196,9 +232,9 @@ void CudaUVMSpace::raw_copy_to(const CudaUVMSpace *dest, size_type num_bytes,
 {
     if (num_bytes > 0) {
         cuda::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaMemcpyPeer(dest_ptr, dest->device_id_,
-                                                 src_ptr, this->get_device_id(),
-                                                 num_bytes));
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaMemcpyPeer(dest_ptr, dest->get_device_id(), src_ptr,
+                           this->get_device_id(), num_bytes));
     }
 }
 

@@ -109,7 +109,7 @@ void HipMemorySpace::raw_copy_to(const CudaMemorySpace *dest,
 #if GINKGO_HIP_PLATFORM_NVCC == 1
     if (num_bytes > 0) {
         hip::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, dest->device_id_,
+        GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, dest->get_device_id(),
                                                src_ptr, this->get_device_id(),
                                                num_bytes));
     }
@@ -125,7 +125,7 @@ void HipMemorySpace::raw_copy_to(const CudaUVMSpace *dest, size_type num_bytes,
 #if GINKGO_HIP_PLATFORM_NVCC == 1
     if (num_bytes > 0) {
         hip::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, dest->device_id_,
+        GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, dest->get_device_id(),
                                                src_ptr, this->get_device_id(),
                                                num_bytes));
     }
@@ -141,7 +141,7 @@ void HipMemorySpace::raw_copy_to(const HipMemorySpace *dest,
 {
     if (num_bytes > 0) {
         hip::device_guard g(this->get_device_id());
-        GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, dest->device_id_,
+        GKO_ASSERT_NO_HIP_ERRORS(hipMemcpyPeer(dest_ptr, dest->get_device_id(),
                                                src_ptr, this->get_device_id(),
                                                num_bytes));
     }
