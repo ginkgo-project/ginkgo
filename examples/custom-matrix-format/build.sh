@@ -18,9 +18,6 @@ if ls ${THIS_DIR} | grep -F "libginkgo." >/dev/null; then
 else
     LINK_FLAGS="-lginkgod -lginkgo_ompd -lginkgo_cudad -lginkgo_referenced -lginkgo_hipd -Xlinker -rpath -Xlinker ${THIS_DIR}"
 fi
-if [ -z "${CXX}" ]; then
-    CXX="c++"
-fi
 
 
 # build

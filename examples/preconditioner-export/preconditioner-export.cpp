@@ -54,12 +54,14 @@ const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
                        0, gko::ReferenceExecutor::create());
                }}};
 
+
 void output(const gko::WritableToMatrixData<double, int> *mtx, std::string name)
 {
     std::ofstream stream{name};
     std::cerr << "Writing " << name << std::endl;
     gko::write(stream, mtx, gko::layout_type::coordinate);
 }
+
 
 template <typename Function>
 auto try_generate(Function fun) -> decltype(fun())
@@ -73,6 +75,7 @@ auto try_generate(Function fun) -> decltype(fun())
     }
     return result;
 }
+
 
 int main(int argc, char *argv[])
 {
