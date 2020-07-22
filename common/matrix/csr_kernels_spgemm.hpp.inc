@@ -11,32 +11,32 @@ __device__ void spgemm_multiway_merge_short(
     StepCallback step_cb, ColCallback col_cb)
 {
     // short rows of a: we can keep the state for each row of b in registers
-    // partitioning of data: thread groups of size subsubwarp_size store the
+    // partitioning of data: thread groups of size subwarp_size store the
     // content of a single row of b as a shift register. We only need to look
     // at the first element in each group, but can avoid many smaller loads.
     constexpr auto sentinel = device_numeric_limits<IndexType>::max;
     constexpr auto warp_size = config::warp_size;
     constexpr auto subwarp_size = warp_size / max_num_rows;
     auto warp = group::tiled_partition<warp_size>(group::this_thread_block());
-    auto subwarp =
-        group::tiled_partition<subwarp_size>(group::this_thread_block());
 
     const auto warp_rank = warp.thread_rank();
-    const auto subwarp_rank = subwarp.thread_rank();
-    const auto subwarp_id = static_cast<IndexType>(warp_rank / subwarp_size);
+    const auto subwarp_id =
+        min(static_cast<IndexType>(warp_rank / subwarp_size), a_size - 1);
+    const auto last_subwarp_base = (a_size - 1) * subwarp_size;
+    const auto last_subwarp = subwarp_id == a_size - 1;
+    const auto last_subwarp_size = warp_size - last_subwarp_base;
     const auto subwarp_base = subwarp_id * subwarp_size;
-    // load the first subsubwarp elements for each row of b
+    const auto subwarp_rank = static_cast<IndexType>(warp_rank - subwarp_base);
+    // load the first subwarp_size elements for each row of b
     const auto a_idx = subwarp_id;
-    const auto idle_subwarp = a_idx >= a_size;
-    const auto a_col = checked_load(a_cols, a_idx, a_size, sentinel);
-    const auto a_val =
-        (use_val && a_idx < a_size) ? a_vals[a_idx] : zero<ValueType>();
-    const auto b_begin = idle_subwarp ? IndexType{} : b_row_ptrs[a_col];
-    const auto b_end = idle_subwarp ? IndexType{} : b_row_ptrs[a_col + 1];
-    auto b_idx = b_begin + static_cast<IndexType>(subwarp_rank);
+    const auto a_col = a_cols[a_idx];
+    const auto a_val = use_val ? a_vals[a_idx] : zero<ValueType>();
+    const auto b_begin = b_row_ptrs[a_col];
+    const auto b_end = b_row_ptrs[a_col + 1];
+    auto b_idx = b_begin + subwarp_rank;
     auto b_col = checked_load(b_cols, b_idx, b_end, sentinel);
     auto b_val = (use_val && b_idx < b_end) ? b_vals[b_idx] : zero<ValueType>();
-    auto subwarp_left = subwarp_size;
+    auto b_remaining = last_subwarp ? last_subwarp_size : subwarp_size;
     do {
         // compute the minimum column
         auto min_col = b_col;
@@ -45,23 +45,28 @@ __device__ void spgemm_multiway_merge_short(
             min_col = min(min_col, warp.shfl_xor(min_col, i));
         }
         // min_col is only correct for the first thread in the subwarp!
+        // all other values are larger
         auto min_mask = warp.ballot(b_col == min_col);
         auto sub_is_min = bool((min_mask >> subwarp_base) & 1);
         // accumulate all products
-        auto cur_val = sub_is_min ? a_val * b_val : zero<ValueType>();
-        // TODO does this really improve the runtime?
-        if (popcnt(min_mask) == 1) {
-            cur_val = warp.shfl(cur_val, ffs(min_mask) - 1);
-        } else {
+        auto cur_val =
+            sub_is_min && subwarp_rank == 0 ? a_val * b_val : zero<ValueType>();
+        if (use_val) {
 #pragma unroll
             for (auto i = subwarp_size; i < warp_size; i *= 2) {
                 cur_val += warp.shfl_xor(cur_val, i);
             }
         }
+        // divergent values of cur_val! fix for this:
+        // cur_val = warp.shfl(cur_val, 0);
+        // unnecessary, since only thread 0 writes to output
+
         // output
         step_cb(cur_val, min_col);
         col_cb(min_col);
         // advance elements
+        auto b_next_col = warp.shfl_down(b_col, 1);
+        auto b_next_val = use_val ? warp.shfl_down(b_val, 1) : b_val;
         if (sub_is_min) {
             b_idx++;
             if (subwarp_size == 1) {
@@ -69,15 +74,19 @@ __device__ void spgemm_multiway_merge_short(
                 b_val = (use_val && b_idx < b_end) ? b_vals[b_idx]
                                                    : zero<ValueType>();
             } else {
-                subwarp_left--;
-                b_col = subwarp.shfl_down(b_col, 1);
-                b_val = subwarp.shfl_down(b_val, 1);
+                b_remaining--;
+                // simulate behavior of subwarp-local shfl_down
+                if (last_subwarp || subwarp_rank < subwarp_size - 1) {
+                    b_col = b_next_col;
+                    b_val = b_next_val;
+                }
                 // if there are none left: load new elements
-                if (subwarp_left == 0) {
+                if (b_remaining == 0) {
                     b_col = checked_load(b_cols, b_idx, b_end, sentinel);
                     b_val = (use_val && b_idx < b_end) ? b_vals[b_idx]
                                                        : zero<ValueType>();
-                    subwarp_left = subwarp_size;
+                    b_remaining =
+                        last_subwarp ? last_subwarp_size : subwarp_size;
                 }
             }
         }
@@ -181,11 +190,7 @@ __device__ void spgemm_multiway_merge_medium(
         auto min_mask = warp.ballot(b_col == min_col);
         auto cur_val = (b_col == min_col && use_val) ? a_val * b_vals[b_idx]
                                                      : zero<ValueType>();
-        if (popcnt(min_mask) == 1) {
-            cur_val = warp.shfl(cur_val, ffs(min_mask) - 1);
-        } else {
-            cur_val = reduce(warp, cur_val, sum_op);
-        }
+        cur_val = use_val ? reduce(warp, cur_val, sum_op) : cur_val;
         step_cb(cur_val, min_col);
         // update the heap
         if (b_col == min_col) {
@@ -358,11 +363,7 @@ __device__ void spgemm_multiway_merge_large(
         auto cur_val = (b_col == min_col && use_val) ? a_val * b_vals[b_idx]
                                                      : zero<ValueType>();
         // compute current partial sum and call callback
-        if (popcnt(min_mask) == 1) {
-            cur_val = warp.shfl(cur_val, ffs(min_mask) - 1);
-        } else {
-            cur_val = reduce(warp, cur_val, sum_op);
-        }
+        cur_val = use_val ? reduce(warp, cur_val, sum_op) : cur_val;
         step_cb(cur_val, min_col);
 
         // update the heap
