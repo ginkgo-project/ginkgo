@@ -534,8 +534,8 @@ __global__ __launch_bounds__(spgemm_block_size) void spgemm_kernel(
     const IndexType *__restrict__ b_row_ptrs,
     const IndexType *__restrict__ b_cols, const ValueType *__restrict__ b_vals,
     const IndexType *__restrict__ c_row_ptrs, IndexType *__restrict__ tmp,
-    ValueType *__restrict__ tmpval, IndexType *__restrict__ c_cols,
-    ValueType *__restrict__ c_vals)
+    ValueType *__restrict__ tmpval, IndexType *__restrict__ c_nnz,
+    IndexType *__restrict__ c_cols, ValueType *__restrict__ c_vals)
 {
     constexpr auto subwarp_size = config::warp_size;
     const auto row = thread::get_subwarp_id_flat<subwarp_size>();
@@ -570,9 +570,71 @@ __global__ __launch_bounds__(spgemm_block_size) void spgemm_kernel(
             c_cols[c_nz + i] = b_cols[b_begin + i];
             c_vals[c_nz + i] = a_val * b_vals[b_begin + i];
         }
+        c_nz += b_size;
     } else {
         spgemm_multiway_merge_dispatch<true>(
             a_size, a_cols + a_begin, a_vals + a_begin, b_row_ptrs, b_cols,
             b_vals, tmp + a_begin * 3, tmpval + a_begin, step_cb, col_cb);
+    }
+
+    // if the row ptrs were only an upper bound: store actual nnz
+    if (c_nnz && subwarp.thread_rank() == 0) {
+        c_nnz[row] = c_nz - c_row_ptrs[row];
+    }
+}
+
+
+template <typename IndexType>
+__global__ __launch_bounds__(spgemm_block_size) void spgemm_work_estimate(
+    const IndexType *__restrict__ a_row_ptrs,
+    const IndexType *__restrict__ a_cols,
+    const IndexType *__restrict__ b_row_ptrs, size_type num_rows,
+    size_type num_cols, IndexType *__restrict__ c_nnz_est)
+{
+    const auto row = thread::get_subwarp_id_flat<config::warp_size>();
+    if (row >= num_rows) {
+        return;
+    }
+
+    auto warp =
+        group::tiled_partition<config::warp_size>(group::this_thread_block());
+    const auto begin = a_row_ptrs[row];
+    const auto end = a_row_ptrs[row + 1];
+    IndexType counter{};
+    for (auto i = begin + warp.thread_rank(); i < end; i += config::warp_size) {
+        const auto col = a_cols[i];
+        counter += b_row_ptrs[col + 1] - b_row_ptrs[col];
+    }
+    counter =
+        reduce(warp, counter, [](IndexType a, IndexType b) { return a + b; });
+    if (warp.thread_rank() == 0) {
+        c_nnz_est[row] = min(counter, static_cast<IndexType>(num_cols));
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spgemm_block_size) void spgemm_compress_result(
+    size_type num_rows, const IndexType *__restrict__ in_row_ptrs,
+    const IndexType *__restrict__ in_cols,
+    const ValueType *__restrict__ in_vals,
+    const IndexType *__restrict__ out_row_ptrs,
+    IndexType *__restrict__ out_cols, ValueType *__restrict__ out_vals)
+{
+    const auto row = thread::get_subwarp_id_flat<config::warp_size>();
+    if (row >= num_rows) {
+        return;
+    }
+
+    const auto warp_rank = threadIdx.x % config::warp_size;
+    const auto out_begin = out_row_ptrs[row];
+    const auto out_end = out_row_ptrs[row + 1];
+    auto in_i = in_row_ptrs[row] + warp_rank;
+
+    for (auto out_i = out_begin + warp_rank; out_i < out_end;
+         out_i += config::warp_size) {
+        out_cols[out_i] = in_cols[in_i];
+        out_vals[out_i] = in_vals[in_i];
+        in_i += config::warp_size;
     }
 }
