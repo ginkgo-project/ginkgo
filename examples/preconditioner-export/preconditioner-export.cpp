@@ -79,6 +79,7 @@ auto try_generate(Function fun) -> decltype(fun())
 
 int main(int argc, char *argv[])
 {
+    // print usage message
     if (argc < 2 || executors.find(argv[1]) == executors.end()) {
         std::cerr << "Usage: " << argv[0]
                   << " <reference|omp|cuda|hip> [<matrix-file>] "
@@ -97,11 +98,14 @@ int main(int argc, char *argv[])
         return -1;
     }
 
+    // generate executor based on first argument
     auto exec = try_generate([&] { return executors.at(argv[1])(); });
 
+    // set matrix and preconditioner name with default values
     std::string matrix = argc < 3 ? "data/A.mtx" : argv[2];
     std::string precond = argc < 4 ? "jacobi" : argv[3];
 
+    // load matrix file into Csr format
     auto mtx = gko::share(try_generate([&] {
         std::ifstream mtx_stream{matrix};
         if (!mtx_stream) {
@@ -111,11 +115,13 @@ int main(int argc, char *argv[])
         return gko::read<gko::matrix::Csr<>>(mtx_stream, exec);
     }));
 
+    // concatenate remaining arguments for filename
     std::string output_suffix;
     for (auto i = 4; i < argc; ++i) {
         output_suffix = output_suffix + "-" + argv[i];
     }
 
+    // handle different preconditioners
     if (precond == "jacobi") {
         // jacobi: max_block_size, accuracy, storage_optimization
         auto factory = gko::preconditioner::Jacobi<>::build().on(exec);
@@ -221,14 +227,14 @@ int main(int argc, char *argv[])
         output(ilu_isai->get_u_solver()->get_approximate_inverse().get(),
                matrix + ".parilu-isai" + output_suffix + "-u");
     } else if (precond == "parilut-isai") {
-        // parilu-isai: iterations, fill-in limit, sparsity power
+        // parilut-isai: iterations, fill-in limit, sparsity power
         auto fact_factory =
             gko::share(gko::factorization::ParIlut<>::build().on(exec));
         int sparsity_power = 1;
         if (argc >= 5) {
             fact_factory->get_parameters().iterations = std::stoi(argv[4]);
         }
-        if (argc >= 5) {
+        if (argc >= 6) {
             fact_factory->get_parameters().fill_in_limit = std::stod(argv[5]);
         }
         if (argc >= 7) {
