@@ -1,0 +1,21 @@
+<h1>Results</h1>
+This is the expected output:
+
+@code{.cpp}
+Usage: ./preconditioner-export <reference|omp|cuda|hip> [<matrix-file>] [<jacobi|ilu|parilu|parilut|ilu-isai|parilu-isai|parilut-isai] [<preconditioner args>]
+Jacobi parameters: [<max-block-size>] [<accuracy>] [<storage-optimization:auto|0|1|2>]
+ParILU parameters: [<iteration-count>]
+ParILUT parameters: [<iteration-count>] [<fill-in-limit>]
+ILU-ISAI parameters: [<sparsity-power>]
+ParILU-ISAI parameters: [<iteration-count>] [<sparsity-power>]
+ParILUT-ISAI parameters: [<iteration-count>] [<fill-in-limit>] [<sparsity-power>]
+@endcode
+
+When specifying an executor:
+
+@code{.cpp}
+Reading data/A.mtx
+Writing data/A.mtx.jacobi
+@endcode
+
+<h3> Comments about programming and debugging </h3>

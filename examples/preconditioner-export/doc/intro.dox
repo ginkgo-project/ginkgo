@@ -1,0 +1,7 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+
+<h3> About the example </h3>
+
+This example shows how to explicitly generate and store preconditioners for a given matrix.
+It can also be used to inspect and debug the preconditioner generation.
