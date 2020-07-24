@@ -431,7 +431,11 @@ public:
         {
             if (warp_size_ > 0) {
                 int multiple = 8;
-                if (nnz >= 2e6) {
+                if (nnz >= 2e8) {
+                    multiple = 2048;
+                } else if (nnz >= 2e7) {
+                    multiple = 512;
+                } else if (nnz >= 2e6) {
                     multiple = 128;
                 } else if (nnz >= 2e5) {
                     multiple = 32;

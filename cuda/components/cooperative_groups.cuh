@@ -318,6 +318,35 @@ template <typename Group>
 class enable_extended_shuffle : public Group {
 public:
     using Group::Group;
+#define GKO_BIND_SHFL(ShflOp, ValueType, SelectorType)                       \
+    __device__ __forceinline__ ValueType ShflOp(                             \
+        ValueType var, SelectorType selector) const noexcept                 \
+    {                                                                        \
+        return __##ShflOp##_sync(this->build_mask(), var, selector,          \
+                                 this->size());                              \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+    GKO_BIND_SHFL(shfl, int32, int32);
+    GKO_BIND_SHFL(shfl, float, int32);
+    GKO_BIND_SHFL(shfl, uint32, int32);
+    GKO_BIND_SHFL(shfl, double, int32);
+
+    GKO_BIND_SHFL(shfl_up, int32, uint32);
+    GKO_BIND_SHFL(shfl_up, uint32, uint32);
+    GKO_BIND_SHFL(shfl_up, float, uint32);
+    GKO_BIND_SHFL(shfl_up, double, uint32);
+
+    GKO_BIND_SHFL(shfl_down, int32, uint32);
+    GKO_BIND_SHFL(shfl_down, uint32, uint32);
+    GKO_BIND_SHFL(shfl_down, float, uint32);
+    GKO_BIND_SHFL(shfl_down, double, uint32);
+
+    GKO_BIND_SHFL(shfl_xor, int32, int32);
+    GKO_BIND_SHFL(shfl_xor, float, int32);
+    GKO_BIND_SHFL(shfl_xor, uint32, int32);
+    GKO_BIND_SHFL(shfl_xor, double, int32);
     // using Group::shfl;
     // using Group::shfl_down;
     // using Group::shfl_up;
