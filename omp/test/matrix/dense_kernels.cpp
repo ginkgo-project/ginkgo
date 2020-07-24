@@ -271,7 +271,7 @@ TEST_F(Dense, AddsScaledDiagIsEquivalentToRef)
     mat->add_scaled(alpha.get(), diag.get());
     dmat->add_scaled(dalpha.get(), ddiag.get());
 
-    GKO_ASSERT_MTX_NEAR(mat, dmat, 0);
+    GKO_ASSERT_MTX_NEAR(mat, dmat, 1e-14);
 }
 
 

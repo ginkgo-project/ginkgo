@@ -179,6 +179,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
+                    const matrix::Diagonal<ValueType, IndexType> *orig,
+                    matrix::Diagonal<ValueType, IndexType> *trans)
+{
+    const auto size = orig->get_size()[0];
+    const auto grid_dim = ceildiv(size, default_block_size);
+    const auto orig_values = orig->get_const_values();
+    auto trans_values = trans->get_values();
+
+    kernel::conj_transpose<<<grid_dim, default_block_size>>>(
+        size, as_cuda_type(orig_values), as_cuda_type(trans_values));
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL);
+
+
 }  // namespace diagonal
 }  // namespace cuda
 }  // namespace kernels

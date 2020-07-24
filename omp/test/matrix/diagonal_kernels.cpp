@@ -34,10 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <algorithm>
+#include <iostream>
 #include <numeric>
 #include <random>
 #include <vector>
-
 
 #include <gtest/gtest.h>
 
@@ -59,6 +59,7 @@ protected:
     using Diag = gko::matrix::Diagonal<>;
     using Dense = gko::matrix::Dense<>;
     using Arr = gko::Array<int>;
+    using ComplexDiag = gko::matrix::Diagonal<std::complex<double>>;
 
     Diagonal() : mtx_size(532, 231), rand_engine(42) {}
 
@@ -97,6 +98,19 @@ protected:
         return diag;
     }
 
+    std::unique_ptr<ComplexDiag> gen_cdiag(int size)
+    {
+        auto cdiag = ComplexDiag::create(ref, size);
+        auto vals = cdiag->get_values();
+        auto value_dist = std::normal_distribution<>(0.0, 1.0);
+        for (int i = 0; i < size; i++) {
+            vals[i] = std::complex<double>{
+                gko::test::detail::get_rand_value<std::complex<double>>(
+                    value_dist, rand_engine)};
+        }
+        return cdiag;
+    }
+
     void set_up_apply_data()
     {
         diag = gen_diag(mtx_size[0]);
@@ -128,6 +142,13 @@ protected:
         csrresult2->copy_from(csrexpected2.get());
     }
 
+    void set_up_complex_data()
+    {
+        cdiag = gen_cdiag(mtx_size[0]);
+        dcdiag = ComplexDiag::create(omp);
+        dcdiag->copy_from(cdiag.get());
+    }
+
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::OmpExecutor> omp;
 
@@ -136,6 +157,8 @@ protected:
 
     std::unique_ptr<Diag> diag;
     std::unique_ptr<Diag> ddiag;
+    std::unique_ptr<ComplexDiag> cdiag;
+    std::unique_ptr<ComplexDiag> dcdiag;
 
     std::unique_ptr<Dense> dense1;
     std::unique_ptr<Dense> dense2;
@@ -163,7 +186,7 @@ TEST_F(Diagonal, ApplyToDenseIsEquivalentToRef)
     diag->apply(dense1.get(), denseexpected1.get());
     ddiag->apply(ddense1.get(), denseresult1.get());
 
-    GKO_ASSERT_MTX_NEAR(denseexpected1, denseresult1, 0);
+    GKO_ASSERT_MTX_NEAR(denseexpected1, denseresult1, 1e-14);
 }
 
 
@@ -174,7 +197,7 @@ TEST_F(Diagonal, RightApplyToDenseIsEquivalentToRef)
     diag->rapply(dense2.get(), denseexpected2.get());
     ddiag->rapply(ddense2.get(), denseresult2.get());
 
-    GKO_ASSERT_MTX_NEAR(denseexpected2, denseresult2, 0);
+    GKO_ASSERT_MTX_NEAR(denseexpected2, denseresult2, 1e-14);
 }
 
 
@@ -185,7 +208,7 @@ TEST_F(Diagonal, ApplyToCsrIsEquivalentToRef)
     diag->apply(csr1.get(), csrexpected1.get());
     ddiag->apply(dcsr1.get(), csrresult1.get());
 
-    GKO_ASSERT_MTX_NEAR(csrexpected1, csrresult1, 0);
+    GKO_ASSERT_MTX_NEAR(csrexpected1, csrresult1, 1e-14);
 }
 
 
@@ -196,7 +219,7 @@ TEST_F(Diagonal, RightApplyToCsrIsEquivalentToRef)
     diag->rapply(csr2.get(), csrexpected2.get());
     ddiag->rapply(dcsr2.get(), csrresult2.get());
 
-    GKO_ASSERT_MTX_NEAR(csrexpected2, csrresult2, 0);
+    GKO_ASSERT_MTX_NEAR(csrexpected2, csrresult2, 1e-14);
 }
 
 
@@ -208,6 +231,19 @@ TEST_F(Diagonal, ConvertToCsrIsEquivalentToRef)
     ddiag->convert_to(dcsr1.get());
 
     GKO_ASSERT_MTX_NEAR(csr1, dcsr1, 0);
+}
+
+
+TEST_F(Diagonal, ConjTransposeIsEquivalentToRef)
+{
+    set_up_complex_data();
+
+    auto trans = cdiag->conj_transpose();
+    auto trans_diag = static_cast<ComplexDiag *>(trans.get());
+    auto dtrans = dcdiag->conj_transpose();
+    auto dtrans_diag = static_cast<ComplexDiag *>(dtrans.get());
+
+    GKO_ASSERT_MTX_NEAR(trans_diag, dtrans_diag, 0);
 }
 
 
