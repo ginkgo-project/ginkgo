@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/167502694 branch based on develop. Ginkgo version 1.2.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/170577886 branch based on develop. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -93,7 +93,7 @@ $(function() {
  <a class="anchor" id="Intro"></a> <a class="anchor" id="Introduction"></a></p><h1>Introduction</h1>
 <p>This is a minimal example that solves a system with Ginkgo. The matrix, right hand side and initial guess are read from standard input, and the result is written to standard output. The system matrix is stored in CSR format, and the system solved using the CG method, preconditioned with the block-Jacobi preconditioner. All computations are done on the GPU.</p>
 <p>The easiest way to use the example data from the data/ folder is to concatenate the matrix, the right hand side and the initial solution (in that exact order), and pipe the result to the minimal_solver_cuda executable:</p>
-<div class="fragment"><div class="line">cat data/A.mtx data/b.mtx data/x0.mtx | ./minimal_solver_cuda</div>
+<div class="fragment"><div class="line">cat data/A.mtx data/b.mtx data/x0.mtx | ./minimal-cuda-solver</div>
 </div><!-- fragment --><p><a class="anchor" id="Abouttheexample"></a></p><h3>About the example </h3>
 <p><a class="anchor" id="CommProg"></a> </p><h1>The commented program</h1>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;ginkgo/ginkgo.hpp&gt;</span></div>

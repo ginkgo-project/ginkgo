@@ -1,0 +1,600 @@
+The preconditioner export example..
+
+This example depends on simple-\/solver.
+
+ \label{_Intro}%
+ \label{_Introduction}%
+\doxysection*{Introduction}
+
+\label{_Abouttheexample}%
+\doxysubsubsection*{About the example }
+
+This example shows how to explicitly generate and store preconditioners for a given matrix. It can also be used to inspect and debug the preconditioner generation. \label{_CommProg}%
+ \doxysection*{The commented program}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <fstream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <functional>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <map>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{const} std::map<std::string, std::function<std::shared\_ptr<gko::Executor>()>>}
+\DoxyCodeLine{    executors\{\{\textcolor{stringliteral}{"reference"}, [] \{ \textcolor{keywordflow}{return} gko::ReferenceExecutor::create(); \}\},}
+\DoxyCodeLine{              \{\textcolor{stringliteral}{"omp"}, [] \{ \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(); \}\},}
+\DoxyCodeLine{              \{\textcolor{stringliteral}{"cuda"},}
+\DoxyCodeLine{               [] \{}
+\DoxyCodeLine{                   \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(}
+\DoxyCodeLine{                       0, gko::ReferenceExecutor::create());}
+\DoxyCodeLine{               \}\},}
+\DoxyCodeLine{              \{\textcolor{stringliteral}{"hip"}, [] \{}
+\DoxyCodeLine{                   \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(}
+\DoxyCodeLine{                       0, gko::ReferenceExecutor::create());}
+\DoxyCodeLine{               \}\}\};}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} output(\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1WritableToMatrixData}{gko::WritableToMatrixData<double, int>}} *mtx, std::string name)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    std::ofstream stream\{name\};}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Writing "} << name << std::endl;}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{gko::write}}(stream, mtx, \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af5d7aa3ba4929cc12dc51a92c59fabd3}{gko::layout\_type::coordinate}});}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} Function>}
+\DoxyCodeLine{\textcolor{keyword}{auto} try\_generate(Function fun) -\/> decltype(fun())}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    decltype(fun()) result;}
+\DoxyCodeLine{    try \{}
+\DoxyCodeLine{        result = fun();}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{catch} (\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1Error}{gko::Error}} \&err) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Error: "} << err.\mbox{\hyperlink{classgko_1_1Error_a38cf4e9e4463088091a344f218c2dd8f}{what}}() << \textcolor{charliteral}{'\(\backslash\)n'};}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} result;}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\end{DoxyCode}
+
+
+print usage message
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keywordflow}{if} (argc < 2 || executors.find(argv[1]) == executors.end()) \{}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0]}
+\DoxyCodeLine{              << \textcolor{stringliteral}{" <reference|omp|cuda|hip> [<matrix-\/file>] "}}
+\DoxyCodeLine{                 \textcolor{stringliteral}{"[<jacobi|ilu|parilu|parilut|ilu-\/isai|parilu-\/isai|parilut-\/"}}
+\DoxyCodeLine{                 \textcolor{stringliteral}{"isai] [<preconditioner args>]\(\backslash\)n"};}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Jacobi parameters: [<max-\/block-\/size>] [<accuracy>] "}}
+\DoxyCodeLine{                 \textcolor{stringliteral}{"[<storage-\/optimization:auto|0|1|2>]\(\backslash\)n"};}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"ParILU parameters: [<iteration-\/count>]\(\backslash\)n"};}
+\DoxyCodeLine{    std::cerr}
+\DoxyCodeLine{        << \textcolor{stringliteral}{"ParILUT parameters: [<iteration-\/count>] [<fill-\/in-\/limit>]\(\backslash\)n"};}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"ILU-\/ISAI parameters: [<sparsity-\/power>]\(\backslash\)n"};}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"ParILU-\/ISAI parameters: [<iteration-\/count>] "}}
+\DoxyCodeLine{                 \textcolor{stringliteral}{"[<sparsity-\/power>]\(\backslash\)n"};}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"ParILUT-\/ISAI parameters: [<iteration-\/count>] "}}
+\DoxyCodeLine{                 \textcolor{stringliteral}{"[<fill-\/in-\/limit>] [<sparsity-\/power>]\(\backslash\)n"};}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} -\/1;}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+generate executor based on first argument
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} exec = try\_generate([\&] \{ \textcolor{keywordflow}{return} executors.at(argv[1])(); \});}
+\end{DoxyCode}
+
+
+set matrix and preconditioner name with default values
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::string matrix = argc < 3 ? \textcolor{stringliteral}{"data/A.mtx"} : argv[2];}
+\DoxyCodeLine{std::string precond = argc < 4 ? \textcolor{stringliteral}{"jacobi"} : argv[3];}
+\end{DoxyCode}
+
+
+load matrix file into Csr format
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keyword}{auto} mtx = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{gko::share}}(try\_generate([\&] \{}
+\DoxyCodeLine{    std::ifstream mtx\_stream\{matrix\};}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (!mtx\_stream) \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{throw} GKO\_STREAM\_ERROR(\textcolor{stringliteral}{"Unable to open matrix file"});}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Reading "} << matrix << std::endl;}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} gko::read<gko::matrix::Csr<>>(mtx\_stream, exec);}
+\DoxyCodeLine{\}));}
+\end{DoxyCode}
+
+
+concatenate remaining arguments for filename
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{std::string output\_suffix;}
+\DoxyCodeLine{\textcolor{keywordflow}{for} (\textcolor{keyword}{auto} i = 4; i < argc; ++i) \{}
+\DoxyCodeLine{    output\_suffix = output\_suffix + \textcolor{stringliteral}{"-\/"} + argv[i];}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+
+
+handle different preconditioners
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"jacobi"}) \{}
+\end{DoxyCode}
+
+
+jacobi\+: max\+\_\+block\+\_\+size, accuracy, storage\+\_\+optimization
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    \textcolor{keyword}{auto} factory = \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko::preconditioner::Jacobi<>::build}}().on(exec);}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc >= 5) \{}
+\DoxyCodeLine{        factory-\/>get\_parameters().\mbox{\hyperlink{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a7d11d10b347b25b64b5b916e6a74364e}{max\_block\_size}} = std::stoi(argv[4]);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc >= 6) \{}
+\DoxyCodeLine{        factory-\/>get\_parameters().accuracy = std::stod(argv[5]);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc >= 7) \{}
+\DoxyCodeLine{        factory-\/>get\_parameters().storage\_optimization =}
+\DoxyCodeLine{            std::string\{argv[6]\} == \textcolor{stringliteral}{"auto"}}
+\DoxyCodeLine{                ? \mbox{\hyperlink{classgko_1_1precision__reduction_a1fde4dd48fab015698c1616408f3ef81}{gko::precision\_reduction::autodetect}}()}
+\DoxyCodeLine{                : \mbox{\hyperlink{namespacegko}{gko}}::precision\_reduction(0, std::stoi(argv[6]));}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keyword}{auto} jacobi = try\_generate([\&] \{ \textcolor{keywordflow}{return} factory-\/>generate(mtx); \});}
+\DoxyCodeLine{    output(jacobi.get(), matrix + \textcolor{stringliteral}{".jacobi"} + output\_suffix);}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"ilu"}) \{}
+\end{DoxyCode}
+
+
+ilu\+: no parameters
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    \textcolor{keyword}{auto} ilu = gko::as<gko::Composition<>>(try\_generate([\&] \{}
+\DoxyCodeLine{        \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1factorization_1_1Ilu}{gko::factorization::Ilu<>::build}}().on(exec)-\/>generate(mtx);}
+\DoxyCodeLine{    \}));}
+\DoxyCodeLine{    output(\mbox{\hyperlink{namespacegko_a73ce7e87aec389b5210630bb617b4baa}{gko::as}}<\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}}>(ilu-\/>get\_operators()[0].get()),}
+\DoxyCodeLine{           matrix + \textcolor{stringliteral}{".ilu-\/l"});}
+\DoxyCodeLine{    output(\mbox{\hyperlink{namespacegko_a73ce7e87aec389b5210630bb617b4baa}{gko::as}}<\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}}>(ilu-\/>get\_operators()[1].get()),}
+\DoxyCodeLine{           matrix + \textcolor{stringliteral}{".ilu-\/u"});}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"parilu"}) \{}
+\end{DoxyCode}
+
+
+parilu\+: iterations
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    \textcolor{keyword}{auto} factory = \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlu}{gko::factorization::ParIlu<>::build}}().on(exec);}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc >= 5) \{}
+\DoxyCodeLine{        factory-\/>get\_parameters().\mbox{\hyperlink{structgko_1_1factorization_1_1ParIlu_1_1parameters__type_acf87db3479a61d53d301101b51e419c6}{iterations}} = std::stoi(argv[4]);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keyword}{auto} ilu = gko::as<gko::Composition<>>(}
+\DoxyCodeLine{        try\_generate([\&] \{ \textcolor{keywordflow}{return} factory-\/>generate(mtx); \}));}
+\DoxyCodeLine{    output(\mbox{\hyperlink{namespacegko_a73ce7e87aec389b5210630bb617b4baa}{gko::as}}<\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}}>(ilu-\/>get\_operators()[0].get()),}
+\DoxyCodeLine{           matrix + \textcolor{stringliteral}{".parilu"} + output\_suffix + \textcolor{stringliteral}{"-\/l"});}
+\DoxyCodeLine{    output(\mbox{\hyperlink{namespacegko_a73ce7e87aec389b5210630bb617b4baa}{gko::as}}<\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}}>(ilu-\/>get\_operators()[1].get()),}
+\DoxyCodeLine{           matrix + \textcolor{stringliteral}{".parilu"} + output\_suffix + \textcolor{stringliteral}{"-\/u"});}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"parilut"}) \{}
+\end{DoxyCode}
+
+
+parilut\+: iterations, fill-\/in limit
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    \textcolor{keyword}{auto} factory = \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlut}{gko::factorization::ParIlut<>::build}}().on(exec);}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc >= 5) \{}
+\DoxyCodeLine{        factory-\/>get\_parameters().\mbox{\hyperlink{structgko_1_1factorization_1_1ParIlut_1_1parameters__type_aed39c89593c4e33f8473cc641fc4a44c}{iterations}} = std::stoi(argv[4]);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc >= 6) \{}
+\DoxyCodeLine{        factory-\/>get\_parameters().fill\_in\_limit = std::stod(argv[5]);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keyword}{auto} ilut = gko::as<gko::Composition<>>(}
+\DoxyCodeLine{        try\_generate([\&] \{ \textcolor{keywordflow}{return} factory-\/>generate(mtx); \}));}
+\DoxyCodeLine{    output(\mbox{\hyperlink{namespacegko_a73ce7e87aec389b5210630bb617b4baa}{gko::as}}<\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}}>(ilut-\/>get\_operators()[0].get()),}
+\DoxyCodeLine{           matrix + \textcolor{stringliteral}{".parilut"} + output\_suffix + \textcolor{stringliteral}{"-\/l"});}
+\DoxyCodeLine{    output(\mbox{\hyperlink{namespacegko_a73ce7e87aec389b5210630bb617b4baa}{gko::as}}<\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}}>(ilut-\/>get\_operators()[1].get()),}
+\DoxyCodeLine{           matrix + \textcolor{stringliteral}{".parilut"} + output\_suffix + \textcolor{stringliteral}{"-\/u"});}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"ilu-\/isai"}) \{}
+\end{DoxyCode}
+
+
+ilu-\/isai\+: sparsity power
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    \textcolor{keyword}{auto} fact\_factory =}
+\DoxyCodeLine{        \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{gko::share}}(\mbox{\hyperlink{classgko_1_1factorization_1_1Ilu}{gko::factorization::Ilu<>::build}}().on(exec));}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} sparsity\_power = 1;}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc >= 5) \{}
+\DoxyCodeLine{        sparsity\_power = std::stoi(argv[4]);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keyword}{auto} factory =}
+\DoxyCodeLine{        \mbox{\hyperlink{classgko_1_1preconditioner_1_1Ilu}{gko::preconditioner::Ilu<gko::preconditioner::LowerIsai<>}},}
+\DoxyCodeLine{                                 \mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko::preconditioner::UpperIsai<>}}>::build()}
+\DoxyCodeLine{            .with\_factorization\_factory(fact\_factory)}
+\DoxyCodeLine{            .with\_l\_solver\_factory(\mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko::preconditioner::LowerIsai<>::build}}()}
+\DoxyCodeLine{                                       .with\_sparsity\_power(sparsity\_power)}
+\DoxyCodeLine{                                       .on(exec))}
+\DoxyCodeLine{            .with\_u\_solver\_factory(\mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko::preconditioner::UpperIsai<>::build}}()}
+\DoxyCodeLine{                                       .with\_sparsity\_power(sparsity\_power)}
+\DoxyCodeLine{                                       .on(exec))}
+\DoxyCodeLine{            .on(exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} ilu\_isai = try\_generate([\&] \{ \textcolor{keywordflow}{return} factory-\/>generate(mtx); \});}
+\DoxyCodeLine{    output(ilu\_isai-\/>get\_l\_solver()-\/>get\_approximate\_inverse().get(),}
+\DoxyCodeLine{           matrix + \textcolor{stringliteral}{".ilu-\/isai"} + output\_suffix + \textcolor{stringliteral}{"-\/l"});}
+\DoxyCodeLine{    output(ilu\_isai-\/>get\_u\_solver()-\/>get\_approximate\_inverse().get(),}
+\DoxyCodeLine{           matrix + \textcolor{stringliteral}{".ilu-\/isai"} + output\_suffix + \textcolor{stringliteral}{"-\/u"});}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"parilu-\/isai"}) \{}
+\end{DoxyCode}
+
+
+parilu-\/isai\+: iterations, sparsity power
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{    \textcolor{keyword}{auto} fact\_factory =}
+\DoxyCodeLine{        \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{gko::share}}(\mbox{\hyperlink{classgko_1_1factorization_1_1ParIlu}{gko::factorization::ParIlu<>::build}}().on(exec));}
+\DoxyCodeLine{    \textcolor{keywordtype}{int} sparsity\_power = 1;}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc >= 5) \{}
+\DoxyCodeLine{        fact\_factory-\/>get\_parameters().iterations = std::stoi(argv[4]);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc >= 6) \{}
+\DoxyCodeLine{        sparsity\_power = std::stoi(argv[5]);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keyword}{auto} factory =}
+\DoxyCodeLine{        \mbox{\hyperlink{classgko_1_1preconditioner_1_1Ilu}{gko::preconditioner::Ilu<gko::preconditioner::LowerIsai<>}},}
+\DoxyCodeLine{                                 \mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko::preconditioner::UpperIsai<>}}>::build()}
+\DoxyCodeLine{            .with\_factorization\_factory(fact\_factory)}
+\DoxyCodeLine{            .with\_l\_solver\_factory(\mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko::preconditioner::LowerIsai<>::build}}()}
+\DoxyCodeLine{                                       .with\_sparsity\_power(sparsity\_power)}
+\DoxyCodeLine{                                       .on(exec))}
+\DoxyCodeLine{            .with\_u\_solver\_factory(\mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko::preconditioner::UpperIsai<>::build}}()}
+\DoxyCodeLine{                                       .with\_sparsity\_power(sparsity\_power)}
+\DoxyCodeLine{                                       .on(exec))}
+\DoxyCodeLine{            .on(exec);}
+\DoxyCodeLine{    \textcolor{keyword}{auto} ilu\_isai = try\_generate([\&] \{ \textcolor{keywordflow}{return} factory-\/>generate(mtx); \});}
+\DoxyCodeLine{    output(ilu\_isai-\/>get\_l\_solver()-\/>get\_approximate\_inverse().get(),}
+\DoxyCodeLine{           matrix + \textcolor{stringliteral}{".parilu-\/isai"} + output\_suffix + \textcolor{stringliteral}{"-\/l"});}
+\DoxyCodeLine{    output(ilu\_isai-\/>get\_u\_solver()-\/>get\_approximate\_inverse().get(),}
+\DoxyCodeLine{           matrix + \textcolor{stringliteral}{".parilu-\/isai"} + output\_suffix + \textcolor{stringliteral}{"-\/u"});}
+\DoxyCodeLine{\} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"parilut-\/isai"}) \{}
+\end{DoxyCode}
+
+
+parilut-\/isai\+: iterations, fill-\/in limit, sparsity power
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{        \textcolor{keyword}{auto} fact\_factory =}
+\DoxyCodeLine{            \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{gko::share}}(\mbox{\hyperlink{classgko_1_1factorization_1_1ParIlut}{gko::factorization::ParIlut<>::build}}().on(exec));}
+\DoxyCodeLine{        \textcolor{keywordtype}{int} sparsity\_power = 1;}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 5) \{}
+\DoxyCodeLine{            fact\_factory-\/>get\_parameters().iterations = std::stoi(argv[4]);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 6) \{}
+\DoxyCodeLine{            fact\_factory-\/>get\_parameters().fill\_in\_limit = std::stod(argv[5]);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 7) \{}
+\DoxyCodeLine{            sparsity\_power = std::stoi(argv[6]);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keyword}{auto} factory =}
+\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1preconditioner_1_1Ilu}{gko::preconditioner::Ilu<gko::preconditioner::LowerIsai<>}},}
+\DoxyCodeLine{                                     \mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko::preconditioner::UpperIsai<>}}>::build()}
+\DoxyCodeLine{                .with\_factorization\_factory(fact\_factory)}
+\DoxyCodeLine{                .with\_l\_solver\_factory(\mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko::preconditioner::LowerIsai<>::build}}()}
+\DoxyCodeLine{                                           .with\_sparsity\_power(sparsity\_power)}
+\DoxyCodeLine{                                           .on(exec))}
+\DoxyCodeLine{                .with\_u\_solver\_factory(\mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko::preconditioner::UpperIsai<>::build}}()}
+\DoxyCodeLine{                                           .with\_sparsity\_power(sparsity\_power)}
+\DoxyCodeLine{                                           .on(exec))}
+\DoxyCodeLine{                .on(exec);}
+\DoxyCodeLine{        \textcolor{keyword}{auto} ilu\_isai = try\_generate([\&] \{ \textcolor{keywordflow}{return} factory-\/>generate(mtx); \});}
+\DoxyCodeLine{        output(ilu\_isai-\/>get\_l\_solver()-\/>get\_approximate\_inverse().get(),}
+\DoxyCodeLine{               matrix + \textcolor{stringliteral}{".parilut-\/isai"} + output\_suffix + \textcolor{stringliteral}{"-\/l"});}
+\DoxyCodeLine{        output(ilu\_isai-\/>get\_u\_solver()-\/>get\_approximate\_inverse().get(),}
+\DoxyCodeLine{               matrix + \textcolor{stringliteral}{".parilut-\/isai"} + output\_suffix + \textcolor{stringliteral}{"-\/u"});}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\end{DoxyCode}
+ \label{_Results}%
+\doxysection*{Results}
+
+This is the expected output\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{Usage: ./preconditioner-\/export <reference|omp|cuda|hip> [<matrix-\/file>] [<jacobi|ilu|parilu|parilut|ilu-\/isai|parilu-\/isai|parilut-\/isai] [<preconditioner args>]}
+\DoxyCodeLine{Jacobi parameters: [<\mbox{\hyperlink{namespacegko_af1812df45c6ec07780d579a12b64c753}{max}}-\/block-\/size>] [<accuracy>] [<storage-\/optimization:\textcolor{keyword}{auto}|0|1|2>]}
+\DoxyCodeLine{ParILU parameters: [<iteration-\/count>]}
+\DoxyCodeLine{ParILUT parameters: [<iteration-\/count>] [<fill-\/in-\/limit>]}
+\DoxyCodeLine{ILU-\/ISAI parameters: [<sparsity-\/power>]}
+\DoxyCodeLine{ParILU-\/ISAI parameters: [<iteration-\/count>] [<sparsity-\/power>]}
+\DoxyCodeLine{ParILUT-\/ISAI parameters: [<iteration-\/count>] [<fill-\/in-\/limit>] [<sparsity-\/power>]}
+\end{DoxyCode}
+
+
+When specifying an executor\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{Reading data/A.mtx}
+\DoxyCodeLine{Writing data/A.mtx.jacobi}
+\end{DoxyCode}
+
+
+\label{_Commentsaboutprogramminganddebugging}%
+\doxysubsubsection*{Comments about programming and debugging }
+
+\label{_PlainProg}%
+ \doxysection*{The plain program}
+
+
+\begin{DoxyCodeInclude}{0}
+\DoxyCodeLine{\textcolor{comment}{/*******************************<GINKGO LICENSE>******************************}}
+\DoxyCodeLine{\textcolor{comment}{Copyright (c) 2017-\/2020, the Ginkgo authors}}
+\DoxyCodeLine{\textcolor{comment}{All rights reserved.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{Redistribution and use in source and binary forms, with or without}}
+\DoxyCodeLine{\textcolor{comment}{modification, are permitted provided that the following conditions}}
+\DoxyCodeLine{\textcolor{comment}{are met:}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{1. Redistributions of source code must retain the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{2. Redistributions in binary form must reproduce the above copyright}}
+\DoxyCodeLine{\textcolor{comment}{notice, this list of conditions and the following disclaimer in the}}
+\DoxyCodeLine{\textcolor{comment}{documentation and/or other materials provided with the distribution.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{3. Neither the name of the copyright holder nor the names of its}}
+\DoxyCodeLine{\textcolor{comment}{contributors may be used to endorse or promote products derived from}}
+\DoxyCodeLine{\textcolor{comment}{this software without specific prior written permission.}}
+\DoxyCodeLine{\textcolor{comment}{}}
+\DoxyCodeLine{\textcolor{comment}{THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS}}
+\DoxyCodeLine{\textcolor{comment}{IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED}}
+\DoxyCodeLine{\textcolor{comment}{TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A}}
+\DoxyCodeLine{\textcolor{comment}{PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT}}
+\DoxyCodeLine{\textcolor{comment}{HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,}}
+\DoxyCodeLine{\textcolor{comment}{SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT}}
+\DoxyCodeLine{\textcolor{comment}{LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,}}
+\DoxyCodeLine{\textcolor{comment}{DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY}}
+\DoxyCodeLine{\textcolor{comment}{THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT}}
+\DoxyCodeLine{\textcolor{comment}{(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE}}
+\DoxyCodeLine{\textcolor{comment}{OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.}}
+\DoxyCodeLine{\textcolor{comment}{******************************<GINKGO LICENSE>*******************************/}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <ginkgo/ginkgo.hpp>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <fstream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <functional>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <iostream>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <map>}}
+\DoxyCodeLine{\textcolor{preprocessor}{\#include <string>}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{const} std::map<std::string, std::function<std::shared\_ptr<gko::Executor>()>>}
+\DoxyCodeLine{    executors\{\{\textcolor{stringliteral}{"reference"}, [] \{ \textcolor{keywordflow}{return} gko::ReferenceExecutor::create(); \}\},}
+\DoxyCodeLine{              \{\textcolor{stringliteral}{"omp"}, [] \{ \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1OmpExecutor_a33ca05fdd0fc928ee262fc9425304874}{gko::OmpExecutor::create}}(); \}\},}
+\DoxyCodeLine{              \{\textcolor{stringliteral}{"cuda"},}
+\DoxyCodeLine{               [] \{}
+\DoxyCodeLine{                   \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1CudaExecutor_aa577135e082f9be20617e9d66209ca25}{gko::CudaExecutor::create}}(}
+\DoxyCodeLine{                       0, gko::ReferenceExecutor::create());}
+\DoxyCodeLine{               \}\},}
+\DoxyCodeLine{              \{\textcolor{stringliteral}{"hip"}, [] \{}
+\DoxyCodeLine{                   \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1HipExecutor_abee0dc3dfc064c9edbdc02c2b3b11264}{gko::HipExecutor::create}}(}
+\DoxyCodeLine{                       0, gko::ReferenceExecutor::create());}
+\DoxyCodeLine{               \}\}\};}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{void} output(\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1WritableToMatrixData}{gko::WritableToMatrixData<double, int>}} *mtx, std::string name)}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    std::ofstream stream\{name\};}
+\DoxyCodeLine{    std::cerr << \textcolor{stringliteral}{"Writing "} << name << std::endl;}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_a859dc47a462721d83728d91ab7fa2148}{gko::write}}(stream, mtx, \mbox{\hyperlink{namespacegko_ae749a5ea11a93c1bcc9158d9a6e9fb68af5d7aa3ba4929cc12dc51a92c59fabd3}{gko::layout\_type::coordinate}});}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keyword}{template} <\textcolor{keyword}{typename} Function>}
+\DoxyCodeLine{\textcolor{keyword}{auto} try\_generate(Function fun) -\/> decltype(fun())}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    decltype(fun()) result;}
+\DoxyCodeLine{    try \{}
+\DoxyCodeLine{        result = fun();}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{catch} (\textcolor{keyword}{const} \mbox{\hyperlink{classgko_1_1Error}{gko::Error}} \&err) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Error: "} << err.\mbox{\hyperlink{classgko_1_1Error_a38cf4e9e4463088091a344f218c2dd8f}{what}}() << \textcolor{charliteral}{'\(\backslash\)n'};}
+\DoxyCodeLine{        std::exit(-\/1);}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{    \textcolor{keywordflow}{return} result;}
+\DoxyCodeLine{\}}
+\DoxyCodeLine{}
+\DoxyCodeLine{}
+\DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
+\DoxyCodeLine{\{}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (argc < 2 || executors.find(argv[1]) == executors.end()) \{}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Usage: "} << argv[0]}
+\DoxyCodeLine{                  << \textcolor{stringliteral}{" <reference|omp|cuda|hip> [<matrix-\/file>] "}}
+\DoxyCodeLine{                     \textcolor{stringliteral}{"[<jacobi|ilu|parilu|parilut|ilu-\/isai|parilu-\/isai|parilut-\/"}}
+\DoxyCodeLine{                     \textcolor{stringliteral}{"isai] [<preconditioner args>]\(\backslash\)n"};}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Jacobi parameters: [<max-\/block-\/size>] [<accuracy>] "}}
+\DoxyCodeLine{                     \textcolor{stringliteral}{"[<storage-\/optimization:auto|0|1|2>]\(\backslash\)n"};}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"ParILU parameters: [<iteration-\/count>]\(\backslash\)n"};}
+\DoxyCodeLine{        std::cerr}
+\DoxyCodeLine{            << \textcolor{stringliteral}{"ParILUT parameters: [<iteration-\/count>] [<fill-\/in-\/limit>]\(\backslash\)n"};}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"ILU-\/ISAI parameters: [<sparsity-\/power>]\(\backslash\)n"};}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"ParILU-\/ISAI parameters: [<iteration-\/count>] "}}
+\DoxyCodeLine{                     \textcolor{stringliteral}{"[<sparsity-\/power>]\(\backslash\)n"};}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"ParILUT-\/ISAI parameters: [<iteration-\/count>] "}}
+\DoxyCodeLine{                     \textcolor{stringliteral}{"[<fill-\/in-\/limit>] [<sparsity-\/power>]\(\backslash\)n"};}
+\DoxyCodeLine{        \textcolor{keywordflow}{return} -\/1;}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} exec = try\_generate([\&] \{ \textcolor{keywordflow}{return} executors.at(argv[1])(); \});}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::string matrix = argc < 3 ? \textcolor{stringliteral}{"data/A.mtx"} : argv[2];}
+\DoxyCodeLine{    std::string precond = argc < 4 ? \textcolor{stringliteral}{"jacobi"} : argv[3];}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keyword}{auto} mtx = \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{gko::share}}(try\_generate([\&] \{}
+\DoxyCodeLine{        std::ifstream mtx\_stream\{matrix\};}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (!mtx\_stream) \{}
+\DoxyCodeLine{            \textcolor{keywordflow}{throw} GKO\_STREAM\_ERROR(\textcolor{stringliteral}{"Unable to open matrix file"});}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        std::cerr << \textcolor{stringliteral}{"Reading "} << matrix << std::endl;}
+\DoxyCodeLine{        \textcolor{keywordflow}{return} gko::read<gko::matrix::Csr<>>(mtx\_stream, exec);}
+\DoxyCodeLine{    \}));}
+\DoxyCodeLine{}
+\DoxyCodeLine{    std::string output\_suffix;}
+\DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keyword}{auto} i = 4; i < argc; ++i) \{}
+\DoxyCodeLine{        output\_suffix = output\_suffix + \textcolor{stringliteral}{"-\/"} + argv[i];}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{}
+\DoxyCodeLine{    \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"jacobi"}) \{}
+\DoxyCodeLine{        \textcolor{keyword}{auto} factory = \mbox{\hyperlink{classgko_1_1preconditioner_1_1Jacobi}{gko::preconditioner::Jacobi<>::build}}().on(exec);}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 5) \{}
+\DoxyCodeLine{            factory-\/>get\_parameters().\mbox{\hyperlink{structgko_1_1preconditioner_1_1Jacobi_1_1parameters__type_a7d11d10b347b25b64b5b916e6a74364e}{max\_block\_size}} = std::stoi(argv[4]);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 6) \{}
+\DoxyCodeLine{            factory-\/>get\_parameters().accuracy = std::stod(argv[5]);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 7) \{}
+\DoxyCodeLine{            factory-\/>get\_parameters().storage\_optimization =}
+\DoxyCodeLine{                std::string\{argv[6]\} == \textcolor{stringliteral}{"auto"}}
+\DoxyCodeLine{                    ? \mbox{\hyperlink{classgko_1_1precision__reduction_a1fde4dd48fab015698c1616408f3ef81}{gko::precision\_reduction::autodetect}}()}
+\DoxyCodeLine{                    : \mbox{\hyperlink{namespacegko}{gko}}::precision\_reduction(0, std::stoi(argv[6]));}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keyword}{auto} jacobi = try\_generate([\&] \{ \textcolor{keywordflow}{return} factory-\/>generate(mtx); \});}
+\DoxyCodeLine{        output(jacobi.get(), matrix + \textcolor{stringliteral}{".jacobi"} + output\_suffix);}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"ilu"}) \{}
+\DoxyCodeLine{        \textcolor{keyword}{auto} ilu = gko::as<gko::Composition<>>(try\_generate([\&] \{}
+\DoxyCodeLine{            \textcolor{keywordflow}{return} \mbox{\hyperlink{classgko_1_1factorization_1_1Ilu}{gko::factorization::Ilu<>::build}}().on(exec)-\/>generate(mtx);}
+\DoxyCodeLine{        \}));}
+\DoxyCodeLine{        output(\mbox{\hyperlink{namespacegko_a73ce7e87aec389b5210630bb617b4baa}{gko::as}}<\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}}>(ilu-\/>get\_operators()[0].get()),}
+\DoxyCodeLine{               matrix + \textcolor{stringliteral}{".ilu-\/l"});}
+\DoxyCodeLine{        output(\mbox{\hyperlink{namespacegko_a73ce7e87aec389b5210630bb617b4baa}{gko::as}}<\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}}>(ilu-\/>get\_operators()[1].get()),}
+\DoxyCodeLine{               matrix + \textcolor{stringliteral}{".ilu-\/u"});}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"parilu"}) \{}
+\DoxyCodeLine{        \textcolor{keyword}{auto} factory = \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlu}{gko::factorization::ParIlu<>::build}}().on(exec);}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 5) \{}
+\DoxyCodeLine{            factory-\/>get\_parameters().\mbox{\hyperlink{structgko_1_1factorization_1_1ParIlu_1_1parameters__type_acf87db3479a61d53d301101b51e419c6}{iterations}} = std::stoi(argv[4]);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keyword}{auto} ilu = gko::as<gko::Composition<>>(}
+\DoxyCodeLine{            try\_generate([\&] \{ \textcolor{keywordflow}{return} factory-\/>generate(mtx); \}));}
+\DoxyCodeLine{        output(\mbox{\hyperlink{namespacegko_a73ce7e87aec389b5210630bb617b4baa}{gko::as}}<\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}}>(ilu-\/>get\_operators()[0].get()),}
+\DoxyCodeLine{               matrix + \textcolor{stringliteral}{".parilu"} + output\_suffix + \textcolor{stringliteral}{"-\/l"});}
+\DoxyCodeLine{        output(\mbox{\hyperlink{namespacegko_a73ce7e87aec389b5210630bb617b4baa}{gko::as}}<\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}}>(ilu-\/>get\_operators()[1].get()),}
+\DoxyCodeLine{               matrix + \textcolor{stringliteral}{".parilu"} + output\_suffix + \textcolor{stringliteral}{"-\/u"});}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"parilut"}) \{}
+\DoxyCodeLine{        \textcolor{keyword}{auto} factory = \mbox{\hyperlink{classgko_1_1factorization_1_1ParIlut}{gko::factorization::ParIlut<>::build}}().on(exec);}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 5) \{}
+\DoxyCodeLine{            factory-\/>get\_parameters().\mbox{\hyperlink{structgko_1_1factorization_1_1ParIlut_1_1parameters__type_aed39c89593c4e33f8473cc641fc4a44c}{iterations}} = std::stoi(argv[4]);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 6) \{}
+\DoxyCodeLine{            factory-\/>get\_parameters().fill\_in\_limit = std::stod(argv[5]);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keyword}{auto} ilut = gko::as<gko::Composition<>>(}
+\DoxyCodeLine{            try\_generate([\&] \{ \textcolor{keywordflow}{return} factory-\/>generate(mtx); \}));}
+\DoxyCodeLine{        output(\mbox{\hyperlink{namespacegko_a73ce7e87aec389b5210630bb617b4baa}{gko::as}}<\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}}>(ilut-\/>get\_operators()[0].get()),}
+\DoxyCodeLine{               matrix + \textcolor{stringliteral}{".parilut"} + output\_suffix + \textcolor{stringliteral}{"-\/l"});}
+\DoxyCodeLine{        output(\mbox{\hyperlink{namespacegko_a73ce7e87aec389b5210630bb617b4baa}{gko::as}}<\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{gko::matrix::Csr<>}}>(ilut-\/>get\_operators()[1].get()),}
+\DoxyCodeLine{               matrix + \textcolor{stringliteral}{".parilut"} + output\_suffix + \textcolor{stringliteral}{"-\/u"});}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"ilu-\/isai"}) \{}
+\DoxyCodeLine{        \textcolor{keyword}{auto} fact\_factory =}
+\DoxyCodeLine{            \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{gko::share}}(\mbox{\hyperlink{classgko_1_1factorization_1_1Ilu}{gko::factorization::Ilu<>::build}}().on(exec));}
+\DoxyCodeLine{        \textcolor{keywordtype}{int} sparsity\_power = 1;}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 5) \{}
+\DoxyCodeLine{            sparsity\_power = std::stoi(argv[4]);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keyword}{auto} factory =}
+\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1preconditioner_1_1Ilu}{gko::preconditioner::Ilu<gko::preconditioner::LowerIsai<>}},}
+\DoxyCodeLine{                                     \mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko::preconditioner::UpperIsai<>}}>::build()}
+\DoxyCodeLine{                .with\_factorization\_factory(fact\_factory)}
+\DoxyCodeLine{                .with\_l\_solver\_factory(\mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko::preconditioner::LowerIsai<>::build}}()}
+\DoxyCodeLine{                                           .with\_sparsity\_power(sparsity\_power)}
+\DoxyCodeLine{                                           .on(exec))}
+\DoxyCodeLine{                .with\_u\_solver\_factory(\mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko::preconditioner::UpperIsai<>::build}}()}
+\DoxyCodeLine{                                           .with\_sparsity\_power(sparsity\_power)}
+\DoxyCodeLine{                                           .on(exec))}
+\DoxyCodeLine{                .on(exec);}
+\DoxyCodeLine{        \textcolor{keyword}{auto} ilu\_isai = try\_generate([\&] \{ \textcolor{keywordflow}{return} factory-\/>generate(mtx); \});}
+\DoxyCodeLine{        output(ilu\_isai-\/>get\_l\_solver()-\/>get\_approximate\_inverse().get(),}
+\DoxyCodeLine{               matrix + \textcolor{stringliteral}{".ilu-\/isai"} + output\_suffix + \textcolor{stringliteral}{"-\/l"});}
+\DoxyCodeLine{        output(ilu\_isai-\/>get\_u\_solver()-\/>get\_approximate\_inverse().get(),}
+\DoxyCodeLine{               matrix + \textcolor{stringliteral}{".ilu-\/isai"} + output\_suffix + \textcolor{stringliteral}{"-\/u"});}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"parilu-\/isai"}) \{}
+\DoxyCodeLine{        \textcolor{keyword}{auto} fact\_factory =}
+\DoxyCodeLine{            \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{gko::share}}(\mbox{\hyperlink{classgko_1_1factorization_1_1ParIlu}{gko::factorization::ParIlu<>::build}}().on(exec));}
+\DoxyCodeLine{        \textcolor{keywordtype}{int} sparsity\_power = 1;}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 5) \{}
+\DoxyCodeLine{            fact\_factory-\/>get\_parameters().iterations = std::stoi(argv[4]);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 6) \{}
+\DoxyCodeLine{            sparsity\_power = std::stoi(argv[5]);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keyword}{auto} factory =}
+\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1preconditioner_1_1Ilu}{gko::preconditioner::Ilu<gko::preconditioner::LowerIsai<>}},}
+\DoxyCodeLine{                                     \mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko::preconditioner::UpperIsai<>}}>::build()}
+\DoxyCodeLine{                .with\_factorization\_factory(fact\_factory)}
+\DoxyCodeLine{                .with\_l\_solver\_factory(\mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko::preconditioner::LowerIsai<>::build}}()}
+\DoxyCodeLine{                                           .with\_sparsity\_power(sparsity\_power)}
+\DoxyCodeLine{                                           .on(exec))}
+\DoxyCodeLine{                .with\_u\_solver\_factory(\mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko::preconditioner::UpperIsai<>::build}}()}
+\DoxyCodeLine{                                           .with\_sparsity\_power(sparsity\_power)}
+\DoxyCodeLine{                                           .on(exec))}
+\DoxyCodeLine{                .on(exec);}
+\DoxyCodeLine{        \textcolor{keyword}{auto} ilu\_isai = try\_generate([\&] \{ \textcolor{keywordflow}{return} factory-\/>generate(mtx); \});}
+\DoxyCodeLine{        output(ilu\_isai-\/>get\_l\_solver()-\/>get\_approximate\_inverse().get(),}
+\DoxyCodeLine{               matrix + \textcolor{stringliteral}{".parilu-\/isai"} + output\_suffix + \textcolor{stringliteral}{"-\/l"});}
+\DoxyCodeLine{        output(ilu\_isai-\/>get\_u\_solver()-\/>get\_approximate\_inverse().get(),}
+\DoxyCodeLine{               matrix + \textcolor{stringliteral}{".parilu-\/isai"} + output\_suffix + \textcolor{stringliteral}{"-\/u"});}
+\DoxyCodeLine{    \} \textcolor{keywordflow}{else} \textcolor{keywordflow}{if} (precond == \textcolor{stringliteral}{"parilut-\/isai"}) \{}
+\DoxyCodeLine{        \textcolor{keyword}{auto} fact\_factory =}
+\DoxyCodeLine{            \mbox{\hyperlink{namespacegko_a3ce296f73db0ff398bdea6009a3a5c58}{gko::share}}(\mbox{\hyperlink{classgko_1_1factorization_1_1ParIlut}{gko::factorization::ParIlut<>::build}}().on(exec));}
+\DoxyCodeLine{        \textcolor{keywordtype}{int} sparsity\_power = 1;}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 5) \{}
+\DoxyCodeLine{            fact\_factory-\/>get\_parameters().iterations = std::stoi(argv[4]);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 6) \{}
+\DoxyCodeLine{            fact\_factory-\/>get\_parameters().fill\_in\_limit = std::stod(argv[5]);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keywordflow}{if} (argc >= 7) \{}
+\DoxyCodeLine{            sparsity\_power = std::stoi(argv[6]);}
+\DoxyCodeLine{        \}}
+\DoxyCodeLine{        \textcolor{keyword}{auto} factory =}
+\DoxyCodeLine{            \mbox{\hyperlink{classgko_1_1preconditioner_1_1Ilu}{gko::preconditioner::Ilu<gko::preconditioner::LowerIsai<>}},}
+\DoxyCodeLine{                                     \mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko::preconditioner::UpperIsai<>}}>::build()}
+\DoxyCodeLine{                .with\_factorization\_factory(fact\_factory)}
+\DoxyCodeLine{                .with\_l\_solver\_factory(\mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko::preconditioner::LowerIsai<>::build}}()}
+\DoxyCodeLine{                                           .with\_sparsity\_power(sparsity\_power)}
+\DoxyCodeLine{                                           .on(exec))}
+\DoxyCodeLine{                .with\_u\_solver\_factory(\mbox{\hyperlink{classgko_1_1preconditioner_1_1Isai}{gko::preconditioner::UpperIsai<>::build}}()}
+\DoxyCodeLine{                                           .with\_sparsity\_power(sparsity\_power)}
+\DoxyCodeLine{                                           .on(exec))}
+\DoxyCodeLine{                .on(exec);}
+\DoxyCodeLine{        \textcolor{keyword}{auto} ilu\_isai = try\_generate([\&] \{ \textcolor{keywordflow}{return} factory-\/>generate(mtx); \});}
+\DoxyCodeLine{        output(ilu\_isai-\/>get\_l\_solver()-\/>get\_approximate\_inverse().get(),}
+\DoxyCodeLine{               matrix + \textcolor{stringliteral}{".parilut-\/isai"} + output\_suffix + \textcolor{stringliteral}{"-\/l"});}
+\DoxyCodeLine{        output(ilu\_isai-\/>get\_u\_solver()-\/>get\_approximate\_inverse().get(),}
+\DoxyCodeLine{               matrix + \textcolor{stringliteral}{".parilut-\/isai"} + output\_suffix + \textcolor{stringliteral}{"-\/u"});}
+\DoxyCodeLine{    \}}
+\DoxyCodeLine{\}}
+\end{DoxyCodeInclude}
+ 
