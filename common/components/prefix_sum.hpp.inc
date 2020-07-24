@@ -96,7 +96,7 @@ __forceinline__ __device__ void subwarp_prefix_sum(ValueType element,
  *
  * @param elements  array on which the prefix sum is to be calculated
  * @param block_sum  array which stores the total sum of each block, requires at
- *                   least `ceildiv(num_elements, block_size)` elements
+ *                   least `ceildiv(num_elements, block_size) - 1` elements
  * @param num_elements  total number of entries in `elements`
  *
  * @tparam block_size  thread block size for this kernel, also size of blocks on
@@ -112,9 +112,10 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
 {
     const auto tidx = thread::get_thread_id_flat();
     const auto element_id = threadIdx.x;
-    __shared__ size_type prefix_helper[block_size];
+    __shared__ UninitializedArray<ValueType, block_size> prefix_helper;
+    // do not need to access the last element when exclusive prefix sum
     prefix_helper[element_id] =
-        (tidx < num_elements) ? elements[tidx] : zero<ValueType>();
+        (tidx + 1 < num_elements) ? elements[tidx] : zero<ValueType>();
     auto this_block = group::this_thread_block();
     this_block.sync();
 
@@ -130,8 +131,10 @@ __global__ __launch_bounds__(block_size) void start_prefix_sum(
     }
 
     if (element_id == 0) {
-        // Store the total sum
-        block_sum[blockIdx.x] = prefix_helper[block_size - 1];
+        // Store the total sum except the last block
+        if (blockIdx.x + 1 < gridDim.x) {
+            block_sum[blockIdx.x] = prefix_helper[block_size - 1];
+        }
         prefix_helper[block_size - 1] = zero<ValueType>();
     }
 

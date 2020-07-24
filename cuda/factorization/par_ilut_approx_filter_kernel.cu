@@ -118,7 +118,7 @@ void threshold_filter_approx(syn::value_list<int, subwarp_size>,
         reinterpret_cast<AbsType *>(tmp->get_data() + tmp_size_totals +
                                     tmp_size_partials + tmp_size_oracles);
 
-    sampleselect_count(values, size, tree, oracles, partial_counts,
+    sampleselect_count(exec, values, size, tree, oracles, partial_counts,
                        total_counts);
 
     // determine bucket with correct rank

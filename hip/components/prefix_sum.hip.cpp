@@ -49,16 +49,24 @@ template <typename IndexType>
 void prefix_sum(std::shared_ptr<const HipExecutor> exec, IndexType *counts,
                 size_type num_entries)
 {
-    auto num_blocks = ceildiv(num_entries, prefix_sum_block_size);
-    Array<IndexType> block_sum_array(exec, num_blocks);
-    auto block_sums = block_sum_array.get_data();
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(start_prefix_sum<prefix_sum_block_size>),
-                       dim3(num_blocks), dim3(prefix_sum_block_size), 0, 0,
-                       num_entries, counts, block_sums);
-    hipLaunchKernelGGL(
-        HIP_KERNEL_NAME(finalize_prefix_sum<prefix_sum_block_size>),
-        dim3(num_blocks), dim3(prefix_sum_block_size), 0, 0, num_entries,
-        counts, block_sums);
+    // prefix_sum should be on the valid array
+    if (num_entries > 0) {
+        auto num_blocks = ceildiv(num_entries, prefix_sum_block_size);
+        Array<IndexType> block_sum_array(exec, num_blocks - 1);
+        auto block_sums = block_sum_array.get_data();
+        hipLaunchKernelGGL(
+            HIP_KERNEL_NAME(start_prefix_sum<prefix_sum_block_size>),
+            dim3(num_blocks), dim3(prefix_sum_block_size), 0, 0, num_entries,
+            counts, block_sums);
+        // add the total sum of the previous block only when the number of block
+        // is larger than 1.
+        if (num_blocks > 1) {
+            hipLaunchKernelGGL(
+                HIP_KERNEL_NAME(finalize_prefix_sum<prefix_sum_block_size>),
+                dim3(num_blocks), dim3(prefix_sum_block_size), 0, 0,
+                num_entries, counts, block_sums);
+        }
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_KERNEL);
