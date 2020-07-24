@@ -40,6 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace gko {
 namespace matrix {
 
+
 template <typename ValueType, typename IndexType>
 class Csr;
 
@@ -64,7 +65,9 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Diagonal : public ConvertibleTo<Csr<ValueType, IndexType>>,
                  public EnableLinOp<Diagonal<ValueType, IndexType>>,
                  public EnableCreateMethod<Diagonal<ValueType, IndexType>>,
-                 public Transposable {
+                 public Transposable,
+                 public WritableToMatrixData<ValueType, int32>,
+                 public WritableToMatrixData<ValueType, int64> {
     friend class Csr<ValueType, IndexType>;
     friend class EnablePolymorphicObject<Diagonal, LinOp>;
     friend class EnableCreateMethod<Diagonal>;
@@ -72,6 +75,8 @@ class Diagonal : public ConvertibleTo<Csr<ValueType, IndexType>>,
 public:
     using value_type = ValueType;
     using index_type = IndexType;
+    using mat_data = gko::matrix_data<ValueType, int64>;
+    using mat_data32 = gko::matrix_data<ValueType, int32>;
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -108,6 +113,10 @@ public:
 
         this->rapply_impl(b, x);
     }
+
+    void write(mat_data &data) const override;
+
+    void write(mat_data32 &data) const override;
 
 
 protected:
@@ -150,17 +159,6 @@ protected:
           values_{exec, std::forward<ValuesArray>(values)}
     {
         GKO_ENSURE_IN_BOUNDS(size - 1, values_.get_num_elems());
-    }
-
-    Diagonal(std::shared_ptr<const Executor> exec, const size_type size,
-             Dense<ValueType> *values)
-        : EnableLinOp<Diagonal>(exec, dim<2>(size))
-    {
-        GKO_ASSERT_EQ(size, values->get_size()[0]);
-        GKO_ASSERT_EQ(1, values->get_size()[1]);
-        GKO_ASSERT_EQ(1, values->get_stride());
-
-        values_ = gko::Array<value_type>(exec, size, values->get_values());
     }
 
     void apply_impl(const LinOp *b, LinOp *x) const override;

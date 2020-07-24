@@ -51,6 +51,7 @@ GKO_REGISTER_OPERATION(right_apply_to_dense, diagonal::right_apply_to_dense);
 GKO_REGISTER_OPERATION(apply_to_csr, diagonal::apply_to_csr);
 GKO_REGISTER_OPERATION(right_apply_to_csr, diagonal::right_apply_to_csr);
 GKO_REGISTER_OPERATION(convert_to_csr, diagonal::convert_to_csr);
+GKO_REGISTER_OPERATION(conj_transpose, diagonal::conj_transpose);
 
 
 }  // namespace diagonal
@@ -123,7 +124,12 @@ std::unique_ptr<LinOp> Diagonal<ValueType, IndexType>::transpose() const
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Diagonal<ValueType, IndexType>::conj_transpose() const
 {
-    return this->clone();
+    auto exec = this->get_executor();
+    auto tmp =
+        Diagonal<ValueType, IndexType>::create(exec, this->get_size()[0]);
+
+    exec->run(diagonal::make_conj_transpose(this, tmp.get()));
+    return std::move(tmp);
 }
 
 
@@ -143,6 +149,47 @@ template <typename ValueType, typename IndexType>
 void Diagonal<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
 {
     this->convert_to(result);
+}
+
+
+namespace {
+
+
+template <typename MatrixType, typename MatrixData>
+inline void write_impl(const MatrixType *mtx, MatrixData &data)
+{
+    std::unique_ptr<const LinOp> op{};
+    const MatrixType *tmp{};
+    if (mtx->get_executor()->get_master() != mtx->get_executor()) {
+        op = mtx->clone(mtx->get_executor()->get_master());
+        tmp = static_cast<const MatrixType *>(op.get());
+    } else {
+        tmp = mtx;
+    }
+
+    data = {tmp->get_size(), {}};
+    const auto values = tmp->get_const_values();
+
+    for (size_type row = 0; row < data.size[0]; ++row) {
+        data.nonzeros.emplace_back(row, row, values[row]);
+    }
+}
+
+
+}  // namespace
+
+
+template <typename ValueType, typename IndexType>
+void Diagonal<ValueType, IndexType>::write(mat_data &data) const
+{
+    write_impl(this, data);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Diagonal<ValueType, IndexType>::write(mat_data32 &data) const
+{
+    write_impl(this, data);
 }
 
 

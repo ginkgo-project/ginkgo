@@ -155,6 +155,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
+                    const matrix::Diagonal<ValueType, IndexType> *orig,
+                    matrix::Diagonal<ValueType, IndexType> *trans)
+{
+    const auto size = orig->get_size()[0];
+    const auto orig_values = orig->get_const_values();
+    auto trans_values = trans->get_values();
+
+    for (size_type i = 0; i < size; i++) {
+        trans_values[i] = conj(orig_values[i]);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL);
+
+
 }  // namespace diagonal
 }  // namespace reference
 }  // namespace kernels

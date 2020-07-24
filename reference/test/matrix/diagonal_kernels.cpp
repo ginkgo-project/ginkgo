@@ -368,4 +368,40 @@ TYPED_TEST(Diagonal, ConverstToCsr)
 }
 
 
+template <typename ValueIndexType>
+class DiagonalComplex : public ::testing::Test {
+protected:
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Diag = gko::matrix::Diagonal<value_type, index_type>;
+};
+
+TYPED_TEST_CASE(DiagonalComplex, gko::test::ComplexValueIndexTypes);
+
+
+TYPED_TEST(DiagonalComplex, MtxIsConjugateTransposable)
+{
+    using Diag = typename TestFixture::Diag;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+
+    auto exec = gko::ReferenceExecutor::create();
+    auto diag = Diag::create(exec, 3);
+    auto diag_values = diag->get_values();
+    diag_values[0] = value_type{1.0, 2.0};
+    diag_values[1] = value_type{3.0, 0.0};
+    diag_values[2] = value_type{0.0, 1.5};
+
+    auto trans = diag->conj_transpose();
+    auto trans_as_diagonal = static_cast<Diag *>(trans.get());
+    auto trans_values = trans_as_diagonal->get_values();
+    EXPECT_EQ(trans->get_size(), gko::dim<2>(3));
+    EXPECT_EQ(trans_values[0], (value_type{1.0, -2.0}));
+    EXPECT_EQ(trans_values[1], (value_type{3.0, 0.0}));
+    EXPECT_EQ(trans_values[2], (value_type{0.0, -1.5}));
+}
+
+
 }  // namespace

@@ -80,6 +80,11 @@ namespace kernels {
                         const matrix::Diagonal<ValueType, IndexType> *source, \
                         matrix::Csr<ValueType, IndexType> *result)
 
+#define GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)    \
+    void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,        \
+                        const matrix::Diagonal<ValueType, IndexType> *orig, \
+                        matrix::Diagonal<ValueType, IndexType> *trans)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL(ValueType, IndexType);       \
@@ -90,7 +95,9 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL(ValueType, IndexType);   \
     template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType)
 
 
 namespace omp {

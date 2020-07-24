@@ -129,4 +129,19 @@ __global__ __launch_bounds__(default_block_size) void convert_to_csr(
 }
 
 
+template <typename ValueType>
+__global__ __launch_bounds__(default_block_size) void conj_transpose(
+    size_type size, const ValueType *__restrict__ orig_values,
+    ValueType *__restrict__ trans_values)
+{
+    const auto tidx = thread::get_thread_id_flat();
+
+    if (tidx >= size) {
+        return;
+    }
+
+    trans_values[tidx] = conj(orig_values[tidx]);
+}
+
+
 }  // namespace kernel
