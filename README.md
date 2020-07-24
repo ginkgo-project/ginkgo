@@ -31,7 +31,7 @@ reflect the current state of the library.
 Prerequisites
 -------------
 
-### Linux and Mac OS 
+### Linux and Mac OS
 
 For Ginkgo core library:
 
@@ -87,6 +87,37 @@ The Ginkgo CUDA module has the following __additional__ requirements:
 The Ginkgo OMP module has the following __additional__ requirements:
 *  _MinGW_ or _Cygwin_
 
+Need to add the following manually according to configuration settings:
+* Build Ginkgo as shared library:
+  Add `PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH` into the environment variable `PATH`.
+  `GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH` is `windows_shared_library` by default. More Details are available in the [Installation page](./INSTALL.md).
+  * cmd: `set PATH="<PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH>;%PATH%"`
+  * powershell: `$env:PATH="<PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH>;$env:PATH"`
+
+  CMake will gives the error message including `<PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH>` if the path is not correct.
+  ```Did not find this build in the environment variable PATH. Please add <path> into the environment variable PATH.```
+* Build Ginkgo with Debug mode:
+  encontering `(obj) file too big` needs `\bigobj` or `-Wa,-mbig-obj` or encontering `ld: error: export ordinal too large` needs `-O1`.
+  The following are the details for different environments.
+  * _Microsoft Visual Studio_:
+    * `cmake -DGINKGO_COMPILER_FLAGS=\bigobj <other parameters> <source_folder>`
+    * add `\bigobj` into the environment variable `CXXFLAGS` (only availible in the first cmake configuration)
+      * cmd: `set CXXFLAGS=\bigobj`
+      * powershell: `$env:CXXFLAGS=\bigobj`
+  * _Cygwin_: (If build ginkgo as static library, don't need `-O1`)
+    * `cmake -DGINKGO_COMPILER_FLAGS="-Wpedantic -Wa,-mbig-obj -O1" <other parameters> <source_folder>` (`GINKGO_COMPILER_FLAGS` is `-Wpedantic` by default)
+    * add `-Wa,-mbig-obj -O1` into the environment variable `CXXFLAGS` (only availible in the first cmake configuration)
+      * `export CXXFLAGS="-Wa,-mbig-obj -O1"`
+  * _MinGW_: (If build ginkgo as static library, don't need `-O1`)
+    * `cmake -DGINKGO_COMPILER_FLAGS="-Wpedantic -Wa,-mbig-obj -O1" <other parameters> <source_folder>` (`GINKGO_COMPILER_FLAGS` is `-Wpedantic` by default)
+    * add `-Wa,-mbig-obj -O1` into the environment variable `CXXFLAGS` (only availible in the first cmake configuration)
+      * cmd: `set CXXFLAGS="-Wa,-mbig-obj -O1"`
+      * powershell: `$env:CXXFLAGS="-Wa,-mbig-obj -O1"`
+* Build Ginkgo in _MinGW_:
+  If encountering the issue `cc1plus.exe: out of memory allocating 65536 bytes`, please follow the workaround in
+  [reference](https://www.intel.com/content/www/us/en/programmable/support/support-resources/knowledge-base/embedded/2016/cc1plus-exe--out-of-memory-allocating-65536-bytes.html),
+  or compile ginkgo again might work.
+
 __NOTE:__ _Microsoft Visual Studio_ only supports OpenMP 2.0, so it can not compile the ginkgo OMP module.
 
 __NOTE:__ Some restrictions will also apply on the version of C and C++ standard
@@ -97,7 +128,7 @@ Quick Install
 
 ### Building Ginkgo
 
-To build Ginkgo, you can use the standard CMake procedure. 
+To build Ginkgo, you can use the standard CMake procedure.
 
 ```sh
 mkdir build; cd build
@@ -122,7 +153,7 @@ Ginkgo does comprehensive unit tests using Google Tests. These tests are enabled
 ### Running the benchmarks
 
 A unique feature of Ginkgo is the ability to run benchmarks and view your results
-with the help of the [Ginkgo Performance Explorer (GPE)](https://ginkgo-project.github.io/gpe/). 
+with the help of the [Ginkgo Performance Explorer (GPE)](https://ginkgo-project.github.io/gpe/).
 
 More details about this can be found in the [BENCHMARKING.md page](./BENCHMARKING.md)
 
@@ -151,7 +182,7 @@ library design, relevant C++ information, and more.
 If you have any question, bug to report or would like to propose a new feature,
 feel free to [create an
 issue on GitHub](https://github.com/ginkgo-project/ginkgo/issues/new). Another possibility
-is to send an email to [Ginkgo's main email address](ginkgo.library@gmail.com)
+is to send an email to [Ginkgo's main email address](mailto:ginkgo.library@gmail.com)
 or to contact any of the main [contributors](contributors.txt).
 
 
