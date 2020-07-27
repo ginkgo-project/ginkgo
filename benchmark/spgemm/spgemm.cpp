@@ -273,12 +273,12 @@ int main(int argc, char *argv[])
             }
             std::clog << "Running test case: " << test_case << std::endl;
             std::ifstream mtx_fd(test_case["filename"].GetString());
-            auto data = gko::read_raw<etype>(mtx_fd);
             auto data = gko::read_raw<etype, itype>(mtx_fd);
             data.ensure_row_major_order();
 
             std::clog << "Matrix is of size (" << data.size[0] << ", "
-                      << data.size[1] << ")" << std::endl;
+                      << data.size[1] << "), " << data.nonzeros.size()
+                      << std::endl;
 
             for (const auto &strategy_name : strategies) {
                 apply_spgemm(strategy_name.c_str(), exec, data, spgemm_case,
