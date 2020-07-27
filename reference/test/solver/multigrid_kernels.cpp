@@ -83,6 +83,8 @@ public:
         : EnableLinOp<DummyLinOp>(exec, size)
     {}
 
+    bool apply_uses_initial_guess() const override { return true; }
+
 protected:
     void apply_impl(const gko::LinOp *b, gko::LinOp *x) const override
     {
@@ -100,6 +102,8 @@ class DummyLinOpWithFactory
     : public gko::EnableLinOp<DummyLinOpWithFactory<ValueType>> {
 public:
     const std::vector<int> get_step() const { return step; }
+
+    bool apply_uses_initial_guess() const override { return true; }
 
     DummyLinOpWithFactory(std::shared_ptr<const gko::Executor> exec)
         : gko::EnableLinOp<DummyLinOpWithFactory>(exec)
@@ -302,10 +306,6 @@ protected:
                 .with_pre_smoother(nullptr, this->lo_factory)
                 .with_mid_smoother(this->lo_factory, nullptr)
                 .with_post_smoother(this->lo_factory, nullptr)
-                .with_pre_relaxation(gko::Array<value_type>(this->exec, {1, 2}))
-                .with_mid_relaxation(gko::Array<value_type>(this->exec, {3, 4}))
-                .with_post_relaxation(
-                    gko::Array<value_type>(this->exec, {5, 6}))
                 .with_criteria(
                     gko::stop::Iteration::build().with_max_iters(1u).on(
                         this->exec))
@@ -323,7 +323,6 @@ protected:
                 .with_rstr_prlg(this->rp_factory, this->rp_factory)
                 .with_pre_smoother(nullptr, this->lo_factory)
                 .with_coarsest_solver(this->lo_factory)
-                .with_pre_relaxation(gko::Array<value_type>(this->exec, {2}))
                 .with_post_uses_pre(true)
                 .with_mid_case(gko::solver::multigrid_mid_uses::pre)
                 .with_criteria(
@@ -487,18 +486,18 @@ TYPED_TEST(Multigrid, VCycleIndividual)
     //      +       -
     //        \   /
     //          v
-    //  +               30
-    //    0           5
-    //      2       -
-    //        3   4
+    //  +               5
+    //    0           4
+    //      1       -
+    //        2   3
     //          v
     global_step = 0;
     solver->apply(gko::lend(this->b), gko::lend(this->x));
 
-    this->assert_same_step(rstr_prlg.at(0).get(), {0}, {5});
-    this->assert_same_step(rstr_prlg.at(1).get(), {3}, {4});
-    this->assert_same_step(pre_smoother.at(1).get(), {2});
-    this->assert_same_step(post_smoother.at(0).get(), {30});
+    this->assert_same_step(rstr_prlg.at(0).get(), {0}, {4});
+    this->assert_same_step(rstr_prlg.at(1).get(), {2}, {3});
+    this->assert_same_step(pre_smoother.at(1).get(), {1});
+    this->assert_same_step(post_smoother.at(0).get(), {5});
 }
 
 
@@ -526,18 +525,18 @@ TYPED_TEST(Multigrid, VCycleSame)
     //        \   /
     //          v
     //  +               -
-    //    0           13
-    //      2       12
-    //        3   5
-    //          4
+    //    0           6
+    //      1       5
+    //        2   4
+    //          3
     global_step = 0;
     solver->apply(gko::lend(this->b), gko::lend(this->x));
 
-    this->assert_same_step(rstr_prlg.at(0).get(), {0}, {13});
-    this->assert_same_step(rstr_prlg.at(1).get(), {3}, {5});
+    this->assert_same_step(rstr_prlg.at(0).get(), {0}, {6});
+    this->assert_same_step(rstr_prlg.at(1).get(), {2}, {4});
     // all uses pre_smoother
-    this->assert_same_step(pre_smoother.at(1).get(), {2, 12});
-    this->assert_same_step(coarsest_solver.get(), {4});
+    this->assert_same_step(pre_smoother.at(1).get(), {1, 5});
+    this->assert_same_step(coarsest_solver.get(), {3});
 }
 
 
@@ -567,20 +566,20 @@ TYPED_TEST(Multigrid, WCycleIndividual)
     //      +       *       -       +       *       -
     //        \   /   \   /           \   /   \   /
     //          v       v               v       v
-    //  +                       24                      290
-    //    0                   7   25                  57
-    //      2       *       -       52      *       -
-    //        3   4   5   6           53  54  55  56
+    //  +                       7                       15
+    //    0                   6   8                   14
+    //      1       *       -       9       *       -
+    //        2   3   4   5           10  11  12  13
     //          v       v               v       v
     global_step = 0;
     solver->apply(gko::lend(this->b), gko::lend(this->x));
 
-    this->assert_same_step(rstr_prlg.at(0).get(), {0, 25}, {7, 57});
-    this->assert_same_step(rstr_prlg.at(1).get(), {3, 5, 53, 55},
-                           {4, 6, 54, 56});
-    this->assert_same_step(pre_smoother.at(1).get(), {2, 52});
-    this->assert_same_step(mid_smoother.at(0).get(), {24});
-    this->assert_same_step(post_smoother.at(0).get(), {290});
+    this->assert_same_step(rstr_prlg.at(0).get(), {0, 8}, {6, 14});
+    this->assert_same_step(rstr_prlg.at(1).get(), {2, 4, 10, 12},
+                           {3, 5, 11, 13});
+    this->assert_same_step(pre_smoother.at(1).get(), {1, 9});
+    this->assert_same_step(mid_smoother.at(0).get(), {7});
+    this->assert_same_step(post_smoother.at(0).get(), {15});
 }
 
 
@@ -607,19 +606,19 @@ TYPED_TEST(Multigrid, WCycleSame)
     //        \   /   \   /           \   /   \   /
     //          v       v               v       v
     //  +                       *                       -
-    //    0                   33  34                  305
-    //      2       12      32      70      148     304
-    //        3   5   13  15          71  73  149 151
-    //          4       14              72      150
+    //    0                   10  11                  21
+    //      1       5       9       12      16      20
+    //        2   4   6   8           13  15  17  19
+    //          3       7               14      18
     global_step = 0;
     solver->apply(gko::lend(this->b), gko::lend(this->x));
 
-    this->assert_same_step(rstr_prlg.at(0).get(), {0, 34}, {33, 305});
-    this->assert_same_step(rstr_prlg.at(1).get(), {3, 13, 71, 149},
-                           {5, 15, 73, 151});
+    this->assert_same_step(rstr_prlg.at(0).get(), {0, 11}, {10, 21});
+    this->assert_same_step(rstr_prlg.at(1).get(), {2, 6, 13, 17},
+                           {4, 8, 15, 19});
     // all uses pre_smoother
-    this->assert_same_step(pre_smoother.at(1).get(), {2, 12, 32, 70, 148, 304});
-    this->assert_same_step(coarsest_solver.get(), {4, 14, 72, 150});
+    this->assert_same_step(pre_smoother.at(1).get(), {1, 5, 9, 12, 16, 20});
+    this->assert_same_step(coarsest_solver.get(), {3, 7, 14, 18});
 }
 
 
@@ -648,20 +647,20 @@ TYPED_TEST(Multigrid, FCycleIndividual)
     //      +       *       -       +       -
     //        \   /   \   /           \   /
     //          v       v               v
-    //  +                       24              280
-    //    0                   7   25          55
-    //      2       *       -       52      -
-    //        3   4   5   6           53  54
+    //  +                       7               13
+    //    0                   6   8           12
+    //      1       *       -       9       -
+    //        2   3   4   5           10  11
     //          v       v               v
     global_step = 0;
     solver->apply(gko::lend(this->b), gko::lend(this->x));
 
-    this->assert_same_step(rstr_prlg.at(0).get(), {0, 25}, {7, 55});
-    this->assert_same_step(rstr_prlg.at(1).get(), {3, 5, 53}, {4, 6, 54});
+    this->assert_same_step(rstr_prlg.at(0).get(), {0, 8}, {6, 12});
+    this->assert_same_step(rstr_prlg.at(1).get(), {2, 4, 10}, {3, 5, 11});
     // all uses pre_smoother
-    this->assert_same_step(pre_smoother.at(1).get(), {2, 52});
-    this->assert_same_step(mid_smoother.at(0).get(), {24});
-    this->assert_same_step(post_smoother.at(0).get(), {280});
+    this->assert_same_step(pre_smoother.at(1).get(), {1, 9});
+    this->assert_same_step(mid_smoother.at(0).get(), {7});
+    this->assert_same_step(post_smoother.at(0).get(), {13});
 }
 
 
@@ -689,18 +688,18 @@ TYPED_TEST(Multigrid, FCycleSame)
     //        \   /   \   /           \   /
     //          v       v               v
     //  +                       *               -
-    //    0                   33  34          149
-    //      2       12      32      70      148
-    //        3   5   13  15          71  73
-    //          4       14              72
+    //    0                   10  11          17
+    //      1       5       9       12      16
+    //        2   4   6   8           13  15
+    //          3       7               14
     global_step = 0;
     solver->apply(gko::lend(this->b), gko::lend(this->x));
 
-    this->assert_same_step(rstr_prlg.at(0).get(), {0, 34}, {33, 149});
-    this->assert_same_step(rstr_prlg.at(1).get(), {3, 13, 71}, {5, 15, 73});
+    this->assert_same_step(rstr_prlg.at(0).get(), {0, 11}, {10, 17});
+    this->assert_same_step(rstr_prlg.at(1).get(), {2, 6, 13}, {4, 8, 15});
     // all uses pre_smoother
-    this->assert_same_step(pre_smoother.at(1).get(), {2, 12, 32, 70, 148});
-    this->assert_same_step(coarsest_solver.get(), {4, 14, 72});
+    this->assert_same_step(pre_smoother.at(1).get(), {1, 5, 9, 12, 16});
+    this->assert_same_step(coarsest_solver.get(), {3, 7, 14});
 }
 
 
@@ -847,11 +846,11 @@ TYPED_TEST(Multigrid, CanChangeCycle)
 
     ASSERT_EQ(original, gko::solver::multigrid_cycle::v);
     ASSERT_EQ(solver->get_cycle(), gko::solver::multigrid_cycle::f);
-    this->assert_same_step(rstr_prlg.at(0).get(), {0, 34}, {33, 149});
-    this->assert_same_step(rstr_prlg.at(1).get(), {3, 13, 71}, {5, 15, 73});
+    this->assert_same_step(rstr_prlg.at(0).get(), {0, 11}, {10, 17});
+    this->assert_same_step(rstr_prlg.at(1).get(), {2, 6, 13}, {4, 8, 15});
     // all uses pre_smoother
-    this->assert_same_step(pre_smoother.at(1).get(), {2, 12, 32, 70, 148});
-    this->assert_same_step(coarsest_solver.get(), {4, 14, 72});
+    this->assert_same_step(pre_smoother.at(1).get(), {1, 5, 9, 12, 16});
+    this->assert_same_step(coarsest_solver.get(), {3, 7, 14});
 }
 
 

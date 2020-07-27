@@ -47,7 +47,9 @@ int main(int argc, char *argv[])
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
+    using fcg = gko::solver::Fcg<ValueType>;
     using cg = gko::solver::Cg<ValueType>;
+    using ir = gko::solver::Ir<ValueType>;
     using mg = gko::solver::Multigrid<ValueType>;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
     using amgx_pgm = gko::multigrid::AmgxPgm<ValueType, IndexType>;
@@ -73,17 +75,22 @@ int main(int argc, char *argv[])
     }
 
     // Read data
-    auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
+    auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec,
+                                  std::make_shared<mtx::automatical>()));
     // Create RHS and initial guess as 1
     gko::size_type size = A->get_size()[0];
     auto host_x = vec::create(exec->get_master(), gko::dim<2>(size, 1));
+    // auto host_b = vec::create(exec->get_master(), gko::dim<2>(size, 1));
+    auto host_b =
+        share(gko::read<vec>(std::ifstream("data/b.mtx"), exec->get_master()));
     for (auto i = 0; i < size; i++) {
-        host_x->at(i, 0) = 1.;
+        host_x->at(i, 0) = 0.;
+        // host_b->at(i, 0) = 1.;
     }
     auto x = vec::create(exec);
     auto b = vec::create(exec);
     x->copy_from(host_x.get());
-    b->copy_from(host_x.get());
+    b->copy_from(host_b.get());
 
     // Calculate initial residual by overwriting b
     auto one = gko::initialize<vec>({1.0}, exec);
@@ -93,12 +100,12 @@ int main(int argc, char *argv[])
     b->compute_norm2(lend(initres));
 
     // copy b again
-    b->copy_from(host_x.get());
-    const gko::remove_complex<ValueType> reduction_factor = 1e-13;
+    b->copy_from(host_b.get());
+    const gko::remove_complex<ValueType> tolerance = 1e-8;
     auto iter_stop =
-        gko::stop::Iteration::build().with_max_iters(10000u).on(exec);
-    auto tol_stop = gko::stop::ResidualNormReduction<ValueType>::build()
-                        .with_reduction_factor(reduction_factor)
+        gko::stop::Iteration::build().with_max_iters(100u).on(exec);
+    auto tol_stop = gko::stop::AbsoluteResidualNorm<ValueType>::build()
+                        .with_tolerance(tolerance)
                         .on(exec);
 
     std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
@@ -106,40 +113,53 @@ int main(int argc, char *argv[])
     iter_stop->add_logger(logger);
     tol_stop->add_logger(logger);
 
-    // Create smoother factory
-    auto smoother_gen = bj::build().with_max_block_size(1u).on(exec);
+    // Create smoother factory (ir with bj)
+    auto inner_solver_gen = bj::build().with_max_block_size(1u).on(exec);
+    auto smoother_gen = gko::share(
+        ir::build()
+            .with_solver(gko::share(inner_solver_gen))
+            .with_relaxation_factor(0.9)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(2u).on(exec))
+            .on(exec));
     // Create RestrictProlong factory
-    auto rstr_prlg_gen = amgx_pgm::build().on(exec);
+    auto rstr_prlg_gen = amgx_pgm::build().with_deterministic(true).on(exec);
     // Create CoarsesSolver factory
     auto coarsest_solver_gen =
         cg::build()
             .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(exec),
-                gko::stop::ResidualNormReduction<ValueType>::build()
-                    .with_reduction_factor(reduction_factor)
-                    .on(exec))
+                gko::stop::Iteration::build().with_max_iters(4u).on(exec))
             .on(exec);
     // Create multigrid factory
     auto multigrid_gen =
         mg::build()
-            .with_max_levels(2u)
+            .with_max_levels(9u)
+            .with_min_coarse_rows(50u)
             .with_pre_smoother(gko::share(smoother_gen))
             .with_post_uses_pre(true)
             .with_rstr_prlg(gko::share(rstr_prlg_gen))
-            .with_coarsest_solver(gko::share(coarsest_solver_gen))
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(4u).on(exec))
+            .with_coarsest_solver(gko::share(smoother_gen))
+            .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
+            // .with_criteria(
+            //     gko::stop::Iteration::build().with_max_iters(1u).on(exec))
             .on(exec);
     // Create solver factory
-    auto solver_gen =
-        cg::build()
-            .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
-            // Add preconditioner, these 2 lines are the only
-            // difference from the simple solver example
-            .with_preconditioner(gko::share(multigrid_gen))
-            .on(exec);
+    // auto solver_gen =
+    //     cg::build()
+    //         .with_criteria(gko::share(iter_stop), gko::share(tol_stop))
+    //         // Add preconditioner, these 2 lines are the only
+    //         // difference from the simple solver example
+    //         .with_preconditioner(gko::share(multigrid_gen))
+    //         .on(exec);
     // Create solver
-    auto solver = solver_gen->generate(A);
+    std::chrono::nanoseconds gen_time(0);
+    auto gen_tic = std::chrono::steady_clock::now();
+    // auto solver = solver_gen->generate(A);
+    auto solver = multigrid_gen->generate(A);
+    exec->synchronize();
+    auto gen_toc = std::chrono::steady_clock::now();
+    gen_time +=
+        std::chrono::duration_cast<std::chrono::nanoseconds>(gen_toc - gen_tic);
 
 
     // Solve system
@@ -147,6 +167,7 @@ int main(int argc, char *argv[])
     std::chrono::nanoseconds time(0);
     auto tic = std::chrono::steady_clock::now();
     solver->apply(lend(b), lend(x));
+    exec->synchronize();
     auto toc = std::chrono::steady_clock::now();
     time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
 
@@ -163,6 +184,12 @@ int main(int argc, char *argv[])
     // Print solver statistics
     std::cout << "CG iteration count:     " << logger->get_num_iterations()
               << std::endl;
+    std::cout << "CG generation time [ms]: "
+              << static_cast<double>(gen_time.count()) / 1000000.0 << std::endl;
     std::cout << "CG execution time [ms]: "
               << static_cast<double>(time.count()) / 1000000.0 << std::endl;
+    std::cout << "CG execution time per iteraion[ms]: "
+              << static_cast<double>(time.count()) / 1000000.0 /
+                     logger->get_num_iterations()
+              << std::endl;
 }
