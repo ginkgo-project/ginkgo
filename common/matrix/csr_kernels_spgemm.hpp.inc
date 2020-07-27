@@ -497,9 +497,10 @@ __global__ __launch_bounds__(spgemm_block_size) void spgemm_count(
     const IndexType *__restrict__ b_cols, IndexType *__restrict__ tmp,
     IndexType *__restrict__ c_nnz)
 {
-    const auto row = thread::get_subwarp_id_flat<config::warp_size>();
+    constexpr auto subwarp_size = config::warp_size;
+    const auto row = thread::get_subwarp_id_flat<subwarp_size>();
     const auto subwarp =
-        group::tiled_partition<config::warp_size>(group::this_thread_block());
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
     if (row >= num_rows) {
         return;
     }
@@ -515,6 +516,20 @@ __global__ __launch_bounds__(spgemm_block_size) void spgemm_count(
     } else if (a_size == 1) {
         auto a_col = a_cols[a_begin];
         nnz = b_row_ptrs[a_col + 1] - b_row_ptrs[a_col];
+    } else if (a_size == 2) {
+        const auto a_col1 = a_cols[a_begin];
+        const auto a_col2 = a_cols[a_begin + 1];
+        const auto b_begin1 = b_row_ptrs[a_col1];
+        const auto b_begin2 = b_row_ptrs[a_col2];
+        const auto b_size1 = b_row_ptrs[a_col1 + 1] - b_begin1;
+        const auto b_size2 = b_row_ptrs[a_col2 + 1] - b_begin2;
+        group_merge<subwarp_size>(
+            b_cols + b_begin1, b_size1, b_cols + b_begin2, b_size2, subwarp,
+            [&](IndexType, IndexType b_col1, IndexType, IndexType b_col2,
+                IndexType, bool valid) {
+                nnz += popcnt(subwarp.ballot(b_col1 != b_col2 && valid));
+                return true;
+            });
     } else {
         auto null_val = static_cast<float *>(nullptr);
         spgemm_multiway_merge_dispatch<false>(
@@ -571,6 +586,48 @@ __global__ __launch_bounds__(spgemm_block_size) void spgemm_kernel(
             c_vals[c_nz + i] = a_val * b_vals[b_begin + i];
         }
         c_nz += b_size;
+    } else if (a_size == 2) {
+        const auto a_col1 = a_cols[a_begin];
+        const auto a_col2 = a_cols[a_begin + 1];
+        const auto a_val1 = a_vals[a_begin];
+        const auto a_val2 = a_vals[a_begin + 1];
+        const auto b_begin1 = b_row_ptrs[a_col1];
+        const auto b_begin2 = b_row_ptrs[a_col2];
+        const auto b_size1 = b_row_ptrs[a_col1 + 1] - b_begin1;
+        const auto b_size2 = b_row_ptrs[a_col2 + 1] - b_begin2;
+        bool skip_first = false;
+        const auto lane = static_cast<IndexType>(subwarp.thread_rank());
+        const auto lanemask_eq = config::lane_mask_type{1} << lane;
+        const auto lanemask_lt = lanemask_eq - 1;
+        group_merge<subwarp_size>(
+            b_cols + b_begin1, b_size1, b_cols + b_begin2, b_size2, subwarp,
+            [&](IndexType b_nz1, IndexType b_col1, IndexType b_nz2,
+                IndexType b_col2, IndexType, bool valid) {
+                auto c_col = min(b_col1, b_col2);
+                auto valid_mask = subwarp.ballot(valid);
+                auto equal_mask = subwarp.ballot(b_col1 == b_col2) & valid_mask;
+                // check if the elements in the previous merge step are
+                // equal
+                auto prev_equal_mask = equal_mask << 1 | skip_first;
+                // store the highest bit for the next group_merge_step
+                skip_first = bool(equal_mask >> (subwarp_size - 1));
+                auto prev_equal = bool(prev_equal_mask & lanemask_eq);
+                // only output an entry if the previous cols weren't equal.
+                // if they were equal, they were both handled in the
+                // previous step
+                if (valid && !prev_equal) {
+                    auto c_ofs = popcnt(~prev_equal_mask & lanemask_lt);
+                    c_cols[c_nz + c_ofs] = c_col;
+                    auto b_val1 = b_col1 <= b_col2 ? b_vals[b_nz1 + b_begin1]
+                                                   : zero<ValueType>();
+                    auto b_val2 = b_col2 <= b_col1 ? b_vals[b_nz2 + b_begin2]
+                                                   : zero<ValueType>();
+                    c_vals[c_nz + c_ofs] = a_val1 * b_val1 + a_val2 * b_val2;
+                }
+                // advance by the number of merged elements
+                c_nz += popcnt(~prev_equal_mask & valid_mask);
+                return true;
+            });
     } else {
         spgemm_multiway_merge_dispatch<true>(
             a_size, a_cols + a_begin, a_vals + a_begin, b_row_ptrs, b_cols,
