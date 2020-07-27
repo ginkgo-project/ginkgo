@@ -1,5 +1,5 @@
-constexpr auto spgemm_block_size = 128;
-constexpr auto spgemm_child_count = 2;
+constexpr auto spgemm_block_size = 64;
+constexpr auto spgemm_child_count = 4;
 
 template <int max_num_rows, bool use_val, typename ValueType,
           typename IndexType, typename StepCallback, typename ColCallback>
