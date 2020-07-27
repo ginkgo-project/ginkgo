@@ -42,38 +42,117 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #include <iostream>
 #include <map>
+#include <numeric>
+#include <random>
 #include <typeinfo>
 
 
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/spmv_common.hpp"
+#include "core/test/utils/matrix_generator.hpp"
 
 
 using etype = double;
 using itype = gko::int32;
-
+using Mtx = gko::matrix::Csr<etype, itype>;
 
 const std::map<std::string,
-               const std::function<std::shared_ptr<
-                   gko::matrix::Csr<etype, itype>::strategy_type>()>>
-    strategy_map{{"classical",
-                  []() {
-                      return std::make_shared<
-                          gko::matrix::Csr<etype, itype>::classical>();
+               const std::function<std::shared_ptr<Mtx::strategy_type>(
+                   std::shared_ptr<gko::Executor>)>>
+    strategy_map{{"onepass",
+                  [](std::shared_ptr<gko::Executor> exec) {
+                      // prevent double-free on executors/sparselib handles
+                      if (dynamic_cast<gko::HipExecutor *>(exec.get())) {
+                          return std::make_shared<Mtx::load_balance>(
+                              gko::as<gko::HipExecutor>(exec));
+                      }
+                      if (dynamic_cast<gko::CudaExecutor *>(exec.get())) {
+                          return std::make_shared<Mtx::load_balance>(
+                              gko::as<gko::CudaExecutor>(exec));
+                      }
+                      return std::make_shared<Mtx::load_balance>();
                   }},
-                 {"sparselib", []() {
-                      return std::make_shared<
-                          gko::matrix::Csr<etype, itype>::sparselib>();
+                 {"twopass",
+                  [](std::shared_ptr<gko::Executor>) {
+                      return std::make_shared<Mtx::classical>();
+                  }},
+                 {"sparselib", [](std::shared_ptr<gko::Executor>) {
+                      return std::make_shared<Mtx::sparselib>();
                   }}};
 
 
-DEFINE_bool(transpose_square, false,
-            "Compute A*A^T instead of A*A if A is square");
+DEFINE_int32(rowlength, 10,
+             "The length of rows in randomly generated matrices B. Only "
+             "relevant for mode = <sparse|dense>");
+
+
+const std::map<std::string,
+               const std::function<std::shared_ptr<Mtx>(std::shared_ptr<Mtx>)>>
+    mode_map{
+        {"normal",
+         [](std::shared_ptr<Mtx> matrix) {
+             return matrix->get_size()[0] == matrix->get_size()[1]
+                        ? matrix
+                        : gko::as<Mtx>(matrix->transpose());
+         }},
+        {"transposed",
+         [](std::shared_ptr<Mtx> matrix) {
+             return gko::as<Mtx>(matrix->transpose());
+         }},
+        {"sparse",
+         [](std::shared_ptr<Mtx> matrix) {
+             auto size = gko::transpose(matrix->get_size());
+             // don't expect too much quality from this seed =)
+             std::default_random_engine rng(
+                 FLAGS_seed ^ (matrix->get_size()[0] << 24) ^
+                 (matrix->get_size()[1] << 15) -
+                     matrix->get_num_stored_elements());
+             std::uniform_real_distribution<etype> val_dist(-1.0, 1.0);
+             gko::matrix_data<etype, itype> data{size, {}};
+             data.nonzeros.reserve(size[0] * FLAGS_rowlength);
+             // randomly permute column indices
+             std::vector<itype> cols(size[1]);
+             std::iota(cols.begin(), cols.end(), 0);
+             for (itype row = 0; row < size[0]; ++row) {
+                 std::shuffle(cols.begin(), cols.end(), rng);
+                 for (int i = 0; i < FLAGS_rowlength; ++i) {
+                     data.nonzeros.emplace_back(row, cols[i], val_dist(rng));
+                 }
+             }
+             auto mtx = Mtx::create(matrix->get_executor(), size);
+             mtx->read(data);
+             return gko::share(std::move(mtx));
+         }},
+        {"dense", [](std::shared_ptr<Mtx> matrix) {
+             auto size = gko::dim<2>(matrix->get_size()[1], FLAGS_rowlength);
+             // don't expect too much quality from this seed =)
+             std::default_random_engine rng(
+                 FLAGS_seed ^ (matrix->get_size()[0] << 24) ^
+                 (matrix->get_size()[1] << 15) -
+                     matrix->get_num_stored_elements());
+             std::uniform_real_distribution<etype> dist(-1.0, 1.0);
+             gko::matrix_data<etype, itype> data{size, dist, rng};
+             data.ensure_row_major_order();
+             auto mtx = Mtx::create(matrix->get_executor(), size);
+             mtx->read(data);
+             return gko::share(std::move(mtx));
+         }}};
+
 
 DEFINE_string(
-    strategies, "classical,sparselib",
-    "Comma-separated list of SpGEMM strategies: classical or sparselib");
+    mode, "normal",
+    "Which matrix B should be used to compute A * B: normal, "
+    "transposed, sparse, dense\n"
+    "normal: B = A for A square, A^T otherwise\ntransposed: B = "
+    "A^T\nsparse: B is a sparse matrix with dimensions of A^T with uniformly "
+    "random values, at most -rowlength non-zeros per row\ndense: B is a "
+    "'dense' sparse matrix with -rowlength columns and non-zeros per row");
+
+
+DEFINE_string(
+    strategies, "onepass,twopass,sparselib",
+    "Comma-separated list of SpGEMM strategies: onepass, twopass, sparselib");
 
 
 void apply_spgemm(const char *strategy_name,
@@ -85,18 +164,16 @@ void apply_spgemm(const char *strategy_name,
     try {
         add_or_set_member(test_case, strategy_name,
                           rapidjson::Value(rapidjson::kObjectType), allocator);
+        add_or_set_member(test_case[strategy_name], "mode",
+                          rapidjson::Value(FLAGS_mode.c_str(), allocator),
+                          allocator);
 
-        using Mtx = gko::matrix::Csr<etype, itype>;
-
-        auto mtx = Mtx::create(exec);
+        auto mtx = gko::share(Mtx::create(exec));
         mtx->read(data);
-        mtx->set_strategy(strategy_map.at(strategy_name)());
-        auto is_square = mtx->get_size()[0] != mtx->get_size()[1];
-        auto do_transpose = !is_square || FLAGS_transpose_square;
-        auto mtx2 =
-            do_transpose ? gko::as<Mtx>(mtx->transpose()) : mtx->clone();
+        mtx->set_strategy(strategy_map.at(strategy_name)(exec));
+        auto mtx2 = mode_map.at(FLAGS_mode)(mtx);
         auto res = Mtx::create(
-            exec, gko::dim<2>(mtx->get_size()[0], mtx->get_size()[1]));
+            exec, gko::dim<2>(mtx->get_size()[0], mtx2->get_size()[1]));
 
         // warm run
         for (unsigned int i = 0; i < FLAGS_warmup; i++) {
