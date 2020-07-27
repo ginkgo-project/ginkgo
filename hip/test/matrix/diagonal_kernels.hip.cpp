@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtest/gtest.h>
 
 
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -54,11 +55,13 @@ namespace {
 
 class Diagonal : public ::testing::Test {
 protected:
+    using Csr = gko::matrix::Csr<>;
     using Diag = gko::matrix::Diagonal<>;
-    using Mtx = gko::matrix::Dense<>;
+    using Dense = gko::matrix::Dense<>;
     using Arr = gko::Array<int>;
+    using ComplexDiag = gko::matrix::Diagonal<std::complex<double>>;
 
-    Diagonal() : rand_engine(15) {}
+    Diagonal() : mtx_size(532, 231), rand_engine(42) {}
 
     void SetUp()
     {
@@ -75,11 +78,12 @@ protected:
     }
 
     template <typename MtxType>
-    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)
+    std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols,
+                                     int min_nnz_row)
     {
         return gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
-            std::uniform_int_distribution<>(num_cols, num_cols),
+            std::uniform_int_distribution<>(min_nnz_row, num_cols),
             std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
     }
 
@@ -110,49 +114,69 @@ protected:
 
     void set_up_apply_data()
     {
-        diag = gen_diag(40);
-        x = gen_mtx<Mtx>(40, 25);
-        y = gen_mtx<Mtx>(25, 40);
-        expected1 = gen_mtx<Mtx>(40, 25);
-        expected2 = gen_mtx<Mtx>(25, 40);
-        alpha = gko::initialize<Mtx>({2.0}, ref);
-        beta = gko::initialize<Mtx>({-1.0}, ref);
+        diag = gen_diag(mtx_size[0]);
         ddiag = Diag::create(hip);
         ddiag->copy_from(diag.get());
-        dx = Mtx::create(hip);
-        dx->copy_from(x.get());
-        dy = Mtx::create(hip);
-        dy->copy_from(y.get());
-        dresult1 = Mtx::create(hip);
-        dresult1->copy_from(expected1.get());
-        dresult2 = Mtx::create(hip);
-        dresult2->copy_from(expected2.get());
-        dalpha = Mtx::create(hip);
-        dalpha->copy_from(alpha.get());
-        dbeta = Mtx::create(hip);
-        dbeta->copy_from(beta.get());
+        dense1 = gen_mtx<Dense>(mtx_size[0], mtx_size[1], mtx_size[0]);
+        dense2 = gen_mtx<Dense>(mtx_size[1], mtx_size[0], mtx_size[1]);
+        denseexpected1 = gen_mtx<Dense>(mtx_size[0], mtx_size[1], mtx_size[0]);
+        denseexpected2 = gen_mtx<Dense>(mtx_size[1], mtx_size[0], mtx_size[1]);
+        ddense1 = Dense::create(hip);
+        ddense1->copy_from(dense1.get());
+        ddense2 = Dense::create(hip);
+        ddense2->copy_from(dense2.get());
+        denseresult1 = Dense::create(hip);
+        denseresult1->copy_from(denseexpected1.get());
+        denseresult2 = Dense::create(hip);
+        denseresult2->copy_from(denseexpected2.get());
+        csr1 = gen_mtx<Csr>(mtx_size[0], mtx_size[1], 1);
+        csr2 = gen_mtx<Csr>(mtx_size[1], mtx_size[0], 1);
+        csrexpected1 = gen_mtx<Csr>(mtx_size[0], mtx_size[1], 1);
+        csrexpected2 = gen_mtx<Csr>(mtx_size[1], mtx_size[0], 1);
+        dcsr1 = Csr::create(hip);
+        dcsr1->copy_from(csr1.get());
+        dcsr2 = Csr::create(hip);
+        dcsr2->copy_from(csr2.get());
+        csrresult1 = Csr::create(hip);
+        csrresult1->copy_from(csrexpected1.get());
+        csrresult2 = Csr::create(hip);
+        csrresult2->copy_from(csrexpected2.get());
+    }
+
+    void set_up_complex_data()
+    {
+        cdiag = gen_cdiag(mtx_size[0]);
+        dcdiag = ComplexDiag::create(hip);
+        dcdiag->copy_from(cdiag.get());
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::HipExecutor> hip;
 
+    const gko::dim<2> mtx_size;
     std::ranlux48 rand_engine;
 
     std::unique_ptr<Diag> diag;
     std::unique_ptr<Diag> ddiag;
+    std::unique_ptr<ComplexDiag> cdiag;
+    std::unique_ptr<ComplexDiag> dcdiag;
 
-    std::unique_ptr<Mtx> x;
-    std::unique_ptr<Mtx> y;
-    std::unique_ptr<Mtx> alpha;
-    std::unique_ptr<Mtx> beta;
-    std::unique_ptr<Mtx> expected1;
-    std::unique_ptr<Mtx> expected2;
-    std::unique_ptr<Mtx> dresult1;
-    std::unique_ptr<Mtx> dresult2;
-    std::unique_ptr<Mtx> dx;
-    std::unique_ptr<Mtx> dy;
-    std::unique_ptr<Mtx> dalpha;
-    std::unique_ptr<Mtx> dbeta;
+    std::unique_ptr<Dense> dense1;
+    std::unique_ptr<Dense> dense2;
+    std::unique_ptr<Dense> denseexpected1;
+    std::unique_ptr<Dense> denseexpected2;
+    std::unique_ptr<Dense> denseresult1;
+    std::unique_ptr<Dense> denseresult2;
+    std::unique_ptr<Dense> ddense1;
+    std::unique_ptr<Dense> ddense2;
+    std::unique_ptr<Csr> csr1;
+    std::unique_ptr<Csr> csr2;
+    std::unique_ptr<Csr> dcsr1;
+    std::unique_ptr<Csr> dcsr2;
+    std::unique_ptr<Csr> csrexpected1;
+    std::unique_ptr<Csr> csrexpected2;
+    std::unique_ptr<Csr> csrresult1;
+    std::unique_ptr<Csr> csrresult2;
 };
 
 
@@ -160,20 +184,67 @@ TEST_F(Diagonal, ApplyToDenseIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    diag->apply(x.get(), expected1.get());
-    ddiag->apply(dx.get(), dresult1.get());
+    diag->apply(dense1.get(), denseexpected1.get());
+    ddiag->apply(ddense1.get(), denseresult1.get());
 
-    GKO_ASSERT_MTX_NEAR(expected1, dresult1, 0);
+    GKO_ASSERT_MTX_NEAR(denseexpected1, denseresult1, 1e-14);
 }
+
 
 TEST_F(Diagonal, RightApplyToDenseIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    diag->rapply(y.get(), expected2.get());
-    ddiag->rapply(dy.get(), dresult2.get());
+    diag->rapply(dense2.get(), denseexpected2.get());
+    ddiag->rapply(ddense2.get(), denseresult2.get());
 
-    GKO_ASSERT_MTX_NEAR(expected2, dresult2, 0);
+    GKO_ASSERT_MTX_NEAR(denseexpected2, denseresult2, 1e-14);
+}
+
+
+TEST_F(Diagonal, ApplyToCsrIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    diag->apply(csr1.get(), csrexpected1.get());
+    ddiag->apply(dcsr1.get(), csrresult1.get());
+
+    GKO_ASSERT_MTX_NEAR(csrexpected1, csrresult1, 1e-14);
+}
+
+
+TEST_F(Diagonal, RightApplyToCsrIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    diag->rapply(csr2.get(), csrexpected2.get());
+    ddiag->rapply(dcsr2.get(), csrresult2.get());
+
+    GKO_ASSERT_MTX_NEAR(csrexpected2, csrresult2, 1e-14);
+}
+
+
+TEST_F(Diagonal, ConvertToCsrIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    diag->convert_to(csr1.get());
+    ddiag->convert_to(dcsr1.get());
+
+    GKO_ASSERT_MTX_NEAR(csr1, dcsr1, 0);
+}
+
+
+TEST_F(Diagonal, ConjTransposeIsEquivalentToRef)
+{
+    set_up_complex_data();
+
+    auto trans = cdiag->conj_transpose();
+    auto trans_diag = static_cast<ComplexDiag *>(trans.get());
+    auto dtrans = dcdiag->conj_transpose();
+    auto dtrans_diag = static_cast<ComplexDiag *>(dtrans.get());
+
+    GKO_ASSERT_MTX_NEAR(trans_diag, dtrans_diag, 0);
 }
 
 
