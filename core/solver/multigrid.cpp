@@ -40,7 +40,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-
+#include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
+#include <iostream>
 
 #include "core/components/fill_array.hpp"
 #include "core/solver/ir_kernels.hpp"
@@ -70,9 +72,7 @@ void handle_list(
     std::shared_ptr<const Executor> &exec, size_type index,
     std::shared_ptr<const LinOp> &matrix,
     std::vector<std::shared_ptr<const LinOpFactory>> &smoother_list,
-    gko::Array<ValueType> &relaxation_array,
     std::vector<std::shared_ptr<LinOp>> &smoother,
-    std::vector<std::shared_ptr<matrix::Dense<ValueType>>> &relaxation,
     std::shared_ptr<matrix::Dense<ValueType>> &one)
 {
     auto list_size = smoother_list.size();
@@ -83,22 +83,24 @@ void handle_list(
         if (item == nullptr) {
             smoother.emplace_back(nullptr);
         } else {
-            smoother.emplace_back(give(item->generate(matrix)));
+            auto solver = item->generate(matrix);
+            if (solver->apply_uses_initial_guess() == true) {
+                smoother.emplace_back(give(solver));
+            } else {
+                // if it is not use initial guess, use it as inner solver of Ir
+                // with 1 iteration and relaxation_factor 1
+                auto ir =
+                    Ir<ValueType>::build()
+                        .with_generated_solver(give(solver))
+                        .with_criteria(
+                            gko::stop::Iteration::build().with_max_iters(1u).on(
+                                exec))
+                        .on(exec);
+                smoother.emplace_back(give(ir->generate(matrix)));
+            }
         }
     } else {
         smoother.emplace_back(nullptr);
-    }
-    auto array_size = relaxation_array.get_num_elems();
-    if (array_size != 0) {
-        auto temp_index = array_size == 1 ? 0 : index;
-        GKO_ENSURE_IN_BOUNDS(temp_index, array_size);
-        auto data = relaxation_array.get_data();
-        relaxation.emplace_back(give(matrix::Dense<ValueType>::create(
-            exec, gko::dim<2>{1},
-            Array<ValueType>::view(exec, 1, data + temp_index), 1)));
-    } else {
-        // default is one;
-        relaxation.emplace_back(one);
     }
 }
 
@@ -185,23 +187,20 @@ struct MultigridState {
         auto total_level = multigrid->get_rstr_prlg_list().size();
         // get the pre_smoother
         auto pre_smoother = multigrid->get_pre_smoother_list().at(level);
-        auto pre_relaxation = multigrid->get_pre_relaxation_list().at(level);
         // get the mid_smoother
         auto mid_smoother = multigrid->get_mid_smoother_list().at(level);
-        auto mid_relaxation = multigrid->get_mid_relaxation_list().at(level);
         // get the post_smoother
         auto post_smoother = multigrid->get_post_smoother_list().at(level);
-        auto post_relaxation = multigrid->get_post_relaxation_list().at(level);
-        // move the residual computation in level zero to out-of-cycle
-        if (level != 0) {
-            r->copy_from(b);
-            matrix->apply(neg_one, x, one, r.get());
-        }
-        // x += relaxation * Smoother(r)
+        // Smoother * x = r
         if (pre_smoother) {
-            pre_smoother->apply(pre_relaxation.get(), r.get(), one, x);
+            pre_smoother->apply(b, x);
             // compute residual
             r->copy_from(b);  // n * b
+            matrix->apply(neg_one, x, one, r.get());
+        } else if (level != 0) {
+            // move the residual computation at level 0 to out-of-cycle if there
+            // is no pre-smoother at level 0
+            r->copy_from(b);
             matrix->apply(neg_one, x, one, r.get());
         }
         // first cycle
@@ -218,16 +217,13 @@ struct MultigridState {
             // second cycle - f_cycle, w_cycle
             // prolong
             rstr_prlg->prolong_applyadd(e.get(), x);
+            // mid-smooth
+            if (mid_smoother) {
+                mid_smoother->apply(b, x);
+            }
             // compute residual
             r->copy_from(b);  // n * b
             matrix->apply(neg_one, x, one, r.get());
-            // mid-smooth
-            if (mid_smoother) {
-                mid_smoother->apply(mid_relaxation.get(), r.get(), one, x);
-                // compute residual
-                r->copy_from(b);  // n * b
-                matrix->apply(neg_one, x, one, r.get());
-            }
 
             rstr_prlg->restrict_apply(r.get(), g.get());
             // next level or solve it
@@ -321,9 +317,7 @@ struct MultigridState {
 
         // post-smooth
         if (post_smoother) {
-            r->copy_from(b);
-            matrix->apply(neg_one, x, one, r.get());
-            post_smoother->apply(post_relaxation.get(), r.get(), one, x);
+            post_smoother->apply(b, x);
         }
     }
 
@@ -367,7 +361,9 @@ void Multigrid<ValueType>::generate()
     size_type level = 0;
     auto matrix = system_matrix_;
     auto exec = this->get_executor();
-    // Always generate smoother and relaxation with size = level.
+    std::cout << matrix->get_size()[0] << " " << matrix->get_size()[1]
+              << std::endl;
+    // Always generate smoother with size = level.
     while (level < parameters_.max_levels &&
            num_rows > parameters_.min_coarse_rows) {
         auto index = rstr_prlg_index_(level, lend(matrix));
@@ -382,34 +378,29 @@ void Multigrid<ValueType>::generate()
         rstr_prlg_list_.emplace_back(give(rstr));
         // pre_smooth_generate
         handle_list(exec, index, matrix, parameters_.pre_smoother,
-                    parameters_.pre_relaxation, pre_smoother_list_,
-                    pre_relaxation_list_, one_op_);
+                    pre_smoother_list_, one_op_);
         // mid_smooth_generate
         if (parameters_.mid_case == multigrid_mid_uses::mid) {
             handle_list(exec, index, matrix, parameters_.mid_smoother,
-                        parameters_.mid_relaxation, mid_smoother_list_,
-                        mid_relaxation_list_, one_op_);
+                        mid_smoother_list_, one_op_);
         }
         // post_smooth_generate
         if (!parameters_.post_uses_pre) {
             handle_list(exec, index, matrix, parameters_.post_smoother,
-                        parameters_.post_relaxation, post_smoother_list_,
-                        post_relaxation_list_, one_op_);
+                        post_smoother_list_, one_op_);
         }
         matrix = rstr_prlg_list_.back()->get_coarse_operator();
+        std::cout << num_rows << " -> " << matrix->get_size()[0] << std::endl;
         num_rows = matrix->get_size()[0];
         level++;
     }
     if (parameters_.post_uses_pre) {
         post_smoother_list_ = pre_smoother_list_;
-        post_relaxation_list_ = pre_relaxation_list_;
     }
     if (parameters_.mid_case == multigrid_mid_uses::pre) {
         mid_smoother_list_ = pre_smoother_list_;
-        mid_relaxation_list_ = pre_relaxation_list_;
     } else if (parameters_.mid_case == multigrid_mid_uses::post) {
         mid_smoother_list_ = post_smoother_list_;
-        mid_relaxation_list_ = post_relaxation_list_;
     }
     // Generate at least one level
     GKO_ASSERT_EQ(level > 0, true);

@@ -172,39 +172,6 @@ public:
     }
 
     /**
-     * Gets the list of pre-relaxation.
-     *
-     * @return the list of pre-relaxation
-     */
-    const std::vector<std::shared_ptr<matrix::Dense<ValueType>>>
-    get_pre_relaxation_list() const
-    {
-        return pre_relaxation_list_;
-    }
-
-    /**
-     * Gets the list of mid-relaxation.
-     *
-     * @return the list of mid-relaxation
-     */
-    const std::vector<std::shared_ptr<matrix::Dense<ValueType>>>
-    get_mid_relaxation_list() const
-    {
-        return mid_relaxation_list_;
-    }
-
-    /**
-     * Gets the list of post-relaxation.
-     *
-     * @return the list of post-relaxation
-     */
-    const std::vector<std::shared_ptr<matrix::Dense<ValueType>>>
-    get_post_relaxation_list() const
-    {
-        return post_relaxation_list_;
-    }
-
-    /**
      * Get the cycle of multigrid
      *
      * @return the cycle
@@ -271,31 +238,6 @@ public:
          */
         std::vector<std::shared_ptr<const LinOpFactory>> GKO_FACTORY_PARAMETER(
             mid_smoother, nullptr);
-
-        /**
-         * Pre-relaxation list.
-         * Its size must be 0, 1 or be the same as rstr_prlg's.
-         * when size = 0, use 1 as relaxation
-         * when size = 1, use the first value
-         * when size > 1, use the same selector as rstr_prlg
-         */
-        gko::Array<value_type> GKO_FACTORY_PARAMETER(pre_relaxation, nullptr);
-
-        /**
-         * Post-relaxation list.
-         * It is similar to Pre-relaxation list. It is ignore if
-         * post_uses_pre = true.
-         */
-        gko::Array<value_type> GKO_FACTORY_PARAMETER(post_relaxation, nullptr);
-
-        /**
-         * Mid-relaxation list. If it contains availble elements, multigrid
-         * always generate the corresponding smoother. However, it only involve
-         * in the procedure when cycle is k or f.
-         * It is similar to Pre-relaxation list. It is ignore if
-         * multigrid_mid_uses is not mid.
-         */
-        gko::Array<value_type> GKO_FACTORY_PARAMETER(mid_relaxation, nullptr);
 
         /**
          * Whether Post-related calls use corresponding pre-related calls.
@@ -373,11 +315,7 @@ protected:
 
     explicit Multigrid(std::shared_ptr<const Executor> exec)
         : EnableLinOp<Multigrid>(exec)
-    {
-        parameters_.pre_relaxation.set_executor(exec);
-        parameters_.mid_relaxation.set_executor(exec);
-        parameters_.post_relaxation.set_executor(exec);
-    }
+    {}
 
     explicit Multigrid(const Factory *factory,
                        std::shared_ptr<const LinOp> system_matrix)
@@ -391,10 +329,6 @@ protected:
               {-one<ValueType>()}, factory->get_executor()))}
     {
         GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
-
-        parameters_.pre_relaxation.set_executor(this->get_executor());
-        parameters_.mid_relaxation.set_executor(this->get_executor());
-        parameters_.post_relaxation.set_executor(this->get_executor());
 
         stop_criterion_factory_ =
             stop::combine(std::move(parameters_.criteria));
@@ -434,22 +368,14 @@ protected:
         // verify pre-related parameters
         this->verify_legal_length(true, parameters_.pre_smoother.size(),
                                   rstr_prlg_len);
-        this->verify_legal_length(
-            true, parameters_.pre_relaxation.get_num_elems(), rstr_prlg_len);
         // verify post-related parameters when post does not use pre
         this->verify_legal_length(!parameters_.post_uses_pre,
                                   parameters_.post_smoother.size(),
-                                  rstr_prlg_len);
-        this->verify_legal_length(!parameters_.post_uses_pre,
-                                  parameters_.post_relaxation.get_num_elems(),
                                   rstr_prlg_len);
         // verify mid-related parameters when mid does not use pre/post.
         this->verify_legal_length(
             parameters_.mid_case == multigrid_mid_uses::mid,
             parameters_.mid_smoother.size(), rstr_prlg_len);
-        this->verify_legal_length(
-            parameters_.mid_case == multigrid_mid_uses::mid,
-            parameters_.mid_relaxation.get_num_elems(), rstr_prlg_len);
 
         cycle_ = parameters_.cycle;
         if (system_matrix_->get_size()[0] != 0) {
@@ -477,12 +403,6 @@ private:
     std::vector<std::shared_ptr<LinOp>> pre_smoother_list_{};
     std::vector<std::shared_ptr<LinOp>> mid_smoother_list_{};
     std::vector<std::shared_ptr<LinOp>> post_smoother_list_{};
-    std::vector<std::shared_ptr<matrix::Dense<ValueType>>>
-        pre_relaxation_list_{};
-    std::vector<std::shared_ptr<matrix::Dense<ValueType>>>
-        mid_relaxation_list_{};
-    std::vector<std::shared_ptr<matrix::Dense<ValueType>>>
-        post_relaxation_list_{};
     std::shared_ptr<LinOp> coarsest_solver_{};
     std::function<size_type(const size_type, const LinOp *)> rstr_prlg_index_;
     std::function<size_type(const size_type, const LinOp *)> solver_index_;
