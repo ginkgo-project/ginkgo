@@ -120,6 +120,7 @@ const std::map<std::string,
                      data.nonzeros.emplace_back(row, cols[i], val_dist(rng));
                  }
              }
+             data.ensure_row_major_order();
              auto mtx = Mtx::create(matrix->get_executor(), size);
              mtx->read(data);
              return gko::share(std::move(mtx));
@@ -273,6 +274,8 @@ int main(int argc, char *argv[])
             std::clog << "Running test case: " << test_case << std::endl;
             std::ifstream mtx_fd(test_case["filename"].GetString());
             auto data = gko::read_raw<etype>(mtx_fd);
+            auto data = gko::read_raw<etype, itype>(mtx_fd);
+            data.ensure_row_major_order();
 
             std::clog << "Matrix is of size (" << data.size[0] << ", "
                       << data.size[1] << ")" << std::endl;
