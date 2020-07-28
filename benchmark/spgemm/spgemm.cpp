@@ -54,7 +54,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 using etype = double;
+#ifdef GKO_SPGEMM_LONG
+using itype = gko::int64;
+const auto benchmark_name = "spgemm64";
+#else
 using itype = gko::int32;
+const auto benchmark_name = "spgemm";
+#endif
 using Mtx = gko::matrix::Csr<etype, itype>;
 
 const std::map<std::string,
@@ -158,7 +164,7 @@ DEFINE_string(
 
 void apply_spgemm(const char *strategy_name,
                   std::shared_ptr<gko::Executor> exec,
-                  const gko::matrix_data<etype> &data,
+                  const gko::matrix_data<etype, itype> &data,
                   rapidjson::Value &test_case,
                   rapidjson::MemoryPoolAllocator<> &allocator)
 {
@@ -258,12 +264,12 @@ int main(int argc, char *argv[])
         try {
             // set up benchmark
             validate_option_object(test_case);
-            if (!test_case.HasMember("spgemm")) {
-                test_case.AddMember("spgemm",
+            if (!test_case.HasMember(benchmark_name)) {
+                test_case.AddMember(rapidjson::Value(benchmark_name, allocator),
                                     rapidjson::Value(rapidjson::kObjectType),
                                     allocator);
             }
-            auto &spgemm_case = test_case["spgemm"];
+            auto &spgemm_case = test_case[benchmark_name];
             if (!FLAGS_overwrite &&
                 all_of(begin(strategies), end(strategies),
                        [&](const std::string &s) {
