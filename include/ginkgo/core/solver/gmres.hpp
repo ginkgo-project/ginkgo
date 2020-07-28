@@ -33,9 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_SOLVER_GMRES_HPP_
 #define GKO_CORE_SOLVER_GMRES_HPP_
 
-
 #include <vector>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -47,13 +45,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
-
 namespace gko {
 namespace solver {
 
-
 constexpr size_type default_krylov_dim = 100u;
-
 
 /**
  * GMRES or the generalized minimal residual method is an iterative type Krylov
@@ -141,8 +136,8 @@ public:
         /**
          * Criterion factories.
          */
-        std::vector<std::shared_ptr<const stop::CriterionFactory>>
-            GKO_FACTORY_PARAMETER(criteria, nullptr);
+        GKO_FACTORY_PARAMETER_VECTOR(
+            criteria, std::shared_ptr<const stop::CriterionFactory>);
 
         /**
          * Preconditioner factory.
@@ -208,9 +203,7 @@ private:
     size_type krylov_dim_;
 };
 
-
 }  // namespace solver
 }  // namespace gko
-
 
 #endif  // GKO_CORE_SOLVER_GMRES_HPP_

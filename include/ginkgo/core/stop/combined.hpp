@@ -33,16 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_STOP_COMBINED_HPP_
 #define GKO_CORE_STOP_COMBINED_HPP_
 
-
 #include <vector>
-
 
 #include <ginkgo/core/stop/criterion.hpp>
 
-
 namespace gko {
 namespace stop {
-
 
 /**
  * The Combined class is used to combine multiple criterions together through an
@@ -67,8 +63,8 @@ public:
          * of pointers, so copying it when creating the factories should not be
          * too costly.
          */
-        std::vector<std::shared_ptr<const CriterionFactory>>
-            GKO_FACTORY_PARAMETER(criteria, nullptr);
+        GKO_FACTORY_PARAMETER_VECTOR(
+            criteria, std::shared_ptr<const stop::CriterionFactory>);
     };
     GKO_ENABLE_CRITERION_FACTORY(Combined, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -101,7 +97,6 @@ protected:
 private:
     std::vector<std::unique_ptr<Criterion>> criteria_{};
 };
-
 
 /**
  * Combines multiple criterion factories into a single combined criterion
@@ -145,9 +140,7 @@ std::shared_ptr<const CriterionFactory> combine(FactoryContainer &&factories)
     }
 }
 
-
 }  // namespace stop
 }  // namespace gko
-
 
 #endif  // GKO_CORE_STOP_COMBINED_HPP_

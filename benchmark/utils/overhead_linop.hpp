@@ -33,21 +33,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_BENCHMARK_UTILS_OVERHEAD_LINOP_HPP_
 #define GKO_BENCHMARK_UTILS_OVERHEAD_LINOP_HPP_
 
-
 #include <cstdint>
 #include <memory>
 #include <vector>
-
 
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
-
 namespace gko {
 namespace kernels {
 namespace overhead {
-
 
 #define GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(_type, _num)            \
     static volatile std::uintptr_t val_operation_##_num = 0;          \
@@ -59,7 +55,6 @@ namespace overhead {
         val_operation_##_num = reinterpret_cast<std::uintptr_t>(x);   \
     }
 
-
 #define GKO_DECLARE_ALL                                                      \
     GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(ValueType, 1)                      \
     GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(ValueType, 2)                      \
@@ -69,9 +64,7 @@ namespace overhead {
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
-
 }  // namespace overhead
-
 
 namespace omp {
 namespace overhead {
@@ -81,7 +74,6 @@ GKO_DECLARE_ALL;
 }  // namespace overhead
 }  // namespace omp
 
-
 namespace cuda {
 namespace overhead {
 
@@ -89,7 +81,6 @@ GKO_DECLARE_ALL;
 
 }  // namespace overhead
 }  // namespace cuda
-
 
 namespace reference {
 namespace overhead {
@@ -99,7 +90,6 @@ GKO_DECLARE_ALL;
 }  // namespace overhead
 }  // namespace reference
 
-
 namespace hip {
 namespace overhead {
 
@@ -108,24 +98,18 @@ GKO_DECLARE_ALL;
 }  // namespace overhead
 }  // namespace hip
 
-
 #undef GKO_DECLARE_ALL
-
 
 }  // namespace kernels
 
-
 namespace overhead {
-
 
 GKO_REGISTER_OPERATION(operation1, overhead::operation1);
 GKO_REGISTER_OPERATION(operation2, overhead::operation2);
 GKO_REGISTER_OPERATION(operation3, overhead::operation3);
 GKO_REGISTER_OPERATION(operation4, overhead::operation4);
 
-
 }  // namespace overhead
-
 
 template <typename ValueType = default_precision>
 class Overhead : public EnableLinOp<Overhead<ValueType>>,
@@ -139,8 +123,8 @@ public:
         /**
          * Criterion factories.
          */
-        std::vector<std::shared_ptr<const stop::CriterionFactory>>
-            GKO_FACTORY_PARAMETER(criteria, nullptr);
+        GKO_FACTORY_PARAMETER_VECTOR(
+            criteria, std::shared_ptr<const stop::CriterionFactory>);
 
         /**
          * Preconditioner factory.
@@ -219,8 +203,6 @@ private:
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
 };
 
-
 }  // namespace gko
-
 
 #endif  // GKO_BENCHMARK_UTILS_OVERHEAD_LINOP_HPP_

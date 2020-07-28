@@ -33,10 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_BASE_LIN_OP_HPP_
 #define GKO_CORE_BASE_LIN_OP_HPP_
 
-
 #include <memory>
 #include <utility>
-
 
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/dim.hpp>
@@ -48,9 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/log/logger.hpp>
 
-
 namespace gko {
-
 
 /**
  * @addtogroup LinOp
@@ -308,7 +304,6 @@ private:
     dim<2> size_{};
 };
 
-
 /**
  * A LinOpFactory represents a higher order mapping which transforms one
  * linear operator into another.
@@ -379,7 +374,6 @@ public:
     }
 };
 
-
 /**
  * Linear operators which support transposition should implement the
  * Transposable interface.
@@ -424,7 +418,6 @@ public:
      */
     virtual std::unique_ptr<LinOp> conj_transpose() const = 0;
 };
-
 
 /**
  * Linear operators which support permutation should implement the
@@ -508,7 +501,6 @@ public:
         const Array<IndexType> *inverse_permutation_indices) const = 0;
 };
 
-
 /**
  * A LinOp implementing this interface can read its data from a matrix_data
  * structure.
@@ -528,7 +520,6 @@ public:
     virtual void read(const matrix_data<ValueType, IndexType> &data) = 0;
 };
 
-
 /**
  * A LinOp implementing this interface can write its data to a matrix_data
  * structure.
@@ -547,7 +538,6 @@ public:
      */
     virtual void write(matrix_data<ValueType, IndexType> &data) const = 0;
 };
-
 
 /**
  * A LinOp implementing this interface can be preconditioned.
@@ -583,7 +573,6 @@ public:
 private:
     std::shared_ptr<const LinOp> preconditioner_{};
 };
-
 
 /**
  * The EnableLinOp mixin can be used to provide sensible default implementations
@@ -681,7 +670,6 @@ protected:
     GKO_ENABLE_SELF(ConcreteLinOp);
 };
 
-
 /**
  * This is an alias for the EnableDefaultFactory mixin, which correctly sets the
  * template parameters to enable a subclass of LinOpFactory.
@@ -724,7 +712,6 @@ public:                                                                \
     struct _parameters_name##_type                                     \
         : ::gko::enable_parameters_type<_parameters_name##_type,       \
                                         _factory_name>
-
 
 /**
  * This macro will generate a default implementation of a LinOpFactory for the
@@ -827,7 +814,6 @@ public:                                                                      \
     friend ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,          \
                                             _parameters_name##_type>;        \
                                                                              \
-                                                                             \
 private:                                                                     \
     _parameters_name##_type _parameters_name##_;                             \
                                                                              \
@@ -835,7 +821,6 @@ public:                                                                      \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
-
 
 /**
  * Defines a build method for the factory, simplifying its construction by
@@ -854,8 +839,6 @@ public:                                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
-
-#if !(defined(__CUDACC__) || defined(__HIPCC__))
 /**
  * Creates a factory parameter in the factory parameters structure.
  *
@@ -870,37 +853,62 @@ public:                                                                      \
     mutable _name{__VA_ARGS__};                                              \
                                                                              \
     template <typename... Args>                                              \
-    auto with_##_name(Args &&... _value)                                     \
+    auto with_##_name(decltype(_name) _value)                                \
         const->const ::gko::xstd::decay_t<decltype(*this)> &                 \
     {                                                                        \
         using type = decltype(this->_name);                                  \
-        this->_name = type{std::forward<Args>(_value)...};                   \
+        this->_name = std::move(_value);                                     \
         return *this;                                                        \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
-#else  // defined(__CUDACC__) || defined(__HIPCC__)
-// A workaround for the NVCC compiler - parameter pack expansion does not work
-// properly. You won't be able to use factories in code compiled with NVCC, but
-// at least this won't trigger a compiler error as soon as a header using it is
-// included. To not get a linker error, we provide a dummy body.
-#define GKO_FACTORY_PARAMETER(_name, ...)                                    \
-    mutable _name{__VA_ARGS__};                                              \
+
+/**
+ * Creates a factory parameter in the factory parameters structure that is a
+ * vector of multiple elements (at most 3).
+ *
+ * @param _name  name of the parameter
+ * @param _type  type of each entry of the parameter
+ *
+ * @see GKO_ENABLE_LIN_OP_FACTORY for more details, and usage example
+ *
+ * @ingroup LinOp
+ */
+#define GKO_FACTORY_PARAMETER_VECTOR(_name, _type)                           \
+    std::vector<_type> mutable _name;                                        \
                                                                              \
-    template <typename... Args>                                              \
-    auto with_##_name(Args &&... _value)                                     \
+    auto with_##_name(std::vector<_type> arg)                                \
         const->const ::gko::xstd::decay_t<decltype(*this)> &                 \
     {                                                                        \
+        this->_name = std::move(arg);                                        \
+        return *this;                                                        \
+    }                                                                        \
+    auto with_##_name(_type arg)                                             \
+        const->const ::gko::xstd::decay_t<decltype(*this)> &                 \
+    {                                                                        \
+        this->_name.push_back(std::move(arg));                               \
+        return *this;                                                        \
+    }                                                                        \
+    auto with_##_name(_type arg1, _type arg2)                                \
+        const->const ::gko::xstd::decay_t<decltype(*this)> &                 \
+    {                                                                        \
+        this->_name.push_back(std::move(arg1));                              \
+        this->_name.push_back(std::move(arg2));                              \
+        return *this;                                                        \
+    }                                                                        \
+    auto with_##_name(_type arg1, _type arg2, _type arg3)                    \
+        const->const ::gko::xstd::decay_t<decltype(*this)> &                 \
+    {                                                                        \
+        this->_name.push_back(std::move(arg1));                              \
+        this->_name.push_back(std::move(arg2));                              \
+        this->_name.push_back(std::move(arg3));                              \
         return *this;                                                        \
     }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
-#endif  // defined(__CUDACC__) || defined(__HIPCC__)
-
 
 }  // namespace gko
-
 
 #endif  // GKO_CORE_BASE_LIN_OP_HPP_

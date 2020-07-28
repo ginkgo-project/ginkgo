@@ -33,9 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_SOLVER_IR_HPP_
 #define GKO_CORE_SOLVER_IR_HPP_
 
-
 #include <vector>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
@@ -45,10 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
-
 namespace gko {
 namespace solver {
-
 
 /**
  * Iterative refinement (IR) is an iterative method that uses another coarse
@@ -177,8 +173,8 @@ public:
         /**
          * Criterion factories.
          */
-        std::vector<std::shared_ptr<const stop::CriterionFactory>>
-            GKO_FACTORY_PARAMETER(criteria, nullptr);
+        GKO_FACTORY_PARAMETER_VECTOR(
+            criteria, std::shared_ptr<const stop::CriterionFactory>);
 
         /**
          * Inner solver factory.
@@ -240,13 +236,10 @@ private:
     std::shared_ptr<const matrix::Dense<ValueType>> relaxation_factor_{};
 };
 
-
 template <typename ValueType = default_precision>
 using Richardson = Ir<ValueType>;
 
-
 }  // namespace solver
 }  // namespace gko
-
 
 #endif  // GKO_CORE_SOLVER_IR_HPP_

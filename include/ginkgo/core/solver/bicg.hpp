@@ -33,9 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef GKO_CORE_SOLVER_BICG_HPP_
 #define GKO_CORE_SOLVER_BICG_HPP_
 
-
 #include <vector>
-
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -48,10 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
-
 namespace gko {
 namespace solver {
-
 
 /**
  * BICG or the Biconjugate gradient method is a Krylov subspace solver.
@@ -126,8 +122,8 @@ public:
         /**
          * Criterion factories.
          */
-        std::vector<std::shared_ptr<const stop::CriterionFactory>>
-            GKO_FACTORY_PARAMETER(criteria, nullptr);
+        GKO_FACTORY_PARAMETER_VECTOR(
+            criteria, std::shared_ptr<const stop::CriterionFactory>);
 
         /**
          * Preconditioner factory.
@@ -182,9 +178,7 @@ private:
     std::shared_ptr<const stop::CriterionFactory> stop_criterion_factory_{};
 };
 
-
 }  // namespace solver
 }  // namespace gko
-
 
 #endif  // GKO_CORE_SOLVER_BICG_HPP_
