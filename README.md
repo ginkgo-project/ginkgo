@@ -97,22 +97,32 @@ Need to add the following manually according to configuration settings:
   CMake will gives the error message including `<PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH>` if the path is not correct.
   ```Did not find this build in the environment variable PATH. Please add <path> into the environment variable PATH.```
 * Build Ginkgo with Debug mode:
-  encontering `(obj) file too big` needs `\bigobj` or `-Wa,-mbig-obj` or encontering `ld: error: export ordinal too large` needs `-O1`.
+  1. `bigobj` issue: encontering `too many sections` needs `\bigobj` or `-Wa,-mbig-obj`
+  2. `ld` issue: encontering `ld: error: export ordinal too large` needs `-O1`
+
   The following are the details for different environments.
   * _Microsoft Visual Studio_:
-    * `cmake -DGINKGO_COMPILER_FLAGS=\bigobj <other parameters> <source_folder>`
-    * add `\bigobj` into the environment variable `CXXFLAGS` (only availible in the first cmake configuration)
-      * cmd: `set CXXFLAGS=\bigobj`
-      * powershell: `$env:CXXFLAGS=\bigobj`
-  * _Cygwin_: (If build ginkgo as static library, don't need `-O1`)
-    * `cmake -DGINKGO_COMPILER_FLAGS="-Wpedantic -Wa,-mbig-obj -O1" <other parameters> <source_folder>` (`GINKGO_COMPILER_FLAGS` is `-Wpedantic` by default)
-    * add `-Wa,-mbig-obj -O1` into the environment variable `CXXFLAGS` (only availible in the first cmake configuration)
-      * `export CXXFLAGS="-Wa,-mbig-obj -O1"`
-  * _MinGW_: (If build ginkgo as static library, don't need `-O1`)
-    * `cmake -DGINKGO_COMPILER_FLAGS="-Wpedantic -Wa,-mbig-obj -O1" <other parameters> <source_folder>` (`GINKGO_COMPILER_FLAGS` is `-Wpedantic` by default)
-    * add `-Wa,-mbig-obj -O1` into the environment variable `CXXFLAGS` (only availible in the first cmake configuration)
-      * cmd: `set CXXFLAGS="-Wa,-mbig-obj -O1"`
-      * powershell: `$env:CXXFLAGS="-Wa,-mbig-obj -O1"`
+    1. `bigobj` issue
+      * `cmake -DCMAKE_CXX_FLAGS=\bigobj <other parameters> <source_folder>` which might overwrite the default settings.
+      * add `\bigobj` into the environment variable `CXXFLAGS` (only availible in the first cmake configuration)
+        * cmd: `set CXXFLAGS=\bigobj`
+        * powershell: `$env:CXXFLAGS=\bigobj`
+    2. `ld` issue (_Microsoft Visual Studio_ does not have this issue)
+  * _Cygwin_:
+    1. `bigobj` issue
+      * add `-Wa,-mbig-obj -O1` into the environment variable `CXXFLAGS` (only availible in the first cmake configuration)
+        * `export CXXFLAGS="-Wa,-mbig-obj -O1"`
+      * `cmake -DCMAKE_CXX_FLAGS=-Wa,-mbig-obj <other parameters> <source_folder>`, which might overwrite the default settings.
+    2. `ld` issue (If build Ginkgo as static library, do not need this)
+      * `cmake -DGINKGO_COMPILER_FLAGS="-Wpedantic -O1" <other parameters> <source_folder>` (`GINKGO_COMPILER_FLAGS` is `-Wpedantic` by default)
+  * _MinGW_:
+    1. `bigobj` issue
+      * add `-Wa,-mbig-obj -O1` into the environment variable `CXXFLAGS` (only availible in the first cmake configuration)
+        * cmd: `set CXXFLAGS="-Wa,-mbig-obj"`
+        * powershell: `$env:CXXFLAGS="-Wa,-mbig-obj"`
+      * `cmake -DCMAKE_CXX_FLAGS=-Wa,-mbig-obj <other parameters> <source_folder>`, which might overwrite the default settings.
+    2. `ld` issue (If build Ginkgo as static library, do not need this)
+      * `cmake -DGINKGO_COMPILER_FLAGS="-Wpedantic -O1" <other parameters> <source_folder>` (`GINKGO_COMPILER_FLAGS` is `-Wpedantic` by default)
 * Build Ginkgo in _MinGW_:
   If encountering the issue `cc1plus.exe: out of memory allocating 65536 bytes`, please follow the workaround in
   [reference](https://www.intel.com/content/www/us/en/programmable/support/support-resources/knowledge-base/embedded/2016/cc1plus-exe--out-of-memory-allocating-65536-bytes.html),
