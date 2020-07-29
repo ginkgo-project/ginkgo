@@ -313,44 +313,18 @@ struct is_synchronizable_group_impl<coalesced_group> : std::true_type {};
 namespace detail {
 
 
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+
+
 // Adds generalized shuffles that support any type to the group.
 template <typename Group>
 class enable_extended_shuffle : public Group {
 public:
     using Group::Group;
-#define GKO_BIND_SHFL(ShflOp, ValueType, SelectorType)                       \
-    __device__ __forceinline__ ValueType ShflOp(                             \
-        ValueType var, SelectorType selector) const noexcept                 \
-    {                                                                        \
-        return __##ShflOp##_sync(this->build_mask(), var, selector,          \
-                                 this->size());                              \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-    GKO_BIND_SHFL(shfl, int32, int32);
-    GKO_BIND_SHFL(shfl, float, int32);
-    GKO_BIND_SHFL(shfl, uint32, int32);
-    GKO_BIND_SHFL(shfl, double, int32);
-
-    GKO_BIND_SHFL(shfl_up, int32, uint32);
-    GKO_BIND_SHFL(shfl_up, uint32, uint32);
-    GKO_BIND_SHFL(shfl_up, float, uint32);
-    GKO_BIND_SHFL(shfl_up, double, uint32);
-
-    GKO_BIND_SHFL(shfl_down, int32, uint32);
-    GKO_BIND_SHFL(shfl_down, uint32, uint32);
-    GKO_BIND_SHFL(shfl_down, float, uint32);
-    GKO_BIND_SHFL(shfl_down, double, uint32);
-
-    GKO_BIND_SHFL(shfl_xor, int32, int32);
-    GKO_BIND_SHFL(shfl_xor, float, int32);
-    GKO_BIND_SHFL(shfl_xor, uint32, int32);
-    GKO_BIND_SHFL(shfl_xor, double, int32);
-    // using Group::shfl;
-    // using Group::shfl_down;
-    // using Group::shfl_up;
-    // using Group::shfl_xor;
+    using Group::shfl;
+    using Group::shfl_down;
+    using Group::shfl_up;
+    using Group::shfl_xor;
 
 #define GKO_ENABLE_SHUFFLE_OPERATION(_name, SelectorType)                   \
     template <typename ValueType>                                           \
@@ -393,6 +367,17 @@ private:
 };
 
 
+#else
+
+
+// cuda11 put the default consturctor in protected function.
+template <typename Group>
+class enable_default_constructor : public Group {};
+
+
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+
+
 }  // namespace detail
 
 
@@ -415,10 +400,12 @@ struct thread_block_tile : detail::enable_extended_shuffle<
 // Cuda cooperative groups must need parent group type from cuda 11
 template <size_type Size>
 struct thread_block_tile
-    : detail::enable_extended_shuffle<cooperative_groups::thread_block_tile<
+    : detail::enable_default_constructor<cooperative_groups::thread_block_tile<
           Size, cooperative_groups::thread_block>> {
-    using detail::enable_extended_shuffle<cooperative_groups::thread_block_tile<
-        Size, cooperative_groups::thread_block>>::enable_extended_shuffle;
+    using detail::enable_default_constructor<
+        cooperative_groups::thread_block_tile<
+            Size,
+            cooperative_groups::thread_block>>::enable_default_constructor;
 };
 
 
