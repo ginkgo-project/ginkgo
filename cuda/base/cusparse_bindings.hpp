@@ -137,24 +137,29 @@ GKO_BIND_CUSPARSE64_SPMV(ValueType, detail::not_implemented);
 
 #else
 
+template <typename ValueType>
 inline void spmv_buffersize(cusparseHandle_t handle, cusparseOperation_t opA,
-                            const void *alpha, const cusparseSpMatDescr_t matA,
-                            const cusparseDnVecDescr_t vecX, const void *beta,
+                            const ValueType *alpha,
+                            const cusparseSpMatDescr_t matA,
+                            const cusparseDnVecDescr_t vecX,
+                            const ValueType *beta,
                             const cusparseDnVecDescr_t vecY,
-                            cudaDataType computeType, cusparseSpMVAlg_t alg,
-                            size_type *bufferSize)
+                            cusparseSpMVAlg_t alg, size_type *bufferSize)
 {
+    constexpr auto value_type = cuda_data_type<ValueType>();
     cusparseSpMV_bufferSize(handle, opA, alpha, matA, vecX, beta, vecY,
-                            computeType, alg, bufferSize);
+                            value_type, alg, bufferSize);
 }
 
+template <typename ValueType>
 inline void spmv(cusparseHandle_t handle, cusparseOperation_t opA,
-                 const void *alpha, const cusparseSpMatDescr_t matA,
-                 const cusparseDnVecDescr_t vecX, const void *beta,
-                 const cusparseDnVecDescr_t vecY, cudaDataType computeType,
-                 cusparseSpMVAlg_t alg, void *externalBuffer)
+                 const ValueType *alpha, const cusparseSpMatDescr_t matA,
+                 const cusparseDnVecDescr_t vecX, const ValueType *beta,
+                 const cusparseDnVecDescr_t vecY, cusparseSpMVAlg_t alg,
+                 void *externalBuffer)
 {
-    cusparseSpMV(handle, opA, alpha, matA, vecX, beta, vecY, computeType, alg,
+    constexpr auto value_type = cuda_data_type<ValueType>();
+    cusparseSpMV(handle, opA, alpha, matA, vecX, beta, vecY, value_type, alg,
                  externalBuffer);
 }
 
@@ -660,22 +665,6 @@ GKO_BIND_CUSPARSE_TRANSPOSE32(std::complex<double>);
 #endif
 
 
-inline cusparseHandle_t init()
-{
-    cusparseHandle_t handle{};
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle));
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(
-        cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
-    return handle;
-}
-
-
-inline void destroy(cusparseHandle_t handle)
-{
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroy(handle));
-}
-
-
 inline cusparseMatDescr_t create_mat_descr()
 {
     cusparseMatDescr_t descr{};
@@ -707,12 +696,27 @@ inline void destroy(csrgemm2Info_t info)
 #if defined(CUDA_VERSION) && (CUDA_VERSION >= 11000)
 
 
-inline cusparseDnVecDescr_t create_dnvec(int64_t size, void *values,
-                                         cudaDataType valueType)
+inline cusparseSpGEMMDescr_t create_spgemm_descr()
+{
+    cusparseSpGEMMDescr_t descr{};
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpGEMM_createDescr(&descr));
+    return descr;
+}
+
+
+inline void destroy(cusparseSpGEMMDescr_t info)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpGEMM_destroyDescr(info));
+}
+
+
+template <typename ValueType>
+inline cusparseDnVecDescr_t create_dnvec(int64_t size, ValueType *values)
 {
     cusparseDnVecDescr_t descr{};
+    constexpr auto value_type = cuda_data_type<ValueType>();
     GKO_ASSERT_NO_CUSPARSE_ERRORS(
-        cusparseCreateDnVec(&descr, size, values, valueType));
+        cusparseCreateDnVec(&descr, size, values, value_type));
     return descr;
 }
 
@@ -723,18 +727,38 @@ inline void destroy(cusparseDnVecDescr_t descr)
 }
 
 
+template <typename ValueType, typename IndexType>
+inline cusparseSpVecDescr_t create_spvec(int64_t size, int64_t nnz,
+                                         IndexType *indices, ValueType *values)
+{
+    cusparseSpVecDescr_t descr{};
+    constexpr auto index_type = cusparse_index_type<IndexType>();
+    constexpr auto value_type = cuda_data_type<ValueType>();
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(
+        cusparseCreateSpVec(&descr, size, nnz, indices, values, index_type,
+                            CUSPARSE_INDEX_BASE_ZERO, value_type));
+    return descr;
+}
+
+
+inline void destroy(cusparseSpVecDescr_t descr)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroySpVec(descr));
+}
+
+
+template <typename IndexType, typename ValueType>
 inline cusparseSpMatDescr_t create_csr(int64_t rows, int64_t cols, int64_t nnz,
-                                       void *csrRowOffsets, void *csrColInd,
-                                       void *csrValues,
-                                       cusparseIndexType_t csrRowOffsetsType,
-                                       cusparseIndexType_t csrColIndType,
-                                       cusparseIndexBase_t idxBase,
-                                       cudaDataType valueType)
+                                       IndexType *csrRowOffsets,
+                                       IndexType *csrColInd,
+                                       ValueType *csrValues)
 {
     cusparseSpMatDescr_t descr{};
+    constexpr auto index_type = cusparse_index_type<IndexType>();
+    constexpr auto value_type = cuda_data_type<ValueType>();
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreateCsr(
         &descr, rows, cols, nnz, csrRowOffsets, csrColInd, csrValues,
-        csrRowOffsetsType, csrColIndType, idxBase, valueType));
+        index_type, index_type, CUSPARSE_INDEX_BASE_ZERO, value_type));
     return descr;
 }
 
@@ -1107,6 +1131,9 @@ inline void csrsort<int32>(cusparseHandle_t handle, int32 m, int32 n, int32 nnz,
 }
 
 
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+
+
 template <typename ValueType, typename IndexType>
 void gather(cusparseHandle_t handle, IndexType nnz, const ValueType *in,
             ValueType *out, const IndexType *permutation) GKO_NOT_IMPLEMENTED;
@@ -1131,6 +1158,19 @@ GKO_BIND_CUSPARSE_GATHER(std::complex<float>, cusparseCgthr);
 GKO_BIND_CUSPARSE_GATHER(std::complex<double>, cusparseZgthr);
 
 #undef GKO_BIND_CUSPARSE_GATHER
+
+
+#else
+
+
+inline void gather(cusparseHandle_t handle, cusparseDnVecDescr_t in,
+                   cusparseSpVecDescr_t out)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseGather(handle, in, out));
+}
+
+
+#endif
 
 
 template <typename ValueType, typename IndexType>
