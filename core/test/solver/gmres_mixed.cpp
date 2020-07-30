@@ -158,7 +158,12 @@ TEST_F(GmresMixed, CanSetPreconditionerGenerator)
                 gko::stop::ResidualNormReduction<>::build()
                     .with_reduction_factor(1e-6)
                     .on(exec))
-            .with_preconditioner(Solver::build().on(exec))
+            .with_preconditioner(
+                Solver::build()
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(3u).on(
+                            exec))
+                    .on(exec))
             .on(exec);
     auto solver = gmres_mixed_factory->generate(mtx);
     auto precond = dynamic_cast<const gko::solver::GmresMixed<> *>(

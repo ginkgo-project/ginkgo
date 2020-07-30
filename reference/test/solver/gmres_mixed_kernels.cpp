@@ -66,6 +66,8 @@ protected:
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
+          mtx2(gko::initialize<Mtx>(
+              {{1.0, 2.0, 3.0}, {4.0, 2.0, 1.0}, {0.0, 1.0, 2.0}}, exec)),
           gmres_mixed_factory(
               gmres_type::build()
                   .with_criteria(
@@ -106,6 +108,7 @@ protected:
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Mtx> mtx2;
     std::shared_ptr<Mtx> mtx_medium;
     std::shared_ptr<Mtx> mtx_big;
     std::unique_ptr<typename gmres_type::Factory> gmres_mixed_factory;
@@ -137,6 +140,33 @@ TYPED_TEST(GmresMixed, SolvesStencilSystem)
     solver->apply(b.get(), x.get());
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<T>::value * 1e1);
+}
+
+
+TYPED_TEST(GmresMixed, SolvesStencilSystem2)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using gmres_type = typename TestFixture::gmres_type;
+    auto factory =
+        gmres_type::build()
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(100u).on(
+                    this->exec),
+                gko::stop::Time::build()
+                    .with_time_limit(std::chrono::seconds(6))
+                    .on(this->exec),
+                gko::stop::ResidualNormReduction<T>::build()
+                    .with_reduction_factor(r<T>::value)
+                    .on(this->exec))
+            .on(this->exec);
+    auto solver = factory->generate(this->mtx2);
+    auto b = gko::initialize<Mtx>({33.0, 20.0, 20.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 4.0, 8.0}), r<T>::value * 1e1);
 }
 
 

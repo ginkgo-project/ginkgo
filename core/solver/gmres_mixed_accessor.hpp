@@ -66,15 +66,18 @@ template <typename StorageType, typename ArithmeticType,
                   !std::is_same<StorageType, ArithmeticType>::value) ||
                  std::is_integral<StorageType>::value>
 */
-struct helper_have_scale {};
+struct helper_have_scale {
+};
 
 template <typename StorageType, typename ArithmeticType>
 struct helper_have_scale<StorageType, ArithmeticType, false>
-    : public std::false_type {};
+    : public std::false_type {
+};
 
 template <typename StorageType, typename ArithmeticType>
 struct helper_have_scale<StorageType, ArithmeticType, true>
-    : public std::true_type {};
+    : public std::true_type {
+};
 
 
 }  // namespace detail
@@ -82,7 +85,8 @@ struct helper_have_scale<StorageType, ArithmeticType, true>
 
 template <typename StorageType, typename ArithmeticType,
           bool = detail::helper_have_scale<StorageType, ArithmeticType>::value>
-class Accessor3dConst {};
+class Accessor3dConst {
+};
 /**
  * @internal
  *
@@ -253,7 +257,8 @@ protected:
 
 template <typename StorageType, typename ArithmeticType,
           bool = detail::helper_have_scale<StorageType, ArithmeticType>::value>
-class Accessor3d : public Accessor3dConst<StorageType, ArithmeticType> {};
+class Accessor3d : public Accessor3dConst<StorageType, ArithmeticType> {
+};
 
 
 /**
@@ -365,6 +370,12 @@ public:
         const auto stride1 = this->stride_[1];
         rest_storage[x * stride0 + y * stride1 + z] =
             static_cast<storage_type>(value / this->read_scale(x, z));
+#if not defined(__CUDA_ARCH__)
+        std::cout << "storage[" << x << ", " << y << ", " << z
+                  << "] = " << rest_storage[x * stride0 + y * stride1 + z]
+                  << "; value = " << value
+                  << "; scale = " << this->read_scale(x, z) << '\n';
+#endif
     }
 
     /**
@@ -376,13 +387,19 @@ public:
         arithmetic_type *GKO_RESTRICT rest_scale = this->scale_;
         storage_type max_val = one<storage_type>();
         // printf("(A) max_val = %d\n", max_val);
-        // if (std::is_integer<storage_type>::value) {
         if (std::is_integral<storage_type>::value) {
             max_val = std::numeric_limits<storage_type>::max();
             //    printf("(B) max_val = %ld\n", max_val);
         }
         rest_scale[x * this->stride_[1] + z] =
             val / static_cast<arithmetic_type>(max_val);
+#if not defined(__CUDA_ARCH__)
+        std::cout << "scale[" << x << ", " << z
+                  << "] = " << rest_scale[x * this->stride_[1] + z]
+                  << "; val = " << val
+                  << "; max_val = " << static_cast<arithmetic_type>(max_val)
+                  << '\n';
+#endif
         //    rest_scale[idx] = one<arithmetic_type>();
         //    printf("val = %10.5e , rest_scale = %10.5e\n", val,
         //    rest_scale[idx]); std::cout << val << " - " << rest_scale[idx] <<
@@ -397,7 +414,8 @@ public:
 
 template <typename ValueType, typename ValueTypeKrylovBases,
           bool = Accessor3d<ValueTypeKrylovBases, ValueType>::has_scale>
-class Accessor3dHelper {};
+class Accessor3dHelper {
+};
 
 
 template <typename ValueType, typename ValueTypeKrylovBases>
@@ -473,7 +491,8 @@ private:
 
 template <typename ValueType, typename KrylovType,
           bool = Accessor3d<KrylovType, ValueType>::has_scale>
-struct helper_functions_accessor {};
+struct helper_functions_accessor {
+};
 
 // Accessors having a scale
 template <typename ValueType, typename KrylovType>
