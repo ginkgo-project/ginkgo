@@ -38,10 +38,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <complex>
 #include <cstdlib>
 #include <limits>
+#include <type_traits>
 
 
 #include <ginkgo/config.hpp>
-#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
@@ -372,8 +372,8 @@ struct type_size_impl<std::complex<T>> {
  */
 template <typename T, size_type Limit = sizeof(uint16) * byte_size>
 using truncate_type =
-    xstd::conditional_t<detail::type_size_impl<T>::value >= 2 * Limit,
-                        typename detail::truncate_type_impl<T>::type, T>;
+    std::conditional_t<detail::type_size_impl<T>::value >= 2 * Limit,
+                       typename detail::truncate_type_impl<T>::type, T>;
 
 
 /**
@@ -476,7 +476,7 @@ GKO_INLINE __host__ constexpr T one(const T &)
  * @return additive identity for T
  */
 template <typename T>
-GKO_INLINE __device__ constexpr xstd::enable_if_t<
+GKO_INLINE __device__ constexpr std::enable_if_t<
     !std::is_same<T, std::complex<remove_complex<T>>>::value, T>
 zero()
 {
@@ -506,7 +506,7 @@ GKO_INLINE __device__ constexpr T zero(const T &)
  * @return the multiplicative identity for T
  */
 template <typename T>
-GKO_INLINE __device__ constexpr xstd::enable_if_t<
+GKO_INLINE __device__ constexpr std::enable_if_t<
     !std::is_same<T, std::complex<remove_complex<T>>>::value, T>
 one()
 {
@@ -657,16 +657,15 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T min(const T &x, const T &y)
  * @return real part of the object (by default, the object itself)
  */
 template <typename T>
-GKO_ATTRIBUTES
-    GKO_INLINE constexpr xstd::enable_if_t<!is_complex_s<T>::value, T>
-    real(const T &x)
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
+real(const T &x)
 {
     return x;
 }
 
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr xstd::enable_if_t<is_complex_s<T>::value,
-                                                      remove_complex<T>>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value,
+                                                     remove_complex<T>>
 real(const T &x)
 {
     return x.real();
@@ -683,16 +682,15 @@ real(const T &x)
  * @return imaginary part of the object (by default, zero<T>())
  */
 template <typename T>
-GKO_ATTRIBUTES
-    GKO_INLINE constexpr xstd::enable_if_t<!is_complex_s<T>::value, T>
-    imag(const T &)
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T>
+imag(const T &)
 {
     return zero<T>();
 }
 
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE constexpr xstd::enable_if_t<is_complex_s<T>::value,
-                                                      remove_complex<T>>
+GKO_ATTRIBUTES GKO_INLINE constexpr std::enable_if_t<is_complex_s<T>::value,
+                                                     remove_complex<T>>
 imag(const T &x)
 {
     return x.imag();
@@ -707,14 +705,14 @@ imag(const T &x)
  * @return  conjugate of the object (by default, the object itself)
  */
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE xstd::enable_if_t<!is_complex_s<T>::value, T> conj(
+GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<!is_complex_s<T>::value, T> conj(
     const T &x)
 {
     return x;
 }
 
 template <typename T>
-GKO_ATTRIBUTES GKO_INLINE xstd::enable_if_t<is_complex_s<T>::value, T> conj(
+GKO_ATTRIBUTES GKO_INLINE std::enable_if_t<is_complex_s<T>::value, T> conj(
     const T &x)
 {
     return T{x.real(), -x.imag()};
@@ -786,7 +784,7 @@ constexpr T get_superior_power(const T &base, const T &limit,
  *         +/- infinity nor NaN.
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<!is_complex_s<T>::value, bool>
+GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<!is_complex_s<T>::value, bool>
 is_finite(const T &value)
 {
     constexpr T infinity{detail::infinity_impl<T>::value};
@@ -806,7 +804,7 @@ is_finite(const T &value)
  *         they are neither +/- infinity nor NaN.
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES xstd::enable_if_t<is_complex_s<T>::value, bool>
+GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<is_complex_s<T>::value, bool>
 is_finite(const T &value)
 {
     return is_finite(value.real()) && is_finite(value.imag());

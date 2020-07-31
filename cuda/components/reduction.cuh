@@ -34,9 +34,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_COMPONENTS_REDUCTION_CUH_
 
 
+#include <type_traits>
+
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/std_extensions.hpp>
 
 
 #include "cuda/base/config.hpp"

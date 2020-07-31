@@ -353,8 +353,8 @@ protected:
      * preconditioner.
      */
     template <typename SolverType>
-    static xstd::enable_if_t<has_with_criteria<SolverType>::value,
-                             std::unique_ptr<SolverType>>
+    static std::enable_if_t<has_with_criteria<SolverType>::value,
+                            std::unique_ptr<SolverType>>
     generate_default_solver(const std::shared_ptr<const Executor> &exec,
                             const std::shared_ptr<const LinOp> &mtx)
     {
@@ -377,8 +377,8 @@ protected:
      * @copydoc generate_default_solver
      */
     template <typename SolverType>
-    static xstd::enable_if_t<!has_with_criteria<SolverType>::value,
-                             std::unique_ptr<SolverType>>
+    static std::enable_if_t<!has_with_criteria<SolverType>::value,
+                            std::unique_ptr<SolverType>>
     generate_default_solver(const std::shared_ptr<const Executor> &exec,
                             const std::shared_ptr<const LinOp> &mtx)
     {

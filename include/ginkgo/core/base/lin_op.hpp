@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 
@@ -43,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
-#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/log/logger.hpp>
@@ -877,7 +877,7 @@ public:                                                                      \
                                                                              \
     template <typename... Args>                                              \
     auto with_##_name(Args &&... _value)                                     \
-        const->const ::gko::xstd::decay_t<decltype(*this)> &                 \
+        const->const std::decay_t<decltype(*this)> &                         \
     {                                                                        \
         using type = decltype(this->_name);                                  \
         this->_name = type{std::forward<Args>(_value)...};                   \
@@ -896,7 +896,7 @@ public:                                                                      \
                                                                              \
     template <typename... Args>                                              \
     auto with_##_name(Args &&... _value)                                     \
-        const->const ::gko::xstd::decay_t<decltype(*this)> &                 \
+        const->const std::decay_t<decltype(*this)> &                         \
     {                                                                        \
         return *this;                                                        \
     }                                                                        \
