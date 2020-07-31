@@ -75,7 +75,7 @@ REFERENCES_LINK_SOURCE = YES
 SOURCE_TOOLTIPS        = YES
 VERBATIM_HEADERS       = YES
 # CLANG_ASSISTED_PARSING = NO
-# CLANG_OPTIONS          = -I@DIR_BASE@ -std=c++11
+# CLANG_OPTIONS          = -I@DIR_BASE@ -std=c++14
 
 # External references
 ALLEXTERNALS           = NO

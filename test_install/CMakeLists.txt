@@ -21,7 +21,7 @@ include(CheckLanguage)
 check_language(CUDA)
 
 add_executable(test_install test_install.cpp)
-target_compile_features(test_install PUBLIC cxx_std_11)
+target_compile_features(test_install PUBLIC cxx_std_14)
 target_link_libraries(test_install PRIVATE Ginkgo::ginkgo)
 
 if(GINKGO_BUILD_CUDA)

@@ -621,8 +621,6 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T abs(const T &x)
  *
  * @return x >= y ? x : y
  *
- * @note C++11 version of this function is not constexpr, thus we provide our
- *       own implementation.
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES constexpr T max(const T &x, const T &y)
@@ -641,8 +639,6 @@ GKO_INLINE GKO_ATTRIBUTES constexpr T max(const T &x, const T &y)
  *
  * @return x <= y ? x : y
  *
- * @note C++11 version of this function is not `constexpr`, thus we provide our
- *       own implementation.
  */
 template <typename T>
 GKO_INLINE GKO_ATTRIBUTES constexpr T min(const T &x, const T &y)

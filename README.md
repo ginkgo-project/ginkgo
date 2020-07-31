@@ -10,11 +10,11 @@
 [![CDash dashboard](https://img.shields.io/badge/CDash-Access-blue.svg)](http://my.cdash.org/index.php?project=Ginkgo+Project)
 [![Documentation](https://img.shields.io/badge/Documentation-latest-blue.svg)](https://ginkgo-project.github.io/ginkgo/doc/develop/)
 [![License](https://img.shields.io/github/license/ginkgo-project/ginkgo.svg)](./LICENSE)
-[![c++ standard](https://img.shields.io/badge/c%2B%2B-11-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
+[![c++ standard](https://img.shields.io/badge/c%2B%2B-14-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
 
 Ginkgo is a high-performance linear algebra library for manycore systems, with a
 focus on sparse solution of linear systems. It is implemented using modern C++
-(you will need at least C++11 compliant compiler to build it), with GPU kernels
+(you will need at least C++14 compliant compiler to build it), with GPU kernels
 implemented in CUDA and HIP.
 
 
@@ -36,7 +36,7 @@ Prerequisites
 For Ginkgo core library:
 
 *   _cmake 3.9+_
-*   C++11 compliant compiler, one of:
+*   C++14 compliant compiler, one of:
     *   _gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
     *   _clang 3.9+_
     *   _Intel compiler 2017+_
@@ -69,7 +69,7 @@ The Ginkgo HIP module has the following __additional__ requirements:
 
 The prequirement needs to be verified
 *   _cmake 3.9+_
-*   C++11 compliant 64-bits compiler:
+*   C++14 compliant 64-bits compiler:
     *   _MinGW : gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
     *   _Cygwin : gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
     *   _Microsoft Visual Studio : VS 2017 15.7+_

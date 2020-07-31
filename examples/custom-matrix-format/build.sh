@@ -21,7 +21,7 @@ fi
 
 
 # build
-${CXX} -std=c++11 -o ${THIS_DIR}/custom-matrix-format \
+${CXX} -std=c++14 -o ${THIS_DIR}/custom-matrix-format \
        ${THIS_DIR}/custom-matrix-format.cpp ${THIS_DIR}/stencil_kernel.cu \
        -I${THIS_DIR}/../../include -I${BUILD_DIR}/include \
        -L${THIS_DIR} ${LINK_FLAGS}

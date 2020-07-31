@@ -10,7 +10,7 @@ function(ginkgo_default_includes name)
 endfunction()
 
 function(ginkgo_compile_features name)
-    target_compile_features("${name}" PUBLIC cxx_std_11)
+    target_compile_features("${name}" PUBLIC cxx_std_14)
     if(GINKGO_WITH_CLANG_TIDY AND GINKGO_CLANG_TIDY_PATH)
         set_property(TARGET "${name}" PROPERTY CXX_CLANG_TIDY "${GINKGO_CLANG_TIDY_PATH};-checks=*")
     endif()
