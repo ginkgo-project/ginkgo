@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_COMPONENTS_DIAGONAL_BLOCK_MANIPULATION_HIP_HPP_
 
 
+#include <type_traits>
+
+
 #include "hip/base/config.hip.hpp"
 #include "hip/base/types.hip.hpp"
 #include "hip/components/cooperative_groups.hip.hpp"

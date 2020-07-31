@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <complex>
 #include <cstdlib>
 #include <fstream>
+#include <functional>
 #include <initializer_list>
 #include <string>
 #include <type_traits>
@@ -103,9 +104,9 @@ struct biggest_valuetype<
                             !(gko::is_complex_s<ValueType1>::value ||
                               gko::is_complex_s<ValueType2>::value)>::type> {
     /** The type. We pick the bigger of the two. */
-    using type = typename std::conditional<xstd::greater(sizeof(ValueType1),
+    using type = std::conditional_t<std::greater<void>()(sizeof(ValueType1),
                                                          sizeof(ValueType2)),
-                                           ValueType1, ValueType2>::type;
+                                    ValueType1, ValueType2>;
 };
 
 
@@ -126,9 +127,9 @@ class biggest_valuetype<
 
 public:
     /** The type. We make a complex with the bigger real of the two. */
-    using type = typename std::conditional<
-        xstd::greater(sizeof(real_vt1), sizeof(real_vt2)),
-        std::complex<real_vt1>, std::complex<real_vt2>>::type;
+    using type = typename std::conditional_t<
+        std::greater<void>()(sizeof(real_vt1), sizeof(real_vt2)),
+        std::complex<real_vt1>, std::complex<real_vt2>>;
 };
 
 

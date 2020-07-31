@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 template <
     int max_block_size, int warps_per_block, typename Group, typename ValueType,
     typename IndexType,
-    typename = xstd::enable_if_t<group::is_synchronizable_group<Group>::value>>
+    typename = std::enable_if_t<group::is_synchronizable_group<Group>::value>>
 __device__ __forceinline__ void extract_transposed_diag_blocks(
     const Group &group, int processed_blocks,
     const IndexType *__restrict__ row_ptrs,

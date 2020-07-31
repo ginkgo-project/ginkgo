@@ -59,9 +59,9 @@ __forceinline__ __device__ ResultType reinterpret(ValueType val)
 
 #define GKO_BIND_ATOMIC_HELPER_STRUCTURE(CONVERTER_TYPE)                     \
     template <typename ValueType>                                            \
-    struct atomic_helper<ValueType,                                          \
-                         gko::xstd::enable_if_t<(sizeof(ValueType) ==        \
-                                                 sizeof(CONVERTER_TYPE))>> { \
+    struct atomic_helper<                                                    \
+        ValueType,                                                           \
+        std::enable_if_t<(sizeof(ValueType) == sizeof(CONVERTER_TYPE))>> {   \
         __forceinline__ __device__ static ValueType atomic_add(              \
             ValueType *__restrict__ addr, ValueType val)                     \
         {                                                                    \

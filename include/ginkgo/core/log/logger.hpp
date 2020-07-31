@@ -37,10 +37,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 
-#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
@@ -129,7 +129,7 @@ protected:                                                           \
                                                                      \
 public:                                                              \
     template <size_type Event, typename... Params>                   \
-    xstd::enable_if_t<Event == _id && (_id < event_count_max)> on(   \
+    std::enable_if_t<Event == _id && (_id < event_count_max)> on(    \
         Params &&... params) const                                   \
     {                                                                \
         if (enabled_events_ & (mask_type{1} << _id)) {               \

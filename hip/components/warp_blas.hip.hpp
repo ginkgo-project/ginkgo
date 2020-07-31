@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <cassert>
+#include <type_traits>
 
 
 #include <ginkgo/config.hpp>

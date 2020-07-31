@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_COMPONENTS_ATOMIC_HIP_HPP_
 
 
+#include <type_traits>
+
+
 #include "hip/base/math.hip.hpp"
 #include "hip/base/types.hip.hpp"
 

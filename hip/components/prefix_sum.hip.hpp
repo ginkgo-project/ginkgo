@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_COMPONENTS_PREFIX_SUM_HIP_HPP_
 
 
-#include <ginkgo/core/base/std_extensions.hpp>
+#include <type_traits>
 
 
 #include "hip/base/hipblas_bindings.hip.hpp"

@@ -54,7 +54,7 @@ enum postprocess_transformation { and_return, and_transpose };
  */
 template <
     int max_problem_size, typename Group, typename ValueType,
-    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
+    typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void apply_gauss_jordan_transform(
     const Group &__restrict__ group, int32 key_row, int32 key_col,
     ValueType *__restrict__ row, bool &__restrict__ status)
@@ -115,7 +115,7 @@ __device__ __forceinline__ void apply_gauss_jordan_transform(
  */
 template <
     int max_problem_size, typename Group, typename ValueType,
-    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
+    typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ bool invert_block(const Group &__restrict__ group,
                                              uint32 problem_size,
                                              ValueType *__restrict__ row,
@@ -207,7 +207,7 @@ __host__ __device__ __forceinline__ auto get_row_major_index(T1 row, T2 col,
 template <
     int max_problem_size, postprocess_transformation mod = and_return,
     typename Group, typename SourceValueType, typename ResultValueType,
-    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
+    typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void copy_matrix(
     const Group &__restrict__ group, uint32 problem_size,
     const SourceValueType *__restrict__ source_row, uint32 increment,
@@ -260,7 +260,7 @@ __device__ __forceinline__ void copy_matrix(
 template <
     int max_problem_size, typename Group, typename MatrixValueType,
     typename VectorValueType,
-    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
+    typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void multiply_transposed_vec(
     const Group &__restrict__ group, uint32 problem_size,
     const VectorValueType &__restrict__ vec,
@@ -320,7 +320,7 @@ __device__ __forceinline__ void multiply_transposed_vec(
 template <
     int max_problem_size, typename Group, typename MatrixValueType,
     typename VectorValueType, typename Closure,
-    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
+    typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ void multiply_vec(
     const Group &__restrict__ group, uint32 problem_size,
     const VectorValueType &__restrict__ vec,
@@ -368,7 +368,7 @@ __device__ __forceinline__ void multiply_vec(
  */
 template <
     int max_problem_size, typename Group, typename ValueType,
-    typename = xstd::enable_if_t<group::is_communicator_group<Group>::value>>
+    typename = std::enable_if_t<group::is_communicator_group<Group>::value>>
 __device__ __forceinline__ remove_complex<ValueType> compute_infinity_norm(
     const Group &group, uint32 num_rows, uint32 num_cols, const ValueType *row)
 {

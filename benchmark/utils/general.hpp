@@ -46,6 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 #include <sstream>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -181,7 +182,7 @@ std::ostream &operator<<(std::ostream &os, const rapidjson::Value &value)
 
 // helper for setting rapidjson object members
 template <typename T, typename NameType, typename Allocator>
-gko::xstd::enable_if_t<
+std::enable_if_t<
     !std::is_same<typename std::decay<T>::type, gko::size_type>::value, void>
 add_or_set_member(rapidjson::Value &object, NameType &&name, T &&value,
                   Allocator &&allocator)
@@ -202,7 +203,7 @@ add_or_set_member(rapidjson::Value &object, NameType &&name, T &&value,
    last comments of https://github.com/ginkgo-project/ginkgo/issues/270.
  */
 template <typename T, typename NameType, typename Allocator>
-gko::xstd::enable_if_t<
+std::enable_if_t<
     std::is_same<typename std::decay<T>::type, gko::size_type>::value, void>
 add_or_set_member(rapidjson::Value &object, NameType &&name, T &&value,
                   Allocator &&allocator)
