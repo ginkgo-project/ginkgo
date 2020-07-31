@@ -131,7 +131,7 @@ std::string get_enclosing_scope(const T &)
  * @internal we use a lambda to capture the scope of the macro this is called
  * in, so that we have direct access to the relevant `std::type_info`
  *
- * @see C++11 documentation [type.info] and [expr.typeid]
+ * @see C++14 documentation [type.info] and [expr.typeid]
  * @see https://itanium-cxx-abi.github.io/cxx-abi/abi.html#demangler
  */
 #define GKO_FUNCTION_NAME gko::name_demangling::get_enclosing_scope([] {})

@@ -13,7 +13,7 @@ source ${THIS_DIR}/../build-setup.sh
 LINK_FLAGS="${LINK_FLAGS} -lpthread"
 
 # build
-${CXX} -std=c++11 -o ${THIS_DIR}/custom-stopping-criterion \
+${CXX} -std=c++14 -o ${THIS_DIR}/custom-stopping-criterion \
        ${THIS_DIR}/custom-stopping-criterion.cpp \
        -I${THIS_DIR}/../../include -I${BUILD_DIR}/include \
        -L${THIS_DIR} ${LINK_FLAGS}
