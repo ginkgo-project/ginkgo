@@ -493,35 +493,38 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
             const matrix::Csr<ValueType, IndexType> *b,
             matrix::Csr<ValueType, IndexType> *c)
 {
+    auto a_nnz = IndexType(a->get_num_stored_elements());
+    auto a_vals = a->get_const_values();
+    auto a_row_ptrs = a->get_const_row_ptrs();
+    auto a_col_idxs = a->get_const_col_idxs();
+    auto b_vals = b->get_const_values();
+    auto b_row_ptrs = b->get_const_row_ptrs();
+    auto b_col_idxs = b->get_const_col_idxs();
+    auto c_row_ptrs = c->get_row_ptrs();
+
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_cusparse_handle();
         cusparse::pointer_mode_guard pm_guard(handle);
-        auto a_descr = cusparse::create_mat_descr();
-        auto b_descr = cusparse::create_mat_descr();
-        auto c_descr = cusparse::create_mat_descr();
-        auto d_descr = cusparse::create_mat_descr();
-        auto info = cusparse::create_spgemm_info();
 
         auto alpha = one<ValueType>();
-        auto a_nnz = IndexType(a->get_num_stored_elements());
-        auto a_vals = a->get_const_values();
-        auto a_row_ptrs = a->get_const_row_ptrs();
-        auto a_col_idxs = a->get_const_col_idxs();
-        auto b_nnz = IndexType(b->get_num_stored_elements());
-        auto b_vals = b->get_const_values();
-        auto b_row_ptrs = b->get_const_row_ptrs();
-        auto b_col_idxs = b->get_const_col_idxs();
+        auto a_nnz = static_cast<IndexType>(a->get_num_stored_elements());
+        auto b_nnz = static_cast<IndexType>(b->get_num_stored_elements());
         auto null_value = static_cast<ValueType *>(nullptr);
         auto null_index = static_cast<IndexType *>(nullptr);
         auto zero_nnz = IndexType{};
         auto m = IndexType(a->get_size()[0]);
         auto n = IndexType(b->get_size()[1]);
         auto k = IndexType(a->get_size()[1]);
-        auto c_row_ptrs = c->get_row_ptrs();
         matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
         auto &c_col_idxs_array = c_builder.get_col_idx_array();
         auto &c_vals_array = c_builder.get_value_array();
 
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+        auto a_descr = cusparse::create_mat_descr();
+        auto b_descr = cusparse::create_mat_descr();
+        auto c_descr = cusparse::create_mat_descr();
+        auto d_descr = cusparse::create_mat_descr();
+        auto info = cusparse::create_spgemm_info();
         // allocate buffer
         size_type buffer_size{};
         cusparse::spgemm_buffer_size(
@@ -554,6 +557,54 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
         cusparse::destroy(c_descr);
         cusparse::destroy(b_descr);
         cusparse::destroy(a_descr);
+
+#else   // CUDA_VERSION >= 11000
+        const auto beta = zero<ValueType>();
+        auto spgemm_descr = cusparse::create_spgemm_descr();
+        auto a_descr = cusparse::create_csr(m, k, a_nnz,
+                                            const_cast<IndexType *>(a_row_ptrs),
+                                            const_cast<IndexType *>(a_col_idxs),
+                                            const_cast<ValueType *>(a_vals));
+        auto b_descr = cusparse::create_csr(k, n, b_nnz,
+                                            const_cast<IndexType *>(b_row_ptrs),
+                                            const_cast<IndexType *>(b_col_idxs),
+                                            const_cast<ValueType *>(b_vals));
+        auto c_descr = cusparse::create_csr(m, n, zero_nnz, null_index,
+                                            null_index, null_value);
+
+        size_type buffer1_size{};
+        cusparse::spgemm_work_estimation(handle, &alpha, a_descr, b_descr,
+                                         &beta, c_descr, spgemm_descr,
+                                         buffer1_size, nullptr);
+        Array<char> buffer1{exec, buffer1_size};
+        cusparse::spgemm_work_estimation(handle, &alpha, a_descr, b_descr,
+                                         &beta, c_descr, spgemm_descr,
+                                         buffer1_size, buffer1.get_data());
+
+        size_type buffer2_size{};
+        cusparse::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta,
+                                 c_descr, spgemm_descr, buffer1.get_data(),
+                                 buffer2_size, nullptr);
+        Array<char> buffer2{exec, buffer2_size};
+        cusparse::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta,
+                                 c_descr, spgemm_descr, buffer1.get_data(),
+                                 buffer2_size, buffer2.get_data());
+
+        auto c_nnz = cusparse::sparse_matrix_nnz(c_descr);
+        c_col_idxs_array.resize_and_reset(c_nnz);
+        c_vals_array.resize_and_reset(c_nnz);
+        cusparse::csr_set_pointers(c_descr, c_row_ptrs,
+                                   c_col_idxs_array.get_data(),
+                                   c_vals_array.get_data());
+
+        cusparse::spgemm_copy(handle, &alpha, a_descr, b_descr, &beta, c_descr,
+                              spgemm_descr);
+
+        cusparse::destroy(c_descr);
+        cusparse::destroy(b_descr);
+        cusparse::destroy(a_descr);
+        cusparse::destroy(spgemm_descr);
+#endif  // CUDA_VERSION >= 11000
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -574,11 +625,6 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
     if (cusparse::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_cusparse_handle();
         cusparse::pointer_mode_guard pm_guard(handle);
-        auto a_descr = cusparse::create_mat_descr();
-        auto b_descr = cusparse::create_mat_descr();
-        auto c_descr = cusparse::create_mat_descr();
-        auto d_descr = cusparse::create_mat_descr();
-        auto info = cusparse::create_spgemm_info();
 
         auto valpha = exec->copy_val_to_host(alpha->get_const_values());
         auto a_nnz = IndexType(a->get_num_stored_elements());
@@ -602,6 +648,12 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
         auto &c_col_idxs_array = c_builder.get_col_idx_array();
         auto &c_vals_array = c_builder.get_value_array();
 
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+        auto a_descr = cusparse::create_mat_descr();
+        auto b_descr = cusparse::create_mat_descr();
+        auto c_descr = cusparse::create_mat_descr();
+        auto d_descr = cusparse::create_mat_descr();
+        auto info = cusparse::create_spgemm_info();
         // allocate buffer
         size_type buffer_size{};
         cusparse::spgemm_buffer_size(
@@ -634,6 +686,54 @@ void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
         cusparse::destroy(c_descr);
         cusparse::destroy(b_descr);
         cusparse::destroy(a_descr);
+#else   // CUDA_VERSION >= 11000
+        auto spgemm_descr = cusparse::create_spgemm_descr();
+        auto a_descr = cusparse::create_csr(m, k, a_nnz,
+                                            const_cast<IndexType *>(a_row_ptrs),
+                                            const_cast<IndexType *>(a_col_idxs),
+                                            const_cast<ValueType *>(a_vals));
+        auto b_descr = cusparse::create_csr(k, n, b_nnz,
+                                            const_cast<IndexType *>(b_row_ptrs),
+                                            const_cast<IndexType *>(b_col_idxs),
+                                            const_cast<ValueType *>(b_vals));
+        auto c_descr = cusparse::create_csr(m, n, d_nnz,
+                                            const_cast<IndexType *>(d_row_ptrs),
+                                            const_cast<IndexType *>(d_col_idxs),
+                                            const_cast<ValueType *>(d_vals));
+
+        size_type buffer1_size{};
+        cusparse::spgemm_work_estimation(handle, &valpha, a_descr, b_descr,
+                                         &vbeta, c_descr, spgemm_descr,
+                                         buffer1_size, nullptr);
+        Array<char> buffer1{exec, buffer1_size};
+        cusparse::spgemm_work_estimation(handle, &valpha, a_descr, b_descr,
+                                         &vbeta, c_descr, spgemm_descr,
+                                         buffer1_size, buffer1.get_data());
+
+        size_type buffer2_size{};
+        cusparse::spgemm_compute(handle, &valpha, a_descr, b_descr, &vbeta,
+                                 c_descr, spgemm_descr, buffer1.get_data(),
+                                 buffer2_size, nullptr);
+        Array<char> buffer2{exec, buffer2_size};
+        cusparse::spgemm_compute(handle, &valpha, a_descr, b_descr, &vbeta,
+                                 c_descr, spgemm_descr, buffer1.get_data(),
+                                 buffer2_size, buffer2.get_data());
+
+        auto c_nnz = cusparse::sparse_matrix_nnz(c_descr);
+        c_col_idxs_array.resize_and_reset(c_nnz);
+        c_vals_array.resize_and_reset(c_nnz);
+        cusparse::csr_set_pointers(c_descr, c_row_ptrs,
+                                   c_col_idxs_array.get_data(),
+                                   c_vals_array.get_data());
+
+        cusparse::spgemm_copy(handle, &valpha, a_descr, b_descr, &vbeta,
+                              c_descr, spgemm_descr);
+
+        cusparse::destroy(c_descr);
+        cusparse::destroy(b_descr);
+        cusparse::destroy(a_descr);
+        cusparse::destroy(spgemm_descr);
+#endif  // CUDA_VERSION >= 11000
     } else {
         GKO_NOT_IMPLEMENTED;
     }
