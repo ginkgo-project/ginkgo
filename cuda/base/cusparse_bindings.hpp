@@ -379,7 +379,10 @@ GKO_BIND_CUSPARSE32_SPMV(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE32_SPMV
 
 
-#endif
+#endif  // CUDA_VERSION < 11000
+
+
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 
 template <typename ValueType, typename IndexType>
@@ -503,6 +506,75 @@ GKO_BIND_CUSPARSE_SPGEMM(std::complex<double>, cusparseZcsrgemm2);
 
 
 #undef GKO_BIND_CUSPARSE_SPGEMM
+
+
+#else  // CUDA_VERSION >= 11000
+
+
+template <typename ValueType>
+void spgemm_work_estimation(cusparseHandle_t handle, const ValueType *alpha,
+                            cusparseSpMatDescr_t a_descr,
+                            cusparseSpMatDescr_t b_descr, const ValueType *beta,
+                            cusparseSpMatDescr_t c_descr,
+                            cusparseSpGEMMDescr_t spgemm_descr,
+                            size_t &buffer1_size, void *buffer1)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpGEMM_workEstimation(
+        handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+        CUSPARSE_OPERATION_NON_TRANSPOSE, alpha, a_descr, b_descr, beta,
+        c_descr, cuda_data_type<ValueType>(), CUSPARSE_SPGEMM_DEFAULT,
+        spgemm_descr, &buffer1_size, buffer1));
+}
+
+
+template <typename ValueType>
+void spgemm_compute(cusparseHandle_t handle, const ValueType *alpha,
+                    cusparseSpMatDescr_t a_descr, cusparseSpMatDescr_t b_descr,
+                    const ValueType *beta, cusparseSpMatDescr_t c_descr,
+                    cusparseSpGEMMDescr_t spgemm_descr, void *buffer1,
+                    size_t &buffer2_size, void *buffer2)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpGEMM_compute(
+        handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+        CUSPARSE_OPERATION_NON_TRANSPOSE, alpha, a_descr, b_descr, beta,
+        c_descr, cuda_data_type<ValueType>(), CUSPARSE_SPGEMM_DEFAULT,
+        spgemm_descr, &buffer2_size, buffer2));
+}
+
+
+template <typename ValueType>
+void spgemm_copy(cusparseHandle_t handle, const ValueType *alpha,
+                 cusparseSpMatDescr_t a_descr, cusparseSpMatDescr_t b_descr,
+                 const ValueType *beta, cusparseSpMatDescr_t c_descr,
+                 cusparseSpGEMMDescr_t spgemm_descr)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(
+        cusparseSpGEMM_copy(handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                            CUSPARSE_OPERATION_NON_TRANSPOSE, alpha, a_descr,
+                            b_descr, beta, c_descr, cuda_data_type<ValueType>(),
+                            CUSPARSE_SPGEMM_DEFAULT, spgemm_descr));
+}
+
+
+inline size_type sparse_matrix_nnz(cusparseSpMatDescr_t descr)
+{
+    int64_t dummy1{};
+    int64_t dummy2{};
+    int64_t nnz{};
+    cusparseSpMatGetSize(descr, &dummy1, &dummy2, &nnz);
+    return static_cast<size_type>(nnz);
+}
+
+
+template <typename ValueType, typename IndexType>
+void csr_set_pointers(cusparseSpMatDescr_t descr, IndexType *row_ptrs,
+                      IndexType *col_idxs, ValueType *vals)
+{
+    cusparseCsrSetPointers(descr, row_ptrs, col_idxs, vals);
+}
+
+
+#endif  // CUDA_VERSION >= 11000
 
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
