@@ -22,6 +22,7 @@ stages:
   BUILD_OMP: "OFF"
   BUILD_CUDA: "OFF"
   BUILD_HIP: "OFF"
+  CONFIG_LOG: "1"
   CXX_FLAGS: ""
   EXTRA_CMAKE_FLAGS: ""
 
@@ -59,6 +60,7 @@ stages:
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
+        -DGINKGO_CONFIG_LOG_VERBOSITY="${CONFIG_LOG}"
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT}
   dependencies: []
   except:
@@ -84,6 +86,7 @@ stages:
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
+        -DGINKGO_CONFIG_LOG_VERBOSITY="${CONFIG_LOG}"
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - |
         (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
