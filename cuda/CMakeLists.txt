@@ -29,7 +29,7 @@ include(CudaArchitectureSelector)
 
 set(CUDA_INCLUDE_DIRS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
-# This is required by some examples such as cmake_matrix_format
+# This is required by some examples such as custom_matrix_format
 # which need the correct CMAKE_CUDA_FLAGS to be set
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}" PARENT_SCOPE)
 set(CMAKE_CUDA_COMPILER_VERSION ${CMAKE_CUDA_COMPILER_VERSION} PARENT_SCOPE)

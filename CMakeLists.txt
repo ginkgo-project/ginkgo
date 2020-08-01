@@ -34,6 +34,8 @@ option(GINKGO_WITH_IWYU "Make Ginkgo call `iwyu` (Include What You Use) to find 
 option(GINKGO_CHECK_CIRCULAR_DEPS
     "Enable compile-time checks detecting circular dependencies between libraries and non-self-sufficient headers."
     OFF)
+set(GINKGO_CONFIG_LOG_VERBOSITY "0" CACHE STRING
+    "Verbosity of configuration logs to print to screen in addition to the log files, 0 prints minimal summary, 1 prints detailed summary")
 set(GINKGO_VERBOSE_LEVEL "1" CACHE STRING
     "Verbosity level. Put 0 to turn off. 1 activates a few important messages.")
 if(MSVC)
@@ -254,6 +256,8 @@ include(cmake/information_helpers.cmake)
 ginkgo_interface_information()
 ginkgo_git_information()
 
+include(cmake/get_info.cmake)
+
 if(GINKGO_BUILD_DOC)
     add_subdirectory(doc)
 endif()
@@ -297,3 +301,12 @@ set(CPACK_RESOURCE_FILE_LICENSE "${Ginkgo_SOURCE_DIR}/LICENSE")
 set(CPACK_PACKAGE_ICON "${Ginkgo_SOURCE_DIR}/assets/logo.png")
 set(CPACK_PACKAGE_CONTACT "ginkgo.library@gmail.com")
 include(CPack)
+
+# And finally, print the configuration:
+#
+if(GINKGO_CONFIG_LOG_VERBOSITY MATCHES "1")
+    FILE(READ ${CMAKE_BINARY_DIR}/detailed.log GINKGO_LOG_SUMMARY)
+else()
+    FILE(READ ${CMAKE_BINARY_DIR}/minimal.log GINKGO_LOG_SUMMARY)
+endif()
+MESSAGE("${GINKGO_LOG_SUMMARY}")
