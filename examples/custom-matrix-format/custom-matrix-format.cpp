@@ -270,7 +270,7 @@ int main(int argc, char *argv[])
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
     // executor used by the application
-    const auto app_exec = exec_map["omp"]();
+    const auto app_exec = exec->get_master();
 
     // problem:
     auto correct_u = [](ValueType x) { return x * x * x; };
