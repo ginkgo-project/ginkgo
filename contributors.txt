@@ -17,3 +17,4 @@ Maier Matthias <matthias@43-1.org> Texas A&M University
 Nayak Pratik <pratik.nayak@kit.edu> Karlsruhe Institute of Technology
 Ribizel Tobias <mail@upsj.de> Karlsruhe Institute of Technology
 Tsai Yuhsiang <yhmtsai@gmail.com> National Taiwan University
+Gregor Olenik <go@hpsim.de> HPSim
