@@ -298,7 +298,7 @@ void solve_system(const std::string &executor_string,
     // executor where Ginkgo will perform the computation
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
     // executor where the application initialized the data
-    const auto app_exec = exec_map["omp"]();
+    const auto app_exec = exec->get_master();
 
     // Tell Ginkgo to use the data in our application
 
