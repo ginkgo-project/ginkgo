@@ -48,17 +48,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Add the vector header for storing the logger's data
 #include <vector>
 
-// Utility function which gets the scalar value of a Ginkgo gko::matrix::Dense
-// matrix representing the norm of a vector.
+
+// Utility function which returns the first element (position [0, 0]) from a
+// given gko::matrix::Dense matrix / vector.
 template <typename ValueType>
-gko::remove_complex<ValueType> get_norm(
-    const gko::matrix::Dense<ValueType> *norm)
+ValueType get_first_element(const gko::matrix::Dense<ValueType> *mtx)
 {
-    // Put the value on CPU thanks to the master executor
-    auto cpu_norm = clone(norm->get_executor()->get_master(), norm);
-    // Return the scalar value contained at position (0, 0)
-    return std::real(cpu_norm->at(0, 0));
+    // Copy the matrix / vector to the host device before accessing the value in
+    // case it is stored in a GPU.
+    return gko::clone(mtx->get_executor()->get_master(), mtx)->at(0, 0);
 }
+
 
 // Utility function which computes the norm of a Ginkgo gko::matrix::Dense
 // vector.
@@ -69,11 +69,13 @@ gko::remove_complex<ValueType> compute_norm(
     // Get the executor of the vector
     auto exec = b->get_executor();
     // Initialize a result scalar containing the value 0.0.
-    auto b_norm = gko::initialize<gko::matrix::Dense<ValueType>>({0.0}, exec);
+    auto b_norm =
+        gko::initialize<gko::matrix::Dense<gko::remove_complex<ValueType>>>(
+            {0.0}, exec);
     // Use the dense `compute_norm2` function to compute the norm.
-    b->compute_norm2(lend(b_norm));
-    // Use the other utility function to return the norm contained in `b_norm``
-    return get_norm(lend(b_norm));
+    b->compute_norm2(gko::lend(b_norm));
+    // Use the other utility function to return the norm contained in `b_norm`
+    return get_first_element(gko::lend(b_norm));
 }
 
 // Custom logger class which intercepts the residual norm scalar and solution
@@ -81,6 +83,7 @@ gko::remove_complex<ValueType> compute_norm(
 // solvers) residual norms.
 template <typename ValueType>
 struct ResidualLogger : gko::log::Logger {
+    using RealValueType = gko::remove_complex<ValueType>;
     // Output the logger's data in a table format
     void write() const
     {
@@ -111,6 +114,7 @@ struct ResidualLogger : gko::log::Logger {
     }
 
     using gko_dense = gko::matrix::Dense<ValueType>;
+    using gko_real_dense = gko::matrix::Dense<RealValueType>;
 
     // Customize the logging hook which is called everytime an iteration is
     // completed
@@ -122,9 +126,9 @@ struct ResidualLogger : gko::log::Logger {
     {
         // If the solver shares a residual norm, log its value
         if (residual_norm) {
-            auto dense_norm = gko::as<gko_dense>(residual_norm);
+            auto dense_norm = gko::as<gko_real_dense>(residual_norm);
             // Add the norm to the `recurrent_norms` vector
-            recurrent_norms.push_back(get_norm(dense_norm));
+            recurrent_norms.push_back(get_first_element(gko::lend(dense_norm)));
             // Otherwise, use the recurrent residual vector
         } else {
             auto dense_residual = gko::as<gko_dense>(residual);
@@ -176,9 +180,9 @@ private:
     // Pointer to the right hand sides
     const gko_dense *b;
     // Vector which stores all the recurrent residual norms
-    mutable std::vector<ValueType> recurrent_norms{};
+    mutable std::vector<RealValueType> recurrent_norms{};
     // Vector which stores all the real residual norms
-    mutable std::vector<ValueType> real_norms{};
+    mutable std::vector<RealValueType> real_norms{};
     // Vector which stores all the iteration numbers
     mutable std::vector<std::size_t> iterations{};
 };
@@ -191,8 +195,10 @@ int main(int argc, char *argv[])
     // multiple vectors is a now a natural extension of adding columns/rows are
     // necessary.
     using ValueType = double;
+    using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
+    using real_vec = gko::matrix::Dense<RealValueType>;
     // The gko::matrix::Csr class is used here, but any other matrix class such
     // as gko::matrix::Coo, gko::matrix::Hybrid, gko::matrix::Ell or
     // gko::matrix::Sellp could also be used.
@@ -241,7 +247,7 @@ int main(int argc, char *argv[])
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
-    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
+    const RealValueType reduction_factor = 1e-7;
 
     // @sect3{Creating the solver}
     // Generate the gko::solver factory. Ginkgo uses the concept of Factories to
@@ -283,11 +289,11 @@ int main(int argc, char *argv[])
     // Finally, solve the system. The solver, being a gko::LinOp, can be applied
     // to a right hand side, b to
     // obtain the solution, x.
-    solver->apply(lend(b), lend(x));
+    solver->apply(gko::lend(b), gko::lend(x));
 
     // Print the solution to the command line.
     std::cout << "Solution (x): \n";
-    write(std::cout, lend(x));
+    write(std::cout, gko::lend(x));
 
     // Print the table of the residuals obtained from the logger
     logger->write();
@@ -301,10 +307,10 @@ int main(int argc, char *argv[])
     // the euclidean 2-norm with the compute_norm2 function.
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto res = gko::initialize<vec>({0.0}, exec);
-    A->apply(lend(one), lend(x), lend(neg_one), lend(b));
-    b->compute_norm2(lend(res));
+    auto res = gko::initialize<real_vec>({0.0}, exec);
+    A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
+    b->compute_norm2(gko::lend(res));
 
     std::cout << "Residual norm sqrt(r^T r): \n";
-    write(std::cout, lend(res));
+    write(std::cout, gko::lend(res));
 }
