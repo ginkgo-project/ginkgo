@@ -44,9 +44,11 @@ int main(int argc, char *argv[])
 {
     // Some shortcuts
     using ValueType = double;
+    using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
 
     using vec = gko::matrix::Dense<ValueType>;
+    using real_vec = gko::matrix::Dense<RealValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using gmres = gko::solver::Gmres<ValueType>;
 
@@ -96,7 +98,7 @@ int main(int argc, char *argv[])
     // Generating a solver factory tied to a specific preconditioner makes sense
     // if there are several very similar systems to solve, and the same
     // solver+preconditioner combination is expected to be effective.
-    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
+    const RealValueType reduction_factor{1e-7};
     auto ilu_gmres_factory =
         gmres::build()
             .with_criteria(
@@ -120,7 +122,7 @@ int main(int argc, char *argv[])
     // Calculate residual
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto res = gko::initialize<vec>({0.0}, exec);
+    auto res = gko::initialize<real_vec>({0.0}, exec);
     A->apply(gko::lend(one), gko::lend(x), gko::lend(neg_one), gko::lend(b));
     b->compute_norm2(gko::lend(res));
 

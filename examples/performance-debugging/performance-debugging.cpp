@@ -53,6 +53,10 @@ template <typename ValueType>
 using vec = gko::matrix::Dense<ValueType>;
 
 
+template <typename ValueType>
+using real_vec = gko::matrix::Dense<gko::remove_complex<ValueType>>;
+
+
 namespace utils {
 
 
@@ -70,9 +74,9 @@ std::unique_ptr<vec<ValueType>> create_vector(
 
 // utilities for computing norms and residuals
 template <typename ValueType>
-gko::remove_complex<ValueType> get_norm(const vec<ValueType> *norm)
+ValueType get_first_element(const vec<ValueType> *norm)
 {
-    return std::real(clone(norm->get_executor()->get_master(), norm)->at(0, 0));
+    return norm->get_executor()->copy_val_to_host(norm->get_const_values());
 }
 
 
@@ -80,9 +84,9 @@ template <typename ValueType>
 gko::remove_complex<ValueType> compute_norm(const vec<ValueType> *b)
 {
     auto exec = b->get_executor();
-    auto b_norm = gko::initialize<vec<ValueType>>({0.0}, exec);
+    auto b_norm = gko::initialize<real_vec<ValueType>>({0.0}, exec);
     b->compute_norm2(gko::lend(b_norm));
-    return get_norm(gko::lend(b_norm));
+    return get_first_element(gko::lend(b_norm));
 }
 
 
@@ -261,8 +265,8 @@ struct ResidualLogger : gko::log::Logger {
                                const gko::LinOp *residual_norm) const override
     {
         if (residual_norm) {
-            rec_res_norms.push_back(
-                utils::get_norm(gko::as<vec<ValueType>>(residual_norm)));
+            rec_res_norms.push_back(utils::get_first_element(
+                gko::as<real_vec<ValueType>>(residual_norm)));
         } else {
             rec_res_norms.push_back(
                 utils::compute_norm(gko::as<vec<ValueType>>(residual)));
@@ -302,8 +306,8 @@ struct ResidualLogger : gko::log::Logger {
 private:
     const gko::LinOp *matrix;
     const vec<ValueType> *b;
-    mutable std::vector<ValueType> rec_res_norms;
-    mutable std::vector<ValueType> true_res_norms;
+    mutable std::vector<gko::remove_complex<ValueType>> rec_res_norms;
+    mutable std::vector<gko::remove_complex<ValueType>> true_res_norms;
 };
 
 

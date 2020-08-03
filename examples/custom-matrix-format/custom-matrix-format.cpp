@@ -287,7 +287,7 @@ int main(int argc, char *argv[])
         u->get_values()[i] = 0.0;
     }
 
-    const RealValueType reduction_factor = 1e-7;
+    const RealValueType reduction_factor{1e-7};
     // Generate solver and solve the system
     cg::build()
         .with_criteria(gko::stop::Iteration::build()

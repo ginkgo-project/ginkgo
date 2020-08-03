@@ -44,8 +44,10 @@ int main(int argc, char *argv[])
 {
     // Some shortcuts
     using ValueType = double;
+    using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
+    using real_vec = gko::matrix::Dense<RealValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cg = gko::solver::Cg<ValueType>;
     using ir = gko::solver::Ir<ValueType>;
@@ -87,14 +89,14 @@ int main(int argc, char *argv[])
     // Calculate initial residual by overwriting b
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto initres = gko::initialize<vec>({0.0}, exec);
+    auto initres = gko::initialize<real_vec>({0.0}, exec);
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
     b->compute_norm2(lend(initres));
 
     // copy b again
     b->copy_from(host_x.get());
     gko::size_type max_iters = 10000u;
-    gko::remove_complex<ValueType> outer_reduction_factor = 1e-12;
+    RealValueType outer_reduction_factor{1e-12};
     auto iter_stop =
         gko::stop::Iteration::build().with_max_iters(max_iters).on(exec);
     auto tol_stop = gko::stop::ResidualNormReduction<ValueType>::build()
@@ -107,7 +109,7 @@ int main(int argc, char *argv[])
     tol_stop->add_logger(logger);
 
     // Create solver factory
-    gko::remove_complex<ValueType> inner_reduction_factor = 1e-2;
+    RealValueType inner_reduction_factor{1e-2};
     auto solver_gen =
         ir::build()
             .with_solver(
@@ -132,7 +134,7 @@ int main(int argc, char *argv[])
     time += std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic);
 
     // Calculate residual
-    auto res = gko::initialize<vec>({0.0}, exec);
+    auto res = gko::initialize<real_vec>({0.0}, exec);
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
     b->compute_norm2(lend(res));
 

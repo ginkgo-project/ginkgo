@@ -56,7 +56,7 @@ ValueType get_first_element(const gko::matrix::Dense<ValueType> *mtx)
 {
     // Copy the matrix / vector to the host device before accessing the value in
     // case it is stored in a GPU.
-    return gko::clone(mtx->get_executor()->get_master(), mtx)->at(0, 0);
+    return mtx->get_executor()->copy_val_to_host(mtx->get_const_values());
 }
 
 
