@@ -84,11 +84,11 @@ Ginkgo adds the following additional switches to control what is being built:
     list of architectures. Supported values are:
 
     *   `Auto`
-    *   `Kepler`, `Maxwell`, `Pascal`, `Volta`
+    *   `Kepler`, `Maxwell`, `Pascal`, `Volta`, `Ampere`
     *   `CODE`, `CODE(COMPUTE)`, `(COMPUTE)`
 
     `Auto` will automatically detect the present CUDA-enabled GPU architectures
-    in the system. `Kepler`, `Maxwell`, `Pascal` and `Volta` will add flags for
+    in the system. `Kepler`, `Maxwell`, `Pascal`, `Volta` and `Ampere` will add flags for
     all architectures of that particular NVIDIA GPU generation. `COMPUTE` and
     `CODE` are placeholders that should be replaced with compute and code
     numbers (e.g.  for `compute_70` and `sm_70` `COMPUTE` and `CODE` should be
@@ -114,8 +114,56 @@ cmake  -G "Unix Makefiles" -H. -BDebug -DCMAKE_BUILD_TYPE=Debug -DGINKGO_DEVEL_T
 cmake --build Debug
 ```
 
-NOTE: Ginkgo is known to work with the `Unix Makefiles` and `Ninja` based
+NOTE: Ginkgo is known to work with the `Unix Makefiles`, `Ninja`, `MinGW Makefiles` and `Visual Studio 16 2019` based
 generators. Other CMake generators are untested.
+
+### Building Ginkgo in Windows
+Depending on the configuration settings, some manual work might be required:
+* Build Ginkgo as shared library:
+  Add `PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH` into the environment variable `PATH`.
+  `GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH` is `windows_shared_library` by default. More Details are available in the [Installation page](./INSTALL.md).
+  * cmd: `set PATH="<PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH>;%PATH%"`
+  * powershell: `$env:PATH="<PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH>;$env:PATH"`
+
+  CMake will gives the error message if the path is not correct.
+  ```
+  Did not find this build in the environment variable PATH. Please add <path> into the environment variable PATH.
+  ```
+  the `<path>` is the needed `<PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH>`.
+* Build Ginkgo with Debug mode:
+  Some Debug build specific issues can appear depending on the machine and environment. The known issues are the following:
+  1. `bigobj` issue: encountering  `too many sections` needs the compilation flags `\bigobj` or `-Wa,-mbig-obj`
+  2. `ld` issue: encountering  `ld: error: export ordinal too large` needs the compilation flag `-O1`
+
+  The following are the details for different environments:
+  * _Microsoft Visual Studio_:
+    1. `bigobj` issue
+      * `cmake -DCMAKE_CXX_FLAGS=\bigobj <other parameters> <source_folder>` which might overwrite the default settings.
+      * add `\bigobj` into the environment variable `CXXFLAGS` (only availible in the first cmake configuration)
+        * cmd: `set CXXFLAGS=\bigobj`
+        * powershell: `$env:CXXFLAGS=\bigobj`
+    2. `ld` issue (_Microsoft Visual Studio_ does not have this issue)
+  * _Cygwin_:
+    1. `bigobj` issue
+      * add `-Wa,-mbig-obj -O1` into the environment variable `CXXFLAGS` (only availible in the first cmake configuration)
+        * `export CXXFLAGS="-Wa,-mbig-obj -O1"`
+      * `cmake -DCMAKE_CXX_FLAGS=-Wa,-mbig-obj <other parameters> <source_folder>`, which might overwrite the default settings.
+    2. `ld` issue (If build Ginkgo as static library, do not need this)
+      * `cmake -DGINKGO_COMPILER_FLAGS="-Wpedantic -O1" <other parameters> <source_folder>` (`GINKGO_COMPILER_FLAGS` is `-Wpedantic` by default)
+      * add `-O1` in the environement variable `CXX_FLAGS` or `CMAKE_CXX_FLAGS`
+  * _MinGW_:
+    1. `bigobj` issue
+      * add `-Wa,-mbig-obj -O1` into the environment variable `CXXFLAGS` (only availible in the first cmake configuration)
+        * cmd: `set CXXFLAGS="-Wa,-mbig-obj"`
+        * powershell: `$env:CXXFLAGS="-Wa,-mbig-obj"`
+      * `cmake -DCMAKE_CXX_FLAGS=-Wa,-mbig-obj <other parameters> <source_folder>`, which might overwrite the default settings.
+    2. `ld` issue (If build Ginkgo as static library, do not need this)
+      * `cmake -DGINKGO_COMPILER_FLAGS="-Wpedantic -O1" <other parameters> <source_folder>` (`GINKGO_COMPILER_FLAGS` is `-Wpedantic` by default)
+      * add `-O1` in the environement variable `CXX_FLAGS` or `CMAKE_CXX_FLAGS`
+* Build Ginkgo in _MinGW_:
+  If encountering the issue `cc1plus.exe: out of memory allocating 65536 bytes`, please follow the workaround in
+  [reference](https://www.intel.com/content/www/us/en/programmable/support/support-resources/knowledge-base/embedded/2016/cc1plus-exe--out-of-memory-allocating-65536-bytes.html),
+  or compile ginkgo again might work.
 
 ### Building Ginkgo with HIP support
 Ginkgo provides a [HIP](https://github.com/ROCm-Developer-Tools/HIP) backend.
