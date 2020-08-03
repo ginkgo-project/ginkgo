@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
     }();
     auto y = clone(x);
     auto tmp = clone(x);
-    auto norm = gko::share(gko::initialize<real_vec>({1.0}, exec));
+    auto norm = gko::initialize<real_vec>({1.0}, exec);
     auto inv_norm = clone(this_exec, one);
     auto g = clone(one);
 

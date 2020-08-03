@@ -50,8 +50,10 @@ int main(int argc, char *argv[])
     // multiple vectors is a now a natural extension of adding columns/rows are
     // necessary.
     using ValueType = double;
+    using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
+    using real_vec = gko::matrix::Dense<RealValueType>;
     // The gko::matrix::Csr class is used here, but any other matrix class such
     // as gko::matrix::Coo, gko::matrix::Hybrid, gko::matrix::Ell or
     // gko::matrix::Sellp could also be used.
@@ -106,11 +108,11 @@ int main(int argc, char *argv[])
     // build solvers with certain
     // properties. Observe the Fluent interface used here. Here a cg solver is
     // generated with a stopping criteria of maximum iterations of 20 and a
-    // residual norm reduction of 1e-15. You also observe that the stopping
+    // residual norm reduction of 1e-7. You also observe that the stopping
     // criteria(gko::stop) are also generated from factories using their build
     // methods. You need to specify the executors which each of the object needs
     // to be built on.
-    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
+    const RealValueType reduction_factor{1e-7};
     auto solver_gen =
         cg::build()
             .with_criteria(
@@ -147,7 +149,7 @@ int main(int argc, char *argv[])
     // the euclidean 2-norm with the compute_norm2 function.
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto res = gko::initialize<vec>({0.0}, exec);
+    auto res = gko::initialize<real_vec>({0.0}, exec);
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
     b->compute_norm2(lend(res));
 
