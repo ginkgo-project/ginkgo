@@ -2,58 +2,59 @@
 This is the expected output:
 
 @code{.cpp}
+
 .
 .
 .
 .
 .
-[LOG] >>> iteration 15331 completed with solver LinOp[gko::solver::Bicgstab<double>,0x7f2f38003c10] with residual LinOp[gko::matrix::Dense<double>,0x7f2f380048e0], solution LinOp[gko::LinOp const*,0] and residual_norm LinOp[gko::LinOp const*,0]
-LinOp[gko::matrix::Dense<double>,0x7f2f380048e0][
-        6.21705e-164
-        -1.18919e-164
-        7.89129e-165
-        -6.78013e-165
-        -2.42405e-164
-        -4.29503e-165
-        6.16567e-166
-        -3.34064e-164
-        6.38335e-165
-        7.86768e-165
-        -1.80969e-165
-        -4.17609e-166                   
-        2.5395e-165
-        -5.34283e-166
-        -4.10476e-166
-        -1.50132e-166
-        -1.25732e-165
-        -1.82819e-166
-        -2.0927e-165
-]        
+.
+[LOG] >>> iteration 22516 completed with solver LinOp[gko::solver::Bicgstab<double>,0x7fe6a4003710] with residual LinOp[gko::matrix::Dense<double>,0x7fe6a40050b0], solution LinOp[gko::matrix::Dense<double>,0x7fe6a40048e0] and residual_norm LinOp[gko::LinOp const*,0]
+LinOp[gko::matrix::Dense<double>,0x7fe6a40050b0][
+	5.17803e-164
+	-7.6865e-165
+	-2.06149e-164
+	-4.84737e-165
+	-3.36597e-164
+	2.22353e-164
+	1.47594e-165
+	-1.78592e-165
+	-6.17274e-166
+	-3.02681e-166
+	7.82009e-166
+	8.57102e-165
+	-1.28879e-164
+	-2.62076e-165
+	2.55329e-165
+	-5.95988e-166
+	-5.79273e-166
+	-5.20172e-166
+	-6.79458e-166
+]
 
 // Typing 'stop' stops the solver.
-
 User input command 'stop' - The solver will stop
 
-LinOp[gko::matrix::Dense<double>,0x7f2f38004730][
-        0.252218
-        0.108645
-        0.0662811
-        0.0630433
-        0.0384088
-        0.0396536
-        0.0402648
-        0.0338935
-        0.0193098
-        0.0234653
-        0.0211499
-        0.0196413
-        0.0199151
-        0.0181674
-        0.0162722
-        0.0150714
-        0.0107016
-        0.0121141
-        0.0123025
+LinOp[gko::matrix::Dense<double>,0x7fe6a40048e0][
+	0.252218
+	0.108645
+	0.0662811
+	0.0630433
+	0.0384088
+	0.0396536
+	0.0402648
+	0.0338935
+	0.0193098
+	0.0234653
+	0.0211499
+	0.0196413
+	0.0199151
+	0.0181674
+	0.0162722
+	0.0150714
+	0.0107016
+	0.0121141
+	0.0123025
 ]
 
 Solver stopped
@@ -82,7 +83,8 @@ Solution (x):
 Residual norm sqrt(r^T r):
 %%MatrixMarket matrix array real general
 1 1
-1.06135e-15
+6.50306e-16
+
 @endcode
 
 <h3> Comments about programming and debugging </h3>

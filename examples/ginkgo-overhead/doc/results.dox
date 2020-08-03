@@ -2,8 +2,10 @@
 This is the expected output:
 
 @code{.cpp}
-Running 1000000 iterations of the CG solver took a total of 1.50535 seconds.
-        Average library overhead:     1505.35 [nanoseconds / iteration]
+
+Running 1000000 iterations of the CG solver took a total of 13.7016 seconds.
+	Average library overhead:     13701.6 [nanoseconds / iteration]
+
 @endcode
 
 <h3> Comments about programming and debugging </h3>

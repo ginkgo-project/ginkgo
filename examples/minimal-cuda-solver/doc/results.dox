@@ -3,6 +3,7 @@ The following is the expected result when using the data contained
 in the folder `data` as input:
 
 @code{.cpp}
+
 %%MatrixMarket matrix array real general
 19 1
 0.252218
@@ -24,6 +25,7 @@ in the folder `data` as input:
 0.0107016
 0.0121141
 0.0123025
+
 @endcode
 
 <h3> Comments about programming and debugging </h3>

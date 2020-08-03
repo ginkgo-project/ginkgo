@@ -2,6 +2,7 @@
 This is the expected output:
 
 @code{.cpp}
+
 Using 5 block-Jacobi sweeps.
 Solution (x):
 %%MatrixMarket matrix array real general
@@ -25,12 +26,12 @@ Solution (x):
 0.0107016
 0.0121141
 0.0123025
-GMRES iteration count:     7
-GMRES execution time [ms]: 2.64993
+GMRES iteration count:     8
+GMRES execution time [ms]: 3.89406
 Residual norm sqrt(r^T r):
 %%MatrixMarket matrix array real general
 1 1
-2.23805e-10
+1.65303e-12
 
 @endcode
 
