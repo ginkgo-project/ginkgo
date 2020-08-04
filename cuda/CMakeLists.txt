@@ -141,6 +141,9 @@ target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPA
 # Need to link against ginkgo_hip for the `raw_copy_to(HipExecutor ...)` method
 target_link_libraries(ginkgo_cuda PUBLIC ginkgo_hip)
 
+# Let CAS handle the CUDA architecture flags (for now)
+cmake_policy(SET CMP0104 OLD)
+
 cas_target_cuda_architectures(ginkgo_cuda
     ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}
     UNSUPPORTED "20" "21")
