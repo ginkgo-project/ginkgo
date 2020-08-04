@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.9)
 
+# Use *_ROOT environment variables for find_package calls
+cmake_policy(SET CMP0074 NEW)
+
 project(Ginkgo LANGUAGES C CXX VERSION 1.2.0 DESCRIPTION "A numerical linear algebra library targeting many-core architectures")
 set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
