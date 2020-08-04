@@ -136,3 +136,48 @@ macro(ginkgo_modify_flags name)
     # the result var is ${name}_MODIFY
     string(REPLACE "\"" "\\\"" ${name}_MODIFY "${${name}}")
 endmacro()
+
+# Extract the clang version from a clang executable path
+function(ginkgo_extract_clang_version CLANG_COMPILER GINKGO_CLANG_VERSION)
+    set(CLANG_VERSION_PROG "#include <cstdio>\n"
+        "int main() {printf(\"%d.%d.%d\", __clang_major__, __clang_minor__, __clang_patchlevel__)\;"
+        "return 0\;}")
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/extract_clang_ver.cpp" ${CLANG_VERSION_PROG})
+    execute_process(COMMAND ${CLANG_COMPILER} ${CMAKE_CURRENT_BINARY_DIR}/extract_clang_ver.cpp
+        -o ${CMAKE_CURRENT_BINARY_DIR}/extract_clang_ver
+        ERROR_VARIABLE CLANG_EXTRACT_VER_ERROR)
+    execute_process(COMMAND ${CMAKE_CURRENT_BINARY_DIR}/extract_clang_ver
+        OUTPUT_VARIABLE FOUND_CLANG_VERSION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_STRIP_TRAILING_WHITESPACE
+        )
+
+    set (${GINKGO_CLANG_VERSION} "${FOUND_CLANG_VERSION}" PARENT_SCOPE)
+    file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/extract_clang_ver.cpp)
+    file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/extract_clang_ver)
+endfunction()
+
+# Extract the GNU installation version linked with a clang installation
+function(ginkgo_extract_clang_linked_gnu_version CLANG_COMPILER OUTPUT_CLANG_LINKED_GNU_VERSION)
+    find_program(BASH bash)
+    if (BASH)
+        execute_process(COMMAND bash -c "${CLANG_COMPILER} -v 2>&1 | grep 'Selected GCC' | grep -Eo '[0-9.]+$'"
+            OUTPUT_VARIABLE LINKED_GCC_VERSION
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_STRIP_TRAILING_WHITESPACE
+            )
+        string(REPLACE "." ";" LINKED_GCC_VERSION_LIST
+            ${LINKED_GCC_VERSION})
+        list(GET LINKED_GCC_VERSION_LIST 0 LINKED_GCC_VERSION_MAJOR)
+        list(GET LINKED_GCC_VERSION_LIST 1 LINKED_GCC_VERSION_MINOR)
+        if (NOT LINKED_GCC_VERSION_MINOR)
+            set(LINKED_GCC_VERSION_MINOR 0)
+        endif()
+        set(${OUTPUT_CLANG_LINKED_GNU_VERSION}
+            "${LINKED_GCC_VERSION_MAJOR}0${LINKED_GCC_VERSION_MINOR}00" PARENT_SCOPE)
+    else()
+        # We do not have bash, it could be a Windows system
+        # Hardcode 70000 (7.0) as version since it usually works in most cases
+        set (${OUTPUT_CLANG_LINKED_GNU_VERSION} "70000" PARENT_SCOPE)
+    endif()
+endfunction()

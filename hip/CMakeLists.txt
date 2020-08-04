@@ -197,6 +197,17 @@ if (GINKGO_HIP_PLATFORM MATCHES "nvcc")
     if(NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")
         set(GINKGO_HIP_NVCC_ADDITIONAL_FLAGS --expt-relaxed-constexpr)
     endif()
+
+    if (GINKGO_HIP_PLATFROM MATCHES "nvcc" AND CMAKE_CUDA_COMPILER_VERSION
+            MATCHES "9.2" AND CMAKE_CUDA_HOST_COMPILER MATCHES ".*clang.*" )
+        ginkgo_extract_clang_version(${CMAKE_CUDA_HOST_COMPILER} GINKGO_CUDA_HOST_CLANG_VERSION)
+
+        if (GINKGO_CUDA_HOST_CLANG_VERSION MATCHES "5\.0.*")
+            ginkgo_extract_clang_linked_gnu_version(${CMAKE_CUDA_HOST_COMPILER} GINKGO_CLANG_LINKED_GNU_VERSION)
+
+            set(GINKGO_HIP_NVCC_ADDITIONAL_FLAGS "${GINKGO_HIP_NVCC_ADDITIONAL_FLAGS} -Xcudafe --gnu_version=${GINKGO_CLANG_LINKED_GNU_VERSION} -Xcudafe --no_clang")
+        endif()
+    endif()
     # add gpu architecture flags
     include(CudaArchitectureSelector)
     cas_variable_cuda_architectures(GINKGO_HIP_NVCC_ARCH

@@ -131,6 +131,18 @@ if(CMAKE_CUDA_HOST_COMPILER AND NOT CMAKE_CXX_COMPILER STREQUAL CMAKE_CUDA_HOST_
         "The CUDA host compiler is ${CMAKE_CUDA_HOST_COMPILER}.")
 endif()
 
+if (CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA" AND CMAKE_CUDA_COMPILER_VERSION
+    MATCHES "9.2" AND CMAKE_CUDA_HOST_COMPILER MATCHES ".*clang.*" )
+    ginkgo_extract_clang_version(${CMAKE_CUDA_HOST_COMPILER} GINKGO_CUDA_HOST_CLANG_VERSION)
+
+    if (GINKGO_CUDA_HOST_CLANG_VERSION MATCHES "5\.0.*")
+        ginkgo_extract_clang_linked_gnu_version(${CMAKE_CUDA_HOST_COMPILER} GINKGO_CLANG_LINKED_GNU_VERSION)
+
+        target_compile_options(ginkgo_cuda PRIVATE
+            $<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe --gnu_version=${GINKGO_CLANG_LINKED_GNU_VERSION} -Xcudafe --no_clang>)
+    endif()
+endif()
+
 target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${GINKGO_CUDA_COMPILER_FLAGS}>)
 target_compile_options(ginkgo_cuda PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${GINKGO_COMPILER_FLAGS}>)
 ginkgo_compile_features(ginkgo_cuda)
