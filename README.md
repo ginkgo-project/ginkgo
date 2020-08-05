@@ -7,7 +7,7 @@
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)
 
-[![CDash dashboard](https://img.shields.io/badge/CDash-Access-blue.svg)](http://my.cdash.org/index.php?project=Ginkgo+Project)
+[![CDash dashboard](https://img.shields.io/badge/CDash-Access-blue.svg)](https://my.cdash.org/index.php?project=Ginkgo+Project)
 [![Documentation](https://img.shields.io/badge/Documentation-latest-blue.svg)](https://ginkgo-project.github.io/ginkgo/doc/master/)
 [![License](https://img.shields.io/github/license/ginkgo-project/ginkgo.svg)](./LICENSE)
 [![c++ standard](https://img.shields.io/badge/c%2B%2B-14-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
@@ -69,7 +69,7 @@ The Ginkgo HIP module has the following __additional__ requirements:
 
 The prequirement needs to be verified
 *   _cmake 3.9+_
-*   C++14 compliant 64-bits compiler:
+*   C++14 compliant 64-bit compiler:
     *   _MinGW : gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
     *   _Cygwin : gcc 5.3+, 6.3+, 7.3+, all versions after 8.1+_
     *   _Microsoft Visual Studio : VS 2017 15.7+_
