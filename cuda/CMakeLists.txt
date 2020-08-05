@@ -142,7 +142,9 @@ target_link_libraries(ginkgo_cuda PRIVATE ${CUDA_RUNTIME_LIBS} ${CUBLAS} ${CUSPA
 target_link_libraries(ginkgo_cuda PUBLIC ginkgo_hip)
 
 # Let CAS handle the CUDA architecture flags (for now)
-cmake_policy(SET CMP0104 OLD)
+if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.18)
+    cmake_policy(SET CMP0104 OLD)
+endif()
 
 cas_target_cuda_architectures(ginkgo_cuda
     ARCHITECTURES ${GINKGO_CUDA_ARCHITECTURES}
