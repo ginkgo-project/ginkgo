@@ -162,9 +162,89 @@ DEFINE_string(
     "Comma-separated list of SpGEMM strategies: onepass, twopass, sparselib");
 
 
+gko::int64 compute_spgemm_work(const gko::matrix_data<etype, itype> &data)
+{
+    auto ref = gko::ReferenceExecutor::create();
+    auto ref_mtx = gko::share(Mtx::create(ref));
+    ref_mtx->read(data);
+    auto ref_mtx2 = mode_map.at(FLAGS_mode)(ref_mtx);
+
+    auto num_rows = ref_mtx->get_size()[0];
+    gko::int64 total_count{};
+    // for each row of A ...
+    for (gko::size_type row = 0; row < num_rows; ++row) {
+        auto begin = ref_mtx->get_const_row_ptrs()[row];
+        auto end = ref_mtx->get_const_row_ptrs()[row + 1];
+        // sum up the size of all corresponding rows of B
+        for (auto nz = begin; nz < end; ++nz) {
+            auto col = ref_mtx->get_const_col_idxs()[nz];
+            total_count += ref_mtx2->get_const_row_ptrs()[col + 1] -
+                           ref_mtx2->get_const_row_ptrs()[col];
+        }
+    }
+    return total_count;
+}
+
+
+std::shared_ptr<Mtx> compute_spgemm_ref(
+    const gko::matrix_data<etype, itype> &data)
+{
+    auto ref = gko::ReferenceExecutor::create();
+    auto ref_mtx = gko::share(Mtx::create(ref));
+    ref_mtx->read(data);
+    auto ref_mtx2 = mode_map.at(FLAGS_mode)(ref_mtx);
+
+    auto ref_res = Mtx::create(
+        ref, gko::dim<2>(ref_mtx->get_size()[0], ref_mtx2->get_size()[1]));
+
+    ref_mtx->apply(gko::lend(ref_mtx2), gko::lend(ref_res));
+    return gko::share(ref_res);
+}
+
+std::pair<bool, double> validate_spgemm(const Mtx *reference_solution,
+                                        const Mtx *device_result)
+{
+    auto ref = gko::ReferenceExecutor::create();
+    auto result = Mtx::create(ref);
+    result->copy_from(gko::lend(device_result));
+    if (reference_solution->get_num_stored_elements() !=
+        result->get_num_stored_elements()) {
+        return {false, 0.0};
+    }
+
+    auto num_rows = reference_solution->get_size()[0];
+    double error{};
+    // for each row
+    for (gko::size_type row = 0; row < num_rows; ++row) {
+        // check for equal row lenghts
+        auto begin = reference_solution->get_const_row_ptrs()[row];
+        auto end = reference_solution->get_const_row_ptrs()[row + 1];
+        auto begin2 = result->get_const_row_ptrs()[row];
+        auto end2 = result->get_const_row_ptrs()[row + 1];
+        if (begin != begin2 || end != end2) {
+            return {false, 0.0};
+        }
+        // for each non-zero
+        for (auto nz = begin; nz < end; ++nz) {
+            // check for equal column indices
+            auto col = reference_solution->get_const_col_idxs()[nz];
+            auto col2 = result->get_const_col_idxs()[nz];
+            if (col != col2) {
+                return {false, 0.0};
+            }
+            // compute value error
+            auto val = reference_solution->get_const_values()[nz];
+            auto val2 = result->get_const_values()[nz];
+            error += gko::abs(val - val2);
+        }
+    }
+    return {true, error};
+}
+
 void apply_spgemm(const char *strategy_name,
                   std::shared_ptr<gko::Executor> exec,
                   const gko::matrix_data<etype, itype> &data,
+                  std::shared_ptr<Mtx> reference_solution,
                   rapidjson::Value &test_case,
                   rapidjson::MemoryPoolAllocator<> &allocator)
 {
@@ -188,6 +268,7 @@ void apply_spgemm(const char *strategy_name,
             mtx->apply(lend(mtx2), lend(res));
             exec->synchronize();
         }
+
         std::chrono::nanoseconds time(0);
         // timed run
         for (unsigned int i = 0; i < FLAGS_repetitions; i++) {
@@ -224,6 +305,12 @@ void apply_spgemm(const char *strategy_name,
         }
 
         // compute and write benchmark data
+        auto validation_result =
+            validate_spgemm(gko::lend(reference_solution), gko::lend(res));
+        add_or_set_member(test_case[strategy_name], "correct",
+                          validation_result.first, allocator);
+        add_or_set_member(test_case[strategy_name], "error",
+                          validation_result.second, allocator);
         add_or_set_member(test_case[strategy_name], "completed", true,
                           allocator);
     } catch (const std::exception &e) {
@@ -282,13 +369,23 @@ int main(int argc, char *argv[])
             auto data = gko::read_raw<etype, itype>(mtx_fd);
             data.ensure_row_major_order();
 
+            // compute the exact amount of products a_ik * b_kj the SpGEMM has
+            // to compute
+            auto total_work = compute_spgemm_work(data);
+
+            // store the amount of work the SpGEMM has to do
+            add_or_set_member(test_case, "spgemm_work", total_work, allocator);
+
             std::clog << "Matrix is of size (" << data.size[0] << ", "
-                      << data.size[1] << "), " << data.nonzeros.size()
-                      << std::endl;
+                      << data.size[1] << "), " << data.nonzeros.size() << ", "
+                      << total_work << std::endl;
+
+            // compute reference solution
+            auto reference_solution = compute_spgemm_ref(data);
 
             for (const auto &strategy_name : strategies) {
-                apply_spgemm(strategy_name.c_str(), exec, data, spgemm_case,
-                             allocator);
+                apply_spgemm(strategy_name.c_str(), exec, data,
+                             reference_solution, spgemm_case, allocator);
                 std::clog << "Current state:" << std::endl
                           << test_cases << std::endl;
                 backup_results(test_cases);
