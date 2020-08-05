@@ -572,6 +572,7 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
         auto c_descr = cusparse::create_csr(m, n, zero_nnz, null_index,
                                             null_index, null_value);
 
+        // estimate work
         size_type buffer1_size{};
         cusparse::spgemm_work_estimation(handle, &alpha, a_descr, b_descr,
                                          &beta, c_descr, spgemm_descr,
@@ -581,6 +582,7 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
                                          &beta, c_descr, spgemm_descr,
                                          buffer1_size, buffer1.get_data());
 
+        // compute spgemm
         size_type buffer2_size{};
         cusparse::spgemm_compute(handle, &alpha, a_descr, b_descr, &beta,
                                  c_descr, spgemm_descr, buffer1.get_data(),
@@ -590,6 +592,7 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
                                  c_descr, spgemm_descr, buffer1.get_data(),
                                  buffer2_size, buffer2.get_data());
 
+        // copy data to result
         auto c_nnz = cusparse::sparse_matrix_nnz(c_descr);
         c_col_idxs_array.resize_and_reset(c_nnz);
         c_vals_array.resize_and_reset(c_nnz);
@@ -611,136 +614,6 @@ void spgemm(std::shared_ptr<const CudaExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
-                     const matrix::Dense<ValueType> *alpha,
-                     const matrix::Csr<ValueType, IndexType> *a,
-                     const matrix::Csr<ValueType, IndexType> *b,
-                     const matrix::Dense<ValueType> *beta,
-                     const matrix::Csr<ValueType, IndexType> *d,
-                     matrix::Csr<ValueType, IndexType> *c)
-{
-    if (cusparse::is_supported<ValueType, IndexType>::value) {
-        auto handle = exec->get_cusparse_handle();
-        cusparse::pointer_mode_guard pm_guard(handle);
-
-        auto valpha = exec->copy_val_to_host(alpha->get_const_values());
-        auto a_nnz = IndexType(a->get_num_stored_elements());
-        auto a_vals = a->get_const_values();
-        auto a_row_ptrs = a->get_const_row_ptrs();
-        auto a_col_idxs = a->get_const_col_idxs();
-        auto b_nnz = IndexType(b->get_num_stored_elements());
-        auto b_vals = b->get_const_values();
-        auto b_row_ptrs = b->get_const_row_ptrs();
-        auto b_col_idxs = b->get_const_col_idxs();
-        auto vbeta = exec->copy_val_to_host(beta->get_const_values());
-        auto d_nnz = IndexType(d->get_num_stored_elements());
-        auto d_vals = d->get_const_values();
-        auto d_row_ptrs = d->get_const_row_ptrs();
-        auto d_col_idxs = d->get_const_col_idxs();
-        auto m = IndexType(a->get_size()[0]);
-        auto n = IndexType(b->get_size()[1]);
-        auto k = IndexType(a->get_size()[1]);
-        auto c_row_ptrs = c->get_row_ptrs();
-        matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-        auto &c_col_idxs_array = c_builder.get_col_idx_array();
-        auto &c_vals_array = c_builder.get_value_array();
-
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-        auto a_descr = cusparse::create_mat_descr();
-        auto b_descr = cusparse::create_mat_descr();
-        auto c_descr = cusparse::create_mat_descr();
-        auto d_descr = cusparse::create_mat_descr();
-        auto info = cusparse::create_spgemm_info();
-        // allocate buffer
-        size_type buffer_size{};
-        cusparse::spgemm_buffer_size(
-            handle, m, n, k, &valpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
-            b_descr, b_nnz, b_row_ptrs, b_col_idxs, &vbeta, d_descr, d_nnz,
-            d_row_ptrs, d_col_idxs, info, buffer_size);
-        Array<char> buffer_array(exec, buffer_size);
-        auto buffer = buffer_array.get_data();
-
-        // count nnz
-        IndexType c_nnz{};
-        cusparse::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
-                             a_col_idxs, b_descr, b_nnz, b_row_ptrs, b_col_idxs,
-                             d_descr, d_nnz, d_row_ptrs, d_col_idxs, c_descr,
-                             c_row_ptrs, &c_nnz, info, buffer);
-
-        // accumulate non-zeros
-        c_col_idxs_array.resize_and_reset(c_nnz);
-        c_vals_array.resize_and_reset(c_nnz);
-        auto c_col_idxs = c_col_idxs_array.get_data();
-        auto c_vals = c_vals_array.get_data();
-        cusparse::spgemm(handle, m, n, k, &valpha, a_descr, a_nnz, a_vals,
-                         a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
-                         b_row_ptrs, b_col_idxs, &vbeta, d_descr, d_nnz, d_vals,
-                         d_row_ptrs, d_col_idxs, c_descr, c_vals, c_row_ptrs,
-                         c_col_idxs, info, buffer);
-
-        cusparse::destroy(info);
-        cusparse::destroy(d_descr);
-        cusparse::destroy(c_descr);
-        cusparse::destroy(b_descr);
-        cusparse::destroy(a_descr);
-#else   // CUDA_VERSION >= 11000
-        auto spgemm_descr = cusparse::create_spgemm_descr();
-        auto a_descr = cusparse::create_csr(m, k, a_nnz,
-                                            const_cast<IndexType *>(a_row_ptrs),
-                                            const_cast<IndexType *>(a_col_idxs),
-                                            const_cast<ValueType *>(a_vals));
-        auto b_descr = cusparse::create_csr(k, n, b_nnz,
-                                            const_cast<IndexType *>(b_row_ptrs),
-                                            const_cast<IndexType *>(b_col_idxs),
-                                            const_cast<ValueType *>(b_vals));
-        auto c_descr = cusparse::create_csr(m, n, d_nnz,
-                                            const_cast<IndexType *>(d_row_ptrs),
-                                            const_cast<IndexType *>(d_col_idxs),
-                                            const_cast<ValueType *>(d_vals));
-
-        size_type buffer1_size{};
-        cusparse::spgemm_work_estimation(handle, &valpha, a_descr, b_descr,
-                                         &vbeta, c_descr, spgemm_descr,
-                                         buffer1_size, nullptr);
-        Array<char> buffer1{exec, buffer1_size};
-        cusparse::spgemm_work_estimation(handle, &valpha, a_descr, b_descr,
-                                         &vbeta, c_descr, spgemm_descr,
-                                         buffer1_size, buffer1.get_data());
-
-        size_type buffer2_size{};
-        cusparse::spgemm_compute(handle, &valpha, a_descr, b_descr, &vbeta,
-                                 c_descr, spgemm_descr, buffer1.get_data(),
-                                 buffer2_size, nullptr);
-        Array<char> buffer2{exec, buffer2_size};
-        cusparse::spgemm_compute(handle, &valpha, a_descr, b_descr, &vbeta,
-                                 c_descr, spgemm_descr, buffer1.get_data(),
-                                 buffer2_size, buffer2.get_data());
-
-        auto c_nnz = cusparse::sparse_matrix_nnz(c_descr);
-        c_col_idxs_array.resize_and_reset(c_nnz);
-        c_vals_array.resize_and_reset(c_nnz);
-        cusparse::csr_set_pointers(c_descr, c_row_ptrs,
-                                   c_col_idxs_array.get_data(),
-                                   c_vals_array.get_data());
-
-        cusparse::spgemm_copy(handle, &valpha, a_descr, b_descr, &vbeta,
-                              c_descr, spgemm_descr);
-
-        cusparse::destroy(c_descr);
-        cusparse::destroy(b_descr);
-        cusparse::destroy(a_descr);
-        cusparse::destroy(spgemm_descr);
-#endif  // CUDA_VERSION >= 11000
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL);
 
 
 namespace {
@@ -782,6 +655,157 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_spgeam, spgeam);
 
 
 }  // namespace
+
+
+template <typename ValueType, typename IndexType>
+void advanced_spgemm(std::shared_ptr<const CudaExecutor> exec,
+                     const matrix::Dense<ValueType> *alpha,
+                     const matrix::Csr<ValueType, IndexType> *a,
+                     const matrix::Csr<ValueType, IndexType> *b,
+                     const matrix::Dense<ValueType> *beta,
+                     const matrix::Csr<ValueType, IndexType> *d,
+                     matrix::Csr<ValueType, IndexType> *c)
+{
+    if (cusparse::is_supported<ValueType, IndexType>::value) {
+        auto handle = exec->get_cusparse_handle();
+        cusparse::pointer_mode_guard pm_guard(handle);
+
+        auto valpha = exec->copy_val_to_host(alpha->get_const_values());
+        auto a_nnz = IndexType(a->get_num_stored_elements());
+        auto a_vals = a->get_const_values();
+        auto a_row_ptrs = a->get_const_row_ptrs();
+        auto a_col_idxs = a->get_const_col_idxs();
+        auto b_nnz = IndexType(b->get_num_stored_elements());
+        auto b_vals = b->get_const_values();
+        auto b_row_ptrs = b->get_const_row_ptrs();
+        auto b_col_idxs = b->get_const_col_idxs();
+        auto vbeta = exec->copy_val_to_host(beta->get_const_values());
+        auto d_nnz = IndexType(d->get_num_stored_elements());
+        auto d_vals = d->get_const_values();
+        auto d_row_ptrs = d->get_const_row_ptrs();
+        auto d_col_idxs = d->get_const_col_idxs();
+        auto m = IndexType(a->get_size()[0]);
+        auto n = IndexType(b->get_size()[1]);
+        auto k = IndexType(a->get_size()[1]);
+        auto c_row_ptrs = c->get_row_ptrs();
+
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+        matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
+        auto &c_col_idxs_array = c_builder.get_col_idx_array();
+        auto &c_vals_array = c_builder.get_value_array();
+        auto a_descr = cusparse::create_mat_descr();
+        auto b_descr = cusparse::create_mat_descr();
+        auto c_descr = cusparse::create_mat_descr();
+        auto d_descr = cusparse::create_mat_descr();
+        auto info = cusparse::create_spgemm_info();
+        // allocate buffer
+        size_type buffer_size{};
+        cusparse::spgemm_buffer_size(
+            handle, m, n, k, &valpha, a_descr, a_nnz, a_row_ptrs, a_col_idxs,
+            b_descr, b_nnz, b_row_ptrs, b_col_idxs, &vbeta, d_descr, d_nnz,
+            d_row_ptrs, d_col_idxs, info, buffer_size);
+        Array<char> buffer_array(exec, buffer_size);
+        auto buffer = buffer_array.get_data();
+
+        // count nnz
+        IndexType c_nnz{};
+        cusparse::spgemm_nnz(handle, m, n, k, a_descr, a_nnz, a_row_ptrs,
+                             a_col_idxs, b_descr, b_nnz, b_row_ptrs, b_col_idxs,
+                             d_descr, d_nnz, d_row_ptrs, d_col_idxs, c_descr,
+                             c_row_ptrs, &c_nnz, info, buffer);
+
+        // accumulate non-zeros
+        c_col_idxs_array.resize_and_reset(c_nnz);
+        c_vals_array.resize_and_reset(c_nnz);
+        auto c_col_idxs = c_col_idxs_array.get_data();
+        auto c_vals = c_vals_array.get_data();
+        cusparse::spgemm(handle, m, n, k, &valpha, a_descr, a_nnz, a_vals,
+                         a_row_ptrs, a_col_idxs, b_descr, b_nnz, b_vals,
+                         b_row_ptrs, b_col_idxs, &vbeta, d_descr, d_nnz, d_vals,
+                         d_row_ptrs, d_col_idxs, c_descr, c_vals, c_row_ptrs,
+                         c_col_idxs, info, buffer);
+
+        cusparse::destroy(info);
+        cusparse::destroy(d_descr);
+        cusparse::destroy(c_descr);
+        cusparse::destroy(b_descr);
+        cusparse::destroy(a_descr);
+#else   // CUDA_VERSION >= 11000
+        auto null_value = static_cast<ValueType *>(nullptr);
+        auto null_index = static_cast<IndexType *>(nullptr);
+        auto one_val = one<ValueType>();
+        auto zero_val = zero<ValueType>();
+        auto zero_nnz = IndexType{};
+        auto spgemm_descr = cusparse::create_spgemm_descr();
+        auto a_descr = cusparse::create_csr(m, k, a_nnz,
+                                            const_cast<IndexType *>(a_row_ptrs),
+                                            const_cast<IndexType *>(a_col_idxs),
+                                            const_cast<ValueType *>(a_vals));
+        auto b_descr = cusparse::create_csr(k, n, b_nnz,
+                                            const_cast<IndexType *>(b_row_ptrs),
+                                            const_cast<IndexType *>(b_col_idxs),
+                                            const_cast<ValueType *>(b_vals));
+        auto c_descr = cusparse::create_csr(m, n, zero_nnz, null_index,
+                                            null_index, null_value);
+
+        // estimate work
+        size_type buffer1_size{};
+        cusparse::spgemm_work_estimation(handle, &one_val, a_descr, b_descr,
+                                         &zero_val, c_descr, spgemm_descr,
+                                         buffer1_size, nullptr);
+        Array<char> buffer1{exec, buffer1_size};
+        cusparse::spgemm_work_estimation(handle, &one_val, a_descr, b_descr,
+                                         &zero_val, c_descr, spgemm_descr,
+                                         buffer1_size, buffer1.get_data());
+
+        // compute spgemm
+        size_type buffer2_size{};
+        cusparse::spgemm_compute(handle, &one_val, a_descr, b_descr, &zero_val,
+                                 c_descr, spgemm_descr, buffer1.get_data(),
+                                 buffer2_size, nullptr);
+        Array<char> buffer2{exec, buffer2_size};
+        cusparse::spgemm_compute(handle, &one_val, a_descr, b_descr, &zero_val,
+                                 c_descr, spgemm_descr, buffer1.get_data(),
+                                 buffer2_size, buffer2.get_data());
+
+        // write result to temporary storage
+        auto c_tmp_nnz = cusparse::sparse_matrix_nnz(c_descr);
+        Array<IndexType> c_tmp_row_ptrs_array(exec, m + 1);
+        Array<IndexType> c_tmp_col_idxs_array(exec, c_tmp_nnz);
+        Array<ValueType> c_tmp_vals_array(exec, c_tmp_nnz);
+        cusparse::csr_set_pointers(c_descr, c_tmp_row_ptrs_array.get_data(),
+                                   c_tmp_col_idxs_array.get_data(),
+                                   c_tmp_vals_array.get_data());
+
+        cusparse::spgemm_copy(handle, &one_val, a_descr, b_descr, &zero_val,
+                              c_descr, spgemm_descr);
+
+        cusparse::destroy(c_descr);
+        cusparse::destroy(b_descr);
+        cusparse::destroy(a_descr);
+        cusparse::destroy(spgemm_descr);
+
+        auto spgeam_total_nnz = c_tmp_nnz + d->get_num_stored_elements();
+        auto nnz_per_row = spgeam_total_nnz / m;
+        select_spgeam(
+            spgeam_kernels(),
+            [&](int compiled_subwarp_size) {
+                return compiled_subwarp_size >= nnz_per_row ||
+                       compiled_subwarp_size == config::warp_size;
+            },
+            syn::value_list<int>(), syn::type_list<>(), exec,
+            alpha->get_const_values(), c_tmp_row_ptrs_array.get_const_data(),
+            c_tmp_col_idxs_array.get_const_data(),
+            c_tmp_vals_array.get_const_data(), beta->get_const_values(),
+            d_row_ptrs, d_col_idxs, d_vals, c);
+#endif  // CUDA_VERSION >= 11000
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
