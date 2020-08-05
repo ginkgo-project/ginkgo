@@ -235,10 +235,10 @@ std::pair<bool, double> validate_spgemm(const Mtx *reference_solution,
             // compute value error
             auto val = reference_solution->get_const_values()[nz];
             auto val2 = result->get_const_values()[nz];
-            error += gko::abs(val - val2);
+            error += gko::squared_norm(val - val2);
         }
     }
-    return {true, error};
+    return {true, std::sqrt(error)};
 }
 
 void apply_spgemm(const char *strategy_name,
