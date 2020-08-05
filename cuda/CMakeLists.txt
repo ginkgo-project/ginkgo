@@ -136,10 +136,8 @@ if (CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA" AND CMAKE_CUDA_COMPILER_VERSION
     ginkgo_extract_clang_version(${CMAKE_CUDA_HOST_COMPILER} GINKGO_CUDA_HOST_CLANG_VERSION)
 
     if (GINKGO_CUDA_HOST_CLANG_VERSION MATCHES "5\.0.*")
-        ginkgo_extract_clang_linked_gnu_version(${CMAKE_CUDA_HOST_COMPILER} GINKGO_CLANG_LINKED_GNU_VERSION)
-
-        target_compile_options(ginkgo_cuda PRIVATE
-            $<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe --gnu_version=${GINKGO_CLANG_LINKED_GNU_VERSION} -Xcudafe --no_clang>)
+        message(FATAL_ERROR "There is a bug between nvcc 9.2 and clang 5.0 which create a compiling issue."
+            "Consider using a different CUDA host compiler or CUDA version.")
     endif()
 endif()
 
