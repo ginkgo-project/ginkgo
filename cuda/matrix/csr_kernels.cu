@@ -216,11 +216,8 @@ void classical_spmv(syn::value_list<int, subwarp_size>,
                     const matrix::Dense<ValueType> *alpha = nullptr,
                     const matrix::Dense<ValueType> *beta = nullptr)
 {
-    const auto nwarps = exec->get_num_warps_per_sm() *
-                        exec->get_num_multiprocessor() * classical_overweight;
     const auto gridx =
-        std::min(ceildiv(a->get_size()[0], spmv_block_size / subwarp_size),
-                 int64(nwarps / warps_in_block));
+        ceildiv(a->get_size()[0] * subwarp_size, spmv_block_size);
     const dim3 grid(gridx, b->get_size()[1]);
     const dim3 block(spmv_block_size);
 
