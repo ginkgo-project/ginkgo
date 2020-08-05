@@ -380,6 +380,15 @@ int main(int argc, char *argv[])
                       << data.size[1] << "), " << data.nonzeros.size() << ", "
                       << total_work << std::endl;
 
+            if (total_work > std::numeric_limits<itype>::max()) {
+                std::clog << "Computing the product A*B would overflow the "
+                             "index type, skipping"
+                          << std::endl;
+                add_or_set_member(test_case, "skipped", true, allocator);
+                backup_results(test_cases);
+                continue;
+            }
+
             // compute reference solution
             auto reference_solution = compute_spgemm_ref(data);
 
