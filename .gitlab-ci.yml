@@ -199,7 +199,7 @@ build/cuda91/clang/all/release/shared:
 
 
 # cuda 9.2 and friends
-build/cuda92/gcc/all/release/shared:
+build/cuda92/gcc/all/release/debug:
   <<: *default_build_with_test
   image: localhost:5000/gko-cuda92-gnu7-llvm50-intel2017
   variables:
@@ -208,27 +208,6 @@ build/cuda92/gcc/all/release/shared:
     BUILD_CUDA: "ON"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
-    CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
-  tags:
-    - private_ci
-    - cuda
-    - gpu
-
-build/cuda92/clang/all/debug/static:
-  <<: *default_build_with_test
-  image: localhost:5000/gko-cuda92-gnu7-llvm50-intel2017
-  variables:
-    <<: *default_variables
-    C_COMPILER: "clang"
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_HIP: "ON"
-    BUILD_TYPE: "Debug"
-    BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35
   only:
     variables:
