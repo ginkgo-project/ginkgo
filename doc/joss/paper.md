@@ -59,7 +59,16 @@ which make the library suitable for a variety of scientific applications. Ginkgo
 supports many architectures such as multi-threaded CPU, NVIDIA GPUs, and AMD GPUs.
 The heavy use of modern C++ features simplifies the addition of new executor
 paradigms and algorithmic functionality without introducing significant
-performance overhead.
+performance overhead. 
+
+Solving linear systems is usually one of the most computationally
+and memory intensive aspects of any application. Hence there has been a significant
+amount of effort in this direction with software libraries such as UMFPACK and
+CHOLMOD[@suitesparse] for solving linear systems with direct methods and PETSc[@petsc],
+Trilinos[@trilinos], Eigen[@eigen] and many more to solve linear systems with iterative
+methods. With Ginkgo, we aim to ensure high performance while not compromising portability. 
+Hence, we provide very efficient low level kernels optimized for different architectures and
+separate these kernels from the algorithms thereby ensuring extensibility and ease of use. 
 
 Ginkgo is also a part of the xSDK effort [@xsdk] and available as a Spack
 [@spack] package. xSDK aims to provide infrastructure for and interoperability
