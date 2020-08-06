@@ -132,7 +132,7 @@ public:
          * input matrix to be sorted. If it is, this parameter can be set to
          * `true` to skip the sorting for better performance.
          */
-        bool GKO_FACTORY_PARAMETER(skip_sorting, false);
+        bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
 
         /**
          * @brief Which power of the input matrix should be used for the
@@ -142,7 +142,7 @@ public:
          * pattern for the sparse inverse.
          * Must be at least 1, default value 1.
          */
-        int GKO_FACTORY_PARAMETER(sparsity_power, 1);
+        int GKO_FACTORY_PARAMETER_SCALAR(sparsity_power, 1);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(Isai, parameters, Factory);
