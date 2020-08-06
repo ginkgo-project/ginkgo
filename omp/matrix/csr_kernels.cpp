@@ -785,9 +785,8 @@ void is_sorted_by_column_index(
     const auto col_idxs = to_check->get_const_col_idxs();
     const auto size = to_check->get_size();
     bool local_is_sorted = true;
-#pragma omp parallel for shared(local_is_sorted)
+#pragma omp parallel for reduction(&& : local_is_sorted)
     for (size_type i = 0; i < size[0]; ++i) {
-#pragma omp flush(local_is_sorted)
         // Skip comparison if any thread detects that it is not sorted
         if (local_is_sorted) {
             for (auto idx = row_ptrs[i] + 1; idx < row_ptrs[i + 1]; ++idx) {
