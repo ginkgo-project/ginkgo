@@ -30,58 +30,94 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
-#ifndef GKO_CORE_STOP_ITERATION_HPP_
-#define GKO_CORE_STOP_ITERATION_HPP_
+#include <ginkgo/core/base/lin_op.hpp>
 
 
-#include <ginkgo/core/stop/criterion.hpp>
+#include <gtest/gtest.h>
 
 
-namespace gko {
-namespace stop {
+namespace {
 
-/**
- * The Iteration class is a stopping criterion which stops the iteration process
- * after a preset number of iterations.
- *
- * @note to use this stopping criterion, it is required to update the iteration
- * count for the ::check() method.
- *
- * @ingroup stop
- */
-class Iteration : public EnablePolymorphicObject<Iteration, Criterion> {
-    friend class EnablePolymorphicObject<Iteration, Criterion>;
+
+class FactoryParameter : public ::testing::Test {
+protected:
+    FactoryParameter() {}
 
 public:
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
-        /**
-         * Maximum number of iterations
-         */
-        size_type GKO_FACTORY_PARAMETER_SCALAR(max_iters, 0);
-    };
-    GKO_ENABLE_CRITERION_FACTORY(Iteration, parameters, Factory);
-    GKO_ENABLE_BUILD_METHOD(Factory);
-
-protected:
-    bool check_impl(uint8 stoppingId, bool setFinalized,
-                    Array<stopping_status> *stop_status, bool *one_changed,
-                    const Updater &updater) override;
-
-    explicit Iteration(std::shared_ptr<const gko::Executor> exec)
-        : EnablePolymorphicObject<Iteration, Criterion>(std::move(exec))
-    {}
-
-    explicit Iteration(const Factory *factory, const CriterionArgs &args)
-        : EnablePolymorphicObject<Iteration, Criterion>(
-              factory->get_executor()),
-          parameters_{factory->get_parameters()}
-    {}
+    std::vector<int> GKO_FACTORY_PARAMETER_VECTOR(parameter, 10, 11);
+    int GKO_FACTORY_PARAMETER_SCALAR(parameter2, -4);
 };
 
 
-}  // namespace stop
-}  // namespace gko
+TEST_F(FactoryParameter, WorksOnHipDefault)
+{
+    std::vector<int> expected{10, 11};
+
+    ASSERT_EQ(parameter, expected);
+    ASSERT_EQ(parameter2, -4);
+}
 
 
-#endif  // GKO_CORE_STOP_ITERATION_HPP_
+TEST_F(FactoryParameter, WorksOnHip0)
+{
+    std::vector<int> expected{};
+
+    auto result = &this->with_parameter();
+
+    ASSERT_EQ(parameter, expected);
+    ASSERT_EQ(result, this);
+}
+
+
+TEST_F(FactoryParameter, WorksOnHip1)
+{
+    std::vector<int> expected{2};
+
+    this->with_parameter(2).with_parameter2(3);
+
+    ASSERT_EQ(parameter, expected);
+    ASSERT_EQ(parameter2, 3);
+}
+
+
+TEST_F(FactoryParameter, WorksOnHip2)
+{
+    std::vector<int> expected{8, 3};
+
+    this->with_parameter(8, 3);
+
+    ASSERT_EQ(parameter, expected);
+}
+
+
+TEST_F(FactoryParameter, WorksOnHip3)
+{
+    std::vector<int> expected{1, 7, 2};
+
+    this->with_parameter(1, 7, 2);
+
+    ASSERT_EQ(parameter, expected);
+}
+
+
+TEST_F(FactoryParameter, WorksOnHip4)
+{
+    std::vector<int> expected{4, 5, 4, 2};
+
+    this->with_parameter(4, 5, 4, 2);
+
+    ASSERT_EQ(parameter, expected);
+}
+
+
+TEST_F(FactoryParameter, WorksOnHip5)
+{
+    std::vector<int> expected{9, 3, 4, 2, 7};
+
+    this->with_parameter(9, 3, 4, 2, 7);
+
+    ASSERT_EQ(parameter, expected);
+}
+
+
+}  // namespace
