@@ -1,7 +1,7 @@
 if(GINKGO_BUILD_EXTLIB_EXAMPLE)
     # This is just an example of the CMakeLists.txt file that can be used after the
     # correct version of deal.ii has been installed.
-    cmake_minimum_required(VERSION 3.8)
+    cmake_minimum_required(VERSION 3.9)
     project(DEAL_II_EXAMPLE LANGUAGES CXX)
 
     find_package(MPI REQUIRED)

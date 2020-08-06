@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 2.8)
-
+cmake_minimum_required(VERSION 3.9)
+project(${package_name})
 
 include(ExternalProject)
 ExternalProject_Add(${package_name}
@@ -17,8 +17,6 @@ ExternalProject_Add(${package_name}
                "-DCMAKE_AR=${CMAKE_AR}"
                "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
                "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
-               "-DCMAKE_RC_COMPILER=${CMAKE_RC_COMPILER}"
-               "-DCMAKE_COMPILER_PREFIX=${CMAKE_COMPILER_PREFIX}"
                "-DCMAKE_FIND_ROOT_PATH=${CMAKE_FIND_ROOT_PATH}"
                "${ARGN}"
     INSTALL_COMMAND   ""
