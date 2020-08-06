@@ -45,11 +45,11 @@ Replace {\ttfamily \mbox{[}O\+P\+T\+I\+O\+NS\mbox{]}} with desired cmake options
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+C\+U\+D\+A\+\_\+\+A\+R\+C\+H\+I\+T\+E\+C\+T\+U\+R\+ES=$<$list$>$} where {\ttfamily $<$list$>$} is a semicolon ({\ttfamily ;}) separated list of architectures. Supported values are\+:
 \begin{DoxyItemize}
 \item {\ttfamily Auto}
-\item {\ttfamily Kepler}, {\ttfamily Maxwell}, {\ttfamily Pascal}, {\ttfamily Volta}
+\item {\ttfamily Kepler}, {\ttfamily Maxwell}, {\ttfamily Pascal}, {\ttfamily Volta}, {\ttfamily Ampere}
 \item {\ttfamily C\+O\+DE}, {\ttfamily C\+O\+D\+E(\+C\+O\+M\+P\+U\+T\+E)}, {\ttfamily (C\+O\+M\+P\+U\+TE)}
 \end{DoxyItemize}
 
-{\ttfamily Auto} will automatically detect the present C\+U\+D\+A-\/enabled G\+PU architectures in the system. {\ttfamily Kepler}, {\ttfamily Maxwell}, {\ttfamily Pascal} and {\ttfamily Volta} will add flags for all architectures of that particular N\+V\+I\+D\+IA G\+PU generation. {\ttfamily C\+O\+M\+P\+U\+TE} and {\ttfamily C\+O\+DE} are placeholders that should be replaced with compute and code numbers (e.\+g. for {\ttfamily compute\+\_\+70} and {\ttfamily sm\+\_\+70} {\ttfamily C\+O\+M\+P\+U\+TE} and {\ttfamily C\+O\+DE} should be replaced with {\ttfamily 70}. Default is {\ttfamily Auto}. For a more detailed explanation of this option see the \href{https://github.com/ginkgo-project/CudaArchitectureSelector/blob/master/CudaArchitectureSelector.cmake\#L58}{\texttt{ {\ttfamily A\+R\+C\+H\+I\+T\+E\+C\+T\+U\+R\+ES} specification list}} section in the documentation of the Cuda\+Architecture\+Selector C\+Make module.
+{\ttfamily Auto} will automatically detect the present C\+U\+D\+A-\/enabled G\+PU architectures in the system. {\ttfamily Kepler}, {\ttfamily Maxwell}, {\ttfamily Pascal}, {\ttfamily Volta} and {\ttfamily Ampere} will add flags for all architectures of that particular N\+V\+I\+D\+IA G\+PU generation. {\ttfamily C\+O\+M\+P\+U\+TE} and {\ttfamily C\+O\+DE} are placeholders that should be replaced with compute and code numbers (e.\+g. for {\ttfamily compute\+\_\+70} and {\ttfamily sm\+\_\+70} {\ttfamily C\+O\+M\+P\+U\+TE} and {\ttfamily C\+O\+DE} should be replaced with {\ttfamily 70}. Default is {\ttfamily Auto}. For a more detailed explanation of this option see the \href{https://github.com/ginkgo-project/CudaArchitectureSelector/blob/master/CudaArchitectureSelector.cmake\#L58}{\texttt{ {\ttfamily A\+R\+C\+H\+I\+T\+E\+C\+T\+U\+R\+ES} specification list}} section in the documentation of the Cuda\+Architecture\+Selector C\+Make module.
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+W\+I\+N\+D\+O\+W\+S\+\_\+\+S\+H\+A\+R\+E\+D\+\_\+\+L\+I\+B\+R\+A\+R\+Y\+\_\+\+R\+E\+L\+P\+A\+TH=$<$path$>$} where $<$path$>$ is a relative path built with {\ttfamily P\+R\+O\+J\+E\+C\+T\+\_\+\+B\+I\+N\+A\+R\+Y\+\_\+\+D\+IR}. Users must add the absolute path ({\ttfamily P\+R\+O\+J\+E\+C\+T\+\_\+\+B\+I\+N\+A\+R\+Y\+\_\+\+D\+IR}/{\ttfamily G\+I\+N\+K\+G\+O\+\_\+\+W\+I\+N\+D\+O\+W\+S\+\_\+\+S\+H\+A\+R\+E\+D\+\_\+\+L\+I\+B\+R\+A\+R\+Y\+\_\+\+R\+E\+L\+P\+A\+TH}) into the environment variable P\+A\+TH when building shared libraries and executable program, default is {\ttfamily windows\+\_\+shared\+\_\+library}.
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+C\+H\+E\+C\+K\+\_\+\+P\+A\+TH=\{ON, O\+FF\}} checks if the environment variable P\+A\+TH is valid. It is checked only when building shared libraries and executable program, default is {\ttfamily ON}.
 \end{DoxyItemize}
@@ -65,8 +65,81 @@ For example, to build everything (in debug mode), use\+:
 \end{DoxyCode}
 
 
-N\+O\+TE\+: Ginkgo is known to work with the {\ttfamily Unix Makefiles} and {\ttfamily Ninja} based generators. Other C\+Make generators are untested.\hypertarget{install_ginkgo_autotoc_md1}{}\doxysubsection{Building Ginkgo with H\+I\+P support}\label{install_ginkgo_autotoc_md1}
-Ginkgo provides a \href{https://github.com/ROCm-Developer-Tools/HIP}{\texttt{ H\+IP}} backend. This allows to compile optimized versions of the kernels for either A\+MD or N\+V\+I\+D\+IA G\+P\+Us. The C\+Make configuration step will try to auto-\/detect the presence of H\+IP either at {\ttfamily /opt/rocm/hip} or at the path specified by {\ttfamily H\+I\+P\+\_\+\+P\+A\+TH} as a C\+Make parameter ({\ttfamily -\/D\+H\+I\+P\+\_\+\+P\+A\+TH=}) or environment variable ({\ttfamily export H\+I\+P\+\_\+\+P\+A\+TH=}), unless {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+H\+IP=O\+N/\+O\+FF} is set explicitly.\hypertarget{install_ginkgo_autotoc_md2}{}\doxysubsubsection{Correctly installing H\+I\+P toolkits and dependencies for Ginkgo}\label{install_ginkgo_autotoc_md2}
+N\+O\+TE\+: Ginkgo is known to work with the {\ttfamily Unix Makefiles}, {\ttfamily Ninja}, {\ttfamily Min\+GW Makefiles} and {\ttfamily Visual Studio 16 2019} based generators. Other C\+Make generators are untested.\hypertarget{install_ginkgo_autotoc_md1}{}\doxysubsection{Building Ginkgo in Windows}\label{install_ginkgo_autotoc_md1}
+Depending on the configuration settings, some manual work might be required\+:
+\begin{DoxyItemize}
+\item Build Ginkgo as shared library\+: Add {\ttfamily P\+R\+O\+J\+E\+C\+T\+\_\+\+B\+I\+N\+A\+R\+Y\+\_\+\+D\+I\+R/\+G\+I\+N\+K\+G\+O\+\_\+\+W\+I\+N\+D\+O\+W\+S\+\_\+\+S\+H\+A\+R\+E\+D\+\_\+\+L\+I\+B\+R\+A\+R\+Y\+\_\+\+R\+E\+L\+P\+A\+TH} into the environment variable {\ttfamily P\+A\+TH}. {\ttfamily G\+I\+N\+K\+G\+O\+\_\+\+W\+I\+N\+D\+O\+W\+S\+\_\+\+S\+H\+A\+R\+E\+D\+\_\+\+L\+I\+B\+R\+A\+R\+Y\+\_\+\+R\+E\+L\+P\+A\+TH} is {\ttfamily windows\+\_\+shared\+\_\+library} by default. More Details are available in the Installation page.
+\begin{DoxyItemize}
+\item cmd\+: {\ttfamily set P\+A\+TH=\char`\"{}$<$\+P\+R\+O\+J\+E\+C\+T\+\_\+\+B\+I\+N\+A\+R\+Y\+\_\+\+D\+I\+R/\+G\+I\+N\+K\+G\+O\+\_\+\+W\+I\+N\+D\+O\+W\+S\+\_\+\+S\+H\+A\+R\+E\+D\+\_\+\+L\+I\+B\+R\+A\+R\+Y\+\_\+\+R\+E\+L\+P\+A\+T\+H$>$;\%\+P\+A\+T\+H\%\char`\"{}}
+\item powershell\+: {\ttfamily @f\begin{DoxyParagraph}{env}
+A\+TH="$<$P\+R\+O\+J\+E\+C\+T\+\_\+\+B\+I\+N\+A\+R\+Y\+\_\+\+D\+I\+R/\+G\+I\+N\+K\+G\+O\+\_\+\+W\+I\+N\+D\+O\+W\+S\+\_\+\+S\+H\+A\+R\+E\+D\+\_\+\+L\+I\+B\+R\+A\+R\+Y\+\_\+\+R\+E\+L\+P\+A\+TH$>$;@f
+\end{DoxyParagraph}
+env\+:P\+A\+TH"}
+\end{DoxyItemize}
+
+C\+Make will give the following error message if the path is not correct. 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{Did not find this build in the environment variable PATH. Please add <path> into the environment variable PATH.}
+\end{DoxyCode}
+ where {\ttfamily $<$path$>$} is the needed {\ttfamily $<$P\+R\+O\+J\+E\+C\+T\+\_\+\+B\+I\+N\+A\+R\+Y\+\_\+\+D\+I\+R/\+G\+I\+N\+K\+G\+O\+\_\+\+W\+I\+N\+D\+O\+W\+S\+\_\+\+S\+H\+A\+R\+E\+D\+\_\+\+L\+I\+B\+R\+A\+R\+Y\+\_\+\+R\+E\+L\+P\+A\+TH$>$}.
+\item Build Ginkgo with Debug mode\+: Some Debug build specific issues can appear depending on the machine and environment. The known issues are the following\+:
+\begin{DoxyEnumerate}
+\item {\ttfamily bigobj} issue\+: encountering {\ttfamily too many sections} needs the compilation flags {\ttfamily \textbackslash{}bigobj} or {\ttfamily -\/Wa,-\/mbig-\/obj}
+\item {\ttfamily ld} issue\+: encountering {\ttfamily ld\+: error\+: export ordinal too large} needs the compilation flag {\ttfamily -\/O1}
+\end{DoxyEnumerate}
+
+The following are the details for different environments\+:
+\begin{DoxyItemize}
+\item {\itshape Microsoft Visual Studio}\+:
+\begin{DoxyEnumerate}
+\item {\ttfamily bigobj} issue
+\begin{DoxyItemize}
+\item {\ttfamily cmake -\/D\+C\+M\+A\+K\+E\+\_\+\+C\+X\+X\+\_\+\+F\+L\+A\+GS=\textbackslash{}bigobj $<$other parameters$>$ $<$source\+\_\+folder$>$} which might overwrite the default settings.
+\item add {\ttfamily \textbackslash{}bigobj} into the environment variable {\ttfamily C\+X\+X\+F\+L\+A\+GS} (only available in the first cmake configuration)
+\begin{DoxyItemize}
+\item cmd\+: {\ttfamily set C\+X\+X\+F\+L\+A\+GS=\textbackslash{}bigobj}
+\item powershell\+: {\ttfamily @f\$env\+:C\+X\+X\+F\+L\+A\+GS=\textbackslash{}bigobj}
+\end{DoxyItemize}
+\end{DoxyItemize}
+\item {\ttfamily ld} issue ({\itshape Microsoft Visual Studio} does not have this issue)
+\end{DoxyEnumerate}
+\item {\itshape Cygwin}\+:
+\begin{DoxyEnumerate}
+\item {\ttfamily bigobj} issue
+\begin{DoxyItemize}
+\item add {\ttfamily -\/Wa,-\/mbig-\/obj -\/O1} into the environment variable {\ttfamily C\+X\+X\+F\+L\+A\+GS} (only available in the first cmake configuration)
+\begin{DoxyItemize}
+\item {\ttfamily export C\+X\+X\+F\+L\+A\+GS=\char`\"{}-\/\+Wa,-\/mbig-\/obj -\/\+O1\char`\"{}}
+\end{DoxyItemize}
+\item {\ttfamily cmake -\/D\+C\+M\+A\+K\+E\+\_\+\+C\+X\+X\+\_\+\+F\+L\+A\+GS=-\/Wa,-\/mbig-\/obj $<$other parameters$>$ $<$source\+\_\+folder$>$}, which might overwrite the default settings.
+\end{DoxyItemize}
+\item {\ttfamily ld} issue (If building Ginkgo as static library, this is not needed)
+\begin{DoxyItemize}
+\item {\ttfamily cmake -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+C\+O\+M\+P\+I\+L\+E\+R\+\_\+\+F\+L\+A\+GS=\char`\"{}-\/\+Wpedantic -\/\+O1\char`\"{} $<$other parameters$>$ $<$source\+\_\+folder$>$} ({\ttfamily G\+I\+N\+K\+G\+O\+\_\+\+C\+O\+M\+P\+I\+L\+E\+R\+\_\+\+F\+L\+A\+GS} is {\ttfamily -\/Wpedantic} by default)
+\item add {\ttfamily -\/O1} in the environement variable {\ttfamily C\+X\+X\+\_\+\+F\+L\+A\+GS} or {\ttfamily C\+M\+A\+K\+E\+\_\+\+C\+X\+X\+\_\+\+F\+L\+A\+GS}
+\end{DoxyItemize}
+\end{DoxyEnumerate}
+\item {\itshape Min\+GW}\+:
+\begin{DoxyEnumerate}
+\item {\ttfamily bigobj} issue
+\begin{DoxyItemize}
+\item add {\ttfamily -\/Wa,-\/mbig-\/obj -\/O1} into the environment variable {\ttfamily C\+X\+X\+F\+L\+A\+GS} (only available in the first cmake configuration)
+\begin{DoxyItemize}
+\item cmd\+: {\ttfamily set C\+X\+X\+F\+L\+A\+GS=\char`\"{}-\/\+Wa,-\/mbig-\/obj\char`\"{}}
+\item powershell\+: {\ttfamily @f\$env\+:C\+X\+X\+F\+L\+A\+GS=\char`\"{}-\/\+Wa,-\/mbig-\/obj\char`\"{}}
+\end{DoxyItemize}
+\item {\ttfamily cmake -\/D\+C\+M\+A\+K\+E\+\_\+\+C\+X\+X\+\_\+\+F\+L\+A\+GS=-\/Wa,-\/mbig-\/obj $<$other parameters$>$ $<$source\+\_\+folder$>$}, which might overwrite the default settings.
+\end{DoxyItemize}
+\item {\ttfamily ld} issue (If building Ginkgo as static library, this is not needed)
+\begin{DoxyItemize}
+\item {\ttfamily cmake -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+C\+O\+M\+P\+I\+L\+E\+R\+\_\+\+F\+L\+A\+GS=\char`\"{}-\/\+Wpedantic -\/\+O1\char`\"{} $<$other parameters$>$ $<$source\+\_\+folder$>$} ({\ttfamily G\+I\+N\+K\+G\+O\+\_\+\+C\+O\+M\+P\+I\+L\+E\+R\+\_\+\+F\+L\+A\+GS} is {\ttfamily -\/Wpedantic} by default)
+\item add {\ttfamily -\/O1} in the environement variable {\ttfamily C\+X\+X\+\_\+\+F\+L\+A\+GS} or {\ttfamily C\+M\+A\+K\+E\+\_\+\+C\+X\+X\+\_\+\+F\+L\+A\+GS}
+\end{DoxyItemize}
+\end{DoxyEnumerate}
+\end{DoxyItemize}
+\item Build Ginkgo in {\itshape Min\+GW}\+: If encountering the issue {\ttfamily cc1plus.\+exe\+: out of memory allocating 65536 bytes}, please follow the workaround in \href{https://www.intel.com/content/www/us/en/programmable/support/support-resources/knowledge-base/embedded/2016/cc1plus-exe--out-of-memory-allocating-65536-bytes.html}{\texttt{ reference}}, or trying to compile ginkgo again might work.
+\end{DoxyItemize}\hypertarget{install_ginkgo_autotoc_md2}{}\doxysubsection{Building Ginkgo with H\+I\+P support}\label{install_ginkgo_autotoc_md2}
+Ginkgo provides a \href{https://github.com/ROCm-Developer-Tools/HIP}{\texttt{ H\+IP}} backend. This allows to compile optimized versions of the kernels for either A\+MD or N\+V\+I\+D\+IA G\+P\+Us. The C\+Make configuration step will try to auto-\/detect the presence of H\+IP either at {\ttfamily /opt/rocm/hip} or at the path specified by {\ttfamily H\+I\+P\+\_\+\+P\+A\+TH} as a C\+Make parameter ({\ttfamily -\/D\+H\+I\+P\+\_\+\+P\+A\+TH=}) or environment variable ({\ttfamily export H\+I\+P\+\_\+\+P\+A\+TH=}), unless {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+B\+U\+I\+L\+D\+\_\+\+H\+IP=O\+N/\+O\+FF} is set explicitly.\hypertarget{install_ginkgo_autotoc_md3}{}\doxysubsubsection{Correctly installing H\+I\+P toolkits and dependencies for Ginkgo}\label{install_ginkgo_autotoc_md3}
 In general, Ginkgo\textquotesingle{}s H\+IP backend requires the following packages\+:
 \begin{DoxyItemize}
 \item H\+IP,
@@ -101,7 +174,7 @@ For N\+V\+I\+D\+IA systems, the traditional installation (package {\ttfamily hip
 \DoxyCodeLine{cmake -\/DBUILD\_CUDA=ON .. \&\& make install}
 \DoxyCodeLine{popd \&\& popd}
 \end{DoxyCode}
-\hypertarget{install_ginkgo_autotoc_md3}{}\doxysubsubsection{Changing the paths to search for H\+I\+P and other packages}\label{install_ginkgo_autotoc_md3}
+\hypertarget{install_ginkgo_autotoc_md4}{}\doxysubsubsection{Changing the paths to search for H\+I\+P and other packages}\label{install_ginkgo_autotoc_md4}
 All H\+IP installation paths can be configured through the use of environment variables or C\+Make variables. This way of configuring the paths is currently imposed by the {\ttfamily H\+IP} tool suite. The variables are the following\+:
 \begin{DoxyItemize}
 \item C\+Make {\ttfamily -\/D\+H\+I\+P\+\_\+\+P\+A\+TH=} or environment {\ttfamily export H\+I\+P\+\_\+\+P\+A\+TH=}\+: sets the {\ttfamily H\+IP} installation path. The default value is {\ttfamily /opt/rocm/hip}.
@@ -109,18 +182,18 @@ All H\+IP installation paths can be configured through the use of environment va
 \item C\+Make {\ttfamily -\/D\+H\+I\+P\+S\+P\+A\+R\+S\+E\+\_\+\+P\+A\+TH=} or environment {\ttfamily export H\+I\+P\+S\+P\+A\+R\+S\+E\+\_\+\+P\+A\+TH=}\+: sets the {\ttfamily hip\+S\+P\+A\+R\+SE} installation path. The default value is {\ttfamily /opt/rocm/hipsparse}.
 \item C\+Make {\ttfamily -\/D\+H\+C\+C\+\_\+\+P\+A\+TH=} or environment {\ttfamily export H\+C\+C\+\_\+\+P\+A\+TH=}\+: sets the {\ttfamily H\+CC} installation path, for A\+MD backends. The default value is {\ttfamily /opt/rocm/hcc}.
 \item environment {\ttfamily export C\+U\+D\+A\+\_\+\+P\+A\+TH=}\+: where {\ttfamily hipcc} can find {\ttfamily C\+U\+DA} if it is not in the default {\ttfamily /usr/local/cuda} path.
-\end{DoxyItemize}\hypertarget{install_ginkgo_autotoc_md4}{}\doxysubsubsection{H\+I\+P platform detection of A\+M\+D and N\+V\+I\+D\+IA}\label{install_ginkgo_autotoc_md4}
+\end{DoxyItemize}\hypertarget{install_ginkgo_autotoc_md5}{}\doxysubsubsection{H\+I\+P platform detection of A\+M\+D and N\+V\+I\+D\+IA}\label{install_ginkgo_autotoc_md5}
 By default, Ginkgo uses the output of {\ttfamily /opt/rocm/hip/bin/hipconfig -\/-\/platform} to select the backend. The accepted values are either {\ttfamily hcc} (A\+MD) or {\ttfamily nvcc} (N\+V\+I\+D\+IA). When on an A\+MD or N\+V\+I\+D\+IA system, this should output the correct platform by default. When on a system without G\+P\+Us, this should output {\ttfamily hcc} by default. To change this value, export the environment variable {\ttfamily H\+I\+P\+\_\+\+P\+L\+A\+T\+F\+O\+RM} like so\+: 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{export HIP\_PLATFORM=nvcc}
 \end{DoxyCode}
-\hypertarget{install_ginkgo_autotoc_md5}{}\doxysubsubsection{Setting platform specific compilation flags}\label{install_ginkgo_autotoc_md5}
+\hypertarget{install_ginkgo_autotoc_md6}{}\doxysubsubsection{Setting platform specific compilation flags}\label{install_ginkgo_autotoc_md6}
 Platform specific compilation flags can be given through the following C\+Make variables\+:
 \begin{DoxyItemize}
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+H\+I\+P\+\_\+\+C\+O\+M\+P\+I\+L\+E\+R\+\_\+\+F\+L\+A\+GS=}\+: compilation flags given to all platforms.
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+H\+I\+P\+\_\+\+H\+C\+C\+\_\+\+C\+O\+M\+P\+I\+L\+E\+R\+\_\+\+F\+L\+A\+GS=}\+: compilation flags given to A\+MD platforms.
 \item {\ttfamily -\/D\+G\+I\+N\+K\+G\+O\+\_\+\+H\+I\+P\+\_\+\+N\+V\+C\+C\+\_\+\+C\+O\+M\+P\+I\+L\+E\+R\+\_\+\+F\+L\+A\+GS=}\+: compilation flags given to N\+V\+I\+D\+IA platforms.
-\end{DoxyItemize}\hypertarget{install_ginkgo_autotoc_md6}{}\doxysubsection{Third party libraries and packages}\label{install_ginkgo_autotoc_md6}
+\end{DoxyItemize}\hypertarget{install_ginkgo_autotoc_md7}{}\doxysubsection{Third party libraries and packages}\label{install_ginkgo_autotoc_md7}
 Ginkgo relies on third party packages in different cases. These third party packages can be turned off by disabling the relevant options.
 
 
@@ -140,7 +213,7 @@ To manually configure the paths, Ginkgo relies on the \href{https://xsdk.info/po
 \item {\ttfamily -\/D\+T\+P\+L\+\_\+$<$package$>$\+\_\+\+I\+N\+C\+L\+U\+D\+E\+\_\+\+D\+I\+RS=/path/to/header/directory}
 \end{DoxyItemize}
 
-When applicable (e.\+g. for {\ttfamily G\+Test} libraries), a {\ttfamily ;} separated list can be given to the {\ttfamily T\+P\+L\+\_\+$<$package$>$\+\_\+\{L\+I\+B\+R\+A\+R\+I\+E\+S$\vert$\+I\+N\+C\+L\+U\+D\+E\+\_\+\+D\+I\+RS\}} variables.\hypertarget{install_ginkgo_autotoc_md7}{}\doxysubsection{Installing Ginkgo}\label{install_ginkgo_autotoc_md7}
+When applicable (e.\+g. for {\ttfamily G\+Test} libraries), a {\ttfamily ;} separated list can be given to the {\ttfamily T\+P\+L\+\_\+$<$package$>$\+\_\+\{L\+I\+B\+R\+A\+R\+I\+E\+S$\vert$\+I\+N\+C\+L\+U\+D\+E\+\_\+\+D\+I\+RS\}} variables.\hypertarget{install_ginkgo_autotoc_md8}{}\doxysubsection{Installing Ginkgo}\label{install_ginkgo_autotoc_md8}
 To install Ginkgo into the specified folder, execute the following command in the build folder
 
 

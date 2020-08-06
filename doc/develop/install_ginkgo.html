@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/173601483 branch based on develop. Ginkgo version 1.2.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/174738993 branch based on develop. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -108,10 +108,10 @@ Building</h2>
 <li><code>-DCMAKE_CUDA_HOST_COMPILER=path</code> instructs the build system to explicitly set CUDA's host compiler to the path given as argument. By default, CUDA uses its toolchain's host compiler. Setting this option may help if you're experiencing linking errors due to ABI incompatibilities. This option is supported since <a href="https://github.com/Kitware/CMake/commit/489c52ce680df6439f9c1e553cd2925ca8944cb1">CMake 3.8</a> but <a href="https://cmake.org/cmake/help/v3.10/variable/CMAKE_CUDA_HOST_COMPILER.html">documented starting from 3.10</a>.</li>
 <li><p class="startli"><code>-DGINKGO_CUDA_ARCHITECTURES=&lt;list&gt;</code> where <code>&lt;list&gt;</code> is a semicolon (<code>;</code>) separated list of architectures. Supported values are:</p><ul>
 <li><code>Auto</code></li>
-<li><code>Kepler</code>, <code>Maxwell</code>, <code>Pascal</code>, <code>Volta</code></li>
+<li><code>Kepler</code>, <code>Maxwell</code>, <code>Pascal</code>, <code>Volta</code>, <code>Ampere</code></li>
 <li><code>CODE</code>, <code>CODE(COMPUTE)</code>, <code>(COMPUTE)</code></li>
 </ul>
-<p class="startli"><code>Auto</code> will automatically detect the present CUDA-enabled GPU architectures in the system. <code>Kepler</code>, <code>Maxwell</code>, <code>Pascal</code> and <code>Volta</code> will add flags for all architectures of that particular NVIDIA GPU generation. <code>COMPUTE</code> and <code>CODE</code> are placeholders that should be replaced with compute and code numbers (e.g. for <code>compute_70</code> and <code>sm_70</code> <code>COMPUTE</code> and <code>CODE</code> should be replaced with <code>70</code>. Default is <code>Auto</code>. For a more detailed explanation of this option see the <a href="https://github.com/ginkgo-project/CudaArchitectureSelector/blob/master/CudaArchitectureSelector.cmake#L58"><code>ARCHITECTURES</code> specification list</a> section in the documentation of the CudaArchitectureSelector CMake module.</p>
+<p class="startli"><code>Auto</code> will automatically detect the present CUDA-enabled GPU architectures in the system. <code>Kepler</code>, <code>Maxwell</code>, <code>Pascal</code>, <code>Volta</code> and <code>Ampere</code> will add flags for all architectures of that particular NVIDIA GPU generation. <code>COMPUTE</code> and <code>CODE</code> are placeholders that should be replaced with compute and code numbers (e.g. for <code>compute_70</code> and <code>sm_70</code> <code>COMPUTE</code> and <code>CODE</code> should be replaced with <code>70</code>. Default is <code>Auto</code>. For a more detailed explanation of this option see the <a href="https://github.com/ginkgo-project/CudaArchitectureSelector/blob/master/CudaArchitectureSelector.cmake#L58"><code>ARCHITECTURES</code> specification list</a> section in the documentation of the CudaArchitectureSelector CMake module.</p>
 </li>
 <li><code>-DGINKGO_WINDOWS_SHARED_LIBRARY_RELPATH=&lt;path&gt;</code> where &lt;path&gt; is a relative path built with <code>PROJECT_BINARY_DIR</code>. Users must add the absolute path (<code>PROJECT_BINARY_DIR</code>/<code>GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH</code>) into the environment variable PATH when building shared libraries and executable program, default is <code>windows_shared_library</code>.</li>
 <li><code>-DGINKGO_CHECK_PATH={ON, OFF}</code> checks if the environment variable PATH is valid. It is checked only when building shared libraries and executable program, default is <code>ON</code>.</li>
@@ -121,11 +121,77 @@ Building</h2>
 <div class="line">    -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_REFERENCE=ON -DGINKGO_BUILD_OMP=ON \</div>
 <div class="line">    -DGINKGO_BUILD_CUDA=ON -DGINKGO_BUILD_HIP=ON</div>
 <div class="line">cmake --build Debug</div>
-</div><!-- fragment --><p>NOTE: Ginkgo is known to work with the <code>Unix Makefiles</code> and <code>Ninja</code> based generators. Other CMake generators are untested.</p>
+</div><!-- fragment --><p>NOTE: Ginkgo is known to work with the <code>Unix Makefiles</code>, <code>Ninja</code>, <code>MinGW Makefiles</code> and <code>Visual Studio 16 2019</code> based generators. Other CMake generators are untested.</p>
 <h2><a class="anchor" id="autotoc_md1"></a>
+Building Ginkgo in Windows</h2>
+<p>Depending on the configuration settings, some manual work might be required:</p><ul>
+<li><p class="startli">Build Ginkgo as shared library: Add <code>PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH</code> into the environment variable <code>PATH</code>. <code>GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH</code> is <code>windows_shared_library</code> by default. More Details are available in the Installation page.</p><ul>
+<li>cmd: <code>set PATH="&lt;PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH&gt;;%PATH%"</code></li>
+<li>powershell: <code>@f<dl class="section rcs"><dt>env</dt><dd>ATH="&lt;PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH&gt;;@f</dd></dl>
+env:PATH"</code></li>
+</ul>
+<p class="startli">CMake will give the following error message if the path is not correct. </p><div class="fragment"><div class="line">Did not find this build in the environment variable PATH. Please add &lt;path&gt; into the environment variable PATH.</div>
+</div><!-- fragment --><p> where <code>&lt;path&gt;</code> is the needed <code>&lt;PROJECT_BINARY_DIR/GINKGO_WINDOWS_SHARED_LIBRARY_RELPATH&gt;</code>.</p>
+</li>
+<li><p class="startli">Build Ginkgo with Debug mode: Some Debug build specific issues can appear depending on the machine and environment. The known issues are the following:</p><ol type="1">
+<li><code>bigobj</code> issue: encountering <code>too many sections</code> needs the compilation flags <code>\bigobj</code> or <code>-Wa,-mbig-obj</code></li>
+<li><code>ld</code> issue: encountering <code>ld: error: export ordinal too large</code> needs the compilation flag <code>-O1</code></li>
+</ol>
+<p class="startli">The following are the details for different environments:</p><ul>
+<li><em>Microsoft Visual Studio</em>:<ol type="1">
+<li><code>bigobj</code> issue<ul>
+<li><code>cmake -DCMAKE_CXX_FLAGS=\bigobj &lt;other parameters&gt; &lt;source_folder&gt;</code> which might overwrite the default settings.</li>
+<li>add <code>\bigobj</code> into the environment variable <code>CXXFLAGS</code> (only available in the first cmake configuration)<ul>
+<li>cmd: <code>set CXXFLAGS=\bigobj</code></li>
+<li>powershell: <code>@f$env:CXXFLAGS=\bigobj</code></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><code>ld</code> issue (<em>Microsoft Visual Studio</em> does not have this issue)</li>
+</ol>
+</li>
+<li><em>Cygwin</em>:<ol type="1">
+<li><code>bigobj</code> issue<ul>
+<li>add <code>-Wa,-mbig-obj -O1</code> into the environment variable <code>CXXFLAGS</code> (only available in the first cmake configuration)<ul>
+<li><code>export CXXFLAGS="-Wa,-mbig-obj -O1"</code></li>
+</ul>
+</li>
+<li><code>cmake -DCMAKE_CXX_FLAGS=-Wa,-mbig-obj &lt;other parameters&gt; &lt;source_folder&gt;</code>, which might overwrite the default settings.</li>
+</ul>
+</li>
+<li><code>ld</code> issue (If building Ginkgo as static library, this is not needed)<ul>
+<li><code>cmake -DGINKGO_COMPILER_FLAGS="-Wpedantic -O1" &lt;other parameters&gt; &lt;source_folder&gt;</code> (<code>GINKGO_COMPILER_FLAGS</code> is <code>-Wpedantic</code> by default)</li>
+<li>add <code>-O1</code> in the environement variable <code>CXX_FLAGS</code> or <code>CMAKE_CXX_FLAGS</code></li>
+</ul>
+</li>
+</ol>
+</li>
+<li><em>MinGW</em>:<ol type="1">
+<li><code>bigobj</code> issue<ul>
+<li>add <code>-Wa,-mbig-obj -O1</code> into the environment variable <code>CXXFLAGS</code> (only available in the first cmake configuration)<ul>
+<li>cmd: <code>set CXXFLAGS="-Wa,-mbig-obj"</code></li>
+<li>powershell: <code>@f$env:CXXFLAGS="-Wa,-mbig-obj"</code></li>
+</ul>
+</li>
+<li><code>cmake -DCMAKE_CXX_FLAGS=-Wa,-mbig-obj &lt;other parameters&gt; &lt;source_folder&gt;</code>, which might overwrite the default settings.</li>
+</ul>
+</li>
+<li><code>ld</code> issue (If building Ginkgo as static library, this is not needed)<ul>
+<li><code>cmake -DGINKGO_COMPILER_FLAGS="-Wpedantic -O1" &lt;other parameters&gt; &lt;source_folder&gt;</code> (<code>GINKGO_COMPILER_FLAGS</code> is <code>-Wpedantic</code> by default)</li>
+<li>add <code>-O1</code> in the environement variable <code>CXX_FLAGS</code> or <code>CMAKE_CXX_FLAGS</code></li>
+</ul>
+</li>
+</ol>
+</li>
+</ul>
+</li>
+<li>Build Ginkgo in <em>MinGW</em>: If encountering the issue <code>cc1plus.exe: out of memory allocating 65536 bytes</code>, please follow the workaround in <a href="https://www.intel.com/content/www/us/en/programmable/support/support-resources/knowledge-base/embedded/2016/cc1plus-exe--out-of-memory-allocating-65536-bytes.html">reference</a>, or trying to compile ginkgo again might work.</li>
+</ul>
+<h2><a class="anchor" id="autotoc_md2"></a>
 Building Ginkgo with HIP support</h2>
 <p>Ginkgo provides a <a href="https://github.com/ROCm-Developer-Tools/HIP">HIP</a> backend. This allows to compile optimized versions of the kernels for either AMD or NVIDIA GPUs. The CMake configuration step will try to auto-detect the presence of HIP either at <code>/opt/rocm/hip</code> or at the path specified by <code>HIP_PATH</code> as a CMake parameter (<code>-DHIP_PATH=</code>) or environment variable (<code>export HIP_PATH=</code>), unless <code>-DGINKGO_BUILD_HIP=ON/OFF</code> is set explicitly.</p>
-<h3><a class="anchor" id="autotoc_md2"></a>
+<h3><a class="anchor" id="autotoc_md3"></a>
 Correctly installing HIP toolkits and dependencies for Ginkgo</h3>
 <p>In general, Ginkgo's HIP backend requires the following packages:</p><ul>
 <li>HIP,</li>
@@ -153,7 +219,7 @@ Correctly installing HIP toolkits and dependencies for Ginkgo</h3>
 <div class="line">pushd hipSPARSE &amp;&amp; mkdir build &amp;&amp; pushd build</div>
 <div class="line">cmake -DBUILD_CUDA=ON .. &amp;&amp; make install</div>
 <div class="line">popd &amp;&amp; popd</div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md3"></a>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md4"></a>
 Changing the paths to search for HIP and other packages</h3>
 <p>All HIP installation paths can be configured through the use of environment variables or CMake variables. This way of configuring the paths is currently imposed by the <code>HIP</code> tool suite. The variables are the following:</p><ul>
 <li>CMake <code>-DHIP_PATH=</code> or environment <code>export HIP_PATH=</code>: sets the <code>HIP</code> installation path. The default value is <code>/opt/rocm/hip</code>.</li>
@@ -162,17 +228,17 @@ Changing the paths to search for HIP and other packages</h3>
 <li>CMake <code>-DHCC_PATH=</code> or environment <code>export HCC_PATH=</code>: sets the <code>HCC</code> installation path, for AMD backends. The default value is <code>/opt/rocm/hcc</code>.</li>
 <li>environment <code>export CUDA_PATH=</code>: where <code>hipcc</code> can find <code>CUDA</code> if it is not in the default <code>/usr/local/cuda</code> path.</li>
 </ul>
-<h3><a class="anchor" id="autotoc_md4"></a>
+<h3><a class="anchor" id="autotoc_md5"></a>
 HIP platform detection of AMD and NVIDIA</h3>
 <p>By default, Ginkgo uses the output of <code>/opt/rocm/hip/bin/hipconfig --platform</code> to select the backend. The accepted values are either <code>hcc</code> (AMD) or <code>nvcc</code> (NVIDIA). When on an AMD or NVIDIA system, this should output the correct platform by default. When on a system without GPUs, this should output <code>hcc</code> by default. To change this value, export the environment variable <code>HIP_PLATFORM</code> like so: </p><div class="fragment"><div class="line">export HIP_PLATFORM=nvcc</div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md5"></a>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md6"></a>
 Setting platform specific compilation flags</h3>
 <p>Platform specific compilation flags can be given through the following CMake variables:</p><ul>
 <li><code>-DGINKGO_HIP_COMPILER_FLAGS=</code>: compilation flags given to all platforms.</li>
 <li><code>-DGINKGO_HIP_HCC_COMPILER_FLAGS=</code>: compilation flags given to AMD platforms.</li>
 <li><code>-DGINKGO_HIP_NVCC_COMPILER_FLAGS=</code>: compilation flags given to NVIDIA platforms.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md6"></a>
+<h2><a class="anchor" id="autotoc_md7"></a>
 Third party libraries and packages</h2>
 <p>Ginkgo relies on third party packages in different cases. These third party packages can be turned off by disabling the relevant options.</p>
 <ul>
@@ -188,7 +254,7 @@ Third party libraries and packages</h2>
 <li><code>-DTPL_&lt;package&gt;_INCLUDE_DIRS=/path/to/header/directory</code></li>
 </ul>
 <p>When applicable (e.g. for <code>GTest</code> libraries), a <code>;</code> separated list can be given to the <code>TPL_&lt;package&gt;_{LIBRARIES|INCLUDE_DIRS}</code> variables.</p>
-<h2><a class="anchor" id="autotoc_md7"></a>
+<h2><a class="anchor" id="autotoc_md8"></a>
 Installing Ginkgo</h2>
 <p>To install Ginkgo into the specified folder, execute the following command in the build folder</p>
 <div class="fragment"><div class="line">make install</div>
