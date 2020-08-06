@@ -243,7 +243,7 @@ private:
                     (threadIdx.y + blockDim.y *
                         (threadIdx.z + blockDim.z *
                             (blockIdx.x + gridDim.x *
-                                (blockIdx.y + gridDim.y * blockIdx.z))))}                      
+                                (blockIdx.y + gridDim.y * blockIdx.z))))}
     {}
     // clang-format on
 
@@ -386,7 +386,7 @@ class enable_default_constructor : public Group {};
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 
-template <size_type Size>
+template <unsigned Size>
 struct thread_block_tile : detail::enable_extended_shuffle<
                                cooperative_groups::thread_block_tile<Size>> {
     using detail::enable_extended_shuffle<
@@ -397,16 +397,8 @@ struct thread_block_tile : detail::enable_extended_shuffle<
 #else
 
 
-// Cuda cooperative groups must need parent group type from cuda 11
-template <size_type Size>
-struct thread_block_tile
-    : detail::enable_default_constructor<cooperative_groups::thread_block_tile<
-          Size, cooperative_groups::thread_block>> {
-    using detail::enable_default_constructor<
-        cooperative_groups::thread_block_tile<
-            Size,
-            cooperative_groups::thread_block>>::enable_default_constructor;
-};
+// Cuda11 cooperative group's shuffle supports complex
+using cooperative_groups::thread_block_tile;
 
 
 #endif
@@ -429,20 +421,44 @@ struct thread_block_tile
 // unsigned match_all(T) const  // TODO: implement for all types
 
 namespace detail {
-template <size_type Size>
+
+
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+
+
+template <unsigned Size>
 struct is_group_impl<thread_block_tile<Size>> : std::true_type {};
-template <size_type Size>
+template <unsigned Size>
 struct is_synchronizable_group_impl<thread_block_tile<Size>> : std::true_type {
 };
-template <size_type Size>
+template <unsigned Size>
 struct is_communicator_group_impl<thread_block_tile<Size>> : std::true_type {};
 // make sure the original CUDA group is recognized whenever possible
-template <size_type Size>
+template <unsigned Size>
 struct is_group_impl<cooperative_groups::thread_block_tile<Size>>
     : std::true_type {};
-template <size_type Size>
+template <unsigned Size>
 struct is_synchronizable_group_impl<cooperative_groups::thread_block_tile<Size>>
     : std::true_type {};
+
+
+#else
+
+
+// thread_block_tile is same as cuda11's
+template <unsigned Size, typename Group>
+struct is_group_impl<thread_block_tile<Size, Group>> : std::true_type {};
+template <unsigned Size, typename Group>
+struct is_synchronizable_group_impl<thread_block_tile<Size, Group>>
+    : std::true_type {};
+template <unsigned Size, typename Group>
+struct is_communicator_group_impl<thread_block_tile<Size, Group>>
+    : std::true_type {};
+
+
+#endif
+
+
 }  // namespace detail
 
 
@@ -493,6 +509,10 @@ __device__ __forceinline__ auto tiled_partition(const Group &g)
 // Only support tile_partition with 1, 2, 4, 8, 16, 32.
 // Reference:
 // https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#warp-notes
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+
+
+// cooperative group before cuda11 does not contain parent group in template
 template <size_type Size, typename Group>
 __device__ __forceinline__
     std::enable_if_t<(Size <= kernels::cuda::config::warp_size) && (Size > 0) &&
@@ -502,6 +522,23 @@ __device__ __forceinline__
 {
     return thread_block_tile<Size>();
 }
+
+
+#else
+
+
+// cooperative group after cuda11 contain parent group in template.
+// we remove the information because we do not restrict cooperative group by its
+// parent group type.
+template <unsigned Size, typename Group>
+__device__ __forceinline__ thread_block_tile<Size, void> tiled_partition(
+    const Group &g)
+{
+    return cooperative_groups::tiled_partition<Size>(g);
+}
+
+
+#endif
 
 
 }  // namespace group

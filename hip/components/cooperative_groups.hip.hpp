@@ -375,7 +375,7 @@ private:
 
 // Implementing this as a using directive messes up with SFINAE for some reason,
 // probably a bug in NVCC. If it is a complete type, everything works fine.
-template <size_type Size>
+template <unsigned Size>
 struct thread_block_tile
     : detail::enable_extended_shuffle<detail::thread_block_tile<Size>> {
     using detail::enable_extended_shuffle<
@@ -398,12 +398,12 @@ __device__ __forceinline__
 namespace detail {
 
 
-template <size_type Size>
+template <unsigned Size>
 struct is_group_impl<thread_block_tile<Size>> : std::true_type {};
-template <size_type Size>
+template <unsigned Size>
 struct is_synchronizable_group_impl<thread_block_tile<Size>> : std::true_type {
 };
-template <size_type Size>
+template <unsigned Size>
 struct is_communicator_group_impl<thread_block_tile<Size>> : std::true_type {};
 
 
@@ -485,7 +485,7 @@ private:
                     (threadIdx.y + blockDim.y *
                         (threadIdx.z + blockDim.z *
                             (blockIdx.x + gridDim.x *
-                                (blockIdx.y + gridDim.y * blockIdx.z))))}                      
+                                (blockIdx.y + gridDim.y * blockIdx.z))))}
     {}
     // clang-format on
 
