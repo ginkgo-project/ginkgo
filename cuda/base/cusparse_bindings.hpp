@@ -751,6 +751,9 @@ inline void destroy(cusparseMatDescr_t descr)
 }
 
 
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+
+
 inline csrgemm2Info_t create_spgemm_info()
 {
     csrgemm2Info_t info{};
@@ -765,7 +768,7 @@ inline void destroy(csrgemm2Info_t info)
 }
 
 
-#if defined(CUDA_VERSION) && (CUDA_VERSION >= 11000)
+#else
 
 
 inline cusparseSpGEMMDescr_t create_spgemm_descr()

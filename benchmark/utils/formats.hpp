@@ -60,8 +60,15 @@ std::string available_format =
     "hybrid60, hybrid80, hybridlimit0, hybridlimit25, hybridlimit33, "
     "hybridminstorage"
 #ifdef HAS_CUDA
-    ", cusp_csr, cusp_csrex, cusp_csrmp, cusp_csrmm, cusp_coo, cusp_ell, "
-    "cusp_hybrid"
+    ", cusp_csr, cusp_csrex, cusp_coo"
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+    ", cusp_csrmp, cusp_csrmm, cusp_ell, cusp_hybrid"
+#endif
+#if defined(CUDA_VERSION) &&  \
+    (CUDA_VERSION >= 11000 || \
+     ((CUDA_VERSION >= 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
+    ", cusp_gcsr, cusp_gcsr2, cusp_gcoo"
+#endif
 #endif  // HAS_CUDA
 #ifdef HAS_HIP
     ", hipsp_csr, hipsp_csrmm, hipsp_coo, hipsp_ell, hipsp_hybrid"
@@ -88,15 +95,20 @@ std::string format_description =
     "hybridminstorage: Hybrid uses the minimal storage to store the matrix."
 #ifdef HAS_CUDA
     "\n"
-    "cusp_hybrid: benchmark CuSPARSE spmv with cusparseXhybmv and an automatic "
-    "partition.\n"
+#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
     "cusp_coo: use cusparseXhybmv with a CUSPARSE_HYB_PARTITION_USER "
     "partition.\n"
-    "cusp_ell: use cusparseXhybmv with CUSPARSE_HYB_PARTITION_MAX partition.\n"
     "cusp_csr: benchmark CuSPARSE with the cusparseXcsrmv function.\n"
-    "cusp_csrex: benchmark CuSPARSE with the cusparseXcsrmvEx function.\n"
+    "cusp_ell: use cusparseXhybmv with CUSPARSE_HYB_PARTITION_MAX partition.\n"
     "cusp_csrmp: benchmark CuSPARSE with the cusparseXcsrmv_mp function.\n"
-    "cusp_csrmm: benchmark CuSPARSE with the cusparseXcsrmv_mm function."
+    "cusp_csrmm: benchmark CuSPARSE with the cusparseXcsrmv_mm function.\n"
+    "cusp_hybrid: benchmark CuSPARSE spmv with cusparseXhybmv and an automatic "
+    "partition.\n"
+#else
+    "cusp_csr: is an alias of cusp_gcsr.\n"
+    "cusp_coo: is an alias of cusp_gcoo.\n"
+#endif
+    "cusp_csrex: benchmark CuSPARSE with the cusparseXcsrmvEx function."
 #if defined(CUDA_VERSION) && (CUDA_VERSION >= 10010) && \
     !(defined(_WIN32) || defined(__CYGWIN__))
     "\n"

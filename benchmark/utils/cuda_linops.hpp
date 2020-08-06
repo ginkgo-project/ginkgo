@@ -116,6 +116,7 @@ private:
     handle_manager<cusparseMatDescr> descr_;
 };
 
+
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 
