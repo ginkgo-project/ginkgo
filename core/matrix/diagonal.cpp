@@ -138,8 +138,8 @@ void Diagonal<ValueType, IndexType>::convert_to(
     Csr<ValueType, IndexType> *result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, IndexType>::create(exec, this->get_size(),
-                                                 this->get_size()[0]);
+    auto tmp = Csr<ValueType, IndexType>::create(
+        exec, this->get_size(), this->get_size()[0], result->get_strategy());
     exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
     tmp->move_to(result);
 }

@@ -56,6 +56,8 @@ class Dense;
  * require one array to store their values.
  *
  * @tparam ValueType  precision of matrix elements
+ * @tparam IndexType  precision of matrix indexes of a CSR matrix the diagonal
+ *                    is applied or converted to.
  *
  * @ingroup diagonal
  * @ingroup mat_formats
@@ -105,6 +107,13 @@ public:
         return values_.get_const_data();
     }
 
+    /**
+     * Applies the diagonal matrix from the right side to a matrix b,
+     * which means scales the columns of b with the according diagonal entries.
+     *
+     * @param b  the input vector(s) on which the diagonal matrix is applied
+     * @param x  the output vector(s) where the result is stored
+     */
     void rapply(const LinOp *b, LinOp *x) const
     {
         GKO_ASSERT_REVERSE_CONFORMANT(this, b);
@@ -132,6 +141,7 @@ protected:
     /**
      * Creates an Diagonal matrix of the specified size.
      *
+     * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      */
     Diagonal(std::shared_ptr<const Executor> exec, size_type size)
