@@ -100,25 +100,16 @@ series = {PASC ’19}
         url     = {https://dealii.org/deal91-preprint.pdf}
       }
 
-@ARTICLE{mfem,
-       author = {{Anderson}, Robert and {Andrej}, Julian and {Barker}, Andrew and
-         {Bramwell}, Jamie and {Camier}, Jean-Sylvain and {Cerveny}, Jakub and
-         {Dobrev}, Veselin and {Dudouit}, Yohann and {Fisher}, Aaron and
-         {Kolev}, Tzanio and {Pazner}, Will and {Stowell}, Mark and
-         {Tomov}, Vladimir and {Dahm}, Johann and {Medina}, David and
-         {Zampini}, Stefano},
-        title = "{MFEM: a modular finite element methods library}",
-      journal = {arXiv e-prints},
-     keywords = {Computer Science - Mathematical Software, Mathematics - Numerical Analysis},
-         year = 2019,
-        month = nov,
-          eid = {arXiv:1911.09220},
-        pages = {arXiv:1911.09220},
-archivePrefix = {arXiv},
-       eprint = {1911.09220},
- primaryClass = {cs.MS},
-       adsurl = {https://ui.adsabs.harvard.edu/abs/2019arXiv191109220A},
-      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+@article{mfem,
+title = "MFEM: A modular finite element methods library",
+journal = "Computers & Mathematics with Applications",
+year = "2020",
+issn = "0898-1221",
+doi = "10.1016/j.camwa.2020.06.009",
+url = "http://www.sciencedirect.com/science/article/pii/S0898122120302583",
+author = "Robert Anderson and Julian Andrej and Andrew Barker and Jamie Bramwell and Jean-Sylvain Camier and Jakub Cerveny and Veselin Dobrev and Yohann Dudouit and Aaron Fisher and Tzanio Kolev and Will Pazner and Mark Stowell and Vladimir Tomov and Ido Akkerman and Johann Dahm and David Medina and Stefano Zampini",
+keywords = "Finite element methods, Numerical PDEs, Open-source scientific software, High-order methods, Matrix-free algorithms, High-performance computing",
+abstract = "MFEM is an open-source, lightweight, flexible and scalable C++ library for modular finite element methods that features arbitrary high-order finite element meshes and spaces, support for a wide variety of discretization approaches and emphasis on usability, portability, and high-performance computing efficiency. MFEM’s goal is to provide application scientists with access to cutting-edge algorithms for high-order finite element meshing, discretizations and linear solvers, while enabling researchers to quickly and easily develop and test new algorithms in very general, fully unstructured, high-order, parallel and GPU-accelerated settings. In this paper we describe the underlying algorithms and finite element abstractions provided by MFEM, discuss the software implementation, and illustrate various applications of the library."
 }
 
 @InProceedings{papi,
@@ -141,6 +132,38 @@ abstract="Modern high performance computer systems continue to increase in size 
 isbn="978-3-642-11261-4"
 }
 
+@article{spai,
+title = "Incomplete Sparse Approximate Inverses for Parallel Preconditioning",
+journal = "Parallel Computing",
+volume = "71",
+pages = "1 - 22",
+year = "2018",
+issn = "0167-8191",
+doi = "10.1016/j.parco.2017.10.003",
+url = "http://www.sciencedirect.com/science/article/pii/S016781911730176X",
+author = "Hartwig Anzt and Thomas K. Huckle and Jürgen Bräckle and Jack Dongarra",
+keywords = "Preconditioning, Incomplete Sparse Approximate Inverse, Incomplete LU factorization, Approximate sparse triangular solves, Parallel computing",
+abstract = "In this paper, we propose a new preconditioning method that can be seen as a generalization of block-Jacobi methods, or as a simplification of the sparse approximate inverse (SAI) preconditioners. The “Incomplete Sparse Approximate Inverses” (ISAI) is in particular efficient in the solution of sparse triangular linear systems of equations. Those arise, for example, in the context of incomplete factorization preconditioning. ISAI preconditioners can be generated via an algorithm providing fine-grained parallelism, which makes them attractive for hardware with a high concurrency level. In a study covering a large number of matrices, we identify the ISAI preconditioner as an attractive alternative to exact triangular solves in the context of incomplete factorization preconditioning."
+}
+
+@ARTICLE{gko-arxiv,
+       author = {{Anzt}, Hartwig and {Cojean}, Terry and {Flegar}, Goran and
+         {G{\"o}bel}, Fritz and {Gr{\"u}tzmacher}, Thomas and {Nayak}, Pratik and
+         {Ribizel}, Tobias and {Tsai}, Yuhsiang Mike and
+         {Quintana-Ort{\'\i}}, Enrique S.},
+        title = "{Ginkgo: A Modern Linear Operator Algebra Framework for High Performance Computing}",
+      journal = {arXiv e-prints},
+     keywords = {Computer Science - Mathematical Software, D.2, G.1.3, G.4},
+         year = 2020,
+        month = jun,
+          eid = {arXiv:2006.16852},
+        pages = {arXiv:2006.16852},
+archivePrefix = {arXiv},
+       eprint = {2006.16852},
+ primaryClass = {cs.MS},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2020arXiv200616852A},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
 
 @misc{gko-data,
   title = {Ginkgo Performance data},

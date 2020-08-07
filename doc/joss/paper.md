@@ -64,8 +64,8 @@ performance overhead.
 Solving linear systems is usually one of the most computationally
 and memory intensive aspects of any application. Hence there has been a significant
 amount of effort in this direction with software libraries such as UMFPACK and
-CHOLMOD[@suitesparse] for solving linear systems with direct methods and PETSc[@petsc],
-Trilinos[@trilinos], Eigen[@eigen] and many more to solve linear systems with iterative
+CHOLMOD [@suitesparse] for solving linear systems with direct methods and PETSc [@petsc],
+Trilinos [@trilinos], Eigen [@eigen] and many more to solve linear systems with iterative
 methods. With Ginkgo, we aim to ensure high performance while not compromising portability. 
 Hence, we provide very efficient low level kernels optimized for different architectures and
 separate these kernels from the algorithms thereby ensuring extensibility and ease of use. 
@@ -75,7 +75,7 @@ Ginkgo is also a part of the xSDK effort [@xsdk] and available as a Spack
 between a collection of related and complementary software elements to foster
 rapid and efficient development of scientific applications using High
 Performance Computing. Within this effort, we provide interoperability with
-application libraries such as `deal.ii`[@dealii] and `mfem`[@mfem]. Ginkgo
+application libraries such as `deal.ii` [@dealii] and `mfem` [@mfem]. Ginkgo
 provides wrappers within these two libraries so that they can take advantage of
 the features of Ginkgo.
 
@@ -95,13 +95,17 @@ Residual Method (GMRES) and more generic methods such as Iterative Refinement (I
 which forms the basis of many relaxation methods. Ginkgo also features support for 
 direct and iterative triangular solves within incomplete factorization preconditioners.
 
-Ginkgo features some state-of-the-art general-purpose preconditioners such as the Block Jacobi
-preconditioner with support for a version which reduces pressure on the memory bandwidth 
-by dynamically adapting the memory precision to the numerical requirements.
-This approach [@adaptive-bj] has been shown to be very efficient for problems with a block 
-structure.
-Ginkgo also features highly-parallel incomplete factorization preconditioners such as 
-the ParILU and the ParILUT preconditioners [@parilut].
+Ginkgo features some state-of-the-art general-purpose preconditioners such
+as the Block Jacobi preconditioner with support for a version which reduces
+pressure on the memory bandwidth by dynamically adapting the memory precision
+to the numerical requirements. This approach [@adaptive-bj] has been shown to
+be very efficient for problems with a block structure. Ginkgo also features
+highly-parallel incomplete factorization preconditioners such as 
+the ParILU and the ParILUT preconditioners [@parilut] and Approximate Inverse 
+preconditioners such as the Incomplete Sparse Approximate Inverse preconditioner
+[@spai]. A detailed feature overview including design and implementation of all
+algorithms in Ginkgo with performance results is elaborated in the Ginkgo paper
+[@gko-arxiv]. 
 
 
 # Software extensibility and sustainability.
