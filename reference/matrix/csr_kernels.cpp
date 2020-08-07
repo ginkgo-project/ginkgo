@@ -623,7 +623,7 @@ void calculate_max_nnz_per_row(std::shared_ptr<const ReferenceExecutor> exec,
     IndexType max_nnz = 0;
 
     for (size_type i = 0; i < num_rows; i++) {
-        max_nnz = max(row_ptrs[i + 1] - row_ptrs[i], max_nnz);
+        max_nnz = std::max(row_ptrs[i + 1] - row_ptrs[i], max_nnz);
     }
 
     *result = max_nnz;

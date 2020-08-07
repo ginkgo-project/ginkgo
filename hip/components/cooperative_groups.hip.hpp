@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_COMPONENTS_COOPERATIVE_GROUPS_HIP_HPP_
 
 
-#include <ginkgo/core/base/std_extensions.hpp>
+#include <type_traits>
 
 
 #include "hip/base/config.hip.hpp"
@@ -139,7 +139,7 @@ struct is_communicator_group_impl : std::true_type {};
  * Check if T is a Group.
  */
 template <typename T>
-using is_group = detail::is_group_impl<xstd::decay_t<T>>;
+using is_group = detail::is_group_impl<std::decay_t<T>>;
 
 
 /**
@@ -147,7 +147,7 @@ using is_group = detail::is_group_impl<xstd::decay_t<T>>;
  */
 template <typename T>
 using is_synchronizable_group =
-    detail::is_synchronizable_group_impl<xstd::decay_t<T>>;
+    detail::is_synchronizable_group_impl<std::decay_t<T>>;
 
 
 /**
@@ -155,7 +155,7 @@ using is_synchronizable_group =
  */
 template <typename T>
 using is_communicator_group =
-    detail::is_communicator_group_impl<xstd::decay_t<T>>;
+    detail::is_communicator_group_impl<std::decay_t<T>>;
 
 
 // types
@@ -385,11 +385,11 @@ struct thread_block_tile
 
 // Only support tile_partition with 1, 2, 4, 8, 16, 32, 64 (hip).
 template <size_type Size, typename Group>
-__device__ __forceinline__ gko::xstd::enable_if_t<
-    (Size <= kernels::hip::config::warp_size) && (Size > 0) &&
-        (kernels::hip::config::warp_size % Size == 0),
-    thread_block_tile<Size>>
-tiled_partition(const Group &)
+__device__ __forceinline__
+    std::enable_if_t<(Size <= kernels::hip::config::warp_size) && (Size > 0) &&
+                         (kernels::hip::config::warp_size % Size == 0),
+                     thread_block_tile<Size>>
+    tiled_partition(const Group &)
 {
     return thread_block_tile<Size>();
 }

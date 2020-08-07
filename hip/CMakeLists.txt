@@ -197,6 +197,16 @@ if (GINKGO_HIP_PLATFORM MATCHES "nvcc")
     if(NOT CMAKE_CUDA_COMPILER_VERSION MATCHES "9.0")
         set(GINKGO_HIP_NVCC_ADDITIONAL_FLAGS --expt-relaxed-constexpr)
     endif()
+
+    if (GINKGO_HIP_PLATFROM MATCHES "nvcc" AND CMAKE_CUDA_COMPILER_VERSION
+            MATCHES "9.2" AND CMAKE_CUDA_HOST_COMPILER MATCHES ".*clang.*" )
+        ginkgo_extract_clang_version(${CMAKE_CUDA_HOST_COMPILER} GINKGO_CUDA_HOST_CLANG_VERSION)
+
+        if (GINKGO_CUDA_HOST_CLANG_VERSION MATCHES "5\.0.*")
+            message(FATAL_ERROR "There is a bug between nvcc 9.2 and clang 5.0 which create a compiling issue."
+                "Consider using a different CUDA host compiler or CUDA version.")
+        endif()
+    endif()
     # add gpu architecture flags
     include(CudaArchitectureSelector)
     cas_variable_cuda_architectures(GINKGO_HIP_NVCC_ARCH
@@ -211,14 +221,14 @@ set(GINKGO_HIP_CLANG_OPTIONS ${GINKGO_HIP_CLANG_COMPILER_FLAGS})
 set_source_files_properties(${GINKGO_HIP_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT TRUE)
 if (GINKGO_HIP_VERSION VERSION_GREATER_EQUAL "3.5")
     hip_add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES}
-        HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} "-std=c++11"
+        HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} "-std=c++14"
         HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS}
         CLANG_OPTIONS ${GINKGO_HIP_CLANG_OPTIONS}
         NVCC_OPTIONS ${GINKGO_HIP_NVCC_OPTIONS} ${GINKGO_HIP_CUDA_HOST_COMPILER}
         ${GINKGO_STATIC_OR_SHARED})
 else()
     hip_add_library(ginkgo_hip $<TARGET_OBJECTS:ginkgo_hip_device> ${GINKGO_HIP_SOURCES}
-        HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} "-std=c++11"
+        HIPCC_OPTIONS ${GINKGO_HIPCC_OPTIONS} "-std=c++14"
         HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS}
         NVCC_OPTIONS ${GINKGO_HIP_NVCC_OPTIONS} ${GINKGO_HIP_CUDA_HOST_COMPILER}
         ${GINKGO_STATIC_OR_SHARED})

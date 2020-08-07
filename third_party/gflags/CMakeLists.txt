@@ -11,10 +11,10 @@ if(MSVC)
         "-DCMAKE_C_FLAGS_RELEASE=${CMAKE_C_FLAGS_RELEASE}")
 else()
     # There is a weird issue with Intel 19 and c++17 causing a linking error.
-    # Use c++11 instead.
+    # Use c++14 instead.
     set(INTEL19_STD_FIX "")
     if (CMAKE_CXX_COMPILER_ID STREQUAL "Intel" AND CMAKE_CXX_COMPILER_VERSION MATCHES "19")
-        set(INTEL19_STD_FIX "-DCMAKE_CXX_FLAGS=-std=c++11")
+        set(INTEL19_STD_FIX "-DCMAKE_CXX_FLAGS=-std=c++14")
     endif()
     ginkgo_load_git_package(gflags_external
         "https://github.com/gflags/gflags.git"

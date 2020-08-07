@@ -3,6 +3,7 @@ function(ginkgo_create_test test_name)
         ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
     add_executable(${TEST_TARGET_NAME} ${test_name}.cpp)
+    target_compile_features("${TEST_TARGET_NAME}" PUBLIC cxx_std_14)
     target_include_directories("${TEST_TARGET_NAME}"
         PRIVATE
         "$<BUILD_INTERFACE:${Ginkgo_BINARY_DIR}>"
@@ -23,6 +24,7 @@ function(ginkgo_create_thread_test test_name)
         ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
     add_executable(${TEST_TARGET_NAME} ${test_name}.cpp)
+    target_compile_features("${TEST_TARGET_NAME}" PUBLIC cxx_std_14)
     target_include_directories("${TEST_TARGET_NAME}"
         PRIVATE
         "$<BUILD_INTERFACE:${Ginkgo_BINARY_DIR}>"
@@ -41,6 +43,7 @@ function(ginkgo_create_test_cpp_cuda_header test_name)
         ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
     add_executable(${TEST_TARGET_NAME} ${test_name}.cpp)
+    target_compile_features("${TEST_TARGET_NAME}" PUBLIC cxx_std_14)
     target_include_directories("${TEST_TARGET_NAME}"
         PRIVATE
         "$<BUILD_INTERFACE:${Ginkgo_BINARY_DIR}>"
@@ -60,6 +63,7 @@ function(ginkgo_create_cuda_test test_name)
         ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
     add_executable(${TEST_TARGET_NAME} ${test_name}.cu)
+    target_compile_features("${TEST_TARGET_NAME}" PUBLIC cxx_std_14)
     target_include_directories("${TEST_TARGET_NAME}"
         PRIVATE
         "$<BUILD_INTERFACE:${Ginkgo_BINARY_DIR}>"
@@ -80,6 +84,7 @@ function(ginkgo_create_hip_test_special_linkage test_name)
         ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     string(REPLACE "/" "_" TEST_TARGET_NAME "${REL_BINARY_DIR}/${test_name}")
     add_executable(${TEST_TARGET_NAME} ${test_name}.cpp)
+    target_compile_features("${TEST_TARGET_NAME}" PUBLIC cxx_std_14)
     # Fix the missing metadata when building static library.
     if(GINKGO_HIP_PLATFORM MATCHES "hcc" AND NOT BUILD_SHARED_LIBS)
         set_target_properties(${TEST_TARGET_NAME} PROPERTIES LINKER_LANGUAGE HIP)
@@ -116,6 +121,7 @@ function(ginkgo_create_hip_test test_name)
             NVCC_OPTIONS  ${GINKGO_HIP_NVCC_OPTIONS}
             HCC_OPTIONS ${GINKGO_HIP_HCC_OPTIONS})
     endif()
+    target_compile_features("${TEST_TARGET_NAME}" PUBLIC cxx_std_14)
 
     # Let's really not use nvcc for linking here
     if (GINKGO_HIP_PLATFORM MATCHES "nvcc")

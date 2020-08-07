@@ -34,6 +34,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_HIP_BASE_TYPES_HIP_HPP_
 
 
+#include <type_traits>
+
+
 #include <ginkgo/core/base/types.hpp>
 
 
@@ -42,9 +45,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hip/hip_runtime.h>
 #include <hipblas.h>
 #include <thrust/complex.h>
-
-
-#include <ginkgo/core/base/std_extensions.hpp>
 
 
 namespace gko {
@@ -207,7 +207,7 @@ using hip_type = typename detail::hip_type_impl<T>::type;
  * @return `val` reinterpreted to HIP type
  */
 template <typename T>
-inline xstd::enable_if_t<
+inline std::enable_if_t<
     std::is_pointer<T>::value || std::is_reference<T>::value, hip_type<T>>
 as_hip_type(T val)
 {
@@ -219,7 +219,7 @@ as_hip_type(T val)
  * @copydoc as_hip_type()
  */
 template <typename T>
-inline xstd::enable_if_t<
+inline std::enable_if_t<
     !std::is_pointer<T>::value && !std::is_reference<T>::value, hip_type<T>>
 as_hip_type(T val)
 {

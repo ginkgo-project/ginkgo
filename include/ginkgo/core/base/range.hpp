@@ -34,8 +34,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CORE_BASE_RANGE_HPP_
 
 
+#include <type_traits>
+
+
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
@@ -159,9 +161,9 @@ namespace detail {
 template <size_type CurrentDimension = 0, typename FirstRange,
           typename SecondRange>
 GKO_ATTRIBUTES constexpr GKO_INLINE
-    xstd::enable_if_t<(CurrentDimension >= max(FirstRange::dimensionality,
-                                               SecondRange::dimensionality)),
-                      bool>
+    std::enable_if_t<(CurrentDimension >= max(FirstRange::dimensionality,
+                                              SecondRange::dimensionality)),
+                     bool>
     equal_dimensions(const FirstRange &, const SecondRange &)
 {
     return true;
@@ -170,9 +172,9 @@ GKO_ATTRIBUTES constexpr GKO_INLINE
 template <size_type CurrentDimension = 0, typename FirstRange,
           typename SecondRange>
 GKO_ATTRIBUTES constexpr GKO_INLINE
-    xstd::enable_if_t<(CurrentDimension < max(FirstRange::dimensionality,
-                                              SecondRange::dimensionality)),
-                      bool>
+    std::enable_if_t<(CurrentDimension < max(FirstRange::dimensionality,
+                                             SecondRange::dimensionality)),
+                     bool>
     equal_dimensions(const FirstRange &first, const SecondRange &second)
 {
     return first.length(CurrentDimension) == second.length(CurrentDimension) &&

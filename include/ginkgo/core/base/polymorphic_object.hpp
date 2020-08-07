@@ -35,6 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 #include <memory>
+#include <type_traits>
 
 
 #include <ginkgo/core/base/executor.hpp>
@@ -429,7 +430,7 @@ std::unique_ptr<R, std::function<void(R *)>> copy_and_convert_to_impl(
         return {obj_as_r, [](R *) {}};
     } else {
         auto copy = R::create(exec);
-        as<ConvertibleTo<xstd::decay_t<R>>>(obj)->convert_to(lend(copy));
+        as<ConvertibleTo<std::decay_t<R>>>(obj)->convert_to(lend(copy));
         return {copy.release(), std::default_delete<R>{}};
     }
 }
@@ -444,7 +445,7 @@ std::shared_ptr<R> copy_and_convert_to_impl(
         return obj_as_r;
     } else {
         auto copy = R::create(exec);
-        as<ConvertibleTo<xstd::decay_t<R>>>(obj.get())->convert_to(lend(copy));
+        as<ConvertibleTo<std::decay_t<R>>>(obj.get())->convert_to(lend(copy));
         return {std::move(copy)};
     }
 }

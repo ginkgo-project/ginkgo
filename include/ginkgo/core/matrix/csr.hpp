@@ -566,7 +566,7 @@ public:
             } else {
                 index_type maxnum = 0;
                 for (index_type i = 1; i < num_rows + 1; i++) {
-                    maxnum = max(maxnum, row_ptrs[i] - row_ptrs[i - 1]);
+                    maxnum = std::max(maxnum, row_ptrs[i] - row_ptrs[i - 1]);
                 }
                 if (maxnum > row_len_limit) {
                     load_balance actual_strategy(nwarps_, warp_size_,

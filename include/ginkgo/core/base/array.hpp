@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <iterator>
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 
@@ -401,7 +402,7 @@ public:
      * @return this
      */
     template <typename OtherValueType>
-    xstd::enable_if_t<!std::is_same<ValueType, OtherValueType>::value, Array>
+    std::enable_if_t<!std::is_same<ValueType, OtherValueType>::value, Array>
         &operator=(const Array<OtherValueType> &other)
     {
         if (this->exec_ == nullptr) {

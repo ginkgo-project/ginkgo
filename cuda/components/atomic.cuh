@@ -34,7 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GKO_CUDA_COMPONENTS_ATOMIC_CUH_
 
 
-#include <ginkgo/core/base/std_extensions.hpp>
+#include <type_traits>
 
 
 #include "cuda/base/math.hpp"
