@@ -103,9 +103,10 @@ void apply_to_csr(std::shared_ptr<const OmpExecutor> exec,
 
 #pragma omp parallel for
     for (size_type row = 0; row < c->get_size()[0]; row++) {
+        const auto scal = diag_values[row];
         for (size_type idx = csr_row_ptrs[row]; idx < csr_row_ptrs[row + 1];
              idx++) {
-            csr_values[idx] *= diag_values[row];
+            csr_values[idx] *= scal;
         }
     }
 }

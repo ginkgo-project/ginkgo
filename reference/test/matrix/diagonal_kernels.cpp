@@ -345,7 +345,7 @@ TYPED_TEST(Diagonal, RightApplyToCsrFailsForWrongNumberOfCols)
 }
 
 
-TYPED_TEST(Diagonal, ConverstToCsr)
+TYPED_TEST(Diagonal, ConvertsToCsr)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
