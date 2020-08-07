@@ -5,8 +5,8 @@ target_sources(ginkgo_reference
     components/fill_array.cpp
     components/precision_conversion.cpp
     components/prefix_sum.cpp
-    factorization/ilu_kernels.cpp
     factorization/factorization_kernels.cpp
+    factorization/ilu_kernels.cpp
     factorization/par_ict_kernels.cpp
     factorization/par_ilu_kernels.cpp
     factorization/par_ilut_kernels.cpp
@@ -26,6 +26,7 @@ target_sources(ginkgo_reference
     solver/cgs_kernels.cpp
     solver/fcg_kernels.cpp
     solver/gmres_kernels.cpp
+    solver/idr_kernels.cpp
     solver/ir_kernels.cpp
     solver/lower_trs_kernels.cpp
     solver/upper_trs_kernels.cpp

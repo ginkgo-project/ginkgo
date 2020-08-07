@@ -146,8 +146,8 @@ set(GINKGO_HIP_SOURCES
     components/fill_array.hip.cpp
     components/precision_conversion.hip.cpp
     components/prefix_sum.hip.cpp
-    factorization/ilu_kernels.hip.cpp
     factorization/factorization_kernels.hip.cpp
+    factorization/ilu_kernels.hip.cpp
     factorization/par_ict_kernels.hip.cpp
     factorization/par_ilu_kernels.hip.cpp
     factorization/par_ilut_approx_filter_kernel.hip.cpp
@@ -175,6 +175,7 @@ set(GINKGO_HIP_SOURCES
     solver/cgs_kernels.hip.cpp
     solver/fcg_kernels.hip.cpp
     solver/gmres_kernels.hip.cpp
+    solver/idr_kernels.hip.cpp
     solver/ir_kernels.hip.cpp
     solver/lower_trs_kernels.hip.cpp
     solver/upper_trs_kernels.hip.cpp
