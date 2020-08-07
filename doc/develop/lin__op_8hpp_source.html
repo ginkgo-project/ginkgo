@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/base/lin_op.hpp (4d43ccf4c) Source File</title>
+<title>Ginkgo: ginkgo/core/base/lin_op.hpp (de397cf2b) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/174920156 branch based on develop. Ginkgo version 1.2.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/175312144 branch based on develop. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -110,15 +110,15 @@ $(function() {
 <div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160; </div>
 <div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160; </div>
 <div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;<span class="preprocessor">#include &lt;memory&gt;</span></div>
-<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;<span class="preprocessor">#include &lt;utility&gt;</span></div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160; </div>
+<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;<span class="preprocessor">#include &lt;type_traits&gt;</span></div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;<span class="preprocessor">#include &lt;utility&gt;</span></div>
 <div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160; </div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/base/abstract_factory.hpp&gt;</span></div>
-<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/base/dim.hpp&gt;</span></div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/base/exception_helpers.hpp&gt;</span></div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/base/matrix_data.hpp&gt;</span></div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/base/polymorphic_object.hpp&gt;</span></div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/base/std_extensions.hpp&gt;</span></div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160; </div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/base/abstract_factory.hpp&gt;</span></div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/base/dim.hpp&gt;</span></div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/base/exception_helpers.hpp&gt;</span></div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/base/matrix_data.hpp&gt;</span></div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/base/polymorphic_object.hpp&gt;</span></div>
 <div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/base/types.hpp&gt;</span></div>
 <div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/base/utils.hpp&gt;</span></div>
 <div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;<span class="preprocessor">#include &lt;ginkgo/core/log/logger.hpp&gt;</span></div>
@@ -447,7 +447,7 @@ $(function() {
 <div class="line"><a name="l00877"></a><span class="lineno">  877</span>&#160;<span class="preprocessor">                                                                             \</span></div>
 <div class="line"><a name="l00878"></a><span class="lineno">  878</span>&#160;<span class="preprocessor">    template &lt;typename... Args&gt;                                              \</span></div>
 <div class="line"><a name="l00879"></a><span class="lineno">  879</span>&#160;<span class="preprocessor">    auto with_##_name(Args &amp;&amp;... _value)                                     \</span></div>
-<div class="line"><a name="l00880"></a><span class="lineno">  880</span>&#160;<span class="preprocessor">        const-&gt;const ::gko::xstd::decay_t&lt;decltype(*this)&gt; &amp;                 \</span></div>
+<div class="line"><a name="l00880"></a><span class="lineno">  880</span>&#160;<span class="preprocessor">        const-&gt;const std::decay_t&lt;decltype(*this)&gt; &amp;                         \</span></div>
 <div class="line"><a name="l00881"></a><span class="lineno">  881</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
 <div class="line"><a name="l00882"></a><span class="lineno">  882</span>&#160;<span class="preprocessor">        using type = decltype(this-&gt;_name);                                  \</span></div>
 <div class="line"><a name="l00883"></a><span class="lineno">  883</span>&#160;<span class="preprocessor">        this-&gt;_name = type{std::forward&lt;Args&gt;(_value)...};                   \</span></div>
@@ -466,7 +466,7 @@ $(function() {
 <div class="line"><a name="l00896"></a><span class="lineno">  896</span>&#160;<span class="preprocessor">                                                                             \</span></div>
 <div class="line"><a name="l00897"></a><span class="lineno">  897</span>&#160;<span class="preprocessor">    template &lt;typename... Args&gt;                                              \</span></div>
 <div class="line"><a name="l00898"></a><span class="lineno">  898</span>&#160;<span class="preprocessor">    auto with_##_name(Args &amp;&amp;... _value)                                     \</span></div>
-<div class="line"><a name="l00899"></a><span class="lineno">  899</span>&#160;<span class="preprocessor">        const-&gt;const ::gko::xstd::decay_t&lt;decltype(*this)&gt; &amp;                 \</span></div>
+<div class="line"><a name="l00899"></a><span class="lineno">  899</span>&#160;<span class="preprocessor">        const-&gt;const std::decay_t&lt;decltype(*this)&gt; &amp;                         \</span></div>
 <div class="line"><a name="l00900"></a><span class="lineno">  900</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
 <div class="line"><a name="l00901"></a><span class="lineno">  901</span>&#160;<span class="preprocessor">        return *this;                                                        \</span></div>
 <div class="line"><a name="l00902"></a><span class="lineno">  902</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
@@ -487,7 +487,7 @@ $(function() {
 <div class="ttc" id="aclassgko_1_1Preconditionable_html"><div class="ttname"><a href="classgko_1_1Preconditionable.html">gko::Preconditionable</a></div><div class="ttdoc">A LinOp implementing this interface can be preconditioned.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:564</div></div>
 <div class="ttc" id="anamespacegko_html_a9b6a9d7018703d6d1f2140054e2afe4a"><div class="ttname"><a href="namespacegko.html#a9b6a9d7018703d6d1f2140054e2afe4a">gko::transpose</a></div><div class="ttdeci">constexpr dim&lt; 2, DimensionType &gt; transpose(const dim&lt; 2, DimensionType &gt; &amp;dimensions) noexcept</div><div class="ttdoc">Returns a dim&lt;2&gt; object with its dimensions swapped.</div><div class="ttdef"><b>Definition:</b> dim.hpp:236</div></div>
 <div class="ttc" id="aclassgko_1_1AbstractFactory_html"><div class="ttname"><a href="classgko_1_1AbstractFactory.html">gko::AbstractFactory</a></div><div class="ttdoc">The AbstractFactory is a generic interface template that enables easy implementation of the abstract ...</div><div class="ttdef"><b>Definition:</b> abstract_factory.hpp:70</div></div>
-<div class="ttc" id="aclassgko_1_1EnableAbstractPolymorphicObject_html"><div class="ttname"><a href="classgko_1_1EnableAbstractPolymorphicObject.html">gko::EnableAbstractPolymorphicObject</a></div><div class="ttdoc">This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne...</div><div class="ttdef"><b>Definition:</b> polymorphic_object.hpp:294</div></div>
+<div class="ttc" id="aclassgko_1_1EnableAbstractPolymorphicObject_html"><div class="ttname"><a href="classgko_1_1EnableAbstractPolymorphicObject.html">gko::EnableAbstractPolymorphicObject</a></div><div class="ttdoc">This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne...</div><div class="ttdef"><b>Definition:</b> polymorphic_object.hpp:295</div></div>
 <div class="ttc" id="aclassgko_1_1Transposable_html"><div class="ttname"><a href="classgko_1_1Transposable.html">gko::Transposable</a></div><div class="ttdoc">Linear operators which support transposition should implement the Transposable interface.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:408</div></div>
 <div class="ttc" id="aclassgko_1_1AbstractFactory_html_a159c45f1db78b6b928d69cb9adf5c9ee"><div class="ttname"><a href="classgko_1_1AbstractFactory.html#a159c45f1db78b6b928d69cb9adf5c9ee">gko::AbstractFactory::generate</a></div><div class="ttdeci">std::unique_ptr&lt; AbstractProductType &gt; generate(Args &amp;&amp;... args) const</div><div class="ttdoc">Creates a new product from the given components.</div><div class="ttdef"><b>Definition:</b> abstract_factory.hpp:92</div></div>
 <div class="ttc" id="aclassgko_1_1EnableDefaultFactory_html"><div class="ttname"><a href="classgko_1_1EnableDefaultFactory.html">gko::EnableDefaultFactory</a></div><div class="ttdoc">This mixin provides a default implementation of a concrete factory.</div><div class="ttdef"><b>Definition:</b> abstract_factory.hpp:148</div></div>
@@ -499,13 +499,13 @@ $(function() {
 <div class="ttc" id="astructgko_1_1dim_html"><div class="ttname"><a href="structgko_1_1dim.html">gko::dim&lt; 2 &gt;</a></div></div>
 <div class="ttc" id="astructgko_1_1matrix__data_html"><div class="ttname"><a href="structgko_1_1matrix__data.html">gko::matrix_data</a></div><div class="ttdoc">This structure is used as an intermediate data type to store a sparse matrix.</div><div class="ttdef"><b>Definition:</b> matrix_data.hpp:103</div></div>
 <div class="ttc" id="aclassgko_1_1LinOp_html_a80967e89745c73e5df8640fe1c7e4aaa"><div class="ttname"><a href="classgko_1_1LinOp.html#a80967e89745c73e5df8640fe1c7e4aaa">gko::LinOp::apply_uses_initial_guess</a></div><div class="ttdeci">virtual bool apply_uses_initial_guess() const</div><div class="ttdoc">Returns true if the linear operator uses the data given in x as an initial guess.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:231</div></div>
-<div class="ttc" id="aclassgko_1_1Array_html"><div class="ttname"><a href="classgko_1_1Array.html">gko::Array</a></div><div class="ttdoc">An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...</div><div class="ttdef"><b>Definition:</b> array.hpp:83</div></div>
+<div class="ttc" id="aclassgko_1_1Array_html"><div class="ttname"><a href="classgko_1_1Array.html">gko::Array</a></div><div class="ttdoc">An Array is a container which encapsulates fixed-sized arrays, stored on the Executor tied to the Arr...</div><div class="ttdef"><b>Definition:</b> array.hpp:84</div></div>
 <div class="ttc" id="aclassgko_1_1LinOp_html_a9bf4bf5dc6118e18f4c9ef1bc782b337"><div class="ttname"><a href="classgko_1_1LinOp.html#a9bf4bf5dc6118e18f4c9ef1bc782b337">gko::LinOp::apply</a></div><div class="ttdeci">const LinOp * apply(const LinOp *alpha, const LinOp *b, const LinOp *beta, LinOp *x) const</div><div class="ttdoc">Performs the operation x = alpha * op(b) + beta * x.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:201</div></div>
 <div class="ttc" id="aclassgko_1_1Preconditionable_html_a95db3e56eb17efbcde951c5ed144582d"><div class="ttname"><a href="classgko_1_1Preconditionable.html#a95db3e56eb17efbcde951c5ed144582d">gko::Preconditionable::set_preconditioner</a></div><div class="ttdeci">virtual void set_preconditioner(std::shared_ptr&lt; const LinOp &gt; new_precond)</div><div class="ttdoc">Sets the preconditioner operator used by the Preconditionable.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:584</div></div>
 <div class="ttc" id="aclassgko_1_1ReadableFromMatrixData_html"><div class="ttname"><a href="classgko_1_1ReadableFromMatrixData.html">gko::ReadableFromMatrixData</a></div><div class="ttdoc">A LinOp implementing this interface can read its data from a matrix_data structure.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:519</div></div>
 <div class="ttc" id="aclassgko_1_1WritableToMatrixData_html"><div class="ttname"><a href="classgko_1_1WritableToMatrixData.html">gko::WritableToMatrixData</a></div><div class="ttdoc">A LinOp implementing this interface can write its data to a matrix_data structure.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:542</div></div>
 <div class="ttc" id="aclassgko_1_1LinOpFactory_html"><div class="ttname"><a href="classgko_1_1LinOpFactory.html">gko::LinOpFactory</a></div><div class="ttdoc">A LinOpFactory represents a higher order mapping which transforms one linear operator into another.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:366</div></div>
-<div class="ttc" id="aclassgko_1_1PolymorphicObject_html_ab40586bff071b7f11c2cf6b5cbf598eb"><div class="ttname"><a href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">gko::PolymorphicObject::get_executor</a></div><div class="ttdeci">std::shared_ptr&lt; const Executor &gt; get_executor() const noexcept</div><div class="ttdoc">Returns the Executor of the object.</div><div class="ttdef"><b>Definition:</b> polymorphic_object.hpp:204</div></div>
+<div class="ttc" id="aclassgko_1_1PolymorphicObject_html_ab40586bff071b7f11c2cf6b5cbf598eb"><div class="ttname"><a href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">gko::PolymorphicObject::get_executor</a></div><div class="ttdeci">std::shared_ptr&lt; const Executor &gt; get_executor() const noexcept</div><div class="ttdoc">Returns the Executor of the object.</div><div class="ttdef"><b>Definition:</b> polymorphic_object.hpp:205</div></div>
 <div class="ttc" id="aclassgko_1_1LinOp_html_a31b3c003388eb0b95393154f68c2b98d"><div class="ttname"><a href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">gko::LinOp::get_size</a></div><div class="ttdeci">const dim&lt; 2 &gt; &amp; get_size() const noexcept</div><div class="ttdoc">Returns the size of the operator.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:222</div></div>
 <div class="ttc" id="aclassgko_1_1LinOp_html_a74afc0e94716dbf4f3e1d7182e37456f"><div class="ttname"><a href="classgko_1_1LinOp.html#a74afc0e94716dbf4f3e1d7182e37456f">gko::LinOp::apply</a></div><div class="ttdeci">const LinOp * apply(const LinOp *b, LinOp *x) const</div><div class="ttdoc">Applies a linear operator to a vector (or a sequence of vectors).</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:161</div></div>
 <div class="ttc" id="aclassgko_1_1EnableLinOp_html"><div class="ttname"><a href="classgko_1_1EnableLinOp.html">gko::EnableLinOp</a></div><div class="ttdoc">The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ...</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:625</div></div>

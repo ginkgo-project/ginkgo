@@ -27,7 +27,7 @@ The Ginkgo namespace.
  \mbox{\hyperlink{namespacegko_1_1syn}{syn}}
 \begin{DoxyCompactList}\small\item\em The Synthesizer namespace. \end{DoxyCompactList}\item 
  \mbox{\hyperlink{namespacegko_1_1xstd}{xstd}}
-\begin{DoxyCompactList}\small\item\em The namespace for functionalities after C++11 standard. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em The namespace for functionalities after C++14 standard. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \doxysubsection*{Classes}
 \begin{DoxyCompactItemize}
 \item 
@@ -178,8 +178,8 @@ class \mbox{\hyperlink{classgko_1_1WritableToMatrixData}{Writable\+To\+Matrix\+D
 \mbox{\Hypertarget{namespacegko_a373c2b4782d95e675d7e91a75bab101d}\label{namespacegko_a373c2b4782d95e675d7e91a75bab101d}} 
 {\footnotesize template$<$typename T $>$ }\\using \mbox{\hyperlink{namespacegko_a373c2b4782d95e675d7e91a75bab101d}{increase\+\_\+precision}} = typename detail\+::increase\+\_\+precision\+\_\+impl$<$ T $>$\+::type
 \begin{DoxyCompactList}\small\item\em Obtains the next type in the hierarchy with higher precision than T. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{namespacegko_abf540a6830b3ac4cd6b193133510f4d7}\label{namespacegko_abf540a6830b3ac4cd6b193133510f4d7}} 
-{\footnotesize template$<$typename T , size\+\_\+type Limit = sizeof(uint16) $\ast$ byte\+\_\+size$>$ }\\using \mbox{\hyperlink{namespacegko_abf540a6830b3ac4cd6b193133510f4d7}{truncate\+\_\+type}} = xstd\+::conditional\+\_\+t$<$ detail\+::type\+\_\+size\+\_\+impl$<$ T $>$\+::value $>$=2 $\ast$Limit, typename detail\+::truncate\+\_\+type\+\_\+impl$<$ T $>$\+::type, T $>$
+\mbox{\Hypertarget{namespacegko_a512fc29f227f5d452e13787bf3df7d48}\label{namespacegko_a512fc29f227f5d452e13787bf3df7d48}} 
+{\footnotesize template$<$typename T , size\+\_\+type Limit = sizeof(uint16) $\ast$ byte\+\_\+size$>$ }\\using \mbox{\hyperlink{namespacegko_a512fc29f227f5d452e13787bf3df7d48}{truncate\+\_\+type}} = std\+::conditional\+\_\+t$<$ detail\+::type\+\_\+size\+\_\+impl$<$ T $>$\+::value $>$=2 $\ast$Limit, typename detail\+::truncate\+\_\+type\+\_\+impl$<$ T $>$\+::type, T $>$
 \begin{DoxyCompactList}\small\item\em Truncates the type by half (by dropping bits), but ensures that it is at least {\ttfamily Limit} bits wide. \end{DoxyCompactList}\item 
 \mbox{\Hypertarget{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}\label{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}} 
 using \mbox{\hyperlink{namespacegko_a6e5c95df0ae4e47aab2f604a22d98ee7}{size\+\_\+type}} = std\+::size\+\_\+t
@@ -262,30 +262,30 @@ constexpr \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64
 \begin{DoxyCompactList}\small\item\em Returns the larger of the arguments. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\constexpr T \mbox{\hyperlink{namespacegko_aaaf8487194bcb40b528969c187a413a0}{min}} (const T \&x, const T \&y)
 \begin{DoxyCompactList}\small\item\em Returns the smaller of the arguments. \end{DoxyCompactList}\item 
-{\footnotesize template$<$typename T $>$ }\\constexpr xstd\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, T $>$ \mbox{\hyperlink{namespacegko_abcf6f4649ad47679a4e7768156b6dd32}{real}} (const T \&x)
+{\footnotesize template$<$typename T $>$ }\\constexpr std\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, T $>$ \mbox{\hyperlink{namespacegko_a85e29870bacc4e660be5acbbf742305e}{real}} (const T \&x)
 \begin{DoxyCompactList}\small\item\em Returns the real part of the object. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{namespacegko_ab6c3ac3de52997d22a1c8140131b52eb}\label{namespacegko_ab6c3ac3de52997d22a1c8140131b52eb}} 
-{\footnotesize template$<$typename T $>$ }\\constexpr xstd\+::enable\+\_\+if\+\_\+t$<$ \mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}}$<$ T $>$ $>$ {\bfseries real} (const T \&x)
+\mbox{\Hypertarget{namespacegko_a11e23f11f738d46497b5d7fe562f128a}\label{namespacegko_a11e23f11f738d46497b5d7fe562f128a}} 
+{\footnotesize template$<$typename T $>$ }\\constexpr std\+::enable\+\_\+if\+\_\+t$<$ \mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}}$<$ T $>$ $>$ {\bfseries real} (const T \&x)
 \item 
-{\footnotesize template$<$typename T $>$ }\\constexpr xstd\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, T $>$ \mbox{\hyperlink{namespacegko_ac90fd8e4e045379f09f510baece91afd}{imag}} (const T \&)
+{\footnotesize template$<$typename T $>$ }\\constexpr std\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, T $>$ \mbox{\hyperlink{namespacegko_a0ac423659071783d3b7f8a66ea480f49}{imag}} (const T \&)
 \begin{DoxyCompactList}\small\item\em Returns the imaginary part of the object. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{namespacegko_a10673c73a8d2e11112584d9710475d7d}\label{namespacegko_a10673c73a8d2e11112584d9710475d7d}} 
-{\footnotesize template$<$typename T $>$ }\\constexpr xstd\+::enable\+\_\+if\+\_\+t$<$ \mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}}$<$ T $>$ $>$ {\bfseries imag} (const T \&x)
+\mbox{\Hypertarget{namespacegko_a41050e9c27c6da9af7a758b03316e403}\label{namespacegko_a41050e9c27c6da9af7a758b03316e403}} 
+{\footnotesize template$<$typename T $>$ }\\constexpr std\+::enable\+\_\+if\+\_\+t$<$ \mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{remove\+\_\+complex}}$<$ T $>$ $>$ {\bfseries imag} (const T \&x)
 \item 
-{\footnotesize template$<$typename T $>$ }\\xstd\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, T $>$ \mbox{\hyperlink{namespacegko_a559b814e33d9abb8952d25cbb6b7f232}{conj}} (const T \&x)
+{\footnotesize template$<$typename T $>$ }\\std\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, T $>$ \mbox{\hyperlink{namespacegko_ab0fb2f831ecd3f5549a59e4845bd7110}{conj}} (const T \&x)
 \begin{DoxyCompactList}\small\item\em Returns the conjugate of an object. \end{DoxyCompactList}\item 
-\mbox{\Hypertarget{namespacegko_ad5398d87b17d21995b71a4cf8dad96b5}\label{namespacegko_ad5398d87b17d21995b71a4cf8dad96b5}} 
-{\footnotesize template$<$typename T $>$ }\\xstd\+::enable\+\_\+if\+\_\+t$<$ \mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, T $>$ {\bfseries conj} (const T \&x)
+\mbox{\Hypertarget{namespacegko_a5a975d1b9b023cc3bb530b8e1c7dde6d}\label{namespacegko_a5a975d1b9b023cc3bb530b8e1c7dde6d}} 
+{\footnotesize template$<$typename T $>$ }\\std\+::enable\+\_\+if\+\_\+t$<$ \mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, T $>$ {\bfseries conj} (const T \&x)
 \item 
-{\footnotesize template$<$typename T $>$ }\\constexpr auto \mbox{\hyperlink{namespacegko_abbb55709b10d707b2cbef803832aa834}{squared\+\_\+norm}} (const T \&x) -\/$>$ decltype(\mbox{\hyperlink{namespacegko_abcf6f4649ad47679a4e7768156b6dd32}{real}}(\mbox{\hyperlink{namespacegko_a559b814e33d9abb8952d25cbb6b7f232}{conj}}(x) $\ast$x))
+{\footnotesize template$<$typename T $>$ }\\constexpr auto \mbox{\hyperlink{namespacegko_abbb55709b10d707b2cbef803832aa834}{squared\+\_\+norm}} (const T \&x) -\/$>$ decltype(\mbox{\hyperlink{namespacegko_a85e29870bacc4e660be5acbbf742305e}{real}}(\mbox{\hyperlink{namespacegko_ab0fb2f831ecd3f5549a59e4845bd7110}{conj}}(x) $\ast$x))
 \begin{DoxyCompactList}\small\item\em Returns the squared norm of the object. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\constexpr \mbox{\hyperlink{namespacegko_a318c831e3fe269ba04c6ed8bf5a71073}{uint32}} \mbox{\hyperlink{namespacegko_a4eea40e4123a3fdb60fcd92f902c6d6d}{get\+\_\+significant\+\_\+bit}} (const T \&n, \mbox{\hyperlink{namespacegko_a318c831e3fe269ba04c6ed8bf5a71073}{uint32}} hint=0u) noexcept
 \begin{DoxyCompactList}\small\item\em Returns the position of the most significant bit of the number. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename T $>$ }\\constexpr T \mbox{\hyperlink{namespacegko_ad39645fe8148a8a812a9528865a77600}{get\+\_\+superior\+\_\+power}} (const T \&base, const T \&limit, const T \&hint=T\{1\}) noexcept
 \begin{DoxyCompactList}\small\item\em Returns the smallest power of {\ttfamily base} not smaller than {\ttfamily limit}. \end{DoxyCompactList}\item 
-{\footnotesize template$<$typename T $>$ }\\xstd\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, bool $>$ \mbox{\hyperlink{namespacegko_af0297bfcc5b3c6a69b412c328390e274}{is\+\_\+finite}} (const T \&value)
+{\footnotesize template$<$typename T $>$ }\\std\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, bool $>$ \mbox{\hyperlink{namespacegko_a58498d28d199c188555a48fda471f103}{is\+\_\+finite}} (const T \&value)
 \begin{DoxyCompactList}\small\item\em Checks if a floating point number is finite, meaning it is neither +/-\/ infinity nor NaN. \end{DoxyCompactList}\item 
-{\footnotesize template$<$typename T $>$ }\\xstd\+::enable\+\_\+if\+\_\+t$<$ \mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, bool $>$ \mbox{\hyperlink{namespacegko_a2898724536884e5cf8ea9a3bad9d83ec}{is\+\_\+finite}} (const T \&value)
+{\footnotesize template$<$typename T $>$ }\\std\+::enable\+\_\+if\+\_\+t$<$ \mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$ T $>$\+::value, bool $>$ \mbox{\hyperlink{namespacegko_a737d84b498f462463fa40846e22aec6d}{is\+\_\+finite}} (const T \&value)
 \begin{DoxyCompactList}\small\item\em Checks if all components of a complex value are finite, meaning they are neither +/-\/ infinity nor NaN. \end{DoxyCompactList}\item 
 {\footnotesize template$<$typename Value\+Type  = default\+\_\+precision, typename Index\+Type  = int32$>$ }\\\mbox{\hyperlink{structgko_1_1matrix__data}{matrix\+\_\+data}}$<$ Value\+Type, Index\+Type $>$ \mbox{\hyperlink{namespacegko_a0b476e0e3df616b08efe85000bff8da0}{read\+\_\+raw}} (std\+::istream \&is)
 \begin{DoxyCompactList}\small\item\em Reads a matrix stored in matrix market format from an input stream. \end{DoxyCompactList}\item 
@@ -971,12 +971,12 @@ The pointee (i.\+e. {\ttfamily $\ast$p}) needs to have a clone method that takes
 \begin{DoxyNote}{Note}
 The difference between this function and directly calling Lin\+Op\+::clone() is that this one preserves the static type of the object. 
 \end{DoxyNote}
-\mbox{\Hypertarget{namespacegko_a559b814e33d9abb8952d25cbb6b7f232}\label{namespacegko_a559b814e33d9abb8952d25cbb6b7f232}} 
+\mbox{\Hypertarget{namespacegko_ab0fb2f831ecd3f5549a59e4845bd7110}\label{namespacegko_ab0fb2f831ecd3f5549a59e4845bd7110}} 
 \index{gko@{gko}!conj@{conj}}
 \index{conj@{conj}!gko@{gko}}
 \doxysubsubsection{\texorpdfstring{conj()}{conj()}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-xstd\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$T$>$\+::value, T$>$ gko\+::conj (\begin{DoxyParamCaption}\item[{const T \&}]{x }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+std\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$T$>$\+::value, T$>$ gko\+::conj (\begin{DoxyParamCaption}\item[{const T \&}]{x }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -1206,12 +1206,12 @@ Effectively calls {\ttfamily std\+::move(p)}.
 \begin{DoxyNote}{Note}
 The original pointer {\ttfamily p} becomes invalid after this call. 
 \end{DoxyNote}
-\mbox{\Hypertarget{namespacegko_ac90fd8e4e045379f09f510baece91afd}\label{namespacegko_ac90fd8e4e045379f09f510baece91afd}} 
+\mbox{\Hypertarget{namespacegko_a0ac423659071783d3b7f8a66ea480f49}\label{namespacegko_a0ac423659071783d3b7f8a66ea480f49}} 
 \index{gko@{gko}!imag@{imag}}
 \index{imag@{imag}!gko@{gko}}
 \doxysubsubsection{\texorpdfstring{imag()}{imag()}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr xstd\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$T$>$\+::value, T$>$ gko\+::imag (\begin{DoxyParamCaption}\item[{const T \&}]{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}}
+constexpr std\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$T$>$\+::value, T$>$ gko\+::imag (\begin{DoxyParamCaption}\item[{const T \&}]{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}}
 
 
 
@@ -1249,12 +1249,12 @@ Checks if T is a complex type.
 \begin{DoxyReturn}{Returns}
 {\ttfamily true} if T is a complex type, {\ttfamily false} otherwise 
 \end{DoxyReturn}
-\mbox{\Hypertarget{namespacegko_af0297bfcc5b3c6a69b412c328390e274}\label{namespacegko_af0297bfcc5b3c6a69b412c328390e274}} 
+\mbox{\Hypertarget{namespacegko_a58498d28d199c188555a48fda471f103}\label{namespacegko_a58498d28d199c188555a48fda471f103}} 
 \index{gko@{gko}!is\_finite@{is\_finite}}
 \index{is\_finite@{is\_finite}!gko@{gko}}
 \doxysubsubsection{\texorpdfstring{is\_finite()}{is\_finite()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-xstd\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$T$>$\+::value, bool$>$ gko\+::is\+\_\+finite (\begin{DoxyParamCaption}\item[{const T \&}]{value }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+std\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$T$>$\+::value, bool$>$ gko\+::is\+\_\+finite (\begin{DoxyParamCaption}\item[{const T \&}]{value }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -1281,12 +1281,12 @@ References abs().
 
 Referenced by is\+\_\+finite().
 
-\mbox{\Hypertarget{namespacegko_a2898724536884e5cf8ea9a3bad9d83ec}\label{namespacegko_a2898724536884e5cf8ea9a3bad9d83ec}} 
+\mbox{\Hypertarget{namespacegko_a737d84b498f462463fa40846e22aec6d}\label{namespacegko_a737d84b498f462463fa40846e22aec6d}} 
 \index{gko@{gko}!is\_finite@{is\_finite}}
 \index{is\_finite@{is\_finite}!gko@{gko}}
 \doxysubsubsection{\texorpdfstring{is\_finite()}{is\_finite()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-xstd\+::enable\+\_\+if\+\_\+t$<$\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$T$>$\+::value, bool$>$ gko\+::is\+\_\+finite (\begin{DoxyParamCaption}\item[{const T \&}]{value }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+std\+::enable\+\_\+if\+\_\+t$<$\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$T$>$\+::value, bool$>$ gko\+::is\+\_\+finite (\begin{DoxyParamCaption}\item[{const T \&}]{value }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -1409,15 +1409,8 @@ Returns the larger of the arguments.
 \hline
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
-x $>$= y ? x \+: y
+x $>$= y ? x \+: y 
 \end{DoxyReturn}
-\begin{DoxyNote}{Note}
-C++11 version of this function is not constexpr, thus we provide our own implementation. 
-\end{DoxyNote}
-
-
-Referenced by gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::automatical\+::process().
-
 \mbox{\Hypertarget{namespacegko_aaaf8487194bcb40b528969c187a413a0}\label{namespacegko_aaaf8487194bcb40b528969c187a413a0}} 
 \index{gko@{gko}!min@{min}}
 \index{min@{min}!gko@{gko}}
@@ -1442,11 +1435,8 @@ Returns the smaller of the arguments.
 \hline
 \end{DoxyParams}
 \begin{DoxyReturn}{Returns}
-x $<$= y ? x \+: y
+x $<$= y ? x \+: y 
 \end{DoxyReturn}
-\begin{DoxyNote}{Note}
-C++11 version of this function is not {\ttfamily constexpr}, thus we provide our own implementation. 
-\end{DoxyNote}
 
 
 Referenced by gko\+::matrix\+::\+Csr$<$ Value\+Type, Index\+Type $>$\+::load\+\_\+balance\+::clac\+\_\+size().
@@ -1701,12 +1691,12 @@ This is an advanced routine that will return the raw matrix data structure. Cons
 
 Referenced by read().
 
-\mbox{\Hypertarget{namespacegko_abcf6f4649ad47679a4e7768156b6dd32}\label{namespacegko_abcf6f4649ad47679a4e7768156b6dd32}} 
+\mbox{\Hypertarget{namespacegko_a85e29870bacc4e660be5acbbf742305e}\label{namespacegko_a85e29870bacc4e660be5acbbf742305e}} 
 \index{gko@{gko}!real@{real}}
 \index{real@{real}!gko@{gko}}
 \doxysubsubsection{\texorpdfstring{real()}{real()}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr xstd\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$T$>$\+::value, T$>$ gko\+::real (\begin{DoxyParamCaption}\item[{const T \&}]{x }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}}
+constexpr std\+::enable\+\_\+if\+\_\+t$<$!\mbox{\hyperlink{namespacegko_aeede19206954d5c8ebd04c95cf63bb88}{is\+\_\+complex\+\_\+s}}$<$T$>$\+::value, T$>$ gko\+::real (\begin{DoxyParamCaption}\item[{const T \&}]{x }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}}
 
 
 
@@ -1812,7 +1802,7 @@ Referenced by gko\+::preconditioner\+::\+Ilu$<$ L\+Solver\+Type, U\+Solver\+Type
 \index{squared\_norm@{squared\_norm}!gko@{gko}}
 \doxysubsubsection{\texorpdfstring{squared\_norm()}{squared\_norm()}}
 {\footnotesize\ttfamily template$<$typename T $>$ \\
-constexpr auto gko\+::squared\+\_\+norm (\begin{DoxyParamCaption}\item[{const T \&}]{x }\end{DoxyParamCaption}) -\/$>$ decltype(\mbox{\hyperlink{namespacegko_abcf6f4649ad47679a4e7768156b6dd32}{real}}(\mbox{\hyperlink{namespacegko_a559b814e33d9abb8952d25cbb6b7f232}{conj}}(x) $\ast$ x))
+constexpr auto gko\+::squared\+\_\+norm (\begin{DoxyParamCaption}\item[{const T \&}]{x }\end{DoxyParamCaption}) -\/$>$ decltype(\mbox{\hyperlink{namespacegko_a85e29870bacc4e660be5acbbf742305e}{real}}(\mbox{\hyperlink{namespacegko_ab0fb2f831ecd3f5549a59e4845bd7110}{conj}}(x) $\ast$ x))
 \hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [constexpr]}}
 
 

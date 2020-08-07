@@ -50,7 +50,7 @@ using \mbox{\hyperlink{classgko_1_1Array_af870dd6ab4ad4f7e0e20471cb17f4ad1}{view
 \begin{DoxyCompactList}\small\item\em Copies data from another array or view. \end{DoxyCompactList}\item 
 \mbox{\hyperlink{classgko_1_1Array}{Array}} \& \mbox{\hyperlink{classgko_1_1Array_a62d5346849e3943a5fcac962e344ab58}{operator=}} (\mbox{\hyperlink{classgko_1_1Array}{Array}} \&\&other)
 \begin{DoxyCompactList}\small\item\em Moves data from another array or view. \end{DoxyCompactList}\item 
-{\footnotesize template$<$typename Other\+Value\+Type $>$ }\\xstd\+::enable\+\_\+if\+\_\+t$<$!std\+::is\+\_\+same$<$ Value\+Type, Other\+Value\+Type $>$\+::value, \mbox{\hyperlink{classgko_1_1Array}{Array}} $>$ \& \mbox{\hyperlink{classgko_1_1Array_ad27c8f6831d9a360d8f11b25ce274acc}{operator=}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ Other\+Value\+Type $>$ \&other)
+{\footnotesize template$<$typename Other\+Value\+Type $>$ }\\std\+::enable\+\_\+if\+\_\+t$<$!std\+::is\+\_\+same$<$ Value\+Type, Other\+Value\+Type $>$\+::value, \mbox{\hyperlink{classgko_1_1Array}{Array}} $>$ \& \mbox{\hyperlink{classgko_1_1Array_a4032f196200601f36827ad5abab5a39d}{operator=}} (const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ Other\+Value\+Type $>$ \&other)
 \begin{DoxyCompactList}\small\item\em Copies and converts data from another array with another data type. \end{DoxyCompactList}\item 
 void \mbox{\hyperlink{classgko_1_1Array_a64f7e9f19c4e8cff8adb402da70476c3}{clear}} () noexcept
 \begin{DoxyCompactList}\small\item\em Deallocates all data used by the \mbox{\hyperlink{classgko_1_1Array}{Array}}. \end{DoxyCompactList}\item 
@@ -501,13 +501,13 @@ The executor of this is preserved. In case this does not have an assigned execut
 \begin{DoxyReturn}{Returns}
 this 
 \end{DoxyReturn}
-\mbox{\Hypertarget{classgko_1_1Array_ad27c8f6831d9a360d8f11b25ce274acc}\label{classgko_1_1Array_ad27c8f6831d9a360d8f11b25ce274acc}} 
+\mbox{\Hypertarget{classgko_1_1Array_a4032f196200601f36827ad5abab5a39d}\label{classgko_1_1Array_a4032f196200601f36827ad5abab5a39d}} 
 \index{gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}!operator=@{operator=}}
 \index{operator=@{operator=}!gko::Array$<$ ValueType $>$@{gko::Array$<$ ValueType $>$}}
 \doxysubsubsection{\texorpdfstring{operator=()}{operator=()}\hspace{0.1cm}{\footnotesize\ttfamily [3/3]}}
 {\footnotesize\ttfamily template$<$typename Value\+Type$>$ \\
 template$<$typename Other\+Value\+Type $>$ \\
-xstd\+::enable\+\_\+if\+\_\+t$<$!std\+::is\+\_\+same$<$Value\+Type, Other\+Value\+Type$>$\+::value, \mbox{\hyperlink{classgko_1_1Array}{Array}}$>$\& \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::operator= (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ Other\+Value\+Type $>$ \&}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+std\+::enable\+\_\+if\+\_\+t$<$!std\+::is\+\_\+same$<$Value\+Type, Other\+Value\+Type$>$\+::value, \mbox{\hyperlink{classgko_1_1Array}{Array}}$>$\& \mbox{\hyperlink{classgko_1_1Array}{gko\+::\+Array}}$<$ Value\+Type $>$\+::operator= (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1Array}{Array}}$<$ Other\+Value\+Type $>$ \&}]{other }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
 
 
 
@@ -607,4 +607,4 @@ Referenced by gko\+::matrix\+::\+Dense$<$ Value\+Type $>$\+::create\+\_\+submatr
 
 The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
 \item 
-ginkgo/core/base/array.\+hpp (a51b2818c)\end{DoxyCompactItemize}
+ginkgo/core/base/array.\+hpp (de397cf2b)\end{DoxyCompactItemize}

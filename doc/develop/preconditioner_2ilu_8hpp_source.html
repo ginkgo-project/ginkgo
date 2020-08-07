@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/preconditioner/ilu.hpp (b0974c2ae) Source File</title>
+<title>Ginkgo: ginkgo/core/preconditioner/ilu.hpp (de397cf2b) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/174920156 branch based on develop. Ginkgo version 1.2.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/175312144 branch based on develop. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -323,8 +323,8 @@ $(function() {
 <div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160; </div>
 <div class="line"><a name="l00347"></a><span class="lineno">  347</span>&#160; </div>
 <div class="line"><a name="l00355"></a><span class="lineno">  355</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> SolverType&gt;</div>
-<div class="line"><a name="l00356"></a><span class="lineno">  356</span>&#160;    <span class="keyword">static</span> xstd::enable_if_t&lt;has_with_criteria&lt;SolverType&gt;::value,</div>
-<div class="line"><a name="l00357"></a><span class="lineno">  357</span>&#160;                             std::unique_ptr&lt;SolverType&gt;&gt;</div>
+<div class="line"><a name="l00356"></a><span class="lineno">  356</span>&#160;    <span class="keyword">static</span> std::enable_if_t&lt;has_with_criteria&lt;SolverType&gt;::value,</div>
+<div class="line"><a name="l00357"></a><span class="lineno">  357</span>&#160;                            std::unique_ptr&lt;SolverType&gt;&gt;</div>
 <div class="line"><a name="l00358"></a><span class="lineno">  358</span>&#160;    generate_default_solver(<span class="keyword">const</span> std::shared_ptr&lt;const Executor&gt; &amp;exec,</div>
 <div class="line"><a name="l00359"></a><span class="lineno">  359</span>&#160;                            <span class="keyword">const</span> std::shared_ptr&lt;const LinOp&gt; &amp;mtx)</div>
 <div class="line"><a name="l00360"></a><span class="lineno">  360</span>&#160;    {</div>
@@ -344,8 +344,8 @@ $(function() {
 <div class="line"><a name="l00374"></a><span class="lineno">  374</span>&#160;    }</div>
 <div class="line"><a name="l00375"></a><span class="lineno">  375</span>&#160; </div>
 <div class="line"><a name="l00379"></a><span class="lineno">  379</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> SolverType&gt;</div>
-<div class="line"><a name="l00380"></a><span class="lineno">  380</span>&#160;    <span class="keyword">static</span> xstd::enable_if_t&lt;!has_with_criteria&lt;SolverType&gt;::value,</div>
-<div class="line"><a name="l00381"></a><span class="lineno">  381</span>&#160;                             std::unique_ptr&lt;SolverType&gt;&gt;</div>
+<div class="line"><a name="l00380"></a><span class="lineno">  380</span>&#160;    <span class="keyword">static</span> std::enable_if_t&lt;!has_with_criteria&lt;SolverType&gt;::value,</div>
+<div class="line"><a name="l00381"></a><span class="lineno">  381</span>&#160;                            std::unique_ptr&lt;SolverType&gt;&gt;</div>
 <div class="line"><a name="l00382"></a><span class="lineno">  382</span>&#160;    generate_default_solver(<span class="keyword">const</span> std::shared_ptr&lt;const Executor&gt; &amp;exec,</div>
 <div class="line"><a name="l00383"></a><span class="lineno">  383</span>&#160;                            <span class="keyword">const</span> std::shared_ptr&lt;const LinOp&gt; &amp;mtx)</div>
 <div class="line"><a name="l00384"></a><span class="lineno">  384</span>&#160;    {</div>
@@ -391,12 +391,12 @@ $(function() {
 <div class="ttc" id="agroup__LinOp_html_ga521f65604cc4cf427dcb2ecfa49b757c"><div class="ttname"><a href="group__LinOp.html#ga521f65604cc4cf427dcb2ecfa49b757c">GKO_ENABLE_BUILD_METHOD</a></div><div class="ttdeci">#define GKO_ENABLE_BUILD_METHOD(_factory_name)</div><div class="ttdoc">Defines a build method for the factory, simplifying its construction by removing the repetitive typin...</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:854</div></div>
 <div class="ttc" id="agroup__LinOp_html_ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358"><div class="ttname"><a href="group__LinOp.html#ga1fc8e9d8be0c9ad2d72bc1ddfc6d8358">GKO_CREATE_FACTORY_PARAMETERS</a></div><div class="ttdeci">#define GKO_CREATE_FACTORY_PARAMETERS(_parameters_name, _factory_name)</div><div class="ttdoc">This Macro will generate a new type containing the parameters for the factory _factory_name.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:727</div></div>
 <div class="ttc" id="aclassgko_1_1preconditioner_1_1Ilu_html_a1c4d36d53f2c50c84d338369736fa64e"><div class="ttname"><a href="classgko_1_1preconditioner_1_1Ilu.html#a1c4d36d53f2c50c84d338369736fa64e">gko::preconditioner::Ilu::get_l_solver</a></div><div class="ttdeci">std::shared_ptr&lt; const l_solver_type &gt; get_l_solver() const</div><div class="ttdoc">Returns the solver which is used for the provided L matrix.</div><div class="ttdef"><b>Definition:</b> ilu.hpp:162</div></div>
-<div class="ttc" id="aclassgko_1_1PolymorphicObject_html_ab40586bff071b7f11c2cf6b5cbf598eb"><div class="ttname"><a href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">gko::PolymorphicObject::get_executor</a></div><div class="ttdeci">std::shared_ptr&lt; const Executor &gt; get_executor() const noexcept</div><div class="ttdoc">Returns the Executor of the object.</div><div class="ttdef"><b>Definition:</b> polymorphic_object.hpp:204</div></div>
+<div class="ttc" id="aclassgko_1_1PolymorphicObject_html_ab40586bff071b7f11c2cf6b5cbf598eb"><div class="ttname"><a href="classgko_1_1PolymorphicObject.html#ab40586bff071b7f11c2cf6b5cbf598eb">gko::PolymorphicObject::get_executor</a></div><div class="ttdeci">std::shared_ptr&lt; const Executor &gt; get_executor() const noexcept</div><div class="ttdoc">Returns the Executor of the object.</div><div class="ttdef"><b>Definition:</b> polymorphic_object.hpp:205</div></div>
 <div class="ttc" id="aclassgko_1_1LinOp_html_a31b3c003388eb0b95393154f68c2b98d"><div class="ttname"><a href="classgko_1_1LinOp.html#a31b3c003388eb0b95393154f68c2b98d">gko::LinOp::get_size</a></div><div class="ttdeci">const dim&lt; 2 &gt; &amp; get_size() const noexcept</div><div class="ttdoc">Returns the size of the operator.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:222</div></div>
 <div class="ttc" id="aclassgko_1_1preconditioner_1_1Ilu_html_a730786dbc37890c71f7555d563640fec"><div class="ttname"><a href="classgko_1_1preconditioner_1_1Ilu.html#a730786dbc37890c71f7555d563640fec">gko::preconditioner::Ilu::conj_transpose</a></div><div class="ttdeci">std::unique_ptr&lt; LinOp &gt; conj_transpose() const override</div><div class="ttdoc">Returns a LinOp representing the conjugate transpose of the Transposable object.</div><div class="ttdef"><b>Definition:</b> ilu.hpp:192</div></div>
 <div class="ttc" id="aclassgko_1_1EnableLinOp_html"><div class="ttname"><a href="classgko_1_1EnableLinOp.html">gko::EnableLinOp</a></div><div class="ttdoc">The EnableLinOp mixin can be used to provide sensible default implementations of the majority of the ...</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:625</div></div>
 <div class="ttc" id="aclassgko_1_1preconditioner_1_1Ilu_html"><div class="ttname"><a href="classgko_1_1preconditioner_1_1Ilu.html">gko::preconditioner::Ilu</a></div><div class="ttdoc">The Incomplete LU (ILU) preconditioner solves the equation  for a given lower triangular matrix L,...</div><div class="ttdef"><b>Definition:</b> ilu.hpp:113</div></div>
-<div class="ttc" id="aclassgko_1_1EnablePolymorphicObject_html"><div class="ttname"><a href="classgko_1_1EnablePolymorphicObject.html">gko::EnablePolymorphicObject</a></div><div class="ttdoc">This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne...</div><div class="ttdef"><b>Definition:</b> polymorphic_object.hpp:569</div></div>
+<div class="ttc" id="aclassgko_1_1EnablePolymorphicObject_html"><div class="ttname"><a href="classgko_1_1EnablePolymorphicObject.html">gko::EnablePolymorphicObject</a></div><div class="ttdoc">This mixin inherits from (a subclass of) PolymorphicObject and provides a base implementation of a ne...</div><div class="ttdef"><b>Definition:</b> polymorphic_object.hpp:570</div></div>
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by &#160;<a href="http://www.doxygen.org/index.html">

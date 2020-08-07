@@ -303,7 +303,7 @@ It is possible to combine both the \#\+G\+K\+O\+\_\+\+C\+R\+E\+A\+T\+E\+\_\+\+F\
 \DoxyCodeLine{                                                                             \(\backslash\)}
 \DoxyCodeLine{    template <\textcolor{keyword}{typename}... Args>                                              \(\backslash\)}
 \DoxyCodeLine{    auto with\_\#\#\_name(Args \&\&... \_value)                                     \(\backslash\)}
-\DoxyCodeLine{        const-\/>const ::gko::xstd::decay\_t<decltype(*\textcolor{keyword}{this})> \&                 \(\backslash\)}
+\DoxyCodeLine{        const-\/>const std::decay\_t<decltype(*\textcolor{keyword}{this})> \&                         \(\backslash\)}
 \DoxyCodeLine{    \{                                                                        \(\backslash\)}
 \DoxyCodeLine{        using type = decltype(this-\/>\_name);                                  \(\backslash\)}
 \DoxyCodeLine{        this-\/>\_name = type\{std::forward<Args>(\_value)...\};                   \(\backslash\)}
