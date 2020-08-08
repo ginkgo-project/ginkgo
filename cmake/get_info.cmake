@@ -3,308 +3,177 @@ SET(minimal_log  "${CMAKE_BINARY_DIR}/minimal.log")
 FILE(REMOVE ${detailed_log} ${minimal_log})
 
 MACRO(_both)
-  # Write to both log files:
-  FILE(APPEND ${detailed_log} "${ARGN}")
-  FILE(APPEND ${minimal_log} "${ARGN}")
+    # Write to both log files:
+    FILE(APPEND ${detailed_log} "${ARGN}")
+    FILE(APPEND ${minimal_log} "${ARGN}")
 ENDMACRO()
 
 MACRO(_detailed)
-  # Only write to detailed.log:
-  FILE(APPEND ${detailed_log} "${ARGN}")
+    # Only write to detailed.log:
+    FILE(APPEND ${detailed_log} "${ARGN}")
 ENDMACRO()
 
 MACRO(_minimal)
-  # Only write to minimal.log:
-  FILE(APPEND ${minimal_log} "${ARGN}")
+    # Only write to minimal.log:
+    FILE(APPEND ${minimal_log} "${ARGN}")
 ENDMACRO()
 
-FUNCTION(build_type_spec log_type var_name)
-    if(CMAKE_BUILD_TYPE MATCHES "Release")
-        set(var_string "${var_name}_RELEASE")
-        set(upd_string "\n#        ${var_name}_RELEASE                   ${${var_string}} ")
-        FILE(APPEND ${log_type} ${upd_string})
+function(ginkgo_print_generic_header log_type optional_string)
+    set(upd_string
+        "
+---------------------------------------------------------------------------------------------------------
+--
+--    ${optional_string}"
+        )
+    FILE(APPEND ${log_type} "${upd_string}")
+endfunction()
+
+function(ginkgo_print_module_header log_type module_name)
+    set(upd_string
+        "The ${module_name} module is being compiled.
+--
+--    CMake related ${module_name} module variables:"
+        )
+    ginkgo_print_generic_header(${log_type} "${upd_string}")
+endfunction()
+
+function(ginkgo_print_module_footer log_type optional_string)
+    set(upd_string
+        "
+--    ${optional_string}"
+        )
+    FILE(APPEND ${log_type} "${upd_string}")
+endfunction()
+
+FUNCTION(ginkgo_print_flags log_type var_name)
+    string(TOUPPER "${CMAKE_BUILD_TYPE}" suff)
+    set(var_string "${var_name}_${suff}")
+    if(${var_string} STREQUAL "")
+        set(str_value "<empty>")
+    else()
+        set(str_value "${${var_string}}")
     endif()
-    if(CMAKE_BUILD_TYPE MATCHES "Debug" )
-        set(var_string "${var_name}_DEBUG")
-        set(upd_string "#       ${var_name}_DEBUG                 ${${var_string}} ")
-        FILE(APPEND ${log_type} "${upd_string}")
-    endif()
-    if(CMAKE_BUILD_TYPE MATCHES "RelWithDebInfo")
-        set(var_string "${var_name}_RELWITHDEBINFO")
-        set(upd_string "#       ${var_name}_RELWITHDEBINFO                      ${${var_string}} ")
-        FILE(APPEND ${log_type} "${upd_string}")
-    endif()
-    if(CMAKE_BUILD_TYPE MATCHES "MinSizeRel")
-        set(var_string "${var_name}_MINSIZEREL")
-        set(upd_string "#       ${var_name}_MINSIZEREL                  ${${var_string}} ")
-        FILE(APPEND ${log_type} "${upd_string}")
-    endif()
+    string(SUBSTRING "
+--        ${var_string}:                                                        " 0 55 upd_string)
+    string(APPEND upd_string "${str_value}")
+    FILE(APPEND ${log_type} ${upd_string})
 ENDFUNCTION()
 
-_both(
-"
-
-
-"
-)
+function(ginkgo_print_variable log_type var_name)
+    string(SUBSTRING
+        "
+--        ${var_name}:                                                          " 0 55 upd_string)
+    if(${var_name} STREQUAL "")
+        set(str_value "<empty>")
+    else()
+        set(str_value "${${var_name}}")
+    endif()
+    string(APPEND upd_string "${str_value}")
+    FILE(APPEND ${log_type} "${upd_string}")
+endfunction()
 
 IF("${GINKGO_GIT_SHORTREV}" STREQUAL "")
-    _both("
-#########################################################################
-#
-#  Summary of Configuration for  (Ginkgo version ${Ginkgo_VERSION_TAG})\n")
+    set(to_print "Summary of Configuration for Ginkgo (version ${Ginkgo_VERSION} with tag ${Ginkgo_VERSION_TAG})
+--"
+        )
+    ginkgo_print_generic_header(${detailed_log} "${to_print}")
+    ginkgo_print_generic_header(${minimal_log} "${to_print}")
 ELSE()
-    _both("
-#########################################################################
-#
-#  Summary of Configuration for  (Ginkgo version ${Ginkgo_VERSION_TAG}, shortrev ${GINKGO_GIT_SHORTREV})\n")
-ENDIF()
-_both(
-"#
-#
-#  Ginkgo configuration:
-#        CMAKE_BUILD_TYPE:                       ${CMAKE_BUILD_TYPE}
-#        BUILD_SHARED_LIBS:                      ${BUILD_SHARED_LIBS}
-#        CMAKE_INSTALL_PREFIX:                   ${CMAKE_INSTALL_PREFIX}
-#        CMAKE_SOURCE_DIR:                       ${CMAKE_SOURCE_DIR}
-#
-#  User Configuration options:
-#
-#      Enabled modules:
-#        GINKGO_BUILD_OMP:                       ${GINKGO_BUILD_OMP}
-#        GINKGO_BUILD_REFERENCE:                 ${GINKGO_BUILD_REFERENCE}
-#        GINKGO_BUILD_CUDA:                      ${GINKGO_BUILD_CUDA}
-#        GINKGO_BUILD_HIP:                       ${GINKGO_BUILD_HIP}
-#
-#     Tests, benchmarks and examples:
-#        GINKGO_BUILD_TESTS:                     ${GINKGO_DEVEL_TOOLS}
-#        GINKGO_BUILD_EXAMPLES:                  ${GINKGO_BUILD_EXAMPLES}
-#        GINKGO_EXTLIB_EXAMPLE:                  ${GINKGO_EXTLIB_EXAMPLE}
-#        GINKGO_BUILD_BENCHMARKS:                ${GINKGO_BUILD_BENCHMARKS}
-#
-#     Documentation:
-#        GINKGO_BUILD_DOC:                       ${GINKGO_BUILD_DOC}
-#        GINKGO_VERBOSE_LEVEL:                   ${GINKGO_VERBOSE_LEVEL}
-#
-#     Developer helpers:
-#        GINKGO_DEVEL_TOOLS:                     ${GINKGO_DEVEL_TOOLS}
-#        GINKGO_WITH_CLANG_TIDY:                 ${GINKGO_WITH_CLANG_TIDY}
-#        GINKGO_WITH_IWYU:                       ${GINKGO_WITH_IWYU}
-#        GINKGO_CHECK_CIRCULAR_DEPS:             ${GINKGO_CHECK_CIRCULAR_DEPS}
-"
-  )
-_both(
-"#
-#     General information:
-#        CMAKE_BINARY_DIR:                       ${CMAKE_BINARY_DIR}
-#        CMAKE_SOURCE_DIR:                       ${CMAKE_SOURCE_DIR}
-#        CMAKE_CXX_COMPILER:                     ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION} on platform ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR}
-#                                                ${CMAKE_CXX_COMPILER}"
-  )
-
-
-
-_detailed(
-    "
-#
-#########################################################################
-#
-#   Compiled Modules
-#"
-    )
-_detailed(
-    "
-#########################################################################
-#
-#    The Core module is being compiled.
-#
-#        BUILD_SHARED_LIBS:                      ${BUILD_SHARED_LIBS}"
-    )
-IF(CMAKE_C_COMPILER_WORKS)
-    _detailed(
-        "
-#        CMAKE_C_COMPILER:                       ${CMAKE_C_COMPILER}"
+    set(to_print "Summary of Configuration for (Ginkgo version ${Ginkgo_VERSION} with tag ${Ginkgo_VERSION_TAG}, shortrev ${GINKGO_GIT_SHORTREV})"
         )
-    build_type_spec(${detailed_log} "CMAKE_C_FLAGS")
+    ginkgo_print_generic_header(${detailed_log} "${to_print}")
+    ginkgo_print_generic_header(${minimal_log} "${to_print}")
 ENDIF()
-IF(CMAKE_CXX_COMPILER_WORKS)
-    _detailed(
-        "
-#        CMAKE_CXX_COMPILER:                     ${CMAKE_CXX_COMPILER}"
+
+set(log_types "detailed_log;minimal_log")
+foreach(log_type ${log_types})
+    ginkgo_print_module_footer(${${log_type}} "Ginkgo configuration:")
+    set(print_var
+        "CMAKE_BUILD_TYPE;BUILD_SHARED_LIBS;CMAKE_INSTALL_PREFIX;CMAKE_SOURCE_DIR;CMAKE_BINARY_DIR"
         )
-    build_type_spec(${detailed_log} "CMAKE_CXX_FLAGS")
-ENDIF()
-IF(CMAKE_Fortran_COMPILER_WORKS)
-    _detailed(
+    foreach(var ${print_var})
+        ginkgo_print_variable(${${log_type}} ${var} )
+    endforeach()
+    string(SUBSTRING
         "
-#        CMAKE_Fortran_COMPILER:                 ${CMAKE_Fortran_COMPILER}"
+--        CMAKE_CXX_COMPILER:                                                   " 0 55 print_string)
+    set(str2 "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION} on platform ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR}")
+    string(APPEND print_string "${str2}")
+    FILE(APPEND ${${log_type}} "${print_string}")
+    string(SUBSTRING
+        "
+--                                                                              " 0 55 print_string)
+    set(str2 "${CMAKE_CXX_COMPILER}")
+    string(APPEND print_string "${str2}")
+    FILE(APPEND ${${log_type}} "${print_string}")
+    ginkgo_print_module_footer(${${log_type}} "User configuration:")
+    ginkgo_print_module_footer(${${log_type}} "  Enabled modules:")
+    set(print_var
+        "GINKGO_BUILD_OMP;GINKGO_BUILD_REFERENCE;GINKGO_BUILD_CUDA;GINKGO_BUILD_HIP"
         )
-ENDIF()
-_detailed(
-    "
-#        CMAKE_GENERATOR:                        ${CMAKE_GENERATOR}
-#"
+    foreach(var ${print_var})
+        ginkgo_print_variable(${${log_type}} ${var} )
+    endforeach()
+    ginkgo_print_module_footer(${${log_type}} "  Tests, benchmarks and examples:")
+    set(print_var
+        "GINKGO_BUILD_TESTS;GINKGO_BUILD_EXAMPLES;GINKGO_EXTLIB_EXAMPLE;GINKGO_BUILD_BENCHMARKS")
+    foreach(var ${print_var})
+        ginkgo_print_variable(${${log_type}} ${var} )
+    endforeach()
+    ginkgo_print_module_footer(${${log_type}} "  Documentation:")
+    set(print_var
+        "GINKGO_BUILD_DOC;GINKGO_VERBOSE_LEVEL")
+    foreach(var ${print_var})
+        ginkgo_print_variable(${${log_type}} ${var} )
+    endforeach()
+    ginkgo_print_module_footer(${${log_type}} "  Developer helpers:")
+    set(print_var
+        "GINKGO_DEVEL_TOOLS;GINKGO_WITH_CLANG_TIDY;GINKGO_WITH_IWYU"
+        "GINKGO_CHECK_CIRCULAR_DEPS;GINKGO_CHECK_PATH")
+    foreach(var ${print_var})
+        ginkgo_print_variable(${${log_type}} ${var} )
+    endforeach()
+    ginkgo_print_module_footer(${${log_type}} "")
+endforeach()
+
+set(to_print
+    "Compiled Modules
+--"
     )
+ginkgo_print_generic_header(${detailed_log} "${to_print}")
+
+include(core/get_info.cmake)
 
 IF(GINKGO_BUILD_REFERENCE)
-    _detailed(
-        "
-#########################################################################
-#
-#    The Reference module is being compiled.
-#
-#        GINKGO_BUILD_REFERENCE:                 ${GINKGO_BUILD_REFERENCE}
-#        GINKGO_COMPILER_FLAGS:                  ${GINKGO_COMPILER_FLAGS}
-#
-#"
-        )
+    include(reference/get_info.cmake)
 ENDIF()
-
 
 IF(GINKGO_BUILD_OMP)
-    _detailed(
-        "
-#########################################################################
-#
-#    The OMP module is being compiled.
-#
-#    CMake related OMP variables:
-#        OpenMP_CXX_FLAGS:                        ${OpenMP_CXX_FLAGS}"
-        )
-    _detailed(
-"
-#        OpenMP_CXX_LIB_NAMES:                    ${OpenMP_CXX_LIB_NAMES}
-#        OpenMP_CXX_LIBRARIES:                    ${OpenMP_CXX_LIBRARIES}
-#
-#    Ginkgo specific OMP variables:
-#        GINKGO_COMPILER_FLAGS:                   ${GINKGO_COMPILER_FLAGS}
-#
-#"
-        )
+    include(omp/get_info.cmake)
 ENDIF()
 
-
 IF(GINKGO_BUILD_CUDA)
-    _detailed(
-        "
-#########################################################################
-#
-#    The CUDA module is being compiled.
-#
-#    CMake related CUDA variables:
-#        CMAKE_CUDA_COMPILER:                    ${CMAKE_CUDA_COMPILER}
-#        CMAKE_CUDA_COMPILER_VERSION:            ${CMAKE_CUDA_COMPILER_VERSION}"
-        )
-    build_type_spec(${detailed_log} "CMAKE_CUDA_FLAGS")
-    _detailed(
-        "
-#        CMAKE_CUDA_HOST_COMPILER:               ${GINKGO_CUDA_HOST_COMPILER}
-#        CUDA_INCLUDE_DIRS:                      ${CUDA_INCLUDE_DIRS}
-#
-#    Ginkgo specific CUDA variables:
-#        GINKGO_CUDA_ARCHITECTURES:              ${GINKGO_CUDA_ARCHITECTURES}
-#        GINKGO_CUDA_COMPILER_FLAGS:             ${GINKGO_CUDA_COMPILER_FLAGS}
-#        GINKGO_CUDA_DEFAULT_HOST_COMPILER:      ${GINKGO_CUDA_DEFAULT_HOST_COMPILER}
-#
-#    CUDA libraries:
-#        CUBLAS:                                 ${CUBLAS}
-#        CUDA_RUNTIME_LIBS:                      ${CUDA_RUNTIME_LIBS}
-#        CUSPARSE:                               ${CUSPARSE}
-#"
-        )
+    include(cuda/get_info.cmake)
 ENDIF()
 
 IF(GINKGO_BUILD_HIP)
-    _detailed(
-        "
-#########################################################################
-#
-#    The HIP module is being compiled.
-#
-#    Ginkgo specific HIP variables:
-#        GINKGO_HIPCONFIG_PATH:                 ${GINKGO_HIPCONFIG_PATH}
-#        GINKGO_HIP_AMDGPU:                     ${GINKGO_HIP_AMDGPU}
-#        GINKGO_HIP_CLANG_COMPILER_FLAGS:       ${GINKGO_HIP_CLANG_COMPILER_FLAGS}
-#        GINKGO_HIP_HCC_COMPILER_FLAGS:         ${GINKGO_HCC_COMPILER_FLAGS}
-#        GINKGO_HIP_NVCC_COMPILER_FLAGS:        ${GINKGO_HIP_NVCC_COMPILER_FLAGS}
-#        GINKGO_HIP_THRUST_PATH:                ${GINKGO_HIP_THRUST_PATH}
-#        GINKGO_HIPCC_OPTIONS:                  ${GINKGO_HIPCC_OPTIONS}
-#        GINKGO_HIP_NVCC_OPTIONS:               ${GINKGO_HIP_NVCC_OPTIONS}
-#        GINKGO_HIP_HCC_OPTIONS:                ${GINKGO_HIP_HCC_OPTIONS}
-#        GINKGO_HIP_CLANG_OPTIONS:              ${GINKGO_HIP_CLANG_OPTIONS}
-#
-#    HIP variables:
-#        HIP_VERSION:                           ${HIP_VERSION}
-#        HIP_COMPILER:                          ${HIP_COMPILER}
-#        HIP_PATH:                              ${HIP_PATH}
-#        ROCM_PATH:                             ${ROCM_PATH}
-#        HIP_PLATFORM:                          ${HIP_PLATFORM}
-#        HIP_ROOT_DIR:                          ${HIP_ROOT_DIR}
-#        HCC_PATH:                              ${HCC_PATH}
-#        HIP_RUNTIME:                           ${HIP_RUNTIME}
-#        HIPBLAS_PATH:                          ${HIPBLAS_PATH}
-#        HIPSPARSE_PATH:                        ${HISPARSE_PATH}
-#        HIP_CLANG_INCLUDE_PATH:                ${HIP_CLANG_INCLUDE_PATH}"
-        )
-    build_type_spec(${detailed_log} "HIP_CLANG_FLAGS")
-    _detailed(
-        "
-#        HIP_CLANG_PATH:                        ${HIP_CLANG_PATH}"
-        )
-    build_type_spec(${detailed_log} "HIP_HCC_FLAGS")
-    _detailed(
-        "
-#        HIP_HIPCC_CMAKE_LINKER_HELPER:         ${HIP_CLANG_INCLUDE_PATH}"
-        )
-    build_type_spec(${detailed_log} "HIP_HIPCC_FLAGS")
-    _detailed(
-        "
-#        HIP_HIPCC_EXECUTABLE:                  ${HIP_CLANG_INCLUDE_PATH}
-#        HIP_HIPCONFIG_EXECUTABLE:              ${HIP_HIPCONFIG_EXECUTABLE}
-#        HIP_HOSTCOMPILATION_CPP:               ${HIP_HOSTCOMPILATION_CPP}"
-        )
-    build_type_spec(${detailed_log} "HIP_NVCC_FLAGS")
-    _detailed(
-        "
-#
-#"
-        )
+    include(hip/get_info.cmake)
 ENDIF()
 
-    _detailed(
-        "
-#########################################################################
-#
-#    Optional Components
-#
-#        GKO_HAVE_PAPI_SDE:                     ${GKO_HAVE_PAPI_SDE}"
-        )
-    if(PAPI_sde_FOUND)
-    _detailed(
-        "
-#
-#        PAPI_VERSION                           ${PAPI_VERSION}
-#        PAPI_INCLUDE_DIR                       ${PAPI_INCLUDE_DIR}
-#        PAPI_LIBRARY_RELEASE                   ${PAPI_LIBRARY_RELEASE}
-#\n"
-        )
-    endif()
-    _detailed(
-        "
-#\n"
-        )
-
+ginkgo_print_generic_header(${detailed_log} "Optional Components:")
+ginkgo_print_variable(${detailed_log} "GKO_HAVE_PAPI_SDE")
+if(PAPI_sde_FOUND)
+    ginkgo_print_variable(${detailed_log} "PAPI_VERSION")
+    ginkgo_print_variable(${detailed_log} "PAPI_INCLUDE_DIR")
+    ginkgo_print_flags(${detailed_log} "PAPI_LIBRARY")
+endif()
 
 _minimal(
-"
-#\n#  Detailed information (More compiler flags, module configuration) can be found in detailed.log
-#\n# Now, run "
-  )
-IF(CMAKE_GENERATOR MATCHES "Ninja")
-  _minimal("ninja")
-ELSE()
-_minimal("make")
-ENDIF()
-_minimal(" to compile Ginkgo!\n")
-_both("#
-#########################################################################\n")
+    "\n
+--\n--  Detailed information (More compiler flags, module configuration) can be found in detailed.log
+    ")
+_both(
+    "\n--\n--  Now, run  cmake --build .  to compile Ginkgo!\n"
+    )
+_both("--
+---------------------------------------------------------------------------------------------------------\n")
