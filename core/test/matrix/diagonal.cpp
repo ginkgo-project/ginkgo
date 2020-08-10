@@ -42,18 +42,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-template <typename ValueIndexType>
+template <typename ValueType>
 class Diagonal : public ::testing::Test {
 protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
-    using index_type =
-        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Diag = gko::matrix::Diagonal<value_type, index_type>;
+    using value_type = ValueType;
+    using Diag = gko::matrix::Diagonal<value_type>;
 
     Diagonal()
         : exec(gko::ReferenceExecutor::create()),
-          diag(gko::matrix::Diagonal<value_type, index_type>::create(exec, 3u))
+          diag(gko::matrix::Diagonal<value_type>::create(exec, 3u))
     {
         value_type *v = diag->get_values();
         v[0] = 1.0;
@@ -80,7 +77,7 @@ protected:
     }
 };
 
-TYPED_TEST_CASE(Diagonal, gko::test::ValueIndexTypes);
+TYPED_TEST_CASE(Diagonal, gko::test::ValueTypes);
 
 
 TYPED_TEST(Diagonal, KnowsItsSize)
@@ -108,10 +105,9 @@ TYPED_TEST(Diagonal, CanBeCreatedFromExistingData)
 {
     using Diag = typename TestFixture::Diag;
     using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
     value_type values[] = {1.0, 2.0, 3.0};
 
-    auto diag = gko::matrix::Diagonal<value_type, index_type>::create(
+    auto diag = gko::matrix::Diagonal<value_type>::create(
         this->exec, 3, gko::Array<value_type>::view(this->exec, 3, values));
 
     ASSERT_EQ(diag->get_const_values(), values);
@@ -164,9 +160,8 @@ TYPED_TEST(Diagonal, CanBeCleared)
 TYPED_TEST(Diagonal, GeneratesCorrectMatrixData)
 {
     using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
-    gko::matrix_data<value_type, index_type> data;
+    using tpl = typename gko::matrix_data<value_type>::nonzero_type;
+    gko::matrix_data<value_type> data;
 
     this->diag->write(data);
 

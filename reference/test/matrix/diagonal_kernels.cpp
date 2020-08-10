@@ -55,15 +55,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace {
 
 
-template <typename ValueIndexType>
+template <typename ValueType>
 class Diagonal : public ::testing::Test {
 protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
-    using index_type =
-        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Csr = gko::matrix::Csr<value_type, index_type>;
-    using Diag = gko::matrix::Diagonal<value_type, index_type>;
+    using value_type = ValueType;
+    using Csr = gko::matrix::Csr<value_type>;
+    using Diag = gko::matrix::Diagonal<value_type>;
     using Dense = gko::matrix::Dense<value_type>;
     Diagonal()
         : exec(gko::ReferenceExecutor::create()),
@@ -106,7 +103,7 @@ protected:
     std::unique_ptr<Dense> dense2;
 };
 
-TYPED_TEST_CASE(Diagonal, gko::test::ValueIndexTypes);
+TYPED_TEST_CASE(Diagonal, gko::test::ValueTypes);
 
 
 TYPED_TEST(Diagonal, AppliesToDense)
@@ -212,7 +209,6 @@ TYPED_TEST(Diagonal, RightApplyToDenseFailsForWrongNumberOfCols)
 TYPED_TEST(Diagonal, AppliesToCsr)
 {
     using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
     this->diag1->apply(this->csr1.get(), this->csr2.get());
 
     const auto values = this->csr2->get_const_values();
@@ -226,22 +222,21 @@ TYPED_TEST(Diagonal, AppliesToCsr)
     EXPECT_EQ(values[3], value_type{4.5});
     EXPECT_EQ(values[4], value_type{7.5});
     EXPECT_EQ(values[5], value_type{10.5});
-    EXPECT_EQ(row_ptrs[0], index_type{0});
-    EXPECT_EQ(row_ptrs[1], index_type{3});
-    EXPECT_EQ(row_ptrs[2], index_type{6});
-    EXPECT_EQ(col_idxs[0], index_type{0});
-    EXPECT_EQ(col_idxs[1], index_type{1});
-    EXPECT_EQ(col_idxs[2], index_type{2});
-    EXPECT_EQ(col_idxs[3], index_type{0});
-    EXPECT_EQ(col_idxs[4], index_type{1});
-    EXPECT_EQ(col_idxs[5], index_type{2});
+    EXPECT_EQ(row_ptrs[0], 0);
+    EXPECT_EQ(row_ptrs[1], 3);
+    EXPECT_EQ(row_ptrs[2], 6);
+    EXPECT_EQ(col_idxs[0], 0);
+    EXPECT_EQ(col_idxs[1], 1);
+    EXPECT_EQ(col_idxs[2], 2);
+    EXPECT_EQ(col_idxs[3], 0);
+    EXPECT_EQ(col_idxs[4], 1);
+    EXPECT_EQ(col_idxs[5], 2);
 }
 
 
 TYPED_TEST(Diagonal, RightAppliesToCsr)
 {
     using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
     this->diag2->rapply(this->csr1.get(), this->csr2.get());
 
     const auto values = this->csr2->get_const_values();
@@ -255,24 +250,23 @@ TYPED_TEST(Diagonal, RightAppliesToCsr)
     EXPECT_EQ(values[3], value_type{3.0});
     EXPECT_EQ(values[4], value_type{7.5});
     EXPECT_EQ(values[5], value_type{14.0});
-    EXPECT_EQ(row_ptrs[0], index_type{0});
-    EXPECT_EQ(row_ptrs[1], index_type{3});
-    EXPECT_EQ(row_ptrs[2], index_type{6});
-    EXPECT_EQ(col_idxs[0], index_type{0});
-    EXPECT_EQ(col_idxs[1], index_type{1});
-    EXPECT_EQ(col_idxs[2], index_type{2});
-    EXPECT_EQ(col_idxs[3], index_type{0});
-    EXPECT_EQ(col_idxs[4], index_type{1});
-    EXPECT_EQ(col_idxs[5], index_type{2});
+    EXPECT_EQ(row_ptrs[0], 0);
+    EXPECT_EQ(row_ptrs[1], 3);
+    EXPECT_EQ(row_ptrs[2], 6);
+    EXPECT_EQ(col_idxs[0], 0);
+    EXPECT_EQ(col_idxs[1], 1);
+    EXPECT_EQ(col_idxs[2], 2);
+    EXPECT_EQ(col_idxs[3], 0);
+    EXPECT_EQ(col_idxs[4], 1);
+    EXPECT_EQ(col_idxs[5], 2);
 }
 
 
 TYPED_TEST(Diagonal, ApplyToCsrFailsForWrongInnerDimensions)
 {
     using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto result = gko::matrix::Csr<value_type, index_type>::create(
-        this->exec, gko::dim<2>{3});
+    auto result =
+        gko::matrix::Csr<value_type>::create(this->exec, gko::dim<2>{3});
 
     // 3x3 times 2x3 = 3x3 --> mismatch for inner dimensions
     ASSERT_THROW(this->diag2->apply(this->csr1.get(), result.get()),
@@ -283,9 +277,8 @@ TYPED_TEST(Diagonal, ApplyToCsrFailsForWrongInnerDimensions)
 TYPED_TEST(Diagonal, ApplyToCsrFailsForWrongNumberOfRows)
 {
     using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto result = gko::matrix::Csr<value_type, index_type>::create(
-        this->exec, gko::dim<2>{3});
+    auto result =
+        gko::matrix::Csr<value_type>::create(this->exec, gko::dim<2>{3});
 
     // 2x2 times 2x3 = 3x3 --> mismatch for rows of diagonal and result
     ASSERT_THROW(this->diag1->apply(this->csr1.get(), result.get()),
@@ -296,9 +289,8 @@ TYPED_TEST(Diagonal, ApplyToCsrFailsForWrongNumberOfRows)
 TYPED_TEST(Diagonal, ApplyToCsrFailsForWrongNumberOfCols)
 {
     using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto result = gko::matrix::Csr<value_type, index_type>::create(
-        this->exec, gko::dim<2>{2});
+    auto result =
+        gko::matrix::Csr<value_type>::create(this->exec, gko::dim<2>{2});
 
     // 2x2 times 2x3 = 2x2 --> mismatch for cols of csr1 and result
     ASSERT_THROW(this->diag1->apply(this->csr1.get(), result.get()),
@@ -309,9 +301,8 @@ TYPED_TEST(Diagonal, ApplyToCsrFailsForWrongNumberOfCols)
 TYPED_TEST(Diagonal, RightApplyToCsrFailsForWrongInnerDimensions)
 {
     using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto result = gko::matrix::Csr<value_type, index_type>::create(
-        this->exec, gko::dim<2>{2});
+    auto result =
+        gko::matrix::Csr<value_type>::create(this->exec, gko::dim<2>{2});
 
     // 2x3 times 2x2 = 2x2 --> mismatch for inner DimensionMismatch
     ASSERT_THROW(this->diag1->rapply(this->csr1.get(), result.get()),
@@ -322,9 +313,8 @@ TYPED_TEST(Diagonal, RightApplyToCsrFailsForWrongInnerDimensions)
 TYPED_TEST(Diagonal, RightApplyToCsrFailsForWrongNumberOfRows)
 {
     using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto result = gko::matrix::Csr<value_type, index_type>::create(
-        this->exec, gko::dim<2>{3});
+    auto result =
+        gko::matrix::Csr<value_type>::create(this->exec, gko::dim<2>{3});
 
     // 2x3 times 3x3 = 3x3 --> mismatch for rows of csr1 and result
     ASSERT_THROW(this->diag2->rapply(this->csr1.get(), result.get()),
@@ -335,9 +325,8 @@ TYPED_TEST(Diagonal, RightApplyToCsrFailsForWrongNumberOfRows)
 TYPED_TEST(Diagonal, RightApplyToCsrFailsForWrongNumberOfCols)
 {
     using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto result = gko::matrix::Csr<value_type, index_type>::create(
-        this->exec, gko::dim<2>{2});
+    auto result =
+        gko::matrix::Csr<value_type>::create(this->exec, gko::dim<2>{2});
 
     // 2x3 times 3x3 = 2x2 --> mismatch for cols of diagonal and result
     ASSERT_THROW(this->diag2->rapply(this->csr1.get(), result.get()),
@@ -348,7 +337,6 @@ TYPED_TEST(Diagonal, RightApplyToCsrFailsForWrongNumberOfCols)
 TYPED_TEST(Diagonal, ConvertsToCsr)
 {
     using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
 
     this->diag1->convert_to(this->csr1.get());
 
@@ -358,34 +346,30 @@ TYPED_TEST(Diagonal, ConvertsToCsr)
     const auto values = this->csr1->get_const_values();
 
     EXPECT_EQ(nnz, 2);
-    EXPECT_EQ(row_ptrs[0], index_type(0));
-    EXPECT_EQ(row_ptrs[1], index_type(1));
-    EXPECT_EQ(row_ptrs[2], index_type(2));
-    EXPECT_EQ(col_idxs[0], index_type(0));
-    EXPECT_EQ(col_idxs[1], index_type(1));
+    EXPECT_EQ(row_ptrs[0], 0);
+    EXPECT_EQ(row_ptrs[1], 1);
+    EXPECT_EQ(row_ptrs[2], 2);
+    EXPECT_EQ(col_idxs[0], 0);
+    EXPECT_EQ(col_idxs[1], 1);
     EXPECT_EQ(values[0], value_type(2.0));
     EXPECT_EQ(values[1], value_type(3.0));
 }
 
 
-template <typename ValueIndexType>
+template <typename ValueType>
 class DiagonalComplex : public ::testing::Test {
 protected:
-    using value_type =
-        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
-    using index_type =
-        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Diag = gko::matrix::Diagonal<value_type, index_type>;
+    using value_type = ValueType;
+    using Diag = gko::matrix::Diagonal<value_type>;
 };
 
-TYPED_TEST_CASE(DiagonalComplex, gko::test::ComplexValueIndexTypes);
+TYPED_TEST_CASE(DiagonalComplex, gko::test::ComplexValueTypes);
 
 
 TYPED_TEST(DiagonalComplex, MtxIsConjugateTransposable)
 {
     using Diag = typename TestFixture::Diag;
     using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
 
     auto exec = gko::ReferenceExecutor::create();
     auto diag = Diag::create(exec, 3);

@@ -48,9 +48,9 @@ namespace reference {
 namespace diagonal {
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType>
 void apply_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Diagonal<ValueType, IndexType> *a,
+                    const matrix::Diagonal<ValueType> *a,
                     const matrix::Dense<ValueType> *b,
                     matrix::Dense<ValueType> *c)
 {
@@ -63,13 +63,12 @@ void apply_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType>
 void right_apply_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
-                          const matrix::Diagonal<ValueType, IndexType> *a,
+                          const matrix::Diagonal<ValueType> *a,
                           const matrix::Dense<ValueType> *b,
                           matrix::Dense<ValueType> *c)
 {
@@ -81,13 +80,13 @@ void right_apply_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_DENSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
 void apply_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
-                  const matrix::Diagonal<ValueType, IndexType> *a,
+                  const matrix::Diagonal<ValueType> *a,
                   const matrix::Csr<ValueType, IndexType> *b,
                   matrix::Csr<ValueType, IndexType> *c)
 {
@@ -111,7 +110,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void right_apply_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
-                        const matrix::Diagonal<ValueType, IndexType> *a,
+                        const matrix::Diagonal<ValueType> *a,
                         const matrix::Csr<ValueType, IndexType> *b,
                         matrix::Csr<ValueType, IndexType> *c)
 {
@@ -135,7 +134,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Diagonal<ValueType, IndexType> *source,
+                    const matrix::Diagonal<ValueType> *source,
                     matrix::Csr<ValueType, IndexType> *result)
 {
     const auto size = source->get_size()[0];
@@ -156,10 +155,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType>
 void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Diagonal<ValueType, IndexType> *orig,
-                    matrix::Diagonal<ValueType, IndexType> *trans)
+                    const matrix::Diagonal<ValueType> *orig,
+                    matrix::Diagonal<ValueType> *trans)
 {
     const auto size = orig->get_size()[0];
     const auto orig_values = orig->get_const_values();
@@ -170,8 +169,7 @@ void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL);
 
 
 }  // namespace diagonal

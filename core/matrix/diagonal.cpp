@@ -57,8 +57,8 @@ GKO_REGISTER_OPERATION(conj_transpose, diagonal::conj_transpose);
 }  // namespace diagonal
 
 
-template <typename ValueType, typename IndexType>
-void Diagonal<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
+template <typename ValueType>
+void Diagonal<ValueType>::apply_impl(const LinOp *b, LinOp *x) const
 {
     auto exec = this->get_executor();
 
@@ -66,19 +66,22 @@ void Diagonal<ValueType, IndexType>::apply_impl(const LinOp *b, LinOp *x) const
         dynamic_cast<Dense<ValueType> *>(x)) {
         exec->run(diagonal::make_apply_to_dense(this, as<Dense<ValueType>>(b),
                                                 as<Dense<ValueType>>(x)));
-    } else if (dynamic_cast<const Csr<ValueType, IndexType> *>(b) &&
-               dynamic_cast<Csr<ValueType, IndexType> *>(x)) {
-        exec->run(
-            diagonal::make_apply_to_csr(this, as<Csr<ValueType, IndexType>>(b),
-                                        as<Csr<ValueType, IndexType>>(x)));
+    } else if (dynamic_cast<const Csr<ValueType, int32> *>(b) &&
+               dynamic_cast<Csr<ValueType, int32> *>(x)) {
+        exec->run(diagonal::make_apply_to_csr(
+            this, as<Csr<ValueType, int32>>(b), as<Csr<ValueType, int32>>(x)));
+    } else if (dynamic_cast<const Csr<ValueType, int64> *>(b) &&
+               dynamic_cast<Csr<ValueType, int64> *>(x)) {
+        exec->run(diagonal::make_apply_to_csr(
+            this, as<Csr<ValueType, int64>>(b), as<Csr<ValueType, int64>>(x)));
     } else {
         GKO_NOT_IMPLEMENTED;
     }
 }
 
 
-template <typename ValueType, typename IndexType>
-void Diagonal<ValueType, IndexType>::rapply_impl(const LinOp *b, LinOp *x) const
+template <typename ValueType>
+void Diagonal<ValueType>::rapply_impl(const LinOp *b, LinOp *x) const
 {
     auto exec = this->get_executor();
 
@@ -86,22 +89,23 @@ void Diagonal<ValueType, IndexType>::rapply_impl(const LinOp *b, LinOp *x) const
         dynamic_cast<Dense<ValueType> *>(x)) {
         exec->run(diagonal::make_right_apply_to_dense(
             this, as<Dense<ValueType>>(b), as<Dense<ValueType>>(x)));
-    } else if (dynamic_cast<const Csr<ValueType, IndexType> *>(b) &&
-               dynamic_cast<Csr<ValueType, IndexType> *>(x)) {
+    } else if (dynamic_cast<const Csr<ValueType, int32> *>(b) &&
+               dynamic_cast<Csr<ValueType, int32> *>(x)) {
         exec->run(diagonal::make_right_apply_to_csr(
-            this, as<Csr<ValueType, IndexType>>(b),
-            as<Csr<ValueType, IndexType>>(x)));
+            this, as<Csr<ValueType, int32>>(b), as<Csr<ValueType, int32>>(x)));
+    } else if (dynamic_cast<const Csr<ValueType, int64> *>(b) &&
+               dynamic_cast<Csr<ValueType, int64> *>(x)) {
+        exec->run(diagonal::make_right_apply_to_csr(
+            this, as<Csr<ValueType, int64>>(b), as<Csr<ValueType, int64>>(x)));
     } else {
         GKO_NOT_IMPLEMENTED;
     }
 }
 
 
-template <typename ValueType, typename IndexType>
-void Diagonal<ValueType, IndexType>::apply_impl(const LinOp *alpha,
-                                                const LinOp *b,
-                                                const LinOp *beta,
-                                                LinOp *x) const
+template <typename ValueType>
+void Diagonal<ValueType>::apply_impl(const LinOp *alpha, const LinOp *b,
+                                     const LinOp *beta, LinOp *x) const
 {
     if (dynamic_cast<const Dense<ValueType> *>(b) &&
         dynamic_cast<Dense<ValueType> *>(x)) {
@@ -114,39 +118,55 @@ void Diagonal<ValueType, IndexType>::apply_impl(const LinOp *alpha,
 }
 
 
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Diagonal<ValueType, IndexType>::transpose() const
+template <typename ValueType>
+std::unique_ptr<LinOp> Diagonal<ValueType>::transpose() const
 {
     return this->clone();
 }
 
 
-template <typename ValueType, typename IndexType>
-std::unique_ptr<LinOp> Diagonal<ValueType, IndexType>::conj_transpose() const
+template <typename ValueType>
+std::unique_ptr<LinOp> Diagonal<ValueType>::conj_transpose() const
 {
     auto exec = this->get_executor();
-    auto tmp =
-        Diagonal<ValueType, IndexType>::create(exec, this->get_size()[0]);
+    auto tmp = Diagonal<ValueType>::create(exec, this->get_size()[0]);
 
     exec->run(diagonal::make_conj_transpose(this, tmp.get()));
     return std::move(tmp);
 }
 
 
-template <typename ValueType, typename IndexType>
-void Diagonal<ValueType, IndexType>::convert_to(
-    Csr<ValueType, IndexType> *result) const
+template <typename ValueType>
+void Diagonal<ValueType>::convert_to(Csr<ValueType, int32> *result) const
 {
     auto exec = this->get_executor();
-    auto tmp = Csr<ValueType, IndexType>::create(
+    auto tmp = Csr<ValueType, int32>::create(
         exec, this->get_size(), this->get_size()[0], result->get_strategy());
     exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
     tmp->move_to(result);
 }
 
 
-template <typename ValueType, typename IndexType>
-void Diagonal<ValueType, IndexType>::move_to(Csr<ValueType, IndexType> *result)
+template <typename ValueType>
+void Diagonal<ValueType>::move_to(Csr<ValueType, int32> *result)
+{
+    this->convert_to(result);
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::convert_to(Csr<ValueType, int64> *result) const
+{
+    auto exec = this->get_executor();
+    auto tmp = Csr<ValueType, int64>::create(
+        exec, this->get_size(), this->get_size()[0], result->get_strategy());
+    exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
+    tmp->move_to(result);
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::move_to(Csr<ValueType, int64> *result)
 {
     this->convert_to(result);
 }
@@ -179,23 +199,22 @@ inline void write_impl(const MatrixType *mtx, MatrixData &data)
 }  // namespace
 
 
-template <typename ValueType, typename IndexType>
-void Diagonal<ValueType, IndexType>::write(mat_data &data) const
+template <typename ValueType>
+void Diagonal<ValueType>::write(mat_data &data) const
 {
     write_impl(this, data);
 }
 
 
-template <typename ValueType, typename IndexType>
-void Diagonal<ValueType, IndexType>::write(mat_data32 &data) const
+template <typename ValueType>
+void Diagonal<ValueType>::write(mat_data32 &data) const
 {
     write_impl(this, data);
 }
 
 
-#define GKO_DECLARE_DIAGONAL_MATRIX(value_type, index_type) \
-    class Diagonal<value_type, index_type>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DIAGONAL_MATRIX);
+#define GKO_DECLARE_DIAGONAL_MATRIX(value_type) class Diagonal<value_type>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_MATRIX);
 
 
 }  // namespace matrix

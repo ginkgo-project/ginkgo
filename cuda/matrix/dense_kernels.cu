@@ -172,7 +172,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
 template <typename ValueType, typename IndexType>
 void add_scaled_diag(std::shared_ptr<const CudaExecutor> exec,
                      const matrix::Dense<ValueType> *alpha,
-                     const matrix::Diagonal<ValueType, IndexType> *x,
+                     const matrix::Diagonal<ValueType> *x,
                      matrix::Dense<ValueType> *y)
 {
     const auto size = y->get_size()[0];
@@ -184,8 +184,7 @@ void add_scaled_diag(std::shared_ptr<const CudaExecutor> exec,
         y->get_stride());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL);
 
 
 template <typename ValueType>
