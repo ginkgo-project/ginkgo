@@ -135,7 +135,9 @@ GKO_BIND_CUSPARSE64_SPMV(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE32_SPMV
 #undef GKO_BIND_CUSPARSE64_SPMV
 
-#else
+
+#else  // CUDA_VERSION >= 11000
+
 
 template <typename ValueType>
 inline void spmv_buffersize(cusparseHandle_t handle, cusparseOperation_t opA,
@@ -162,6 +164,7 @@ inline void spmv(cusparseHandle_t handle, cusparseOperation_t opA,
     cusparseSpMV(handle, opA, alpha, matA, vecX, beta, vecY, value_type, alg,
                  externalBuffer);
 }
+
 
 #endif
 
@@ -214,10 +217,6 @@ GKO_BIND_CUSPARSE64_SPMV(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE64_SPMV
 
 
-#endif
-
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-
 #define GKO_BIND_CUSPARSE32_SPMM(ValueType, CusparseName)                     \
     inline void spmm(cusparseHandle_t handle, cusparseOperation_t transA,     \
                      int32 m, int32 n, int32 k, int32 nnz,                    \
@@ -265,7 +264,8 @@ GKO_BIND_CUSPARSE64_SPMM(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE32_SPMM
 #undef GKO_BIND_CUSPARSE64_SPMM
 
-#endif
+
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 
 template <typename ValueType, typename IndexType>
@@ -318,7 +318,7 @@ inline void spmv_buffersize(cusparseHandle_t handle, cusparseAlgMode_t alg,
                             const IndexType *csrRowPtrA,
                             const IndexType *csrColIndA, const ValueType *x,
                             const ValueType *beta, ValueType *y,
-                            size_t *bufferSizeInBytes) GKO_NOT_IMPLEMENTED;
+                            size_type *bufferSizeInBytes) GKO_NOT_IMPLEMENTED;
 
 #define GKO_BIND_CUSPARSE_SPMV_BUFFERSIZE(ValueType)                           \
     template <>                                                                \
@@ -328,7 +328,7 @@ inline void spmv_buffersize(cusparseHandle_t handle, cusparseAlgMode_t alg,
         const ValueType *alpha, const cusparseMatDescr_t descrA,               \
         const ValueType *csrValA, const int32 *csrRowPtrA,                     \
         const int32 *csrColIndA, const ValueType *x, const ValueType *beta,    \
-        ValueType *y, size_t *bufferSizeInBytes)                               \
+        ValueType *y, size_type *bufferSizeInBytes)                            \
     {                                                                          \
         auto data_type = gko::kernels::cuda::cuda_data_type<ValueType>();      \
         if (data_type == CUDA_C_8U) {                                          \
@@ -350,6 +350,7 @@ GKO_BIND_CUSPARSE_SPMV_BUFFERSIZE(std::complex<double>);
 
 
 #undef GKO_BIND_CUSPARSE_SPMV_BUFFERSIZE
+
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
@@ -379,7 +380,7 @@ GKO_BIND_CUSPARSE32_SPMV(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE32_SPMV
 
 
-#endif  // CUDA_VERSION < 11000
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
@@ -517,7 +518,7 @@ void spgemm_work_estimation(cusparseHandle_t handle, const ValueType *alpha,
                             cusparseSpMatDescr_t b_descr, const ValueType *beta,
                             cusparseSpMatDescr_t c_descr,
                             cusparseSpGEMMDescr_t spgemm_descr,
-                            size_t &buffer1_size, void *buffer1)
+                            size_type &buffer1_size, void *buffer1)
 {
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpGEMM_workEstimation(
         handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
@@ -532,7 +533,7 @@ void spgemm_compute(cusparseHandle_t handle, const ValueType *alpha,
                     cusparseSpMatDescr_t a_descr, cusparseSpMatDescr_t b_descr,
                     const ValueType *beta, cusparseSpMatDescr_t c_descr,
                     cusparseSpGEMMDescr_t spgemm_descr, void *buffer1,
-                    size_t &buffer2_size, void *buffer2)
+                    size_type &buffer2_size, void *buffer2)
 {
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpGEMM_compute(
         handle, CUSPARSE_OPERATION_NON_TRANSPOSE,
@@ -625,7 +626,8 @@ GKO_BIND_CUSPARSE64_CSR2HYB(ValueType, detail::not_implemented);
 #undef GKO_BIND_CUSPARSE64_CSR2HYB
 
 
-#endif
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
@@ -734,6 +736,8 @@ GKO_BIND_CUSPARSE_TRANSPOSE32(float);
 GKO_BIND_CUSPARSE_TRANSPOSE32(double);
 GKO_BIND_CUSPARSE_TRANSPOSE32(std::complex<float>);
 GKO_BIND_CUSPARSE_TRANSPOSE32(std::complex<double>);
+
+
 #endif
 
 
@@ -768,7 +772,7 @@ inline void destroy(csrgemm2Info_t info)
 }
 
 
-#else
+#else  // CUDA_VERSION >= 11000
 
 
 inline cusparseSpGEMMDescr_t create_spgemm_descr()
@@ -911,7 +915,7 @@ inline void destroy(csrilu02Info_t info)
         const ValueType *csrVal, const int32 *csrRowPtr,                      \
         const int32 *csrColInd, const ValueType *rhs, int32 sol_size,         \
         csrsm2Info_t factor_info, cusparseSolvePolicy_t policy,               \
-        size_t *factor_work_size)                                             \
+        size_type *factor_work_size)                                          \
     {                                                                         \
         GKO_ASSERT_NO_CUSPARSE_ERRORS(                                        \
             CusparseName(handle, algo, trans1, trans2, m, n, nnz,             \
@@ -931,7 +935,7 @@ inline void destroy(csrilu02Info_t info)
         const ValueType *csrVal, const int64 *csrRowPtr,                     \
         const int64 *csrColInd, const ValueType *rhs, int64 sol_size,        \
         csrsm2Info_t factor_info, cusparseSolvePolicy_t policy,              \
-        size_t *factor_work_size) GKO_NOT_IMPLEMENTED;                       \
+        size_type *factor_work_size) GKO_NOT_IMPLEMENTED;                    \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
@@ -1235,7 +1239,7 @@ GKO_BIND_CUSPARSE_GATHER(std::complex<double>, cusparseZgthr);
 #undef GKO_BIND_CUSPARSE_GATHER
 
 
-#else
+#else  // CUDA_VERSION >= 11000
 
 
 inline void gather(cusparseHandle_t handle, cusparseDnVecDescr_t in,

@@ -199,7 +199,7 @@ public:
     {
 #if GINKGO_HIP_PLATFORM_NVCC
         __syncwarp(data_.mask);
-#endif
+#endif  // GINKGO_HIP_PLATFORM_NVCC
     }
 
 #if GINKGO_HIP_PLATFORM_HCC

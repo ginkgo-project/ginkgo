@@ -367,25 +367,17 @@ private:
 };
 
 
-#else
-
-
-// cuda11 put the default consturctor in protected function.
-template <typename Group>
-class enable_default_constructor : public Group {};
-
-
 #endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 
 }  // namespace detail
 
 
-// Implementing this as a using directive messes up with SFINAE for some reason,
-// probably a bug in NVCC. If it is a complete type, everything works fine.
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 
+// Implementing this as a using directive messes up with SFINAE for some reason,
+// probably a bug in NVCC. If it is a complete type, everything works fine.
 template <unsigned Size>
 struct thread_block_tile : detail::enable_extended_shuffle<
                                cooperative_groups::thread_block_tile<Size>> {
@@ -394,7 +386,7 @@ struct thread_block_tile : detail::enable_extended_shuffle<
 };
 
 
-#else
+#else  // CUDA_VERSION >= 11000
 
 
 // Cuda11 cooperative group's shuffle supports complex
@@ -442,7 +434,7 @@ struct is_synchronizable_group_impl<cooperative_groups::thread_block_tile<Size>>
     : std::true_type {};
 
 
-#else
+#else  // CUDA_VERSION >= 11000
 
 
 // thread_block_tile is same as cuda11's
@@ -524,7 +516,7 @@ __device__ __forceinline__
 }
 
 
-#else
+#else  // CUDA_VERSION >= 11000
 
 
 // cooperative group after cuda11 contain parent group in template.

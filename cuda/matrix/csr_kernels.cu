@@ -343,7 +343,7 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
                     cusparse::create_dnvec(b->get_num_stored_elements(), b_val);
                 auto vecc =
                     cusparse::create_dnvec(c->get_num_stored_elements(), c_val);
-                size_t buffer_size = 0;
+                size_type buffer_size = 0;
                 cusparse::spmv_buffersize<ValueType>(handle, trans, &alpha, mat,
                                                      vecb, &beta, vecc, alg,
                                                      &buffer_size);
@@ -432,7 +432,7 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
                 cusparse::create_dnvec(b->get_num_stored_elements(), b_val);
             auto vecc =
                 cusparse::create_dnvec(c->get_num_stored_elements(), c_val);
-            size_t buffer_size = 0;
+            size_type buffer_size = 0;
             cusparse::spmv_buffersize<ValueType>(
                 exec->get_cusparse_handle(), trans, alpha->get_const_values(),
                 mat, vecb, beta->get_const_values(), vecc, alg, &buffer_size);
@@ -1111,7 +1111,7 @@ void conj_transpose(std::shared_ptr<const CudaExecutor> exec,
             gko::kernels::cuda::cuda_data_type<ValueType>();
         cusparseAction_t copyValues = CUSPARSE_ACTION_NUMERIC;
         cusparseIndexBase_t idxBase = CUSPARSE_INDEX_BASE_ZERO;
-        cusparseCsr2CscAlg_t alg = CUSPARSE_CSR2CSC_ALG2;
+        cusparseCsr2CscAlg_t alg = CUSPARSE_CSR2CSC_ALG1;
         size_type buffer_size = 0;
         cusparse::transpose_buffersize(
             exec->get_cusparse_handle(), orig->get_size()[0],

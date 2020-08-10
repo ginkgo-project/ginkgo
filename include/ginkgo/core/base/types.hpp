@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef __HIPCC__
 #include <hip/hip_runtime.h>
-#endif
+#endif  // __HIPCC__
 
 
 // Macros for handling different compilers / architectures uniformly

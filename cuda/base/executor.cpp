@@ -93,7 +93,7 @@ void CudaExecutor::raw_free(void *ptr) const noexcept
                   << " in " << __func__ << ": " << cudaGetErrorName(error_code)
                   << ": " << cudaGetErrorString(error_code) << std::endl
                   << "Exiting program" << std::endl;
-#endif
+#endif  // GKO_VERBOSE_LEVEL >= 1
         std::exit(error_code);
     }
 }
