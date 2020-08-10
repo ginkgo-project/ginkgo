@@ -372,8 +372,8 @@ GKO_BIND_HIPSPARSE64_CSR2HYB(ValueType, detail::not_implemented);
     {                                                                         \
         GKO_ASSERT_NO_HIPSPARSE_ERRORS(HipsparseName(                         \
             handle, m, n, nnz, as_hiplibs_type(OrigValA), OrigRowPtrA,        \
-            OrigColIndA, as_hiplibs_type(TransValA), TransRowPtrA,            \
-            TransColIndA, copyValues, idxBase));                              \
+            OrigColIndA, as_hiplibs_type(TransValA), TransColIndA,            \
+            TransRowPtrA, copyValues, idxBase));                              \
     }                                                                         \
     static_assert(true,                                                       \
                   "This assert is used to counter the false positive extra "  \
