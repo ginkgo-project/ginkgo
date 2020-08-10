@@ -30,34 +30,48 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ******************************<GINKGO LICENSE>*******************************/
 
+#ifndef GKO_CUDA_BASE_CUSPARSE_HANDLE_HPP_
+#define GKO_CUDA_BASE_CUSPARSE_HANDLE_HPP_
 
+
+#include <cuda.h>
+#include <cusparse.h>
+
+
+#include <ginkgo/core/base/exception_helpers.hpp>
+
+
+namespace gko {
+namespace kernels {
+namespace cuda {
 /**
- * @internal
+ * @brief The CUSPARSE namespace.
  *
- * Compute a segement scan using add operation (+) of a subwarp. Each segment
- * performs suffix sum. Works on the source array and returns whether the thread
- * is the first element of its segment with same `ind`.
+ * @ingroup cusparse
  */
-template <unsigned subwarp_size, typename ValueType, typename IndexType>
-__device__ __forceinline__ bool segment_scan(
-    const group::thread_block_tile<subwarp_size> &group, const IndexType ind,
-    ValueType *__restrict__ val)
+namespace cusparse {
+
+
+inline cusparseHandle_t init()
 {
-    bool head = true;
-#pragma unroll
-    for (int i = 1; i < subwarp_size; i <<= 1) {
-        const IndexType add_ind = group.shfl_up(ind, i);
-        ValueType add_val = zero<ValueType>();
-        if (add_ind == ind && threadIdx.x >= i) {
-            add_val = *val;
-            if (i == 1) {
-                head = false;
-            }
-        }
-        add_val = group.shfl_down(add_val, i);
-        if (threadIdx.x < subwarp_size - i) {
-            *val += add_val;
-        }
-    }
-    return head;
+    cusparseHandle_t handle{};
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseCreate(&handle));
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(
+        cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_DEVICE));
+    return handle;
 }
+
+
+inline void destroy(cusparseHandle_t handle)
+{
+    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseDestroy(handle));
+}
+
+
+}  // namespace cusparse
+}  // namespace cuda
+}  // namespace kernels
+}  // namespace gko
+
+
+#endif  // GKO_CUDA_BASE_CUSPARSE_HANDLE_HPP_

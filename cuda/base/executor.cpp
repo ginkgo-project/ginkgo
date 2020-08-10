@@ -45,7 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "cuda/base/config.hpp"
 #include "cuda/base/cublas_bindings.hpp"
-#include "cuda/base/cusparse_bindings.hpp"
+#include "cuda/base/cusparse_handle.hpp"
 #include "cuda/base/device_guard.hpp"
 
 
@@ -93,7 +93,7 @@ void CudaExecutor::raw_free(void *ptr) const noexcept
                   << " in " << __func__ << ": " << cudaGetErrorName(error_code)
                   << ": " << cudaGetErrorString(error_code) << std::endl
                   << "Exiting program" << std::endl;
-#endif
+#endif  // GKO_VERBOSE_LEVEL >= 1
         std::exit(error_code);
     }
 }

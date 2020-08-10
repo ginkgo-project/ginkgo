@@ -87,7 +87,7 @@ __device__ __forceinline__ void find_next_row(
 }
 
 
-template <size_type subwarp_size, typename ValueType, typename IndexType,
+template <unsigned subwarp_size, typename ValueType, typename IndexType,
           typename Closure>
 __device__ __forceinline__ void warp_atomic_add(
     const group::thread_block_tile<subwarp_size> &group, bool force_write,
@@ -105,7 +105,7 @@ __device__ __forceinline__ void warp_atomic_add(
 }
 
 
-template <bool last, size_type subwarp_size, typename ValueType,
+template <bool last, unsigned subwarp_size, typename ValueType,
           typename IndexType, typename Closure>
 __device__ __forceinline__ void process_window(
     const group::thread_block_tile<subwarp_size> &group,

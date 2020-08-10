@@ -78,7 +78,7 @@ inline int convert_sm_ver_to_cores(int major, int minor)
               << "is undefined. The default value of "
               << nGpuArchCoresPerSM[index - 1].Cores << " Cores/SM is used."
               << std::endl;
-#endif
+#endif  // GKO_VERBOSE_LEVEL >= 1
     return nGpuArchCoresPerSM[index - 1].Cores;
 }
 
