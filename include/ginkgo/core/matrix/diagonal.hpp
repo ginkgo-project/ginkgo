@@ -63,20 +63,22 @@ class Dense;
  * @ingroup mat_formats
  * @ingroup LinOp
  */
-template <typename ValueType = default_precision, typename IndexType = int32>
-class Diagonal : public ConvertibleTo<Csr<ValueType, IndexType>>,
-                 public EnableLinOp<Diagonal<ValueType, IndexType>>,
-                 public EnableCreateMethod<Diagonal<ValueType, IndexType>>,
+template <typename ValueType = default_precision>
+class Diagonal : public ConvertibleTo<Csr<ValueType, int32>>,
+                 public ConvertibleTo<Csr<ValueType, int64>>,
+                 public EnableLinOp<Diagonal<ValueType>>,
+                 public EnableCreateMethod<Diagonal<ValueType>>,
                  public Transposable,
                  public WritableToMatrixData<ValueType, int32>,
                  public WritableToMatrixData<ValueType, int64> {
-    friend class Csr<ValueType, IndexType>;
+    friend class Csr<ValueType, int32>;
+    friend class Csr<ValueType, int64>;
     friend class EnablePolymorphicObject<Diagonal, LinOp>;
     friend class EnableCreateMethod<Diagonal>;
 
 public:
     using value_type = ValueType;
-    using index_type = IndexType;
+    using index_type = int64;
     using mat_data = gko::matrix_data<ValueType, int64>;
     using mat_data32 = gko::matrix_data<ValueType, int32>;
 
@@ -84,9 +86,13 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
-    void convert_to(Csr<ValueType, IndexType> *result) const override;
+    void convert_to(Csr<ValueType, int32> *result) const override;
 
-    void move_to(Csr<ValueType, IndexType> *result) override;
+    void move_to(Csr<ValueType, int32> *result) override;
+
+    void convert_to(Csr<ValueType, int64> *result) const override;
+
+    void move_to(Csr<ValueType, int64> *result) override;
 
     /**
      * Returns a pointer to the array of values of the matrix.

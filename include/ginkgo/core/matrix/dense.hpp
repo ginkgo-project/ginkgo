@@ -56,7 +56,7 @@ class Coo;
 template <typename ValueType, typename IndexType>
 class Csr;
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType>
 class Diagonal;
 
 template <typename ValueType, typename IndexType>
@@ -116,8 +116,7 @@ class Dense : public EnableLinOp<Dense<ValueType>>,
     friend class Coo<ValueType, int64>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
-    friend class Diagonal<ValueType, int32>;
-    friend class Diagonal<ValueType, int64>;
+    friend class Diagonal<ValueType>;
     friend class Ell<ValueType, int32>;
     friend class Ell<ValueType, int64>;
     friend class Hybrid<ValueType, int32>;
