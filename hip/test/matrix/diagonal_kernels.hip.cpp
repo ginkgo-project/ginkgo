@@ -55,11 +55,12 @@ namespace {
 
 class Diagonal : public ::testing::Test {
 protected:
-    using Csr = gko::matrix::Csr<>;
-    using Diag = gko::matrix::Diagonal<>;
-    using Dense = gko::matrix::Dense<>;
-    using Arr = gko::Array<int>;
-    using ComplexDiag = gko::matrix::Diagonal<std::complex<double>>;
+    using ValueType = double;
+    using ComplexValueType = std::complex<double>;
+    using Csr = gko::matrix::Csr<ValueType>;
+    using Diag = gko::matrix::Diagonal<ValueType>;
+    using Dense = gko::matrix::Dense<ValueType>;
+    using ComplexDiag = gko::matrix::Diagonal<ComplexValueType>;
 
     Diagonal() : mtx_size(532, 231), rand_engine(42) {}
 
@@ -93,8 +94,8 @@ protected:
         auto vals = diag->get_values();
         auto value_dist = std::normal_distribution<>(0.0, 1.0);
         for (int i = 0; i < size; i++) {
-            vals[i] = gko::test::detail::get_rand_value<double>(value_dist,
-                                                                rand_engine);
+            vals[i] = gko::test::detail::get_rand_value<ValueType>(value_dist,
+                                                                   rand_engine);
         }
         return diag;
     }
@@ -105,8 +106,8 @@ protected:
         auto vals = cdiag->get_values();
         auto value_dist = std::normal_distribution<>(0.0, 1.0);
         for (int i = 0; i < size; i++) {
-            vals[i] = std::complex<double>{
-                gko::test::detail::get_rand_value<std::complex<double>>(
+            vals[i] = ComplexValueType{
+                gko::test::detail::get_rand_value<ComplexValueType>(
                     value_dist, rand_engine)};
         }
         return cdiag;

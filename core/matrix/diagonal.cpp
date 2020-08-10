@@ -176,6 +176,54 @@ namespace {
 
 
 template <typename MatrixType, typename MatrixData>
+inline void read_impl(MatrixType *mtx, const MatrixData &data)
+{
+    // Diagonal matrices are assumed to be square.
+    GKO_ASSERT_EQ(data.size[0], data.size[1]);
+    // Diagonal matrices can have at most as many nonzero entries as rows /
+    // cols.
+    GKO_ASSERT_EQ(max(data.size[0], data.nonzeros.size()), data.size[0]);
+
+    auto tmp =
+        MatrixType::create(mtx->get_executor()->get_master(), data.size[0]);
+    auto values = tmp->get_values();
+    size_type ind = 0;
+    for (size_type row = 0; row < data.size[0]; ++row) {
+        values[row] = zero<typename MatrixType::value_type>();
+        for (size_type ind = 0; ind < data.nonzeros.size(); ind++) {
+            if (data.nonzeros[ind].row == row) {
+                // Diagonal matrices can only have entries on the diagonal.
+                GKO_ASSERT_EQ(row, data.nonzeros[ind].column);
+                values[row] = data.nonzeros[ind].value;
+            }
+        }
+    }
+
+    mtx->copy_from(tmp.get());
+}
+
+
+}  // namespace
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::read(const mat_data &data)
+{
+    read_impl(this, data);
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::read(const mat_data32 &data)
+{
+    read_impl(this, data);
+}
+
+
+namespace {
+
+
+template <typename MatrixType, typename MatrixData>
 inline void write_impl(const MatrixType *mtx, MatrixData &data)
 {
     std::unique_ptr<const LinOp> op{};
