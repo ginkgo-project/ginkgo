@@ -254,6 +254,77 @@ public:
     };
 
     /**
+     * adaptive is a strategy_type which uses the same number of threads on
+     * each row. adaptive strategy uses multithreads to calculate on parts of
+     * rows and then do a reduction of these threads results. The number of
+     * threads per row depends on the max number of stored elements per row.
+     */
+    class adaptive : public strategy_type {
+    public:
+        /**
+         * Creates a adaptive strategy.
+         */
+        adaptive() : strategy_type("adaptive") {}
+
+        void process(const Array<index_type> &mtx_row_ptrs,
+                     Array<index_type> *mtx_srow) override
+        {
+            auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
+            Array<index_type> row_ptrs_host(host_mtx_exec);
+            const bool is_mtx_on_host{host_mtx_exec ==
+                                      mtx_row_ptrs.get_executor()};
+            const index_type *row_ptrs{};
+            if (is_mtx_on_host) {
+                row_ptrs = mtx_row_ptrs.get_const_data();
+            } else {
+                row_ptrs_host = mtx_row_ptrs;
+                row_ptrs = row_ptrs_host.get_const_data();
+            }
+            auto num_rows = mtx_row_ptrs.get_num_elems() - 1;
+            mtx_srow->resize_and_reset(4 * num_rows + 1);
+            auto host_srow_exec = mtx_srow->get_executor()->get_master();
+            const bool is_srow_on_host{host_srow_exec ==
+                                       mtx_srow->get_executor()};
+            Array<index_type> srow_host(host_mtx_exec);
+            index_type *srow_row{};
+            index_type *srow_idx{};
+            if (is_srow_on_host) {
+                srow_row = mtx_srow->get_data();
+            } else {
+                srow_host = *mtx_srow;
+                srow_row = srow_host.get_data();
+            }
+            srow_idx = srow_row + 2 * num_rows;
+            auto avg_nnz = row_ptrs[num_rows] / num_rows;
+            auto segment = ceildiv(avg_nnz, 32) * 32;
+            index_type idx = 0;
+            for (index_type i = 0; i < num_rows; i++) {
+                // auto n = ceildiv(row_ptrs[i+1]-row_ptrs[i], segement);
+                for (int j = row_ptrs[i]; j < row_ptrs[i + 1];
+                     j += segment, idx++) {
+                    srow_row[idx] = i;
+                    srow_idx[idx] = j;
+                }
+            }
+            srow_idx[idx] = row_ptrs[num_rows];
+            for (; idx < 2 * num_rows; idx++) {
+                srow_row[idx] = -1;
+                srow_idx[idx + 1] = -1;
+            }
+            if (!is_srow_on_host) {
+                *mtx_srow = srow_host;
+            }
+        }
+
+        int64_t clac_size(const int64_t nnz) override { return 0; }
+
+        std::shared_ptr<strategy_type> copy() override
+        {
+            return std::make_shared<adaptive>();
+        }
+    };
+
+    /**
      * merge_path is a strategy_type which uses the merge_path algorithm.
      * merge_path is according to Merrill and Garland: Merge-Based Parallel
      * Sparse Matrix-Vector Multiplication
@@ -914,6 +985,8 @@ protected:
             new_strat = std::make_shared<typename CsrType::cusparse>();
         } else if (dynamic_cast<sparselib *>(strat)) {
             new_strat = std::make_shared<typename CsrType::sparselib>();
+        } else if (dynamic_cast<adaptive *>(strat)) {
+            new_strat = std::make_shared<typename CsrType::adaptive>();
         } else {
             auto rexec = result->get_executor();
             auto cuda_exec =

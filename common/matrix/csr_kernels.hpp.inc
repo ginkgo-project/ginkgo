@@ -494,6 +494,73 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
 }
 
 
+template <size_type subwarp_size, typename ValueType, typename IndexType,
+          typename Closure>
+__device__ void device_adaptive_spmv(
+    const size_type num_rows, const ValueType *__restrict__ val,
+    const IndexType *__restrict__ col_idxs, const size_type srow_size,
+    const IndexType *__restrict__ srow_row,
+    const IndexType *__restrict__ srow_idx, const ValueType *__restrict__ b,
+    const size_type b_stride, ValueType *__restrict__ c,
+    const size_type c_stride, Closure scale)
+{
+    auto subwarp_tile =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const auto column_id = blockIdx.y;
+    auto subwarp_id = thread::get_subwarp_id_flat<subwarp_size>();
+    const auto subid = subwarp_tile.thread_rank();
+    if (subwarp_id >= srow_size) {
+        return;
+    }
+    const auto row = srow_row[subwarp_id];
+    if (row == -1) {
+        return;
+    }
+    ValueType temp_val = zero<ValueType>();
+    for (auto i = srow_idx[subwarp_id] + subid; i < srow_idx[subwarp_id + 1];
+         i += subwarp_size) {
+        temp_val += val[i] * b[col_idxs[i] * b_stride + column_id];
+    }
+    auto subwarp_result =
+        reduce(subwarp_tile, temp_val,
+               [](const ValueType &a, const ValueType &b) { return a + b; });
+    if (subid == 0) {
+        atomic_add(&(c[row * c_stride + column_id]), scale(subwarp_result));
+    }
+}
+
+
+template <size_type subwarp_size, typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spmv_block_size) void abstract_adaptive_spmv(
+    const size_type num_rows, const ValueType *__restrict__ val,
+    const IndexType *__restrict__ col_idxs, const size_type srow_size,
+    const IndexType *__restrict__ srow_row,
+    const IndexType *__restrict__ srow_idx, const ValueType *__restrict__ b,
+    const size_type b_stride, ValueType *__restrict__ c,
+    const size_type c_stride)
+{
+    device_adaptive_spmv<subwarp_size>(
+        num_rows, val, col_idxs, srow_size, srow_row, srow_idx, b, b_stride, c,
+        c_stride, [](const ValueType &x) { return x; });
+}
+
+
+template <size_type subwarp_size, typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spmv_block_size) void abstract_adaptive_spmv(
+    const size_type num_rows, const ValueType *__restrict__ alpha,
+    const ValueType *__restrict__ val, const IndexType *__restrict__ col_idxs,
+    const size_type srow_size, const IndexType *__restrict__ srow_row,
+    const IndexType *__restrict__ srow_idx, const ValueType *__restrict__ b,
+    const size_type b_stride, ValueType *__restrict__ c,
+    const size_type c_stride)
+{
+    const auto alpha_val = alpha[0];
+    device_adaptive_spmv<subwarp_size>(
+        num_rows, val, col_idxs, srow_size, srow_row, srow_idx, b, b_stride, c,
+        c_stride, [&alpha_val](const ValueType &x) { return alpha_val * x; });
+}
+
+
 template <int subwarp_size, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void spgeam_nnz(
     const IndexType *__restrict__ a_row_ptrs,

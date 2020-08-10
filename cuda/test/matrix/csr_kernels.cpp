@@ -212,6 +212,28 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithLoadBalance)
 }
 
 
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAdaptive)
+{
+    set_up_apply_data(std::make_shared<Mtx::adaptive>());
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithAdaptive)
+{
+    set_up_apply_data(std::make_shared<Mtx::adaptive>(), 3);
+
+    mtx->apply(y.get(), expected.get());
+    dmtx->apply(dy.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithCusparse)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
@@ -303,6 +325,28 @@ TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 {
     set_up_apply_data(std::make_shared<Mtx::load_balance>(cuda), 3);
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithAdaptive)
+{
+    set_up_apply_data(std::make_shared<Mtx::adaptive>(), 3);
+
+    mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
+    dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());
+
+    GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
+}
+
+
+TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithAdaptive)
+{
+    set_up_apply_data(std::make_shared<Mtx::adaptive>(), 3);
 
     mtx->apply(alpha.get(), y.get(), beta.get(), expected.get());
     dmtx->apply(dalpha.get(), dy.get(), dbeta.get(), dresult.get());

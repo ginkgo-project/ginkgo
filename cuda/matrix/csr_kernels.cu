@@ -271,6 +271,22 @@ void spmv(std::shared_ptr<const CudaExecutor> exec,
         } else {
             GKO_NOT_SUPPORTED(nwarps);
         }
+    } else if (a->get_strategy()->get_name() == "adaptive") {
+        components::fill_array(exec, c->get_values(),
+                               c->get_num_stored_elements(), zero<ValueType>());
+        size_type srow_size = 2 * a->get_size()[0];
+        const dim3 csr_block(spmv_block_size);
+        const dim3 csr_grid(ceildiv(srow_size, warps_in_block),
+                            b->get_size()[1]);
+        auto srow_row = a->get_const_srow();
+        auto srow_idx = srow_row + srow_size;
+        kernel::abstract_adaptive_spmv<config::warp_size>
+            <<<csr_grid, csr_block>>>(
+                a->get_size()[0], as_cuda_type(a->get_const_values()),
+                as_cuda_type(a->get_const_col_idxs()), srow_size,
+                as_cuda_type(srow_row), as_cuda_type(srow_idx),
+                as_cuda_type(b->get_const_values()), b->get_stride(),
+                as_cuda_type(c->get_values()), c->get_stride());
     } else if (a->get_strategy()->get_name() == "merge_path") {
         int items_per_thread =
             host_kernel::compute_items_per_thread<ValueType, IndexType>(exec);
@@ -394,6 +410,22 @@ void advanced_spmv(std::shared_ptr<const CudaExecutor> exec,
         } else {
             GKO_NOT_SUPPORTED(nwarps);
         }
+    } else if (a->get_strategy()->get_name() == "adaptive") {
+        dense::scale(exec, beta, c);
+        size_type srow_size = 2 * a->get_size()[0];
+        const dim3 csr_block(spmv_block_size);
+        const dim3 csr_grid(ceildiv(srow_size, warps_in_block),
+                            b->get_size()[1]);
+        auto srow_row = a->get_const_srow();
+        auto srow_idx = srow_row + srow_size;
+        kernel::abstract_adaptive_spmv<config::warp_size>
+            <<<csr_grid, csr_block>>>(
+                a->get_size()[0], as_cuda_type(alpha->get_const_values()),
+                as_cuda_type(a->get_const_values()),
+                as_cuda_type(a->get_const_col_idxs()), srow_size,
+                as_cuda_type(srow_row), as_cuda_type(srow_idx),
+                as_cuda_type(b->get_const_values()), b->get_stride(),
+                as_cuda_type(c->get_values()), c->get_stride());
     } else if (a->get_strategy()->get_name() == "sparselib" ||
                a->get_strategy()->get_name() == "cusparse") {
         if (cusparse::is_supported<ValueType, IndexType>::value) {
