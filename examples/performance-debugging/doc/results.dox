@@ -23,22 +23,22 @@ The performance and residual data can be found in log.txt
 Here is a sample output in the file log.txt:
 @code{.cpp}
 
-Generate time (ns): 30933
-Apply time (ns): 4367019
+Generate time (ns): 861
+Apply time (ns): 108144
 Residual_norm: 2.10788e-15
 Generate operations times (ns):
 Apply operations times (ns):
-	allocate: 80420
-	cg::initialize#8: 22706
-	cg::step_1#5: 535333
-	cg::step_2#7: 503107
-	copy: 49673
-	csr::advanced_spmv#5: 1075346
-	csr::spmv#3: 1003654
-	dense::compute_dot#3: 373359
-	dense::compute_norm2#2: 528621
-	free: 39759
-	residual_norm::residual_norm#9: 162188
+	allocate: 14991
+	cg::initialize#8: 872
+	cg::step_1#5: 7683
+	cg::step_2#7: 7756
+	copy: 7751
+	csr::advanced_spmv#5: 21819
+	csr::spmv#3: 20429
+	dense::compute_dot#3: 18043
+	dense::compute_norm2#2: 16726
+	free: 8857
+	residual_norm::residual_norm#9: 3614
 Recurrent Residual Norms:
 [
 	4.3589
