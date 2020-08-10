@@ -58,6 +58,11 @@ add_subdirectory(solver)
 add_subdirectory(spmv)
 
 add_custom_target(make_run_all_benchmarks ALL)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/run_all_benchmarks.sh
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+    FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE
+    WORLD_READ WORLD_EXECUTE)
+
 add_custom_command(
     TARGET make_run_all_benchmarks POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
