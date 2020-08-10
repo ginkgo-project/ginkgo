@@ -339,26 +339,6 @@ build/cuda101/clang/all/release/static:
     - cuda
     - gpu
 
-build/cuda101/intel/cuda/debug/static:
-  <<: *default_build_with_test
-  image: localhost:5000/gko-cuda101-gnu8-llvm7-intel2019
-  variables:
-    <<: *default_variables
-    C_COMPILER: "icc"
-    CXX_COMPILER: "icpc"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_TYPE: "Debug"
-    BUILD_SHARED_LIBS: "OFF"
-    CUDA_ARCH: 35
-  only:
-    variables:
-      - $RUN_CI_TAG
-  tags:
-    - private_ci
-    - cuda
-    - gpu
-
 # clang-cuda with cuda 10.1 and friends
 build/clang-cuda101/gcc/all/release/shared:
   <<: *default_build_with_test
@@ -461,14 +441,13 @@ build/cuda102/intel/cuda/debug/static:
     - gpu
 
 # cuda 11.0 and friends
-build/cuda110/gcc/all/debug/shared:
+build/cuda110/gcc/cuda/debug/shared:
   <<: *default_build_with_test
   image: localhost:5000/gko-cuda110-gnu9-llvm9-intel2020
   variables:
     <<: *default_variables
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "OFF"
     BUILD_TYPE: "Debug"
     CUDA_ARCH: 35
   only:
@@ -479,7 +458,7 @@ build/cuda110/gcc/all/debug/shared:
     - cuda
     - gpu
 
-build/cuda110/clang/all/release/static:
+build/cuda110/clang/cuda/release/static:
   <<: *default_build_with_test
   image: localhost:5000/gko-cuda110-gnu9-llvm9-intel2020
   variables:
@@ -488,7 +467,6 @@ build/cuda110/clang/all/release/static:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
-    BUILD_HIP: "OFF"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     CUDA_ARCH: 35

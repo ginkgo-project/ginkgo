@@ -300,7 +300,8 @@ private:
     cusparseOperation_t trans_;
 };
 
-#endif
+
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 
 template <typename ValueType = gko::default_precision,
@@ -393,7 +394,7 @@ protected:
     {
 #ifdef ALLOWMP
         algmode_ = CUSPARSE_ALG_MERGE_PATH;
-#endif
+#endif  // ALLOWMP
     }
 
 private:
@@ -406,6 +407,7 @@ private:
 
 
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+
 
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32,
@@ -491,7 +493,7 @@ private:
 };
 
 
-#endif
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 
 #if defined(CUDA_VERSION) &&  \
@@ -523,7 +525,7 @@ void cusp_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
         &vecb, dense_b->get_num_stored_elements(),
         as_culibs_type(const_cast<ValueType *>(db)), cu_value));
 
-    size_t buffer_size = 0;
+    gko::size_type buffer_size = 0;
     GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseSpMV_bufferSize(
         gpu_exec->get_cusparse_handle(), trans, &scalars.get_const_data()[0],
         mat, vecb, &scalars.get_const_data()[1], vecx, cu_value, alg,
@@ -704,7 +706,7 @@ using cusp_csrex = detail::CuspCsrEx<>;
 using cusp_csr = detail::CuspCsr<>;
 using cusp_csrmp = detail::CuspCsrmp<>;
 using cusp_csrmm = detail::CuspCsrmm<>;
-#endif
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 
 
 #if defined(CUDA_VERSION) &&  \
@@ -728,6 +730,7 @@ using cusp_coo =
 using cusp_ell =
     detail::CuspHybrid<double, gko::int32, CUSPARSE_HYB_PARTITION_MAX, 0>;
 using cusp_hybrid = detail::CuspHybrid<>;
-#endif
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
+
 
 #endif  // GKO_BENCHMARK_UTILS_CUDA_LINOPS_HPP_

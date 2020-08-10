@@ -401,6 +401,7 @@ TEST_F(Csr, TransposeIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(d_trans.get()),
                         static_cast<Mtx *>(trans.get()), 0.0);
+    ASSERT_TRUE(static_cast<Mtx *>(d_trans.get())->is_sorted_by_column_index());
 }
 
 
@@ -482,18 +483,6 @@ TEST_F(Csr, MoveToSparsityCsrIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, ConvertsEmptyToSellp)
-{
-    auto dempty_mtx = Mtx::create(hip);
-    auto dsellp_mtx = gko::matrix::Sellp<>::create(hip);
-
-    dempty_mtx->convert_to(dsellp_mtx.get());
-
-    ASSERT_EQ(hip->copy_val_to_host(dsellp_mtx->get_const_slice_sets()), 0);
-    ASSERT_FALSE(dsellp_mtx->get_size());
-}
-
-
 TEST_F(Csr, CalculateMaxNnzPerRowIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
@@ -561,6 +550,18 @@ TEST_F(Csr, MoveToSellpIsEquivalentToRef)
 }
 
 
+TEST_F(Csr, ConvertsEmptyToSellp)
+{
+    auto dempty_mtx = Mtx::create(hip);
+    auto dsellp_mtx = gko::matrix::Sellp<>::create(hip);
+
+    dempty_mtx->convert_to(dsellp_mtx.get());
+
+    ASSERT_EQ(hip->copy_val_to_host(dsellp_mtx->get_const_slice_sets()), 0);
+    ASSERT_FALSE(dsellp_mtx->get_size());
+}
+
+
 TEST_F(Csr, CalculateTotalColsIsEquivalentToRef)
 {
     set_up_apply_data(std::make_shared<Mtx::sparselib>());
@@ -625,7 +626,7 @@ TEST_F(Csr, MoveToHybridIsEquivalentToRef)
 
 TEST_F(Csr, RecognizeSortedMatrixIsEquivalentToRef)
 {
-    set_up_apply_data(std::make_shared<Mtx::sparselib>());
+    set_up_apply_data(std::make_shared<Mtx::automatical>(hip));
     bool is_sorted_hip{};
     bool is_sorted_ref{};
 

@@ -63,12 +63,13 @@ std::string available_format =
     ", cusp_csr, cusp_csrex, cusp_coo"
 #if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
     ", cusp_csrmp, cusp_csrmm, cusp_ell, cusp_hybrid"
-#endif
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
 #if defined(CUDA_VERSION) &&  \
     (CUDA_VERSION >= 11000 || \
      ((CUDA_VERSION >= 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
     ", cusp_gcsr, cusp_gcsr2, cusp_gcoo"
-#endif
+#endif  // defined(CUDA_VERSION) && (CUDA_VERSION >= 11000 || ((CUDA_VERSION >=
+        // 10010) && !(defined(_WIN32) || defined(__CYGWIN__))))
 #endif  // HAS_CUDA
 #ifdef HAS_HIP
     ", hipsp_csr, hipsp_csrmm, hipsp_coo, hipsp_ell, hipsp_hybrid"
@@ -104,7 +105,7 @@ std::string format_description =
     "cusp_csrmm: benchmark CuSPARSE with the cusparseXcsrmv_mm function.\n"
     "cusp_hybrid: benchmark CuSPARSE spmv with cusparseXhybmv and an automatic "
     "partition.\n"
-#else
+#else  // CUDA_VERSION >= 11000
     "cusp_csr: is an alias of cusp_gcsr.\n"
     "cusp_coo: is an alias of cusp_gcoo.\n"
 #endif
@@ -207,7 +208,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
         {"cusp_hybrid", read_matrix_from_data<cusp_hybrid>},
         {"cusp_coo", read_matrix_from_data<cusp_coo>},
         {"cusp_ell", read_matrix_from_data<cusp_ell>},
-#else
+#else // CUDA_VERSION >= 11000
         // cusp_csr, cusp_coo use the generic ones from CUDA 11
         {"cusp_csr", read_matrix_from_data<cusp_gcsr>},
         {"cusp_coo", read_matrix_from_data<cusp_gcoo>},

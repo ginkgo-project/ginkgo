@@ -416,6 +416,7 @@ TEST_F(Csr, TransposeIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(static_cast<Mtx *>(d_trans.get()),
                         static_cast<Mtx *>(trans.get()), 0.0);
+    ASSERT_TRUE(static_cast<Mtx *>(d_trans.get())->is_sorted_by_column_index());
 }
 
 
@@ -428,6 +429,8 @@ TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(static_cast<ComplexMtx *>(d_trans.get()),
                         static_cast<ComplexMtx *>(trans.get()), 0.0);
+    ASSERT_TRUE(
+        static_cast<ComplexMtx *>(d_trans.get())->is_sorted_by_column_index());
 }
 
 
