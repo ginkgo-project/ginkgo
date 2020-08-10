@@ -70,7 +70,9 @@ class Diagonal : public ConvertibleTo<Csr<ValueType, int32>>,
                  public EnableCreateMethod<Diagonal<ValueType>>,
                  public Transposable,
                  public WritableToMatrixData<ValueType, int32>,
-                 public WritableToMatrixData<ValueType, int64> {
+                 public WritableToMatrixData<ValueType, int64>,
+                 public ReadableFromMatrixData<ValueType, int32>,
+                 public ReadableFromMatrixData<ValueType, int64> {
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
     friend class EnablePolymorphicObject<Diagonal, LinOp>;
@@ -128,6 +130,10 @@ public:
 
         this->rapply_impl(b, x);
     }
+
+    void read(const mat_data &data) override;
+
+    void read(const mat_data32 &data) override;
 
     void write(mat_data &data) const override;
 

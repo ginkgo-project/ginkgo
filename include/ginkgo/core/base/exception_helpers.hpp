@@ -212,9 +212,9 @@ inline dim<2> get_size(const dim<2> &size) { return size; }
 
 
 /**
- * Asserts that _op1 can be applied to _op2.
+ * Asserts that _op1 can be applied to _op2 from the right.
  *
- * @throw DimensionMismatch  if _op1 cannot be applied to _op2.
+ * @throw DimensionMismatch  if _op1 cannot be applied to _op2 from the right.
  */
 #define GKO_ASSERT_REVERSE_CONFORMANT(_op1, _op2)                             \
     if (::gko::detail::get_size(_op1)[0] !=                                   \

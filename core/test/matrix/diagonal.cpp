@@ -141,6 +141,7 @@ TYPED_TEST(Diagonal, CanBeMoved)
 TYPED_TEST(Diagonal, CanBeCloned)
 {
     using Diag = typename TestFixture::Diag;
+
     auto clone = this->diag->clone();
 
     this->assert_equal_to_original_mtx(this->diag.get());
@@ -154,6 +155,54 @@ TYPED_TEST(Diagonal, CanBeCleared)
     this->diag->clear();
 
     this->assert_empty(this->diag.get());
+}
+
+
+TYPED_TEST(Diagonal, CanBeReadFromMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::matrix::Diagonal<TypeParam>::create(this->exec);
+    m->read(gko::matrix_data<TypeParam>{{3, 3}, {{2, 2, 2.0}, {0, 0, 1.0}}});
+
+    const auto values = m->get_const_values();
+
+    ASSERT_EQ(m->get_size(), gko::dim<2>(3, 3));
+    EXPECT_EQ(values[0], value_type{1.0});
+    EXPECT_EQ(values[1], value_type{0.0});
+    EXPECT_EQ(values[2], value_type{2.0});
+}
+
+
+TYPED_TEST(Diagonal, CannotBeReadFromNonSquareMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::matrix::Diagonal<TypeParam>::create(this->exec);
+
+    ASSERT_THROW(m->read(gko::matrix_data<TypeParam>{
+                     {3, 4}, {{0, 0, 1.0}, {1, 1, 3.0}, {2, 2, 2.0}}}),
+                 gko::ValueMismatch);
+}
+
+
+TYPED_TEST(Diagonal, ReadFailsForOffDiagonalEntries)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::matrix::Diagonal<TypeParam>::create(this->exec);
+
+    ASSERT_THROW(m->read(gko::matrix_data<TypeParam>{
+                     {3, 3}, {{0, 0, 1.0}, {1, 2, 3.0}, {2, 2, 2.0}}}),
+                 gko::ValueMismatch);
+}
+
+
+TYPED_TEST(Diagonal, ReadFailsForTooManyEntries)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::matrix::Diagonal<TypeParam>::create(this->exec);
+
+    ASSERT_THROW(m->read(gko::matrix_data<TypeParam>{
+                     {2, 2}, {{0, 0, 1.0}, {1, 1, 2.0}, {0, 1, 3.0}}}),
+                 gko::ValueMismatch);
 }
 
 
