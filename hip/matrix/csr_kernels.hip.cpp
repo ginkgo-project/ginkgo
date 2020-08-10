@@ -926,7 +926,7 @@ void transpose(std::shared_ptr<const HipExecutor> exec,
             orig->get_size()[1], orig->get_num_stored_elements(),
             orig->get_const_values(), orig->get_const_row_ptrs(),
             orig->get_const_col_idxs(), trans->get_values(),
-            trans->get_col_idxs(), trans->get_row_ptrs(), copyValues, idxBase);
+            trans->get_row_ptrs(), trans->get_col_idxs(), copyValues, idxBase);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
