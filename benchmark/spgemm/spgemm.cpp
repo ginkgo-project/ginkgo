@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <random>
 #include <typeinfo>
+#include <unordered_set>
 
 
 #include "benchmark/utils/general.hpp"
@@ -162,7 +163,8 @@ DEFINE_string(
     "Comma-separated list of SpGEMM strategies: onepass, twopass, sparselib");
 
 
-gko::int64 compute_spgemm_work(const gko::matrix_data<etype, itype> &data)
+std::pair<gko::int64, gko::int64> compute_spgemm_work_and_nnz(
+    const gko::matrix_data<etype, itype> &data)
 {
     auto ref = gko::ReferenceExecutor::create();
     auto ref_mtx = gko::share(Mtx::create(ref));
@@ -171,18 +173,25 @@ gko::int64 compute_spgemm_work(const gko::matrix_data<etype, itype> &data)
 
     auto num_rows = ref_mtx->get_size()[0];
     gko::int64 total_count{};
+    gko::int64 nnz{};
+    std::unordered_set<itype> columns;
     // for each row of A ...
     for (gko::size_type row = 0; row < num_rows; ++row) {
+        columns.clear();
         auto begin = ref_mtx->get_const_row_ptrs()[row];
         auto end = ref_mtx->get_const_row_ptrs()[row + 1];
         // sum up the size of all corresponding rows of B
         for (auto nz = begin; nz < end; ++nz) {
             auto col = ref_mtx->get_const_col_idxs()[nz];
-            total_count += ref_mtx2->get_const_row_ptrs()[col + 1] -
-                           ref_mtx2->get_const_row_ptrs()[col];
+            auto b_begin = ref_mtx2->get_const_row_ptrs()[col];
+            auto b_end = ref_mtx2->get_const_row_ptrs()[col + 1];
+            total_count += b_end - b_begin;
+            columns.insert(ref_mtx2->get_const_col_idxs() + b_begin,
+                           ref_mtx2->get_const_col_idxs() + b_end);
         }
+        nnz += columns.size();
     }
-    return total_count;
+    return {total_count, nnz};
 }
 
 
@@ -371,16 +380,19 @@ int main(int argc, char *argv[])
 
             // compute the exact amount of products a_ik * b_kj the SpGEMM has
             // to compute
-            auto total_work = compute_spgemm_work(data);
+            auto spgemm_stats = compute_spgemm_work_and_nnz(data);
+            auto total_work = spgemm_stats.first;
+            auto total_nnz = spgemm_stats.second;
 
-            // store the amount of work the SpGEMM has to do
+            // store the amount of work and output nnz for SpGEMM
             add_or_set_member(test_case, "spgemm_work", total_work, allocator);
+            add_or_set_member(test_case, "spgemm_nnz", total_nnz, allocator);
 
             std::clog << "Matrix is of size (" << data.size[0] << ", "
                       << data.size[1] << "), " << data.nonzeros.size() << ", "
-                      << total_work << std::endl;
+                      << total_work << ", " << total_nnz << std::endl;
 
-            if (total_work > std::numeric_limits<itype>::max()) {
+            if (total_nnz > std::numeric_limits<itype>::max()) {
                 std::clog << "Computing the product A*B would overflow the "
                              "index type, skipping"
                           << std::endl;
