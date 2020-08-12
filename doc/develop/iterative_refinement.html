@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/176377823 branch based on develop. Ginkgo version 1.2.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/176959364 branch based on develop. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -105,8 +105,10 @@ $(function() {
 <div class="line">{</div>
 </div><!-- fragment --><p>Some shortcuts</p>
 <div class="fragment"><div class="line"><span class="keyword">using</span> ValueType = double;</div>
+<div class="line"><span class="keyword">using</span> RealValueType = <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a>;</div>
 <div class="line"><span class="keyword">using</span> IndexType = int;</div>
 <div class="line"><span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
+<div class="line"><span class="keyword">using</span> real_vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;RealValueType&gt;</a>;</div>
 <div class="line"><span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;ValueType, IndexType&gt;</a>;</div>
 <div class="line"><span class="keyword">using</span> cg = <a class="code" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg&lt;ValueType&gt;</a>;</div>
 <div class="line"><span class="keyword">using</span> ir = <a class="code" href="classgko_1_1solver_1_1Ir.html">gko::solver::Ir&lt;ValueType&gt;</a>;</div>
@@ -144,13 +146,13 @@ $(function() {
 </div><!-- fragment --><p>Calculate initial residual by overwriting b</p>
 <div class="fragment"><div class="line"><span class="keyword">auto</span> <a class="code" href="namespacegko.html#a0059e27f8f4bc348ff65c1e60caf47c8">one</a> = gko::initialize&lt;vec&gt;({1.0}, exec);</div>
 <div class="line"><span class="keyword">auto</span> neg_one = gko::initialize&lt;vec&gt;({-1.0}, exec);</div>
-<div class="line"><span class="keyword">auto</span> initres = gko::initialize&lt;vec&gt;({0.0}, exec);</div>
+<div class="line"><span class="keyword">auto</span> initres = gko::initialize&lt;real_vec&gt;({0.0}, exec);</div>
 <div class="line">A-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(neg_one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b));</div>
 <div class="line">b-&gt;compute_norm2(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(initres));</div>
 </div><!-- fragment --><p>copy b again</p>
 <div class="fragment"><div class="line">b-&gt;copy_from(host_x.get());</div>
 <div class="line"><a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a> max_iters = 10000u;</div>
-<div class="line"><a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> outer_reduction_factor = 1e-12;</div>
+<div class="line">RealValueType outer_reduction_factor{1e-12};</div>
 <div class="line"><span class="keyword">auto</span> iter_stop =</div>
 <div class="line">    gko::stop::Iteration::build().with_max_iters(max_iters).on(exec);</div>
 <div class="line"><span class="keyword">auto</span> tol_stop = <a class="code" href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction&lt;ValueType&gt;::build</a>()</div>
@@ -162,7 +164,7 @@ $(function() {
 <div class="line">iter_stop-&gt;add_logger(logger);</div>
 <div class="line">tol_stop-&gt;add_logger(logger);</div>
 </div><!-- fragment --><p>Create solver factory</p>
-<div class="fragment"><div class="line"><a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> inner_reduction_factor = 1e-2;</div>
+<div class="fragment"><div class="line">RealValueType inner_reduction_factor{1e-2};</div>
 <div class="line"><span class="keyword">auto</span> solver_gen =</div>
 <div class="line">    ir::build()</div>
 <div class="line">        .with_solver(</div>
@@ -184,7 +186,7 @@ $(function() {
 <div class="line"><span class="keyword">auto</span> toc = std::chrono::steady_clock::now();</div>
 <div class="line">time += std::chrono::duration_cast&lt;std::chrono::nanoseconds&gt;(toc - tic);</div>
 </div><!-- fragment --><p>Calculate residual</p>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> res = gko::initialize&lt;vec&gt;({0.0}, exec);</div>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> res = gko::initialize&lt;real_vec&gt;({0.0}, exec);</div>
 <div class="line">A-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(neg_one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b));</div>
 <div class="line">b-&gt;compute_norm2(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(res));</div>
 <div class="line"> </div>
@@ -209,7 +211,7 @@ $(function() {
 <div class="line">1 1</div>
 <div class="line">4.23821e-11</div>
 <div class="line">IR iteration count:     24</div>
-<div class="line">IR execution time [ms]: 18.0692</div>
+<div class="line">IR execution time [ms]: 14.9084</div>
 </div><!-- fragment --><p><a class="anchor" id="Commentsaboutprogramminganddebugging"></a></p><h3>Comments about programming and debugging </h3>
 <p><a class="anchor" id="PlainProg"></a> </p><h1>The plain program</h1>
 <div class="fragment"><div class="line"><span class="comment">/*******************************&lt;GINKGO LICENSE&gt;******************************</span></div>
@@ -257,8 +259,10 @@ $(function() {
 <div class="line"><span class="keywordtype">int</span> main(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span> *argv[])</div>
 <div class="line">{</div>
 <div class="line">    <span class="keyword">using</span> ValueType = double;</div>
+<div class="line">    <span class="keyword">using</span> RealValueType = <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a>;</div>
 <div class="line">    <span class="keyword">using</span> IndexType = int;</div>
 <div class="line">    <span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> real_vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;RealValueType&gt;</a>;</div>
 <div class="line">    <span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;ValueType, IndexType&gt;</a>;</div>
 <div class="line">    <span class="keyword">using</span> cg = <a class="code" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg&lt;ValueType&gt;</a>;</div>
 <div class="line">    <span class="keyword">using</span> ir = <a class="code" href="classgko_1_1solver_1_1Ir.html">gko::solver::Ir&lt;ValueType&gt;</a>;</div>
@@ -295,13 +299,13 @@ $(function() {
 <div class="line"> </div>
 <div class="line">    <span class="keyword">auto</span> <a class="code" href="namespacegko.html#a0059e27f8f4bc348ff65c1e60caf47c8">one</a> = gko::initialize&lt;vec&gt;({1.0}, exec);</div>
 <div class="line">    <span class="keyword">auto</span> neg_one = gko::initialize&lt;vec&gt;({-1.0}, exec);</div>
-<div class="line">    <span class="keyword">auto</span> initres = gko::initialize&lt;vec&gt;({0.0}, exec);</div>
+<div class="line">    <span class="keyword">auto</span> initres = gko::initialize&lt;real_vec&gt;({0.0}, exec);</div>
 <div class="line">    A-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(neg_one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b));</div>
 <div class="line">    b-&gt;compute_norm2(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(initres));</div>
 <div class="line"> </div>
 <div class="line">    b-&gt;copy_from(host_x.get());</div>
 <div class="line">    <a class="code" href="namespacegko.html#a6e5c95df0ae4e47aab2f604a22d98ee7">gko::size_type</a> max_iters = 10000u;</div>
-<div class="line">    <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> outer_reduction_factor = 1e-12;</div>
+<div class="line">    RealValueType outer_reduction_factor{1e-12};</div>
 <div class="line">    <span class="keyword">auto</span> iter_stop =</div>
 <div class="line">        gko::stop::Iteration::build().with_max_iters(max_iters).on(exec);</div>
 <div class="line">    <span class="keyword">auto</span> tol_stop = <a class="code" href="classgko_1_1stop_1_1ResidualNormReduction.html">gko::stop::ResidualNormReduction&lt;ValueType&gt;::build</a>()</div>
@@ -313,7 +317,7 @@ $(function() {
 <div class="line">    iter_stop-&gt;add_logger(logger);</div>
 <div class="line">    tol_stop-&gt;add_logger(logger);</div>
 <div class="line"> </div>
-<div class="line">    <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> inner_reduction_factor = 1e-2;</div>
+<div class="line">    RealValueType inner_reduction_factor{1e-2};</div>
 <div class="line">    <span class="keyword">auto</span> solver_gen =</div>
 <div class="line">        ir::build()</div>
 <div class="line">            .with_solver(</div>
@@ -335,7 +339,7 @@ $(function() {
 <div class="line">    <span class="keyword">auto</span> toc = std::chrono::steady_clock::now();</div>
 <div class="line">    time += std::chrono::duration_cast&lt;std::chrono::nanoseconds&gt;(toc - tic);</div>
 <div class="line"> </div>
-<div class="line">    <span class="keyword">auto</span> res = gko::initialize&lt;vec&gt;({0.0}, exec);</div>
+<div class="line">    <span class="keyword">auto</span> res = gko::initialize&lt;real_vec&gt;({0.0}, exec);</div>
 <div class="line">    A-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(neg_one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b));</div>
 <div class="line">    b-&gt;compute_norm2(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(res));</div>
 <div class="line"> </div>

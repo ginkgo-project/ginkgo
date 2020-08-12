@@ -34,7 +34,6 @@ var searchData=
   ['transpose_5foperation_700',['transpose_operation',['../structgko_1_1accessor_1_1transpose__operation.html',1,'gko::accessor']]],
   ['truncate_5ftype_701',['truncate_type',['../namespacegko.html#a512fc29f227f5d452e13787bf3df7d48',1,'gko']]],
   ['truncated_702',['truncated',['../classgko_1_1truncated.html',1,'gko']]],
-  ['the_20twentyseven_2dpt_2dstencil_2dsolver_20program_703',['The twentyseven-pt-stencil-solver program',['../twentyseven_pt_stencil_solver.html',1,'']]],
-  ['type_704',['type',['../structgko_1_1cpx__real__type.html#a6fec5b28321901b6da393b424afb144b',1,'gko::cpx_real_type']]],
-  ['type_5flist_705',['type_list',['../structgko_1_1syn_1_1type__list.html',1,'gko::syn']]]
+  ['type_703',['type',['../structgko_1_1cpx__real__type.html#a6fec5b28321901b6da393b424afb144b',1,'gko::cpx_real_type']]],
+  ['type_5flist_704',['type_list',['../structgko_1_1syn_1_1type__list.html',1,'gko::syn']]]
 ];

@@ -114,7 +114,7 @@ Computes the 1-\/norm of the error given the computed {\ttfamily u} and the corr
 \DoxyCodeLine{    Closure correct\_u)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{const} ValueType h = 1.0 / static\_cast<ValueType>(discretization\_points + 1);}
-\DoxyCodeLine{    \textcolor{keyword}{auto} error = 0.0;}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} error = 0.0;}
 \DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < discretization\_points; ++i) \{}
 \DoxyCodeLine{        \textcolor{keyword}{using} std::abs;}
 \DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = static\_cast<ValueType>(i + 1) * h;}
@@ -387,7 +387,7 @@ This is the expected output\+:
 \DoxyCodeLine{    Closure correct\_u)}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{const} ValueType h = 1.0 / static\_cast<ValueType>(discretization\_points + 1);}
-\DoxyCodeLine{    \textcolor{keyword}{auto} error = 0.0;}
+\DoxyCodeLine{    \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}} error = 0.0;}
 \DoxyCodeLine{    \textcolor{keywordflow}{for} (\textcolor{keywordtype}{int} i = 0; i < discretization\_points; ++i) \{}
 \DoxyCodeLine{        \textcolor{keyword}{using} std::abs;}
 \DoxyCodeLine{        \textcolor{keyword}{const} \textcolor{keyword}{auto} xi = static\_cast<ValueType>(i + 1) * h;}

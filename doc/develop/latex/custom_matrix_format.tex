@@ -280,6 +280,7 @@ Some shortcuts
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{\textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}};}
 \DoxyCodeLine{\textcolor{keyword}{using} IndexType = int;}
 \DoxyCodeLine{}
 \DoxyCodeLine{\textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
@@ -346,7 +347,7 @@ problem\+:
 
 \begin{DoxyCode}{0}
 \DoxyCodeLine{\textcolor{keyword}{auto} correct\_u = [](ValueType x) \{ \textcolor{keywordflow}{return} x * x * x; \};}
-\DoxyCodeLine{\textcolor{keyword}{auto} f = [](ValueType x) \{ \textcolor{keywordflow}{return} ValueType(6) * x; \};}
+\DoxyCodeLine{\textcolor{keyword}{auto} f = [](ValueType x) \{ \textcolor{keywordflow}{return} ValueType\{6\} * x; \};}
 \DoxyCodeLine{\textcolor{keyword}{auto} u0 = correct\_u(0);}
 \DoxyCodeLine{\textcolor{keyword}{auto} u1 = correct\_u(1);}
 \end{DoxyCode}
@@ -363,7 +364,7 @@ initialize vectors
 \DoxyCodeLine{    u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\_values}}()[i] = 0.0;}
 \DoxyCodeLine{\}}
 \DoxyCodeLine{}
-\DoxyCodeLine{\textcolor{keyword}{const} ValueType reduction\_factor = 1e-\/7;}
+\DoxyCodeLine{\textcolor{keyword}{const} RealValueType reduction\_factor\{1e-\/7\};}
 \end{DoxyCode}
 
 
@@ -600,6 +601,7 @@ notice how our custom Stencil\+Matrix can be used in the same way as any built-\
 \DoxyCodeLine{\textcolor{keywordtype}{int} main(\textcolor{keywordtype}{int} argc, \textcolor{keywordtype}{char} *argv[])}
 \DoxyCodeLine{\{}
 \DoxyCodeLine{    \textcolor{keyword}{using} ValueType = double;}
+\DoxyCodeLine{    \textcolor{keyword}{using} RealValueType = \mbox{\hyperlink{namespacegko_adfcb75c44f6b6c701989419c166f6e7e}{gko::remove\_complex<ValueType>}};}
 \DoxyCodeLine{    \textcolor{keyword}{using} IndexType = int;}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{using} vec = \mbox{\hyperlink{classgko_1_1matrix_1_1Dense}{gko::matrix::Dense<ValueType>}};}
@@ -635,7 +637,7 @@ notice how our custom Stencil\+Matrix can be used in the same way as any built-\
 \DoxyCodeLine{    \textcolor{keyword}{const} \textcolor{keyword}{auto} app\_exec = exec-\/>get\_master();}
 \DoxyCodeLine{}
 \DoxyCodeLine{    \textcolor{keyword}{auto} correct\_u = [](ValueType x) \{ \textcolor{keywordflow}{return} x * x * x; \};}
-\DoxyCodeLine{    \textcolor{keyword}{auto} f = [](ValueType x) \{ \textcolor{keywordflow}{return} ValueType(6) * x; \};}
+\DoxyCodeLine{    \textcolor{keyword}{auto} f = [](ValueType x) \{ \textcolor{keywordflow}{return} ValueType\{6\} * x; \};}
 \DoxyCodeLine{    \textcolor{keyword}{auto} u0 = correct\_u(0);}
 \DoxyCodeLine{    \textcolor{keyword}{auto} u1 = correct\_u(1);}
 \DoxyCodeLine{}
@@ -646,7 +648,7 @@ notice how our custom Stencil\+Matrix can be used in the same way as any built-\
 \DoxyCodeLine{        u-\/>\mbox{\hyperlink{classgko_1_1matrix_1_1Dense_a3bc458e02fab8e4c9f60f70bd4d5a4f9}{get\_values}}()[i] = 0.0;}
 \DoxyCodeLine{    \}}
 \DoxyCodeLine{}
-\DoxyCodeLine{    \textcolor{keyword}{const} ValueType reduction\_factor = 1e-\/7;}
+\DoxyCodeLine{    \textcolor{keyword}{const} RealValueType reduction\_factor\{1e-\/7\};}
 \DoxyCodeLine{    cg::build()}
 \DoxyCodeLine{        .with\_criteria(gko::stop::Iteration::build()}
 \DoxyCodeLine{                           .with\_max\_iters(discretization\_points)}

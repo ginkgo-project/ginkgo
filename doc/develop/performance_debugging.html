@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/176377823 branch based on develop. Ginkgo version 1.2.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/176959364 branch based on develop. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -116,6 +116,10 @@ $(function() {
 <div class="line"><span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
 <div class="line"> </div>
 <div class="line"> </div>
+<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType&gt;</div>
+<div class="line"><span class="keyword">using</span> real_vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;gko::remove_complex&lt;ValueType&gt;</a>&gt;;</div>
+<div class="line"> </div>
+<div class="line"> </div>
 <div class="line"><span class="keyword">namespace </span>utils {</div>
 </div><!-- fragment --><p>creates a zero vector</p>
 <div class="fragment"><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType&gt;</div>
@@ -129,9 +133,9 @@ $(function() {
 <div class="line">}</div>
 </div><!-- fragment --><p>utilities for computing norms and residuals</p>
 <div class="fragment"><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType&gt;</div>
-<div class="line"><a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> get_norm(<span class="keyword">const</span> vec&lt;ValueType&gt; *norm)</div>
+<div class="line">ValueType get_first_element(<span class="keyword">const</span> vec&lt;ValueType&gt; *norm)</div>
 <div class="line">{</div>
-<div class="line">    <span class="keywordflow">return</span> std::real(<a class="code" href="namespacegko.html#a1beb80750459e4201aa9d882d2d074c3">clone</a>(norm-&gt;get_executor()-&gt;get_master(), norm)-&gt;at(0, 0));</div>
+<div class="line">    <span class="keywordflow">return</span> norm-&gt;get_executor()-&gt;copy_val_to_host(norm-&gt;get_const_values());</div>
 <div class="line">}</div>
 <div class="line"> </div>
 <div class="line"> </div>
@@ -139,9 +143,9 @@ $(function() {
 <div class="line"><a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> compute_norm(<span class="keyword">const</span> vec&lt;ValueType&gt; *b)</div>
 <div class="line">{</div>
 <div class="line">    <span class="keyword">auto</span> exec = b-&gt;get_executor();</div>
-<div class="line">    <span class="keyword">auto</span> b_norm = gko::initialize&lt;vec&lt;ValueType&gt;&gt;({0.0}, exec);</div>
+<div class="line">    <span class="keyword">auto</span> b_norm = gko::initialize&lt;real_vec&lt;ValueType&gt;&gt;({0.0}, exec);</div>
 <div class="line">    b-&gt;compute_norm2(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">gko::lend</a>(b_norm));</div>
-<div class="line">    <span class="keywordflow">return</span> get_norm(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">gko::lend</a>(b_norm));</div>
+<div class="line">    <span class="keywordflow">return</span> get_first_element(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">gko::lend</a>(b_norm));</div>
 <div class="line">}</div>
 <div class="line"> </div>
 <div class="line"> </div>
@@ -304,8 +308,8 @@ $(function() {
 <div class="line">                               <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *residual_norm)<span class="keyword"> const override</span></div>
 <div class="line"><span class="keyword">    </span>{</div>
 <div class="line">        <span class="keywordflow">if</span> (residual_norm) {</div>
-<div class="line">            rec_res_norms.push_back(</div>
-<div class="line">                utils::get_norm(<a class="code" href="namespacegko.html#a73ce7e87aec389b5210630bb617b4baa">gko::as</a>&lt;vec&lt;ValueType&gt;&gt;(residual_norm)));</div>
+<div class="line">            rec_res_norms.push_back(utils::get_first_element(</div>
+<div class="line">                <a class="code" href="namespacegko.html#a73ce7e87aec389b5210630bb617b4baa">gko::as</a>&lt;real_vec&lt;ValueType&gt;&gt;(residual_norm)));</div>
 <div class="line">        } <span class="keywordflow">else</span> {</div>
 <div class="line">            rec_res_norms.push_back(</div>
 <div class="line">                utils::compute_norm(<a class="code" href="namespacegko.html#a73ce7e87aec389b5210630bb617b4baa">gko::as</a>&lt;vec&lt;ValueType&gt;&gt;(residual)));</div>
@@ -345,8 +349,8 @@ $(function() {
 <div class="line"><span class="keyword">private</span>:</div>
 <div class="line">    <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *matrix;</div>
 <div class="line">    <span class="keyword">const</span> vec&lt;ValueType&gt; *b;</div>
-<div class="line">    <span class="keyword">mutable</span> std::vector&lt;ValueType&gt; rec_res_norms;</div>
-<div class="line">    <span class="keyword">mutable</span> std::vector&lt;ValueType&gt; true_res_norms;</div>
+<div class="line">    <span class="keyword">mutable</span> std::vector&lt;gko::remove_complex&lt;ValueType&gt;&gt; rec_res_norms;</div>
+<div class="line">    <span class="keyword">mutable</span> std::vector&lt;gko::remove_complex&lt;ValueType&gt;&gt; true_res_norms;</div>
 <div class="line">};</div>
 <div class="line"> </div>
 <div class="line"> </div>
@@ -521,81 +525,81 @@ $(function() {
 <div class="line">}</div>
 </div><!-- fragment --><p> <a class="anchor" id="Results"></a></p><h1>Results</h1>
 <p>This is the expected standard output:</p>
-<div class="fragment"><div class="line">Solution, maximum first ten entries:</div>
+<div class="fragment"><div class="line">Solution, first ten entries:</div>
 <div class="line">[</div>
-<div class="line">        0</div>
-<div class="line">        0</div>
-<div class="line">        0</div>
-<div class="line">        0</div>
-<div class="line">        0</div>
-<div class="line">        0</div>
-<div class="line">        0</div>
-<div class="line">        0</div>
-<div class="line">        0</div>
-<div class="line">        0</div>
+<div class="line">    0.252218</div>
+<div class="line">    0.108645</div>
+<div class="line">    0.0662811</div>
+<div class="line">    0.0630433</div>
+<div class="line">    0.0384088</div>
+<div class="line">    0.0396536</div>
+<div class="line">    0.0402648</div>
+<div class="line">    0.0338935</div>
+<div class="line">    0.0193098</div>
+<div class="line">    0.0234653</div>
 <div class="line">];</div>
 <div class="line">The performance and residual data can be found in log.txt</div>
-</div><!-- fragment --><p>Here is a sample output in the file log.txt: </p><div class="fragment"><div class="line">Generate time (ns): 3596</div>
-<div class="line">Apply time (ns): 253224</div>
+</div><!-- fragment --><p>Here is a sample output in the file log.txt: </p><div class="fragment"><div class="line">Generate time (ns): 861</div>
+<div class="line">Apply time (ns): 108144</div>
 <div class="line">Residual_norm: 2.10788e-15</div>
 <div class="line">Generate operations times (ns):</div>
 <div class="line">Apply operations times (ns):</div>
-<div class="line">        allocate: 40497</div>
-<div class="line">        cg::<a class="code" href="group__mat__formats.html#ga2f54bac1e95fb3ef03974fa9c9088491">initialize</a>#8: 2306</div>
-<div class="line">        cg::step_1#5: 29808</div>
-<div class="line">        cg::step_2#7: 32354</div>
-<div class="line">        copy: 16858</div>
-<div class="line">        csr::advanced_spmv#5: 51669</div>
-<div class="line">        csr::spmv#3: 46915</div>
-<div class="line">        dense::compute_dot#3: 28548</div>
-<div class="line">        dense::compute_norm2#2: 45677</div>
-<div class="line">        free: 25109</div>
-<div class="line">        residual_norm::residual_norm#9: 10617</div>
+<div class="line">    allocate: 14991</div>
+<div class="line">    cg::<a class="code" href="group__mat__formats.html#ga2f54bac1e95fb3ef03974fa9c9088491">initialize</a>#8: 872</div>
+<div class="line">    cg::step_1#5: 7683</div>
+<div class="line">    cg::step_2#7: 7756</div>
+<div class="line">    copy: 7751</div>
+<div class="line">    csr::advanced_spmv#5: 21819</div>
+<div class="line">    csr::spmv#3: 20429</div>
+<div class="line">    dense::compute_dot#3: 18043</div>
+<div class="line">    dense::compute_norm2#2: 16726</div>
+<div class="line">    free: 8857</div>
+<div class="line">    residual_norm::residual_norm#9: 3614</div>
 <div class="line">Recurrent Residual Norms:</div>
 <div class="line">[</div>
-<div class="line">        4.3589</div>
-<div class="line">        2.30455</div>
-<div class="line">        1.46771</div>
-<div class="line">        0.984875</div>
-<div class="line">        0.741833</div>
-<div class="line">        0.513623</div>
-<div class="line">        0.384165</div>
-<div class="line">        0.316439</div>
-<div class="line">        0.227709</div>
-<div class="line">        0.170312</div>
-<div class="line">        0.0973722</div>
-<div class="line">        0.0616831</div>
-<div class="line">        0.0454123</div>
-<div class="line">        0.031953</div>
-<div class="line">        0.0161606</div>
-<div class="line">        0.00657015</div>
-<div class="line">        0.00264367</div>
-<div class="line">        0.000858809</div>
-<div class="line">        0.000286461</div>
-<div class="line">        1.64195e-15</div>
+<div class="line">    4.3589</div>
+<div class="line">    2.30455</div>
+<div class="line">    1.46771</div>
+<div class="line">    0.984875</div>
+<div class="line">    0.741833</div>
+<div class="line">    0.513623</div>
+<div class="line">    0.384165</div>
+<div class="line">    0.316439</div>
+<div class="line">    0.227709</div>
+<div class="line">    0.170312</div>
+<div class="line">    0.0973722</div>
+<div class="line">    0.0616831</div>
+<div class="line">    0.0454123</div>
+<div class="line">    0.031953</div>
+<div class="line">    0.0161606</div>
+<div class="line">    0.00657015</div>
+<div class="line">    0.00264367</div>
+<div class="line">    0.000858809</div>
+<div class="line">    0.000286461</div>
+<div class="line">    1.64195e-15</div>
 <div class="line">];</div>
 <div class="line">True Residual Norms:</div>
 <div class="line">[</div>
-<div class="line">        4.3589</div>
-<div class="line">        2.30455</div>
-<div class="line">        1.46771</div>
-<div class="line">        0.984875</div>
-<div class="line">        0.741833</div>
-<div class="line">        0.513623</div>
-<div class="line">        0.384165</div>
-<div class="line">        0.316439</div>
-<div class="line">        0.227709</div>
-<div class="line">        0.170312</div>
-<div class="line">        0.0973722</div>
-<div class="line">        0.0616831</div>
-<div class="line">        0.0454123</div>
-<div class="line">        0.031953</div>
-<div class="line">        0.0161606</div>
-<div class="line">        0.00657015</div>
-<div class="line">        0.00264367</div>
-<div class="line">        0.000858809</div>
-<div class="line">        0.000286461</div>
-<div class="line">        2.10788e-15</div>
+<div class="line">    4.3589</div>
+<div class="line">    2.30455</div>
+<div class="line">    1.46771</div>
+<div class="line">    0.984875</div>
+<div class="line">    0.741833</div>
+<div class="line">    0.513623</div>
+<div class="line">    0.384165</div>
+<div class="line">    0.316439</div>
+<div class="line">    0.227709</div>
+<div class="line">    0.170312</div>
+<div class="line">    0.0973722</div>
+<div class="line">    0.0616831</div>
+<div class="line">    0.0454123</div>
+<div class="line">    0.031953</div>
+<div class="line">    0.0161606</div>
+<div class="line">    0.00657015</div>
+<div class="line">    0.00264367</div>
+<div class="line">    0.000858809</div>
+<div class="line">    0.000286461</div>
+<div class="line">    2.10788e-15</div>
 <div class="line">];</div>
 </div><!-- fragment --><p><a class="anchor" id="Commentsaboutprogramminganddebugging"></a></p><h3>Comments about programming and debugging </h3>
 <p><a class="anchor" id="PlainProg"></a> </p><h1>The plain program</h1>
@@ -654,6 +658,10 @@ $(function() {
 <div class="line"><span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
 <div class="line"> </div>
 <div class="line"> </div>
+<div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType&gt;</div>
+<div class="line"><span class="keyword">using</span> real_vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;gko::remove_complex&lt;ValueType&gt;</a>&gt;;</div>
+<div class="line"> </div>
+<div class="line"> </div>
 <div class="line"><span class="keyword">namespace </span>utils {</div>
 <div class="line"> </div>
 <div class="line"> </div>
@@ -669,9 +677,9 @@ $(function() {
 <div class="line"> </div>
 <div class="line"> </div>
 <div class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ValueType&gt;</div>
-<div class="line"><a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> get_norm(<span class="keyword">const</span> vec&lt;ValueType&gt; *norm)</div>
+<div class="line">ValueType get_first_element(<span class="keyword">const</span> vec&lt;ValueType&gt; *norm)</div>
 <div class="line">{</div>
-<div class="line">    <span class="keywordflow">return</span> std::real(<a class="code" href="namespacegko.html#a1beb80750459e4201aa9d882d2d074c3">clone</a>(norm-&gt;get_executor()-&gt;get_master(), norm)-&gt;at(0, 0));</div>
+<div class="line">    <span class="keywordflow">return</span> norm-&gt;get_executor()-&gt;copy_val_to_host(norm-&gt;get_const_values());</div>
 <div class="line">}</div>
 <div class="line"> </div>
 <div class="line"> </div>
@@ -679,9 +687,9 @@ $(function() {
 <div class="line"><a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> compute_norm(<span class="keyword">const</span> vec&lt;ValueType&gt; *b)</div>
 <div class="line">{</div>
 <div class="line">    <span class="keyword">auto</span> exec = b-&gt;get_executor();</div>
-<div class="line">    <span class="keyword">auto</span> b_norm = gko::initialize&lt;vec&lt;ValueType&gt;&gt;({0.0}, exec);</div>
+<div class="line">    <span class="keyword">auto</span> b_norm = gko::initialize&lt;real_vec&lt;ValueType&gt;&gt;({0.0}, exec);</div>
 <div class="line">    b-&gt;compute_norm2(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">gko::lend</a>(b_norm));</div>
-<div class="line">    <span class="keywordflow">return</span> get_norm(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">gko::lend</a>(b_norm));</div>
+<div class="line">    <span class="keywordflow">return</span> get_first_element(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">gko::lend</a>(b_norm));</div>
 <div class="line">}</div>
 <div class="line"> </div>
 <div class="line"> </div>
@@ -842,8 +850,8 @@ $(function() {
 <div class="line">                               <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *residual_norm)<span class="keyword"> const override</span></div>
 <div class="line"><span class="keyword">    </span>{</div>
 <div class="line">        <span class="keywordflow">if</span> (residual_norm) {</div>
-<div class="line">            rec_res_norms.push_back(</div>
-<div class="line">                utils::get_norm(<a class="code" href="namespacegko.html#a73ce7e87aec389b5210630bb617b4baa">gko::as</a>&lt;vec&lt;ValueType&gt;&gt;(residual_norm)));</div>
+<div class="line">            rec_res_norms.push_back(utils::get_first_element(</div>
+<div class="line">                <a class="code" href="namespacegko.html#a73ce7e87aec389b5210630bb617b4baa">gko::as</a>&lt;real_vec&lt;ValueType&gt;&gt;(residual_norm)));</div>
 <div class="line">        } <span class="keywordflow">else</span> {</div>
 <div class="line">            rec_res_norms.push_back(</div>
 <div class="line">                utils::compute_norm(<a class="code" href="namespacegko.html#a73ce7e87aec389b5210630bb617b4baa">gko::as</a>&lt;vec&lt;ValueType&gt;&gt;(residual)));</div>
@@ -883,8 +891,8 @@ $(function() {
 <div class="line"><span class="keyword">private</span>:</div>
 <div class="line">    <span class="keyword">const</span> <a class="code" href="classgko_1_1LinOp.html">gko::LinOp</a> *matrix;</div>
 <div class="line">    <span class="keyword">const</span> vec&lt;ValueType&gt; *b;</div>
-<div class="line">    <span class="keyword">mutable</span> std::vector&lt;ValueType&gt; rec_res_norms;</div>
-<div class="line">    <span class="keyword">mutable</span> std::vector&lt;ValueType&gt; true_res_norms;</div>
+<div class="line">    <span class="keyword">mutable</span> std::vector&lt;gko::remove_complex&lt;ValueType&gt;&gt; rec_res_norms;</div>
+<div class="line">    <span class="keyword">mutable</span> std::vector&lt;gko::remove_complex&lt;ValueType&gt;&gt; true_res_norms;</div>
 <div class="line">};</div>
 <div class="line"> </div>
 <div class="line"> </div>

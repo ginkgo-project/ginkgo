@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/176377823 branch based on develop. Ginkgo version 1.2.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/176959364 branch based on develop. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -105,9 +105,11 @@ $(function() {
 <div class="line">{</div>
 </div><!-- fragment --><p>Some shortcuts</p>
 <div class="fragment"><div class="line"><span class="keyword">using</span> ValueType = double;</div>
+<div class="line"><span class="keyword">using</span> RealValueType = <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a>;</div>
 <div class="line"><span class="keyword">using</span> IndexType = int;</div>
 <div class="line"> </div>
 <div class="line"><span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
+<div class="line"><span class="keyword">using</span> real_vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;RealValueType&gt;</a>;</div>
 <div class="line"><span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;ValueType, IndexType&gt;</a>;</div>
 <div class="line"><span class="keyword">using</span> cg = <a class="code" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg&lt;ValueType&gt;</a>;</div>
 <div class="line"><span class="keyword">using</span> bj = <a class="code" href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi&lt;ValueType, IndexType&gt;</a>;</div>
@@ -134,7 +136,7 @@ $(function() {
 <div class="line"><span class="keyword">auto</span> b = gko::read&lt;vec&gt;(std::ifstream(<span class="stringliteral">&quot;data/b.mtx&quot;</span>), exec);</div>
 <div class="line"><span class="keyword">auto</span> x = gko::read&lt;vec&gt;(std::ifstream(<span class="stringliteral">&quot;data/x0.mtx&quot;</span>), exec);</div>
 <div class="line"> </div>
-<div class="line"><span class="keyword">const</span> <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> reduction_factor = 1e-7;</div>
+<div class="line"><span class="keyword">const</span> RealValueType reduction_factor{1e-7};</div>
 </div><!-- fragment --><p>Create solver factory</p>
 <div class="fragment"><div class="line"><span class="keyword">auto</span> solver_gen =</div>
 <div class="line">    cg::build()</div>
@@ -156,7 +158,7 @@ $(function() {
 </div><!-- fragment --><p>Calculate residual</p>
 <div class="fragment"><div class="line">    <span class="keyword">auto</span> <a class="code" href="namespacegko.html#a0059e27f8f4bc348ff65c1e60caf47c8">one</a> = gko::initialize&lt;vec&gt;({1.0}, exec);</div>
 <div class="line">    <span class="keyword">auto</span> neg_one = gko::initialize&lt;vec&gt;({-1.0}, exec);</div>
-<div class="line">    <span class="keyword">auto</span> res = gko::initialize&lt;vec&gt;({0.0}, exec);</div>
+<div class="line">    <span class="keyword">auto</span> res = gko::initialize&lt;real_vec&gt;({0.0}, exec);</div>
 <div class="line">    A-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(neg_one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b));</div>
 <div class="line">    b-&gt;compute_norm2(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(res));</div>
 <div class="line"> </div>
@@ -187,10 +189,10 @@ $(function() {
 <div class="line">0.0107016</div>
 <div class="line">0.0121141</div>
 <div class="line">0.0123025</div>
-<div class="line">Residual norm sqrt(r^T r): </div>
+<div class="line">Residual norm sqrt(r^T r):</div>
 <div class="line">%%MatrixMarket matrix <a class="code" href="namespacegko.html#ae749a5ea11a93c1bcc9158d9a6e9fb68af1f713c9e000f5d3f280adbd124df4f5">array</a> <a class="code" href="namespacegko.html#a85e29870bacc4e660be5acbbf742305e">real</a> general</div>
 <div class="line">1 1</div>
-<div class="line">9.08137e-16</div>
+<div class="line">4.82005e-08</div>
 </div><!-- fragment --><p><a class="anchor" id="Commentsaboutprogramminganddebugging"></a></p><h3>Comments about programming and debugging </h3>
 <p><a class="anchor" id="PlainProg"></a> </p><h1>The plain program</h1>
 <div class="fragment"><div class="line"><span class="comment">/*******************************&lt;GINKGO LICENSE&gt;******************************</span></div>
@@ -237,9 +239,11 @@ $(function() {
 <div class="line"><span class="keywordtype">int</span> main(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span> *argv[])</div>
 <div class="line">{</div>
 <div class="line">    <span class="keyword">using</span> ValueType = double;</div>
+<div class="line">    <span class="keyword">using</span> RealValueType = <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a>;</div>
 <div class="line">    <span class="keyword">using</span> IndexType = int;</div>
 <div class="line"> </div>
 <div class="line">    <span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> real_vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;RealValueType&gt;</a>;</div>
 <div class="line">    <span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;ValueType, IndexType&gt;</a>;</div>
 <div class="line">    <span class="keyword">using</span> cg = <a class="code" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg&lt;ValueType&gt;</a>;</div>
 <div class="line">    <span class="keyword">using</span> bj = <a class="code" href="classgko_1_1preconditioner_1_1Jacobi.html">gko::preconditioner::Jacobi&lt;ValueType, IndexType&gt;</a>;</div>
@@ -266,7 +270,7 @@ $(function() {
 <div class="line">    <span class="keyword">auto</span> b = gko::read&lt;vec&gt;(std::ifstream(<span class="stringliteral">&quot;data/b.mtx&quot;</span>), exec);</div>
 <div class="line">    <span class="keyword">auto</span> x = gko::read&lt;vec&gt;(std::ifstream(<span class="stringliteral">&quot;data/x0.mtx&quot;</span>), exec);</div>
 <div class="line"> </div>
-<div class="line">    <span class="keyword">const</span> <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> reduction_factor = 1e-7;</div>
+<div class="line">    <span class="keyword">const</span> RealValueType reduction_factor{1e-7};</div>
 <div class="line">    <span class="keyword">auto</span> solver_gen =</div>
 <div class="line">        cg::build()</div>
 <div class="line">            .with_criteria(</div>
@@ -285,7 +289,7 @@ $(function() {
 <div class="line"> </div>
 <div class="line">    <span class="keyword">auto</span> <a class="code" href="namespacegko.html#a0059e27f8f4bc348ff65c1e60caf47c8">one</a> = gko::initialize&lt;vec&gt;({1.0}, exec);</div>
 <div class="line">    <span class="keyword">auto</span> neg_one = gko::initialize&lt;vec&gt;({-1.0}, exec);</div>
-<div class="line">    <span class="keyword">auto</span> res = gko::initialize&lt;vec&gt;({0.0}, exec);</div>
+<div class="line">    <span class="keyword">auto</span> res = gko::initialize&lt;real_vec&gt;({0.0}, exec);</div>
 <div class="line">    A-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(neg_one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b));</div>
 <div class="line">    b-&gt;compute_norm2(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(res));</div>
 <div class="line"> </div>

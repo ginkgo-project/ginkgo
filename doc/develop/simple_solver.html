@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/176377823 branch based on develop. Ginkgo version 1.2.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/176959364 branch based on develop. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -122,8 +122,10 @@ $(function() {
 <div class="line">{</div>
 </div><!-- fragment --><p>Use some shortcuts. In Ginkgo, vectors are seen as a <a class="el" href="classgko_1_1matrix_1_1Dense.html" title="Dense is a matrix format which explicitly stores all values of the matrix.">gko::matrix::Dense</a> with one column/one row. The advantage of this concept is that using multiple vectors is a now a natural extension of adding columns/rows are necessary.</p>
 <div class="fragment"><div class="line"><span class="keyword">using</span> ValueType = double;</div>
+<div class="line"><span class="keyword">using</span> RealValueType = <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a>;</div>
 <div class="line"><span class="keyword">using</span> IndexType = int;</div>
 <div class="line"><span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
+<div class="line"><span class="keyword">using</span> real_vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;RealValueType&gt;</a>;</div>
 </div><!-- fragment --><p>The <a class="el" href="classgko_1_1matrix_1_1Csr.html" title="CSR is a matrix format which stores only the nonzero coefficients by compressing each row of the matr...">gko::matrix::Csr</a> class is used here, but any other matrix class such as <a class="el" href="classgko_1_1matrix_1_1Coo.html" title="COO stores a matrix in the coordinate matrix format.">gko::matrix::Coo</a>, <a class="el" href="classgko_1_1matrix_1_1Hybrid.html" title="HYBRID is a matrix format which splits the matrix into ELLPACK and COO format.">gko::matrix::Hybrid</a>, <a class="el" href="classgko_1_1matrix_1_1Ell.html" title="ELL is a matrix format where stride with explicit zeros is used such that all rows have the same numb...">gko::matrix::Ell</a> or <a class="el" href="classgko_1_1matrix_1_1Sellp.html" title="SELL-P is a matrix format similar to ELL format.">gko::matrix::Sellp</a> could also be used.</p>
 <div class="fragment"><div class="line"><span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;ValueType, IndexType&gt;</a>;</div>
 </div><!-- fragment --><p>The <a class="el" href="classgko_1_1solver_1_1Cg.html" title="CG or the conjugate gradient method is an iterative type Krylov subspace method which is suitable for...">gko::solver::Cg</a> is used here, but any other solver class can also be used.</p>
@@ -153,8 +155,8 @@ $(function() {
 <div class="line"><span class="keyword">auto</span> b = gko::read&lt;vec&gt;(std::ifstream(<span class="stringliteral">&quot;data/b.mtx&quot;</span>), exec);</div>
 <div class="line"><span class="keyword">auto</span> x = gko::read&lt;vec&gt;(std::ifstream(<span class="stringliteral">&quot;data/x0.mtx&quot;</span>), exec);</div>
 </div><!-- fragment --><p><a class="anchor" id="Creatingthesolver"></a> </p><h3>Creating the solver</h3>
-<p>Generate the <a class="el" href="namespacegko_1_1solver.html" title="The ginkgo Solve namespace.">gko::solver</a> factory. Ginkgo uses the concept of Factories to build solvers with certain properties. Observe the Fluent interface used here. Here a cg solver is generated with a stopping criteria of maximum iterations of 20 and a residual norm reduction of 1e-15. You also observe that the stopping criteria(gko::stop) are also generated from factories using their build methods. You need to specify the executors which each of the object needs to be built on.</p>
-<div class="fragment"><div class="line"><span class="keyword">const</span> <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> reduction_factor = 1e-7;</div>
+<p>Generate the <a class="el" href="namespacegko_1_1solver.html" title="The ginkgo Solve namespace.">gko::solver</a> factory. Ginkgo uses the concept of Factories to build solvers with certain properties. Observe the Fluent interface used here. Here a cg solver is generated with a stopping criteria of maximum iterations of 20 and a residual norm reduction of 1e-7. You also observe that the stopping criteria(gko::stop) are also generated from factories using their build methods. You need to specify the executors which each of the object needs to be built on.</p>
+<div class="fragment"><div class="line"><span class="keyword">const</span> RealValueType reduction_factor{1e-7};</div>
 <div class="line"><span class="keyword">auto</span> solver_gen =</div>
 <div class="line">    cg::build()</div>
 <div class="line">        .with_criteria(</div>
@@ -173,7 +175,7 @@ $(function() {
 </div><!-- fragment --><p>To measure if your solution has actually converged, you can measure the error of the solution. one, neg_one are objects that represent the numbers which allow for a uniform interface when computing on any device. To compute the residual, all you need to do is call the apply method, which in this case is an spmv and equivalent to the LAPACK z_spmv routine. Finally, you compute the euclidean 2-norm with the compute_norm2 function.</p>
 <div class="fragment"><div class="line">    <span class="keyword">auto</span> <a class="code" href="namespacegko.html#a0059e27f8f4bc348ff65c1e60caf47c8">one</a> = gko::initialize&lt;vec&gt;({1.0}, exec);</div>
 <div class="line">    <span class="keyword">auto</span> neg_one = gko::initialize&lt;vec&gt;({-1.0}, exec);</div>
-<div class="line">    <span class="keyword">auto</span> res = gko::initialize&lt;vec&gt;({0.0}, exec);</div>
+<div class="line">    <span class="keyword">auto</span> res = gko::initialize&lt;real_vec&gt;({0.0}, exec);</div>
 <div class="line">    A-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(neg_one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b));</div>
 <div class="line">    b-&gt;compute_norm2(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(res));</div>
 <div class="line"> </div>
@@ -253,8 +255,10 @@ $(function() {
 <div class="line"><span class="keywordtype">int</span> main(<span class="keywordtype">int</span> argc, <span class="keywordtype">char</span> *argv[])</div>
 <div class="line">{</div>
 <div class="line">    <span class="keyword">using</span> ValueType = double;</div>
+<div class="line">    <span class="keyword">using</span> RealValueType = <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a>;</div>
 <div class="line">    <span class="keyword">using</span> IndexType = int;</div>
 <div class="line">    <span class="keyword">using</span> vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;ValueType&gt;</a>;</div>
+<div class="line">    <span class="keyword">using</span> real_vec = <a class="code" href="classgko_1_1matrix_1_1Dense.html">gko::matrix::Dense&lt;RealValueType&gt;</a>;</div>
 <div class="line">    <span class="keyword">using</span> mtx = <a class="code" href="classgko_1_1matrix_1_1Csr.html">gko::matrix::Csr&lt;ValueType, IndexType&gt;</a>;</div>
 <div class="line">    <span class="keyword">using</span> cg = <a class="code" href="classgko_1_1solver_1_1Cg.html">gko::solver::Cg&lt;ValueType&gt;</a>;</div>
 <div class="line"> </div>
@@ -280,7 +284,7 @@ $(function() {
 <div class="line">    <span class="keyword">auto</span> b = gko::read&lt;vec&gt;(std::ifstream(<span class="stringliteral">&quot;data/b.mtx&quot;</span>), exec);</div>
 <div class="line">    <span class="keyword">auto</span> x = gko::read&lt;vec&gt;(std::ifstream(<span class="stringliteral">&quot;data/x0.mtx&quot;</span>), exec);</div>
 <div class="line"> </div>
-<div class="line">    <span class="keyword">const</span> <a class="code" href="namespacegko.html#adfcb75c44f6b6c701989419c166f6e7e">gko::remove_complex&lt;ValueType&gt;</a> reduction_factor = 1e-7;</div>
+<div class="line">    <span class="keyword">const</span> RealValueType reduction_factor{1e-7};</div>
 <div class="line">    <span class="keyword">auto</span> solver_gen =</div>
 <div class="line">        cg::build()</div>
 <div class="line">            .with_criteria(</div>
@@ -298,7 +302,7 @@ $(function() {
 <div class="line"> </div>
 <div class="line">    <span class="keyword">auto</span> <a class="code" href="namespacegko.html#a0059e27f8f4bc348ff65c1e60caf47c8">one</a> = gko::initialize&lt;vec&gt;({1.0}, exec);</div>
 <div class="line">    <span class="keyword">auto</span> neg_one = gko::initialize&lt;vec&gt;({-1.0}, exec);</div>
-<div class="line">    <span class="keyword">auto</span> res = gko::initialize&lt;vec&gt;({0.0}, exec);</div>
+<div class="line">    <span class="keyword">auto</span> res = gko::initialize&lt;real_vec&gt;({0.0}, exec);</div>
 <div class="line">    A-&gt;apply(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(x), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(neg_one), <a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(b));</div>
 <div class="line">    b-&gt;compute_norm2(<a class="code" href="namespacegko.html#a4edc2273b5627ec552ea423b60493be3">lend</a>(res));</div>
 <div class="line"> </div>
