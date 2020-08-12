@@ -1210,9 +1210,6 @@ inline void csrsort<int32>(cusparseHandle_t handle, int32 m, int32 n, int32 nnz,
 }
 
 
-#if defined(CUDA_VERSION) && (CUDA_VERSION < 11000)
-
-
 template <typename ValueType, typename IndexType>
 void gather(cusparseHandle_t handle, IndexType nnz, const ValueType *in,
             ValueType *out, const IndexType *permutation) GKO_NOT_IMPLEMENTED;
@@ -1237,19 +1234,6 @@ GKO_BIND_CUSPARSE_GATHER(std::complex<float>, cusparseCgthr);
 GKO_BIND_CUSPARSE_GATHER(std::complex<double>, cusparseZgthr);
 
 #undef GKO_BIND_CUSPARSE_GATHER
-
-
-#else  // CUDA_VERSION >= 11000
-
-
-inline void gather(cusparseHandle_t handle, cusparseDnVecDescr_t in,
-                   cusparseSpVecDescr_t out)
-{
-    GKO_ASSERT_NO_CUSPARSE_ERRORS(cusparseGather(handle, in, out));
-}
-
-
-#endif
 
 
 template <typename ValueType, typename IndexType>
