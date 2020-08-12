@@ -18,16 +18,44 @@ system. The purpose of this file is to explain in detail the capacities of this
 benchmarking suite as well as how to properly setup everything.
 
 Here is a short description of the content of this file:
-1. Installing and using the `ssget` tool to fetch the [SuiteSparse
+1. Ginkgo setup and best practice guidelines
+2. Installing and using the `ssget` tool to fetch the [SuiteSparse
    matrices](https://sparse.tamu.edu/).
-2. Benchmarking overview and how to run them in a simple way.
-3. How to publish the benchmark results online and use the [Ginkgo Performance
+3. Benchmarking overview and how to run them in a simple way.
+4. How to publish the benchmark results online and use the [Ginkgo Performance
    Explorer (GPE)](https://ginkgo-project.github.io/gpe/) for performance
    analysis (optional).
-4. Using the benchmark suite for performance debugging thanks to the loggers.
-5. All available benchmark customization options.
+5. Using the benchmark suite for performance debugging thanks to the loggers.
+6. All available benchmark customization options.
 
-### 1: Using `ssget` to fetch the matrices
+
+### 1: Ginkgo setup and best practice guidelines
+
+Before benchmarking Ginkgo, make sure that you follow the general guidelines in
+order to ensure best performance.
+
+1. The code should be compiled in `Release` mode.
+2. Make sure the machine has no competing jobs. On a Linux machine multiple
+   commands can be used, `last` shows the currently opened sessions, `top` or
+   `htop` allows to show the current machine load, and if considering using
+   specific GPUs, `nvidia-smi` or `rocm-smi` can be used to check their load.
+3. By default, Ginkgo's benchmarks will always do at least one warm-up run. For
+   better accuracy, every benchmark is also averaged over 10 runs, except for
+   the solver benchmark which are usually fairly long. These parameters can be
+   tuned at the command line to either shorten benchmarking time or improve
+   benchmarking accuracy.
+
+In addition, the following specific options can be considered:
+1. When specifically using the adaptive block jacobi preconditioner,, enable
+   the `GINKGO_JACOBI_FULL_OPTIMIZATIONS` CMake flag. Be careful that this will
+   use much more memory and time for the compilation due to compiler performance
+   issues with register optimizations, in particular.
+2. The current benchmarking setup also allows to benchmark only the overhead by
+   using as either (or for all) preconditioner/spmv/solver, the special
+   `overhead` LinOp. If your purpose is to check Ginkgo's overhead, make sure to
+   try this mode.
+
+### 2: Using `ssget` to fetch the matrices
 
 The benchmark suite tests Ginkgo's performance using the [SuiteSparse matrix
 collection](https://sparse.tamu.edu/) and artificially generated matrices. The
@@ -62,7 +90,9 @@ for i in $(seq 0 $(ssget -n)); do ssget -f -i $i; done
 Note that `ssget` can also be used to query properties of the matrix and filter
 the matrices which are downloaded. For example, the following will download only
 positive definite matrices with less than 500M non zero elements and 10M
-columns. Please refer to the `ssget` documentation for more information.
+columns. Please refer to the [`ssget`
+documentation](https://github.com/ginkgo-project/ssget/blob/master/README.md)
+for more information.
 ```bash
 for i in $(seq 0 $(ssget -n)); do
     posdef=$(ssget -p posdef -i $i)
@@ -74,8 +104,7 @@ for i in $(seq 0 $(ssget -n)); do
 done
 ```
 
-
-### 2: Benchmarking overview
+### 3: Benchmarking overview
 
 The benchmark suite is invoked using the `make benchmark` command in the build
 directory. Under the hood, this command simply calls the script
@@ -108,7 +137,7 @@ A combination of the above approaches is also possible (e.g. it may be useful to
 run).
 
 The benchmark suite can take a number of configuration parameters. Benchmarks
-can be ran only for `sparse matrix vector products (spmv)`, for full solvers
+can be run only for `sparse matrix vector products (spmv)`, for full solvers
 (with or without preconditioners), or for preconditioners only when supported.
 The benchmark suite also allows to target a sub-part of the SuiteSparse matrix
 collection. For details, see the [available benchmark options](### 5: Available
@@ -134,10 +163,11 @@ benchmark options). Here are the most important options:
     thermal2
     ```
 
-### 3: Publishing the results on Github and analyze the results with the GPE (optional)
+### 4: Publishing the results on Github and analyze the results with the GPE (optional)
+
 The previous experiments generated json files for each matrices, each containing
 timing, iteration count, achieved precision, ... depending on the type of
-benchmark ran. These files are available in the directory
+benchmark run. These files are available in the directory
 `${ginkgo_build_dir}/benchmark/results/`. These files can be analyzed and
 processed through any tool (e.g. python). In this section, we describe how to
 generate the plots by using Ginkgo's
@@ -183,13 +213,14 @@ For the generating the plots in the GPE, here are the steps to go through:
    tabs allow to access the result of the processed data after invoking the
    processing script.
 
+### 5: Detailed performance analysis and debugging
 
-
-### 4: Detailed performance analysis and debugging
 Detailed performance analysis can be ran by passing the environment variable
 `DETAILED=1` to the benchmarking script. This detailed run is available for
 solvers and allows to log the internal residual after every iteration as well as
-log the time taken by all operations.
+log the time taken by all operations. These features are also available in the
+`performance-debugging` example which can be used instead and modified as needed
+to analyze Ginkgo's performance.
 
 These features are implemented thanks to the loggers located in the file
 `${ginkgo_src_dir}/benchmark/utils/loggers.hpp`. Ginkgo possesses hooks at all important code
@@ -197,7 +228,8 @@ location points which can be inspected thanks to the logger. In this fashion, it
 is easy to use these loggers also for tracking memory allocation sizes and other
 important library aspects.
 
-### 5: Available benchmark options
+### 6: Available benchmark options
+
 There are a set amount of options available for benchmarking. Most important
 options can be configured through the benchmarking script itself thanks to
 environment variables. Otherwise, some specific options are not available
