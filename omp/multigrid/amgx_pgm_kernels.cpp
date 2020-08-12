@@ -75,11 +75,12 @@ void match_edge(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
     for (size_type i = 0; i < agg.get_num_elems(); i++) {
         if (agg_vals[i] == -1) {
-            auto neighbor = strongest_neighbor_vals[i];
+            size_type neighbor = strongest_neighbor_vals[i];
             if (neighbor != -1 && strongest_neighbor_vals[neighbor] == i) {
-                agg_vals[i] = i;
-                agg_vals[neighbor] = i;
                 // Use the smaller index as agg point
+                auto group = min(i, neighbor);
+                agg_vals[i] = group;
+                agg_vals[neighbor] = group;
             }
         }
     }
@@ -193,7 +194,6 @@ void assign_to_exist_agg(std::shared_ptr<const OmpExecutor> exec,
     const auto row_ptrs = weight_mtx->get_const_row_ptrs();
     const auto col_idxs = weight_mtx->get_const_col_idxs();
     const auto vals = weight_mtx->get_const_values();
-    auto max_weight_agg = zero<ValueType>();
     const auto agg_const_val = agg.get_const_data();
     auto agg_val = (intermediate_agg.get_num_elems() > 0)
                        ? intermediate_agg.get_data()
@@ -203,6 +203,7 @@ void assign_to_exist_agg(std::shared_ptr<const OmpExecutor> exec,
         if (agg_const_val[row] != -1) {
             continue;
         }
+        auto max_weight_agg = zero<ValueType>();
         IndexType strongest_agg = -1;
         for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
             auto col = col_idxs[idx];

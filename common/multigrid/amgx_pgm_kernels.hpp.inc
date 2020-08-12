@@ -95,11 +95,12 @@ __global__ __launch_bounds__(default_block_size) void match_edge_kernel(
     if (agg_vals[tidx] != -1) {
         return;
     }
-    auto neighbor = strongest_neighbor_vals[tidx];
+    size_type neighbor = strongest_neighbor_vals[tidx];
     if (neighbor != -1 && strongest_neighbor_vals[neighbor] == tidx) {
-        agg_vals[tidx] = tidx;
-        agg_vals[neighbor] = tidx;
         // Use the smaller index as agg point
+        auto group = min(tidx, neighbor);
+        agg_vals[tidx] = group;
+        agg_vals[neighbor] = group;
     }
 }
 
