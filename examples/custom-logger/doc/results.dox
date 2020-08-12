@@ -2,6 +2,7 @@
 The following is the expected result:
 
 @code{.cpp}
+
 Solution (x):
 %%MatrixMarket matrix array real general
 19 1
@@ -24,8 +25,8 @@ Solution (x):
 0.0107016
 0.0121141
 0.0123025
-Recurrent vs real residual norm:
-| Iteration|  Recurrent Residual Norm|       Real Residual Norm|
+Recurrent vs true residual norm:
+| Iteration|  Recurrent Residual Norm|       True Residual Norm|
 |----------|-------------------------|-------------------------|
 |         0|             4.358899e+00|             4.358899e+00|
 |         1|             2.304548e+00|             2.304548e+00|
@@ -52,6 +53,7 @@ Residual norm sqrt(r^T r):
 %%MatrixMarket matrix array real general
 1 1
 2.10788e-15
+
 @endcode
 
 <h3> Comments about programming and debugging </h3>

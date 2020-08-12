@@ -44,9 +44,12 @@ int main(int argc, char *argv[])
 {
     // Some shortcuts
     using ValueType = double;
+    using RealValueType = gko::remove_complex<ValueType>;
     using SolverType = float;
+    using RealSolverType = gko::remove_complex<SolverType>;
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
+    using real_vec = gko::matrix::Dense<RealValueType>;
     using solver_vec = gko::matrix::Dense<SolverType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using solver_mtx = gko::matrix::Csr<SolverType, IndexType>;
@@ -54,8 +57,8 @@ int main(int argc, char *argv[])
 
     gko::size_type max_outer_iters = 100u;
     gko::size_type max_inner_iters = 100u;
-    gko::remove_complex<ValueType> outer_reduction_factor = 1e-12;
-    gko::remove_complex<SolverType> inner_reduction_factor = 1e-2;
+    RealValueType outer_reduction_factor{1e-12};
+    RealSolverType inner_reduction_factor{1e-2};
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
@@ -93,7 +96,7 @@ int main(int argc, char *argv[])
     // Calculate initial residual by overwriting b
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto initres_vec = gko::initialize<vec>({0.0}, exec);
+    auto initres_vec = gko::initialize<real_vec>({0.0}, exec);
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
     b->compute_norm2(lend(initres_vec));
 
@@ -122,7 +125,7 @@ int main(int argc, char *argv[])
     // Solve system
     exec->synchronize();
     std::chrono::nanoseconds time(0);
-    auto res_vec = gko::initialize<vec>({0.0}, exec);
+    auto res_vec = gko::initialize<real_vec>({0.0}, exec);
     auto initres = exec->copy_val_to_host(initres_vec->get_const_values());
     auto inner_solution = solver_vec::create(exec);
     auto outer_delta = vec::create(exec);

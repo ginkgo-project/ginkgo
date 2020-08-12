@@ -45,8 +45,9 @@ int main(int argc, char *argv[])
 {
     // Some shortcuts
     using precision = std::complex<double>;
-    using real_precision = double;
+    using real_precision = gko::remove_complex<precision>;
     using vec = gko::matrix::Dense<precision>;
+    using real_vec = gko::matrix::Dense<real_precision>;
     using mtx = gko::matrix::Csr<precision>;
     using solver_type = gko::solver::Bicgstab<precision>;
 
@@ -126,7 +127,7 @@ int main(int argc, char *argv[])
     }();
     auto y = clone(x);
     auto tmp = clone(x);
-    auto norm = clone(one);
+    auto norm = gko::initialize<real_vec>({1.0}, exec);
     auto inv_norm = clone(this_exec, one);
     auto g = clone(one);
 
@@ -142,7 +143,7 @@ int main(int argc, char *argv[])
         // x = y / || y ||
         x->compute_norm2(lend(norm));
         inv_norm->get_values()[0] =
-            precision{1.0} / clone(this_exec, norm)->get_values()[0];
+            real_precision{1.0} / clone(this_exec, norm)->get_values()[0];
         x->scale(lend(clone(exec, inv_norm)));
         // g = x^* A x
         A->apply(lend(x), lend(tmp));

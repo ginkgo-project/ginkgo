@@ -61,9 +61,11 @@ int main(int argc, char *argv[])
 {
     // Some shortcuts
     using ValueType = double;
+    using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
 
     using vec = gko::matrix::Dense<ValueType>;
+    using real_vec = gko::matrix::Dense<RealValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cg = gko::solver::Cg<ValueType>;
 
@@ -110,7 +112,7 @@ int main(int argc, char *argv[])
     // Add stream_logger only to the ResidualNormReduction criterion Factory
     // Note that the logger will get automatically propagated to every criterion
     // generated from this factory.
-    const gko::remove_complex<ValueType> reduction_factor = 1e-7;
+    const RealValueType reduction_factor{1e-7};
     using ResidualCriterionFactory =
         gko::stop::ResidualNormReduction<ValueType>::Factory;
     std::shared_ptr<ResidualCriterionFactory> residual_criterion =
@@ -173,7 +175,7 @@ int main(int argc, char *argv[])
     // Calculate residual
     auto one = gko::initialize<vec>({1.0}, exec);
     auto neg_one = gko::initialize<vec>({-1.0}, exec);
-    auto res = gko::initialize<vec>({0.0}, exec);
+    auto res = gko::initialize<real_vec>({0.0}, exec);
     A->apply(lend(one), lend(x), lend(neg_one), lend(b));
     b->compute_norm2(lend(res));
 

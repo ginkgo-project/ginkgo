@@ -100,7 +100,7 @@ gko::remove_complex<ValueType> calculate_error(
     Closure correct_u)
 {
     const ValueType h = 1.0 / static_cast<ValueType>(discretization_points + 1);
-    auto error = 0.0;
+    gko::remove_complex<ValueType> error = 0.0;
     for (int i = 0; i < discretization_points; ++i) {
         using std::abs;
         const auto xi = static_cast<ValueType>(i + 1) * h;
