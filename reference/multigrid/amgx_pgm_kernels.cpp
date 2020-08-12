@@ -234,7 +234,6 @@ void assign_to_exist_agg(std::shared_ptr<const ReferenceExecutor> exec,
     const auto row_ptrs = weight_mtx->get_const_row_ptrs();
     const auto col_idxs = weight_mtx->get_const_col_idxs();
     const auto vals = weight_mtx->get_const_values();
-    auto max_weight_agg = zero<ValueType>();
     const auto agg_const_val = agg.get_const_data();
     auto agg_val = (intermediate_agg.get_num_elems() > 0)
                        ? intermediate_agg.get_data()
@@ -244,6 +243,7 @@ void assign_to_exist_agg(std::shared_ptr<const ReferenceExecutor> exec,
         if (agg_const_val[row] != -1) {
             continue;
         }
+        auto max_weight_agg = zero<ValueType>();
         IndexType strongest_agg = -1;
         for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
             auto col = col_idxs[idx];
