@@ -163,6 +163,9 @@ DEFINE_string(
     "Comma-separated list of SpGEMM strategies: onepass, twopass, sparselib");
 
 
+DEFINE_bool(compute_work, false, "Compute FLOP and nnz count of the SpGEMM");
+
+
 std::pair<gko::int64, gko::int64> compute_spgemm_work_and_nnz(
     const gko::matrix_data<etype, itype> &data)
 {
@@ -380,13 +383,19 @@ int main(int argc, char *argv[])
 
             // compute the exact amount of products a_ik * b_kj the SpGEMM has
             // to compute
-            auto spgemm_stats = compute_spgemm_work_and_nnz(data);
-            auto total_work = spgemm_stats.first;
-            auto total_nnz = spgemm_stats.second;
+            gko::int64 total_work{};
+            gko::int64 total_nnz{};
+            if (FLAGS_compute_work) {
+                auto spgemm_stats = compute_spgemm_work_and_nnz(data);
+                total_work = spgemm_stats.first;
+                total_nnz = spgemm_stats.second;
 
-            // store the amount of work and output nnz for SpGEMM
-            add_or_set_member(test_case, "spgemm_work", total_work, allocator);
-            add_or_set_member(test_case, "spgemm_nnz", total_nnz, allocator);
+                // store the amount of work and output nnz for SpGEMM
+                add_or_set_member(test_case, "spgemm_work", total_work,
+                                  allocator);
+                add_or_set_member(test_case, "spgemm_nnz", total_nnz,
+                                  allocator);
+            }
 
             std::clog << "Matrix is of size (" << data.size[0] << ", "
                       << data.size[1] << "), " << data.nonzeros.size() << ", "
@@ -411,6 +420,8 @@ int main(int argc, char *argv[])
                           << test_cases << std::endl;
                 backup_results(test_cases);
             }
+            // write the output if we have no strategies
+            backup_results(test_cases);
         } catch (const std::exception &e) {
             std::cerr << "Error setting up matrix data, what(): " << e.what()
                       << std::endl;
