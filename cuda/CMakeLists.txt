@@ -86,6 +86,7 @@ target_sources(ginkgo_cuda
     matrix/coo_kernels.cu
     matrix/csr_kernels.cu
     matrix/dense_kernels.cu
+    matrix/diagonal_kernels.cu
     matrix/ell_kernels.cu
     matrix/hybrid_kernels.cu
     matrix/sellp_kernels.cu

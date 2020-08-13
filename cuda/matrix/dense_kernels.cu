@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
@@ -166,6 +167,24 @@ void add_scaled(std::shared_ptr<const CudaExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
+
+
+template <typename ValueType>
+void add_scaled_diag(std::shared_ptr<const CudaExecutor> exec,
+                     const matrix::Dense<ValueType> *alpha,
+                     const matrix::Diagonal<ValueType> *x,
+                     matrix::Dense<ValueType> *y)
+{
+    const auto size = y->get_size()[0];
+    const auto grid_dim = ceildiv(size, default_block_size);
+
+    kernel::add_scaled_diag<<<grid_dim, default_block_size>>>(
+        size, as_cuda_type(alpha->get_const_values()),
+        as_cuda_type(x->get_const_values()), as_cuda_type(y->get_values()),
+        y->get_stride());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL);
 
 
 template <typename ValueType>
