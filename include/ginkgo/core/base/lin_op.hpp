@@ -754,6 +754,9 @@ public:                                                                \
  *         // a factory parameter named "my_value", of type int and default
  *         // value of 5
  *         int GKO_FACTORY_PARAMETER_SCALAR(my_value, 5);
+ *         // a factory parameter named `my_pair` of type `std::pair<int,int>`
+ *         // and default value {5, 5}
+ *         std::pair<int, int> GKO_FACTORY_PARAMETER_VECTOR(my_pair, 5, 5);
  *     };
  *     // constructor needed by EnableLinOp
  *     explicit MyLinOp(std::shared_ptr<const Executor> exec) {
@@ -888,6 +891,7 @@ public:                                                                      \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
+
 /**
  * Creates a scalar factory parameter in the factory parameters structure.
  *
@@ -903,6 +907,7 @@ public:                                                                      \
  */
 #define GKO_FACTORY_PARAMETER_SCALAR(_name, _default) \
     GKO_FACTORY_PARAMETER(_name, _default)
+
 /**
  * Creates a vector factory parameter in the factory parameters structure.
  *
@@ -921,7 +926,8 @@ public:                                                                      \
 #else  // defined(__CUDACC__) || defined(__HIPCC__)
 // A workaround for the NVCC compiler - parameter pack expansion does not work
 // properly, because while the assignment to a scalar value is translated by
-// cudafe without parameter pack expansion, the corresponding parameter is not.
+// cudafe into a C-style cast, the parameter pack expansion is not removed and
+// `Args&&... args` is still kept as a parameter pack.
 #define GKO_FACTORY_PARAMETER(_name, ...)                                    \
     mutable _name{__VA_ARGS__};                                              \
                                                                              \
@@ -935,12 +941,13 @@ public:                                                                      \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
+
 #define GKO_FACTORY_PARAMETER_SCALAR(_name, _default)                        \
     mutable _name{_default};                                                 \
                                                                              \
     template <typename Arg>                                                  \
     auto with_##_name(Arg &&_value)                                          \
-        const->const ::gko::xstd::decay_t<decltype(*this)> &                 \
+        const->const std::decay_t<decltype(*this)> &                         \
     {                                                                        \
         using type = decltype(this->_name);                                  \
         this->_name = type{std::forward<Arg>(_value)};                       \
@@ -949,12 +956,13 @@ public:                                                                      \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
+
 #define GKO_FACTORY_PARAMETER_VECTOR(_name, ...)                             \
     mutable _name{__VA_ARGS__};                                              \
                                                                              \
     template <typename... Args>                                              \
     auto with_##_name(Args &&... _value)                                     \
-        const->const ::gko::xstd::decay_t<decltype(*this)> &                 \
+        const->const std::decay_t<decltype(*this)> &                         \
     {                                                                        \
         using type = decltype(this->_name);                                  \
         this->_name = type{std::forward<Args>(_value)...};                   \
