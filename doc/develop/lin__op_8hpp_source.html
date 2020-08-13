@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.16"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Ginkgo: ginkgo/core/base/lin_op.hpp (de397cf2b) Source File</title>
+<title>Ginkgo: ginkgo/core/base/lin_op.hpp (3ade128ab) Source File</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -24,7 +24,7 @@
   <td id="projectlogo"><img alt="Logo" src="logo_doc.png"/></td>
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">Ginkgo
-   &#160;<span id="projectnumber">Generated from pipelines/177379215 branch based on develop. Ginkgo version 1.2.0</span>
+   &#160;<span id="projectnumber">Generated from pipelines/177592582 branch based on develop. Ginkgo version 1.2.0</span>
    </div>
    <div id="projectbrief">A numerical linear algebra library targeting many-core architectures</div>
   </td>
@@ -391,95 +391,132 @@ $(function() {
 <div class="line"><a name="l00732"></a><span class="lineno">  732</span>&#160;<span class="preprocessor">                                        _factory_name&gt;</span></div>
 <div class="line"><a name="l00733"></a><span class="lineno">  733</span>&#160; </div>
 <div class="line"><a name="l00734"></a><span class="lineno">  734</span>&#160; </div>
-<div class="line"><a name="l00807"></a><span class="lineno"><a class="line" href="group__LinOp.html#ga8e0af90ec2414b768266f77cedffc309">  807</a></span>&#160;<span class="preprocessor">#define GKO_ENABLE_LIN_OP_FACTORY(_lin_op, _parameters_name, _factory_name)  \</span></div>
-<div class="line"><a name="l00808"></a><span class="lineno">  808</span>&#160;<span class="preprocessor">public:                                                                      \</span></div>
-<div class="line"><a name="l00809"></a><span class="lineno">  809</span>&#160;<span class="preprocessor">    const _parameters_name##_type &amp;get_##_parameters_name() const            \</span></div>
-<div class="line"><a name="l00810"></a><span class="lineno">  810</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
-<div class="line"><a name="l00811"></a><span class="lineno">  811</span>&#160;<span class="preprocessor">        return _parameters_name##_;                                          \</span></div>
-<div class="line"><a name="l00812"></a><span class="lineno">  812</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
-<div class="line"><a name="l00813"></a><span class="lineno">  813</span>&#160;<span class="preprocessor">                                                                             \</span></div>
-<div class="line"><a name="l00814"></a><span class="lineno">  814</span>&#160;<span class="preprocessor">    class _factory_name                                                      \</span></div>
-<div class="line"><a name="l00815"></a><span class="lineno">  815</span>&#160;<span class="preprocessor">        : public ::gko::EnableDefaultLinOpFactory&lt;_factory_name, _lin_op,    \</span></div>
-<div class="line"><a name="l00816"></a><span class="lineno">  816</span>&#160;<span class="preprocessor">                                                  _parameters_name##_type&gt; { \</span></div>
-<div class="line"><a name="l00817"></a><span class="lineno">  817</span>&#160;<span class="preprocessor">        friend class ::gko::EnablePolymorphicObject&lt;_factory_name,           \</span></div>
-<div class="line"><a name="l00818"></a><span class="lineno">  818</span>&#160;<span class="preprocessor">                                                    ::gko::LinOpFactory&gt;;    \</span></div>
-<div class="line"><a name="l00819"></a><span class="lineno">  819</span>&#160;<span class="preprocessor">        friend class ::gko::enable_parameters_type&lt;_parameters_name##_type,  \</span></div>
-<div class="line"><a name="l00820"></a><span class="lineno">  820</span>&#160;<span class="preprocessor">                                                   _factory_name&gt;;           \</span></div>
-<div class="line"><a name="l00821"></a><span class="lineno">  821</span>&#160;<span class="preprocessor">        explicit _factory_name(std::shared_ptr&lt;const ::gko::Executor&gt; exec)  \</span></div>
-<div class="line"><a name="l00822"></a><span class="lineno">  822</span>&#160;<span class="preprocessor">            : ::gko::EnableDefaultLinOpFactory&lt;_factory_name, _lin_op,       \</span></div>
-<div class="line"><a name="l00823"></a><span class="lineno">  823</span>&#160;<span class="preprocessor">                                               _parameters_name##_type&gt;(     \</span></div>
-<div class="line"><a name="l00824"></a><span class="lineno">  824</span>&#160;<span class="preprocessor">                  std::move(exec))                                           \</span></div>
-<div class="line"><a name="l00825"></a><span class="lineno">  825</span>&#160;<span class="preprocessor">        {}                                                                   \</span></div>
-<div class="line"><a name="l00826"></a><span class="lineno">  826</span>&#160;<span class="preprocessor">        explicit _factory_name(std::shared_ptr&lt;const ::gko::Executor&gt; exec,  \</span></div>
-<div class="line"><a name="l00827"></a><span class="lineno">  827</span>&#160;<span class="preprocessor">                               const _parameters_name##_type &amp;parameters)    \</span></div>
-<div class="line"><a name="l00828"></a><span class="lineno">  828</span>&#160;<span class="preprocessor">            : ::gko::EnableDefaultLinOpFactory&lt;_factory_name, _lin_op,       \</span></div>
-<div class="line"><a name="l00829"></a><span class="lineno">  829</span>&#160;<span class="preprocessor">                                               _parameters_name##_type&gt;(     \</span></div>
-<div class="line"><a name="l00830"></a><span class="lineno">  830</span>&#160;<span class="preprocessor">                  std::move(exec), parameters)                               \</span></div>
-<div class="line"><a name="l00831"></a><span class="lineno">  831</span>&#160;<span class="preprocessor">        {}                                                                   \</span></div>
-<div class="line"><a name="l00832"></a><span class="lineno">  832</span>&#160;<span class="preprocessor">    };                                                                       \</span></div>
-<div class="line"><a name="l00833"></a><span class="lineno">  833</span>&#160;<span class="preprocessor">    friend ::gko::EnableDefaultLinOpFactory&lt;_factory_name, _lin_op,          \</span></div>
-<div class="line"><a name="l00834"></a><span class="lineno">  834</span>&#160;<span class="preprocessor">                                            _parameters_name##_type&gt;;        \</span></div>
-<div class="line"><a name="l00835"></a><span class="lineno">  835</span>&#160;<span class="preprocessor">                                                                             \</span></div>
-<div class="line"><a name="l00836"></a><span class="lineno">  836</span>&#160;<span class="preprocessor">                                                                             \</span></div>
-<div class="line"><a name="l00837"></a><span class="lineno">  837</span>&#160;<span class="preprocessor">private:                                                                     \</span></div>
-<div class="line"><a name="l00838"></a><span class="lineno">  838</span>&#160;<span class="preprocessor">    _parameters_name##_type _parameters_name##_;                             \</span></div>
+<div class="line"><a name="l00810"></a><span class="lineno"><a class="line" href="group__LinOp.html#ga8e0af90ec2414b768266f77cedffc309">  810</a></span>&#160;<span class="preprocessor">#define GKO_ENABLE_LIN_OP_FACTORY(_lin_op, _parameters_name, _factory_name)  \</span></div>
+<div class="line"><a name="l00811"></a><span class="lineno">  811</span>&#160;<span class="preprocessor">public:                                                                      \</span></div>
+<div class="line"><a name="l00812"></a><span class="lineno">  812</span>&#160;<span class="preprocessor">    const _parameters_name##_type &amp;get_##_parameters_name() const            \</span></div>
+<div class="line"><a name="l00813"></a><span class="lineno">  813</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
+<div class="line"><a name="l00814"></a><span class="lineno">  814</span>&#160;<span class="preprocessor">        return _parameters_name##_;                                          \</span></div>
+<div class="line"><a name="l00815"></a><span class="lineno">  815</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
+<div class="line"><a name="l00816"></a><span class="lineno">  816</span>&#160;<span class="preprocessor">                                                                             \</span></div>
+<div class="line"><a name="l00817"></a><span class="lineno">  817</span>&#160;<span class="preprocessor">    class _factory_name                                                      \</span></div>
+<div class="line"><a name="l00818"></a><span class="lineno">  818</span>&#160;<span class="preprocessor">        : public ::gko::EnableDefaultLinOpFactory&lt;_factory_name, _lin_op,    \</span></div>
+<div class="line"><a name="l00819"></a><span class="lineno">  819</span>&#160;<span class="preprocessor">                                                  _parameters_name##_type&gt; { \</span></div>
+<div class="line"><a name="l00820"></a><span class="lineno">  820</span>&#160;<span class="preprocessor">        friend class ::gko::EnablePolymorphicObject&lt;_factory_name,           \</span></div>
+<div class="line"><a name="l00821"></a><span class="lineno">  821</span>&#160;<span class="preprocessor">                                                    ::gko::LinOpFactory&gt;;    \</span></div>
+<div class="line"><a name="l00822"></a><span class="lineno">  822</span>&#160;<span class="preprocessor">        friend class ::gko::enable_parameters_type&lt;_parameters_name##_type,  \</span></div>
+<div class="line"><a name="l00823"></a><span class="lineno">  823</span>&#160;<span class="preprocessor">                                                   _factory_name&gt;;           \</span></div>
+<div class="line"><a name="l00824"></a><span class="lineno">  824</span>&#160;<span class="preprocessor">        explicit _factory_name(std::shared_ptr&lt;const ::gko::Executor&gt; exec)  \</span></div>
+<div class="line"><a name="l00825"></a><span class="lineno">  825</span>&#160;<span class="preprocessor">            : ::gko::EnableDefaultLinOpFactory&lt;_factory_name, _lin_op,       \</span></div>
+<div class="line"><a name="l00826"></a><span class="lineno">  826</span>&#160;<span class="preprocessor">                                               _parameters_name##_type&gt;(     \</span></div>
+<div class="line"><a name="l00827"></a><span class="lineno">  827</span>&#160;<span class="preprocessor">                  std::move(exec))                                           \</span></div>
+<div class="line"><a name="l00828"></a><span class="lineno">  828</span>&#160;<span class="preprocessor">        {}                                                                   \</span></div>
+<div class="line"><a name="l00829"></a><span class="lineno">  829</span>&#160;<span class="preprocessor">        explicit _factory_name(std::shared_ptr&lt;const ::gko::Executor&gt; exec,  \</span></div>
+<div class="line"><a name="l00830"></a><span class="lineno">  830</span>&#160;<span class="preprocessor">                               const _parameters_name##_type &amp;parameters)    \</span></div>
+<div class="line"><a name="l00831"></a><span class="lineno">  831</span>&#160;<span class="preprocessor">            : ::gko::EnableDefaultLinOpFactory&lt;_factory_name, _lin_op,       \</span></div>
+<div class="line"><a name="l00832"></a><span class="lineno">  832</span>&#160;<span class="preprocessor">                                               _parameters_name##_type&gt;(     \</span></div>
+<div class="line"><a name="l00833"></a><span class="lineno">  833</span>&#160;<span class="preprocessor">                  std::move(exec), parameters)                               \</span></div>
+<div class="line"><a name="l00834"></a><span class="lineno">  834</span>&#160;<span class="preprocessor">        {}                                                                   \</span></div>
+<div class="line"><a name="l00835"></a><span class="lineno">  835</span>&#160;<span class="preprocessor">    };                                                                       \</span></div>
+<div class="line"><a name="l00836"></a><span class="lineno">  836</span>&#160;<span class="preprocessor">    friend ::gko::EnableDefaultLinOpFactory&lt;_factory_name, _lin_op,          \</span></div>
+<div class="line"><a name="l00837"></a><span class="lineno">  837</span>&#160;<span class="preprocessor">                                            _parameters_name##_type&gt;;        \</span></div>
+<div class="line"><a name="l00838"></a><span class="lineno">  838</span>&#160;<span class="preprocessor">                                                                             \</span></div>
 <div class="line"><a name="l00839"></a><span class="lineno">  839</span>&#160;<span class="preprocessor">                                                                             \</span></div>
-<div class="line"><a name="l00840"></a><span class="lineno">  840</span>&#160;<span class="preprocessor">public:                                                                      \</span></div>
-<div class="line"><a name="l00841"></a><span class="lineno">  841</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
-<div class="line"><a name="l00842"></a><span class="lineno">  842</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
-<div class="line"><a name="l00843"></a><span class="lineno">  843</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
-<div class="line"><a name="l00844"></a><span class="lineno">  844</span>&#160; </div>
-<div class="line"><a name="l00845"></a><span class="lineno">  845</span>&#160; </div>
-<div class="line"><a name="l00854"></a><span class="lineno"><a class="line" href="group__LinOp.html#ga521f65604cc4cf427dcb2ecfa49b757c">  854</a></span>&#160;<span class="preprocessor">#define GKO_ENABLE_BUILD_METHOD(_factory_name)                               \</span></div>
-<div class="line"><a name="l00855"></a><span class="lineno">  855</span>&#160;<span class="preprocessor">    static auto build()-&gt;decltype(_factory_name::create())                   \</span></div>
-<div class="line"><a name="l00856"></a><span class="lineno">  856</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
-<div class="line"><a name="l00857"></a><span class="lineno">  857</span>&#160;<span class="preprocessor">        return _factory_name::create();                                      \</span></div>
-<div class="line"><a name="l00858"></a><span class="lineno">  858</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
-<div class="line"><a name="l00859"></a><span class="lineno">  859</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
-<div class="line"><a name="l00860"></a><span class="lineno">  860</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
-<div class="line"><a name="l00861"></a><span class="lineno">  861</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
-<div class="line"><a name="l00862"></a><span class="lineno">  862</span>&#160; </div>
-<div class="line"><a name="l00863"></a><span class="lineno">  863</span>&#160; </div>
-<div class="line"><a name="l00864"></a><span class="lineno">  864</span>&#160;<span class="preprocessor">#if !(defined(__CUDACC__) || defined(__HIPCC__))</span></div>
+<div class="line"><a name="l00840"></a><span class="lineno">  840</span>&#160;<span class="preprocessor">private:                                                                     \</span></div>
+<div class="line"><a name="l00841"></a><span class="lineno">  841</span>&#160;<span class="preprocessor">    _parameters_name##_type _parameters_name##_;                             \</span></div>
+<div class="line"><a name="l00842"></a><span class="lineno">  842</span>&#160;<span class="preprocessor">                                                                             \</span></div>
+<div class="line"><a name="l00843"></a><span class="lineno">  843</span>&#160;<span class="preprocessor">public:                                                                      \</span></div>
+<div class="line"><a name="l00844"></a><span class="lineno">  844</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
+<div class="line"><a name="l00845"></a><span class="lineno">  845</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
+<div class="line"><a name="l00846"></a><span class="lineno">  846</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
+<div class="line"><a name="l00847"></a><span class="lineno">  847</span>&#160; </div>
+<div class="line"><a name="l00848"></a><span class="lineno">  848</span>&#160; </div>
+<div class="line"><a name="l00857"></a><span class="lineno"><a class="line" href="group__LinOp.html#ga521f65604cc4cf427dcb2ecfa49b757c">  857</a></span>&#160;<span class="preprocessor">#define GKO_ENABLE_BUILD_METHOD(_factory_name)                               \</span></div>
+<div class="line"><a name="l00858"></a><span class="lineno">  858</span>&#160;<span class="preprocessor">    static auto build()-&gt;decltype(_factory_name::create())                   \</span></div>
+<div class="line"><a name="l00859"></a><span class="lineno">  859</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
+<div class="line"><a name="l00860"></a><span class="lineno">  860</span>&#160;<span class="preprocessor">        return _factory_name::create();                                      \</span></div>
+<div class="line"><a name="l00861"></a><span class="lineno">  861</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
+<div class="line"><a name="l00862"></a><span class="lineno">  862</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
+<div class="line"><a name="l00863"></a><span class="lineno">  863</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
+<div class="line"><a name="l00864"></a><span class="lineno">  864</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
 <div class="line"><a name="l00865"></a><span class="lineno">  865</span>&#160; </div>
-<div class="line"><a name="l00875"></a><span class="lineno"><a class="line" href="group__LinOp.html#gaa037309884bbd0562b897cee95dd91c8">  875</a></span>&#160;<span class="preprocessor">#define GKO_FACTORY_PARAMETER(_name, ...)                                    \</span></div>
-<div class="line"><a name="l00876"></a><span class="lineno">  876</span>&#160;<span class="preprocessor">    mutable _name{__VA_ARGS__};                                              \</span></div>
-<div class="line"><a name="l00877"></a><span class="lineno">  877</span>&#160;<span class="preprocessor">                                                                             \</span></div>
-<div class="line"><a name="l00878"></a><span class="lineno">  878</span>&#160;<span class="preprocessor">    template &lt;typename... Args&gt;                                              \</span></div>
-<div class="line"><a name="l00879"></a><span class="lineno">  879</span>&#160;<span class="preprocessor">    auto with_##_name(Args &amp;&amp;... _value)                                     \</span></div>
-<div class="line"><a name="l00880"></a><span class="lineno">  880</span>&#160;<span class="preprocessor">        const-&gt;const std::decay_t&lt;decltype(*this)&gt; &amp;                         \</span></div>
-<div class="line"><a name="l00881"></a><span class="lineno">  881</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
-<div class="line"><a name="l00882"></a><span class="lineno">  882</span>&#160;<span class="preprocessor">        using type = decltype(this-&gt;_name);                                  \</span></div>
-<div class="line"><a name="l00883"></a><span class="lineno">  883</span>&#160;<span class="preprocessor">        this-&gt;_name = type{std::forward&lt;Args&gt;(_value)...};                   \</span></div>
-<div class="line"><a name="l00884"></a><span class="lineno">  884</span>&#160;<span class="preprocessor">        return *this;                                                        \</span></div>
-<div class="line"><a name="l00885"></a><span class="lineno">  885</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
-<div class="line"><a name="l00886"></a><span class="lineno">  886</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
-<div class="line"><a name="l00887"></a><span class="lineno">  887</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
-<div class="line"><a name="l00888"></a><span class="lineno">  888</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
-<div class="line"><a name="l00889"></a><span class="lineno">  889</span>&#160;<span class="preprocessor">#else  // defined(__CUDACC__) || defined(__HIPCC__)</span></div>
-<div class="line"><a name="l00890"></a><span class="lineno">  890</span>&#160;<span class="comment">// A workaround for the NVCC compiler - parameter pack expansion does not work</span></div>
-<div class="line"><a name="l00891"></a><span class="lineno">  891</span>&#160;<span class="comment">// properly. You won&#39;t be able to use factories in code compiled with NVCC, but</span></div>
-<div class="line"><a name="l00892"></a><span class="lineno">  892</span>&#160;<span class="comment">// at least this won&#39;t trigger a compiler error as soon as a header using it is</span></div>
-<div class="line"><a name="l00893"></a><span class="lineno">  893</span>&#160;<span class="comment">// included. To not get a linker error, we provide a dummy body.</span></div>
-<div class="line"><a name="l00894"></a><span class="lineno">  894</span>&#160;<span class="preprocessor">#define GKO_FACTORY_PARAMETER(_name, ...)                                    \</span></div>
-<div class="line"><a name="l00895"></a><span class="lineno">  895</span>&#160;<span class="preprocessor">    mutable _name{__VA_ARGS__};                                              \</span></div>
-<div class="line"><a name="l00896"></a><span class="lineno">  896</span>&#160;<span class="preprocessor">                                                                             \</span></div>
-<div class="line"><a name="l00897"></a><span class="lineno">  897</span>&#160;<span class="preprocessor">    template &lt;typename... Args&gt;                                              \</span></div>
-<div class="line"><a name="l00898"></a><span class="lineno">  898</span>&#160;<span class="preprocessor">    auto with_##_name(Args &amp;&amp;... _value)                                     \</span></div>
-<div class="line"><a name="l00899"></a><span class="lineno">  899</span>&#160;<span class="preprocessor">        const-&gt;const std::decay_t&lt;decltype(*this)&gt; &amp;                         \</span></div>
-<div class="line"><a name="l00900"></a><span class="lineno">  900</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
-<div class="line"><a name="l00901"></a><span class="lineno">  901</span>&#160;<span class="preprocessor">        return *this;                                                        \</span></div>
-<div class="line"><a name="l00902"></a><span class="lineno">  902</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
-<div class="line"><a name="l00903"></a><span class="lineno">  903</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
-<div class="line"><a name="l00904"></a><span class="lineno">  904</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
-<div class="line"><a name="l00905"></a><span class="lineno">  905</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
-<div class="line"><a name="l00906"></a><span class="lineno">  906</span>&#160;<span class="preprocessor">#endif  // defined(__CUDACC__) || defined(__HIPCC__)</span></div>
-<div class="line"><a name="l00907"></a><span class="lineno">  907</span>&#160; </div>
-<div class="line"><a name="l00908"></a><span class="lineno">  908</span>&#160; </div>
-<div class="line"><a name="l00909"></a><span class="lineno">  909</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00866"></a><span class="lineno">  866</span>&#160; </div>
+<div class="line"><a name="l00867"></a><span class="lineno">  867</span>&#160;<span class="preprocessor">#if !(defined(__CUDACC__) || defined(__HIPCC__))</span></div>
+<div class="line"><a name="l00868"></a><span class="lineno">  868</span>&#160; </div>
+<div class="line"><a name="l00880"></a><span class="lineno"><a class="line" href="group__LinOp.html#gaa037309884bbd0562b897cee95dd91c8">  880</a></span>&#160;<span class="preprocessor">#define GKO_FACTORY_PARAMETER(_name, ...)                                    \</span></div>
+<div class="line"><a name="l00881"></a><span class="lineno">  881</span>&#160;<span class="preprocessor">    mutable _name{__VA_ARGS__};                                              \</span></div>
+<div class="line"><a name="l00882"></a><span class="lineno">  882</span>&#160;<span class="preprocessor">                                                                             \</span></div>
+<div class="line"><a name="l00883"></a><span class="lineno">  883</span>&#160;<span class="preprocessor">    template &lt;typename... Args&gt;                                              \</span></div>
+<div class="line"><a name="l00884"></a><span class="lineno">  884</span>&#160;<span class="preprocessor">    auto with_##_name(Args &amp;&amp;... _value)                                     \</span></div>
+<div class="line"><a name="l00885"></a><span class="lineno">  885</span>&#160;<span class="preprocessor">        const-&gt;const std::decay_t&lt;decltype(*this)&gt; &amp;                         \</span></div>
+<div class="line"><a name="l00886"></a><span class="lineno">  886</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
+<div class="line"><a name="l00887"></a><span class="lineno">  887</span>&#160;<span class="preprocessor">        using type = decltype(this-&gt;_name);                                  \</span></div>
+<div class="line"><a name="l00888"></a><span class="lineno">  888</span>&#160;<span class="preprocessor">        this-&gt;_name = type{std::forward&lt;Args&gt;(_value)...};                   \</span></div>
+<div class="line"><a name="l00889"></a><span class="lineno">  889</span>&#160;<span class="preprocessor">        return *this;                                                        \</span></div>
+<div class="line"><a name="l00890"></a><span class="lineno">  890</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
+<div class="line"><a name="l00891"></a><span class="lineno">  891</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
+<div class="line"><a name="l00892"></a><span class="lineno">  892</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
+<div class="line"><a name="l00893"></a><span class="lineno">  893</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
+<div class="line"><a name="l00894"></a><span class="lineno">  894</span>&#160; </div>
+<div class="line"><a name="l00908"></a><span class="lineno"><a class="line" href="group__LinOp.html#ga49d4c09c39f06b22bebbbfd1d8bfe450">  908</a></span>&#160;<span class="preprocessor">#define GKO_FACTORY_PARAMETER_SCALAR(_name, _default) \</span></div>
+<div class="line"><a name="l00909"></a><span class="lineno">  909</span>&#160;<span class="preprocessor">    GKO_FACTORY_PARAMETER(_name, _default)</span></div>
 <div class="line"><a name="l00910"></a><span class="lineno">  910</span>&#160; </div>
-<div class="line"><a name="l00911"></a><span class="lineno">  911</span>&#160; </div>
-<div class="line"><a name="l00912"></a><span class="lineno">  912</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_BASE_LIN_OP_HPP_</span></div>
+<div class="line"><a name="l00924"></a><span class="lineno"><a class="line" href="group__LinOp.html#gaa292314d27ec1fb7ad54debaa3606ea8">  924</a></span>&#160;<span class="preprocessor">#define GKO_FACTORY_PARAMETER_VECTOR(_name, ...) \</span></div>
+<div class="line"><a name="l00925"></a><span class="lineno">  925</span>&#160;<span class="preprocessor">    GKO_FACTORY_PARAMETER(_name, __VA_ARGS__)</span></div>
+<div class="line"><a name="l00926"></a><span class="lineno">  926</span>&#160;<span class="preprocessor">#else  // defined(__CUDACC__) || defined(__HIPCC__)</span></div>
+<div class="line"><a name="l00927"></a><span class="lineno">  927</span>&#160;<span class="comment">// A workaround for the NVCC compiler - parameter pack expansion does not work</span></div>
+<div class="line"><a name="l00928"></a><span class="lineno">  928</span>&#160;<span class="comment">// properly, because while the assignment to a scalar value is translated by</span></div>
+<div class="line"><a name="l00929"></a><span class="lineno">  929</span>&#160;<span class="comment">// cudafe into a C-style cast, the parameter pack expansion is not removed and</span></div>
+<div class="line"><a name="l00930"></a><span class="lineno">  930</span>&#160;<span class="comment">// `Args&amp;&amp;... args` is still kept as a parameter pack.</span></div>
+<div class="line"><a name="l00931"></a><span class="lineno">  931</span>&#160;<span class="preprocessor">#define GKO_FACTORY_PARAMETER(_name, ...)                                    \</span></div>
+<div class="line"><a name="l00932"></a><span class="lineno">  932</span>&#160;<span class="preprocessor">    mutable _name{__VA_ARGS__};                                              \</span></div>
+<div class="line"><a name="l00933"></a><span class="lineno">  933</span>&#160;<span class="preprocessor">                                                                             \</span></div>
+<div class="line"><a name="l00934"></a><span class="lineno">  934</span>&#160;<span class="preprocessor">    template &lt;typename... Args&gt;                                              \</span></div>
+<div class="line"><a name="l00935"></a><span class="lineno">  935</span>&#160;<span class="preprocessor">    auto with_##_name(Args &amp;&amp;... _value)                                     \</span></div>
+<div class="line"><a name="l00936"></a><span class="lineno">  936</span>&#160;<span class="preprocessor">        const-&gt;const std::decay_t&lt;decltype(*this)&gt; &amp;                         \</span></div>
+<div class="line"><a name="l00937"></a><span class="lineno">  937</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
+<div class="line"><a name="l00938"></a><span class="lineno">  938</span>&#160;<span class="preprocessor">        GKO_NOT_IMPLEMENTED;                                                 \</span></div>
+<div class="line"><a name="l00939"></a><span class="lineno">  939</span>&#160;<span class="preprocessor">        return *this;                                                        \</span></div>
+<div class="line"><a name="l00940"></a><span class="lineno">  940</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
+<div class="line"><a name="l00941"></a><span class="lineno">  941</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
+<div class="line"><a name="l00942"></a><span class="lineno">  942</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
+<div class="line"><a name="l00943"></a><span class="lineno">  943</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
+<div class="line"><a name="l00944"></a><span class="lineno">  944</span>&#160; </div>
+<div class="line"><a name="l00945"></a><span class="lineno">  945</span>&#160;<span class="preprocessor">#define GKO_FACTORY_PARAMETER_SCALAR(_name, _default)                        \</span></div>
+<div class="line"><a name="l00946"></a><span class="lineno">  946</span>&#160;<span class="preprocessor">    mutable _name{_default};                                                 \</span></div>
+<div class="line"><a name="l00947"></a><span class="lineno">  947</span>&#160;<span class="preprocessor">                                                                             \</span></div>
+<div class="line"><a name="l00948"></a><span class="lineno">  948</span>&#160;<span class="preprocessor">    template &lt;typename Arg&gt;                                                  \</span></div>
+<div class="line"><a name="l00949"></a><span class="lineno">  949</span>&#160;<span class="preprocessor">    auto with_##_name(Arg &amp;&amp;_value)                                          \</span></div>
+<div class="line"><a name="l00950"></a><span class="lineno">  950</span>&#160;<span class="preprocessor">        const-&gt;const std::decay_t&lt;decltype(*this)&gt; &amp;                         \</span></div>
+<div class="line"><a name="l00951"></a><span class="lineno">  951</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
+<div class="line"><a name="l00952"></a><span class="lineno">  952</span>&#160;<span class="preprocessor">        using type = decltype(this-&gt;_name);                                  \</span></div>
+<div class="line"><a name="l00953"></a><span class="lineno">  953</span>&#160;<span class="preprocessor">        this-&gt;_name = type{std::forward&lt;Arg&gt;(_value)};                       \</span></div>
+<div class="line"><a name="l00954"></a><span class="lineno">  954</span>&#160;<span class="preprocessor">        return *this;                                                        \</span></div>
+<div class="line"><a name="l00955"></a><span class="lineno">  955</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
+<div class="line"><a name="l00956"></a><span class="lineno">  956</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
+<div class="line"><a name="l00957"></a><span class="lineno">  957</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
+<div class="line"><a name="l00958"></a><span class="lineno">  958</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
+<div class="line"><a name="l00959"></a><span class="lineno">  959</span>&#160; </div>
+<div class="line"><a name="l00960"></a><span class="lineno">  960</span>&#160;<span class="preprocessor">#define GKO_FACTORY_PARAMETER_VECTOR(_name, ...)                             \</span></div>
+<div class="line"><a name="l00961"></a><span class="lineno">  961</span>&#160;<span class="preprocessor">    mutable _name{__VA_ARGS__};                                              \</span></div>
+<div class="line"><a name="l00962"></a><span class="lineno">  962</span>&#160;<span class="preprocessor">                                                                             \</span></div>
+<div class="line"><a name="l00963"></a><span class="lineno">  963</span>&#160;<span class="preprocessor">    template &lt;typename... Args&gt;                                              \</span></div>
+<div class="line"><a name="l00964"></a><span class="lineno">  964</span>&#160;<span class="preprocessor">    auto with_##_name(Args &amp;&amp;... _value)                                     \</span></div>
+<div class="line"><a name="l00965"></a><span class="lineno">  965</span>&#160;<span class="preprocessor">        const-&gt;const std::decay_t&lt;decltype(*this)&gt; &amp;                         \</span></div>
+<div class="line"><a name="l00966"></a><span class="lineno">  966</span>&#160;<span class="preprocessor">    {                                                                        \</span></div>
+<div class="line"><a name="l00967"></a><span class="lineno">  967</span>&#160;<span class="preprocessor">        using type = decltype(this-&gt;_name);                                  \</span></div>
+<div class="line"><a name="l00968"></a><span class="lineno">  968</span>&#160;<span class="preprocessor">        this-&gt;_name = type{std::forward&lt;Args&gt;(_value)...};                   \</span></div>
+<div class="line"><a name="l00969"></a><span class="lineno">  969</span>&#160;<span class="preprocessor">        return *this;                                                        \</span></div>
+<div class="line"><a name="l00970"></a><span class="lineno">  970</span>&#160;<span class="preprocessor">    }                                                                        \</span></div>
+<div class="line"><a name="l00971"></a><span class="lineno">  971</span>&#160;<span class="preprocessor">    static_assert(true,                                                      \</span></div>
+<div class="line"><a name="l00972"></a><span class="lineno">  972</span>&#160;<span class="preprocessor">                  &quot;This assert is used to counter the false positive extra &quot; \</span></div>
+<div class="line"><a name="l00973"></a><span class="lineno">  973</span>&#160;<span class="preprocessor">                  &quot;semi-colon warnings&quot;)</span></div>
+<div class="line"><a name="l00974"></a><span class="lineno">  974</span>&#160;<span class="preprocessor">#endif  // defined(__CUDACC__) || defined(__HIPCC__)</span></div>
+<div class="line"><a name="l00975"></a><span class="lineno">  975</span>&#160; </div>
+<div class="line"><a name="l00976"></a><span class="lineno">  976</span>&#160; </div>
+<div class="line"><a name="l00977"></a><span class="lineno">  977</span>&#160;}  <span class="comment">// namespace gko</span></div>
+<div class="line"><a name="l00978"></a><span class="lineno">  978</span>&#160; </div>
+<div class="line"><a name="l00979"></a><span class="lineno">  979</span>&#160; </div>
+<div class="line"><a name="l00980"></a><span class="lineno">  980</span>&#160;<span class="preprocessor">#endif  // GKO_CORE_BASE_LIN_OP_HPP_</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <div class="ttc" id="anamespacegko_html_a92cf0178c1c55419d32d2bb527e57e5b"><div class="ttname"><a href="namespacegko.html#a92cf0178c1c55419d32d2bb527e57e5b">gko::read</a></div><div class="ttdeci">std::unique_ptr&lt; MatrixType &gt; read(StreamType &amp;&amp;is, MatrixArgs &amp;&amp;... args)</div><div class="ttdoc">Reads a matrix stored in matrix market format from an input stream.</div><div class="ttdef"><b>Definition:</b> mtx_io.hpp:113</div></div>
 <div class="ttc" id="aclassgko_1_1LinOp_html_a7203185d7c8d1d9dfe63a39903f0149e"><div class="ttname"><a href="classgko_1_1LinOp.html#a7203185d7c8d1d9dfe63a39903f0149e">gko::LinOp::apply</a></div><div class="ttdeci">LinOp * apply(const LinOp *alpha, const LinOp *b, const LinOp *beta, LinOp *x)</div><div class="ttdoc">Performs the operation x = alpha * op(b) + beta * x.</div><div class="ttdef"><b>Definition:</b> lin_op.hpp:182</div></div>
