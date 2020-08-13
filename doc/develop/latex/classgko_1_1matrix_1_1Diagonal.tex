@@ -1,0 +1,208 @@
+\hypertarget{classgko_1_1matrix_1_1Diagonal}{}\doxysection{gko\+::matrix\+::Diagonal$<$ Value\+Type $>$ Class Template Reference}
+\label{classgko_1_1matrix_1_1Diagonal}\index{gko::matrix::Diagonal$<$ ValueType $>$@{gko::matrix::Diagonal$<$ ValueType $>$}}
+
+
+This class is a utility which efficiently implements the diagonal matrix (a linear operator which scales a vector row wise).  
+
+
+
+
+{\ttfamily \#include $<$ginkgo/core/matrix/diagonal.\+hpp$>$}
+
+
+
+Collaboration diagram for gko\+::matrix\+::Diagonal$<$ Value\+Type $>$\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classgko_1_1matrix_1_1Diagonal__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Types}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_af48c9b37ae485401cd1ccb791ecc73c1}\label{classgko_1_1matrix_1_1Diagonal_af48c9b37ae485401cd1ccb791ecc73c1}} 
+using {\bfseries value\+\_\+type} = Value\+Type
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_a2fa3e8f96398dd69d11f6174d79c85b0}\label{classgko_1_1matrix_1_1Diagonal_a2fa3e8f96398dd69d11f6174d79c85b0}} 
+using {\bfseries index\+\_\+type} = \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_ab052cf453d296e221ecb5e2f1353c282}\label{classgko_1_1matrix_1_1Diagonal_ab052cf453d296e221ecb5e2f1353c282}} 
+using {\bfseries mat\+\_\+data} = \mbox{\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}}$<$ Value\+Type, \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}} $>$
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_a1aaad10d2dd0251cf5711c789989f03a}\label{classgko_1_1matrix_1_1Diagonal_a1aaad10d2dd0251cf5711c789989f03a}} 
+using {\bfseries mat\+\_\+data32} = \mbox{\hyperlink{structgko_1_1matrix__data}{gko\+::matrix\+\_\+data}}$<$ Value\+Type, \mbox{\hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32}} $>$
+\end{DoxyCompactItemize}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal_af0f8fc14f3388512d744f2fad8bb933e}{transpose}} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\item 
+std\+::unique\+\_\+ptr$<$ \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal_a130eef2d95c64a7a3c27cdb3ac5ce4a3}{conj\+\_\+transpose}} () const override
+\begin{DoxyCompactList}\small\item\em Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_acdc46e6b235535a4195059665f55c1e4}\label{classgko_1_1matrix_1_1Diagonal_acdc46e6b235535a4195059665f55c1e4}} 
+void {\bfseries convert\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}}$<$ Value\+Type, \mbox{\hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32}} $>$ $\ast$result) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_a4c8fef0a2ed5d145a4f12ffe77895821}\label{classgko_1_1matrix_1_1Diagonal_a4c8fef0a2ed5d145a4f12ffe77895821}} 
+void {\bfseries move\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}}$<$ Value\+Type, \mbox{\hyperlink{namespacegko_a1ec26caa2379a21a8d0cde611559fff6}{int32}} $>$ $\ast$result) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_a305099c7472d7193cc3ce63b00ea5475}\label{classgko_1_1matrix_1_1Diagonal_a305099c7472d7193cc3ce63b00ea5475}} 
+void {\bfseries convert\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}}$<$ Value\+Type, \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}} $>$ $\ast$result) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_a7ebaf5eb8811b866978246adb95591ac}\label{classgko_1_1matrix_1_1Diagonal_a7ebaf5eb8811b866978246adb95591ac}} 
+void {\bfseries move\+\_\+to} (\mbox{\hyperlink{classgko_1_1matrix_1_1Csr}{Csr}}$<$ Value\+Type, \mbox{\hyperlink{namespacegko_a6c57dbf3168b1ecad3ea133aaf2efbc1}{int64}} $>$ $\ast$result) override
+\item 
+value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal_ad219c265e4990ad115b013a7db9f8665}{get\+\_\+values}} () noexcept
+\begin{DoxyCompactList}\small\item\em Returns a pointer to the array of values of the matrix. \end{DoxyCompactList}\item 
+const value\+\_\+type $\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal_aef4fc59053ea3e0be4ebcecca4f70317}{get\+\_\+const\+\_\+values}} () const noexcept
+\begin{DoxyCompactList}\small\item\em Returns a pointer to the array of values of the matrix. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal_a70dafa75759e7cd8d1f9f3e82e1cc8e5}{rapply}} (const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$b, \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$x) const
+\begin{DoxyCompactList}\small\item\em Applies the diagonal matrix from the right side to a matrix b, which means scales the columns of b with the according diagonal entries. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_a90a4e8aca0dda280d5d063fed815821c}\label{classgko_1_1matrix_1_1Diagonal_a90a4e8aca0dda280d5d063fed815821c}} 
+void {\bfseries read} (const \mbox{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data}} \&data) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_abd53b169d1563415aafe5e0a4ef2066a}\label{classgko_1_1matrix_1_1Diagonal_abd53b169d1563415aafe5e0a4ef2066a}} 
+void {\bfseries read} (const \mbox{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data32}} \&data) override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_ac6a7b546bb0febc1f7f189b78ea17112}\label{classgko_1_1matrix_1_1Diagonal_ac6a7b546bb0febc1f7f189b78ea17112}} 
+void {\bfseries write} (\mbox{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data}} \&data) const override
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_ac4a24ea27f4b7880eb193538b8432cc8}\label{classgko_1_1matrix_1_1Diagonal_ac4a24ea27f4b7880eb193538b8432cc8}} 
+void {\bfseries write} (\mbox{\hyperlink{structgko_1_1matrix__data}{mat\+\_\+data32}} \&data) const override
+\end{DoxyCompactItemize}
+\doxysubsection*{Friends}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_a4df13336280c2189acd768b2c36a893d}\label{classgko_1_1matrix_1_1Diagonal_a4df13336280c2189acd768b2c36a893d}} 
+class {\bfseries Csr$<$ Value\+Type, int32 $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_a56c2ebf8cdf7a7f1f17fc25dd47ea1e9}\label{classgko_1_1matrix_1_1Diagonal_a56c2ebf8cdf7a7f1f17fc25dd47ea1e9}} 
+class {\bfseries Csr$<$ Value\+Type, int64 $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_a1dea3b6b0110d43c3edad5033f3054f4}\label{classgko_1_1matrix_1_1Diagonal_a1dea3b6b0110d43c3edad5033f3054f4}} 
+class {\bfseries Enable\+Polymorphic\+Object$<$ Diagonal, Lin\+Op $>$}
+\item 
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_acba9fea73414a240b79d6773a1272ffd}\label{classgko_1_1matrix_1_1Diagonal_acba9fea73414a240b79d6773a1272ffd}} 
+class {\bfseries Enable\+Create\+Method$<$ Diagonal $>$}
+\end{DoxyCompactItemize}
+\doxysubsection*{Additional Inherited Members}
+
+
+\doxysubsection{Detailed Description}
+\subsubsection*{template$<$typename Value\+Type = default\+\_\+precision$>$\newline
+class gko\+::matrix\+::\+Diagonal$<$ Value\+Type $>$}
+
+This class is a utility which efficiently implements the diagonal matrix (a linear operator which scales a vector row wise). 
+
+Objects of the \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{Diagonal}} class always represent a square matrix, and require one array to store their values.
+
+
+\begin{DoxyTemplParams}{Template Parameters}
+{\em Value\+Type} & precision of matrix elements \\
+\hline
+{\em Index\+Type} & precision of matrix indexes of a C\+SR matrix the diagonal is applied or converted to. \\
+\hline
+\end{DoxyTemplParams}
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_a130eef2d95c64a7a3c27cdb3ac5ce4a3}\label{classgko_1_1matrix_1_1Diagonal_a130eef2d95c64a7a3c27cdb3ac5ce4a3}} 
+\index{gko::matrix::Diagonal$<$ ValueType $>$@{gko::matrix::Diagonal$<$ ValueType $>$}!conj\_transpose@{conj\_transpose}}
+\index{conj\_transpose@{conj\_transpose}!gko::matrix::Diagonal$<$ ValueType $>$@{gko::matrix::Diagonal$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{conj\_transpose()}{conj\_transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{gko\+::matrix\+::\+Diagonal}}$<$ Value\+Type $>$\+::conj\+\_\+transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the conjugate transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new conjugate transposed object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Transposable_ab41b669288740cf2a6f7bf76e875b077}{gko\+::\+Transposable}}.
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_aef4fc59053ea3e0be4ebcecca4f70317}\label{classgko_1_1matrix_1_1Diagonal_aef4fc59053ea3e0be4ebcecca4f70317}} 
+\index{gko::matrix::Diagonal$<$ ValueType $>$@{gko::matrix::Diagonal$<$ ValueType $>$}!get\_const\_values@{get\_const\_values}}
+\index{get\_const\_values@{get\_const\_values}!gko::matrix::Diagonal$<$ ValueType $>$@{gko::matrix::Diagonal$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_const\_values()}{get\_const\_values()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+const value\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{gko\+::matrix\+::\+Diagonal}}$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+values (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns a pointer to the array of values of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the pointer to the array of values
+\end{DoxyReturn}
+\begin{DoxyNote}{Note}
+This is the constant version of the function, which can be significantly more memory efficient than the non-\/constant version, so always prefer this version. 
+\end{DoxyNote}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+const\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_ad219c265e4990ad115b013a7db9f8665}\label{classgko_1_1matrix_1_1Diagonal_ad219c265e4990ad115b013a7db9f8665}} 
+\index{gko::matrix::Diagonal$<$ ValueType $>$@{gko::matrix::Diagonal$<$ ValueType $>$}!get\_values@{get\_values}}
+\index{get\_values@{get\_values}!gko::matrix::Diagonal$<$ ValueType $>$@{gko::matrix::Diagonal$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{get\_values()}{get\_values()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+value\+\_\+type$\ast$ \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{gko\+::matrix\+::\+Diagonal}}$<$ Value\+Type $>$\+::get\+\_\+values (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}, {\ttfamily [noexcept]}}
+
+
+
+Returns a pointer to the array of values of the matrix. 
+
+\begin{DoxyReturn}{Returns}
+the pointer to the array of values 
+\end{DoxyReturn}
+
+
+References gko\+::\+Array$<$ Value\+Type $>$\+::get\+\_\+data().
+
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_a70dafa75759e7cd8d1f9f3e82e1cc8e5}\label{classgko_1_1matrix_1_1Diagonal_a70dafa75759e7cd8d1f9f3e82e1cc8e5}} 
+\index{gko::matrix::Diagonal$<$ ValueType $>$@{gko::matrix::Diagonal$<$ ValueType $>$}!rapply@{rapply}}
+\index{rapply@{rapply}!gko::matrix::Diagonal$<$ ValueType $>$@{gko::matrix::Diagonal$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{rapply()}{rapply()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+void \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{gko\+::matrix\+::\+Diagonal}}$<$ Value\+Type $>$\+::rapply (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$}]{b,  }\item[{\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} $\ast$}]{x }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Applies the diagonal matrix from the right side to a matrix b, which means scales the columns of b with the according diagonal entries. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em b} & the input vector(s) on which the diagonal matrix is applied \\
+\hline
+{\em x} & the output vector(s) where the result is stored \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classgko_1_1matrix_1_1Diagonal_af0f8fc14f3388512d744f2fad8bb933e}\label{classgko_1_1matrix_1_1Diagonal_af0f8fc14f3388512d744f2fad8bb933e}} 
+\index{gko::matrix::Diagonal$<$ ValueType $>$@{gko::matrix::Diagonal$<$ ValueType $>$}!transpose@{transpose}}
+\index{transpose@{transpose}!gko::matrix::Diagonal$<$ ValueType $>$@{gko::matrix::Diagonal$<$ ValueType $>$}}
+\doxysubsubsection{\texorpdfstring{transpose()}{transpose()}}
+{\footnotesize\ttfamily template$<$typename Value\+Type  = default\+\_\+precision$>$ \\
+std\+::unique\+\_\+ptr$<$\mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}}$>$ \mbox{\hyperlink{classgko_1_1matrix_1_1Diagonal}{gko\+::matrix\+::\+Diagonal}}$<$ Value\+Type $>$\+::transpose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [override]}, {\ttfamily [virtual]}}
+
+
+
+Returns a \mbox{\hyperlink{classgko_1_1LinOp}{Lin\+Op}} representing the transpose of the \mbox{\hyperlink{classgko_1_1Transposable}{Transposable}} object. 
+
+\begin{DoxyReturn}{Returns}
+a pointer to the new transposed object 
+\end{DoxyReturn}
+
+
+Implements \mbox{\hyperlink{classgko_1_1Transposable_a5c6b778b71b47d53e0bda6ccf894d318}{gko\+::\+Transposable}}.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+ginkgo/core/matrix/dense.\+hpp (39bffc87b)\item 
+ginkgo/core/matrix/diagonal.\+hpp (07a58a278)\end{DoxyCompactItemize}
