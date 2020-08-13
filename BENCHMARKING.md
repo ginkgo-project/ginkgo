@@ -183,12 +183,15 @@ detailed steps:
 ```bash
 git clone https://github.com/<username>/ginkgo-data.git $HOME/ginkgo_benchmark/ginkgo-data
 # send the benchmarked data to the ginkgo-data repository
+# If needed, remove the old data so that no previous data is left.
+# rm -r ${HOME}/ginkgo_benchmark/ginkgo-data/data/${SYSTEM_NAME}
 rsync -rtv ${ginkgo_build}/benchmark/results/ $HOME/ginkgo_benchmark/ginkgo-data/data/
 cd ${HOME}/ginkgo_benchmark/ginkgo-data/data/
 # The following updates the main `.json` files with the list of data.
 # Ensure a python 3 installation is available.
 ./build-list . > list.json
 ./agregate < list.json > agregate.json
+./represent . > represent.json
 git config --local user.name "<Name>"
 git config --local user.email "<email>"
 git commit -am "Ginkgo benchmark ${BENCHMARK} of ${SYSTEM_NAME}..."
@@ -203,8 +206,8 @@ and summarize (depending on the system name), or which data you want to select
 For the generating the plots in the GPE, here are the steps to go through:
 1. Access the GPE: https://ginkgo-project.github.io/gpe/
 2. Update data root URL, from
-   https://raw.githubusercontent.com/ginkgo-project/ginkgo-data/master/data to
-   https://raw.githubusercontent.com/<username>/ginkgo-data/<branch>/data
+   `https://raw.githubusercontent.com/ginkgo-project/ginkgo-data/master/data` to
+   `https://raw.githubusercontent.com/<username>/ginkgo-data/<branch>/data`
 3. Click on the arrow to load the data, select the `Result Summary` entry above.
 4. Click on `select an example` to choose a plotting script. Multiple scripts
    are available by default in different branches. You can use the `jsonata` and
