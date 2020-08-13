@@ -338,7 +338,7 @@ public:
          *       has to be respected when setting this parameter. Failure to do
          *       so will lead to undefined behavior.
          */
-        gko::Array<index_type> GKO_FACTORY_PARAMETER_SCALAR(block_pointers,
+        gko::Array<index_type> GKO_FACTORY_PARAMETER_VECTOR(block_pointers,
                                                             nullptr);
 
     private:
@@ -436,7 +436,7 @@ public:
          * If the non-adaptive version of Jacobi is used, the
          * `storage_optimization.block_wise` Array will be empty.
          */
-        storage_optimization_type GKO_FACTORY_PARAMETER_SCALAR(
+        storage_optimization_type GKO_FACTORY_PARAMETER_VECTOR(
             storage_optimization, precision_reduction(0, 0));
 
         /**
