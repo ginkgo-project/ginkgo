@@ -127,7 +127,7 @@ public:
          * implementation decides on the actual value depending on the
          * ressources that are available.
          */
-        size_type GKO_FACTORY_PARAMETER(iterations, 0);
+        size_type GKO_FACTORY_PARAMETER_SCALAR(iterations, 0);
 
         /**
          * @brief `true` means it is known that the matrix given to this
@@ -146,21 +146,21 @@ public:
          * it must remain `false`, otherwise, the factorization might be
          * incorrect.
          */
-        bool GKO_FACTORY_PARAMETER(skip_sorting, false);
+        bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
 
         /**
          * Strategy which will be used by the L matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
         std::shared_ptr<typename l_matrix_type::strategy_type>
-            GKO_FACTORY_PARAMETER(l_strategy, nullptr);
+            GKO_FACTORY_PARAMETER_SCALAR(l_strategy, nullptr);
 
         /**
          * Strategy which will be used by the U matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
         std::shared_ptr<typename u_matrix_type::strategy_type>
-            GKO_FACTORY_PARAMETER(u_strategy, nullptr);
+            GKO_FACTORY_PARAMETER_SCALAR(u_strategy, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(ParIlu, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

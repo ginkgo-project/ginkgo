@@ -125,7 +125,7 @@ public:
          * The number of total iterations of ParICT that will be executed.
          * The default value is 5.
          */
-        size_type GKO_FACTORY_PARAMETER(iterations, 5);
+        size_type GKO_FACTORY_PARAMETER_SCALAR(iterations, 5);
 
         /**
          * @brief `true` means it is known that the matrix given to this
@@ -144,7 +144,7 @@ public:
          * it must remain `false`, otherwise, the factorization might be
          * incorrect.
          */
-        bool GKO_FACTORY_PARAMETER(skip_sorting, false);
+        bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
 
         /**
          * @brief `true` means the candidate selection will use an inexact
@@ -160,7 +160,7 @@ public:
          *
          * The default behavior is to use approximate selection.
          */
-        bool GKO_FACTORY_PARAMETER(approximate_select, true);
+        bool GKO_FACTORY_PARAMETER_SCALAR(approximate_select, true);
 
         /**
          * @brief `true` means the sample used for the selection algorithm will
@@ -179,7 +179,7 @@ public:
          *
          * The default behavior is to use a random sample.
          */
-        bool GKO_FACTORY_PARAMETER(deterministic_sample, false);
+        bool GKO_FACTORY_PARAMETER_SCALAR(deterministic_sample, false);
 
         /**
          * @brief the amount of fill-in that is allowed in L compared to
@@ -193,21 +193,21 @@ public:
          * The default value `2.0` allows twice the number of non-zeros in
          * L compared to the lower triangle of A.
          */
-        double GKO_FACTORY_PARAMETER(fill_in_limit, 2.0);
+        double GKO_FACTORY_PARAMETER_SCALAR(fill_in_limit, 2.0);
 
         /**
          * Strategy which will be used by the L matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
         std::shared_ptr<typename matrix_type::strategy_type>
-            GKO_FACTORY_PARAMETER(l_strategy, nullptr);
+            GKO_FACTORY_PARAMETER_SCALAR(l_strategy, nullptr);
 
         /**
          * Strategy which will be used by the L^T matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
         std::shared_ptr<typename matrix_type::strategy_type>
-            GKO_FACTORY_PARAMETER(lt_strategy, nullptr);
+            GKO_FACTORY_PARAMETER_SCALAR(lt_strategy, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(ParIct, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

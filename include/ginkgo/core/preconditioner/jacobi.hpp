@@ -300,7 +300,7 @@ public:
          *
          * @note This value has to be between 1 and 32 (NVIDIA)/64 (AMD).
          */
-        uint32 GKO_FACTORY_PARAMETER(max_block_size, 32u);
+        uint32 GKO_FACTORY_PARAMETER_SCALAR(max_block_size, 32u);
 
         /**
          * Stride between two columns of a block (as number of elements).
@@ -311,7 +311,7 @@ public:
          *       reference executor. The allowed value: 0, 64 for AMD and 0, 32
          *       for NVIDIA
          */
-        uint32 GKO_FACTORY_PARAMETER(max_block_stride, 0u);
+        uint32 GKO_FACTORY_PARAMETER_SCALAR(max_block_stride, 0u);
 
         /**
          * Starting (row / column) indexes of individual blocks.
@@ -338,7 +338,8 @@ public:
          *       has to be respected when setting this parameter. Failure to do
          *       so will lead to undefined behavior.
          */
-        gko::Array<index_type> GKO_FACTORY_PARAMETER(block_pointers, nullptr);
+        gko::Array<index_type> GKO_FACTORY_PARAMETER_VECTOR(block_pointers,
+                                                            nullptr);
 
     private:
         // See documentation of storage_optimization parameter for details about
@@ -435,7 +436,7 @@ public:
          * If the non-adaptive version of Jacobi is used, the
          * `storage_optimization.block_wise` Array will be empty.
          */
-        storage_optimization_type GKO_FACTORY_PARAMETER(
+        storage_optimization_type GKO_FACTORY_PARAMETER_VECTOR(
             storage_optimization, precision_reduction(0, 0));
 
         /**
@@ -464,7 +465,7 @@ public:
          * accuracy to a value as close as possible to `dropout` will result in
          * optimal memory savings, while not degrading the quality of solution.
          */
-        remove_complex<value_type> GKO_FACTORY_PARAMETER(accuracy, 1e-1);
+        remove_complex<value_type> GKO_FACTORY_PARAMETER_SCALAR(accuracy, 1e-1);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Jacobi, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
