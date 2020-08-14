@@ -58,7 +58,7 @@ constexpr int default_block_size = 512;
 
 template <typename ValueType>
 void initialize(std::shared_ptr<const CudaExecutor> exec,
-                matrix::Dense<ValueType> *m, matrix::Dense<ValueType> *g,
+                matrix::Dense<ValueType> *m,
                 Array<stopping_status> *stop_status) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
