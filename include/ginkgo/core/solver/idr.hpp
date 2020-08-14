@@ -149,7 +149,7 @@ public:
         std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER(
             generated_preconditioner, nullptr);
 
-        size_type GKO_FACTORY_PARAMETER(subspace_dim, 1u);
+        size_type GKO_FACTORY_PARAMETER(subspace_dim, 2u);
         remove_complex<ValueType> GKO_FACTORY_PARAMETER(kappa, 0.7);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Idr, parameters, Factory);

@@ -52,9 +52,55 @@ namespace reference {
 namespace idr {
 
 
+namespace {
+
+
+template <typename ValueType>
+void solve_lower_triangular(const matrix::Dense<ValueType> *m,
+                            const matrix::Dense<ValueType> *f,
+                            matrix::Dense<ValueType> *c)
+{
+    const auto nrhs = m->get_size()[1] / m->get_size()[0];
+    for (size_type i = 0; i < f->get_size()[1]; i++) {
+        for (size_type row = 0; row < m->get_size()[0]; row++) {
+            auto temp = f->at(row, i);
+            for (size_type col = 0; col < row; col++) {
+                temp -= m->at(row, col * nrhs + i) * c->at(col, i);
+            }
+            c->at(row, i) = temp / m->at(row, row * nrhs + i);
+        }
+    }
+}
+
+
+template <typename ValueType>
+void update_g_and_u(size_type k, const matrix::Dense<ValueType> *p,
+                    const matrix::Dense<ValueType> *m,
+                    matrix::Dense<ValueType> *g, matrix::Dense<ValueType> *u)
+{
+    const auto nrhs = m->get_size()[1] / m->get_size()[0];
+    for (size_type i = 0; i < nrhs; i++) {
+        for (size_type j = 0; j < k; j++) {
+            auto alpha = zero<ValueType>();
+            for (size_type ind = 0; ind < p->get_size()[1]; ind++) {
+                alpha += p->at(j, ind) * g->at(ind, k * nrhs + i);
+            }
+            alpha /= m->at(j, j * nrhs + i);
+            for (size_type row = 0; row < g->get_size()[0]; row++) {
+                g->at(row, k * nrhs + i) -= alpha * g->at(row, j * nrhs + i);
+                u->at(row, k * nrhs + i) -= alpha * u->at(row, j * nrhs + i);
+            }
+        }
+    }
+}
+
+
+}  // namespace
+
+
 template <typename ValueType>
 void initialize(std::shared_ptr<const ReferenceExecutor> exec,
-                matrix::Dense<ValueType> *m, matrix::Dense<ValueType> *g,
+                matrix::Dense<ValueType> *m,
                 Array<stopping_status> *stop_status)
 {
     const auto nrhs = m->get_size()[1] / m->get_size()[0];
@@ -66,12 +112,6 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type col = 0; col < m->get_size()[1]; col++) {
             m->at(row, col) =
                 (row == col / nrhs) ? one<ValueType>() : zero<ValueType>();
-        }
-    }
-
-    for (auto row = 0; row < g->get_size()[0]; row++) {
-        for (auto col = 0; col < g->get_size()[1]; col++) {
-            g->at(row, col) = zero<ValueType>();
         }
     }
 }
@@ -88,23 +128,18 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec, const size_type k,
             matrix::Dense<ValueType> *v,
             const Array<stopping_status> *stop_status)
 {
-    const auto m_size = m->get_size();
     const auto nrhs = f->get_size()[1];
 
     for (size_type i = 0; i < nrhs; i++) {
         if (stop_status->get_const_data()[0].has_stopped()) {
             continue;
         }
+    }
 
-        // Compute c = M \ f
-        for (size_type row = 0; row < m_size[0]; row++) {
-            auto temp = f->at(row, i);
-            for (size_type col = 0; col < row; col++) {
-                temp -= m->at(row, col * nrhs + i) * c->at(col, i);
-            }
-            c->at(row, i) = temp / m->at(row, row * nrhs + i);
-        }
+    // Compute c = M \ f
+    solve_lower_triangular(m, f, c);
 
+    for (size_type i = 0; i < nrhs; i++) {
         // v = residual - c_k * g_k - ... - c_s * g_s
         for (size_type row = 0; row < v->get_size()[0]; row++) {
             auto temp = residual->at(row, i);
@@ -159,19 +194,11 @@ void step_3(std::shared_ptr<const ReferenceExecutor> exec, const size_type k,
         if (stop_status->get_const_data()[0].has_stopped()) {
             continue;
         }
+    }
 
-        for (size_type j = 0; j < k; j++) {
-            auto alpha = zero<ValueType>();
-            for (size_type ind = 0; ind < p->get_size()[1]; ind++) {
-                alpha += p->at(j, ind) * g->at(ind, k * nrhs + i);
-            }
-            alpha /= m->at(j, j * nrhs + i);
-            for (size_type row = 0; row < g->get_size()[0]; row++) {
-                g->at(row, k * nrhs + i) -= alpha * g->at(row, j * nrhs + i);
-                u->at(row, k * nrhs + i) -= alpha * u->at(row, j * nrhs + i);
-            }
-        }
+    update_g_and_u(k, p, m, g, u);
 
+    for (size_type i = 0; i < nrhs; i++) {
         for (size_type j = k; j < m->get_size()[0]; j++) {
             auto temp = zero<ValueType>();
             for (size_type ind = 0; ind < p->get_size()[1]; ind++) {
@@ -216,9 +243,8 @@ void compute_omega(
         auto thr = omega->at(0, i);
         auto normt = t_norm->at(0, i);
         omega->at(0, i) /= tht->at(0, i);
-        rho->at(0, i) = thr / (normt * residual_norm->at(0, i));
-
-        auto absrho = abs(rho->at(0, i));
+        auto absrho = abs(thr / (normt * residual_norm->at(0, i)));
+        rho->at(0, i) = absrho;
 
         if (absrho < kappa) {
             omega->at(0, i) *= kappa / absrho;
